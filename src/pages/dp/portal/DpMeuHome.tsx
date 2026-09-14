@@ -14,7 +14,11 @@ import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
 import { MinhasPendenciasCard } from "@/components/dp/home/MinhasPendenciasCard";
 import { AvisosNotificacoesCard } from "@/components/dp/home/AvisosNotificacoesCard";
 import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
-import { DpPage } from "@/components/dp/DpPage";
+import { DpEmptyState, DpPage } from "@/components/dp/DpPage";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { CardListSkeleton } from "@/components/dp/DpSkeletons";
+import { Skeleton } from "@/components/ui/skeleton";
+
 import { MinhaJornadaAcoesCard } from "@/components/dp/ocorrencias/MinhaJornadaAcoesCard";
 import { useMinhaProximaFolga } from "@/hooks/useMinhaProximaFolga";
 import { textoProximaFolga } from "@/lib/dp/proxima-folga";
@@ -149,6 +153,7 @@ export default function DpMeuHome() {
           value={String(ultimosDocs.data?.length ?? 0)}
           hint={ultimosDocs.data?.[0]?.titulo ?? "Nenhum documento recente"}
           to="/dp/meu/documentos"
+          loading={ultimosDocs.isLoading || colabId.isLoading}
         />
         <ResumoCard
           icon={MessageSquare}
@@ -156,8 +161,10 @@ export default function DpMeuHome() {
           value={String(msgs.data ?? 0)}
           hint={(msgs.data ?? 0) > 0 ? "Você tem mensagens novas" : "Nenhuma mensagem nova"}
           to="/dp/meu/solicitacoes"
+          loading={msgs.isLoading}
         />
       </div>
+
 
       <MinhaJornadaAcoesCard />
 
@@ -171,12 +178,14 @@ export default function DpMeuHome() {
               {pend.data?.length ?? 0}
             </Badge>
           </div>
-          <div className="space-y-2 max-h-[380px] overflow-y-auto flex-1">
-            {(pend.data?.length ?? 0) === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
-                <Inbox className="h-8 w-8 opacity-40" />
-                <p className="text-sm">Nenhuma solicitação em aberto.</p>
-              </div>
+          <div className="space-y-2 max-h-[60svh] overflow-y-auto flex-1">
+            {pend.isError ? (
+              <DpErrorState onRetry={() => pend.refetch()} />
+            ) : pend.isLoading || colabId.isLoading ? (
+              <CardListSkeleton rows={2} />
+            ) : (pend.data?.length ?? 0) === 0 ? (
+              <DpEmptyState icon={Inbox}>Nenhuma solicitação em aberto.</DpEmptyState>
+
             ) : pend.data!.map((s: any) => (
                 <div key={s.id} className="flex items-center gap-3 rounded-xl bg-card border border-[hsl(var(--dp-border))] p-3">
                 <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -212,8 +221,8 @@ export default function DpMeuHome() {
 }
 
 function ResumoCard({
-  icon: Icon, label, value, hint, to,
-}: { icon: any; label: string; value: string; hint: string; to: string }) {
+  icon: Icon, label, value, hint, to, loading = false,
+}: { icon: any; label: string; value: string; hint: string; to: string; loading?: boolean }) {
   return (
     <Link
       to={to}
@@ -224,10 +233,20 @@ function ResumoCard({
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-lg font-semibold leading-tight">{value}</p>
-        <p className="text-[11px] text-muted-foreground truncate">{hint}</p>
+        {loading ? (
+          <div className="space-y-1.5 py-1">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-3 w-28" />
+          </div>
+        ) : (
+          <>
+            <p className="text-lg font-semibold leading-tight">{value}</p>
+            <p className="text-[11px] text-muted-foreground truncate">{hint}</p>
+          </>
+        )}
       </div>
       <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
     </Link>
   );
 }
+
