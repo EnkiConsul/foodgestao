@@ -240,8 +240,6 @@ export function validarConvocacao(args: {
 }
 
 
-  return erros;
-}
 
 /** Total de horas efetivamente contratadas no período (apenas aceitas). */
 export function horasAceitas(convocacoes: Pick<Convocacao, "status" | "carga_prevista_horas">[]): number {
