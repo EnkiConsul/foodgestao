@@ -225,7 +225,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
       const competencias: string[] = [];
       for (let c = inicio; c <= fim; c = addMeses(c, 1)) competencias.push(c);
 
-      const [colabsRes, docsRes, unidadesRes, gozosRes, solsRes, pontosRes] = await Promise.all([
+      const [colabsRes, docsRes, unidadesRes, gozosRes, solsRes] = await Promise.all([
         // Inclui desligados: quem saiu no meio do mês continua devendo o
         // documento daquela competência (a elegibilidade é por competência).
         supabase
@@ -256,13 +256,6 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           .from("dp_adiantamento_solicitacoes" as any)
           .select("colaborador_id, tipo, competencia_efeito, created_at")
           .eq("company_id", selectedCompanyId!),
-        // Evidência de trabalho (usada para o intermitente).
-        supabase
-          .from("dp_pontos")
-          .select("colaborador_id, data")
-          .eq("company_id", selectedCompanyId!)
-          .gte("data", primeiroDia(inicio))
-          .lte("data", ultimoDia(fim)),
       ]);
       if (colabsRes.error) throw colabsRes.error;
       if (docsRes.error) throw docsRes.error;
@@ -314,11 +307,6 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
       // Intermitente sem nenhuma marcação na competência: não se cobra
       // contracheque nem folha de ponto (o alerta fica nas Pendências).
       const pontoNaComp = new Set<string>();
-      for (const p of (pontosRes.data ?? []) as any[]) {
-        if (p.colaborador_id && p.data) {
-          pontoNaComp.add(`${p.colaborador_id}::${String(p.data).slice(0, 7)}`);
-        }
-      }
 
       const alertas: Alerta[] = [];
       // chave: competencia::tipo::unidade
