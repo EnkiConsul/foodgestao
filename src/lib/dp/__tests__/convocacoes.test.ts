@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   encerramentoPorRelogios,
+  janelasSobrepostas,
+  rotuloAtraso,
   horasAceitas,
   podeConvocar,
   podeResponder,
