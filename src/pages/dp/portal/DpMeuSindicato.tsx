@@ -108,7 +108,7 @@ export default function DpMeuSindicato() {
       <DpPageHeader
         icon={Scale}
         title="Sindicato"
-        subtitle="Seu sindicato e os acordos coletivos que valem para você"
+        description="Seu sindicato e os acordos coletivos que valem para você"
       />
 
       <DpContentCard>
@@ -148,7 +148,8 @@ export default function DpMeuSindicato() {
         )}
       </DpContentCard>
 
-      <DpContentCard title="Acordos e convenções">
+      <DpContentCard>
+        <h2 className="mb-2 text-base font-semibold">Acordos e convenções</h2>
         {carregando ? (
           <p className="text-sm text-muted-foreground">Carregando…</p>
         ) : (negociacoes.data ?? []).length === 0 ? (
