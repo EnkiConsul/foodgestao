@@ -1,10 +1,14 @@
 -- P0.4 — Pessoas 360°: rotinas internas fechadas e titularidade blindada.
 --
 -- ⚠ ATENÇÃO: este script cria FIXTURES SINTÉTICAS (usuários em auth.users e uma
--- empresa fictícia) e usa DISABLE TRIGGER na tabela public.companies. Ele deve
--- rodar EXCLUSIVAMENTE em banco isolado de teste/CI — NUNCA em produção, mesmo
--- que a transação termine em ROLLBACK (o DISABLE/ENABLE TRIGGER exige lock na
--- tabela e um erro fora de hora deixaria gatilhos desabilitados).
+-- empresa fictícia), grava/altera linhas e usa DISABLE TRIGGER na tabela
+-- public.companies. Ele deve rodar EXCLUSIVAMENTE em banco isolado de
+-- teste/CI — NUNCA no banco do projeto. O motivo NÃO é risco de gatilho
+-- desabilitado sobrevivendo ao ROLLBACK (DDL de trigger é transacional e o
+-- ROLLBACK restaura o estado), mas sim: execução de fixtures e mutações em uma
+-- tabela real, locks exclusivos (ACCESS EXCLUSIVE) na tabela de empresas
+-- durante a transação e necessidade de papel proprietário.
+
 --
 -- Executa em UMA transação revertida (ROLLBACK no final): nenhum dado real é
 -- alterado e nenhuma rotina de negócio (geração de escala/folgas) é executada.
