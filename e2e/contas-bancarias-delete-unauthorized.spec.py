@@ -15,6 +15,9 @@ import asyncio, json, os, sys, uuid
 from pathlib import Path
 from playwright.async_api import async_playwright, expect
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from qa_admin import qa_rpc, session_user_id  # noqa: E402
+
 BASE_URL = "http://localhost:8080"
 SUPABASE_URL = "https://grtxmbffgmgnkawlvqhm.supabase.co"
 ANON = (
@@ -87,7 +90,7 @@ async def main() -> int:
         page = await ctx.new_page()
         await restore_session(ctx, page)
 
-        seed = await rpc(page, "_e2e_seed_foreign_accounts",
+        seed = qa_rpc("_e2e_seed_foreign_accounts",
                          {"_empty_name": EMPTY, "_history_name": HIST}, token)
         if seed["status"] != 200:
             print("❌ Seed falhou:", seed); return 1
@@ -151,7 +154,7 @@ async def main() -> int:
             return 0
         finally:
             cleanup = await rpc(
-                page, "_e2e_cleanup_foreign_accounts",
+                "_e2e_cleanup_foreign_accounts",
                 {"_empty_name": EMPTY, "_history_name": HIST}, token,
             )
             print("Cleanup:", cleanup["status"])

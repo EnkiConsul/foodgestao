@@ -1,8 +1,8 @@
 """Regressão: garante que `delete_account` consegue realizar hard delete
 após o conserto do trigger `prevent_hard_delete_account_with_history`.
 
-Roda no browser autenticado do sandbox e invoca a RPC de teste
-`_test_delete_account_hard_regression`, que:
+Invoca a rotina de QA `_test_delete_account_hard_regression` server-side com
+service_role (ver e2e/qa_admin.py — P0.2-C), que:
   1) cria uma conta vazia + um cartão + fatura apontando p/ OUTRA conta
      (cenário que o trigger quebrado bloqueava por causa da coluna errada)
      e valida que delete_account retorna 'hard' e remove a linha;
@@ -22,40 +22,12 @@ ANON = (
 )
 
 
-async def main() -> int:
-    session_json = os.environ.get("LOVABLE_BROWSER_SUPABASE_SESSION_JSON")
-    if not session_json:
-        print("❌ Sem sessão Supabase injetada (LOVABLE_BROWSER_AUTH_STATUS != injected).")
-        return 2
-    access_token = json.loads(session_json)["access_token"]
-
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        ctx = await browser.new_context(viewport={"width": 1280, "height": 900})
-        page = await ctx.new_page()
-        await page.goto(BASE_URL, wait_until="domcontentloaded")
-
-        result = await page.evaluate(
-            """async ({url, anon, token}) => {
-                const r = await fetch(`${url}/rest/v1/rpc/_test_delete_account_hard_regression`, {
-                    method: 'POST',
-                    headers: {
-                        apikey: anon,
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: '{}',
-                });
-                return { status: r.status, body: await r.text() };
-            }""",
-            {"url": SUPABASE_URL, "anon": ANON, "token": access_token},
-        )
-        await browser.close()
-
-    print("status:", result["status"])
-    print("body  :", result["body"])
-    if result["status"] != 200:
-        print("❌ RPC retornou status inesperado.")
+def main() -> int:
+    result = qa_rpc("_test_delete_account_hard_regression",
+                    {"_user_id": session_user_id()})
+    print("body  :", json.dumps(result))
+    if not isinstance(result, dict) or result.get("ok") is not True:
+        print("❌ Rotina de regressão retornou resultado inesperado.")
         return 1
 
     payload = json.loads(result["body"])

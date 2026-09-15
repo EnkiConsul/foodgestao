@@ -13,6 +13,7 @@ Seed/cleanup via rotinas `_e2e_seed_adjust_balance` /
 import asyncio
 import json
 import os
+import sys
 import urllib.request
 import uuid
 from pathlib import Path
