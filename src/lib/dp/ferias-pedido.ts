@@ -8,7 +8,7 @@ export type PeriodoPedido = {
   limite_concessivo: string;
   dias_direito: number;
   dias_saldo: number;
-  gozos: { adiantar_13: boolean; status: string }[];
+  gozos: { adiantar_13: boolean; status: string; dias?: number }[];
 };
 
 const iso = (d: Date) => format(d, "yyyy-MM-dd");
