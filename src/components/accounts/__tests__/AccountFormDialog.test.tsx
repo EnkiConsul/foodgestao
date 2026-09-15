@@ -13,6 +13,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 
+// jsdom não implementa ResizeObserver, usado pelos primitivos Radix.
+if (!("ResizeObserver" in globalThis)) {
+  (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 const insertSpy = vi.fn();
 const updateSpy = vi.fn();
 const deleteSpy = vi.fn();
