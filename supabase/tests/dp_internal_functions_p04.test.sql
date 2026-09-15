@@ -1,9 +1,15 @@
 -- P0.4 — Pessoas 360°: rotinas internas fechadas e titularidade blindada.
 --
+-- ⚠ ATENÇÃO: este script cria FIXTURES SINTÉTICAS (usuários em auth.users e uma
+-- empresa fictícia) e usa DISABLE TRIGGER na tabela public.companies. Ele deve
+-- rodar EXCLUSIVAMENTE em banco isolado de teste/CI — NUNCA em produção, mesmo
+-- que a transação termine em ROLLBACK (o DISABLE/ENABLE TRIGGER exige lock na
+-- tabela e um erro fora de hora deixaria gatilhos desabilitados).
+--
 -- Executa em UMA transação revertida (ROLLBACK no final): nenhum dado real é
 -- alterado e nenhuma rotina de negócio (geração de escala/folgas) é executada.
--- Todos os cenários de titularidade usam FIXTURES SINTÉTICAS criadas aqui —
--- nunca empresas ou usuários reais.
+-- Todos os cenários de titularidade usam apenas as fixtures sintéticas — nunca
+-- empresas ou usuários reais.
 --
 -- Requisitos: conexão com papel proprietário do banco (precisa inserir em
 -- auth.users para satisfazer a FK companies.user_id, assumir o papel
@@ -11,6 +17,7 @@
 --
 -- Uso: psql -v ON_ERROR_STOP=1 -f supabase/tests/dp_internal_functions_p04.test.sql
 --   (o script aborta com exceção no primeiro cenário que falhar)
+
 
 \set ON_ERROR_STOP on
 
@@ -163,7 +170,7 @@ BEGIN
     RAISE EXCEPTION 'FALHA T4: admin não conseguiu editar campo comum (policy bloqueou fluxo legítimo)';
   END IF;
   SELECT name INTO v_name FROM public.companies WHERE id = f.company_id;
-  IF v_name <> 'P04 EDITADO PELO ADMIN' THEN
+  IF v_name IS DISTINCT FROM 'P04 EDITADO PELO ADMIN' THEN
     RAISE EXCEPTION 'FALHA T4: edição do admin não persistiu (%).', v_name;
   END IF;
   PERFORM set_config('role', 'none', true);
@@ -187,7 +194,7 @@ BEGIN
 
   UPDATE public.companies SET user_id = f.admin_id WHERE id = f.company_id;
   SELECT user_id INTO v_owner_after FROM public.companies WHERE id = f.company_id;
-  IF v_owner_after <> f.admin_id THEN
+  IF v_owner_after IS DISTINCT FROM f.admin_id THEN
     RAISE EXCEPTION 'FALHA T5: dono legítimo não conseguiu transferir a titularidade';
   END IF;
 
@@ -204,24 +211,56 @@ UPDATE public.companies SET user_id = (SELECT owner_id FROM p04_fix)
 -- T6 (NEGATIVO, gatilhos + policy): admin não-dono não assume titularidade.
 -- =====================================================================
 DO $$
-DECLARE f p04_fix; v_err text; v_after uuid;
+DECLARE
+  f p04_fix;
+  v_state text := NULL;
+  v_msg text := NULL;
+  v_rows int := 0;
+  v_after uuid;
 BEGIN
   SELECT * INTO f FROM p04_fix;
   PERFORM pg_temp.p04_as_user(f.admin_id);
+
+  -- O bloco de captura contém APENAS o UPDATE: nenhuma asserção aqui, para não
+  -- capturar a própria falha do teste.
   BEGIN
     UPDATE public.companies SET user_id = f.admin_id WHERE id = f.company_id;
-    SELECT user_id INTO v_after FROM public.companies WHERE id = f.company_id;
-    IF v_after = f.admin_id THEN
-      RAISE EXCEPTION 'FALHA T6: admin não-dono transferiu a titularidade';
-    END IF;
-    v_err := 'sem erro, porém sem efeito (RLS filtrou a linha)';
-  EXCEPTION WHEN insufficient_privilege OR raise_exception THEN
-    v_err := SQLERRM;
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+  EXCEPTION WHEN others THEN
+    v_state := SQLSTATE;
+    v_msg := SQLERRM;
   END;
+
+  -- restaura o papel ANTES da leitura verificadora
   PERFORM set_config('role', 'none', true);
-  RAISE NOTICE 'OK T6: transferência por admin não-dono bloqueada (%).', v_err;
+  RESET ROLE;
+
+  SELECT user_id INTO v_after FROM public.companies WHERE id = f.company_id;
+
+  -- Asserções fora do bloco de captura.
+  IF v_after IS DISTINCT FROM f.owner_id THEN
+    RAISE EXCEPTION 'FALHA T6: titular final inesperado (esperado %, obtido %)', f.owner_id, v_after;
+  END IF;
+
+  IF v_state IS NULL THEN
+    -- sem erro: só é aceitável se o UPDATE não afetou nenhuma linha (RLS filtrou)
+    IF v_rows <> 0 THEN
+      RAISE EXCEPTION 'FALHA T6: UPDATE de titularidade afetou % linha(s) sem erro', v_rows;
+    END IF;
+    RAISE NOTICE 'OK T6: transferência por admin não-dono sem efeito (0 linhas, RLS filtrou)';
+  ELSIF v_state = '42501' THEN
+    RAISE NOTICE 'OK T6: transferência bloqueada por RLS (42501)';
+  ELSIF v_state = 'P0001' AND v_msg IN (
+      'Apenas o dono da empresa pode transferir a titularidade',
+      'Somente o proprietário atual da empresa ou um super admin pode transferir a titularidade',
+      'Ownership transfer is not allowed'
+  ) THEN
+    RAISE NOTICE 'OK T6: transferência bloqueada por gatilho existente (%)', v_msg;
+  ELSE
+    RAISE EXCEPTION 'FALHA T6: negação inesperada % / %', v_state, v_msg;
+  END IF;
 END $$;
-RESET ROLE;
+
 
 -- =====================================================================
 -- T7 (NEGATIVO, POLICY ISOLADA): com os gatilhos de titularidade
@@ -245,10 +284,10 @@ BEGIN
   PERFORM set_config('role', 'none', true);
 
   SELECT user_id INTO v_after FROM public.companies WHERE id = f.company_id;
-  IF v_after <> f.owner_id THEN
+  IF v_after IS DISTINCT FROM f.owner_id THEN
     RAISE EXCEPTION 'FALHA T7: sem os gatilhos, a policy permitiu a transferência';
   END IF;
-  IF v_sqlstate <> '42501' THEN
+  IF v_sqlstate IS DISTINCT FROM '42501' THEN
     RAISE EXCEPTION 'FALHA T7: esperado 42501 (violação de RLS) pela policy, obtido "%"', v_sqlstate;
   END IF;
   RAISE NOTICE 'OK T7: policy sozinha bloqueia a transferência (SQLSTATE 42501)';
@@ -279,21 +318,46 @@ ALTER TABLE public.companies ENABLE TRIGGER prevent_company_ownership_transfer_t
 -- T8 (NEGATIVO): usuário sem vínculo não edita nada da empresa sintética.
 -- =====================================================================
 DO $$
-DECLARE f p04_fix; v_name text;
+DECLARE
+  f p04_fix;
+  v_name text;
+  v_after text;
+  v_state text := NULL;
+  v_msg text := NULL;
+  v_rows int := 0;
 BEGIN
   SELECT * INTO f FROM p04_fix;
   SELECT name INTO v_name FROM public.companies WHERE id = f.company_id;
   PERFORM pg_temp.p04_as_user(f.outsider_id);
+
+  -- somente o UPDATE dentro da captura; erros inesperados falham nas asserções
   BEGIN
     UPDATE public.companies SET name = 'P04 INVASOR' WHERE id = f.company_id;
-  EXCEPTION WHEN others THEN NULL;
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+  EXCEPTION WHEN others THEN
+    v_state := SQLSTATE;
+    v_msg := SQLERRM;
   END;
+
   PERFORM set_config('role', 'none', true);
-  IF (SELECT name FROM public.companies WHERE id = f.company_id) <> v_name THEN
-    RAISE EXCEPTION 'FALHA T8: usuário sem vínculo alterou a empresa';
+  RESET ROLE;
+
+  SELECT name INTO v_after FROM public.companies WHERE id = f.company_id;
+  IF v_after IS DISTINCT FROM v_name THEN
+    RAISE EXCEPTION 'FALHA T8: usuário sem vínculo alterou a empresa (% -> %)', v_name, v_after;
   END IF;
-  RAISE NOTICE 'OK T8: usuário sem vínculo não altera a empresa';
+
+  IF v_state IS NULL THEN
+    IF v_rows <> 0 THEN
+      RAISE EXCEPTION 'FALHA T8: UPDATE de terceiro afetou % linha(s)', v_rows;
+    END IF;
+    RAISE NOTICE 'OK T8: usuário sem vínculo — UPDATE sem efeito (0 linhas)';
+  ELSIF v_state = '42501' THEN
+    RAISE NOTICE 'OK T8: usuário sem vínculo bloqueado por RLS (42501)';
+  ELSE
+    RAISE EXCEPTION 'FALHA T8: erro inesperado % / %', v_state, v_msg;
+  END IF;
 END $$;
-RESET ROLE;
+
 
 ROLLBACK;

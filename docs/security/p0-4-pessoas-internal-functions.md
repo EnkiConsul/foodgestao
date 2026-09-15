@@ -70,14 +70,23 @@ Vitest (26 casos, aprovados neste ambiente):
 - `WITH CHECK` da policy de `companies` referenciando
   `private.company_owner_snapshot` e `is_super_admin`.
 
-SQL com fixtures (T1–T8): privilégios e PUBLIC; gatilhos ativos; endpoints
-legítimos; **positivos** — admin não-dono edita campos comuns, dono edita e
-transfere titularidade; **negativos** — admin não-dono não assume titularidade,
-usuário sem vínculo não altera nada. O cenário **T7 isola o mérito da policy**:
-com os três gatilhos de titularidade temporariamente desabilitados dentro da
-transação, o `UPDATE` do admin ainda falha com `SQLSTATE 42501` (violação de RLS)
-e o dono permanece o mesmo; T7b confirma que, nessa mesma condição, a edição
-comum do admin continua funcionando.
+SQL com fixtures (T1–T8) — **cobertura pretendida, ainda não executada**
+(exige banco isolado de teste/CI; ver Limitações): privilégios e PUBLIC; gatilhos
+ativos; endpoints legítimos; **positivos** — admin não-dono edita campos comuns,
+dono edita e transfere titularidade; **negativos** — admin não-dono não assume
+titularidade, usuário sem vínculo não altera nada. O cenário **T7 pretende
+isolar o mérito da policy**: com os três gatilhos de titularidade temporariamente
+desabilitados dentro da transação, espera-se que o `UPDATE` do admin falhe com
+`SQLSTATE 42501` (violação de RLS) e que o dono permaneça o mesmo; T7b espera
+que, nessa mesma condição, a edição comum do admin continue funcionando.
+
+Rigor das asserções negativas (T6 e T8): o bloco de captura contém apenas o
+`UPDATE`; o papel é restaurado antes da leitura verificadora; o titular/nome
+final é conferido com `IS DISTINCT FROM` (NULL não passa como aprovação); e só é
+aceita a negação esperada — `42501`, zero linhas afetadas sem erro, ou, no T6,
+`P0001` com a mensagem exata de um dos três gatilhos existentes. Qualquer outro
+`SQLSTATE`/mensagem faz o cenário falhar.
+
 
 ## 4. Validação executada
 
@@ -91,19 +100,23 @@ comum do admin continua funcionando.
 | `bunx tsgo --noEmit` | sem erros |
 | `bunx vite build` | ok |
 | `supabase_migrations.schema_migrations` | versão `20260915024500` registrada |
-| `supabase/tests/dp_internal_functions_p04.test.sql` | **não executado neste ambiente** |
+| `supabase/tests/dp_internal_functions_p04.test.sql` | **não executado** (revisão apenas estática) |
 
 ## 5. Limitações (sem alegação de aprovação)
 
-- O script SQL com fixtures **não roda neste ambiente**: o papel do sandbox
-  (`sandbox_exec`) não tem `INSERT` em `auth.users`, não pode assumir
-  `authenticated` nem desabilitar gatilhos. Ele exige conexão com papel
-  proprietário no CI. Os cenários T1–T3 (privilégios/gatilhos/endpoints) estão
-  cobertos e aprovados pelo teste Vitest; T4–T8 (fixtures de titularidade) ficam
-  **pendentes de execução** até haver `SUPABASE_DB_URL` com papel dono.
-- Os agendamentos (`cron`) não são legíveis por este ambiente; a preservação da
-  execução interna foi provada por privilégio de `service_role`, pelos gatilhos
-  ativos e pela cadeia `SECURITY DEFINER` — nenhuma geração de escala/folgas foi
-  executada em produção.
+- O script SQL com fixtures **não foi executado**: por decisão de escopo ele só
+  pode rodar em banco isolado de teste/CI (cria usuários sintéticos e usa
+  `DISABLE TRIGGER`), e o papel do sandbox (`sandbox_exec`) não tem `INSERT` em
+  `auth.users`, não pode assumir `authenticated` nem desabilitar gatilhos. Os
+  cenários T1–T3 (privilégios/gatilhos/endpoints) estão cobertos e aprovados pelo
+  teste Vitest; **T4–T8 seguem pendentes de execução** até haver banco de teste
+  com papel proprietário — a revisão feita aqui é estática e não comprova
+  execução.
+- Os agendamentos (`dp-escala-auto-mensal`, `dp-folga-autoatribuicao-diaria`,
+  `dp-doc-bulk-worker-tick`) foram confirmados ativos e executando como
+  `postgres` em consulta somente-leitura; suas funções de negócio **não** foram
+  executadas. A preservação da execução interna se apoia nesse privilégio, nos
+  gatilhos ativos e na cadeia `SECURITY DEFINER`.
 - As demais correções da auditoria (outros domínios) seguem fora desta etapa.
+
 
