@@ -166,6 +166,7 @@ export default function ExtratoConciliacao() {
       setPluggyAccountId(null);
       setAccountName(null);
       setScopeProblem(null);
+      setResolvedKey(null);
       if ((!accountParam && !cardParam) || !selectedCompanyId) {
         return;
       }
