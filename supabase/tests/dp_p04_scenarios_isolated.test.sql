@@ -223,9 +223,48 @@ BEGIN
       RAISE EXCEPTION 'FALHA S3: UPDATE de % afetou % linha(s) na empresa B', perfil, v_rows;
     END IF;
   END LOOP;
-  RAISE NOTICE 'OK S3: admin de A, colaborador e usuário sem vínculo não alteram a empresa B';
+  RAISE NOTICE 'OK S3: admin de A, colaborador e usuário sem vínculo não alteram a empresa B (3 casos)';
 END $$;
 RESET ROLE;
+
+-- =====================================================================
+-- S3b (NEGATIVO NA PRÓPRIA EMPRESA): o colaborador (perfil real, vinculado a
+--      dp_colaboradores.user_id) não edita a empresa em que trabalha.
+-- =====================================================================
+DO $$
+DECLARE f s_fix; v_antes text; v_depois text; v_rows int := 0; v_state text; v_msg text; v_vinculo int;
+BEGIN
+  SELECT * INTO f FROM s_fix;
+  SELECT count(*)::int INTO v_vinculo FROM public.dp_colaboradores
+   WHERE company_id = f.company_a AND user_id = f.colab_a;
+  IF v_vinculo <> 1 THEN
+    RAISE EXCEPTION 'FALHA S3b: colaborador sintético não está vinculado ao usuário do portal (% vínculo)', v_vinculo;
+  END IF;
+
+  SELECT name INTO v_antes FROM public.companies WHERE id = f.company_a;
+  PERFORM pg_temp.s_as_user(f.colab_a);
+  BEGIN
+    UPDATE public.companies SET name = 'P04 A EDITADA PELO COLABORADOR' WHERE id = f.company_a;
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+  EXCEPTION WHEN others THEN
+    v_state := SQLSTATE; v_msg := SQLERRM;
+  END;
+  PERFORM pg_temp.s_reset();
+
+  SELECT name INTO v_depois FROM public.companies WHERE id = f.company_a;
+  IF v_depois IS DISTINCT FROM v_antes THEN
+    RAISE EXCEPTION 'FALHA S3b: colaborador alterou a própria empresa (% -> %)', v_antes, v_depois;
+  END IF;
+  IF v_state IS NOT NULL AND v_state <> '42501' THEN
+    RAISE EXCEPTION 'FALHA S3b: erro inesperado (% / %)', v_state, v_msg;
+  END IF;
+  IF v_state IS NULL AND v_rows <> 0 THEN
+    RAISE EXCEPTION 'FALHA S3b: UPDATE do colaborador afetou % linha(s)', v_rows;
+  END IF;
+  RAISE NOTICE 'OK S3b: colaborador com acesso de portal não edita a própria empresa';
+END $$;
+RESET ROLE;
+
 
 -- =====================================================================
 -- S4 (RPCs APP-FACING): exigem admin/dono DA EMPRESA ALVO.
