@@ -115,14 +115,16 @@ END $$;
 -- FIXTURES SINTÉTICAS para os cenários de companies (T4..T8).
 -- =====================================================================
 CREATE TEMP TABLE p04_fix (
-  owner_id uuid, admin_id uuid, outsider_id uuid, company_id uuid
+  owner_id uuid, admin_id uuid, outsider_id uuid, super_id uuid, company_id uuid
 ) ON COMMIT DROP;
+
 
 DO $$
 DECLARE
   v_owner uuid := gen_random_uuid();
   v_admin uuid := gen_random_uuid();
   v_out   uuid := gen_random_uuid();
+  v_super uuid := gen_random_uuid();
   v_comp  uuid := gen_random_uuid();
 BEGIN
   INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password,
@@ -133,18 +135,24 @@ BEGIN
     (v_admin, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
      'p04-admin-' || v_admin || '@example.test', '', now(), now(), now()),
     (v_out, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-     'p04-out-' || v_out || '@example.test', '', now(), now(), now());
+     'p04-out-' || v_out || '@example.test', '', now(), now(), now()),
+    (v_super, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+     'p04-super-' || v_super || '@example.test', '', now(), now(), now());
 
   INSERT INTO public.companies (id, user_id, name, is_active, profile_type, status_tenant)
-  VALUES (v_comp, v_owner, 'P04 FIXTURE LTDA', true, 'pj', 'active');
+  VALUES (v_comp, v_owner, 'P04 FIXTURE LTDA', true, 'empresarial', 'ativa');
 
   INSERT INTO public.company_members (company_id, user_id, role)
-  VALUES (v_comp, v_admin, 'admin')
+  VALUES (v_comp, v_admin, 'admin'), (v_comp, v_super, 'admin')
   ON CONFLICT DO NOTHING;
 
-  INSERT INTO p04_fix VALUES (v_owner, v_admin, v_out, v_comp);
+  INSERT INTO public.user_roles (user_id, role) VALUES (v_super, 'super_admin')
+  ON CONFLICT DO NOTHING;
+
+  INSERT INTO p04_fix VALUES (v_owner, v_admin, v_out, v_super, v_comp);
   RAISE NOTICE 'OK fixtures: empresa sintética % criada', v_comp;
 END $$;
+
 
 -- Helper: aplica claims de um usuário sintético e assume o papel authenticated.
 CREATE OR REPLACE FUNCTION pg_temp.p04_as_user(_uid uuid) RETURNS void
@@ -179,10 +187,15 @@ END $$;
 RESET ROLE;
 
 -- =====================================================================
--- T5 (POSITIVO): dono edita campo comum e transfere titularidade (permitido).
+-- T5 (POSITIVO + REGRA REAL): dono edita campo comum (permitido) e NÃO
+--     transfere titularidade.
+--     Regra efetiva confirmada no banco: dos três gatilhos, o mais restritivo
+--     (prevent_company_ownership_transfer_trg) só autoriza super_admin ou
+--     contexto de serviço — nem o próprio dono transfere. O teste segue a
+--     regra de produção; nada foi afrouxado.
 -- =====================================================================
 DO $$
-DECLARE f p04_fix; v_owner_after uuid;
+DECLARE f p04_fix; v_owner_after uuid; v_state text := NULL; v_msg text := NULL;
 BEGIN
   SELECT * INTO f FROM p04_fix;
   PERFORM pg_temp.p04_as_user(f.owner_id);
@@ -192,20 +205,51 @@ BEGIN
     RAISE EXCEPTION 'FALHA T5: dono não conseguiu editar campo comum';
   END IF;
 
-  UPDATE public.companies SET user_id = f.admin_id WHERE id = f.company_id;
-  SELECT user_id INTO v_owner_after FROM public.companies WHERE id = f.company_id;
-  IF v_owner_after IS DISTINCT FROM f.admin_id THEN
-    RAISE EXCEPTION 'FALHA T5: dono legítimo não conseguiu transferir a titularidade';
-  END IF;
+  BEGIN
+    UPDATE public.companies SET user_id = f.admin_id WHERE id = f.company_id;
+  EXCEPTION WHEN others THEN
+    v_state := SQLSTATE; v_msg := SQLERRM;
+  END;
 
-  -- devolve para o dono original (ainda dentro da transação revertida)
   PERFORM set_config('role', 'none', true);
-  RAISE NOTICE 'OK T5: dono edita e transfere titularidade (caso positivo)';
+  RESET ROLE;
+
+  SELECT user_id INTO v_owner_after FROM public.companies WHERE id = f.company_id;
+  IF v_owner_after IS DISTINCT FROM f.owner_id THEN
+    RAISE EXCEPTION 'FALHA T5: titularidade mudou (esperado %, obtido %)', f.owner_id, v_owner_after;
+  END IF;
+  IF v_state IS DISTINCT FROM 'P0001' OR v_msg IS DISTINCT FROM 'Ownership transfer is not allowed' THEN
+    RAISE EXCEPTION 'FALHA T5: negação esperada do gatilho, obtida % / %', v_state, v_msg;
+  END IF;
+  RAISE NOTICE 'OK T5: dono edita dados comuns; transferência bloqueada pelo gatilho mais restritivo';
 END $$;
 RESET ROLE;
 
+-- T5b (POSITIVO): a operação de transferência autorizada existe — super_admin
+-- transfere a titularidade da empresa sintética.
+DO $$
+DECLARE f p04_fix; v_after uuid;
+BEGIN
+  SELECT * INTO f FROM p04_fix;
+  PERFORM pg_temp.p04_as_user(f.super_id);
+  UPDATE public.companies SET user_id = f.admin_id WHERE id = f.company_id;
+  PERFORM set_config('role', 'none', true);
+  RESET ROLE;
+
+  SELECT user_id INTO v_after FROM public.companies WHERE id = f.company_id;
+  IF v_after IS DISTINCT FROM f.admin_id THEN
+    RAISE EXCEPTION 'FALHA T5b: super_admin não conseguiu transferir a titularidade (titular %)', v_after;
+  END IF;
+  RAISE NOTICE 'OK T5b: super_admin executa a transferência autorizada';
+END $$;
+RESET ROLE;
+
+-- devolve a titularidade ao dono original (ainda dentro da transação revertida)
 UPDATE public.companies SET user_id = (SELECT owner_id FROM p04_fix)
  WHERE id = (SELECT company_id FROM p04_fix);
+
+
+
 
 -- =====================================================================
 -- T6 (NEGATIVO, gatilhos + policy): admin não-dono não assume titularidade.

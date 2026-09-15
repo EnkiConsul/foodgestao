@@ -100,18 +100,24 @@ aceita a negação esperada — `42501`, zero linhas afetadas sem erro, ou, no T
 | `bunx tsgo --noEmit` | sem erros |
 | `bunx vite build` | ok |
 | `supabase_migrations.schema_migrations` | versão `20260915024500` registrada |
-| `supabase/tests/dp_internal_functions_p04.test.sql` | **não executado** (revisão apenas estática) |
+| `supabase/tests/dp_internal_functions_p04.test.sql` | **executado** em banco isolado — ver [validação funcional](./p0-4-functional-validation.md) |
+| `supabase/tests/dp_p04_scenarios_isolated.test.sql` | **executado** em banco isolado (duas empresas sintéticas) |
+| `node scripts/test-p04-isolated.mjs` | 25 cenários aprovados, exit 0 |
 
 ## 5. Limitações (sem alegação de aprovação)
 
-- O script SQL com fixtures **não foi executado**: por decisão de escopo ele só
-  pode rodar em banco isolado de teste/CI (cria usuários sintéticos e usa
-  `DISABLE TRIGGER`), e o papel do sandbox (`sandbox_exec`) não tem `INSERT` em
-  `auth.users`, não pode assumir `authenticated` nem desabilitar gatilhos. Os
-  cenários T1–T3 (privilégios/gatilhos/endpoints) estão cobertos e aprovados pelo
-  teste Vitest; **T4–T8 seguem pendentes de execução** até haver banco de teste
-  com papel proprietário — a revisão feita aqui é estática e não comprova
-  execução.
+- Os scripts SQL com fixtures **não rodam no banco do projeto** (criam usuários
+  sintéticos e usam `DISABLE TRIGGER`): eles são executados em cluster
+  PostgreSQL local, temporário e descartável pelo runner
+  `scripts/test-p04-isolated.mjs`, sobre a estrutura real com grants, políticas,
+  proprietários e gatilhos preservados. Resultados, recorte incluído/excluído e
+  limites estão em `docs/security/p0-4-functional-validation.md` e no relatório
+  JSON correspondente.
+- Conflito real registrado nessa validação: dos três gatilhos de titularidade de
+  `public.companies`, o mais restritivo só autoriza super admin — nem o dono
+  transfere. A regra de produção **não** foi afrouxada; a decisão de consolidar
+  os gatilhos fica fora desta etapa.
+
 - Os agendamentos (`dp-escala-auto-mensal`, `dp-folga-autoatribuicao-diaria`,
   `dp-doc-bulk-worker-tick`) foram confirmados ativos e executando como
   `postgres` em consulta somente-leitura; suas funções de negócio **não** foram
