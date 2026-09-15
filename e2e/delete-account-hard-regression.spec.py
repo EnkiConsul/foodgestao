@@ -10,16 +10,12 @@ service_role (ver e2e/qa_admin.py — P0.2-C), que:
      barrar (check_violation) quando a conta É a conta de pagamento.
 """
 from __future__ import annotations
-import asyncio, json, os, sys
-from playwright.async_api import async_playwright
+import json, sys
+from pathlib import Path
 
-BASE_URL = "http://localhost:8080"
-SUPABASE_URL = "https://grtxmbffgmgnkawlvqhm.supabase.co"
-ANON = (
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
-    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdydHhtYmZmZ21nbmthd2x2cWhtIiwicm9sZSI6ImFub24iLCJp"
-    "YXQiOjE3NzA4MDM5ODYsImV4cCI6MjA4NjM3OTk4Nn0.izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko"
-)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from qa_admin import qa_rpc, session_user_id  # noqa: E402
+
 
 
 def main() -> int:
@@ -30,7 +26,7 @@ def main() -> int:
         print("❌ Rotina de regressão retornou resultado inesperado.")
         return 1
 
-    payload = json.loads(result["body"])
+    payload = result
     if payload.get("ok") is True \
             and payload.get("hard_delete_result") == "hard" \
             and payload.get("guard_triggered") is True:
@@ -41,4 +37,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(asyncio.run(main()))
+    sys.exit(main())

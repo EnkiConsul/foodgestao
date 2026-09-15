@@ -90,11 +90,11 @@ async def main() -> int:
         page = await ctx.new_page()
         await restore_session(ctx, page)
 
-        seed = qa_rpc("_e2e_seed_foreign_accounts",
-                         {"_empty_name": EMPTY, "_history_name": HIST}, token)
-        if seed["status"] != 200:
-            print("❌ Seed falhou:", seed); return 1
-        rows = json.loads(seed["body"])
+        rows = qa_rpc("_e2e_seed_foreign_accounts", {
+            "_empty_name": EMPTY,
+            "_history_name": HIST,
+            "_user_id": session_user_id(),
+        })
         row = rows[0] if isinstance(rows, list) else rows
         empty_id = row["empty_id"]; hist_id = row["history_id"]
         print(f"Seed OK — contas '{EMPTY}' e '{HIST}' de outro usuário.")
@@ -153,11 +153,9 @@ async def main() -> int:
             print("\n✅ Autorização bloqueada em todos os caminhos.")
             return 0
         finally:
-            cleanup = await rpc(
-                "_e2e_cleanup_foreign_accounts",
-                {"_empty_name": EMPTY, "_history_name": HIST}, token,
-            )
-            print("Cleanup:", cleanup["status"])
+            qa_rpc("_e2e_cleanup_foreign_accounts",
+                   {"_empty_name": EMPTY, "_history_name": HIST})
+            print("Cleanup OK.")
             await browser.close()
 
 
