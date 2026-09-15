@@ -99,13 +99,36 @@ UUID validado, somente esse item, só códigos padronizados):
 Conector: `Banco do Brasil Empresas` (id 662), `type=BUSINESS_BANK`,
 `isOpenFinance=true`. `error_code` nulo, `consent_expires_at` nulo.
 
-**Conclusão:** o `PARTIAL_SUCCESS` vem exclusivamente do produto `creditCards`,
-com 2 avisos de código `004` e sem atualização desde 08/09. Contas, lançamentos,
-investimentos, identidade e operações de crédito foram atualizados normalmente —
-não há erro de credencial nem consentimento revogado, portanto **reconectar não
-resolve**. Referências oficiais dos códigos:
-<https://docs.pluggy.ai/docs/warnings-status-codes> e
-<https://docs.pluggy.ai/docs/errors-validations>.
+**O que a evidência prova:** na leitura de 2026-09-15 22:03Z, o único produto sem
+atualização era `creditCards` (último `lastUpdatedAt` em 2026-09-08T00:07:14Z), com
+2 avisos cujo código literal reportado foi `004`. Os demais produtos coletados
+constavam atualizados na mesma execução, `error` e `error_code` nulos e
+`consent_expires_at` nulo.
+
+**O que a evidência NÃO prova:** o significado do código `004` não foi confirmado
+contra a documentação nem com o suporte, e não deve ser reescrito como `CC_004`
+nem interpretado como "limitação do banco". Também não está demonstrado que
+reconectar seja inútil — apenas que, nessa leitura, não havia sinal de credencial
+inválida ou consentimento revogado. Próximo passo para fechar a causa: confirmar o
+código com a Pluggy (<https://docs.pluggy.ai/docs/warnings-status-codes>,
+<https://docs.pluggy.ai/docs/errors-validations>) e reler o `statusDetail` em nova
+execução para verificar se `creditCards` permanece parado.
+
+### Mensagem relatada pelo usuário — causa distinta e confirmada
+
+"Esta conta não possui vínculo com uma conexão Open Finance. Exibindo a fila
+completa da empresa." **não** vinha do `PARTIAL_SUCCESS`. A resolução do vínculo em
+`ConciliacaoPluggy.tsx` e `ExtratoConciliacao.tsx` buscava `pluggy_accounts` por
+`linked_account_id` + `company_id` com `maybeSingle()`, sem filtrar conexões
+encerradas e ignorando o `error`. No Praianos, cada conta BB tem 3 registros em
+`pluggy_accounts` (1 da conexão ativa `a4ca50e4-…` e 2 de conexões `deleted`),
+então `maybeSingle()` recebia várias linhas, devolvia erro engolido e a tela
+concluía "sem vínculo", ampliando o escopo para a fila inteira da empresa.
+
+Corrigido em `src/lib/pluggy/scopedPluggyAccount.ts`: só a conexão ativa da mesma
+empresa resolve; várias ativas = ambiguidade; erro de consulta = erro; status ou
+`company_id` ausente falha fechado; sem vínculo resolvido a tela não exibe nem
+sincroniza a fila da empresa, apenas oferece navegação explícita.
 
 ### Bloqueios remanescentes
 
