@@ -69,4 +69,35 @@ describe("describeSyncOutcome", () => {
     expect(f.level).toBe("info");
     expect(f.title).not.toMatch(/concluída/i);
   });
+
+  it("OUTDATED não sugere reconectar", () => {
+    const f = describeSyncOutcome(ok({ item_status: "OUTDATED", execution_status: "SITE_NOT_AVAILABLE" }));
+    expect(f.level).toBe("error");
+    expect(f.suggestReconnect).toBe(false);
+  });
+
+  it.each(["ALREADY_LOGGED_IN", "ACCOUNT_LOCKED", "CONNECTION_ERROR", "SITE_NOT_AVAILABLE"])(
+    "%s é erro com nova tentativa, sem reconexão",
+    (execution_status) => {
+      const f = describeSyncOutcome(ok({ item_status: "OUTDATED", execution_status }));
+      expect(f.level).toBe("error");
+      expect(f.suggestReconnect).toBe(false);
+    },
+  );
+
+  it("USER_AUTHORIZATION_PENDING instrui concluir a confirmação existente", () => {
+    const f = describeSyncOutcome(ok({ item_status: "UPDATING", execution_status: "USER_AUTHORIZATION_PENDING" }));
+    expect(f.level).toBe("info");
+    expect(f.suggestReconnect).toBe(false);
+    expect(f.description).toMatch(/já está aberta/i);
+  });
+
+  it.each(["USER_AUTHORIZATION_REVOKED", "USER_AUTHORIZATION_NOT_GRANTED", "INVALID_CREDENTIALS"])(
+    "%s sugere reconectar",
+    (execution_status) => {
+      const f = describeSyncOutcome(ok({ item_status: "LOGIN_ERROR", execution_status }));
+      expect(f.level).toBe("error");
+      expect(f.suggestReconnect).toBe(true);
+    },
+  );
 });
