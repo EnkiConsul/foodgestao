@@ -482,9 +482,9 @@ BEGIN
   VALUES (f.company_a, f.colab_existente, f.unidade_a, f.turno_a, false, 0, DATE '2026-01-01')
   RETURNING id INTO v_cfg;
   INSERT INTO public.dp_colaborador_config_dias
-    (company_id, config_id, dow, trabalha, entrada, saida)
-  VALUES (f.company_a, v_cfg, 1, true, '07:00', '16:00'),
-         (f.company_a, v_cfg, 2, true, '07:00', '16:00');
+    (company_id, config_id, dow, trabalha, entrada, saida, intervalo_minutos)
+  VALUES (f.company_a, v_cfg, 1, true, '07:00', '16:00', 60),
+         (f.company_a, v_cfg, 2, true, '07:00', '16:00', 60);
   SELECT count(*) INTO n_antes FROM public.dp_colaborador_config_dias WHERE config_id = v_cfg;
 
   -- item novo apontando para o MESMO cadastro, para exercitar a atualização
