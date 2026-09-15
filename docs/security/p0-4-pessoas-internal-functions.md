@@ -100,19 +100,23 @@ aceita a negação esperada — `42501`, zero linhas afetadas sem erro, ou, no T
 | `bunx tsgo --noEmit` | sem erros |
 | `bunx vite build` | ok |
 | `supabase_migrations.schema_migrations` | versão `20260915024500` registrada |
-| `supabase/tests/dp_internal_functions_p04.test.sql` | **não executado neste ambiente** |
+| `supabase/tests/dp_internal_functions_p04.test.sql` | **não executado** (revisão apenas estática) |
 
 ## 5. Limitações (sem alegação de aprovação)
 
-- O script SQL com fixtures **não roda neste ambiente**: o papel do sandbox
-  (`sandbox_exec`) não tem `INSERT` em `auth.users`, não pode assumir
-  `authenticated` nem desabilitar gatilhos. Ele exige conexão com papel
-  proprietário no CI. Os cenários T1–T3 (privilégios/gatilhos/endpoints) estão
-  cobertos e aprovados pelo teste Vitest; T4–T8 (fixtures de titularidade) ficam
-  **pendentes de execução** até haver `SUPABASE_DB_URL` com papel dono.
-- Os agendamentos (`cron`) não são legíveis por este ambiente; a preservação da
-  execução interna foi provada por privilégio de `service_role`, pelos gatilhos
-  ativos e pela cadeia `SECURITY DEFINER` — nenhuma geração de escala/folgas foi
-  executada em produção.
+- O script SQL com fixtures **não foi executado**: por decisão de escopo ele só
+  pode rodar em banco isolado de teste/CI (cria usuários sintéticos e usa
+  `DISABLE TRIGGER`), e o papel do sandbox (`sandbox_exec`) não tem `INSERT` em
+  `auth.users`, não pode assumir `authenticated` nem desabilitar gatilhos. Os
+  cenários T1–T3 (privilégios/gatilhos/endpoints) estão cobertos e aprovados pelo
+  teste Vitest; **T4–T8 seguem pendentes de execução** até haver banco de teste
+  com papel proprietário — a revisão feita aqui é estática e não comprova
+  execução.
+- Os agendamentos (`dp-escala-auto-mensal`, `dp-folga-autoatribuicao-diaria`,
+  `dp-doc-bulk-worker-tick`) foram confirmados ativos e executando como
+  `postgres` em consulta somente-leitura; suas funções de negócio **não** foram
+  executadas. A preservação da execução interna se apoia nesse privilégio, nos
+  gatilhos ativos e na cadeia `SECURITY DEFINER`.
 - As demais correções da auditoria (outros domínios) seguem fora desta etapa.
+
 
