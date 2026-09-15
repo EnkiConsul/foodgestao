@@ -554,6 +554,8 @@ const report = {
     "Agendador (pg_cron), filas (pgmq) e cofre (supabase_vault) são stubs vazios: a execução agendada não é simulada; segue comprovada por privilégio e cadeia de chamadas.",
     "Camada HTTP não é exercitada: PostgREST e GoTrue não rodam aqui. As provas são no banco (privilégios, RLS, políticas, gatilhos, corpos das funções) com claims injetados como o PostgREST faz.",
     "Sem dados reais, o comportamento sobre volume, índices e latência de produção não é avaliado nesta etapa.",
+    "S5.2 usa fixture de jornada LEGADA (gatilhos de selo desabilitados só durante o ARRANGE, no cluster descartável, e reabilitados/conferidos antes das chamadas). Isso comprova COMPATIBILIDADE com dados históricos — NÃO comprova geração automática a partir do modelo atual (Turnos + Configuração de trabalho).",
+    "RISCO OPERACIONAL SEPARADO (evidência somente-leitura na origem, 2026-09-15): public.dp_jornadas tem 2 registros, public.dp_colaborador_jornadas tem 0 e public.dp_colaborador_config_trabalho tem 16 linhas com vigencia_fim IS NULL. Como dp_escala_auto_gerar lê exclusivamente dp_colaborador_jornadas + dp_jornadas e o gatilho trg_dp_jornadas_legado (BEFORE INSERT) sela o cadastro antigo, a geração automática de escala hoje não enxerga as configurações atuais. Modernizar essa rotina (e a importação) é o próximo ajuste técnico, fora desta etapa.",
   ],
 };
 

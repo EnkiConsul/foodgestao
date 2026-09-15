@@ -1,6 +1,6 @@
 {
   "fase": "P0.4 — validação funcional em banco isolado",
-  "gerado_em": "2026-09-15T03:56:07.956Z",
+  "gerado_em": "2026-09-15T04:00:53.354Z",
   "comando": "node scripts/test-p04-isolated.mjs",
   "ambiente": {
     "tipo": "cluster PostgreSQL local temporário, exclusivo desta execução e descartável",
@@ -8,7 +8,7 @@
     "porta": 55437,
     "banco": "p04iso",
     "origem_dos_dados": "nenhuma — apenas ESTRUTURA (pg_dump --schema-only), reexportada nesta execução",
-    "data_directory": "/tmp/p04pg-run-TIuP2E/pgdata",
+    "data_directory": "/tmp/p04pg-run-5Umx9u/pgdata",
     "listen_addresses": "127.0.0.1"
   },
   "incluido": [
@@ -102,7 +102,7 @@
         "pendentes": 0
       },
       "preparacao": [
-        "PREP fixtures: empresa sintética 07705dfd-83bb-420f-9f80-0065d5c5759e criada"
+        "PREP fixtures: empresa sintética e1684ed2-e6e1-4594-9f31-6ee046456496 criada"
       ],
       "grupos_de_assercoes": [
         "OK T1: 9 rotinas internas fechadas, service_role preservado",
@@ -166,7 +166,9 @@
     "Rotinas globais dp_escala_auto_gerar_todas() e dp_folga_autoatribuir_todas() só são exercitadas pela negação de EXECUTE: em modo global varrem todas as empresas do banco e não agregam prova além do caminho por empresa.",
     "Agendador (pg_cron), filas (pgmq) e cofre (supabase_vault) são stubs vazios: a execução agendada não é simulada; segue comprovada por privilégio e cadeia de chamadas.",
     "Camada HTTP não é exercitada: PostgREST e GoTrue não rodam aqui. As provas são no banco (privilégios, RLS, políticas, gatilhos, corpos das funções) com claims injetados como o PostgREST faz.",
-    "Sem dados reais, o comportamento sobre volume, índices e latência de produção não é avaliado nesta etapa."
+    "Sem dados reais, o comportamento sobre volume, índices e latência de produção não é avaliado nesta etapa.",
+    "S5.2 usa fixture de jornada LEGADA (gatilhos de selo desabilitados só durante o ARRANGE, no cluster descartável, e reabilitados/conferidos antes das chamadas). Isso comprova COMPATIBILIDADE com dados históricos — NÃO comprova geração automática a partir do modelo atual (Turnos + Configuração de trabalho).",
+    "RISCO OPERACIONAL SEPARADO (evidência somente-leitura na origem, 2026-09-15): public.dp_jornadas tem 2 registros, public.dp_colaborador_jornadas tem 0 e public.dp_colaborador_config_trabalho tem 16 linhas com vigencia_fim IS NULL. Como dp_escala_auto_gerar lê exclusivamente dp_colaborador_jornadas + dp_jornadas e o gatilho trg_dp_jornadas_legado (BEFORE INSERT) sela o cadastro antigo, a geração automática de escala hoje não enxerga as configurações atuais. Modernizar essa rotina (e a importação) é o próximo ajuste técnico, fora desta etapa."
   ],
   "status_geral": "passed",
   "codigo_saida": 0
