@@ -40,6 +40,7 @@ Nos demais tipos (identidade, atestado, disciplinar, etc.) o campo não aparece.
 - `src/lib/documentoArquivo.ts`: `arquivoAutorizado(id, variante)` e `abrirDocumento(id, { variante })`.
 - `src/lib/dp/documentoTipos.ts`: allowlist `TIPOS_COM_COMPROVANTE` compartilhada com a trigger.
 - Novo componente `src/components/dp/documentos/ComprovantePagamentoPanel.tsx` usado no `DocDetalhesDialog`; mutations em `useDpDocumentos` (anexar/substituir/remover).
+- Botão-atalho `ComprovanteAcaoBotao` reaproveitando as mesmas mutations, renderizado no card/linha da lista em `DpHistoricoCompleto` e no `ColaboradorDocumentosPanel` (input de arquivo oculto, feedback por toast).
 - `src/hooks/portal/useMeusDocumentos.tsx` passa a trazer `comprovante_file_name`/`comprovante_pago_em` e a tela `DpMeuDocumentos` mostra o botão de comprovante.
 - Textos de cadastro em CAIXA ALTA não se aplicam aqui; rótulos em Primeira Maiúscula.
 
