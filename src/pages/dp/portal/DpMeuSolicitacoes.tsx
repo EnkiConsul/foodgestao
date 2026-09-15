@@ -424,13 +424,27 @@ export default function DpMeuSolicitacoes() {
                   <Label>Tipo</Label>
                   <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                    <SelectContent>{tiposDisponiveis.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
-                  <PortalDateField label="Data" value={form.data_alvo} onChange={(d) => setForm({ ...form, data_alvo: d })} />
-                  <PortalDateField label="Data fim" value={form.data_fim} onChange={(d) => setForm({ ...form, data_fim: d })} />
+                  <PortalDateField
+                    label={ehTroca ? "Dia que quero folgar" : "Data"}
+                    value={form.data_alvo}
+                    onChange={(d) => setForm({ ...form, data_alvo: d })}
+                  />
+                  <PortalDateField
+                    label={ehTroca ? "Dia de folga que vou trabalhar" : "Data fim"}
+                    value={form.data_fim}
+                    onChange={(d) => setForm({ ...form, data_fim: d })}
+                  />
                 </div>
+
+                {ehTroca && (
+                  <p className="text-xs text-muted-foreground">
+                    Você troca um dia da sua folga fixa por um dia de meio de semana. O gestor precisa aprovar.
+                  </p>
+                )}
 
                 {form.tipo === "folga" && (
                   <p className="text-xs text-muted-foreground">{resumoFolgas.texto}</p>
