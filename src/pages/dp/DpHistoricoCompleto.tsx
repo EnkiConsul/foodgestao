@@ -43,6 +43,7 @@ import { docSourceConfig, excluirDocumentoHistorico } from "@/lib/dp/historicoDo
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { notifyError } from "@/lib/notifyError";
+import { ComprovanteAcaoBotao } from "@/components/dp/documentos/ComprovantePagamentoPanel";
 
 
 type UnifiedDoc = {
@@ -67,6 +68,8 @@ type UnifiedDoc = {
   /** Validação digital dispensada porque o documento já veio assinado. */
   aceiteDispensado?: boolean;
   rescisao_grupo_id?: string | null;
+  /** Comprovante de pagamento anexado a este documento. */
+  tem_comprovante?: boolean;
 };
 
 const TIPO_OPTIONS = [
@@ -314,7 +317,7 @@ export default function DpHistoricoCompleto() {
       const [docsRes, solRes, discRes, aceitesRes] = await Promise.all([
         supabase
           .from("dp_documentos")
-          .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id")
+          .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id, comprovante_file_path")
           .eq("company_id", cId),
         supabase
           .from("dp_solicitacoes")
@@ -360,6 +363,7 @@ export default function DpHistoricoCompleto() {
           aceite: d.exige_aceite ? aceitos.has(d.id) : null,
           aceiteDispensado: !d.exige_aceite && d.assinatura_detectada === true,
            rescisao_grupo_id: d.rescisao_grupo_id ?? null,
+          tem_comprovante: !!d.comprovante_file_path,
         });
       });
 
@@ -893,6 +897,13 @@ export default function DpHistoricoCompleto() {
                       <Button aria-label="Excluir documento" size="icon" variant="ghost" className="h-8 w-8" title="Excluir documento" onClick={() => setExcluir(r)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
+                      {r.id.startsWith("doc:") && (
+                        <ComprovanteAcaoBotao
+                          alvo={{ documentoId: r.id.slice(4), colaboradorId: r.colaborador_id, tipo: r.tipo_key }}
+                          temComprovante={!!r.tem_comprovante}
+                          className="h-8 w-8 p-0"
+                        />
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -948,6 +959,13 @@ export default function DpHistoricoCompleto() {
               <Button size="sm" variant="ghost" className="min-h-11 text-destructive" onClick={() => setExcluir(r)}>
                 <Trash2 className="h-4 w-4 mr-1" /> Excluir
               </Button>
+              {r.id.startsWith("doc:") && (
+                <ComprovanteAcaoBotao
+                  alvo={{ documentoId: r.id.slice(4), colaboradorId: r.colaborador_id, tipo: r.tipo_key }}
+                  temComprovante={!!r.tem_comprovante}
+                  className="min-h-11"
+                />
+              )}
             </div>
           </div>
         ))}
