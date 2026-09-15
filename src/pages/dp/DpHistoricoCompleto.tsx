@@ -947,8 +947,8 @@ export default function DpHistoricoCompleto() {
             </button>
 
             <div className="pt-1 border-t border-border/60 space-y-1">
-              <div className="grid grid-cols-3 gap-1">
-                <Button size="sm" variant="ghost" className="min-h-11" onClick={() => setPreview(r)} disabled={!r.file_path}>
+              <div className="flex items-center justify-center gap-1">
+                <Button size="sm" variant="ghost" className="min-h-11 flex-1 max-w-[45%]" onClick={() => setPreview(r)} disabled={!r.file_path}>
                   <Eye className="h-4 w-4 mr-1 text-primary" /> Ver
                 </Button>
                 {r.id.startsWith("doc:") ? (
@@ -956,10 +956,10 @@ export default function DpHistoricoCompleto() {
                     alvo={{ documentoId: r.id.slice(4), colaboradorId: r.colaborador_id, tipo: r.tipo_key }}
                     temComprovante={!!r.tem_comprovante}
                     rotulo="Comprovante"
-                    className="min-h-11"
+                    className="min-h-11 flex-1 max-w-[45%]"
                   />
                 ) : null}
-                <Button size="sm" variant="ghost" className="min-h-11" onClick={() => download(r)} disabled={!r.file_path}>
+                <Button size="sm" variant="ghost" className="min-h-11 flex-1 max-w-[45%]" onClick={() => download(r)} disabled={!r.file_path}>
                   <Download className="h-4 w-4 mr-1" /> Baixar
                 </Button>
               </div>
