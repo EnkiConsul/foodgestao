@@ -1,0 +1,40 @@
+[2026-09-15T13:39:05.069Z] iniciando validação funcional isolada da P0.4
+[2026-09-15T13:39:05.071Z] guardas pré-start aprovadas (destino não colide com a conexão de origem)
+[2026-09-15T13:39:05.071Z] limpeza ignorada: nenhum cluster foi criado por esta execução
+[2026-09-15T13:39:05.072Z] limpeza abortada: marcador ausente em /tmp/p04pg-alheio-LkCAaE (diretório não é desta execução)
+[2026-09-15T13:39:05.073Z] self-test falha_pre_start_nao_limpa_cluster_alheio: passed
+[2026-09-15T13:39:05.073Z] self-test sem_marcador_nao_apaga_diretorio: passed
+[2026-09-15T13:39:05.073Z] self-test guarda_colisao_com_origem: passed
+[2026-09-15T13:39:05.073Z] exportando ESTRUTURA real (schema-only: public, private, qa) com grants/policies/owners…
+[2026-09-15T13:40:46.461Z] estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)
+[2026-09-15T13:40:48.313Z] cluster próprio no ar (data_directory=/tmp/p04pg-run-2zS2qh/pgdata, porta 55437, listen 127.0.0.1)
+[2026-09-15T13:40:48.431Z] bootstrap de papéis/schemas/shims aplicado (public removido para o dump recriá-lo)
+[2026-09-15T13:40:50.916Z] restore concluído com ON_ERROR_STOP=1: exit 0 e nenhum erro
+[2026-09-15T13:40:50.965Z] clone: 200 tabelas e 468 funções em public
+[2026-09-15T13:40:51.989Z] fidelidade acl_rotinas_criticas: IDÊNTICA (11 linha(s) na origem)
+[2026-09-15T13:40:53.109Z] fidelidade definicoes_rotinas_e_autorizacao: IDÊNTICA (21 linha(s) na origem)
+[2026-09-15T13:40:54.208Z] fidelidade policies_companies: IDÊNTICA (5 linha(s) na origem)
+[2026-09-15T13:40:55.732Z] fidelidade triggers_companies: IDÊNTICA (15 linha(s) na origem)
+[2026-09-15T13:40:56.820Z] fidelidade auth_helpers_equivalentes: IDÊNTICA (4 linha(s) na origem)
+[2026-09-15T13:40:56.861Z] migração aplicada SOMENTE no clone: supabase/migrations/20260915140000_ficha_aplicar_atomica.sql
+[2026-09-15T13:40:56.897Z] migração reaplicada sem erro (idempotente): supabase/migrations/20260915140000_ficha_aplicar_atomica.sql
+[2026-09-15T13:40:57.143Z] teste supabase/tests/dp_ficha_aplicar_isolated.test.sql: exit=0 status=passed preparacao=1 grupos=13 subcasos=74 pendentes=0
+[2026-09-15T13:40:57.144Z]   · PREP fixtures: 2 empresas, 6 usuários, 2 lotes e 7 fichas sintéticas
+[2026-09-15T13:40:57.144Z]   · OK F1: criação atômica gravou colaborador, configuração, 7 dias, item e contadores (9 casos)
+[2026-09-15T13:40:57.144Z]   · OK F2: replay do mesmo item devolveu o mesmo colaborador sem regravar nem duplicar (5 casos)
+[2026-09-15T13:40:57.144Z]   · OK F3: atualização gravou só os campos escolhidos e preservou os demais (8 casos)
+[2026-09-15T13:40:57.144Z]   · OK F4: campos de conta/perfil/permissões/empresa recusados (42501 FORBIDDEN, 8 casos)
+[2026-09-15T13:40:57.144Z]   · OK F5: referências de outra empresa recusadas (42501 FORBIDDEN, 3 casos)
+[2026-09-15T13:40:57.144Z]   · OK F6: visitante, colaborador, sem vínculo e admin de outra empresa negados (42501 FORBIDDEN, 5 casos)
+[2026-09-15T13:40:57.144Z]   · OK F7: CPF duplicado recusado (23505) sem gravação parcial (3 casos)
+[2026-09-15T13:40:57.144Z]   · OK F8: falha no meio da transação reverteu criação, atualização, dias e item; gatilho temporário removido (9 casos)
+[2026-09-15T13:40:57.144Z]   · OK F9: dois itens do mesmo lote aplicados com contadores somados em SQL (2 casos)
+[2026-09-15T13:40:57.144Z]   · OK F10: ignorar contabilizado na mesma transação, item aplicado protegido e lote concluído só sem pendências (5 casos)
+[2026-09-15T13:40:57.144Z]   · OK F11: lote em leitura mantém o status e ainda conta os criados (2 casos)
+[2026-09-15T13:40:57.144Z]   · OK F12: referência invisível recusada, admin da própria empresa aplicou e jornada/CPF/vínculo inválidos recusados (7 casos)
+[2026-09-15T13:40:57.144Z]   · OK F13: as 2 rotinas são SECURITY INVOKER, com search_path fixo, sem anon/PUBLIC (8 casos)
+[2026-09-15T13:40:57.336Z] 4 chamadas simultâneas da RPC concluídas sem erro
+[2026-09-15T13:40:57.363Z]   · OK C1-C3: corrida no mesmo item e em itens do mesmo lote sem duplicar cadastro, jornada, dias ou contadores (7 casos)
+[2026-09-15T13:40:57.551Z] cluster desta execução destruído
+
+=== status geral: passed (exit 0) ===
