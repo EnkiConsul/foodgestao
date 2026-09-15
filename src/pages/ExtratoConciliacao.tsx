@@ -215,16 +215,20 @@ export default function ExtratoConciliacao() {
     };
   }, [accountParam, cardParam, selectedCompanyId]);
 
+  // Só usamos o vínculo resolvido para a seleção ATUAL: resposta atrasada de uma
+  // seleção anterior não vale.
+  const scopeRequested = !!(accountParam || cardParam);
+  const scopedPluggyAccountId = resolvedKey === scopeKey ? pluggyAccountId : null;
   // Escopo pedido por conta/cartão sem vínculo ativo resolvido: não exibir a
   // fila inteira da empresa nem permitir conciliar por engano.
-  const scopeBlocked = !!(accountParam || cardParam) && !pluggyAccountId;
+  const scopeBlocked = scopeRequested && !scopedPluggyAccountId;
 
   const { staging, transactions, loading, error, reload } = useExtratoConciliacao({
     companyId: selectedCompanyId ?? null,
     from,
     to,
-    pluggyAccountId,
-    connectionId: pluggyAccountId ? null : connectionParam,
+    pluggyAccountId: scopedPluggyAccountId,
+    connectionId: scopedPluggyAccountId ? null : connectionParam,
     scopeBlocked,
   });
 
