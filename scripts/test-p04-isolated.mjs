@@ -29,6 +29,7 @@ import { join, resolve } from "node:path";
 const ARGS = new Set(process.argv.slice(2));
 const KEEP = ARGS.has("--keep");
 const SELF_TEST = ARGS.has("--self-test");
+const PENDING_SELF_TEST = ARGS.has("--pending-self-test");
 
 const PORT = 55437;
 const DB = "p04iso";
