@@ -430,6 +430,7 @@ export default function ConciliacaoPluggy() {
   // Escopo travado por conta (quando entrou pelo card da conta bancária)
   const [scope, setScope] = useState<ScopeInfo | null>(null);
   const [scopeUnresolved, setScopeUnresolved] = useState(false);
+  const [scopeProblem, setScopeProblem] = useState<ScopeProblem>(null);
   const [linkedByPluggyAccount, setLinkedByPluggyAccount] = useState<Record<string, string>>({});
   const [cardByPluggyAccount, setCardByPluggyAccount] = useState<Record<string, string>>({});
   const [cardPluggyAccounts, setCardPluggyAccounts] = useState<Set<string>>(new Set());
@@ -475,7 +476,7 @@ export default function ConciliacaoPluggy() {
               name: resolution.account.name,
             }
           : null;
-      if (!pa) scopeProblem = resolution.status;
+      if (resolution.status !== "resolved") scopeProblem = resolution.status;
       if (pa) {
         // O nome do provedor pode ser um placeholder ("Sem nome"); nesse caso
         // usamos o cadastro local do cartão (emissor/bandeira + final).
@@ -510,6 +511,9 @@ export default function ConciliacaoPluggy() {
         .select("*")
         .eq("company_id", selectedCompanyId);
       if (resolvedScope) q = q.eq("pluggy_account_id", resolvedScope.pluggyAccountId);
+      // Pedido de conta/cartão específico sem vínculo resolvido nunca cai para a
+      // fila inteira da empresa: preserva o escopo e devolve vazio.
+      else if (escopoBloqueado) q = q.in("pluggy_account_id", []);
       return q
         .order("date", { ascending: false })
         .order("id", { ascending: false })
