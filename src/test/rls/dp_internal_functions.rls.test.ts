@@ -1,102 +1,157 @@
 /**
  * P0.4 — rotinas internas do módulo Pessoas 360° fechadas.
  *
- * Prova que as rotinas SECURITY DEFINER internas (fila de importação em lote,
- * geração automática de escala e atribuição automática de folgas) não são
- * executáveis por visitante (anon) nem por usuário logado (authenticated):
- * o PostgREST responde 403/42501 (permission denied) ou 404 (não exposta).
+ * Estratégia: a verificação é feita SOMENTE por leitura do catálogo do banco
+ * (pg_proc / aclexplode / pg_trigger) via `psql`. Nenhuma rotina de negócio é
+ * chamada — em especial as globais (`dp_escala_auto_gerar_todas`,
+ * `dp_folga_autoatribuir_todas`), que gravariam dados reais caso houvesse
+ * regressão de permissão. O catálogo é a fonte autoritativa do grant, então a
+ * prova é mais forte que um HTTP 4xx (que pode ser 429/500 e não comprova nada).
  *
- * As RPCs app-facing do mesmo domínio (dp_folga_autoatribuicao_plano e
- * dp_folga_autoatribuir_aplicar) seguem com EXECUTE para authenticated e já
- * exigem administrador/dono da empresa dentro do banco — quando chamadas por
- * visitante devem falhar por autorização, nunca executar.
- *
- * Roda sem credenciais: usa apenas a chave publicável (anon).
+ * Quando não há banco disponível os casos são marcados como SKIPPED pelo
+ * Vitest (nunca "passed" silenciosamente).
  */
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
+import { execFileSync } from "node:child_process";
 
-const SUPABASE_URL = "https://grtxmbffgmgnkawlvqhm.supabase.co";
-const ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdydHhtYmZmZ21nbmthd2x2cWhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MDM5ODYsImV4cCI6MjA4NjM3OTk4Nn0.izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko";
-
-const ID = "00000000-0000-4000-8000-0000000000f4";
-const COMPETENCIA = "2026-01-01";
-
-/** Rotinas internas fechadas nesta fase. */
-const ROTINAS_INTERNAS: Array<[string, Record<string, unknown>]> = [
-  ["dp_bulk_increment_processed", { p_batch_id: ID }],
-  ["dp_escala_auto_gerar", { p_company_id: ID, p_mes: COMPETENCIA }],
-  ["dp_escala_auto_gerar_todas", {}],
-  ["dp_folga_autoatribuir_todas", {}],
-  ["dp_folga_autoatribuir_competencia", { _company: ID, _unidade: null, _competencia: COMPETENCIA }],
-  ["dp_folga_autoatribuir_manual", { _company: ID, _unidade: null, _competencia: COMPETENCIA }],
-  ["dp_folga_autoatribuicao_previa", { _company: ID, _unidade: null, _competencia: COMPETENCIA }],
-  ["dp_escala_item_validar_setor", {}],
-  ["dp_folgas_validar_unificado", {}],
-];
-
-/** RPCs app-facing preservadas (autorização é feita dentro do banco). */
-const ROTINAS_APP: Array<[string, Record<string, unknown>]> = [
-  ["dp_folga_autoatribuicao_plano", { _company: ID, _unidade: null, _competencia: COMPETENCIA }],
-  [
-    "dp_folga_autoatribuir_aplicar",
-    { _company: ID, _unidade: null, _competencia: COMPETENCIA, _itens: [] },
-  ],
-];
-
-let networkAvailable = true;
-
-beforeAll(async () => {
+const DB_AVAILABLE = (() => {
+  if (!process.env.PGHOST && !process.env.PGDATABASE) return false;
   try {
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/health`, { headers: { apikey: ANON_KEY } });
-    networkAvailable = res.ok;
+    execFileSync("psql", ["-At", "-c", "select 1"], { stdio: ["ignore", "pipe", "pipe"] });
+    return true;
   } catch {
-    networkAvailable = false;
+    return false;
   }
-});
+})();
 
-async function chamar(nome: string, corpo: Record<string, unknown>, token?: string) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${nome}`, {
-    method: "POST",
-    headers: {
-      apikey: ANON_KEY,
-      Authorization: `Bearer ${token ?? ANON_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(corpo),
+function q(sql: string): string[] {
+  const out = execFileSync("psql", ["-At", "-v", "ON_ERROR_STOP=1", "-c", sql], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
   });
-  return { status: res.status, texto: await res.text() };
+  return out.trim().length ? out.trim().split("\n") : [];
 }
 
-describe("P0.4: visitante não executa rotinas internas de Pessoas", () => {
-  for (const [nome, corpo] of ROTINAS_INTERNAS) {
-    it(`bloqueia ${nome}`, async () => {
-      if (!networkAvailable) return;
-      const { status } = await chamar(nome, corpo);
-      expect(status).toBeGreaterThanOrEqual(400);
+/** Grants efetivos da rotina, por papel. */
+function grants(proname: string): Record<string, string[]> {
+  const rows = q(`
+    select p.proname || '|' || coalesce(a.grantee::regrole::text,'-') || '|' || coalesce(a.privilege_type,'-')
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      left join aclexplode(p.proacl) a on true
+     where n.nspname = 'public' and p.proname = '${proname}'
+  `);
+  const map: Record<string, string[]> = {};
+  for (const r of rows) {
+    const [, grantee, priv] = r.split("|");
+    (map[grantee] ??= []).push(priv);
+  }
+  return map;
+}
+
+/** Rotinas internas fechadas nesta fase (inclui as 2 usadas como trigger). */
+const ROTINAS_INTERNAS = [
+  "dp_bulk_increment_processed",
+  "dp_escala_auto_gerar",
+  "dp_escala_auto_gerar_todas",
+  "dp_folga_autoatribuir_todas",
+  "dp_folga_autoatribuir_competencia",
+  "dp_folga_autoatribuir_manual",
+  "dp_folga_autoatribuicao_previa",
+  "dp_escala_item_validar_setor",
+  "dp_folgas_validar_unificado",
+] as const;
+
+/** RPCs app-facing preservadas (autorização de admin/dono é feita no banco). */
+const ROTINAS_APP = ["dp_folga_autoatribuicao_plano", "dp_folga_autoatribuir_aplicar"] as const;
+
+const d = describe.skipIf(!DB_AVAILABLE);
+
+d("P0.4: rotinas internas de Pessoas fechadas para anon/authenticated/PUBLIC", () => {
+  for (const nome of ROTINAS_INTERNAS) {
+    it(`${nome}: sem EXECUTE para anon, authenticated e PUBLIC; service_role preservado`, () => {
+      const g = grants(nome);
+      expect(Object.keys(g)).not.toHaveLength(0); // a rotina precisa existir
+      expect(g.anon ?? []).not.toContain("EXECUTE");
+      expect(g.authenticated ?? []).not.toContain("EXECUTE");
+      expect(g["-"] ?? []).not.toContain("EXECUTE"); // PUBLIC
+      expect(g.public ?? []).not.toContain("EXECUTE");
+      expect(g.service_role ?? []).toContain("EXECUTE");
     });
   }
 });
 
-describe("P0.4: usuário logado não executa rotinas internas de Pessoas", () => {
-  const token = process.env.SUPABASE_TEST_ACCESS_TOKEN;
-  for (const [nome, corpo] of ROTINAS_INTERNAS) {
-    it(`bloqueia ${nome} com sessão`, async () => {
-      if (!networkAvailable || !token) return; // sem credenciais no CI: coberto pelo caso anon
-      const { status, texto } = await chamar(nome, corpo, token);
-      expect(status).toBeGreaterThanOrEqual(400);
-      expect(/42501|PGRST202|permission denied/.test(texto)).toBe(true);
+d("P0.4: rotinas internas seguem SECURITY DEFINER com search_path explícito", () => {
+  for (const nome of ROTINAS_INTERNAS) {
+    it(`${nome}: definer + search_path`, () => {
+      const [row] = q(`
+        select p.prosecdef::text || '|' || coalesce(array_to_string(p.proconfig,','),'')
+          from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname='public' and p.proname='${nome}' limit 1
+      `);
+      expect(row).toBeDefined();
+      const [secdef, config] = row.split("|");
+      expect(secdef).toBe("true");
+      expect(config).toMatch(/search_path=/);
     });
   }
 });
 
-describe("P0.4: RPCs app-facing seguem exigindo autorização, sem executar para anon", () => {
-  for (const [nome, corpo] of ROTINAS_APP) {
-    it(`nega ${nome} para visitante`, async () => {
-      if (!networkAvailable) return;
-      const { status, texto } = await chamar(nome, corpo);
-      expect(status).toBeGreaterThanOrEqual(400);
-      expect(/FORBIDDEN|42501|permission denied|JWT/.test(texto)).toBe(true);
+d("P0.4: gatilhos que dependem das rotinas internas continuam ativos", () => {
+  it("dp_escala_item_validar_setor e dp_folgas_validar_unificado seguem ligados a gatilhos habilitados", () => {
+    const rows = q(`
+      select p.proname || '|' || t.tgname || '|' || t.tgenabled::text
+        from pg_trigger t
+        join pg_proc p on p.oid = t.tgfoid
+       where not t.tgisinternal
+         and p.proname in ('dp_escala_item_validar_setor','dp_folgas_validar_unificado')
+    `);
+    const fns = new Set(rows.map((r) => r.split("|")[0]));
+    expect(fns.has("dp_escala_item_validar_setor")).toBe(true);
+    expect(fns.has("dp_folgas_validar_unificado")).toBe(true);
+    for (const r of rows) expect(r.split("|")[2]).toBe("O"); // O = habilitado
+  });
+});
+
+d("P0.4: cadeia interna preservada (globais chamam as rotinas por empresa/competência)", () => {
+  it("dp_escala_auto_gerar_todas chama dp_escala_auto_gerar", () => {
+    const [row] = q(
+      `select (prosrc ~ 'dp_escala_auto_gerar\\(')::text from pg_proc where proname='dp_escala_auto_gerar_todas' limit 1`,
+    );
+    expect(row).toBe("true");
+  });
+  it("dp_folga_autoatribuir_todas chama dp_folga_autoatribuir_competencia", () => {
+    const [row] = q(
+      `select (prosrc ~ 'dp_folga_autoatribuir_competencia')::text from pg_proc where proname='dp_folga_autoatribuir_todas' limit 1`,
+    );
+    expect(row).toBe("true");
+  });
+});
+
+d("P0.4: RPCs app-facing preservadas para usuário logado", () => {
+  for (const nome of ROTINAS_APP) {
+    it(`${nome}: EXECUTE mantido para authenticated e service_role, negado para anon`, () => {
+      const g = grants(nome);
+      expect(g.authenticated ?? []).toContain("EXECUTE");
+      expect(g.service_role ?? []).toContain("EXECUTE");
+      expect(g.anon ?? []).not.toContain("EXECUTE");
+    });
+    it(`${nome}: exige admin/dono da empresa dentro do banco`, () => {
+      const [row] = q(
+        `select (prosrc ~ 'is_company_admin_or_owner|FORBIDDEN|has_role')::text from pg_proc where proname='${nome}' limit 1`,
+      );
+      expect(row).toBe("true");
     });
   }
+});
+
+d("P0.4: política de titularidade de companies com WITH CHECK restritivo", () => {
+  it("a policy de UPDATE exige dono atual, próprio dono ou super admin no WITH CHECK", () => {
+    const [row] = q(
+      `select coalesce(with_check,'') from pg_policies where tablename='companies' and cmd='UPDATE' limit 1`,
+    );
+    expect(row).toBeDefined();
+    expect(row).toMatch(/company_owner_snapshot/);
+    expect(row).toMatch(/is_super_admin/);
+  });
 });
