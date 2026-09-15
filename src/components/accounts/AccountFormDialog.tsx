@@ -272,24 +272,34 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           {/* Seção 2 — Vínculo e tipo */}
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Vínculo e tipo</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Vinculado a</Label>
-                <Select
-                  value={ownerType === "pf" ? "pf" : (ownerCompanyId ?? "")}
-                  onValueChange={(v) => {
-                    if (v === "pf") { setOwnerType("pf"); setOwnerCompanyId(null); }
-                    else { setOwnerType("pj"); setOwnerCompanyId(v); }
-                  }}
-                >
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {companies.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.trade_name || c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {isEdit && (
+              <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+                Esta conta pertence a <strong>{currentCompanyName ?? "esta empresa"}</strong> e continua
+                com o mesmo saldo e histórico.
               </div>
+            )}
+            {ownerType === "pj" && selectableCompanies.length > 0 && (
+              <div className="space-y-2">
+                <Label>{isEdit ? "Criar também em outras empresas" : "Empresas"}</Label>
+                <div className="space-y-2 rounded-md border p-3">
+                  {selectableCompanies.map((c) => (
+                    <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Checkbox
+                        checked={targetCompanyIds.includes(c.id)}
+                        onCheckedChange={(v) => toggleCompany(c.id, v === true)}
+                      />
+                      <span>{c.trade_name || c.name}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {isEdit
+                    ? "Cada empresa marcada recebe uma nova conta independente, começando do zero. Alterações futuras em uma não afetam as outras."
+                    : "Será criada uma conta independente em cada empresa selecionada, com saldo e lançamentos próprios."}
+                </p>
+              </div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Tipo de conta</Label>
                 <Select value={accountType} onValueChange={(v) => setAccountType(v as AccountType)}>
