@@ -21,11 +21,25 @@ import { useDpMinhasFerias, type MinhaFeriasPeriodo } from "@/hooks/useDpMinhasF
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import {
   decimoTerceiroJaAdiantado,
+  diasSugeridos,
   fimDoGozo,
+  fracoesExistentes,
   inicioMinimoPedido,
+  inicioSugeridoPedido,
   resumoPedido,
 } from "@/lib/dp/ferias-pedido";
+import {
+  avaliarFracionamento,
+  descreverFracionamento,
+  FRACIONAMENTO_PADRAO,
+} from "@/lib/dp/ferias-fracionamento";
 import { dataBr as fmt } from "@/lib/dp/formato";
+
+const FRACIONAMENTO_TEXTO: Record<string, string> = {
+  FERIAS_FRACIONAMENTO_LIMITE: `As férias podem ser divididas em até ${FRACIONAMENTO_PADRAO.maxFracoes} períodos.`,
+  FERIAS_FRACAO_CURTA: `Cada período de férias precisa ter ao menos ${FRACIONAMENTO_PADRAO.minDias} dias.`,
+  FERIAS_FRACAO_MAIOR_AUSENTE: `Um dos períodos precisa ter ${FRACIONAMENTO_PADRAO.maiorDias} dias ou mais.`,
+};
 
 
 const STATUS_LABEL: Record<string, string> = {
