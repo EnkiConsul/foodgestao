@@ -152,6 +152,7 @@ export default function ExtratoConciliacao() {
   const [statusFilter, setStatusFilter] = useState<ExtratoStatusFilter>("all");
   const [pluggyAccountId, setPluggyAccountId] = useState<string | null>(null);
   const [accountName, setAccountName] = useState<string | null>(null);
+  const [scopeProblem, setScopeProblem] = useState<ScopeProblem>(null);
   const [editTransaction, setEditTransaction] = useState<EditableTransaction | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [openingTransactionId, setOpeningTransactionId] = useState<string | null>(null);
