@@ -153,23 +153,30 @@ export default function ExtratoConciliacao() {
   useEffect(() => {
     let alive = true;
     (async () => {
+      // Troca de empresa/parâmetro: limpa o escopo anterior antes de resolver,
+      // para não exibir registros da seleção passada.
+      setPluggyAccountId(null);
+      setAccountName(null);
+      setScopeProblem(null);
       if ((!accountParam && !cardParam) || !selectedCompanyId) {
-        setPluggyAccountId(null);
-        setAccountName(null);
         return;
       }
       const { supabase } = await import("@/integrations/supabase/client");
       let query = supabase
         .from("pluggy_accounts")
-        .select("pluggy_account_id, name")
+        .select(SCOPED_PLUGGY_ACCOUNT_SELECT)
         .eq("company_id", selectedCompanyId);
       // Cartões de crédito conectados usam o vínculo com o cartão.
       query = cardParam
         ? query.eq("linked_credit_card_id", cardParam)
         : query.eq("linked_account_id", accountParam!);
-      const { data } = await query.maybeSingle();
+      // Reconexões deixam vários registros por conta; só a conexão ativa vale.
+      const { data: rows, error } = await query;
       if (!alive) return;
-      setPluggyAccountId(data?.pluggy_account_id ?? null);
+      const resolution = resolveScopedPluggyAccount({ rows: rows ?? [], error });
+      const data = resolution.status === "resolved" ? resolution.account : null;
+      setPluggyAccountId(data?.pluggyAccountId ?? null);
+      setScopeProblem(resolution.status === "resolved" ? null : resolution.status);
       // "Sem nome" e afins vindos do provedor não devem ir para a tela;
       // para cartão preferimos o cadastro local (emissor/bandeira + final).
       let label = cleanProviderName(data?.name);
