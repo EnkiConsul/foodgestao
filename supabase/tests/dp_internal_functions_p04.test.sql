@@ -218,7 +218,7 @@ BEGIN
   -- capturar a própria falha do teste.
   BEGIN
     UPDATE public.companies SET user_id = f.admin_id WHERE id = f.company_id;
-    v_rows := ROW_COUNT_HACK();
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
   EXCEPTION WHEN others THEN
     v_state := SQLSTATE;
     v_msg := SQLERRM;
