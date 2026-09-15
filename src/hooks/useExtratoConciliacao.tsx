@@ -42,10 +42,18 @@ export function useExtratoConciliacao(filtros: ExtratoConciliacaoFiltros) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Chave da requisição: resultado de uma seleção antiga nunca é aplicado.
+  const requestKey = `${companyId ?? "none"}|${pluggyAccountId ?? "-"}|${connectionId ?? "-"}|${from}|${to}|${scopeBlocked ? "blocked" : "open"}`;
+  const requestKeyRef = useRef(requestKey);
+
   const load = useCallback(async () => {
+    requestKeyRef.current = requestKey;
+    const key = requestKey;
+    const stale = () => requestKeyRef.current !== key;
+    // Limpa imediatamente ao trocar de empresa/seleção.
+    setStaging([]);
+    setTransactions([]);
     if (!companyId || scopeBlocked) {
-      setStaging([]);
-      setTransactions([]);
       setLoading(false);
       return;
     }
