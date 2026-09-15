@@ -1293,11 +1293,20 @@ export function useDpPendencias() {
             .limit(500);
           const nomePorColab = new Map(colaboradoresDocs.map((c) => [c.id, c.nome]));
           const nomeUnidade = new Map(unidades.map((u) => [u.id, u.nome]));
+          const diaAdiantPorUnidade = new Map(unidades.map((u) => [u.id, u.dia_adiantamento ?? null]));
           for (const d of (docsPagto ?? []) as any[]) {
             const referencia = String(d.referencia_data ?? d.created_at ?? "").slice(0, 10);
             if (!referencia || referencia < inicio) continue;
-            const vencimento = ymd(addDays(new Date(`${referencia}T12:00:00`), cfg.alerta_comprovante_dias));
             const unidadeId = d.colaborador_id ? unidadeDoColab.get(d.colaborador_id) ?? null : null;
+            // O comprovante só existe depois do pagamento: o prazo parte da data
+            // prevista de pagamento do documento, não da competência.
+            const vencimento = prazoComprovante({
+              tipo: String(d.tipo),
+              referencia,
+              diaAdiantamento: unidadeId ? diaAdiantPorUnidade.get(unidadeId) ?? null : null,
+              diaPagamentoFolha: cfg.alerta_contracheque_dia_mes,
+              toleranciaDias: cfg.alerta_comprovante_dias,
+            });
             results.push({
               id: `comprovante-${d.id}`,
               icon: Coins,
