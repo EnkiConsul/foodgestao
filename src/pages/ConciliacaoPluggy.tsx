@@ -447,15 +447,28 @@ export default function ConciliacaoPluggy() {
     // crédito (?card=) — contas de cartão da Pluggy são vinculadas ao cartão,
     // nunca a uma conta bancária, por isso precisam do vínculo próprio.
     let resolvedScope: ScopeInfo | null = null;
+    let scopeProblem: ScopeProblem = null;
     if (scopedCardId || scopedLocalAccountId) {
       let paQuery = supabase
         .from("pluggy_accounts")
-        .select("pluggy_account_id, connection_id, name, number_masked")
+        .select(SCOPED_PLUGGY_ACCOUNT_SELECT)
         .eq("company_id", selectedCompanyId);
       paQuery = scopedCardId
         ? paQuery.eq("linked_credit_card_id", scopedCardId)
         : paQuery.eq("linked_account_id", scopedLocalAccountId!);
-      const { data: pa } = await paQuery.maybeSingle();
+      // Sem maybeSingle: reconexões deixam vários registros por conta e só a
+      // conexão ativa resolve o vínculo.
+      const { data: paRows, error: paError } = await paQuery;
+      const resolution = resolveScopedPluggyAccount({ rows: paRows ?? [], error: paError });
+      const pa =
+        resolution.status === "resolved"
+          ? {
+              pluggy_account_id: resolution.account.pluggyAccountId,
+              connection_id: resolution.account.connectionId,
+              name: resolution.account.name,
+            }
+          : null;
+      if (!pa) scopeProblem = resolution.status;
       if (pa) {
         // O nome do provedor pode ser um placeholder ("Sem nome"); nesse caso
         // usamos o cadastro local do cartão (emissor/bandeira + final).
