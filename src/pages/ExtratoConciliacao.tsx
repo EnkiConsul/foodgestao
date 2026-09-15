@@ -153,6 +153,10 @@ export default function ExtratoConciliacao() {
   const [pluggyAccountId, setPluggyAccountId] = useState<string | null>(null);
   const [accountName, setAccountName] = useState<string | null>(null);
   const [scopeProblem, setScopeProblem] = useState<ScopeProblem>(null);
+  // Chave (empresa + conta/cartão) que resolveu o vínculo: garante que o
+  // pluggyAccountId nunca seja usado com a seleção seguinte.
+  const scopeKey = `${selectedCompanyId ?? "none"}|${cardParam ? `card:${cardParam}` : accountParam ? `acc:${accountParam}` : "all"}`;
+  const [resolvedKey, setResolvedKey] = useState<string | null>(null);
   const [editTransaction, setEditTransaction] = useState<EditableTransaction | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [openingTransactionId, setOpeningTransactionId] = useState<string | null>(null);
