@@ -369,37 +369,52 @@ BEGIN
   END IF;
   RAISE NOTICE 'OK S5.1: contagem de páginas do lote executada internamente (processed_pages=2)';
 
-  -- 5.2 geração automática de escala: PENDENTE quanto a trabalho efetivo.
-  --     dp_escala_auto_gerar lê public.dp_colaborador_jornadas/public.dp_jornadas
-  --     (cadastro legado), cujo gatilho ativo trg_dp_jornadas_legado recusa novos
-  --     registros. Sem violar essa regra de produção não há como criar jornada
-  --     sintética elegível, então aqui só a EXECUÇÃO e a ausência de efeito
-  --     colateral são conferidas — não a geração efetiva.
-  v_ret := public.dp_escala_auto_gerar(f.company_a, f.competencia);
-  IF v_ret IS NULL THEN
-    RAISE EXCEPTION 'FALHA S5.2: retorno nulo da geração de escala';
+  -- 5.2 geração automática de escala a partir de JORNADA LEGADA (compatibilidade
+  --     com dados históricos, NÃO suporte ao modelo atual de turnos).
+  --     A fixture legada é montada no bloco S5-ARRANGE abaixo, apenas no cluster
+  --     descartável, desabilitando somente os dois gatilhos BEFORE INSERT de selo
+  --     (trg_dp_jornadas_legado / trg_dp_colaborador_jornadas_legado) e
+  --     reabilitando-os antes de qualquer chamada às funções sob teste.
+  --     Competência usada: 2 meses adiante (representa a chamada mensal e evita
+  --     colisão com as folgas criadas em S5.3/S5b).
+  v_comp_fut := (date_trunc('month', f.competencia) + interval '2 months')::date;
+
+  SELECT count(*)::int INTO v_domingos
+    FROM generate_series(v_comp_fut,
+                         (date_trunc('month', v_comp_fut) + interval '1 month - 1 day')::date,
+                         interval '1 day') d
+   WHERE EXTRACT(DOW FROM d)::int = 0;
+
+  v_ret := public.dp_escala_auto_gerar(f.company_a, v_comp_fut);
+  IF v_ret IS DISTINCT FROM (v_domingos * 2) THEN
+    RAISE EXCEPTION 'FALHA S5.2: retorno esperado % (2 colaboradores × % domingos), obtido %',
+      v_domingos * 2, v_domingos, v_ret;
   END IF;
 
   SELECT count(*)::int INTO v_linhas
     FROM public.dp_folgas
    WHERE company_id = f.company_a AND origem = 'fixa_semana'
-     AND data BETWEEN f.competencia
-                  AND (date_trunc('month', f.competencia) + interval '1 month - 1 day')::date;
-  IF v_linhas IS DISTINCT FROM v_ret THEN
-    RAISE EXCEPTION 'FALHA S5.2: retorno diz % folgas, gravadas %', v_ret, v_linhas;
-  END IF;
-  SELECT count(*)::int INTO v_fora
-    FROM public.dp_folgas fg
-   WHERE fg.origem = 'fixa_semana' AND fg.company_id <> f.company_a;
-  IF v_fora <> 0 THEN
-    RAISE EXCEPTION 'FALHA S5.2: % folga(s) gravadas fora da empresa sintética A', v_fora;
+     AND data BETWEEN v_comp_fut
+                  AND (date_trunc('month', v_comp_fut) + interval '1 month - 1 day')::date;
+  IF v_linhas IS DISTINCT FROM (v_domingos * 2) THEN
+    RAISE EXCEPTION 'FALHA S5.2: esperado % folgas gravadas, obtido %', v_domingos * 2, v_linhas;
   END IF;
 
-  IF v_ret = 0 THEN
-    RAISE NOTICE 'PENDENTE S5.2: geração de escala executada internamente (retorno=0, nenhuma gravação) — trabalho efetivo NÃO comprovado: o cadastro de jornadas (dp_jornadas) está selado pelo gatilho trg_dp_jornadas_legado e não pode receber fixture sem violar regra de produção';
-  ELSE
-    RAISE NOTICE 'OK S5.2: escala gerada com efeito verificado (% folgas na empresa sintética A)', v_ret;
+  -- vínculos reais: empresa, colaboradores sintéticos e dia da folga legada
+  SELECT count(*)::int INTO v_fora
+    FROM public.dp_folgas fg
+   WHERE fg.origem = 'fixa_semana'
+     AND (fg.company_id IS DISTINCT FROM f.company_a
+          OR fg.colaborador_id NOT IN (f.colab_a1, f.colab_a2)
+          OR EXTRACT(DOW FROM fg.data)::int <> 0);
+  IF v_fora <> 0 THEN
+    RAISE EXCEPTION 'FALHA S5.2: % folga(s) fora da empresa/colaboradores/dia esperados', v_fora;
   END IF;
+
+  RAISE NOTICE 'OK S5.2: geração de escala com JORNADA LEGADA gerou % folgas (% domingos × 2 colaboradores) na competência % — compatibilidade com dados antigos, não suporte ao modelo atual de turnos',
+    v_linhas, v_domingos, v_comp_fut;
+
+
 
 
   -- 5.3 autoatribuição de folgas por competência: retorno e efeito conferidos
