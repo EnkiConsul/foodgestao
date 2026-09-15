@@ -17,6 +17,7 @@ import { compararUrgencia } from "@/lib/dp/pendencias";
 import { TIPOS_COM_COMPROVANTE } from "@/lib/dp/documentoTipos";
 
 import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
+import { prazoComprovante } from "@/lib/dp/comprovante-prazo";
 import {
   atrasoEmDias,
   competenciaDe,
