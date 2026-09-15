@@ -179,7 +179,14 @@ export async function registrarEvento(
   if (error) console.error(`[audit ${evento}] ${error.message}`);
 }
 
-const ORIGENS_OK = /^https?:\/\/(localhost(:\d+)?|127\.0\.0\.1(:\d+)?|([a-z0-9-]+\.)*(aveto360\.com|lovable\.app|lovableproject\.com|lovable\.dev))$/i;
+/** Endereço oficial do sistema — é o que o colaborador recebe. */
+const ORIGEM_OFICIAL = "https://aveto360.com";
+
+/**
+ * Só a máquina local pode substituir o endereço oficial (para testes).
+ * Preview e qualquer outro domínio caem no endereço oficial.
+ */
+const ORIGENS_LOCAIS = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
 
 /** Link de uso único do portal (ativação ou nova senha). */
 export function linkDeAcesso(
@@ -188,7 +195,7 @@ export function linkDeAcesso(
   tokenId: string,
   codigo: string,
 ): string {
-  const base = origin && ORIGENS_OK.test(origin) ? origin : "https://aveto360.com";
+  const base = origin && ORIGENS_LOCAIS.test(origin) ? origin : ORIGEM_OFICIAL;
   const rota = purpose === "activation" ? "/ativar-acesso" : "/redefinir-acesso";
   return `${base}${rota}?t=${encodeURIComponent(tokenId)}&c=${encodeURIComponent(codigo)}`;
 }

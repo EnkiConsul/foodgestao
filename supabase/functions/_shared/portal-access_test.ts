@@ -26,7 +26,7 @@ Deno.test("hash é determinístico por usuário e não contém o código", async
   assert(!h1.includes("ABCD2345"));
 });
 
-Deno.test("link leva identificador do código e só aceita origens do produto", () => {
+Deno.test("link sempre usa o endereço oficial (exceto máquina local)", () => {
   assertEquals(
     linkDeAcesso("https://aveto360.com", "activation", "11111111-1111-4111-8111-111111111111", "AB"),
     "https://aveto360.com/ativar-acesso?t=11111111-1111-4111-8111-111111111111&c=AB",
@@ -34,6 +34,20 @@ Deno.test("link leva identificador do código e só aceita origens do produto", 
   assertEquals(
     linkDeAcesso("https://evil.example.com", "reset", "11111111-1111-4111-8111-111111111111", "AB"),
     "https://aveto360.com/redefinir-acesso?t=11111111-1111-4111-8111-111111111111&c=AB",
+  );
+  // Preview do Lovable não vira link do colaborador.
+  assertEquals(
+    linkDeAcesso(
+      "https://id-preview--abc.lovable.app",
+      "activation",
+      "11111111-1111-4111-8111-111111111111",
+      "AB",
+    ),
+    "https://aveto360.com/ativar-acesso?t=11111111-1111-4111-8111-111111111111&c=AB",
+  );
+  assertEquals(
+    linkDeAcesso("http://localhost:8080", "reset", "11111111-1111-4111-8111-111111111111", "AB"),
+    "http://localhost:8080/redefinir-acesso?t=11111111-1111-4111-8111-111111111111&c=AB",
   );
 });
 
