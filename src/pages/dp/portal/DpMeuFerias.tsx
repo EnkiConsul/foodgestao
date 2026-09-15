@@ -88,6 +88,31 @@ export default function DpMeuFerias() {
   const foraDoPrazo =
     !!periodoSel && antecedencia !== null && antecedencia < periodoSel.aviso_antecedencia_dias;
 
+  /** Divisão das férias: só bloqueia quando a lei realmente não permite. */
+  const fracionamento = useMemo(() => {
+    if (!periodoSel || dias <= 0) return null;
+    const restante = Math.max(0, periodoSel.dias_saldo - dias - Math.max(0, abono));
+    return avaliarFracionamento(dias, fracoesExistentes(periodoSel), restante);
+  }, [periodoSel, dias, abono]);
+  const fracionamentoInvalido = !!fracionamento && !fracionamento.ok;
+
+  // Ao abrir o pedido (ou trocar de período), já sugere data e dias de descanso.
+  useEffect(() => {
+    if (!aberto || !periodoSel) return;
+    setInicio(
+      inicioSugeridoPedido(periodoSel, hojeIsoLocal(), periodoSel.aviso_antecedencia_dias),
+    );
+    setAbonoTexto("");
+    setDiasTexto(String(diasSugeridos(periodoSel.dias_saldo, 0)));
+  }, [aberto, periodoSel?.periodo_id]);
+
+  const alterarAbono = (valor: string) => {
+    setAbonoTexto(valor);
+    if (!periodoSel) return;
+    // O descanso padrão é o saldo menos o que foi vendido.
+    setDiasTexto(String(diasSugeridos(periodoSel.dias_saldo, Number(valor) || 0)));
+  };
+
   const abrir = () => {
     setPeriodoId(comSaldo[0]?.periodo_id ?? "");
     setInicio("");
