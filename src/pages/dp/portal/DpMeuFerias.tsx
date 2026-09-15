@@ -307,7 +307,7 @@ export default function DpMeuFerias() {
                 max={resumo?.maxAbono ?? 0}
                 placeholder="0"
                 value={abonoTexto}
-                onChange={(e) => setAbonoTexto(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => alterarAbono(e.target.value.replace(/\D/g, ""))}
               />
               <p className="text-xs text-muted-foreground">
                 A lei permite vender no máximo {resumo?.maxAbono ?? 0} dias deste período.
