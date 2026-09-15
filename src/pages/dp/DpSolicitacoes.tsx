@@ -190,8 +190,19 @@ export default function DpSolicitacoes() {
                   <div className="min-w-0 flex-1">
                     <div className="font-medium truncate">{s.dp_colaboradores?.nome ?? "Funcionário"}</div>
                     <div className="text-sm text-muted-foreground truncate">
-                      <span className="capitalize mr-2">{s.tipo}</span>
-                      <b>{formatBR(s.data_alvo)}{s.data_fim ? ` → ${formatBR(s.data_fim)}` : ""}</b>
+                      {s.tipo === "folga" && s.data_fim ? (
+                        <>
+                          <span className="mr-2">Troca de folga</span>
+                          <b>
+                            folga em {formatBR(s.data_alvo)} · trabalha em {formatBR(s.data_fim)}
+                          </b>
+                        </>
+                      ) : (
+                        <>
+                          <span className="capitalize mr-2">{s.tipo}</span>
+                          <b>{formatBR(s.data_alvo)}{s.data_fim ? ` → ${formatBR(s.data_fim)}` : ""}</b>
+                        </>
+                      )}
                     </div>
                   </div>
                   <span className="hidden md:inline text-xs text-muted-foreground whitespace-nowrap">
