@@ -443,8 +443,8 @@ Deno.serve(async (req) => {
     if (!existing && body?.allow_duplicate !== true) {
       try {
         preFetchedAccounts = await listAccounts(itemId);
-        const numbers = preFetchedAccounts
-          .map((a) => a.number)
+        const numbers = ((preFetchedAccounts ?? []) as Array<{ number?: string | null }>)
+          .map((a) => a.number ?? null)
           .filter((n): n is string => !!n);
         if (numbers.length) {
           const { data: clashes } = await admin
@@ -452,7 +452,7 @@ Deno.serve(async (req) => {
             .select('number_masked, name, company_id, companies:company_id(name, trade_name)')
             .in('number_masked', numbers)
             .neq('company_id', effectiveCompanyId);
-          const conflitos = (clashes ?? []) as Array<{
+          const conflitos = ((clashes ?? []) as unknown) as Array<{
             number_masked: string | null;
             name: string | null;
             company_id: string;

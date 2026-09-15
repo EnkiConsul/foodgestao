@@ -1,16 +1,93 @@
 {
-  "ranAt": "2026-08-27T18:12:37.284Z",
+  "ranAt": "2026-09-15T00:46:46.688Z",
   "requireMode": false,
   "results": [
     {
+      "id": "typescript",
+      "status": "failed",
+      "ms": 48355,
+      "exit": 1
+    },
+    {
       "id": "lint",
-      "status": "passed",
-      "ms": 18445
+      "status": "failed",
+      "ms": 16314,
+      "exit": 1
+    },
+    {
+      "id": "tests",
+      "status": "failed",
+      "ms": 87417,
+      "exit": 1
+    },
+    {
+      "id": "tenancy",
+      "status": "skipped",
+      "reason": "variáveis de tenancy ausentes: TEST_SUPABASE_URL, TEST_SUPABASE_ANON_KEY, TEST_USER_A_EMAIL, TEST_USER_A_PASSWORD, TEST_USER_B_EMAIL, TEST_USER_B_PASSWORD, TEST_USER_C_EMAIL, TEST_USER_C_PASSWORD, TEST_USER_D_EMAIL, TEST_USER_D_PASSWORD, TEST_COMPANY_1_ID, TEST_COMPANY_2_ID"
+    },
+    {
+      "id": "security",
+      "status": "failed",
+      "ms": 13909,
+      "exit": 1
+    },
+    {
+      "id": "policy",
+      "status": "failed",
+      "ms": 9559,
+      "exit": 1
     },
     {
       "id": "deno",
       "status": "passed",
-      "ms": 49599
+      "ms": 309233
+    },
+    {
+      "id": "migrations",
+      "status": "passed",
+      "ms": 101
+    },
+    {
+      "id": "functions-config",
+      "status": "passed",
+      "ms": 64
+    },
+    {
+      "id": "cron",
+      "status": "failed",
+      "ms": 2091,
+      "exit": 1
+    },
+    {
+      "id": "build",
+      "status": "passed",
+      "ms": 29493
+    },
+    {
+      "id": "e2e",
+      "status": "failed",
+      "ms": 8277,
+      "exit": 1
+    },
+    {
+      "id": "backup",
+      "status": "skipped",
+      "reason": "RESTORE_DB_URL ausente (banco descartável de restore)"
+    },
+    {
+      "id": "smoke",
+      "status": "skipped",
+      "reason": "variáveis SMOKE_* ausentes"
+    },
+    {
+      "id": "load-db",
+      "status": "passed",
+      "ms": 41013
+    },
+    {
+      "id": "load-api",
+      "status": "skipped",
+      "reason": "LOAD_TEST_ACCESS_TOKEN ou TEST_USER/TEST_PASS ausentes"
     }
   ]
 }
