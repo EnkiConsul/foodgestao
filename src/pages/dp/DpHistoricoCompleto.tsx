@@ -1027,6 +1027,7 @@ export default function DpHistoricoCompleto() {
       <DocDetalhesDialog
         target={detalhe ? {
           rowId: detalhe.id,
+          colaborador_id: detalhe.colaborador_id,
           titulo: detalhe.titulo,
           tipo_key: detalhe.tipo_key,
           tipo_label: detalhe.tipo_label,
