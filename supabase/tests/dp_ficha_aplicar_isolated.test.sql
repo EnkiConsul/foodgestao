@@ -655,8 +655,9 @@ BEGIN
 END $$;
 
 -- =====================================================================
--- F12: super admin aplica ficha de qualquer empresa (política existente) e a
---      jornada inválida é recusada pelo servidor.
+-- F12: referência invisível ao chamador é recusada (fail closed), quem
+--      administra a empresa aplica a própria ficha e o servidor recusa
+--      jornada/CPF/vínculo inválidos.
 -- =====================================================================
 DO $$
 DECLARE f f_fix; r jsonb; v_state text;
@@ -726,7 +727,7 @@ BEGIN
   IF v_state IS NULL THEN RAISE EXCEPTION 'FALHA F12: vínculo inválido aceito'; END IF;
   PERFORM pg_temp.f_reset();
 
-  RAISE NOTICE 'OK F12: super admin autorizado e servidor recusou jornada/CPF/vínculo inválidos (5 casos)';
+  RAISE NOTICE 'OK F12: referência invisível recusada, admin da própria empresa aplicou e jornada/CPF/vínculo inválidos recusados (7 casos)';
 END $$;
 
 -- =====================================================================

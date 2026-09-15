@@ -4,7 +4,7 @@
   "migracoes_aplicadas_somente_no_clone": [
     "supabase/migrations/20260915140000_ficha_aplicar_atomica.sql"
   ],
-  "gerado_em": "2026-09-15T13:36:10.856Z",
+  "gerado_em": "2026-09-15T13:39:05.068Z",
   "comando": "node scripts/test-p04-isolated.mjs --suite=ficha-aplicar-atomica --migrations=supabase/migrations/20260915140000_ficha_aplicar_atomica.sql --tests=supabase/tests/dp_ficha_aplicar_isolated.test.sql --conc-setup=supabase/tests/dp_ficha_conc_setup.sql --conc-call=supabase/tests/dp_ficha_conc_call.sql --conc-verify=supabase/tests/dp_ficha_conc_verify.sql",
   "ambiente": {
     "tipo": "cluster PostgreSQL local temporário, exclusivo desta execução e descartável",
@@ -12,7 +12,7 @@
     "porta": 55437,
     "banco": "p04iso",
     "origem_dos_dados": "nenhuma — apenas ESTRUTURA (pg_dump --schema-only), reexportada nesta execução",
-    "data_directory": "/tmp/p04pg-run-reb5bL/pgdata",
+    "data_directory": "/tmp/p04pg-run-2zS2qh/pgdata",
     "listen_addresses": "127.0.0.1"
   },
   "incluido": [
@@ -132,12 +132,12 @@
     {
       "file": "supabase/tests/dp_ficha_aplicar_isolated.test.sql",
       "comando": "psql -v ON_ERROR_STOP=1 -d p04iso -f supabase/tests/dp_ficha_aplicar_isolated.test.sql",
-      "status": "failed",
-      "exit_code": 3,
+      "status": "passed",
+      "exit_code": 0,
       "contagem": {
         "preparacao": 1,
-        "grupos_de_assercoes": 11,
-        "subcasos_declarados": 59,
+        "grupos_de_assercoes": 13,
+        "subcasos_declarados": 74,
         "pendentes": 0
       },
       "preparacao": [
@@ -154,18 +154,18 @@
         "OK F8: falha no meio da transação reverteu criação, atualização, dias e item; gatilho temporário removido (9 casos)",
         "OK F9: dois itens do mesmo lote aplicados com contadores somados em SQL (2 casos)",
         "OK F10: ignorar contabilizado na mesma transação, item aplicado protegido e lote concluído só sem pendências (5 casos)",
-        "OK F11: lote em leitura mantém o status e ainda conta os criados (2 casos)"
+        "OK F11: lote em leitura mantém o status e ainda conta os criados (2 casos)",
+        "OK F12: referência invisível recusada, admin da própria empresa aplicou e jornada/CPF/vínculo inválidos recusados (7 casos)",
+        "OK F13: as 2 rotinas são SECURITY INVOKER, com search_path fixo, sem anon/PUBLIC (8 casos)"
       ],
       "pendentes": [],
-      "falhas": [
-        "psql:supabase/tests/dp_ficha_aplicar_isolated.test.sql:711: ERROR:  Cargo de outra empresa."
-      ]
+      "falhas": []
     }
   ],
   "resumo_cenarios": {
     "preparacao": 1,
-    "grupos_de_assercoes": 11,
-    "subcasos_declarados": 59,
+    "grupos_de_assercoes": 13,
+    "subcasos_declarados": 74,
     "pendentes": 0
   },
   "limitacoes": [
@@ -176,6 +176,6 @@
     "S5.2 usa fixture de jornada LEGADA (gatilhos de selo desabilitados só durante o ARRANGE, no cluster descartável, e reabilitados/conferidos antes das chamadas). Isso comprova COMPATIBILIDADE com dados históricos — NÃO comprova geração automática a partir do modelo atual (Turnos + Configuração de trabalho).",
     "RISCO OPERACIONAL SEPARADO (evidência somente-leitura na origem, 2026-09-15): public.dp_jornadas tem 2 registros, public.dp_colaborador_jornadas tem 0 e public.dp_colaborador_config_trabalho tem 16 linhas com vigencia_fim IS NULL. Como dp_escala_auto_gerar lê exclusivamente dp_colaborador_jornadas + dp_jornadas e o gatilho trg_dp_jornadas_legado (BEFORE INSERT) sela o cadastro antigo, a geração automática de escala hoje não enxerga as configurações atuais. Modernizar essa rotina (e a importação) é o próximo ajuste técnico, fora desta etapa."
   ],
-  "status_geral": "failed",
-  "codigo_saida": 1
+  "status_geral": "passed",
+  "codigo_saida": 0
 }
