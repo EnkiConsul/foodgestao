@@ -29,6 +29,13 @@ import {
 import { downloadXlsx, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
 import { creditCardLabel, cleanProviderName } from "@/lib/conciliacao/cardRouting";
 import { formatProviderDescription } from "@/lib/conciliacao/cardDescription";
+import {
+  SCOPED_PLUGGY_ACCOUNT_SELECT,
+  resolveScopedPluggyAccount,
+  type ScopedPluggyResolution,
+} from "@/lib/pluggy/scopedPluggyAccount";
+
+type ScopeProblem = Exclude<ScopedPluggyResolution["status"], "resolved"> | null;
 
 type EditableTransaction = {
   id: string;

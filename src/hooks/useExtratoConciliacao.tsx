@@ -134,7 +134,7 @@ export function useExtratoConciliacao(filtros: ExtratoConciliacaoFiltros) {
     } finally {
       setLoading(false);
     }
-  }, [companyId, from, to, pluggyAccountId, connectionId]);
+  }, [companyId, from, to, pluggyAccountId, connectionId, scopeBlocked]);
 
   useEffect(() => {
     void load();
