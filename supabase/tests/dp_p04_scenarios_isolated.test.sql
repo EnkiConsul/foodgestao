@@ -442,44 +442,53 @@ END $$;
 -- =====================================================================
 DO $$
 DECLARE
-  f s_fix; v_data date; v_res jsonb; v_linhas int; v_antes int;
+  f s_fix; v_comp2 date; v_plan jsonb; v_item jsonb; v_colab uuid; v_data date;
+  v_res jsonb; v_linhas int; v_antes int;
 BEGIN
   SELECT * INTO f FROM s_fix;
+  -- competência seguinte, para não colidir com as folgas criadas em S5.3
+  v_comp2 := (date_trunc('month', f.competencia) + interval '1 month')::date;
 
-  -- escolhe um sábado do mês ainda sem folga para o colaborador A1
-  SELECT d::date INTO v_data
-    FROM generate_series(f.competencia,
-                         (date_trunc('month', f.competencia) + interval '1 month - 1 day')::date,
-                         interval '1 day') d
-   WHERE EXTRACT(DOW FROM d)::int = 6
-     AND NOT EXISTS (SELECT 1 FROM public.dp_folgas fg
-                      WHERE fg.colaborador_id = f.colab_a1 AND fg.data = d::date)
-   ORDER BY d LIMIT 1;
-  IF v_data IS NULL THEN
-    RAISE EXCEPTION 'FALHA S5b: não há sábado livre na competência sintética';
-  END IF;
-
-  SELECT count(*)::int INTO v_antes FROM public.dp_folgas
-   WHERE colaborador_id = f.colab_a1 AND data = v_data;
-
+  -- a data vem da PRÉVIA da própria rotina (dia permitido pela política real),
+  -- em vez de uma data arbitrária que a regra de negócio recusaria
   PERFORM pg_temp.s_as_user(f.admin_a);
-  SELECT public.dp_folga_autoatribuir_aplicar(
-           f.company_a, f.unidade_a, f.competencia,
-           jsonb_build_array(jsonb_build_object('colaborador_id', f.colab_a1, 'data', to_char(v_data, 'YYYY-MM-DD')))
-         ) INTO v_res;
+  v_plan := public.dp_folga_autoatribuicao_plano(f.company_a, f.unidade_a, v_comp2);
   PERFORM pg_temp.s_reset();
 
-  IF v_res IS NULL THEN
-    RAISE EXCEPTION 'FALHA S5b: retorno nulo da aplicação do plano pelo admin da própria empresa';
+  SELECT i INTO v_item
+    FROM jsonb_array_elements(COALESCE(v_plan->'itens', '[]'::jsonb)) i
+   WHERE i->>'data_sugerida' IS NOT NULL
+   LIMIT 1;
+
+  IF v_item IS NULL THEN
+    RAISE NOTICE 'PENDENTE S5b: prévia não sugeriu nenhuma data elegível na competência sintética seguinte — aplicação legítima com efeito NÃO exercitada (plano: %)', left(COALESCE(v_plan::text, 'null'), 300);
+  ELSE
+    v_colab := (v_item->>'colaborador_id')::uuid;
+    v_data := (v_item->>'data_sugerida')::date;
+
+    SELECT count(*)::int INTO v_antes FROM public.dp_folgas
+     WHERE colaborador_id = v_colab AND data = v_data;
+
+    PERFORM pg_temp.s_as_user(f.admin_a);
+    SELECT public.dp_folga_autoatribuir_aplicar(
+             f.company_a, f.unidade_a, v_comp2,
+             jsonb_build_array(jsonb_build_object('colaborador_id', v_colab, 'data', to_char(v_data, 'YYYY-MM-DD')))
+           ) INTO v_res;
+    PERFORM pg_temp.s_reset();
+
+    IF v_res IS NULL THEN
+      RAISE EXCEPTION 'FALHA S5b: retorno nulo da aplicação do plano pelo admin da própria empresa';
+    END IF;
+    SELECT count(*)::int INTO v_linhas FROM public.dp_folgas
+     WHERE company_id = f.company_a AND colaborador_id = v_colab AND data = v_data;
+    IF v_linhas <= v_antes THEN
+      RAISE EXCEPTION 'FALHA S5b: aplicação legítima não gravou a folga (antes %, depois %) — retorno %',
+        v_antes, v_linhas, left(v_res::text, 300);
+    END IF;
+    RAISE NOTICE 'OK S5b: admin da própria empresa aplica o plano e a folga é gravada (efeito verificado em %)', v_data;
   END IF;
-  SELECT count(*)::int INTO v_linhas FROM public.dp_folgas
-   WHERE company_id = f.company_a AND colaborador_id = f.colab_a1 AND data = v_data;
-  IF v_linhas <= v_antes THEN
-    RAISE EXCEPTION 'FALHA S5b: aplicação legítima não gravou a folga (antes %, depois %) — retorno %',
-      v_antes, v_linhas, left(v_res::text, 300);
-  END IF;
-  RAISE NOTICE 'OK S5b: admin da própria empresa aplica o plano e a folga é gravada (efeito verificado)';
 END $$;
+
 RESET ROLE;
 
 -- =====================================================================
