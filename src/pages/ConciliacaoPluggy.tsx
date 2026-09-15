@@ -1873,19 +1873,7 @@ export default function ConciliacaoPluggy() {
           <CardContent className="flex flex-col gap-2 p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
             <span className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
-              {scopeProblem === "error"
-                ? "Não foi possível verificar a conexão bancária desta seleção. Tente novamente em instantes."
-                : scopeProblem === "ambiguous"
-                  ? (scopedCardId
-                      ? "Este cartão está ligado a mais de uma conexão ativa do banco. Ajuste as conexões antes de conciliar."
-                      : "Esta conta está ligada a mais de uma conexão ativa do banco. Ajuste as conexões antes de conciliar.")
-                  : scopeProblem === "inactive_only"
-                    ? (scopedCardId
-                        ? "A conexão do banco ligada a este cartão foi encerrada. Reconecte para voltar a receber o extrato."
-                        : "A conexão do banco ligada a esta conta foi encerrada. Reconecte para voltar a receber o extrato.")
-                    : (scopedCardId
-                        ? "Este cartão não possui vínculo com uma conta conectada via Open Finance."
-                        : "Esta conta não possui vínculo com uma conexão Open Finance.")}
+              {describeScopeProblem(scopeProblem, scopedCardId ? "card" : "account")}
             </span>
             <Button
               size="sm"
