@@ -436,8 +436,13 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
             <h3 className="text-sm font-semibold text-foreground">Saldo</h3>
             {isPersonal && (
               <div className="space-y-2">
-                <Label>Saldo inicial</Label>
-                <CurrencyInput value={personalBalance} onValueChange={setPersonalBalance} placeholder="0,00" />
+                <Label htmlFor="saldo-pessoal">Saldo inicial</Label>
+                <CurrencyInput
+                  id="saldo-pessoal"
+                  value={personalBalance}
+                  onValueChange={setPersonalBalance}
+                  placeholder="0,00"
+                />
                 <p className="text-xs text-muted-foreground">
                   Informe o saldo atual do banco. A partir dele, o sistema calcula os movimentos.
                 </p>
