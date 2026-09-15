@@ -4,7 +4,7 @@
   "migracoes_aplicadas_somente_no_clone": [
     "supabase/migrations/20260915140000_ficha_aplicar_atomica.sql"
   ],
-  "gerado_em": "2026-09-15T13:31:36.346Z",
+  "gerado_em": "2026-09-15T13:33:57.442Z",
   "comando": "node scripts/test-p04-isolated.mjs --suite=ficha-aplicar-atomica --migrations=supabase/migrations/20260915140000_ficha_aplicar_atomica.sql --tests=supabase/tests/dp_ficha_aplicar_isolated.test.sql --conc-setup=supabase/tests/dp_ficha_conc_setup.sql --conc-call=supabase/tests/dp_ficha_conc_call.sql --conc-verify=supabase/tests/dp_ficha_conc_verify.sql",
   "ambiente": {
     "tipo": "cluster PostgreSQL local temporário, exclusivo desta execução e descartável",
@@ -12,7 +12,7 @@
     "porta": 55437,
     "banco": "p04iso",
     "origem_dos_dados": "nenhuma — apenas ESTRUTURA (pg_dump --schema-only), reexportada nesta execução",
-    "data_directory": "/tmp/p04pg-run-KjelFi/pgdata",
+    "data_directory": "/tmp/p04pg-run-tnGQIw/pgdata",
     "listen_addresses": "127.0.0.1"
   },
   "incluido": [
@@ -154,7 +154,7 @@
       ],
       "pendentes": [],
       "falhas": [
-        "psql:supabase/tests/dp_ficha_aplicar_isolated.test.sql:559: ERROR:  column \"colaborador_id\" of relation \"dp_colaborador_config_dias\" does not exist"
+        "psql:supabase/tests/dp_ficha_aplicar_isolated.test.sql:559: ERROR:  new row for relation \"dp_colaborador_config_dias\" violates check constraint \"dp_colab_config_dias_horario_coerente\""
       ]
     }
   ],
