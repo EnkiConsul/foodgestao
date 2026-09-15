@@ -440,7 +440,22 @@ export default function ConciliacaoPluggy() {
   const [clearOpen, setClearOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
 
+  // Chave da requisição: empresa + escopo pedido. Resultado de uma chave antiga
+  // nunca pode ser aplicado depois que o usuário trocou de empresa/conta.
+  const requestKey = `${selectedCompanyId ?? "none"}|${scopedCardId ? `card:${scopedCardId}` : scopedLocalAccountId ? `acc:${scopedLocalAccountId}` : "all"}`;
+  const requestKeyRef = useRef(requestKey);
+  const scopeRequested = !!(scopedCardId || scopedLocalAccountId);
+
   const load = useCallback(async () => {
+    // Limpa e bloqueia ações imediatamente (síncrono) para não exibir nem
+    // sincronizar registros da seleção anterior.
+    requestKeyRef.current = requestKey;
+    const key = requestKey;
+    const stale = () => requestKeyRef.current !== key;
+    setRows([]);
+    setScope(null);
+    setScopeProblem(null);
+    setScopeUnresolved(scopeRequested);
     if (!selectedCompanyId) { setLoading(false); return; }
     setLoading(true);
 
