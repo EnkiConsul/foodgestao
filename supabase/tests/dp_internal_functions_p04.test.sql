@@ -246,6 +246,9 @@ RESET ROLE;
 
 -- devolve a titularidade ao dono original (ainda dentro da transação revertida)
 UPDATE public.companies SET user_id = (SELECT owner_id FROM p04_fix)
+ WHERE id = (SELECT company_id FROM p04_fix);
+
+
 
 
 -- =====================================================================
