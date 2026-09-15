@@ -311,11 +311,12 @@ RESET ROLE;
 -- =====================================================================
 -- S5 (EXECUÇÃO INTERNA PRESERVADA): as rotinas internas continuam
 --     executáveis pelo proprietário do banco e por service_role, com
---     dados sintéticos. Nenhum serviço externo é chamado.
+--     dados sintéticos e EFEITO VERIFICADO. Nenhum serviço externo é chamado.
 -- =====================================================================
 DO $$
 DECLARE
   f s_fix; v_batch uuid := gen_random_uuid(); v_proc int; v_res jsonb;
+  v_ret int; v_linhas int; v_domingos int; v_fora int; v_geradas int;
 BEGIN
   SELECT * INTO f FROM s_fix;
 
@@ -330,15 +331,121 @@ BEGIN
   END IF;
   RAISE NOTICE 'OK S5.1: contagem de páginas do lote executada internamente (processed_pages=2)';
 
-  -- 5.2 geração automática de escala da empresa sintética
-  PERFORM public.dp_escala_auto_gerar(f.company_a, f.competencia);
-  RAISE NOTICE 'OK S5.2: geração de escala executada internamente para a empresa sintética A';
+  -- 5.2 geração automática de escala com jornada sintética (TRABALHO EFETIVO):
+  --     jornada 6x1 com folga fixa no domingo para os 2 colaboradores de A.
+  SELECT count(*)::int INTO v_domingos
+    FROM generate_series(f.competencia,
+                         (date_trunc('month', f.competencia) + interval '1 month - 1 day')::date,
+                         interval '1 day') d
+   WHERE EXTRACT(DOW FROM d)::int = 0;
 
-  -- 5.3 autoatribuição de folgas por competência (empresa sintética)
+  v_ret := public.dp_escala_auto_gerar(f.company_a, f.competencia);
+
+  SELECT count(*)::int INTO v_linhas
+    FROM public.dp_folgas
+   WHERE company_id = f.company_a AND origem = 'fixa_semana'
+     AND data BETWEEN f.competencia
+                  AND (date_trunc('month', f.competencia) + interval '1 month - 1 day')::date;
+
+  IF v_ret IS DISTINCT FROM (v_domingos * 2) THEN
+    RAISE EXCEPTION 'FALHA S5.2: retorno esperado % (2 colaboradores × % domingos), obtido %',
+      v_domingos * 2, v_domingos, v_ret;
+  END IF;
+  IF v_linhas IS DISTINCT FROM (v_domingos * 2) THEN
+    RAISE EXCEPTION 'FALHA S5.2: esperado % folgas gravadas, obtido %', v_domingos * 2, v_linhas;
+  END IF;
+  -- todas as folgas geradas pertencem à empresa A, aos colaboradores dela e caem no domingo
+  SELECT count(*)::int INTO v_fora
+    FROM public.dp_folgas fg
+   WHERE fg.origem = 'fixa_semana'
+     AND (fg.company_id <> f.company_a
+          OR fg.colaborador_id NOT IN (f.colab_a1, f.colab_a2)
+          OR EXTRACT(DOW FROM fg.data)::int <> 0);
+  IF v_fora <> 0 THEN
+    RAISE EXCEPTION 'FALHA S5.2: % folga(s) fora da empresa/colaboradores/dia esperados', v_fora;
+  END IF;
+  RAISE NOTICE 'OK S5.2: escala gerada com efeito verificado (% folgas em % domingos para 2 colaboradores da empresa A)',
+    v_linhas, v_domingos;
+
+  -- 5.3 autoatribuição de folgas por competência: retorno e efeito conferidos
   SELECT public.dp_folga_autoatribuir_competencia(f.company_a, f.unidade_a, f.competencia) INTO v_res;
-  RAISE NOTICE 'OK S5.3: autoatribuição de folgas executada internamente (retorno: %)',
-    left(coalesce(v_res::text, 'null'), 200);
+  IF v_res IS NULL THEN
+    RAISE EXCEPTION 'FALHA S5.3: retorno nulo da autoatribuição';
+  END IF;
+  IF COALESCE((v_res->>'ok')::boolean, false) IS NOT TRUE THEN
+    RAISE EXCEPTION 'FALHA S5.3: autoatribuição não retornou ok=true (%)', left(v_res::text, 300);
+  END IF;
+  v_geradas := COALESCE((v_res->>'geradas')::int, -1);
+  IF v_geradas < 0 THEN
+    RAISE EXCEPTION 'FALHA S5.3: campo "geradas" ausente ou inválido (%)', left(v_res::text, 300);
+  END IF;
+
+  SELECT count(*)::int INTO v_linhas
+    FROM public.dp_folgas fg
+   WHERE fg.company_id = f.company_a
+     AND fg.origem = 'auto_fds'
+     AND fg.colaborador_id IN (f.colab_a1, f.colab_a2)
+     AND fg.data BETWEEN f.competencia
+                     AND (date_trunc('month', f.competencia) + interval '1 month - 1 day')::date;
+  IF v_linhas IS DISTINCT FROM v_geradas THEN
+    RAISE EXCEPTION 'FALHA S5.3: retorno diz % folgas, gravadas % na empresa/colaboradores sintéticos',
+      v_geradas, v_linhas;
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.dp_folgas WHERE origem = 'auto_fds' AND company_id <> f.company_a) THEN
+    RAISE EXCEPTION 'FALHA S5.3: autoatribuição gravou folga fora da empresa sintética A';
+  END IF;
+  IF v_geradas = 0 THEN
+    RAISE NOTICE 'PENDENTE S5.3: autoatribuição executou e conferiu consistência (ok=true, geradas=0), mas NÃO houve gravação — trabalho efetivo não comprovado com esta configuração mínima (janela de folgas/fins de semana exigidos não configurados)';
+  ELSE
+    RAISE NOTICE 'OK S5.3: autoatribuição por competência com efeito verificado (% folgas na empresa A, colaboradores sintéticos)', v_geradas;
+  END IF;
 END $$;
+
+-- =====================================================================
+-- S5b (POSITIVO APP-FACING COM EFEITO): admin da PRÓPRIA empresa aplica o
+--      plano de folgas e a gravação é conferida.
+-- =====================================================================
+DO $$
+DECLARE
+  f s_fix; v_data date; v_res jsonb; v_linhas int; v_antes int;
+BEGIN
+  SELECT * INTO f FROM s_fix;
+
+  -- escolhe um sábado do mês ainda sem folga para o colaborador A1
+  SELECT d::date INTO v_data
+    FROM generate_series(f.competencia,
+                         (date_trunc('month', f.competencia) + interval '1 month - 1 day')::date,
+                         interval '1 day') d
+   WHERE EXTRACT(DOW FROM d)::int = 6
+     AND NOT EXISTS (SELECT 1 FROM public.dp_folgas fg
+                      WHERE fg.colaborador_id = f.colab_a1 AND fg.data = d::date)
+   ORDER BY d LIMIT 1;
+  IF v_data IS NULL THEN
+    RAISE EXCEPTION 'FALHA S5b: não há sábado livre na competência sintética';
+  END IF;
+
+  SELECT count(*)::int INTO v_antes FROM public.dp_folgas
+   WHERE colaborador_id = f.colab_a1 AND data = v_data;
+
+  PERFORM pg_temp.s_as_user(f.admin_a);
+  SELECT public.dp_folga_autoatribuir_aplicar(
+           f.company_a, f.unidade_a, f.competencia,
+           jsonb_build_array(jsonb_build_object('colaborador_id', f.colab_a1, 'data', to_char(v_data, 'YYYY-MM-DD')))
+         ) INTO v_res;
+  PERFORM pg_temp.s_reset();
+
+  IF v_res IS NULL THEN
+    RAISE EXCEPTION 'FALHA S5b: retorno nulo da aplicação do plano pelo admin da própria empresa';
+  END IF;
+  SELECT count(*)::int INTO v_linhas FROM public.dp_folgas
+   WHERE company_id = f.company_a AND colaborador_id = f.colab_a1 AND data = v_data;
+  IF v_linhas <= v_antes THEN
+    RAISE EXCEPTION 'FALHA S5b: aplicação legítima não gravou a folga (antes %, depois %) — retorno %',
+      v_antes, v_linhas, left(v_res::text, 300);
+  END IF;
+  RAISE NOTICE 'OK S5b: admin da própria empresa aplica o plano e a folga é gravada (efeito verificado)';
+END $$;
+RESET ROLE;
 
 -- =====================================================================
 -- S6 (EXECUÇÃO INTERNA COMO service_role): mesmo caminho, papel de serviço.
@@ -367,13 +474,13 @@ RESET ROLE;
 
 -- =====================================================================
 -- LIMITES CONHECIDOS destes cenários (registrados, não aprovados):
---  · As rotinas por data (escala/folgas) rodam sobre dados mínimos: sem
---    configuração de jornada, turnos, cobertura e janela de folgas as rotinas
---    percorrem zero colaborador elegível, então provam a EXECUÇÃO e a
---    autorização, não o trabalho efetivo de geração.
 --  · dp_escala_auto_gerar_todas()/dp_folga_autoatribuir_todas() não são
 --    exercitadas em modo global aqui além da negação de EXECUTE (S1): varrem
 --    todas as empresas do banco e não agregam prova além do caminho por
 --    empresa já coberto em S5.
+--  · A autoatribuição por fins de semana depende de janela/exigência
+--    configuradas; quando a configuração mínima resulta em zero gravação, o
+--    cenário S5.3 é reportado como PENDENTE (não aprovado).
 -- =====================================================================
 ROLLBACK;
+
