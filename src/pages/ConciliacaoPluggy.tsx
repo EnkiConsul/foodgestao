@@ -482,7 +482,12 @@ export default function ConciliacaoPluggy() {
       // Sem maybeSingle: reconexões deixam vários registros por conta e só a
       // conexão ativa resolve o vínculo.
       const { data: paRows, error: paError } = await paQuery;
-      const resolution = resolveScopedPluggyAccount({ rows: paRows ?? [], error: paError });
+      if (stale()) return;
+      const resolution = resolveScopedPluggyAccount({
+        rows: paRows ?? [],
+        error: paError,
+        companyId: selectedCompanyId,
+      });
       const pa =
         resolution.status === "resolved"
           ? {
