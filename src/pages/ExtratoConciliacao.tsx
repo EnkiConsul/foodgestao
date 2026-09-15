@@ -31,6 +31,7 @@ import { creditCardLabel, cleanProviderName } from "@/lib/conciliacao/cardRoutin
 import { formatProviderDescription } from "@/lib/conciliacao/cardDescription";
 import {
   SCOPED_PLUGGY_ACCOUNT_SELECT,
+  describeScopeProblem,
   resolveScopedPluggyAccount,
   type ScopedPluggyResolution,
 } from "@/lib/pluggy/scopedPluggyAccount";
