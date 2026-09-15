@@ -32,6 +32,8 @@ export function ComprovanteAcaoBotao(props: {
   temComprovante: boolean;
   /** Somente leitura (portal do colaborador). */
   somenteLeitura?: boolean;
+  /** Rótulo curto exibido ao lado do ícone (usado no card mobile). */
+  rotulo?: string;
   className?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -49,6 +51,7 @@ export function ComprovanteAcaoBotao(props: {
         onClick={() => void abrirComprovante(props.alvo.documentoId)}
       >
         <Receipt className="size-4 text-emerald-600" />
+        {props.rotulo ? <span className="ml-1">{props.rotulo}</span> : null}
       </Button>
     );
   }
@@ -84,6 +87,7 @@ export function ComprovanteAcaoBotao(props: {
         ) : (
           <Receipt className="size-4 text-muted-foreground" />
         )}
+        {props.rotulo ? <span className="ml-1">{props.rotulo}</span> : null}
       </Button>
     </>
   );
@@ -111,6 +115,8 @@ export function ComprovantePagamentoPanel(props: {
   if (!aceitaComprovante(props.alvo.tipo)) return null;
 
   const { comprovante } = props;
+  // Portal: sem comprovante anexado, nem o bloco aparece.
+  if (props.somenteLeitura && !comprovante.tem) return null;
 
   return (
     <div className="rounded-lg border p-3">
