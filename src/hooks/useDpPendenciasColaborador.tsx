@@ -67,6 +67,14 @@ export function useDpPendenciasColaborador() {
 
         let escolheFolga = (meFolga as any)?.folga_fixa_semana == null;
 
+        // Quem tem dias fixos sem trabalho na configuração de trabalho
+        // (ex.: sábado e domingo) também não escolhe folga do mês.
+        if (escolheFolga) {
+          const res = await supabase.rpc("dp_meus_dias_fixos_folga" as never, {} as never);
+          const fixos = res.data as number[] | null;
+          if (Array.isArray(fixos) && fixos.length > 0) escolheFolga = false;
+        }
+
         if (escolheFolga && (meFolga as any)?.company_id) {
           // Empresa com folga dominical automática (regra legal) também não pede escolha.
           const { data: cfg } = await supabase

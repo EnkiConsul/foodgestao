@@ -30,11 +30,13 @@ import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { resumoEscolhaFolgas } from "@/lib/dp/dsr-rules";
 
 import { calculateDateStatus, type ColaboradorRecord, type FolgaRecord } from "@/lib/dp/folga-rules";
+import { podePedirTrocaFds, validarTrocaFds } from "@/lib/dp/troca-fds";
 import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import { notifyError } from "@/lib/notifyError";
 
 const TIPOS = [
   { value: "folga", label: "Folga" },
+  { value: "troca_fds", label: "Trocar folga do fim de semana" },
   { value: "adiantamento", label: "Adiantamento" },
   { value: "atestado", label: "Atestado" },
   { value: "ferias", label: "Férias" },
@@ -96,6 +98,24 @@ export default function DpMeuSolicitacoes() {
       return c;
     },
   });
+
+  // Dias em que a pessoa tem folga fixa (ex.: sábado e domingo). Quem tem
+  // folga fixa pode pedir para trocá-la por um dia de meio de semana.
+  const diasFixos = useQuery({
+    queryKey: ["dp_meus_dias_fixos_folga", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase.rpc("dp_meus_dias_fixos_folga" as never, {} as never);
+      return ((data as number[] | null) ?? []).map(Number);
+    },
+  });
+  const fixos = diasFixos.data ?? [];
+  const podeTrocar = podePedirTrocaFds(fixos);
+  const ehTroca = form.tipo === "troca_fds";
+  const tiposDisponiveis = useMemo(
+    () => TIPOS.filter((t) => t.value !== "troca_fds" || podeTrocar),
+    [podeTrocar],
+  );
 
   // Regra de adiantamento da unidade (dia do pagamento) para o painel do portal.
   const minhaUnidade = useQuery({
@@ -273,6 +293,14 @@ export default function DpMeuSolicitacoes() {
   // Validação
   const validation = useMemo(() => {
     const errors: string[] = [];
+    if (ehTroca)
+      return validarTrocaFds({
+        diasFixos: fixos,
+        diaFolga: form.data_alvo,
+        diaTrabalho: form.data_fim,
+        motivo: form.motivo,
+        hoje: new Date(),
+      });
     if (!form.data_alvo) errors.push("Informe a data.");
     if (form.data_fim && form.data_alvo && form.data_fim < form.data_alvo)
       errors.push("A data fim não pode ser anterior à data inicial.");
@@ -290,12 +318,39 @@ export default function DpMeuSolicitacoes() {
       }
     }
     return errors;
-  }, [form, dateStatus]);
+  }, [form, dateStatus, ehTroca, fixos]);
 
   const create = useMutation({
     mutationFn: async () => {
       if (!meRef.data) throw new Error("Colaborador não encontrado");
       if (validation.length) throw new Error(validation[0]);
+      if (ehTroca) {
+        const { error: errTroca } = await supabase.rpc("dp_folga_troca_fds_solicitar" as never, {
+          p_data_folga: toIso(form.data_alvo),
+          p_data_trabalho: toIso(form.data_fim),
+          p_motivo: form.motivo,
+        } as never);
+        if (errTroca) {
+          const raw = errTroca.message ?? "";
+          if (raw.includes("TROCA_DIA_TRABALHO_INVALIDO"))
+            throw new Error("O dia que você vai trabalhar precisa ser um dia de folga fixa sua.");
+          if (raw.includes("TROCA_DIA_FOLGA_INVALIDO"))
+            throw new Error("Esse dia já é folga fixa sua. Escolha um dia de meio de semana.");
+          if (raw.includes("TROCA_JA_TEM_FOLGA"))
+            throw new Error("Você já tem folga registrada nesse dia.");
+          if (raw.includes("TROCA_SEM_FOLGA_FIXA"))
+            throw new Error("Seu cadastro não tem folga fixa na semana.");
+          if (raw.includes("TROCA_MOTIVO_OBRIGATORIO")) throw new Error("Escreva o motivo da troca.");
+          if (raw.includes("FOLGA_LIMITE_DIA"))
+            throw new Error("Data indisponível. Limite de folgas atingido.");
+          if (raw.includes("DUPLICATE_REQUEST"))
+            throw new Error("Você já tem uma solicitação pendente para estes dias.");
+          if (raw.includes("PAST_DATE_NOT_EDITABLE"))
+            throw new Error("Não é possível pedir troca em data passada.");
+          throw errTroca;
+        }
+        return;
+      }
       const { error } = await supabase.rpc("dp_solicitacao_criar", {
         p_tipo: form.tipo as any,
         p_data_alvo: toIso(form.data_alvo) as string,
@@ -369,13 +424,27 @@ export default function DpMeuSolicitacoes() {
                   <Label>Tipo</Label>
                   <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                    <SelectContent>{tiposDisponiveis.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
-                  <PortalDateField label="Data" value={form.data_alvo} onChange={(d) => setForm({ ...form, data_alvo: d })} />
-                  <PortalDateField label="Data fim" value={form.data_fim} onChange={(d) => setForm({ ...form, data_fim: d })} />
+                  <PortalDateField
+                    label={ehTroca ? "Dia que quero folgar" : "Data"}
+                    value={form.data_alvo}
+                    onChange={(d) => setForm({ ...form, data_alvo: d })}
+                  />
+                  <PortalDateField
+                    label={ehTroca ? "Dia de folga que vou trabalhar" : "Data fim"}
+                    value={form.data_fim}
+                    onChange={(d) => setForm({ ...form, data_fim: d })}
+                  />
                 </div>
+
+                {ehTroca && (
+                  <p className="text-xs text-muted-foreground">
+                    Você troca um dia da sua folga fixa por um dia de meio de semana. O gestor precisa aprovar.
+                  </p>
+                )}
 
                 {form.tipo === "folga" && (
                   <p className="text-xs text-muted-foreground">{resumoFolgas.texto}</p>
@@ -462,14 +531,25 @@ export default function DpMeuSolicitacoes() {
             <Card key={s.id} className="dp-content-card">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-base capitalize">{s.tipo}</CardTitle>
+                  <CardTitle className="text-base capitalize">
+                    {s.tipo === "folga" && s.data_fim ? "Troca de folga" : s.tipo}
+                  </CardTitle>
                   <DpStatusBadge tone={statusToneFor(s.status)}>
                     {STATUS_LABEL[s.status] ?? s.status}
                   </DpStatusBadge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {s.data_alvo && format(new Date(s.data_alvo + "T00:00:00"), "dd/MM/yyyy")}
-                  {s.data_fim && ` – ${format(new Date(s.data_fim + "T00:00:00"), "dd/MM/yyyy")}`}
+                  {s.tipo === "folga" && s.data_fim ? (
+                    <>
+                      Folga em {format(new Date(s.data_alvo + "T00:00:00"), "dd/MM/yyyy")} · trabalha em{" "}
+                      {format(new Date(s.data_fim + "T00:00:00"), "dd/MM/yyyy")}
+                    </>
+                  ) : (
+                    <>
+                      {s.data_alvo && format(new Date(s.data_alvo + "T00:00:00"), "dd/MM/yyyy")}
+                      {s.data_fim && ` – ${format(new Date(s.data_fim + "T00:00:00"), "dd/MM/yyyy")}`}
+                    </>
+                  )}
                 </p>
               </CardHeader>
               <CardContent className="space-y-2">
