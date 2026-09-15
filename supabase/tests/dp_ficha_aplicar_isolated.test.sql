@@ -662,15 +662,34 @@ DO $$
 DECLARE f f_fix; r jsonb; v_state text;
 BEGIN
   SELECT * INTO f FROM f_fix;
+  -- super admin NÃO é membro da empresa: cargo/unidade dela ficam invisíveis
+  -- para ele e a rotina recusa (fail closed), em vez de gravar às cegas
   PERFORM pg_temp.f_as_user(f.super_a);
+  BEGIN
+    PERFORM public.dp_ficha_aplicar(p_item_id => f.it_b,
+      p_dados => pg_temp.f_dados('FICHA DA EMPRESA B', '877.482.488-00'),
+      p_cargo_id => f.cargo_b, p_unidade_id => f.unidade_b, p_regime => 'clt',
+      p_forma_pagamento => 'mensalista');
+  EXCEPTION WHEN OTHERS THEN v_state := SQLSTATE; END;
+  IF v_state IS DISTINCT FROM '42501' THEN
+    RAISE EXCEPTION 'FALHA F12: referência invisível não recusada (%)', coalesce(v_state,'nenhum');
+  END IF;
+
+  -- quem administra a empresa B aplica a ficha da empresa B
+  v_state := NULL;
+  PERFORM pg_temp.f_as_user(f.admin_b);
   r := public.dp_ficha_aplicar(p_item_id => f.it_b,
         p_dados => pg_temp.f_dados('FICHA DA EMPRESA B', '877.482.488-00'),
         p_cargo_id => f.cargo_b, p_unidade_id => f.unidade_b, p_regime => 'clt',
         p_forma_pagamento => 'mensalista');
-  IF (r ->> 'status') <> 'criado' THEN RAISE EXCEPTION 'FALHA F12: super admin bloqueado (%)', r; END IF;
+  IF (r ->> 'status') <> 'criado' THEN RAISE EXCEPTION 'FALHA F12: admin da B bloqueado (%)', r; END IF;
   IF (SELECT company_id FROM public.dp_colaboradores WHERE id = (r ->> 'colaborador_id')::uuid)
        <> f.company_b THEN
     RAISE EXCEPTION 'FALHA F12: cadastro criado na empresa errada';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.dp_ficha_importacoes
+              WHERE id = f.imp_a AND updated_at > now()) THEN
+    RAISE EXCEPTION 'FALHA F12: lote da empresa A tocado pela ficha da empresa B';
   END IF;
 
   -- jornada com dia inválido
