@@ -31,6 +31,7 @@ import { creditCardLabel, cleanProviderName } from "@/lib/conciliacao/cardRoutin
 import { formatProviderDescription } from "@/lib/conciliacao/cardDescription";
 import {
   SCOPED_PLUGGY_ACCOUNT_SELECT,
+  describeScopeProblem,
   resolveScopedPluggyAccount,
   type ScopedPluggyResolution,
 } from "@/lib/pluggy/scopedPluggyAccount";
@@ -153,6 +154,10 @@ export default function ExtratoConciliacao() {
   const [pluggyAccountId, setPluggyAccountId] = useState<string | null>(null);
   const [accountName, setAccountName] = useState<string | null>(null);
   const [scopeProblem, setScopeProblem] = useState<ScopeProblem>(null);
+  // Chave (empresa + conta/cartão) que resolveu o vínculo: garante que o
+  // pluggyAccountId nunca seja usado com a seleção seguinte.
+  const scopeKey = `${selectedCompanyId ?? "none"}|${cardParam ? `card:${cardParam}` : accountParam ? `acc:${accountParam}` : "all"}`;
+  const [resolvedKey, setResolvedKey] = useState<string | null>(null);
   const [editTransaction, setEditTransaction] = useState<EditableTransaction | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [openingTransactionId, setOpeningTransactionId] = useState<string | null>(null);
@@ -166,6 +171,7 @@ export default function ExtratoConciliacao() {
       setPluggyAccountId(null);
       setAccountName(null);
       setScopeProblem(null);
+      setResolvedKey(null);
       if ((!accountParam && !cardParam) || !selectedCompanyId) {
         return;
       }
@@ -181,10 +187,15 @@ export default function ExtratoConciliacao() {
       // Reconexões deixam vários registros por conta; só a conexão ativa vale.
       const { data: rows, error } = await query;
       if (!alive) return;
-      const resolution = resolveScopedPluggyAccount({ rows: rows ?? [], error });
+      const resolution = resolveScopedPluggyAccount({
+        rows: rows ?? [],
+        error,
+        companyId: selectedCompanyId,
+      });
       const data = resolution.status === "resolved" ? resolution.account : null;
       setPluggyAccountId(data?.pluggyAccountId ?? null);
       setScopeProblem(resolution.status === "resolved" ? null : resolution.status);
+      setResolvedKey(scopeKey);
       // "Sem nome" e afins vindos do provedor não devem ir para a tela;
       // para cartão preferimos o cadastro local (emissor/bandeira + final).
       let label = cleanProviderName(data?.name);
@@ -205,16 +216,20 @@ export default function ExtratoConciliacao() {
     };
   }, [accountParam, cardParam, selectedCompanyId]);
 
+  // Só usamos o vínculo resolvido para a seleção ATUAL: resposta atrasada de uma
+  // seleção anterior não vale.
+  const scopeRequested = !!(accountParam || cardParam);
+  const scopedPluggyAccountId = resolvedKey === scopeKey ? pluggyAccountId : null;
   // Escopo pedido por conta/cartão sem vínculo ativo resolvido: não exibir a
   // fila inteira da empresa nem permitir conciliar por engano.
-  const scopeBlocked = !!(accountParam || cardParam) && !pluggyAccountId;
+  const scopeBlocked = scopeRequested && !scopedPluggyAccountId;
 
   const { staging, transactions, loading, error, reload } = useExtratoConciliacao({
     companyId: selectedCompanyId ?? null,
     from,
     to,
-    pluggyAccountId,
-    connectionId: pluggyAccountId ? null : connectionParam,
+    pluggyAccountId: scopedPluggyAccountId,
+    connectionId: scopedPluggyAccountId ? null : connectionParam,
     scopeBlocked,
   });
 
@@ -383,18 +398,10 @@ export default function ExtratoConciliacao() {
         </div>
       </div>
 
-      {scopeBlocked && !loading && (
+      {scopeBlocked && resolvedKey === scopeKey && (
         <Card className="border-warning/50 bg-warning/10">
           <CardContent className="flex flex-col gap-2 p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
-            <span>
-              {scopeProblem === "error"
-                ? "Não foi possível verificar a conexão bancária desta seleção. Tente novamente em instantes."
-                : scopeProblem === "ambiguous"
-                  ? "Esta seleção está ligada a mais de uma conexão ativa do banco. Ajuste as conexões para ver o extrato."
-                  : scopeProblem === "inactive_only"
-                    ? "A conexão do banco desta seleção foi encerrada. Reconecte para voltar a receber o extrato."
-                    : "Esta seleção não possui vínculo com uma conexão Open Finance."}
-            </span>
+            <span>{describeScopeProblem(scopeProblem, cardParam ? "card" : "account")}</span>
             <Button
               size="sm"
               variant="outline"

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -61,9 +61,17 @@ import { cardHintLabel, formatProviderDescription, hasMerchantName } from "@/lib
 import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
 import {
   SCOPED_PLUGGY_ACCOUNT_SELECT,
+  describeScopeProblem,
   resolveScopedPluggyAccount,
   type ScopedPluggyResolution,
 } from "@/lib/pluggy/scopedPluggyAccount";
+import {
+  aggregateSyncFeedback,
+  canSyncScopedTargets,
+  describeSyncOutcome,
+  type SyncFeedback,
+  type SyncResponse,
+} from "@/lib/pluggy/syncOutcome";
 
 type ScopeProblem = Exclude<ScopedPluggyResolution["status"], "resolved"> | null;
 
@@ -440,7 +448,22 @@ export default function ConciliacaoPluggy() {
   const [clearOpen, setClearOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
 
+  // Chave da requisição: empresa + escopo pedido. Resultado de uma chave antiga
+  // nunca pode ser aplicado depois que o usuário trocou de empresa/conta.
+  const requestKey = `${selectedCompanyId ?? "none"}|${scopedCardId ? `card:${scopedCardId}` : scopedLocalAccountId ? `acc:${scopedLocalAccountId}` : "all"}`;
+  const requestKeyRef = useRef(requestKey);
+  const scopeRequested = !!(scopedCardId || scopedLocalAccountId);
+
   const load = useCallback(async () => {
+    // Limpa e bloqueia ações imediatamente (síncrono) para não exibir nem
+    // sincronizar registros da seleção anterior.
+    requestKeyRef.current = requestKey;
+    const key = requestKey;
+    const stale = () => requestKeyRef.current !== key;
+    setRows([]);
+    setScope(null);
+    setScopeProblem(null);
+    setScopeUnresolved(scopeRequested);
     if (!selectedCompanyId) { setLoading(false); return; }
     setLoading(true);
 
@@ -467,7 +490,12 @@ export default function ConciliacaoPluggy() {
       // Sem maybeSingle: reconexões deixam vários registros por conta e só a
       // conexão ativa resolve o vínculo.
       const { data: paRows, error: paError } = await paQuery;
-      const resolution = resolveScopedPluggyAccount({ rows: paRows ?? [], error: paError });
+      if (stale()) return;
+      const resolution = resolveScopedPluggyAccount({
+        rows: paRows ?? [],
+        error: paError,
+        companyId: selectedCompanyId,
+      });
       const pa =
         resolution.status === "resolved"
           ? {
@@ -498,7 +526,8 @@ export default function ConciliacaoPluggy() {
         };
       }
     }
-    const escopoBloqueado = !!(scopedCardId || scopedLocalAccountId) && !resolvedScope;
+    if (stale()) return;
+    const escopoBloqueado = scopeRequested && !resolvedScope;
     setScope(resolvedScope);
     setScopeUnresolved(escopoBloqueado);
     setScopeProblem(escopoBloqueado ? scopeProblem : null);
@@ -633,6 +662,8 @@ export default function ConciliacaoPluggy() {
         validPluggyAccountIds.has(r.pluggy_account_id),
     );
 
+    // Resposta atrasada de uma seleção anterior é descartada aqui.
+    if (stale()) return;
     setConnections(activeConns);
     setRows(visibleStaging);
     setAccounts(((accs ?? []) as any[]).map((a) => ({ id: a.id, name: a.name })));
@@ -725,36 +756,71 @@ export default function ConciliacaoPluggy() {
       setTransferTxIds(new Set());
     }
     setLoading(false);
-  }, [selectedCompanyId, scopedLocalAccountId, scopedCardId]);
+  }, [selectedCompanyId, scopedLocalAccountId, scopedCardId, requestKey, scopeRequested]);
 
   useEffect(() => { load(); }, [load]);
 
-  const syncNow = async () => {
-    const targets = scope
-      ? connections.filter((c) => c.id === scope.connectionId)
+  // Alvos da sincronização: com escopo pedido, SOMENTE a conexão do escopo
+  // resolvido; nunca a empresa inteira.
+  const syncTargets = scope
+    ? connections.filter((c) => c.id === scope.connectionId)
+    : scopeRequested
+      ? []
       : connectionId === "all" ? connections : connections.filter((c) => c.id === connectionId);
-    if (targets.length === 0) return;
+  const syncGuard = canSyncScopedTargets({
+    scopeRequested,
+    scopeResolved: !!scope,
+    scopeUnresolved,
+    loading,
+    targetCount: syncTargets.length,
+  });
+
+  const syncNow = async () => {
+    // O handler repete a checagem do botão: nada de sincronizar empresa inteira
+    // quando o escopo está carregando, bloqueado ou desatualizado.
+    if (!syncGuard.allowed) {
+      if (syncGuard.reason === "loading") toast.info("Aguarde o carregamento desta seleção.");
+      else if (syncGuard.reason === "unresolved") {
+        toast.error("Esta seleção não tem conexão Open Finance ativa: nada foi sincronizado.");
+      }
+      return;
+    }
+    const key = requestKeyRef.current;
     setSyncing(true);
     let total = 0;
-    let needsAction = false;
-    for (const c of targets) {
-      const { data: conn } = await supabase.from("pluggy_connections").select("pluggy_item_id").eq("id", c.id).single();
-      if (!conn) continue;
-      const { data, error } = await supabase.functions.invoke("pluggy-sync-item", {
-        body: { item_id: conn.pluggy_item_id, company_id: selectedCompanyId },
-      });
-      if (error) { toast.error(`Erro ao sincronizar ${c.connector_name ?? ""}`); continue; }
-      const st = String(data?.item_status ?? "").toUpperCase();
-      if (st === "WAITING_USER_INPUT" || st === "LOGIN_ERROR") {
-        needsAction = true;
-        toast.error(`${c.connector_name ?? "Conexão"}: reconecte o banco (${st === "LOGIN_ERROR" ? "credenciais inválidas" : "confirmação pendente no app do banco"})`);
+    const feedbacks: SyncFeedback[] = [];
+    try {
+      for (const c of syncTargets) {
+        if (requestKeyRef.current !== key) return;
+        const { data: conn } = await supabase
+          .from("pluggy_connections")
+          .select("pluggy_item_id")
+          .eq("id", c.id)
+          .single();
+        if (!conn) continue;
+        const { data, error } = await supabase.functions.invoke("pluggy-sync-item", {
+          body: { item_id: conn.pluggy_item_id, company_id: selectedCompanyId },
+        });
+        const feedback = describeSyncOutcome({
+          transportError: !!error,
+          body: (data ?? null) as SyncResponse | null,
+        });
+        feedbacks.push(feedback);
+        const nome = c.connector_name ?? "Conexão";
+        const texto = `${nome}: ${feedback.title}`;
+        if (feedback.level === "error") toast.error(texto, { description: feedback.description });
+        else if (feedback.level === "warning") toast.warning(texto, { description: feedback.description });
+        else if (feedback.level === "info") toast.info(texto, { description: feedback.description });
+        total += (data as SyncResponse | null)?.transactions ?? 0;
       }
-      total += data?.transactions ?? 0;
+      // Sucesso global só se todos os alvos concluíram.
+      if (aggregateSyncFeedback(feedbacks) === "success") {
+        toast.success(`Sincronização concluída (${total} lançamentos)`);
+      }
+    } finally {
+      setSyncing(false);
+      load();
     }
-    setSyncing(false);
-    if (!needsAction) toast.success(`Sincronização concluída (${total} lançamentos)`);
-    load();
-
   };
 
   const filtered = useMemo(() => {
@@ -1744,7 +1810,7 @@ export default function ConciliacaoPluggy() {
         </div>
         <Button
           onClick={syncNow}
-          disabled={syncing || connections.length === 0}
+          disabled={syncing || connections.length === 0 || !syncGuard.allowed}
           variant="outline"
           className="w-full sm:ml-auto sm:w-auto"
         >
@@ -1808,19 +1874,7 @@ export default function ConciliacaoPluggy() {
           <CardContent className="flex flex-col gap-2 p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
             <span className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
-              {scopeProblem === "error"
-                ? "Não foi possível verificar a conexão bancária desta seleção. Tente novamente em instantes."
-                : scopeProblem === "ambiguous"
-                  ? (scopedCardId
-                      ? "Este cartão está ligado a mais de uma conexão ativa do banco. Ajuste as conexões antes de conciliar."
-                      : "Esta conta está ligada a mais de uma conexão ativa do banco. Ajuste as conexões antes de conciliar.")
-                  : scopeProblem === "inactive_only"
-                    ? (scopedCardId
-                        ? "A conexão do banco ligada a este cartão foi encerrada. Reconecte para voltar a receber o extrato."
-                        : "A conexão do banco ligada a esta conta foi encerrada. Reconecte para voltar a receber o extrato.")
-                    : (scopedCardId
-                        ? "Este cartão não possui vínculo com uma conta conectada via Open Finance."
-                        : "Esta conta não possui vínculo com uma conexão Open Finance.")}
+              {describeScopeProblem(scopeProblem, scopedCardId ? "card" : "account")}
             </span>
             <Button
               size="sm"

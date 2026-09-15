@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ExtratoStagingLike, ExtratoTxLike } from "@/lib/conciliacao/extrato";
 
@@ -42,10 +42,18 @@ export function useExtratoConciliacao(filtros: ExtratoConciliacaoFiltros) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Chave da requisição: resultado de uma seleção antiga nunca é aplicado.
+  const requestKey = `${companyId ?? "none"}|${pluggyAccountId ?? "-"}|${connectionId ?? "-"}|${from}|${to}|${scopeBlocked ? "blocked" : "open"}`;
+  const requestKeyRef = useRef(requestKey);
+
   const load = useCallback(async () => {
+    requestKeyRef.current = requestKey;
+    const key = requestKey;
+    const stale = () => requestKeyRef.current !== key;
+    // Limpa imediatamente ao trocar de empresa/seleção.
+    setStaging([]);
+    setTransactions([]);
     if (!companyId || scopeBlocked) {
-      setStaging([]);
-      setTransactions([]);
       setLoading(false);
       return;
     }
@@ -70,6 +78,7 @@ export function useExtratoConciliacao(filtros: ExtratoConciliacaoFiltros) {
         rows.push(...((data ?? []) as ExtratoStagingLike[]));
         if (!data || data.length < PAGE) break;
       }
+      if (stale()) return;
       setStaging(rows);
 
       // O vínculo real é feito por staging.matched_transaction_id (a coluna
@@ -126,15 +135,17 @@ export function useExtratoConciliacao(filtros: ExtratoConciliacaoFiltros) {
       }
 
 
+      if (stale()) return;
       setTransactions(txs);
     } catch (e) {
+      if (stale()) return;
       setError(e instanceof Error ? e.message : "Falha ao carregar o extrato");
       setStaging([]);
       setTransactions([]);
     } finally {
-      setLoading(false);
+      if (!stale()) setLoading(false);
     }
-  }, [companyId, from, to, pluggyAccountId, connectionId, scopeBlocked]);
+  }, [requestKey, companyId, from, to, pluggyAccountId, connectionId, scopeBlocked]);
 
   useEffect(() => {
     void load();
