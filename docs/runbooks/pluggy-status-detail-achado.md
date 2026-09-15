@@ -15,8 +15,11 @@ Só `item.error` é preservado. O campo `statusDetail` do item (resumo por produ
 `lastUpdatedAt`, `warnings`) é descartado.
 
 `supabase/functions/_shared/pluggy-client.ts` (linhas 59-71) tipa `PluggyItem` sem
-`statusDetail`, sem `executionReport` e sem `warnings`, então o dado nem chega ao
-código que materializa.
+`statusDetail`, `executionReport` e `warnings`. **Correção do diagnóstico anterior:**
+a ausência do campo na interface TypeScript não remove nada do JSON em runtime — o
+`statusDetail` continua chegando na resposta. O descarte real acontece na
+projeção/upsert de `pluggy-v2-materialize.ts` (linha acima); o tipo apenas esconde
+o campo do autocompletar.
 
 **Consequência:** `status_detail = {}` no banco **não** significa que a Pluggy não
 informou detalhes; significa apenas que não havia `item.error`. Qualquer
