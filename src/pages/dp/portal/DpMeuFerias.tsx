@@ -1,6 +1,6 @@
 import { DpFormFooter } from "@/components/dp/DpFormFooter";
 import { Helmet } from "react-helmet-async";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { addDays, differenceInCalendarDays, parseISO } from "date-fns";
 import { Palmtree, Plus, CheckCircle2, FileText } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
@@ -21,11 +21,25 @@ import { useDpMinhasFerias, type MinhaFeriasPeriodo } from "@/hooks/useDpMinhasF
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import {
   decimoTerceiroJaAdiantado,
+  diasSugeridos,
   fimDoGozo,
+  fracoesExistentes,
   inicioMinimoPedido,
+  inicioSugeridoPedido,
   resumoPedido,
 } from "@/lib/dp/ferias-pedido";
+import {
+  avaliarFracionamento,
+  descreverFracionamento,
+  FRACIONAMENTO_PADRAO,
+} from "@/lib/dp/ferias-fracionamento";
 import { dataBr as fmt } from "@/lib/dp/formato";
+
+const FRACIONAMENTO_TEXTO: Record<string, string> = {
+  FERIAS_FRACIONAMENTO_LIMITE: `As férias podem ser divididas em até ${FRACIONAMENTO_PADRAO.maxFracoes} períodos.`,
+  FERIAS_FRACAO_CURTA: `Cada período de férias precisa ter ao menos ${FRACIONAMENTO_PADRAO.minDias} dias.`,
+  FERIAS_FRACAO_MAIOR_AUSENTE: `Um dos períodos precisa ter ${FRACIONAMENTO_PADRAO.maiorDias} dias ou mais.`,
+};
 
 
 const STATUS_LABEL: Record<string, string> = {
@@ -73,6 +87,31 @@ export default function DpMeuFerias() {
   const antecedencia = inicio ? differenceInCalendarDays(parseISO(inicio), new Date()) : null;
   const foraDoPrazo =
     !!periodoSel && antecedencia !== null && antecedencia < periodoSel.aviso_antecedencia_dias;
+
+  /** Divisão das férias: só bloqueia quando a lei realmente não permite. */
+  const fracionamento = useMemo(() => {
+    if (!periodoSel || dias <= 0) return null;
+    const restante = Math.max(0, periodoSel.dias_saldo - dias - Math.max(0, abono));
+    return avaliarFracionamento(dias, fracoesExistentes(periodoSel), restante);
+  }, [periodoSel, dias, abono]);
+  const fracionamentoInvalido = !!fracionamento && !fracionamento.ok;
+
+  // Ao abrir o pedido (ou trocar de período), já sugere data e dias de descanso.
+  useEffect(() => {
+    if (!aberto || !periodoSel) return;
+    setInicio(
+      inicioSugeridoPedido(periodoSel, hojeIsoLocal(), periodoSel.aviso_antecedencia_dias),
+    );
+    setAbonoTexto("");
+    setDiasTexto(String(diasSugeridos(periodoSel.dias_saldo, 0)));
+  }, [aberto, periodoSel?.periodo_id]);
+
+  const alterarAbono = (valor: string) => {
+    setAbonoTexto(valor);
+    if (!periodoSel) return;
+    // O descanso padrão é o saldo menos o que foi vendido.
+    setDiasTexto(String(diasSugeridos(periodoSel.dias_saldo, Number(valor) || 0)));
+  };
 
   const abrir = () => {
     setPeriodoId(comSaldo[0]?.periodo_id ?? "");
@@ -194,7 +233,7 @@ export default function DpMeuFerias() {
       )}
 
       <Dialog open={aberto} onOpenChange={setAberto}>
-        <DialogContent className="max-w-lg max-h-[90svh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90svh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>Pedir férias</DialogTitle>
             <DialogDescription>
@@ -217,7 +256,7 @@ export default function DpMeuFerias() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Primeiro dia de férias</Label>
                 <Input
@@ -245,7 +284,8 @@ export default function DpMeuFerias() {
                   onChange={(e) => setDiasTexto(e.target.value.replace(/\D/g, ""))}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Até {resumo?.maxDias ?? 0} dias com o saldo atual.
+                  Até {resumo?.maxDias ?? 0} dias com o saldo atual. Você pode reduzir respeitando a
+                  regra: {descreverFracionamento(FRACIONAMENTO_PADRAO).toLowerCase()}
                 </p>
               </div>
             </div>
@@ -267,7 +307,7 @@ export default function DpMeuFerias() {
                 max={resumo?.maxAbono ?? 0}
                 placeholder="0"
                 value={abonoTexto}
-                onChange={(e) => setAbonoTexto(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => alterarAbono(e.target.value.replace(/\D/g, ""))}
               />
               <p className="text-xs text-muted-foreground">
                 A lei permite vender no máximo {resumo?.maxAbono ?? 0} dias deste período.
@@ -317,6 +357,12 @@ export default function DpMeuFerias() {
                   As férias só podem começar a partir de {fmt(inicioMin)}.
                 </p>
               )}
+              {fracionamentoInvalido && fracionamento?.codigo && (
+                <p className="mt-1 text-destructive">
+                  {FRACIONAMENTO_TEXTO[fracionamento.codigo] ??
+                    "A divisão das férias não é permitida pela lei."}
+                </p>
+              )}
               {foraDoPrazo && !excede && (
                 <p className="mt-1 text-amber-700">
                   A empresa pede {periodoSel?.aviso_antecedencia_dias} dias de antecedência. Seu
@@ -334,6 +380,7 @@ export default function DpMeuFerias() {
                 excede ||
                 abonoAcimaDoLegal ||
                 inicioAntesDoPermitido ||
+                fracionamentoInvalido ||
                 !periodoId ||
                 !inicio ||
                 !fim

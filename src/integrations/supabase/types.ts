@@ -15437,6 +15437,9 @@ export type Database = {
           saida: string
           setor_id: string
           setor_nome: string
+          turno_categoria: string
+          turno_id: string
+          turno_nome: string
         }[]
       }
       dp_portal_token_claim: {
