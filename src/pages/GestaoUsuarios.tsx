@@ -132,6 +132,36 @@ export default function GestaoUsuarios() {
     },
   });
 
+  // Propostas de acesso administrativo geradas pelo cadastro de colaboradores.
+  // Nada é aplicado sem a confirmação de um dono/administrador.
+  const { data: concessoes = [] } = useQuery({
+    queryKey: ["dp-acesso-concessoes", activeCompanyId],
+    enabled: !!activeCompanyId && isAdminOrOwner,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("dp_acesso_concessoes")
+        .select("id, acao, papel, perfil_acesso, user_id, created_at, dp_colaboradores(nome)")
+        .eq("company_id", activeCompanyId)
+        .eq("status", "pendente")
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+  });
+
+  const handleDecidirConcessao = async (id: string, decisao: "conceder" | "recusar") => {
+    const { error } = await (supabase as any).rpc("dp_acesso_concessao_decidir", {
+      _id: id,
+      _decisao: decisao,
+    });
+    if (error) {
+      toast.error("Não foi possível concluir", { description: error.message });
+      return;
+    }
+    toast.success(decisao === "conceder" ? "Acesso atualizado" : "Solicitação recusada");
+    queryClient.invalidateQueries({ queryKey: ["dp-acesso-concessoes", activeCompanyId] });
+    queryClient.invalidateQueries({ queryKey: ["company-members", activeCompanyId] });
+  };
+
   const handleRemoveMember = async (memberId: string) => {
     const { error } = await supabase.from("company_members").delete().eq("id", memberId);
     if (error) {
