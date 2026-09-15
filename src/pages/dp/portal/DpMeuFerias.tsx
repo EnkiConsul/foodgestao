@@ -284,7 +284,8 @@ export default function DpMeuFerias() {
                   onChange={(e) => setDiasTexto(e.target.value.replace(/\D/g, ""))}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Até {resumo?.maxDias ?? 0} dias com o saldo atual.
+                  Até {resumo?.maxDias ?? 0} dias com o saldo atual. Você pode reduzir respeitando a
+                  regra: {descreverFracionamento(FRACIONAMENTO_PADRAO).toLowerCase()}
                 </p>
               </div>
             </div>
