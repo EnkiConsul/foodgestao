@@ -1,13 +1,18 @@
-"""Helper de QA/E2E — chamadas às rotinas `_e2e_*` / `_test_*` (P0.2-C).
+"""Helper de QA/E2E — chamadas às rotinas de QA (P0.3).
 
-Desde a P0.2-C essas rotinas só podem ser executadas por `service_role`
-(execução server-side). Nenhum usuário logado — nem super admin — consegue
-chamá-las. Este helper roda apenas em Node/Python de teste (nunca no bundle
-do app) e lê a chave de serviço de variável de ambiente.
+Desde a P0.3 as rotinas `_e2e_*` / `_test_*` e a guarda
+`_assert_test_helper_allowed` vivem no schema **`qa`**, que NÃO é exposto pelo
+PostgREST. Consequência: não existe mais RPC HTTP para elas — nem com chave de
+serviço. A única execução possível é server-side, por conexão direta ao banco
+(CI/manutenção), com o papel dono do schema.
 
 Variáveis:
-  SUPABASE_URL                (opcional; default = projeto do ambiente)
-  SUPABASE_SERVICE_ROLE_KEY   (ou QA_SERVICE_ROLE_KEY) — obrigatória
+  SUPABASE_DB_URL (ou QA_DB_URL)  — obrigatória: URL de conexão direta
+                                    (usada pelo CI; nunca no frontend)
+  LOVABLE_BROWSER_SUPABASE_SESSION_JSON — sessão do navegador; fornece o
+                                    `_user_id` alvo dos seeds
+
+Não há fallback com token de usuário e nenhuma chave/senha em código.
 
 Uso:
     from qa_admin import qa_rpc, session_user_id
@@ -20,37 +25,37 @@ from __future__ import annotations
 import base64
 import json
 import os
-import urllib.error
-import urllib.request
+import shutil
+import subprocess
 
-DEFAULT_SUPABASE_URL = "https://grtxmbffgmgnkawlvqhm.supabase.co"
+QA_SCHEMA = "qa"
 
-MISSING_KEY_MESSAGE = (
-    "QA bloqueado: defina SUPABASE_SERVICE_ROLE_KEY (ou QA_SERVICE_ROLE_KEY) no "
-    "ambiente de teste/CI para executar as rotinas _e2e_*/_test_*. Desde a "
-    "P0.2-C essas rotinas exigem service_role e NÃO podem ser chamadas com "
-    "token de usuário. Nunca coloque a chave em código, docs ou no frontend."
+# Rotinas que retornam conjunto de linhas (resultado = lista de objetos).
+SET_RETURNING = {"_e2e_seed_delete_accounts", "_e2e_seed_foreign_accounts"}
+
+MISSING_DB_URL_MESSAGE = (
+    "QA bloqueado: defina SUPABASE_DB_URL (ou QA_DB_URL) no ambiente de "
+    "teste/CI para executar as rotinas de QA. Desde a P0.3 elas vivem no schema "
+    "`qa`, fora do PostgREST, e só rodam por conexão direta ao banco. Não há "
+    "fallback com token de usuário; nunca coloque credenciais em código, docs "
+    "ou no frontend."
+)
+
+MISSING_PSQL_MESSAGE = (
+    "QA bloqueado: `psql` não está disponível neste ambiente; ele é necessário "
+    "para executar as rotinas do schema `qa` por conexão direta."
 )
 
 
-def supabase_url() -> str:
-    return os.environ.get("SUPABASE_URL") or DEFAULT_SUPABASE_URL
+def db_url() -> str:
+    url = os.environ.get("SUPABASE_DB_URL") or os.environ.get("QA_DB_URL")
+    if not url:
+        raise RuntimeError(MISSING_DB_URL_MESSAGE)
+    return url
 
 
-def service_role_key() -> str:
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get(
-        "QA_SERVICE_ROLE_KEY"
-    )
-    if not key:
-        raise RuntimeError(MISSING_KEY_MESSAGE)
-    return key
-
-
-def has_service_role_key() -> bool:
-    return bool(
-        os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-        or os.environ.get("QA_SERVICE_ROLE_KEY")
-    )
+def has_db_url() -> bool:
+    return bool(os.environ.get("SUPABASE_DB_URL") or os.environ.get("QA_DB_URL"))
 
 
 def session_user_id() -> str:
@@ -62,25 +67,45 @@ def session_user_id() -> str:
     return json.loads(base64.urlsafe_b64decode(payload))["sub"]
 
 
+def _literal(value) -> str:
+    if value is None:
+        return "NULL"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, (list, tuple)):
+        return "ARRAY[" + ", ".join(_literal(v) for v in value) + "]"
+    return "'" + str(value).replace("'", "''") + "'"
+
+
 def qa_rpc(name: str, payload: dict | None = None):
-    """Executa uma rotina de QA com a chave de serviço (server-side apenas)."""
+    """Executa uma rotina do schema `qa` por conexão direta (server-side)."""
     if not name.startswith(("_e2e_", "_test_")):
         raise ValueError("qa_rpc aceita somente rotinas _e2e_*/_test_*")
-    key = service_role_key()
-    req = urllib.request.Request(
-        f"{supabase_url()}/rest/v1/rpc/{name}",
-        data=json.dumps(payload or {}).encode(),
-        method="POST",
-        headers={
-            "apikey": key,
-            "Authorization": f"Bearer {key}",
-            "Content-Type": "application/json",
-        },
+    url = db_url()
+    if not shutil.which("psql"):
+        raise RuntimeError(MISSING_PSQL_MESSAGE)
+
+    args = ", ".join(
+        f"{key} => {_literal(value)}" for key, value in (payload or {}).items()
     )
+    call = f'{QA_SCHEMA}."{name}"({args})'
+    if name in SET_RETURNING:
+        sql = f"select coalesce(json_agg(t), '[]'::json)::text from {call} t;"
+    else:
+        sql = f"select coalesce(to_json({call}), 'null'::json)::text;"
+
+    proc = subprocess.run(
+        ["psql", url, "-v", "ON_ERROR_STOP=1", "-qAt", "-c", sql],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(f"qa_rpc {name} falhou: {proc.stderr.strip()}")
+    saida = proc.stdout.strip() or "null"
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            body = resp.read().decode() or "null"
-            return json.loads(body)
-    except urllib.error.HTTPError as err:  # mensagem legível no log do E2E
-        detail = err.read().decode()
-        raise RuntimeError(f"qa_rpc {name} falhou ({err.code}): {detail}") from err
+        return json.loads(saida)
+    except json.JSONDecodeError:
+        return saida
