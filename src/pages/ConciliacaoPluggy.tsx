@@ -654,6 +654,8 @@ export default function ConciliacaoPluggy() {
         validPluggyAccountIds.has(r.pluggy_account_id),
     );
 
+    // Resposta atrasada de uma seleção anterior é descartada aqui.
+    if (stale()) return;
     setConnections(activeConns);
     setRows(visibleStaging);
     setAccounts(((accs ?? []) as any[]).map((a) => ({ id: a.id, name: a.name })));
