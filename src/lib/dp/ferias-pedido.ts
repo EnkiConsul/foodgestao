@@ -59,3 +59,38 @@ export function resumoPedido(periodo: PeriodoPedido, abono: number, dias: number
     abonoAcimaDoLegal: abono > maxAbono,
   };
 }
+
+/**
+ * Data sugerida para o primeiro dia: respeita o início permitido do gozo e a
+ * antecedência que a empresa pede para avisar (normalmente 30 dias).
+ */
+export function inicioSugeridoPedido(
+  periodo: PeriodoPedido,
+  hojeIso: string,
+  avisoDias: number,
+): string {
+  const minimo = inicioMinimoPedido(periodo, hojeIso);
+  const aviso = Number.isFinite(avisoDias) && avisoDias > 0 ? Math.floor(avisoDias) : 0;
+  const comAviso = iso(addDays(parseISO(hojeIso), aviso));
+  const sugerido = comAviso > minimo ? comAviso : minimo;
+  // Nunca sugerir data depois do prazo legal para tirar as férias.
+  if (periodo.limite_concessivo && sugerido > periodo.limite_concessivo) {
+    return periodo.limite_concessivo;
+  }
+  return sugerido;
+}
+
+/** Dias de descanso sugeridos: todo o saldo menos os dias vendidos. */
+export function diasSugeridos(saldo: number, abono: number): number {
+  const s = Number.isFinite(saldo) ? Math.max(0, Math.floor(saldo)) : 0;
+  const a = Number.isFinite(abono) ? Math.max(0, Math.floor(abono)) : 0;
+  return Math.max(0, s - a);
+}
+
+/** Períodos já marcados (não cancelados) do mesmo período aquisitivo. */
+export function fracoesExistentes(periodo: PeriodoPedido): { dias: number }[] {
+  return (periodo.gozos ?? [])
+    .filter((g) => g.status !== "cancelado")
+    .map((g) => ({ dias: Number(g.dias ?? 0) }))
+    .filter((g) => g.dias > 0);
+}
