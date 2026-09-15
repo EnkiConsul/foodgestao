@@ -43,7 +43,7 @@ function motivoAmigavel(c: Connection): string | null {
   const st = c.last_sync_status;
   if (!st || st === "success") return null;
   if (st === "bank_unavailable") return "Banco indisponível no momento — tentaremos de novo automaticamente";
-  if (st === "partial_success") return "O banco não devolveu todas as contas — use “Sincronizar” para tentar o restante";
+  if (st === "partial_success") return "Parte dos dados não foi atualizada — use “Sincronizar” para tentar o restante";
   if (st === "item_error" || c.status === "login_error") return "Reconectar: o banco pediu nova autorização";
   if (st === "waiting_user_input") return "O banco está aguardando a confirmação no app dele";
   if (st === "dead_letter") return "Não conseguimos sincronizar após várias tentativas";
@@ -207,14 +207,67 @@ export default function ConexoesPluggy() {
   useEffect(() => { load(); }, [load]);
 
 
+  // HTTP 200 não significa coleta completa: a função devolve 200 também quando o
+  // banco ainda está processando (`pending`), quando a conexão foi ignorada
+  // (`skipped`), quando devolve `error` no corpo ou quando o item volta como
+  // PARTIAL_SUCCESS. Só avisamos "concluída" no resultado completo.
   const sync = async (c: Connection) => {
     setSyncingId(c.id);
     const { data, error } = await supabase.functions.invoke("pluggy-sync-item", {
       body: { item_id: c.pluggy_item_id, company_id: selectedCompanyId },
     });
     setSyncingId(null);
-    if (error) { toast.error("Falha ao sincronizar"); return; }
-    toast.success(`Sincronização concluída (${data?.transactions ?? 0} lançamentos)`);
+
+    const body = (data ?? null) as {
+      ok?: boolean;
+      pending?: boolean;
+      skipped?: string | null;
+      error?: string | null;
+      message?: string | null;
+      transactions?: number | null;
+      execution_status?: string | null;
+    } | null;
+
+    if (error || body?.error) {
+      toast.error("Não foi possível concluir a sincronização", {
+        description: "Tente novamente em alguns minutos. Se continuar, use “Reconectar”.",
+      });
+      load();
+      return;
+    }
+
+    if (body?.pending) {
+      toast.info("O banco ainda está processando esta conexão", {
+        description: "Nada foi atualizado agora. Tente novamente em alguns minutos.",
+      });
+      load();
+      return;
+    }
+
+    if (body?.skipped) {
+      toast.info("Esta conexão não foi sincronizada", {
+        description:
+          body.skipped === "connection_revoked"
+            ? "O acesso ao banco foi encerrado. Reconecte para voltar a atualizar."
+            : "A conexão não está mais ativa nesta empresa.",
+      });
+      load();
+      return;
+    }
+
+    const parcial = String(body?.execution_status ?? "").toUpperCase() === "PARTIAL_SUCCESS";
+    if (parcial) {
+      toast.warning("Parte dos dados não foi atualizada", {
+        description: `O banco não concluiu a coleta desta vez (${body?.transactions ?? 0} lançamentos recebidos). Tente sincronizar de novo mais tarde.`,
+      });
+    } else if (body?.ok) {
+      toast.success(`Sincronização concluída (${body?.transactions ?? 0} lançamentos)`);
+    } else {
+      toast.info("Sincronização encerrada sem confirmação do banco", {
+        description: "Confira o status da conexão e tente novamente se necessário.",
+      });
+    }
+
     load();
     reloadPendingCredit();
   };
@@ -431,7 +484,7 @@ export default function ConexoesPluggy() {
                       <Badge variant="outline" className={st.className}>{st.label}</Badge>
                       {c.execution_status === "PARTIAL_SUCCESS" && (
                         <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">
-                          Parcial — parte das contas não veio
+                          Parte dos dados não foi atualizada
                         </Badge>
                       )}
                       {m.pending > 0 && (
