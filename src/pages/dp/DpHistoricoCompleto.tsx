@@ -784,8 +784,43 @@ export default function DpHistoricoCompleto() {
           <Button variant="ghost" className="sm:ml-auto" onClick={limpar}>Limpar</Button>
         </div>
 
+        {/* Celular: filtros recolhidos e escolha da ordem da lista */}
+        <div className="mb-3 flex items-center gap-2 md:hidden">
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-10 flex-1 justify-between"
+            aria-expanded={filtrosAbertos}
+            onClick={() => {
+              const proximo = !filtrosAbertos;
+              setFiltrosAbertos(proximo);
+              try {
+                localStorage.setItem("dp_historico_filtros_mobile", proximo ? "1" : "0");
+              } catch { /* preferência é opcional */ }
+            }}
+          >
+            <span className="flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              Filtros{filtrosAtivos > 0 ? ` (${filtrosAtivos})` : ""}
+            </span>
+            <ChevronDown className={`h-4 w-4 transition-transform ${filtrosAbertos ? "rotate-180" : ""}`} />
+          </Button>
+          <Select value={ordemMobile} onValueChange={aplicarOrdemMobile}>
+            <SelectTrigger className="min-h-10 flex-1">
+              <span className="flex items-center gap-2 truncate">
+                <ArrowDownUp className="h-4 w-4 shrink-0" />
+                <SelectValue />
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              {ORDENS_MOBILE.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+        <div className={`${filtrosAbertos ? "grid" : "hidden md:grid"} gap-3 md:grid-cols-3 lg:grid-cols-5`}>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Tipo</Label>
             <Select value={tipo} onValueChange={setTipo}>
