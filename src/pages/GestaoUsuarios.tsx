@@ -132,6 +132,36 @@ export default function GestaoUsuarios() {
     },
   });
 
+  // Propostas de acesso administrativo geradas pelo cadastro de colaboradores.
+  // Nada é aplicado sem a confirmação de um dono/administrador.
+  const { data: concessoes = [] } = useQuery({
+    queryKey: ["dp-acesso-concessoes", activeCompanyId],
+    enabled: !!activeCompanyId && isAdminOrOwner,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("dp_acesso_concessoes")
+        .select("id, acao, papel, perfil_acesso, user_id, created_at, dp_colaboradores(nome)")
+        .eq("company_id", activeCompanyId)
+        .eq("status", "pendente")
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+  });
+
+  const handleDecidirConcessao = async (id: string, decisao: "conceder" | "recusar") => {
+    const { error } = await (supabase as any).rpc("dp_acesso_concessao_decidir", {
+      _id: id,
+      _decisao: decisao,
+    });
+    if (error) {
+      toast.error("Não foi possível concluir", { description: error.message });
+      return;
+    }
+    toast.success(decisao === "conceder" ? "Acesso atualizado" : "Solicitação recusada");
+    queryClient.invalidateQueries({ queryKey: ["dp-acesso-concessoes", activeCompanyId] });
+    queryClient.invalidateQueries({ queryKey: ["company-members", activeCompanyId] });
+  };
+
   const handleRemoveMember = async (memberId: string) => {
     const { error } = await supabase.from("company_members").delete().eq("id", memberId);
     if (error) {
@@ -224,6 +254,51 @@ export default function GestaoUsuarios() {
           )}
         </div>
       </div>
+
+      {/* Solicitações de acesso vindas do cadastro de colaboradores */}
+      {isAdminOrOwner && concessoes.length > 0 && (
+        <Card className="border-amber-300/60">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-amber-600" />
+              <CardTitle className="text-base md:text-lg">Acessos aguardando confirmação</CardTitle>
+            </div>
+            <CardDescription className="text-xs">
+              Perfis definidos no cadastro de colaboradores. Nada é liberado sem a sua confirmação.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {concessoes.map((c: any) => (
+              <div
+                key={c.id}
+                className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{c.dp_colaboradores?.nome ?? "Colaborador"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {c.acao === "conceder"
+                      ? `Conceder acesso ${c.papel === "admin" ? "de administrador da empresa" : "ao módulo Pessoas"}`
+                      : "Retirar o acesso administrativo"}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" className="min-h-9 flex-1 sm:flex-none" onClick={() => handleDecidirConcessao(c.id, "conceder")}>
+                    Confirmar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="min-h-9 flex-1 sm:flex-none"
+                    onClick={() => handleDecidirConcessao(c.id, "recusar")}
+                  >
+                    Recusar
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Members */}
       <Card>

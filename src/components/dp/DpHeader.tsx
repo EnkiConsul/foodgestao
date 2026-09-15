@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, LayoutGrid } from "lucide-react";
+import { ArrowLeft, LayoutGrid, Shield, UserRound } from "lucide-react";
+import { useAcessoDuplo } from "@/hooks/useAcessoDuplo";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { ContextSelector } from "@/components/layout/ContextSelector";
@@ -28,6 +29,7 @@ function useMobileBack() {
 
 export function DpHeader({ variant = "admin" }: { variant?: "admin" | "portal" }) {
   const { show: showBack, goBack } = useMobileBack();
+  const { temAsDuasAreas } = useAcessoDuplo();
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur md:px-4">
@@ -60,6 +62,21 @@ export function DpHeader({ variant = "admin" }: { variant?: "admin" | "portal" }
       )}
       {variant === "admin" && <ContextSelector />}
       <div className="flex-1" />
+      {temAsDuasAreas && (
+        <Button asChild variant="outline" size="sm" className="h-9 gap-1.5 px-2 md:px-3">
+          {variant === "admin" ? (
+            <Link to="/dp/meu" aria-label="Ir para o meu portal">
+              <UserRound className="h-4 w-4" />
+              <span className="hidden sm:inline">Meu portal</span>
+            </Link>
+          ) : (
+            <Link to="/dp" aria-label="Ir para a administração">
+              <Shield className="h-4 w-4" />
+              <span className="hidden sm:inline">Administração</span>
+            </Link>
+          )}
+        </Button>
+      )}
       <FavoriteToggle />
       <DpNotificacoesBell variant={variant} />
     </header>

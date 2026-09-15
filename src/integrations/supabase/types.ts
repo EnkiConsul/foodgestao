@@ -2936,6 +2936,79 @@ export type Database = {
           },
         ]
       }
+      dp_acesso_concessoes: {
+        Row: {
+          acao: string
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          decidido_em: string | null
+          decidido_por: string | null
+          id: string
+          origem: string
+          papel: Database["public"]["Enums"]["company_role"] | null
+          perfil_acesso: Database["public"]["Enums"]["dp_perfil_acesso"] | null
+          permissoes: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          acao: string
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          decidido_em?: string | null
+          decidido_por?: string | null
+          id?: string
+          origem?: string
+          papel?: Database["public"]["Enums"]["company_role"] | null
+          perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"] | null
+          permissoes?: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          acao?: string
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          decidido_em?: string | null
+          decidido_por?: string | null
+          id?: string
+          origem?: string
+          papel?: Database["public"]["Enums"]["company_role"] | null
+          perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"] | null
+          permissoes?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_acesso_concessoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_acesso_concessoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_acesso_concessoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_adiantamento_solicitacoes: {
         Row: {
           colaborador_id: string
@@ -14103,6 +14176,31 @@ export type Database = {
         Args: { p_msg_id: number }
         Returns: boolean
       }
+      dp_acesso_concessao_decidir: {
+        Args: { _decisao: string; _id: string }
+        Returns: {
+          acao: string
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          decidido_em: string | null
+          decidido_por: string | null
+          id: string
+          origem: string
+          papel: Database["public"]["Enums"]["company_role"] | null
+          perfil_acesso: Database["public"]["Enums"]["dp_perfil_acesso"] | null
+          permissoes: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "dp_acesso_concessoes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       dp_adicionar_dias_uteis: {
         Args: { _base: string; _dias: number; _timezone: string }
         Returns: string
@@ -15342,6 +15440,13 @@ export type Database = {
         Returns: Json
       }
       dp_pascoa: { Args: { _ano: number }; Returns: string }
+      dp_perfil_papel_proposto: {
+        Args: { _perfil: Database["public"]["Enums"]["dp_perfil_acesso"] }
+        Returns: {
+          papel: Database["public"]["Enums"]["company_role"]
+          permissoes: Json
+        }[]
+      }
       dp_pessoa_apoio_upsert: {
         Args: {
           p_cargo_id?: string
