@@ -357,6 +357,12 @@ export default function DpMeuFerias() {
                   As férias só podem começar a partir de {fmt(inicioMin)}.
                 </p>
               )}
+              {fracionamentoInvalido && fracionamento?.codigo && (
+                <p className="mt-1 text-destructive">
+                  {FRACIONAMENTO_TEXTO[fracionamento.codigo] ??
+                    "A divisão das férias não é permitida pela lei."}
+                </p>
+              )}
               {foraDoPrazo && !excede && (
                 <p className="mt-1 text-amber-700">
                   A empresa pede {periodoSel?.aviso_antecedencia_dias} dias de antecedência. Seu
