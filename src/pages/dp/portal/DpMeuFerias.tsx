@@ -380,6 +380,7 @@ export default function DpMeuFerias() {
                 excede ||
                 abonoAcimaDoLegal ||
                 inicioAntesDoPermitido ||
+                fracionamentoInvalido ||
                 !periodoId ||
                 !inicio ||
                 !fim
