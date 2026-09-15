@@ -59,6 +59,13 @@ import {
 } from "@/lib/conciliacao/cardRouting";
 import { cardHintLabel, formatProviderDescription, hasMerchantName } from "@/lib/conciliacao/cardDescription";
 import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
+import {
+  SCOPED_PLUGGY_ACCOUNT_SELECT,
+  resolveScopedPluggyAccount,
+  type ScopedPluggyResolution,
+} from "@/lib/pluggy/scopedPluggyAccount";
+
+type ScopeProblem = Exclude<ScopedPluggyResolution["status"], "resolved"> | null;
 
 
 
@@ -423,6 +430,7 @@ export default function ConciliacaoPluggy() {
   // Escopo travado por conta (quando entrou pelo card da conta bancária)
   const [scope, setScope] = useState<ScopeInfo | null>(null);
   const [scopeUnresolved, setScopeUnresolved] = useState(false);
+  const [scopeProblem, setScopeProblem] = useState<ScopeProblem>(null);
   const [linkedByPluggyAccount, setLinkedByPluggyAccount] = useState<Record<string, string>>({});
   const [cardByPluggyAccount, setCardByPluggyAccount] = useState<Record<string, string>>({});
   const [cardPluggyAccounts, setCardPluggyAccounts] = useState<Set<string>>(new Set());
@@ -447,15 +455,28 @@ export default function ConciliacaoPluggy() {
     // crédito (?card=) — contas de cartão da Pluggy são vinculadas ao cartão,
     // nunca a uma conta bancária, por isso precisam do vínculo próprio.
     let resolvedScope: ScopeInfo | null = null;
+    let scopeProblem: ScopeProblem = null;
     if (scopedCardId || scopedLocalAccountId) {
       let paQuery = supabase
         .from("pluggy_accounts")
-        .select("pluggy_account_id, connection_id, name, number_masked")
+        .select(SCOPED_PLUGGY_ACCOUNT_SELECT)
         .eq("company_id", selectedCompanyId);
       paQuery = scopedCardId
         ? paQuery.eq("linked_credit_card_id", scopedCardId)
         : paQuery.eq("linked_account_id", scopedLocalAccountId!);
-      const { data: pa } = await paQuery.maybeSingle();
+      // Sem maybeSingle: reconexões deixam vários registros por conta e só a
+      // conexão ativa resolve o vínculo.
+      const { data: paRows, error: paError } = await paQuery;
+      const resolution = resolveScopedPluggyAccount({ rows: paRows ?? [], error: paError });
+      const pa =
+        resolution.status === "resolved"
+          ? {
+              pluggy_account_id: resolution.account.pluggyAccountId,
+              connection_id: resolution.account.connectionId,
+              name: resolution.account.name,
+            }
+          : null;
+      if (resolution.status !== "resolved") scopeProblem = resolution.status;
       if (pa) {
         // O nome do provedor pode ser um placeholder ("Sem nome"); nesse caso
         // usamos o cadastro local do cartão (emissor/bandeira + final).
@@ -477,8 +498,10 @@ export default function ConciliacaoPluggy() {
         };
       }
     }
+    const escopoBloqueado = !!(scopedCardId || scopedLocalAccountId) && !resolvedScope;
     setScope(resolvedScope);
-    setScopeUnresolved(!!(scopedCardId || scopedLocalAccountId) && !resolvedScope);
+    setScopeUnresolved(escopoBloqueado);
+    setScopeProblem(escopoBloqueado ? scopeProblem : null);
     setConnectionId(resolvedScope ? resolvedScope.connectionId : "all");
 
     // Fábrica de query: cada página precisa de um builder novo (os builders do
@@ -488,6 +511,9 @@ export default function ConciliacaoPluggy() {
         .select("*")
         .eq("company_id", selectedCompanyId);
       if (resolvedScope) q = q.eq("pluggy_account_id", resolvedScope.pluggyAccountId);
+      // Pedido de conta/cartão específico sem vínculo resolvido nunca cai para a
+      // fila inteira da empresa: preserva o escopo e devolve vazio.
+      else if (escopoBloqueado) q = q.in("pluggy_account_id", []);
       return q
         .order("date", { ascending: false })
         .order("id", { ascending: false })
@@ -1779,11 +1805,31 @@ export default function ConciliacaoPluggy() {
 
       {scopeUnresolved && (
         <Card className="border-warning/50 bg-warning/10">
-          <CardContent className="p-3 text-sm text-foreground flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
-            {scopedCardId
-              ? "Este cartão não possui vínculo com uma conta conectada via Open Finance. Exibindo a fila completa da empresa."
-              : "Esta conta não possui vínculo com uma conexão Open Finance. Exibindo a fila completa da empresa."}
+          <CardContent className="flex flex-col gap-2 p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
+            <span className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+              {scopeProblem === "error"
+                ? "Não foi possível verificar a conexão bancária desta seleção. Tente novamente em instantes."
+                : scopeProblem === "ambiguous"
+                  ? (scopedCardId
+                      ? "Este cartão está ligado a mais de uma conexão ativa do banco. Ajuste as conexões antes de conciliar."
+                      : "Esta conta está ligada a mais de uma conexão ativa do banco. Ajuste as conexões antes de conciliar.")
+                  : scopeProblem === "inactive_only"
+                    ? (scopedCardId
+                        ? "A conexão do banco ligada a este cartão foi encerrada. Reconecte para voltar a receber o extrato."
+                        : "A conexão do banco ligada a esta conta foi encerrada. Reconecte para voltar a receber o extrato.")
+                    : (scopedCardId
+                        ? "Este cartão não possui vínculo com uma conta conectada via Open Finance."
+                        : "Esta conta não possui vínculo com uma conexão Open Finance.")}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              onClick={() => navigate("/contas-bancarias/conciliacao")}
+            >
+              Ver fila da empresa
+            </Button>
           </CardContent>
         </Card>
       )}

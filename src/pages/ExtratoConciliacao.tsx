@@ -29,6 +29,13 @@ import {
 import { downloadXlsx, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
 import { creditCardLabel, cleanProviderName } from "@/lib/conciliacao/cardRouting";
 import { formatProviderDescription } from "@/lib/conciliacao/cardDescription";
+import {
+  SCOPED_PLUGGY_ACCOUNT_SELECT,
+  resolveScopedPluggyAccount,
+  type ScopedPluggyResolution,
+} from "@/lib/pluggy/scopedPluggyAccount";
+
+type ScopeProblem = Exclude<ScopedPluggyResolution["status"], "resolved"> | null;
 
 type EditableTransaction = {
   id: string;
@@ -145,6 +152,7 @@ export default function ExtratoConciliacao() {
   const [statusFilter, setStatusFilter] = useState<ExtratoStatusFilter>("all");
   const [pluggyAccountId, setPluggyAccountId] = useState<string | null>(null);
   const [accountName, setAccountName] = useState<string | null>(null);
+  const [scopeProblem, setScopeProblem] = useState<ScopeProblem>(null);
   const [editTransaction, setEditTransaction] = useState<EditableTransaction | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [openingTransactionId, setOpeningTransactionId] = useState<string | null>(null);
@@ -153,23 +161,30 @@ export default function ExtratoConciliacao() {
   useEffect(() => {
     let alive = true;
     (async () => {
+      // Troca de empresa/parâmetro: limpa o escopo anterior antes de resolver,
+      // para não exibir registros da seleção passada.
+      setPluggyAccountId(null);
+      setAccountName(null);
+      setScopeProblem(null);
       if ((!accountParam && !cardParam) || !selectedCompanyId) {
-        setPluggyAccountId(null);
-        setAccountName(null);
         return;
       }
       const { supabase } = await import("@/integrations/supabase/client");
       let query = supabase
         .from("pluggy_accounts")
-        .select("pluggy_account_id, name")
+        .select(SCOPED_PLUGGY_ACCOUNT_SELECT)
         .eq("company_id", selectedCompanyId);
       // Cartões de crédito conectados usam o vínculo com o cartão.
       query = cardParam
         ? query.eq("linked_credit_card_id", cardParam)
         : query.eq("linked_account_id", accountParam!);
-      const { data } = await query.maybeSingle();
+      // Reconexões deixam vários registros por conta; só a conexão ativa vale.
+      const { data: rows, error } = await query;
       if (!alive) return;
-      setPluggyAccountId(data?.pluggy_account_id ?? null);
+      const resolution = resolveScopedPluggyAccount({ rows: rows ?? [], error });
+      const data = resolution.status === "resolved" ? resolution.account : null;
+      setPluggyAccountId(data?.pluggyAccountId ?? null);
+      setScopeProblem(resolution.status === "resolved" ? null : resolution.status);
       // "Sem nome" e afins vindos do provedor não devem ir para a tela;
       // para cartão preferimos o cadastro local (emissor/bandeira + final).
       let label = cleanProviderName(data?.name);
@@ -190,12 +205,17 @@ export default function ExtratoConciliacao() {
     };
   }, [accountParam, cardParam, selectedCompanyId]);
 
+  // Escopo pedido por conta/cartão sem vínculo ativo resolvido: não exibir a
+  // fila inteira da empresa nem permitir conciliar por engano.
+  const scopeBlocked = !!(accountParam || cardParam) && !pluggyAccountId;
+
   const { staging, transactions, loading, error, reload } = useExtratoConciliacao({
     companyId: selectedCompanyId ?? null,
     from,
     to,
     pluggyAccountId,
     connectionId: pluggyAccountId ? null : connectionParam,
+    scopeBlocked,
   });
 
   const model = useMemo(
@@ -362,6 +382,30 @@ export default function ExtratoConciliacao() {
           </Button>
         </div>
       </div>
+
+      {scopeBlocked && !loading && (
+        <Card className="border-warning/50 bg-warning/10">
+          <CardContent className="flex flex-col gap-2 p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              {scopeProblem === "error"
+                ? "Não foi possível verificar a conexão bancária desta seleção. Tente novamente em instantes."
+                : scopeProblem === "ambiguous"
+                  ? "Esta seleção está ligada a mais de uma conexão ativa do banco. Ajuste as conexões para ver o extrato."
+                  : scopeProblem === "inactive_only"
+                    ? "A conexão do banco desta seleção foi encerrada. Reconecte para voltar a receber o extrato."
+                    : "Esta seleção não possui vínculo com uma conexão Open Finance."}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              onClick={() => navigate("/contas-bancarias/conciliacao")}
+            >
+              Ver fila da empresa
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="grid gap-3 p-3 sm:grid-cols-3 sm:p-4">

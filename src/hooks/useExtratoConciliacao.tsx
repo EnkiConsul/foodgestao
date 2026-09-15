@@ -11,6 +11,11 @@ export interface ExtratoConciliacaoFiltros {
   /** conta Pluggy (escopo por conta financeira) */
   pluggyAccountId?: string | null;
   connectionId?: string | null;
+  /**
+   * Escopo pedido (conta/cartão) sem vínculo ativo resolvido: não deve cair para
+   * a fila inteira da empresa — a lista fica vazia até o escopo resolver.
+   */
+  scopeBlocked?: boolean;
 }
 
 interface JoinedTx {
@@ -31,14 +36,14 @@ interface JoinedTx {
  * plataforma vinculadas a elas. A busca é paginada para suportar períodos longos.
  */
 export function useExtratoConciliacao(filtros: ExtratoConciliacaoFiltros) {
-  const { companyId, from, to, pluggyAccountId, connectionId } = filtros;
+  const { companyId, from, to, pluggyAccountId, connectionId, scopeBlocked } = filtros;
   const [staging, setStaging] = useState<ExtratoStagingLike[]>([]);
   const [transactions, setTransactions] = useState<ExtratoTxLike[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!companyId) {
+    if (!companyId || scopeBlocked) {
       setStaging([]);
       setTransactions([]);
       setLoading(false);
@@ -129,7 +134,7 @@ export function useExtratoConciliacao(filtros: ExtratoConciliacaoFiltros) {
     } finally {
       setLoading(false);
     }
-  }, [companyId, from, to, pluggyAccountId, connectionId]);
+  }, [companyId, from, to, pluggyAccountId, connectionId, scopeBlocked]);
 
   useEffect(() => {
     void load();
