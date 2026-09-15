@@ -52,10 +52,11 @@ status_detail: {
 Somente contadores e flags — nunca o conteúdo dos avisos, que pode carregar texto
 do banco com dados do titular.
 
-3. Espelhar o mesmo resumo em `pluggy_connections.status_detail` (V1), para a tela
-  de conexões poder dizer *qual* produto ficou de fora numa coleta parcial.
+3. V1 (`pluggy_connections`) **não possui** coluna `status_detail` — espelhar o
+   resumo ali exigiria migration própria, que não foi proposta nem aplicada. Item
+   registrado apenas como possibilidade futura.
 
-Nada disso foi aplicado nesta etapa.
+Nada disso foi aplicado nesta etapa (sem migrations).
 
 ## Diagnóstico da conexão consultada (somente leitura)
 
