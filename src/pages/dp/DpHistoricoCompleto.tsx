@@ -950,9 +950,6 @@ export default function DpHistoricoCompleto() {
               <Button size="sm" variant="ghost" className="min-h-11" onClick={() => setPreview(r)} disabled={!r.file_path}>
                 <Eye className="h-4 w-4 mr-1 text-primary" /> Ver
               </Button>
-              <Button size="sm" variant="ghost" className="min-h-11" onClick={() => download(r)} disabled={!r.file_path}>
-                <Download className="h-4 w-4 mr-1" /> Baixar
-              </Button>
               {r.id.startsWith("doc:") ? (
                 <ComprovanteAcaoBotao
                   alvo={{ documentoId: r.id.slice(4), colaboradorId: r.colaborador_id, tipo: r.tipo_key }}
@@ -961,11 +958,14 @@ export default function DpHistoricoCompleto() {
                   className="min-h-11"
                 />
               ) : null}
-              <Button size="sm" variant="ghost" className="min-h-11 col-span-2" onClick={() => abrirSubstituir(r)}>
-                <Replace className="h-4 w-4 mr-1" /> Substituir
+              <Button size="sm" variant="ghost" className="min-h-11" onClick={() => download(r)} disabled={!r.file_path}>
+                <Download className="h-4 w-4 mr-1" /> Baixar
               </Button>
               <Button size="sm" variant="ghost" className="min-h-11 text-destructive" onClick={() => setExcluir(r)}>
                 <Trash2 className="h-4 w-4 mr-1" /> Excluir
+              </Button>
+              <Button size="sm" variant="ghost" className="min-h-11 col-span-2" onClick={() => abrirSubstituir(r)}>
+                <Replace className="h-4 w-4 mr-1" /> Substituir
               </Button>
             </div>
           </div>
