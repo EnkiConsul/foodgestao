@@ -1,6 +1,6 @@
 {
   "fase": "P0.4 — validação funcional em banco isolado",
-  "gerado_em": "2026-09-15T03:23:30.207Z",
+  "gerado_em": "2026-09-15T03:23:57.835Z",
   "ambiente": {
     "tipo": "cluster PostgreSQL local temporário e descartável",
     "data_directory": "/tmp/p04pg",
@@ -26,23 +26,11 @@
   "etapas": [
     {
       "etapa": "restore_estrutura",
-      "erros_totais": 14,
+      "erros_totais": 2,
       "erros_em_objetos_sob_teste": 0,
       "amostra_erros": [
         "ERROR:  schema \"private\" already exists",
-        "ERROR:  schema \"public\" already exists",
-        "ERROR:  role \"supabase_admin\" does not exist",
-        "ERROR:  role \"supabase_admin\" does not exist",
-        "ERROR:  role \"supabase_admin\" does not exist",
-        "ERROR:  role \"supabase_admin\" does not exist",
-        "ERROR:  role \"supabase_admin\" does not exist",
-        "ERROR:  role \"supabase_admin\" does not exist",
-        "ERROR:  role \"supabase_admin\" does not exist",
-        "ERROR:  role \"supabase_admin\" does not exist",
-        "ERROR:  role \"supabase_admin\" does not exist",
-        "ERROR:  role \"supabase_admin\" does not exist",
-        "ERROR:  role \"supabase_admin\" does not exist",
-        "ERROR:  role \"supabase_admin\" does not exist"
+        "ERROR:  schema \"public\" already exists"
       ],
       "status": "passed"
     },
@@ -86,7 +74,7 @@
         "OK T1b: nenhuma rotina interna liberada para PUBLIC",
         "OK T2: gatilhos de validação ativos (2)",
         "OK T3: RPCs app-facing preservadas para authenticated e fechadas para anon",
-        "OK fixtures: empresa sintética 7b871ec4-5dd4-4260-b980-14c60c3384a9 criada",
+        "OK fixtures: empresa sintética 3612951a-4568-4caf-befe-3782b1d11cb4 criada",
         "OK T4: admin não-dono edita dados comuns normalmente",
         "OK T5: dono edita dados comuns; transferência bloqueada pelo gatilho mais restritivo",
         "OK T5b: super_admin executa a transferência autorizada",
@@ -114,7 +102,7 @@
         "OK S4e: visitante (anon) sem EXECUTE nas RPCs app-facing",
         "OK S5.1: contagem de páginas do lote executada internamente (processed_pages=2)",
         "OK S5.2: geração de escala executada internamente para a empresa sintética A",
-        "OK S5.3: autoatribuição de folgas executada internamente (retorno: {\"ok\": true, \"geradas\": 2, \"excedidas\": 0, \"competencia\": \"2026-09-01\", \"execucao_id\": \"6266b746-9215-4e18-9c80-5d028b035832\"})",
+        "OK S5.3: autoatribuição de folgas executada internamente (retorno: {\"ok\": true, \"geradas\": 2, \"excedidas\": 0, \"competencia\": \"2026-09-01\", \"execucao_id\": \"c603268e-a351-40b7-a341-d0f087ae1411\"})",
         "OK S6: service_role mantém a execução interna (processed_pages=1)"
       ],
       "falhas": []

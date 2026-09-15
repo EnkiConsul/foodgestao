@@ -155,7 +155,7 @@ const BOOTSTRAP_SQL = `
 do $$
 declare r text;
 begin
-  foreach r in array array['anon','authenticated','service_role','sandbox_exec','authenticator'] loop
+  foreach r in array array['anon','authenticated','service_role','sandbox_exec','authenticator','supabase_admin','supabase_auth_admin','supabase_storage_admin','dashboard_user','pgbouncer'] loop
     if not exists (select 1 from pg_roles where rolname = r) then
       execute format('create role %I nologin noinherit', r);
     end if;
