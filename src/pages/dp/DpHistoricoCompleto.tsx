@@ -317,6 +317,9 @@ export default function DpHistoricoCompleto() {
     defaultSortDir: "desc",
   });
 
+  const filtrosAtivos = [grupo, tipo, unidadeId, colabId, mes, ano].filter((v) => v !== "all").length
+    + (busca.trim() ? 1 : 0);
+
   // A ordem escolhida no celular reaproveita a ordenação da tabela.
   const ordemMobile = `${sortKey}:${sortDir}`;
   const aplicarOrdemMobile = (valor: string) => {
