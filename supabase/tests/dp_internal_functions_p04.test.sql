@@ -187,10 +187,15 @@ END $$;
 RESET ROLE;
 
 -- =====================================================================
--- T5 (POSITIVO): dono edita campo comum e transfere titularidade (permitido).
+-- T5 (POSITIVO + REGRA REAL): dono edita campo comum (permitido) e NÃO
+--     transfere titularidade.
+--     Regra efetiva confirmada no banco: dos três gatilhos, o mais restritivo
+--     (prevent_company_ownership_transfer_trg) só autoriza super_admin ou
+--     contexto de serviço — nem o próprio dono transfere. O teste segue a
+--     regra de produção; nada foi afrouxado.
 -- =====================================================================
 DO $$
-DECLARE f p04_fix; v_owner_after uuid;
+DECLARE f p04_fix; v_owner_after uuid; v_state text := NULL; v_msg text := NULL;
 BEGIN
   SELECT * INTO f FROM p04_fix;
   PERFORM pg_temp.p04_as_user(f.owner_id);
@@ -200,20 +205,48 @@ BEGIN
     RAISE EXCEPTION 'FALHA T5: dono não conseguiu editar campo comum';
   END IF;
 
-  UPDATE public.companies SET user_id = f.admin_id WHERE id = f.company_id;
-  SELECT user_id INTO v_owner_after FROM public.companies WHERE id = f.company_id;
-  IF v_owner_after IS DISTINCT FROM f.admin_id THEN
-    RAISE EXCEPTION 'FALHA T5: dono legítimo não conseguiu transferir a titularidade';
-  END IF;
+  BEGIN
+    UPDATE public.companies SET user_id = f.admin_id WHERE id = f.company_id;
+  EXCEPTION WHEN others THEN
+    v_state := SQLSTATE; v_msg := SQLERRM;
+  END;
 
-  -- devolve para o dono original (ainda dentro da transação revertida)
   PERFORM set_config('role', 'none', true);
-  RAISE NOTICE 'OK T5: dono edita e transfere titularidade (caso positivo)';
+  RESET ROLE;
+
+  SELECT user_id INTO v_owner_after FROM public.companies WHERE id = f.company_id;
+  IF v_owner_after IS DISTINCT FROM f.owner_id THEN
+    RAISE EXCEPTION 'FALHA T5: titularidade mudou (esperado %, obtido %)', f.owner_id, v_owner_after;
+  END IF;
+  IF v_state IS DISTINCT FROM 'P0001' OR v_msg IS DISTINCT FROM 'Ownership transfer is not allowed' THEN
+    RAISE EXCEPTION 'FALHA T5: negação esperada do gatilho, obtida % / %', v_state, v_msg;
+  END IF;
+  RAISE NOTICE 'OK T5: dono edita dados comuns; transferência bloqueada pelo gatilho mais restritivo';
 END $$;
 RESET ROLE;
 
+-- T5b (POSITIVO): a operação de transferência autorizada existe — super_admin
+-- transfere a titularidade da empresa sintética.
+DO $$
+DECLARE f p04_fix; v_after uuid;
+BEGIN
+  SELECT * INTO f FROM p04_fix;
+  PERFORM pg_temp.p04_as_user(f.super_id);
+  UPDATE public.companies SET user_id = f.admin_id WHERE id = f.company_id;
+  PERFORM set_config('role', 'none', true);
+  RESET ROLE;
+
+  SELECT user_id INTO v_after FROM public.companies WHERE id = f.company_id;
+  IF v_after IS DISTINCT FROM f.admin_id THEN
+    RAISE EXCEPTION 'FALHA T5b: super_admin não conseguiu transferir a titularidade (titular %)', v_after;
+  END IF;
+  RAISE NOTICE 'OK T5b: super_admin executa a transferência autorizada';
+END $$;
+RESET ROLE;
+
+-- devolve a titularidade ao dono original (ainda dentro da transação revertida)
 UPDATE public.companies SET user_id = (SELECT owner_id FROM p04_fix)
- WHERE id = (SELECT company_id FROM p04_fix);
+
 
 -- =====================================================================
 -- T6 (NEGATIVO, gatilhos + policy): admin não-dono não assume titularidade.
