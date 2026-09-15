@@ -121,3 +121,27 @@ export function resolveScopedPluggyAccount(input: {
 /** Colunas necessárias para a resolução (empresa e status da conexão inclusos). */
 export const SCOPED_PLUGGY_ACCOUNT_SELECT =
   "pluggy_account_id, connection_id, company_id, name, number_masked, pluggy_connections(id, status, company_id)";
+
+/** Mensagem para o usuário quando o escopo pedido não resolveu. */
+export function describeScopeProblem(
+  status: Exclude<ScopedPluggyResolution["status"], "resolved"> | null,
+  kind: "card" | "account",
+): string {
+  const alvo = kind === "card" ? "Este cartão" : "Esta conta";
+  switch (status) {
+    case "error":
+      return "Não foi possível verificar a conexão bancária desta seleção. Tente novamente em instantes.";
+    case "ambiguous":
+      return `${alvo} está ligado a mais de uma conexão ativa do banco. Ajuste as conexões antes de conciliar.`;
+    case "inactive_only":
+      return `A conexão do banco ligada a ${kind === "card" ? "este cartão" : "esta conta"} foi encerrada. Reconecte para voltar a receber o extrato.`;
+    case "foreign_company":
+      return `${alvo} pertence a outra empresa: nada é exibido nesta seleção.`;
+    case "unverified":
+      return "Não foi possível confirmar a situação da conexão bancária desta seleção. Tente novamente em instantes.";
+    default:
+      return kind === "card"
+        ? "Este cartão não possui vínculo com uma conta conectada via Open Finance."
+        : "Esta conta não possui vínculo com uma conexão Open Finance.";
+  }
+}
