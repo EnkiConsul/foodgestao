@@ -518,7 +518,8 @@ export default function ConciliacaoPluggy() {
         };
       }
     }
-    const escopoBloqueado = !!(scopedCardId || scopedLocalAccountId) && !resolvedScope;
+    if (stale()) return;
+    const escopoBloqueado = scopeRequested && !resolvedScope;
     setScope(resolvedScope);
     setScopeUnresolved(escopoBloqueado);
     setScopeProblem(escopoBloqueado ? scopeProblem : null);
