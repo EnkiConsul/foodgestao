@@ -30,22 +30,32 @@ export type SyncFeedback = {
   suggestReconnect: boolean;
 };
 
-const RECONNECT_ITEM_STATUS = new Set(["LOGIN_ERROR", "OUTDATED", "INVALID_CREDENTIALS"]);
+// Só códigos inequívocos de credencial/consentimento inválido ou revogado.
+// `OUTDATED` fica fora: pode vir de SITE_NOT_AVAILABLE / CONNECTION_ERROR.
+// `ALREADY_LOGGED_IN`, `ACCOUNT_LOCKED` e `USER_AUTHORIZATION_PENDING` também
+// ficam fora — não indicam necessidade de nova autorização.
+const RECONNECT_ITEM_STATUS = new Set(["LOGIN_ERROR", "INVALID_CREDENTIALS"]);
 const RECONNECT_EXECUTION_STATUS = new Set([
   "LOGIN_ERROR",
   "INVALID_CREDENTIALS",
   "INVALID_CREDENTIALS_MFA",
-  "ALREADY_LOGGED_IN",
-  "ACCOUNT_LOCKED",
-  "ACCOUNT_NEEDS_ACTION",
-  "USER_AUTHORIZATION_PENDING",
   "USER_AUTHORIZATION_NOT_GRANTED",
+  "USER_AUTHORIZATION_REVOKED",
   "CONSENT_REVOKED",
 ]);
+// Confirmação já iniciada: o usuário deve concluir no app do banco, sem abrir
+// uma nova conexão.
 const WAITING_EXECUTION_STATUS = new Set([
   "WAITING_USER_INPUT",
   "WAITING_USER_ACTION",
   "USER_AUTHORIZATION_PENDING",
+]);
+const WAITING_ITEM_STATUS = new Set(["WAITING_USER_INPUT", "WAITING_USER_ACTION"]);
+// Indisponibilidade do banco: erro, com nova tentativa mais tarde.
+const CONNECTION_FAILURE_STATUS = new Set([
+  "SITE_NOT_AVAILABLE",
+  "CONNECTION_ERROR",
+  "UNEXPECTED_ERROR",
 ]);
 const RUNNING_EXECUTION_STATUS = new Set([
   "CREATED",
