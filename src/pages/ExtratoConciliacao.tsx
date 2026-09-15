@@ -186,10 +186,15 @@ export default function ExtratoConciliacao() {
       // Reconexões deixam vários registros por conta; só a conexão ativa vale.
       const { data: rows, error } = await query;
       if (!alive) return;
-      const resolution = resolveScopedPluggyAccount({ rows: rows ?? [], error });
+      const resolution = resolveScopedPluggyAccount({
+        rows: rows ?? [],
+        error,
+        companyId: selectedCompanyId,
+      });
       const data = resolution.status === "resolved" ? resolution.account : null;
       setPluggyAccountId(data?.pluggyAccountId ?? null);
       setScopeProblem(resolution.status === "resolved" ? null : resolution.status);
+      setResolvedKey(scopeKey);
       // "Sem nome" e afins vindos do provedor não devem ir para a tela;
       // para cartão preferimos o cadastro local (emissor/bandeira + final).
       let label = cleanProviderName(data?.name);
