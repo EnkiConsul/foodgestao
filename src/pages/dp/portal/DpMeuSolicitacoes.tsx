@@ -531,14 +531,25 @@ export default function DpMeuSolicitacoes() {
             <Card key={s.id} className="dp-content-card">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-base capitalize">{s.tipo}</CardTitle>
+                  <CardTitle className="text-base capitalize">
+                    {s.tipo === "folga" && s.data_fim ? "Troca de folga" : s.tipo}
+                  </CardTitle>
                   <DpStatusBadge tone={statusToneFor(s.status)}>
                     {STATUS_LABEL[s.status] ?? s.status}
                   </DpStatusBadge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {s.data_alvo && format(new Date(s.data_alvo + "T00:00:00"), "dd/MM/yyyy")}
-                  {s.data_fim && ` – ${format(new Date(s.data_fim + "T00:00:00"), "dd/MM/yyyy")}`}
+                  {s.tipo === "folga" && s.data_fim ? (
+                    <>
+                      Folga em {format(new Date(s.data_alvo + "T00:00:00"), "dd/MM/yyyy")} · trabalha em{" "}
+                      {format(new Date(s.data_fim + "T00:00:00"), "dd/MM/yyyy")}
+                    </>
+                  ) : (
+                    <>
+                      {s.data_alvo && format(new Date(s.data_alvo + "T00:00:00"), "dd/MM/yyyy")}
+                      {s.data_fim && ` – ${format(new Date(s.data_fim + "T00:00:00"), "dd/MM/yyyy")}`}
+                    </>
+                  )}
                 </p>
               </CardHeader>
               <CardContent className="space-y-2">
