@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   FileText, Eye, Download, Search, ArrowUp, ArrowDown, ChevronsUpDown,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Trash2, Replace,
-  History as HistoryIcon,
+  History as HistoryIcon, ChevronDown, ArrowDownUp,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -278,6 +278,14 @@ export default function DpHistoricoCompleto() {
   const [motivoExclusao, setMotivoExclusao] = useState("");
   const [excluindo, setExcluindo] = useState(false);
   const [substituir, setSubstituir] = useState<DocSubstituirTarget | null>(null);
+  // No celular os filtros começam recolhidos para sobrar tela para a lista.
+  const [filtrosAbertos, setFiltrosAbertos] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("dp_historico_filtros_mobile") === "1";
+    } catch {
+      return false;
+    }
+  });
   const queryClient = useQueryClient();
 
 
