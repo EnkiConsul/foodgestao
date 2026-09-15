@@ -13646,6 +13646,7 @@ export type Database = {
       }
     }
     Functions: {
+      _assert_test_helper_allowed: { Args: never; Returns: undefined }
       _e2e_cleanup_adjust_balance: {
         Args: { _account_name: string }
         Returns: undefined
