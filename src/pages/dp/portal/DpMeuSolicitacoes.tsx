@@ -293,6 +293,14 @@ export default function DpMeuSolicitacoes() {
   // Validação
   const validation = useMemo(() => {
     const errors: string[] = [];
+    if (ehTroca)
+      return validarTrocaFds({
+        diasFixos: fixos,
+        diaFolga: form.data_alvo,
+        diaTrabalho: form.data_fim,
+        motivo: form.motivo,
+        hoje: new Date(),
+      });
     if (!form.data_alvo) errors.push("Informe a data.");
     if (form.data_fim && form.data_alvo && form.data_fim < form.data_alvo)
       errors.push("A data fim não pode ser anterior à data inicial.");
