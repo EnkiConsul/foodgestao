@@ -98,6 +98,16 @@ function tipoBadgeClass(key: string) {
 type ColKey = "colaborador" | "tipo" | "competencia" | "unidade" | "aceite";
 type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "aceite_label" | "data" | "default";
 
+/** Ordens oferecidas na lista do celular. */
+const ORDENS_MOBILE: { value: string; label: string }[] = [
+  { value: "default:desc", label: "Mais recentes" },
+  { value: "default:asc", label: "Mais antigos" },
+  { value: "colaborador_nome:asc", label: "Colaborador (A–Z)" },
+  { value: "tipo_label:asc", label: "Tipo do documento" },
+  { value: "competencia_sort:desc", label: "Competência" },
+];
+const ORDEM_MOBILE_STORAGE = "dp_historico_ordem_mobile";
+
 const COL_ORDER_STORAGE = "dp_historico_col_order_v2";
 const COL_WIDTH_STORAGE = "dp_historico_col_width_v1";
 const DEFAULT_COL_ORDER: ColKey[] = ["colaborador", "tipo", "competencia", "unidade", "aceite"];
