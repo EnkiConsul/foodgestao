@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,11 +6,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CurrencyInput, formatCurrency, parseCurrencyToNumber } from "@/components/ui/currency-input";
 import { toast } from "sonner";
 import { BankSelect } from "./BankSelect";
 import { accountSchema, validateWithToast } from "@/lib/validations";
+import {
+  assertCopyTargets,
+  buildAccountRows,
+  describeSaveResult,
+  resolvePrimaryCreatedId,
+  AccountTargetsError,
+  type AccountCopyTarget,
+} from "@/lib/accounts/accountCopyTargets";
 import type { Database } from "@/integrations/supabase/types";
 
 type AccountType = Database["public"]["Enums"]["account_type"];
@@ -39,13 +48,14 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
   const { contextType, selectedCompanyId, companies } = useCompanyContext();
   const isEdit = !!account;
 
-
-
   const [name, setName] = useState("");
   const [accountType, setAccountType] = useState<AccountType>("corrente");
   const [initialBalance, setInitialBalance] = useState("");
   const [ownerType, setOwnerType] = useState<"pf" | "pj">("pj");
-  const [ownerCompanyId, setOwnerCompanyId] = useState<string | null>(null);
+  /** empresas onde a conta será CRIADA (cada uma com registro e saldo próprios) */
+  const [targetCompanyIds, setTargetCompanyIds] = useState<string[]>([]);
+  /** saldo inicial por empresa, quando há mais de uma selecionada */
+  const [balanceByCompany, setBalanceByCompany] = useState<Record<string, string>>({});
   const [bankSlug, setBankSlug] = useState<string | null>(null);
   const [agency, setAgency] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
@@ -65,7 +75,8 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
       setAccountType(account.account_type);
       setInitialBalance(formatCurrency(String(Math.round(account.initial_balance * 100))));
       setOwnerType(account.context as "pf" | "pj");
-      setOwnerCompanyId(account.company_id);
+      setTargetCompanyIds([]);
+      setBalanceByCompany({});
       setAgency(a.agency ?? "");
       setAccountNumber(a.account_number ?? "");
       setIsAccounting(
@@ -78,7 +89,8 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
       setAccountType("corrente");
       setInitialBalance("");
       setOwnerType(contextType);
-      setOwnerCompanyId(contextType === "pj" ? selectedCompanyId : null);
+      setTargetCompanyIds(contextType === "pj" && selectedCompanyId ? [selectedCompanyId] : []);
+      setBalanceByCompany({});
       setBankSlug(null);
       setAgency("");
       setAccountNumber("");
@@ -86,81 +98,139 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
     }
   }, [open, account, contextType, selectedCompanyId]);
 
+  /** empresas oferecidas: na edição, exclui a empresa da própria conta */
+  const selectableCompanies = useMemo(
+    () => companies.filter((c) => !(isEdit && account?.company_id === c.id)),
+    [companies, isEdit, account?.company_id],
+  );
+  const currentCompanyName = useMemo(() => {
+    const c = companies.find((x) => x.id === account?.company_id);
+    return c ? c.trade_name || c.name : null;
+  }, [companies, account?.company_id]);
+
+  const toggleCompany = (companyId: string, checked: boolean) => {
+    setTargetCompanyIds((prev) =>
+      checked ? [...prev, companyId] : prev.filter((id) => id !== companyId),
+    );
+  };
+
+  /** com apenas uma empresa selecionada, mantém o campo único de saldo */
+  const usesPerCompanyBalance = !isEdit && targetCompanyIds.length > 1;
+
+  const balanceFor = (companyId: string): number => {
+    if (isEdit) return parseCurrencyToNumber(balanceByCompany[companyId] ?? "");
+    if (!usesPerCompanyBalance) return parseCurrencyToNumber(initialBalance);
+    return parseCurrencyToNumber(balanceByCompany[companyId] ?? "");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    const balance = parseCurrencyToNumber(initialBalance);
 
     const validated = validateWithToast(
       accountSchema,
-      { name, account_type: accountType, initial_balance: balance },
+      { name, account_type: accountType, initial_balance: parseCurrencyToNumber(initialBalance) },
       toast.error,
     );
     if (!validated) return;
 
-    setSaving(true);
     const showBankFields = BANK_TYPES.includes(accountType);
     const agencyValue = showBankFields ? agency.trim() || null : null;
     const accountNumberValue = showBankFields ? accountNumber.trim() || null : null;
 
-    if (isEdit && account) {
-      const { error } = await supabase
-        .from("accounts")
-        .update({
-          name: name.trim(),
-          account_type: accountType,
-          context: ownerType,
-          company_id: ownerType === "pj" ? ownerCompanyId : null,
-          bank_slug: bankSlug,
-          agency: agencyValue,
-          account_number: accountNumberValue,
-          is_accounting: isAccounting === "contabil",
-        } as never)
-        .eq("id", account.id);
-      if (error) toast.error("Erro ao atualizar conta");
-      else {
+    const targets: AccountCopyTarget[] =
+      ownerType === "pf" && !isEdit
+        ? [{ companyId: null, initialBalance: parseCurrencyToNumber(initialBalance) }]
+        : targetCompanyIds.map((companyId) => ({
+            companyId,
+            initialBalance: balanceFor(companyId),
+          }));
+
+    try {
+      assertCopyTargets(targets, {
+        requireAtLeastOne: !isEdit,
+        currentCompanyId: account?.company_id ?? null,
+      });
+    } catch (err) {
+      if (err instanceof AccountTargetsError) return toast.error(err.message);
+      throw err;
+    }
+
+    const cadastral = {
+      name,
+      accountType,
+      bankSlug,
+      agency: agencyValue,
+      accountNumber: accountNumberValue,
+      isAccounting: isAccounting === "contabil",
+    };
+
+    setSaving(true);
+    try {
+      // Uma única operação de inserção: se qualquer empresa não permitir,
+      // nenhuma conta é gravada (sem criação parcial).
+      let created: Array<{ id: string; company_id: string | null }> = [];
+      if (targets.length > 0) {
+        const rows = buildAccountRows(cadastral, targets, user.id);
+        const { data, error } = await supabase
+          .from("accounts")
+          .insert(rows as never)
+          .select("id, company_id");
+        if (error || !data) {
+          toast.error(
+            error?.message?.includes("row-level security")
+              ? "Você não tem permissão para criar contas em uma das empresas selecionadas. Nada foi salvo."
+              : "Não foi possível criar as contas. Nada foi salvo.",
+          );
+          return;
+        }
+        created = data as Array<{ id: string; company_id: string | null }>;
+      }
+
+      if (isEdit && account) {
+        // Preserva empresa, id, saldo e histórico: só dados cadastrais mudam.
+        const { error } = await supabase
+          .from("accounts")
+          .update({
+            name: name.trim(),
+            account_type: accountType,
+            bank_slug: bankSlug,
+            agency: agencyValue,
+            account_number: accountNumberValue,
+            is_accounting: isAccounting === "contabil",
+          } as never)
+          .eq("id", account.id);
+        if (error) {
+          // desfaz as cópias recém-criadas (ainda sem histórico)
+          if (created.length > 0) {
+            await supabase.from("accounts").delete().in("id", created.map((c) => c.id));
+          }
+          toast.error("Não foi possível salvar a conta. Nada foi alterado.");
+          return;
+        }
         await supabase.rpc("insert_audit_log", {
           _action: "account_updated",
           _entity_type: "account",
           _entity_id: account.id,
           _details: { target_name: name.trim() },
         });
-        toast.success("Conta atualizada");
-        onSaved();
-        onOpenChange(false);
       }
-    } else {
-      const { data: inserted, error } = await supabase
-        .from("accounts")
-        .insert({
-          user_id: user.id,
-          name: name.trim(),
-          account_type: accountType,
-          initial_balance: balance,
-          current_balance: balance,
-          context: ownerType,
-          company_id: ownerType === "pj" ? ownerCompanyId : null,
-          bank_slug: bankSlug,
-          agency: agencyValue,
-          account_number: accountNumberValue,
-          is_accounting: isAccounting === "contabil",
-        } as never)
-        .select("id")
-        .single();
-      if (error || !inserted) toast.error("Erro ao criar conta");
-      else {
+
+      for (const row of created) {
         await supabase.rpc("insert_audit_log", {
           _action: "account_created",
           _entity_type: "account",
-          _entity_id: inserted.id,
+          _entity_id: row.id,
           _details: { target_name: name.trim() },
         });
-        toast.success("Conta criada");
-        onSaved(inserted.id);
-        onOpenChange(false);
       }
+
+      toast.success(describeSaveResult(created.length, isEdit));
+      onSaved(resolvePrimaryCreatedId(created, selectedCompanyId ?? null));
+      onOpenChange(false);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const showBankFields = BANK_TYPES.includes(accountType);
@@ -202,24 +272,34 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           {/* Seção 2 — Vínculo e tipo */}
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Vínculo e tipo</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Vinculado a</Label>
-                <Select
-                  value={ownerType === "pf" ? "pf" : (ownerCompanyId ?? "")}
-                  onValueChange={(v) => {
-                    if (v === "pf") { setOwnerType("pf"); setOwnerCompanyId(null); }
-                    else { setOwnerType("pj"); setOwnerCompanyId(v); }
-                  }}
-                >
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {companies.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.trade_name || c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {isEdit && (
+              <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+                Esta conta pertence a <strong>{currentCompanyName ?? "esta empresa"}</strong> e continua
+                com o mesmo saldo e histórico.
               </div>
+            )}
+            {ownerType === "pj" && selectableCompanies.length > 0 && (
+              <div className="space-y-2">
+                <Label>{isEdit ? "Criar também em outras empresas" : "Empresas"}</Label>
+                <div className="space-y-2 rounded-md border p-3">
+                  {selectableCompanies.map((c) => (
+                    <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Checkbox
+                        checked={targetCompanyIds.includes(c.id)}
+                        onCheckedChange={(v) => toggleCompany(c.id, v === true)}
+                      />
+                      <span>{c.trade_name || c.name}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {isEdit
+                    ? "Cada empresa marcada recebe uma nova conta independente, começando do zero. Alterações futuras em uma não afetam as outras."
+                    : "Será criada uma conta independente em cada empresa selecionada, com saldo e lançamentos próprios."}
+                </p>
+              </div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Tipo de conta</Label>
                 <Select value={accountType} onValueChange={(v) => setAccountType(v as AccountType)}>
@@ -271,7 +351,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           {/* Seção 4 — Saldo */}
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Saldo</h3>
-            {!isEdit ? (
+            {!isEdit && !usesPerCompanyBalance && (
               <div className="space-y-2">
                 <Label>Saldo inicial</Label>
                 <CurrencyInput value={initialBalance} onValueChange={setInitialBalance} placeholder="0,00" />
@@ -279,12 +359,56 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
                   Informe o saldo atual do banco. A partir dele, o sistema calcula os movimentos.
                 </p>
               </div>
-            ) : (
-              <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
-                O saldo desta conta é controlado automaticamente pelo motor financeiro a partir dos lançamentos.
-                Para acertar uma divergência, use <strong>Ajustar saldo</strong> na página de contas — o ajuste
-                gera um lançamento auditável com justificativa.
+            )}
+            {!isEdit && usesPerCompanyBalance && (
+              <div className="space-y-3">
+                {targetCompanyIds.map((id) => {
+                  const c = companies.find((x) => x.id === id);
+                  return (
+                    <div key={id} className="space-y-2">
+                      <Label>Saldo inicial — {c?.trade_name || c?.name || "Empresa"}</Label>
+                      <CurrencyInput
+                        value={balanceByCompany[id] ?? ""}
+                        onValueChange={(v) => setBalanceByCompany((prev) => ({ ...prev, [id]: v }))}
+                        placeholder="0,00"
+                      />
+                    </div>
+                  );
+                })}
+                <p className="text-xs text-muted-foreground">
+                  Cada empresa tem seu próprio saldo inicial. Deixe em branco para começar do zero.
+                </p>
               </div>
+            )}
+            {isEdit && (
+              <>
+                <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
+                  O saldo desta conta é controlado automaticamente pelo motor financeiro a partir dos lançamentos.
+                  Para acertar uma divergência, use <strong>Ajustar saldo</strong> na página de contas — o ajuste
+                  gera um lançamento auditável com justificativa.
+                </div>
+                {targetCompanyIds.length > 0 && (
+                  <div className="space-y-3">
+                    {targetCompanyIds.map((id) => {
+                      const c = companies.find((x) => x.id === id);
+                      return (
+                        <div key={id} className="space-y-2">
+                          <Label>Saldo inicial da nova conta — {c?.trade_name || c?.name || "Empresa"}</Label>
+                          <CurrencyInput
+                            value={balanceByCompany[id] ?? ""}
+                            onValueChange={(v) => setBalanceByCompany((prev) => ({ ...prev, [id]: v }))}
+                            placeholder="0,00"
+                          />
+                        </div>
+                      );
+                    })}
+                    <p className="text-xs text-muted-foreground">
+                      As novas contas começam com o saldo informado (zero se em branco). Nenhum lançamento
+                      ou conexão bancária desta conta é copiado.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </section>
 
