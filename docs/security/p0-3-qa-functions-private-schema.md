@@ -52,6 +52,13 @@ Resultado: **zero** rotinas de QA em `public`.
 `e2e/qa_admin.py` passou a executar as rotinas por **conexão direta ao banco**
 (`psql`), sem rota HTTP. Sem fallback com token de usuário.
 
+A URL de conexão **não** vai no argv do `psql`: o helper a parseia e repassa por
+variáveis libpq (`PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`,
+`PGSSLMODE` e afins, incluindo query string como `sslmode=require`), evitando
+senha em process list ou log de CI. Além disso, `qa_rpc` só aceita rotinas de uma
+**allowlist explícita** (as 9 rotinas de QA), que também declara o tipo de
+retorno (`set`/`void`/`scalar`) — não é possível chamar qualquer objeto de `qa`.
+
 | Variável | Uso |
 | --- | --- |
 | `SUPABASE_DB_URL` (ou `QA_DB_URL`) | obrigatória: conexão direta do CI para seeds/cleanup/regressão |
