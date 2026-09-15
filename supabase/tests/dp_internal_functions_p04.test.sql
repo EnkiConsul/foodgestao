@@ -124,6 +124,7 @@ DECLARE
   v_owner uuid := gen_random_uuid();
   v_admin uuid := gen_random_uuid();
   v_out   uuid := gen_random_uuid();
+  v_super uuid := gen_random_uuid();
   v_comp  uuid := gen_random_uuid();
 BEGIN
   INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password,
@@ -134,18 +135,24 @@ BEGIN
     (v_admin, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
      'p04-admin-' || v_admin || '@example.test', '', now(), now(), now()),
     (v_out, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-     'p04-out-' || v_out || '@example.test', '', now(), now(), now());
+     'p04-out-' || v_out || '@example.test', '', now(), now(), now()),
+    (v_super, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+     'p04-super-' || v_super || '@example.test', '', now(), now(), now());
 
   INSERT INTO public.companies (id, user_id, name, is_active, profile_type, status_tenant)
   VALUES (v_comp, v_owner, 'P04 FIXTURE LTDA', true, 'empresarial', 'ativa');
 
   INSERT INTO public.company_members (company_id, user_id, role)
-  VALUES (v_comp, v_admin, 'admin')
+  VALUES (v_comp, v_admin, 'admin'), (v_comp, v_super, 'admin')
   ON CONFLICT DO NOTHING;
 
-  INSERT INTO p04_fix VALUES (v_owner, v_admin, v_out, v_comp);
+  INSERT INTO public.user_roles (user_id, role) VALUES (v_super, 'super_admin')
+  ON CONFLICT DO NOTHING;
+
+  INSERT INTO p04_fix VALUES (v_owner, v_admin, v_out, v_super, v_comp);
   RAISE NOTICE 'OK fixtures: empresa sintética % criada', v_comp;
 END $$;
+
 
 -- Helper: aplica claims de um usuário sintético e assume o papel authenticated.
 CREATE OR REPLACE FUNCTION pg_temp.p04_as_user(_uid uuid) RETURNS void
