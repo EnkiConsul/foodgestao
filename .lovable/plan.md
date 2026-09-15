@@ -33,6 +33,7 @@ O comprovante quase nunca chega junto do documento, então ele é tratado como u
 - Ao anexar o comprovante, a pendência baixa na hora, com registro de quem anexou e quando.
 - Nas Configurações → Prazos de Pendências a empresa pode desligar essa cobrança ("Exigir comprovante de pagamento") e ajustar o prazo em dias. Por padrão vem **ligada** para todos os tipos de pagamento.
 - Documento arquivado ou substituído não cobra comprovante; ao substituir o documento, o comprovante existente é mantido e sinalizado como "referente à versão anterior" nos detalhes.
+- A cobrança vale apenas para documentos com competência a partir de 01/09/2026. Documentos anteriores continuam aceitando comprovante quando a empresa quiser anexar, mas nunca geram pendência. A data de corte fica configurável (padrão 01/09/2026), para o caso de a empresa querer começar depois.
 
 ## Detalhes técnicos
 
