@@ -34,8 +34,10 @@ const PENDING_SELF_TEST = ARGS.has("--pending-self-test");
 const PORT = 55437;
 const DB = "p04iso";
 const SCHEMA_FILE = join(tmpdir(), `p04_schema_${process.pid}.sql`);
-const LOG_FILE = resolve("docs/security/p0-4-functional-validation.log.txt");
-const REPORT_FILE = resolve("docs/security/p0-4-functional-validation.report.json");
+// o teste dirigido de pendência escreve em /tmp para não sobrescrever a evidência
+const OUT_DIR = ARGS.has("--pending-self-test") ? "/tmp" : resolve("docs/security");
+const LOG_FILE = `${OUT_DIR}/p0-4-functional-validation.log.txt`;
+const REPORT_FILE = `${OUT_DIR}/p0-4-functional-validation.report.json`;
 const MARKER = ".p04-runner-owned";
 
 const TEST_FILES = [
