@@ -62,6 +62,21 @@ export function DpHeader({ variant = "admin" }: { variant?: "admin" | "portal" }
       )}
       {variant === "admin" && <ContextSelector />}
       <div className="flex-1" />
+      {temAsDuasAreas && (
+        <Button asChild variant="outline" size="sm" className="h-9 gap-1.5 px-2 md:px-3">
+          {variant === "admin" ? (
+            <Link to="/dp/meu" aria-label="Ir para o meu portal">
+              <UserRound className="h-4 w-4" />
+              <span className="hidden sm:inline">Meu portal</span>
+            </Link>
+          ) : (
+            <Link to="/dp" aria-label="Ir para a administração">
+              <Shield className="h-4 w-4" />
+              <span className="hidden sm:inline">Administração</span>
+            </Link>
+          )}
+        </Button>
+      )}
       <FavoriteToggle />
       <DpNotificacoesBell variant={variant} />
     </header>
