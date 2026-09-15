@@ -135,3 +135,6 @@ ALTER TABLE public.dp_pendencias_config
   ADD COLUMN IF NOT EXISTS exigir_comprovante_pagamento boolean NOT NULL DEFAULT true,
   ADD COLUMN IF NOT EXISTS alerta_comprovante_dias smallint NOT NULL DEFAULT 5,
   ADD COLUMN IF NOT EXISTS comprovante_vigencia_inicio date NOT NULL DEFAULT '2026-09-01';
+
+-- 6. Remove a assinatura antiga (evita ambiguidade na chamada com 1 argumento)
+DROP FUNCTION IF EXISTS public.dp_documento_arquivo(uuid);
