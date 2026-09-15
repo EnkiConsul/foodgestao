@@ -23,7 +23,8 @@ CREATE TEMP TABLE s_fix (
   owner_b uuid, admin_b uuid,
   company_a uuid, company_b uuid,
   unidade_a uuid, unidade_b uuid,
-  competencia date
+  competencia date,
+  colab_a1 uuid, colab_a2 uuid, jornada_a uuid
 ) ON COMMIT DROP;
 
 DO $$
@@ -32,6 +33,8 @@ DECLARE
   ou uuid := gen_random_uuid(); ob uuid := gen_random_uuid(); ab uuid := gen_random_uuid();
   compa uuid := gen_random_uuid(); compb uuid := gen_random_uuid();
   una uuid := gen_random_uuid(); unb uuid := gen_random_uuid();
+  c1 uuid := gen_random_uuid(); c2 uuid := gen_random_uuid(); cb1 uuid := gen_random_uuid();
+  jor uuid := gen_random_uuid();
   comp date := date_trunc('month', now())::date;
 BEGIN
   INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password,
@@ -53,14 +56,25 @@ BEGIN
   INSERT INTO public.dp_unidades (id, company_id, nome) VALUES
     (una, compa, 'UNIDADE SINTETICA A'), (unb, compb, 'UNIDADE SINTETICA B');
 
-  INSERT INTO public.dp_colaboradores (id, company_id, nome, unidade_id)
-  VALUES (gen_random_uuid(), compa, 'COLABORADOR SINTETICO A1', una),
-         (gen_random_uuid(), compa, 'COLABORADOR SINTETICO A2', una),
-         (gen_random_uuid(), compb, 'COLABORADOR SINTETICO B1', unb);
+  -- colab_a é o perfil REAL de colaborador: usuário do portal vinculado a um
+  -- registro de dp_colaboradores (user_id preenchido).
+  INSERT INTO public.dp_colaboradores (id, company_id, nome, unidade_id, user_id)
+  VALUES (c1, compa, 'COLABORADOR SINTETICO A1', una, ca),
+         (c2, compa, 'COLABORADOR SINTETICO A2', una, NULL),
+         (cb1, compb, 'COLABORADOR SINTETICO B1', unb, NULL);
 
-  INSERT INTO s_fix VALUES (oa, aa, ca, ou, ob, ab, compa, compb, una, unb, comp);
-  RAISE NOTICE 'OK fixtures: duas empresas sintéticas (A e B) e 6 usuários criados';
+  -- Jornada sintética com folga fixa no domingo (DOW 0) para que a geração
+  -- automática de escala tenha trabalho efetivo a fazer.
+  INSERT INTO public.dp_jornadas (id, company_id, nome, dias_trabalho, dias_folga)
+  VALUES (jor, compa, 'JORNADA SINTETICA 6x1', ARRAY[1,2,3,4,5,6]::smallint[], ARRAY[0]::smallint[]);
+
+  INSERT INTO public.dp_colaborador_jornadas (company_id, colaborador_id, jornada_id, inicio)
+  VALUES (compa, c1, jor, comp), (compa, c2, jor, comp);
+
+  INSERT INTO s_fix VALUES (oa, aa, ca, ou, ob, ab, compa, compb, una, unb, comp, c1, c2, jor);
+  RAISE NOTICE 'PREP fixtures: 2 empresas, 6 usuários, 3 colaboradores (1 com acesso de portal) e 1 jornada sintética';
 END $$;
+
 
 CREATE OR REPLACE FUNCTION pg_temp.s_as_user(_uid uuid) RETURNS void
 LANGUAGE plpgsql AS $$
