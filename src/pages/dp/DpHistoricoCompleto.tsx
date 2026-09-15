@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   FileText, Eye, Download, Search, ArrowUp, ArrowDown, ChevronsUpDown,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Trash2, Replace,
-  History as HistoryIcon,
+  History as HistoryIcon, ChevronDown, ArrowDownUp,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -97,6 +97,16 @@ function tipoBadgeClass(key: string) {
 
 type ColKey = "colaborador" | "tipo" | "competencia" | "unidade" | "aceite";
 type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "aceite_label" | "data" | "default";
+
+/** Ordens oferecidas na lista do celular. */
+const ORDENS_MOBILE: { value: string; label: string }[] = [
+  { value: "default:desc", label: "Mais recentes" },
+  { value: "default:asc", label: "Mais antigos" },
+  { value: "colaborador_nome:asc", label: "Colaborador (A–Z)" },
+  { value: "tipo_label:asc", label: "Tipo do documento" },
+  { value: "competencia_sort:desc", label: "Competência" },
+];
+const ORDEM_MOBILE_STORAGE = "dp_historico_ordem_mobile";
 
 const COL_ORDER_STORAGE = "dp_historico_col_order_v2";
 const COL_WIDTH_STORAGE = "dp_historico_col_width_v1";
@@ -278,6 +288,14 @@ export default function DpHistoricoCompleto() {
   const [motivoExclusao, setMotivoExclusao] = useState("");
   const [excluindo, setExcluindo] = useState(false);
   const [substituir, setSubstituir] = useState<DocSubstituirTarget | null>(null);
+  // No celular os filtros começam recolhidos para sobrar tela para a lista.
+  const [filtrosAbertos, setFiltrosAbertos] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("dp_historico_filtros_mobile") === "1";
+    } catch {
+      return false;
+    }
+  });
   const queryClient = useQueryClient();
 
 
@@ -299,7 +317,29 @@ export default function DpHistoricoCompleto() {
     defaultSortDir: "desc",
   });
 
+  const filtrosAtivos = [grupo, tipo, unidadeId, colabId, mes, ano].filter((v) => v !== "all").length
+    + (busca.trim() ? 1 : 0);
 
+  // A ordem escolhida no celular reaproveita a ordenação da tabela.
+  const ordemMobile = `${sortKey}:${sortDir}`;
+  const aplicarOrdemMobile = (valor: string) => {
+    const [key, dir] = valor.split(":");
+    aplicarSort(key as SortKey, dir === "asc" ? "asc" : "desc");
+    try {
+      localStorage.setItem(ORDEM_MOBILE_STORAGE, valor);
+    } catch { /* preferência é opcional */ }
+  };
+  useEffect(() => {
+    try {
+      const salvo = localStorage.getItem(ORDEM_MOBILE_STORAGE);
+      if (salvo && ORDENS_MOBILE.some((o) => o.value === salvo)) {
+        const [key, dir] = salvo.split(":");
+        aplicarSort(key as SortKey, dir === "asc" ? "asc" : "desc");
+      }
+    } catch { /* preferência é opcional */ }
+    // Aplica só na abertura da tela.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const colabMap = useMemo(() => {
     const m = new Map<string, { nome: string; unidade_id: string | null; unidade_nome: string | null }>();
@@ -776,8 +816,43 @@ export default function DpHistoricoCompleto() {
           <Button variant="ghost" className="sm:ml-auto" onClick={limpar}>Limpar</Button>
         </div>
 
+        {/* Celular: filtros recolhidos e escolha da ordem da lista */}
+        <div className="mb-3 flex items-center gap-2 md:hidden">
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-10 flex-1 justify-between"
+            aria-expanded={filtrosAbertos}
+            onClick={() => {
+              const proximo = !filtrosAbertos;
+              setFiltrosAbertos(proximo);
+              try {
+                localStorage.setItem("dp_historico_filtros_mobile", proximo ? "1" : "0");
+              } catch { /* preferência é opcional */ }
+            }}
+          >
+            <span className="flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              Filtros{filtrosAtivos > 0 ? ` (${filtrosAtivos})` : ""}
+            </span>
+            <ChevronDown className={`h-4 w-4 transition-transform ${filtrosAbertos ? "rotate-180" : ""}`} />
+          </Button>
+          <Select value={ordemMobile} onValueChange={aplicarOrdemMobile}>
+            <SelectTrigger className="min-h-10 flex-1">
+              <span className="flex items-center gap-2 truncate">
+                <ArrowDownUp className="h-4 w-4 shrink-0" />
+                <SelectValue />
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              {ORDENS_MOBILE.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+        <div className={`${filtrosAbertos ? "grid" : "hidden md:grid"} gap-3 md:grid-cols-3 lg:grid-cols-5`}>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Tipo</Label>
             <Select value={tipo} onValueChange={setTipo}>

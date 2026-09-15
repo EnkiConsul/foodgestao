@@ -66,12 +66,12 @@ export function DpNotificacoesBell({ variant = "admin" }: { variant?: "admin" | 
             <Badge className="bg-amber-600 text-white text-[10px]">{atestados.length}</Badge>
           </Link>
         )}
-        <ScrollArea className="max-h-96">
+        <ScrollArea className="h-[min(70vh,26rem)]">
           {list.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">Nenhuma notificação.</div>
           ) : (
             <ul className="divide-y">
-              {list.slice(0, 15).map((n) => {
+              {list.map((n) => {
                 const path = portal ? notificacaoPathPortal(n.ref_table) : notificacaoPathGestor(n.ref_table);
                 return (
                   <li key={n.id} className={n.lida ? "opacity-60" : ""}>
