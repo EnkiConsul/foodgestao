@@ -46,6 +46,8 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     let userId: string | null = null;
     let companyId: string | null = null;
+    // Chamada interna (cron/webhook/reconciliação) precisa provar que é interna.
+    let isServiceCall = false;
 
     // If called from user, require JWT + explicit company_id in body
     if (authHeader?.startsWith('Bearer ')) {
@@ -54,10 +56,21 @@ Deno.serve(async (req) => {
         Deno.env.get('SUPABASE_ANON_KEY')!,
         { global: { headers: { Authorization: authHeader } } }
       );
-      const token = authHeader.replace('Bearer ', '');
+      const token = authHeader.replace('Bearer ', '').trim();
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
       const { data: claims } = await anon.auth.getClaims(token);
+      const role = claims?.claims?.role as string | undefined;
       userId = claims?.claims?.sub ?? null;
+      isServiceCall = role === 'service_role' || (!!serviceKey && token === serviceKey);
     }
+
+    // Sem sessão de usuário válida e sem credencial interna: nega.
+    if (!userId && !isServiceCall) {
+      return new Response(JSON.stringify({ error: 'unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
 
     const body = await req.json().catch(() => ({}));
     let itemId: string | undefined = body?.item_id;
@@ -215,7 +228,7 @@ Deno.serve(async (req) => {
     // (super admins têm bypass). Aplicado a QUALQUER empresa efetiva, mesmo
     // quando o company_id não veio no corpo da requisição.
     const assertUserCanAccessCompany = async (targetCompanyId: string): Promise<boolean> => {
-      if (!userId) return true; // caminho service-role/webhook
+      if (!userId) return isServiceCall; // só o caminho interno verificado
       const { data: isSuper } = await admin
         .from('user_roles').select('role')
         .eq('user_id', userId).eq('role', 'super_admin').maybeSingle();
