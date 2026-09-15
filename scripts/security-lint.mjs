@@ -94,6 +94,42 @@ const TABELAS_FINANCEIRAS = [
 
 const financeirasSqlValues = TABELAS_FINANCEIRAS.map((t) => `('${t}')`).join(", ");
 
+/**
+ * P0.2-A — rotinas internas do domínio financeiro/Open Finance.
+ * São helpers chamados apenas por outras rotinas SECURITY DEFINER, funções de
+ * trigger, ou fluxos legados sem nenhuma chamada em `src/` e
+ * `supabase/functions/`. Nenhuma delas pode voltar a ser executável por
+ * authenticated/anon/PUBLIC — apenas service_role.
+ * Ver docs/security/p0-2a-finance-functions-hardening.md
+ */
+const FINANCE_INTERNAL_FUNCTIONS = [
+  "assign_transaction_to_invoice",
+  "chart_account_next_code",
+  "chart_accounts_seed_default",
+  "recalc_credit_card_invoice_totals",
+  "recompute_account_balance",
+  "soft_delete_account",
+  "report_balance_drift",
+  "sync_of_account_balance",
+  "create_and_link_open_finance_account",
+  "link_open_finance_account",
+  "ignore_open_finance_account",
+  "ignore_open_finance_raw",
+  "promote_open_finance_transactions",
+  "open_finance_sync_health",
+  "audit_pluggy_v2_raw_delete",
+  "chart_account_autofill_code",
+  "guard_of_current_balance",
+  "guard_transaction_category_active",
+  "learn_categorization_rule",
+  "pluggy_sync_pause_on_account_toggle",
+  "prevent_hard_delete_account_with_history",
+  "seed_default_account_on_company",
+  "tg_transactions_assign_cc_invoice",
+];
+
+const financeInternalSqlValues = FINANCE_INTERNAL_FUNCTIONS.map((f) => `('${f}')`).join(", ");
+
 const checks = [
   {
     id: "0028_anon_security_definer",
@@ -164,6 +200,24 @@ const checks = [
             WHERE p.schemaname='public' AND p.tablename = pt.tablename
               AND p.roles && ARRAY['anon','public']::name[]
           )
+        );
+    `,
+  },
+  {
+    id: "finance_internal_functions_authenticated",
+    severity: "critical",
+    description:
+      "Rotina interna do financeiro/Open Finance (P0.2-A) executável por authenticated/anon/PUBLIC — deve ficar restrita a service_role",
+    sql: `
+      WITH targets(fname) AS (VALUES ${financeInternalSqlValues})
+      SELECT p.proname || '(' || pg_catalog.pg_get_function_identity_arguments(p.oid) || ')' AS finding
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      JOIN targets t ON t.fname = p.proname
+      WHERE n.nspname = 'public'
+        AND (
+          has_function_privilege('authenticated', p.oid, 'EXECUTE')
+          OR has_function_privilege('anon', p.oid, 'EXECUTE')
         );
     `,
   },
