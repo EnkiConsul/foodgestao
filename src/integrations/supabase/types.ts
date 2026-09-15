@@ -16436,6 +16436,8 @@ export type Database = {
         | "disponibilidade_alteracao_tardia"
         | "disponibilidade_conflito_convocacao"
         | "disponibilidade_janela_encerrada"
+        | "documento_novo"
+        | "comprovante_pagamento"
       dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
       dp_ocorrencia_cobertura_execucao:
         | "prevista"
@@ -16900,6 +16902,8 @@ export const Constants = {
         "disponibilidade_alteracao_tardia",
         "disponibilidade_conflito_convocacao",
         "disponibilidade_janela_encerrada",
+        "documento_novo",
+        "comprovante_pagamento",
       ],
       dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
       dp_ocorrencia_cobertura_execucao: [
