@@ -51,22 +51,120 @@ const dbUrl = process.env.SUPABASE_DB_URL;
 const hasPgEnv = !!process.env.PGHOST;
 if (!dbUrl && !hasPgEnv) skip("no SUPABASE_DB_URL / PG* env vars");
 
+/**
+ * Allowlist documentada (P0 — security hardening).
+ *
+ * Só entram aqui funções `SECURITY DEFINER` em `public` cuja execução por
+ * `anon` é parte de um fluxo realmente anônimo do produto (login, recuperação
+ * de acesso, landing/lead, webhook, consentimento/OAuth ou página legal) E que
+ * validam entrada e autorização internamente.
+ *
+ * Regras para incluir uma função:
+ *   1. O fluxo é acessível sem sessão por decisão de produto.
+ *   2. A função não lê nem escreve dado financeiro de empresa.
+ *   3. Tem `SET search_path` explícito e rate limit/validação própria.
+ *   4. A justificativa fica registrada em docs/security/p0-security-hardening.md.
+ *
+ * Qualquer exposição nova fora desta lista continua sendo finding crítico.
+ * Estado atual: nenhuma função pública é necessária (lista vazia por design).
+ */
+const ANON_SECURITY_DEFINER_ALLOWLIST = [
+  // exemplo de formato: "public.minha_funcao_anonima(text)"
+];
+
+const allowlistSqlArray = ANON_SECURITY_DEFINER_ALLOWLIST.length
+  ? `ARRAY[${ANON_SECURITY_DEFINER_ALLOWLIST.map((f) => `'${f.replace(/'/g, "''")}'`).join(",")}]`
+  : `ARRAY[]::text[]`;
+
+/** Tabelas financeiras que nunca podem ficar acessíveis a `anon`. */
+const TABELAS_FINANCEIRAS = [
+  "accounts",
+  "transactions",
+  "credit_cards",
+  "credit_card_invoices",
+  "pluggy_connections",
+  "pluggy_accounts",
+  "pluggy_v2_connections",
+  "pluggy_v2_accounts",
+  "pluggy_v2_sync_runs",
+  "pluggy_v2_transactions_raw",
+  "invoices",
+  "subscriptions",
+];
+
+const financeirasSqlValues = TABELAS_FINANCEIRAS.map((t) => `('${t}')`).join(", ");
+
 const checks = [
   {
     id: "0028_anon_security_definer",
     severity: "critical",
     description:
-      "SECURITY DEFINER em `public` executável por anon/PUBLIC (escalada de privilégio para usuários não autenticados)",
+      "SECURITY DEFINER em `public` executável por anon/PUBLIC fora da allowlist documentada (escalada de privilégio para usuários não autenticados)",
     sql: `
-      SELECT n.nspname || '.' || p.proname || '(' ||
-             pg_catalog.pg_get_function_identity_arguments(p.oid) || ')' AS finding
-      FROM pg_proc p
-      JOIN pg_namespace n ON n.oid = p.pronamespace
-      CROSS JOIN LATERAL aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a
-      LEFT JOIN pg_roles r ON r.oid = a.grantee
-      WHERE n.nspname = 'public' AND p.prosecdef = true
-        AND a.privilege_type = 'EXECUTE'
-        AND (a.grantee = 0 OR r.rolname = 'anon');
+      SELECT finding FROM (
+        SELECT n.nspname || '.' || p.proname || '(' ||
+               pg_catalog.pg_get_function_identity_arguments(p.oid) || ')' AS finding
+        FROM pg_proc p
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        CROSS JOIN LATERAL aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a
+        LEFT JOIN pg_roles r ON r.oid = a.grantee
+        WHERE n.nspname = 'public' AND p.prosecdef = true
+          AND a.privilege_type = 'EXECUTE'
+          AND (a.grantee = 0 OR r.rolname = 'anon')
+      ) s
+      WHERE finding <> ALL (${allowlistSqlArray});
+    `,
+  },
+  {
+    id: "anon_grants_financeiro",
+    severity: "critical",
+    description:
+      "Tabela financeira com privilégio concedido a `anon` (defesa em profundidade: RLS não pode ser a única barreira)",
+    sql: `
+      WITH targets(tbl) AS (VALUES ${financeirasSqlValues})
+      SELECT t.tbl || ' (anon tem privilégio de tabela)' AS finding
+      FROM targets t
+      JOIN pg_class c ON c.relname = t.tbl
+      JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = 'public'
+      WHERE has_table_privilege('anon', c.oid, 'SELECT')
+         OR has_table_privilege('anon', c.oid, 'INSERT')
+         OR has_table_privilege('anon', c.oid, 'UPDATE')
+         OR has_table_privilege('anon', c.oid, 'DELETE');
+    `,
+  },
+  {
+    id: "realtime_financeiro_anon",
+    severity: "critical",
+    description:
+      "Tabela financeira publicada em Realtime sem RLS, sem policy restritiva ou com policy alcançável por anon/public",
+    sql: `
+      WITH targets(tbl) AS (VALUES ${financeirasSqlValues})
+      SELECT pt.tablename || ' (' ||
+        CASE WHEN NOT COALESCE(t2.rowsecurity, false) THEN 'RLS desabilitado'
+             WHEN EXISTS (
+               SELECT 1 FROM pg_policies p
+               WHERE p.schemaname='public' AND p.tablename = pt.tablename
+                 AND p.roles && ARRAY['anon','public']::name[]
+             ) THEN 'policy alcançável por anon/public'
+             ELSE 'sem policy de SELECT'
+        END || ')' AS finding
+      FROM pg_publication_tables pt
+      JOIN targets t ON t.tbl = pt.tablename
+      LEFT JOIN pg_tables t2 ON t2.schemaname='public' AND t2.tablename = pt.tablename
+      WHERE pt.pubname = 'supabase_realtime' AND pt.schemaname = 'public'
+        AND (
+          NOT COALESCE(t2.rowsecurity, false)
+          OR NOT EXISTS (
+            SELECT 1 FROM pg_policies p
+            WHERE p.schemaname='public' AND p.tablename = pt.tablename
+              AND p.cmd IN ('SELECT','ALL')
+          )
+          OR EXISTS (
+            SELECT 1 FROM pg_policies p
+            WHERE p.schemaname='public' AND p.tablename = pt.tablename
+              AND p.roles && ARRAY['anon','public']::name[]
+          )
+        );
     `,
   },
   {
