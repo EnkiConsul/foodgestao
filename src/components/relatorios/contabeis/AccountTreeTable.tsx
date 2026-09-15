@@ -108,11 +108,11 @@ export function AccountTreeTable({
           >
             {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </button>
-          <span className="font-mono text-xs text-muted-foreground w-20 shrink-0">{node.code}</span>
+          <span className="font-mono text-xs text-muted-foreground w-14 sm:w-20 shrink-0">{node.code}</span>
           <button
             type="button"
             className={cn(
-              "flex-1 text-left truncate",
+              "flex-1 min-w-[6rem] min-h-6 text-left truncate",
               node.is_analytic && onSelectAnalytic && "hover:text-primary hover:underline"
             )}
             onClick={() => node.is_analytic && onSelectAnalytic?.(node)}
