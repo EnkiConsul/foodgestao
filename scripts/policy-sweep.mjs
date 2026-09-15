@@ -63,7 +63,16 @@ const checks = [
         AND COALESCE(qual, 'true')       IN ('true','(true)')
         AND COALESCE(with_check, 'true') IN ('true','(true)');
     `,
-    allowlist: new Set(["landing_content"]), // conteúdo público da LP
+    /**
+     * Exposição anônima INTENCIONAL e documentada (ver
+     * docs/security/p0-security-hardening.md). Critérios: conteúdo do site
+     * público/landing, somente leitura, sem dado de cliente, sem dado
+     * financeiro e sem PII. Qualquer tabela fora desta lista continua crítica.
+     */
+    allowlist: new Set([
+      "landing_content", // conteúdo público da LP
+      "mkt_site_settings", // configurações do site público (só leitura)
+    ]),
   },
   {
     id: "policies_true_condition",
