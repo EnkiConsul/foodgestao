@@ -1,9 +1,15 @@
 -- P0.4 — Pessoas 360°: rotinas internas fechadas e titularidade blindada.
 --
+-- ⚠ ATENÇÃO: este script cria FIXTURES SINTÉTICAS (usuários em auth.users e uma
+-- empresa fictícia) e usa DISABLE TRIGGER na tabela public.companies. Ele deve
+-- rodar EXCLUSIVAMENTE em banco isolado de teste/CI — NUNCA em produção, mesmo
+-- que a transação termine em ROLLBACK (o DISABLE/ENABLE TRIGGER exige lock na
+-- tabela e um erro fora de hora deixaria gatilhos desabilitados).
+--
 -- Executa em UMA transação revertida (ROLLBACK no final): nenhum dado real é
 -- alterado e nenhuma rotina de negócio (geração de escala/folgas) é executada.
--- Todos os cenários de titularidade usam FIXTURES SINTÉTICAS criadas aqui —
--- nunca empresas ou usuários reais.
+-- Todos os cenários de titularidade usam apenas as fixtures sintéticas — nunca
+-- empresas ou usuários reais.
 --
 -- Requisitos: conexão com papel proprietário do banco (precisa inserir em
 -- auth.users para satisfazer a FK companies.user_id, assumir o papel
@@ -11,6 +17,7 @@
 --
 -- Uso: psql -v ON_ERROR_STOP=1 -f supabase/tests/dp_internal_functions_p04.test.sql
 --   (o script aborta com exceção no primeiro cenário que falhar)
+
 
 \set ON_ERROR_STOP on
 
