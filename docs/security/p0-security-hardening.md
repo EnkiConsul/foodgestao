@@ -61,6 +61,9 @@ helpers de autorização (`has_role`, `is_company_admin_or_owner`,
 
 ## 3. Mudanças aplicadas
 
+Versionadas em `supabase/migrations/20260915013500_p0_security_hardening_grants.sql`
+(idempotente; só permissões, sem INSERT/UPDATE/DELETE em dados reais).
+
 1. `REVOKE ALL ... FROM anon, PUBLIC` nas 42 funções; `GRANT EXECUTE` a
    `authenticated` apenas nas do grupo (b); `service_role` em todas.
 2. `REVOKE ALL ON TABLE ... FROM anon` nas tabelas financeiras e correlatas:
