@@ -1,6 +1,6 @@
 {
   "fase": "P0.4 — validação funcional em banco isolado",
-  "gerado_em": "2026-09-15T03:22:02.419Z",
+  "gerado_em": "2026-09-15T03:23:30.207Z",
   "ambiente": {
     "tipo": "cluster PostgreSQL local temporário e descartável",
     "data_directory": "/tmp/p04pg",
@@ -79,19 +79,23 @@
     {
       "file": "supabase/tests/dp_internal_functions_p04.test.sql",
       "comando": "psql -v ON_ERROR_STOP=1 -d p04iso -f supabase/tests/dp_internal_functions_p04.test.sql",
-      "status": "failed",
-      "exit_code": 3,
+      "status": "passed",
+      "exit_code": 0,
       "cenarios": [
         "OK T1: 9 rotinas internas fechadas, service_role preservado",
         "OK T1b: nenhuma rotina interna liberada para PUBLIC",
         "OK T2: gatilhos de validação ativos (2)",
         "OK T3: RPCs app-facing preservadas para authenticated e fechadas para anon",
-        "OK fixtures: empresa sintética 8656d8ec-71d5-4309-8b5e-7bde67a99f4c criada",
-        "OK T4: admin não-dono edita dados comuns normalmente"
+        "OK fixtures: empresa sintética 7b871ec4-5dd4-4260-b980-14c60c3384a9 criada",
+        "OK T4: admin não-dono edita dados comuns normalmente",
+        "OK T5: dono edita dados comuns; transferência bloqueada pelo gatilho mais restritivo",
+        "OK T5b: super_admin executa a transferência autorizada",
+        "OK T6: transferência bloqueada por gatilho existente (Apenas o dono da empresa pode transferir a titularidade)",
+        "OK T7: policy sozinha bloqueia a transferência (SQLSTATE 42501)",
+        "OK T7b: policy permite edição comum de admin",
+        "OK T8: usuário sem vínculo — UPDATE sem efeito (0 linhas)"
       ],
-      "falhas": [
-        "psql:supabase/tests/dp_internal_functions_p04.test.sql:204: ERROR:  Ownership transfer is not allowed"
-      ]
+      "falhas": []
     },
     {
       "file": "supabase/tests/dp_p04_scenarios_isolated.test.sql",
@@ -110,13 +114,13 @@
         "OK S4e: visitante (anon) sem EXECUTE nas RPCs app-facing",
         "OK S5.1: contagem de páginas do lote executada internamente (processed_pages=2)",
         "OK S5.2: geração de escala executada internamente para a empresa sintética A",
-        "OK S5.3: autoatribuição de folgas executada internamente (retorno: {\"ok\": true, \"geradas\": 2, \"excedidas\": 0, \"competencia\": \"2026-09-01\", \"execucao_id\": \"df128668-9155-4913-ac38-9aa578ef3bad\"})",
+        "OK S5.3: autoatribuição de folgas executada internamente (retorno: {\"ok\": true, \"geradas\": 2, \"excedidas\": 0, \"competencia\": \"2026-09-01\", \"execucao_id\": \"6266b746-9215-4e18-9c80-5d028b035832\"})",
         "OK S6: service_role mantém a execução interna (processed_pages=1)"
       ],
       "falhas": []
     }
   ],
   "limitacoes": [],
-  "status_geral": "failed",
-  "codigo_saida": 1
+  "status_geral": "passed",
+  "codigo_saida": 0
 }
