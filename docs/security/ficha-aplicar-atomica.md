@@ -73,3 +73,10 @@ Outras verificações: `tsgo --noEmit`, `vite build`, `eslint` (sem novo aviso),
 ## Pendente
 
 A migração **não foi aplicada** ao banco do projeto — aguardando aprovação.
+
+## Aplicação no banco do projeto
+
+Aplicada em 2026-09-15 (13:5x UTC). Conferido no catálogo: `dp_ficha_aplicar` e
+`dp_ficha_ignorar` presentes, `SECURITY INVOKER` (`prosecdef = false`),
+`search_path = public` e `EXECUTE` apenas para `authenticated` e `service_role`
+(nada para `PUBLIC`/`anon`). `migrations-check` aprovado.
