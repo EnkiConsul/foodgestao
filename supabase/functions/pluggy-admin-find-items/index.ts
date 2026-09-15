@@ -42,6 +42,108 @@ Deno.serve(async (req) => {
       typeof body?.client_user_id === 'string' ? body.client_user_id : null;
     const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : null;
 
+    // Leitura explícita de UM item: consulta só ele, sem varrer itens de outros
+    // clientes. Devolve apenas códigos padronizados — nada de `message`,
+    // `providerMessage`, payload financeiro, documentos ou credenciais.
+    const requestedItemId =
+      typeof body?.item_id === 'string' ? body.item_id.trim() : '';
+    if (requestedItemId) {
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_RE.test(requestedItemId)) {
+        return new Response(JSON.stringify({ error: 'item_id_invalid' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const res = await pluggyFetch(`/items/${requestedItemId}`);
+      if (!res.ok) {
+        // Erro do provedor sanitizado: nunca registramos nem devolvemos o corpo cru.
+        let providerCode: string | null = null;
+        try {
+          const parsed = await res.json();
+          const c = parsed?.code ?? parsed?.error ?? parsed?.errorCode ?? null;
+          providerCode = typeof c === 'string' || typeof c === 'number' ? String(c).slice(0, 60) : null;
+        } catch {
+          providerCode = null;
+        }
+        console.error('pluggy item read failed', {
+          item_id: requestedItemId,
+          http_status: res.status,
+          provider_code: providerCode,
+        });
+        return new Response(
+          JSON.stringify({
+            item_id: requestedItemId,
+            unavailable: true,
+            http_status: res.status,
+            provider_code: providerCode,
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      const it = await res.json();
+
+      // Resumo por produto: só flags, horários e códigos padronizados de warning.
+      const detail = it?.statusDetail && typeof it.statusDetail === 'object' ? it.statusDetail : null;
+      const products = detail
+        ? Object.fromEntries(
+            Object.entries(detail as Record<string, unknown>).map(([produto, raw]) => {
+              const d = (raw ?? {}) as {
+                isUpdated?: boolean;
+                lastUpdatedAt?: string | null;
+                warnings?: Array<{ code?: unknown }> | null;
+              };
+              const warnings = Array.isArray(d?.warnings) ? d.warnings : [];
+              const codes = [
+                ...new Set(
+                  warnings
+                    .map((w) => (typeof w?.code === 'string' ? w.code.slice(0, 60) : null))
+                    .filter((c): c is string => !!c),
+                ),
+              ];
+              return [
+                produto,
+                {
+                  is_updated: typeof d?.isUpdated === 'boolean' ? d.isUpdated : null,
+                  last_updated_at: typeof d?.lastUpdatedAt === 'string' ? d.lastUpdatedAt : null,
+                  warning_count: warnings.length,
+                  warning_codes: codes,
+                },
+              ];
+            }),
+          )
+        : null;
+
+      const { data: conn } = await admin
+        .from('pluggy_connections')
+        .select('id, company_id, status')
+        .eq('pluggy_item_id', requestedItemId)
+        .maybeSingle();
+
+      return new Response(
+        JSON.stringify({
+          item_id: requestedItemId,
+          connector_id: it?.connector?.id ?? null,
+          connector_name: it?.connector?.name ?? null,
+          connector_type: it?.connector?.type ?? null,
+          connector_is_open_finance:
+            typeof it?.connector?.isOpenFinance === 'boolean' ? it.connector.isOpenFinance : null,
+          status: it?.status ?? null,
+          execution_status: it?.executionStatus ?? null,
+          error_code: typeof it?.error?.code === 'string' ? it.error.code.slice(0, 60) : null,
+          created_at: it?.createdAt ?? null,
+          updated_at: it?.updatedAt ?? null,
+          last_updated_at: it?.lastUpdatedAt ?? null,
+          consent_expires_at: it?.consentExpiresAt ?? null,
+          status_detail_products: products,
+          linked: !!conn,
+          linked_company_id: conn?.company_id ?? null,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     // Resolve o usuário pelo e-mail, quando informado
     if (!clientUserId && email) {
       let page = 1;

@@ -30,22 +30,32 @@ export type SyncFeedback = {
   suggestReconnect: boolean;
 };
 
-const RECONNECT_ITEM_STATUS = new Set(["LOGIN_ERROR", "OUTDATED", "INVALID_CREDENTIALS"]);
+// Só códigos inequívocos de credencial/consentimento inválido ou revogado.
+// `OUTDATED` fica fora: pode vir de SITE_NOT_AVAILABLE / CONNECTION_ERROR.
+// `ALREADY_LOGGED_IN`, `ACCOUNT_LOCKED` e `USER_AUTHORIZATION_PENDING` também
+// ficam fora — não indicam necessidade de nova autorização.
+const RECONNECT_ITEM_STATUS = new Set(["LOGIN_ERROR", "INVALID_CREDENTIALS"]);
 const RECONNECT_EXECUTION_STATUS = new Set([
   "LOGIN_ERROR",
   "INVALID_CREDENTIALS",
   "INVALID_CREDENTIALS_MFA",
-  "ALREADY_LOGGED_IN",
-  "ACCOUNT_LOCKED",
-  "ACCOUNT_NEEDS_ACTION",
-  "USER_AUTHORIZATION_PENDING",
   "USER_AUTHORIZATION_NOT_GRANTED",
+  "USER_AUTHORIZATION_REVOKED",
   "CONSENT_REVOKED",
 ]);
+// Confirmação já iniciada: o usuário deve concluir no app do banco, sem abrir
+// uma nova conexão.
 const WAITING_EXECUTION_STATUS = new Set([
   "WAITING_USER_INPUT",
   "WAITING_USER_ACTION",
   "USER_AUTHORIZATION_PENDING",
+]);
+const WAITING_ITEM_STATUS = new Set(["WAITING_USER_INPUT", "WAITING_USER_ACTION"]);
+// Indisponibilidade do banco: erro, com nova tentativa mais tarde.
+const CONNECTION_FAILURE_STATUS = new Set([
+  "SITE_NOT_AVAILABLE",
+  "CONNECTION_ERROR",
+  "UNEXPECTED_ERROR",
 ]);
 const RUNNING_EXECUTION_STATUS = new Set([
   "CREATED",
@@ -110,22 +120,31 @@ export function describeSyncOutcome(input: {
     };
   }
 
+  // Confirmação pendente vem antes de qualquer sugestão de reconexão: aqui a
+  // autorização já existe e só precisa ser concluída.
+  if (WAITING_EXECUTION_STATUS.has(execStatus) || WAITING_ITEM_STATUS.has(itemStatus)) {
+    return {
+      level: "info",
+      title: "O banco está aguardando sua confirmação",
+      description: "Conclua a confirmação que já está aberta no app do banco e sincronize de novo.",
+      suggestReconnect: false,
+    };
+  }
+
   if (needsReauth) {
     return {
-      level: WAITING_EXECUTION_STATUS.has(execStatus) ? "info" : "error",
-      title: WAITING_EXECUTION_STATUS.has(execStatus)
-        ? "O banco está aguardando sua autorização"
-        : "O banco recusou o acesso nesta coleta",
+      level: "error",
+      title: "O banco recusou o acesso nesta coleta",
       description: RECONNECT_HINT,
       suggestReconnect: true,
     };
   }
 
-  if (WAITING_EXECUTION_STATUS.has(execStatus)) {
+  if (CONNECTION_FAILURE_STATUS.has(execStatus)) {
     return {
-      level: "info",
-      title: "O banco está aguardando sua confirmação",
-      description: "Conclua a confirmação no app do banco e sincronize de novo.",
+      level: "error",
+      title: "O banco não respondeu nesta coleta",
+      description: RETRY_HINT,
       suggestReconnect: false,
     };
   }
@@ -156,7 +175,7 @@ export function describeSyncOutcome(input: {
     };
   }
 
-  if (execStatus === "ERROR" || itemStatus === "ERROR") {
+  if (execStatus === "ERROR" || itemStatus === "ERROR" || itemStatus === "OUTDATED") {
     return {
       level: "error",
       title: "O banco terminou a coleta com erro",
