@@ -150,7 +150,7 @@ BEGIN
   ON CONFLICT DO NOTHING;
 
   INSERT INTO p04_fix VALUES (v_owner, v_admin, v_out, v_super, v_comp);
-  RAISE NOTICE 'OK fixtures: empresa sintética % criada', v_comp;
+  RAISE NOTICE 'PREP fixtures: empresa sintética % criada', v_comp;
 END $$;
 
 
