@@ -1,36 +1,48 @@
-[2026-09-15T03:39:37.704Z] iniciando validação funcional isolada da P0.4
-[2026-09-15T03:39:37.707Z] guardas pré-start aprovadas (destino não colide com a conexão de origem)
-[2026-09-15T03:39:37.709Z] limpeza ignorada: nenhum cluster foi criado por esta execução
-[2026-09-15T03:39:37.709Z] limpeza abortada: marcador ausente em /tmp/p04pg-alheio-w2PLQ7 (diretório não é desta execução)
-[2026-09-15T03:39:37.710Z] self-test falha_pre_start_nao_limpa_cluster_alheio: passed
-[2026-09-15T03:39:37.710Z] self-test sem_marcador_nao_apaga_diretorio: passed
-[2026-09-15T03:39:37.710Z] self-test guarda_colisao_com_origem: passed
-[2026-09-15T03:39:37.710Z] exportando ESTRUTURA real (schema-only: public, private, qa) com grants/policies/owners…
-[2026-09-15T03:41:11.552Z] estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)
-[2026-09-15T03:41:14.250Z] cluster próprio no ar (data_directory=/tmp/p04pg-run-kWS19H/pgdata, porta 55437, listen 127.0.0.1)
-[2026-09-15T03:41:14.438Z] bootstrap de papéis/schemas/shims aplicado (public removido para o dump recriá-lo)
-[2026-09-15T03:41:18.106Z] restore concluído com ON_ERROR_STOP=1: exit 0 e nenhum erro
-[2026-09-15T03:41:18.168Z] clone: 200 tabelas e 468 funções em public
-[2026-09-15T03:41:19.286Z] fidelidade acl_rotinas_criticas: IDÊNTICA (11 linha(s) na origem)
-[2026-09-15T03:41:20.391Z] fidelidade definicoes_rotinas_e_autorizacao: IDÊNTICA (21 linha(s) na origem)
-[2026-09-15T03:41:21.533Z] fidelidade policies_companies: IDÊNTICA (5 linha(s) na origem)
-[2026-09-15T03:41:22.550Z] fidelidade triggers_companies: IDÊNTICA (15 linha(s) na origem)
-[2026-09-15T03:41:23.660Z] fidelidade auth_helpers_equivalentes: IDÊNTICA (4 linha(s) na origem)
-[2026-09-15T03:41:23.760Z] teste supabase/tests/dp_internal_functions_p04.test.sql: exit=0 status=passed preparacao=1 grupos=11 subcasos=0 pendentes=0
-[2026-09-15T03:41:23.760Z]   · OK T1: 9 rotinas internas fechadas, service_role preservado
-[2026-09-15T03:41:23.760Z]   · OK T1b: nenhuma rotina interna liberada para PUBLIC
-[2026-09-15T03:41:23.760Z]   · OK T2: gatilhos de validação ativos (2)
-[2026-09-15T03:41:23.760Z]   · OK T3: RPCs app-facing preservadas para authenticated e fechadas para anon
-[2026-09-15T03:41:23.760Z]   · PREP fixtures: empresa sintética 91926ecf-adf4-4f8a-8ad6-12deff63056f criada
-[2026-09-15T03:41:23.760Z]   · OK T4: admin não-dono edita dados comuns normalmente
-[2026-09-15T03:41:23.760Z]   · OK T5: dono edita dados comuns; transferência bloqueada pelo gatilho mais restritivo
-[2026-09-15T03:41:23.760Z]   · OK T5b: super_admin executa a transferência autorizada
-[2026-09-15T03:41:23.760Z]   · OK T6: transferência bloqueada por gatilho existente (Apenas o dono da empresa pode transferir a titularidade)
-[2026-09-15T03:41:23.760Z]   · OK T7: policy sozinha bloqueia a transferência (SQLSTATE 42501)
-[2026-09-15T03:41:23.760Z]   · OK T7b: policy permite edição comum de admin
-[2026-09-15T03:41:23.760Z]   · OK T8: usuário sem vínculo — UPDATE sem efeito (0 linhas)
-[2026-09-15T03:41:23.850Z] teste supabase/tests/dp_p04_scenarios_isolated.test.sql: exit=3 status=failed preparacao=0 grupos=0 subcasos=0 pendentes=0
-[2026-09-15T03:41:23.850Z]   ! psql:supabase/tests/dp_p04_scenarios_isolated.test.sql:76: ERROR:  Cadastro antigo de jornadas encerrado. Use Turnos e Configuracao de trabalho do colaborador.
-[2026-09-15T03:41:24.066Z] cluster desta execução destruído
+[2026-09-15T03:42:15.586Z] iniciando validação funcional isolada da P0.4
+[2026-09-15T03:42:15.588Z] guardas pré-start aprovadas (destino não colide com a conexão de origem)
+[2026-09-15T03:42:15.589Z] limpeza ignorada: nenhum cluster foi criado por esta execução
+[2026-09-15T03:42:15.589Z] limpeza abortada: marcador ausente em /tmp/p04pg-alheio-LKYom6 (diretório não é desta execução)
+[2026-09-15T03:42:15.590Z] self-test falha_pre_start_nao_limpa_cluster_alheio: passed
+[2026-09-15T03:42:15.590Z] self-test sem_marcador_nao_apaga_diretorio: passed
+[2026-09-15T03:42:15.590Z] self-test guarda_colisao_com_origem: passed
+[2026-09-15T03:42:15.590Z] exportando ESTRUTURA real (schema-only: public, private, qa) com grants/policies/owners…
+[2026-09-15T03:43:57.387Z] estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)
+[2026-09-15T03:43:59.385Z] cluster próprio no ar (data_directory=/tmp/p04pg-run-IM7w9s/pgdata, porta 55437, listen 127.0.0.1)
+[2026-09-15T03:43:59.512Z] bootstrap de papéis/schemas/shims aplicado (public removido para o dump recriá-lo)
+[2026-09-15T03:44:02.064Z] restore concluído com ON_ERROR_STOP=1: exit 0 e nenhum erro
+[2026-09-15T03:44:02.117Z] clone: 200 tabelas e 468 funções em public
+[2026-09-15T03:44:03.220Z] fidelidade acl_rotinas_criticas: IDÊNTICA (11 linha(s) na origem)
+[2026-09-15T03:44:04.329Z] fidelidade definicoes_rotinas_e_autorizacao: IDÊNTICA (21 linha(s) na origem)
+[2026-09-15T03:44:05.432Z] fidelidade policies_companies: IDÊNTICA (5 linha(s) na origem)
+[2026-09-15T03:44:06.545Z] fidelidade triggers_companies: IDÊNTICA (15 linha(s) na origem)
+[2026-09-15T03:44:07.636Z] fidelidade auth_helpers_equivalentes: IDÊNTICA (4 linha(s) na origem)
+[2026-09-15T03:44:07.728Z] teste supabase/tests/dp_internal_functions_p04.test.sql: exit=0 status=passed preparacao=1 grupos=11 subcasos=0 pendentes=0
+[2026-09-15T03:44:07.728Z]   · OK T1: 9 rotinas internas fechadas, service_role preservado
+[2026-09-15T03:44:07.728Z]   · OK T1b: nenhuma rotina interna liberada para PUBLIC
+[2026-09-15T03:44:07.728Z]   · OK T2: gatilhos de validação ativos (2)
+[2026-09-15T03:44:07.728Z]   · OK T3: RPCs app-facing preservadas para authenticated e fechadas para anon
+[2026-09-15T03:44:07.728Z]   · PREP fixtures: empresa sintética 5c748bd3-a9b7-4a90-8a11-3f08b1fd1ca3 criada
+[2026-09-15T03:44:07.728Z]   · OK T4: admin não-dono edita dados comuns normalmente
+[2026-09-15T03:44:07.728Z]   · OK T5: dono edita dados comuns; transferência bloqueada pelo gatilho mais restritivo
+[2026-09-15T03:44:07.728Z]   · OK T5b: super_admin executa a transferência autorizada
+[2026-09-15T03:44:07.728Z]   · OK T6: transferência bloqueada por gatilho existente (Apenas o dono da empresa pode transferir a titularidade)
+[2026-09-15T03:44:07.728Z]   · OK T7: policy sozinha bloqueia a transferência (SQLSTATE 42501)
+[2026-09-15T03:44:07.728Z]   · OK T7b: policy permite edição comum de admin
+[2026-09-15T03:44:07.728Z]   · OK T8: usuário sem vínculo — UPDATE sem efeito (0 linhas)
+[2026-09-15T03:44:09.923Z] teste supabase/tests/dp_p04_scenarios_isolated.test.sql: exit=3 status=failed preparacao=1 grupos=10 subcasos=21 pendentes=1
+[2026-09-15T03:44:09.923Z]   · PREP fixtures: 2 empresas, 6 usuários e 3 colaboradores (1 com acesso de portal)
+[2026-09-15T03:44:09.924Z]   · OK S1: 9 rotinas internas negadas por falta de EXECUTE para authenticated e anon (18 casos)
+[2026-09-15T03:44:09.924Z]   · OK S2: edição comum da empresa preservada para dono e admin
+[2026-09-15T03:44:09.924Z]   · OK S3: admin de A, colaborador e usuário sem vínculo não alteram a empresa B (3 casos)
+[2026-09-15T03:44:09.924Z]   · OK S3b: colaborador com acesso de portal não edita a própria empresa
+[2026-09-15T03:44:09.924Z]   · OK S4a: dono da empresa A obtém o plano de folgas (retorno não nulo)
+[2026-09-15T03:44:09.924Z]   · OK S4b: admin da empresa A obtém o plano de folgas
+[2026-09-15T03:44:09.924Z]   · OK S4c: RPC de plano nega entre empresas e para perfis sem admin (42501 FORBIDDEN, 4 casos)
+[2026-09-15T03:44:09.924Z]   · OK S4d: aplicação do plano negada entre empresas (42501 FORBIDDEN)
+[2026-09-15T03:44:09.924Z]   · OK S4e: visitante (anon) sem EXECUTE nas RPCs app-facing
+[2026-09-15T03:44:09.924Z]   · OK S5.1: contagem de páginas do lote executada internamente (processed_pages=2)
+[2026-09-15T03:44:09.924Z]   · PENDENTE S5.2: geração de escala executada internamente (retorno=0, nenhuma gravação) — trabalho efetivo NÃO comprovado: o cadastro de jornadas (dp_jornadas) está selado pelo gatilho trg_dp_jornadas_legado e não pode receber fixture sem violar regra de produção
+[2026-09-15T03:44:09.924Z]   ! psql:supabase/tests/dp_p04_scenarios_isolated.test.sql:437: ERROR:  invalid input value for enum dp_folga_origem: "auto_fds"
+[2026-09-15T03:44:10.098Z] cluster desta execução destruído
 
 === status geral: failed (exit 1) ===

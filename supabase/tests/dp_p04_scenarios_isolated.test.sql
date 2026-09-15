@@ -354,7 +354,7 @@ RESET ROLE;
 DO $$
 DECLARE
   f s_fix; v_batch uuid := gen_random_uuid(); v_proc int; v_res jsonb;
-  v_ret int; v_linhas int; v_domingos int; v_fora int; v_geradas int;
+  v_ret int; v_linhas int; v_fora int; v_geradas int;
 BEGIN
   SELECT * INTO f FROM s_fix;
 
