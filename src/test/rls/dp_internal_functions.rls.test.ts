@@ -100,7 +100,7 @@ d("P0.4: rotinas internas seguem SECURITY DEFINER com search_path explícito", (
 d("P0.4: gatilhos que dependem das rotinas internas continuam ativos", () => {
   it("dp_escala_item_validar_setor e dp_folgas_validar_unificado seguem ligados a gatilhos habilitados", () => {
     const rows = q(`
-      select p.proname || '|' || t.tgname || '|' || t.tgenabled
+      select p.proname || '|' || t.tgname || '|' || t.tgenabled::text
         from pg_trigger t
         join pg_proc p on p.oid = t.tgfoid
        where not t.tgisinternal
