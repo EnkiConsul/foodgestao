@@ -204,24 +204,56 @@ UPDATE public.companies SET user_id = (SELECT owner_id FROM p04_fix)
 -- T6 (NEGATIVO, gatilhos + policy): admin não-dono não assume titularidade.
 -- =====================================================================
 DO $$
-DECLARE f p04_fix; v_err text; v_after uuid;
+DECLARE
+  f p04_fix;
+  v_state text := NULL;
+  v_msg text := NULL;
+  v_rows int := 0;
+  v_after uuid;
 BEGIN
   SELECT * INTO f FROM p04_fix;
   PERFORM pg_temp.p04_as_user(f.admin_id);
+
+  -- O bloco de captura contém APENAS o UPDATE: nenhuma asserção aqui, para não
+  -- capturar a própria falha do teste.
   BEGIN
     UPDATE public.companies SET user_id = f.admin_id WHERE id = f.company_id;
-    SELECT user_id INTO v_after FROM public.companies WHERE id = f.company_id;
-    IF v_after = f.admin_id THEN
-      RAISE EXCEPTION 'FALHA T6: admin não-dono transferiu a titularidade';
-    END IF;
-    v_err := 'sem erro, porém sem efeito (RLS filtrou a linha)';
-  EXCEPTION WHEN insufficient_privilege OR raise_exception THEN
-    v_err := SQLERRM;
+    v_rows := ROW_COUNT_HACK();
+  EXCEPTION WHEN others THEN
+    v_state := SQLSTATE;
+    v_msg := SQLERRM;
   END;
+
+  -- restaura o papel ANTES da leitura verificadora
   PERFORM set_config('role', 'none', true);
-  RAISE NOTICE 'OK T6: transferência por admin não-dono bloqueada (%).', v_err;
+  RESET ROLE;
+
+  SELECT user_id INTO v_after FROM public.companies WHERE id = f.company_id;
+
+  -- Asserções fora do bloco de captura.
+  IF v_after IS DISTINCT FROM f.owner_id THEN
+    RAISE EXCEPTION 'FALHA T6: titular final inesperado (esperado %, obtido %)', f.owner_id, v_after;
+  END IF;
+
+  IF v_state IS NULL THEN
+    -- sem erro: só é aceitável se o UPDATE não afetou nenhuma linha (RLS filtrou)
+    IF v_rows <> 0 THEN
+      RAISE EXCEPTION 'FALHA T6: UPDATE de titularidade afetou % linha(s) sem erro', v_rows;
+    END IF;
+    RAISE NOTICE 'OK T6: transferência por admin não-dono sem efeito (0 linhas, RLS filtrou)';
+  ELSIF v_state = '42501' THEN
+    RAISE NOTICE 'OK T6: transferência bloqueada por RLS (42501)';
+  ELSIF v_state = 'P0001' AND v_msg IN (
+      'Apenas o dono da empresa pode transferir a titularidade',
+      'Somente o proprietário atual da empresa ou um super admin pode transferir a titularidade',
+      'Ownership transfer is not allowed'
+  ) THEN
+    RAISE NOTICE 'OK T6: transferência bloqueada por gatilho existente (%)', v_msg;
+  ELSE
+    RAISE EXCEPTION 'FALHA T6: negação inesperada % / %', v_state, v_msg;
+  END IF;
 END $$;
-RESET ROLE;
+
 
 -- =====================================================================
 -- T7 (NEGATIVO, POLICY ISOLADA): com os gatilhos de titularidade
