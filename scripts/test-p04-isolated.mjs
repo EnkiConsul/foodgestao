@@ -22,7 +22,7 @@
  *                  em cluster alheio (não roda as suítes)
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, mkdtempSync, rmSync, writeFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -210,6 +210,12 @@ alter role service_role bypassrls;
 grant anon, authenticated, service_role to postgres;
 
 drop schema if exists public cascade;
+-- `public` é recriado aqui (e a linha CREATE SCHEMA public do dump é removida no
+-- pré-processamento) porque o dump por --schema NÃO inclui CREATE EXTENSION, e
+-- índices reais dependem de pg_trgm/unaccent instalados em public.
+create schema public;
+create extension pg_trgm with schema public;
+create extension unaccent with schema public;
 
 create schema auth;
 create schema extensions;
@@ -307,6 +313,13 @@ function dumpSchema() {
     ["--schema-only", "--schema=public", "--schema=private", "--schema=qa", "-f", SCHEMA_FILE],
     { env: process.env }
   );
+  // Único pré-processamento: remove a criação do schema public (já criado no
+  // bootstrap junto com as extensões). Owner/COMMENT/GRANTs do dump seguem
+  // aplicando normalmente. Nenhuma outra linha é alterada.
+  const raw = readFileSync(SCHEMA_FILE, "utf8");
+  const filtered = raw.replace(/^CREATE SCHEMA public;$/m, "-- CREATE SCHEMA public; (criado no bootstrap com pg_trgm/unaccent)");
+  if (filtered === raw) throw new Error("pré-processamento: linha CREATE SCHEMA public não encontrada no dump");
+  writeFileSync(SCHEMA_FILE, filtered);
   log("estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)");
 }
 
