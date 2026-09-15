@@ -1,6 +1,6 @@
 {
   "fase": "P0.4 — validação funcional em banco isolado",
-  "gerado_em": "2026-09-15T03:35:44.509Z",
+  "gerado_em": "2026-09-15T03:39:37.704Z",
   "comando": "node scripts/test-p04-isolated.mjs",
   "ambiente": {
     "tipo": "cluster PostgreSQL local temporário, exclusivo desta execução e descartável",
@@ -8,7 +8,7 @@
     "porta": 55437,
     "banco": "p04iso",
     "origem_dos_dados": "nenhuma — apenas ESTRUTURA (pg_dump --schema-only), reexportada nesta execução",
-    "data_directory": "/tmp/p04pg-run-bpR0M2/pgdata",
+    "data_directory": "/tmp/p04pg-run-kWS19H/pgdata",
     "listen_addresses": "127.0.0.1"
   },
   "incluido": [
@@ -39,10 +39,112 @@
       "status": "passed"
     }
   ],
-  "etapas": [],
-  "fidelidade": [],
-  "testes": [],
-  "resumo_cenarios": {},
+  "etapas": [
+    {
+      "etapa": "restore_estrutura",
+      "exit_code": 0,
+      "erros": 0,
+      "status": "passed"
+    },
+    {
+      "etapa": "inventario_clone",
+      "tabelas_public": 200,
+      "funcoes_public": 468
+    }
+  ],
+  "fidelidade": [
+    {
+      "check": "acl_rotinas_criticas",
+      "status": "passed",
+      "linhas_origem": 11,
+      "linhas_clone": 11,
+      "diferenca": null
+    },
+    {
+      "check": "definicoes_rotinas_e_autorizacao",
+      "status": "passed",
+      "linhas_origem": 21,
+      "linhas_clone": 21,
+      "diferenca": null
+    },
+    {
+      "check": "policies_companies",
+      "status": "passed",
+      "linhas_origem": 5,
+      "linhas_clone": 5,
+      "diferenca": null
+    },
+    {
+      "check": "triggers_companies",
+      "status": "passed",
+      "linhas_origem": 15,
+      "linhas_clone": 15,
+      "diferenca": null
+    },
+    {
+      "check": "auth_helpers_equivalentes",
+      "status": "passed",
+      "linhas_origem": 4,
+      "linhas_clone": 4,
+      "diferenca": null
+    }
+  ],
+  "testes": [
+    {
+      "file": "supabase/tests/dp_internal_functions_p04.test.sql",
+      "comando": "psql -v ON_ERROR_STOP=1 -d p04iso -f supabase/tests/dp_internal_functions_p04.test.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "contagem": {
+        "preparacao": 1,
+        "grupos_de_assercoes": 11,
+        "subcasos_declarados": 0,
+        "pendentes": 0
+      },
+      "preparacao": [
+        "PREP fixtures: empresa sintética 91926ecf-adf4-4f8a-8ad6-12deff63056f criada"
+      ],
+      "grupos_de_assercoes": [
+        "OK T1: 9 rotinas internas fechadas, service_role preservado",
+        "OK T1b: nenhuma rotina interna liberada para PUBLIC",
+        "OK T2: gatilhos de validação ativos (2)",
+        "OK T3: RPCs app-facing preservadas para authenticated e fechadas para anon",
+        "OK T4: admin não-dono edita dados comuns normalmente",
+        "OK T5: dono edita dados comuns; transferência bloqueada pelo gatilho mais restritivo",
+        "OK T5b: super_admin executa a transferência autorizada",
+        "OK T6: transferência bloqueada por gatilho existente (Apenas o dono da empresa pode transferir a titularidade)",
+        "OK T7: policy sozinha bloqueia a transferência (SQLSTATE 42501)",
+        "OK T7b: policy permite edição comum de admin",
+        "OK T8: usuário sem vínculo — UPDATE sem efeito (0 linhas)"
+      ],
+      "pendentes": [],
+      "falhas": []
+    },
+    {
+      "file": "supabase/tests/dp_p04_scenarios_isolated.test.sql",
+      "comando": "psql -v ON_ERROR_STOP=1 -d p04iso -f supabase/tests/dp_p04_scenarios_isolated.test.sql",
+      "status": "failed",
+      "exit_code": 3,
+      "contagem": {
+        "preparacao": 0,
+        "grupos_de_assercoes": 0,
+        "subcasos_declarados": 0,
+        "pendentes": 0
+      },
+      "preparacao": [],
+      "grupos_de_assercoes": [],
+      "pendentes": [],
+      "falhas": [
+        "psql:supabase/tests/dp_p04_scenarios_isolated.test.sql:76: ERROR:  Cadastro antigo de jornadas encerrado. Use Turnos e Configuracao de trabalho do colaborador."
+      ]
+    }
+  ],
+  "resumo_cenarios": {
+    "preparacao": 1,
+    "grupos_de_assercoes": 11,
+    "subcasos_declarados": 0,
+    "pendentes": 0
+  },
   "limitacoes": [
     "Rotinas globais dp_escala_auto_gerar_todas() e dp_folga_autoatribuir_todas() só são exercitadas pela negação de EXECUTE: em modo global varrem todas as empresas do banco e não agregam prova além do caminho por empresa.",
     "Agendador (pg_cron), filas (pgmq) e cofre (supabase_vault) são stubs vazios: a execução agendada não é simulada; segue comprovada por privilégio e cadeia de chamadas.",
@@ -50,6 +152,5 @@
     "Sem dados reais, o comportamento sobre volume, índices e latência de produção não é avaliado nesta etapa."
   ],
   "status_geral": "failed",
-  "erro": "restore reprovado (exit 3, 1 erro(s)) — validação inválida",
   "codigo_saida": 1
 }

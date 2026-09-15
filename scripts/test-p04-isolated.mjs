@@ -210,7 +210,7 @@ alter role service_role bypassrls;
 grant anon, authenticated, service_role to postgres;
 
 drop schema if exists public cascade;
--- `public` é recriado aqui (e a linha CREATE SCHEMA public do dump é removida no
+-- "public" e recriado aqui (e a linha CREATE SCHEMA public do dump e removida no
 -- pré-processamento) porque o dump por --schema NÃO inclui CREATE EXTENSION, e
 -- índices reais dependem de pg_trgm/unaccent instalados em public.
 create schema public;
