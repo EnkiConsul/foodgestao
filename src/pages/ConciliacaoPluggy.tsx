@@ -59,6 +59,13 @@ import {
 } from "@/lib/conciliacao/cardRouting";
 import { cardHintLabel, formatProviderDescription, hasMerchantName } from "@/lib/conciliacao/cardDescription";
 import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
+import {
+  SCOPED_PLUGGY_ACCOUNT_SELECT,
+  resolveScopedPluggyAccount,
+  type ScopedPluggyResolution,
+} from "@/lib/pluggy/scopedPluggyAccount";
+
+type ScopeProblem = Exclude<ScopedPluggyResolution["status"], "resolved"> | null;
 
 
 
@@ -490,8 +497,10 @@ export default function ConciliacaoPluggy() {
         };
       }
     }
+    const escopoBloqueado = !!(scopedCardId || scopedLocalAccountId) && !resolvedScope;
     setScope(resolvedScope);
-    setScopeUnresolved(!!(scopedCardId || scopedLocalAccountId) && !resolvedScope);
+    setScopeUnresolved(escopoBloqueado);
+    setScopeProblem(escopoBloqueado ? scopeProblem : null);
     setConnectionId(resolvedScope ? resolvedScope.connectionId : "all");
 
     // Fábrica de query: cada página precisa de um builder novo (os builders do
