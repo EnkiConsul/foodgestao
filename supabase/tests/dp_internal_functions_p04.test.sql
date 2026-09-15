@@ -311,21 +311,46 @@ ALTER TABLE public.companies ENABLE TRIGGER prevent_company_ownership_transfer_t
 -- T8 (NEGATIVO): usuário sem vínculo não edita nada da empresa sintética.
 -- =====================================================================
 DO $$
-DECLARE f p04_fix; v_name text;
+DECLARE
+  f p04_fix;
+  v_name text;
+  v_after text;
+  v_state text := NULL;
+  v_msg text := NULL;
+  v_rows int := 0;
 BEGIN
   SELECT * INTO f FROM p04_fix;
   SELECT name INTO v_name FROM public.companies WHERE id = f.company_id;
   PERFORM pg_temp.p04_as_user(f.outsider_id);
+
+  -- somente o UPDATE dentro da captura; erros inesperados falham nas asserções
   BEGIN
     UPDATE public.companies SET name = 'P04 INVASOR' WHERE id = f.company_id;
-  EXCEPTION WHEN others THEN NULL;
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+  EXCEPTION WHEN others THEN
+    v_state := SQLSTATE;
+    v_msg := SQLERRM;
   END;
+
   PERFORM set_config('role', 'none', true);
-  IF (SELECT name FROM public.companies WHERE id = f.company_id) <> v_name THEN
-    RAISE EXCEPTION 'FALHA T8: usuário sem vínculo alterou a empresa';
+  RESET ROLE;
+
+  SELECT name INTO v_after FROM public.companies WHERE id = f.company_id;
+  IF v_after IS DISTINCT FROM v_name THEN
+    RAISE EXCEPTION 'FALHA T8: usuário sem vínculo alterou a empresa (% -> %)', v_name, v_after;
   END IF;
-  RAISE NOTICE 'OK T8: usuário sem vínculo não altera a empresa';
+
+  IF v_state IS NULL THEN
+    IF v_rows <> 0 THEN
+      RAISE EXCEPTION 'FALHA T8: UPDATE de terceiro afetou % linha(s)', v_rows;
+    END IF;
+    RAISE NOTICE 'OK T8: usuário sem vínculo — UPDATE sem efeito (0 linhas)';
+  ELSIF v_state = '42501' THEN
+    RAISE NOTICE 'OK T8: usuário sem vínculo bloqueado por RLS (42501)';
+  ELSE
+    RAISE EXCEPTION 'FALHA T8: erro inesperado % / %', v_state, v_msg;
+  END IF;
 END $$;
-RESET ROLE;
+
 
 ROLLBACK;
