@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Store, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,12 +8,13 @@ import { CardListSkeleton } from "@/components/dp/DpSkeletons";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
-import { hojeIsoLocal, horariosSobrepostos } from "@/lib/dp/dataLocal";
+import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { hhmm as hhmmBase } from "@/lib/dp/formato";
 
 const hhmm = (v?: string | null) => hhmmBase(v) || null;
@@ -25,14 +26,19 @@ type Pessoa = {
   setor: string | null;
   entrada: string | null;
   saida: string | null;
+  turnoChave: string;
+  turnoNome: string | null;
 };
 
 const hojeIso = () => hojeIsoLocal();
 
-/** Rotina da loja: quem trabalha no dia, por função. Somente leitura. */
+const SEM_TURNO = "sem-turno";
+
+/** Rotina da loja: quem trabalha no dia, separado por turno. Somente leitura. */
 export default function DpMeuRotinaLoja() {
   const { data: vinculo } = useMeuVinculoPortal();
   const [data, setData] = useState(hojeIso);
+  const [turnoSelecionado, setTurnoSelecionado] = useState<string | null>(null);
 
   const escala = useQuery({
     queryKey: ["dp_meu_rotina_loja", vinculo?.unidadeId, data],
@@ -49,49 +55,81 @@ export default function DpMeuRotinaLoja() {
       for (const l of (linhas ?? []) as any[]) {
         if (!l?.colaborador_id || vistos.has(l.colaborador_id)) continue;
         vistos.add(l.colaborador_id);
+        const entrada = hhmm(l.entrada);
+        const saida = hhmm(l.saida);
+        const turnoNome = l.turno_nome ? toUpperCadastro(l.turno_nome) : null;
         out.push({
           id: l.colaborador_id,
           nome: toUpperCadastro(nomeExibicao(l)),
           cargo: l.cargo || "Sem função definida",
           setor: l.setor_nome || null,
-          entrada: hhmm(l.entrada),
-          saida: hhmm(l.saida),
+          entrada,
+          saida,
+          turnoChave: l.turno_id || (entrada ? `h:${entrada}-${saida ?? ""}` : SEM_TURNO),
+          turnoNome,
         });
       }
       return out.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     },
   });
 
-  /**
-   * Só interessa quem trabalha no mesmo horário do colaborador: quem entra à
-   * noite não precisa ver a equipe do almoço.
-   */
-  const equipeDoMeuTurno = useMemo(() => {
-    const lista = escala.data ?? [];
-    const eu = lista.find((p) => p.id === vinculo?.colaboradorId);
-    if (!eu || !eu.entrada) return lista;
-    return lista.filter((p) => p.id === eu.id || horariosSobrepostos(eu, p));
-  }, [escala.data, vinculo?.colaboradorId]);
+  const lista = escala.data ?? [];
 
-  /**
-   * Como no painel do gestor: quando a loja usa setores, a equipe do dia é
-   * agrupada por setor; sem setor cadastrado, continua agrupada por função.
-   */
-  const usaSetores = useMemo(
-    () => equipeDoMeuTurno.some((p) => !!p.setor),
-    [equipeDoMeuTurno],
+  /** Turnos do dia, com rótulo e horário, ordenados pelo início. */
+  const turnos = useMemo(() => {
+    const m = new Map<string, { chave: string; nome: string; entrada: string | null; pessoas: Pessoa[] }>();
+    for (const p of lista) {
+      const atual = m.get(p.turnoChave);
+      if (atual) {
+        atual.pessoas.push(p);
+        continue;
+      }
+      const horario = p.entrada && p.saida ? `${p.entrada} às ${p.saida}` : null;
+      const nome = p.turnoNome ? (horario ? `${p.turnoNome} · ${horario}` : p.turnoNome) : (horario ?? "Horário a confirmar");
+      m.set(p.turnoChave, { chave: p.turnoChave, nome, entrada: p.entrada, pessoas: [p] });
+    }
+    return Array.from(m.values()).sort((a, b) =>
+      (a.entrada ?? "99:99").localeCompare(b.entrada ?? "99:99"),
+    );
+  }, [lista]);
+
+  const meuTurno = useMemo(
+    () => lista.find((p) => p.id === vinculo?.colaboradorId)?.turnoChave ?? null,
+    [lista, vinculo?.colaboradorId],
   );
 
-  const grupos = useMemo(() => {
+  // Por padrão o colaborador vê apenas o turno dele.
+  useEffect(() => {
+    setTurnoSelecionado(meuTurno);
+  }, [meuTurno, data]);
+
+  const turnosVisiveis = useMemo(() => {
+    if (!turnoSelecionado) return turnos;
+    const so = turnos.filter((t) => t.chave === turnoSelecionado);
+    return so.length > 0 ? so : turnos;
+  }, [turnos, turnoSelecionado]);
+
+  const pessoasVisiveis = useMemo(
+    () => turnosVisiveis.flatMap((t) => t.pessoas),
+    [turnosVisiveis],
+  );
+
+  /**
+   * Como no painel do gestor: quando a loja usa setores, a equipe é agrupada por
+   * setor dentro do turno; sem setor cadastrado, continua agrupada por função.
+   */
+  const usaSetores = useMemo(() => pessoasVisiveis.some((p) => !!p.setor), [pessoasVisiveis]);
+
+  const gruposDoTurno = (pessoas: Pessoa[]) => {
     const m = new Map<string, Pessoa[]>();
-    for (const p of equipeDoMeuTurno) {
+    for (const p of pessoas) {
       const chave = usaSetores ? (p.setor ?? "Sem setor definido") : p.cargo;
-      const lista = m.get(chave) ?? [];
-      lista.push(p);
-      m.set(chave, lista);
+      const atual = m.get(chave) ?? [];
+      atual.push(p);
+      m.set(chave, atual);
     }
     return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
-  }, [equipeDoMeuTurno, usaSetores]);
+  };
 
   return (
     <DpPage>
@@ -119,37 +157,65 @@ export default function DpMeuRotinaLoja() {
         <DpErrorState onRetry={() => escala.refetch()} />
       ) : escala.isLoading ? (
         <CardListSkeleton rows={3} />
-      ) : grupos.length === 0 ? (
+      ) : turnos.length === 0 ? (
         <DpEmptyState icon={Users}>Nenhuma equipe prevista para este dia.</DpEmptyState>
-
       ) : (
         <div className="space-y-4">
-          {grupos.map(([titulo, pessoas]) => (
-            <Card key={titulo} className="dp-content-card">
+          {turnos.length > 1 && meuTurno ? (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={turnoSelecionado ? "default" : "outline"}
+                onClick={() => setTurnoSelecionado(meuTurno)}
+              >
+                Meu turno
+              </Button>
+              <Button
+                size="sm"
+                variant={turnoSelecionado ? "outline" : "default"}
+                onClick={() => setTurnoSelecionado(null)}
+              >
+                Todos os turnos do dia
+              </Button>
+            </div>
+          ) : null}
+
+          {turnosVisiveis.map((turno) => (
+            <Card key={turno.chave} className="dp-content-card">
               <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex flex-wrap items-center gap-2 mb-3">
                   <Users className="size-4 text-primary" />
-                  <p className="font-medium">{titulo}</p>
-                  <Badge variant="outline">{pessoas.length}</Badge>
+                  <p className="font-medium min-w-0 break-words">{turno.nome}</p>
+                  <Badge variant="outline">{turno.pessoas.length}</Badge>
+                  {turno.chave === meuTurno ? <Badge>Meu turno</Badge> : null}
                 </div>
-                <ul className="space-y-2">
-                  {pessoas.map((p) => (
-                    <li
-                      key={p.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2"
-                    >
-                      <span className="text-sm min-w-0 break-words">
-                        {p.nome}
-                        {usaSetores ? (
-                          <span className="block text-xs text-muted-foreground">{p.cargo}</span>
-                        ) : null}
-                      </span>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {p.entrada && p.saida ? `${p.entrada} às ${p.saida}` : "Horário a confirmar"}
-                      </span>
-                    </li>
+                <div className="space-y-3">
+                  {gruposDoTurno(turno.pessoas).map(([titulo, pessoas]) => (
+                    <div key={titulo}>
+                      <p className="text-xs uppercase text-muted-foreground mb-1">{titulo}</p>
+                      <ul className="space-y-2">
+                        {pessoas.map((p) => (
+                          <li
+                            key={p.id}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2"
+                          >
+                            <span className="text-sm min-w-0 break-words">
+                              {p.nome}
+                              {usaSetores ? (
+                                <span className="block text-xs text-muted-foreground">{p.cargo}</span>
+                              ) : null}
+                            </span>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              {p.entrada && p.saida
+                                ? `${p.entrada} às ${p.saida}`
+                                : "Horário a confirmar"}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </CardContent>
             </Card>
           ))}

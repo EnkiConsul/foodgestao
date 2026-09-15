@@ -6628,6 +6628,64 @@ export type Database = {
           },
         ]
       }
+      dp_dia_trabalho_excepcional: {
+        Row: {
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          data: string
+          id: string
+          origem: string
+          solicitacao_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          data: string
+          id?: string
+          origem?: string
+          solicitacao_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          id?: string
+          origem?: string
+          solicitacao_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_dia_trabalho_excepcional_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_dia_trabalho_excepcional_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_dia_trabalho_excepcional_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_solicitacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_doc_tipo_aprendizado: {
         Row: {
           assinatura: string
@@ -14666,6 +14724,10 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_dias_fixos_folga: {
+        Args: { _colaborador: string; _data?: string }
+        Returns: number[]
+      }
       dp_disponibilidade_janela: {
         Args: {
           _company_id: string
@@ -15058,6 +15120,14 @@ export type Database = {
         Args: { p_data: string; p_fora_da_janela?: boolean; p_motivo?: string }
         Returns: Json
       }
+      dp_folga_troca_fds_solicitar: {
+        Args: {
+          p_data_folga: string
+          p_data_trabalho: string
+          p_motivo: string
+        }
+        Returns: Json
+      }
       dp_folgas_janela_efetiva: {
         Args: { _company: string; _data_ref?: string; _unidade?: string }
         Returns: Json
@@ -15123,6 +15193,7 @@ export type Database = {
           unidade_usa_ponto: boolean
         }[]
       }
+      dp_meus_dias_fixos_folga: { Args: { _data?: string }; Returns: number[] }
       dp_minha_disponibilidade_janela: {
         Args: { _competencia?: string }
         Returns: Json
