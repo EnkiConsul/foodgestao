@@ -752,32 +752,67 @@ export default function ConciliacaoPluggy() {
 
   useEffect(() => { load(); }, [load]);
 
-  const syncNow = async () => {
-    const targets = scope
-      ? connections.filter((c) => c.id === scope.connectionId)
+  // Alvos da sincronização: com escopo pedido, SOMENTE a conexão do escopo
+  // resolvido; nunca a empresa inteira.
+  const syncTargets = scope
+    ? connections.filter((c) => c.id === scope.connectionId)
+    : scopeRequested
+      ? []
       : connectionId === "all" ? connections : connections.filter((c) => c.id === connectionId);
-    if (targets.length === 0) return;
+  const syncGuard = canSyncScopedTargets({
+    scopeRequested,
+    scopeResolved: !!scope,
+    scopeUnresolved,
+    loading,
+    targetCount: syncTargets.length,
+  });
+
+  const syncNow = async () => {
+    // O handler repete a checagem do botão: nada de sincronizar empresa inteira
+    // quando o escopo está carregando, bloqueado ou desatualizado.
+    if (!syncGuard.allowed) {
+      if (syncGuard.reason === "loading") toast.info("Aguarde o carregamento desta seleção.");
+      else if (syncGuard.reason === "unresolved") {
+        toast.error("Esta seleção não tem conexão Open Finance ativa: nada foi sincronizado.");
+      }
+      return;
+    }
+    const key = requestKeyRef.current;
     setSyncing(true);
     let total = 0;
-    let needsAction = false;
-    for (const c of targets) {
-      const { data: conn } = await supabase.from("pluggy_connections").select("pluggy_item_id").eq("id", c.id).single();
-      if (!conn) continue;
-      const { data, error } = await supabase.functions.invoke("pluggy-sync-item", {
-        body: { item_id: conn.pluggy_item_id, company_id: selectedCompanyId },
-      });
-      if (error) { toast.error(`Erro ao sincronizar ${c.connector_name ?? ""}`); continue; }
-      const st = String(data?.item_status ?? "").toUpperCase();
-      if (st === "WAITING_USER_INPUT" || st === "LOGIN_ERROR") {
-        needsAction = true;
-        toast.error(`${c.connector_name ?? "Conexão"}: reconecte o banco (${st === "LOGIN_ERROR" ? "credenciais inválidas" : "confirmação pendente no app do banco"})`);
+    const feedbacks: SyncFeedback[] = [];
+    try {
+      for (const c of syncTargets) {
+        if (requestKeyRef.current !== key) return;
+        const { data: conn } = await supabase
+          .from("pluggy_connections")
+          .select("pluggy_item_id")
+          .eq("id", c.id)
+          .single();
+        if (!conn) continue;
+        const { data, error } = await supabase.functions.invoke("pluggy-sync-item", {
+          body: { item_id: conn.pluggy_item_id, company_id: selectedCompanyId },
+        });
+        const feedback = describeSyncOutcome({
+          transportError: !!error,
+          body: (data ?? null) as SyncResponse | null,
+        });
+        feedbacks.push(feedback);
+        const nome = c.connector_name ?? "Conexão";
+        const texto = `${nome}: ${feedback.title}`;
+        if (feedback.level === "error") toast.error(texto, { description: feedback.description });
+        else if (feedback.level === "warning") toast.warning(texto, { description: feedback.description });
+        else if (feedback.level === "info") toast.info(texto, { description: feedback.description });
+        total += (data as SyncResponse | null)?.transactions ?? 0;
       }
-      total += data?.transactions ?? 0;
+      // Sucesso global só se todos os alvos concluíram.
+      if (aggregateSyncFeedback(feedbacks) === "success") {
+        toast.success(`Sincronização concluída (${total} lançamentos)`);
+      }
+    } finally {
+      setSyncing(false);
+      load();
     }
-    setSyncing(false);
-    if (!needsAction) toast.success(`Sincronização concluída (${total} lançamentos)`);
-    load();
-
   };
 
   const filtered = useMemo(() => {
