@@ -64,6 +64,13 @@ import {
   resolveScopedPluggyAccount,
   type ScopedPluggyResolution,
 } from "@/lib/pluggy/scopedPluggyAccount";
+import {
+  aggregateSyncFeedback,
+  canSyncScopedTargets,
+  describeSyncOutcome,
+  type SyncFeedback,
+  type SyncResponse,
+} from "@/lib/pluggy/syncOutcome";
 
 type ScopeProblem = Exclude<ScopedPluggyResolution["status"], "resolved"> | null;
 
