@@ -756,7 +756,7 @@ export default function ConciliacaoPluggy() {
       setTransferTxIds(new Set());
     }
     setLoading(false);
-  }, [selectedCompanyId, scopedLocalAccountId, scopedCardId]);
+  }, [selectedCompanyId, scopedLocalAccountId, scopedCardId, requestKey, scopeRequested]);
 
   useEffect(() => { load(); }, [load]);
 
