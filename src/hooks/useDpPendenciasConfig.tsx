@@ -18,6 +18,12 @@ export type DpPendenciasConfig = {
   dias_carencia_portal: number;
   /** Empresa emite contracheque separado também no mês do desligamento. */
   exigir_contracheque_mes_desligamento: boolean;
+  /** Cobrar o comprovante de pagamento dos documentos de pagamento. */
+  exigir_comprovante_pagamento: boolean;
+  /** Dias após a data do documento até o comprovante virar pendência atrasada. */
+  alerta_comprovante_dias: number;
+  /** Só cobra comprovante de documentos a partir desta data (YYYY-MM-DD). */
+  comprovante_vigencia_inicio: string;
 };
 
 export const DP_PENDENCIAS_CONFIG_DEFAULT: DpPendenciasConfig = {
@@ -34,6 +40,9 @@ export const DP_PENDENCIAS_CONFIG_DEFAULT: DpPendenciasConfig = {
   alerta_treinamento_dias: 30,
   dias_carencia_portal: 30,
   exigir_contracheque_mes_desligamento: false,
+  exigir_comprovante_pagamento: true,
+  alerta_comprovante_dias: 5,
+  comprovante_vigencia_inicio: "2026-09-01",
 };
 
 
@@ -48,7 +57,7 @@ export function useDpPendenciasConfig() {
       const { data, error } = await supabase
         .from("dp_pendencias_config")
         .select(
-          "alerta_solicitacao_dias, alerta_troca_dias, alerta_ocorrencia_horas, alerta_contracheque_dia_mes, alerta_adiantamento_offset, alerta_folha_ponto_dia_mes, alerta_negociacao_dias, alerta_ferias_dias, alerta_aso_dias, alerta_epi_dias, alerta_treinamento_dias, dias_carencia_portal, exigir_contracheque_mes_desligamento",
+          "alerta_solicitacao_dias, alerta_troca_dias, alerta_ocorrencia_horas, alerta_contracheque_dia_mes, alerta_adiantamento_offset, alerta_folha_ponto_dia_mes, alerta_negociacao_dias, alerta_ferias_dias, alerta_aso_dias, alerta_epi_dias, alerta_treinamento_dias, dias_carencia_portal, exigir_contracheque_mes_desligamento, exigir_comprovante_pagamento, alerta_comprovante_dias, comprovante_vigencia_inicio",
         )
         .eq("company_id", selectedCompanyId!)
         .maybeSingle();
@@ -76,6 +85,14 @@ export function useDpPendenciasConfig() {
         exigir_contracheque_mes_desligamento:
           (data as any).exigir_contracheque_mes_desligamento ??
           DP_PENDENCIAS_CONFIG_DEFAULT.exigir_contracheque_mes_desligamento,
+        exigir_comprovante_pagamento:
+          (data as any).exigir_comprovante_pagamento ??
+          DP_PENDENCIAS_CONFIG_DEFAULT.exigir_comprovante_pagamento,
+        alerta_comprovante_dias:
+          (data as any).alerta_comprovante_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_comprovante_dias,
+        comprovante_vigencia_inicio:
+          (data as any).comprovante_vigencia_inicio ??
+          DP_PENDENCIAS_CONFIG_DEFAULT.comprovante_vigencia_inicio,
       };
     },
   });
