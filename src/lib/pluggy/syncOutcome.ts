@@ -175,7 +175,7 @@ export function describeSyncOutcome(input: {
     };
   }
 
-  if (execStatus === "ERROR" || itemStatus === "ERROR") {
+  if (execStatus === "ERROR" || itemStatus === "ERROR" || itemStatus === "OUTDATED") {
     return {
       level: "error",
       title: "O banco terminou a coleta com erro",
