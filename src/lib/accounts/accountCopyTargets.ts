@@ -5,6 +5,11 @@
  * (id, saldo inicial, saldo atual e lançamentos independentes). Não existe
  * compartilhamento de conta/saldo entre empresas e nada aqui sincroniza
  * registros depois de criados.
+ *
+ * Cada envio do formulário executa UMA única mutação:
+ * - editar conta  -> apenas UPDATE dos dados cadastrais da própria conta;
+ * - criar cópias  -> apenas INSERT em lote das novas contas.
+ * Nunca há update + insert no mesmo envio, nem delete compensatório.
  */
 import type { Database } from "@/integrations/supabase/types";
 
@@ -107,23 +112,56 @@ export function buildAccountRows(
 }
 
 /**
- * Id da conta da empresa atualmente selecionada — é ele que segue para o
- * fluxo de importar extrato, para nunca apontar a conta de outra empresa.
+ * Id da conta pertencente AO CONTEXTO ATIVO — é o único que pode seguir para o
+ * fluxo de importar extrato. Sem correspondência exata, devolve `undefined`
+ * (nunca a conta de outra empresa).
  */
 export function resolvePrimaryCreatedId(
   created: Array<{ id: string; company_id: string | null }>,
   currentCompanyId: string | null,
 ): string | undefined {
-  if (created.length === 0) return undefined;
   const match = created.find((c) => (c.company_id ?? null) === (currentCompanyId ?? null));
-  return (match ?? created[0]).id;
+  return match?.id;
 }
 
 /** Mensagem de sucesso informando quantas contas foram criadas. */
 export function describeSaveResult(createdCount: number, updated: boolean): string {
-  if (updated && createdCount === 0) return "Conta atualizada";
-  if (updated && createdCount === 1) return "Conta atualizada e 1 cópia criada em outra empresa";
-  if (updated) return `Conta atualizada e ${createdCount} cópias criadas em outras empresas`;
+  if (updated) return "Conta atualizada";
   if (createdCount === 1) return "Conta criada";
   return `${createdCount} contas criadas, uma independente por empresa`;
+}
+
+export type SaveFailureKind = "permission" | "network" | "no_rows" | "unknown";
+
+/**
+ * Classifica a falha para uma mensagem honesta: erro de rede tem resultado
+ * INDETERMINADO e não pode ser anunciado como "nada foi salvo".
+ */
+export function classifySaveFailure(err: unknown): SaveFailureKind {
+  if (err && typeof err === "object" && "message" in err) {
+    const message = String((err as { message?: unknown }).message ?? "");
+    if (/row-level security|permission denied|violates row/i.test(message)) return "permission";
+    if (/fetch|network|timeout|Failed to send|ECONNRESET/i.test(message)) return "network";
+    return "unknown";
+  }
+  return "unknown";
+}
+
+export function describeSaveFailure(kind: SaveFailureKind, action: "update" | "insert"): string {
+  if (kind === "network") {
+    return "A conexão falhou e não foi possível confirmar o resultado. Recarregue a página e verifique antes de tentar de novo.";
+  }
+  if (kind === "permission") {
+    return action === "insert"
+      ? "Você não tem permissão para criar contas em uma das empresas selecionadas. Nada foi criado."
+      : "Você não tem permissão para alterar esta conta. Nada foi alterado.";
+  }
+  if (kind === "no_rows") {
+    return action === "insert"
+      ? "Nenhuma conta foi criada. Verifique suas permissões nas empresas selecionadas."
+      : "Nenhuma alteração foi aplicada. A conta pode ter sido removida ou você não tem permissão para alterá-la.";
+  }
+  return action === "insert"
+    ? "Não foi possível criar as contas."
+    : "Não foi possível salvar a conta.";
 }

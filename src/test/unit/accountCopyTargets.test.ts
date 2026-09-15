@@ -104,8 +104,14 @@ describe("resolvePrimaryCreatedId", () => {
     expect(id).toBe("id-a");
   });
 
-  it("sem correspondência usa a primeira criada", () => {
-    expect(resolvePrimaryCreatedId([{ id: "id-b", company_id: "empresa-b" }], "empresa-a")).toBe("id-b");
+  it("sem conta na empresa ativa devolve undefined (nunca a de outra empresa)", () => {
+    expect(
+      resolvePrimaryCreatedId([{ id: "id-b", company_id: "empresa-b" }], "empresa-a"),
+    ).toBeUndefined();
+  });
+
+  it("PF resolve pela conta sem empresa", () => {
+    expect(resolvePrimaryCreatedId([{ id: "id-pf", company_id: null }], null)).toBe("id-pf");
   });
 
   it("nada criado devolve undefined", () => {
@@ -118,7 +124,5 @@ describe("describeSaveResult", () => {
     expect(describeSaveResult(1, false)).toBe("Conta criada");
     expect(describeSaveResult(2, false)).toMatch(/2 contas criadas/);
     expect(describeSaveResult(0, true)).toBe("Conta atualizada");
-    expect(describeSaveResult(1, true)).toMatch(/1 cópia/);
-    expect(describeSaveResult(3, true)).toMatch(/3 cópias/);
   });
 });

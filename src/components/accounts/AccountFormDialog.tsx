@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,8 @@ import { accountSchema, validateWithToast } from "@/lib/validations";
 import {
   assertCopyTargets,
   buildAccountRows,
+  classifySaveFailure,
+  describeSaveFailure,
   describeSaveResult,
   resolvePrimaryCreatedId,
   AccountTargetsError,
@@ -43,27 +45,47 @@ interface Props {
   account?: Account | null;
 }
 
+/**
+ * Ações explícitas e mutuamente exclusivas:
+ * - "edit": atualiza SOMENTE os dados cadastrais da conta aberta;
+ * - "copy": cria SOMENTE novas contas independentes em outras empresas.
+ * Cada envio faz uma única mutação — nunca update + insert, nunca delete.
+ */
+type EditMode = "edit" | "copy";
+
 export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId, companies } = useCompanyContext();
   const isEdit = !!account;
 
+  const [mode, setMode] = useState<EditMode>("edit");
   const [name, setName] = useState("");
   const [accountType, setAccountType] = useState<AccountType>("corrente");
-  const [initialBalance, setInitialBalance] = useState("");
+  /** saldo inicial da conta PESSOAL (PF) — único campo escalar */
+  const [personalBalance, setPersonalBalance] = useState("");
   const [ownerType, setOwnerType] = useState<"pf" | "pj">("pj");
   /** empresas onde a conta será CRIADA (cada uma com registro e saldo próprios) */
   const [targetCompanyIds, setTargetCompanyIds] = useState<string[]>([]);
-  /** saldo inicial por empresa, quando há mais de uma selecionada */
+  /**
+   * Saldo inicial por empresa — usado para TODAS as contas PJ, mesmo com uma só
+   * empresa selecionada. Valores permanecem guardados ao desmarcar/remarcar.
+   */
   const [balanceByCompany, setBalanceByCompany] = useState<Record<string, string>>({});
   const [bankSlug, setBankSlug] = useState<string | null>(null);
   const [agency, setAgency] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [isAccounting, setIsAccounting] = useState<"contabil" | "nao_contabil">("contabil");
   const [saving, setSaving] = useState(false);
+  /** trava síncrona contra envio duplicado (clique duplo / Enter repetido) */
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
+    submittingRef.current = false;
+    setSaving(false);
+    setMode("edit");
+    setTargetCompanyIds([]);
+    setBalanceByCompany({});
     if (account) {
       const a = account as Account & {
         bank_slug?: string | null;
@@ -73,10 +95,8 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
       setBankSlug(a.bank_slug ?? null);
       setName(account.name);
       setAccountType(account.account_type);
-      setInitialBalance(formatCurrency(String(Math.round(account.initial_balance * 100))));
+      setPersonalBalance(formatCurrency(String(Math.round(account.initial_balance * 100))));
       setOwnerType(account.context as "pf" | "pj");
-      setTargetCompanyIds([]);
-      setBalanceByCompany({});
       setAgency(a.agency ?? "");
       setAccountNumber(a.account_number ?? "");
       setIsAccounting(
@@ -87,10 +107,9 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
     } else {
       setName("");
       setAccountType("corrente");
-      setInitialBalance("");
+      setPersonalBalance("");
       setOwnerType(contextType);
       setTargetCompanyIds(contextType === "pj" && selectedCompanyId ? [selectedCompanyId] : []);
-      setBalanceByCompany({});
       setBankSlug(null);
       setAgency("");
       setAccountNumber("");
@@ -98,7 +117,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
     }
   }, [open, account, contextType, selectedCompanyId]);
 
-  /** empresas oferecidas: na edição, exclui a empresa da própria conta */
+  /** empresas oferecidas: no modo cópia, exclui a empresa da própria conta */
   const selectableCompanies = useMemo(
     () => companies.filter((c) => !(isEdit && account?.company_id === c.id)),
     [companies, isEdit, account?.company_id],
@@ -109,87 +128,75 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
   }, [companies, account?.company_id]);
 
   const toggleCompany = (companyId: string, checked: boolean) => {
+    // Preserva o saldo já digitado: só a seleção muda, balanceByCompany fica intacto.
     setTargetCompanyIds((prev) =>
-      checked ? [...prev, companyId] : prev.filter((id) => id !== companyId),
+      checked ? (prev.includes(companyId) ? prev : [...prev, companyId]) : prev.filter((id) => id !== companyId),
     );
   };
 
-  /** com apenas uma empresa selecionada, mantém o campo único de saldo */
-  const usesPerCompanyBalance = !isEdit && targetCompanyIds.length > 1;
+  const isCopyMode = isEdit && mode === "copy";
+  const isPersonal = ownerType === "pf" && !isEdit;
+  /** contas PJ sempre usam saldo por empresa */
+  const usesPerCompanyBalance = !isPersonal && (!isEdit || isCopyMode);
 
-  const balanceFor = (companyId: string): number => {
-    if (isEdit) return parseCurrencyToNumber(balanceByCompany[companyId] ?? "");
-    if (!usesPerCompanyBalance) return parseCurrencyToNumber(initialBalance);
-    return parseCurrencyToNumber(balanceByCompany[companyId] ?? "");
+  const companyLabel = (id: string) => {
+    const c = companies.find((x) => x.id === id);
+    return c?.trade_name || c?.name || "Empresa";
+  };
+
+  const buildTargets = (): AccountCopyTarget[] => {
+    if (isPersonal) {
+      // PF: contexto pessoal decide company_id = null, sem usar seleção de empresa.
+      return [{ companyId: null, initialBalance: parseCurrencyToNumber(personalBalance) }];
+    }
+    return targetCompanyIds.map((companyId) => ({
+      companyId,
+      initialBalance: parseCurrencyToNumber(balanceByCompany[companyId] ?? "") || 0,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (submittingRef.current) return;
+
+    const targets = isEdit && !isCopyMode ? [] : buildTargets();
 
     const validated = validateWithToast(
       accountSchema,
-      { name, account_type: accountType, initial_balance: parseCurrencyToNumber(initialBalance) },
+      {
+        name,
+        account_type: accountType,
+        initial_balance: isPersonal
+          ? parseCurrencyToNumber(personalBalance)
+          : (targets[0]?.initialBalance ?? 0),
+      },
       toast.error,
     );
     if (!validated) return;
 
-    const showBankFields = BANK_TYPES.includes(accountType);
-    const agencyValue = showBankFields ? agency.trim() || null : null;
-    const accountNumberValue = showBankFields ? accountNumber.trim() || null : null;
+    const showBank = BANK_TYPES.includes(accountType);
+    const agencyValue = showBank ? agency.trim() || null : null;
+    const accountNumberValue = showBank ? accountNumber.trim() || null : null;
 
-    const targets: AccountCopyTarget[] =
-      ownerType === "pf" && !isEdit
-        ? [{ companyId: null, initialBalance: parseCurrencyToNumber(initialBalance) }]
-        : targetCompanyIds.map((companyId) => ({
-            companyId,
-            initialBalance: balanceFor(companyId),
-          }));
-
-    try {
-      assertCopyTargets(targets, {
-        requireAtLeastOne: !isEdit,
-        currentCompanyId: account?.company_id ?? null,
-      });
-    } catch (err) {
-      if (err instanceof AccountTargetsError) return toast.error(err.message);
-      throw err;
+    if (!(isEdit && !isCopyMode)) {
+      try {
+        assertCopyTargets(targets, {
+          requireAtLeastOne: true,
+          currentCompanyId: account?.company_id ?? null,
+        });
+      } catch (err) {
+        if (err instanceof AccountTargetsError) return toast.error(err.message);
+        throw err;
+      }
     }
 
-    const cadastral = {
-      name,
-      accountType,
-      bankSlug,
-      agency: agencyValue,
-      accountNumber: accountNumberValue,
-      isAccounting: isAccounting === "contabil",
-    };
-
+    submittingRef.current = true;
     setSaving(true);
     try {
-      // Uma única operação de inserção: se qualquer empresa não permitir,
-      // nenhuma conta é gravada (sem criação parcial).
-      let created: Array<{ id: string; company_id: string | null }> = [];
-      if (targets.length > 0) {
-        const rows = buildAccountRows(cadastral, targets, user.id);
+      if (isEdit && !isCopyMode && account) {
+        // AÇÃO 1 — somente atualizar dados cadastrais. Empresa, id, saldo e histórico intactos.
         const { data, error } = await supabase
-          .from("accounts")
-          .insert(rows as never)
-          .select("id, company_id");
-        if (error || !data) {
-          toast.error(
-            error?.message?.includes("row-level security")
-              ? "Você não tem permissão para criar contas em uma das empresas selecionadas. Nada foi salvo."
-              : "Não foi possível criar as contas. Nada foi salvo.",
-          );
-          return;
-        }
-        created = data as Array<{ id: string; company_id: string | null }>;
-      }
-
-      if (isEdit && account) {
-        // Preserva empresa, id, saldo e histórico: só dados cadastrais mudam.
-        const { error } = await supabase
           .from("accounts")
           .update({
             name: name.trim(),
@@ -199,13 +206,15 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
             account_number: accountNumberValue,
             is_accounting: isAccounting === "contabil",
           } as never)
-          .eq("id", account.id);
+          .eq("id", account.id)
+          .select("id");
         if (error) {
-          // desfaz as cópias recém-criadas (ainda sem histórico)
-          if (created.length > 0) {
-            await supabase.from("accounts").delete().in("id", created.map((c) => c.id));
-          }
-          toast.error("Não foi possível salvar a conta. Nada foi alterado.");
+          toast.error(describeSaveFailure(classifySaveFailure(error), "update"));
+          return;
+        }
+        // RLS pode responder sem erro e sem nenhuma linha alterada.
+        if (!data || data.length === 0) {
+          toast.error(describeSaveFailure("no_rows", "update"));
           return;
         }
         await supabase.rpc("insert_audit_log", {
@@ -214,6 +223,37 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           _entity_id: account.id,
           _details: { target_name: name.trim() },
         });
+        toast.success(describeSaveResult(0, true));
+        onSaved();
+        onOpenChange(false);
+        return;
+      }
+
+      // AÇÃO 2 — somente criar contas novas, em um único lote.
+      const rows = buildAccountRows(
+        {
+          name,
+          accountType,
+          bankSlug,
+          agency: agencyValue,
+          accountNumber: accountNumberValue,
+          isAccounting: isAccounting === "contabil",
+        },
+        targets,
+        user.id,
+      );
+      const { data, error } = await supabase
+        .from("accounts")
+        .insert(rows as never)
+        .select("id, company_id");
+      if (error) {
+        toast.error(describeSaveFailure(classifySaveFailure(error), "insert"));
+        return;
+      }
+      const created = (data ?? []) as Array<{ id: string; company_id: string | null }>;
+      if (created.length === 0) {
+        toast.error(describeSaveFailure("no_rows", "insert"));
+        return;
       }
 
       for (const row of created) {
@@ -225,29 +265,43 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
         });
       }
 
-      toast.success(describeSaveResult(created.length, isEdit));
-      onSaved(resolvePrimaryCreatedId(created, selectedCompanyId ?? null));
+      toast.success(describeSaveResult(created.length, false));
+      // Importação só pode receber conta do contexto ativo; PF passa null pelo contexto.
+      onSaved(resolvePrimaryCreatedId(created, isPersonal ? null : selectedCompanyId ?? null));
       onOpenChange(false);
+    } catch (err) {
+      const kind = classifySaveFailure(err);
+      toast.error(
+        describeSaveFailure(kind === "unknown" ? "network" : kind, isEdit && !isCopyMode ? "update" : "insert"),
+      );
     } finally {
+      submittingRef.current = false;
       setSaving(false);
     }
   };
 
   const showBankFields = BANK_TYPES.includes(accountType);
 
+  const title = !isEdit
+    ? "Nova conta financeira"
+    : isCopyMode
+      ? "Criar em outras empresas"
+      : "Editar conta financeira";
 
+  const description = !isEdit
+    ? "Cadastre a conta manualmente. Você poderá importar o extrato logo em seguida."
+    : isCopyMode
+      ? "Os dados preenchidos aqui valem SOMENTE para as novas contas. A conta original permanece intacta, com o mesmo saldo e histórico."
+      : "Ajuste os dados cadastrais desta conta. O saldo e o histórico não são alterados aqui.";
 
-  // Bloco 3 — formulário manual seccionado (também usado no modo edição).
+  const submitLabel = saving ? "Salvando..." : isCopyMode ? "Criar cópias" : isEdit ? "Salvar" : "Criar conta";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Editar conta financeira" : "Nova conta financeira"}</DialogTitle>
-          <DialogDescription>
-            {isEdit
-              ? "Ajuste os dados da conta. Alterações de saldo devem ser feitas apenas para acertos manuais."
-              : "Cadastre a conta manualmente. Você poderá importar o extrato logo em seguida."}
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Seção 1 — Identificação */}
@@ -272,30 +326,59 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           {/* Seção 2 — Vínculo e tipo */}
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Vínculo e tipo</h3>
-            {isEdit && (
-              <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
-                Esta conta pertence a <strong>{currentCompanyName ?? "esta empresa"}</strong> e continua
-                com o mesmo saldo e histórico.
+            {isEdit && !isCopyMode && (
+              <div className="space-y-2 rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+                <p>
+                  Esta conta pertence a <strong>{currentCompanyName ?? "esta empresa"}</strong> e continua
+                  com o mesmo saldo e histórico.
+                </p>
+                {selectableCompanies.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMode("copy")}
+                    disabled={saving}
+                  >
+                    Criar em outras empresas
+                  </Button>
+                )}
               </div>
             )}
-            {ownerType === "pj" && selectableCompanies.length > 0 && (
+            {isCopyMode && (
+              <div className="space-y-2 rounded-md border border-primary/40 bg-primary/5 p-3 text-xs text-muted-foreground">
+                <p>
+                  Você está criando contas novas. Nada será alterado na conta de{" "}
+                  <strong>{currentCompanyName ?? "esta empresa"}</strong>.
+                </p>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setMode("edit")} disabled={saving}>
+                  Voltar para edição
+                </Button>
+              </div>
+            )}
+            {isPersonal && (
+              <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+                Esta conta será criada como <strong>Pessoal</strong>, sem vínculo com empresa.
+              </div>
+            )}
+            {!isPersonal && (!isEdit || isCopyMode) && selectableCompanies.length > 0 && (
               <div className="space-y-2">
-                <Label>{isEdit ? "Criar também em outras empresas" : "Empresas"}</Label>
+                <Label>{isCopyMode ? "Criar em outras empresas" : "Empresas"}</Label>
                 <div className="space-y-2 rounded-md border p-3">
                   {selectableCompanies.map((c) => (
                     <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
                       <Checkbox
                         checked={targetCompanyIds.includes(c.id)}
                         onCheckedChange={(v) => toggleCompany(c.id, v === true)}
+                        aria-label={c.trade_name || c.name}
                       />
                       <span>{c.trade_name || c.name}</span>
                     </label>
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {isEdit
-                    ? "Cada empresa marcada recebe uma nova conta independente, começando do zero. Alterações futuras em uma não afetam as outras."
-                    : "Será criada uma conta independente em cada empresa selecionada, com saldo e lançamentos próprios."}
+                  Será criada uma conta independente em cada empresa selecionada, com saldo próprio e
+                  lançamentos próprios. Nenhum lançamento e nenhuma conexão bancária é copiado.
                 </p>
               </div>
             )}
@@ -351,72 +434,56 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           {/* Seção 4 — Saldo */}
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Saldo</h3>
-            {!isEdit && !usesPerCompanyBalance && (
+            {isPersonal && (
               <div className="space-y-2">
-                <Label>Saldo inicial</Label>
-                <CurrencyInput value={initialBalance} onValueChange={setInitialBalance} placeholder="0,00" />
+                <Label htmlFor="saldo-pessoal">Saldo inicial</Label>
+                <CurrencyInput
+                  id="saldo-pessoal"
+                  value={personalBalance}
+                  onValueChange={setPersonalBalance}
+                  placeholder="0,00"
+                />
                 <p className="text-xs text-muted-foreground">
                   Informe o saldo atual do banco. A partir dele, o sistema calcula os movimentos.
                 </p>
               </div>
             )}
-            {!isEdit && usesPerCompanyBalance && (
+            {usesPerCompanyBalance && (
               <div className="space-y-3">
-                {targetCompanyIds.map((id) => {
-                  const c = companies.find((x) => x.id === id);
-                  return (
-                    <div key={id} className="space-y-2">
-                      <Label>Saldo inicial — {c?.trade_name || c?.name || "Empresa"}</Label>
-                      <CurrencyInput
-                        value={balanceByCompany[id] ?? ""}
-                        onValueChange={(v) => setBalanceByCompany((prev) => ({ ...prev, [id]: v }))}
-                        placeholder="0,00"
-                      />
-                    </div>
-                  );
-                })}
+                {targetCompanyIds.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Selecione as empresas para informar o saldo inicial de cada conta.
+                  </p>
+                )}
+                {targetCompanyIds.map((id) => (
+                  <div key={id} className="space-y-2">
+                    <Label htmlFor={`saldo-${id}`}>Saldo inicial — {companyLabel(id)}</Label>
+                    <CurrencyInput
+                      id={`saldo-${id}`}
+                      value={balanceByCompany[id] ?? ""}
+                      onValueChange={(v) => setBalanceByCompany((prev) => ({ ...prev, [id]: v }))}
+                      placeholder="0,00"
+                    />
+                  </div>
+                ))}
                 <p className="text-xs text-muted-foreground">
-                  Cada empresa tem seu próprio saldo inicial. Deixe em branco para começar do zero.
+                  Cada conta tem saldo próprio. Deixe em branco para iniciar com saldo próprio zero.
                 </p>
               </div>
             )}
-            {isEdit && (
-              <>
-                <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
-                  O saldo desta conta é controlado automaticamente pelo motor financeiro a partir dos lançamentos.
-                  Para acertar uma divergência, use <strong>Ajustar saldo</strong> na página de contas — o ajuste
-                  gera um lançamento auditável com justificativa.
-                </div>
-                {targetCompanyIds.length > 0 && (
-                  <div className="space-y-3">
-                    {targetCompanyIds.map((id) => {
-                      const c = companies.find((x) => x.id === id);
-                      return (
-                        <div key={id} className="space-y-2">
-                          <Label>Saldo inicial da nova conta — {c?.trade_name || c?.name || "Empresa"}</Label>
-                          <CurrencyInput
-                            value={balanceByCompany[id] ?? ""}
-                            onValueChange={(v) => setBalanceByCompany((prev) => ({ ...prev, [id]: v }))}
-                            placeholder="0,00"
-                          />
-                        </div>
-                      );
-                    })}
-                    <p className="text-xs text-muted-foreground">
-                      As novas contas começam com o saldo informado (zero se em branco). Nenhum lançamento
-                      ou conexão bancária desta conta é copiado.
-                    </p>
-                  </div>
-                )}
-              </>
+            {isEdit && !isCopyMode && (
+              <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
+                O saldo desta conta é controlado automaticamente pelo motor financeiro a partir dos lançamentos.
+                Para acertar uma divergência, use <strong>Ajustar saldo</strong> na página de contas — o ajuste
+                gera um lançamento auditável com justificativa.
+              </div>
             )}
           </section>
-
 
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-11 sm:h-10">Cancelar</Button>
             <Button type="submit" disabled={saving || !name.trim()} className="h-11 sm:h-10">
-              {saving ? "Salvando..." : isEdit ? "Salvar" : "Criar conta"}
+              {submitLabel}
             </Button>
           </div>
         </form>
