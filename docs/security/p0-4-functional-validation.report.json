@@ -1,0 +1,61 @@
+{
+  "fase": "P0.4 — validação funcional em banco isolado",
+  "gerado_em": "2026-09-15T03:21:19.299Z",
+  "ambiente": {
+    "tipo": "cluster PostgreSQL local temporário e descartável",
+    "data_directory": "/tmp/p04pg",
+    "host": "127.0.0.1",
+    "porta": 55437,
+    "banco": "p04iso",
+    "origem_dos_dados": "nenhuma — apenas ESTRUTURA (pg_dump --schema-only)"
+  },
+  "incluido": [
+    "schemas public, private e qa completos (tabelas, funções, policies, triggers, grants, owners)",
+    "papéis anon/authenticated/service_role/sandbox_exec com os mesmos grants do dump",
+    "auth.users (shim de estrutura) e fixtures sintéticas criadas pelos testes"
+  ],
+  "excluido": [
+    "TODOS os dados reais (nenhuma linha copiada; zero dado pessoal)",
+    "extensões externas indisponíveis localmente: pg_cron, pg_net, pgmq, supabase_vault, pg_stat_statements — substituídas por tabelas/funções STUB vazias",
+    "schemas de plataforma não usados pelos objetos sob teste: storage, realtime, supabase_functions, graphql",
+    "GoTrue/PostgREST reais: auth.uid()/auth.jwt()/auth.role() reimplementados fielmente sobre request.jwt.claims"
+  ],
+  "nao_substituido": [
+    "nenhuma função de segurança sob teste (has_role, is_super_admin, guards de titularidade, RPCs de folga, rotinas internas) foi alterada ou stubada — todas vêm do dump real"
+  ],
+  "etapas": [
+    {
+      "etapa": "restore_estrutura",
+      "erros_totais": 14,
+      "erros_em_objetos_sob_teste": 0,
+      "amostra_erros": [
+        "ERROR:  schema \"private\" already exists",
+        "ERROR:  schema \"public\" already exists",
+        "ERROR:  role \"supabase_admin\" does not exist",
+        "ERROR:  role \"supabase_admin\" does not exist",
+        "ERROR:  role \"supabase_admin\" does not exist",
+        "ERROR:  role \"supabase_admin\" does not exist",
+        "ERROR:  role \"supabase_admin\" does not exist",
+        "ERROR:  role \"supabase_admin\" does not exist",
+        "ERROR:  role \"supabase_admin\" does not exist",
+        "ERROR:  role \"supabase_admin\" does not exist",
+        "ERROR:  role \"supabase_admin\" does not exist",
+        "ERROR:  role \"supabase_admin\" does not exist",
+        "ERROR:  role \"supabase_admin\" does not exist",
+        "ERROR:  role \"supabase_admin\" does not exist"
+      ],
+      "status": "passed"
+    },
+    {
+      "etapa": "inventario_clone",
+      "tabelas_public": 200,
+      "funcoes_public": 468
+    }
+  ],
+  "fidelidade": [],
+  "testes": [],
+  "limitacoes": [],
+  "status_geral": "failed",
+  "erro": "psql falhou (1): ERROR:  operator is not unique: text || \"char\"\nLINE 2: select t.tgname || '|' || p.proname || '|' || t.tgenabled\n                                                   ^\nHINT:  Could not choose a best candidate operator. You might need to add explicit type casts.\n",
+  "codigo_saida": 1
+}
