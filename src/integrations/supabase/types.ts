@@ -13646,47 +13646,6 @@ export type Database = {
       }
     }
     Functions: {
-      _assert_test_helper_allowed: { Args: never; Returns: undefined }
-      _e2e_cleanup_adjust_balance: {
-        Args: { _account_name: string; _user_id?: string }
-        Returns: undefined
-      }
-      _e2e_cleanup_delete_accounts: {
-        Args: { _names: string[]; _user_id?: string }
-        Returns: undefined
-      }
-      _e2e_cleanup_foreign_accounts: {
-        Args: { _empty_name: string; _history_name: string }
-        Returns: undefined
-      }
-      _e2e_seed_adjust_balance: {
-        Args: { _account_name: string; _user_id?: string }
-        Returns: string
-      }
-      _e2e_seed_delete_accounts: {
-        Args: { _empty_name: string; _history_name: string; _user_id?: string }
-        Returns: {
-          company_id: string
-          empty_id: string
-          history_id: string
-          tx_id: string
-        }[]
-      }
-      _e2e_seed_foreign_accounts: {
-        Args: { _empty_name: string; _history_name: string; _user_id?: string }
-        Returns: {
-          empty_id: string
-          foreign_user_id: string
-          history_id: string
-          tx_id: string
-        }[]
-      }
-      _test_balance_engine: { Args: never; Returns: string }
-      _test_delete_account_authz: { Args: never; Returns: string }
-      _test_delete_account_hard_regression: {
-        Args: { _user_id?: string }
-        Returns: Json
-      }
       adjust_account_balance: {
         Args: {
           _account_id: string
