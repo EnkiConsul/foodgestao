@@ -351,7 +351,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           {/* Seção 4 — Saldo */}
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Saldo</h3>
-            {!isEdit ? (
+            {!isEdit && !usesPerCompanyBalance && (
               <div className="space-y-2">
                 <Label>Saldo inicial</Label>
                 <CurrencyInput value={initialBalance} onValueChange={setInitialBalance} placeholder="0,00" />
@@ -359,12 +359,56 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
                   Informe o saldo atual do banco. A partir dele, o sistema calcula os movimentos.
                 </p>
               </div>
-            ) : (
-              <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
-                O saldo desta conta é controlado automaticamente pelo motor financeiro a partir dos lançamentos.
-                Para acertar uma divergência, use <strong>Ajustar saldo</strong> na página de contas — o ajuste
-                gera um lançamento auditável com justificativa.
+            )}
+            {!isEdit && usesPerCompanyBalance && (
+              <div className="space-y-3">
+                {targetCompanyIds.map((id) => {
+                  const c = companies.find((x) => x.id === id);
+                  return (
+                    <div key={id} className="space-y-2">
+                      <Label>Saldo inicial — {c?.trade_name || c?.name || "Empresa"}</Label>
+                      <CurrencyInput
+                        value={balanceByCompany[id] ?? ""}
+                        onValueChange={(v) => setBalanceByCompany((prev) => ({ ...prev, [id]: v }))}
+                        placeholder="0,00"
+                      />
+                    </div>
+                  );
+                })}
+                <p className="text-xs text-muted-foreground">
+                  Cada empresa tem seu próprio saldo inicial. Deixe em branco para começar do zero.
+                </p>
               </div>
+            )}
+            {isEdit && (
+              <>
+                <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
+                  O saldo desta conta é controlado automaticamente pelo motor financeiro a partir dos lançamentos.
+                  Para acertar uma divergência, use <strong>Ajustar saldo</strong> na página de contas — o ajuste
+                  gera um lançamento auditável com justificativa.
+                </div>
+                {targetCompanyIds.length > 0 && (
+                  <div className="space-y-3">
+                    {targetCompanyIds.map((id) => {
+                      const c = companies.find((x) => x.id === id);
+                      return (
+                        <div key={id} className="space-y-2">
+                          <Label>Saldo inicial da nova conta — {c?.trade_name || c?.name || "Empresa"}</Label>
+                          <CurrencyInput
+                            value={balanceByCompany[id] ?? ""}
+                            onValueChange={(v) => setBalanceByCompany((prev) => ({ ...prev, [id]: v }))}
+                            placeholder="0,00"
+                          />
+                        </div>
+                      );
+                    })}
+                    <p className="text-xs text-muted-foreground">
+                      As novas contas começam com o saldo informado (zero se em branco). Nenhum lançamento
+                      ou conexão bancária desta conta é copiado.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </section>
 
