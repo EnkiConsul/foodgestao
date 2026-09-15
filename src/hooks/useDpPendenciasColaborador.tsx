@@ -70,7 +70,8 @@ export function useDpPendenciasColaborador() {
         // Quem tem dias fixos sem trabalho na configuração de trabalho
         // (ex.: sábado e domingo) também não escolhe folga do mês.
         if (escolheFolga) {
-          const { data: fixos } = await supabase.rpc("dp_meus_dias_fixos_folga" as never, {} as never);
+          const res = await supabase.rpc("dp_meus_dias_fixos_folga" as never, {} as never);
+          const fixos = res.data as number[] | null;
           if (Array.isArray(fixos) && fixos.length > 0) escolheFolga = false;
         }
 
