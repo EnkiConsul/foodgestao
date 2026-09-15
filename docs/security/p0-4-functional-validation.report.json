@@ -1,6 +1,6 @@
 {
   "fase": "P0.4 — validação funcional em banco isolado",
-  "gerado_em": "2026-09-15T03:47:27.120Z",
+  "gerado_em": "2026-09-15T03:56:07.956Z",
   "comando": "node scripts/test-p04-isolated.mjs",
   "ambiente": {
     "tipo": "cluster PostgreSQL local temporário, exclusivo desta execução e descartável",
@@ -8,7 +8,7 @@
     "porta": 55437,
     "banco": "p04iso",
     "origem_dos_dados": "nenhuma — apenas ESTRUTURA (pg_dump --schema-only), reexportada nesta execução",
-    "data_directory": "/tmp/p04pg-run-kJWJFS/pgdata",
+    "data_directory": "/tmp/p04pg-run-TIuP2E/pgdata",
     "listen_addresses": "127.0.0.1"
   },
   "incluido": [
@@ -102,7 +102,7 @@
         "pendentes": 0
       },
       "preparacao": [
-        "PREP fixtures: empresa sintética 44a5e583-02c7-4c39-a4bf-93906c49ff20 criada"
+        "PREP fixtures: empresa sintética 07705dfd-83bb-420f-9f80-0065d5c5759e criada"
       ],
       "grupos_de_assercoes": [
         "OK T1: 9 rotinas internas fechadas, service_role preservado",
@@ -126,13 +126,14 @@
       "status": "passed",
       "exit_code": 0,
       "contagem": {
-        "preparacao": 1,
-        "grupos_de_assercoes": 13,
-        "subcasos_declarados": 21,
-        "pendentes": 1
+        "preparacao": 2,
+        "grupos_de_assercoes": 15,
+        "subcasos_declarados": 27,
+        "pendentes": 0
       },
       "preparacao": [
-        "PREP fixtures: 2 empresas, 6 usuários e 3 colaboradores (1 com acesso de portal)"
+        "PREP fixtures: 2 empresas, 6 usuários e 3 colaboradores (1 com acesso de portal)",
+        "PREP fixtures: jornada LEGADA 6x1 (folga fixa no domingo) vinculada a 2 colaboradores da empresa A"
       ],
       "grupos_de_assercoes": [
         "OK S1: 9 rotinas internas negadas por falta de EXECUTE para authenticated e anon (18 casos)",
@@ -144,29 +145,28 @@
         "OK S4c: RPC de plano nega entre empresas e para perfis sem admin (42501 FORBIDDEN, 4 casos)",
         "OK S4d: aplicação do plano negada entre empresas (42501 FORBIDDEN)",
         "OK S4e: visitante (anon) sem EXECUTE nas RPCs app-facing",
+        "OK S5-ARRANGE: gatilhos de selo do cadastro legado reabilitados e conferidos (tgenabled=O, 2 casos)",
         "OK S5.1: contagem de páginas do lote executada internamente (processed_pages=2)",
+        "OK S5.2: geração de escala com JORNADA LEGADA gerou 10 folgas (5 domingos × 2 colaboradores) na competência 2026-11-01 — compatibilidade com dados antigos, não suporte ao modelo atual de turnos",
         "OK S5.3: autoatribuição por competência com efeito verificado (2 folgas na empresa A, colaboradores sintéticos)",
         "OK S5b: admin da própria empresa aplica o plano e a folga é gravada (efeito verificado em 2026-10-25)",
         "OK S6: service_role mantém a execução interna (processed_pages=1)"
       ],
-      "pendentes": [
-        "PENDENTE S5.2: geração de escala executada internamente (retorno=0, nenhuma gravação) — trabalho efetivo NÃO comprovado: o cadastro de jornadas (dp_jornadas) está selado pelo gatilho trg_dp_jornadas_legado e não pode receber fixture sem violar regra de produção"
-      ],
+      "pendentes": [],
       "falhas": []
     }
   ],
   "resumo_cenarios": {
-    "preparacao": 2,
-    "grupos_de_assercoes": 24,
-    "subcasos_declarados": 21,
-    "pendentes": 1
+    "preparacao": 3,
+    "grupos_de_assercoes": 26,
+    "subcasos_declarados": 27,
+    "pendentes": 0
   },
   "limitacoes": [
     "Rotinas globais dp_escala_auto_gerar_todas() e dp_folga_autoatribuir_todas() só são exercitadas pela negação de EXECUTE: em modo global varrem todas as empresas do banco e não agregam prova além do caminho por empresa.",
     "Agendador (pg_cron), filas (pgmq) e cofre (supabase_vault) são stubs vazios: a execução agendada não é simulada; segue comprovada por privilégio e cadeia de chamadas.",
     "Camada HTTP não é exercitada: PostgREST e GoTrue não rodam aqui. As provas são no banco (privilégios, RLS, políticas, gatilhos, corpos das funções) com claims injetados como o PostgREST faz.",
-    "Sem dados reais, o comportamento sobre volume, índices e latência de produção não é avaliado nesta etapa.",
-    "1 cenário(s) marcados como PENDENTE pelas suítes (ver testes[].pendentes) — não contam como aprovação."
+    "Sem dados reais, o comportamento sobre volume, índices e latência de produção não é avaliado nesta etapa."
   ],
   "status_geral": "passed",
   "codigo_saida": 0
