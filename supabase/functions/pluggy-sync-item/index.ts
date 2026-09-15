@@ -228,7 +228,7 @@ Deno.serve(async (req) => {
     // (super admins têm bypass). Aplicado a QUALQUER empresa efetiva, mesmo
     // quando o company_id não veio no corpo da requisição.
     const assertUserCanAccessCompany = async (targetCompanyId: string): Promise<boolean> => {
-      if (!userId) return true; // caminho service-role/webhook
+      if (!userId) return isServiceCall; // só o caminho interno verificado
       const { data: isSuper } = await admin
         .from('user_roles').select('role')
         .eq('user_id', userId).eq('role', 'super_admin').maybeSingle();
