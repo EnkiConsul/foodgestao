@@ -1,10 +1,17 @@
-[2026-09-15T03:33:39.389Z] iniciando validação funcional isolada da P0.4
-[2026-09-15T03:33:39.391Z] guardas pré-start aprovadas (destino não colide com a conexão de origem)
-[2026-09-15T03:33:39.391Z] limpeza ignorada: nenhum cluster foi criado por esta execução
-[2026-09-15T03:33:39.391Z] limpeza abortada: marcador ausente em /tmp/p04pg-alheio-fR1gBx (diretório não é desta execução)
-[2026-09-15T03:33:39.392Z] self-test falha_pre_start_nao_limpa_cluster_alheio: passed
-[2026-09-15T03:33:39.393Z] self-test sem_marcador_nao_apaga_diretorio: passed
-[2026-09-15T03:33:39.393Z] self-test guarda_colisao_com_origem: passed
-[2026-09-15T03:33:39.393Z] limpeza ignorada: nenhum cluster foi criado por esta execução
+[2026-09-15T03:33:45.255Z] iniciando validação funcional isolada da P0.4
+[2026-09-15T03:33:45.258Z] guardas pré-start aprovadas (destino não colide com a conexão de origem)
+[2026-09-15T03:33:45.259Z] limpeza ignorada: nenhum cluster foi criado por esta execução
+[2026-09-15T03:33:45.259Z] limpeza abortada: marcador ausente em /tmp/p04pg-alheio-acSLMh (diretório não é desta execução)
+[2026-09-15T03:33:45.260Z] self-test falha_pre_start_nao_limpa_cluster_alheio: passed
+[2026-09-15T03:33:45.260Z] self-test sem_marcador_nao_apaga_diretorio: passed
+[2026-09-15T03:33:45.260Z] self-test guarda_colisao_com_origem: passed
+[2026-09-15T03:33:45.260Z] exportando ESTRUTURA real (schema-only: public, private, qa) com grants/policies/owners…
+[2026-09-15T03:35:19.332Z] estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)
+[2026-09-15T03:35:19.431Z] ERRO: setpriv falhou (1): initdb: error: directory "/tmp/p04pg-data-bfmBjr" exists but is not empty
+initdb: detail: It contains a dot-prefixed/invisible file, perhaps due to it being a mount point.
+initdb: hint: Using a mount point directly as the data directory is not recommended.
+Create a subdirectory under the mount point.
 
-=== status geral: passed (exit 0) ===
+[2026-09-15T03:35:19.432Z] limpeza ignorada: nenhum cluster foi criado por esta execução
+
+=== status geral: failed (exit 1) ===

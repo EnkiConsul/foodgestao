@@ -1,7 +1,7 @@
 {
   "fase": "P0.4 — validação funcional em banco isolado",
-  "gerado_em": "2026-09-15T03:33:39.388Z",
-  "comando": "node scripts/test-p04-isolated.mjs --self-test",
+  "gerado_em": "2026-09-15T03:33:45.254Z",
+  "comando": "node scripts/test-p04-isolated.mjs",
   "ambiente": {
     "tipo": "cluster PostgreSQL local temporário, exclusivo desta execução e descartável",
     "host": "127.0.0.1",
@@ -47,6 +47,7 @@
     "Camada HTTP não é exercitada: PostgREST e GoTrue não rodam aqui. As provas são no banco (privilégios, RLS, políticas, gatilhos, corpos das funções) com claims injetados como o PostgREST faz.",
     "Sem dados reais, o comportamento sobre volume, índices e latência de produção não é avaliado nesta etapa."
   ],
-  "status_geral": "passed",
-  "codigo_saida": 0
+  "status_geral": "failed",
+  "erro": "setpriv falhou (1): initdb: error: directory \"/tmp/p04pg-data-bfmBjr\" exists but is not empty\ninitdb: detail: It contains a dot-prefixed/invisible file, perhaps due to it being a mount point.\ninitdb: hint: Using a mount point directly as the data directory is not recommended.\nCreate a subdirectory under the mount point.\n",
+  "codigo_saida": 1
 }
