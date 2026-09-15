@@ -112,3 +112,9 @@ bunx vite build
 2. Revisar as ~299 funções `authenticated` por domínio (financeiro primeiro).
 3. Eliminar policies duplicadas e `USING (true)` remanescentes.
 4. Prova de carga/tenancy com 200 empresas simuladas.
+
+## Continuação
+
+A fase P0.2-A (funções financeiras executáveis por `authenticated`) está documentada em
+[`p0-2a-finance-functions-hardening.md`](./p0-2a-finance-functions-hardening.md) e versionada em
+`supabase/migrations/20260915020000_p02a_finance_functions_hardening.sql`.
