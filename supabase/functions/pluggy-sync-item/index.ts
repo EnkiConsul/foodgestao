@@ -452,7 +452,7 @@ Deno.serve(async (req) => {
             .select('number_masked, name, company_id, companies:company_id(name, trade_name)')
             .in('number_masked', numbers)
             .neq('company_id', effectiveCompanyId);
-          const conflitos = (clashes ?? []) as Array<{
+          const conflitos = ((clashes ?? []) as unknown) as Array<{
             number_masked: string | null;
             name: string | null;
             company_id: string;
