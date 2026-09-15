@@ -431,11 +431,13 @@ function runTestFile(file) {
   const pendentes = notices.filter((l) => l.startsWith("PENDENTE"));
   const grupos = notices.filter((l) => l.startsWith("OK"));
   const subcasos = grupos.reduce((acc, l) => {
-    const m = l.match(/\((\d+)\s+casos?\)/);
+    // aceita tanto "(18 casos)" quanto "(42501 FORBIDDEN, 4 casos)"
+    const m = l.match(/(\d+)\s+casos?\)/);
     return acc + (m ? Number(m[1]) : 0);
   }, 0);
   const falhas = out.split("\n").filter((l) => /ERROR:|FALHA /.test(l)).map((l) => l.trim());
-  const status = r.status === 0 && falhas.length === 0 ? "passed" : "failed";
+  const status =
+    r.status !== 0 || falhas.length > 0 ? "failed" : pendentes.length > 0 ? "partial" : "passed";
   log(`teste ${file}: exit=${r.status} status=${status} preparacao=${preparacao.length} grupos=${grupos.length} subcasos=${subcasos} pendentes=${pendentes.length}`);
   for (const c of notices) log(`  · ${c}`);
   for (const f of falhas) log(`  ! ${f}`);
@@ -486,6 +488,8 @@ function selfTest() {
 
   // 3. guarda de colisão com a origem
   let colidiu = false;
+  const hadHost = Object.prototype.hasOwnProperty.call(process.env, "PGHOST");
+  const hadPort = Object.prototype.hasOwnProperty.call(process.env, "PGPORT");
   const backup = { host: process.env.PGHOST, port: process.env.PGPORT };
   process.env.PGHOST = "127.0.0.1";
   process.env.PGPORT = String(PORT);
@@ -494,8 +498,11 @@ function selfTest() {
   } catch {
     colidiu = true;
   }
-  process.env.PGHOST = backup.host;
-  process.env.PGPORT = backup.port;
+  // restaurar com atribuição de undefined criaria a string "undefined" no Node
+  if (hadHost) process.env.PGHOST = backup.host;
+  else delete process.env.PGHOST;
+  if (hadPort) process.env.PGPORT = backup.port;
+  else delete process.env.PGPORT;
   resultados.push({ caso: "guarda_colisao_com_origem", status: colidiu ? "passed" : "failed" });
 
   rmSync(alheio, { recursive: true, force: true });
@@ -594,6 +601,7 @@ try {
       { preparacao: 0, grupos_de_assercoes: 0, subcasos_declarados: 0, pendentes: 0 }
     );
     if (report.testes.some((t) => t.status === "failed")) exitCode = 1;
+    if (report.testes.some((t) => t.status === "partial")) exitCode = exitCode || 2;
     if (report.testes.some((t) => t.status === "pending")) {
       report.limitacoes.push("Arquivo de teste não executado (ver testes[].motivo) — PENDENTE, não aprovado.");
       exitCode = exitCode || 2;
@@ -602,8 +610,16 @@ try {
       report.limitacoes.push(
         `${report.resumo_cenarios.pendentes} cenário(s) marcados como PENDENTE pelas suítes (ver testes[].pendentes) — não contam como aprovação.`
       );
+      exitCode = exitCode || 2;
     }
-    report.status_geral = exitCode === 0 ? "passed" : "failed";
+    if (PENDING_SELF_TEST) {
+      // ramo dirigido: força uma pendência sintética para provar que o selo geral
+      // NÃO fica "passed" e o código de saída passa a 2 (reservando 1 para falha)
+      report.resumo_cenarios.pendentes += 1;
+      report.limitacoes.push("teste dirigido --pending-self-test: pendência sintética injetada para verificar o selo partial/exit 2");
+      exitCode = exitCode || 2;
+    }
+    report.status_geral = exitCode === 0 ? "passed" : exitCode === 2 ? "partial" : "failed";
   }
 } catch (err) {
   exitCode = 1;
