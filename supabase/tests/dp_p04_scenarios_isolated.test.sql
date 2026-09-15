@@ -42,8 +42,8 @@ BEGIN
                  (ob,'owner-b'),(ab,'admin-b')) AS u(id, tag);
 
   INSERT INTO public.companies (id, user_id, name, is_active, profile_type, status_tenant)
-  VALUES (compa, oa, 'P04 SINTETICA A LTDA', true, 'pj', 'active'),
-         (compb, ob, 'P04 SINTETICA B LTDA', true, 'pj', 'active');
+  VALUES (compa, oa, 'P04 SINTETICA A LTDA', true, 'empresarial', 'ativa'),
+         (compb, ob, 'P04 SINTETICA B LTDA', true, 'empresarial', 'ativa');
 
   INSERT INTO public.company_members (company_id, user_id, role) VALUES
     (compa, aa, 'admin'), (compa, ca, 'member'),

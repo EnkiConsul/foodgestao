@@ -136,7 +136,7 @@ BEGIN
      'p04-out-' || v_out || '@example.test', '', now(), now(), now());
 
   INSERT INTO public.companies (id, user_id, name, is_active, profile_type, status_tenant)
-  VALUES (v_comp, v_owner, 'P04 FIXTURE LTDA', true, 'pj', 'active');
+  VALUES (v_comp, v_owner, 'P04 FIXTURE LTDA', true, 'empresarial', 'ativa');
 
   INSERT INTO public.company_members (company_id, user_id, role)
   VALUES (v_comp, v_admin, 'admin')

@@ -1,6 +1,6 @@
 {
   "fase": "P0.4 — validação funcional em banco isolado",
-  "gerado_em": "2026-09-15T03:21:37.634Z",
+  "gerado_em": "2026-09-15T03:22:02.419Z",
   "ambiente": {
     "tipo": "cluster PostgreSQL local temporário e descartável",
     "data_directory": "/tmp/p04pg",
@@ -85,21 +85,35 @@
         "OK T1: 9 rotinas internas fechadas, service_role preservado",
         "OK T1b: nenhuma rotina interna liberada para PUBLIC",
         "OK T2: gatilhos de validação ativos (2)",
-        "OK T3: RPCs app-facing preservadas para authenticated e fechadas para anon"
+        "OK T3: RPCs app-facing preservadas para authenticated e fechadas para anon",
+        "OK fixtures: empresa sintética 8656d8ec-71d5-4309-8b5e-7bde67a99f4c criada",
+        "OK T4: admin não-dono edita dados comuns normalmente"
       ],
       "falhas": [
-        "psql:supabase/tests/dp_internal_functions_p04.test.sql:147: ERROR:  new row for relation \"companies\" violates check constraint \"companies_profile_type_check\""
+        "psql:supabase/tests/dp_internal_functions_p04.test.sql:204: ERROR:  Ownership transfer is not allowed"
       ]
     },
     {
       "file": "supabase/tests/dp_p04_scenarios_isolated.test.sql",
       "comando": "psql -v ON_ERROR_STOP=1 -d p04iso -f supabase/tests/dp_p04_scenarios_isolated.test.sql",
-      "status": "failed",
-      "exit_code": 3,
-      "cenarios": [],
-      "falhas": [
-        "psql:supabase/tests/dp_p04_scenarios_isolated.test.sql:63: ERROR:  new row for relation \"companies\" violates check constraint \"companies_profile_type_check\""
-      ]
+      "status": "passed",
+      "exit_code": 0,
+      "cenarios": [
+        "OK fixtures: duas empresas sintéticas (A e B) e 6 usuários criados",
+        "OK S1: 9 rotinas internas negadas por falta de EXECUTE para authenticated e anon (18 casos)",
+        "OK S2: edição comum da empresa preservada para dono e admin",
+        "OK S3: admin de A, colaborador e usuário sem vínculo não alteram a empresa B",
+        "OK S4a: dono da empresa A obtém o plano de folgas (retorno não nulo)",
+        "OK S4b: admin da empresa A obtém o plano de folgas",
+        "OK S4c: RPC de plano nega entre empresas e para perfis sem admin (42501 FORBIDDEN, 4 casos)",
+        "OK S4d: aplicação do plano negada entre empresas (42501 FORBIDDEN)",
+        "OK S4e: visitante (anon) sem EXECUTE nas RPCs app-facing",
+        "OK S5.1: contagem de páginas do lote executada internamente (processed_pages=2)",
+        "OK S5.2: geração de escala executada internamente para a empresa sintética A",
+        "OK S5.3: autoatribuição de folgas executada internamente (retorno: {\"ok\": true, \"geradas\": 2, \"excedidas\": 0, \"competencia\": \"2026-09-01\", \"execucao_id\": \"df128668-9155-4913-ac38-9aa578ef3bad\"})",
+        "OK S6: service_role mantém a execução interna (processed_pages=1)"
+      ],
+      "falhas": []
     }
   ],
   "limitacoes": [],
