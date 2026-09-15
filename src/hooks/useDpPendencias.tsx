@@ -1311,7 +1311,7 @@ export function useDpPendencias() {
               competencia: competenciaDe(referencia),
               vencimento,
               atrasoDias: atrasoEmDias(vencimento, hojeISO),
-              url: `/dp/documentos/historico?doc=${d.id}`,
+              url: `/dp/documentos/historico?tipo=${d.tipo}`,
             });
           }
         } catch (e) {
