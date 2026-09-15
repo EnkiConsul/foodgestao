@@ -43,8 +43,8 @@ O comprovante quase nunca chega junto do documento, então ele é tratado como u
 - Trigger `BEFORE INSERT OR UPDATE` fail-closed: rejeita comprovante em tipos fora da allowlist e impede que o colaborador (caminho `dp_doc_colab_submit`) preencha as colunas de comprovante.
 - `dp_documento_arquivo` ganha parâmetro `_variante text default 'documento'`; com `'comprovante'` devolve o caminho do comprovante usando exatamente a mesma checagem de autorização. Chamadas atuais continuam funcionando.
 - Contadores/auditoria já cobertos pelos triggers atuais (`audit_row_change`, `dp_set_updated_at`).
-- `dp_pendencias_config`: novas colunas `exigir_comprovante_pagamento boolean not null default true` e `alerta_comprovante_dias int not null default 5`.
-- Geração de pendências (`dp_pendencias_*` / função de materialização + `src/lib/dp/pendencias.ts`): novo tipo `comprovante_pagamento` para documentos ativos de tipo na allowlist, sem `comprovante_file_path`, respeitando a chave da empresa; atrasado quando `hoje > referencia_data + alerta_comprovante_dias`.
+- `dp_pendencias_config`: novas colunas `exigir_comprovante_pagamento boolean not null default true`, `alerta_comprovante_dias int not null default 5` e `comprovante_vigencia_inicio date not null default '2026-09-01'`.
+- Geração de pendências (`dp_pendencias_*` / função de materialização + `src/lib/dp/pendencias.ts`): novo tipo `comprovante_pagamento` para documentos ativos de tipo na allowlist, sem `comprovante_file_path` e com `referencia_data >= comprovante_vigencia_inicio` (documentos sem competência usam `created_at`); atrasado quando `hoje > referencia_data + alerta_comprovante_dias`.
 
 **Storage**
 - Mesmo bucket privado `dp-documentos`, prefixo `comprovantes/{company_id}/{colaborador_id}/…`. Upload sem `upsert`; ao substituir, o arquivo anterior é removido depois de a linha ser atualizada.
