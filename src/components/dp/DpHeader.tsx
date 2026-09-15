@@ -29,6 +29,7 @@ function useMobileBack() {
 
 export function DpHeader({ variant = "admin" }: { variant?: "admin" | "portal" }) {
   const { show: showBack, goBack } = useMobileBack();
+  const { temAsDuasAreas } = useAcessoDuplo();
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur md:px-4">
