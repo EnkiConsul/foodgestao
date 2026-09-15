@@ -42,6 +42,8 @@ O comprovante quase nunca chega junto do documento, então ele é tratado como u
 - Trigger `BEFORE INSERT OR UPDATE` fail-closed: rejeita comprovante em tipos fora da allowlist e impede que o colaborador (caminho `dp_doc_colab_submit`) preencha as colunas de comprovante.
 - `dp_documento_arquivo` ganha parâmetro `_variante text default 'documento'`; com `'comprovante'` devolve o caminho do comprovante usando exatamente a mesma checagem de autorização. Chamadas atuais continuam funcionando.
 - Contadores/auditoria já cobertos pelos triggers atuais (`audit_row_change`, `dp_set_updated_at`).
+- `dp_pendencias_config`: novas colunas `exigir_comprovante_pagamento boolean not null default true` e `alerta_comprovante_dias int not null default 5`.
+- Geração de pendências (`dp_pendencias_*` / função de materialização + `src/lib/dp/pendencias.ts`): novo tipo `comprovante_pagamento` para documentos ativos de tipo na allowlist, sem `comprovante_file_path`, respeitando a chave da empresa; atrasado quando `hoje > referencia_data + alerta_comprovante_dias`.
 
 **Storage**
 - Mesmo bucket privado `dp-documentos`, prefixo `comprovantes/{company_id}/{colaborador_id}/…`. Upload sem `upsert`; ao substituir, o arquivo anterior é removido depois de a linha ser atualizada.
@@ -52,6 +54,7 @@ O comprovante quase nunca chega junto do documento, então ele é tratado como u
 - Novo componente `src/components/dp/documentos/ComprovantePagamentoPanel.tsx` usado no `DocDetalhesDialog`; mutations em `useDpDocumentos` (anexar/substituir/remover).
 - Botão-atalho `ComprovanteAcaoBotao` reaproveitando as mesmas mutations, renderizado no card/linha da lista em `DpHistoricoCompleto` e no `ColaboradorDocumentosPanel` (input de arquivo oculto, feedback por toast).
 - `src/hooks/portal/useMeusDocumentos.tsx` passa a trazer `comprovante_file_name`/`comprovante_pago_em` e a tela `DpMeuDocumentos` mostra o botão de comprovante.
+- `useDpPendenciasConfig` + `DpCadastroPendencias`: switch "Exigir comprovante de pagamento" (padrão ligado) e campo de prazo em dias; `resolverPendencias`/`porDocumento` baixam a pendência ao anexar.
 - Textos de cadastro em CAIXA ALTA não se aplicam aqui; rótulos em Primeira Maiúscula.
 
 **Testes**
