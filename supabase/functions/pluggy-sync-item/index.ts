@@ -443,8 +443,8 @@ Deno.serve(async (req) => {
     if (!existing && body?.allow_duplicate !== true) {
       try {
         preFetchedAccounts = await listAccounts(itemId);
-        const numbers = preFetchedAccounts
-          .map((a) => a.number)
+        const numbers = ((preFetchedAccounts ?? []) as Array<{ number?: string | null }>)
+          .map((a) => a.number ?? null)
           .filter((n): n is string => !!n);
         if (numbers.length) {
           const { data: clashes } = await admin
