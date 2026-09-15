@@ -120,22 +120,31 @@ export function describeSyncOutcome(input: {
     };
   }
 
+  // Confirmação pendente vem antes de qualquer sugestão de reconexão: aqui a
+  // autorização já existe e só precisa ser concluída.
+  if (WAITING_EXECUTION_STATUS.has(execStatus) || WAITING_ITEM_STATUS.has(itemStatus)) {
+    return {
+      level: "info",
+      title: "O banco está aguardando sua confirmação",
+      description: "Conclua a confirmação que já está aberta no app do banco e sincronize de novo.",
+      suggestReconnect: false,
+    };
+  }
+
   if (needsReauth) {
     return {
-      level: WAITING_EXECUTION_STATUS.has(execStatus) ? "info" : "error",
-      title: WAITING_EXECUTION_STATUS.has(execStatus)
-        ? "O banco está aguardando sua autorização"
-        : "O banco recusou o acesso nesta coleta",
+      level: "error",
+      title: "O banco recusou o acesso nesta coleta",
       description: RECONNECT_HINT,
       suggestReconnect: true,
     };
   }
 
-  if (WAITING_EXECUTION_STATUS.has(execStatus)) {
+  if (CONNECTION_FAILURE_STATUS.has(execStatus)) {
     return {
-      level: "info",
-      title: "O banco está aguardando sua confirmação",
-      description: "Conclua a confirmação no app do banco e sincronize de novo.",
+      level: "error",
+      title: "O banco não respondeu nesta coleta",
+      description: RETRY_HINT,
       suggestReconnect: false,
     };
   }
