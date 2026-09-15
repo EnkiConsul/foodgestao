@@ -318,12 +318,39 @@ export default function DpMeuSolicitacoes() {
       }
     }
     return errors;
-  }, [form, dateStatus]);
+  }, [form, dateStatus, ehTroca, fixos]);
 
   const create = useMutation({
     mutationFn: async () => {
       if (!meRef.data) throw new Error("Colaborador não encontrado");
       if (validation.length) throw new Error(validation[0]);
+      if (ehTroca) {
+        const { error: errTroca } = await supabase.rpc("dp_folga_troca_fds_solicitar" as never, {
+          p_data_folga: toIso(form.data_alvo),
+          p_data_trabalho: toIso(form.data_fim),
+          p_motivo: form.motivo,
+        } as never);
+        if (errTroca) {
+          const raw = errTroca.message ?? "";
+          if (raw.includes("TROCA_DIA_TRABALHO_INVALIDO"))
+            throw new Error("O dia que você vai trabalhar precisa ser um dia de folga fixa sua.");
+          if (raw.includes("TROCA_DIA_FOLGA_INVALIDO"))
+            throw new Error("Esse dia já é folga fixa sua. Escolha um dia de meio de semana.");
+          if (raw.includes("TROCA_JA_TEM_FOLGA"))
+            throw new Error("Você já tem folga registrada nesse dia.");
+          if (raw.includes("TROCA_SEM_FOLGA_FIXA"))
+            throw new Error("Seu cadastro não tem folga fixa na semana.");
+          if (raw.includes("TROCA_MOTIVO_OBRIGATORIO")) throw new Error("Escreva o motivo da troca.");
+          if (raw.includes("FOLGA_LIMITE_DIA"))
+            throw new Error("Data indisponível. Limite de folgas atingido.");
+          if (raw.includes("DUPLICATE_REQUEST"))
+            throw new Error("Você já tem uma solicitação pendente para estes dias.");
+          if (raw.includes("PAST_DATE_NOT_EDITABLE"))
+            throw new Error("Não é possível pedir troca em data passada.");
+          throw errTroca;
+        }
+        return;
+      }
       const { error } = await supabase.rpc("dp_solicitacao_criar", {
         p_tipo: form.tipo as any,
         p_data_alvo: toIso(form.data_alvo) as string,
