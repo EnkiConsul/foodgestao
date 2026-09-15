@@ -204,6 +204,24 @@ const checks = [
     `,
   },
   {
+    id: "finance_internal_functions_authenticated",
+    severity: "critical",
+    description:
+      "Rotina interna do financeiro/Open Finance (P0.2-A) executável por authenticated/anon/PUBLIC — deve ficar restrita a service_role",
+    sql: `
+      WITH targets(fname) AS (VALUES ${financeInternalSqlValues})
+      SELECT p.proname || '(' || pg_catalog.pg_get_function_identity_arguments(p.oid) || ')' AS finding
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      JOIN targets t ON t.fname = p.proname
+      WHERE n.nspname = 'public'
+        AND (
+          has_function_privilege('authenticated', p.oid, 'EXECUTE')
+          OR has_function_privilege('anon', p.oid, 'EXECUTE')
+        );
+    `,
+  },
+  {
     id: "rls_disabled",
     severity: "critical",
     description: "Tabela em `public` sem RLS habilitado (acesso irrestrito)",
