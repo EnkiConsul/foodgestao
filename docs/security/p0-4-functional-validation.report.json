@@ -1,13 +1,15 @@
 {
   "fase": "P0.4 — validação funcional em banco isolado",
-  "gerado_em": "2026-09-15T03:33:45.254Z",
+  "gerado_em": "2026-09-15T03:35:44.509Z",
   "comando": "node scripts/test-p04-isolated.mjs",
   "ambiente": {
     "tipo": "cluster PostgreSQL local temporário, exclusivo desta execução e descartável",
     "host": "127.0.0.1",
     "porta": 55437,
     "banco": "p04iso",
-    "origem_dos_dados": "nenhuma — apenas ESTRUTURA (pg_dump --schema-only), reexportada nesta execução"
+    "origem_dos_dados": "nenhuma — apenas ESTRUTURA (pg_dump --schema-only), reexportada nesta execução",
+    "data_directory": "/tmp/p04pg-run-bpR0M2/pgdata",
+    "listen_addresses": "127.0.0.1"
   },
   "incluido": [
     "schemas public, private e qa completos (tabelas, funções, policies, triggers, grants, owners) restaurados com ON_ERROR_STOP=1",
@@ -48,6 +50,6 @@
     "Sem dados reais, o comportamento sobre volume, índices e latência de produção não é avaliado nesta etapa."
   ],
   "status_geral": "failed",
-  "erro": "setpriv falhou (1): initdb: error: directory \"/tmp/p04pg-data-bfmBjr\" exists but is not empty\ninitdb: detail: It contains a dot-prefixed/invisible file, perhaps due to it being a mount point.\ninitdb: hint: Using a mount point directly as the data directory is not recommended.\nCreate a subdirectory under the mount point.\n",
+  "erro": "restore reprovado (exit 3, 1 erro(s)) — validação inválida",
   "codigo_saida": 1
 }

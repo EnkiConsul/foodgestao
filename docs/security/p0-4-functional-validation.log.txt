@@ -1,17 +1,16 @@
-[2026-09-15T03:33:45.255Z] iniciando validação funcional isolada da P0.4
-[2026-09-15T03:33:45.258Z] guardas pré-start aprovadas (destino não colide com a conexão de origem)
-[2026-09-15T03:33:45.259Z] limpeza ignorada: nenhum cluster foi criado por esta execução
-[2026-09-15T03:33:45.259Z] limpeza abortada: marcador ausente em /tmp/p04pg-alheio-acSLMh (diretório não é desta execução)
-[2026-09-15T03:33:45.260Z] self-test falha_pre_start_nao_limpa_cluster_alheio: passed
-[2026-09-15T03:33:45.260Z] self-test sem_marcador_nao_apaga_diretorio: passed
-[2026-09-15T03:33:45.260Z] self-test guarda_colisao_com_origem: passed
-[2026-09-15T03:33:45.260Z] exportando ESTRUTURA real (schema-only: public, private, qa) com grants/policies/owners…
-[2026-09-15T03:35:19.332Z] estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)
-[2026-09-15T03:35:19.431Z] ERRO: setpriv falhou (1): initdb: error: directory "/tmp/p04pg-data-bfmBjr" exists but is not empty
-initdb: detail: It contains a dot-prefixed/invisible file, perhaps due to it being a mount point.
-initdb: hint: Using a mount point directly as the data directory is not recommended.
-Create a subdirectory under the mount point.
-
-[2026-09-15T03:35:19.432Z] limpeza ignorada: nenhum cluster foi criado por esta execução
+[2026-09-15T03:35:44.510Z] iniciando validação funcional isolada da P0.4
+[2026-09-15T03:35:44.515Z] guardas pré-start aprovadas (destino não colide com a conexão de origem)
+[2026-09-15T03:35:44.515Z] limpeza ignorada: nenhum cluster foi criado por esta execução
+[2026-09-15T03:35:44.515Z] limpeza abortada: marcador ausente em /tmp/p04pg-alheio-MQtrXu (diretório não é desta execução)
+[2026-09-15T03:35:44.518Z] self-test falha_pre_start_nao_limpa_cluster_alheio: passed
+[2026-09-15T03:35:44.518Z] self-test sem_marcador_nao_apaga_diretorio: passed
+[2026-09-15T03:35:44.518Z] self-test guarda_colisao_com_origem: passed
+[2026-09-15T03:35:44.519Z] exportando ESTRUTURA real (schema-only: public, private, qa) com grants/policies/owners…
+[2026-09-15T03:37:26.637Z] estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)
+[2026-09-15T03:37:28.646Z] cluster próprio no ar (data_directory=/tmp/p04pg-run-bpR0M2/pgdata, porta 55437, listen 127.0.0.1)
+[2026-09-15T03:37:28.773Z] bootstrap de papéis/schemas/shims aplicado (public removido para o dump recriá-lo)
+[2026-09-15T03:37:30.152Z]   ! restore ERROR:  operator class "public.gin_trgm_ops" does not exist for access method "gin"
+[2026-09-15T03:37:30.152Z] ERRO: restore reprovado (exit 3, 1 erro(s)) — validação inválida
+[2026-09-15T03:37:30.348Z] cluster desta execução destruído
 
 === status geral: failed (exit 1) ===
