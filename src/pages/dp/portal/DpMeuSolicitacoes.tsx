@@ -30,11 +30,13 @@ import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { resumoEscolhaFolgas } from "@/lib/dp/dsr-rules";
 
 import { calculateDateStatus, type ColaboradorRecord, type FolgaRecord } from "@/lib/dp/folga-rules";
+import { podePedirTrocaFds, validarTrocaFds } from "@/lib/dp/troca-fds";
 import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import { notifyError } from "@/lib/notifyError";
 
 const TIPOS = [
   { value: "folga", label: "Folga" },
+  { value: "troca_fds", label: "Trocar folga do fim de semana" },
   { value: "adiantamento", label: "Adiantamento" },
   { value: "atestado", label: "Atestado" },
   { value: "ferias", label: "Férias" },
