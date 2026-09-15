@@ -108,11 +108,11 @@ export function AccountTreeTable({
           >
             {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </button>
-          <span className="font-mono text-xs text-muted-foreground w-20 shrink-0">{node.code}</span>
+          <span className="font-mono text-xs text-muted-foreground w-14 sm:w-20 shrink-0">{node.code}</span>
           <button
             type="button"
             className={cn(
-              "flex-1 text-left truncate",
+              "flex-1 min-w-0 min-h-6 text-left truncate",
               node.is_analytic && onSelectAnalytic && "hover:text-primary hover:underline"
             )}
             onClick={() => node.is_analytic && onSelectAnalytic?.(node)}
@@ -126,13 +126,13 @@ export function AccountTreeTable({
             </Badge>
           )}
           {av !== null && (
-            <span className="w-16 text-right text-xs text-muted-foreground tabular-nums">
+            <span className="hidden sm:inline w-16 text-right text-xs text-muted-foreground tabular-nums">
               {pct(av)}
             </span>
           )}
           <span
             className={cn(
-              "w-32 text-right tabular-nums font-medium",
+              "w-24 sm:w-32 shrink-0 text-right tabular-nums font-medium",
               signClass(Number(node.saldo_consolidado || 0))
             )}
           >
@@ -167,10 +167,10 @@ export function AccountTreeTable({
       <div className="rounded-md border">
         <div className="flex items-center gap-2 py-2 px-2 border-b bg-muted/60 text-xs font-medium text-muted-foreground">
           <span className="h-6 w-6 shrink-0" />
-          <span className="font-mono w-20 shrink-0">Código</span>
+          <span className="font-mono w-14 sm:w-20 shrink-0">Código</span>
           <span className="flex-1">Conta</span>
-          {avBase !== undefined && <span className="w-16 text-right">% AV</span>}
-          <span className="w-32 text-right">Valor</span>
+          {avBase !== undefined && <span className="hidden sm:inline w-16 text-right">% AV</span>}
+          <span className="w-24 sm:w-32 shrink-0 text-right">Valor</span>
         </div>
         {tree.map((n) => renderRow(n, 0))}
       </div>
