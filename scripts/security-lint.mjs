@@ -225,27 +225,30 @@ const checks = [
     id: "test_helpers_unguarded",
     severity: "critical",
     description:
-      "Rotina de QA (`_e2e_*`/`_test_*`) executável por anon/PUBLIC/authenticated — desde a P0.2-C somente `service_role` pode executar",
+      "Rotina de QA (`_e2e_*`/`_test_*`/`_assert_test_helper_allowed`) presente em `public` ou executável por anon/PUBLIC/authenticated — desde a P0.3 elas vivem no schema `qa`, fora do PostgREST, e só rodam por conexão direta/service_role",
     sql: `
-      -- Allowlist P0.2-C: VAZIA por design. Nenhuma rotina de QA pode ser
-      -- executável por sessão de usuário; o E2E usa service_role server-side
-      -- (e2e/qa_admin.py). Qualquer exceção futura precisa de justificativa
-      -- curta aqui e registro em docs/security/p0-2c-qa-functions-service-role.md.
-      SELECT p.proname || '(' || pg_catalog.pg_get_function_identity_arguments(p.oid) || ')' ||
-             CASE WHEN has_function_privilege('anon', p.oid, 'EXECUTE')
-                  THEN ' [executável por anon]'
+      -- Allowlist P0.3: VAZIA por design. Nenhuma rotina de QA pode estar em
+      -- \`public\` nem ser executável por sessão de usuário; o E2E usa conexão
+      -- direta server-side (e2e/qa_admin.py). Qualquer exceção futura precisa de
+      -- justificativa curta aqui e registro em
+      -- docs/security/p0-3-qa-functions-private-schema.md.
+      SELECT n.nspname || '.' || p.proname || '(' ||
+             pg_catalog.pg_get_function_identity_arguments(p.oid) || ')' ||
+             CASE WHEN n.nspname = 'public' THEN ' [em schema exposto public]'
+                  WHEN has_function_privilege('anon', p.oid, 'EXECUTE') THEN ' [executável por anon]'
                   ELSE ' [executável por authenticated]' END AS finding
       FROM pg_proc p
       JOIN pg_namespace n ON n.oid = p.pronamespace
-      WHERE n.nspname = 'public'
-        AND (p.proname LIKE E'\\\\_e2e\\\\_%' OR p.proname LIKE E'\\\\_test\\\\_%'
+      WHERE (p.proname LIKE E'\\\\_e2e\\\\_%' OR p.proname LIKE E'\\\\_test\\\\_%'
              OR p.proname = '_assert_test_helper_allowed')
         AND (
-          has_function_privilege('anon', p.oid, 'EXECUTE')
+          n.nspname = 'public'
+          OR has_function_privilege('anon', p.oid, 'EXECUTE')
           OR has_function_privilege('authenticated', p.oid, 'EXECUTE')
         );
     `,
   },
+
   {
     id: "rls_disabled",
     severity: "critical",

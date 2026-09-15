@@ -1,20 +1,21 @@
 /**
- * P0.2-B / P0.2-C — rotinas de teste/QA (`_e2e_*`, `_test_*`) fechadas.
+ * P0.2-B / P0.2-C / P0.3 — rotinas de teste/QA (`_e2e_*`, `_test_*`) fora do
+ * schema exposto.
  *
- * Política vigente (P0.2-C): somente `service_role` (execução server-side/CI)
- * executa essas rotinas. Nenhuma sessão de usuário — comum ou super admin —
- * tem `EXECUTE`, e a guarda `public._assert_test_helper_allowed()` falha
- * fechado antes de qualquer escrita.
+ * Política vigente (P0.3): as rotinas vivem no schema `qa`, que NÃO é exposto
+ * pelo PostgREST. Não existe mais RPC HTTP para elas — nem com chave de
+ * serviço. A execução acontece só server-side, por conexão direta ao banco
+ * (CI), e a guarda `qa._assert_test_helper_allowed()` continua falhando fechado
+ * antes de qualquer escrita.
  *
  * Prova que:
- *  - visitante (anon) é bloqueado;
- *  - usuário logado comum é bloqueado;
- *  - super admin também é bloqueado (não há mais bypass por papel);
- *  - com `SUPABASE_SERVICE_ROLE_KEY` disponível, a chave de serviço executa
- *    seed + cleanup e não deixa resíduo `E2E-*`.
+ *  - visitante (anon) não alcança nenhuma dessas rotinas via API;
+ *  - usuário logado comum não alcança;
+ *  - super admin também não alcança (não há bypass por papel);
+ *  - o prefixo `qa.` também não é chamável via PostgREST.
  *
  * Sem credenciais no ambiente, apenas os casos anon rodam.
- * Ver docs/security/p0-2c-qa-functions-service-role.md
+ * Ver docs/security/p0-3-qa-functions-private-schema.md
  */
 import { describe, it, expect, beforeAll } from "vitest";
 
@@ -65,9 +66,10 @@ async function chamar(
   return { status: res.status, texto: await res.text() };
 }
 
-const negado = (texto: string) => /42501|PGRST202|PGRST301|permission denied/.test(texto);
+const negado = (texto: string) =>
+  /42501|42883|PGRST202|PGRST301|permission denied|does not exist|Could not find/.test(texto);
 
-describe("P0.2-C: visitante não executa rotinas de QA", () => {
+describe("P0.3: visitante não alcança rotinas de QA", () => {
   for (const [nome, corpo] of ROTINAS_TESTE) {
     it(`bloqueia ${nome}`, async () => {
       if (!networkAvailable) return;
@@ -77,7 +79,7 @@ describe("P0.2-C: visitante não executa rotinas de QA", () => {
   }
 });
 
-describe("P0.2-C: usuário logado comum não executa rotinas de QA", () => {
+describe("P0.3: usuário logado comum não alcança rotinas de QA", () => {
   const token = process.env.SUPABASE_TEST_COMMON_ACCESS_TOKEN;
   for (const [nome, corpo] of ROTINAS_TESTE) {
     it(`bloqueia ${nome} com sessão comum`, async () => {
@@ -89,7 +91,7 @@ describe("P0.2-C: usuário logado comum não executa rotinas de QA", () => {
   }
 });
 
-describe("P0.2-C: super admin também não executa rotinas de QA", () => {
+describe("P0.3: super admin também não alcança rotinas de QA", () => {
   const token = process.env.SUPABASE_TEST_SUPERADMIN_ACCESS_TOKEN;
   for (const [nome, corpo] of ROTINAS_TESTE) {
     it(`bloqueia ${nome} com sessão de super admin`, async () => {
@@ -101,27 +103,27 @@ describe("P0.2-C: super admin também não executa rotinas de QA", () => {
   }
 });
 
-describe("P0.2-C: service_role executa seed/cleanup e não deixa resíduo", () => {
+describe("P0.3: schema `qa` não é exposto pelo PostgREST", () => {
   const serviceKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.QA_SERVICE_ROLE_KEY;
-  const userId = process.env.SUPABASE_TEST_COMMON_USER_ID;
 
-  it("faz seed e cleanup de contas E2E-*", async () => {
-    if (!networkAvailable || !serviceKey || !userId) return; // sem chave de serviço: cenário não executável
-    const nomes = { _empty_name: "E2E-QA-Vazia", _history_name: "E2E-QA-Historico" };
-    const seed = await chamar(
+  for (const prefixado of ["qa._e2e_seed_delete_accounts", "qa._test_balance_engine"]) {
+    it(`bloqueia ${prefixado} via API anônima`, async () => {
+      if (!networkAvailable) return;
+      const { status } = await chamar(prefixado, {});
+      expect(status).toBeGreaterThanOrEqual(400);
+    });
+  }
+
+  it("nem a chave de serviço alcança as rotinas de QA por HTTP", async () => {
+    if (!networkAvailable || !serviceKey) return; // sem chave: cenário não executável
+    const { status, texto } = await chamar(
       "_e2e_seed_delete_accounts",
-      { ...nomes, _user_id: userId },
+      { _empty_name: "E2E-QA-Vazia", _history_name: "E2E-QA-Historico" },
       serviceKey,
       serviceKey,
     );
-    expect(seed.status).toBe(200);
-    const limpeza = await chamar(
-      "_e2e_cleanup_delete_accounts",
-      { _names: [nomes._empty_name, nomes._history_name], _user_id: userId },
-      serviceKey,
-      serviceKey,
-    );
-    expect(limpeza.status).toBeLessThan(300);
+    expect(status).toBeGreaterThanOrEqual(400);
+    expect(negado(texto)).toBe(true);
   });
 });

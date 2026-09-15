@@ -111,3 +111,5 @@ as 8 rotinas internas sondadas responderam `403 / 42501 permission denied`
 - Nenhum helper foi movido para `private`; o gate do lint é o que impede regressão de grants.
 
 > Continuação: [P0.2-C — rotinas de QA somente com service_role](./p0-2c-qa-functions-service-role.md)
+
+> Continuação: [P0.3 — rotinas de QA fora do schema público](./p0-3-qa-functions-private-schema.md)

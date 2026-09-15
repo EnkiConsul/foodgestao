@@ -96,3 +96,5 @@ citá-la com valor real em docs.
    administração) ainda executáveis por `authenticated`.
 4. Remoção definitiva do Open Finance v1; policies duplicadas/`USING (true)`;
    GRANTs faltantes nas 5 tabelas internas; ensaio de carga com 200 empresas.
+
+> Continuação: [P0.3 — rotinas de QA fora do schema público](./p0-3-qa-functions-private-schema.md)
