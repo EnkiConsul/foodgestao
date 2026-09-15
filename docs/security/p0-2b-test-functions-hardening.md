@@ -86,3 +86,5 @@ falha se qualquer `_e2e_*`/`_test_*` for executável por `anon`, ou executável 
 - Ensaio de carga/tenancy com 200 empresas.
 
 > Continuação: [P0.2-C — rotinas de QA somente com service_role](./p0-2c-qa-functions-service-role.md)
+
+> Continuação: [P0.3 — rotinas de QA fora do schema público](./p0-3-qa-functions-private-schema.md)
