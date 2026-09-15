@@ -383,6 +383,30 @@ export default function ExtratoConciliacao() {
         </div>
       </div>
 
+      {scopeBlocked && !loading && (
+        <Card className="border-warning/50 bg-warning/10">
+          <CardContent className="flex flex-col gap-2 p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              {scopeProblem === "error"
+                ? "Não foi possível verificar a conexão bancária desta seleção. Tente novamente em instantes."
+                : scopeProblem === "ambiguous"
+                  ? "Esta seleção está ligada a mais de uma conexão ativa do banco. Ajuste as conexões para ver o extrato."
+                  : scopeProblem === "inactive_only"
+                    ? "A conexão do banco desta seleção foi encerrada. Reconecte para voltar a receber o extrato."
+                    : "Esta seleção não possui vínculo com uma conexão Open Finance."}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              onClick={() => navigate("/contas-bancarias/conciliacao")}
+            >
+              Ver fila da empresa
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardContent className="grid gap-3 p-3 sm:grid-cols-3 sm:p-4">
           <div className="space-y-1">
