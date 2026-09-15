@@ -40,31 +40,70 @@ por `private.company_owner_snapshot(uuid)` (`SECURITY DEFINER`, `STABLE`,
 - `supabase/migrations/20260915024500_p04_pessoas_internal_functions_and_owner_transfer.sql`
   (idempotente; só permissões, uma função auxiliar e a policy; verificação
   fail-closed no fim aborta se alguma interna voltar a ficar aberta).
-- `src/test/rls/dp_internal_functions.rls.test.ts` — anon e usuário logado
-  bloqueados nas 9 internas; app-facing negadas para visitante.
-- `supabase/tests/dp_internal_functions_p04.test.sql` — transação com `ROLLBACK`:
-  privilégios das internas, preservação de `service_role`, preservação das
-  app-facing e bloqueio de troca de titularidade por admin não-dono.
+  Registrada no controle de migrações do banco
+  (`supabase_migrations.schema_migrations`, versão `20260915024500`) junto com as
+  migrações P0/P0.2-A/P0.2-B/P0.2-C/P0.3, que também estavam apenas aplicadas
+  como DDL e versionadas em arquivo.
+- `src/test/rls/dp_internal_functions.rls.test.ts` — validação de privilégios por
+  **leitura do catálogo** (`pg_proc`, `aclexplode`, `pg_trigger`, `pg_policies`)
+  via `psql`. Não chama nenhuma rotina de negócio — em especial nenhuma global
+  mutante (`dp_escala_auto_gerar_todas`, `dp_folga_autoatribuir_todas`), que
+  gravaria dados reais em caso de regressão de permissão. Sem banco disponível os
+  casos aparecem como **skipped** (`describe.skipIf`), nunca como aprovados.
+- `supabase/tests/dp_internal_functions_p04.test.sql` — cenários com **fixtures
+  sintéticas** (usuários e empresa criados no próprio script), papel
+  `authenticated` real via `SET ROLE` + claims JWT, tudo em transação revertida.
+  Nenhuma empresa real é usada.
 
-## 4. Evidências
+### Cobertura dos testes
 
-Privilégios após a migração (`has_function_privilege`): as 9 internas com
-`anon = false`, `authenticated = false`, `service_role = true`; as 2 app-facing
-com `authenticated = true`.
+Vitest (26 casos, aprovados neste ambiente):
 
-Teste em transação revertida com a identidade de um administrador não-dono: o
-`UPDATE` de `companies.user_id` não persistiu (bloqueio confirmado) e a
-transação terminou em rollback intencional — nenhum dado alterado.
+- as 9 internas sem `EXECUTE` para `anon`, `authenticated` e `PUBLIC`, com
+  `service_role` preservado;
+- as 9 internas ainda `SECURITY DEFINER` com `search_path` explícito;
+- os 2 gatilhos que usam `dp_escala_item_validar_setor` e
+  `dp_folgas_validar_unificado` continuam anexados e habilitados;
+- cadeia interna preservada (`..._todas` chama a rotina por empresa/competência);
+- os 2 endpoints legítimos com `EXECUTE` para `authenticated`/`service_role`,
+  negados para `anon`, e com checagem de admin/dono no corpo da função;
+- `WITH CHECK` da policy de `companies` referenciando
+  `private.company_owner_snapshot` e `is_super_admin`.
 
-Verificações executadas: `node scripts/migrations-check.mjs`,
-`node scripts/security-lint.mjs --ci`, `node scripts/policy-sweep.mjs`,
-`bunx vitest run src/test/rls src/test/tenancy`, `bunx tsgo --noEmit`,
-`bunx vite build`.
+SQL com fixtures (T1–T8): privilégios e PUBLIC; gatilhos ativos; endpoints
+legítimos; **positivos** — admin não-dono edita campos comuns, dono edita e
+transfere titularidade; **negativos** — admin não-dono não assume titularidade,
+usuário sem vínculo não altera nada. O cenário **T7 isola o mérito da policy**:
+com os três gatilhos de titularidade temporariamente desabilitados dentro da
+transação, o `UPDATE` do admin ainda falha com `SQLSTATE 42501` (violação de RLS)
+e o dono permanece o mesmo; T7b confirma que, nessa mesma condição, a edição
+comum do admin continua funcionando.
 
-## 5. Limitações
+## 4. Validação executada
 
+| Verificação | Resultado |
+| --- | --- |
+| `bunx vitest run src/test/rls/dp_internal_functions.rls.test.ts` | 26 aprovados, 0 falhas (exit 0) |
+| `bunx vitest run src/test/rls src/test/tenancy` | ver seção de execução no fechamento da fase |
+| `node scripts/migrations-check.mjs` | aprovado |
+| `node scripts/security-lint.mjs --ci` | 0 críticos |
+| `node scripts/policy-sweep.mjs` | 0 críticos |
+| `bunx tsgo --noEmit` | sem erros |
+| `bunx vite build` | ok |
+| `supabase_migrations.schema_migrations` | versão `20260915024500` registrada |
+| `supabase/tests/dp_internal_functions_p04.test.sql` | **não executado neste ambiente** |
+
+## 5. Limitações (sem alegação de aprovação)
+
+- O script SQL com fixtures **não roda neste ambiente**: o papel do sandbox
+  (`sandbox_exec`) não tem `INSERT` em `auth.users`, não pode assumir
+  `authenticated` nem desabilitar gatilhos. Ele exige conexão com papel
+  proprietário no CI. Os cenários T1–T3 (privilégios/gatilhos/endpoints) estão
+  cobertos e aprovados pelo teste Vitest; T4–T8 (fixtures de titularidade) ficam
+  **pendentes de execução** até haver `SUPABASE_DB_URL` com papel dono.
 - Os agendamentos (`cron`) não são legíveis por este ambiente; a preservação da
-  execução interna foi provada por privilégio de `service_role` e pela cadeia
-  `SECURITY DEFINER`, não por execução real da geração de escala/folgas (que
-  seria uma operação de negócio em produção e por isso não foi executada).
+  execução interna foi provada por privilégio de `service_role`, pelos gatilhos
+  ativos e pela cadeia `SECURITY DEFINER` — nenhuma geração de escala/folgas foi
+  executada em produção.
 - As demais correções da auditoria (outros domínios) seguem fora desta etapa.
+
