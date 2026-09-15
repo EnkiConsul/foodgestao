@@ -2,52 +2,47 @@
 /**
  * Validação FUNCIONAL da P0.4 em banco isolado e descartável.
  *
- * O que faz:
- *  1. Sobe um cluster PostgreSQL local temporário exclusivo desta tarefa
- *     (diretório/porta próprios; não toca clusters existentes).
- *  2. Copia SOMENTE a ESTRUTURA real (pg_dump --schema-only dos schemas
- *     public, private e qa) PRESERVANDO grants, políticas, proprietários e
- *     triggers. Nenhum dado real/pessoal é copiado.
- *  3. Cria apenas os SHIMS de infraestrutura Supabase que não existem em um
- *     Postgres puro (auth.uid/auth.jwt/auth.role fiéis à implementação
- *     Supabase, auth.users, e stubs vazios de cron/vault/pgmq). Nenhuma função
- *     de segurança sob teste é substituída.
- *  4. Confere FIDELIDADE: os privilégios das rotinas sob teste, as políticas e
- *     os triggers de public.companies no clone têm de ser idênticos aos do
- *     banco de origem. Divergência = falha.
- *  5. Executa de verdade os scripts de teste SQL (fixtures sintéticas,
- *     SET ROLE authenticated com claims reais, funções mutantes internas).
- *  6. Grava relatório JSON + log textual sem segredos.
+ * Garantias de segurança do runner:
+ *  · O cluster é criado em diretório EXCLUSIVO desta execução (mkdtemp) com um
+ *    arquivo marcador; a limpeza só para/apaga o cluster se ele foi criado por
+ *    esta execução. Diretórios/clusters preexistentes nunca são tocados.
+ *  · As guardas de destino (host/porta/colisão com a origem) rodam ANTES de
+ *    qualquer initdb; as guardas de data_directory/porta/listen_addresses rodam
+ *    ANTES de CREATE DATABASE, bootstrap ou fixture.
+ *  · O servidor escuta apenas 127.0.0.1; nenhuma credencial vai para argv nem
+ *    para o log.
+ *  · Restore com ON_ERROR_STOP=1: qualquer erro reprova (sem julgar validade por
+ *    nome de objeto).
+ *  · A estrutura é reexportada a cada execução (não há reuso de snapshot).
  *
  * Uso:
- *   node scripts/test-p04-isolated.mjs [--reuse-dump] [--keep]
- *
- * Segurança: nenhuma credencial é passada por argv nem impressa; a conexão de
- * origem usa as variáveis PG* do ambiente e é usada apenas para LEITURA
- * (pg_dump --schema-only e SELECTs de catálogo).
+ *   node scripts/test-p04-isolated.mjs [--keep] [--self-test]
+ *     --keep       preserva o cluster criado por ESTA execução para inspeção
+ *     --self-test  verifica que uma falha antes do start não dispara limpeza
+ *                  em cluster alheio (não roda as suítes)
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, mkdtempSync, rmSync, writeFileSync, readdirSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 const ARGS = new Set(process.argv.slice(2));
-const REUSE_DUMP = ARGS.has("--reuse-dump");
 const KEEP = ARGS.has("--keep");
+const SELF_TEST = ARGS.has("--self-test");
 
-const DATA_DIR = "/tmp/p04pg";
-const SOCK_DIR = "/tmp/p04pg_sock";
 const PORT = 55437;
 const DB = "p04iso";
-const SCHEMA_FILE = "/tmp/p04_schema.sql";
-const LOG_FILE = resolve("docs/security/p0-4-functional-validation.log");
+const SCHEMA_FILE = join(tmpdir(), `p04_schema_${process.pid}.sql`);
+const LOG_FILE = resolve("docs/security/p0-4-functional-validation.log.txt");
 const REPORT_FILE = resolve("docs/security/p0-4-functional-validation.report.json");
+const MARKER = ".p04-runner-owned";
 
 const TEST_FILES = [
   "supabase/tests/dp_internal_functions_p04.test.sql",
   "supabase/tests/dp_p04_scenarios_isolated.test.sql",
 ];
 
-/** Rotinas internas fechadas na P0.4 (9) + as 2 app-facing preservadas. */
+/** Rotinas fechadas na P0.4 (9) + as 2 app-facing preservadas. */
 const CRITICAL_FUNCS = [
   "dp_bulk_increment_processed",
   "dp_escala_auto_gerar",
@@ -62,18 +57,26 @@ const CRITICAL_FUNCS = [
   "dp_folga_autoatribuir_aplicar",
 ];
 
-const targetEnv = {
-  ...process.env,
-  PGSSLMODE: "disable",
-  PGHOST: "127.0.0.1",
-  PGPORT: String(PORT),
-  PGUSER: "postgres",
-  PGDATABASE: DB,
-  PGPASSWORD: "",
-  PGOPTIONS: "",
-};
+/** Guards de titularidade e cadeia de autorização transitiva. */
+const AUTHZ_FUNCS = [
+  ["public", "companies_guard_owner_transfer"],
+  ["public", "dp_guard_company_owner_transfer"],
+  ["public", "prevent_company_ownership_transfer"],
+  ["public", "is_super_admin"],
+  ["public", "has_role"],
+  ["public", "dp_folga_dias_fds_aplicaveis"],
+  ["public", "dp_folgas_janela_efetiva"],
+  ["private", "is_company_admin_or_owner"],
+  ["private", "dp_access_enabled"],
+  ["private", "company_owner_snapshot"],
+];
 
-const UNPRIV = ["setpriv", "--reuid=1000", "--regid=1000", "--clear-groups"];
+/* --------------------------- estado da execução --------------------------- */
+
+let RUN_DIR = null;
+let DATA_DIR = null;
+let SOCK_DIR = null;
+let CREATED_BY_US = false; // só true depois de initdb bem-sucedido nesta execução
 
 const logLines = [];
 function log(msg) {
@@ -81,52 +84,81 @@ function log(msg) {
   logLines.push(line);
   console.log(line);
 }
-function flushLog() {
-  writeFileSync(LOG_FILE, logLines.join("\n") + "\n");
-}
 
 function run(cmd, argv, opts = {}) {
   return spawnSync(cmd, argv, { encoding: "utf8", maxBuffer: 256 * 1024 * 1024, ...opts });
 }
 function must(cmd, argv, opts = {}) {
   const r = run(cmd, argv, opts);
+  if (r.error) throw new Error(`${cmd} não executou: ${r.error.message}`);
   if (r.status !== 0) throw new Error(`${cmd} falhou (${r.status}): ${(r.stderr || "").slice(0, 3000)}`);
   return r.stdout ?? "";
 }
 
+function targetEnv() {
+  return {
+    ...process.env,
+    PGSSLMODE: "disable",
+    PGHOST: "127.0.0.1",
+    PGPORT: String(PORT),
+    PGUSER: "postgres",
+    PGDATABASE: DB,
+    PGPASSWORD: "",
+    PGOPTIONS: "",
+  };
+}
 const q = (sql, database = DB) =>
-  must("psql", ["-v", "ON_ERROR_STOP=1", "-At", "-d", database, "-c", sql], { env: targetEnv });
+  must("psql", ["-v", "ON_ERROR_STOP=1", "-At", "-d", database, "-c", sql], { env: targetEnv() });
 
-/** SELECT no banco de ORIGEM (somente leitura, credenciais só via env). */
+/** SELECT no banco de ORIGEM (somente leitura; credenciais só via env). */
 const qSource = (sql) =>
   must("psql", ["-v", "ON_ERROR_STOP=1", "-At", "-c", sql], { env: process.env });
 
+const UNPRIV = ["setpriv", "--reuid=1000", "--regid=1000", "--clear-groups"];
+
 /* --------------------------- cluster temporário --------------------------- */
 
-function isUp() {
-  return run("psql", ["-At", "-d", "postgres", "-c", "select 1"], { env: targetEnv }).status === 0;
+/** Guardas que NÃO dependem de conexão — rodam antes de qualquer initdb. */
+function preStartGuards() {
+  const srcHost = process.env.PGHOST ?? "";
+  const srcPort = Number(process.env.PGPORT ?? 0);
+  const localHost = ["127.0.0.1", "localhost", "::1", ""].includes(srcHost);
+  if (localHost && srcPort === PORT) {
+    throw new Error("guarda pré-start: porta/host do destino colidem com a conexão de origem");
+  }
+  log("guardas pré-start aprovadas (destino não colide com a conexão de origem)");
 }
 
-function stopCluster() {
-  if (existsSync(DATA_DIR)) {
-    run(UNPRIV[0], [...UNPRIV.slice(1), "pg_ctl", "-D", DATA_DIR, "-m", "immediate", "stop"]);
+function isUp() {
+  return run("psql", ["-At", "-d", "postgres", "-c", "select 1"], { env: targetEnv() }).status === 0;
+}
+
+/** Só para/apaga o cluster desta execução — nunca um diretório preexistente. */
+function cleanup() {
+  if (!CREATED_BY_US || !DATA_DIR) {
+    log("limpeza ignorada: nenhum cluster foi criado por esta execução");
+    return;
   }
-  rmSync(DATA_DIR, { recursive: true, force: true });
+  if (!RUN_DIR || !existsSync(join(RUN_DIR, MARKER))) {
+    log(`limpeza abortada: marcador ausente em ${RUN_DIR} (diretório não é desta execução)`);
+    return;
+  }
+  run(UNPRIV[0], [...UNPRIV.slice(1), "pg_ctl", "-D", DATA_DIR, "-m", "immediate", "stop"]);
+  rmSync(RUN_DIR, { recursive: true, force: true });
   rmSync(SOCK_DIR, { recursive: true, force: true });
+  log("cluster desta execução destruído");
 }
 
 function startCluster() {
-  // Guardas de destino descartável: caminho fixo em /tmp, porta dedicada e
-  // cluster recriado do zero a cada execução.
-  if (!DATA_DIR.startsWith("/tmp/p04pg")) throw new Error("guarda: DATA_DIR precisa ser /tmp/p04pg*");
-  if (PORT === Number(process.env.PGPORT ?? 0) && (process.env.PGHOST ?? "") === "127.0.0.1") {
-    throw new Error("guarda: porta/host colidem com a conexão de origem");
-  }
-  stopCluster();
-  mkdirSync(DATA_DIR, { recursive: true });
-  mkdirSync(SOCK_DIR, { recursive: true });
-  must("chown", ["-R", "1000:1000", DATA_DIR, SOCK_DIR]);
+  RUN_DIR = mkdtempSync(join(tmpdir(), "p04pg-run-"));
+  writeFileSync(join(RUN_DIR, MARKER), `${process.pid} ${new Date().toISOString()}\n`);
+  DATA_DIR = join(RUN_DIR, "pgdata");
+  mkdirSync(DATA_DIR);
+  SOCK_DIR = mkdtempSync(join(tmpdir(), "p04pg-sock-"));
+  if (readdirSync(DATA_DIR).length !== 0) throw new Error("guarda: diretório de dados não está vazio");
+  must("chown", ["-R", "1000:1000", RUN_DIR, SOCK_DIR]);
   must(UNPRIV[0], [...UNPRIV.slice(1), "initdb", "-D", DATA_DIR, "-U", "postgres", "--auth=trust"]);
+  CREATED_BY_US = true; // a partir daqui a limpeza pode agir sobre ESTE diretório
   must(UNPRIV[0], [
     ...UNPRIV.slice(1),
     "pg_ctl",
@@ -135,27 +167,40 @@ function startCluster() {
     "-o",
     [`-p ${PORT}`, `-k ${SOCK_DIR}`, "-c fsync=off", "-c listen_addresses=127.0.0.1"].join(" "),
     "-l",
-    `${DATA_DIR}/server.log`,
+    join(DATA_DIR, "server.log"),
     "start",
   ]);
   for (let i = 0; i < 30 && !isUp(); i++) run("sleep", ["1"]);
   if (!isUp()) throw new Error("cluster temporário não subiu");
-  q(`create database ${DB}`, "postgres");
 
-  // Guarda pós-conexão: só prossegue se estivermos realmente no cluster novo.
-  const dir = q("show data_directory").trim();
+  // Guardas pós-conexão, ANTES de CREATE DATABASE / bootstrap / fixtures.
+  const dir = q("show data_directory", "postgres").trim();
+  const port = q("show port", "postgres").trim();
+  const listen = q("show listen_addresses", "postgres").trim();
   if (dir !== DATA_DIR) throw new Error(`guarda: data_directory inesperado (${dir})`);
-  log(`cluster temporário no ar (data_directory=${dir}, porta ${PORT}, localhost)`);
+  if (port !== String(PORT)) throw new Error(`guarda: porta inesperada (${port})`);
+  if (listen !== "127.0.0.1") throw new Error(`guarda: listen_addresses inesperado (${listen})`);
+  log(`cluster próprio no ar (data_directory=${dir}, porta ${port}, listen ${listen})`);
+
+  q(`create database ${DB}`, "postgres");
+  return { data_directory: dir, porta: Number(port), listen_addresses: listen };
 }
 
 /* ------------------------------ bootstrap -------------------------------- */
 
+/**
+ * Bootstrap: papéis + schemas de plataforma + shims de infraestrutura.
+ * `public` é REMOVIDO aqui para que o dump o recrie com dono/grants reais e o
+ * restore rode com ON_ERROR_STOP=1 sem colisão. `private` e `qa` também vêm do
+ * dump. Nenhum objeto sob teste é criado ou substituído aqui.
+ */
 const BOOTSTRAP_SQL = `
--- papéis do Supabase referenciados por grants/owners do dump
 do $$
 declare r text;
 begin
-  foreach r in array array['anon','authenticated','service_role','sandbox_exec','authenticator','supabase_admin','supabase_auth_admin','supabase_storage_admin','dashboard_user','pgbouncer'] loop
+  foreach r in array array['anon','authenticated','service_role','sandbox_exec','authenticator',
+                           'supabase_admin','supabase_auth_admin','supabase_storage_admin',
+                           'dashboard_user','pgbouncer'] loop
     if not exists (select 1 from pg_roles where rolname = r) then
       execute format('create role %I nologin noinherit', r);
     end if;
@@ -164,20 +209,25 @@ end $$;
 alter role service_role bypassrls;
 grant anon, authenticated, service_role to postgres;
 
-create schema if not exists auth;
-create schema if not exists private;
-create schema if not exists extensions;
-create schema if not exists vault;
-create schema if not exists cron;
-create schema if not exists pgmq;
-create extension if not exists pgcrypto with schema extensions;
-create extension if not exists "uuid-ossp" with schema extensions;
-create extension if not exists pg_trgm with schema public;
-create extension if not exists unaccent with schema public;
+drop schema if exists public cascade;
+-- "public" e recriado aqui (e a linha CREATE SCHEMA public do dump e removida no
+-- pré-processamento) porque o dump por --schema NÃO inclui CREATE EXTENSION, e
+-- índices reais dependem de pg_trgm/unaccent instalados em public.
+create schema public;
+create extension pg_trgm with schema public;
+create extension unaccent with schema public;
+
+create schema auth;
+create schema extensions;
+create schema vault;
+create schema cron;
+create schema pgmq;
+create extension pgcrypto with schema extensions;
+create extension "uuid-ossp" with schema extensions;
 grant usage on schema auth, extensions to anon, authenticated, service_role;
 
--- SHIM de infraestrutura: auth.users mínimo (colunas usadas pelo código real)
-create table if not exists auth.users (
+-- SHIM de estrutura: auth.users mínimo (colunas usadas pelo código real)
+create table auth.users (
   instance_id uuid,
   id uuid primary key,
   aud text,
@@ -201,28 +251,32 @@ create table if not exists auth.users (
   is_anonymous boolean default false
 );
 
--- SHIM fiel à implementação Supabase (GoTrue): lê os claims do request.
-create or replace function auth.uid() returns uuid language sql stable as $fn$
-  select coalesce(
+-- SHIMs de auth.*: corpos copiados do banco de origem (conferidos na etapa de
+-- fidelidade auth_helpers_equivalentes).
+create function auth.uid() returns uuid language sql stable as $fn$
+  select 
+  coalesce(
     nullif(current_setting('request.jwt.claim.sub', true), ''),
     (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
   )::uuid
 $fn$;
-create or replace function auth.jwt() returns jsonb language sql stable as $fn$
-  select coalesce(
-    nullif(current_setting('request.jwt.claim', true), ''),
-    nullif(current_setting('request.jwt.claims', true), ''),
-    '{}'
-  )::jsonb
+create function auth.jwt() returns jsonb language sql stable as $fn$
+  select 
+    coalesce(
+        nullif(current_setting('request.jwt.claim', true), ''),
+        nullif(current_setting('request.jwt.claims', true), '')
+    )::jsonb
 $fn$;
-create or replace function auth.role() returns text language sql stable as $fn$
-  select coalesce(
+create function auth.role() returns text language sql stable as $fn$
+  select 
+  coalesce(
     nullif(current_setting('request.jwt.claim.role', true), ''),
     (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role')
   )::text
 $fn$;
-create or replace function auth.email() returns text language sql stable as $fn$
-  select coalesce(
+create function auth.email() returns text language sql stable as $fn$
+  select 
+  coalesce(
     nullif(current_setting('request.jwt.claim.email', true), ''),
     (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email')
   )::text
@@ -231,88 +285,122 @@ grant execute on function auth.uid(), auth.jwt(), auth.role(), auth.email()
   to anon, authenticated, service_role;
 
 -- STUBS vazios de infraestrutura externa (não são objetos sob teste)
-create table if not exists cron.job (
+create table cron.job (
   jobid bigserial primary key, schedule text, command text, nodename text default 'localhost',
   nodeport int default 5432, database text, username text, active boolean default true, jobname text);
-create table if not exists cron.job_run_details (
+create table cron.job_run_details (
   jobid bigint, runid bigserial primary key, job_pid int, database text, username text,
   command text, status text, return_message text, start_time timestamptz, end_time timestamptz);
-create table if not exists vault.secrets (
+create table vault.secrets (
   id uuid primary key default gen_random_uuid(), name text, description text,
   secret text, created_at timestamptz default now(), updated_at timestamptz default now());
-create or replace view vault.decrypted_secrets as
+create view vault.decrypted_secrets as
   select id, name, description, secret, secret as decrypted_secret, created_at, updated_at from vault.secrets;
-create or replace function pgmq.send(queue_name text, msg jsonb, delay integer default 0)
+create function pgmq.send(queue_name text, msg jsonb, delay integer default 0)
   returns setof bigint language sql as $fn$ select 0::bigint where false $fn$;
-create or replace function pgmq.read(queue_name text, vt integer, qty integer)
+create function pgmq.read(queue_name text, vt integer, qty integer)
   returns setof record language sql as $fn$ select where false $fn$;
-create or replace function pgmq.delete(queue_name text, msg_id bigint)
+create function pgmq.delete(queue_name text, msg_id bigint)
   returns boolean language sql as $fn$ select true $fn$;
 `;
 
-/* -------------------------------- restore -------------------------------- */
+/* ----------------------------- dump / restore ---------------------------- */
 
 function dumpSchema() {
-  if (REUSE_DUMP && existsSync(SCHEMA_FILE)) {
-    log(`reutilizando estrutura já exportada (${SCHEMA_FILE})`);
-    return;
-  }
   log("exportando ESTRUTURA real (schema-only: public, private, qa) com grants/policies/owners…");
-  must("pg_dump", [
-    "--schema-only",
-    "--schema=public",
-    "--schema=private",
-    "--schema=qa",
-    "-f",
-    SCHEMA_FILE,
-  ], { env: process.env });
-  log("estrutura exportada (nenhum dado copiado)");
+  must(
+    "pg_dump",
+    ["--schema-only", "--schema=public", "--schema=private", "--schema=qa", "-f", SCHEMA_FILE],
+    { env: process.env }
+  );
+  // Único pré-processamento: remove a criação do schema public (já criado no
+  // bootstrap junto com as extensões). Owner/COMMENT/GRANTs do dump seguem
+  // aplicando normalmente. Nenhuma outra linha é alterada.
+  const raw = readFileSync(SCHEMA_FILE, "utf8");
+  const filtered = raw.replace(/^CREATE SCHEMA public;$/m, "-- CREATE SCHEMA public; (criado no bootstrap com pg_trgm/unaccent)");
+  if (filtered === raw) throw new Error("pré-processamento: linha CREATE SCHEMA public não encontrada no dump");
+  writeFileSync(SCHEMA_FILE, filtered);
+  log("estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)");
 }
 
+/** Restore estrito: ON_ERROR_STOP=1, exit 0 obrigatório, sem allowlist por nome. */
 function restoreSchema() {
-  const r = run("psql", ["-d", DB, "-f", SCHEMA_FILE], { env: targetEnv });
+  const r = run("psql", ["-v", "ON_ERROR_STOP=1", "-d", DB, "-f", SCHEMA_FILE], { env: targetEnv() });
+  if (r.error) throw new Error(`psql do restore não executou: ${r.error.message}`);
   const errors = (r.stderr || "")
     .split("\n")
-    .filter((l) => /^psql:.*ERROR:/.test(l))
+    .filter((l) => /ERROR:|FATAL:/.test(l))
     .map((l) => l.replace(/^psql:[^ ]+ /, "").trim());
-  const fatal = errors.filter((e) => CRITICAL_FUNCS.some((f) => e.includes(f)) || /companies/.test(e));
-  return { total: errors.length, errors, fatal };
+  if (r.status !== 0 || errors.length > 0) {
+    for (const e of errors.slice(0, 20)) log(`  ! restore ${e}`);
+    throw new Error(
+      `restore reprovado (exit ${r.status}, ${errors.length} erro(s)) — validação inválida`
+    );
+  }
+  log("restore concluído com ON_ERROR_STOP=1: exit 0 e nenhum erro");
+  return { exit_code: r.status, erros: 0 };
 }
 
 /* ------------------------------ fidelidade ------------------------------- */
 
-const ACL_SQL = `
+const inList = (arr) => arr.map((f) => `'${f}'`).join(",");
+
+const SQL_ACL = `
 select p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')|' ||
        coalesce((select string_agg(distinct coalesce(a.grantee::regrole::text,'PUBLIC'), ',' order by coalesce(a.grantee::regrole::text,'PUBLIC'))
                  from aclexplode(p.proacl) a where a.privilege_type = 'EXECUTE'), '-')
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
- where n.nspname = 'public'
-   and p.proname in (${CRITICAL_FUNCS.map((f) => `'${f}'`).join(",")})
+ where n.nspname = 'public' and p.proname in (${inList(CRITICAL_FUNCS)})
  order by 1`;
 
-const POLICY_SQL = `
-select policyname || '|' || cmd || '|' || coalesce(qual,'-') || '|' || coalesce(with_check,'-')
-  from pg_policies where schemaname='public' and tablename='companies' order by 1`;
+/** Corpo + dono + security definer + search_path das rotinas sob teste. */
+const SQL_DEFS = `
+select n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')|' ||
+       pg_get_userbyid(p.proowner) || '|' || p.prosecdef::text || '|' ||
+       coalesce(array_to_string(p.proconfig, ','), '-') || '|' ||
+       md5(regexp_replace(pg_get_functiondef(p.oid), '\\s+', ' ', 'g'))
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where (n.nspname = 'public' and p.proname in (${inList(CRITICAL_FUNCS)}))
+    or (n.nspname || '.' || p.proname) in (${inList(AUTHZ_FUNCS.map(([s, f]) => `${s}.${f}`))})
+ order by 1`;
 
-const TRIGGER_SQL = `
-select t.tgname || '|' || p.proname || '|' || t.tgenabled::text
-  from pg_trigger t join pg_proc p on p.oid = t.tgfoid
+const SQL_POLICIES = `
+select policyname || '|' || cmd || '|' || permissive || '|' ||
+       coalesce(array_to_string(roles, ','), '-') || '|' ||
+       coalesce(qual, '-') || '|' || coalesce(with_check, '-')
+  from pg_policies where schemaname = 'public' and tablename = 'companies' order by 1`;
+
+const SQL_TRIGGERS = `
+select t.tgname || '|' || t.tgenabled::text || '|' || pg_get_triggerdef(t.oid)
+  from pg_trigger t
  where t.tgrelid = 'public.companies'::regclass and not t.tgisinternal order by 1`;
+
+/** Corpos normalizados de auth.uid/jwt/role/email (shim × real). */
+const SQL_AUTH = `
+select p.proname || '|' || pg_get_function_result(p.oid) || '|' ||
+       md5(regexp_replace(coalesce(p.prosrc,''), '\\s+', ' ', 'g'))
+  from pg_proc p
+ where p.pronamespace = 'auth'::regnamespace
+   and p.proname in ('uid','jwt','role','email')
+ order by 1`;
 
 function fidelity() {
   const checks = [];
   for (const [name, sql] of [
-    ["acl_rotinas_criticas", ACL_SQL],
-    ["policies_companies", POLICY_SQL],
-    ["triggers_companies", TRIGGER_SQL],
+    ["acl_rotinas_criticas", SQL_ACL],
+    ["definicoes_rotinas_e_autorizacao", SQL_DEFS],
+    ["policies_companies", SQL_POLICIES],
+    ["triggers_companies", SQL_TRIGGERS],
+    ["auth_helpers_equivalentes", SQL_AUTH],
   ]) {
     const src = qSource(sql).trim();
     const dst = q(sql).trim();
     const ok = src === dst && src.length > 0;
+    const linhas = src.split("\n").filter(Boolean).length;
     checks.push({
       check: name,
       status: ok ? "passed" : "failed",
-      linhas_origem: src.split("\n").filter(Boolean).length,
+      linhas_origem: linhas,
       linhas_clone: dst.split("\n").filter(Boolean).length,
       diferenca: ok
         ? null
@@ -321,7 +409,7 @@ function fidelity() {
             somente_clone: dst.split("\n").filter((l) => l && !src.includes(l)).slice(0, 20),
           },
     });
-    log(`fidelidade ${name}: ${ok ? "IDÊNTICA" : "DIVERGENTE"} (origem ${src.split("\n").filter(Boolean).length} linhas)`);
+    log(`fidelidade ${name}: ${ok ? "IDÊNTICA" : "DIVERGENTE"} (${linhas} linha(s) na origem)`);
   }
   return checks;
 }
@@ -330,30 +418,93 @@ function fidelity() {
 
 function runTestFile(file) {
   if (!existsSync(file)) {
-    return { file, status: "pending", exit_code: null, motivo: "arquivo ausente", cenarios: [] };
+    return { file, status: "pending", exit_code: null, motivo: "arquivo ausente" };
   }
-  const r = run("psql", ["-v", "ON_ERROR_STOP=1", "-d", DB, "-f", file], { env: targetEnv });
+  const r = run("psql", ["-v", "ON_ERROR_STOP=1", "-d", DB, "-f", file], { env: targetEnv() });
+  if (r.error) return { file, status: "pending", exit_code: null, motivo: `psql não executou: ${r.error.message}` };
   const out = `${r.stdout || ""}\n${r.stderr || ""}`;
-  const cenarios = out
+  const notices = out
     .split("\n")
-    .filter((l) => /NOTICE:\s+(OK|PENDENTE)/.test(l))
+    .filter((l) => /NOTICE:\s+(OK|PREP|PENDENTE)/.test(l))
     .map((l) => l.replace(/^.*NOTICE:\s+/, "").trim());
-  const falhas = out
-    .split("\n")
-    .filter((l) => /ERROR:|FALHA /.test(l))
-    .map((l) => l.trim());
+  const preparacao = notices.filter((l) => l.startsWith("PREP"));
+  const pendentes = notices.filter((l) => l.startsWith("PENDENTE"));
+  const grupos = notices.filter((l) => l.startsWith("OK"));
+  const subcasos = grupos.reduce((acc, l) => {
+    const m = l.match(/\((\d+)\s+casos?\)/);
+    return acc + (m ? Number(m[1]) : 0);
+  }, 0);
+  const falhas = out.split("\n").filter((l) => /ERROR:|FALHA /.test(l)).map((l) => l.trim());
   const status = r.status === 0 && falhas.length === 0 ? "passed" : "failed";
-  log(`teste ${file}: exit=${r.status} status=${status} cenarios=${cenarios.length}`);
-  for (const c of cenarios) log(`  · ${c}`);
+  log(`teste ${file}: exit=${r.status} status=${status} preparacao=${preparacao.length} grupos=${grupos.length} subcasos=${subcasos} pendentes=${pendentes.length}`);
+  for (const c of notices) log(`  · ${c}`);
   for (const f of falhas) log(`  ! ${f}`);
   return {
     file,
     comando: `psql -v ON_ERROR_STOP=1 -d ${DB} -f ${file}`,
     status,
     exit_code: r.status,
-    cenarios,
+    contagem: {
+      preparacao: preparacao.length,
+      grupos_de_assercoes: grupos.length,
+      subcasos_declarados: subcasos,
+      pendentes: pendentes.length,
+    },
+    preparacao,
+    grupos_de_assercoes: grupos,
+    pendentes,
     falhas,
   };
+}
+
+/* ------------------------------- self-test ------------------------------- */
+
+/** Comprova que uma falha ANTES do start não dispara limpeza em cluster alheio. */
+function selfTest() {
+  const alheio = mkdtempSync(join(tmpdir(), "p04pg-alheio-"));
+  writeFileSync(join(alheio, "PGVERSION"), "17\n");
+  const resultados = [];
+
+  // 1. falha pré-start: nenhuma limpeza, nada apagado
+  RUN_DIR = alheio;
+  DATA_DIR = join(alheio, "pgdata");
+  SOCK_DIR = alheio;
+  CREATED_BY_US = false;
+  cleanup();
+  resultados.push({
+    caso: "falha_pre_start_nao_limpa_cluster_alheio",
+    status: existsSync(join(alheio, "PGVERSION")) ? "passed" : "failed",
+  });
+
+  // 2. mesmo com CREATED_BY_US ligado por engano, a ausência do marcador protege
+  CREATED_BY_US = true;
+  cleanup();
+  resultados.push({
+    caso: "sem_marcador_nao_apaga_diretorio",
+    status: existsSync(join(alheio, "PGVERSION")) ? "passed" : "failed",
+  });
+
+  // 3. guarda de colisão com a origem
+  let colidiu = false;
+  const backup = { host: process.env.PGHOST, port: process.env.PGPORT };
+  process.env.PGHOST = "127.0.0.1";
+  process.env.PGPORT = String(PORT);
+  try {
+    preStartGuards();
+  } catch {
+    colidiu = true;
+  }
+  process.env.PGHOST = backup.host;
+  process.env.PGPORT = backup.port;
+  resultados.push({ caso: "guarda_colisao_com_origem", status: colidiu ? "passed" : "failed" });
+
+  rmSync(alheio, { recursive: true, force: true });
+  RUN_DIR = null;
+  DATA_DIR = null;
+  SOCK_DIR = null;
+  CREATED_BY_US = false;
+  for (const r of resultados) log(`self-test ${r.caso}: ${r.status}`);
+  return resultados;
 }
 
 /* --------------------------------- main ---------------------------------- */
@@ -361,94 +512,111 @@ function runTestFile(file) {
 const report = {
   fase: "P0.4 — validação funcional em banco isolado",
   gerado_em: new Date().toISOString(),
+  comando: `node ${process.argv.slice(1).join(" ").replace(/^.*scripts\//, "scripts/")}`,
   ambiente: {
-    tipo: "cluster PostgreSQL local temporário e descartável",
-    data_directory: DATA_DIR,
+    tipo: "cluster PostgreSQL local temporário, exclusivo desta execução e descartável",
     host: "127.0.0.1",
     porta: PORT,
     banco: DB,
-    origem_dos_dados: "nenhuma — apenas ESTRUTURA (pg_dump --schema-only)",
+    origem_dos_dados: "nenhuma — apenas ESTRUTURA (pg_dump --schema-only), reexportada nesta execução",
   },
   incluido: [
-    "schemas public, private e qa completos (tabelas, funções, policies, triggers, grants, owners)",
-    "papéis anon/authenticated/service_role/sandbox_exec com os mesmos grants do dump",
-    "auth.users (shim de estrutura) e fixtures sintéticas criadas pelos testes",
+    "schemas public, private e qa completos (tabelas, funções, policies, triggers, grants, owners) restaurados com ON_ERROR_STOP=1",
+    "papéis anon/authenticated/service_role/sandbox_exec e papéis de plataforma, para os grants do dump aplicarem sem erro",
+    "auth.users (estrutura) e auth.uid/jwt/role/email com corpos idênticos aos do banco real (conferido)",
   ],
   excluido: [
-    "TODOS os dados reais (nenhuma linha copiada; zero dado pessoal)",
+    "TODOS os dados reais — nenhuma linha copiada, nenhum dado pessoal",
     "extensões externas indisponíveis localmente: pg_cron, pg_net, pgmq, supabase_vault, pg_stat_statements — substituídas por tabelas/funções STUB vazias",
-    "schemas de plataforma não usados pelos objetos sob teste: storage, realtime, supabase_functions, graphql",
-    "GoTrue/PostgREST reais: auth.uid()/auth.jwt()/auth.role() reimplementados fielmente sobre request.jwt.claims",
+    "schemas de plataforma não referenciados pelos objetos sob teste: storage, realtime, supabase_functions, graphql",
+    "serviços gerenciados (GoTrue, PostgREST, agendador, filas, cofre): não há equivalência integral; apenas o contrato de claims do auth.* é reproduzido",
   ],
   nao_substituido: [
-    "nenhuma função de segurança sob teste (has_role, is_super_admin, guards de titularidade, RPCs de folga, rotinas internas) foi alterada ou stubada — todas vêm do dump real",
+    "nenhuma função de segurança sob teste (rotinas internas, RPCs de folga, guards de titularidade, has_role/is_super_admin/is_company_admin_or_owner/dp_access_enabled/company_owner_snapshot) foi criada ou alterada pelo bootstrap — todas vêm do dump real e têm corpo/dono/security definer/search_path conferidos",
   ],
+  self_test_runner: [],
   etapas: [],
   fidelidade: [],
   testes: [],
-  limitacoes: [],
+  resumo_cenarios: {},
+  limitacoes: [
+    "Rotinas globais dp_escala_auto_gerar_todas() e dp_folga_autoatribuir_todas() só são exercitadas pela negação de EXECUTE: em modo global varrem todas as empresas do banco e não agregam prova além do caminho por empresa.",
+    "Agendador (pg_cron), filas (pgmq) e cofre (supabase_vault) são stubs vazios: a execução agendada não é simulada; segue comprovada por privilégio e cadeia de chamadas.",
+    "Camada HTTP não é exercitada: PostgREST e GoTrue não rodam aqui. As provas são no banco (privilégios, RLS, políticas, gatilhos, corpos das funções) com claims injetados como o PostgREST faz.",
+    "Sem dados reais, o comportamento sobre volume, índices e latência de produção não é avaliado nesta etapa.",
+  ],
 };
 
 let exitCode = 0;
 try {
   log("iniciando validação funcional isolada da P0.4");
-  dumpSchema();
-  startCluster();
-  q(BOOTSTRAP_SQL);
-  log("bootstrap de papéis/schemas/shims aplicado");
+  preStartGuards();
 
-  const restore = restoreSchema();
-  report.etapas.push({
-    etapa: "restore_estrutura",
-    erros_totais: restore.total,
-    erros_em_objetos_sob_teste: restore.fatal.length,
-    amostra_erros: restore.errors.slice(0, 40),
-    status: restore.fatal.length === 0 ? "passed" : "failed",
-  });
-  log(`restore concluído: ${restore.total} erro(s) de dependência externa, ${restore.fatal.length} em objetos sob teste`);
-  if (restore.fatal.length) {
-    for (const f of restore.fatal.slice(0, 20)) log(`  ! FATAL ${f}`);
-    throw new Error("restore falhou em objetos sob teste — validação não pode ser considerada válida");
+  if (SELF_TEST) {
+    report.self_test_runner = selfTest();
+    report.status_geral = report.self_test_runner.every((r) => r.status === "passed") ? "passed" : "failed";
+    exitCode = report.status_geral === "passed" ? 0 : 1;
+  } else {
+    report.self_test_runner = selfTest();
+    if (report.self_test_runner.some((r) => r.status !== "passed")) {
+      throw new Error("self-test do runner reprovado — não prossegue");
+    }
+    dumpSchema();
+    report.ambiente = { ...report.ambiente, ...startCluster() };
+    q(BOOTSTRAP_SQL);
+    log("bootstrap de papéis/schemas/shims aplicado (public removido para o dump recriá-lo)");
+
+    report.etapas.push({ etapa: "restore_estrutura", ...restoreSchema(), status: "passed" });
+
+    const tabelas = Number(
+      q("select count(*) from information_schema.tables where table_schema='public' and table_type='BASE TABLE'").trim()
+    );
+    const funcs = Number(
+      q("select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'").trim()
+    );
+    report.etapas.push({ etapa: "inventario_clone", tabelas_public: tabelas, funcoes_public: funcs });
+    log(`clone: ${tabelas} tabelas e ${funcs} funções em public`);
+    if (tabelas < 150) throw new Error(`estrutura incompleta no clone (${tabelas} tabelas)`);
+
+    report.fidelidade = fidelity();
+    if (report.fidelidade.some((c) => c.status !== "passed")) {
+      throw new Error("fidelidade divergente entre origem e clone — validação inválida");
+    }
+
+    for (const f of TEST_FILES) report.testes.push(runTestFile(f));
+    report.resumo_cenarios = report.testes.reduce(
+      (acc, t) => ({
+        preparacao: acc.preparacao + (t.contagem?.preparacao ?? 0),
+        grupos_de_assercoes: acc.grupos_de_assercoes + (t.contagem?.grupos_de_assercoes ?? 0),
+        subcasos_declarados: acc.subcasos_declarados + (t.contagem?.subcasos_declarados ?? 0),
+        pendentes: acc.pendentes + (t.contagem?.pendentes ?? 0),
+      }),
+      { preparacao: 0, grupos_de_assercoes: 0, subcasos_declarados: 0, pendentes: 0 }
+    );
+    if (report.testes.some((t) => t.status === "failed")) exitCode = 1;
+    if (report.testes.some((t) => t.status === "pending")) {
+      report.limitacoes.push("Arquivo de teste não executado (ver testes[].motivo) — PENDENTE, não aprovado.");
+      exitCode = exitCode || 2;
+    }
+    if (report.resumo_cenarios.pendentes > 0) {
+      report.limitacoes.push(
+        `${report.resumo_cenarios.pendentes} cenário(s) marcados como PENDENTE pelas suítes (ver testes[].pendentes) — não contam como aprovação.`
+      );
+    }
+    report.status_geral = exitCode === 0 ? "passed" : "failed";
   }
-
-  const tabelas = Number(q(
-    "select count(*) from information_schema.tables where table_schema='public' and table_type='BASE TABLE'"
-  ).trim());
-  const funcs = Number(q(
-    "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'"
-  ).trim());
-  report.etapas.push({ etapa: "inventario_clone", tabelas_public: tabelas, funcoes_public: funcs });
-  log(`clone: ${tabelas} tabelas e ${funcs} funções em public`);
-  if (tabelas < 150) throw new Error(`estrutura incompleta no clone (${tabelas} tabelas)`);
-
-  report.fidelidade = fidelity();
-  if (report.fidelidade.some((c) => c.status !== "passed")) {
-    throw new Error("fidelidade divergente entre origem e clone — validação inválida");
-  }
-
-  for (const f of TEST_FILES) report.testes.push(runTestFile(f));
-  if (report.testes.some((t) => t.status === "failed")) exitCode = 1;
-  if (report.testes.some((t) => t.status === "pending")) {
-    report.limitacoes.push("Um ou mais arquivos de teste não foram executados (ver testes[].motivo) — pendente, NÃO aprovado.");
-    exitCode = exitCode || 2;
-  }
-  report.status_geral = exitCode === 0 ? "passed" : "failed";
 } catch (err) {
   exitCode = 1;
   report.status_geral = "failed";
   report.erro = String(err.message || err).slice(0, 4000);
   log(`ERRO: ${report.erro}`);
 } finally {
-  if (!KEEP) {
-    stopCluster();
-    log("cluster temporário destruído");
-  } else {
-    log("cluster mantido (--keep)");
-  }
+  rmSync(SCHEMA_FILE, { force: true });
+  if (KEEP && CREATED_BY_US) log(`cluster próprio mantido em ${DATA_DIR} (--keep)`);
+  else cleanup();
   report.codigo_saida = exitCode;
   writeFileSync(REPORT_FILE, JSON.stringify(report, null, 2) + "\n");
-  flushLog();
-  appendFileSync(LOG_FILE, `\n=== status geral: ${report.status_geral} (exit ${exitCode}) ===\n`);
+  writeFileSync(LOG_FILE, `${logLines.join("\n")}\n\n=== status geral: ${report.status_geral} (exit ${exitCode}) ===\n`);
   console.log(`relatório: ${REPORT_FILE}\nlog: ${LOG_FILE}`);
 }
 process.exit(exitCode);

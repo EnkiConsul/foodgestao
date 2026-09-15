@@ -23,7 +23,8 @@ CREATE TEMP TABLE s_fix (
   owner_b uuid, admin_b uuid,
   company_a uuid, company_b uuid,
   unidade_a uuid, unidade_b uuid,
-  competencia date
+  competencia date,
+  colab_a1 uuid, colab_a2 uuid, jornada_a uuid
 ) ON COMMIT DROP;
 
 DO $$
@@ -32,6 +33,8 @@ DECLARE
   ou uuid := gen_random_uuid(); ob uuid := gen_random_uuid(); ab uuid := gen_random_uuid();
   compa uuid := gen_random_uuid(); compb uuid := gen_random_uuid();
   una uuid := gen_random_uuid(); unb uuid := gen_random_uuid();
+  c1 uuid := gen_random_uuid(); c2 uuid := gen_random_uuid(); cb1 uuid := gen_random_uuid();
+  jor uuid := gen_random_uuid();
   comp date := date_trunc('month', now())::date;
 BEGIN
   INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password,
@@ -53,14 +56,24 @@ BEGIN
   INSERT INTO public.dp_unidades (id, company_id, nome) VALUES
     (una, compa, 'UNIDADE SINTETICA A'), (unb, compb, 'UNIDADE SINTETICA B');
 
-  INSERT INTO public.dp_colaboradores (id, company_id, nome, unidade_id)
-  VALUES (gen_random_uuid(), compa, 'COLABORADOR SINTETICO A1', una),
-         (gen_random_uuid(), compa, 'COLABORADOR SINTETICO A2', una),
-         (gen_random_uuid(), compb, 'COLABORADOR SINTETICO B1', unb);
+  -- colab_a é o perfil REAL de colaborador: usuário do portal vinculado a um
+  -- registro de dp_colaboradores (user_id preenchido).
+  INSERT INTO public.dp_colaboradores (id, company_id, nome, unidade_id, user_id)
+  VALUES (c1, compa, 'COLABORADOR SINTETICO A1', una, ca),
+         (c2, compa, 'COLABORADOR SINTETICO A2', una, NULL),
+         (cb1, compb, 'COLABORADOR SINTETICO B1', unb, NULL);
 
-  INSERT INTO s_fix VALUES (oa, aa, ca, ou, ob, ab, compa, compb, una, unb, comp);
-  RAISE NOTICE 'OK fixtures: duas empresas sintéticas (A e B) e 6 usuários criados';
+  -- NÃO há jornada sintética: public.dp_jornadas tem o gatilho ativo
+  -- trg_dp_jornadas_legado (dp_bloquear_cadastro_legado), que recusa novos
+  -- cadastros ("Cadastro antigo de jornadas encerrado"). Alimentar essa tabela
+  -- exigiria desabilitar uma regra de produção, o que não é feito aqui. Por
+  -- isso S5.2 é reportado como PENDENTE, não como aprovado.
+
+  INSERT INTO s_fix VALUES (oa, aa, ca, ou, ob, ab, compa, compb, una, unb, comp, c1, c2, NULL);
+  RAISE NOTICE 'PREP fixtures: 2 empresas, 6 usuários e 3 colaboradores (1 com acesso de portal)';
 END $$;
+
+
 
 CREATE OR REPLACE FUNCTION pg_temp.s_as_user(_uid uuid) RETURNS void
 LANGUAGE plpgsql AS $$
@@ -209,9 +222,48 @@ BEGIN
       RAISE EXCEPTION 'FALHA S3: UPDATE de % afetou % linha(s) na empresa B', perfil, v_rows;
     END IF;
   END LOOP;
-  RAISE NOTICE 'OK S3: admin de A, colaborador e usuário sem vínculo não alteram a empresa B';
+  RAISE NOTICE 'OK S3: admin de A, colaborador e usuário sem vínculo não alteram a empresa B (3 casos)';
 END $$;
 RESET ROLE;
+
+-- =====================================================================
+-- S3b (NEGATIVO NA PRÓPRIA EMPRESA): o colaborador (perfil real, vinculado a
+--      dp_colaboradores.user_id) não edita a empresa em que trabalha.
+-- =====================================================================
+DO $$
+DECLARE f s_fix; v_antes text; v_depois text; v_rows int := 0; v_state text; v_msg text; v_vinculo int;
+BEGIN
+  SELECT * INTO f FROM s_fix;
+  SELECT count(*)::int INTO v_vinculo FROM public.dp_colaboradores
+   WHERE company_id = f.company_a AND user_id = f.colab_a;
+  IF v_vinculo <> 1 THEN
+    RAISE EXCEPTION 'FALHA S3b: colaborador sintético não está vinculado ao usuário do portal (% vínculo)', v_vinculo;
+  END IF;
+
+  SELECT name INTO v_antes FROM public.companies WHERE id = f.company_a;
+  PERFORM pg_temp.s_as_user(f.colab_a);
+  BEGIN
+    UPDATE public.companies SET name = 'P04 A EDITADA PELO COLABORADOR' WHERE id = f.company_a;
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+  EXCEPTION WHEN others THEN
+    v_state := SQLSTATE; v_msg := SQLERRM;
+  END;
+  PERFORM pg_temp.s_reset();
+
+  SELECT name INTO v_depois FROM public.companies WHERE id = f.company_a;
+  IF v_depois IS DISTINCT FROM v_antes THEN
+    RAISE EXCEPTION 'FALHA S3b: colaborador alterou a própria empresa (% -> %)', v_antes, v_depois;
+  END IF;
+  IF v_state IS NOT NULL AND v_state <> '42501' THEN
+    RAISE EXCEPTION 'FALHA S3b: erro inesperado (% / %)', v_state, v_msg;
+  END IF;
+  IF v_state IS NULL AND v_rows <> 0 THEN
+    RAISE EXCEPTION 'FALHA S3b: UPDATE do colaborador afetou % linha(s)', v_rows;
+  END IF;
+  RAISE NOTICE 'OK S3b: colaborador com acesso de portal não edita a própria empresa';
+END $$;
+RESET ROLE;
+
 
 -- =====================================================================
 -- S4 (RPCs APP-FACING): exigem admin/dono DA EMPRESA ALVO.
@@ -297,11 +349,12 @@ RESET ROLE;
 -- =====================================================================
 -- S5 (EXECUÇÃO INTERNA PRESERVADA): as rotinas internas continuam
 --     executáveis pelo proprietário do banco e por service_role, com
---     dados sintéticos. Nenhum serviço externo é chamado.
+--     dados sintéticos e EFEITO VERIFICADO. Nenhum serviço externo é chamado.
 -- =====================================================================
 DO $$
 DECLARE
   f s_fix; v_batch uuid := gen_random_uuid(); v_proc int; v_res jsonb;
+  v_ret int; v_linhas int; v_fora int; v_geradas int;
 BEGIN
   SELECT * INTO f FROM s_fix;
 
@@ -316,15 +369,127 @@ BEGIN
   END IF;
   RAISE NOTICE 'OK S5.1: contagem de páginas do lote executada internamente (processed_pages=2)';
 
-  -- 5.2 geração automática de escala da empresa sintética
-  PERFORM public.dp_escala_auto_gerar(f.company_a, f.competencia);
-  RAISE NOTICE 'OK S5.2: geração de escala executada internamente para a empresa sintética A';
+  -- 5.2 geração automática de escala: PENDENTE quanto a trabalho efetivo.
+  --     dp_escala_auto_gerar lê public.dp_colaborador_jornadas/public.dp_jornadas
+  --     (cadastro legado), cujo gatilho ativo trg_dp_jornadas_legado recusa novos
+  --     registros. Sem violar essa regra de produção não há como criar jornada
+  --     sintética elegível, então aqui só a EXECUÇÃO e a ausência de efeito
+  --     colateral são conferidas — não a geração efetiva.
+  v_ret := public.dp_escala_auto_gerar(f.company_a, f.competencia);
+  IF v_ret IS NULL THEN
+    RAISE EXCEPTION 'FALHA S5.2: retorno nulo da geração de escala';
+  END IF;
 
-  -- 5.3 autoatribuição de folgas por competência (empresa sintética)
+  SELECT count(*)::int INTO v_linhas
+    FROM public.dp_folgas
+   WHERE company_id = f.company_a AND origem = 'fixa_semana'
+     AND data BETWEEN f.competencia
+                  AND (date_trunc('month', f.competencia) + interval '1 month - 1 day')::date;
+  IF v_linhas IS DISTINCT FROM v_ret THEN
+    RAISE EXCEPTION 'FALHA S5.2: retorno diz % folgas, gravadas %', v_ret, v_linhas;
+  END IF;
+  SELECT count(*)::int INTO v_fora
+    FROM public.dp_folgas fg
+   WHERE fg.origem = 'fixa_semana' AND fg.company_id <> f.company_a;
+  IF v_fora <> 0 THEN
+    RAISE EXCEPTION 'FALHA S5.2: % folga(s) gravadas fora da empresa sintética A', v_fora;
+  END IF;
+
+  IF v_ret = 0 THEN
+    RAISE NOTICE 'PENDENTE S5.2: geração de escala executada internamente (retorno=0, nenhuma gravação) — trabalho efetivo NÃO comprovado: o cadastro de jornadas (dp_jornadas) está selado pelo gatilho trg_dp_jornadas_legado e não pode receber fixture sem violar regra de produção';
+  ELSE
+    RAISE NOTICE 'OK S5.2: escala gerada com efeito verificado (% folgas na empresa sintética A)', v_ret;
+  END IF;
+
+
+  -- 5.3 autoatribuição de folgas por competência: retorno e efeito conferidos
   SELECT public.dp_folga_autoatribuir_competencia(f.company_a, f.unidade_a, f.competencia) INTO v_res;
-  RAISE NOTICE 'OK S5.3: autoatribuição de folgas executada internamente (retorno: %)',
-    left(coalesce(v_res::text, 'null'), 200);
+  IF v_res IS NULL THEN
+    RAISE EXCEPTION 'FALHA S5.3: retorno nulo da autoatribuição';
+  END IF;
+  IF COALESCE((v_res->>'ok')::boolean, false) IS NOT TRUE THEN
+    RAISE EXCEPTION 'FALHA S5.3: autoatribuição não retornou ok=true (%)', left(v_res::text, 300);
+  END IF;
+  v_geradas := COALESCE((v_res->>'geradas')::int, -1);
+  IF v_geradas < 0 THEN
+    RAISE EXCEPTION 'FALHA S5.3: campo "geradas" ausente ou inválido (%)', left(v_res::text, 300);
+  END IF;
+
+  SELECT count(*)::int INTO v_linhas
+    FROM public.dp_folgas fg
+   WHERE fg.company_id = f.company_a
+     AND fg.origem = 'auto_fechamento_periodo'
+     AND fg.colaborador_id IN (f.colab_a1, f.colab_a2)
+     AND fg.data BETWEEN f.competencia
+                     AND (date_trunc('month', f.competencia) + interval '1 month - 1 day')::date;
+  IF v_linhas IS DISTINCT FROM v_geradas THEN
+    RAISE EXCEPTION 'FALHA S5.3: retorno diz % folgas, gravadas % na empresa/colaboradores sintéticos',
+      v_geradas, v_linhas;
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.dp_folgas WHERE origem = 'auto_fechamento_periodo' AND company_id <> f.company_a) THEN
+    RAISE EXCEPTION 'FALHA S5.3: autoatribuição gravou folga fora da empresa sintética A';
+  END IF;
+  IF v_geradas = 0 THEN
+    RAISE NOTICE 'PENDENTE S5.3: autoatribuição executou e conferiu consistência (ok=true, geradas=0), mas NÃO houve gravação — trabalho efetivo não comprovado com esta configuração mínima (janela de folgas/fins de semana exigidos não configurados)';
+  ELSE
+    RAISE NOTICE 'OK S5.3: autoatribuição por competência com efeito verificado (% folgas na empresa A, colaboradores sintéticos)', v_geradas;
+  END IF;
 END $$;
+
+-- =====================================================================
+-- S5b (POSITIVO APP-FACING COM EFEITO): admin da PRÓPRIA empresa aplica o
+--      plano de folgas e a gravação é conferida.
+-- =====================================================================
+DO $$
+DECLARE
+  f s_fix; v_comp2 date; v_plan jsonb; v_item jsonb; v_colab uuid; v_data date;
+  v_res jsonb; v_linhas int; v_antes int;
+BEGIN
+  SELECT * INTO f FROM s_fix;
+  -- competência seguinte, para não colidir com as folgas criadas em S5.3
+  v_comp2 := (date_trunc('month', f.competencia) + interval '1 month')::date;
+
+  -- a data vem da PRÉVIA da própria rotina (dia permitido pela política real),
+  -- em vez de uma data arbitrária que a regra de negócio recusaria
+  PERFORM pg_temp.s_as_user(f.admin_a);
+  v_plan := public.dp_folga_autoatribuicao_plano(f.company_a, f.unidade_a, v_comp2);
+  PERFORM pg_temp.s_reset();
+
+  SELECT i INTO v_item
+    FROM jsonb_array_elements(COALESCE(v_plan->'itens', '[]'::jsonb)) i
+   WHERE i->>'data_sugerida' IS NOT NULL
+   LIMIT 1;
+
+  IF v_item IS NULL THEN
+    RAISE NOTICE 'PENDENTE S5b: prévia não sugeriu nenhuma data elegível na competência sintética seguinte — aplicação legítima com efeito NÃO exercitada (plano: %)', left(COALESCE(v_plan::text, 'null'), 300);
+  ELSE
+    v_colab := (v_item->>'colaborador_id')::uuid;
+    v_data := (v_item->>'data_sugerida')::date;
+
+    SELECT count(*)::int INTO v_antes FROM public.dp_folgas
+     WHERE colaborador_id = v_colab AND data = v_data;
+
+    PERFORM pg_temp.s_as_user(f.admin_a);
+    SELECT public.dp_folga_autoatribuir_aplicar(
+             f.company_a, f.unidade_a, v_comp2,
+             jsonb_build_array(jsonb_build_object('colaborador_id', v_colab, 'data', to_char(v_data, 'YYYY-MM-DD')))
+           ) INTO v_res;
+    PERFORM pg_temp.s_reset();
+
+    IF v_res IS NULL THEN
+      RAISE EXCEPTION 'FALHA S5b: retorno nulo da aplicação do plano pelo admin da própria empresa';
+    END IF;
+    SELECT count(*)::int INTO v_linhas FROM public.dp_folgas
+     WHERE company_id = f.company_a AND colaborador_id = v_colab AND data = v_data;
+    IF v_linhas <= v_antes THEN
+      RAISE EXCEPTION 'FALHA S5b: aplicação legítima não gravou a folga (antes %, depois %) — retorno %',
+        v_antes, v_linhas, left(v_res::text, 300);
+    END IF;
+    RAISE NOTICE 'OK S5b: admin da própria empresa aplica o plano e a folga é gravada (efeito verificado em %)', v_data;
+  END IF;
+END $$;
+
+RESET ROLE;
 
 -- =====================================================================
 -- S6 (EXECUÇÃO INTERNA COMO service_role): mesmo caminho, papel de serviço.
@@ -353,13 +518,13 @@ RESET ROLE;
 
 -- =====================================================================
 -- LIMITES CONHECIDOS destes cenários (registrados, não aprovados):
---  · As rotinas por data (escala/folgas) rodam sobre dados mínimos: sem
---    configuração de jornada, turnos, cobertura e janela de folgas as rotinas
---    percorrem zero colaborador elegível, então provam a EXECUÇÃO e a
---    autorização, não o trabalho efetivo de geração.
 --  · dp_escala_auto_gerar_todas()/dp_folga_autoatribuir_todas() não são
 --    exercitadas em modo global aqui além da negação de EXECUTE (S1): varrem
 --    todas as empresas do banco e não agregam prova além do caminho por
 --    empresa já coberto em S5.
+--  · A autoatribuição por fins de semana depende de janela/exigência
+--    configuradas; quando a configuração mínima resulta em zero gravação, o
+--    cenário S5.3 é reportado como PENDENTE (não aprovado).
 -- =====================================================================
 ROLLBACK;
+
