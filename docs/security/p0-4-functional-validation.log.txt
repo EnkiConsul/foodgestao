@@ -1,0 +1,10 @@
+[2026-09-15T03:33:39.389Z] iniciando validação funcional isolada da P0.4
+[2026-09-15T03:33:39.391Z] guardas pré-start aprovadas (destino não colide com a conexão de origem)
+[2026-09-15T03:33:39.391Z] limpeza ignorada: nenhum cluster foi criado por esta execução
+[2026-09-15T03:33:39.391Z] limpeza abortada: marcador ausente em /tmp/p04pg-alheio-fR1gBx (diretório não é desta execução)
+[2026-09-15T03:33:39.392Z] self-test falha_pre_start_nao_limpa_cluster_alheio: passed
+[2026-09-15T03:33:39.393Z] self-test sem_marcador_nao_apaga_diretorio: passed
+[2026-09-15T03:33:39.393Z] self-test guarda_colisao_com_origem: passed
+[2026-09-15T03:33:39.393Z] limpeza ignorada: nenhum cluster foi criado por esta execução
+
+=== status geral: passed (exit 0) ===

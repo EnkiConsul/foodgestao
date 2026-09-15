@@ -1,114 +1,52 @@
 {
   "fase": "P0.4 — validação funcional em banco isolado",
-  "gerado_em": "2026-09-15T03:23:57.835Z",
+  "gerado_em": "2026-09-15T03:33:39.388Z",
+  "comando": "node scripts/test-p04-isolated.mjs --self-test",
   "ambiente": {
-    "tipo": "cluster PostgreSQL local temporário e descartável",
-    "data_directory": "/tmp/p04pg",
+    "tipo": "cluster PostgreSQL local temporário, exclusivo desta execução e descartável",
     "host": "127.0.0.1",
     "porta": 55437,
     "banco": "p04iso",
-    "origem_dos_dados": "nenhuma — apenas ESTRUTURA (pg_dump --schema-only)"
+    "origem_dos_dados": "nenhuma — apenas ESTRUTURA (pg_dump --schema-only), reexportada nesta execução"
   },
   "incluido": [
-    "schemas public, private e qa completos (tabelas, funções, policies, triggers, grants, owners)",
-    "papéis anon/authenticated/service_role/sandbox_exec com os mesmos grants do dump",
-    "auth.users (shim de estrutura) e fixtures sintéticas criadas pelos testes"
+    "schemas public, private e qa completos (tabelas, funções, policies, triggers, grants, owners) restaurados com ON_ERROR_STOP=1",
+    "papéis anon/authenticated/service_role/sandbox_exec e papéis de plataforma, para os grants do dump aplicarem sem erro",
+    "auth.users (estrutura) e auth.uid/jwt/role/email com corpos idênticos aos do banco real (conferido)"
   ],
   "excluido": [
-    "TODOS os dados reais (nenhuma linha copiada; zero dado pessoal)",
+    "TODOS os dados reais — nenhuma linha copiada, nenhum dado pessoal",
     "extensões externas indisponíveis localmente: pg_cron, pg_net, pgmq, supabase_vault, pg_stat_statements — substituídas por tabelas/funções STUB vazias",
-    "schemas de plataforma não usados pelos objetos sob teste: storage, realtime, supabase_functions, graphql",
-    "GoTrue/PostgREST reais: auth.uid()/auth.jwt()/auth.role() reimplementados fielmente sobre request.jwt.claims"
+    "schemas de plataforma não referenciados pelos objetos sob teste: storage, realtime, supabase_functions, graphql",
+    "serviços gerenciados (GoTrue, PostgREST, agendador, filas, cofre): não há equivalência integral; apenas o contrato de claims do auth.* é reproduzido"
   ],
   "nao_substituido": [
-    "nenhuma função de segurança sob teste (has_role, is_super_admin, guards de titularidade, RPCs de folga, rotinas internas) foi alterada ou stubada — todas vêm do dump real"
+    "nenhuma função de segurança sob teste (rotinas internas, RPCs de folga, guards de titularidade, has_role/is_super_admin/is_company_admin_or_owner/dp_access_enabled/company_owner_snapshot) foi criada ou alterada pelo bootstrap — todas vêm do dump real e têm corpo/dono/security definer/search_path conferidos"
   ],
-  "etapas": [
+  "self_test_runner": [
     {
-      "etapa": "restore_estrutura",
-      "erros_totais": 2,
-      "erros_em_objetos_sob_teste": 0,
-      "amostra_erros": [
-        "ERROR:  schema \"private\" already exists",
-        "ERROR:  schema \"public\" already exists"
-      ],
+      "caso": "falha_pre_start_nao_limpa_cluster_alheio",
       "status": "passed"
     },
     {
-      "etapa": "inventario_clone",
-      "tabelas_public": 200,
-      "funcoes_public": 468
-    }
-  ],
-  "fidelidade": [
-    {
-      "check": "acl_rotinas_criticas",
-      "status": "passed",
-      "linhas_origem": 11,
-      "linhas_clone": 11,
-      "diferenca": null
+      "caso": "sem_marcador_nao_apaga_diretorio",
+      "status": "passed"
     },
     {
-      "check": "policies_companies",
-      "status": "passed",
-      "linhas_origem": 5,
-      "linhas_clone": 5,
-      "diferenca": null
-    },
-    {
-      "check": "triggers_companies",
-      "status": "passed",
-      "linhas_origem": 15,
-      "linhas_clone": 15,
-      "diferenca": null
+      "caso": "guarda_colisao_com_origem",
+      "status": "passed"
     }
   ],
-  "testes": [
-    {
-      "file": "supabase/tests/dp_internal_functions_p04.test.sql",
-      "comando": "psql -v ON_ERROR_STOP=1 -d p04iso -f supabase/tests/dp_internal_functions_p04.test.sql",
-      "status": "passed",
-      "exit_code": 0,
-      "cenarios": [
-        "OK T1: 9 rotinas internas fechadas, service_role preservado",
-        "OK T1b: nenhuma rotina interna liberada para PUBLIC",
-        "OK T2: gatilhos de validação ativos (2)",
-        "OK T3: RPCs app-facing preservadas para authenticated e fechadas para anon",
-        "OK fixtures: empresa sintética 3612951a-4568-4caf-befe-3782b1d11cb4 criada",
-        "OK T4: admin não-dono edita dados comuns normalmente",
-        "OK T5: dono edita dados comuns; transferência bloqueada pelo gatilho mais restritivo",
-        "OK T5b: super_admin executa a transferência autorizada",
-        "OK T6: transferência bloqueada por gatilho existente (Apenas o dono da empresa pode transferir a titularidade)",
-        "OK T7: policy sozinha bloqueia a transferência (SQLSTATE 42501)",
-        "OK T7b: policy permite edição comum de admin",
-        "OK T8: usuário sem vínculo — UPDATE sem efeito (0 linhas)"
-      ],
-      "falhas": []
-    },
-    {
-      "file": "supabase/tests/dp_p04_scenarios_isolated.test.sql",
-      "comando": "psql -v ON_ERROR_STOP=1 -d p04iso -f supabase/tests/dp_p04_scenarios_isolated.test.sql",
-      "status": "passed",
-      "exit_code": 0,
-      "cenarios": [
-        "OK fixtures: duas empresas sintéticas (A e B) e 6 usuários criados",
-        "OK S1: 9 rotinas internas negadas por falta de EXECUTE para authenticated e anon (18 casos)",
-        "OK S2: edição comum da empresa preservada para dono e admin",
-        "OK S3: admin de A, colaborador e usuário sem vínculo não alteram a empresa B",
-        "OK S4a: dono da empresa A obtém o plano de folgas (retorno não nulo)",
-        "OK S4b: admin da empresa A obtém o plano de folgas",
-        "OK S4c: RPC de plano nega entre empresas e para perfis sem admin (42501 FORBIDDEN, 4 casos)",
-        "OK S4d: aplicação do plano negada entre empresas (42501 FORBIDDEN)",
-        "OK S4e: visitante (anon) sem EXECUTE nas RPCs app-facing",
-        "OK S5.1: contagem de páginas do lote executada internamente (processed_pages=2)",
-        "OK S5.2: geração de escala executada internamente para a empresa sintética A",
-        "OK S5.3: autoatribuição de folgas executada internamente (retorno: {\"ok\": true, \"geradas\": 2, \"excedidas\": 0, \"competencia\": \"2026-09-01\", \"execucao_id\": \"c603268e-a351-40b7-a341-d0f087ae1411\"})",
-        "OK S6: service_role mantém a execução interna (processed_pages=1)"
-      ],
-      "falhas": []
-    }
+  "etapas": [],
+  "fidelidade": [],
+  "testes": [],
+  "resumo_cenarios": {},
+  "limitacoes": [
+    "Rotinas globais dp_escala_auto_gerar_todas() e dp_folga_autoatribuir_todas() só são exercitadas pela negação de EXECUTE: em modo global varrem todas as empresas do banco e não agregam prova além do caminho por empresa.",
+    "Agendador (pg_cron), filas (pgmq) e cofre (supabase_vault) são stubs vazios: a execução agendada não é simulada; segue comprovada por privilégio e cadeia de chamadas.",
+    "Camada HTTP não é exercitada: PostgREST e GoTrue não rodam aqui. As provas são no banco (privilégios, RLS, políticas, gatilhos, corpos das funções) com claims injetados como o PostgREST faz.",
+    "Sem dados reais, o comportamento sobre volume, índices e latência de produção não é avaliado nesta etapa."
   ],
-  "limitacoes": [],
   "status_geral": "passed",
   "codigo_saida": 0
 }
