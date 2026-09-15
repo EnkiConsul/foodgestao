@@ -60,7 +60,8 @@ O comprovante quase nunca chega junto do documento, então ele é tratado como u
 **Testes**
 - Teste RLS: colaborador de outra empresa não lê comprovante; colaborador titular lê; portal não grava comprovante.
 - Teste da trigger: comprovante recusado em tipo fora da allowlist.
-- Teste de componente (fireEvent) do painel de comprovante.
+- Teste de componente (fireEvent) do painel e do atalho no card.
+- Teste unitário das pendências: gera com a opção ligada, não gera com ela desligada, marca atraso após o prazo e baixa ao anexar.
 
 **Rollback**
 - Migration de reversão remove as colunas, a trigger e restaura a assinatura anterior de `dp_documento_arquivo`; arquivos ficam órfãos no bucket e podem ser apagados por rotina manual.
