@@ -13,10 +13,16 @@ export type ArquivoAutorizado = {
  * depois que o servidor confirma que a pessoa logada pode ver aquele
  * documento (empresa, vínculo e papel). Nenhuma tela monta o caminho sozinha.
  */
-export async function arquivoAutorizado(documentoId: string): Promise<ArquivoAutorizado | null> {
+export type VarianteArquivo = "documento" | "comprovante";
+
+export async function arquivoAutorizado(
+  documentoId: string,
+  variante: VarianteArquivo = "documento",
+): Promise<ArquivoAutorizado | null> {
   const { data, error } = await supabase.rpc("dp_documento_arquivo", {
     _documento_id: documentoId,
-  });
+    _variante: variante,
+  } as never);
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : data;
   if (!row?.file_path) return null;
@@ -27,8 +33,9 @@ export async function arquivoAutorizado(documentoId: string): Promise<ArquivoAut
 export async function linkDocumentoAssinado(
   documentoId: string,
   segundos = 60,
+  variante: VarianteArquivo = "documento",
 ): Promise<{ url: string; fileName: string | null } | null> {
-  const arquivo = await arquivoAutorizado(documentoId);
+  const arquivo = await arquivoAutorizado(documentoId, variante);
   if (!arquivo) return null;
   const { data, error } = await supabase.storage
     .from(DP_DOCUMENTOS_BUCKET)
@@ -40,9 +47,9 @@ export async function linkDocumentoAssinado(
 /** Abre (ou baixa) o documento em nova aba usando link temporário. */
 export async function abrirDocumento(
   documentoId: string,
-  opts: { download?: boolean; segundos?: number } = {},
+  opts: { download?: boolean; segundos?: number; variante?: VarianteArquivo } = {},
 ): Promise<boolean> {
-  const link = await linkDocumentoAssinado(documentoId, opts.segundos ?? 60);
+  const link = await linkDocumentoAssinado(documentoId, opts.segundos ?? 60, opts.variante ?? "documento");
   if (!link) return false;
   const a = document.createElement("a");
   a.href = link.url;
