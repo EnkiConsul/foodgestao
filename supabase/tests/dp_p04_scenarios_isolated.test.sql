@@ -347,6 +347,54 @@ END $$;
 RESET ROLE;
 
 -- =====================================================================
+-- S5-ARRANGE (FIXTURE HISTÓRICA — SOMENTE NO CLUSTER DESCARTÁVEL):
+--   cria registros LEGADOS de jornada, representando dados anteriores ao
+--   encerramento daquele cadastro. Para isso desabilita EXCLUSIVAMENTE os dois
+--   gatilhos BEFORE INSERT de selo (trg_dp_jornadas_legado e
+--   trg_dp_colaborador_jornadas_legado) durante o ARRANGE, reabilitando-os em
+--   seguida e conferindo tgenabled ANTES de qualquer função sob teste rodar.
+--   Nenhuma função de segurança/negócio é alterada e NENHUM gatilho de validação
+--   de folga é desligado. Não há DDL na origem — mesma distinção já usada em T7.
+-- =====================================================================
+ALTER TABLE public.dp_jornadas DISABLE TRIGGER trg_dp_jornadas_legado;
+ALTER TABLE public.dp_colaborador_jornadas DISABLE TRIGGER trg_dp_colaborador_jornadas_legado;
+
+DO $$
+DECLARE f s_fix; v_jor uuid := gen_random_uuid();
+BEGIN
+  SELECT * INTO f FROM s_fix;
+  INSERT INTO public.dp_jornadas (id, company_id, nome, dias_trabalho, dias_folga)
+  VALUES (v_jor, f.company_a, 'JORNADA LEGADA 6x1',
+          ARRAY[1,2,3,4,5,6]::smallint[], ARRAY[0]::smallint[]);
+
+  INSERT INTO public.dp_colaborador_jornadas (company_id, colaborador_id, jornada_id, inicio)
+  VALUES (f.company_a, f.colab_a1, v_jor, (f.competencia - interval '1 year')::date),
+         (f.company_a, f.colab_a2, v_jor, (f.competencia - interval '1 year')::date);
+
+  RAISE NOTICE 'PREP fixtures: jornada LEGADA 6x1 (folga fixa no domingo) vinculada a 2 colaboradores da empresa A';
+END $$;
+
+ALTER TABLE public.dp_jornadas ENABLE TRIGGER trg_dp_jornadas_legado;
+ALTER TABLE public.dp_colaborador_jornadas ENABLE TRIGGER trg_dp_colaborador_jornadas_legado;
+
+DO $$
+DECLARE v_off int;
+BEGIN
+  SELECT count(*)::int INTO v_off
+    FROM pg_trigger t
+   WHERE t.tgname IN ('trg_dp_jornadas_legado', 'trg_dp_colaborador_jornadas_legado')
+     AND t.tgenabled <> 'O';
+  IF v_off <> 0 THEN
+    RAISE EXCEPTION 'FALHA S5-ARRANGE: % gatilho(s) de selo continuam desabilitados', v_off;
+  END IF;
+  IF (SELECT count(*) FROM pg_trigger t
+       WHERE t.tgname IN ('trg_dp_jornadas_legado', 'trg_dp_colaborador_jornadas_legado')) <> 2 THEN
+    RAISE EXCEPTION 'FALHA S5-ARRANGE: gatilhos de selo não encontrados';
+  END IF;
+  RAISE NOTICE 'OK S5-ARRANGE: gatilhos de selo do cadastro legado reabilitados e conferidos (tgenabled=O, 2 casos)';
+END $$;
+
+-- =====================================================================
 -- S5 (EXECUÇÃO INTERNA PRESERVADA): as rotinas internas continuam
 --     executáveis pelo proprietário do banco e por service_role, com
 --     dados sintéticos e EFEITO VERIFICADO. Nenhum serviço externo é chamado.
@@ -355,6 +403,8 @@ DO $$
 DECLARE
   f s_fix; v_batch uuid := gen_random_uuid(); v_proc int; v_res jsonb;
   v_ret int; v_linhas int; v_fora int; v_geradas int;
+  v_comp_fut date; v_domingos int;
+
 BEGIN
   SELECT * INTO f FROM s_fix;
 
