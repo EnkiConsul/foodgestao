@@ -40,8 +40,10 @@ export function ColaboradorShell() {
   if (superLoading || ownerOrAdmin.isLoading || check.isLoading) {
     return <div className="p-8 text-muted-foreground">Carregando…</div>;
   }
-  // super_admin / owner / admin nunca entram no portal do colaborador
-  if (isSuperAdmin || ownerOrAdmin.data) return <Navigate to="/hub" replace />;
+  // Quem é super_admin / owner / admin e NÃO tem ficha de colaborador não tem
+  // o que ver no portal. Já o sócio administrador (com ficha ativa) pode usar
+  // as duas áreas — o destino padrão dele segue sendo a área administrativa.
+  if ((isSuperAdmin || ownerOrAdmin.data) && !check.data) return <Navigate to="/hub" replace />;
   if (!check.data) {
     return (
       <div className="p-8 max-w-md mx-auto text-center space-y-3">

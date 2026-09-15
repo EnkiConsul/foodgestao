@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, LayoutGrid } from "lucide-react";
+import { ArrowLeft, LayoutGrid, Shield, UserRound } from "lucide-react";
+import { useAcessoDuplo } from "@/hooks/useAcessoDuplo";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { ContextSelector } from "@/components/layout/ContextSelector";
