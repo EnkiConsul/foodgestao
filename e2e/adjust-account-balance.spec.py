@@ -5,8 +5,9 @@ Cobre, do clique em "Ajustar saldo" ao toast final, o happy path do motor:
   1. Abre o dialog, digita saldo alvo + justificativa e confirma
   2. Valida o toast de sucesso e o novo saldo refletido no card
 
-Seed/cleanup via RPCs helpers `_e2e_seed_adjust_balance` /
-`_e2e_cleanup_adjust_balance`.
+Seed/cleanup via rotinas `_e2e_seed_adjust_balance` /
+`_e2e_cleanup_adjust_balance`, executadas server-side com service_role
+(ver e2e/qa_admin.py — P0.2-C).
 """
 
 import asyncio
@@ -17,6 +18,9 @@ import uuid
 from pathlib import Path
 
 from playwright.async_api import async_playwright, expect
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from qa_admin import qa_rpc, session_user_id  # noqa: E402
 
 SCREENSHOTS = Path("/tmp/browser/adjust-balance/screenshots")
 SCREENSHOTS.mkdir(parents=True, exist_ok=True)
@@ -31,29 +35,12 @@ ANON_KEY = (
     "izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko"
 )
 
+def _rpc(name: str, payload: dict):
+    return qa_rpc(name, {**payload, "_user_id": session_user_id()})
+
+
 RUN_ID = uuid.uuid4().hex[:8]
 ACC_NAME = f"E2E-Ajuste-{RUN_ID}"
-
-
-def _access_token() -> str:
-    session = json.loads(os.environ["LOVABLE_BROWSER_SUPABASE_SESSION_JSON"])
-    return session["access_token"]
-
-
-def _rpc(name: str, payload: dict):
-    req = urllib.request.Request(
-        f"{SUPABASE_URL}/rest/v1/rpc/{name}",
-        data=json.dumps(payload).encode(),
-        method="POST",
-        headers={
-            "apikey": ANON_KEY,
-            "Authorization": f"Bearer {_access_token()}",
-            "Content-Type": "application/json",
-        },
-    )
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        body = resp.read().decode() or "null"
-        return json.loads(body)
 
 
 async def restore_session(context, page) -> None:
