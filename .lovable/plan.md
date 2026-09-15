@@ -19,7 +19,7 @@ Prova em duas pontas:
 - Lado A: `rcbruto77@gmail.com` (dono de ClicSorte, AVETO 360, Dra. Michelle Castro e Familia). Registro do que ele vê, evidenciando que a visão ampla vem do papel de administrador do sistema, não de falha de isolamento.
 - Lado B: um usuário comum, dono apenas de uma empresa (`eumurilo.castro@gmail.com`, APERTE 3D). Consultas às empresas do lado A devem retornar zero linhas em contas, lançamentos, categorias, contatos, orçamentos, cartões, faturas, formas de pagamento, centros de custo, plano de contas e conexões bancárias; tentativas de criar, alterar e apagar dados nas empresas do lado A devem ser recusadas.
 
-Se o usuário preferir não usar a conta de terceiro para o lado B, uso apenas as provas automatizadas já existentes para a negação e registro isso como cobertura parcial.
+Ambas as contas foram autorizadas pelo usuário para este teste.
 
 # O que falta executar
 
