@@ -22,7 +22,7 @@
  *                  em cluster alheio (não roda as suítes)
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync, appendFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
