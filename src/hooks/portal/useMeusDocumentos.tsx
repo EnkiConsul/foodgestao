@@ -139,7 +139,7 @@ export function useMeusDocumentos() {
       const { data: docs } = await supabase
         .from("dp_documentos")
         .select(
-          "id, titulo, tipo, referencia_data, file_path, file_name, mime_type, aprovacao_status, motivo_recusao, submetido_por_colaborador, descricao, created_at, exige_aceite"
+          "id, titulo, tipo, referencia_data, file_path, file_name, mime_type, aprovacao_status, motivo_recusao, submetido_por_colaborador, descricao, created_at, exige_aceite, comprovante_file_path, comprovante_file_name, comprovante_pago_em"
         )
         .eq("colaborador_id", colab.id)
         .order("created_at", { ascending: false });
@@ -195,7 +195,14 @@ export function useMeusDocumentos() {
           motivo_recusao: d.motivo_recusao ?? null,
           aceite: d.exige_aceite && !d.submetido_por_colaborador ? aceitos.has(d.id) : null,
           aceiteInfo: aceitePorDoc.get(d.id) ?? null,
-          meta: { originalId: d.id, submetido: d.submetido_por_colaborador },
+          meta: {
+            originalId: d.id,
+            submetido: d.submetido_por_colaborador,
+            comprovante: (d as any).comprovante_file_path ? {
+              nome: (d as any).comprovante_file_name ?? null,
+              pago_em: (d as any).comprovante_pago_em ?? null,
+            } : null,
+          },
         });
       }
 
