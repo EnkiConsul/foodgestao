@@ -33,6 +33,7 @@ O comprovante quase nunca chega junto do documento, então ele é tratado como u
 - Ao anexar o comprovante, a pendência baixa na hora, com registro de quem anexou e quando.
 - Nas Configurações → Prazos de Pendências a empresa pode desligar essa cobrança ("Exigir comprovante de pagamento") e ajustar o prazo em dias. Por padrão vem **ligada** para todos os tipos de pagamento.
 - Documento arquivado ou substituído não cobra comprovante; ao substituir o documento, o comprovante existente é mantido e sinalizado como "referente à versão anterior" nos detalhes.
+- A cobrança vale apenas para documentos com competência a partir de 01/09/2026. Documentos anteriores continuam aceitando comprovante quando a empresa quiser anexar, mas nunca geram pendência. A data de corte fica configurável (padrão 01/09/2026), para o caso de a empresa querer começar depois.
 
 ## Detalhes técnicos
 
@@ -42,8 +43,8 @@ O comprovante quase nunca chega junto do documento, então ele é tratado como u
 - Trigger `BEFORE INSERT OR UPDATE` fail-closed: rejeita comprovante em tipos fora da allowlist e impede que o colaborador (caminho `dp_doc_colab_submit`) preencha as colunas de comprovante.
 - `dp_documento_arquivo` ganha parâmetro `_variante text default 'documento'`; com `'comprovante'` devolve o caminho do comprovante usando exatamente a mesma checagem de autorização. Chamadas atuais continuam funcionando.
 - Contadores/auditoria já cobertos pelos triggers atuais (`audit_row_change`, `dp_set_updated_at`).
-- `dp_pendencias_config`: novas colunas `exigir_comprovante_pagamento boolean not null default true` e `alerta_comprovante_dias int not null default 5`.
-- Geração de pendências (`dp_pendencias_*` / função de materialização + `src/lib/dp/pendencias.ts`): novo tipo `comprovante_pagamento` para documentos ativos de tipo na allowlist, sem `comprovante_file_path`, respeitando a chave da empresa; atrasado quando `hoje > referencia_data + alerta_comprovante_dias`.
+- `dp_pendencias_config`: novas colunas `exigir_comprovante_pagamento boolean not null default true`, `alerta_comprovante_dias int not null default 5` e `comprovante_vigencia_inicio date not null default '2026-09-01'`.
+- Geração de pendências (`dp_pendencias_*` / função de materialização + `src/lib/dp/pendencias.ts`): novo tipo `comprovante_pagamento` para documentos ativos de tipo na allowlist, sem `comprovante_file_path` e com `referencia_data >= comprovante_vigencia_inicio` (documentos sem competência usam `created_at`); atrasado quando `hoje > referencia_data + alerta_comprovante_dias`.
 
 **Storage**
 - Mesmo bucket privado `dp-documentos`, prefixo `comprovantes/{company_id}/{colaborador_id}/…`. Upload sem `upsert`; ao substituir, o arquivo anterior é removido depois de a linha ser atualizada.
