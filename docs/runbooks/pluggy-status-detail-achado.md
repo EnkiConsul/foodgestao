@@ -1,0 +1,89 @@
+# Achado — `status_detail` das conexões Pluggy é gravado incompleto
+
+Data: 2026-09-15 · Escopo: diagnóstico, sem implementação de backend.
+
+## Evidência no código
+
+`supabase/functions/_shared/pluggy-v2-materialize.ts` (upsert de `pluggy_v2_connections`):
+
+```ts
+status_detail: item.error ? { error: item.error } : {},
+```
+
+Só `item.error` é preservado. O campo `statusDetail` do item (resumo por produto —
+`accounts`, `transactions`, `creditCards`, `identity`, cada um com `isUpdated`,
+`lastUpdatedAt`, `warnings`) é descartado.
+
+`supabase/functions/_shared/pluggy-client.ts` (linhas 59-71) tipa `PluggyItem` sem
+`statusDetail`, sem `executionReport` e sem `warnings`, então o dado nem chega ao
+código que materializa.
+
+**Consequência:** `status_detail = {}` no banco **não** significa que a Pluggy não
+informou detalhes; significa apenas que não havia `item.error`. Qualquer
+diagnóstico de coleta parcial baseado nesse campo é inconclusivo hoje.
+
+## Correção mínima proposta (não implementada)
+
+1. Em `pluggy-client.ts`, acrescentar ao tipo `PluggyItem`:
+   `statusDetail?: Record<string, { isUpdated?: boolean; lastUpdatedAt?: string | null; warnings?: unknown[] }>`.
+2. Em `pluggy-v2-materialize.ts`, gravar um resumo seguro (sem dados financeiros,
+   sem documentos, sem saldos), por exemplo:
+
+```ts
+status_detail: {
+  ...(item.error ? { error: item.error } : {}),
+  produtos: Object.fromEntries(
+    Object.entries(item.statusDetail ?? {}).map(([produto, d]) => [
+      produto,
+      {
+        atualizado: d?.isUpdated ?? null,
+        atualizado_em: d?.lastUpdatedAt ?? null,
+        avisos: Array.isArray(d?.warnings) ? d.warnings.length : 0,
+      },
+    ]),
+  ),
+  coletado_em: new Date().toISOString(),
+}
+```
+
+Somente contadores e flags — nunca o conteúdo dos avisos, que pode carregar texto
+do banco com dados do titular.
+
+3. Espelhar o mesmo resumo em `pluggy_connections.status_detail` (V1), para a tela
+  de conexões poder dizer *qual* produto ficou de fora numa coleta parcial.
+
+Nada disso foi aplicado nesta etapa.
+
+## Diagnóstico da conexão consultada (somente leitura)
+
+PRAIANOS BAR E RESTAURANTE LTDA · empresa `bab7a4ac-0b95-4b69-ba18-ac862bfb038b`
+· item `fb6d3a3f-a959-4a15-821d-0ee1e9399c38`.
+
+GET `/items/{id}` na Pluggy, via função existente `pluggy-admin-find-items`
+(super admin, service role, sem refresh e sem escrita):
+
+| Campo | Valor |
+| --- | --- |
+| status | `UPDATED` |
+| executionStatus | `PARTIAL_SUCCESS` |
+| conector | `Banco do Brasil Empresas` (id 662) |
+| error | `null` |
+| createdAt | 2026-08-24T19:04:18.806Z |
+| updatedAt | 2026-09-15T21:41:41.254Z |
+
+Banco (`pluggy_connections`, leitura): `status=updated`,
+`execution_status=PARTIAL_SUCCESS`, `last_sync_status=partial_success`,
+`last_synced_at=2026-09-15 21:42:18Z`, `next_sync_at=2026-09-15 22:42:51Z`,
+`revoked_at` nulo, `last_error` nulo.
+
+### Bloqueios (o que não foi possível obter)
+
+- `statusDetail`, `warnings` e `executionReport` **não foram retornados**: a única
+  via de leitura autorizada existente (`pluggy-admin-find-items`) projeta um
+  subconjunto fixo de campos e descarta os demais antes de responder. Obter esses
+  campos exigiria alterar backend, o que está fora desta etapa.
+- Tipo do conector (direto vs. Open Finance) não é exposto por essa função nem
+  armazenado no banco; o `connector.type`/`isOpenFinance` da Pluggy fica no mesmo
+  ponto de projeção.
+- As credenciais da Pluggy existem apenas como secrets das Edge Functions; não há
+  acesso a elas fora do backend, então não houve chamada direta à API.
