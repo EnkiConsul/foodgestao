@@ -1,0 +1,35 @@
+[2026-09-15T13:31:36.346Z] iniciando validação funcional isolada da P0.4
+[2026-09-15T13:31:36.348Z] guardas pré-start aprovadas (destino não colide com a conexão de origem)
+[2026-09-15T13:31:36.349Z] limpeza ignorada: nenhum cluster foi criado por esta execução
+[2026-09-15T13:31:36.349Z] limpeza abortada: marcador ausente em /tmp/p04pg-alheio-Mg7An0 (diretório não é desta execução)
+[2026-09-15T13:31:36.350Z] self-test falha_pre_start_nao_limpa_cluster_alheio: passed
+[2026-09-15T13:31:36.350Z] self-test sem_marcador_nao_apaga_diretorio: passed
+[2026-09-15T13:31:36.350Z] self-test guarda_colisao_com_origem: passed
+[2026-09-15T13:31:36.350Z] exportando ESTRUTURA real (schema-only: public, private, qa) com grants/policies/owners…
+[2026-09-15T13:33:09.657Z] estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)
+[2026-09-15T13:33:12.181Z] cluster próprio no ar (data_directory=/tmp/p04pg-run-KjelFi/pgdata, porta 55437, listen 127.0.0.1)
+[2026-09-15T13:33:12.341Z] bootstrap de papéis/schemas/shims aplicado (public removido para o dump recriá-lo)
+[2026-09-15T13:33:15.471Z] restore concluído com ON_ERROR_STOP=1: exit 0 e nenhum erro
+[2026-09-15T13:33:15.542Z] clone: 200 tabelas e 468 funções em public
+[2026-09-15T13:33:16.671Z] fidelidade acl_rotinas_criticas: IDÊNTICA (11 linha(s) na origem)
+[2026-09-15T13:33:22.811Z] fidelidade definicoes_rotinas_e_autorizacao: IDÊNTICA (21 linha(s) na origem)
+[2026-09-15T13:33:23.943Z] fidelidade policies_companies: IDÊNTICA (5 linha(s) na origem)
+[2026-09-15T13:33:25.063Z] fidelidade triggers_companies: IDÊNTICA (15 linha(s) na origem)
+[2026-09-15T13:33:26.173Z] fidelidade auth_helpers_equivalentes: IDÊNTICA (4 linha(s) na origem)
+[2026-09-15T13:33:26.212Z] migração aplicada SOMENTE no clone: supabase/migrations/20260915140000_ficha_aplicar_atomica.sql
+[2026-09-15T13:33:26.253Z] migração reaplicada sem erro (idempotente): supabase/migrations/20260915140000_ficha_aplicar_atomica.sql
+[2026-09-15T13:33:26.453Z] teste supabase/tests/dp_ficha_aplicar_isolated.test.sql: exit=3 status=failed preparacao=1 grupos=7 subcasos=41 pendentes=0
+[2026-09-15T13:33:26.453Z]   · PREP fixtures: 2 empresas, 6 usuários, 2 lotes e 7 fichas sintéticas
+[2026-09-15T13:33:26.453Z]   · OK F1: criação atômica gravou colaborador, configuração, 7 dias, item e contadores (9 casos)
+[2026-09-15T13:33:26.453Z]   · OK F2: replay do mesmo item devolveu o mesmo colaborador sem regravar nem duplicar (5 casos)
+[2026-09-15T13:33:26.453Z]   · OK F3: atualização gravou só os campos escolhidos e preservou os demais (8 casos)
+[2026-09-15T13:33:26.453Z]   · OK F4: campos de conta/perfil/permissões/empresa recusados (42501 FORBIDDEN, 8 casos)
+[2026-09-15T13:33:26.453Z]   · OK F5: referências de outra empresa recusadas (42501 FORBIDDEN, 3 casos)
+[2026-09-15T13:33:26.453Z]   · OK F6: visitante, colaborador, sem vínculo e admin de outra empresa negados (42501 FORBIDDEN, 5 casos)
+[2026-09-15T13:33:26.453Z]   · OK F7: CPF duplicado recusado (23505) sem gravação parcial (3 casos)
+[2026-09-15T13:33:26.453Z]   ! psql:supabase/tests/dp_ficha_aplicar_isolated.test.sql:559: ERROR:  column "colaborador_id" of relation "dp_colaborador_config_dias" does not exist
+[2026-09-15T13:33:26.672Z] 4 chamadas simultâneas da RPC concluídas sem erro
+[2026-09-15T13:33:26.701Z]   · OK C1-C3: corrida no mesmo item e em itens do mesmo lote sem duplicar cadastro, jornada, dias ou contadores (7 casos)
+[2026-09-15T13:33:26.877Z] cluster desta execução destruído
+
+=== status geral: failed (exit 1) ===

@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
 import { montarJornadaSugerida, type JornadaSugerida } from "@/lib/dp/ficha-registro/jornada-parse";
-import { dataIso, digits, montarPayloadFicha, txt } from "@/lib/dp/ficha-registro/payload";
+import { digits, montarPayloadFicha, txt } from "@/lib/dp/ficha-registro/payload";
+import { aplicarFichaRpc, ignorarFichaRpc } from "@/lib/dp/ficha-registro/aplicarFichaRpc";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
 
 export type FichaImportacao = Database["public"]["Tables"]["dp_ficha_importacoes"]["Row"];
@@ -29,8 +31,6 @@ export interface FichaDadosEditaveis {
   // deno-lint-ignore no-explicit-any
   [key: string]: unknown;
 }
-
-const hoje = () => new Date().toISOString().slice(0, 10);
 
 /** Jornada sugerida pela ficha, pronta para a tela de revisão. */
 export function jornadaDaFicha(dados: Record<string, unknown> | null): JornadaSugerida {
@@ -201,7 +201,24 @@ export interface AplicarFichaInput {
   optanteAdiantamento: boolean;
 }
 
-/** Cria (ou atualiza) o cadastro do colaborador a partir da ficha revisada. */
+/** Resultado da aplicação: o cadastro é transacional; o anexo é separado. */
+export interface AplicarFichaResultado {
+  colaboradorId: string;
+  jaAplicado: boolean;
+  anexo: "nao_solicitado" | "anexado" | "ja_anexado" | "falhou";
+}
+
+/**
+ * Cria (ou atualiza) o cadastro do colaborador a partir da ficha revisada.
+ *
+ * Tudo o que é banco (colaborador + configuração vigente + dias + dados
+ * revisados/status do item + contadores) vai em UMA transação, na rotina
+ * `dp_ficha_aplicar`. Se qualquer parte falhar, nada é gravado.
+ *
+ * O anexo do PDF é do Storage, portanto NÃO participa dessa transação: ele
+ * roda depois, é repetível sem multiplicar arquivos e uma falha aqui não
+ * desfaz — nem repete — o cadastro já confirmado.
+ */
 export function useAplicarFicha() {
   const qc = useQueryClient();
   const { selectedCompanyId } = useCompanyContext();
@@ -228,221 +245,114 @@ export function useAplicarFicha() {
       if (!nome) throw new Error("Informe o nome do colaborador.");
       if (cpf.length !== 11) throw new Error("Informe um CPF com 11 dígitos.");
 
-      const payload = {
-        ...montarPayloadFicha(dados as Record<string, unknown>),
-        company_id: selectedCompanyId,
-        nome,
-        cpf,
-        cargo_id: cargoId,
-        unidade_id: unidadeId,
-        setor_id: setorId ?? null,
-        regime: (regime ?? null) as never,
-        forma_pagamento: formaPagamento as never,
-        possui_folha_ponto: possuiFolhaPonto,
-        optante_adiantamento: optanteAdiantamento,
-        origem_cadastro: "ficha_importacao",
-        ficha_importacao_item_id: item.id,
-      };
+      // O servidor tem a própria lista de campos permitidos: aqui só mapeamos a
+      // ficha para as colunas do cadastro. Empresa, conta, perfil e permissões
+      // nunca vão no payload.
+      const dadosCadastro = montarPayloadFicha(dados as Record<string, unknown>);
 
+      const res = await aplicarFichaRpc({
+        p_item_id: item.id,
+        p_dados: { ...dadosCadastro, nome, cpf },
+        p_dados_extraidos: dados as Record<string, unknown>,
+        p_campos: atualizarExistente ? camposPermitidos ?? null : null,
+        p_atualizar_existente: atualizarExistente && !!item.colaborador_existente_id,
+        p_cargo_id: cargoId,
+        p_unidade_id: unidadeId,
+        p_setor_id: setorId ?? null,
+        p_turno_id: turnoId ?? null,
+        p_regime: regime ?? null,
+        p_forma_pagamento: formaPagamento,
+        p_possui_folha_ponto: possuiFolhaPonto,
+        p_optante_adiantamento: optanteAdiantamento,
+        p_jornada: jornada && !jornada.vazia ? { dias: jornada.dias as unknown as Array<Record<string, unknown>> } : null,
+      });
 
-      let colaboradorId: string;
-      if (atualizarExistente && item.colaborador_existente_id) {
-        // Atualiza só o que veio preenchido (e o que foi escolhido na comparação),
-        // para nunca apagar dados já cadastrados.
-        const sempre = new Set([
-          "ficha_importacao_item_id", "cargo_id", "unidade_id", "setor_id", "regime",
-          "forma_pagamento", "possui_folha_ponto", "optante_adiantamento",
-        ]);
+      const colaboradorId = res.colaborador_id;
+      let anexo: AplicarFichaResultado["anexo"] = "nao_solicitado";
 
-        const limpo = Object.fromEntries(
-          Object.entries(payload).filter(([k, v]) => {
-            if (k === "company_id" || k === "origem_cadastro") return false;
-            if (sempre.has(k)) return v !== null && v !== undefined ? true : k === "ficha_importacao_item_id";
-            if (v === null || v === undefined) return false;
-            return !camposPermitidos || camposPermitidos.includes(k);
-          }),
-        );
-        const { error } = await supabase
-          .from("dp_colaboradores")
-          // deno-lint-ignore no-explicit-any
-          .update(limpo as any)
-          .eq("id", item.colaborador_existente_id)
-          .eq("company_id", selectedCompanyId);
-        if (error) throw error;
-        colaboradorId = item.colaborador_existente_id;
-      } else {
-
-        const { data, error } = await supabase
-          .from("dp_colaboradores")
-          // deno-lint-ignore no-explicit-any
-          .insert(payload as any)
-          .select("id")
-          .single();
-        if (error) {
-          if (String(error.message).toLowerCase().includes("duplicate")) {
-            throw new Error("Já existe um colaborador com este CPF nesta empresa.");
-          }
-          throw error;
-        }
-        colaboradorId = (data as { id: string }).id;
-      }
-
-      if (jornada && !jornada.vazia) {
-        // Reaproveita a jornada vigente quando já existe (um colaborador só pode ter uma em aberto).
-        const vigente = await supabase
-          .from("dp_colaborador_config_trabalho")
-          .select("id")
-          .eq("colaborador_id", colaboradorId)
-          .is("vigencia_fim", null)
-          .maybeSingle();
-        if (vigente.error) throw vigente.error;
-
-        let configId: string;
-        if (vigente.data?.id) {
-          configId = (vigente.data as { id: string }).id;
-          const { error: upErr } = await supabase
-            .from("dp_colaborador_config_trabalho")
-            .update({
-              unidade_id: unidadeId,
-              turno_padrao_id: turnoId ?? null,
-
-              folga_variavel: !jornada.dias.some((d) => !d.trabalha),
-              folga_fixa_dow: jornada.dias.find((d) => !d.trabalha)?.dow ?? null,
-              observacoes: "Importado da ficha de registro",
-            })
-            .eq("id", configId);
-          if (upErr) throw upErr;
-          const { error: delErr } = await supabase
-            .from("dp_colaborador_config_dias")
-            .delete()
-            .eq("config_id", configId);
-          if (delErr) throw delErr;
-        } else {
-          const cfg = await supabase
-            .from("dp_colaborador_config_trabalho")
-            .insert({
-              company_id: selectedCompanyId,
-              colaborador_id: colaboradorId,
-              unidade_id: unidadeId,
-              turno_padrao_id: turnoId ?? null,
-              folga_variavel: !jornada.dias.some((d) => !d.trabalha),
-              folga_fixa_dow: jornada.dias.find((d) => !d.trabalha)?.dow ?? null,
-              observacoes: "Importado da ficha de registro",
-              vigencia_inicio: dataIso(dados.data_admissao) ?? hoje(),
-            })
-            .select("id")
-            .single();
-          if (cfg.error) throw cfg.error;
-          configId = (cfg.data as { id: string }).id;
-        }
-
-        const { error: diasErr } = await supabase.from("dp_colaborador_config_dias").insert(
-          jornada.dias.map((d) => ({
-            company_id: selectedCompanyId,
-            config_id: configId,
-            dow: d.dow,
-            trabalha: d.trabalha,
-            turno_id: d.trabalha ? turnoId ?? null : null,
-            entrada: d.trabalha ? d.entrada : null,
-            saida: d.trabalha ? d.saida : null,
-            intervalo_minutos: d.trabalha ? d.intervalo_minutos ?? 0 : null,
-            setor_id: null,
-          })),
-        );
-        if (diasErr) throw diasErr;
-
-      }
-
-      if (anexarFicha && item.arquivo_path) {
-        // Copia o PDF de origem para os documentos do colaborador, registrando
-        // as páginas de onde a ficha foi lida. Falha aqui não desfaz o cadastro.
+      // Anexo em Storage: fora da transação do banco, por isso é tratado à
+      // parte. O caminho de origem vem do item/lote devolvido pelo servidor —
+      // nunca de um caminho informado pelo cliente. O destino é determinístico
+      // (um arquivo por ficha), então repetir não multiplica arquivo nem
+      // registro.
+      if (anexarFicha && res.arquivo_path) {
+        anexo = "falhou";
         try {
-          const destino = `${selectedCompanyId}/${colaboradorId}/${Date.now()}-ficha-registro.pdf`;
-          const copia = await supabase.storage
-            .from(BUCKET)
-            // deno-lint-ignore no-explicit-any
-            .copy(item.arquivo_path, destino, { destinationBucket: DP_DOCUMENTOS_BUCKET } as any);
-          if (!copia.error) {
-            const paginas =
-              item.pagina_inicio && item.pagina_fim && item.pagina_fim !== item.pagina_inicio
-                ? `páginas ${item.pagina_inicio} a ${item.pagina_fim}`
-                : item.pagina_inicio
-                  ? `página ${item.pagina_inicio}`
-                  : null;
-            await supabase.from("dp_documentos").insert({
-              company_id: selectedCompanyId,
-              colaborador_id: colaboradorId,
-              file_path: destino,
-              file_name: "ficha-registro.pdf",
-              mime_type: "application/pdf",
-              tipo: "ficha_registro",
-              titulo: "Ficha de registro importada",
-              descricao: paginas ? `Arquivo de origem da importação (${paginas}).` : "Arquivo de origem da importação.",
-            });
+          const destino = `${selectedCompanyId}/${colaboradorId}/ficha-registro-${item.id}.pdf`;
+          const jaExiste = await supabase
+            .from("dp_documentos")
+            .select("id")
+            .eq("company_id", selectedCompanyId)
+            .eq("colaborador_id", colaboradorId)
+            .eq("file_path", destino)
+            .maybeSingle();
+
+          if (jaExiste.data?.id) {
+            anexo = "ja_anexado";
+          } else {
+            const copia = await supabase.storage
+              .from(BUCKET)
+              .copy(res.arquivo_path, destino, { destinationBucket: DP_DOCUMENTOS_BUCKET });
+            // "já existe no destino" é sucesso para efeito de repetição
+            const duplicado = !!copia.error && /exist/i.test(copia.error.message ?? "");
+            if (!copia.error || duplicado) {
+              const paginas =
+                res.pagina_inicio && res.pagina_fim && res.pagina_fim !== res.pagina_inicio
+                  ? `páginas ${res.pagina_inicio} a ${res.pagina_fim}`
+                  : res.pagina_inicio
+                    ? `página ${res.pagina_inicio}`
+                    : null;
+              const ins = await supabase.from("dp_documentos").insert({
+                company_id: selectedCompanyId,
+                colaborador_id: colaboradorId,
+                file_path: destino,
+                file_name: "ficha-registro.pdf",
+                mime_type: "application/pdf",
+                tipo: "ficha_registro",
+                titulo: "Ficha de registro importada",
+                descricao: paginas
+                  ? `Arquivo de origem da importação (${paginas}).`
+                  : "Arquivo de origem da importação.",
+              });
+              if (!ins.error) anexo = "anexado";
+            }
           }
         } catch {
-          // anexo é complementar: segue sem interromper a importação
+          anexo = "falhou";
         }
       }
 
-
-
-      const { error: itemErr } = await supabase
-        .from("dp_ficha_importacao_itens")
-        .update({
-          status: atualizarExistente ? "atualizado" : "criado",
-          colaborador_id: colaboradorId,
-          dados_extraidos: dados as unknown as Database["public"]["Tables"]["dp_ficha_importacao_itens"]["Update"]["dados_extraidos"],
-          erro_mensagem: null,
-        })
-        .eq("id", item.id);
-      if (itemErr) throw itemErr;
-
-      await atualizarContadores(item.importacao_id);
-      return { colaboradorId };
+      return { colaboradorId, jaAplicado: res.ja_aplicado, anexo } satisfies AplicarFichaResultado;
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
+      if (res.anexo === "falhou") {
+        // O cadastro está confirmado: ninguém deve tentar criar outro por isso.
+        toast.error("Cadastro salvo, mas o PDF da ficha não foi anexado. Anexe o arquivo pelos documentos do colaborador.");
+      }
       qc.invalidateQueries({ queryKey: ["dp_ficha_itens"] });
       qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] });
       qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
+      qc.invalidateQueries({ queryKey: ["dp_colaborador_config_trabalho"] });
+      qc.invalidateQueries({ queryKey: ["dp_colaborador_config_dias"] });
+      qc.invalidateQueries({ queryKey: ["dp_documentos"] });
     },
   });
 }
 
-/** Marca a ficha como ignorada (não gera cadastro). */
+/**
+ * Marca a ficha como ignorada (não gera cadastro).
+ *
+ * Usa a mesma rotina transacional do aplicar, com o mesmo bloqueio por lote,
+ * para nunca sobrescrever os contadores com uma contagem obsoleta feita no
+ * cliente.
+ */
 export function useIgnorarFicha() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (item: FichaItem) => {
-      const { error } = await supabase
-        .from("dp_ficha_importacao_itens")
-        .update({ status: "ignorado" })
-        .eq("id", item.id);
-      if (error) throw error;
-      await atualizarContadores(item.importacao_id);
-    },
+    mutationFn: async (item: FichaItem) => ignorarFichaRpc(item.id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_ficha_itens"] });
       qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] });
     },
   });
-}
-
-async function atualizarContadores(importacaoId: string) {
-  const { data } = await supabase
-    .from("dp_ficha_importacao_itens")
-    .select("status")
-    .eq("importacao_id", importacaoId);
-  const rows = (data ?? []) as Array<{ status: string }>;
-  const criados = rows.filter((r) => r.status === "criado").length;
-  const atualizados = rows.filter((r) => r.status === "atualizado").length;
-  const pendentes = rows.filter((r) => ["pendente", "revisar", "duplicado"].includes(r.status)).length;
-  await supabase
-    .from("dp_ficha_importacoes")
-    .update({
-      criados,
-      atualizados,
-      ...(pendentes === 0 && rows.length > 0 ? { status: "concluida", concluido_em: new Date().toISOString() } : {}),
-    })
-    .eq("id", importacaoId);
 }

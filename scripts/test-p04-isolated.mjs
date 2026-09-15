@@ -26,24 +26,43 @@ import { existsSync, mkdirSync, readFileSync, mkdtempSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-const ARGS = new Set(process.argv.slice(2));
+const ARGV = process.argv.slice(2);
+const ARGS = new Set(ARGV);
 const KEEP = ARGS.has("--keep");
 const SELF_TEST = ARGS.has("--self-test");
 const PENDING_SELF_TEST = ARGS.has("--pending-self-test");
+/** valor de --chave=valor */
+const opt = (nome) => {
+  const p = ARGV.find((a) => a.startsWith(`--${nome}=`));
+  return p ? p.slice(nome.length + 3) : null;
+};
+const lista = (nome) => (opt(nome) ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 
 const PORT = 55437;
 const DB = "p04iso";
 const SCHEMA_FILE = join(tmpdir(), `p04_schema_${process.pid}.sql`);
-// o teste dirigido de pendência escreve em /tmp para não sobrescrever a evidência
-const OUT_DIR = ARGS.has("--pending-self-test") ? "/tmp" : resolve("docs/security");
-const LOG_FILE = `${OUT_DIR}/p0-4-functional-validation.log.txt`;
-const REPORT_FILE = `${OUT_DIR}/p0-4-functional-validation.report.json`;
 const MARKER = ".p04-runner-owned";
 
-const TEST_FILES = [
-  "supabase/tests/dp_internal_functions_p04.test.sql",
-  "supabase/tests/dp_p04_scenarios_isolated.test.sql",
-];
+/**
+ * Modo de suíte: o mesmo executor isolado serve outras validações.
+ *   --suite=<nome>              prefixo dos arquivos de evidência
+ *   --migrations=a.sql,b.sql    migrações aplicadas SOMENTE AO CLONE, após o
+ *                               restore da estrutura e ANTES dos testes
+ *   --tests=x.sql,y.sql         suítes SQL a executar no clone
+ */
+const SUITE = opt("suite") ?? "p0-4-functional-validation";
+const MIGRATIONS = lista("migrations");
+// o teste dirigido de pendência escreve em /tmp para não sobrescrever a evidência
+const OUT_DIR = PENDING_SELF_TEST ? "/tmp" : resolve("docs/security");
+const LOG_FILE = `${OUT_DIR}/${SUITE}.log.txt`;
+const REPORT_FILE = `${OUT_DIR}/${SUITE}.report.json`;
+
+const TEST_FILES = lista("tests").length
+  ? lista("tests")
+  : [
+      "supabase/tests/dp_internal_functions_p04.test.sql",
+      "supabase/tests/dp_p04_scenarios_isolated.test.sql",
+    ];
 
 /** Rotinas fechadas na P0.4 (9) + as 2 app-facing preservadas. */
 const CRITICAL_FUNCS = [
@@ -332,16 +351,111 @@ function restoreSchema() {
   if (r.error) throw new Error(`psql do restore não executou: ${r.error.message}`);
   const errors = (r.stderr || "")
     .split("\n")
-    .filter((l) => /ERROR:|FATAL:/.test(l))
+    .filter((l) => /ERROR:|FATAL:|error:/.test(l))
     .map((l) => l.replace(/^psql:[^ ]+ /, "").trim());
   if (r.status !== 0 || errors.length > 0) {
-    for (const e of errors.slice(0, 20)) log(`  ! restore ${e}`);
+    const amostra = errors.length
+      ? errors
+      : (r.stderr || "").split("\n").filter((l) => l.trim()).slice(-20);
+    for (const e of amostra.slice(0, 20)) log(`  ! restore ${e}`);
     throw new Error(
       `restore reprovado (exit ${r.status}, ${errors.length} erro(s)) — validação inválida`
     );
   }
   log("restore concluído com ON_ERROR_STOP=1: exit 0 e nenhum erro");
   return { exit_code: r.status, erros: 0 };
+}
+
+/**
+ * Aplica migrações NOVAS somente ao CLONE (nunca à origem), depois do restore da
+ * estrutura real e antes de qualquer teste. ON_ERROR_STOP=1: qualquer erro
+ * reprova a execução.
+ */
+function applyMigrations() {
+  const etapas = [];
+  for (const file of MIGRATIONS) {
+    if (!existsSync(file)) throw new Error(`migração não encontrada: ${file}`);
+    const r = run("psql", ["-v", "ON_ERROR_STOP=1", "-d", DB, "-f", file], { env: targetEnv() });
+    if (r.error) throw new Error(`psql da migração não executou: ${r.error.message}`);
+    const errors = (r.stderr || "").split("\n").filter((l) => /ERROR:|FATAL:/.test(l));
+    if (r.status !== 0 || errors.length > 0) {
+      for (const e of errors.slice(0, 20)) log(`  ! migração ${e.trim()}`);
+      throw new Error(`migração reprovada no clone (${file}, exit ${r.status})`);
+    }
+    log(`migração aplicada SOMENTE no clone: ${file}`);
+    etapas.push({ etapa: "migracao_no_clone", arquivo: file, exit_code: r.status, status: "passed" });
+    // idempotência: aplicar de novo não pode falhar
+    const r2 = run("psql", ["-v", "ON_ERROR_STOP=1", "-d", DB, "-f", file], { env: targetEnv() });
+    if (r2.status !== 0) throw new Error(`migração não é idempotente: ${file}`);
+    etapas.push({ etapa: "migracao_idempotente", arquivo: file, exit_code: r2.status, status: "passed" });
+    log(`migração reaplicada sem erro (idempotente): ${file}`);
+  }
+  return etapas;
+}
+
+
+
+/**
+ * Prova de concorrência real: preparo commitado, N processos psql SIMULTÂNEOS
+ * (cada um recebe -v idx=<n>) e verificação. Só no clone descartável.
+ *   --conc-setup=a.sql --conc-call=b.sql --conc-verify=c.sql [--conc-n=4]
+ */
+function concurrency() {
+  const setup = opt("conc-setup");
+  const call = opt("conc-call");
+  const verify = opt("conc-verify");
+  if (!setup || !call || !verify) return [];
+  const n = Number(opt("conc-n") ?? 4);
+  const etapas = [];
+
+  for (const f of [setup, call, verify]) {
+    if (!existsSync(f)) throw new Error(`arquivo de concorrência ausente: ${f}`);
+  }
+
+  const s = run("psql", ["-v", "ON_ERROR_STOP=1", "-d", DB, "-f", setup], { env: targetEnv() });
+  if (s.status !== 0) throw new Error(`preparo de concorrência falhou: ${(s.stderr || "").slice(0, 2000)}`);
+  etapas.push({ etapa: "concorrencia_preparo", arquivo: setup, exit_code: 0, status: "passed" });
+
+  const cmds = Array.from(
+    { length: n },
+    (_, i) => `psql -v ON_ERROR_STOP=1 -v idx=${i + 1} -d ${DB} -f ${call} > /tmp/conc_${i + 1}.out 2>&1 &`
+  ).join("\n");
+  const p = run("bash", ["-c", `${cmds}\nwait`], { env: targetEnv() });
+  const saidas = Array.from({ length: n }, (_, i) => {
+    const out = existsSync(`/tmp/conc_${i + 1}.out`) ? readFileSync(`/tmp/conc_${i + 1}.out`, "utf8") : "";
+    return { idx: i + 1, erro: /ERROR:|FATAL:/.test(out) ? out.trim().slice(0, 500) : null };
+  });
+  const comErro = saidas.filter((x) => x.erro);
+  if (p.status !== 0 || comErro.length > 0) {
+    for (const x of comErro) log(`  ! concorrência idx=${x.idx}: ${x.erro}`);
+    throw new Error(`chamadas concorrentes falharam (${comErro.length}/${n})`);
+  }
+  log(`${n} chamadas simultâneas da RPC concluídas sem erro`);
+  etapas.push({
+    etapa: "concorrencia_chamadas_simultaneas",
+    arquivo: call,
+    processos: n,
+    detalhe: "idx 1 e 2 no MESMO item; idx 3 e 4 em itens distintos do MESMO lote",
+    exit_code: 0,
+    status: "passed",
+  });
+
+  const v = run("psql", ["-v", "ON_ERROR_STOP=1", "-d", DB, "-f", verify], { env: targetEnv() });
+  const out = `${v.stdout || ""}\n${v.stderr || ""}`;
+  const notices = out.split("\n").filter((l) => /NOTICE:\s+(OK|PREP|PENDENTE)/.test(l))
+    .map((l) => l.replace(/^.*NOTICE:\s+/, "").trim());
+  for (const c of notices) log(`  · ${c}`);
+  if (v.status !== 0 || /ERROR:|FALHA /.test(out)) {
+    throw new Error(`verificação de concorrência reprovada: ${out.slice(0, 2000)}`);
+  }
+  etapas.push({
+    etapa: "concorrencia_verificacao",
+    arquivo: verify,
+    exit_code: 0,
+    assercoes: notices,
+    status: "passed",
+  });
+  return etapas;
 }
 
 /* ------------------------------ fidelidade ------------------------------- */
@@ -520,7 +634,9 @@ function selfTest() {
 /* --------------------------------- main ---------------------------------- */
 
 const report = {
-  fase: "P0.4 — validação funcional em banco isolado",
+  fase: `${SUITE} — validação funcional em banco isolado`,
+  suite: SUITE,
+  migracoes_aplicadas_somente_no_clone: MIGRATIONS,
   gerado_em: new Date().toISOString(),
   comando: `node ${process.argv.slice(1).join(" ").replace(/^.*scripts\//, "scripts/")}`,
   ambiente: {
@@ -595,7 +711,11 @@ try {
       throw new Error("fidelidade divergente entre origem e clone — validação inválida");
     }
 
+    // fidelidade é conferida ANTES: as migrações novas entram só depois, e só no clone
+    for (const e of applyMigrations()) report.etapas.push(e);
+
     for (const f of TEST_FILES) report.testes.push(runTestFile(f));
+    for (const e of concurrency()) report.etapas.push(e);
     report.resumo_cenarios = report.testes.reduce(
       (acc, t) => ({
         preparacao: acc.preparacao + (t.contagem?.preparacao ?? 0),
