@@ -16,24 +16,27 @@ CREATE OR REPLACE FUNCTION public._assert_test_helper_allowed()
 RETURNS void
 LANGUAGE plpgsql
 STABLE
-SECURITY DEFINER
 SET search_path TO 'public'
 AS $function$
 DECLARE
   _uid uuid := auth.uid();
-  _jwt_role text := current_setting('request.jwt.claim.role', true);
+  _jwt_role text := coalesce(
+    current_setting('request.jwt.claim.role', true),
+    nullif(current_setting('request.jwt.claims', true), '')::json ->> 'role'
+  );
 BEGIN
-  -- Chamadas internas do banco / chave de serviço.
-  IF current_user IN ('postgres', 'supabase_admin', 'service_role')
-     OR _jwt_role = 'service_role' THEN
+  -- 1) Chave de servico (Edge Functions / CI): autorizado.
+  IF _jwt_role = 'service_role' THEN
     RETURN;
   END IF;
-
-  -- QA/E2E autorizado: apenas super_admin.
+  -- 2) Conexao direta ao banco (migrations, cron, manutencao): sem JWT algum.
+  IF _jwt_role IS NULL AND _uid IS NULL THEN
+    RETURN;
+  END IF;
+  -- 3) QA/E2E autorizado: apenas papel super_admin em public.user_roles.
   IF _uid IS NOT NULL AND public.has_role(_uid, 'super_admin'::app_role) THEN
     RETURN;
   END IF;
-
   RAISE EXCEPTION
     'permission denied: rotina de teste requer service_role ou papel super_admin'
     USING ERRCODE = '42501';
