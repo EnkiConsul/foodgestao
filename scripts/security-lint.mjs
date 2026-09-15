@@ -222,6 +222,29 @@ const checks = [
     `,
   },
   {
+    id: "test_helpers_unguarded",
+    severity: "critical",
+    description:
+      "Rotina de teste/E2E (`_e2e_*`/`_test_*`) executável por authenticated/anon/PUBLIC sem a guarda `_assert_test_helper_allowed()` (P0.2-B)",
+    sql: `
+      SELECT p.proname || '(' || pg_catalog.pg_get_function_identity_arguments(p.oid) || ')' ||
+             CASE WHEN has_function_privilege('anon', p.oid, 'EXECUTE')
+                  THEN ' [executável por anon]' ELSE ' [sem guarda explícita]' END AS finding
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'public'
+        AND (p.proname LIKE E'\\\\_e2e\\\\_%' OR p.proname LIKE E'\\\\_test\\\\_%')
+        AND p.proname <> '_assert_test_helper_allowed'
+        AND (
+          has_function_privilege('anon', p.oid, 'EXECUTE')
+          OR (
+            has_function_privilege('authenticated', p.oid, 'EXECUTE')
+            AND position('_assert_test_helper_allowed' in COALESCE(p.prosrc, '')) = 0
+          )
+        );
+    `,
+  },
+  {
     id: "rls_disabled",
     severity: "critical",
     description: "Tabela em `public` sem RLS habilitado (acesso irrestrito)",
