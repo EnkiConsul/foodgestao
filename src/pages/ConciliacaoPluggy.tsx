@@ -61,6 +61,7 @@ import { cardHintLabel, formatProviderDescription, hasMerchantName } from "@/lib
 import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
 import {
   SCOPED_PLUGGY_ACCOUNT_SELECT,
+  describeScopeProblem,
   resolveScopedPluggyAccount,
   type ScopedPluggyResolution,
 } from "@/lib/pluggy/scopedPluggyAccount";
@@ -1809,7 +1810,7 @@ export default function ConciliacaoPluggy() {
         </div>
         <Button
           onClick={syncNow}
-          disabled={syncing || connections.length === 0}
+          disabled={syncing || connections.length === 0 || !syncGuard.allowed}
           variant="outline"
           className="w-full sm:ml-auto sm:w-auto"
         >
