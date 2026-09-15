@@ -80,14 +80,37 @@ Banco (`pluggy_connections`, leitura): `status=updated`,
 `last_synced_at=2026-09-15 21:42:18Z`, `next_sync_at=2026-09-15 22:42:51Z`,
 `revoked_at` nulo, `last_error` nulo.
 
-### Bloqueios (o que não foi possível obter)
+### Causa da coleta parcial (leitura de 2026-09-15 22:03Z)
 
-- `statusDetail`, `warnings` e `executionReport` **não foram retornados**: a única
-  via de leitura autorizada existente (`pluggy-admin-find-items`) projeta um
-  subconjunto fixo de campos e descarta os demais antes de responder. Obter esses
-  campos exigiria alterar backend, o que está fora desta etapa.
-- Tipo do conector (direto vs. Open Finance) não é exposto por essa função nem
-  armazenado no banco; o `connector.type`/`isOpenFinance` da Pluggy fica no mesmo
-  ponto de projeção.
+Com o diagnóstico mínimo já disponível em `pluggy-admin-find-items` (item explícito,
+UUID validado, somente esse item, só códigos padronizados):
+
+| Produto | atualizado | atualizado em | avisos | códigos |
+| --- | --- | --- | --- | --- |
+| accounts | sim | 2026-09-15T21:41:41Z | 0 | — |
+| transactions | sim | 2026-09-15T21:41:41Z | 0 | — |
+| investments | sim | 2026-09-15T21:41:41Z | 0 | — |
+| identity | sim | 2026-09-15T21:41:41Z | 0 | — |
+| loans | sim | 2026-09-15T21:41:41Z | 0 | — |
+| **creditCards** | **não** | 2026-09-08T00:07:14Z | **2** | **`004`** |
+| investmentsTransactions | n/d | — | 0 | — |
+| paymentData | n/d | — | 0 | — |
+
+Conector: `Banco do Brasil Empresas` (id 662), `type=BUSINESS_BANK`,
+`isOpenFinance=true`. `error_code` nulo, `consent_expires_at` nulo.
+
+**Conclusão:** o `PARTIAL_SUCCESS` vem exclusivamente do produto `creditCards`,
+com 2 avisos de código `004` e sem atualização desde 08/09. Contas, lançamentos,
+investimentos, identidade e operações de crédito foram atualizados normalmente —
+não há erro de credencial nem consentimento revogado, portanto **reconectar não
+resolve**. Referências oficiais dos códigos:
+<https://docs.pluggy.ai/docs/warnings-status-codes> e
+<https://docs.pluggy.ai/docs/errors-validations>.
+
+### Bloqueios remanescentes
+
+- `executionReport` continua fora do retorno (não foi incluído nesta correção
+  mínima, que se limitou a `statusDetail` por produto e a `connector.type` /
+  `isOpenFinance`).
 - As credenciais da Pluggy existem apenas como secrets das Edge Functions; não há
   acesso a elas fora do backend, então não houve chamada direta à API.
