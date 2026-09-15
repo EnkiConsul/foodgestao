@@ -99,6 +99,24 @@ export default function DpMeuSolicitacoes() {
     },
   });
 
+  // Dias em que a pessoa tem folga fixa (ex.: sábado e domingo). Quem tem
+  // folga fixa pode pedir para trocá-la por um dia de meio de semana.
+  const diasFixos = useQuery({
+    queryKey: ["dp_meus_dias_fixos_folga", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase.rpc("dp_meus_dias_fixos_folga" as never, {} as never);
+      return ((data as number[] | null) ?? []).map(Number);
+    },
+  });
+  const fixos = diasFixos.data ?? [];
+  const podeTrocar = podePedirTrocaFds(fixos);
+  const ehTroca = form.tipo === "troca_fds";
+  const tiposDisponiveis = useMemo(
+    () => TIPOS.filter((t) => t.value !== "troca_fds" || podeTrocar),
+    [podeTrocar],
+  );
+
   // Regra de adiantamento da unidade (dia do pagamento) para o painel do portal.
   const minhaUnidade = useQuery({
     queryKey: ["dp_meu_sol_unidade", meRef.data?.unidade_id],
