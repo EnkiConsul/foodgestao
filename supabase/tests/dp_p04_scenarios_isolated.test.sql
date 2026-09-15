@@ -63,17 +63,16 @@ BEGIN
          (c2, compa, 'COLABORADOR SINTETICO A2', una, NULL),
          (cb1, compb, 'COLABORADOR SINTETICO B1', unb, NULL);
 
-  -- Jornada sintética com folga fixa no domingo (DOW 0) para que a geração
-  -- automática de escala tenha trabalho efetivo a fazer.
-  INSERT INTO public.dp_jornadas (id, company_id, nome, dias_trabalho, dias_folga)
-  VALUES (jor, compa, 'JORNADA SINTETICA 6x1', ARRAY[1,2,3,4,5,6]::smallint[], ARRAY[0]::smallint[]);
+  -- NÃO há jornada sintética: public.dp_jornadas tem o gatilho ativo
+  -- trg_dp_jornadas_legado (dp_bloquear_cadastro_legado), que recusa novos
+  -- cadastros ("Cadastro antigo de jornadas encerrado"). Alimentar essa tabela
+  -- exigiria desabilitar uma regra de produção, o que não é feito aqui. Por
+  -- isso S5.2 é reportado como PENDENTE, não como aprovado.
 
-  INSERT INTO public.dp_colaborador_jornadas (company_id, colaborador_id, jornada_id, inicio)
-  VALUES (compa, c1, jor, comp), (compa, c2, jor, comp);
-
-  INSERT INTO s_fix VALUES (oa, aa, ca, ou, ob, ab, compa, compb, una, unb, comp, c1, c2, jor);
-  RAISE NOTICE 'PREP fixtures: 2 empresas, 6 usuários, 3 colaboradores (1 com acesso de portal) e 1 jornada sintética';
+  INSERT INTO s_fix VALUES (oa, aa, ca, ou, ob, ab, compa, compb, una, unb, comp, c1, c2, NULL);
+  RAISE NOTICE 'PREP fixtures: 2 empresas, 6 usuários e 3 colaboradores (1 com acesso de portal)';
 END $$;
+
 
 
 CREATE OR REPLACE FUNCTION pg_temp.s_as_user(_uid uuid) RETURNS void
