@@ -33,6 +33,13 @@ QA_SCHEMA = "qa"
 # Rotinas que retornam conjunto de linhas (resultado = lista de objetos).
 SET_RETURNING = {"_e2e_seed_delete_accounts", "_e2e_seed_foreign_accounts"}
 
+# Rotinas sem retorno (resultado = None).
+VOID_RETURNING = {
+    "_e2e_cleanup_delete_accounts",
+    "_e2e_cleanup_foreign_accounts",
+    "_e2e_cleanup_adjust_balance",
+}
+
 MISSING_DB_URL_MESSAGE = (
     "QA bloqueado: defina SUPABASE_DB_URL (ou QA_DB_URL) no ambiente de "
     "teste/CI para executar as rotinas de QA. Desde a P0.3 elas vivem no schema "
@@ -91,7 +98,9 @@ def qa_rpc(name: str, payload: dict | None = None):
         f"{key} => {_literal(value)}" for key, value in (payload or {}).items()
     )
     call = f'{QA_SCHEMA}."{name}"({args})'
-    if name in SET_RETURNING:
+    if name in VOID_RETURNING:
+        sql = f"select {call};"
+    elif name in SET_RETURNING:
         sql = f"select coalesce(json_agg(t), '[]'::json)::text from {call} t;"
     else:
         sql = f"select coalesce(to_json({call}), 'null'::json)::text;"
@@ -104,6 +113,8 @@ def qa_rpc(name: str, payload: dict | None = None):
     )
     if proc.returncode != 0:
         raise RuntimeError(f"qa_rpc {name} falhou: {proc.stderr.strip()}")
+    if name in VOID_RETURNING:
+        return None
     saida = proc.stdout.strip() or "null"
     try:
         return json.loads(saida)
