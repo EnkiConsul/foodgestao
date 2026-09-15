@@ -16,6 +16,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { connectionState } from "@/lib/pluggy/connectionState";
+import { describeSyncOutcome, type SyncResponse } from "@/lib/pluggy/syncOutcome";
 
 interface Connection {
   id: string;
