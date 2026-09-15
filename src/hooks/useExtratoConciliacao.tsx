@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ExtratoStagingLike, ExtratoTxLike } from "@/lib/conciliacao/extrato";
 
