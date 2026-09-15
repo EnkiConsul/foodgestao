@@ -43,7 +43,7 @@ export function useExtratoConciliacao(filtros: ExtratoConciliacaoFiltros) {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!companyId) {
+    if (!companyId || scopeBlocked) {
       setStaging([]);
       setTransactions([]);
       setLoading(false);
