@@ -205,12 +205,17 @@ export default function ExtratoConciliacao() {
     };
   }, [accountParam, cardParam, selectedCompanyId]);
 
+  // Escopo pedido por conta/cartão sem vínculo ativo resolvido: não exibir a
+  // fila inteira da empresa nem permitir conciliar por engano.
+  const scopeBlocked = !!(accountParam || cardParam) && !pluggyAccountId;
+
   const { staging, transactions, loading, error, reload } = useExtratoConciliacao({
     companyId: selectedCompanyId ?? null,
     from,
     to,
     pluggyAccountId,
     connectionId: pluggyAccountId ? null : connectionParam,
+    scopeBlocked,
   });
 
   const model = useMemo(
