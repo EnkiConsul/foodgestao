@@ -418,7 +418,7 @@ BEGIN
   SELECT count(*)::int INTO v_linhas
     FROM public.dp_folgas fg
    WHERE fg.company_id = f.company_a
-     AND fg.origem = 'auto_fds'
+     AND fg.origem = 'auto_fechamento_periodo'
      AND fg.colaborador_id IN (f.colab_a1, f.colab_a2)
      AND fg.data BETWEEN f.competencia
                      AND (date_trunc('month', f.competencia) + interval '1 month - 1 day')::date;
@@ -426,7 +426,7 @@ BEGIN
     RAISE EXCEPTION 'FALHA S5.3: retorno diz % folgas, gravadas % na empresa/colaboradores sintéticos',
       v_geradas, v_linhas;
   END IF;
-  IF EXISTS (SELECT 1 FROM public.dp_folgas WHERE origem = 'auto_fds' AND company_id <> f.company_a) THEN
+  IF EXISTS (SELECT 1 FROM public.dp_folgas WHERE origem = 'auto_fechamento_periodo' AND company_id <> f.company_a) THEN
     RAISE EXCEPTION 'FALHA S5.3: autoatribuição gravou folga fora da empresa sintética A';
   END IF;
   IF v_geradas = 0 THEN
