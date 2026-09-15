@@ -317,7 +317,26 @@ export default function DpHistoricoCompleto() {
     defaultSortDir: "desc",
   });
 
-
+  // A ordem escolhida no celular reaproveita a ordenação da tabela.
+  const ordemMobile = `${sortKey}:${sortDir}`;
+  const aplicarOrdemMobile = (valor: string) => {
+    const [key, dir] = valor.split(":");
+    aplicarSort(key as SortKey, dir === "asc" ? "asc" : "desc");
+    try {
+      localStorage.setItem(ORDEM_MOBILE_STORAGE, valor);
+    } catch { /* preferência é opcional */ }
+  };
+  useEffect(() => {
+    try {
+      const salvo = localStorage.getItem(ORDEM_MOBILE_STORAGE);
+      if (salvo && ORDENS_MOBILE.some((o) => o.value === salvo)) {
+        const [key, dir] = salvo.split(":");
+        aplicarSort(key as SortKey, dir === "asc" ? "asc" : "desc");
+      }
+    } catch { /* preferência é opcional */ }
+    // Aplica só na abertura da tela.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const colabMap = useMemo(() => {
     const m = new Map<string, { nome: string; unidade_id: string | null; unidade_nome: string | null }>();
