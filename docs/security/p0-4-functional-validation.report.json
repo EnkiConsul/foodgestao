@@ -1,6 +1,6 @@
 {
   "fase": "P0.4 — validação funcional em banco isolado",
-  "gerado_em": "2026-09-15T03:21:19.299Z",
+  "gerado_em": "2026-09-15T03:21:37.634Z",
   "ambiente": {
     "tipo": "cluster PostgreSQL local temporário e descartável",
     "data_directory": "/tmp/p04pg",
@@ -52,10 +52,57 @@
       "funcoes_public": 468
     }
   ],
-  "fidelidade": [],
-  "testes": [],
+  "fidelidade": [
+    {
+      "check": "acl_rotinas_criticas",
+      "status": "passed",
+      "linhas_origem": 11,
+      "linhas_clone": 11,
+      "diferenca": null
+    },
+    {
+      "check": "policies_companies",
+      "status": "passed",
+      "linhas_origem": 5,
+      "linhas_clone": 5,
+      "diferenca": null
+    },
+    {
+      "check": "triggers_companies",
+      "status": "passed",
+      "linhas_origem": 15,
+      "linhas_clone": 15,
+      "diferenca": null
+    }
+  ],
+  "testes": [
+    {
+      "file": "supabase/tests/dp_internal_functions_p04.test.sql",
+      "comando": "psql -v ON_ERROR_STOP=1 -d p04iso -f supabase/tests/dp_internal_functions_p04.test.sql",
+      "status": "failed",
+      "exit_code": 3,
+      "cenarios": [
+        "OK T1: 9 rotinas internas fechadas, service_role preservado",
+        "OK T1b: nenhuma rotina interna liberada para PUBLIC",
+        "OK T2: gatilhos de validação ativos (2)",
+        "OK T3: RPCs app-facing preservadas para authenticated e fechadas para anon"
+      ],
+      "falhas": [
+        "psql:supabase/tests/dp_internal_functions_p04.test.sql:147: ERROR:  new row for relation \"companies\" violates check constraint \"companies_profile_type_check\""
+      ]
+    },
+    {
+      "file": "supabase/tests/dp_p04_scenarios_isolated.test.sql",
+      "comando": "psql -v ON_ERROR_STOP=1 -d p04iso -f supabase/tests/dp_p04_scenarios_isolated.test.sql",
+      "status": "failed",
+      "exit_code": 3,
+      "cenarios": [],
+      "falhas": [
+        "psql:supabase/tests/dp_p04_scenarios_isolated.test.sql:63: ERROR:  new row for relation \"companies\" violates check constraint \"companies_profile_type_check\""
+      ]
+    }
+  ],
   "limitacoes": [],
   "status_geral": "failed",
-  "erro": "psql falhou (1): ERROR:  operator is not unique: text || \"char\"\nLINE 2: select t.tgname || '|' || p.proname || '|' || t.tgenabled\n                                                   ^\nHINT:  Could not choose a best candidate operator. You might need to add explicit type casts.\n",
   "codigo_saida": 1
 }

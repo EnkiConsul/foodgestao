@@ -295,7 +295,7 @@ select policyname || '|' || cmd || '|' || coalesce(qual,'-') || '|' || coalesce(
   from pg_policies where schemaname='public' and tablename='companies' order by 1`;
 
 const TRIGGER_SQL = `
-select t.tgname || '|' || p.proname || '|' || t.tgenabled
+select t.tgname || '|' || p.proname || '|' || t.tgenabled::text
   from pg_trigger t join pg_proc p on p.oid = t.tgfoid
  where t.tgrelid = 'public.companies'::regclass and not t.tgisinternal order by 1`;
 
