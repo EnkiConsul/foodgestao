@@ -109,3 +109,5 @@ as 8 rotinas internas sondadas responderam `403 / 42501 permission denied`
 - Open Finance legado (v1) continua no banco, agora fechado; a remoção definitiva depende
   de confirmar que nenhum cliente usa o fluxo antigo.
 - Nenhum helper foi movido para `private`; o gate do lint é o que impede regressão de grants.
+
+> Continuação: [P0.2-C — rotinas de QA somente com service_role](./p0-2c-qa-functions-service-role.md)

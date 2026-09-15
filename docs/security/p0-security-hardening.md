@@ -120,3 +120,5 @@ A fase P0.2-A (funções financeiras executáveis por `authenticated`) está doc
 `supabase/migrations/20260915020000_p02a_finance_functions_hardening.sql`.
 
 - P0.2-B: rotinas de teste/E2E (`_e2e_*`/`_test_*`) protegidas por guarda explícita — ver [p0-2b-test-functions-hardening.md](./p0-2b-test-functions-hardening.md).
+
+> Continuação: [P0.2-C — rotinas de QA somente com service_role](./p0-2c-qa-functions-service-role.md)
