@@ -6898,6 +6898,13 @@ export type Database = {
           ciclo_status: string
           colaborador_id: string | null
           company_id: string
+          comprovante_file_name: string | null
+          comprovante_file_path: string | null
+          comprovante_file_size: number | null
+          comprovante_mime_type: string | null
+          comprovante_pago_em: string | null
+          comprovante_uploaded_at: string | null
+          comprovante_uploaded_by: string | null
           created_at: string
           descricao: string | null
           exige_aceite: boolean
@@ -6933,6 +6940,13 @@ export type Database = {
           ciclo_status?: string
           colaborador_id?: string | null
           company_id: string
+          comprovante_file_name?: string | null
+          comprovante_file_path?: string | null
+          comprovante_file_size?: number | null
+          comprovante_mime_type?: string | null
+          comprovante_pago_em?: string | null
+          comprovante_uploaded_at?: string | null
+          comprovante_uploaded_by?: string | null
           created_at?: string
           descricao?: string | null
           exige_aceite?: boolean
@@ -6968,6 +6982,13 @@ export type Database = {
           ciclo_status?: string
           colaborador_id?: string | null
           company_id?: string
+          comprovante_file_name?: string | null
+          comprovante_file_path?: string | null
+          comprovante_file_size?: number | null
+          comprovante_mime_type?: string | null
+          comprovante_pago_em?: string | null
+          comprovante_uploaded_at?: string | null
+          comprovante_uploaded_by?: string | null
           created_at?: string
           descricao?: string | null
           exige_aceite?: boolean
@@ -9356,6 +9377,7 @@ export type Database = {
         Row: {
           alerta_adiantamento_offset: number
           alerta_aso_dias: number
+          alerta_comprovante_dias: number
           alerta_contracheque_dia_mes: number
           alerta_epi_dias: number
           alerta_ferias_dias: number
@@ -9366,14 +9388,17 @@ export type Database = {
           alerta_treinamento_dias: number
           alerta_troca_dias: number
           company_id: string
+          comprovante_vigencia_inicio: string
           created_at: string
           dias_carencia_portal: number
+          exigir_comprovante_pagamento: boolean
           exigir_contracheque_mes_desligamento: boolean
           updated_at: string
         }
         Insert: {
           alerta_adiantamento_offset?: number
           alerta_aso_dias?: number
+          alerta_comprovante_dias?: number
           alerta_contracheque_dia_mes?: number
           alerta_epi_dias?: number
           alerta_ferias_dias?: number
@@ -9384,14 +9409,17 @@ export type Database = {
           alerta_treinamento_dias?: number
           alerta_troca_dias?: number
           company_id: string
+          comprovante_vigencia_inicio?: string
           created_at?: string
           dias_carencia_portal?: number
+          exigir_comprovante_pagamento?: boolean
           exigir_contracheque_mes_desligamento?: boolean
           updated_at?: string
         }
         Update: {
           alerta_adiantamento_offset?: number
           alerta_aso_dias?: number
+          alerta_comprovante_dias?: number
           alerta_contracheque_dia_mes?: number
           alerta_epi_dias?: number
           alerta_ferias_dias?: number
@@ -9402,8 +9430,10 @@ export type Database = {
           alerta_treinamento_dias?: number
           alerta_troca_dias?: number
           company_id?: string
+          comprovante_vigencia_inicio?: string
           created_at?: string
           dias_carencia_portal?: number
+          exigir_comprovante_pagamento?: boolean
           exigir_contracheque_mes_desligamento?: boolean
           updated_at?: string
         }
@@ -14653,12 +14683,16 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_documento_aceita_comprovante: {
+        Args: { _tipo: Database["public"]["Enums"]["dp_documento_tipo"] }
+        Returns: boolean
+      }
       dp_documento_arquivar: {
         Args: { _documento_id: string; _motivo?: string }
         Returns: boolean
       }
       dp_documento_arquivo: {
-        Args: { _documento_id: string }
+        Args: { _documento_id: string; _variante?: string }
         Returns: {
           file_name: string
           file_path: string
