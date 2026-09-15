@@ -347,6 +347,54 @@ END $$;
 RESET ROLE;
 
 -- =====================================================================
+-- S5-ARRANGE (FIXTURE HISTÓRICA — SOMENTE NO CLUSTER DESCARTÁVEL):
+--   cria registros LEGADOS de jornada, representando dados anteriores ao
+--   encerramento daquele cadastro. Para isso desabilita EXCLUSIVAMENTE os dois
+--   gatilhos BEFORE INSERT de selo (trg_dp_jornadas_legado e
+--   trg_dp_colaborador_jornadas_legado) durante o ARRANGE, reabilitando-os em
+--   seguida e conferindo tgenabled ANTES de qualquer função sob teste rodar.
+--   Nenhuma função de segurança/negócio é alterada e NENHUM gatilho de validação
+--   de folga é desligado. Não há DDL na origem — mesma distinção já usada em T7.
+-- =====================================================================
+ALTER TABLE public.dp_jornadas DISABLE TRIGGER trg_dp_jornadas_legado;
+ALTER TABLE public.dp_colaborador_jornadas DISABLE TRIGGER trg_dp_colaborador_jornadas_legado;
+
+DO $$
+DECLARE f s_fix; v_jor uuid := gen_random_uuid();
+BEGIN
+  SELECT * INTO f FROM s_fix;
+  INSERT INTO public.dp_jornadas (id, company_id, nome, dias_trabalho, dias_folga)
+  VALUES (v_jor, f.company_a, 'JORNADA LEGADA 6x1',
+          ARRAY[1,2,3,4,5,6]::smallint[], ARRAY[0]::smallint[]);
+
+  INSERT INTO public.dp_colaborador_jornadas (company_id, colaborador_id, jornada_id, inicio)
+  VALUES (f.company_a, f.colab_a1, v_jor, (f.competencia - interval '1 year')::date),
+         (f.company_a, f.colab_a2, v_jor, (f.competencia - interval '1 year')::date);
+
+  RAISE NOTICE 'PREP fixtures: jornada LEGADA 6x1 (folga fixa no domingo) vinculada a 2 colaboradores da empresa A';
+END $$;
+
+ALTER TABLE public.dp_jornadas ENABLE TRIGGER trg_dp_jornadas_legado;
+ALTER TABLE public.dp_colaborador_jornadas ENABLE TRIGGER trg_dp_colaborador_jornadas_legado;
+
+DO $$
+DECLARE v_off int;
+BEGIN
+  SELECT count(*)::int INTO v_off
+    FROM pg_trigger t
+   WHERE t.tgname IN ('trg_dp_jornadas_legado', 'trg_dp_colaborador_jornadas_legado')
+     AND t.tgenabled <> 'O';
+  IF v_off <> 0 THEN
+    RAISE EXCEPTION 'FALHA S5-ARRANGE: % gatilho(s) de selo continuam desabilitados', v_off;
+  END IF;
+  IF (SELECT count(*) FROM pg_trigger t
+       WHERE t.tgname IN ('trg_dp_jornadas_legado', 'trg_dp_colaborador_jornadas_legado')) <> 2 THEN
+    RAISE EXCEPTION 'FALHA S5-ARRANGE: gatilhos de selo não encontrados';
+  END IF;
+  RAISE NOTICE 'OK S5-ARRANGE: gatilhos de selo do cadastro legado reabilitados e conferidos (tgenabled=O, 2 casos)';
+END $$;
+
+-- =====================================================================
 -- S5 (EXECUÇÃO INTERNA PRESERVADA): as rotinas internas continuam
 --     executáveis pelo proprietário do banco e por service_role, com
 --     dados sintéticos e EFEITO VERIFICADO. Nenhum serviço externo é chamado.
@@ -355,6 +403,8 @@ DO $$
 DECLARE
   f s_fix; v_batch uuid := gen_random_uuid(); v_proc int; v_res jsonb;
   v_ret int; v_linhas int; v_fora int; v_geradas int;
+  v_comp_fut date; v_domingos int;
+
 BEGIN
   SELECT * INTO f FROM s_fix;
 
@@ -369,37 +419,52 @@ BEGIN
   END IF;
   RAISE NOTICE 'OK S5.1: contagem de páginas do lote executada internamente (processed_pages=2)';
 
-  -- 5.2 geração automática de escala: PENDENTE quanto a trabalho efetivo.
-  --     dp_escala_auto_gerar lê public.dp_colaborador_jornadas/public.dp_jornadas
-  --     (cadastro legado), cujo gatilho ativo trg_dp_jornadas_legado recusa novos
-  --     registros. Sem violar essa regra de produção não há como criar jornada
-  --     sintética elegível, então aqui só a EXECUÇÃO e a ausência de efeito
-  --     colateral são conferidas — não a geração efetiva.
-  v_ret := public.dp_escala_auto_gerar(f.company_a, f.competencia);
-  IF v_ret IS NULL THEN
-    RAISE EXCEPTION 'FALHA S5.2: retorno nulo da geração de escala';
+  -- 5.2 geração automática de escala a partir de JORNADA LEGADA (compatibilidade
+  --     com dados históricos, NÃO suporte ao modelo atual de turnos).
+  --     A fixture legada é montada no bloco S5-ARRANGE abaixo, apenas no cluster
+  --     descartável, desabilitando somente os dois gatilhos BEFORE INSERT de selo
+  --     (trg_dp_jornadas_legado / trg_dp_colaborador_jornadas_legado) e
+  --     reabilitando-os antes de qualquer chamada às funções sob teste.
+  --     Competência usada: 2 meses adiante (representa a chamada mensal e evita
+  --     colisão com as folgas criadas em S5.3/S5b).
+  v_comp_fut := (date_trunc('month', f.competencia) + interval '2 months')::date;
+
+  SELECT count(*)::int INTO v_domingos
+    FROM generate_series(v_comp_fut,
+                         (date_trunc('month', v_comp_fut) + interval '1 month - 1 day')::date,
+                         interval '1 day') d
+   WHERE EXTRACT(DOW FROM d)::int = 0;
+
+  v_ret := public.dp_escala_auto_gerar(f.company_a, v_comp_fut);
+  IF v_ret IS DISTINCT FROM (v_domingos * 2) THEN
+    RAISE EXCEPTION 'FALHA S5.2: retorno esperado % (2 colaboradores × % domingos), obtido %',
+      v_domingos * 2, v_domingos, v_ret;
   END IF;
 
   SELECT count(*)::int INTO v_linhas
     FROM public.dp_folgas
    WHERE company_id = f.company_a AND origem = 'fixa_semana'
-     AND data BETWEEN f.competencia
-                  AND (date_trunc('month', f.competencia) + interval '1 month - 1 day')::date;
-  IF v_linhas IS DISTINCT FROM v_ret THEN
-    RAISE EXCEPTION 'FALHA S5.2: retorno diz % folgas, gravadas %', v_ret, v_linhas;
-  END IF;
-  SELECT count(*)::int INTO v_fora
-    FROM public.dp_folgas fg
-   WHERE fg.origem = 'fixa_semana' AND fg.company_id <> f.company_a;
-  IF v_fora <> 0 THEN
-    RAISE EXCEPTION 'FALHA S5.2: % folga(s) gravadas fora da empresa sintética A', v_fora;
+     AND data BETWEEN v_comp_fut
+                  AND (date_trunc('month', v_comp_fut) + interval '1 month - 1 day')::date;
+  IF v_linhas IS DISTINCT FROM (v_domingos * 2) THEN
+    RAISE EXCEPTION 'FALHA S5.2: esperado % folgas gravadas, obtido %', v_domingos * 2, v_linhas;
   END IF;
 
-  IF v_ret = 0 THEN
-    RAISE NOTICE 'PENDENTE S5.2: geração de escala executada internamente (retorno=0, nenhuma gravação) — trabalho efetivo NÃO comprovado: o cadastro de jornadas (dp_jornadas) está selado pelo gatilho trg_dp_jornadas_legado e não pode receber fixture sem violar regra de produção';
-  ELSE
-    RAISE NOTICE 'OK S5.2: escala gerada com efeito verificado (% folgas na empresa sintética A)', v_ret;
+  -- vínculos reais: empresa, colaboradores sintéticos e dia da folga legada
+  SELECT count(*)::int INTO v_fora
+    FROM public.dp_folgas fg
+   WHERE fg.origem = 'fixa_semana'
+     AND (fg.company_id IS DISTINCT FROM f.company_a
+          OR fg.colaborador_id NOT IN (f.colab_a1, f.colab_a2)
+          OR EXTRACT(DOW FROM fg.data)::int <> 0);
+  IF v_fora <> 0 THEN
+    RAISE EXCEPTION 'FALHA S5.2: % folga(s) fora da empresa/colaboradores/dia esperados', v_fora;
   END IF;
+
+  RAISE NOTICE 'OK S5.2: geração de escala com JORNADA LEGADA gerou % folgas (% domingos × 2 colaboradores) na competência % — compatibilidade com dados antigos, não suporte ao modelo atual de turnos',
+    v_linhas, v_domingos, v_comp_fut;
+
+
 
 
   -- 5.3 autoatribuição de folgas por competência: retorno e efeito conferidos

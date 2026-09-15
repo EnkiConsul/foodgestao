@@ -16,6 +16,7 @@ catálogo).
 ```bash
 node scripts/test-p04-isolated.mjs          # exporta a estrutura e valida
 node scripts/test-p04-isolated.mjs --keep   # mantém APENAS o cluster desta execução
+node scripts/test-p04-isolated.mjs --pending-self-test   # teste dirigido do ramo de pendência (escreve em /tmp)
 ```
 
 Não existe mais `--reuse-dump`: a estrutura é reexportada em toda execução, para
@@ -99,10 +100,15 @@ Divergência em qualquer um desses itens invalida a execução (o runner falha).
 
 ## 6. Cenários executados (exit 0)
 
-Contagem separada, como no relatório JSON: **2 blocos de preparação de fixtures**,
-**24 grupos de asserções aprovados**, **21 subcasos declarados** dentro deles e
-**1 cenário PENDENTE** (S5.2, item 9). Preparação não é asserção e pendência não
-é aprovação.
+Contagem separada, como no relatório JSON: **3 blocos de preparação de fixtures**,
+**26 grupos de asserções aprovados**, **27 subcasos declarados** dentro deles e
+**0 pendências**. Preparação não é asserção.
+
+Selo de status do runner: `passed`/exit 0 apenas sem falha e sem pendência;
+qualquer cenário PENDENTE (ou arquivo de teste não executado) força
+`partial`/**exit 2**; exit 1 continua reservado a falha. Esse ramo é verificado
+por teste dirigido (`--pending-self-test`), que injeta uma pendência sintética e
+confirmou `status_geral=partial`, `codigo_saida=2`.
 
 `supabase/tests/dp_internal_functions_p04.test.sql` — T1, T1b, T2, T3, fixtures,
 T4, T5, T5b, T6, T7, T7b, T8.
@@ -120,11 +126,23 @@ B; perfis dono, admin, colaborador, sem vínculo e visitante):
   recebem `42501 FORBIDDEN`; visitante nem tem EXECUTE.
 - **S3b** — o colaborador sintético está ligado a `dp_colaboradores.user_id`
   (perfil real de colaborador) e **não** edita nem a própria empresa.
+- **S5-ARRANGE** — fixture histórica autorizada, **somente no cluster
+  descartável**: desabilita exclusivamente os dois gatilhos BEFORE INSERT de selo
+  (`trg_dp_jornadas_legado`, `trg_dp_colaborador_jornadas_legado`), cria uma
+  jornada legada 6x1 (folga fixa no domingo) vinculada a dois colaboradores da
+  empresa A com início de um ano antes, **reabilita os mesmos gatilhos** e confere
+  `tgenabled = 'O'` nos dois antes de qualquer função sob teste rodar. Nenhuma
+  função de segurança/negócio foi alterada, nenhum gatilho de validação de folga
+  foi desligado e não houve DDL na origem — mesma distinção do roteiro T7.
+- **S5.2** — `dp_escala_auto_gerar` executada na competência dois meses adiante
+  (representando a chamada mensal): retorno **10**, exatamente 10 linhas gravadas
+  em `dp_folgas` (5 domingos × 2 colaboradores), todas com empresa, colaborador e
+  dia da semana conferidos. Isso testa **compatibilidade com dados antigos**, não
+  suporte automático ao modelo atual de turnos (ver item 9).
 - **S5/S6** — execução interna com dados sintéticos, como proprietário do banco e
   como `service_role`: contagem de páginas do lote (efeito verificado: 2 e 1) e
   autoatribuição de folgas por competência com efeito conferido (2 folgas, todas
-  na empresa A e nos colaboradores sintéticos). `dp_escala_auto_gerar` fica
-  **PENDENTE** (item 9).
+  na empresa A e nos colaboradores sintéticos).
 - **S5b** — positivo app-facing com efeito: o admin da própria empresa obtém a
   prévia do plano, aplica a data sugerida por ela e a folga é gravada (conferida
   linha a linha). A data vem da prévia real, não de um dia arbitrário.
@@ -161,7 +179,13 @@ redundantes), definindo se o dono deve poder transferir.
    com `ON_ERROR_STOP=1` sem allowlist por nome, `--reuse-dump` removido e
    fidelidade ampliada (corpos/dono/`security definer`/`search_path`/`roles` das
    policies/`pg_get_triggerdef`/`auth.*`).
-6. Testes: `origem` da autoatribuição corrigida para o valor real do enum
+6. Runner: pendência deixou de sair com selo `passed` (agora `partial`/exit 2,
+   com teste dirigido); a contagem de subcasos passou a reconhecer grupos como
+   `(42501 FORBIDDEN, 4 casos)` sem somar preparações; o self-test restaura
+   `PGHOST`/`PGPORT` com `delete` quando a variável não existia (antes virava a
+   string `"undefined"`); e o padrão de espaços das comparações foi conferido —
+   o PostgreSQL recebe `\s+` (uma barra), como esperado.
+7. Testes: `origem` da autoatribuição corrigida para o valor real do enum
    (`auto_fechamento_periodo`), asserção de efeito acrescentada em S5.3, S5b e
    S3b criados, e o comentário incorreto sobre "rollback deixar gatilhos
    desabilitados" removido — DDL de gatilho é transacional; o isolamento é
@@ -169,15 +193,21 @@ redundantes), definindo se o dono deve poder transferir.
 
 ## 9. Limites (registrados, sem alegar aprovação)
 
-- **PENDENTE — `dp_escala_auto_gerar`**: a rotina lê o cadastro legado
-  `public.dp_jornadas`/`dp_colaborador_jornadas`, e esse cadastro está **selado em
-  produção** pelo gatilho ativo `trg_dp_jornadas_legado`
-  (`dp_bloquear_cadastro_legado`), que recusa novos registros. Criar jornada
-  sintética exigiria desabilitar uma regra de produção, o que não foi feito.
-  Portanto o cenário comprova execução interna e ausência de efeito colateral
-  (retorno 0, nenhuma gravação, nada fora da empresa sintética) — **não** a
-  geração efetiva de escala. Fica pendente até haver caminho suportado (turnos +
-  configuração de trabalho) para montar a fixture.
+- **S5.2 prova compatibilidade com dados históricos, não o modelo atual.** A
+  fixture legada é criada no cluster descartável; a rotina real continua lendo
+  **exclusivamente** `dp_colaborador_jornadas` + `dp_jornadas`.
+
+### Risco operacional separado (não é achado de teste)
+
+Evidência somente-leitura na origem em 2026-09-15: `public.dp_jornadas` tem **2**
+registros, `public.dp_colaborador_jornadas` tem **0** e
+`public.dp_colaborador_config_trabalho` tem **16** linhas com
+`vigencia_fim IS NULL`. Como `dp_escala_auto_gerar` lê só o par legado e o gatilho
+`trg_dp_jornadas_legado` (BEFORE INSERT) sela aquele cadastro
+(`Cadastro antigo de jornadas encerrado. Use Turnos e Configuracao de trabalho do
+colaborador.`), a geração automática de escala **hoje não enxerga as
+configurações atuais** de trabalho. Modernizar essa rotina — e a importação — é o
+**próximo ajuste técnico**, deliberadamente fora desta etapa.
 - `dp_escala_auto_gerar_todas()` e `dp_folga_autoatribuir_todas()` só são
   exercitadas pela negação de EXECUTE (S1): em modo global varrem todas as
   empresas e não agregam prova além do caminho por empresa (S5).

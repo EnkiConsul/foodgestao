@@ -29,12 +29,15 @@ import { join, resolve } from "node:path";
 const ARGS = new Set(process.argv.slice(2));
 const KEEP = ARGS.has("--keep");
 const SELF_TEST = ARGS.has("--self-test");
+const PENDING_SELF_TEST = ARGS.has("--pending-self-test");
 
 const PORT = 55437;
 const DB = "p04iso";
 const SCHEMA_FILE = join(tmpdir(), `p04_schema_${process.pid}.sql`);
-const LOG_FILE = resolve("docs/security/p0-4-functional-validation.log.txt");
-const REPORT_FILE = resolve("docs/security/p0-4-functional-validation.report.json");
+// o teste dirigido de pendência escreve em /tmp para não sobrescrever a evidência
+const OUT_DIR = ARGS.has("--pending-self-test") ? "/tmp" : resolve("docs/security");
+const LOG_FILE = `${OUT_DIR}/p0-4-functional-validation.log.txt`;
+const REPORT_FILE = `${OUT_DIR}/p0-4-functional-validation.report.json`;
 const MARKER = ".p04-runner-owned";
 
 const TEST_FILES = [
@@ -431,11 +434,13 @@ function runTestFile(file) {
   const pendentes = notices.filter((l) => l.startsWith("PENDENTE"));
   const grupos = notices.filter((l) => l.startsWith("OK"));
   const subcasos = grupos.reduce((acc, l) => {
-    const m = l.match(/\((\d+)\s+casos?\)/);
+    // aceita tanto "(18 casos)" quanto "(42501 FORBIDDEN, 4 casos)"
+    const m = l.match(/(\d+)\s+casos?\)/);
     return acc + (m ? Number(m[1]) : 0);
   }, 0);
   const falhas = out.split("\n").filter((l) => /ERROR:|FALHA /.test(l)).map((l) => l.trim());
-  const status = r.status === 0 && falhas.length === 0 ? "passed" : "failed";
+  const status =
+    r.status !== 0 || falhas.length > 0 ? "failed" : pendentes.length > 0 ? "partial" : "passed";
   log(`teste ${file}: exit=${r.status} status=${status} preparacao=${preparacao.length} grupos=${grupos.length} subcasos=${subcasos} pendentes=${pendentes.length}`);
   for (const c of notices) log(`  · ${c}`);
   for (const f of falhas) log(`  ! ${f}`);
@@ -486,6 +491,8 @@ function selfTest() {
 
   // 3. guarda de colisão com a origem
   let colidiu = false;
+  const hadHost = Object.prototype.hasOwnProperty.call(process.env, "PGHOST");
+  const hadPort = Object.prototype.hasOwnProperty.call(process.env, "PGPORT");
   const backup = { host: process.env.PGHOST, port: process.env.PGPORT };
   process.env.PGHOST = "127.0.0.1";
   process.env.PGPORT = String(PORT);
@@ -494,8 +501,11 @@ function selfTest() {
   } catch {
     colidiu = true;
   }
-  process.env.PGHOST = backup.host;
-  process.env.PGPORT = backup.port;
+  // restaurar com atribuição de undefined criaria a string "undefined" no Node
+  if (hadHost) process.env.PGHOST = backup.host;
+  else delete process.env.PGHOST;
+  if (hadPort) process.env.PGPORT = backup.port;
+  else delete process.env.PGPORT;
   resultados.push({ caso: "guarda_colisao_com_origem", status: colidiu ? "passed" : "failed" });
 
   rmSync(alheio, { recursive: true, force: true });
@@ -544,6 +554,8 @@ const report = {
     "Agendador (pg_cron), filas (pgmq) e cofre (supabase_vault) são stubs vazios: a execução agendada não é simulada; segue comprovada por privilégio e cadeia de chamadas.",
     "Camada HTTP não é exercitada: PostgREST e GoTrue não rodam aqui. As provas são no banco (privilégios, RLS, políticas, gatilhos, corpos das funções) com claims injetados como o PostgREST faz.",
     "Sem dados reais, o comportamento sobre volume, índices e latência de produção não é avaliado nesta etapa.",
+    "S5.2 usa fixture de jornada LEGADA (gatilhos de selo desabilitados só durante o ARRANGE, no cluster descartável, e reabilitados/conferidos antes das chamadas). Isso comprova COMPATIBILIDADE com dados históricos — NÃO comprova geração automática a partir do modelo atual (Turnos + Configuração de trabalho).",
+    "RISCO OPERACIONAL SEPARADO (evidência somente-leitura na origem, 2026-09-15): public.dp_jornadas tem 2 registros, public.dp_colaborador_jornadas tem 0 e public.dp_colaborador_config_trabalho tem 16 linhas com vigencia_fim IS NULL. Como dp_escala_auto_gerar lê exclusivamente dp_colaborador_jornadas + dp_jornadas e o gatilho trg_dp_jornadas_legado (BEFORE INSERT) sela o cadastro antigo, a geração automática de escala hoje não enxerga as configurações atuais. Modernizar essa rotina (e a importação) é o próximo ajuste técnico, fora desta etapa.",
   ],
 };
 
@@ -594,6 +606,7 @@ try {
       { preparacao: 0, grupos_de_assercoes: 0, subcasos_declarados: 0, pendentes: 0 }
     );
     if (report.testes.some((t) => t.status === "failed")) exitCode = 1;
+    if (report.testes.some((t) => t.status === "partial")) exitCode = exitCode || 2;
     if (report.testes.some((t) => t.status === "pending")) {
       report.limitacoes.push("Arquivo de teste não executado (ver testes[].motivo) — PENDENTE, não aprovado.");
       exitCode = exitCode || 2;
@@ -602,8 +615,16 @@ try {
       report.limitacoes.push(
         `${report.resumo_cenarios.pendentes} cenário(s) marcados como PENDENTE pelas suítes (ver testes[].pendentes) — não contam como aprovação.`
       );
+      exitCode = exitCode || 2;
     }
-    report.status_geral = exitCode === 0 ? "passed" : "failed";
+    if (PENDING_SELF_TEST) {
+      // ramo dirigido: força uma pendência sintética para provar que o selo geral
+      // NÃO fica "passed" e o código de saída passa a 2 (reservando 1 para falha)
+      report.resumo_cenarios.pendentes += 1;
+      report.limitacoes.push("teste dirigido --pending-self-test: pendência sintética injetada para verificar o selo partial/exit 2");
+      exitCode = exitCode || 2;
+    }
+    report.status_geral = exitCode === 0 ? "passed" : exitCode === 2 ? "partial" : "failed";
   }
 } catch (err) {
   exitCode = 1;
