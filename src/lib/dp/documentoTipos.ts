@@ -451,3 +451,29 @@ export function assinaturaDocumento(nomeArquivo?: string | null, ocr?: string | 
     .slice(0, 90);
   return [nome, cabecalho].filter(Boolean).join(" | ");
 }
+
+/**
+ * Documentos de pagamento que aceitam comprovante de pagamento anexado.
+ * Espelha `public.dp_documento_aceita_comprovante` no banco.
+ */
+export const TIPOS_COM_COMPROVANTE = [
+  "contracheque",
+  "contracheque_13",
+  "contracheque_ferias",
+  "recibo_ferias",
+  "aviso_ferias",
+  "adiantamento",
+  "trct",
+  "demonstrativo_rescisorio",
+  "plr",
+  "pro_labore",
+  "outros_pagamentos",
+  "ferias",
+] as const;
+
+const TIPOS_COM_COMPROVANTE_SET = new Set<string>(TIPOS_COM_COMPROVANTE);
+
+/** O tipo aceita comprovante de pagamento? */
+export function aceitaComprovante(tipo?: string | null): boolean {
+  return !!tipo && TIPOS_COM_COMPROVANTE_SET.has(tipo);
+}

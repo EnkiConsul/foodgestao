@@ -37,6 +37,7 @@ const PRAZO_FIELDS: Array<{
   { key: "alerta_epi_dias", label: "EPIs (dias antes da troca prevista)", helper: "Janela para alertar EPIs que precisam ser trocados.", min: 1, max: 180 },
   { key: "alerta_treinamento_dias", label: "Treinamentos (dias antes do vencimento)", helper: "Janela para alertar treinamentos que precisam ser renovados.", min: 1, max: 365 },
   { key: "alerta_negociacao_dias", label: "Negociação coletiva (dias antes do vencimento)", helper: "Janela para começar a alertar antes do vencimento anual da última negociação.", min: 1, max: 180 },
+  { key: "alerta_comprovante_dias", label: "Comprovante de pagamento (dias após o documento)", helper: "Dias após a data do documento de pagamento até a falta do comprovante virar pendência atrasada.", min: 1, max: 60 },
   { key: "dias_carencia_portal", label: "Acesso ao portal após desligamento (dias)", helper: "Dias após a data de demissão em que o colaborador ainda pode acessar o portal apenas para baixar documentos.", min: 0, max: 180 },
 
 ];
@@ -117,6 +118,29 @@ export default function DpCadastroPendencias() {
             onCheckedChange={(v) =>
               setForm({ ...form, exigir_contracheque_mes_desligamento: v })
             }
+          />
+        </div>
+
+        <div className="mt-6 flex items-start justify-between gap-4 rounded-md border p-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Exigir comprovante de pagamento</Label>
+            <p className="text-[11px] text-muted-foreground">
+              Ligado por padrão: cada contracheque, adiantamento, 13º, férias, PLR, pró-labore ou
+              rescisão gera uma pendência até que o comprovante de pagamento seja anexado. Documentos
+              anteriores à data de início abaixo aceitam comprovante, mas nunca geram pendência.
+            </p>
+            <div className="grid gap-1.5 pt-2 sm:max-w-[220px]">
+              <Label className="text-xs">Cobrar a partir de</Label>
+              <Input
+                type="date"
+                value={form.comprovante_vigencia_inicio ?? ""}
+                onChange={(e) => setForm({ ...form, comprovante_vigencia_inicio: e.target.value })}
+              />
+            </div>
+          </div>
+          <Switch
+            checked={form.exigir_comprovante_pagamento}
+            onCheckedChange={(v) => setForm({ ...form, exigir_comprovante_pagamento: v })}
           />
         </div>
 

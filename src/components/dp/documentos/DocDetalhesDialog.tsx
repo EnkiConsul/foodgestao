@@ -12,9 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DP_DOC_GRUPOS, docTipoGrupo } from "@/lib/dp/documentoTipos";
 import { docSourceConfig, parseDocRowId } from "@/lib/dp/historicoDocAcoes";
+import { ComprovantePagamentoPanel } from "./ComprovantePagamentoPanel";
 
 export type DocDetalhesTarget = {
   rowId: string;
+  /** Colaborador titular — usado no caminho do comprovante. */
+  colaborador_id?: string | null;
   titulo: string;
   tipo_key: string;
   tipo_label: string;
@@ -75,7 +78,7 @@ export function DocDetalhesDialog(props: {
         source === "doc"
           ? supabase
               .from("dp_documentos")
-              .select("id, file_name, file_size, uploaded_by, created_at, exige_aceite, assinatura_detectada, submetido_por_colaborador")
+              .select("id, file_name, file_size, uploaded_by, created_at, exige_aceite, assinatura_detectada, submetido_por_colaborador, colaborador_id, tipo, comprovante_file_path, comprovante_file_name, comprovante_pago_em, comprovante_uploaded_at, replaces_by_documento_id")
               .eq("id", docId!)
               .maybeSingle()
           : Promise.resolve({ data: null } as any),
@@ -211,6 +214,23 @@ export function DocDetalhesDialog(props: {
                 </div>
               )}
             </div>
+
+            {source === "doc" && docId && (
+              <ComprovantePagamentoPanel
+                alvo={{
+                  documentoId: docId,
+                  colaboradorId: detalhes.data?.doc?.colaborador_id ?? target.colaborador_id ?? null,
+                  tipo: detalhes.data?.doc?.tipo ?? target.tipo_key,
+                }}
+                comprovante={{
+                  tem: !!detalhes.data?.doc?.comprovante_file_path,
+                  file_name: detalhes.data?.doc?.comprovante_file_name ?? null,
+                  pago_em: detalhes.data?.doc?.comprovante_pago_em ?? null,
+                  uploaded_at: detalhes.data?.doc?.comprovante_uploaded_at ?? null,
+                }}
+                versaoAnterior={!!detalhes.data?.doc?.replaces_by_documento_id}
+              />
+            )}
 
             <div className="rounded-lg border p-3">
               <div className="mb-2 flex items-center justify-between gap-2">

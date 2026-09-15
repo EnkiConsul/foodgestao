@@ -24,6 +24,8 @@ import { toast } from "sonner";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import { imprimirCertificadoValidacao } from "@/lib/dp/documento-certificado";
 import { abrirArquivoDp } from "@/lib/dp/abrirDocumento";
+import { abrirDocumento } from "@/lib/documentoArquivo";
+import { Receipt } from "lucide-react";
 import { baixarCsv } from "@/lib/dp/portal-csv";
 import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/ColaboradorDocumentosPanel";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
@@ -530,6 +532,21 @@ export default function DpMeuDocumentos() {
                         <Button size="sm" variant="outline" onClick={() => download(d)} disabled={!d.file_path} className="min-h-9 flex-1 sm:flex-none">
                           <Download className="h-4 w-4 mr-1" /> Baixar
                         </Button>
+                        {d.origem === "dp" && d.meta?.comprovante && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="min-h-9 flex-1 sm:flex-none"
+                            onClick={async () => {
+                              const ok = await abrirDocumento(String(d.meta?.originalId ?? d.id), {
+                                variante: "comprovante",
+                              });
+                              if (!ok) toast.error("Não foi possível abrir o comprovante agora.");
+                            }}
+                          >
+                            <Receipt className="h-4 w-4 mr-1 text-emerald-600" /> Comprovante de pagamento
+                          </Button>
+                        )}
                         {d.aceite === false && (
                           <Button
                             size="sm"

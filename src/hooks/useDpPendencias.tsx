@@ -14,6 +14,7 @@ import { agruparPisosPorCargo, salarioCargoNaUnidade } from "@/lib/dp/cargoSalar
 import { alertaPendenciaFerias, periodosComAcumulo } from "@/lib/dp/ferias-direito";
 import { AVISO_FERIAS_PRAZO_DIAS } from "@/lib/dp/ferias-aviso";
 import { compararUrgencia } from "@/lib/dp/pendencias";
+import { TIPOS_COM_COMPROVANTE } from "@/lib/dp/documentoTipos";
 
 import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
 import {
@@ -1275,6 +1276,47 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/cadastro-incompleto:", e);
+      }
+
+      // Comprovante de pagamento em falta nos documentos de pagamento.
+      // Só cobra documentos ativos a partir da data de início configurada.
+      if (cfg.exigir_comprovante_pagamento) {
+        try {
+          const inicio = cfg.comprovante_vigencia_inicio || "2026-09-01";
+          const { data: docsPagto } = await supabase
+            .from("dp_documentos")
+            .select("id, tipo, titulo, referencia_data, created_at, colaborador_id, comprovante_file_path, ciclo_status")
+            .eq("company_id", selectedCompanyId!)
+            .in("tipo", [...TIPOS_COM_COMPROVANTE] as never)
+            .is("comprovante_file_path", null)
+            .eq("ciclo_status", "ativo")
+            .limit(500);
+          const nomePorColab = new Map(colaboradoresDocs.map((c) => [c.id, c.nome]));
+          const nomeUnidade = new Map(unidades.map((u) => [u.id, u.nome]));
+          for (const d of (docsPagto ?? []) as any[]) {
+            const referencia = String(d.referencia_data ?? d.created_at ?? "").slice(0, 10);
+            if (!referencia || referencia < inicio) continue;
+            const vencimento = ymd(addDays(new Date(`${referencia}T12:00:00`), cfg.alerta_comprovante_dias));
+            const unidadeId = d.colaborador_id ? unidadeDoColab.get(d.colaborador_id) ?? null : null;
+            results.push({
+              id: `comprovante-${d.id}`,
+              icon: Coins,
+              titulo: "Comprovante de pagamento não anexado",
+              subtitulo: `${d.titulo ?? "Documento"} · ${competenciaLabel(competenciaDe(referencia))}`,
+              tipo: "Comprovante de pagamento",
+              colaboradorNome: d.colaborador_id ? nomePorColab.get(d.colaborador_id) ?? null : null,
+              unidadeNome: unidadeId ? nomeUnidade.get(unidadeId) ?? null : null,
+              colaboradorId: d.colaborador_id ?? null,
+              unidadeId,
+              competencia: competenciaDe(referencia),
+              vencimento,
+              atrasoDias: atrasoEmDias(vencimento, hojeISO),
+              url: `/dp/documentos/historico?tipo=${d.tipo}`,
+            });
+          }
+        } catch (e) {
+          console.warn("pendencias/comprovante-pagamento:", e);
+        }
       }
 
 
