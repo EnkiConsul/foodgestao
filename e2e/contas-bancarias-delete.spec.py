@@ -6,8 +6,8 @@ Valida, do clique em "Excluir" até a mensagem final, dois cenários reais:
   2. Conta COM lançamentos  → diálogo "arquivada"                → toast "Conta arquivada"
 
 Seed/cleanup usam as RPCs `_e2e_seed_delete_accounts` /
-`_e2e_cleanup_delete_accounts`, invocadas via PostgREST com o token do
-próprio usuário autenticado (Lovable session injetada).
+`_e2e_cleanup_delete_accounts`, invocadas server-side com service_role
+(ver e2e/qa_admin.py — P0.2-C).
 """
 
 import asyncio
@@ -20,6 +20,9 @@ import uuid
 from pathlib import Path
 
 from playwright.async_api import async_playwright, expect
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from qa_admin import qa_rpc, session_user_id  # noqa: E402
 
 SCREENSHOTS = Path("/tmp/browser/contas-delete/screenshots")
 SCREENSHOTS.mkdir(parents=True, exist_ok=True)
@@ -34,40 +37,17 @@ ANON_KEY = (
     "izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko"
 )
 
+def _qa(name: str, payload: dict):
+    return qa_rpc(name, {**payload, "_user_id": session_user_id()})
+
+
 RUN_ID = uuid.uuid4().hex[:8]
 ACC_EMPTY_NAME   = f"E2E-Vazia-{RUN_ID}"
 ACC_HISTORY_NAME = f"E2E-Historico-{RUN_ID}"
 
 
-def _access_token() -> str:
-    session = json.loads(os.environ["LOVABLE_BROWSER_SUPABASE_SESSION_JSON"])
-    tok = session.get("access_token")
-    if not tok:
-        raise RuntimeError("access_token ausente")
-    return tok
-
-
-def _rpc(name: str, payload: dict) -> dict | list:
-    req = urllib.request.Request(
-        f"{SUPABASE_URL}/rest/v1/rpc/{name}",
-        data=json.dumps(payload).encode(),
-        method="POST",
-        headers={
-            "apikey": ANON_KEY,
-            "Authorization": f"Bearer {_access_token()}",
-            "Content-Type": "application/json",
-        },
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            body = resp.read().decode() or "null"
-            return json.loads(body)
-    except urllib.error.HTTPError as e:
-        raise RuntimeError(f"RPC {name} falhou: {e.code} {e.read().decode()[:200]}") from None
-
-
 def seed() -> None:
-    _rpc("_e2e_seed_delete_accounts", {
+    _qa("_e2e_seed_delete_accounts", {
         "_empty_name": ACC_EMPTY_NAME,
         "_history_name": ACC_HISTORY_NAME,
     })
@@ -75,7 +55,7 @@ def seed() -> None:
 
 def cleanup() -> None:
     try:
-        _rpc("_e2e_cleanup_delete_accounts", {"_names": [ACC_EMPTY_NAME, ACC_HISTORY_NAME]})
+        _qa("_e2e_cleanup_delete_accounts", {"_names": [ACC_EMPTY_NAME, ACC_HISTORY_NAME]})
     except Exception as e:
         print(f"⚠ cleanup: {e}")
 

@@ -84,3 +84,5 @@ falha se qualquer `_e2e_*`/`_test_*` for executável por `anon`, ou executável 
 - GRANTs faltantes nas 5 tabelas internas (`auth_login_identifiers`,
   `auth_rate_limits`, `auth_recovery_challenges`, `cnpj_cache`, `dp_cargos`).
 - Ensaio de carga/tenancy com 200 empresas.
+
+> Continuação: [P0.2-C — rotinas de QA somente com service_role](./p0-2c-qa-functions-service-role.md)
