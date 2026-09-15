@@ -14,6 +14,7 @@ import { agruparPisosPorCargo, salarioCargoNaUnidade } from "@/lib/dp/cargoSalar
 import { alertaPendenciaFerias, periodosComAcumulo } from "@/lib/dp/ferias-direito";
 import { AVISO_FERIAS_PRAZO_DIAS } from "@/lib/dp/ferias-aviso";
 import { compararUrgencia } from "@/lib/dp/pendencias";
+import { TIPOS_COM_COMPROVANTE } from "@/lib/dp/documentoTipos";
 
 import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
 import {
@@ -1286,7 +1287,7 @@ export function useDpPendencias() {
             .from("dp_documentos")
             .select("id, tipo, titulo, referencia_data, created_at, colaborador_id, comprovante_file_path, ciclo_status")
             .eq("company_id", selectedCompanyId!)
-            .in("tipo", TIPOS_COM_COMPROVANTE as unknown as string[])
+            .in("tipo", [...TIPOS_COM_COMPROVANTE] as never)
             .is("comprovante_file_path", null)
             .eq("ciclo_status", "ativo")
             .limit(500);
