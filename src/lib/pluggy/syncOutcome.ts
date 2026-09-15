@@ -191,3 +191,34 @@ export function describeSyncOutcome(input: {
     suggestReconnect: false,
   };
 }
+
+/**
+ * Escopo pedido por conta/cartão precisa estar resolvido para sincronizar: nunca
+ * cair para "todas as conexões da empresa".
+ */
+export function canSyncScopedTargets(input: {
+  scopeRequested: boolean;
+  scopeResolved: boolean;
+  scopeUnresolved: boolean;
+  loading: boolean;
+  targetCount: number;
+}): { allowed: boolean; reason?: "loading" | "unresolved" | "no_targets" } {
+  if (input.loading) return { allowed: false, reason: "loading" };
+  if (input.scopeRequested && (!input.scopeResolved || input.scopeUnresolved)) {
+    return { allowed: false, reason: "unresolved" };
+  }
+  if (input.targetCount === 0) return { allowed: false, reason: "no_targets" };
+  return { allowed: true };
+}
+
+/**
+ * Sucesso global só quando TODOS os alvos concluíram. Qualquer erro, parcial,
+ * pendente ou informativo derruba o nível do lote.
+ */
+export function aggregateSyncFeedback(feedbacks: SyncFeedback[]): SyncFeedbackLevel | null {
+  if (feedbacks.length === 0) return null;
+  if (feedbacks.some((f) => f.level === "error")) return "error";
+  if (feedbacks.some((f) => f.level === "warning")) return "warning";
+  if (feedbacks.some((f) => f.level === "info")) return "info";
+  return "success";
+}
