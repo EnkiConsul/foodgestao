@@ -1,6 +1,6 @@
 {
   "fase": "P0.4 — validação funcional em banco isolado",
-  "gerado_em": "2026-09-15T03:44:44.467Z",
+  "gerado_em": "2026-09-15T03:47:27.120Z",
   "comando": "node scripts/test-p04-isolated.mjs",
   "ambiente": {
     "tipo": "cluster PostgreSQL local temporário, exclusivo desta execução e descartável",
@@ -8,7 +8,7 @@
     "porta": 55437,
     "banco": "p04iso",
     "origem_dos_dados": "nenhuma — apenas ESTRUTURA (pg_dump --schema-only), reexportada nesta execução",
-    "data_directory": "/tmp/p04pg-run-VRbVUv/pgdata",
+    "data_directory": "/tmp/p04pg-run-kJWJFS/pgdata",
     "listen_addresses": "127.0.0.1"
   },
   "incluido": [
@@ -102,7 +102,7 @@
         "pendentes": 0
       },
       "preparacao": [
-        "PREP fixtures: empresa sintética 14cbe268-c458-4748-9967-86eedb0dcc36 criada"
+        "PREP fixtures: empresa sintética 44a5e583-02c7-4c39-a4bf-93906c49ff20 criada"
       ],
       "grupos_de_assercoes": [
         "OK T1: 9 rotinas internas fechadas, service_role preservado",
@@ -123,11 +123,11 @@
     {
       "file": "supabase/tests/dp_p04_scenarios_isolated.test.sql",
       "comando": "psql -v ON_ERROR_STOP=1 -d p04iso -f supabase/tests/dp_p04_scenarios_isolated.test.sql",
-      "status": "failed",
-      "exit_code": 3,
+      "status": "passed",
+      "exit_code": 0,
       "contagem": {
         "preparacao": 1,
-        "grupos_de_assercoes": 11,
+        "grupos_de_assercoes": 13,
         "subcasos_declarados": 21,
         "pendentes": 1
       },
@@ -145,19 +145,19 @@
         "OK S4d: aplicação do plano negada entre empresas (42501 FORBIDDEN)",
         "OK S4e: visitante (anon) sem EXECUTE nas RPCs app-facing",
         "OK S5.1: contagem de páginas do lote executada internamente (processed_pages=2)",
-        "OK S5.3: autoatribuição por competência com efeito verificado (2 folgas na empresa A, colaboradores sintéticos)"
+        "OK S5.3: autoatribuição por competência com efeito verificado (2 folgas na empresa A, colaboradores sintéticos)",
+        "OK S5b: admin da própria empresa aplica o plano e a folga é gravada (efeito verificado em 2026-10-25)",
+        "OK S6: service_role mantém a execução interna (processed_pages=1)"
       ],
       "pendentes": [
         "PENDENTE S5.2: geração de escala executada internamente (retorno=0, nenhuma gravação) — trabalho efetivo NÃO comprovado: o cadastro de jornadas (dp_jornadas) está selado pelo gatilho trg_dp_jornadas_legado e não pode receber fixture sem violar regra de produção"
       ],
-      "falhas": [
-        "psql:supabase/tests/dp_p04_scenarios_isolated.test.sql:482: ERROR:  FALHA S5b: aplicação legítima não gravou a folga (antes 0, depois 0) — retorno {\"ok\": true, \"geradas\": 0, \"excedidas\": 0, \"ignoradas\": [{\"data\": \"2026-09-05\", \"motivo\": \"DIA_NAO_PERMITIDO\", \"colaborador_id\": \"0fd8a60b-cbe3-428b-9b22-e203a24e0265\", \"colaborador_nome\": \"COLABORADOR SINTETICO A1\"}], \"execucao_id\": \"ab30f595-6825-40fc-908d-a78648c49eac\"}"
-      ]
+      "falhas": []
     }
   ],
   "resumo_cenarios": {
     "preparacao": 2,
-    "grupos_de_assercoes": 22,
+    "grupos_de_assercoes": 24,
     "subcasos_declarados": 21,
     "pendentes": 1
   },
@@ -168,6 +168,6 @@
     "Sem dados reais, o comportamento sobre volume, índices e latência de produção não é avaliado nesta etapa.",
     "1 cenário(s) marcados como PENDENTE pelas suítes (ver testes[].pendentes) — não contam como aprovação."
   ],
-  "status_geral": "failed",
-  "codigo_saida": 1
+  "status_geral": "passed",
+  "codigo_saida": 0
 }

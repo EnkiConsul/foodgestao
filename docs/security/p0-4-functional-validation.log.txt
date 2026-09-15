@@ -1,49 +1,50 @@
-[2026-09-15T03:44:44.468Z] iniciando validação funcional isolada da P0.4
-[2026-09-15T03:44:44.471Z] guardas pré-start aprovadas (destino não colide com a conexão de origem)
-[2026-09-15T03:44:44.472Z] limpeza ignorada: nenhum cluster foi criado por esta execução
-[2026-09-15T03:44:44.472Z] limpeza abortada: marcador ausente em /tmp/p04pg-alheio-TBn1Pq (diretório não é desta execução)
-[2026-09-15T03:44:44.473Z] self-test falha_pre_start_nao_limpa_cluster_alheio: passed
-[2026-09-15T03:44:44.474Z] self-test sem_marcador_nao_apaga_diretorio: passed
-[2026-09-15T03:44:44.474Z] self-test guarda_colisao_com_origem: passed
-[2026-09-15T03:44:44.474Z] exportando ESTRUTURA real (schema-only: public, private, qa) com grants/policies/owners…
-[2026-09-15T03:46:25.061Z] estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)
-[2026-09-15T03:46:27.235Z] cluster próprio no ar (data_directory=/tmp/p04pg-run-VRbVUv/pgdata, porta 55437, listen 127.0.0.1)
-[2026-09-15T03:46:27.344Z] bootstrap de papéis/schemas/shims aplicado (public removido para o dump recriá-lo)
-[2026-09-15T03:46:29.694Z] restore concluído com ON_ERROR_STOP=1: exit 0 e nenhum erro
-[2026-09-15T03:46:29.741Z] clone: 200 tabelas e 468 funções em public
-[2026-09-15T03:46:30.844Z] fidelidade acl_rotinas_criticas: IDÊNTICA (11 linha(s) na origem)
-[2026-09-15T03:46:31.950Z] fidelidade definicoes_rotinas_e_autorizacao: IDÊNTICA (21 linha(s) na origem)
-[2026-09-15T03:46:33.031Z] fidelidade policies_companies: IDÊNTICA (5 linha(s) na origem)
-[2026-09-15T03:46:34.141Z] fidelidade triggers_companies: IDÊNTICA (15 linha(s) na origem)
-[2026-09-15T03:46:35.241Z] fidelidade auth_helpers_equivalentes: IDÊNTICA (4 linha(s) na origem)
-[2026-09-15T03:46:35.336Z] teste supabase/tests/dp_internal_functions_p04.test.sql: exit=0 status=passed preparacao=1 grupos=11 subcasos=0 pendentes=0
-[2026-09-15T03:46:35.336Z]   · OK T1: 9 rotinas internas fechadas, service_role preservado
-[2026-09-15T03:46:35.336Z]   · OK T1b: nenhuma rotina interna liberada para PUBLIC
-[2026-09-15T03:46:35.336Z]   · OK T2: gatilhos de validação ativos (2)
-[2026-09-15T03:46:35.336Z]   · OK T3: RPCs app-facing preservadas para authenticated e fechadas para anon
-[2026-09-15T03:46:35.336Z]   · PREP fixtures: empresa sintética 14cbe268-c458-4748-9967-86eedb0dcc36 criada
-[2026-09-15T03:46:35.336Z]   · OK T4: admin não-dono edita dados comuns normalmente
-[2026-09-15T03:46:35.336Z]   · OK T5: dono edita dados comuns; transferência bloqueada pelo gatilho mais restritivo
-[2026-09-15T03:46:35.336Z]   · OK T5b: super_admin executa a transferência autorizada
-[2026-09-15T03:46:35.336Z]   · OK T6: transferência bloqueada por gatilho existente (Apenas o dono da empresa pode transferir a titularidade)
-[2026-09-15T03:46:35.336Z]   · OK T7: policy sozinha bloqueia a transferência (SQLSTATE 42501)
-[2026-09-15T03:46:35.336Z]   · OK T7b: policy permite edição comum de admin
-[2026-09-15T03:46:35.336Z]   · OK T8: usuário sem vínculo — UPDATE sem efeito (0 linhas)
-[2026-09-15T03:46:37.522Z] teste supabase/tests/dp_p04_scenarios_isolated.test.sql: exit=3 status=failed preparacao=1 grupos=11 subcasos=21 pendentes=1
-[2026-09-15T03:46:37.522Z]   · PREP fixtures: 2 empresas, 6 usuários e 3 colaboradores (1 com acesso de portal)
-[2026-09-15T03:46:37.522Z]   · OK S1: 9 rotinas internas negadas por falta de EXECUTE para authenticated e anon (18 casos)
-[2026-09-15T03:46:37.522Z]   · OK S2: edição comum da empresa preservada para dono e admin
-[2026-09-15T03:46:37.522Z]   · OK S3: admin de A, colaborador e usuário sem vínculo não alteram a empresa B (3 casos)
-[2026-09-15T03:46:37.522Z]   · OK S3b: colaborador com acesso de portal não edita a própria empresa
-[2026-09-15T03:46:37.522Z]   · OK S4a: dono da empresa A obtém o plano de folgas (retorno não nulo)
-[2026-09-15T03:46:37.522Z]   · OK S4b: admin da empresa A obtém o plano de folgas
-[2026-09-15T03:46:37.522Z]   · OK S4c: RPC de plano nega entre empresas e para perfis sem admin (42501 FORBIDDEN, 4 casos)
-[2026-09-15T03:46:37.522Z]   · OK S4d: aplicação do plano negada entre empresas (42501 FORBIDDEN)
-[2026-09-15T03:46:37.522Z]   · OK S4e: visitante (anon) sem EXECUTE nas RPCs app-facing
-[2026-09-15T03:46:37.522Z]   · OK S5.1: contagem de páginas do lote executada internamente (processed_pages=2)
-[2026-09-15T03:46:37.522Z]   · PENDENTE S5.2: geração de escala executada internamente (retorno=0, nenhuma gravação) — trabalho efetivo NÃO comprovado: o cadastro de jornadas (dp_jornadas) está selado pelo gatilho trg_dp_jornadas_legado e não pode receber fixture sem violar regra de produção
-[2026-09-15T03:46:37.522Z]   · OK S5.3: autoatribuição por competência com efeito verificado (2 folgas na empresa A, colaboradores sintéticos)
-[2026-09-15T03:46:37.522Z]   ! psql:supabase/tests/dp_p04_scenarios_isolated.test.sql:482: ERROR:  FALHA S5b: aplicação legítima não gravou a folga (antes 0, depois 0) — retorno {"ok": true, "geradas": 0, "excedidas": 0, "ignoradas": [{"data": "2026-09-05", "motivo": "DIA_NAO_PERMITIDO", "colaborador_id": "0fd8a60b-cbe3-428b-9b22-e203a24e0265", "colaborador_nome": "COLABORADOR SINTETICO A1"}], "execucao_id": "ab30f595-6825-40fc-908d-a78648c49eac"}
-[2026-09-15T03:46:37.699Z] cluster desta execução destruído
+[2026-09-15T03:47:27.121Z] iniciando validação funcional isolada da P0.4
+[2026-09-15T03:47:27.123Z] guardas pré-start aprovadas (destino não colide com a conexão de origem)
+[2026-09-15T03:47:27.123Z] limpeza ignorada: nenhum cluster foi criado por esta execução
+[2026-09-15T03:47:27.123Z] limpeza abortada: marcador ausente em /tmp/p04pg-alheio-iQOWsU (diretório não é desta execução)
+[2026-09-15T03:47:27.124Z] self-test falha_pre_start_nao_limpa_cluster_alheio: passed
+[2026-09-15T03:47:27.124Z] self-test sem_marcador_nao_apaga_diretorio: passed
+[2026-09-15T03:47:27.124Z] self-test guarda_colisao_com_origem: passed
+[2026-09-15T03:47:27.124Z] exportando ESTRUTURA real (schema-only: public, private, qa) com grants/policies/owners…
+[2026-09-15T03:49:09.026Z] estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)
+[2026-09-15T03:49:11.955Z] cluster próprio no ar (data_directory=/tmp/p04pg-run-kJWJFS/pgdata, porta 55437, listen 127.0.0.1)
+[2026-09-15T03:49:12.139Z] bootstrap de papéis/schemas/shims aplicado (public removido para o dump recriá-lo)
+[2026-09-15T03:49:15.278Z] restore concluído com ON_ERROR_STOP=1: exit 0 e nenhum erro
+[2026-09-15T03:49:15.340Z] clone: 200 tabelas e 468 funções em public
+[2026-09-15T03:49:16.453Z] fidelidade acl_rotinas_criticas: IDÊNTICA (11 linha(s) na origem)
+[2026-09-15T03:49:17.574Z] fidelidade definicoes_rotinas_e_autorizacao: IDÊNTICA (21 linha(s) na origem)
+[2026-09-15T03:49:18.686Z] fidelidade policies_companies: IDÊNTICA (5 linha(s) na origem)
+[2026-09-15T03:49:19.813Z] fidelidade triggers_companies: IDÊNTICA (15 linha(s) na origem)
+[2026-09-15T03:49:20.918Z] fidelidade auth_helpers_equivalentes: IDÊNTICA (4 linha(s) na origem)
+[2026-09-15T03:49:21.059Z] teste supabase/tests/dp_internal_functions_p04.test.sql: exit=0 status=passed preparacao=1 grupos=11 subcasos=0 pendentes=0
+[2026-09-15T03:49:21.059Z]   · OK T1: 9 rotinas internas fechadas, service_role preservado
+[2026-09-15T03:49:21.059Z]   · OK T1b: nenhuma rotina interna liberada para PUBLIC
+[2026-09-15T03:49:21.059Z]   · OK T2: gatilhos de validação ativos (2)
+[2026-09-15T03:49:21.059Z]   · OK T3: RPCs app-facing preservadas para authenticated e fechadas para anon
+[2026-09-15T03:49:21.059Z]   · PREP fixtures: empresa sintética 44a5e583-02c7-4c39-a4bf-93906c49ff20 criada
+[2026-09-15T03:49:21.059Z]   · OK T4: admin não-dono edita dados comuns normalmente
+[2026-09-15T03:49:21.059Z]   · OK T5: dono edita dados comuns; transferência bloqueada pelo gatilho mais restritivo
+[2026-09-15T03:49:21.059Z]   · OK T5b: super_admin executa a transferência autorizada
+[2026-09-15T03:49:21.059Z]   · OK T6: transferência bloqueada por gatilho existente (Apenas o dono da empresa pode transferir a titularidade)
+[2026-09-15T03:49:21.059Z]   · OK T7: policy sozinha bloqueia a transferência (SQLSTATE 42501)
+[2026-09-15T03:49:21.059Z]   · OK T7b: policy permite edição comum de admin
+[2026-09-15T03:49:21.059Z]   · OK T8: usuário sem vínculo — UPDATE sem efeito (0 linhas)
+[2026-09-15T03:49:25.498Z] teste supabase/tests/dp_p04_scenarios_isolated.test.sql: exit=0 status=passed preparacao=1 grupos=13 subcasos=21 pendentes=1
+[2026-09-15T03:49:25.498Z]   · PREP fixtures: 2 empresas, 6 usuários e 3 colaboradores (1 com acesso de portal)
+[2026-09-15T03:49:25.498Z]   · OK S1: 9 rotinas internas negadas por falta de EXECUTE para authenticated e anon (18 casos)
+[2026-09-15T03:49:25.498Z]   · OK S2: edição comum da empresa preservada para dono e admin
+[2026-09-15T03:49:25.498Z]   · OK S3: admin de A, colaborador e usuário sem vínculo não alteram a empresa B (3 casos)
+[2026-09-15T03:49:25.498Z]   · OK S3b: colaborador com acesso de portal não edita a própria empresa
+[2026-09-15T03:49:25.498Z]   · OK S4a: dono da empresa A obtém o plano de folgas (retorno não nulo)
+[2026-09-15T03:49:25.498Z]   · OK S4b: admin da empresa A obtém o plano de folgas
+[2026-09-15T03:49:25.498Z]   · OK S4c: RPC de plano nega entre empresas e para perfis sem admin (42501 FORBIDDEN, 4 casos)
+[2026-09-15T03:49:25.498Z]   · OK S4d: aplicação do plano negada entre empresas (42501 FORBIDDEN)
+[2026-09-15T03:49:25.498Z]   · OK S4e: visitante (anon) sem EXECUTE nas RPCs app-facing
+[2026-09-15T03:49:25.498Z]   · OK S5.1: contagem de páginas do lote executada internamente (processed_pages=2)
+[2026-09-15T03:49:25.498Z]   · PENDENTE S5.2: geração de escala executada internamente (retorno=0, nenhuma gravação) — trabalho efetivo NÃO comprovado: o cadastro de jornadas (dp_jornadas) está selado pelo gatilho trg_dp_jornadas_legado e não pode receber fixture sem violar regra de produção
+[2026-09-15T03:49:25.498Z]   · OK S5.3: autoatribuição por competência com efeito verificado (2 folgas na empresa A, colaboradores sintéticos)
+[2026-09-15T03:49:25.498Z]   · OK S5b: admin da própria empresa aplica o plano e a folga é gravada (efeito verificado em 2026-10-25)
+[2026-09-15T03:49:25.498Z]   · OK S6: service_role mantém a execução interna (processed_pages=1)
+[2026-09-15T03:49:25.681Z] cluster desta execução destruído
 
-=== status geral: failed (exit 1) ===
+=== status geral: passed (exit 0) ===
