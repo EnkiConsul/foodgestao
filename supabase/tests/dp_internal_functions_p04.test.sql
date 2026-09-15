@@ -115,8 +115,9 @@ END $$;
 -- FIXTURES SINTÉTICAS para os cenários de companies (T4..T8).
 -- =====================================================================
 CREATE TEMP TABLE p04_fix (
-  owner_id uuid, admin_id uuid, outsider_id uuid, company_id uuid
+  owner_id uuid, admin_id uuid, outsider_id uuid, super_id uuid, company_id uuid
 ) ON COMMIT DROP;
+
 
 DO $$
 DECLARE
