@@ -163,7 +163,7 @@ BEGIN
     RAISE EXCEPTION 'FALHA T4: admin não conseguiu editar campo comum (policy bloqueou fluxo legítimo)';
   END IF;
   SELECT name INTO v_name FROM public.companies WHERE id = f.company_id;
-  IF v_name <> 'P04 EDITADO PELO ADMIN' THEN
+  IF v_name IS DISTINCT FROM 'P04 EDITADO PELO ADMIN' THEN
     RAISE EXCEPTION 'FALHA T4: edição do admin não persistiu (%).', v_name;
   END IF;
   PERFORM set_config('role', 'none', true);
@@ -187,7 +187,7 @@ BEGIN
 
   UPDATE public.companies SET user_id = f.admin_id WHERE id = f.company_id;
   SELECT user_id INTO v_owner_after FROM public.companies WHERE id = f.company_id;
-  IF v_owner_after <> f.admin_id THEN
+  IF v_owner_after IS DISTINCT FROM f.admin_id THEN
     RAISE EXCEPTION 'FALHA T5: dono legítimo não conseguiu transferir a titularidade';
   END IF;
 
@@ -277,10 +277,10 @@ BEGIN
   PERFORM set_config('role', 'none', true);
 
   SELECT user_id INTO v_after FROM public.companies WHERE id = f.company_id;
-  IF v_after <> f.owner_id THEN
+  IF v_after IS DISTINCT FROM f.owner_id THEN
     RAISE EXCEPTION 'FALHA T7: sem os gatilhos, a policy permitiu a transferência';
   END IF;
-  IF v_sqlstate <> '42501' THEN
+  IF v_sqlstate IS DISTINCT FROM '42501' THEN
     RAISE EXCEPTION 'FALHA T7: esperado 42501 (violação de RLS) pela policy, obtido "%"', v_sqlstate;
   END IF;
   RAISE NOTICE 'OK T7: policy sozinha bloqueia a transferência (SQLSTATE 42501)';
