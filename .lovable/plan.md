@@ -20,7 +20,7 @@ Nos demais tipos (identidade, atestado, disciplinar, etc.) o campo não aparece.
    - anexar arquivo (PDF ou imagem), com data do pagamento opcional;
    - ver e baixar o comprovante já anexado;
    - substituir ou remover, com registro de quem fez e quando.
-2. Na lista de documentos, um selo discreto indica que o documento já tem comprovante.
+2. No card de cada documento de pagamento há um atalho direto: "Anexar comprovante" quando não houver anexo e "Comprovante" (ver/baixar) quando já houver, sem precisar abrir os detalhes. Um selo discreto indica que o documento já tem comprovante.
 3. No portal do colaborador, o documento de pagamento passa a mostrar, junto do botão de ver o documento, um botão "Comprovante" quando houver anexo. O colaborador apenas visualiza e baixa; não anexa nem remove.
 4. O comprovante não exige aceite nem cria pendência — a validação digital continua sendo apenas do documento principal.
 
