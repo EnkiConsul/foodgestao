@@ -70,14 +70,23 @@ Vitest (26 casos, aprovados neste ambiente):
 - `WITH CHECK` da policy de `companies` referenciando
   `private.company_owner_snapshot` e `is_super_admin`.
 
-SQL com fixtures (T1–T8): privilégios e PUBLIC; gatilhos ativos; endpoints
-legítimos; **positivos** — admin não-dono edita campos comuns, dono edita e
-transfere titularidade; **negativos** — admin não-dono não assume titularidade,
-usuário sem vínculo não altera nada. O cenário **T7 isola o mérito da policy**:
-com os três gatilhos de titularidade temporariamente desabilitados dentro da
-transação, o `UPDATE` do admin ainda falha com `SQLSTATE 42501` (violação de RLS)
-e o dono permanece o mesmo; T7b confirma que, nessa mesma condição, a edição
-comum do admin continua funcionando.
+SQL com fixtures (T1–T8) — **cobertura pretendida, ainda não executada**
+(exige banco isolado de teste/CI; ver Limitações): privilégios e PUBLIC; gatilhos
+ativos; endpoints legítimos; **positivos** — admin não-dono edita campos comuns,
+dono edita e transfere titularidade; **negativos** — admin não-dono não assume
+titularidade, usuário sem vínculo não altera nada. O cenário **T7 pretende
+isolar o mérito da policy**: com os três gatilhos de titularidade temporariamente
+desabilitados dentro da transação, espera-se que o `UPDATE` do admin falhe com
+`SQLSTATE 42501` (violação de RLS) e que o dono permaneça o mesmo; T7b espera
+que, nessa mesma condição, a edição comum do admin continue funcionando.
+
+Rigor das asserções negativas (T6 e T8): o bloco de captura contém apenas o
+`UPDATE`; o papel é restaurado antes da leitura verificadora; o titular/nome
+final é conferido com `IS DISTINCT FROM` (NULL não passa como aprovação); e só é
+aceita a negação esperada — `42501`, zero linhas afetadas sem erro, ou, no T6,
+`P0001` com a mensagem exata de um dos três gatilhos existentes. Qualquer outro
+`SQLSTATE`/mensagem faz o cenário falhar.
+
 
 ## 4. Validação executada
 
