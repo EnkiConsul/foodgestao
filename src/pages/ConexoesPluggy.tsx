@@ -207,69 +207,26 @@ export default function ConexoesPluggy() {
   useEffect(() => { load(); }, [load]);
 
 
-  // HTTP 200 não significa coleta completa: a função devolve 200 também quando o
-  // banco ainda está processando (`pending`), quando a conexão foi ignorada
-  // (`skipped`), quando devolve `error` no corpo ou quando o item volta como
-  // PARTIAL_SUCCESS. Só avisamos "concluída" no resultado completo.
   const sync = async (c: Connection) => {
     setSyncingId(c.id);
-    const { data, error } = await supabase.functions.invoke("pluggy-sync-item", {
-      body: { item_id: c.pluggy_item_id, company_id: selectedCompanyId },
-    });
-    setSyncingId(null);
-
-    const body = (data ?? null) as {
-      ok?: boolean;
-      pending?: boolean;
-      skipped?: string | null;
-      error?: string | null;
-      message?: string | null;
-      transactions?: number | null;
-      execution_status?: string | null;
-    } | null;
-
-    if (error || body?.error) {
-      toast.error("Não foi possível concluir a sincronização", {
-        description: "Tente novamente em alguns minutos. Se continuar, use “Reconectar”.",
+    try {
+      const { data, error } = await supabase.functions.invoke("pluggy-sync-item", {
+        body: { item_id: c.pluggy_item_id, company_id: selectedCompanyId },
       });
+
+      const body = (data ?? null) as SyncResponse | null;
+      const feedback = describeSyncOutcome({ transportError: !!error, body });
+
+      if (feedback.level === "success") toast.success(feedback.title, { description: feedback.description });
+      else if (feedback.level === "warning") toast.warning(feedback.title, { description: feedback.description });
+      else if (feedback.level === "error") toast.error(feedback.title, { description: feedback.description });
+      else toast.info(feedback.title, { description: feedback.description });
+
       load();
-      return;
+      if (feedback.level === "success" || feedback.level === "warning") reloadPendingCredit();
+    } finally {
+      setSyncingId(null);
     }
-
-    if (body?.pending) {
-      toast.info("O banco ainda está processando esta conexão", {
-        description: "Nada foi atualizado agora. Tente novamente em alguns minutos.",
-      });
-      load();
-      return;
-    }
-
-    if (body?.skipped) {
-      toast.info("Esta conexão não foi sincronizada", {
-        description:
-          body.skipped === "connection_revoked"
-            ? "O acesso ao banco foi encerrado. Reconecte para voltar a atualizar."
-            : "A conexão não está mais ativa nesta empresa.",
-      });
-      load();
-      return;
-    }
-
-    const parcial = String(body?.execution_status ?? "").toUpperCase() === "PARTIAL_SUCCESS";
-    if (parcial) {
-      toast.warning("Parte dos dados não foi atualizada", {
-        description: `O banco não concluiu a coleta desta vez (${body?.transactions ?? 0} lançamentos recebidos). Tente sincronizar de novo mais tarde.`,
-      });
-    } else if (body?.ok) {
-      toast.success(`Sincronização concluída (${body?.transactions ?? 0} lançamentos)`);
-    } else {
-      toast.info("Sincronização encerrada sem confirmação do banco", {
-        description: "Confira o status da conexão e tente novamente se necessário.",
-      });
-    }
-
-    load();
-    reloadPendingCredit();
   };
 
   // Alguns bancos concluem a autorização sem devolver a conexão ao navegador
