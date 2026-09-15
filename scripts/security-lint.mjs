@@ -225,22 +225,24 @@ const checks = [
     id: "test_helpers_unguarded",
     severity: "critical",
     description:
-      "Rotina de teste/E2E (`_e2e_*`/`_test_*`) executável por authenticated/anon/PUBLIC sem a guarda `_assert_test_helper_allowed()` (P0.2-B)",
+      "Rotina de QA (`_e2e_*`/`_test_*`) executável por anon/PUBLIC/authenticated — desde a P0.2-C somente `service_role` pode executar",
     sql: `
+      -- Allowlist P0.2-C: VAZIA por design. Nenhuma rotina de QA pode ser
+      -- executável por sessão de usuário; o E2E usa service_role server-side
+      -- (e2e/qa_admin.py). Qualquer exceção futura precisa de justificativa
+      -- curta aqui e registro em docs/security/p0-2c-qa-functions-service-role.md.
       SELECT p.proname || '(' || pg_catalog.pg_get_function_identity_arguments(p.oid) || ')' ||
              CASE WHEN has_function_privilege('anon', p.oid, 'EXECUTE')
-                  THEN ' [executável por anon]' ELSE ' [sem guarda explícita]' END AS finding
+                  THEN ' [executável por anon]'
+                  ELSE ' [executável por authenticated]' END AS finding
       FROM pg_proc p
       JOIN pg_namespace n ON n.oid = p.pronamespace
       WHERE n.nspname = 'public'
-        AND (p.proname LIKE E'\\\\_e2e\\\\_%' OR p.proname LIKE E'\\\\_test\\\\_%')
-        AND p.proname <> '_assert_test_helper_allowed'
+        AND (p.proname LIKE E'\\\\_e2e\\\\_%' OR p.proname LIKE E'\\\\_test\\\\_%'
+             OR p.proname = '_assert_test_helper_allowed')
         AND (
           has_function_privilege('anon', p.oid, 'EXECUTE')
-          OR (
-            has_function_privilege('authenticated', p.oid, 'EXECUTE')
-            AND position('_assert_test_helper_allowed' in COALESCE(p.prosrc, '')) = 0
-          )
+          OR has_function_privilege('authenticated', p.oid, 'EXECUTE')
         );
     `,
   },
