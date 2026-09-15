@@ -126,13 +126,13 @@ export function AccountTreeTable({
             </Badge>
           )}
           {av !== null && (
-            <span className="w-16 text-right text-xs text-muted-foreground tabular-nums">
+            <span className="hidden sm:inline w-16 text-right text-xs text-muted-foreground tabular-nums">
               {pct(av)}
             </span>
           )}
           <span
             className={cn(
-              "w-32 text-right tabular-nums font-medium",
+              "w-24 sm:w-32 shrink-0 text-right tabular-nums font-medium",
               signClass(Number(node.saldo_consolidado || 0))
             )}
           >
