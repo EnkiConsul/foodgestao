@@ -512,7 +512,7 @@ export default function Auth() {
             </div>
           </CardContent>
         ) : (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} autoComplete="on">
           <CardContent className="space-y-2 px-4 md:space-y-2.5">
             {isSignup && duplicateEmail && (
               <div
@@ -565,7 +565,9 @@ export default function Auth() {
                   <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="identifier"
+                    name="username"
                     type="text"
+                    inputMode="email"
                     placeholder="seu@email.com ou 000.000.000-00"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
@@ -585,6 +587,8 @@ export default function Auth() {
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
+                    name="email"
+                    autoComplete="email"
                     type="email"
                     placeholder="seu@email.com"
                     value={email}
@@ -615,6 +619,8 @@ export default function Auth() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
+                    name="password"
+                    autoComplete={isLogin ? "current-password" : "new-password"}
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••"
                     value={password}
@@ -643,6 +649,8 @@ export default function Auth() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="confirmPassword"
+                    name="confirmPassword"
+                    autoComplete="new-password"
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="••••••"
                     value={confirmPassword}
