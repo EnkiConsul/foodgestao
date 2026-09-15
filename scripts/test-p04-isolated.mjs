@@ -22,7 +22,7 @@
  *                  em cluster alheio (não roda as suítes)
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -73,6 +73,7 @@ const AUTHZ_FUNCS = [
 
 /* --------------------------- estado da execução --------------------------- */
 
+let RUN_DIR = null;
 let DATA_DIR = null;
 let SOCK_DIR = null;
 let CREATED_BY_US = false; // só true depois de initdb bem-sucedido nesta execução
@@ -138,22 +139,24 @@ function cleanup() {
     log("limpeza ignorada: nenhum cluster foi criado por esta execução");
     return;
   }
-  if (!existsSync(join(DATA_DIR, MARKER))) {
-    log(`limpeza abortada: marcador ausente em ${DATA_DIR} (diretório não é desta execução)`);
+  if (!RUN_DIR || !existsSync(join(RUN_DIR, MARKER))) {
+    log(`limpeza abortada: marcador ausente em ${RUN_DIR} (diretório não é desta execução)`);
     return;
   }
   run(UNPRIV[0], [...UNPRIV.slice(1), "pg_ctl", "-D", DATA_DIR, "-m", "immediate", "stop"]);
-  rmSync(DATA_DIR, { recursive: true, force: true });
+  rmSync(RUN_DIR, { recursive: true, force: true });
   rmSync(SOCK_DIR, { recursive: true, force: true });
   log("cluster desta execução destruído");
 }
 
 function startCluster() {
-  DATA_DIR = mkdtempSync(join(tmpdir(), "p04pg-data-"));
+  RUN_DIR = mkdtempSync(join(tmpdir(), "p04pg-run-"));
+  writeFileSync(join(RUN_DIR, MARKER), `${process.pid} ${new Date().toISOString()}\n`);
+  DATA_DIR = join(RUN_DIR, "pgdata");
+  mkdirSync(DATA_DIR);
   SOCK_DIR = mkdtempSync(join(tmpdir(), "p04pg-sock-"));
   if (readdirSync(DATA_DIR).length !== 0) throw new Error("guarda: diretório de dados não está vazio");
-  writeFileSync(join(DATA_DIR, MARKER), `${process.pid} ${new Date().toISOString()}\n`);
-  must("chown", ["-R", "1000:1000", DATA_DIR, SOCK_DIR]);
+  must("chown", ["-R", "1000:1000", RUN_DIR, SOCK_DIR]);
   must(UNPRIV[0], [...UNPRIV.slice(1), "initdb", "-D", DATA_DIR, "-U", "postgres", "--auth=trust"]);
   CREATED_BY_US = true; // a partir daqui a limpeza pode agir sobre ESTE diretório
   must(UNPRIV[0], [
@@ -450,7 +453,8 @@ function selfTest() {
   const resultados = [];
 
   // 1. falha pré-start: nenhuma limpeza, nada apagado
-  DATA_DIR = alheio;
+  RUN_DIR = alheio;
+  DATA_DIR = join(alheio, "pgdata");
   SOCK_DIR = alheio;
   CREATED_BY_US = false;
   cleanup();
@@ -482,6 +486,7 @@ function selfTest() {
   resultados.push({ caso: "guarda_colisao_com_origem", status: colidiu ? "passed" : "failed" });
 
   rmSync(alheio, { recursive: true, force: true });
+  RUN_DIR = null;
   DATA_DIR = null;
   SOCK_DIR = null;
   CREATED_BY_US = false;
