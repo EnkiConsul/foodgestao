@@ -14897,6 +14897,26 @@ export type Database = {
         }
         Returns: undefined
       }
+      dp_ficha_aplicar: {
+        Args: {
+          p_atualizar_existente?: boolean
+          p_campos?: string[]
+          p_cargo_id?: string
+          p_dados: Json
+          p_dados_extraidos?: Json
+          p_forma_pagamento?: string
+          p_item_id: string
+          p_jornada?: Json
+          p_optante_adiantamento?: boolean
+          p_possui_folha_ponto?: boolean
+          p_regime?: string
+          p_setor_id?: string
+          p_turno_id?: string
+          p_unidade_id?: string
+        }
+        Returns: Json
+      }
+      dp_ficha_ignorar: { Args: { p_item_id: string }; Returns: Json }
       dp_folga_atribuir_admin: {
         Args: { p_colaborador: string; p_data: string; p_motivo?: string }
         Returns: Json
