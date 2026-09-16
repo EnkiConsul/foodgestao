@@ -7,11 +7,50 @@
  */
 import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
 import { canAdminister, requireCompanyAccess, requireUser, serviceClient } from "../_shared/authz.ts";
-import { registrarEvento, requisitosPrevistos, type Preadmissao } from "../_shared/preadmissao.ts";
+import {
+  registrarEvento,
+  requisitosEmpresa,
+  requisitosPrevistos,
+  transicionar,
+  type Preadmissao,
+} from "../_shared/preadmissao.ts";
 import { bloqueioMenorNoturno, montarChecklist, pendenciasDocumentais } from "../_shared/preadmissao-checklist.ts";
 
-/** Situações em que a ficha pode seguir para a contabilidade. */
-const PODE_PREPARAR = ["aguardando_revisao", "correcao_solicitada", "aguardando_nova_versao"];
+/**
+ * Situações em que a ficha pode seguir para a contabilidade. Correção pedida
+ * NÃO entra: a ficha está com o candidato, ainda sem a nova versão.
+ */
+const PODE_PREPARAR = ["aguardando_revisao", "aguardando_nova_versao"];
+
+/** Mínimos administrativos que a contabilidade precisa receber. */
+const ADMIN_OBRIGATORIOS: Array<[string, string]> = [
+  ["data_admissao", "Data de admissão"],
+  ["regime_trabalho", "Vínculo/regime"],
+  ["salario", "Salário"],
+  ["forma_pagamento", "Forma de pagamento"],
+  ["jornada_descricao", "Jornada prevista"],
+];
+
+/** Mínimos da ficha do candidato exigidos antes do envio à contabilidade. */
+const FICHA_OBRIGATORIOS: Array<[string, string]> = [
+  ["nome", "Nome"],
+  ["cpf", "CPF"],
+  ["data_nascimento", "Data de nascimento"],
+  ["nome_mae", "Nome da mãe"],
+  ["endereco", "Endereço"],
+  ["cidade", "Cidade"],
+  ["uf", "UF"],
+];
+
+function faltantes(fonte: Record<string, unknown>, campos: Array<[string, string]>): string[] {
+  return campos
+    .filter(([k]) => {
+      const v = fonte[k];
+      if (v === null || v === undefined) return true;
+      return typeof v === "string" ? !v.trim() : v === "";
+    })
+    .map(([, rotulo]) => rotulo);
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: strictCorsHeaders(req) });
@@ -32,34 +71,40 @@ Deno.serve(async (req) => {
     const access = await requireCompanyAccess(caller.id, pa.company_id);
     if (!access || !canAdminister(access)) return jsonError(req, "forbidden");
 
+    /** Sempre relê a ficha: nenhuma resposta é montada com estado antigo. */
     const montar = async () => {
-      const [{ data: pessoas }, { data: docs }, reqs, { data: eventos }] = await Promise.all([
-        admin.from("dp_preadmissao_pessoas").select("*").eq("preadmissao_id", pa.id).order("created_at"),
+      const [{ data: atual }, { data: pessoas }, { data: docs }, reqs, reqsEmpresa, { data: eventos }] = await Promise.all([
+        admin.from("dp_preadmissoes").select("*").eq("id", pa.id).maybeSingle(),
+        admin.from("dp_preadmissao_pessoas").select("*").eq("preadmissao_id", pa.id)
+          .is("removido_em", null).order("created_at"),
         admin
           .from("dp_preadmissao_documentos")
           .select("id, requisito_codigo, pessoa_id, file_name, status, versao, created_at, substituido_em")
           .eq("preadmissao_id", pa.id)
           .order("created_at", { ascending: false }),
         requisitosPrevistos(admin, pa),
+        requisitosEmpresa(admin, pa.company_id),
         admin.from("dp_preadmissao_eventos").select("evento, detalhe, created_at").eq("preadmissao_id", pa.id)
           .order("created_at", { ascending: false }).limit(50),
       ]);
-      const dados = (pa.dados ?? {}) as Record<string, unknown>;
+      const ficha = (atual ?? pa) as unknown as Preadmissao;
+      const dados = (ficha.dados ?? {}) as Record<string, unknown>;
       const vigentes = (docs ?? []).filter((d) => !d.substituido_em);
       const checklist = montarChecklist({
-        ficha: { data_nascimento: pa.data_nascimento, estado_civil: pa.estado_civil, sexo: (dados.sexo as string) ?? null },
+        ficha: { data_nascimento: ficha.data_nascimento, estado_civil: ficha.estado_civil, sexo: (dados.sexo as string) ?? null },
         pessoas: (pessoas ?? []) as never,
         requisitosCargo: reqs.cargo,
         requisitosUnidade: reqs.unidade,
+        requisitosEmpresa: reqsEmpresa,
       });
       const pendencias = pendenciasDocumentais(checklist, vigentes as never);
       return {
-        preadmissao: pa,
+        preadmissao: ficha,
         pessoas: pessoas ?? [],
         documentos: docs ?? [],
         checklist,
         pendencias: pendencias.map((p) => ({ key: p.key, titulo: p.titulo, pessoa_nome: p.pessoa_nome })),
-        bloqueio: bloqueioMenorNoturno(pa),
+        bloqueio: bloqueioMenorNoturno(ficha),
         eventos: eventos ?? [],
       };
     };
@@ -69,20 +114,28 @@ Deno.serve(async (req) => {
     if (acao === "solicitar_correcao") {
       const motivo = String(body?.motivo ?? "").trim();
       if (motivo.length < 5) return jsonResponse(req, 400, { error: "Descreva o que precisa ser corrigido." });
-      await admin.from("dp_preadmissoes")
-        .update({ status: "correcao_solicitada", correcao_motivo: motivo, revisado_em: new Date().toISOString(), revisado_por: caller.id })
-        .eq("id", pa.id);
+      const t = await transicionar(admin, pa.id, ["aguardando_revisao", "aguardando_nova_versao", "em_preenchimento"], "correcao_solicitada", {
+        correcao_motivo: motivo,
+        revisado_em: true,
+        revisado_por: caller.id,
+      });
+      if (!t.ok) {
+        return t.motivo === "status_inesperado"
+          ? jsonResponse(req, 409, { error: "A ficha não está em revisão agora.", status: t.status })
+          : jsonError(req, "internal", "não foi possível registrar a correção");
+      }
       await registrarEvento(admin, pa.id, pa.company_id, "correcao_solicitada", { motivo }, caller.id);
       return jsonResponse(req, 200, { success: true });
     }
 
     if (acao === "salvar_admin") {
       const entrada = (body?.admin_dados ?? {}) as Record<string, unknown>;
-      await admin.from("dp_preadmissoes")
-        .update({ admin_dados: { ...(pa.admin_dados ?? {}), ...entrada } })
-        .eq("id", pa.id);
+      const t = await transicionar(admin, pa.id, null, null, {
+        admin_dados: { ...(pa.admin_dados ?? {}), ...entrada },
+      });
+      if (!t.ok) return jsonError(req, "internal", "não foi possível salvar os dados administrativos");
       await registrarEvento(admin, pa.id, pa.company_id, "dados_administrativos_salvos", {}, caller.id);
-      return jsonResponse(req, 200, { success: true });
+      return jsonResponse(req, 200, { success: true, ...(await montar()) });
     }
 
     if (acao === "alterar_previsto") {
@@ -105,7 +158,8 @@ Deno.serve(async (req) => {
       }
       if (typeof body?.trabalho_apos_22h === "boolean") patch.trabalho_apos_22h = body.trabalho_apos_22h;
       if (!Object.keys(patch).length) return jsonError(req, "invalid_input", "nada a alterar");
-      await admin.from("dp_preadmissoes").update(patch).eq("id", pa.id);
+      const t = await transicionar(admin, pa.id, null, null, patch);
+      if (!t.ok) return jsonError(req, "internal", "não foi possível alterar a previsão");
       await registrarEvento(admin, pa.id, pa.company_id, "previsto_alterado", { campos: Object.keys(patch) }, caller.id);
       // Documentos já enviados nunca são apagados; o checklist é recalculado.
       return jsonResponse(req, 200, await montar());
@@ -125,27 +179,57 @@ Deno.serve(async (req) => {
           pendencias: estado.pendencias,
         });
       }
-      await admin.from("dp_preadmissoes")
-        .update({ status: "pronto_contabilidade", revisado_em: new Date().toISOString(), revisado_por: caller.id })
-        .eq("id", pa.id);
+      const fichaFalta = faltantes(
+        (estado.preadmissao.dados ?? {}) as Record<string, unknown>,
+        FICHA_OBRIGATORIOS,
+      );
+      const adminFalta = faltantes(
+        (estado.preadmissao.admin_dados ?? {}) as Record<string, unknown>,
+        ADMIN_OBRIGATORIOS,
+      );
+      if (fichaFalta.length || adminFalta.length) {
+        return jsonResponse(req, 409, {
+          error: "Complete as informações antes de preparar o envio para a contabilidade.",
+          ficha_faltando: fichaFalta,
+          admin_faltando: adminFalta,
+        });
+      }
+      const t = await transicionar(admin, pa.id, PODE_PREPARAR, "pronto_contabilidade", {
+        revisado_em: true,
+        revisado_por: caller.id,
+      });
+      if (!t.ok) {
+        return t.motivo === "status_inesperado"
+          ? jsonResponse(req, 409, { error: "A ficha ainda não está em revisão.", status: t.status })
+          : jsonError(req, "internal", "não foi possível preparar o envio");
+      }
       await registrarEvento(admin, pa.id, pa.company_id, "pronta_para_contabilidade", {}, caller.id);
       return jsonResponse(req, 200, { success: true, status: "pronto_contabilidade" });
     }
 
     if (acao === "marcar_status") {
       const novo = String(body?.status ?? "");
+      // Receber a ficha oficial NÃO é uma simples mudança de situação: exige o
+      // arquivo anexado e conferido (ação "ficha_oficial" da função de arquivos).
       const permitidos: Record<string, string[]> = {
         pronto_contabilidade: ["enviado_contabilidade"],
         enviado_contabilidade: ["aguardando_retorno_contabilidade"],
-        aguardando_retorno_contabilidade: ["registro_recebido"],
       };
       if (!(permitidos[pa.status] ?? []).includes(novo)) {
-        return jsonResponse(req, 409, { error: "Esta mudança de situação não é permitida agora." });
+        return jsonResponse(req, 409, {
+          error: novo === "registro_recebido"
+            ? "Anexe a ficha oficial da contabilidade e registre a conferência para receber o registro."
+            : "Esta mudança de situação não é permitida agora.",
+        });
       }
-      const patch: Record<string, unknown> = { status: novo };
-      if (novo === "enviado_contabilidade") patch.contabilidade_enviado_em = new Date().toISOString();
-      if (novo === "registro_recebido") patch.contabilidade_retorno_em = new Date().toISOString();
-      await admin.from("dp_preadmissoes").update(patch).eq("id", pa.id);
+      const t = await transicionar(admin, pa.id, [pa.status], novo, {
+        ...(novo === "enviado_contabilidade" ? { contabilidade_enviado_em: true } : {}),
+      });
+      if (!t.ok) {
+        return t.motivo === "status_inesperado"
+          ? jsonResponse(req, 409, { error: "A situação mudou enquanto você trabalhava. Recarregue a ficha.", status: t.status })
+          : jsonError(req, "internal", "não foi possível mudar a situação");
+      }
       await registrarEvento(admin, pa.id, pa.company_id, `status_${novo}`, { anterior: pa.status }, caller.id);
       return jsonResponse(req, 200, { success: true, status: novo });
     }

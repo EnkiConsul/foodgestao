@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
       if (!pa) return jsonError(req, "not_found");
       const access = await requireCompanyAccess(caller.id, pa.company_id as string);
       if (!access || !canAdminister(access)) return jsonError(req, "forbidden");
-      if (!["enviado_contabilidade", "aguardando_registro", "registro_recebido"].includes(pa.status as string)) {
+      if (!["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(pa.status as string)) {
         return jsonResponse(req, 409, {
           error: "A ficha oficial só é anexada depois do envio à contabilidade.",
           status: pa.status,
@@ -193,7 +193,7 @@ Deno.serve(async (req) => {
       const t = await transicionar(
         admin as unknown as Parameters<typeof transicionar>[0],
         pa.id as string,
-        ["enviado_contabilidade", "aguardando_registro", "registro_recebido"],
+        ["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"],
         conferida ? "registro_recebido" : (pa.status as string),
         conferida
           ? { contabilidade_retorno_em: true, ficha_oficial_conferida_em: true, ficha_oficial_conferida_por: caller.id }
