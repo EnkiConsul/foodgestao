@@ -258,8 +258,10 @@ export function ContactFormDialog({
       return;
     }
 
-    if (!visiblePf && selectedCompanyIds.length === 0) {
-      toast.error("Selecione pelo menos uma empresa.");
+    if (selectedCompanyIds.length === 0) {
+      toast.error("Selecione ao menos uma empresa para este cliente/fornecedor.", {
+        description: "Sem empresa vinculada o cadastro não aparece nas listas de lançamento.",
+      });
       return;
     }
 
