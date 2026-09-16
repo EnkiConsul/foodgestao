@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/useAuth";
 
 export interface PendingInvite {
   id: string;
-  token: string;
   company_id: string;
   company_name: string | null;
   role: string;
