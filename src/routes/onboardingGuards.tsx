@@ -228,6 +228,7 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const { setContext, selectedCompanyId } = useCompanyContext();
   const [checking, setChecking] = useState(true);
   const [completed, setCompleted] = useState(false);
+  const [cadastroFalhou, setCadastroFalhou] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -236,6 +237,7 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
       setChecking(false);
       return;
     }
+    setCadastroFalhou(false);
     setChecking(true);
     resolveOnboardingStatus(user.id)
       .then(({ completed, companyId }) => {
