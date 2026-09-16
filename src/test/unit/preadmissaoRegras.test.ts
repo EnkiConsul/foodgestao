@@ -61,8 +61,12 @@ describe("checklist documental", () => {
     expect(c).not.toContain("certidao_nascimento");
   });
 
-  it("pede reservista para homem maior de 18", () => {
-    expect(codigos(montarChecklist({ ficha: { ...base, sexo: "MASCULINO" }, hoje: HOJE }))).toContain("reservista");
+  it("pede reservista para homem maior de 18 quando a empresa configurou o requisito", () => {
+    expect(codigos(montarChecklist({
+      ficha: { ...base, sexo: "MASCULINO" },
+      requisitosEmpresa: ["reservista"],
+      hoje: HOJE,
+    }))).toContain("reservista");
   });
 
   it("acrescenta requisito do cargo e da unidade sem duplicar", () => {
@@ -79,9 +83,9 @@ describe("checklist documental", () => {
     const itens = montarChecklist({
       ficha: base,
       pessoas: [
-        { id: "p1", nome: "FILHO PEQUENO", data_nascimento: "2022-01-01", finalidade_dependente: true },
-        { id: "p2", nome: "FILHO ESCOLAR", data_nascimento: "2016-01-01", finalidade_dependente: true },
-        { id: "p3", nome: "FILHO MAIOR", data_nascimento: "2006-01-01", finalidade_dependente: true },
+        { id: "p1", nome: "FILHO PEQUENO", data_nascimento: "2022-01-01", parentesco: "filho", finalidade_dependente: true },
+        { id: "p2", nome: "FILHO ESCOLAR", data_nascimento: "2016-01-01", parentesco: "filho", finalidade_dependente: true },
+        { id: "p3", nome: "FILHO MAIOR", data_nascimento: "2006-01-01", parentesco: "filho", finalidade_dependente: true },
       ],
       hoje: HOJE,
     });
