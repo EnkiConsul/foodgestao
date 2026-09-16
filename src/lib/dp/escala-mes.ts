@@ -11,7 +11,7 @@
 
 import { formatarHoras, LIMITE_SEMANAL } from "@/lib/dp/jornada-utils";
 import { cargaLiquidaHoras, turnoViraODia, type TurnoHorario } from "@/lib/dp/turno-utils";
-import { turnoDoDia, type ConfigTrabalho, type TurnoResolvido } from "@/lib/dp/config-trabalho";
+import { turnoDoDia, type ConfigTrabalho, type TurnoDia, type TurnoResolvido } from "@/lib/dp/config-trabalho";
 
 export type EscalaItemTipo = "trabalho" | "folga" | "ferias" | "afastamento" | "feriado";
 export type EscalaItemOrigem = "gerado" | "manual" | "troca" | "convocacao";
@@ -116,7 +116,7 @@ function itemFolga(colaborador_id: string, data: string, tipo: EscalaItemTipo): 
 export function itemDeTurno(
   colaborador_id: string,
   data: string,
-  turno: TurnoResolvido,
+  turno: TurnoDia,
   origem: EscalaItemOrigem = "gerado",
 ): EscalaItem {
   const horario: TurnoHorario = {
@@ -128,7 +128,9 @@ export function itemDeTurno(
     colaborador_id,
     data,
     tipo: "trabalho",
-    turno_id: turno.id,
+    // Dia com horário próprio e sem turno cadastrado fica sem turno_id (o banco
+    // exige UUID); o horário do dia continua preservado abaixo.
+    turno_id: turno.id ?? null,
     entrada: turno.entrada,
     saida: turno.saida,
     intervalo_minutos: turno.intervalo_minutos ?? 0,
@@ -281,7 +283,9 @@ export function validarEscalaMes(itens: EscalaItem[], opts: ValidarEscalaOpts): 
   }
 
   for (const item of itens) {
-    if (item.tipo === "trabalho" && !item.turno_id) {
+    // Sem turno_id e sem horário: aí sim o dia está descoberto. Horário próprio
+    // do dia sem turno cadastrado é situação válida e não gera erro.
+    if (item.tipo === "trabalho" && !item.turno_id && !(item.entrada && item.saida)) {
       alertas.push({
         colaborador_id: item.colaborador_id,
         data: item.data,
