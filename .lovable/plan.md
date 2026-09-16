@@ -1,43 +1,38 @@
-# Usar o banco do 360°FOOD dentro do Codex
+# Fornecedor criado pelo atalho não aparece na lista
 
-Objetivo: trabalhar no código do projeto pelo Codex (via GitHub) conseguindo consultar o banco e preparar alterações de banco, com escrita controlada e revisada.
+## O que está acontecendo
 
-## O que é possível hoje
+Um cliente/fornecedor só aparece no formulário de lançamento quando está vinculado à empresa em uso. No atalho dentro do lançamento, nenhuma empresa vem marcada por padrão; se o usuário não marcar, o cadastro é criado sem empresa e some da lista, mesmo com a mensagem "Contato criado!".
 
-O banco deste projeto é gerenciado pelo Lovable Cloud. Isso muda o que o Codex consegue fazer:
+Confirmado nos dados: os três cadastros de hoje com o nome "Alessandra CNPJ" estão ativos, mas sem nenhuma empresa vinculada — por isso não aparecem. Os cadastros antigos que aparecem têm vínculo.
 
-- Consultar dados: sim, usando a chave pública do projeto, respeitando as mesmas regras de acesso do app (cada usuário só vê o que tem direito).
-- Alterar dados e estrutura: as senhas administrativas do banco não são disponibilizadas fora do Lovable. Então o Codex prepara os arquivos de alteração, e a aplicação no banco continua acontecendo aqui, com sua aprovação — o que já é a regra de trabalho definida no projeto.
+## Correção proposta
 
-Isso mantém o combinado de "leitura e escrita controlada": leitura livre, escrita sempre revisada.
+1. Atalho já vem com a empresa em uso
+   - Ao abrir o cadastro rápido pelo formulário de lançamento, a empresa atual vem marcada.
+   - O usuário ainda pode marcar outras empresas ou desmarcar.
 
-## Passos
+2. Não deixar salvar sem empresa
+   - Se nenhuma empresa estiver marcada, o salvamento é bloqueado com aviso claro: "Selecione ao menos uma empresa para este cliente/fornecedor."
+   - Vale também para a tela de Contatos, evitando novos cadastros invisíveis.
 
-1. Preparar o ambiente local
-   - Clonar o repositório do GitHub e instalar as dependências.
-   - Criar o arquivo de variáveis locais com o endereço do projeto e a chave pública (os mesmos valores que o app já usa). Nada disso é segredo.
-   - Rodar o app localmente apontando para o banco do projeto, com login normal de usuário.
+3. Seleção automática após criar
+   - Depois de salvar pelo atalho, o novo cadastro aparece na lista e já fica selecionado no lançamento.
+   - Se, por algum motivo, ele não estiver visível na empresa atual, o formulário avisa em vez de ficar em silêncio.
 
-2. Consultas no Codex
-   - Adicionar um script de leitura no repositório (`scripts/db/consulta.ts`), que aceita uma consulta e imprime o resultado, autenticando como um usuário real do projeto.
-   - Regras: somente leitura; nada de dados sensíveis em log; usar sempre o escopo de empresa, como no app.
-
-3. Alterações de banco pelo Codex
-   - Criar a pasta e o padrão de nomes já usados no projeto para arquivos de alteração, com nota de rollback obrigatória em cada um.
-   - Fluxo: Codex escreve o arquivo → abre pull request → revisão → aplicação aqui, mediante aprovação, e depois validação em cópia antes da origem, como já vem sendo feito.
-
-4. Documentação curta
-   - `docs/dev/codex-banco.md` com: o que o Codex pode e não pode fazer, como rodar as consultas, e o passo a passo de uma alteração de banco até a aprovação.
+4. Regularizar os cadastros já criados sem empresa
+   - Listar os cadastros ativos sem empresa e vinculá-los à empresa de quem os criou, com registro em auditoria.
+   - Os três "Alessandra CNPJ" duplicados: manter um e inativar os outros dois, conforme sua confirmação.
 
 ## Detalhes técnicos
 
-- Variáveis locais: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID` — copiar do `.env` do projeto; são valores públicos protegidos por RLS.
-- Script de consulta: `@supabase/supabase-js` com `signInWithPassword` de um usuário de teste; sem chave de serviço, sem conexão direta ao Postgres.
-- Migrações: SQL idempotente, com bloco de rollback comentado; aplicação continua exclusivamente pela ferramenta de migração do Lovable, respeitando o freeze ativo (`.lovable/release-freeze.json`) — apenas hotfix bloqueante enquanto ele estiver em vigor.
-- `.gitignore` já cobre `.env`; nenhum segredo entra no repositório.
+- `TransactionFormDialog`: passar `defaultCompanyIds={[selectedCompanyId]}` (e `defaultContactType` conforme entrada/saída) ao `ContactFormDialog`.
+- `ContactFormDialog`: validar `selectedCompanyIds.length > 0` antes do insert/update, com `toast.error`; usar `negarRegra` quando o padrão do módulo se aplicar, para não poluir a Auditoria de Erros.
+- Após `onSaved`, aguardar a revalidação de `form-contacts`/`form-contact-companies` antes de aplicar `setContactId`, evitando seleção em lista ainda não atualizada.
+- Backfill via SQL de dados (não migração de estrutura), idempotente, restrito a `contacts` ativos sem linha em `contact_companies`, respeitando o escopo do dono do cadastro; nada de mexer em saldos ou lançamentos.
+- Teste unitário cobrindo: bloqueio sem empresa, pré-seleção da empresa atual e visibilidade do novo contato no filtro PJ.
 
 ## Fora do escopo
 
-- Expor chave de serviço ou senha do banco (não disponíveis no Lovable Cloud).
-- Qualquer mudança de layout, produto ou reescrita de módulos.
-- Publicar frontend ou aplicar DDL na origem sem autorização.
+- Mudanças de layout do formulário ou da tela de Contatos.
+- Alterar as regras de visibilidade por empresa já existentes.
