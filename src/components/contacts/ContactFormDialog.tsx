@@ -295,9 +295,8 @@ export function ContactFormDialog({
       // Sync contact_companies
       await (supabase.from("contact_companies" as any) as any).delete().eq("contact_id", editContact.id);
       if (selectedCompanyIds.length > 0) {
-        await supabase.from("contact_companies" as any).insert(
-          selectedCompanyIds.map((cid) => ({ contact_id: editContact.id, company_id: cid })) as any
-        );
+        const linkOk = await vincularEmpresas(editContact.id, selectedCompanyIds);
+        if (!linkOk) { setSaving(false); return; }
       }
       await supabase.rpc("insert_audit_log", {
         _action: "contact_updated",
