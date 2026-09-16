@@ -205,7 +205,8 @@ export interface AplicarFichaInput {
 export interface AplicarFichaResultado {
   colaboradorId: string;
   jaAplicado: boolean;
-  anexo: "nao_solicitado" | "anexado" | "ja_anexado" | "falhou";
+  anexo: AnexoFichaStatus;
+  anexoMotivo?: string;
 }
 
 /**
