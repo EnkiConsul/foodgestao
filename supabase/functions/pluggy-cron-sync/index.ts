@@ -186,16 +186,24 @@ Deno.serve(async (req) => {
     results.push(...await Promise.all(window.map(syncOne)));
   }
 
-  const ok = results.filter((r) => r.ok).length;
-  const failed = results.filter((r) => r.ok === false || r.error).length;
+  // Contadores reais por estado: parcial e pendente não são sucesso nem falha.
+  const conta = (s: string) => results.filter((r) => r.status === s).length;
+  const ok = results.filter((r) => r.ok === true).length;
+  const partial = conta('partial_success');
+  const pending = conta('pending');
+  const skipped = conta('skipped');
+  const failed = results.filter((r) => r.status === 'error' || r.error).length;
   console.log('pluggy-cron-sync: lote concluído', {
-    requestId, claimed: candidates.length, ok, failed,
+    requestId, claimed: candidates.length, ok, partial, pending, skipped, failed,
   });
 
   return new Response(JSON.stringify({
     request_id: requestId,
     claimed: candidates.length,
     ok,
+    partial,
+    pending,
+    skipped,
     failed,
     results,
   }), {
