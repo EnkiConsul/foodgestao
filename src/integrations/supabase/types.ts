@@ -10135,6 +10135,7 @@ export type Database = {
           nome: string
           parentesco: string | null
           preadmissao_id: string
+          removido_em: string | null
           rg: string | null
           updated_at: string
         }
@@ -10149,6 +10150,7 @@ export type Database = {
           nome: string
           parentesco?: string | null
           preadmissao_id: string
+          removido_em?: string | null
           rg?: string | null
           updated_at?: string
         }
@@ -10163,6 +10165,7 @@ export type Database = {
           nome?: string
           parentesco?: string | null
           preadmissao_id?: string
+          removido_em?: string | null
           rg?: string | null
           updated_at?: string
         }
@@ -10201,6 +10204,8 @@ export type Database = {
           email: string | null
           enviado_em: string | null
           estado_civil: string | null
+          ficha_oficial_conferida_em: string | null
+          ficha_oficial_conferida_por: string | null
           id: string
           revisado_em: string | null
           revisado_por: string | null
@@ -10227,6 +10232,8 @@ export type Database = {
           email?: string | null
           enviado_em?: string | null
           estado_civil?: string | null
+          ficha_oficial_conferida_em?: string | null
+          ficha_oficial_conferida_por?: string | null
           id?: string
           revisado_em?: string | null
           revisado_por?: string | null
@@ -10253,6 +10260,8 @@ export type Database = {
           email?: string | null
           enviado_em?: string | null
           estado_civil?: string | null
+          ficha_oficial_conferida_em?: string | null
+          ficha_oficial_conferida_por?: string | null
           id?: string
           revisado_em?: string | null
           revisado_por?: string | null
@@ -15936,8 +15945,29 @@ export type Database = {
         Args: { p_token_id: string }
         Returns: boolean
       }
+      dp_preadmissao_documento_registrar: {
+        Args: {
+          p_file_name: string
+          p_file_path: string
+          p_file_size: number
+          p_mime_type: string
+          p_pessoa_id: string
+          p_preadmissao_id: string
+          p_requisito_codigo: string
+        }
+        Returns: Json
+      }
       dp_preadmissao_efetivar: {
         Args: { p_colaborador_id: string; p_preadmissao_id: string }
+        Returns: Json
+      }
+      dp_preadmissao_transicionar: {
+        Args: {
+          p_de: string[]
+          p_para: string
+          p_patch?: Json
+          p_preadmissao_id: string
+        }
         Returns: Json
       }
       dp_processar_troca: { Args: { _troca_id: string }; Returns: Json }
