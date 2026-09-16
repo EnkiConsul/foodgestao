@@ -150,7 +150,19 @@ Deno.serve(async (req) => {
 
     await audit('pluggy_connection_revoked', { provider_delete_status: providerDeleteStatus });
 
-    return json({ ok: true, scope: 'connection', provider_delete_status: providerDeleteStatus });
+    // A sincronização parou aqui, mas se o banco não confirmou o cancelamento do
+    // consentimento a revogação está PENDENTE — não pode ser anunciada como
+    // concluída.
+    const revogacaoPendente = providerDeleteStatus !== 'ok';
+    return json({
+      ok: !revogacaoPendente,
+      scope: 'connection',
+      provider_delete_status: providerDeleteStatus,
+      revocation_pending: revogacaoPendente,
+      message: revogacaoPendente
+        ? 'A sincronização foi interrompida, mas o banco ainda não confirmou o cancelamento da autorização. Tente novamente ou cancele também no aplicativo do banco.'
+        : 'Autorização cancelada.',
+    }, revogacaoPendente ? 202 : 200);
   } catch (e) {
     const msg = String(e);
     const status = msg.includes('forbidden') ? 403 : 400;
