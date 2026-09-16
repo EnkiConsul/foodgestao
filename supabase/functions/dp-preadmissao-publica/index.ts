@@ -14,7 +14,7 @@ import {
   requisitosPrevistos,
   validarConvite,
 } from "../_shared/preadmissao.ts";
-import { bloqueioMenorNoturno, montarChecklist, pendenciasDocumentais } from "../_shared/preadmissao-checklist.ts";
+import { montarChecklist, pendenciasDocumentais } from "../_shared/preadmissao-checklist.ts";
 
 const MOTIVOS: Record<string, string> = {
   nao_encontrado: "Este link não é válido. Peça um novo link à empresa.",
