@@ -30,7 +30,6 @@ function groupByUser(entries: PresenceEntry[]): OnlineUser[] {
       map.set(e.user_id, {
         user_id: e.user_id,
         name: e.name,
-        email: e.email,
         status: e.status,
         route: e.route,
         sessions: 1,
@@ -70,7 +69,7 @@ export function AdminOnlineUsers() {
     const term = search.trim().toLowerCase();
     if (!term) return users;
     return users.filter((u) =>
-      [realName(u.user_id) || u.name, u.email ?? "", u.route].some((v) =>
+      [realName(u.user_id) || u.name, u.route].some((v) =>
         v.toLowerCase().includes(term),
       ),
     );
@@ -136,7 +135,6 @@ export function AdminOnlineUsers() {
           <TableHeader>
             <TableRow>
               <TableHead>Usuário</TableHead>
-              <TableHead>E-mail</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Tela atual</TableHead>
               <TableHead>Sessões</TableHead>
@@ -147,7 +145,7 @@ export function AdminOnlineUsers() {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   {connected ? "Ninguém conectado neste momento" : "Carregando..."}
                 </TableCell>
               </TableRow>
@@ -155,7 +153,6 @@ export function AdminOnlineUsers() {
               filtered.map((u) => (
                 <TableRow key={u.user_id}>
                   <TableCell className="font-medium">{nameOf(u)}</TableCell>
-                  <TableCell className="text-muted-foreground">{u.email ?? "—"}</TableCell>
                   <TableCell>
                     <Badge variant={u.status === "online" ? "default" : "secondary"}>
                       {u.status === "online" ? "Ativo" : "Ausente"}
@@ -189,7 +186,6 @@ export function AdminOnlineUsers() {
                   {u.status === "online" ? "Ativo" : "Ausente"}
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground truncate">{u.email ?? "—"}</p>
               <p className="font-mono text-[11px] text-muted-foreground truncate">{u.route}</p>
               <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                 <span>{relative(u.lastActivity)}</span>
