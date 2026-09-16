@@ -998,10 +998,8 @@ export default function Categorias() {
                     lançamento(s) de folha ficarão sem categoria
                   </li>
                 )}
-                {(preview.budgets_deleted > 0 || preview.rules_deleted > 0) && (
+                {preview.rules_deleted > 0 && (
                   <li>
-                    <span className="font-semibold text-foreground">{preview.budgets_deleted}</span>{" "}
-                    orçamento(s) e{" "}
                     <span className="font-semibold text-foreground">{preview.rules_deleted}</span>{" "}
                     regra(s) de categorização serão descartadas
                   </li>
