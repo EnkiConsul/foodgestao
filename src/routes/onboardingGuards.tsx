@@ -265,7 +265,13 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
 
   if (loading || checking || portal.checking) {
     const pending = loading ? "sessão" : checking ? "cadastro" : "destino inicial";
-    return <GuardWaiting pending={pending} scope="Assistente de cadastro" />;
+    return (
+      <GuardWaiting
+        pending={pending}
+        scope="Assistente de cadastro"
+        relatar={pending !== "cadastro" || cadastroFalhou}
+      />
+    );
   }
   if (!user) return <Navigate to="/auth" replace />;
   if (completed) return <Navigate to="/hub" replace />;
