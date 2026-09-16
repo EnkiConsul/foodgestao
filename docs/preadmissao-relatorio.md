@@ -92,3 +92,40 @@ pela tela, QA desktop/mobile nas resoluções pedidas.
 
 ## 10. Bloqueio técnico real
 Nenhum. O incremento seguinte pode começar pelo frontend.
+
+## Incremento 2 — correções da revisão do commit f276cab
+
+Cada item abaixo saiu de um risco apontado na revisão e tem comportamento verificado.
+
+| Risco apontado | Correção aplicada |
+| --- | --- |
+| Candidato salvava/enviava após revisão | `candidatoPodeEditar` (estados: aguardando_preenchimento, em_preenchimento, correcao_solicitada, aguardando_nova_versao); `salvar`, `enviar` e `upload` devolvem 409 fora deles |
+| Upload não travava fases posteriores | Trava também no banco: `dp_preadmissao_documento_registrar` recusa com `fase_encerrada` |
+| Whitelist filtrava em silêncio (req. 70) | `camposNaoPermitidos` rejeita o pedido com 400 e lista os campos indevidos |
+| `salvar`/`alterar_previsto` respondiam com estado velho | `carregar()`/`montar()` releem a ficha, pessoas e documentos do banco |
+| Gravações ignoravam `error` | Todas as gravações checam retorno; pessoas, transições e documentos falham explicitamente |
+| Pessoas apagadas fisicamente | Coluna `removido_em`: remoção lógica, titular e histórico dos documentos preservados |
+| Preparar contabilidade sem mínimos e aceitando correção pedida | `PODE_PREPARAR` sem `correcao_solicitada`; exige mínimos da ficha e administrativos (admissão, regime, salário, forma de pagamento, jornada) |
+| Upload confiava no MIME do cliente | `tipoRealDoArquivo` confere assinatura (PDF/JPG/PNG/WEBP/HEIC); extensão vem do tipo real |
+| Upload aceitava código/titular arbitrários | Só passa item presente no checklist recalculado, com o mesmo titular vigente |
+| Troca de versão sem atomicidade | Substituição + nova versão + evento em uma transação travada (RPC); falha remove o arquivo já enviado |
+| Requisito personalizado barrado por `DOCUMENTOS[codigo]` | Validação passou a usar o checklist (cargo/unidade/empresa), não o catálogo fixo |
+| Escrita direta contornando transições | `REVOKE INSERT/UPDATE/DELETE` de `authenticated` e `REVOKE ALL` de `anon` nas 5 tabelas (+ requisitos) |
+| Validação de conteúdo ausente | CPF com dígitos verificadores, e-mail, datas reais, nascimento futuro/improvável/idade mínima, sexo e estado civil por lista, UF/CEP/PIS |
+| Reservista improvisado como regra universal | Só entra no checklist quando a empresa configurou o requisito (e então por sexo/idade) |
+| Faixas de filhos aplicadas a qualquer parentesco | Faixas ≤5 / 6–14 / ≤14 só para filiação (filho, enteado, tutelado, menor sob guarda) |
+| Menor + 22h contornável pela configuração legada | `dp_validar_jornada_menor`: idade mínima, noturno e insalubre passaram a ser absolutos; `exige_validacao_menor` só afeta regras de norma coletiva. Promoção revalida por conta própria |
+| Concorrência em transições e save/upload | `dp_preadmissao_transicionar` e `dp_preadmissao_documento_registrar` com `SELECT ... FOR UPDATE` e estado esperado |
+| Retorno da ficha oficial era só mudança de situação | `marcar_status` não leva a `registro_recebido`; nova ação `ficha_oficial` exige arquivo + conferência (`ficha_oficial_conferida_em/por`), e `dp_preadmissao_efetivar` bloqueia sem os dois |
+
+### Evidências
+- `deno check` das 4 funções: OK. `tsgo --noEmit`: OK.
+- `src/test/unit/preadmissaoEndurecimento.test.ts` (13 testes) + regras (16) + RLS/funções (16): 45 passaram.
+- Bateria SQL transacional (T1–T6, com ROLLBACK, dados fictícios): estado esperado errado não grava; versão 1 → 2 com uma só vigente; titular removido rejeitado; fase encerrada rejeitada; promoção sem ficha oficial conferida falha.
+- Grants conferidos: `authenticated` só com SELECT, `anon` sem nenhum privilégio.
+
+### Rollback
+Cada migração deste incremento traz o bloco de rollback comentado no próprio SQL (remoção das duas RPCs, devolução dos grants e das colunas). Nenhum passo apaga dados.
+
+### Falta (fora deste incremento)
+Frontend do gestor e página pública, integração de Pendências/notificações, pacote da contabilidade legível e reuso de Importar Ficha, checagem de duplicidade CPF/recontratação na promoção pela tela, testes de interface e QA nas resoluções combinadas.

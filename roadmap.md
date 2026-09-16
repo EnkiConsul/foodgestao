@@ -30,3 +30,5 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [ ] Frontend candidato: página pública em etapas, mobile-first
 - [ ] Pendência canônica no useDpPendencias + notificação
 - [ ] Conferência com Importar Ficha, duplicidade de CPF na tela, QA desktop/mobile
+
+- [x] Pré-Admissão — incremento 2: correções da revisão do commit f276cab (fases, payload, atomicidade, MIME real, grants, menor+22h, ficha oficial conferida)
