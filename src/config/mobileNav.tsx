@@ -16,7 +16,7 @@ import {
   Banknote,
   
   FileBarChart,
-  PiggyBank,
+  
   Building2,
   Package,
   Settings,
