@@ -100,8 +100,14 @@ Deno.serve(async (req) => {
           .eq('connection_id', conn.id)
           .neq('id', pluggy_account_id)
           .or('linked_account_id.not.is.null,linked_credit_card_id.not.is.null'),
-        admin.from('pluggy_accounts').select('id, pluggy_account_id').eq('id', pluggy_account_id).maybeSingle(),
+        // A conta precisa pertencer a ESTA conexão autorizada — sem isso seria
+        // possível apagar a conta Open Finance de outra empresa.
+        admin.from('pluggy_accounts').select('id, pluggy_account_id')
+          .eq('id', pluggy_account_id)
+          .eq('connection_id', conn.id)
+          .maybeSingle(),
       ]);
+      if (pluggy_account_id && !pAcc) throw new Error('account_not_in_connection');
       if ((emUso?.length ?? 0) > 0 && pAcc) {
         await admin.from('pluggy_staging_transactions')
           .delete().eq('connection_id', conn.id)
