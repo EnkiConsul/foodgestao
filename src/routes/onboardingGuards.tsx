@@ -18,13 +18,23 @@ const GUARD_TIMEOUT_MS = 10_000;
  * preso na bolinha girando em tela cheia. Passado o limite, registramos o erro
  * (com a verificação pendente) e oferecemos recuperação.
  */
-function GuardWaiting({ pending, scope }: { pending: string; scope: string }) {
+function GuardWaiting({
+  pending,
+  scope,
+  relatar = true,
+}: {
+  pending: string;
+  scope: string;
+  /** Só registra o erro quando as tentativas da verificação já falharam. */
+  relatar?: boolean;
+}) {
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
     setTimedOut(false);
     const id = window.setTimeout(() => {
       setTimedOut(true);
+      if (!relatar) return;
       void reportError({
         error: new Error(`Verificação de entrada não respondeu: ${pending}`),
         surface: scope,
@@ -35,7 +45,7 @@ function GuardWaiting({ pending, scope }: { pending: string; scope: string }) {
       });
     }, GUARD_TIMEOUT_MS);
     return () => window.clearTimeout(id);
-  }, [pending, scope]);
+  }, [pending, scope, relatar]);
 
   if (!timedOut) {
     return (
@@ -115,6 +125,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
   const [mfaChecking, setMfaChecking] = useState(true);
   const [mfaRequired, setMfaRequired] = useState(false);
+  const [cadastroFalhou, setCadastroFalhou] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,6 +136,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
       setMfaRequired(false);
       return;
     }
+    setCadastroFalhou(false);
     setCheckingOnboarding(true);
     setMfaChecking(true);
     setMfaRequired(false);
@@ -142,6 +154,14 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
       .catch((error) => {
         if (cancelled) return;
         console.error("[onboarding] falha ao resolver status", error);
+        setCadastroFalhou(true);
+        void reportError({
+          error: error instanceof Error ? error : new Error(String(error)),
+          surface: "Acesso à tela protegida",
+          action: "verificar cadastro",
+          source: "client",
+          userMessage: "Não conseguimos confirmar seu cadastro agora.",
+        });
         setOnboardingCompleted(false);
         setCheckingOnboarding(false);
       });
@@ -170,7 +190,15 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
         : mfaChecking
           ? "verificação em duas etapas"
           : "destino inicial";
-    return <GuardWaiting pending={pending} scope="Acesso à tela protegida" />;
+    return (
+      <GuardWaiting
+        pending={pending}
+        scope="Acesso à tela protegida"
+        // A checagem de cadastro já tem limite e nova tentativa: o erro é
+        // registrado quando ela falha, não por lentidão passageira.
+        relatar={pending !== "cadastro" || cadastroFalhou}
+      />
+    );
   }
 
   if (!user) {
@@ -200,6 +228,7 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const { setContext, selectedCompanyId } = useCompanyContext();
   const [checking, setChecking] = useState(true);
   const [completed, setCompleted] = useState(false);
+  const [cadastroFalhou, setCadastroFalhou] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -208,6 +237,7 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
       setChecking(false);
       return;
     }
+    setCadastroFalhou(false);
     setChecking(true);
     resolveOnboardingStatus(user.id)
       .then(({ completed, companyId }) => {
@@ -222,6 +252,7 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
       .catch((error) => {
         if (cancelled) return;
         console.error("[onboarding] falha ao verificar acesso ao wizard", error);
+        setCadastroFalhou(true);
         setCompleted(false);
         setChecking(false);
       });
@@ -234,7 +265,13 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
 
   if (loading || checking || portal.checking) {
     const pending = loading ? "sessão" : checking ? "cadastro" : "destino inicial";
-    return <GuardWaiting pending={pending} scope="Assistente de cadastro" />;
+    return (
+      <GuardWaiting
+        pending={pending}
+        scope="Assistente de cadastro"
+        relatar={pending !== "cadastro" || cadastroFalhou}
+      />
+    );
   }
   if (!user) return <Navigate to="/auth" replace />;
   if (completed) return <Navigate to="/hub" replace />;

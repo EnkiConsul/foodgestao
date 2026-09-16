@@ -60,6 +60,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   private reload = () => window.location.reload();
 
+  /** Versão antiga presa no aparelho: limpa cache/service worker e recarrega. */
+  private atualizarApp = () => {
+    void recoverFromStaleBundle(true);
+  };
+
 
   render() {
     const { error } = this.state;
@@ -104,9 +109,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
                 Tentar novamente
               </Button>
-              <Button variant="outline" onClick={this.reload} className="flex-1">
-                Recarregar
-              </Button>
+              {isStaleBundleError(error) ? (
+                <Button variant="outline" onClick={this.atualizarApp} className="flex-1">
+                  Atualizar o app
+                </Button>
+              ) : (
+                <Button variant="outline" onClick={this.reload} className="flex-1">
+                  Recarregar
+                </Button>
+              )}
               <Button variant="ghost" asChild className="flex-1">
                 <a href="/hub">
                   <Home className="mr-2 h-4 w-4" aria-hidden="true" />

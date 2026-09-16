@@ -19,6 +19,18 @@ const STALE_PATTERNS = [
   "loading css chunk",
 ];
 
+/**
+ * Já tentamos recuperar nesta sessão? Compartilhado com `lazyWithRetry` para
+ * que as duas rotas de recuperação não recarreguem a página em laço.
+ */
+export function staleReloadAlreadyTried(): boolean {
+  try {
+    return sessionStorage.getItem(FLAG) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export function isStaleBundleError(message: unknown): boolean {
   const text = String(
     typeof message === "string" ? message : (message as Error | undefined)?.message ?? "",

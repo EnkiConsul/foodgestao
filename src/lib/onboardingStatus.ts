@@ -56,7 +56,36 @@ async function findActiveCompanyForUser(userId: string): Promise<string | null> 
  * mesmo já possuindo empresa/vínculo ativo. Nesses casos, marcamos o perfil
  * como concluído para evitar loop em `/onboarding`.
  */
+/** Espera limitada: rede lenta no celular não pode travar a entrada. */
+const ONBOARDING_STATUS_TIMEOUT_MS = 6_000;
+
+function comLimiteDeTempo<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const id = setTimeout(() => reject(new Error("onboarding_status_timeout")), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(id);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(id);
+        reject(error);
+      },
+    );
+  });
+}
+
 export async function resolveOnboardingStatus(userId: string): Promise<OnboardingStatusResolution> {
+  try {
+    return await comLimiteDeTempo(consultarOnboardingStatus(userId), ONBOARDING_STATUS_TIMEOUT_MS);
+  } catch {
+    // Uma nova tentativa antes de desistir: falha momentânea não deve prender
+    // o usuário na tela de espera das verificações de entrada.
+    return await comLimiteDeTempo(consultarOnboardingStatus(userId), ONBOARDING_STATUS_TIMEOUT_MS);
+  }
+}
+
+async function consultarOnboardingStatus(userId: string): Promise<OnboardingStatusResolution> {
   const [profileRes, companyId] = await Promise.all([
     supabase
       .from("profiles")
