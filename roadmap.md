@@ -21,11 +21,12 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [ ] 3 registros confirmed sem matched_transaction_id: preservados para revisão (não alterar)
 
 ## Pré-Admissão pelo Candidato (fase em execução)
-- [ ] Banco: tabelas de pré-admissão, convite, pessoas relacionadas, documentos, eventos + RLS/grants
-- [ ] Edge Functions: convite, ficha pública do candidato, arquivo, efetivação
-- [ ] Frontend gestor: 3ª opção em Colaboradores, aba Pré-Admissões, revisão
+- [x] Banco: tabelas de pré-admissão, convite, pessoas relacionadas, documentos, eventos + RLS/grants
+- [x] Edge Functions: convite, ficha pública do candidato, arquivo, gestor/transições (implantadas)
+- [x] Regras: bloqueio menor + após 22h (sem override), checklist por cargo/unidade, dependentes ≤5/6-14/≤14, Sesc
+- [x] Efetivação somente após conferir ficha oficial da contabilidade (atômica/idempotente)
+- [x] Testes de backend (32) + Deno check + typecheck + relatório docs/preadmissao-relatorio.md
+- [ ] Frontend gestor: 3ª opção em Colaboradores, aba Pré-Admissões, revisão, pacote para contabilidade
 - [ ] Frontend candidato: página pública em etapas, mobile-first
-- [ ] Regras: bloqueio menor + após 22h (sem override), checklist por cargo/unidade, dependentes ≤5/6-14/≤14, Sesc
-- [ ] Pendência canônica no useDpPendencias
-- [ ] Efetivação somente após conferir ficha oficial da contabilidade (atômica/idempotente)
-- [ ] Testes, build, typecheck, Deno check, relatório docs/preadmissao-relatorio.md
+- [ ] Pendência canônica no useDpPendencias + notificação
+- [ ] Conferência com Importar Ficha, duplicidade de CPF na tela, QA desktop/mobile
