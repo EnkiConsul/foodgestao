@@ -182,14 +182,16 @@ describe("escala do mês a partir da jornada", () => {
       config([{ dow: 2, trabalha: true, turno_id: null, entrada: "10:00", saida: "16:00", intervalo_minutos: 0 }]),
     ]);
     const alertas = validarEscalaMes(itens, { colaboradores });
-    expect(alertas.filter((a) => a.mensagem.includes("sem turno"))).toHaveLength(0);
+    // Só o dia configurado importa aqui: os outros dias da semana ficam sem
+    // horário nesta configuração mínima e continuam alertando.
+    expect(alertas.filter((a) => a.data === "2026-09-01")).toHaveLength(0);
   });
 
   it("dia trabalhado sem horário nenhum continua sendo erro", () => {
     const { itens, colaboradores, linhas } = persistir([config([{ dow: 2, trabalha: true, turno_id: null }])]);
     expect(dia(linhas, "2026-09-01").observacao).toBe("Sem turno definido");
     const alertas = validarEscalaMes(itens, { colaboradores });
-    expect(alertas.some((a) => a.mensagem.includes("sem turno"))).toBe(true);
+    expect(alertas.some((a) => a.data === "2026-09-01" && a.mensagem.includes("sem turno"))).toBe(true);
   });
 
   it("ajuste manual é persistido com origem manual", () => {
