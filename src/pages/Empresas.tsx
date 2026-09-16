@@ -164,11 +164,11 @@ export default function Empresas() {
     <div className="space-y-4 md:space-y-6">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Perfis de Acesso</h1>
-          <p className="text-xs md:text-sm text-muted-foreground">Gerencie seus perfis de acesso cadastrados</p>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Empresas</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Gerencie suas empresas cadastradas</p>
         </div>
         <Button onClick={requestNewCompany} className="hidden md:flex">
-          <Plus className="h-4 w-4 mr-2" /> Novo Perfil
+          <Plus className="h-4 w-4 mr-2" /> Nova Empresa
         </Button>
       </div>
 

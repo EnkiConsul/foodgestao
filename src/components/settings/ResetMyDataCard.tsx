@@ -30,7 +30,7 @@ const SCOPE_OPTIONS = [
   
   { key: "cost_centers", label: "Centros de custo", help: "" },
   { key: "tags", label: "Tags", help: "" },
-  { key: "companies", label: "Perfis de Acesso (empresas)", help: "Empresas que você criou, membros e convites" },
+  { key: "companies", label: "Empresas", help: "Empresas que você criou, membros e convites" },
 ];
 
 type ContextFilter = "pf" | "pj" | "both";

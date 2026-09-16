@@ -272,9 +272,9 @@ export function PlanEditorDialog({
           </div>
           <div className="rounded-md border p-3 space-y-3">
 
-            <h4 className="text-sm font-medium">Cobrança por perfil de acesso</h4>
+            <h4 className="text-sm font-medium">Cobrança por empresa</h4>
             <p className="text-xs text-muted-foreground">
-              Configure cobrança adicional por perfil de acesso (empresa) além do incluído. Deixe 0 para não permitir extras (usa apenas o limite máximo).
+              Configure cobrança adicional por empresa além do incluído. Deixe 0 para não permitir extras (usa apenas o limite máximo).
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>

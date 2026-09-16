@@ -73,7 +73,7 @@ const tenantItems = [
   { title: "Categorias Padrão", url: "/admin/categorias-padrao", icon: Tag },
   { title: "Contas Contábeis Padrão", url: "/admin/contas-contabeis-padrao", icon: FileText },
   { title: "Formas de Pagamento Padrão", url: "/admin/formas-pagamento-padrao", icon: CreditCard },
-  { title: "Perfis de Acesso", url: "/admin/perfis-acesso", icon: Building2 },
+  { title: "Empresas", url: "/admin/perfis-acesso", icon: Building2 },
   { title: "Donos das Empresas", url: "/admin/donos", icon: Crown },
   { title: "Módulos", url: "/admin/modulos", icon: Sparkles },
   { title: "Telas em Desenvolvimento", url: "/admin/telas", icon: EyeOff },

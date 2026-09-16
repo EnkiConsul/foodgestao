@@ -126,7 +126,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{company ? "Editar Perfil" : "Novo Perfil"}</DialogTitle>
+          <DialogTitle>{company ? "Editar Empresa" : "Nova Empresa"}</DialogTitle>
           <DialogDescription>
             {company ? "Atualize os dados do perfil." : "Preencha os dados para cadastrar um novo perfil."}
           </DialogDescription>
