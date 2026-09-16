@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { traduzErroExclusao, ehErroHistoricoVinculado, mensagemHistoricoVinculado } from "@/lib/finance/exclusaoHistorico";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -154,7 +155,9 @@ export default function ContasContabeis() {
       return;
     }
     const { error } = await (supabase as any).from("chart_accounts").delete().eq("id", deleteTarget.id);
-    if (error) toast.error("Erro ao excluir", { description: error.message });
+    const bloqueio = error ? traduzErroExclusao(error, "conta contábil", deleteTarget.name) : null;
+    if (bloqueio) toast.error(bloqueio.title, { description: bloqueio.description });
+    else if (error) toast.error("Erro ao excluir", { description: error.message });
     else {
       const ok = await resequenceCodes();
       toast.success(ok ? "Conta excluída e índice reorganizado" : "Conta excluída");
@@ -201,7 +204,15 @@ export default function ContasContabeis() {
       // Se o lote falhar, tenta item a item para identificar as contas bloqueadas
       for (const id of batch) {
         const { error: single } = await (supabase as any).from("chart_accounts").delete().eq("id", id);
-        if (single) blocked.push({ name: byId.get(id)?.name ?? id, reason: single.message });
+        if (single) {
+          const nome = byId.get(id)?.name ?? id;
+          blocked.push({
+            name: nome,
+            reason: ehErroHistoricoVinculado(single)
+              ? mensagemHistoricoVinculado("conta contábil", nome).description
+              : single.message,
+          });
+        }
         else deletedCount += 1;
       }
     }

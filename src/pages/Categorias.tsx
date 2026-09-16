@@ -16,6 +16,7 @@ import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
 import { Plus, Search, Tag, ChevronsUpDown, Sparkles, MoreHorizontal, X, RefreshCw } from "lucide-react";
 import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
 import { toast } from "sonner";
+import { traduzErroExclusao, ehErroHistoricoVinculado } from "@/lib/finance/exclusaoHistorico";
 import { buildCategoryTree, type Category, type TreeNode } from "@/lib/categories/tree";
 import { syncCategoryCompanies } from "@/lib/categories/visibility";
 import { CategoryRow } from "@/components/categorias/CategoryRow";
@@ -181,7 +182,14 @@ export default function Categorias() {
     );
     const results = await Promise.all(deletes);
     const errors = results.filter((r) => r.error);
-    if (errors.length > 0) {
+    const comHistorico = errors.filter((r) => ehErroHistoricoVinculado(r.error));
+    if (comHistorico.length > 0) {
+      toast.error("Não é possível excluir", {
+        description: `${comHistorico.length} categoria(s) possuem lançamentos vinculados e foram mantidas para preservar o histórico. Inative-as em vez de excluir.`,
+      });
+      setSelected(new Set());
+      refetchAll();
+    } else if (errors.length > 0) {
       toast.error(`Erro ao excluir ${errors.length} categoria(s)`);
     } else {
       toast.success(`${selected.size} categoria(s) excluída(s)`);
@@ -401,7 +409,9 @@ export default function Categorias() {
     if (!deleteId) return;
     const cat = categories.find((c) => c.id === deleteId);
     const { error } = await supabase.from("categories").delete().eq("id", deleteId);
-    if (error) toast.error("Erro ao excluir", { description: error.message });
+    const bloqueio = error ? traduzErroExclusao(error, "categoria", cat?.name) : null;
+    if (bloqueio) toast.error(bloqueio.title, { description: bloqueio.description });
+    else if (error) toast.error("Erro ao excluir", { description: error.message });
     else {
       await supabase.rpc("insert_audit_log", {
         _action: "category_deleted",

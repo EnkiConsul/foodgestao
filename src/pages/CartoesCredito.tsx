@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { CreditCard, Plus, Pencil, Trash2, Wallet, Calendar, AlertCircle, ListChecks, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { traduzErroExclusao } from "@/lib/finance/exclusaoHistorico";
 import { CreditCardFormDialog } from "@/components/credit-cards/CreditCardFormDialog";
 import { PluggyCreditCardReviewDialog } from "@/components/credit-cards/PluggyCreditCardReviewDialog";
 import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
@@ -160,7 +161,11 @@ export default function CartoesCredito() {
   const handleDelete = async () => {
     if (!deleteCard) return;
     const { error } = await supabase.from("credit_cards").delete().eq("id", deleteCard.id);
-    if (error) notifyError(error, { surface: "Sistema", action: "concluir a ação" });
+    const bloqueio = error
+      ? traduzErroExclusao(error, "cartão", `${deleteCard.brand ?? "Cartão"} •••• ${deleteCard.last4 ?? ""}`.trim())
+      : null;
+    if (bloqueio) toast.error(bloqueio.title, { description: bloqueio.description });
+    else if (error) notifyError(error, { surface: "Sistema", action: "concluir a ação" });
     else { toast.success("Cartão excluído"); fetchAll(); }
     setDeleteCard(null);
   };
