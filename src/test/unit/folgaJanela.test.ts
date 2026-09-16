@@ -49,9 +49,12 @@ describe("podeMarcarNormal", () => {
     expect(podeMarcarNormal(aberta, new Date(2026, 10, 1))).toBe(false);
   });
 
-  it("bloqueia fora da janela", () => {
+  it("bloqueia antes da abertura e libera depois do encerramento", () => {
+    const antes = resolverJanela(cfg, new Date(2026, 8, 1));
+    expect(podeMarcarNormal(antes, new Date(2026, 9, 4))).toBe(false);
+    // O período é só o marco inicial: encerrado, o colaborador segue marcando.
     const encerrada = resolverJanela(cfg, new Date(2026, 8, 25));
-    expect(podeMarcarNormal(encerrada, new Date(2026, 9, 4))).toBe(false);
+    expect(podeMarcarNormal(encerrada, new Date(2026, 9, 4))).toBe(true);
   });
 });
 
