@@ -1445,72 +1445,6 @@ export type Database = {
         }
         Relationships: []
       }
-      budgets: {
-        Row: {
-          alert_threshold_100: boolean
-          alert_threshold_70: boolean
-          alert_threshold_90: boolean
-          amount: number
-          category_id: string
-          company_id: string | null
-          context: Database["public"]["Enums"]["context_type"]
-          created_at: string
-          end_date: string
-          id: string
-          period: Database["public"]["Enums"]["budget_period"]
-          start_date: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          alert_threshold_100?: boolean
-          alert_threshold_70?: boolean
-          alert_threshold_90?: boolean
-          amount: number
-          category_id: string
-          company_id?: string | null
-          context?: Database["public"]["Enums"]["context_type"]
-          created_at?: string
-          end_date: string
-          id?: string
-          period?: Database["public"]["Enums"]["budget_period"]
-          start_date: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          alert_threshold_100?: boolean
-          alert_threshold_70?: boolean
-          alert_threshold_90?: boolean
-          amount?: number
-          category_id?: string
-          company_id?: string | null
-          context?: Database["public"]["Enums"]["context_type"]
-          created_at?: string
-          end_date?: string
-          id?: string
-          period?: Database["public"]["Enums"]["budget_period"]
-          start_date?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "budgets_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_budgets_category"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       categories: {
         Row: {
           accounting_behavior: string | null
@@ -16460,7 +16394,6 @@ export type Database = {
       app_role: "super_admin" | "admin" | "user" | "dp_colaborador"
       bill_status: "em_dia" | "vence_em_breve" | "atrasado" | "pago" | "parcial"
       billing_period: "monthly" | "yearly"
-      budget_period: "mensal" | "anual"
       company_role: "owner" | "admin" | "member" | "viewer" | "contabilidade"
       contact_type: "cliente" | "fornecedor" | "ambos"
       context_type: "pf" | "pj"
@@ -16915,7 +16848,6 @@ export const Constants = {
       app_role: ["super_admin", "admin", "user", "dp_colaborador"],
       bill_status: ["em_dia", "vence_em_breve", "atrasado", "pago", "parcial"],
       billing_period: ["monthly", "yearly"],
-      budget_period: ["mensal", "anual"],
       company_role: ["owner", "admin", "member", "viewer", "contabilidade"],
       contact_type: ["cliente", "fornecedor", "ambos"],
       context_type: ["pf", "pj"],
