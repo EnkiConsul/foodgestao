@@ -338,9 +338,8 @@ export function ContactFormDialog({
       }
 
       if (selectedCompanyIds.length > 0) {
-        await supabase.from("contact_companies" as any).insert(
-          selectedCompanyIds.map((cid) => ({ contact_id: (newContact as any).id, company_id: cid })) as any
-        );
+        const linkOk = await vincularEmpresas((newContact as any).id, selectedCompanyIds);
+        if (!linkOk) { setSaving(false); return; }
       }
       await supabase.rpc("insert_audit_log", {
         _action: "contact_created",
