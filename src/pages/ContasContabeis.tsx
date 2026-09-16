@@ -204,7 +204,15 @@ export default function ContasContabeis() {
       // Se o lote falhar, tenta item a item para identificar as contas bloqueadas
       for (const id of batch) {
         const { error: single } = await (supabase as any).from("chart_accounts").delete().eq("id", id);
-        if (single) blocked.push({ name: byId.get(id)?.name ?? id, reason: single.message });
+        if (single) {
+          const nome = byId.get(id)?.name ?? id;
+          blocked.push({
+            name: nome,
+            reason: ehErroHistoricoVinculado(single)
+              ? mensagemHistoricoVinculado("conta contábil", nome).description
+              : single.message,
+          });
+        }
         else deletedCount += 1;
       }
     }
