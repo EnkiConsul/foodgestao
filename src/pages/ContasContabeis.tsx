@@ -201,9 +201,32 @@ export default function ContasContabeis() {
       return true;
     });
 
+    // Verifica histórico ANTES de excluir: conta ou qualquer descendente com
+    // categoria usada em lançamentos fica de fora.
+    let comHistorico = new Set<string>();
+    try {
+      const universo = new Set<string>();
+      deletable.forEach((id) => coletarArvore(id, childrenById).forEach((sid) => universo.add(sid)));
+      const bloqueadas = await contasContabeisComHistorico(Array.from(universo));
+      deletable.forEach((id) => {
+        if (coletarArvore(id, childrenById).some((sid) => bloqueadas.has(sid))) comHistorico.add(id);
+      });
+    } catch (e: any) {
+      toast.error("Não foi possível verificar os lançamentos", { description: e?.message ?? "Tente novamente." });
+      setBulkDeleting(false);
+      setBulkOpen(false);
+      return;
+    }
+    const liberadas = deletable.filter((id) => {
+      if (!comHistorico.has(id)) return true;
+      const nome = byId.get(id)?.name ?? id;
+      blocked.push({ name: nome, reason: mensagemHistoricoVinculado("conta contábil", nome).description });
+      return false;
+    });
+
     // Exclui das folhas para as raízes
     const levels = new Map<number, string[]>();
-    deletable.forEach((id) => {
+    liberadas.forEach((id) => {
       const d = depthById.get(id) ?? 0;
       levels.set(d, [...(levels.get(d) ?? []), id]);
     });
