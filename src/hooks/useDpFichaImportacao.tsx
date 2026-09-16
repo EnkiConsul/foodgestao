@@ -8,6 +8,10 @@ import { montarJornadaSugerida, type JornadaSugerida } from "@/lib/dp/ficha-regi
 import { digits, montarPayloadFicha, txt } from "@/lib/dp/ficha-registro/payload";
 import { aplicarFichaRpc, ignorarFichaRpc } from "@/lib/dp/ficha-registro/aplicarFichaRpc";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
+import {
+  anexarFichaRecorte,
+  type AnexoFichaStatus,
+} from "@/lib/dp/ficha-registro/anexarFichaRecorte";
 
 export type FichaImportacao = Database["public"]["Tables"]["dp_ficha_importacoes"]["Row"];
 export type FichaItem = Database["public"]["Tables"]["dp_ficha_importacao_itens"]["Row"];
@@ -269,41 +273,50 @@ export function useAplicarFicha() {
       });
 
       const colaboradorId = res.colaborador_id;
-      let anexo: AplicarFichaResultado["anexo"] = "nao_solicitado";
+      let anexo: AnexoFichaStatus = "nao_solicitado";
+      let anexoMotivo: string | undefined;
 
       // Anexo em Storage: fora da transação do banco, por isso é tratado à
-      // parte. O caminho de origem vem do item/lote devolvido pelo servidor —
-      // nunca de um caminho informado pelo cliente. O destino é determinístico
-      // (um arquivo por ficha), então repetir não multiplica arquivo nem
-      // registro.
-      if (anexarFicha && res.arquivo_path) {
-        anexo = "falhou";
-        try {
-          const destino = `${selectedCompanyId}/${colaboradorId}/ficha-registro-${item.id}.pdf`;
-          const jaExiste = await supabase
-            .from("dp_documentos")
-            .select("id")
-            .eq("company_id", selectedCompanyId)
-            .eq("colaborador_id", colaboradorId)
-            .eq("file_path", destino)
-            .maybeSingle();
-
-          if (jaExiste.data?.id) {
-            anexo = "ja_anexado";
-          } else {
-            const copia = await supabase.storage
-              .from(BUCKET)
-              .copy(res.arquivo_path, destino, { destinationBucket: DP_DOCUMENTOS_BUCKET });
-            // "já existe no destino" é sucesso para efeito de repetição
-            const duplicado = !!copia.error && /exist/i.test(copia.error.message ?? "");
-            if (!copia.error || duplicado) {
-              const paginas =
-                res.pagina_inicio && res.pagina_fim && res.pagina_fim !== res.pagina_inicio
-                  ? `páginas ${res.pagina_inicio} a ${res.pagina_fim}`
-                  : res.pagina_inicio
-                    ? `página ${res.pagina_inicio}`
-                    : null;
-              const ins = await supabase.from("dp_documentos").insert({
+      // parte — o cadastro já está confirmado e nunca é refeito por causa dele.
+      // O lote é um PDF com várias pessoas: anexamos SOMENTE o recorte das
+      // páginas deste item, jamais o arquivo completo. O caminho de origem vem
+      // do servidor, nunca do cliente, e o destino é determinístico, então
+      // repetir o anexo não multiplica arquivo nem registro.
+      if (anexarFicha) {
+        const r = await anexarFichaRecorte(
+          {
+            companyId: selectedCompanyId,
+            colaboradorId,
+            itemId: item.id,
+            arquivoPath: res.arquivo_path,
+            paginaInicio: res.pagina_inicio,
+            paginaFim: res.pagina_fim,
+          },
+          {
+            baixarLote: async (path) => {
+              const dl = await supabase.storage.from(BUCKET).download(path);
+              if (dl.error || !dl.data) throw new Error(dl.error?.message ?? "Arquivo do lote não encontrado.");
+              return await dl.data.arrayBuffer();
+            },
+            enviarRecorte: async (destino, pdf) =>
+              await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(
+                destino,
+                new Blob([pdf as unknown as BlobPart], { type: "application/pdf" }),
+                { contentType: "application/pdf", upsert: false },
+              ),
+            documentoExistente: async (destino) => {
+              const q = await supabase
+                .from("dp_documentos")
+                .select("id")
+                .eq("company_id", selectedCompanyId)
+                .eq("colaborador_id", colaboradorId)
+                .eq("file_path", destino)
+                .maybeSingle();
+              if (q.error) throw q.error;
+              return !!q.data?.id;
+            },
+            registrarDocumento: async ({ destino, descricao }) =>
+              await supabase.from("dp_documentos").insert({
                 company_id: selectedCompanyId,
                 colaborador_id: colaboradorId,
                 file_path: destino,
@@ -311,24 +324,24 @@ export function useAplicarFicha() {
                 mime_type: "application/pdf",
                 tipo: "ficha_registro",
                 titulo: "Ficha de registro importada",
-                descricao: paginas
-                  ? `Arquivo de origem da importação (${paginas}).`
-                  : "Arquivo de origem da importação.",
-              });
-              if (!ins.error) anexo = "anexado";
-            }
-          }
-        } catch {
-          anexo = "falhou";
-        }
+                descricao,
+              }),
+          },
+        );
+        anexo = r.status;
+        anexoMotivo = r.motivo;
       }
 
-      return { colaboradorId, jaAplicado: res.ja_aplicado, anexo } satisfies AplicarFichaResultado;
+      return { colaboradorId, jaAplicado: res.ja_aplicado, anexo, anexoMotivo } satisfies AplicarFichaResultado;
     },
     onSuccess: (res) => {
-      if (res.anexo === "falhou") {
-        // O cadastro está confirmado: ninguém deve tentar criar outro por isso.
-        toast.error("Cadastro salvo, mas o PDF da ficha não foi anexado. Anexe o arquivo pelos documentos do colaborador.");
+      // O cadastro está confirmado: nada aqui pede para criar outro. O erro do
+      // anexo é mostrado sem ser silenciado e o anexo pode ser repetido depois.
+      if (res.anexo === "falhou" || res.anexo === "sem_paginas") {
+        const motivo = res.anexoMotivo ? ` ${res.anexoMotivo}` : "";
+        toast.error(
+          `Cadastro salvo, mas o PDF da ficha não foi anexado.${motivo} Anexe o arquivo pelos documentos do colaborador.`,
+        );
       }
       qc.invalidateQueries({ queryKey: ["dp_ficha_itens"] });
       qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] });
