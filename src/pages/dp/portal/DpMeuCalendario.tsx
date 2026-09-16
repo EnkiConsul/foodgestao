@@ -556,38 +556,33 @@ export default function DpMeuCalendario() {
       hoje.setHours(0, 0, 0, 0);
 
       // 1) data passada
-      if (d < hoje) throw new Error("Não é possível marcar folga em data passada.");
+      if (d < hoje) negarRegra("Não é possível marcar folga em data passada.");
 
       // 2) fim de semana
       const wd = d.getDay();
       if (wd !== 0 && wd !== 6) {
-        throw new Error('Apenas fins de semana podem ser marcados diretamente. Use "Solicitar exceção".');
+        negarRegra('Apenas fins de semana podem ser marcados diretamente. Use "Solicitar exceção".');
       }
 
-      // 2a) período mensal de escolha
+      // 2a) período mensal de escolha (só o início da escolha é restrito)
       if (!podeMarcarNormal(janela, d)) {
         const alvo = janela.competencia.toLocaleDateString("pt-BR", {
           month: "long",
           year: "numeric",
         });
         if (janela.estado === "antes") {
-          throw new Error(
-            `A escolha das folgas de ${alvo} abre em ${formatBR(janela.abreEm)}. Use "Solicitar exceção".`,
+          negarRegra(
+            `A escolha das folgas de ${alvo} abre em ${formatBR(janela.abreEm)}. Até lá, use "Solicitar exceção".`,
           );
         }
-        if (janela.estado === "encerrada") {
-          throw new Error(
-            `A escolha das folgas de ${alvo} foi encerrada em ${formatBR(janela.fechaEm)}. Use "Solicitar exceção".`,
-          );
-        }
-        throw new Error(
+        negarRegra(
           `Agora você escolhe as folgas de ${alvo}. Para folgar neste dia, use "Solicitar exceção".`,
         );
       }
 
       // 2b) folga dominical automática (padrão CLT): definida pelo sistema
       if (wd === 0 && folgaCltAutomatica) {
-        throw new Error(
+        negarRegra(
           "No padrão CLT a folga dominical é definida automaticamente pelo sistema. Use uma troca ou solicite exceção.",
         );
       }
