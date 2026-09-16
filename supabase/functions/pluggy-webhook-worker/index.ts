@@ -192,9 +192,11 @@ async function processEvent(
   const type = ev.event_type;
   const itemId = ev.pluggy_item_id ?? ev.payload?.itemId ?? ev.payload?.item?.id ?? null;
 
-  // Item que não pertence a nenhuma conexão do sistema (item de teste, conexão já
-  // removida, ou item de outro ambiente): o evento é ruído — concluir sem dead letter.
-  if (itemId && !(await itemIsKnown(admin, itemId))) {
+  // Item desconhecido: só é ruído para eventos que dependem de uma conexão já
+  // existente. Em eventos de coleta o item PODE ser uma autorização nova cujo
+  // navegador nunca voltou — nesse caso seguimos e deixamos o `pluggy-sync-item`
+  // resolver a empresa pela solicitação de conexão validada.
+  if (itemId && !SYNC_EVENTS.has(type) && !(await itemIsKnown(admin, itemId))) {
     console.log(`pluggy-webhook-worker: item ${itemId} desconhecido — evento ignorado`);
     return;
   }
