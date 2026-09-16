@@ -191,6 +191,18 @@ export function ContactFormDialog({
     return () => { cancelled = true; clearTimeout(timer); };
   }, [docDigitsLive, editContact?.id, open]);
 
+  // Aviso antecipado por nome: mostra o cadastro existente antes de salvar.
+  useEffect(() => {
+    if (duplicate) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const hit = await findDuplicateByName(name, editContact?.id);
+      if (!cancelled && hit) setDuplicate(hit);
+    }, 500);
+    return () => { cancelled = true; clearTimeout(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, editContact?.id, open]);
+
   /**
    * Consulta do CNPJ na Receita Federal. Preenche apenas campos vazios para não
    * apagar o que o usuário já digitou; o nome é editável normalmente depois.
