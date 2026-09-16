@@ -252,6 +252,7 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
       .catch((error) => {
         if (cancelled) return;
         console.error("[onboarding] falha ao verificar acesso ao wizard", error);
+        setCadastroFalhou(true);
         setCompleted(false);
         setChecking(false);
       });
