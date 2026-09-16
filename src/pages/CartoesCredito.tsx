@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { CreditCard, Plus, Pencil, Trash2, Wallet, Calendar, AlertCircle, ListChecks, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { traduzErroExclusao } from "@/lib/finance/exclusaoHistorico";
 import { CreditCardFormDialog } from "@/components/credit-cards/CreditCardFormDialog";
 import { PluggyCreditCardReviewDialog } from "@/components/credit-cards/PluggyCreditCardReviewDialog";
 import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
