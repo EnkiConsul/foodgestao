@@ -161,6 +161,19 @@ export default function CartoesCredito() {
 
   const handleDelete = async () => {
     if (!deleteCard) return;
+    const rotulo = `${deleteCard.brand ?? "Cartão"} •••• ${deleteCard.last4 ?? ""}`.trim();
+    try {
+      const impedimento = await verificarExclusaoSimples("credit_card_id", deleteCard.id, rotulo);
+      if (impedimento) {
+        toast.error(impedimento.title, { description: impedimento.description });
+        setDeleteCard(null);
+        return;
+      }
+    } catch (e: any) {
+      toast.error("Não foi possível verificar os lançamentos", { description: e?.message ?? "Tente novamente." });
+      setDeleteCard(null);
+      return;
+    }
     const { error } = await supabase.from("credit_cards").delete().eq("id", deleteCard.id);
     const bloqueio = error
       ? traduzErroExclusao(error, "cartão", `${deleteCard.brand ?? "Cartão"} •••• ${deleteCard.last4 ?? ""}`.trim())

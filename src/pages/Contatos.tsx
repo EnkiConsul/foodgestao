@@ -109,6 +109,18 @@ export default function Contatos() {
   const confirmDelete = async () => {
     if (!deleteId) return;
     const contact = contacts.find((c) => c.id === deleteId);
+    try {
+      const impedimento = await verificarExclusaoSimples("contact_id", deleteId, contact?.name);
+      if (impedimento) {
+        toast.error(impedimento.title, { description: impedimento.description });
+        setDeleteId(null);
+        return;
+      }
+    } catch (e: any) {
+      toast.error("Não foi possível verificar os lançamentos", { description: e?.message ?? "Tente novamente." });
+      setDeleteId(null);
+      return;
+    }
     const { error } = await supabase.from("contacts").delete().eq("id", deleteId);
     const bloqueio = error ? traduzErroExclusao(error, "contato", contact?.name) : null;
     if (bloqueio) toast.error(bloqueio.title, { description: bloqueio.description });
