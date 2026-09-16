@@ -220,6 +220,29 @@ export function ContactFormDialog({
 
 
 
+  /**
+   * Cria os vínculos do contato com as empresas e CONFERE o resultado.
+   * Sem vínculo o contato não aparece nas listas por empresa, então uma falha
+   * aqui precisa ser avisada em vez de passar como "criado com sucesso".
+   */
+  const vincularEmpresas = async (contactId: string, companyIds: string[]) => {
+    const { error } = await supabase.from("contact_companies" as any).insert(
+      companyIds.map((cid) => ({ contact_id: contactId, company_id: cid })) as any
+    );
+    if (!error) {
+      const { data: check } = await (supabase.from("contact_companies" as any) as any)
+        .select("company_id")
+        .eq("contact_id", contactId);
+      if ((check ?? []).length > 0) return true;
+    }
+    toast.error("Não foi possível vincular o contato à empresa", {
+      description:
+        error?.message ??
+        "O cadastro foi salvo, mas sem empresa vinculada — por isso ele não apareceria nas listas. Tente novamente ou avise o administrador.",
+    });
+    return false;
+  };
+
   const toggleCompany = (id: string) => {
     setSelectedCompanyIds((prev) =>
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
