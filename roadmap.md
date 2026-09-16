@@ -19,3 +19,13 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [ ] F5 Webhook/revogação/extrato
 - [ ] Testes focados (autorização, concorrência, rateio, falha parcial)
 - [ ] 3 registros confirmed sem matched_transaction_id: preservados para revisão (não alterar)
+
+## Pré-Admissão pelo Candidato (fase em execução)
+- [ ] Banco: tabelas de pré-admissão, convite, pessoas relacionadas, documentos, eventos + RLS/grants
+- [ ] Edge Functions: convite, ficha pública do candidato, arquivo, efetivação
+- [ ] Frontend gestor: 3ª opção em Colaboradores, aba Pré-Admissões, revisão
+- [ ] Frontend candidato: página pública em etapas, mobile-first
+- [ ] Regras: bloqueio menor + após 22h (sem override), checklist por cargo/unidade, dependentes ≤5/6-14/≤14, Sesc
+- [ ] Pendência canônica no useDpPendencias
+- [ ] Efetivação somente após conferir ficha oficial da contabilidade (atômica/idempotente)
+- [ ] Testes, build, typecheck, Deno check, relatório docs/preadmissao-relatorio.md
