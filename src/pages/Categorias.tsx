@@ -16,7 +16,8 @@ import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
 import { Plus, Search, Tag, ChevronsUpDown, Sparkles, MoreHorizontal, X, RefreshCw } from "lucide-react";
 import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
 import { toast } from "sonner";
-import { traduzErroExclusao, ehErroHistoricoVinculado } from "@/lib/finance/exclusaoHistorico";
+import { traduzErroExclusao, ehErroHistoricoVinculado, mensagemHistoricoVinculado } from "@/lib/finance/exclusaoHistorico";
+import { verificarExclusaoSimples, idsComLancamentos } from "@/lib/finance/verificarHistorico";
 import { buildCategoryTree, type Category, type TreeNode } from "@/lib/categories/tree";
 import { syncCategoryCompanies } from "@/lib/categories/visibility";
 import { CategoryRow } from "@/components/categorias/CategoryRow";
@@ -177,7 +178,28 @@ export default function Categorias() {
   const handleBatchDelete = async () => {
     if (selected.size === 0) return;
     setBatchDeleting(true);
-    const deletes = Array.from(selected).map((id) =>
+    const ids = Array.from(selected);
+    let comLancamentos = new Set<string>();
+    try {
+      comLancamentos = await idsComLancamentos("category_id", ids);
+    } catch (e: any) {
+      toast.error("Não foi possível verificar os lançamentos", { description: e?.message ?? "Tente novamente." });
+      setBatchDeleting(false);
+      setBatchDeleteOpen(false);
+      return;
+    }
+    const liberadas = ids.filter((id) => !comLancamentos.has(id));
+    if (comLancamentos.size > 0) {
+      toast.error("Não é possível excluir", {
+        description: `${comLancamentos.size} categoria(s) possuem lançamentos vinculados e foram mantidas para preservar o histórico. Inative-as em vez de excluir.`,
+      });
+    }
+    if (liberadas.length === 0) {
+      setBatchDeleting(false);
+      setBatchDeleteOpen(false);
+      return;
+    }
+    const deletes = liberadas.map((id) =>
       supabase.from("categories").delete().eq("id", id)
     );
     const results = await Promise.all(deletes);
@@ -192,7 +214,7 @@ export default function Categorias() {
     } else if (errors.length > 0) {
       toast.error(`Erro ao excluir ${errors.length} categoria(s)`);
     } else {
-      toast.success(`${selected.size} categoria(s) excluída(s)`);
+      toast.success(`${liberadas.length} categoria(s) excluída(s)`);
       setSelected(new Set());
       refetchAll();
     }
@@ -408,6 +430,18 @@ export default function Categorias() {
   const confirmDelete = async () => {
     if (!deleteId) return;
     const cat = categories.find((c) => c.id === deleteId);
+    try {
+      const impedimento = await verificarExclusaoSimples("category_id", deleteId, cat?.name);
+      if (impedimento) {
+        toast.error(impedimento.title, { description: impedimento.description });
+        setDeleteId(null);
+        return;
+      }
+    } catch (e: any) {
+      toast.error("Não foi possível verificar os lançamentos", { description: e?.message ?? "Tente novamente." });
+      setDeleteId(null);
+      return;
+    }
     const { error } = await supabase.from("categories").delete().eq("id", deleteId);
     const bloqueio = error ? traduzErroExclusao(error, "categoria", cat?.name) : null;
     if (bloqueio) toast.error(bloqueio.title, { description: bloqueio.description });

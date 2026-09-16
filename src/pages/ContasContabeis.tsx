@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { traduzErroExclusao, ehErroHistoricoVinculado, mensagemHistoricoVinculado } from "@/lib/finance/exclusaoHistorico";
+import { verificarExclusaoContaContabil, contasContabeisComHistorico, coletarArvore } from "@/lib/finance/verificarHistorico";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -154,6 +155,21 @@ export default function ContasContabeis() {
       setDeleteTarget(null);
       return;
     }
+    try {
+      const impedimento = await verificarExclusaoContaContabil(
+        coletarArvore(deleteTarget.id, childrenById),
+        deleteTarget.name,
+      );
+      if (impedimento) {
+        toast.error(impedimento.title, { description: impedimento.description });
+        setDeleteTarget(null);
+        return;
+      }
+    } catch (e: any) {
+      toast.error("Não foi possível verificar os lançamentos", { description: e?.message ?? "Tente novamente." });
+      setDeleteTarget(null);
+      return;
+    }
     const { error } = await (supabase as any).from("chart_accounts").delete().eq("id", deleteTarget.id);
     const bloqueio = error ? traduzErroExclusao(error, "conta contábil", deleteTarget.name) : null;
     if (bloqueio) toast.error(bloqueio.title, { description: bloqueio.description });
@@ -185,9 +201,32 @@ export default function ContasContabeis() {
       return true;
     });
 
+    // Verifica histórico ANTES de excluir: conta ou qualquer descendente com
+    // categoria usada em lançamentos fica de fora.
+    let comHistorico = new Set<string>();
+    try {
+      const universo = new Set<string>();
+      deletable.forEach((id) => coletarArvore(id, childrenById).forEach((sid) => universo.add(sid)));
+      const bloqueadas = await contasContabeisComHistorico(Array.from(universo));
+      deletable.forEach((id) => {
+        if (coletarArvore(id, childrenById).some((sid) => bloqueadas.has(sid))) comHistorico.add(id);
+      });
+    } catch (e: any) {
+      toast.error("Não foi possível verificar os lançamentos", { description: e?.message ?? "Tente novamente." });
+      setBulkDeleting(false);
+      setBulkOpen(false);
+      return;
+    }
+    const liberadas = deletable.filter((id) => {
+      if (!comHistorico.has(id)) return true;
+      const nome = byId.get(id)?.name ?? id;
+      blocked.push({ name: nome, reason: mensagemHistoricoVinculado("conta contábil", nome).description });
+      return false;
+    });
+
     // Exclui das folhas para as raízes
     const levels = new Map<number, string[]>();
-    deletable.forEach((id) => {
+    liberadas.forEach((id) => {
       const d = depthById.get(id) ?? 0;
       levels.set(d, [...(levels.get(d) ?? []), id]);
     });
