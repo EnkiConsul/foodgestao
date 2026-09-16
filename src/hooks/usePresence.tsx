@@ -98,7 +98,7 @@ export function usePresenceTracker() {
       void ch.track({
         user_id: user.id,
         name,
-        email: user.email ?? null,
+        
         route: routeRef.current,
         status: idle ? "ausente" : "online",
         since: sinceRef.current,
