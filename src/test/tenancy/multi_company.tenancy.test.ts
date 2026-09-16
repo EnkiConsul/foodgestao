@@ -73,14 +73,6 @@ suite("Tenancy: multiempresa (Bloco I)", () => {
     expect(data ?? []).toEqual([]);
   });
 
-  it("D (Empresa 2) não vê budgets da Empresa 1", async () => {
-    const { data } = await clientD
-      .from("budgets")
-      .select("id")
-      .eq("company_id", COMPANY_1)
-      .limit(1);
-    expect(data ?? []).toEqual([]);
-  });
 
   it("B (member) enxerga transactions criadas por A (mesma empresa)", async () => {
     const { data: createdByA } = await clientA

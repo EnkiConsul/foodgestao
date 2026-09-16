@@ -166,7 +166,7 @@ export function NotificationsBell() {
 
   const count = alerts.length;
   const grouped = useMemo(() => {
-    const order = ["overdue", "upcoming", "budget", "accountant"] as const;
+    const order = ["overdue", "upcoming", "accountant"] as const;
     return order.flatMap((t) => alerts.filter((a) => a.type === t));
   }, [alerts]);
 

@@ -28,7 +28,7 @@ const SCOPE_OPTIONS: { key: string; label: string; help: string; needsUser?: boo
   { key: "categories", label: "Categorias", help: "Categorias e vínculos com empresas", needsUser: true },
   { key: "contacts", label: "Contatos", help: "Clientes e fornecedores", needsUser: true },
   { key: "payment_methods", label: "Formas de pagamento", help: "Métodos cadastrados", needsUser: true },
-  { key: "budgets", label: "Orçamentos", help: "Metas e limites", needsUser: true },
+  
   { key: "cost_centers", label: "Centros de custo", help: "", needsUser: true },
   { key: "tags", label: "Tags", help: "", needsUser: true },
   { key: "companies", label: "Perfis de Acesso (empresas)", help: "Empresas, membros e convites", needsUser: true },

@@ -36,7 +36,6 @@ const anon = () =>
   });
 
 const MULTI_TENANT_TABLES = [
-  "budgets",
   "transactions",
   "categories",
   "contacts",
@@ -59,18 +58,6 @@ describe("RLS: cross-tenant (Bloco H)", () => {
     });
   }
 
-  it("bloqueia UPDATE anônimo em budgets (cross-tenant defense-in-depth)", async () => {
-    if (!networkAvailable) return;
-    const { data, error } = await anon()
-      .from("budgets")
-      .update({ company_id: "00000000-0000-0000-0000-000000000000" })
-      .eq("id", "00000000-0000-0000-0000-000000000000")
-      .select();
-    expect(data == null || (Array.isArray(data) && data.length === 0)).toBe(true);
-    if (data && data.length > 0) {
-      expect(error).toBeTruthy();
-    }
-  });
 
   it("bloqueia UPDATE anônimo em transactions", async () => {
     if (!networkAvailable) return;

@@ -10,7 +10,7 @@ export type FinanceModuleKey =
   | "categories"
   | "contacts"
   | "payment_methods"
-  | "budgets"
+  
   | "reports"
   | "cash_flow"
   | "attachments";
@@ -24,7 +24,7 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
   categories: "Categorias",
   contacts: "Contatos",
   payment_methods: "Formas de Pagamento",
-  budgets: "Orçamento",
+  
   reports: "Relatórios",
   cash_flow: "Fluxo de Caixa",
   attachments: "Anexos",
@@ -37,7 +37,7 @@ export const FINANCE_MODULES: FinanceModuleKey[] = [
   "categories",
   "contacts",
   "payment_methods",
-  "budgets",
+  
   "reports",
   "cash_flow",
   "attachments",
@@ -88,7 +88,7 @@ export function getDefaultPermissions(role: CompanyRole): PermissionsMap {
         contacts: "edit",
         payment_methods: "edit",
         attachments: "edit",
-        budgets: "view",
+        
         reports: "view",
         cash_flow: "view",
       };
