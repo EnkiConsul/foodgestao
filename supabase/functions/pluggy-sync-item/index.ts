@@ -972,12 +972,17 @@ Deno.serve(async (req) => {
 
       // Chunked upsert to avoid oversized payloads
       const chunkSize = 200;
+      let naoGravados = 0;
       for (let i = 0; i < toInsert.length; i += chunkSize) {
         const chunk = toInsert.slice(i, i + chunkSize);
         const { error } = await admin
           .from('pluggy_staging_transactions')
           .upsert(chunk, { onConflict: 'pluggy_transaction_id', ignoreDuplicates: true });
-        if (error) console.error('staging upsert error', error);
+        if (error) {
+          falhasGravacao += 1;
+          naoGravados += chunk.length;
+          console.error('staging upsert error', error);
+        }
       }
 
       // Reprocessa a descrição de itens sem providerId que foram importados
@@ -997,7 +1002,8 @@ Deno.serve(async (req) => {
           .neq('description', r.description);
         if (error) console.error('staging re-enrich error', error);
       }
-      staged += rows.length;
+      // Contador real: descontamos os lotes que o banco recusou.
+      staged += Math.max(rows.length - naoGravados, 0);
 
     }
 
