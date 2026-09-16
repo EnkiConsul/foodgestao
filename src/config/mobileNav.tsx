@@ -14,7 +14,7 @@ import {
   Tags,
   Contact,
   Banknote,
-  TrendingUp,
+  
   FileBarChart,
   PiggyBank,
   Building2,
