@@ -1,18 +1,24 @@
 /**
  * Experiência do candidato (sem login), sempre atrás do convite validado.
  *
- * O candidato só grava os campos da allowlist; Cargo Previsto, Unidade Prevista,
- * trabalho após as 22h e qualquer dado contratual são ignorados mesmo se vierem
- * no corpo do pedido. A empresa vem do convite, nunca do cliente.
+ * O candidato só grava os campos da allowlist — payload com campo fora da lista
+ * é REJEITADO, não filtrado em silêncio. A empresa vem do convite, nunca do
+ * cliente. Depois que a ficha entra em revisão/contabilidade, o candidato não
+ * grava mais nada: nem dados, nem pessoas.
  */
 import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
 import { serviceClient } from "../_shared/authz.ts";
 import { ipRateLimited } from "../_shared/rate-limit.ts";
 import {
+  camposNaoPermitidos,
+  candidatoPodeEditar,
   filtrarCamposCandidato,
   registrarEvento,
+  requisitosEmpresa,
   requisitosPrevistos,
+  transicionar,
   validarConvite,
+  validarDadosCandidato,
 } from "../_shared/preadmissao.ts";
 import { montarChecklist, pendenciasDocumentais } from "../_shared/preadmissao-checklist.ts";
 
@@ -23,13 +29,23 @@ const MOTIVOS: Record<string, string> = {
   encerrado: "Este processo já foi encerrado pela empresa.",
 };
 
+const FASE_ENCERRADA =
+  "Sua ficha já está em análise pela empresa. Aguarde o contato: não é possível alterar os dados agora.";
+
+const OBRIGATORIOS = [
+  "nome", "cpf", "data_nascimento", "email", "estado_civil", "nome_mae",
+  "grau_instrucao", "telefone", "cep", "endereco", "cidade", "uf",
+];
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: strictCorsHeaders(req) });
   if (req.method !== "POST") return jsonError(req, "invalid_input", "método inválido");
 
   try {
     const admin = serviceClient();
-    if (await ipRateLimited(admin as unknown as Parameters<typeof ipRateLimited>[0], req, "preadmissao_publica", 300)) return jsonError(req, "rate_limited");
+    if (await ipRateLimited(admin as unknown as Parameters<typeof ipRateLimited>[0], req, "preadmissao_publica", 300)) {
+      return jsonError(req, "rate_limited");
+    }
 
     const body = await req.json().catch(() => ({}));
     const conviteId = String(body?.t ?? "").trim();
@@ -49,33 +65,49 @@ Deno.serve(async (req) => {
         : Promise.resolve({ data: null }),
     ]);
 
+    /** Sempre relê a ficha do banco: nada de responder com estado velho. */
     const carregar = async () => {
-      const [{ data: pessoas }, { data: docs }, reqs] = await Promise.all([
-        admin.from("dp_preadmissao_pessoas").select("*").eq("preadmissao_id", pa.id).order("created_at"),
+      const [{ data: atual }, { data: pessoas }, { data: docs }, reqs, reqsEmpresa] = await Promise.all([
+        admin
+          .from("dp_preadmissoes")
+          .select("status, dados, correcao_motivo, data_nascimento, estado_civil, cpf, email")
+          .eq("id", pa.id)
+          .maybeSingle(),
+        admin
+          .from("dp_preadmissao_pessoas")
+          .select("*")
+          .eq("preadmissao_id", pa.id)
+          .is("removido_em", null)
+          .order("created_at"),
         admin
           .from("dp_preadmissao_documentos")
           .select("id, requisito_codigo, pessoa_id, file_name, status, created_at")
           .eq("preadmissao_id", pa.id)
           .is("substituido_em", null),
         requisitosPrevistos(admin, pa),
+        requisitosEmpresa(admin, pa.company_id),
       ]);
-      const dados = (pa.dados ?? {}) as Record<string, unknown>;
+      const linha = (atual ?? {}) as Record<string, unknown>;
+      const dados = (linha.dados ?? {}) as Record<string, unknown>;
       const checklist = montarChecklist({
         ficha: {
-          data_nascimento: pa.data_nascimento,
-          estado_civil: pa.estado_civil,
+          data_nascimento: (linha.data_nascimento as string) ?? null,
+          estado_civil: (linha.estado_civil as string) ?? null,
           sexo: (dados.sexo as string) ?? null,
         },
         pessoas: (pessoas ?? []) as never,
         requisitosCargo: reqs.cargo,
         requisitosUnidade: reqs.unidade,
+        requisitosEmpresa: reqsEmpresa,
       });
+      const status = String(linha.status ?? pa.status);
       return {
         candidato_nome: pa.candidato_nome,
         cargo_previsto: cargo?.nome ?? null,
         unidade_prevista: unidade?.nome ?? null,
-        status: pa.status,
-        correcao_motivo: pa.correcao_motivo,
+        status,
+        editavel: candidatoPodeEditar(status),
+        correcao_motivo: (linha.correcao_motivo as string) ?? null,
         dados,
         pessoas: pessoas ?? [],
         documentos: docs ?? [],
@@ -86,31 +118,54 @@ Deno.serve(async (req) => {
 
     if (acao === "ler") {
       if (pa.status === "aguardando_preenchimento") {
-        await admin.from("dp_preadmissoes").update({ status: "em_preenchimento" }).eq("id", pa.id);
-        await registrarEvento(admin, pa.id, pa.company_id, "preenchimento_iniciado");
+        const t = await transicionar(admin, pa.id, ["aguardando_preenchimento"], "em_preenchimento");
+        if (t.ok) await registrarEvento(admin, pa.id, pa.company_id, "preenchimento_iniciado");
       }
       return jsonResponse(req, 200, await carregar());
     }
 
     if (acao === "salvar") {
+      if (!candidatoPodeEditar(pa.status)) {
+        return jsonResponse(req, 409, { error: FASE_ENCERRADA, status: pa.status });
+      }
+
+      // Requisito 70: campo fora da allowlist derruba o pedido.
+      const invasores = camposNaoPermitidos(body?.dados);
+      if (invasores.length) {
+        return jsonResponse(req, 400, {
+          error: "Não foi possível salvar: há informações inválidas no formulário.",
+          campos_invalidos: invasores,
+        });
+      }
+
       const dados = { ...((pa.dados ?? {}) as Record<string, unknown>), ...filtrarCamposCandidato(body?.dados) };
+      const erros = validarDadosCandidato(dados);
+      if (Object.keys(erros).length) {
+        return jsonResponse(req, 400, { error: "Confira as informações destacadas.", erros });
+      }
+
       const texto = (k: string) => {
         const v = dados[k];
         return typeof v === "string" && v.trim() ? v.trim() : null;
       };
-      const nascimento = texto("data_nascimento");
-      const patch: Record<string, unknown> = {
+      const proximo = pa.status === "correcao_solicitada"
+        ? "aguardando_nova_versao"
+        : pa.status === "aguardando_preenchimento"
+        ? "em_preenchimento"
+        : pa.status;
+
+      const t = await transicionar(admin, pa.id, [...new Set([pa.status])], proximo, {
         dados,
-        cpf: (texto("cpf") ?? "").replace(/\D/g, "") || null,
-        email: texto("email"),
-        data_nascimento: nascimento && /^\d{4}-\d{2}-\d{2}$/.test(nascimento) ? nascimento : null,
-        estado_civil: texto("estado_civil"),
-      };
-      if (["aguardando_preenchimento", "correcao_solicitada"].includes(pa.status)) {
-        patch.status = pa.status === "correcao_solicitada" ? "aguardando_nova_versao" : "em_preenchimento";
+        cpf: (texto("cpf") ?? "").replace(/\D/g, ""),
+        email: texto("email") ?? "",
+        data_nascimento: texto("data_nascimento") ?? "",
+        estado_civil: texto("estado_civil") ?? "",
+      });
+      if (!t.ok) {
+        return t.motivo === "status_inesperado"
+          ? jsonResponse(req, 409, { error: FASE_ENCERRADA, status: t.status })
+          : jsonError(req, "internal", "não foi possível salvar");
       }
-      const { error } = await admin.from("dp_preadmissoes").update(patch).eq("id", pa.id);
-      if (error) return jsonError(req, "internal", error.message);
 
       // Pessoas relacionadas: uma pessoa, várias finalidades.
       if (Array.isArray(body?.pessoas)) {
@@ -133,42 +188,82 @@ Deno.serve(async (req) => {
           if (!linha.finalidade_dependente && !linha.finalidade_sesc) continue;
           const id = typeof p?.id === "string" && p.id.length === 36 ? p.id : null;
           if (id) {
-            await admin.from("dp_preadmissao_pessoas").update(linha).eq("id", id).eq("preadmissao_id", pa.id);
+            const { error } = await admin
+              .from("dp_preadmissao_pessoas")
+              .update(linha)
+              .eq("id", id)
+              .eq("preadmissao_id", pa.id)
+              .is("removido_em", null);
+            if (error) return jsonError(req, "internal", "não foi possível salvar as pessoas informadas");
             manter.push(id);
           } else {
-            const { data } = await admin.from("dp_preadmissao_pessoas").insert(linha).select("id").single();
-            if (data?.id) manter.push(data.id as string);
+            const { data, error } = await admin
+              .from("dp_preadmissao_pessoas")
+              .insert(linha)
+              .select("id")
+              .single();
+            if (error || !data?.id) return jsonError(req, "internal", "não foi possível salvar as pessoas informadas");
+            manter.push(data.id as string);
           }
         }
-        // Remove só o que o candidato retirou da lista nesta etapa.
-        const { data: atuais } = await admin.from("dp_preadmissao_pessoas").select("id").eq("preadmissao_id", pa.id);
+        // Quem sai da lista é marcado como removido: histórico e titular dos
+        // documentos continuam rastreáveis. Nada é apagado.
+        const { data: atuais, error: erroAtuais } = await admin
+          .from("dp_preadmissao_pessoas")
+          .select("id")
+          .eq("preadmissao_id", pa.id)
+          .is("removido_em", null);
+        if (erroAtuais) return jsonError(req, "internal", "não foi possível atualizar a lista de pessoas");
         const remover = (atuais ?? []).map((a) => a.id as string).filter((id) => !manter.includes(id));
-        if (remover.length) await admin.from("dp_preadmissao_pessoas").delete().in("id", remover);
+        if (remover.length) {
+          const { error } = await admin
+            .from("dp_preadmissao_pessoas")
+            .update({ removido_em: new Date().toISOString() })
+            .in("id", remover);
+          if (error) return jsonError(req, "internal", "não foi possível atualizar a lista de pessoas");
+        }
       }
 
       return jsonResponse(req, 200, await carregar());
     }
 
     if (acao === "enviar") {
+      if (!candidatoPodeEditar(pa.status)) {
+        return jsonResponse(req, 409, { error: FASE_ENCERRADA, status: pa.status });
+      }
       const estado = await carregar();
       const dados = estado.dados as Record<string, unknown>;
-      const faltando: string[] = [];
-      for (const campo of ["nome", "cpf", "data_nascimento", "email", "estado_civil", "nome_mae", "grau_instrucao", "telefone", "cep", "endereco", "cidade", "uf"]) {
+      const erros = validarDadosCandidato(dados);
+      const faltando = OBRIGATORIOS.filter((campo) => {
         const v = dados[campo];
-        if (!(typeof v === "string" ? v.trim() : v)) faltando.push(campo);
-      }
-      if (faltando.length || estado.pendencias.length) {
+        return !(typeof v === "string" ? v.trim() : v);
+      });
+      if (faltando.length || estado.pendencias.length || Object.keys(erros).length) {
         return jsonResponse(req, 400, {
           error: "Ainda faltam informações ou documentos obrigatórios.",
           campos_faltando: faltando,
           documentos_faltando: estado.pendencias,
+          erros,
         });
       }
-      await admin
-        .from("dp_preadmissoes")
-        .update({ status: "aguardando_revisao", enviado_em: new Date().toISOString(), correcao_motivo: null })
-        .eq("id", pa.id);
-      await registrarEvento(admin, pa.id, pa.company_id, pa.status === "aguardando_nova_versao" ? "ficha_reenviada" : "ficha_enviada");
+      const t = await transicionar(
+        admin,
+        pa.id,
+        [...new Set([pa.status, estado.status])],
+        "aguardando_revisao",
+        { enviado_em: true, correcao_motivo: "" },
+      );
+      if (!t.ok) {
+        return t.motivo === "status_inesperado"
+          ? jsonResponse(req, 409, { error: FASE_ENCERRADA, status: t.status })
+          : jsonError(req, "internal", "não foi possível enviar a ficha");
+      }
+      await registrarEvento(
+        admin,
+        pa.id,
+        pa.company_id,
+        t.status_anterior === "aguardando_nova_versao" ? "ficha_reenviada" : "ficha_enviada",
+      );
       return jsonResponse(req, 200, {
         success: true,
         mensagem: "Seus dados e documentos foram enviados para análise da empresa.",
