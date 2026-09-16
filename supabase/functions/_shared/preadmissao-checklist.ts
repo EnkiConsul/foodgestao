@@ -101,6 +101,9 @@ function normaliza(v?: string | null): string {
     .toLowerCase();
 }
 
+/** Faixas de idade de dependente valem para filiação, não para cônjuge/pais. */
+const PARENTESCO_FILIACAO = new Set(["filho", "filha", "enteado", "enteada", "tutelado", "tutelada", "menor sob guarda"]);
+
 const SOLTEIRO = ["solteiro", "solteira"];
 const COM_CERTIDAO = ["casado", "casada", "uniao estavel", "divorciado", "divorciada", "viuvo", "viuva", "separado", "separada"];
 
@@ -130,6 +133,12 @@ export interface ChecklistInput {
   requisitosCargo?: string[];
   /** Códigos exigidos pela Unidade Prevista (vínculo requisito × unidade). */
   requisitosUnidade?: string[];
+  /**
+   * Códigos condicionais configurados pela empresa (ex.: reservista). Nada é
+   * exigido "por lei universal": só entra no checklist o que a empresa
+   * cadastrou como requisito.
+   */
+  requisitosEmpresa?: string[];
   hoje?: Date;
 }
 
@@ -144,6 +153,7 @@ export function montarChecklist({
   pessoas = [],
   requisitosCargo = [],
   requisitosUnidade = [],
+  requisitosEmpresa = [],
   hoje = new Date(),
 }: ChecklistInput): ItemChecklist[] {
   const itens: ItemChecklist[] = GERAIS.map((c) => item(c, "candidato"));
@@ -157,14 +167,17 @@ export function montarChecklist({
   if (SOLTEIRO.includes(estado)) itens.push(item("certidao_nascimento", "condicional"));
   else if (COM_CERTIDAO.some((e) => estado.startsWith(e))) itens.push(item("certidao_estado_civil", "condicional"));
 
+  // Reservista só quando a empresa configurou esse requisito — e aí sim com a
+  // condição de sexo e idade. Nunca por improviso.
   const idade = idadeEmAnos(ficha.data_nascimento, hoje);
-  if (normaliza(ficha.sexo).startsWith("m") && idade !== null && idade >= 18) {
+  const configurados = new Set([...requisitosEmpresa, ...requisitosCargo, ...requisitosUnidade]);
+  if (configurados.has("reservista") && normaliza(ficha.sexo).startsWith("m") && idade !== null && idade >= 18) {
     itens.push(item("reservista", "condicional"));
   }
 
   for (const p of pessoas) {
     const id = idadeEmAnos(p.data_nascimento, hoje);
-    if (p.finalidade_dependente) {
+    if (p.finalidade_dependente && PARENTESCO_FILIACAO.has(normaliza(p.parentesco))) {
       if (id !== null && id <= 14) {
         itens.push(item("dep_rg", "dependente", p));
         itens.push(item("dep_cpf", "dependente", p));
