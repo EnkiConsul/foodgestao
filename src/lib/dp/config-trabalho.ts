@@ -95,13 +95,15 @@ export function turnoDoDia(
   dia: DiaConfig,
   turnoPadraoId: string | null,
   turnos: TurnoResolvido[],
-): TurnoResolvido | null {
+): TurnoDia | null {
   if (!dia.trabalha) return null;
   const id = dia.turno_id ?? turnoPadraoId;
   const base = id ? turnos.find((t) => t.id === id) ?? null : null;
   if (temHorarioProprio(dia)) {
     return {
-      id: base?.id ?? `dia:${dia.dow}`,
+      // Sem turno cadastrado o dia não tem id: nunca inventar identificador
+      // interno aqui, porque ele acabaria em coluna UUID do banco.
+      id: base?.id ?? null,
       nome: base ? `${base.nome} (horário deste dia)` : `Horário de ${DOW_LABEL[dia.dow]}`,
       cor: base?.cor ?? null,
       entrada: String(dia.entrada).slice(0, 5),
@@ -118,7 +120,7 @@ export type OrigemHorarioDia = "proprio" | "turno_do_dia" | "base";
 export interface DetalheCargaDia {
   dow: number;
   trabalha: boolean;
-  turno: TurnoResolvido | null;
+  turno: TurnoDia | null;
   origem: OrigemHorarioDia | null;
   minutos: number;
 }
@@ -197,7 +199,7 @@ export function baseDivergenteDosDias(
   const proprios = detalhes.filter((d) => d.origem && d.origem !== "base" && d.turno);
   if (proprios.length === 0) return null;
 
-  const contagem = new Map<string, { turno: TurnoResolvido; n: number }>();
+  const contagem = new Map<string, { turno: TurnoDia; n: number }>();
   for (const d of proprios) {
     const t = d.turno!;
     const chave = `${t.entrada}-${t.saida}-${t.intervalo_minutos ?? 0}`;
