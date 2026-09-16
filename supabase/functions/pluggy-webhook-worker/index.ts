@@ -152,18 +152,25 @@ async function triggerSync(itemId: string, windowDays?: number) {
     },
     body: JSON.stringify(windowDays ? { item_id: itemId, days: windowDays } : { item_id: itemId }),
   });
-  if (!res.ok) {
-    const detail = (await res.text()).slice(0, 500);
-    if (detail.includes('company_id_required')) {
-      // Item sem empresa resolvida: precisa de vínculo manual em /admin/pluggy-status.
-      throw new FatalEventError(
-        `pending_manual_link: empresa não resolvida para o item ${itemId}`,
-        'pending_manual_link',
-      );
-    }
-    throw new Error(`sync_failed_${res.status}: ${detail}`);
+
+  const raw = await res.text().catch(() => '');
+  let body: SyncBody | null = null;
+  try { body = raw ? JSON.parse(raw) as SyncBody : null; } catch { body = null; }
+
+  if (raw.includes('company_id_required') || raw.includes('company_conflict')) {
+    // Empresa não resolvida ou conflito entre empresas: aguarda revisão humana
+    // em /admin/pluggy-status — retentar cinco vezes não decide nada.
+    throw new FatalEventError(
+      `pending_manual_link: empresa não resolvida para o item ${itemId}`,
+      'pending_manual_link',
+    );
   }
-  await res.text();
+
+  // HTTP 200 não é conclusão: parcial, pendente e erro precisam de nova tentativa
+  // pelo backoff da fila, em vez de virar "processado".
+  const outcome = classifySyncResult({ httpStatus: res.status, body });
+  if (outcome.status === 'success' || outcome.status === 'skipped') return;
+  throw new Error(`sync_${outcome.status}: ${outcome.detail ?? `HTTP ${res.status}`}`);
 }
 
 /** O item existe em alguma conexão do sistema (v1 ou v2)? */
