@@ -163,6 +163,26 @@ Deno.serve(async (req) => {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } else {
+        // Reconexão: o item precisa ser de uma conexão DESTA empresa, senão
+        // alguém poderia atualizar a conexão bancária de outra empresa.
+        if (itemId) {
+          const [{ data: c1 }, { data: c2 }] = await Promise.all([
+            admin.from('pluggy_connections').select('id')
+              .eq('pluggy_item_id', itemId).eq('company_id', companyId).maybeSingle(),
+            admin.from('pluggy_v2_connections').select('id')
+              .eq('pluggy_item_id', itemId).eq('company_id', companyId).maybeSingle(),
+          ]);
+          if (!c1 && !c2) {
+            console.error('connect_token_item_company_mismatch', { user: userId, companyId, itemId });
+            return new Response(JSON.stringify({
+              error: 'item_company_mismatch',
+              message: 'Esta conexão bancária não pertence à empresa selecionada.',
+            }), {
+              status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        }
+
         // Expira solicitações antigas do mesmo usuário/empresa
         await admin
           .from('pluggy_connect_requests')
