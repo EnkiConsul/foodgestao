@@ -1008,7 +1008,12 @@ Deno.serve(async (req) => {
     }
 
     // Materialização V2: mantém cópia persistente e imutável de contas + lançamentos
-    // em pluggy_v2_*. Falhas aqui não quebram a sincronização V1, apenas são logadas.
+    // em pluggy_v2_*. Falhas aqui não quebram a sincronização V1, mas viram
+    // resultado parcial — nunca "materializado" quando não materializou.
+    let v2Materializado = false;
+    let v2Erro: string | null = null;
+    let v2Contas = 0;
+    let v2Lancamentos = 0;
     try {
       const v2Result = await materializePluggyItemV2({
         supabase: admin,
@@ -1019,47 +1024,62 @@ Deno.serve(async (req) => {
         sourceWebhookEventId: null,
         fullSync: isFirstConnect,
       });
+      v2Materializado = true;
+      v2Contas = v2Result.accountsSynced ?? 0;
+      v2Lancamentos = v2Result.transactionsIngested ?? 0;
       console.log('pluggy-v2 materialized', {
         itemId,
         companyId: effectiveCompanyId,
-        accounts: v2Result.accountsSynced,
-        transactions: v2Result.transactionsIngested,
+        accounts: v2Contas,
+        transactions: v2Lancamentos,
       });
     } catch (v2Err) {
-      console.error('pluggy-v2 materialization failed (non-fatal)', {
-        itemId,
-        error: v2Err instanceof Error ? v2Err.message : String(v2Err),
-      });
+      v2Erro = v2Err instanceof Error ? v2Err.message : String(v2Err);
+      console.error('pluggy-v2 materialization failed (non-fatal)', { itemId, error: v2Erro });
     }
 
     // Fecha o ciclo: sem isso a "próxima sincronização" continuava com data
     // vencida depois de sincronizar pelo botão, e o resultado parcial (parte das
     // contas não veio do banco) não ficava registrado para a tela mostrar.
     const execUpper = String(item?.executionStatus ?? '').toUpperCase();
-    const parcial = execUpper === 'PARTIAL_SUCCESS';
+    const parcialBanco = execUpper === 'PARTIAL_SUCCESS';
+    const parcial = parcialBanco || falhasGravacao > 0 || !v2Materializado;
+    const motivos: string[] = [];
+    if (parcialBanco) motivos.push('O banco não devolveu todas as contas nesta coleta.');
+    if (falhasGravacao > 0) {
+      motivos.push(`${falhasGravacao} lote(s) de lançamentos não foram gravados.`);
+    }
+    if (!v2Materializado) motivos.push('A cópia persistente do extrato não foi atualizada.');
     const intervaloMin = Number(Deno.env.get('PLUGGY_CRON_INTERVAL_MIN') ?? '60');
+    // Timestamp de conclusão só agora, depois de tudo persistido.
+    const concluidoEm = new Date().toISOString();
     await admin
       .from('pluggy_connections')
       .update({
         last_sync_status: parcial ? 'partial_success' : 'success',
-        last_sync_error: parcial
-          ? 'O banco não devolveu todas as contas nesta coleta.'
-          : null,
-        last_sync_attempt_at: new Date().toISOString(),
+        last_sync_error: parcial ? motivos.join(' ') : null,
+        last_sync_attempt_at: concluidoEm,
+        last_synced_at: parcial ? undefined : concluidoEm,
         next_sync_at: new Date(Date.now() + intervaloMin * 60_000).toISOString(),
       })
       .eq('id', conn.id);
 
     return new Response(JSON.stringify({
-      ok: true,
+      ok: !parcial,
+      partial: parcial,
       item_id: itemId,
       connection_id: conn.id,
       accounts: accounts.length,
       transactions: staged,
-      v2_materialized: true,
+      write_failures: falhasGravacao,
+      v2_materialized: v2Materializado,
+      v2_accounts: v2Contas,
+      v2_transactions: v2Lancamentos,
+      v2_error: v2Erro,
+      message: parcial ? motivos.join(' ') : null,
       first_connect: !!isFirstConnect,
       item_status: item?.status ?? null,
-      execution_status: item?.executionStatus ?? null,
+      execution_status: parcial && !parcialBanco ? 'PARTIAL_SUCCESS' : (item?.executionStatus ?? null),
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
