@@ -1,71 +1,62 @@
-# Diagnóstico — Pré-Admissão pelo Candidato
+# Diagnóstico complementar — Pré-Admissão pelo Candidato (sem implementação)
 
 LEITURA DO PLANO
-- Plano integral localizado: SIM
-- Marcador final localizado: SIM (`<<< FIM DO PLANO — PRÉ-ADMISSÃO >>>`)
-- Fase avaliada: Pré-Admissão pelo Candidato
-- Outras grandes fases iniciadas: NÃO
-- Implementação nesta mensagem: NÃO (somente diagnóstico, conforme pedido)
+- Plano integral localizado: SIM — Marcador final localizado: SIM
+- Fase avaliada: Pré-Admissão pelo Candidato — outras fases: NÃO
+- Nada de schema, storage ou código foi alterado nesta etapa.
 
-## O que já existe e será reaproveitado (verificado no código/banco)
+Decisões já fechadas por você: faixas ≤5 e 6–14 novas para pré-admissão preservando as atuais (até/acima de 7); Pendências canônicas; sem exclusão automática (item 90); convite renovável com padrão 7 dias; permissões conforme padrão canônico verificado abaixo.
 
-- **Fluxos atuais de cadastro**: `src/pages/dp/DpColaboradores.tsx` já abre `NovoCadastroMetodoDialog` (Cadastro Manual / Importar Ficha) e já usa abas (`DpTabsBar`). Cabe uma terceira opção e uma aba "Pré-Admissões" sem novo item de menu.
-- **Importar Ficha**: `src/pages/dp/DpFichaRegistroImportar.tsx` + função `dp-ficha-registro-parse` + tabelas `dp_ficha_importacoes` / `dp_ficha_importacao_itens`. Serve para o retorno da contabilidade; não será criado outro importador.
-- **Link seguro sem login**: padrão pronto em `dp_portal_access_tokens` (guarda só `token_hash`, com `expires_at`, `consumed_at`, `claimed_at`), `supabase/functions/_shared/portal-access.ts` e página pública `src/pages/AtivarAcesso.tsx` (`?t=` + `?c=`). Limite de tentativas pronto em `_shared/rate-limit.ts` (`auth_rate_limits`).
-- **Autorização de gestor**: `_shared/authz.ts` (`requireColaboradorAdmin`, `requireCompanyAccess`, `canAdminister`) — dono/owner/admin da empresa.
-- **Documentos**: bucket **`dp-documentos` é privado** (confirmado em `storage.buckets`); tabelas `dp_documentos` (arquivo, versão, aprovação) e `dp_colaborador_documentos` (vínculo requisito × dependente).
-- **Motor de checklist**: `src/lib/dp/documentos-requisitos.ts` + `dp_documento_requisitos` (regra única, já centralizada).
-- **Cargos e Unidades canônicos**: `dp_cargos` (com `exige_cnh`, `exige_epi`) e `dp_unidades`.
-- **Dependentes**: `dp_dependentes` (nome, nascimento, parentesco, cpf, deficiência...).
+## 1. Cadastro manual — pessoal x administrativo
 
-## Lacunas reais (bloqueiam parte do escopo sem decisão sua)
+`src/components/dp/ColaboradorFormDialog.tsx` (3.237 linhas) já é organizado em abas: **dados, jornada, remuneracao, dependentes, documentos** (linhas 1770–1825), com indicador de pendência por aba (linha 1030).
+- Bloco pessoal reutilizável já isolado: `src/lib/dp/documentos-pessoais.ts` (`DOCUMENTOS_PESSOAIS`, `documentosPessoaisParaBanco`) cobre RG, CTPS, título, reservista, filiação, nacionalidade, naturalidade, raça/cor, grau de instrução, deficiência — exatamente o conjunto que o candidato preenche.
+- Bloco administrativo está em componentes separados: `RemuneracaoFields.tsx`, `ColaboradorJornadaPanel.tsx`, `AssiduidadeFields.tsx`, `DependentesPanel.tsx`.
+- Consequência prática: a etapa do candidato reaproveita `documentos-pessoais.ts` + validações de CPF/endereço já existentes; nada do bloco administrativo é exposto ao candidato.
 
-1. **Requisito por Cargo e por Unidade não existe.** `dp_documento_requisitos.aplica_a` é um CHECK fechado (`todos, cargo_dirige, veiculo_proprio, veiculo_empresa, menor, regime_pj, regime_clt, estado_civil_casado, exige_epi, dependente, dependente_ate_7, dependente_acima_7, dependente_invalido`). Não há `cargo_id` nem `unidade_id`. Itens 6, 30, 31, 32, 40 exigem vínculo requisito × cargo e requisito × unidade.
-2. **Faixas de idade do dependente divergem do documento.** Hoje: até 7 / acima de 7. O documento pede até 5 (vacina) e 6–14 (declaração escolar), e RG+CPF até 14 anos.
-3. **Não existe "Familiar para Sesc"** nem campo **RG** em `dp_dependentes`. Precisa de pessoas relacionadas com finalidades múltiplas (dependente e/ou Sesc) sem duplicar a pessoa (itens 46–50).
-4. **Nada de pré-admissão existe** (busca por `pre_admissao`/`pré-admiss` não retorna nada). `dp_cadastro_solicitacoes` é outra coisa: pedido interno de cadastro (nome, cpf, cargo texto, status), sem convite, sem documentos, sem staging — não serve como base.
-5. **Pendências são materializadas por motor próprio** (`dp_pendencias_config`, `dp_pendencias_materializadas`, função `dp-refresh-pendencias`). Incluir "Pré-Admissão para Revisar" significa entrar nesse motor (decisão de arquitetura).
-6. **Sem política de retenção definida** para candidato cancelado/não admitido e convite expirado (item 90). Não implemento exclusão automática sem sua regra.
-7. **Checklist operacional do item 34** contém itens que não existem como requisito padrão hoje (SUS, foto 3x4, título de eleitor, licenciamento do veículo, certidão por estado civil solteiro).
-8. **Permissões**: não há chave de permissão de Pessoas por módulo; o padrão real do DP é dono/owner/admin. Vou seguir esse padrão (sem inventar recurso novo).
+## 2. Importador — comparação e "Somente Anexar"
 
-## Decisões que preciso de você antes de implementar
+- Comparação real já existe: `src/lib/dp/ficha-registro/payload.ts` → `compararComCadastro()` devolve `DiferencaFicha[]` (`coluna, label, atual, novo, apenasCompleta`) e **só considera colunas em que a ficha trouxe valor** — a ficha nunca apaga cadastro.
+- Aplicação é transacional no banco: RPC `dp_ficha_aplicar(p_item_id, p_dados, p_dados_extraidos, p_campos text[], p_atualizar_existente, p_cargo_id, p_unidade_id, p_setor_id, p_turno_id, p_regime, p_forma_pagamento, p_possui_folha_ponto, p_optante_adiantamento, p_jornada)` — retorna `colaborador_id`, `status: criado|atualizado`, `ja_aplicado` (idempotência) e o caminho autoritativo do arquivo, "nunca vem do cliente" (`aplicarFichaRpc.ts`). Existe também `dp_ficha_ignorar`.
+- "Somente Anexar" também já existe na prática: `anexarFichaRecorte.ts` recorta as páginas da pessoa do PDF do lote, grava em `${companyId}/${colaboradorId}/ficha-registro-${itemId}.pdf` e trata corrida/duplicidade (`ja_anexado`, código 23505) sem alterar campos.
+- Conclusão: o retorno da contabilidade usa `p_campos` (conferir e escolher) ou apenas `anexarFichaRecorte` (somente anexar). Não é preciso novo importador.
 
-1. **Faixas de idade dos dependentes**: adotar as do documento (≤5 vacina, 6–14 declaração escolar, ≤14 RG+CPF) tornando as faixas configuráveis (`idade_min`/`idade_max` no requisito), mantendo as atuais até/acima de 7 para o que já está em uso? (recomendo sim)
-2. **Retenção (LGPD)**: prazo para guardar dados/documentos de candidato cancelado, não admitido e convite expirado. Enquanto não houver regra, nada é apagado automaticamente.
-3. **Validade do convite**: sugiro 7 dias, renovável pelo gestor. Confirma?
-4. **Quem cria/revisa a Pré-Admissão**: dono, owner e admin da empresa (padrão atual do DP). Confirma?
-5. **Pendência do gestor**: entrar no motor de pendências existente (aparece junto das demais) — confirma?
-6. **Efetivação**: promover a Pré-Admissão criando o colaborador direto, ou sempre depois da ficha oficial da contabilidade? (o documento admite os dois momentos)
+## 3. Identidade, duplicidade e recontratação
 
-## Caminho de implementação proposto (após suas respostas)
+- `dp_colaboradores`: `UNIQUE (company_id, cpf)` (`dp_colaboradores_company_id_cpf_key`) e `UNIQUE (id, company_id)` — base para detectar CPF já existente por empresa sem varredura global.
+- Recontratação canônica: RPC `dp_recontratar_colaborador(p_colaborador_id, p_data_admissao, p_regime, p_forma_pagamento, p_cargo_id, p_unidade_id, p_setor_id, p_salario_base, p_valor_hora, p_matricula, p_justificativa)`, usada por `useRecontratarDpColaborador` (`src/hooks/useDpColaboradores.tsx`), com elegibilidade em `src/lib/dp/desligamento.ts` (`sim | nao | com_ressalvas`).
+- Efetivação da pré-admissão seguirá o mesmo desenho de `dp_ficha_aplicar`: uma RPC transacional, com `ja_aplicado` e unicidade `preadmissao_id` no colaborador para nunca gerar dois cadastros (protege duplo clique e concorrência).
 
-**Banco (migration com rollback)**
-- `dp_preadmissoes`: company_id, candidato_nome, whatsapp, email, cargo_previsto_id → `dp_cargos`, unidade_prevista_id → `dp_unidades`, trabalho_apos_22h boolean, dados pessoais em staging (jsonb + colunas canônicas), status (enum com os estados do item 60), timestamps, quem criou/revisou, colaborador_id após efetivação (único).
-- `dp_preadmissao_convites`: token_hash, expires_at, revoked_at, reenviado_em (mesmo padrão de `dp_portal_access_tokens`).
-- `dp_preadmissao_pessoas`: pessoa relacionada com finalidades (`dependente`, `sesc`) — uma pessoa, várias finalidades; inclui RG.
-- `dp_preadmissao_documentos`: requisito, titular (candidato/pessoa relacionada), arquivo no bucket privado, status, versão.
-- `dp_preadmissao_eventos`: auditoria sanitizada (item 97).
-- `dp_requisito_cargos` e `dp_requisito_unidades`: vínculo do requisito ao Cargo/Unidade; ampliar `aplica_a` para `cargo`, `unidade`, `estado_civil_solteiro` e faixas por idade.
-- RLS em todas: leitura/escrita só para dono/owner/admin da empresa (`private.is_company_owner` / vínculo em `company_members`), GRANT para `authenticated` e `service_role`; candidato **não** acessa tabela alguma — nenhum grant para `anon`.
+## 4. Bloqueio de menor e jornada definitiva — já existe no backend
 
-**Edge Functions (service role só no servidor)**
-- `dp-preadmissao-convite` (criar/reenviar/revogar — exige gestor autorizado).
-- `dp-preadmissao-publica` (validar token, ler ficha, salvar parcial, enviar; rate limit por IP e por token; empresa vem sempre do convite, nunca do payload; campos do gestor rejeitados no servidor).
-- `dp-preadmissao-arquivo` (upload e URL temporária; MIME e tamanho validados no servidor; caminho gerado pelo servidor, nunca aceito do cliente).
-- `dp-preadmissao-pacote` (ficha legível + documentos para a contabilidade, sem IDs técnicos).
+Trigger `public.dp_validar_jornada_menor()` (SECURITY DEFINER, lida no banco) já barra, na gravação da jornada: menor de 14 (CF 7º XXXIII), menor de 16 fora de aprendizagem (403), **trabalho noturno 22h–5h para menor de 18 (404 CLT / 67 ECA)**, cargo insalubre/perigoso (405), intervalo fracionado (411–413) e carga de aprendiz — respeitando `dp_config_dp.exige_validacao_menor`.
+Ou seja, o item 28 (jornada posterior ultrapassa as 22h) já é impedido pelo banco. Falta apenas a validação **antecipada** da pré-admissão (idade + "após 22h" previsto), que será a mesma regra, sem override, e com estado "Validação de Idade Pendente" quando não houver data de nascimento.
 
-**Frontend**
-- `DpColaboradores.tsx`: terceira opção "Enviar Link de Pré-Admissão" e aba "Pré-Admissões" (tabela no desktop, cards no mobile).
-- Diálogo de criação (nome, WhatsApp normalizado, Cargo Previsto, Unidade Prevista, trabalho após 22h) + copiar link / abrir WhatsApp.
-- Página pública em etapas (mobile-first, uma coluna, salvar e continuar), sem sidebar nem termos técnicos.
-- Tela de revisão do gestor: dados, validações, bloqueio de menor + após 22h (sem "ignorar"), solicitar correção, complementar dados administrativos, preparar/baixar pacote, status da contabilidade, e retorno via Importar Ficha (Conferir Dados ou Somente Anexar, sem sobrescrever nada em silêncio).
-- Regra única de idade/bloqueio em `src/lib/dp/preadmissao/` reutilizada pelo candidato, pelo gestor e pela validação da jornada definitiva.
+## 5. RLS, grants e Storage observados
 
-**Testes** (a escrever de fato, não espelho da implementação): convite válido/inválido/expirado/revogado; candidato A não abre ficha de B; empresa A não vê pré-admissão de B; payload tentando alterar cargo/unidade/22h; menor + após 22h (casos A–G do item 117); checklist por cargo/unidade e mudança de cargo; dependentes por faixa de idade; Sesc sem duplicar pessoa; efetivação idempotente com duplo clique.
+- Storage é privado em todos os buckets (`storage.buckets`: `dp-documentos`, `dp-disciplinar`, `dp-bulk-import`, `transaction-attachments`, `ped-*` todos `public=false`).
+- Padrão canônico de autorização no Storage: primeira pasta = `company_id` e `private.is_company_admin_or_owner(auth.uid(), split_part(name,'/',1)::uuid)` — políticas `dp_doc_bucket_admin_write` (ALL), `dp_doc_bucket_read_autorizado` (SELECT), `dp_doc_bucket_colab_insert` (INSERT, exige que a segunda pasta seja `dp_colaborador_ativo_of(auth.uid())`), `dp_doc_bucket_legacy_read`. Todas com `TO authenticated`; **nenhuma para `anon`**.
+- Portanto o candidato (não autenticado) não pode enviar nem ler arquivo direto: upload e visualização passam obrigatoriamente por Edge Function com service role, que gera o caminho e a URL temporária. Nenhum grant novo para `anon`.
+- Autorização de gestor no backend: `supabase/functions/_shared/authz.ts` (`requireCompanyAccess`, `canAdminister` = dono/owner/admin) e, no banco, `private.is_company_admin_or_owner`. É esse o padrão que a fase seguirá — não há chave de permissão por módulo de Pessoas.
+- Convite: reaproveitar exatamente o desenho de `dp_portal_access_tokens` (`token_hash`, `purpose`, `expires_at`, `consumed_at`, `claimed_at`, `claim_expires_at`) e o limitador `_shared/rate-limit.ts` (`auth_rate_limits`, janela horária, por IP). Observação: nessa tabela `user_id` e `colaborador_id` são NOT NULL, então o convite do candidato precisa de tabela própria com o mesmo padrão (extensão de schema, não impedimento).
 
-**Rollback**: migration reversa listando tabelas, políticas, enum e índices criados; funções removidas por nome; rotas e arquivos novos apagados; nenhum dado de pré-admissão ou documento apagado sem inventário e sua aprovação.
+## 6. Pendências e notificações
 
-## Status
+- Arquitetura canônica das pendências do gestor é o hook `src/hooks/useDpPendencias.tsx` (1.445 linhas), que monta itens `{ tipo, titulo, subtitulo, url, ... }` por área (Solicitação, Troca, Ocorrência, Férias, Licença, Negociação, Regras, Rescisão...). Há também `dp_pendencias_materializadas` (para apuração pesada) e `dp_pendencias_config` (limiares por empresa: dias de alerta por assunto).
+- Integração da pré-admissão: novo bloco no hook com `tipo: "Pré-Admissão"` e `url: /dp/cadastros/colaboradores?aba=preadmissoes&id=...`, aparecendo junto das demais pendências; notificação ao gestor pelo caminho existente (`dp_notificacoes` / `DpNotificacoesBell`).
 
-**NÃO APROVÁVEL AINDA** — implementação pode começar assim que as 6 decisões acima forem respondidas (as de nº 1, 2 e 6 afetam schema e comportamento e não podem ser assumidas por mim).
+## 7. Infraestrutura do pacote para a contabilidade
+
+Dependências presentes: `pdf-lib` e `pdfjs-dist`. **Não existe biblioteca de ZIP no projeto.** Opções técnicas (sem decisão de produto):
+a) ficha + documentos consolidados em um único PDF com `pdf-lib` (imagens convertidas em páginas) — sem nova dependência;
+b) adicionar uma biblioteca de ZIP e montar o pacote no navegador a partir de URLs temporárias;
+c) downloads individuais organizados + ficha em PDF.
+Recomendação: (a) para a ficha e os documentos em imagem, com download individual para PDFs grandes — evita cópia permanente redundante (item 74).
+
+## 8. Única decisão de produto pendente
+
+**Momento da efetivação do colaborador**: criar o cadastro definitivo já na aprovação da Pré-Admissão pelo gestor, ou somente depois do retorno/importação da ficha oficial da contabilidade? Não vou assumir nenhuma das duas — as demais regras (bloqueio de menor, checklist, pacote, importação) são iguais nos dois casos; muda só onde a RPC de promoção é disparada e qual status antecede "Concluído".
+
+Extensões de schema necessárias (tabelas de pré-admissão, convite, pessoas relacionadas com finalidade Sesc, documentos, eventos, vínculo de requisito a cargo/unidade, faixas de idade) estão tratadas como extensão normal, não como impedimento.
+
+Nota: `roadmap.md` não foi editado porque nesta etapa só o arquivo de plano pode ser alterado; a tarefa será registrada lá na implementação.
