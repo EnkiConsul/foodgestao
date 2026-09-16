@@ -220,6 +220,29 @@ export function ContactFormDialog({
 
 
 
+  /**
+   * Cria os vínculos do contato com as empresas e CONFERE o resultado.
+   * Sem vínculo o contato não aparece nas listas por empresa, então uma falha
+   * aqui precisa ser avisada em vez de passar como "criado com sucesso".
+   */
+  const vincularEmpresas = async (contactId: string, companyIds: string[]) => {
+    const { error } = await supabase.from("contact_companies" as any).insert(
+      companyIds.map((cid) => ({ contact_id: contactId, company_id: cid })) as any
+    );
+    if (!error) {
+      const { data: check } = await (supabase.from("contact_companies" as any) as any)
+        .select("company_id")
+        .eq("contact_id", contactId);
+      if ((check ?? []).length > 0) return true;
+    }
+    toast.error("Não foi possível vincular o contato à empresa", {
+      description:
+        error?.message ??
+        "O cadastro foi salvo, mas sem empresa vinculada — por isso ele não apareceria nas listas. Tente novamente ou avise o administrador.",
+    });
+    return false;
+  };
+
   const toggleCompany = (id: string) => {
     setSelectedCompanyIds((prev) =>
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
@@ -295,9 +318,8 @@ export function ContactFormDialog({
       // Sync contact_companies
       await (supabase.from("contact_companies" as any) as any).delete().eq("contact_id", editContact.id);
       if (selectedCompanyIds.length > 0) {
-        await supabase.from("contact_companies" as any).insert(
-          selectedCompanyIds.map((cid) => ({ contact_id: editContact.id, company_id: cid })) as any
-        );
+        const linkOk = await vincularEmpresas(editContact.id, selectedCompanyIds);
+        if (!linkOk) { setSaving(false); return; }
       }
       await supabase.rpc("insert_audit_log", {
         _action: "contact_updated",
@@ -316,9 +338,8 @@ export function ContactFormDialog({
       }
 
       if (selectedCompanyIds.length > 0) {
-        await supabase.from("contact_companies" as any).insert(
-          selectedCompanyIds.map((cid) => ({ contact_id: (newContact as any).id, company_id: cid })) as any
-        );
+        const linkOk = await vincularEmpresas((newContact as any).id, selectedCompanyIds);
+        if (!linkOk) { setSaving(false); return; }
       }
       await supabase.rpc("insert_audit_log", {
         _action: "contact_created",
