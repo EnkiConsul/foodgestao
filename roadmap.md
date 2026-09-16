@@ -10,3 +10,12 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [x] Painel de consistência de documentos sem marcações de ponto
 - [x] Banco: tabelas, funções, gatilhos e listas de opções apagados; lista de telas ocultas zerada
 - [x] Tipos e testes validados
+
+## Auditoria Open Finance / Conciliação (2026-09-16)
+- [ ] F1 Permissão/escopo nas RPCs de conciliação + políticas de staging
+- [ ] F2 Lock/idempotência nas confirmações
+- [ ] F3 Resultado estruturado em ConciliacaoPluggy
+- [ ] F4 Sync/cron: contadores e status reais
+- [ ] F5 Webhook/revogação/extrato
+- [ ] Testes focados (autorização, concorrência, rateio, falha parcial)
+- [ ] 3 registros confirmed sem matched_transaction_id: preservados para revisão (não alterar)

@@ -58,6 +58,12 @@ import {
   type CardRoutingMaps,
 } from "@/lib/conciliacao/cardRouting";
 import { cardHintLabel, formatProviderDescription, hasMerchantName } from "@/lib/conciliacao/cardDescription";
+import {
+  criarResultado,
+  idsRemanescentes,
+  resumoConfirmacao,
+  type ConfirmResultado,
+} from "@/lib/conciliacao/confirmResultado";
 import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
 import {
   SCOPED_PLUGGY_ACCOUNT_SELECT,
@@ -1110,35 +1116,44 @@ export default function ConciliacaoPluggy() {
   };
 
 
-  const confirmIds = async (ids: string[]) => {
-    if (ids.length === 0) return;
+  /**
+   * Confirma os lançamentos informados e devolve o resultado item a item.
+   * Nada de mensagem de sucesso global aqui: quem chamou decide o aviso a
+   * partir do resultado, para que falhas parciais nunca virem "concluído".
+   */
+  const confirmIds = async (ids: string[]): Promise<ConfirmResultado> => {
+    const resultado = criarResultado();
+    if (ids.length === 0) return resultado;
 
     // Linhas de cartão vão para o cartão vinculado (e para a fatura), não para conta bancária.
     const routed = routeStagingRows(ids, pluggyAccountByRow, cardRouting);
     if (routed.blockedIds.length > 0) {
+      resultado.falhas.push({ ids: routed.blockedIds, motivo: "cartao_nao_autorizado" });
       toast.error("Cartão do Open Finance ainda não autorizado", {
         description:
           "Autorize o cartão em Cartões de Crédito para que estes lançamentos entrem na fatura.",
         action: { label: "Autorizar cartão", onClick: () => navigate("/cartoes-credito") },
       });
-      return;
     }
 
     // Group by target account (apenas linhas de conta bancária)
     const byAccount: Record<string, string[]> = {};
+    const semConta: string[] = [];
+    const semContraparte: string[] = [];
     for (const id of routed.bankIds) {
       const acctId = rowAccount[id] ?? linkedByPluggyAccount[rows.find((r) => r.id === id)?.pluggy_account_id ?? ""];
-      if (!acctId) { toast.error("Selecione a conta de destino para todos os itens"); return; }
+      if (!acctId) { semConta.push(id); continue; }
+      if (rowKind[id] === "transfer" && !rowCounterpart[id]) { semContraparte.push(id); continue; }
       byAccount[acctId] = byAccount[acctId] ?? [];
       byAccount[acctId].push(id);
     }
-
-    // Transferências exigem a conta contraparte
-    for (const id of ids) {
-      if (rowKind[id] === "transfer" && !rowCounterpart[id]) {
-        toast.error("Selecione a conta da contraparte nas transferências");
-        return;
-      }
+    if (semConta.length > 0) {
+      resultado.falhas.push({ ids: semConta, motivo: "conta_destino_ausente" });
+      toast.error("Selecione a conta de destino para todos os itens");
+    }
+    if (semContraparte.length > 0) {
+      resultado.falhas.push({ ids: semContraparte, motivo: "contraparte_ausente" });
+      toast.error("Selecione a conta da contraparte nas transferências");
     }
 
     // Contato cadastrado só no perfil Pessoal: vinculamos à empresa antes de
@@ -1160,9 +1175,6 @@ export default function ConciliacaoPluggy() {
       }
     }
 
-
-    let ok = 0;
-    let mirrors = 0;
     for (const [acctId, staging_ids] of Object.entries(byAccount)) {
       const transferIds = staging_ids.filter((sid) => rowKind[sid] === "transfer");
       const normalIds = staging_ids.filter((sid) => rowKind[sid] !== "transfer");
@@ -1175,16 +1187,36 @@ export default function ConciliacaoPluggy() {
         byCounterpart[cp].push(sid);
       }
       for (const [cp, sids] of Object.entries(byCounterpart)) {
-        if (cp === acctId) { toast.error("A contraparte deve ser diferente da conta do extrato"); continue; }
+        if (cp === acctId) {
+          resultado.falhas.push({ ids: sids, motivo: "contraparte_igual" });
+          toast.error("A contraparte deve ser diferente da conta do extrato");
+          continue;
+        }
         const { data, error } = await supabase.rpc("pluggy_confirm_staging_transfer", {
           p_staging_ids: sids,
           p_account_id: acctId,
           p_counterpart_account_id: cp,
         });
-        if (error) { toast.error("Falha ao confirmar transferência: " + error.message); continue; }
-        const list = (Array.isArray(data) ? data : []) as { mirror_staging_id: string | null }[];
-        ok += list.length;
-        mirrors += list.filter((d) => d.mirror_staging_id).length;
+        if (error) {
+          resultado.falhas.push({ ids: sids, motivo: "erro_rpc", detalhe: error.message });
+          toast.error("Falha ao confirmar transferência: " + error.message);
+          continue;
+        }
+        const list = (Array.isArray(data) ? data : []) as {
+          staging_id: string;
+          mirror_staging_id: string | null;
+        }[];
+        const confirmados = new Set(list.map((d) => d.staging_id));
+        resultado.confirmados.push(...confirmados);
+        resultado.espelhos += list.filter((d) => d.mirror_staging_id).length;
+        const restantes = sids.filter((sid) => !confirmados.has(sid));
+        if (restantes.length > 0) {
+          resultado.falhas.push({
+            ids: restantes,
+            motivo: "erro_rpc",
+            detalhe: "Itens que não estavam mais pendentes.",
+          });
+        }
       }
 
       // Lançamentos comuns: uma chamada por (conta, categoria, forma de pagamento, contato)
@@ -1207,8 +1239,22 @@ export default function ConciliacaoPluggy() {
           p_payment_method_id: pm === "__none__" ? undefined : pm,
           p_contact_id: ct === "__none__" ? undefined : ct,
         });
-        if (error) { toast.error("Falha ao confirmar: " + error.message); continue; }
-        ok += Array.isArray(data) ? data.length : 0;
+        if (error) {
+          resultado.falhas.push({ ids: sids, motivo: "erro_rpc", detalhe: error.message });
+          toast.error("Falha ao confirmar: " + error.message);
+          continue;
+        }
+        const list = (Array.isArray(data) ? data : []) as { staging_id: string }[];
+        const confirmados = new Set(list.map((d) => d.staging_id));
+        resultado.confirmados.push(...confirmados);
+        const restantes = sids.filter((sid) => !confirmados.has(sid));
+        if (restantes.length > 0) {
+          resultado.falhas.push({
+            ids: restantes,
+            motivo: "erro_rpc",
+            detalhe: "Itens que não estavam mais pendentes.",
+          });
+        }
       }
 
     }
@@ -1235,20 +1281,36 @@ export default function ConciliacaoPluggy() {
           p_payment_method_id: pm === "__none__" ? undefined : pm,
           p_contact_id: ct === "__none__" ? undefined : ct,
         });
-        if (error) { toast.error("Falha ao confirmar no cartão: " + error.message); continue; }
-        ok += Array.isArray(data) ? data.length : 0;
+        if (error) {
+          resultado.falhas.push({ ids: sids, motivo: "erro_rpc", detalhe: error.message });
+          toast.error("Falha ao confirmar no cartão: " + error.message);
+          continue;
+        }
+        const list = (Array.isArray(data) ? data : []) as { staging_id: string }[];
+        const confirmados = new Set(list.map((d) => d.staging_id));
+        resultado.confirmados.push(...confirmados);
+        const restantes = sids.filter((sid) => !confirmados.has(sid));
+        if (restantes.length > 0) {
+          resultado.falhas.push({
+            ids: restantes,
+            motivo: "erro_rpc",
+            detalhe: "Itens que não estavam mais pendentes.",
+          });
+        }
       }
     }
-    toast.success(ok === 1 ? "Lançamento confirmado" : `${ok} lançamentos confirmados`);
-    if (mirrors > 0) {
+
+    if (resultado.espelhos > 0) {
       toast.info(
-        mirrors === 1
+        resultado.espelhos === 1
           ? "A outra ponta da transferência foi marcada como duplicada"
-          : `${mirrors} lançamentos espelho marcados como duplicados`,
+          : `${resultado.espelhos} lançamentos espelho marcados como duplicados`,
       );
     }
-    setSelected(new Set());
+    // Mantém selecionado o que não foi confirmado, para nova tentativa.
+    setSelected(new Set(idsRemanescentes(ids, resultado)));
     load();
+    return resultado;
   };
 
   const ignoreIds = async (ids: string[]) => {
@@ -1263,7 +1325,18 @@ export default function ConciliacaoPluggy() {
   const confirmSelected = async () => {
     setBulkBusy("confirm");
     try {
-      await confirmIds(Array.from(selected));
+      const pedidos = Array.from(selected);
+      const resultado = await confirmIds(pedidos);
+      const resumo = resumoConfirmacao(pedidos, resultado);
+      if (resumo.tipo === "vazio") return;
+      if (resumo.tipo === "erro") {
+        toast.error(resumo.titulo, { description: resumo.descricao });
+        return;
+      }
+      if (resumo.tipo === "parcial") {
+        toast.warning(resumo.titulo, { description: resumo.descricao });
+        return;
+      }
       // Fim do fluxo: oferece o extrato comparativo banco x plataforma
       toast.success("Conciliação concluída", {
         description: "Veja o extrato comparativo entre o banco e a plataforma.",
@@ -1310,7 +1383,12 @@ export default function ConciliacaoPluggy() {
     if (action === "split") { openSplit(id); return; }
     setRowBusy(id);
     try {
-      if (action === "confirm") await confirmIds([id]);
+      if (action === "confirm") {
+        const resultado = await confirmIds([id]);
+        const resumo = resumoConfirmacao([id], resultado);
+        if (resumo.tipo === "sucesso") toast.success(resumo.titulo, { description: resumo.descricao });
+        else if (resumo.tipo === "erro") toast.error(resumo.titulo, { description: resumo.descricao });
+      }
       else await ignoreIds([id]);
     } finally {
       setRowBusy(null);

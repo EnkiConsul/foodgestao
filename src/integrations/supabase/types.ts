@@ -16099,31 +16099,19 @@ export type Database = {
         Args: { _company_id: string; _request_id?: string }
         Returns: number
       }
-      pluggy_confirm_staging:
-        | {
-            Args: {
-              p_account_id: string
-              p_category_id?: string
-              p_staging_ids: string[]
-            }
-            Returns: {
-              staging_id: string
-              transaction_id: string
-            }[]
-          }
-        | {
-            Args: {
-              p_account_id: string
-              p_category_id?: string
-              p_contact_id?: string
-              p_payment_method_id?: string
-              p_staging_ids: string[]
-            }
-            Returns: {
-              staging_id: string
-              transaction_id: string
-            }[]
-          }
+      pluggy_confirm_staging: {
+        Args: {
+          p_account_id: string
+          p_category_id?: string
+          p_contact_id?: string
+          p_payment_method_id?: string
+          p_staging_ids: string[]
+        }
+        Returns: {
+          staging_id: string
+          transaction_id: string
+        }[]
+      }
       pluggy_confirm_staging_card: {
         Args: {
           p_category_id?: string
@@ -16198,6 +16186,10 @@ export type Database = {
       pluggy_remote_delete_finalize_failure: {
         Args: { _error: string; _id: string; _max_attempts?: number }
         Returns: undefined
+      }
+      pluggy_user_can_edit: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
       }
       pluggy_v2_webhook_finalize_failure: {
         Args: { p_error: string; p_event_id: string; p_worker_id: string }

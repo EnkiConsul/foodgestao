@@ -12,6 +12,7 @@
 // verify_jwt = false — protegido pelo header secreto interno (WEBHOOK_WORKER_SECRET,
 // com fallback para PLUGGY_CRON_SECRET, o segredo compartilhado dos jobs internos).
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { classifySyncResult, type SyncBody } from '../_shared/syncOutcome.ts';
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
 /**
@@ -152,18 +153,25 @@ async function triggerSync(itemId: string, windowDays?: number) {
     },
     body: JSON.stringify(windowDays ? { item_id: itemId, days: windowDays } : { item_id: itemId }),
   });
-  if (!res.ok) {
-    const detail = (await res.text()).slice(0, 500);
-    if (detail.includes('company_id_required')) {
-      // Item sem empresa resolvida: precisa de vínculo manual em /admin/pluggy-status.
-      throw new FatalEventError(
-        `pending_manual_link: empresa não resolvida para o item ${itemId}`,
-        'pending_manual_link',
-      );
-    }
-    throw new Error(`sync_failed_${res.status}: ${detail}`);
+
+  const raw = await res.text().catch(() => '');
+  let body: SyncBody | null = null;
+  try { body = raw ? JSON.parse(raw) as SyncBody : null; } catch { body = null; }
+
+  if (raw.includes('company_id_required') || raw.includes('company_conflict')) {
+    // Empresa não resolvida ou conflito entre empresas: aguarda revisão humana
+    // em /admin/pluggy-status — retentar cinco vezes não decide nada.
+    throw new FatalEventError(
+      `pending_manual_link: empresa não resolvida para o item ${itemId}`,
+      'pending_manual_link',
+    );
   }
-  await res.text();
+
+  // HTTP 200 não é conclusão: parcial, pendente e erro precisam de nova tentativa
+  // pelo backoff da fila, em vez de virar "processado".
+  const outcome = classifySyncResult({ httpStatus: res.status, body });
+  if (outcome.status === 'success' || outcome.status === 'skipped') return;
+  throw new Error(`sync_${outcome.status}: ${outcome.detail ?? `HTTP ${res.status}`}`);
 }
 
 /** O item existe em alguma conexão do sistema (v1 ou v2)? */
@@ -184,9 +192,11 @@ async function processEvent(
   const type = ev.event_type;
   const itemId = ev.pluggy_item_id ?? ev.payload?.itemId ?? ev.payload?.item?.id ?? null;
 
-  // Item que não pertence a nenhuma conexão do sistema (item de teste, conexão já
-  // removida, ou item de outro ambiente): o evento é ruído — concluir sem dead letter.
-  if (itemId && !(await itemIsKnown(admin, itemId))) {
+  // Item desconhecido: só é ruído para eventos que dependem de uma conexão já
+  // existente. Em eventos de coleta o item PODE ser uma autorização nova cujo
+  // navegador nunca voltou — nesse caso seguimos e deixamos o `pluggy-sync-item`
+  // resolver a empresa pela solicitação de conexão validada.
+  if (itemId && !SYNC_EVENTS.has(type) && !(await itemIsKnown(admin, itemId))) {
     console.log(`pluggy-webhook-worker: item ${itemId} desconhecido — evento ignorado`);
     return;
   }

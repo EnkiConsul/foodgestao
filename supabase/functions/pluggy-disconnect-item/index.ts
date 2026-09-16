@@ -48,10 +48,13 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!conn) throw new Error('connection_not_found');
 
-    const { data: mem } = await admin
-      .from('company_members').select('id')
-      .eq('company_id', conn.company_id).eq('user_id', userId).maybeSingle();
-    if (!mem) throw new Error('forbidden');
+    // Pausar, retomar ou revogar altera a origem dos lançamentos: exige dono ou
+    // permissão de edição, não apenas participação na empresa.
+    const { data: canEdit } = await admin.rpc('pluggy_user_can_edit', {
+      _user_id: userId,
+      _company_id: conn.company_id,
+    });
+    if (canEdit !== true) throw new Error('forbidden');
 
     const audit = async (action: string, details: Record<string, unknown>) => {
       try {
@@ -97,8 +100,14 @@ Deno.serve(async (req) => {
           .eq('connection_id', conn.id)
           .neq('id', pluggy_account_id)
           .or('linked_account_id.not.is.null,linked_credit_card_id.not.is.null'),
-        admin.from('pluggy_accounts').select('id, pluggy_account_id').eq('id', pluggy_account_id).maybeSingle(),
+        // A conta precisa pertencer a ESTA conexão autorizada — sem isso seria
+        // possível apagar a conta Open Finance de outra empresa.
+        admin.from('pluggy_accounts').select('id, pluggy_account_id')
+          .eq('id', pluggy_account_id)
+          .eq('connection_id', conn.id)
+          .maybeSingle(),
       ]);
+      if (pluggy_account_id && !pAcc) throw new Error('account_not_in_connection');
       if ((emUso?.length ?? 0) > 0 && pAcc) {
         await admin.from('pluggy_staging_transactions')
           .delete().eq('connection_id', conn.id)
@@ -141,7 +150,19 @@ Deno.serve(async (req) => {
 
     await audit('pluggy_connection_revoked', { provider_delete_status: providerDeleteStatus });
 
-    return json({ ok: true, scope: 'connection', provider_delete_status: providerDeleteStatus });
+    // A sincronização parou aqui, mas se o banco não confirmou o cancelamento do
+    // consentimento a revogação está PENDENTE — não pode ser anunciada como
+    // concluída.
+    const revogacaoPendente = providerDeleteStatus !== 'ok';
+    return json({
+      ok: !revogacaoPendente,
+      scope: 'connection',
+      provider_delete_status: providerDeleteStatus,
+      revocation_pending: revogacaoPendente,
+      message: revogacaoPendente
+        ? 'A sincronização foi interrompida, mas o banco ainda não confirmou o cancelamento da autorização. Tente novamente ou cancele também no aplicativo do banco.'
+        : 'Autorização cancelada.',
+    }, revogacaoPendente ? 202 : 200);
   } catch (e) {
     const msg = String(e);
     const status = msg.includes('forbidden') ? 403 : 400;

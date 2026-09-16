@@ -278,6 +278,10 @@ Deno.serve(async (req) => {
     // quando o navegador não conclui o fluxo — ex.: Open Finance por QR Code).
     let connectRequestId: string | null = requestedConnectRequestId;
 
+    // Conflito determinístico entre empresas: nunca escolhemos por adivinhação —
+    // o item fica aguardando revisão humana em /admin/pluggy-status.
+    let conflitoEmpresa = false;
+
     if (!existing && !companyId) {
       // 1ª tentativa: solicitação aberta e válida
       // 2ª tentativa (tolerância): solicitação recente, mesmo expirada, nas últimas 24h
@@ -285,7 +289,7 @@ Deno.serve(async (req) => {
       for (const attempt of ['open', 'tolerance'] as const) {
         let q = admin
           .from('pluggy_connect_requests')
-          .select('id, company_id, user_id');
+          .select('id, company_id, user_id, resolved_item_id');
 
         if (attempt === 'open') {
           q = q.eq('status', 'open').gt('expires_at', new Date().toISOString());
@@ -296,16 +300,29 @@ Deno.serve(async (req) => {
         if (connectRequestId) q = q.eq('id', connectRequestId);
         else q = q.or(`resolved_item_id.eq.${itemId},resolved_item_id.is.null`);
 
-        const { data: reqRow } = await q
+        const { data: reqRows } = await q
           .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(10);
 
-        if (reqRow) {
-          companyId = reqRow.company_id;
-          connectRequestId = reqRow.id;
+        const candidatos = reqRows ?? [];
+        if (candidatos.length === 0) continue;
+
+        // Preferimos a solicitação que já aponta para ESTE item.
+        const exata = candidatos.filter((r: any) => r.resolved_item_id === itemId);
+        const usar = exata.length > 0 ? exata : candidatos;
+        const empresas = new Set(usar.map((r: any) => r.company_id as string));
+
+        if (empresas.size > 1) {
+          conflitoEmpresa = true;
+          console.error('pluggy-sync-item: solicitações de empresas diferentes para o mesmo item', {
+            itemId, empresas: [...empresas],
+          });
           break;
         }
+
+        companyId = usar[0].company_id;
+        connectRequestId = usar[0].id;
+        break;
       }
     }
 
@@ -331,7 +348,7 @@ Deno.serve(async (req) => {
     // Pluggy. Cobre o caso em que nenhuma solicitação foi registrada (ex.: o
     // usuário autorizou pelo app do banco muito depois, ou o token foi criado
     // sem company_id).
-    if (!existing && !companyId) {
+    if (!existing && !companyId && !conflitoEmpresa) {
       try {
         const probe = await getItem(itemId);
         const clientUserId: string | null = probe?.clientUserId ?? null;
@@ -355,7 +372,9 @@ Deno.serve(async (req) => {
           if (candidates.size === 1) {
             companyId = [...candidates][0];
             console.log(`resolved company via clientUserId ${clientUserId} -> ${companyId}`);
-          } else {
+          } else if (candidates.size > 1) {
+            // Mais de uma empresa possível: aguarda revisão, não adivinha.
+            conflitoEmpresa = true;
             console.error(
               `cannot resolve company for item ${itemId}: clientUserId=${clientUserId} companies=${candidates.size}`,
             );
@@ -364,6 +383,15 @@ Deno.serve(async (req) => {
       } catch (e) {
         console.error('clientUserId company resolution failed', e);
       }
+    }
+
+    if (!existing && conflitoEmpresa) {
+      return new Response(JSON.stringify({
+        error: 'company_conflict',
+        message: 'Mais de uma empresa possível para esta conexão: aguarda revisão manual.',
+      }), {
+        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     if (!existing && !companyId) {
@@ -486,7 +514,7 @@ Deno.serve(async (req) => {
       connector_image_url: item?.connector?.imageUrl ?? null,
       status: (item?.status ?? 'updated').toLowerCase(),
       execution_status: item?.executionStatus ?? null,
-      last_synced_at: new Date().toISOString(),
+      // last_synced_at só no fim, depois de gravar contas e lançamentos.
       last_error: item?.error ?? null,
       created_by: userId,
     };
@@ -830,6 +858,9 @@ Deno.serve(async (req) => {
     }
 
     let staged = 0;
+    // Erros de gravação essencial NÃO podem ser silenciados: viram resultado
+    // parcial na conexão e no corpo da resposta.
+    let falhasGravacao = 0;
     // Documentos da própria empresa (titulares das contas conectadas): nunca
     // devem ser tratados como contraparte do lançamento.
     const ownDocuments = (accounts as any[])
@@ -969,12 +1000,17 @@ Deno.serve(async (req) => {
 
       // Chunked upsert to avoid oversized payloads
       const chunkSize = 200;
+      let naoGravados = 0;
       for (let i = 0; i < toInsert.length; i += chunkSize) {
         const chunk = toInsert.slice(i, i + chunkSize);
         const { error } = await admin
           .from('pluggy_staging_transactions')
           .upsert(chunk, { onConflict: 'pluggy_transaction_id', ignoreDuplicates: true });
-        if (error) console.error('staging upsert error', error);
+        if (error) {
+          falhasGravacao += 1;
+          naoGravados += chunk.length;
+          console.error('staging upsert error', error);
+        }
       }
 
       // Reprocessa a descrição de itens sem providerId que foram importados
@@ -994,12 +1030,18 @@ Deno.serve(async (req) => {
           .neq('description', r.description);
         if (error) console.error('staging re-enrich error', error);
       }
-      staged += rows.length;
+      // Contador real: descontamos os lotes que o banco recusou.
+      staged += Math.max(rows.length - naoGravados, 0);
 
     }
 
     // Materialização V2: mantém cópia persistente e imutável de contas + lançamentos
-    // em pluggy_v2_*. Falhas aqui não quebram a sincronização V1, apenas são logadas.
+    // em pluggy_v2_*. Falhas aqui não quebram a sincronização V1, mas viram
+    // resultado parcial — nunca "materializado" quando não materializou.
+    let v2Materializado = false;
+    let v2Erro: string | null = null;
+    let v2Contas = 0;
+    let v2Lancamentos = 0;
     try {
       const v2Result = await materializePluggyItemV2({
         supabase: admin,
@@ -1010,47 +1052,62 @@ Deno.serve(async (req) => {
         sourceWebhookEventId: null,
         fullSync: isFirstConnect,
       });
+      v2Materializado = true;
+      v2Contas = v2Result.accountsSynced ?? 0;
+      v2Lancamentos = v2Result.transactionsIngested ?? 0;
       console.log('pluggy-v2 materialized', {
         itemId,
         companyId: effectiveCompanyId,
-        accounts: v2Result.accountsSynced,
-        transactions: v2Result.transactionsIngested,
+        accounts: v2Contas,
+        transactions: v2Lancamentos,
       });
     } catch (v2Err) {
-      console.error('pluggy-v2 materialization failed (non-fatal)', {
-        itemId,
-        error: v2Err instanceof Error ? v2Err.message : String(v2Err),
-      });
+      v2Erro = v2Err instanceof Error ? v2Err.message : String(v2Err);
+      console.error('pluggy-v2 materialization failed (non-fatal)', { itemId, error: v2Erro });
     }
 
     // Fecha o ciclo: sem isso a "próxima sincronização" continuava com data
     // vencida depois de sincronizar pelo botão, e o resultado parcial (parte das
     // contas não veio do banco) não ficava registrado para a tela mostrar.
     const execUpper = String(item?.executionStatus ?? '').toUpperCase();
-    const parcial = execUpper === 'PARTIAL_SUCCESS';
+    const parcialBanco = execUpper === 'PARTIAL_SUCCESS';
+    const parcial = parcialBanco || falhasGravacao > 0 || !v2Materializado;
+    const motivos: string[] = [];
+    if (parcialBanco) motivos.push('O banco não devolveu todas as contas nesta coleta.');
+    if (falhasGravacao > 0) {
+      motivos.push(`${falhasGravacao} lote(s) de lançamentos não foram gravados.`);
+    }
+    if (!v2Materializado) motivos.push('A cópia persistente do extrato não foi atualizada.');
     const intervaloMin = Number(Deno.env.get('PLUGGY_CRON_INTERVAL_MIN') ?? '60');
+    // Timestamp de conclusão só agora, depois de tudo persistido.
+    const concluidoEm = new Date().toISOString();
     await admin
       .from('pluggy_connections')
       .update({
         last_sync_status: parcial ? 'partial_success' : 'success',
-        last_sync_error: parcial
-          ? 'O banco não devolveu todas as contas nesta coleta.'
-          : null,
-        last_sync_attempt_at: new Date().toISOString(),
+        last_sync_error: parcial ? motivos.join(' ') : null,
+        last_sync_attempt_at: concluidoEm,
+        last_synced_at: parcial ? undefined : concluidoEm,
         next_sync_at: new Date(Date.now() + intervaloMin * 60_000).toISOString(),
       })
       .eq('id', conn.id);
 
     return new Response(JSON.stringify({
-      ok: true,
+      ok: !parcial,
+      partial: parcial,
       item_id: itemId,
       connection_id: conn.id,
       accounts: accounts.length,
       transactions: staged,
-      v2_materialized: true,
+      write_failures: falhasGravacao,
+      v2_materialized: v2Materializado,
+      v2_accounts: v2Contas,
+      v2_transactions: v2Lancamentos,
+      v2_error: v2Erro,
+      message: parcial ? motivos.join(' ') : null,
       first_connect: !!isFirstConnect,
       item_status: item?.status ?? null,
-      execution_status: item?.executionStatus ?? null,
+      execution_status: parcial && !parcialBanco ? 'PARTIAL_SUCCESS' : (item?.executionStatus ?? null),
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
