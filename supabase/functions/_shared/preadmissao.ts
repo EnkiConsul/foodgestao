@@ -5,7 +5,12 @@
  * pré-admissão SEMPRE vem do convite validado no servidor; nada que o candidato
  * envie é usado como autorização.
  */
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+/**
+ * Tipo estrutural do cliente de serviço: aceita o cliente vindo de qualquer
+ * especificador de import usado pelas funções compartilhadas.
+ */
+// deno-lint-ignore no-explicit-any
+export type Db = { from: (table: string) => any };
 
 export const VALIDADE_PADRAO_DIAS = 7;
 
@@ -55,7 +60,7 @@ const ENCERRADOS = ["cancelado", "expirado", "concluido"];
 
 /** Só o hash é comparado; o token não vai para nenhum log. */
 export async function validarConvite(
-  admin: SupabaseClient,
+  admin: Db,
   conviteId: string,
   token: string,
 ): Promise<ConviteValidado> {
@@ -84,7 +89,7 @@ export async function validarConvite(
 }
 
 export async function registrarEvento(
-  admin: SupabaseClient,
+  admin: Db,
   preadmissaoId: string,
   companyId: string,
   evento: string,
@@ -103,7 +108,7 @@ export async function registrarEvento(
 
 /** Códigos de documento exigidos pelo Cargo e pela Unidade previstos. */
 export async function requisitosPrevistos(
-  admin: SupabaseClient,
+  admin: Db,
   pa: Preadmissao,
 ): Promise<{ cargo: string[]; unidade: string[] }> {
   const cargo: string[] = [];
