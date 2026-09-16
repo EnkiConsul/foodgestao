@@ -185,11 +185,15 @@ export function useTransactionFormLookups(enabled: boolean) {
     enabled: !!user && enabled,
   });
 
-  const invalidateLookups = () => {
+  /**
+   * Recarrega as listas do formulário. Devolve a promessa da revalidação para
+   * quem criou um registro pelo atalho poder esperar a lista já atualizada
+   * antes de selecioná-lo.
+   */
+  const invalidateLookups = () =>
     queryClient.invalidateQueries({
       predicate: (q) => typeof q.queryKey[0] === "string" && (q.queryKey[0] as string).startsWith("form-"),
     });
-  };
 
   return {
     accounts: accountsQuery.data ?? [],
