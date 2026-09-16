@@ -1,0 +1,38 @@
+[2026-09-16T13:41:33.674Z] iniciando validação funcional isolada da P0.4
+[2026-09-16T13:41:33.677Z] guardas pré-start aprovadas (destino não colide com a conexão de origem)
+[2026-09-16T13:41:33.678Z] limpeza ignorada: nenhum cluster foi criado por esta execução
+[2026-09-16T13:41:33.678Z] limpeza abortada: marcador ausente em /tmp/p04pg-alheio-xjjhRN (diretório não é desta execução)
+[2026-09-16T13:41:33.680Z] self-test falha_pre_start_nao_limpa_cluster_alheio: passed
+[2026-09-16T13:41:33.681Z] self-test sem_marcador_nao_apaga_diretorio: passed
+[2026-09-16T13:41:33.681Z] self-test guarda_colisao_com_origem: passed
+[2026-09-16T13:41:33.681Z] exportando ESTRUTURA real (schema-only: public, private, qa) com grants/policies/owners…
+[2026-09-16T13:43:17.445Z] estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)
+[2026-09-16T13:43:21.583Z] cluster próprio no ar (data_directory=/tmp/p04pg-run-qVpuAT/pgdata, porta 55437, listen 127.0.0.1)
+[2026-09-16T13:43:21.758Z] bootstrap de papéis/schemas/shims aplicado (public removido para o dump recriá-lo)
+[2026-09-16T13:43:25.575Z] restore concluído com ON_ERROR_STOP=1: exit 0 e nenhum erro
+[2026-09-16T13:43:25.653Z] clone: 202 tabelas e 478 funções em public
+[2026-09-16T13:43:26.789Z] fidelidade acl_rotinas_criticas: IDÊNTICA (11 linha(s) na origem)
+[2026-09-16T13:43:27.948Z] fidelidade definicoes_rotinas_e_autorizacao: IDÊNTICA (21 linha(s) na origem)
+[2026-09-16T13:43:29.011Z] fidelidade policies_companies: IDÊNTICA (5 linha(s) na origem)
+[2026-09-16T13:43:30.185Z] fidelidade triggers_companies: IDÊNTICA (15 linha(s) na origem)
+[2026-09-16T13:43:31.225Z] fidelidade auth_helpers_equivalentes: IDÊNTICA (4 linha(s) na origem)
+[2026-09-16T13:43:31.269Z] migração aplicada SOMENTE no clone: docs/security/ficha-aplicar-correcoes.sql
+[2026-09-16T13:43:31.316Z] migração reaplicada sem erro (idempotente): docs/security/ficha-aplicar-correcoes.sql
+[2026-09-16T13:43:31.668Z] teste supabase/tests/dp_ficha_aplicar_isolated.test.sql: exit=0 status=passed preparacao=1 grupos=13 subcasos=74 pendentes=0
+[2026-09-16T13:43:31.668Z]   · PREP fixtures: 2 empresas, 6 usuários, 2 lotes e 7 fichas sintéticas
+[2026-09-16T13:43:31.668Z]   · OK F1: criação atômica gravou colaborador, configuração, 7 dias, item e contadores (9 casos)
+[2026-09-16T13:43:31.668Z]   · OK F2: replay do mesmo item devolveu o mesmo colaborador sem regravar nem duplicar (5 casos)
+[2026-09-16T13:43:31.668Z]   · OK F3: atualização gravou só os campos escolhidos e preservou os demais (8 casos)
+[2026-09-16T13:43:31.668Z]   · OK F4: campos de conta/perfil/permissões/empresa recusados (42501 FORBIDDEN, 8 casos)
+[2026-09-16T13:43:31.668Z]   · OK F5: referências de outra empresa recusadas (42501 FORBIDDEN, 3 casos)
+[2026-09-16T13:43:31.668Z]   · OK F6: visitante, colaborador, sem vínculo e admin de outra empresa negados (42501 FORBIDDEN, 5 casos)
+[2026-09-16T13:43:31.668Z]   · OK F7: CPF duplicado recusado (23505) sem gravação parcial (3 casos)
+[2026-09-16T13:43:31.668Z]   · OK F8: falha no meio da transação reverteu criação, atualização, dias e item; gatilho temporário removido (9 casos)
+[2026-09-16T13:43:31.668Z]   · OK F9: dois itens do mesmo lote aplicados com contadores somados em SQL (2 casos)
+[2026-09-16T13:43:31.668Z]   · OK F10: ignorar contabilizado na mesma transação, item aplicado protegido e lote concluído só sem pendências (5 casos)
+[2026-09-16T13:43:31.668Z]   · OK F11: lote em leitura mantém o status e ainda conta os criados (2 casos)
+[2026-09-16T13:43:31.668Z]   · OK F12: referência invisível recusada, admin da própria empresa aplicou e jornada/CPF/vínculo inválidos recusados (7 casos)
+[2026-09-16T13:43:31.668Z]   · OK F13: as 2 rotinas são SECURITY INVOKER, com search_path fixo, sem anon/PUBLIC (8 casos)
+[2026-09-16T13:43:31.863Z] cluster desta execução destruído
+
+=== status geral: passed (exit 0) ===

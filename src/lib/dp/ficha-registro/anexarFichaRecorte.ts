@@ -53,6 +53,11 @@ export function descricaoPaginas(inicio: number, fim: number): string {
   return `Recorte da ficha importada (${faixa} do lote).`;
 }
 
+/** Erro de chave/registro duplicado do mesmo destino (corrida entre dois anexos). */
+function registroDuplicado(mensagem?: string): boolean {
+  return /duplicate key|already exists|23505|unique/i.test(mensagem ?? "");
+}
+
 export async function anexarFichaRecorte(
   input: AnexoFichaInput,
   ports: AnexoFichaPorts,
@@ -80,9 +85,17 @@ export async function anexarFichaRecorte(
     if (envio.error && !jaNoDestino) {
       return { status: "falhou", motivo: envio.error.message ?? "Falha ao enviar o recorte.", destino };
     }
+    // Corrida: outro envio simultâneo pode ter chegado antes. O arquivo já
+    // estar no destino não basta — reconferimos o registro para não duplicar
+    // metadados do mesmo documento.
+    if (jaNoDestino && (await ports.documentoExistente(destino))) {
+      return { status: "ja_anexado", destino };
+    }
 
     const reg = await ports.registrarDocumento({ destino, descricao: descricaoPaginas(inicio, fim) });
     if (reg.error) {
+      // Registro concorrente do MESMO destino: não é falha nem duplicidade.
+      if (registroDuplicado(reg.error.message)) return { status: "ja_anexado", destino };
       return { status: "falhou", motivo: reg.error.message ?? "Falha ao registrar o documento.", destino };
     }
     return { status: "anexado", destino };

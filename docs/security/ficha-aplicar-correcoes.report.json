@@ -1,0 +1,158 @@
+{
+  "fase": "ficha-aplicar-correcoes — validação funcional em banco isolado",
+  "suite": "ficha-aplicar-correcoes",
+  "migracoes_aplicadas_somente_no_clone": [
+    "docs/security/ficha-aplicar-correcoes.sql"
+  ],
+  "gerado_em": "2026-09-16T13:41:33.673Z",
+  "comando": "node scripts/test-p04-isolated.mjs --suite=ficha-aplicar-correcoes --migrations=docs/security/ficha-aplicar-correcoes.sql --tests=supabase/tests/dp_ficha_aplicar_isolated.test.sql",
+  "ambiente": {
+    "tipo": "cluster PostgreSQL local temporário, exclusivo desta execução e descartável",
+    "host": "127.0.0.1",
+    "porta": 55437,
+    "banco": "p04iso",
+    "origem_dos_dados": "nenhuma — apenas ESTRUTURA (pg_dump --schema-only), reexportada nesta execução",
+    "data_directory": "/tmp/p04pg-run-qVpuAT/pgdata",
+    "listen_addresses": "127.0.0.1"
+  },
+  "incluido": [
+    "schemas public, private e qa completos (tabelas, funções, policies, triggers, grants, owners) restaurados com ON_ERROR_STOP=1",
+    "papéis anon/authenticated/service_role/sandbox_exec e papéis de plataforma, para os grants do dump aplicarem sem erro",
+    "auth.users (estrutura) e auth.uid/jwt/role/email com corpos idênticos aos do banco real (conferido)"
+  ],
+  "excluido": [
+    "TODOS os dados reais — nenhuma linha copiada, nenhum dado pessoal",
+    "extensões externas indisponíveis localmente: pg_cron, pg_net, pgmq, supabase_vault, pg_stat_statements — substituídas por tabelas/funções STUB vazias",
+    "schemas de plataforma não referenciados pelos objetos sob teste: storage, realtime, supabase_functions, graphql",
+    "serviços gerenciados (GoTrue, PostgREST, agendador, filas, cofre): não há equivalência integral; apenas o contrato de claims do auth.* é reproduzido"
+  ],
+  "nao_substituido": [
+    "nenhuma função de segurança sob teste (rotinas internas, RPCs de folga, guards de titularidade, has_role/is_super_admin/is_company_admin_or_owner/dp_access_enabled/company_owner_snapshot) foi criada ou alterada pelo bootstrap — todas vêm do dump real e têm corpo/dono/security definer/search_path conferidos"
+  ],
+  "self_test_runner": [
+    {
+      "caso": "falha_pre_start_nao_limpa_cluster_alheio",
+      "status": "passed"
+    },
+    {
+      "caso": "sem_marcador_nao_apaga_diretorio",
+      "status": "passed"
+    },
+    {
+      "caso": "guarda_colisao_com_origem",
+      "status": "passed"
+    }
+  ],
+  "etapas": [
+    {
+      "etapa": "restore_estrutura",
+      "exit_code": 0,
+      "erros": 0,
+      "status": "passed"
+    },
+    {
+      "etapa": "inventario_clone",
+      "tabelas_public": 202,
+      "funcoes_public": 478
+    },
+    {
+      "etapa": "migracao_no_clone",
+      "arquivo": "docs/security/ficha-aplicar-correcoes.sql",
+      "exit_code": 0,
+      "status": "passed"
+    },
+    {
+      "etapa": "migracao_idempotente",
+      "arquivo": "docs/security/ficha-aplicar-correcoes.sql",
+      "exit_code": 0,
+      "status": "passed"
+    }
+  ],
+  "fidelidade": [
+    {
+      "check": "acl_rotinas_criticas",
+      "status": "passed",
+      "linhas_origem": 11,
+      "linhas_clone": 11,
+      "diferenca": null
+    },
+    {
+      "check": "definicoes_rotinas_e_autorizacao",
+      "status": "passed",
+      "linhas_origem": 21,
+      "linhas_clone": 21,
+      "diferenca": null
+    },
+    {
+      "check": "policies_companies",
+      "status": "passed",
+      "linhas_origem": 5,
+      "linhas_clone": 5,
+      "diferenca": null
+    },
+    {
+      "check": "triggers_companies",
+      "status": "passed",
+      "linhas_origem": 15,
+      "linhas_clone": 15,
+      "diferenca": null
+    },
+    {
+      "check": "auth_helpers_equivalentes",
+      "status": "passed",
+      "linhas_origem": 4,
+      "linhas_clone": 4,
+      "diferenca": null
+    }
+  ],
+  "testes": [
+    {
+      "file": "supabase/tests/dp_ficha_aplicar_isolated.test.sql",
+      "comando": "psql -v ON_ERROR_STOP=1 -d p04iso -f supabase/tests/dp_ficha_aplicar_isolated.test.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "contagem": {
+        "preparacao": 1,
+        "grupos_de_assercoes": 13,
+        "subcasos_declarados": 74,
+        "pendentes": 0
+      },
+      "preparacao": [
+        "PREP fixtures: 2 empresas, 6 usuários, 2 lotes e 7 fichas sintéticas"
+      ],
+      "grupos_de_assercoes": [
+        "OK F1: criação atômica gravou colaborador, configuração, 7 dias, item e contadores (9 casos)",
+        "OK F2: replay do mesmo item devolveu o mesmo colaborador sem regravar nem duplicar (5 casos)",
+        "OK F3: atualização gravou só os campos escolhidos e preservou os demais (8 casos)",
+        "OK F4: campos de conta/perfil/permissões/empresa recusados (42501 FORBIDDEN, 8 casos)",
+        "OK F5: referências de outra empresa recusadas (42501 FORBIDDEN, 3 casos)",
+        "OK F6: visitante, colaborador, sem vínculo e admin de outra empresa negados (42501 FORBIDDEN, 5 casos)",
+        "OK F7: CPF duplicado recusado (23505) sem gravação parcial (3 casos)",
+        "OK F8: falha no meio da transação reverteu criação, atualização, dias e item; gatilho temporário removido (9 casos)",
+        "OK F9: dois itens do mesmo lote aplicados com contadores somados em SQL (2 casos)",
+        "OK F10: ignorar contabilizado na mesma transação, item aplicado protegido e lote concluído só sem pendências (5 casos)",
+        "OK F11: lote em leitura mantém o status e ainda conta os criados (2 casos)",
+        "OK F12: referência invisível recusada, admin da própria empresa aplicou e jornada/CPF/vínculo inválidos recusados (7 casos)",
+        "OK F13: as 2 rotinas são SECURITY INVOKER, com search_path fixo, sem anon/PUBLIC (8 casos)"
+      ],
+      "pendentes": [],
+      "falhas": []
+    }
+  ],
+  "resumo_cenarios": {
+    "preparacao": 1,
+    "grupos_de_assercoes": 13,
+    "subcasos_declarados": 74,
+    "pendentes": 0
+  },
+  "limitacoes": [
+    "Rotinas globais dp_escala_auto_gerar_todas() e dp_folga_autoatribuir_todas() só são exercitadas pela negação de EXECUTE: em modo global varrem todas as empresas do banco e não agregam prova além do caminho por empresa.",
+    "Agendador (pg_cron), filas (pgmq) e cofre (supabase_vault) são stubs vazios: a execução agendada não é simulada; segue comprovada por privilégio e cadeia de chamadas.",
+    "Camada HTTP não é exercitada: PostgREST e GoTrue não rodam aqui. As provas são no banco (privilégios, RLS, políticas, gatilhos, corpos das funções) com claims injetados como o PostgREST faz.",
+    "Sem dados reais, o comportamento sobre volume, índices e latência de produção não é avaliado nesta etapa.",
+    "S5.2 usa fixture de jornada LEGADA (gatilhos de selo desabilitados só durante o ARRANGE, no cluster descartável, e reabilitados/conferidos antes das chamadas). Isso comprova COMPATIBILIDADE com dados históricos — NÃO comprova geração automática a partir do modelo atual (Turnos + Configuração de trabalho).",
+    "RISCO OPERACIONAL SEPARADO (evidência somente-leitura na origem, 2026-09-15): public.dp_jornadas tem 2 registros, public.dp_colaborador_jornadas tem 0 e public.dp_colaborador_config_trabalho tem 16 linhas com vigencia_fim IS NULL. Como dp_escala_auto_gerar lê exclusivamente dp_colaborador_jornadas + dp_jornadas e o gatilho trg_dp_jornadas_legado (BEFORE INSERT) sela o cadastro antigo, a geração automática de escala hoje não enxerga as configurações atuais. Modernizar essa rotina (e a importação) é o próximo ajuste técnico, fora desta etapa."
+  ],
+  "status_geral": "passed",
+  "codigo_saida": 0
+}
