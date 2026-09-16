@@ -27,7 +27,7 @@ const SCOPE_OPTIONS = [
   { key: "categories", label: "Categorias", help: "Categorias e vínculos" },
   { key: "contacts", label: "Contatos", help: "Clientes e fornecedores" },
   { key: "payment_methods", label: "Formas de pagamento", help: "" },
-  { key: "budgets", label: "Orçamentos", help: "Metas e limites" },
+  
   { key: "cost_centers", label: "Centros de custo", help: "" },
   { key: "tags", label: "Tags", help: "" },
   { key: "companies", label: "Perfis de Acesso (empresas)", help: "Empresas que você criou, membros e convites" },

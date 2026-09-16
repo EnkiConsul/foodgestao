@@ -50,7 +50,7 @@ import Dashboard from "./pages/Dashboard";
 const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
 const Lancamentos = lazyWithRetry(() => import("./pages/Lancamentos"));
 
-const Orcamento = lazyWithRetry(() => import("./pages/Orcamento"));
+
 const RelatoriosContabeis = lazyWithRetry(() => import("./pages/relatorios/Contabeis"));
 const RelatorioFluxoCaixa = lazyWithRetry(() => import("./pages/relatorios/FluxoCaixa"));
 const Contatos = lazyWithRetry(() => import("./pages/Contatos"));
@@ -439,7 +439,7 @@ const AppRoutes = () => (
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/lancamentos" element={<Lancamentos />} />
         <Route path="/fluxo-caixa" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/orcamento" element={<Orcamento />} />
+        <Route path="/orcamento" element={<Navigate to="/dashboard" replace />} />
         <Route path="/relatorios/contabeis" element={<RelatoriosContabeis />} />
         <Route path="/relatorios/fluxo-caixa" element={<RelatorioFluxoCaixa />} />
         <Route path="/contatos" element={<Contatos />} />

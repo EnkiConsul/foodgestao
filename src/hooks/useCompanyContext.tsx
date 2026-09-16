@@ -73,8 +73,6 @@ const FINANCIAL_KEY_PREFIXES = [
   "dashboard-",
   "fluxo-caixa-",
   "relatorios-",
-  "budget",
-  "budgets",
   "categories-page",
   "category-companies",
   "contacts-page",

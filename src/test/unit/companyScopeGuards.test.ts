@@ -24,7 +24,7 @@ const FILES = [
   "src/pages/Categorias.tsx",
   "src/pages/CentrosCusto.tsx",
   "src/pages/FormasPagamento.tsx",
-  "src/pages/Orcamento.tsx",
+  
   "src/pages/relatorios/FluxoCaixa.tsx",
 ] as const;
 
@@ -40,7 +40,7 @@ const TENANT_TABLES = [
   "categories",
   "cost_centers",
   "payment_methods",
-  "budgets",
+  
 ] as const;
 
 
