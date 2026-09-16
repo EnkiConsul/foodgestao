@@ -74,8 +74,11 @@ export default function FormasPagamento() {
 
   const confirmDelete = async () => {
     if (!deleteId) return;
+    const alvo = methods.find((m: any) => m.id === deleteId);
     const { error } = await supabase.from("payment_methods").delete().eq("id", deleteId);
-    if (error) toast.error("Erro ao excluir", { description: error.message });
+    const bloqueio = error ? traduzErroExclusao(error, "forma de pagamento", alvo?.name) : null;
+    if (bloqueio) toast.error(bloqueio.title, { description: bloqueio.description });
+    else if (error) toast.error("Erro ao excluir", { description: error.message });
     else { toast.success("Forma de pagamento excluída"); refetch(); refetchCompanies(); }
     setDeleteId(null);
   };
