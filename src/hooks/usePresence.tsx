@@ -40,7 +40,7 @@ function notify() {
 function ensureChannel(presenceKey: string): RealtimeChannel {
   if (channel) return channel;
   const ch = supabase.channel(PRESENCE_TOPIC, {
-    config: { presence: { key: presenceKey } },
+    config: { private: true, presence: { key: presenceKey } },
   });
   const sync = () => {
     const state = ch.presenceState<PresenceEntry>();
