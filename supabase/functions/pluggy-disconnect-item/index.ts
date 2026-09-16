@@ -48,10 +48,13 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!conn) throw new Error('connection_not_found');
 
-    const { data: mem } = await admin
-      .from('company_members').select('id')
-      .eq('company_id', conn.company_id).eq('user_id', userId).maybeSingle();
-    if (!mem) throw new Error('forbidden');
+    // Pausar, retomar ou revogar altera a origem dos lançamentos: exige dono ou
+    // permissão de edição, não apenas participação na empresa.
+    const { data: canEdit } = await admin.rpc('pluggy_user_can_edit', {
+      _user_id: userId,
+      _company_id: conn.company_id,
+    });
+    if (canEdit !== true) throw new Error('forbidden');
 
     const audit = async (action: string, details: Record<string, unknown>) => {
       try {
