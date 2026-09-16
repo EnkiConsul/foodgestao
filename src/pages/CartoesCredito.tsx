@@ -161,7 +161,9 @@ export default function CartoesCredito() {
   const handleDelete = async () => {
     if (!deleteCard) return;
     const { error } = await supabase.from("credit_cards").delete().eq("id", deleteCard.id);
-    const bloqueio = error ? traduzErroExclusao(error, "cartão", deleteCard.name) : null;
+    const bloqueio = error
+      ? traduzErroExclusao(error, "cartão", `${deleteCard.brand ?? "Cartão"} •••• ${deleteCard.last4 ?? ""}`.trim())
+      : null;
     if (bloqueio) toast.error(bloqueio.title, { description: bloqueio.description });
     else if (error) notifyError(error, { surface: "Sistema", action: "concluir a ação" });
     else { toast.success("Cartão excluído"); fetchAll(); }
