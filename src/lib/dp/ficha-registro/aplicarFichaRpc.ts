@@ -52,22 +52,31 @@ export interface IgnorarFichaRpcResultado {
 
 type RpcResposta<T> = { data: T | null; error: { message: string } | null };
 type RpcTipada = {
-  (fn: "dp_ficha_aplicar", args: AplicarFichaRpcArgs): PromiseLike<RpcResposta<AplicarFichaRpcResultado>>;
-  (fn: "dp_ficha_ignorar", args: { p_item_id: string }): PromiseLike<RpcResposta<IgnorarFichaRpcResultado>>;
+  rpc(fn: "dp_ficha_aplicar", args: AplicarFichaRpcArgs): PromiseLike<RpcResposta<AplicarFichaRpcResultado>>;
+  rpc(fn: "dp_ficha_ignorar", args: { p_item_id: string }): PromiseLike<RpcResposta<IgnorarFichaRpcResultado>>;
 };
 
-/** Ponte única para as duas rotinas enquanto os tipos do banco não as incluem. */
-const rpc = supabase.rpc as unknown as RpcTipada;
+/**
+ * Ponte única para as duas rotinas enquanto os tipos do banco não as incluem.
+ *
+ * IMPORTANTE: o método `rpc` do cliente usa `this` internamente (`this.rest`),
+ * portanto NUNCA pode ser destacado do objeto (`const rpc = supabase.rpc`) —
+ * isso quebra em tempo de execução no navegador. A ponte só reinterpreta o
+ * TIPO do cliente; a chamada continua sendo feita no próprio cliente.
+ */
+function clienteTipado(): RpcTipada {
+  return supabase as unknown as RpcTipada;
+}
 
 export async function aplicarFichaRpc(args: AplicarFichaRpcArgs): Promise<AplicarFichaRpcResultado> {
-  const { data, error } = await rpc("dp_ficha_aplicar", args);
+  const { data, error } = await clienteTipado().rpc("dp_ficha_aplicar", args);
   if (error) throw new Error(error.message);
   if (!data?.colaborador_id) throw new Error("A ficha não pôde ser aplicada.");
   return data;
 }
 
 export async function ignorarFichaRpc(itemId: string): Promise<IgnorarFichaRpcResultado> {
-  const { data, error } = await rpc("dp_ficha_ignorar", { p_item_id: itemId });
+  const { data, error } = await clienteTipado().rpc("dp_ficha_ignorar", { p_item_id: itemId });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("A ficha não pôde ser ignorada.");
   return data;

@@ -260,7 +260,9 @@ export function useAplicarFicha() {
         p_dados: { ...dadosCadastro, nome, cpf },
         p_dados_extraidos: dados as Record<string, unknown>,
         p_campos: atualizarExistente ? camposPermitidos ?? null : null,
-        p_atualizar_existente: atualizarExistente && !!item.colaborador_existente_id,
+        // A decisão do usuário vai como está: quem recusa vínculo inválido é a
+        // rotina no banco (nunca transformamos "atualizar" em "criar" aqui).
+        p_atualizar_existente: atualizarExistente,
         p_cargo_id: cargoId,
         p_unidade_id: unidadeId,
         p_setor_id: setorId ?? null,
@@ -346,8 +348,12 @@ export function useAplicarFicha() {
       qc.invalidateQueries({ queryKey: ["dp_ficha_itens"] });
       qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] });
       qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
-      qc.invalidateQueries({ queryKey: ["dp_colaborador_config_trabalho"] });
-      qc.invalidateQueries({ queryKey: ["dp_colaborador_config_dias"] });
+      // Chaves REAIS dos hooks de jornada/escala (a rotina grava configuração e dias).
+      qc.invalidateQueries({ queryKey: ["dp_colab_config_trabalho"] });
+      qc.invalidateQueries({ queryKey: ["dp_escala_base_mes"] });
+      qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
+      qc.invalidateQueries({ queryKey: ["dp_cargo_padrao"] });
+      qc.invalidateQueries({ queryKey: ["dp_modelos_horario"] });
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
     },
   });

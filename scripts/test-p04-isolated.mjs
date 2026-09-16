@@ -335,13 +335,18 @@ function dumpSchema() {
     ["--schema-only", "--schema=public", "--schema=private", "--schema=qa", "-f", SCHEMA_FILE],
     { env: process.env }
   );
-  // Único pré-processamento: remove a criação do schema public (já criado no
-  // bootstrap junto com as extensões). Owner/COMMENT/GRANTs do dump seguem
-  // aplicando normalmente. Nenhuma outra linha é alterada.
+  // Pré-processamento mínimo do dump:
+  //  1. remove a criação do schema public (já criado no bootstrap com extensões);
+  //  2. remove os pares \restrict/\unrestrict emitidos pelo pg_dump 17.6+, que o
+  //     psql rejeita ao ler o arquivo em modo restrito.
+  // Owner/COMMENT/GRANTs do dump seguem aplicando normalmente.
   const raw = readFileSync(SCHEMA_FILE, "utf8");
-  const filtered = raw.replace(/^CREATE SCHEMA public;$/m, "-- CREATE SCHEMA public; (criado no bootstrap com pg_trgm/unaccent)");
+  const filtered = raw
+    .replace(/^CREATE SCHEMA public;$/m, "-- CREATE SCHEMA public; (criado no bootstrap com pg_trgm/unaccent)")
+    .replace(/^\\(un)?restrict\b.*$/gm, "");
   if (filtered === raw) throw new Error("pré-processamento: linha CREATE SCHEMA public não encontrada no dump");
   writeFileSync(SCHEMA_FILE, filtered);
+
   log("estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)");
 }
 
@@ -416,26 +421,61 @@ function concurrency() {
   if (s.status !== 0) throw new Error(`preparo de concorrência falhou: ${(s.stderr || "").slice(0, 2000)}`);
   etapas.push({ etapa: "concorrencia_preparo", arquivo: setup, exit_code: 0, status: "passed" });
 
-  const cmds = Array.from(
-    { length: n },
-    (_, i) => `psql -v ON_ERROR_STOP=1 -v idx=${i + 1} -d ${DB} -f ${call} > /tmp/conc_${i + 1}.out 2>&1 &`
-  ).join("\n");
+  // Cada filho tem diretório EXCLUSIVO e três arquivos: stdout, stderr e o
+  // código de saída. Sem isso, `wait` esconde a falha de um dos processos.
+  const dir = mkdtempSync(join(tmpdir(), "conc-"));
+  // Guarda do próprio runner: um filho é forçado a falhar para provar exit 1.
+  const guard = !!opt("conc-guard");
+  const filhos = Array.from({ length: n }, (_, i) => ({
+    idx: i + 1,
+    forcarFalha: guard && i === 0,
+  }));
+  const cmds = filhos
+    .map((f) => {
+      const base = `psql -v ON_ERROR_STOP=1 -v idx=${f.idx} -d ${DB}`;
+      const cmd = f.forcarFalha
+        ? `${base} -c 'select 1/0 as guarda_do_runner'`
+        : `${base} -f ${call}`;
+      return `( ${cmd} > ${dir}/out_${f.idx} 2> ${dir}/err_${f.idx}; echo $? > ${dir}/exit_${f.idx} ) &`;
+    })
+    .join("\n");
   const p = run("bash", ["-c", `${cmds}\nwait`], { env: targetEnv() });
-  const saidas = Array.from({ length: n }, (_, i) => {
-    const out = existsSync(`/tmp/conc_${i + 1}.out`) ? readFileSync(`/tmp/conc_${i + 1}.out`, "utf8") : "";
-    return { idx: i + 1, erro: /ERROR:|FATAL:/.test(out) ? out.trim().slice(0, 500) : null };
+
+  const saidas = filhos.map((f) => {
+    const ler = (nome) => (existsSync(`${dir}/${nome}_${f.idx}`) ? readFileSync(`${dir}/${nome}_${f.idx}`, "utf8") : null);
+    const out = ler("out");
+    const err = ler("err");
+    const bruto = ler("exit");
+    const exit = bruto === null || bruto.trim() === "" ? null : Number(bruto.trim());
+    const texto = `${out ?? ""}\n${err ?? ""}`;
+    const motivos = [];
+    if (out === null || err === null || exit === null) motivos.push("saída do processo ausente");
+    if (exit !== null && exit !== 0) motivos.push(`exit ${exit}`);
+    if (/ERROR:|FATAL:|PANIC:/.test(texto)) motivos.push(texto.trim().slice(0, 500));
+    return {
+      idx: f.idx,
+      exit_code: exit,
+      forcado: f.forcarFalha,
+      retorno: (out ?? "").trim().slice(0, 500),
+      erro: motivos.length ? motivos.join(" | ") : null,
+    };
   });
   const comErro = saidas.filter((x) => x.erro);
   if (p.status !== 0 || comErro.length > 0) {
     for (const x of comErro) log(`  ! concorrência idx=${x.idx}: ${x.erro}`);
-    throw new Error(`chamadas concorrentes falharam (${comErro.length}/${n})`);
+    throw new Error(
+      `chamadas concorrentes falharam (${comErro.length}/${n}; bash exit ${p.status}; logs em ${dir})`,
+    );
   }
-  log(`${n} chamadas simultâneas da RPC concluídas sem erro`);
+  log(`${n} chamadas simultâneas da RPC concluídas sem erro (exit 0 em todas)`);
+  for (const x of saidas) log(`  · idx=${x.idx} exit=${x.exit_code} retorno=${x.retorno.replace(/\s+/g, " ").slice(0, 160)}`);
   etapas.push({
     etapa: "concorrencia_chamadas_simultaneas",
     arquivo: call,
     processos: n,
+    logs: dir,
     detalhe: "idx 1 e 2 no MESMO item; idx 3 e 4 em itens distintos do MESMO lote",
+    saidas,
     exit_code: 0,
     status: "passed",
   });
