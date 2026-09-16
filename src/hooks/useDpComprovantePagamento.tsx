@@ -43,7 +43,9 @@ export function useDpComprovantePagamento() {
       pagoEm?: string | null;
     }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const path = `comprovantes/${selectedCompanyId}/${alvo.colaboradorId ?? "geral"}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
+      // A primeira pasta precisa ser a empresa: as regras de acesso do
+      // repositório leem esse trecho como identificador da empresa.
+      const path = `${selectedCompanyId}/${alvo.colaboradorId ?? "geral"}/comprovantes/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
       const up = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(path, file, {
         contentType: file.type,
         upsert: false,
