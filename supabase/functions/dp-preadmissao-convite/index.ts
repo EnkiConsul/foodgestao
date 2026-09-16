@@ -12,17 +12,9 @@ import {
   gerarToken,
   hashToken,
   linkPreadmissao,
+  normalizarWhatsapp,
   registrarEvento,
 } from "../_shared/preadmissao.ts";
-
-/** Normaliza o WhatsApp para dígitos com país + DDD + número. */
-export function normalizarWhatsapp(entrada: string): string | null {
-  let d = (entrada ?? "").replace(/\D/g, "");
-  if (d.length === 10 || d.length === 11) d = `55${d}`;
-  if (d.startsWith("0")) d = d.replace(/^0+/, "");
-  if (d.length < 12 || d.length > 13) return null;
-  return d;
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: strictCorsHeaders(req) });
