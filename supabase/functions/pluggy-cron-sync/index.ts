@@ -114,28 +114,52 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ item_id: c.pluggy_item_id }),
       });
 
-      if (res.ok) {
+      // HTTP 200 não é sucesso: o corpo diz se a coleta concluiu, ficou
+      // parcial, continua em andamento ou foi ignorada.
+      const raw = await res.text().catch(() => '');
+      let body: SyncBody | null = null;
+      try { body = raw ? JSON.parse(raw) as SyncBody : null; } catch { body = null; }
+      const outcome = classifySyncResult({ httpStatus: res.status, body });
+
+      if (outcome.status === 'success') {
         await admin.from('pluggy_connections').update({
           sync_attempts: 0,
           next_sync_at: minutesFromNow(SUCCESS_INTERVAL_MIN),
           last_sync_status: 'success',
           last_sync_error: null,
         }).eq('id', c.id);
-        return { item: c.pluggy_item_id, ok: true };
+        return { item: c.pluggy_item_id, ok: true, status: 'success' };
       }
 
-      const detail = (await res.text().catch(() => '')).slice(0, 500);
+      if (outcome.status === 'skipped') {
+        await admin.from('pluggy_connections').update({
+          sync_attempts: 0,
+          next_sync_at: minutesFromNow(SUCCESS_INTERVAL_MIN * 4),
+          last_sync_status: 'skipped',
+          last_sync_error: outcome.detail,
+        }).eq('id', c.id);
+        return { item: c.pluggy_item_id, ok: false, status: 'skipped', skipped: outcome.detail };
+      }
+
       const attempts = (c.sync_attempts ?? 0) + 1;
+      const esgotou = attempts >= MAX_ATTEMPTS && outcome.status === 'error';
       await admin.from('pluggy_connections').update({
         sync_attempts: attempts,
         next_sync_at: minutesFromNow(backoffMinutes(attempts)),
-        last_sync_status: attempts >= MAX_ATTEMPTS ? 'dead_letter' : 'error',
-        last_sync_error: `HTTP ${res.status}: ${detail}`,
+        last_sync_status: esgotou ? 'dead_letter' : outcome.status,
+        last_sync_error: outcome.detail ?? `HTTP ${res.status}`,
       }).eq('id', c.id);
-      console.error('pluggy-cron-sync: item falhou', {
-        requestId, item: c.pluggy_item_id, status: res.status, attempts,
+      console.error('pluggy-cron-sync: item não concluiu', {
+        requestId, item: c.pluggy_item_id, http: res.status, status: outcome.status, attempts,
       });
-      return { item: c.pluggy_item_id, ok: false, status: res.status, attempts };
+      return {
+        item: c.pluggy_item_id,
+        ok: false,
+        status: outcome.status,
+        http: res.status,
+        attempts,
+        detail: outcome.detail,
+      };
     } catch (e) {
       const attempts = (c.sync_attempts ?? 0) + 1;
       const msg = e instanceof Error ? e.message : String(e);
