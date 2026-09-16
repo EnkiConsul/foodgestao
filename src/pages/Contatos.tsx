@@ -109,7 +109,9 @@ export default function Contatos() {
     if (!deleteId) return;
     const contact = contacts.find((c) => c.id === deleteId);
     const { error } = await supabase.from("contacts").delete().eq("id", deleteId);
-    if (error) toast.error("Erro ao excluir", { description: error.message });
+    const bloqueio = error ? traduzErroExclusao(error, "contato", contact?.name) : null;
+    if (bloqueio) toast.error(bloqueio.title, { description: bloqueio.description });
+    else if (error) toast.error("Erro ao excluir", { description: error.message });
     else {
       await supabase.rpc("insert_audit_log", {
         _action: "contact_deleted",
