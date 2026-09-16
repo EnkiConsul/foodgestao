@@ -830,6 +830,9 @@ Deno.serve(async (req) => {
     }
 
     let staged = 0;
+    // Erros de gravação essencial NÃO podem ser silenciados: viram resultado
+    // parcial na conexão e no corpo da resposta.
+    let falhasGravacao = 0;
     // Documentos da própria empresa (titulares das contas conectadas): nunca
     // devem ser tratados como contraparte do lançamento.
     const ownDocuments = (accounts as any[])
