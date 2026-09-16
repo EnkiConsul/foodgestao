@@ -14,7 +14,7 @@ import {
   Tags,
   Contact,
   Banknote,
-  TrendingUp,
+  
   FileBarChart,
   PiggyBank,
   Building2,
@@ -146,7 +146,7 @@ const financeiroShortcuts: NavLeaf[] = [
   { icon: List, label: "Lançamentos", to: "/lancamentos" },
   { icon: Wallet, label: "Contas", to: "/contas-bancarias" },
   { icon: CreditCard, label: "Cartões", to: "/cartoes-credito" },
-  { icon: TrendingUp, label: "Fluxo caixa", to: "/fluxo-caixa" },
+  { icon: FileBarChart, label: "Fluxo caixa", to: "/relatorios/fluxo-caixa" },
   { icon: FileBarChart, label: "Relatórios", to: "/relatorios/contabeis" },
   { icon: Tags, label: "Categorias", to: "/categorias" },
   { icon: Contact, label: "Contatos", to: "/contatos" },
@@ -259,7 +259,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
         accent: "primary",
         items: [
           { icon: ArrowLeftRight, label: "Lançamentos", to: "/lancamentos", end: true },
-          { icon: TrendingUp, label: "Fluxo de Caixa", to: "/fluxo-caixa", end: true },
+          
           { icon: PiggyBank, label: "Orçamento", to: "/orcamento", end: true },
         ],
       },

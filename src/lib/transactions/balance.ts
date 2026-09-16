@@ -2,7 +2,7 @@
  * Regras puras de agregação/saldo para `transactions`.
  *
  * Estas funções reproduzem, de forma testável, a lógica financeira que hoje
- * vive em `src/pages/Lancamentos.tsx` e `src/pages/FluxoCaixa.tsx`. Elas são
+ * vive em `src/pages/Lancamentos.tsx` e no relatório de fluxo de caixa. Elas são
  * a fonte da verdade para os testes de regressão financeira.
  *
  * Invariantes:

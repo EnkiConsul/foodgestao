@@ -49,7 +49,7 @@ import Dashboard from "./pages/Dashboard";
 // Lazy: tudo mais
 const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
 const Lancamentos = lazyWithRetry(() => import("./pages/Lancamentos"));
-const FluxoCaixa = lazyWithRetry(() => import("./pages/FluxoCaixa"));
+
 const Orcamento = lazyWithRetry(() => import("./pages/Orcamento"));
 const RelatoriosContabeis = lazyWithRetry(() => import("./pages/relatorios/Contabeis"));
 const RelatorioFluxoCaixa = lazyWithRetry(() => import("./pages/relatorios/FluxoCaixa"));
@@ -438,7 +438,7 @@ const AppRoutes = () => (
         <Route path="/hub" element={<Hub />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/lancamentos" element={<Lancamentos />} />
-        <Route path="/fluxo-caixa" element={<FluxoCaixa />} />
+        <Route path="/fluxo-caixa" element={<Navigate to="/dashboard" replace />} />
         <Route path="/orcamento" element={<Orcamento />} />
         <Route path="/relatorios/contabeis" element={<RelatoriosContabeis />} />
         <Route path="/relatorios/fluxo-caixa" element={<RelatorioFluxoCaixa />} />
