@@ -486,7 +486,7 @@ Deno.serve(async (req) => {
       connector_image_url: item?.connector?.imageUrl ?? null,
       status: (item?.status ?? 'updated').toLowerCase(),
       execution_status: item?.executionStatus ?? null,
-      last_synced_at: new Date().toISOString(),
+      // last_synced_at só no fim, depois de gravar contas e lançamentos.
       last_error: item?.error ?? null,
       created_by: userId,
     };
