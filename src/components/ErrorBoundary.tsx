@@ -60,6 +60,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   private reload = () => window.location.reload();
 
+  /** Versão antiga presa no aparelho: limpa cache/service worker e recarrega. */
+  private atualizarApp = () => {
+    void recoverFromStaleBundle(true);
+  };
+
 
   render() {
     const { error } = this.state;
