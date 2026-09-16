@@ -278,6 +278,10 @@ Deno.serve(async (req) => {
     // quando o navegador não conclui o fluxo — ex.: Open Finance por QR Code).
     let connectRequestId: string | null = requestedConnectRequestId;
 
+    // Conflito determinístico entre empresas: nunca escolhemos por adivinhação —
+    // o item fica aguardando revisão humana em /admin/pluggy-status.
+    let conflitoEmpresa = false;
+
     if (!existing && !companyId) {
       // 1ª tentativa: solicitação aberta e válida
       // 2ª tentativa (tolerância): solicitação recente, mesmo expirada, nas últimas 24h
@@ -285,7 +289,7 @@ Deno.serve(async (req) => {
       for (const attempt of ['open', 'tolerance'] as const) {
         let q = admin
           .from('pluggy_connect_requests')
-          .select('id, company_id, user_id');
+          .select('id, company_id, user_id, resolved_item_id');
 
         if (attempt === 'open') {
           q = q.eq('status', 'open').gt('expires_at', new Date().toISOString());
@@ -296,16 +300,29 @@ Deno.serve(async (req) => {
         if (connectRequestId) q = q.eq('id', connectRequestId);
         else q = q.or(`resolved_item_id.eq.${itemId},resolved_item_id.is.null`);
 
-        const { data: reqRow } = await q
+        const { data: reqRows } = await q
           .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(10);
 
-        if (reqRow) {
-          companyId = reqRow.company_id;
-          connectRequestId = reqRow.id;
+        const candidatos = reqRows ?? [];
+        if (candidatos.length === 0) continue;
+
+        // Preferimos a solicitação que já aponta para ESTE item.
+        const exata = candidatos.filter((r: any) => r.resolved_item_id === itemId);
+        const usar = exata.length > 0 ? exata : candidatos;
+        const empresas = new Set(usar.map((r: any) => r.company_id as string));
+
+        if (empresas.size > 1) {
+          conflitoEmpresa = true;
+          console.error('pluggy-sync-item: solicitações de empresas diferentes para o mesmo item', {
+            itemId, empresas: [...empresas],
+          });
           break;
         }
+
+        companyId = usar[0].company_id;
+        connectRequestId = usar[0].id;
+        break;
       }
     }
 
