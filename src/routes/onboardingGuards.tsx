@@ -125,6 +125,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
   const [mfaChecking, setMfaChecking] = useState(true);
   const [mfaRequired, setMfaRequired] = useState(false);
+  const [cadastroFalhou, setCadastroFalhou] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -135,6 +136,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
       setMfaRequired(false);
       return;
     }
+    setCadastroFalhou(false);
     setCheckingOnboarding(true);
     setMfaChecking(true);
     setMfaRequired(false);
