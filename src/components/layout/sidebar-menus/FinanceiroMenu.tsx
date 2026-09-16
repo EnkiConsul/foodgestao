@@ -7,8 +7,6 @@ import { SidebarSection, SidebarNavItem, type MenuItem } from "./shared";
 const items: MenuItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, end: true },
   { title: "Lançamentos", url: "/lancamentos", icon: ArrowLeftRight, end: true },
-  
-  
 ];
 
 const cadastros: MenuItem[] = [
@@ -18,7 +16,6 @@ const cadastros: MenuItem[] = [
   { title: "Centros de Custo", url: "/centros-custo", icon: Target },
   { title: "Clientes / Fornecedores", url: "/contatos", icon: Users },
   { title: "Categorias", url: "/categorias", icon: FolderTree },
-  
   { title: "Contas Contábeis", url: "/contas-contabeis", icon: BookOpen },
 ];
 
