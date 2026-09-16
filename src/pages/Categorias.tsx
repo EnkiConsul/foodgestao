@@ -182,7 +182,14 @@ export default function Categorias() {
     );
     const results = await Promise.all(deletes);
     const errors = results.filter((r) => r.error);
-    if (errors.length > 0) {
+    const comHistorico = errors.filter((r) => ehErroHistoricoVinculado(r.error));
+    if (comHistorico.length > 0) {
+      toast.error("Não é possível excluir", {
+        description: `${comHistorico.length} categoria(s) possuem lançamentos vinculados e foram mantidas para preservar o histórico. Inative-as em vez de excluir.`,
+      });
+      setSelected(new Set());
+      refetchAll();
+    } else if (errors.length > 0) {
       toast.error(`Erro ao excluir ${errors.length} categoria(s)`);
     } else {
       toast.success(`${selected.size} categoria(s) excluída(s)`);
