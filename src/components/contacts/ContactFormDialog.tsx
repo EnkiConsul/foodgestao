@@ -16,6 +16,7 @@ import { Loader2, Search } from "lucide-react";
 import { maskCpfCnpj, isValidCpf } from "@/lib/cpf";
 import { isValidCnpj } from "@/lib/cnpj";
 import { normalizeDocumento, isSameDocumento } from "@/lib/documento";
+import { mesmoNomeContato, prefixoBuscaNome } from "@/lib/contacts/duplicados";
 import { cn } from "@/lib/utils";
 import { notifyCnpjSuccess, notifyCnpjError } from "@/lib/cnpj-messages";
 import type { Tables } from "@/integrations/supabase/types";
@@ -60,6 +61,27 @@ function invalidateDuplicateCache() {
  * Busca direcionada de duplicidade por documento: consulta apenas as variações
  * possíveis de gravação (com e sem máscara) em vez de baixar a lista inteira.
  */
+/**
+ * Duplicidade por nome: busca candidatos pela primeira palavra e compara pela
+ * chave canônica (sem acentos/pontuação e sem sufixos como LTDA/ME).
+ */
+async function findDuplicateByName(
+  nome: string,
+  ignoreId?: string | null,
+): Promise<DuplicateHit> {
+  const prefixo = prefixoBuscaNome(nome);
+  if (prefixo.length < 3) return null;
+  const { data } = await supabase
+    .from("contacts")
+    .select("id, name, is_active")
+    .ilike("name", `%${prefixo}%`)
+    .limit(50);
+  const hit = (data ?? []).find(
+    (c: any) => c.id !== ignoreId && c.is_active !== false && mesmoNomeContato(c.name, nome),
+  );
+  return hit ? { id: (hit as any).id, name: (hit as any).name } : null;
+}
+
 async function findDuplicateByDocument(
   docKey: string,
   ignoreId?: string | null,
@@ -168,6 +190,18 @@ export function ContactFormDialog({
     }, 350);
     return () => { cancelled = true; clearTimeout(timer); };
   }, [docDigitsLive, editContact?.id, open]);
+
+  // Aviso antecipado por nome: mostra o cadastro existente antes de salvar.
+  useEffect(() => {
+    if (duplicate) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const hit = await findDuplicateByName(name, editContact?.id);
+      if (!cancelled && hit) setDuplicate(hit);
+    }, 500);
+    return () => { cancelled = true; clearTimeout(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, editContact?.id, open]);
 
   /**
    * Consulta do CNPJ na Receita Federal. Preenche apenas campos vazios para não
@@ -289,6 +323,17 @@ export function ContactFormDialog({
         return;
       }
     }
+
+    // Impede duplicidade por nome (mesmo sem documento informado).
+    const dupNome = await findDuplicateByName(name, editContact?.id);
+    if (dupNome) {
+      setDuplicate(dupNome);
+      toast.error("Nome já cadastrado", {
+        description: `Já existe o contato "${dupNome.name}". Selecione-o na lista em vez de criar outro.`,
+      });
+      return;
+    }
+
 
 
     const validated = validateWithToast(contactSchema, {
