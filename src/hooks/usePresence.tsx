@@ -16,7 +16,6 @@ export type PresenceStatus = "online" | "ausente";
 export interface PresenceEntry {
   user_id: string;
   name: string;
-  email: string | null;
   route: string;
   status: PresenceStatus;
   /** Início da sessão nesta aba (ISO). */
