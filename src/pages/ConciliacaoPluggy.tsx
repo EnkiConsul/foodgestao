@@ -1383,7 +1383,12 @@ export default function ConciliacaoPluggy() {
     if (action === "split") { openSplit(id); return; }
     setRowBusy(id);
     try {
-      if (action === "confirm") await confirmIds([id]);
+      if (action === "confirm") {
+        const resultado = await confirmIds([id]);
+        const resumo = resumoConfirmacao([id], resultado);
+        if (resumo.tipo === "sucesso") toast.success(resumo.titulo, { description: resumo.descricao });
+        else if (resumo.tipo === "erro") toast.error(resumo.titulo, { description: resumo.descricao });
+      }
       else await ignoreIds([id]);
     } finally {
       setRowBusy(null);
