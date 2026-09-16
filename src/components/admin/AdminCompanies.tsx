@@ -99,7 +99,7 @@ export function AdminCompanies() {
             ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                  Nenhum perfil encontrado
+                  Nenhuma empresa encontrada
                 </TableCell>
               </TableRow>
             ) : (
@@ -132,7 +132,7 @@ export function AdminCompanies() {
             <div key={i} className="rounded-md border p-3"><Skeleton className="h-12 w-full" /></div>
           ))
         ) : filtered.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-8">Nenhum perfil encontrado</p>
+          <p className="text-center text-sm text-muted-foreground py-8">Nenhuma empresa encontrada</p>
         ) : (
           filtered.map((company) => (
             <div key={company.id} className="rounded-md border p-3 space-y-1.5">

@@ -31,7 +31,7 @@ const SCOPE_OPTIONS: { key: string; label: string; help: string; needsUser?: boo
   
   { key: "cost_centers", label: "Centros de custo", help: "", needsUser: true },
   { key: "tags", label: "Tags", help: "", needsUser: true },
-  { key: "companies", label: "Perfis de Acesso (empresas)", help: "Empresas, membros e convites", needsUser: true },
+  { key: "companies", label: "Empresas", help: "Empresas, membros e convites", needsUser: true },
   { key: "audit_logs", label: "Logs de auditoria do alvo", help: "Histórico de ações", needsUser: true },
 ];
 

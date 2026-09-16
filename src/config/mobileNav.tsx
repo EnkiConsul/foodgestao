@@ -388,7 +388,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
           { icon: Tag, label: "Categorias Padrão", to: "/admin/categorias-padrao" },
           { icon: FileText, label: "Contas Contábeis Padrão", to: "/admin/contas-contabeis-padrao" },
           { icon: CreditCard, label: "Formas de Pagamento Padrão", to: "/admin/formas-pagamento-padrao" },
-          { icon: Building2, label: "Perfis de Acesso", to: "/admin/perfis-acesso" },
+          { icon: Building2, label: "Empresas", to: "/admin/perfis-acesso" },
           { icon: Sparkles, label: "Módulos", to: "/admin/modulos" },
           { icon: Landmark, label: "Bancos", to: "/admin/bancos" },
           { icon: Database, label: "Resetar Dados", to: "/admin/resetar-dados" },

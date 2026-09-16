@@ -164,22 +164,22 @@ export default function Empresas() {
     <div className="space-y-4 md:space-y-6">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Perfis de Acesso</h1>
-          <p className="text-xs md:text-sm text-muted-foreground">Gerencie seus perfis de acesso cadastrados</p>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Empresas</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Gerencie suas empresas cadastradas</p>
         </div>
         <Button onClick={requestNewCompany} className="hidden md:flex">
-          <Plus className="h-4 w-4 mr-2" /> Novo Perfil
+          <Plus className="h-4 w-4 mr-2" /> Nova Empresa
         </Button>
       </div>
 
       {quota && quota.pricePerExtraCents > 0 && (
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground bg-muted/40 border rounded-md px-3 py-2">
           <span>
-            {quota.total} perfil(is) · {quota.included} incluso(s) no plano
+            {quota.total} empresa(s) · {quota.included} inclusa(s) no plano
             {quota.extraBilled > 0 && (
               <> · {quota.extraBilled} extra(s) sendo cobrado(s) ({formatCents(quota.extraBilled * quota.pricePerExtraCents)})</>
             )}
-            {" · "}Adicional: {formatCents(quota.pricePerExtraCents)}/perfil
+            {" · "}Adicional: {formatCents(quota.pricePerExtraCents)}/empresa
           </span>
           <FreshnessIndicator freshnessKey="quota" label="Quota" className="ml-auto" />
         </div>
@@ -341,11 +341,11 @@ export default function Empresas() {
       <AlertDialog open={confirmExtra} onOpenChange={setConfirmExtra}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Adicionar perfil extra?</AlertDialogTitle>
+            <AlertDialogTitle>Adicionar empresa extra?</AlertDialogTitle>
             <AlertDialogDescription>
-              Seu plano inclui {quota?.included} perfil(is). Adicionar este novo perfil gera uma cobrança adicional de{" "}
+              Seu plano inclui {quota?.included} empresa(s). Adicionar esta nova empresa gera uma cobrança adicional de{" "}
               <strong>{quota && formatCents(quota.pricePerExtraCents)}/mês</strong>{" "}
-              na próxima fatura. Você pode remover o perfil a qualquer momento para reduzir a cobrança.
+              na próxima fatura. Você pode remover a empresa a qualquer momento para reduzir a cobrança.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

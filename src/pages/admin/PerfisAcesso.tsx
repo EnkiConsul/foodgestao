@@ -4,7 +4,7 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 export default function AdminPerfisAcesso() {
   return (
     <div className="space-y-6">
-      <AdminPageHeader title="Perfis de Acesso" description="Tenants/empresas cadastrados" />
+      <AdminPageHeader title="Empresas" description="Empresas cadastradas" />
       <AdminCompanies />
     </div>
   );
