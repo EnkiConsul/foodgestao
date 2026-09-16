@@ -209,7 +209,7 @@ export function NotificationsBell() {
               <CheckCircle2 className="h-8 w-8 text-muted-foreground/40 mb-2" />
               <p className="text-sm text-muted-foreground">Tudo em dia!</p>
               <p className="text-xs text-muted-foreground/70">
-                Sem contas atrasadas, vencimentos próximos ou orçamentos estourados.
+                Sem contas atrasadas ou vencimentos próximos.
               </p>
             </div>
           ) : (
