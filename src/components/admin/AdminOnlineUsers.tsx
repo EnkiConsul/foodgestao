@@ -13,7 +13,6 @@ import { useUserNames } from "@/hooks/useUserNames";
 interface OnlineUser {
   user_id: string;
   name: string;
-  email: string | null;
   status: "online" | "ausente";
   route: string;
   sessions: number;
