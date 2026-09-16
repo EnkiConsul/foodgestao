@@ -25,10 +25,10 @@ export default function BemVindo() {
   const { refreshCompanies, setContext } = useCompanyContext();
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
 
-  const handleAccept = async (inviteId: string, token: string, companyId: string) => {
+  const handleAccept = async (inviteId: string, companyId: string) => {
     setAcceptingId(inviteId);
     try {
-      const { data, error } = await supabase.functions.invoke("accept-invite", { body: { token } });
+      const { data, error } = await supabase.functions.invoke("accept-invite", { body: { invite_id: inviteId } });
       const errMsg = (data as any)?.error || error?.message;
       if (errMsg) {
         toast.error("Não foi possível aceitar o convite", { description: errMsg });
@@ -98,7 +98,7 @@ export default function BemVindo() {
                         </p>
                       </div>
                       <Button
-                        onClick={() => handleAccept(inv.id, inv.token, inv.company_id)}
+                        onClick={() => handleAccept(inv.id, inv.company_id)}
                         disabled={acceptingId !== null}
                         className="min-h-10 shrink-0"
                       >

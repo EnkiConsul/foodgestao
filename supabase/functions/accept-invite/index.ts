@@ -43,8 +43,11 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const token = typeof body?.token === "string" ? body.token.trim() : "";
-    if (!token || token.length > 256) {
-      return new Response(JSON.stringify({ error: "Token inválido" }), {
+    const inviteId = typeof body?.invite_id === "string" ? body.invite_id.trim() : "";
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    if ((!token && !inviteId) || token.length > 256 || (inviteId && !uuidRe.test(inviteId))) {
+      return new Response(JSON.stringify({ error: "Convite inválido" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -52,12 +55,14 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: invite, error: inviteError } = await adminClient
+    const query = adminClient
       .from("company_invites")
       .select("*, companies(name)")
-      .eq("token", token)
-      .eq("status", "pending")
-      .single();
+      .eq("status", "pending");
+
+    const { data: invite, error: inviteError } = await (
+      inviteId ? query.eq("id", inviteId) : query.eq("token", token)
+    ).single();
 
     if (inviteError || !invite) {
       return new Response(JSON.stringify({ error: "Convite não encontrado ou já utilizado" }), {
