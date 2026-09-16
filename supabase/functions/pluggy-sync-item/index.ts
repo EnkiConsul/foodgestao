@@ -348,7 +348,7 @@ Deno.serve(async (req) => {
     // Pluggy. Cobre o caso em que nenhuma solicitação foi registrada (ex.: o
     // usuário autorizou pelo app do banco muito depois, ou o token foi criado
     // sem company_id).
-    if (!existing && !companyId) {
+    if (!existing && !companyId && !conflitoEmpresa) {
       try {
         const probe = await getItem(itemId);
         const clientUserId: string | null = probe?.clientUserId ?? null;
@@ -372,7 +372,9 @@ Deno.serve(async (req) => {
           if (candidates.size === 1) {
             companyId = [...candidates][0];
             console.log(`resolved company via clientUserId ${clientUserId} -> ${companyId}`);
-          } else {
+          } else if (candidates.size > 1) {
+            // Mais de uma empresa possível: aguarda revisão, não adivinha.
+            conflitoEmpresa = true;
             console.error(
               `cannot resolve company for item ${itemId}: clientUserId=${clientUserId} companies=${candidates.size}`,
             );
@@ -381,6 +383,15 @@ Deno.serve(async (req) => {
       } catch (e) {
         console.error('clientUserId company resolution failed', e);
       }
+    }
+
+    if (!existing && conflitoEmpresa) {
+      return new Response(JSON.stringify({
+        error: 'company_conflict',
+        message: 'Mais de uma empresa possível para esta conexão: aguarda revisão manual.',
+      }), {
+        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     if (!existing && !companyId) {
