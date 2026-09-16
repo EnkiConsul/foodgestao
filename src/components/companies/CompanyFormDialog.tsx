@@ -128,7 +128,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
         <DialogHeader>
           <DialogTitle>{company ? "Editar Empresa" : "Nova Empresa"}</DialogTitle>
           <DialogDescription>
-            {company ? "Atualize os dados do perfil." : "Preencha os dados para cadastrar um novo perfil."}
+            {company ? "Atualize os dados da empresa." : "Preencha os dados para cadastrar uma nova empresa."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -179,7 +179,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={saving || cnpjLookupPending || !name.trim()}>
-              {saving ? "Salvando..." : cnpjLookupPending ? "Consultando CNPJ..." : company ? "Salvar" : "Criar Perfil"}
+              {saving ? "Salvando..." : cnpjLookupPending ? "Consultando CNPJ..." : company ? "Salvar" : "Criar Empresa"}
             </Button>
           </DialogFooter>
         </form>
