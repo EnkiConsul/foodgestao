@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { traduzErroExclusao, ehErroHistoricoVinculado, mensagemHistoricoVinculado } from "@/lib/finance/exclusaoHistorico";
+import { verificarExclusaoContaContabil, contasContabeisComHistorico, coletarArvore } from "@/lib/finance/verificarHistorico";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
