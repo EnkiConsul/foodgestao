@@ -16,7 +16,6 @@ export type PresenceStatus = "online" | "ausente";
 export interface PresenceEntry {
   user_id: string;
   name: string;
-  email: string | null;
   route: string;
   status: PresenceStatus;
   /** Início da sessão nesta aba (ISO). */
@@ -41,7 +40,7 @@ function notify() {
 function ensureChannel(presenceKey: string): RealtimeChannel {
   if (channel) return channel;
   const ch = supabase.channel(PRESENCE_TOPIC, {
-    config: { presence: { key: presenceKey } },
+    config: { private: true, presence: { key: presenceKey } },
   });
   const sync = () => {
     const state = ch.presenceState<PresenceEntry>();
@@ -99,7 +98,7 @@ export function usePresenceTracker() {
       void ch.track({
         user_id: user.id,
         name,
-        email: user.email ?? null,
+        
         route: routeRef.current,
         status: idle ? "ausente" : "online",
         since: sinceRef.current,
