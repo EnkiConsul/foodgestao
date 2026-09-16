@@ -7,7 +7,7 @@ import { SidebarSection, SidebarNavItem, type MenuItem } from "./shared";
 const items: MenuItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, end: true },
   { title: "Lançamentos", url: "/lancamentos", icon: ArrowLeftRight, end: true },
-  { title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp, end: true },
+  
   { title: "Orçamento", url: "/orcamento", icon: Target, end: true },
 ];
 
