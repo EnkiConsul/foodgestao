@@ -1,4 +1,5 @@
 import { secretMatches } from '../_shared/secret.ts';
+import { classifySyncResult, type SyncBody } from '../_shared/syncOutcome.ts';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
