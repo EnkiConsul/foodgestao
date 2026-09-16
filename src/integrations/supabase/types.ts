@@ -9948,6 +9948,358 @@ export type Database = {
           },
         ]
       }
+      dp_preadmissao_convites: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          last_sent_at: string
+          preadmissao_id: string
+          revoked_at: string | null
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          last_sent_at?: string
+          preadmissao_id: string
+          revoked_at?: string | null
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          last_sent_at?: string
+          preadmissao_id?: string
+          revoked_at?: string | null
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_preadmissao_convites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_preadmissao_convites_preadmissao_id_fkey"
+            columns: ["preadmissao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_preadmissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_preadmissao_documentos: {
+        Row: {
+          company_id: string
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          motivo_recusa: string | null
+          pessoa_id: string | null
+          preadmissao_id: string
+          requisito_codigo: string
+          status: string
+          substituido_em: string | null
+          updated_at: string
+          versao: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          motivo_recusa?: string | null
+          pessoa_id?: string | null
+          preadmissao_id: string
+          requisito_codigo: string
+          status?: string
+          substituido_em?: string | null
+          updated_at?: string
+          versao?: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          motivo_recusa?: string | null
+          pessoa_id?: string | null
+          preadmissao_id?: string
+          requisito_codigo?: string
+          status?: string
+          substituido_em?: string | null
+          updated_at?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_preadmissao_documentos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_preadmissao_documentos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "dp_preadmissao_pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_preadmissao_documentos_preadmissao_id_fkey"
+            columns: ["preadmissao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_preadmissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_preadmissao_eventos: {
+        Row: {
+          actor_user_id: string | null
+          company_id: string
+          created_at: string
+          detalhe: Json
+          evento: string
+          id: string
+          preadmissao_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          company_id: string
+          created_at?: string
+          detalhe?: Json
+          evento: string
+          id?: string
+          preadmissao_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          company_id?: string
+          created_at?: string
+          detalhe?: Json
+          evento?: string
+          id?: string
+          preadmissao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_preadmissao_eventos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_preadmissao_eventos_preadmissao_id_fkey"
+            columns: ["preadmissao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_preadmissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_preadmissao_pessoas: {
+        Row: {
+          company_id: string
+          cpf: string | null
+          created_at: string
+          data_nascimento: string | null
+          finalidade_dependente: boolean
+          finalidade_sesc: boolean
+          id: string
+          nome: string
+          parentesco: string | null
+          preadmissao_id: string
+          rg: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          finalidade_dependente?: boolean
+          finalidade_sesc?: boolean
+          id?: string
+          nome: string
+          parentesco?: string | null
+          preadmissao_id: string
+          rg?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          finalidade_dependente?: boolean
+          finalidade_sesc?: boolean
+          id?: string
+          nome?: string
+          parentesco?: string | null
+          preadmissao_id?: string
+          rg?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_preadmissao_pessoas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_preadmissao_pessoas_preadmissao_id_fkey"
+            columns: ["preadmissao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_preadmissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_preadmissoes: {
+        Row: {
+          admin_dados: Json
+          candidato_nome: string
+          cargo_previsto_id: string | null
+          colaborador_id: string | null
+          company_id: string
+          contabilidade_enviado_em: string | null
+          contabilidade_retorno_em: string | null
+          correcao_motivo: string | null
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          dados: Json
+          data_nascimento: string | null
+          email: string | null
+          enviado_em: string | null
+          estado_civil: string | null
+          id: string
+          revisado_em: string | null
+          revisado_por: string | null
+          status: string
+          trabalho_apos_22h: boolean
+          unidade_prevista_id: string | null
+          updated_at: string
+          whatsapp: string
+        }
+        Insert: {
+          admin_dados?: Json
+          candidato_nome: string
+          cargo_previsto_id?: string | null
+          colaborador_id?: string | null
+          company_id: string
+          contabilidade_enviado_em?: string | null
+          contabilidade_retorno_em?: string | null
+          correcao_motivo?: string | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          dados?: Json
+          data_nascimento?: string | null
+          email?: string | null
+          enviado_em?: string | null
+          estado_civil?: string | null
+          id?: string
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string
+          trabalho_apos_22h?: boolean
+          unidade_prevista_id?: string | null
+          updated_at?: string
+          whatsapp: string
+        }
+        Update: {
+          admin_dados?: Json
+          candidato_nome?: string
+          cargo_previsto_id?: string | null
+          colaborador_id?: string | null
+          company_id?: string
+          contabilidade_enviado_em?: string | null
+          contabilidade_retorno_em?: string | null
+          correcao_motivo?: string | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          dados?: Json
+          data_nascimento?: string | null
+          email?: string | null
+          enviado_em?: string | null
+          estado_civil?: string | null
+          id?: string
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string
+          trabalho_apos_22h?: boolean
+          unidade_prevista_id?: string | null
+          updated_at?: string
+          whatsapp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_preadmissoes_cargo_previsto_id_fkey"
+            columns: ["cargo_previsto_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_preadmissoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_preadmissoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_preadmissoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_preadmissoes_unidade_prevista_id_fkey"
+            columns: ["unidade_prevista_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_prioridade_aniversario: {
         Row: {
           aniversariante: boolean
@@ -10113,6 +10465,92 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_requisito_cargos: {
+        Row: {
+          cargo_id: string
+          company_id: string
+          created_at: string
+          requisito_id: string
+        }
+        Insert: {
+          cargo_id: string
+          company_id: string
+          created_at?: string
+          requisito_id: string
+        }
+        Update: {
+          cargo_id?: string
+          company_id?: string
+          created_at?: string
+          requisito_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_requisito_cargos_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_requisito_cargos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_requisito_cargos_requisito_id_fkey"
+            columns: ["requisito_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documento_requisitos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_requisito_unidades: {
+        Row: {
+          company_id: string
+          created_at: string
+          requisito_id: string
+          unidade_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          requisito_id: string
+          unidade_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          requisito_id?: string
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_requisito_unidades_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_requisito_unidades_requisito_id_fkey"
+            columns: ["requisito_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documento_requisitos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_requisito_unidades_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -15497,6 +15935,10 @@ export type Database = {
       dp_portal_token_release: {
         Args: { p_token_id: string }
         Returns: boolean
+      }
+      dp_preadmissao_efetivar: {
+        Args: { p_colaborador_id: string; p_preadmissao_id: string }
+        Returns: Json
       }
       dp_processar_troca: { Args: { _troca_id: string }; Returns: Json }
       dp_processar_troca_direta: { Args: { _troca_id: string }; Returns: Json }
