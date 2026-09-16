@@ -155,7 +155,9 @@ export default function ContasContabeis() {
       return;
     }
     const { error } = await (supabase as any).from("chart_accounts").delete().eq("id", deleteTarget.id);
-    if (error) toast.error("Erro ao excluir", { description: error.message });
+    const bloqueio = error ? traduzErroExclusao(error, "conta contábil", deleteTarget.name) : null;
+    if (bloqueio) toast.error(bloqueio.title, { description: bloqueio.description });
+    else if (error) toast.error("Erro ao excluir", { description: error.message });
     else {
       const ok = await resequenceCodes();
       toast.success(ok ? "Conta excluída e índice reorganizado" : "Conta excluída");
