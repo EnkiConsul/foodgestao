@@ -76,6 +76,18 @@ export default function FormasPagamento() {
   const confirmDelete = async () => {
     if (!deleteId) return;
     const alvo = methods.find((m: any) => m.id === deleteId);
+    try {
+      const impedimento = await verificarExclusaoSimples("payment_method_id", deleteId, alvo?.name);
+      if (impedimento) {
+        toast.error(impedimento.title, { description: impedimento.description });
+        setDeleteId(null);
+        return;
+      }
+    } catch (e: any) {
+      toast.error("Não foi possível verificar os lançamentos", { description: e?.message ?? "Tente novamente." });
+      setDeleteId(null);
+      return;
+    }
     const { error } = await supabase.from("payment_methods").delete().eq("id", deleteId);
     const bloqueio = error ? traduzErroExclusao(error, "forma de pagamento", alvo?.name) : null;
     if (bloqueio) toast.error(bloqueio.title, { description: bloqueio.description });
