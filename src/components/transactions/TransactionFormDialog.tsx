@@ -1816,8 +1816,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         // apareceria na lista deste lançamento.
         defaultCompanyIds={contextType === "pj" && selectedCompanyId ? [selectedCompanyId] : []}
         defaultContactType={type === "entrada" ? "cliente" : "fornecedor"}
-        onSaved={(newId) => {
-          invalidateLookups();
+        onSaved={async (newId) => {
+          // Espera a lista recarregar para o novo contato já aparecer selecionado.
+          await invalidateLookups();
           if (newId) setContactId(newId);
         }}
       />
