@@ -71,6 +71,7 @@ import { isSocio } from "@/lib/dp/contrato-policy";
 import { MinhaDisponibilidadeCard } from "@/components/dp/MinhaDisponibilidadeCard";
 import { regimeConvocavel } from "@/lib/dp/convocacoes-planejamento";
 import { notifyError } from "@/lib/notifyError";
+import { negarRegra } from "@/lib/dp/regraAviso";
 
 /** Retorno do cálculo do período de escolha feito no servidor. */
 interface JanelaRemota {
