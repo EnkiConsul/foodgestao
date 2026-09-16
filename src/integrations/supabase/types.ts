@@ -16187,6 +16187,10 @@ export type Database = {
         Args: { _error: string; _id: string; _max_attempts?: number }
         Returns: undefined
       }
+      pluggy_user_can_edit: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
       pluggy_v2_webhook_finalize_failure: {
         Args: { p_error: string; p_event_id: string; p_worker_id: string }
         Returns: boolean
