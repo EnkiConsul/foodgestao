@@ -57,14 +57,6 @@ export const categorySchema = z.object({
   ),
 });
 
-// ---- Budget ----
-export const budgetSchema = z.object({
-  category_id: z.string().uuid("Selecione uma categoria"),
-  amount: z.number().positive("Valor deve ser positivo").finite(),
-  period: z.enum(["mensal", "anual"]),
-  start_date: z.string().min(1, "Data início é obrigatória"),
-  end_date: z.string().min(1, "Data fim é obrigatória"),
-});
 
 // ---- Payment Method ----
 export const paymentMethodSchema = z.object({

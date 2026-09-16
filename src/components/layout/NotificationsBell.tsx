@@ -22,7 +22,7 @@ import { toast } from "sonner";
 
 type Alert = {
   id: string;
-  type: "overdue" | "upcoming" | "budget" | "accountant";
+  type: "overdue" | "upcoming" | "accountant";
   title: string;
   description: string;
   href: string;
@@ -114,49 +114,6 @@ export function NotificationsBell() {
         });
       });
 
-      // Budgets
-      const budgetQuery = supabase
-        .from("budgets")
-        .select("id, amount, category_id, start_date, end_date, category:categories(name)")
-        .eq("user_id", user!.id)
-        .eq("context", contextType)
-        .lte("start_date", today)
-        .gte("end_date", today);
-
-      const { data: budgets } = await budgetQuery;
-
-      for (const b of budgets ?? []) {
-        let spentQ = supabase
-          .from("transactions")
-          .select("amount")
-          .eq("user_id", user!.id)
-          .eq("context", contextType)
-          .eq("transaction_type", "saida")
-          .eq("status", "confirmado")
-          .eq("category_id", b.category_id)
-          .gte("transaction_date", b.start_date)
-          .lte("transaction_date", b.end_date);
-
-        if (contextType === "pj" && selectedCompanyId) {
-          spentQ = spentQ.eq("company_id", selectedCompanyId);
-        }
-        if (contextType === "pf") {
-          spentQ = spentQ.is("company_id", null);
-        }
-
-        const { data: spentRows } = await spentQ;
-        const spent = (spentRows ?? []).reduce((s, r: any) => s + Number(r.amount ?? 0), 0);
-        const pct = b.amount > 0 ? (spent / Number(b.amount)) * 100 : 0;
-        if (pct >= 90) {
-          result.push({
-            id: `bg-${b.id}`,
-            type: "budget",
-            title: pct >= 100 ? "Orçamento estourado" : "Orçamento próximo do limite",
-            description: `${(b as any).category?.name ?? "Categoria"} • ${pct.toFixed(0)}% usado`,
-            href: "/orcamento",
-          });
-        }
-      }
 
       // Accountant access reminder (PJ only, snoozable, only for owner/admin)
       if (contextType === "pj" && selectedCompanyId) {

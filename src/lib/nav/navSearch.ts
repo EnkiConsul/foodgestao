@@ -49,7 +49,7 @@ const SYNONYMS: Record<string, string[]> = {
   "/cartoes-credito": ["cartao", "fatura", "credito"],
   "/contatos": ["cliente", "fornecedor", "cnpj", "cpf"],
   "/categorias": ["plano de contas", "classificacao"],
-  "/orcamento": ["meta", "limite", "budget"],
+  
   "/relatorios/contabeis": ["dre", "resultado", "contabil"],
   "/relatorios/fluxo-caixa": ["relatorio", "matriz", "mensal", "projecao", "caixa", "saldo futuro"],
   "/formas-pagamento": ["pix", "dinheiro", "debito", "maquininha"],

@@ -150,7 +150,7 @@ const financeiroShortcuts: NavLeaf[] = [
   { icon: FileBarChart, label: "Relatórios", to: "/relatorios/contabeis" },
   { icon: Tags, label: "Categorias", to: "/categorias" },
   { icon: Contact, label: "Contatos", to: "/contatos" },
-  { icon: PiggyBank, label: "Orçamento", to: "/orcamento" },
+  
 ];
 
 // ── DP + Portal (derivados de src/config/dpNavigation.tsx) ───────────────
@@ -260,7 +260,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
         items: [
           { icon: ArrowLeftRight, label: "Lançamentos", to: "/lancamentos", end: true },
           
-          { icon: PiggyBank, label: "Orçamento", to: "/orcamento", end: true },
+          
         ],
       },
       {
