@@ -215,7 +215,7 @@ export function AdminResetData() {
               </div>
             </RadioGroup>
             <p className="text-xs text-muted-foreground">
-              Filtro aplicado a lançamentos, contas, categorias e orçamentos. Demais itens não diferenciam contexto.
+              Filtro aplicado a lançamentos, contas e categorias. Demais itens não diferenciam contexto.
             </p>
           </div>
 

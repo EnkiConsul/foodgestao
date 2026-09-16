@@ -79,7 +79,6 @@ export default function Categorias() {
     transactions_detached: number;
     staging_detached: number;
     folha_detached: number;
-    budgets_deleted: number;
     rules_deleted: number;
   } | null>(null);
 
@@ -961,7 +960,7 @@ export default function Categorias() {
                 Nenhum lançamento é excluído.
               </strong>
               Os lançamentos existentes são apenas desvinculados e ficam como "sem categoria",
-              prontos para reclassificação. Orçamentos e regras de categorização das categorias
+              prontos para reclassificação. As regras de categorização das categorias
               antigas são descartados.
             </AlertDialogDescription>
           </AlertDialogHeader>
