@@ -1,0 +1,44 @@
+[2026-09-16T19:38:09.131Z] iniciando validação funcional isolada da P0.4
+[2026-09-16T19:38:09.132Z] guardas pré-start aprovadas (destino não colide com a conexão de origem)
+[2026-09-16T19:38:09.133Z] limpeza ignorada: nenhum cluster foi criado por esta execução
+[2026-09-16T19:38:09.133Z] limpeza abortada: marcador ausente em /tmp/p04pg-alheio-yOXh9Y (diretório não é desta execução)
+[2026-09-16T19:38:09.134Z] self-test falha_pre_start_nao_limpa_cluster_alheio: passed
+[2026-09-16T19:38:09.134Z] self-test sem_marcador_nao_apaga_diretorio: passed
+[2026-09-16T19:38:09.134Z] self-test guarda_colisao_com_origem: passed
+[2026-09-16T19:38:09.134Z] exportando ESTRUTURA real (schema-only: public, private, qa) com grants/policies/owners…
+[2026-09-16T19:39:58.481Z] estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)
+[2026-09-16T19:40:00.804Z] cluster próprio no ar (data_directory=/tmp/p04pg-run-PtFVRV/pgdata, porta 55437, listen 127.0.0.1)
+[2026-09-16T19:40:00.949Z] bootstrap de papéis/schemas/shims aplicado (public removido para o dump recriá-lo)
+[2026-09-16T19:40:03.290Z] restore concluído com --exit-on-error: exit 0 e nenhum erro
+[2026-09-16T19:40:03.355Z] clone: 202 tabelas e 478 funções em public
+[2026-09-16T19:40:04.910Z] fidelidade acl_rotinas_criticas: IDÊNTICA (11 linha(s) na origem)
+[2026-09-16T19:40:06.099Z] fidelidade definicoes_rotinas_e_autorizacao: IDÊNTICA (21 linha(s) na origem)
+[2026-09-16T19:40:07.812Z] fidelidade policies_companies: IDÊNTICA (5 linha(s) na origem)
+[2026-09-16T19:40:08.962Z] fidelidade triggers_companies: IDÊNTICA (15 linha(s) na origem)
+[2026-09-16T19:40:10.120Z] fidelidade auth_helpers_equivalentes: IDÊNTICA (4 linha(s) na origem)
+[2026-09-16T19:40:10.158Z] migração aplicada SOMENTE no clone: supabase/migrations/20260916193000_ficha_aplicar_correcoes.sql
+[2026-09-16T19:40:10.208Z] migração reaplicada sem erro (idempotente): supabase/migrations/20260916193000_ficha_aplicar_correcoes.sql
+[2026-09-16T19:40:10.516Z] teste supabase/tests/dp_ficha_aplicar_isolated.test.sql: exit=0 status=passed preparacao=1 grupos=13 subcasos=74 pendentes=0
+[2026-09-16T19:40:10.518Z]   · PREP fixtures: 2 empresas, 6 usuários, 2 lotes e 7 fichas sintéticas
+[2026-09-16T19:40:10.518Z]   · OK F1: criação atômica gravou colaborador, configuração, 7 dias, item e contadores (9 casos)
+[2026-09-16T19:40:10.518Z]   · OK F2: replay do mesmo item devolveu o mesmo colaborador sem regravar nem duplicar (5 casos)
+[2026-09-16T19:40:10.518Z]   · OK F3: atualização gravou só os campos escolhidos e preservou os demais (8 casos)
+[2026-09-16T19:40:10.518Z]   · OK F4: campos de conta/perfil/permissões/empresa recusados (42501 FORBIDDEN, 8 casos)
+[2026-09-16T19:40:10.520Z]   · OK F5: referências de outra empresa recusadas (42501 FORBIDDEN, 3 casos)
+[2026-09-16T19:40:10.520Z]   · OK F6: visitante, colaborador, sem vínculo e admin de outra empresa negados (42501 FORBIDDEN, 5 casos)
+[2026-09-16T19:40:10.520Z]   · OK F7: CPF duplicado recusado (23505) sem gravação parcial (3 casos)
+[2026-09-16T19:40:10.520Z]   · OK F8: falha no meio da transação reverteu criação, atualização, dias e item; gatilho temporário removido (9 casos)
+[2026-09-16T19:40:10.520Z]   · OK F9: dois itens do mesmo lote aplicados com contadores somados em SQL (2 casos)
+[2026-09-16T19:40:10.520Z]   · OK F10: ignorar contabilizado na mesma transação, item aplicado protegido e lote concluído só sem pendências (5 casos)
+[2026-09-16T19:40:10.520Z]   · OK F11: lote em leitura mantém o status e ainda conta os criados (2 casos)
+[2026-09-16T19:40:10.520Z]   · OK F12: referência invisível recusada, admin da própria empresa aplicou e jornada/CPF/vínculo inválidos recusados (7 casos)
+[2026-09-16T19:40:10.520Z]   · OK F13: as 2 rotinas são SECURITY INVOKER, com search_path fixo, sem anon/PUBLIC (8 casos)
+[2026-09-16T19:40:10.806Z] 4 chamadas simultâneas da RPC concluídas sem erro (exit 0 em todas)
+[2026-09-16T19:40:10.806Z]   · idx=1 exit=0 retorno=set_config | set_config | set_config -----------------------------------------------------------------------------------------------------+---------------------
+[2026-09-16T19:40:10.806Z]   · idx=2 exit=0 retorno=set_config | set_config | set_config -----------------------------------------------------------------------------------------------------+---------------------
+[2026-09-16T19:40:10.806Z]   · idx=3 exit=0 retorno=set_config | set_config | set_config -----------------------------------------------------------------------------------------------------+---------------------
+[2026-09-16T19:40:10.806Z]   · idx=4 exit=0 retorno=set_config | set_config | set_config -----------------------------------------------------------------------------------------------------+---------------------
+[2026-09-16T19:40:10.836Z]   · OK C1-C3: corrida no mesmo item e em itens do mesmo lote sem duplicar cadastro, jornada, dias ou contadores (7 casos)
+[2026-09-16T19:40:11.019Z] cluster desta execução destruído
+
+=== status geral: passed (exit 0) ===

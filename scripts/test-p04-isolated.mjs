@@ -40,7 +40,8 @@ const lista = (nome) => (opt(nome) ?? "").split(",").map((s) => s.trim()).filter
 
 const PORT = 55437;
 const DB = "p04iso";
-const SCHEMA_FILE = join(tmpdir(), `p04_schema_${process.pid}.sql`);
+const SCHEMA_FILE = join(tmpdir(), `p04_schema_${process.pid}.dump`);
+const SCHEMA_LIST = join(tmpdir(), `p04_schema_${process.pid}.list`);
 const MARKER = ".p04-runner-owned";
 
 /**
@@ -328,36 +329,44 @@ create function pgmq.delete(queue_name text, msg_id bigint)
 
 /* ----------------------------- dump / restore ---------------------------- */
 
+/**
+ * Dump em FORMATO CUSTOM (-Fc). Motivo: o dump em texto do pg_dump 17.6+ traz
+ * conteúdo (barras invertidas dentro de literais, \restrict/\unrestrict) que o
+ * lexer do psql interpreta como meta-comando e faz o restore reprovar por
+ * motivo alheio ao objeto de teste. O formato binário é lido pelo pg_restore,
+ * sem lexer de cliente, mantendo owners, grants, policies e comentários.
+ */
 function dumpSchema() {
   log("exportando ESTRUTURA real (schema-only: public, private, qa) com grants/policies/owners…");
   must(
     "pg_dump",
-    ["--schema-only", "--schema=public", "--schema=private", "--schema=qa", "-f", SCHEMA_FILE],
+    ["-Fc", "--schema-only", "--schema=public", "--schema=private", "--schema=qa", "-f", SCHEMA_FILE],
     { env: process.env }
   );
-  // Pré-processamento mínimo do dump:
-  //  1. remove a criação do schema public (já criado no bootstrap com extensões);
-  //  2. remove os pares \restrict/\unrestrict emitidos pelo pg_dump 17.6+, que o
-  //     psql rejeita ao ler o arquivo em modo restrito.
-  // Owner/COMMENT/GRANTs do dump seguem aplicando normalmente.
-  const raw = readFileSync(SCHEMA_FILE, "utf8");
-  const filtered = raw
-    .replace(/^CREATE SCHEMA public;$/m, "-- CREATE SCHEMA public; (criado no bootstrap com pg_trgm/unaccent)")
-    .replace(/^\\(un)?restrict\b.*$/gm, "");
-  if (filtered === raw) throw new Error("pré-processamento: linha CREATE SCHEMA public não encontrada no dump");
-  writeFileSync(SCHEMA_FILE, filtered);
-
+  // Lista de objetos do arquivo, sem a entrada do schema public (já criado no
+  // bootstrap com pg_trgm/unaccent). Tudo o mais é restaurado.
+  const listagem = must("pg_restore", ["-l", SCHEMA_FILE], { env: process.env });
+  const linhas = listagem.split("\n");
+  const semPublic = linhas.filter((l) => !/^\d+;.*\bSCHEMA - public\b/.test(l));
+  if (semPublic.length === linhas.length) {
+    throw new Error("pré-processamento: entrada 'SCHEMA - public' não encontrada no índice do dump");
+  }
+  writeFileSync(SCHEMA_LIST, semPublic.join("\n"));
   log("estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)");
 }
 
-/** Restore estrito: ON_ERROR_STOP=1, exit 0 obrigatório, sem allowlist por nome. */
+/** Restore estrito: --exit-on-error, exit 0 obrigatório, sem allowlist por nome. */
 function restoreSchema() {
-  const r = run("psql", ["-v", "ON_ERROR_STOP=1", "-d", DB, "-f", SCHEMA_FILE], { env: targetEnv() });
-  if (r.error) throw new Error(`psql do restore não executou: ${r.error.message}`);
+  const r = run(
+    "pg_restore",
+    ["--exit-on-error", "-L", SCHEMA_LIST, "-d", DB, SCHEMA_FILE],
+    { env: targetEnv() }
+  );
+  if (r.error) throw new Error(`pg_restore do restore não executou: ${r.error.message}`);
   const errors = (r.stderr || "")
     .split("\n")
     .filter((l) => /ERROR:|FATAL:|error:/.test(l))
-    .map((l) => l.replace(/^psql:[^ ]+ /, "").trim());
+    .map((l) => l.replace(/^pg_restore:[^ ]+ /, "").trim());
   if (r.status !== 0 || errors.length > 0) {
     const amostra = errors.length
       ? errors
@@ -367,7 +376,7 @@ function restoreSchema() {
       `restore reprovado (exit ${r.status}, ${errors.length} erro(s)) — validação inválida`
     );
   }
-  log("restore concluído com ON_ERROR_STOP=1: exit 0 e nenhum erro");
+  log("restore concluído com --exit-on-error: exit 0 e nenhum erro");
   return { exit_code: r.status, erros: 0 };
 }
 
@@ -425,7 +434,9 @@ function concurrency() {
   // código de saída. Sem isso, `wait` esconde a falha de um dos processos.
   const dir = mkdtempSync(join(tmpdir(), "conc-"));
   // Guarda do próprio runner: um filho é forçado a falhar para provar exit 1.
-  const guard = !!opt("conc-guard");
+  // Aceita a forma booleana (--conc-guard) e a forma com valor (--conc-guard=1);
+  // sem isso a guarda ficava silenciosamente desligada.
+  const guard = ARGS.has("--conc-guard") || !!opt("conc-guard");
   const filhos = Array.from({ length: n }, (_, i) => ({
     idx: i + 1,
     forcarFalha: guard && i === 0,
@@ -793,6 +804,7 @@ try {
   log(`ERRO: ${report.erro}`);
 } finally {
   rmSync(SCHEMA_FILE, { force: true });
+  rmSync(SCHEMA_LIST, { force: true });
   if (KEEP && CREATED_BY_US) log(`cluster próprio mantido em ${DATA_DIR} (--keep)`);
   else cleanup();
   report.codigo_saida = exitCode;
