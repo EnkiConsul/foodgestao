@@ -402,7 +402,9 @@ export default function Categorias() {
     if (!deleteId) return;
     const cat = categories.find((c) => c.id === deleteId);
     const { error } = await supabase.from("categories").delete().eq("id", deleteId);
-    if (error) toast.error("Erro ao excluir", { description: error.message });
+    const bloqueio = error ? traduzErroExclusao(error, "categoria", cat?.name) : null;
+    if (bloqueio) toast.error(bloqueio.title, { description: bloqueio.description });
+    else if (error) toast.error("Erro ao excluir", { description: error.message });
     else {
       await supabase.rpc("insert_audit_log", {
         _action: "category_deleted",
