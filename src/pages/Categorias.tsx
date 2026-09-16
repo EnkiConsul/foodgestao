@@ -214,7 +214,7 @@ export default function Categorias() {
     } else if (errors.length > 0) {
       toast.error(`Erro ao excluir ${errors.length} categoria(s)`);
     } else {
-      toast.success(`${selected.size} categoria(s) excluída(s)`);
+      toast.success(`${liberadas.length} categoria(s) excluída(s)`);
       setSelected(new Set());
       refetchAll();
     }
@@ -430,6 +430,18 @@ export default function Categorias() {
   const confirmDelete = async () => {
     if (!deleteId) return;
     const cat = categories.find((c) => c.id === deleteId);
+    try {
+      const impedimento = await verificarExclusaoSimples("category_id", deleteId, cat?.name);
+      if (impedimento) {
+        toast.error(impedimento.title, { description: impedimento.description });
+        setDeleteId(null);
+        return;
+      }
+    } catch (e: any) {
+      toast.error("Não foi possível verificar os lançamentos", { description: e?.message ?? "Tente novamente." });
+      setDeleteId(null);
+      return;
+    }
     const { error } = await supabase.from("categories").delete().eq("id", deleteId);
     const bloqueio = error ? traduzErroExclusao(error, "categoria", cat?.name) : null;
     if (bloqueio) toast.error(bloqueio.title, { description: bloqueio.description });
