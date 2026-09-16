@@ -312,6 +312,17 @@ export function ContactFormDialog({
       }
     }
 
+    // Impede duplicidade por nome (mesmo sem documento informado).
+    const dupNome = await findDuplicateByName(name, editContact?.id);
+    if (dupNome) {
+      setDuplicate(dupNome);
+      toast.error("Nome já cadastrado", {
+        description: `Já existe o contato "${dupNome.name}". Selecione-o na lista em vez de criar outro.`,
+      });
+      return;
+    }
+
+
 
     const validated = validateWithToast(contactSchema, {
       name, contact_type: contactType,
