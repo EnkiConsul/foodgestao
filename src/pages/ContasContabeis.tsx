@@ -155,6 +155,21 @@ export default function ContasContabeis() {
       setDeleteTarget(null);
       return;
     }
+    try {
+      const impedimento = await verificarExclusaoContaContabil(
+        coletarArvore(deleteTarget.id, childrenById),
+        deleteTarget.name,
+      );
+      if (impedimento) {
+        toast.error(impedimento.title, { description: impedimento.description });
+        setDeleteTarget(null);
+        return;
+      }
+    } catch (e: any) {
+      toast.error("Não foi possível verificar os lançamentos", { description: e?.message ?? "Tente novamente." });
+      setDeleteTarget(null);
+      return;
+    }
     const { error } = await (supabase as any).from("chart_accounts").delete().eq("id", deleteTarget.id);
     const bloqueio = error ? traduzErroExclusao(error, "conta contábil", deleteTarget.name) : null;
     if (bloqueio) toast.error(bloqueio.title, { description: bloqueio.description });
