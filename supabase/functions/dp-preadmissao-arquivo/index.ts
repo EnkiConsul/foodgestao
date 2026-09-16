@@ -1,27 +1,40 @@
 /**
- * Documentos da Pré-Admissão: envio pelo candidato e visualização pelo gestor.
+ * Documentos da Pré-Admissão: envio pelo candidato, ficha oficial pelo gestor e
+ * visualização temporária.
  *
  * O arquivo vai para bucket PRIVADO. O caminho é montado pelo servidor a partir
- * do convite validado — o cliente não escolhe onde grava. A visualização usa URL
- * temporária; nunca há URL pública permanente.
+ * do convite validado — o cliente não escolhe onde grava. O tipo do arquivo é
+ * conferido pelos bytes: o MIME declarado não é aceito como prova. Só entra
+ * documento que o checklist atual pede, para um titular vigente, e apenas
+ * enquanto a ficha está com o candidato.
  */
 import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
 import { canAdminister, requireCompanyAccess, requireUser, serviceClient } from "../_shared/authz.ts";
 import { ipRateLimited } from "../_shared/rate-limit.ts";
-import { registrarEvento, validarConvite } from "../_shared/preadmissao.ts";
-import { DOCUMENTOS } from "../_shared/preadmissao-checklist.ts";
+import {
+  candidatoPodeEditar,
+  registrarDocumento,
+  registrarEvento,
+  requisitosEmpresa,
+  requisitosPrevistos,
+  tipoRealDoArquivo,
+  transicionar,
+  validarConvite,
+} from "../_shared/preadmissao.ts";
+import { montarChecklist } from "../_shared/preadmissao-checklist.ts";
 
 const BUCKET = "dp-documentos";
 const MAX_BYTES = 10 * 1024 * 1024;
-const MIMES: Record<string, string> = {
+const EXTENSOES: Record<string, string> = {
   "image/jpeg": "jpg",
-  "image/pjpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
   "image/heic": "heic",
-  "image/heif": "heif",
   "application/pdf": "pdf",
 };
+
+const FASE_ENCERRADA =
+  "Sua ficha já está em análise pela empresa. Aguarde o contato: não é possível enviar documentos agora.";
 
 function decodificar(base64: string): Uint8Array {
   const limpo = base64.includes(",") ? base64.slice(base64.indexOf(",") + 1) : base64;
@@ -42,74 +55,161 @@ Deno.serve(async (req) => {
 
     // ---------- Candidato: envio de documento ----------
     if (acao === "upload") {
-      if (await ipRateLimited(admin as unknown as Parameters<typeof ipRateLimited>[0], req, "preadmissao_upload", 200)) return jsonError(req, "rate_limited");
+      if (await ipRateLimited(admin as unknown as Parameters<typeof ipRateLimited>[0], req, "preadmissao_upload", 200)) {
+        return jsonError(req, "rate_limited");
+      }
       const valid = await validarConvite(admin, String(body?.t ?? ""), String(body?.c ?? ""));
       if (!valid.ok) return jsonResponse(req, 403, { error: "Este link não está mais válido." });
       const pa = valid.preadmissao;
+      if (!candidatoPodeEditar(pa.status)) {
+        return jsonResponse(req, 409, { error: FASE_ENCERRADA, status: pa.status });
+      }
 
       const codigo = String(body?.requisito_codigo ?? "").trim();
-      if (!codigo || !DOCUMENTOS[codigo]) return jsonResponse(req, 400, { error: "Documento desconhecido." });
-      const mime = String(body?.mime_type ?? "").toLowerCase();
-      const ext = MIMES[mime];
-      if (!ext) {
+      const pessoaIdPedido = typeof body?.pessoa_id === "string" && body.pessoa_id.length === 36
+        ? String(body.pessoa_id)
+        : null;
+
+      // O checklist atual é a única fonte do que pode ser enviado — inclui os
+      // requisitos personalizados de Cargo/Unidade da empresa.
+      const [{ data: pessoas }, reqs, reqsEmpresa] = await Promise.all([
+        admin
+          .from("dp_preadmissao_pessoas")
+          .select("id, nome, data_nascimento, parentesco, finalidade_dependente, finalidade_sesc")
+          .eq("preadmissao_id", pa.id)
+          .is("removido_em", null),
+        requisitosPrevistos(admin, pa),
+        requisitosEmpresa(admin, pa.company_id),
+      ]);
+      const dados = (pa.dados ?? {}) as Record<string, unknown>;
+      const checklist = montarChecklist({
+        ficha: {
+          data_nascimento: pa.data_nascimento,
+          estado_civil: pa.estado_civil,
+          sexo: (dados.sexo as string) ?? null,
+        },
+        pessoas: (pessoas ?? []) as never,
+        requisitosCargo: reqs.cargo,
+        requisitosUnidade: reqs.unidade,
+        requisitosEmpresa: reqsEmpresa,
+      });
+      const previsto = checklist.find((i) => i.codigo === codigo && (i.pessoa_id ?? null) === pessoaIdPedido);
+      if (!previsto) {
         return jsonResponse(req, 400, {
-          error: "Envie uma foto (JPG, PNG, HEIC ou WEBP) ou um arquivo PDF.",
+          error: "Este documento não está na lista pedida para esta ficha.",
         });
       }
+
       const bytes = decodificar(String(body?.content_base64 ?? ""));
       if (!bytes.length) return jsonResponse(req, 400, { error: "O arquivo não foi recebido. Tente novamente." });
       if (bytes.length > MAX_BYTES) {
         return jsonResponse(req, 400, { error: "O arquivo passa de 10 MB. Envie uma foto menor." });
       }
-
-      let pessoaId: string | null = null;
-      if (body?.pessoa_id) {
-        const { data } = await admin
-          .from("dp_preadmissao_pessoas")
-          .select("id")
-          .eq("id", String(body.pessoa_id))
-          .eq("preadmissao_id", pa.id)
-          .maybeSingle();
-        if (!data) return jsonResponse(req, 400, { error: "Pessoa não encontrada nesta ficha." });
-        pessoaId = data.id as string;
+      const real = tipoRealDoArquivo(bytes);
+      if (!real || !EXTENSOES[real]) {
+        return jsonResponse(req, 400, {
+          error: "Envie uma foto (JPG, PNG, HEIC ou WEBP) ou um arquivo PDF.",
+        });
       }
+      const ext = EXTENSOES[real];
 
-      const caminho = `${pa.company_id}/preadmissao/${pa.id}/${codigo}-${pessoaId ?? "titular"}-${Date.now()}.${ext}`;
-      const up = await admin.storage.from(BUCKET).upload(caminho, bytes, { contentType: mime, upsert: false });
+      const caminho = `${pa.company_id}/preadmissao/${pa.id}/${codigo}-${pessoaIdPedido ?? "titular"}-${Date.now()}.${ext}`;
+      const up = await admin.storage.from(BUCKET).upload(caminho, bytes, { contentType: real, upsert: false });
       if (up.error) return jsonError(req, "internal", up.error.message);
 
-      // Versão anterior é preservada como substituída (histórico do reenvio).
-      await admin
-        .from("dp_preadmissao_documentos")
-        .update({ substituido_em: new Date().toISOString() })
-        .eq("preadmissao_id", pa.id)
-        .eq("requisito_codigo", codigo)
-        .is("substituido_em", null)
-        .filter("pessoa_id", pessoaId ? "eq" : "is", pessoaId ?? null);
-
-      const { data: anteriores } = await admin
-        .from("dp_preadmissao_documentos")
-        .select("versao")
-        .eq("preadmissao_id", pa.id)
-        .eq("requisito_codigo", codigo)
-        .order("versao", { ascending: false })
-        .limit(1);
-
-      const { error } = await admin.from("dp_preadmissao_documentos").insert({
-        preadmissao_id: pa.id,
-        company_id: pa.company_id,
-        pessoa_id: pessoaId,
-        requisito_codigo: codigo,
-        file_path: caminho,
-        file_name: String(body?.file_name ?? `${codigo}.${ext}`).slice(0, 180),
-        mime_type: mime,
-        file_size: bytes.length,
-        versao: ((anteriores?.[0]?.versao as number) ?? 0) + 1,
+      // Substituição da versão vigente + nova versão em UMA transação travada.
+      const reg = await registrarDocumento(admin as unknown as Parameters<typeof registrarDocumento>[0], {
+        preadmissaoId: pa.id,
+        codigo,
+        pessoaId: pessoaIdPedido,
+        filePath: caminho,
+        fileName: String(body?.file_name ?? `${codigo}.${ext}`).slice(0, 180),
+        mimeType: real,
+        fileSize: bytes.length,
       });
-      if (error) return jsonError(req, "internal", error.message);
+      if (!reg.ok) {
+        await admin.storage.from(BUCKET).remove([caminho]);
+        if (reg.motivo === "fase_encerrada") return jsonResponse(req, 409, { error: FASE_ENCERRADA });
+        if (reg.motivo === "titular_invalido") {
+          return jsonResponse(req, 400, { error: "Pessoa não encontrada nesta ficha." });
+        }
+        return jsonError(req, "internal", "não foi possível registrar o documento");
+      }
+      return jsonResponse(req, 200, { success: true, versao: reg.versao });
+    }
 
-      await registrarEvento(admin, pa.id, pa.company_id, "documento_enviado", { codigo });
-      return jsonResponse(req, 200, { success: true });
+    // ---------- Gestor: ficha oficial devolvida pela contabilidade ----------
+    if (acao === "ficha_oficial") {
+      const caller = await requireUser(req);
+      if (!caller) return jsonError(req, "unauthorized");
+      const preadmissaoId = String(body?.preadmissao_id ?? "").trim();
+      const { data: pa } = await admin
+        .from("dp_preadmissoes")
+        .select("id, company_id, status")
+        .eq("id", preadmissaoId)
+        .maybeSingle();
+      if (!pa) return jsonError(req, "not_found");
+      const access = await requireCompanyAccess(caller.id, pa.company_id as string);
+      if (!access || !canAdminister(access)) return jsonError(req, "forbidden");
+      if (!["enviado_contabilidade", "aguardando_registro", "registro_recebido"].includes(pa.status as string)) {
+        return jsonResponse(req, 409, {
+          error: "A ficha oficial só é anexada depois do envio à contabilidade.",
+          status: pa.status,
+        });
+      }
+
+      const bytes = decodificar(String(body?.content_base64 ?? ""));
+      if (!bytes.length) return jsonResponse(req, 400, { error: "O arquivo não foi recebido. Tente novamente." });
+      if (bytes.length > MAX_BYTES) return jsonResponse(req, 400, { error: "O arquivo passa de 10 MB." });
+      const real = tipoRealDoArquivo(bytes);
+      if (!real || !EXTENSOES[real]) {
+        return jsonResponse(req, 400, { error: "Anexe a ficha oficial em PDF ou imagem." });
+      }
+      const caminho = `${pa.company_id}/preadmissao/${pa.id}/ficha_oficial-${Date.now()}.${EXTENSOES[real]}`;
+      const up = await admin.storage.from(BUCKET).upload(caminho, bytes, { contentType: real, upsert: false });
+      if (up.error) return jsonError(req, "internal", up.error.message);
+
+      const { data: doc, error } = await admin
+        .from("dp_preadmissao_documentos")
+        .insert({
+          preadmissao_id: pa.id,
+          company_id: pa.company_id,
+          requisito_codigo: "ficha_oficial",
+          file_path: caminho,
+          file_name: String(body?.file_name ?? "ficha-oficial").slice(0, 180),
+          mime_type: real,
+          file_size: bytes.length,
+          versao: 1,
+        })
+        .select("id")
+        .single();
+      if (error || !doc) {
+        await admin.storage.from(BUCKET).remove([caminho]);
+        return jsonError(req, "internal", "não foi possível registrar a ficha oficial");
+      }
+
+      // A conferência é explícita: sem ela a admissão não é concluída.
+      const conferida = body?.conferida === true;
+      const t = await transicionar(
+        admin as unknown as Parameters<typeof transicionar>[0],
+        pa.id as string,
+        ["enviado_contabilidade", "aguardando_registro", "registro_recebido"],
+        conferida ? "registro_recebido" : (pa.status as string),
+        conferida
+          ? { contabilidade_retorno_em: true, ficha_oficial_conferida_em: true, ficha_oficial_conferida_por: caller.id }
+          : { contabilidade_retorno_em: true },
+      );
+      if (!t.ok) return jsonError(req, "internal", "não foi possível atualizar a pré-admissão");
+
+      await registrarEvento(
+        admin,
+        pa.id as string,
+        pa.company_id as string,
+        conferida ? "ficha_oficial_conferida" : "ficha_oficial_recebida",
+        { documento_id: doc.id },
+        caller.id,
+      );
+      return jsonResponse(req, 200, { success: true, documento_id: doc.id, status: t.status });
     }
 
     // ---------- Gestor: link temporário de visualização ----------
