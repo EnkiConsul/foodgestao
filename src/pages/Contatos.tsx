@@ -15,6 +15,7 @@ import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ContactImportDialog } from "@/components/contacts/ContactImportDialog";
 import { Plus, Search, Users, Pencil, Trash2, Mail, Phone, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
+import { traduzErroExclusao } from "@/lib/finance/exclusaoHistorico";
 import type { Tables } from "@/integrations/supabase/types";
 
 const TYPE_LABELS: Record<string, string> = {
