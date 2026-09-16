@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, ArrowLeftRight, TrendingUp, Target, FileBarChart,
+  LayoutDashboard, ArrowLeftRight, Target, FileBarChart,
   Landmark, CreditCard, Users, FolderTree, BookOpen,
 } from "lucide-react";
 import { SidebarSection, SidebarNavItem, type MenuItem } from "./shared";
