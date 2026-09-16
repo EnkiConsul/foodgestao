@@ -15,6 +15,7 @@ import {
 import { PaymentMethodFormDialog } from "@/components/payment-methods/PaymentMethodFormDialog";
 import { Plus, Search, CreditCard, Pencil, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
+import { traduzErroExclusao, mensagemHistoricoVinculado } from "@/lib/finance/exclusaoHistorico";
 
 export default function FormasPagamento() {
   const { user } = useAuth();
