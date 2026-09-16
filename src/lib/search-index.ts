@@ -15,10 +15,10 @@ export const SEARCH_INDEX: SearchDoc[] = [
     path: "/",
     title: "Aveto 360 — Gestão financeira para o food service",
     description:
-      "Unifique finanças pessoais e da sua operação. Contas a pagar e receber, orçamentos, fluxo de caixa e relatórios.",
+      "Unifique finanças pessoais e da sua operação. Contas a pagar e receber, fluxo de caixa e relatórios.",
     keywords: [
       "gestão financeira", "food service", "restaurante", "mei", "pequenos negócios",
-      "orçamento", "fluxo de caixa", "contas a pagar", "contas a receber", "relatórios",
+      "fluxo de caixa", "contas a pagar", "contas a receber", "relatórios",
     ],
     section: "Início",
   },

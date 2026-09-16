@@ -35,7 +35,7 @@ export const MODULES: ModuleDefinition[] = [
     slug: "financeiro",
     name: "Financeiro 360°",
     shortName: "Financeiro",
-    description: "Fluxo de caixa, lançamentos, orçamento e relatórios contábeis.",
+    description: "Fluxo de caixa, lançamentos, categorias e relatórios contábeis.",
     icon: Wallet,
     entryRoute: "/dashboard",
     available: true,
