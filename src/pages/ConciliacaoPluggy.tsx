@@ -58,6 +58,12 @@ import {
   type CardRoutingMaps,
 } from "@/lib/conciliacao/cardRouting";
 import { cardHintLabel, formatProviderDescription, hasMerchantName } from "@/lib/conciliacao/cardDescription";
+import {
+  criarResultado,
+  idsRemanescentes,
+  resumoConfirmacao,
+  type ConfirmResultado,
+} from "@/lib/conciliacao/confirmResultado";
 import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
 import {
   SCOPED_PLUGGY_ACCOUNT_SELECT,
