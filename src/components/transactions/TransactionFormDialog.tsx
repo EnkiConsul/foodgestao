@@ -1812,6 +1812,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       <ContactFormDialog
         open={contactDialogOpen}
         onOpenChange={setContactDialogOpen}
+        // A empresa em uso já vem marcada: sem vínculo o novo contato não
+        // apareceria na lista deste lançamento.
+        defaultCompanyIds={contextType === "pj" && selectedCompanyId ? [selectedCompanyId] : []}
+        defaultContactType={type === "entrada" ? "cliente" : "fornecedor"}
         onSaved={(newId) => {
           invalidateLookups();
           if (newId) setContactId(newId);
