@@ -124,29 +124,41 @@ Deno.serve(async (req) => {
     let connectRequestId: string | null = null;
     let clientUserId = claims.claims.sub as string;
     if (!companyId) {
-      // Apenas o probe do painel admin chega aqui.
+      // Apenas o probe do painel admin chega aqui: validar credenciais é ação
+      // administrativa, portanto exige super admin.
+      const admin = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      );
+      const { data: isSuper } = await admin.rpc('has_role', {
+        _user_id: claims.claims.sub as string,
+        _role: 'super_admin',
+      });
+      if (isSuper !== true) {
+        return new Response(JSON.stringify({
+          error: 'forbidden',
+          message: 'Ação disponível apenas para administradores.',
+        }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     } else {
       const admin = createClient(
         Deno.env.get('SUPABASE_URL')!,
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
       );
       const userId = claims.claims.sub as string;
-      const { data: mem } = await admin
-        .from('company_members').select('id')
-        .eq('company_id', companyId).eq('user_id', userId).maybeSingle();
-      let allowed = !!mem;
-      if (!allowed) {
-        // Donos da empresa podem não ter linha em company_members.
-        const { data: owned } = await admin
-          .from('companies').select('id')
-          .eq('id', companyId).eq('user_id', userId).maybeSingle();
-        allowed = !!owned;
-      }
-      if (!allowed) {
-        console.error('connect_token_company_not_member', { user: userId, companyId });
+      // Conectar um banco altera lançamentos: exige dono ou permissão de edição
+      // (leitores e contabilidade ficam de fora).
+      const { data: canEdit } = await admin.rpc('pluggy_user_can_edit', {
+        _user_id: userId,
+        _company_id: companyId,
+      });
+      if (canEdit !== true) {
+        console.error('connect_token_company_not_editor', { user: userId, companyId });
         return new Response(JSON.stringify({
           error: 'forbidden',
-          message: 'Você não tem acesso a esta empresa.',
+          message: 'Você não tem permissão para conectar bancos nesta empresa.',
         }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
