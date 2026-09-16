@@ -34,8 +34,8 @@ describe("buildExtratoConciliacao", () => {
     expect(model.totais.diferenca).toBe(15);
   });
 
-  it("aponta divergências de pendentes e ignorados", () => {
-    expect(model.divergencias.map((r) => r.stagingId)).toEqual(["s3", "s4"]);
+  it("aponta divergências de pendentes, mas não de ignorados (decisão já tomada)", () => {
+    expect(model.divergencias.map((r) => r.stagingId)).toEqual(["s3"]);
     expect(model.totais.creditosSemConciliacao).toEqual({ total: 45, count: 1 });
     expect(model.totais.debitosSemConciliacao).toEqual({ total: -30, count: 1 });
   });

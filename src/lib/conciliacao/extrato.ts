@@ -217,7 +217,14 @@ export function buildExtratoConciliacao({
   return {
     rows,
     totais,
-    divergencias: all.filter((r) => !r.conciliado),
+    // Divergência = o que exige ação. Linhas marcadas como duplicadas (versão do
+    // mesmo lançamento) ou ignoradas já foram decididas por alguém e saem da
+    // lista; já uma diferença REAL de valor entra mesmo quando conciliada.
+    divergencias: all.filter(
+      (r) =>
+        r.divergenteValor ||
+        (!r.conciliado && r.status !== "duplicate" && r.status !== "ignored"),
+    ),
     periodo: {
       from: all.length ? all[0].date : null,
       to: all.length ? all[all.length - 1].date : null,
