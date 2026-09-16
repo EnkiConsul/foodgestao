@@ -71,6 +71,7 @@ import { isSocio } from "@/lib/dp/contrato-policy";
 import { MinhaDisponibilidadeCard } from "@/components/dp/MinhaDisponibilidadeCard";
 import { regimeConvocavel } from "@/lib/dp/convocacoes-planejamento";
 import { notifyError } from "@/lib/notifyError";
+import { negarRegra } from "@/lib/dp/regraAviso";
 
 /** Retorno do cálculo do período de escolha feito no servidor. */
 interface JanelaRemota {
@@ -556,38 +557,33 @@ export default function DpMeuCalendario() {
       hoje.setHours(0, 0, 0, 0);
 
       // 1) data passada
-      if (d < hoje) throw new Error("Não é possível marcar folga em data passada.");
+      if (d < hoje) negarRegra("Não é possível marcar folga em data passada.");
 
       // 2) fim de semana
       const wd = d.getDay();
       if (wd !== 0 && wd !== 6) {
-        throw new Error('Apenas fins de semana podem ser marcados diretamente. Use "Solicitar exceção".');
+        negarRegra('Apenas fins de semana podem ser marcados diretamente. Use "Solicitar exceção".');
       }
 
-      // 2a) período mensal de escolha
+      // 2a) período mensal de escolha (só o início da escolha é restrito)
       if (!podeMarcarNormal(janela, d)) {
         const alvo = janela.competencia.toLocaleDateString("pt-BR", {
           month: "long",
           year: "numeric",
         });
         if (janela.estado === "antes") {
-          throw new Error(
-            `A escolha das folgas de ${alvo} abre em ${formatBR(janela.abreEm)}. Use "Solicitar exceção".`,
+          negarRegra(
+            `A escolha das folgas de ${alvo} abre em ${formatBR(janela.abreEm)}. Até lá, use "Solicitar exceção".`,
           );
         }
-        if (janela.estado === "encerrada") {
-          throw new Error(
-            `A escolha das folgas de ${alvo} foi encerrada em ${formatBR(janela.fechaEm)}. Use "Solicitar exceção".`,
-          );
-        }
-        throw new Error(
+        negarRegra(
           `Agora você escolhe as folgas de ${alvo}. Para folgar neste dia, use "Solicitar exceção".`,
         );
       }
 
       // 2b) folga dominical automática (padrão CLT): definida pelo sistema
       if (wd === 0 && folgaCltAutomatica) {
-        throw new Error(
+        negarRegra(
           "No padrão CLT a folga dominical é definida automaticamente pelo sistema. Use uma troca ou solicite exceção.",
         );
       }
@@ -600,14 +596,14 @@ export default function DpMeuCalendario() {
         folgas_fixas_dow: meusDiasFixosQuery.data ?? [],
       });
       if (fixos.includes(wd)) {
-        throw new Error('Este é seu dia de folga fixa. Use "Solicitar exceção" ou uma troca.');
+        negarRegra('Este é seu dia de folga fixa. Use "Solicitar exceção" ou uma troca.');
       }
 
       // 4) já tem folga própria nesse dia
       const jaNoDia = folgas.some(
         (f) => f.colaborador_id === meRef.data!.id && f.data === iso && f.status !== "cancelada",
       );
-      if (jaNoDia) throw new Error("Você já tem folga marcada neste dia.");
+      if (jaNoDia) negarRegra("Você já tem folga marcada neste dia.");
 
       // 5) limite mensal (1 folga de fim de semana)
       const mk = monthKey(d);
@@ -619,11 +615,14 @@ export default function DpMeuCalendario() {
           f.status !== "cancelada" &&
           [0, 6].includes(parseYMD(f.data).getDay()),
       );
-      if (jaTem) throw new Error("Você já possui uma folga de fim de semana neste mês.");
+      if (jaTem)
+        negarRegra(
+          "Você já possui uma folga de fim de semana neste mês. Remova a folga atual para escolher outra data.",
+        );
 
       // 6) bloqueio manual
       const bloq = manualBlocked.get(iso);
-      if (bloq && !bloq.liberada) throw new Error("Esta data está bloqueada administrativamente.");
+      if (bloq && !bloq.liberada) negarRegra("Esta data está bloqueada administrativamente.");
 
       // 7) lotação efetiva incluindo reservas de indisponibilidade (Fase 4)
       const { data: limiteDia, error: limiteErr } = await supabase.rpc("dp_folga_limite_dia", {
@@ -637,7 +636,7 @@ export default function DpMeuCalendario() {
       if (limiteErr) throw limiteErr;
       const limiteInfo = (limiteDia ?? {}) as Record<string, any>;
       if (limiteInfo.excedido) {
-        throw new Error(
+        negarRegra(
           limiteInfo.reserva && limiteInfo.reserva > 0
             ? "Data indisponível. Vagas reservadas por indisponibilidade de convocáveis."
             : "Data indisponível. Limite de folgas atingido.",
@@ -656,7 +655,7 @@ export default function DpMeuCalendario() {
       if (conflitoErr) throw conflitoErr;
       const c = (conflito ?? null) as { conflito?: boolean; colega_nome?: string | null } | null;
       if (c?.conflito) {
-        throw new Error(
+        negarRegra(
           `${c.colega_nome ?? "Um colega"} já está de folga neste dia e vocês não podem folgar juntos. Escolha outro dia.`,
         );
       }
@@ -667,18 +666,17 @@ export default function DpMeuCalendario() {
       if (error) {
         const raw = error.message ?? "";
         if (raw.includes("FOLGA_FORA_DA_JANELA"))
-          throw new Error("Fora do período de escolha das folgas. Use \"Solicitar exceção\".");
+          negarRegra('Fora do período de escolha das folgas. Use "Solicitar exceção".');
         if (raw.includes("FOLGA_LIMITE_DIA"))
-          throw new Error("Data indisponível. Limite de folgas atingido.");
+          negarRegra("Data indisponível. Limite de folgas atingido.");
         if (raw.includes("FOLGA_INCOMPATIBILIDADE"))
-          throw new Error(
+          negarRegra(
             raw.split("FOLGA_INCOMPATIBILIDADE:").pop()?.trim() ||
               "Você não pode folgar no mesmo dia de um colega desta regra.",
           );
-        if (raw.includes("DUPLICATE_REQUEST"))
-          throw new Error("Você já tem folga marcada neste dia.");
+        if (raw.includes("DUPLICATE_REQUEST")) negarRegra("Você já tem folga marcada neste dia.");
         if (raw.includes("PAST_DATE_NOT_EDITABLE"))
-          throw new Error("Não é possível marcar folga em datas passadas.");
+          negarRegra("Não é possível marcar folga em datas passadas.");
         throw error;
       }
     },
@@ -699,13 +697,13 @@ export default function DpMeuCalendario() {
       if (!meRef.data) throw new Error("Colaborador não encontrado");
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
-      if (parseYMD(iso) < hoje) throw new Error("Não é possível remover folga passada.");
+      if (parseYMD(iso) < hoje) negarRegra("Não é possível remover folga passada.");
       const folga = folgas.find(
         (f) => f.colaborador_id === meRef.data!.id && f.data === iso && f.status !== "cancelada",
       );
-      if (!folga) throw new Error("Folga não encontrada.");
-      if (folga.origem === "automatica_clt") {
-        throw new Error(
+      if (!folga) negarRegra("Folga não encontrada.");
+      if (folga!.origem === "automatica_clt") {
+        negarRegra(
           "Esta folga dominical é definida pela CLT e não pode ser removida. Solicite uma troca ou uma exceção.",
         );
       }
@@ -714,14 +712,14 @@ export default function DpMeuCalendario() {
       if (error) {
         const raw = error.message ?? "";
         if (raw.includes("FOLGA_OBRIGATORIA"))
-          throw new Error(
+          negarRegra(
             "Esta folga dominical é definida pela CLT e não pode ser removida. Solicite uma troca ou uma exceção.",
           );
         if (raw.includes("FOLGA_NAO_REMOVIVEL"))
-          throw new Error("Apenas folgas marcadas por você podem ser removidas. Fale com o DP.");
-        if (raw.includes("FOLGA_NAO_ENCONTRADA")) throw new Error("Folga não encontrada.");
+          negarRegra("Apenas folgas marcadas por você podem ser removidas. Fale com o DP.");
+        if (raw.includes("FOLGA_NAO_ENCONTRADA")) negarRegra("Folga não encontrada.");
         if (raw.includes("PAST_DATE_NOT_EDITABLE"))
-          throw new Error("Não é possível remover folga passada.");
+          negarRegra("Não é possível remover folga passada.");
         throw error;
       }
     },
@@ -745,19 +743,19 @@ export default function DpMeuCalendario() {
       if (error) {
         const raw = error.message ?? "";
         if (raw.includes("FOLGA_LIMITE_DIA"))
-          throw new Error(
+          negarRegra(
             "Neste dia já foi atingido o número de pessoas que podem folgar. Escolha outro dia ou fale com o DP.",
           );
 
         if (raw.includes("FOLGA_INCOMPATIBILIDADE"))
-          throw new Error(
+          negarRegra(
             raw.split("FOLGA_INCOMPATIBILIDADE:").pop()?.trim() ||
               "Você não pode folgar no mesmo dia de um colega desta regra.",
           );
         if (raw.includes("DUPLICATE_REQUEST"))
-          throw new Error("Você já tem uma solicitação pendente para este dia.");
+          negarRegra("Você já tem uma solicitação pendente para este dia.");
         if (raw.includes("PAST_DATE_NOT_EDITABLE"))
-          throw new Error("Não é possível solicitar folga em datas passadas.");
+          negarRegra("Não é possível solicitar folga em datas passadas.");
         throw new Error("Não foi possível enviar a solicitação. Tente novamente.");
       }
     },
@@ -775,16 +773,16 @@ export default function DpMeuCalendario() {
   const solicitarTroca = useMutation({
     mutationFn: async () => {
       if (!meRef.data || !tradeOpen) throw new Error("Sem contexto");
-      if (!tradeMyDate) throw new Error("Escolha uma folga sua para oferecer.");
+      if (!tradeMyDate) negarRegra("Escolha uma folga sua para oferecer.");
       if (tradeOpen.occupantId === meRef.data.id)
-        throw new Error("Não é possível trocar uma folga com você mesmo.");
+        negarRegra("Não é possível trocar uma folga com você mesmo.");
       if (tradeMyDate === tradeOpen.iso)
-        throw new Error("Escolha uma folga sua em outro dia: a troca precisa ser entre dias diferentes.");
+        negarRegra("Escolha uma folga sua em outro dia: a troca precisa ser entre dias diferentes.");
       const motivo = tradeMotivo.trim() || "Solicitação de troca via calendário";
-      // regra da unidade: modo e escopo da troca
+      // regra da unidade: modo e escopo da troca (o fim do período não altera isso)
       const tipoTroca = parseYMD(tradeMyDate).getDay() === 0 ? "dominical" : "semanal";
       const check = podeTrocarFolga(regrasConfig, tipoTroca);
-      if (!check.permitida) throw new Error(check.motivo ?? "Troca de folga não permitida.");
+      if (!check.permitida) negarRegra(check.motivo ?? "Troca de folga não permitida.");
 
 
       // duplicidade, folgas envolvidas e concorrência são revalidadas no servidor

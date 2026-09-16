@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { reportError } from "@/lib/errorLog";
+import { ehRegraNegada } from "@/lib/dp/regraAviso";
 
 /**
  * Falhas em linguagem clara + registro na Auditoria de erros.
@@ -33,6 +34,12 @@ function textoAmigavel(opts: NotifyErrorOptions): string {
 }
 
 export function notifyError(error: unknown, opts: NotifyErrorOptions): void {
+  // Aviso de regra: mostra a frase exata da regra e não registra na Auditoria.
+  if (ehRegraNegada(error)) {
+    const texto = (error as Error).message?.trim();
+    toast.warning(texto || textoAmigavel(opts), { closeButton: true, duration: 10_000 });
+    return;
+  }
   toast.error(textoAmigavel(opts), { closeButton: true, duration: 10_000 });
   if (!opts.silenciar) {
     void reportError({

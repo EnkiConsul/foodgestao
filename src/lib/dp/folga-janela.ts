@@ -62,12 +62,16 @@ export function resolverJanela(cfg: JanelaConfig, hoje: Date): JanelaResolvida {
 }
 
 /**
- * A marcação normal só é permitida com a janela aberta e para uma data dentro
- * do mês-alvo. Com a janela inativa, o comportamento antigo é mantido.
+ * O período é apenas o marco INICIAL da escolha:
+ * - antes de abrir, a marcação direta fica bloqueada (só exceção);
+ * - com o período aberto, a marcação vale para o mês-alvo;
+ * - depois de encerrado, o colaborador segue marcando e mudando folgas em datas
+ *   futuras (troca e exceção continuam disponíveis do mesmo jeito).
  */
 export function podeMarcarNormal(janela: JanelaResolvida, data: Date): boolean {
   if (janela.estado === "inativa") return true;
-  if (janela.estado !== "aberta") return false;
+  if (janela.estado === "antes") return false;
+  if (janela.estado === "encerrada") return true;
   return mesKey(data) === janela.competenciaKey;
 }
 
@@ -80,7 +84,7 @@ export function mensagemJanela(janela: JanelaResolvida, formatar: (d: Date) => s
     case "aberta":
       return `Escolha suas folgas de ${alvo} até ${formatar(janela.fechaEm)}.`;
     case "encerrada":
-      return `A escolha das folgas de ${alvo} foi encerrada em ${formatar(janela.fechaEm)}. Agora só é possível solicitar exceção.`;
+      return `O período de escolha das folgas de ${alvo} encerrou em ${formatar(janela.fechaEm)}. Você ainda pode marcar ou mudar folgas em datas futuras, pedir troca com um colega ou solicitar exceção.`;
     default:
       return "";
   }
