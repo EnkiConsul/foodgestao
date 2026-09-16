@@ -190,7 +190,15 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
         : mfaChecking
           ? "verificação em duas etapas"
           : "destino inicial";
-    return <GuardWaiting pending={pending} scope="Acesso à tela protegida" />;
+    return (
+      <GuardWaiting
+        pending={pending}
+        scope="Acesso à tela protegida"
+        // A checagem de cadastro já tem limite e nova tentativa: o erro é
+        // registrado quando ela falha, não por lentidão passageira.
+        relatar={pending !== "cadastro" || cadastroFalhou}
+      />
+    );
   }
 
   if (!user) {
