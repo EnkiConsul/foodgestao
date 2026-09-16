@@ -1,26 +1,46 @@
-# Por que o nome da conta não salva — diagnóstico e correção
+# Corrigir o erro ao anexar comprovante de pagamento
 
-## O que já está confirmado
+## O que está acontecendo
 
-- O formulário de edição envia apenas os dados cadastrais (nome, tipo, banco, agência/conta, natureza) e só considera salvo quando o banco devolve a linha alterada. Se voltar "zero linhas", ele mostra erro — mesmo sem nenhuma falha de rede.
-- As regras de acesso do banco só permitem alterar contas de uma empresa em que o usuário está cadastrado como sócio/administrador (ou membro com permissão de edição em "Contas").
-- Nas duas empresas com "Praianos" no nome, o único usuário cadastrado como membro é o titular do Praianos. O seu usuário (Rafael, super administrador) não é membro dessas empresas.
-- Existe uma regra que permite ao super administrador **ver** todas as contas, mas **nenhuma** que permita **alterar**. Ou seja: a conta aparece, o botão Editar aparece, e o salvamento volta sem alterar nada — exatamente o comportamento relatado.
-- Nos últimos dias não há nenhum registro de alteração de nome de conta na auditoria, apenas atualizações automáticas de saldo bancário.
+Ao anexar o comprovante (adiantamento da Hanna, entre outros), o envio falha com
+`invalid input syntax for type uuid: "comprovantes"` e o usuário só vê "Erro".
 
-Falta apenas uma confirmação: o texto exato do erro que apareceu, para separar "nenhuma alteração aplicada" (falta de permissão) de outra causa.
+Causa confirmada: o arquivo do comprovante é gravado numa pasta que começa com o
+texto `comprovantes/`, mas a regra de acesso do repositório de arquivos do DP exige
+que a **primeira pasta seja o identificador da empresa**. Ao tentar interpretar
+`comprovantes` como identificador, o servidor recusa o envio. Nenhum comprovante
+foi gravado até agora por esse caminho, então não há arquivo a migrar.
+
+Segundo ponto: mesmo com o caminho corrigido, a regra de leitura só autoriza o
+colaborador a abrir o arquivo principal do documento — não o comprovante. O
+colaborador continuaria sem conseguir abrir o comprovante que a empresa anexou.
 
 ## O que será feito
 
-1. **Confirmar o caso real**: registrar, na tentativa de salvar, o motivo devolvido pelo banco (código e se veio zero linhas), sem expor dados sensíveis, para termos certeza do caminho percorrido nessa tela.
-2. **Tornar o botão honesto**: quando o usuário não tem permissão de edição na empresa da conta (caso do super administrador que só tem visão), o botão Editar fica indisponível com explicação clara, em vez de abrir um formulário que nunca salva.
-3. **Mensagem clara no salvamento**: se ainda assim o envio voltar sem alteração, a mensagem passa a dizer que a conta pertence a outra empresa e que a alteração precisa ser feita por um sócio/administrador dessa empresa, mantendo o formulário aberto com o que foi digitado.
-4. **Caminho para renomear de verdade**: para o Praianos, o titular da empresa renomeia normalmente. Se você quiser renomear você mesmo, precisa estar cadastrado como administrador nessa empresa — posso preparar essa inclusão em uma etapa separada, com sua autorização explícita.
+1. **Envio (código)** — gravar o comprovante em
+   `<empresa>/<colaborador>/comprovantes/<arquivo>`, mantendo a mesma pasta da
+   empresa usada pelos demais documentos. Nada muda no visual nem no fluxo.
+2. **Leitura (regra de acesso)** — ampliar a regra de leitura do repositório para
+   reconhecer também o arquivo de comprovante do documento, com exatamente as
+   mesmas condições já usadas hoje: mesma empresa, documento do próprio
+   colaborador, documento não disciplinar e ativo/arquivado. Administração e super
+   administrador continuam como estão.
+3. **Verificação** — anexar, visualizar, baixar, substituir e remover o comprovante
+   como administração; abrir o comprovante como colaborador; confirmar que a
+   pendência de comprovante é baixada ao anexar.
 
 ## Detalhes técnicos
 
-- Arquivos: `src/components/accounts/AccountFormDialog.tsx` (mensagem e bloqueio do modo edição), `src/pages/ContasBancarias.tsx` (habilitar/desabilitar o botão Editar por permissão da empresa da conta), `src/lib/accounts/accountCopyTargets.ts` (texto de `describeSaveFailure` para o caso "zero linhas" com empresa de terceiros).
-- A permissão é derivada do vínculo do usuário na empresa da conta (`company_members.role` owner/admin, ou `permissions.accounts = 'edit'`), sem afrouxar nenhuma política do banco.
-- Sem migration: nenhuma política será criada para o super administrador alterar contas de empresas onde não é membro (isso ampliaria privilégio sem pedido explícito).
-- Testes: botão Editar desabilitado sem permissão; salvamento com resposta de zero linhas mostra a mensagem nova e mantém o formulário aberto; caminho normal do sócio continua salvando.
-- Nada é publicado; nenhum dado, vínculo ou consentimento é alterado.
+- `src/hooks/useDpComprovantePagamento.tsx`: `path` passa de
+  `comprovantes/${companyId}/...` para `${companyId}/${colaboradorId ?? "geral"}/comprovantes/${Date.now()}-${nome}`.
+  A remoção do arquivo anterior continua usando o caminho gravado na linha, então
+  registros antigos seguem funcionando.
+- Migration nova (incremental): recriar a policy `dp_doc_bucket_read_autorizado`
+  em `storage.objects` acrescentando o ramo
+  `d.comprovante_file_path = objects.name` ao lado do atual `d.file_path`, mantendo
+  `d.company_id = split_part(name,'/',1)::uuid`, `d.colaborador_id = dp_colaborador_ativo_of(auth.uid())`,
+  `d.tipo <> 'disciplinar'` e `d.ciclo_status in ('ativo','arquivado')`. Rollback:
+  recriar a policy anterior. `dp_doc_bucket_admin_write` já cobre a escrita porque
+  valida só a primeira pasta.
+- `dp_documento_arquivo` já trata a variante `comprovante` — nenhuma mudança nela.
+- Sem alteração de layout, sem publicação, sem mexer em outros achados.
