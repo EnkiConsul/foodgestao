@@ -15936,7 +15936,6 @@ export type Database = {
           expires_at: string
           id: string
           role: string
-          token: string
         }[]
       }
       open_finance_sync_health: { Args: { _company_id: string }; Returns: Json }
