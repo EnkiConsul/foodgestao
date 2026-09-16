@@ -154,6 +154,14 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
       .catch((error) => {
         if (cancelled) return;
         console.error("[onboarding] falha ao resolver status", error);
+        setCadastroFalhou(true);
+        void reportError({
+          error: error instanceof Error ? error : new Error(String(error)),
+          surface: "Acesso à tela protegida",
+          action: "verificar cadastro",
+          source: "client",
+          userMessage: "Não conseguimos confirmar seu cadastro agora.",
+        });
         setOnboardingCompleted(false);
         setCheckingOnboarding(false);
       });
