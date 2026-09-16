@@ -12,6 +12,7 @@
 // verify_jwt = false — protegido pelo header secreto interno (WEBHOOK_WORKER_SECRET,
 // com fallback para PLUGGY_CRON_SECRET, o segredo compartilhado dos jobs internos).
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { classifySyncResult, type SyncBody } from '../_shared/syncOutcome.ts';
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
 /**
