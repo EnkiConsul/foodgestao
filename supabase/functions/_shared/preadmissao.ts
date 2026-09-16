@@ -5,7 +5,7 @@
  * pré-admissão SEMPRE vem do convite validado no servidor; nada que o candidato
  * envie é usado como autorização.
  */
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export const VALIDADE_PADRAO_DIAS = 7;
 
