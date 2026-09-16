@@ -178,7 +178,28 @@ export default function Categorias() {
   const handleBatchDelete = async () => {
     if (selected.size === 0) return;
     setBatchDeleting(true);
-    const deletes = Array.from(selected).map((id) =>
+    const ids = Array.from(selected);
+    let comLancamentos = new Set<string>();
+    try {
+      comLancamentos = await idsComLancamentos("category_id", ids);
+    } catch (e: any) {
+      toast.error("Não foi possível verificar os lançamentos", { description: e?.message ?? "Tente novamente." });
+      setBatchDeleting(false);
+      setBatchDeleteOpen(false);
+      return;
+    }
+    const liberadas = ids.filter((id) => !comLancamentos.has(id));
+    if (comLancamentos.size > 0) {
+      toast.error("Não é possível excluir", {
+        description: `${comLancamentos.size} categoria(s) possuem lançamentos vinculados e foram mantidas para preservar o histórico. Inative-as em vez de excluir.`,
+      });
+    }
+    if (liberadas.length === 0) {
+      setBatchDeleting(false);
+      setBatchDeleteOpen(false);
+      return;
+    }
+    const deletes = liberadas.map((id) =>
       supabase.from("categories").delete().eq("id", id)
     );
     const results = await Promise.all(deletes);
