@@ -3,8 +3,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
-import type { ConfigTrabalho, DiaConfig, TurnoResolvido } from "@/lib/dp/config-trabalho";
-import { normalizarDias } from "@/lib/dp/config-trabalho";
+import type { TurnoResolvido } from "@/lib/dp/config-trabalho";
+import {
+  itemParaLinha,
+  montarColaboradoresEscala,
+  type ColaboradorRow,
+  type ConfigTrabalhoRow,
+} from "@/lib/dp/escala-mes-base";
 import {
   diasDaCompetencia,
   gerarEscalaMes,
@@ -108,7 +113,9 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
           .eq("company_id", selectedCompanyId!),
         supabase
           .from("dp_colaborador_config_trabalho")
-          .select("*, dias:dp_colaborador_config_dias(dow, trabalha, turno_id, setor_id)")
+          .select(
+            "*, dias:dp_colaborador_config_dias(dow, trabalha, turno_id, setor_id, entrada, saida, intervalo_minutos)",
+          )
           .eq("company_id", selectedCompanyId!)
           .lte("vigencia_inicio", fim)
           .order("vigencia_inicio", { ascending: false }),
@@ -150,32 +157,13 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
   const colaboradores: ColaboradorEscala[] = useMemo(() => {
     const d = base.data;
     if (!d) return [];
-    return d.colaboradores
-      .filter((c) => !unidadeId || c.unidade_id === unidadeId)
-      .map((c) => {
-        const vigente = d.configs.find(
-          (cfg) =>
-            cfg.colaborador_id === c.id &&
-            cfg.vigencia_inicio <= fim &&
-            (!cfg.vigencia_fim || cfg.vigencia_fim >= inicio),
-        );
-        const config: ConfigTrabalho | null = vigente
-          ? {
-              turno_padrao_id: vigente.turno_padrao_id,
-              folga_variavel: vigente.folga_variavel,
-              folga_fixa_dow: vigente.folga_fixa_dow,
-              dias: normalizarDias(
-                ((vigente as unknown as { dias?: DiaConfig[] }).dias ?? []).map((x) => ({
-                  dow: x.dow,
-                  trabalha: x.trabalha,
-                  turno_id: x.turno_id ?? null,
-                })),
-                vigente.folga_variavel ? null : vigente.folga_fixa_dow,
-              ),
-            }
-          : null;
-        return { id: c.id, nome: c.nome, regime: c.regime, config };
-      });
+    return montarColaboradoresEscala({
+      colaboradores: (d.colaboradores ?? []) as ColaboradorRow[],
+      configs: (d.configs ?? []) as unknown as ConfigTrabalhoRow[],
+      unidadeId,
+      inicio,
+      fim,
+    });
   }, [base.data, unidadeId, inicio, fim]);
 
   const ausencias: AusenciaIntervalo[] = useMemo(
@@ -227,23 +215,7 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
       if (errDel) throw errDel;
 
       if (propostos.length) {
-        const linhas = propostos.map((i) => ({
-          company_id: selectedCompanyId!,
-          escala_id: id,
-          colaborador_id: i.colaborador_id,
-          data: i.data,
-          tipo: i.tipo,
-          turno_id: i.turno_id,
-          entrada: i.entrada,
-          saida: i.saida,
-          intervalo_minutos: i.intervalo_minutos,
-          termina_no_dia_seguinte: i.termina_no_dia_seguinte,
-          carga_prevista_horas: i.carga_prevista_horas,
-          origem: i.origem,
-          observacao: i.observacao ?? null,
-          setor_id: i.setor_id ?? null,
-          setor_motivo: i.setor_motivo ?? null,
-        }));
+        const linhas = propostos.map((i) => itemParaLinha(i, selectedCompanyId!, id));
         for (let i = 0; i < linhas.length; i += 500) {
           const { error } = await supabase.from("dp_escala_itens").insert(linhas.slice(i, i + 500));
           if (error) throw error;
@@ -259,23 +231,7 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
     mutationFn: async (item: EscalaItem) => {
       const id = await garantirEscala();
       const { error } = await supabase.from("dp_escala_itens").upsert(
-        {
-          company_id: selectedCompanyId!,
-          escala_id: id,
-          colaborador_id: item.colaborador_id,
-          data: item.data,
-          tipo: item.tipo,
-          turno_id: item.turno_id,
-          entrada: item.entrada,
-          saida: item.saida,
-          intervalo_minutos: item.intervalo_minutos,
-          termina_no_dia_seguinte: item.termina_no_dia_seguinte,
-          carga_prevista_horas: item.carga_prevista_horas,
-          origem: "manual",
-          observacao: item.observacao ?? null,
-          setor_id: item.setor_id ?? null,
-          setor_motivo: item.setor_motivo ?? null,
-        },
+        itemParaLinha(item, selectedCompanyId!, id, "manual"),
         { onConflict: "escala_id,colaborador_id,data" },
       );
       if (error) throw error;
