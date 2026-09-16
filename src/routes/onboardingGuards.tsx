@@ -18,13 +18,23 @@ const GUARD_TIMEOUT_MS = 10_000;
  * preso na bolinha girando em tela cheia. Passado o limite, registramos o erro
  * (com a verificação pendente) e oferecemos recuperação.
  */
-function GuardWaiting({ pending, scope }: { pending: string; scope: string }) {
+function GuardWaiting({
+  pending,
+  scope,
+  relatar = true,
+}: {
+  pending: string;
+  scope: string;
+  /** Só registra o erro quando as tentativas da verificação já falharam. */
+  relatar?: boolean;
+}) {
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
     setTimedOut(false);
     const id = window.setTimeout(() => {
       setTimedOut(true);
+      if (!relatar) return;
       void reportError({
         error: new Error(`Verificação de entrada não respondeu: ${pending}`),
         surface: scope,
