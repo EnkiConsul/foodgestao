@@ -12,9 +12,19 @@ import { LIMITE_SEMANAL, DIAS_SEMANA, ORDEM_EXIBICAO, formatarHoras } from "@/li
 import { cargaLiquidaHoras, formatarFaixaTurno, type TurnoHorario } from "@/lib/dp/turno-utils";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 
-/** Turno resolvido para um dia da configuração (turno do dia ou o turno padrão). */
+/** Turno cadastrado, resolvido para uso na tela (id sempre real). */
 export interface TurnoResolvido extends TurnoHorario {
   id: string;
+  nome: string;
+  cor?: string | null;
+}
+
+/**
+ * Horário que vale para um dia. Quando o dia tem horário próprio e nenhum turno
+ * cadastrado, `id` é null: não existe identificador de turno para persistir.
+ */
+export interface TurnoDia extends TurnoHorario {
+  id: string | null;
   nome: string;
   cor?: string | null;
 }
