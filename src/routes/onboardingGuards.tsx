@@ -45,7 +45,7 @@ function GuardWaiting({
       });
     }, GUARD_TIMEOUT_MS);
     return () => window.clearTimeout(id);
-  }, [pending, scope]);
+  }, [pending, scope, relatar]);
 
   if (!timedOut) {
     return (
