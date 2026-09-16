@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
 
   try {
     const admin = serviceClient();
-    if (await ipRateLimited(admin, req, "preadmissao_publica", 300)) return jsonError(req, "rate_limited");
+    if (await ipRateLimited(admin as unknown as Parameters<typeof ipRateLimited>[0], req, "preadmissao_publica", 300)) return jsonError(req, "rate_limited");
 
     const body = await req.json().catch(() => ({}));
     const conviteId = String(body?.t ?? "").trim();

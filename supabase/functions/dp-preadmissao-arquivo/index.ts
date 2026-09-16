@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
 
     // ---------- Candidato: envio de documento ----------
     if (acao === "upload") {
-      if (await ipRateLimited(admin, req, "preadmissao_upload", 200)) return jsonError(req, "rate_limited");
+      if (await ipRateLimited(admin as unknown as Parameters<typeof ipRateLimited>[0], req, "preadmissao_upload", 200)) return jsonError(req, "rate_limited");
       const valid = await validarConvite(admin, String(body?.t ?? ""), String(body?.c ?? ""));
       if (!valid.ok) return jsonResponse(req, 403, { error: "Este link não está mais válido." });
       const pa = valid.preadmissao;
