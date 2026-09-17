@@ -291,6 +291,7 @@ export function useAplicarFicha() {
           colaboradorId: pr.colaborador_id,
           jaAplicado: !!pr.ja_aplicado,
           anexo: "nao_solicitado" as AnexoFichaStatus,
+          modo: pr.modo,
         };
       }
 
