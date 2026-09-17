@@ -22,9 +22,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
-import { imprimirCertificadoValidacao } from "@/lib/dp/documento-certificado";
+import { certificadoValidacaoPdf } from "@/lib/dp/documento-certificado";
 import { abrirArquivoDp } from "@/lib/dp/abrirDocumento";
-import { abrirDocumento } from "@/lib/documentoArquivo";
+import { linkDocumentoAssinado } from "@/lib/documentoArquivo";
 import { Receipt } from "lucide-react";
 import { baixarCsv } from "@/lib/dp/portal-csv";
 import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/ColaboradorDocumentosPanel";
