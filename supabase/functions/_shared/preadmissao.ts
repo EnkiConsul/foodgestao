@@ -512,3 +512,130 @@ export async function transicionarComVersao(
   }
   return data as ResultadoTransicao & { versao?: number };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dados administrativos do gestor: allowlist, tipos e referências canônicas
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Fichas encerradas não aceitam mais nenhuma alteração do gestor. */
+export const ESTADOS_ENCERRADOS_GESTOR = ["concluido", "cancelado", "expirado"] as const;
+
+export function gestorPodeAlterar(status: string): boolean {
+  return !(ESTADOS_ENCERRADOS_GESTOR as readonly string[]).includes(status);
+}
+
+/** Campos administrativos aceitos (mesmos nomes canônicos do cadastro do DP). */
+export const CAMPOS_ADMIN = [
+  "data_admissao", "regime_trabalho", "forma_pagamento", "salario", "jornada_descricao",
+  "cargo_id", "unidade_id", "setor_id", "observacoes",
+] as const;
+
+/** Enums canônicos do banco (dp_regime_trabalho / dp_forma_pagamento). */
+export const REGIMES_TRABALHO = [
+  "clt", "pj", "estagio", "temporario", "mei", "intermitente", "freelancer",
+] as const;
+
+export const FORMAS_PAGAMENTO = [
+  "mensalista", "horista", "diarista", "semanal", "por_turno", "servico_acordo",
+] as const;
+
+const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+export interface AdminValidado {
+  fora: string[];
+  erros: Record<string, string>;
+  campos: Record<string, unknown>;
+  referencias: Array<{ campo: string; tabela: string; id: string }>;
+}
+
+/**
+ * Valida os dados administrativos: chave fora da allowlist derruba o pedido
+ * (requisito 70), tipos e enums são conferidos e as referências (cargo,
+ * unidade, setor) são devolvidas para checagem de empresa pelo chamador.
+ */
+export function validarAdminDados(entrada: unknown): AdminValidado {
+  const out: AdminValidado = { fora: [], erros: {}, campos: {}, referencias: [] };
+  if (!entrada || typeof entrada !== "object" || Array.isArray(entrada)) {
+    out.fora.push("dados administrativos inválidos");
+    return out;
+  }
+  const src = entrada as Record<string, unknown>;
+  const permitidos = new Set<string>(CAMPOS_ADMIN as readonly string[]);
+  out.fora = Object.keys(src).filter((k) => !permitidos.has(k));
+  if (out.fora.length) return out;
+
+  const texto = (k: string): string | null => {
+    const v = src[k];
+    if (v === null || v === undefined) return null;
+    if (typeof v !== "string" && typeof v !== "number") {
+      out.erros[k] = "Valor inválido.";
+      return null;
+    }
+    return String(v).trim();
+  };
+
+  for (const campo of CAMPOS_ADMIN) {
+    if (!(campo in src)) continue;
+    const v = texto(campo);
+    if (v === null) continue;
+    if (v === "") {
+      out.campos[campo] = "";
+      continue;
+    }
+    if (campo === "data_admissao") {
+      if (!dataValida(v)) out.erros[campo] = "Informe uma data de admissão válida.";
+      else out.campos[campo] = v;
+      continue;
+    }
+    if (campo === "regime_trabalho") {
+      if (!(REGIMES_TRABALHO as readonly string[]).includes(v)) out.erros[campo] = "Selecione um vínculo da lista.";
+      else out.campos[campo] = v;
+      continue;
+    }
+    if (campo === "forma_pagamento") {
+      if (!(FORMAS_PAGAMENTO as readonly string[]).includes(v)) {
+        out.erros[campo] = "Selecione uma forma de pagamento da lista.";
+      } else out.campos[campo] = v;
+      continue;
+    }
+    if (campo === "salario") {
+      const num = Number(v.replace(/\./g, "").replace(",", "."));
+      if (!Number.isFinite(num) || num < 0 || num > 1_000_000) out.erros[campo] = "Informe um salário válido.";
+      else out.campos[campo] = num.toFixed(2);
+      continue;
+    }
+    if (campo === "cargo_id" || campo === "unidade_id" || campo === "setor_id") {
+      if (!UUID_RE.test(v)) {
+        out.erros[campo] = "Referência inválida.";
+        continue;
+      }
+      out.campos[campo] = v;
+      out.referencias.push({
+        campo,
+        tabela: campo === "cargo_id" ? "dp_cargos" : campo === "unidade_id" ? "dp_unidades" : "dp_setores",
+        id: v,
+      });
+      continue;
+    }
+    // Textos livres: tamanho limitado, sem HTML.
+    if (v.length > 400) {
+      out.erros[campo] = "Texto muito longo.";
+      continue;
+    }
+    out.campos[campo] = v.replace(/[<>]/g, "");
+  }
+  return out;
+}
+
+/** Confere no banco que cada referência pertence à empresa da ficha. */
+export async function referenciasDaEmpresa(
+  admin: Db,
+  companyId: string,
+  referencias: AdminValidado["referencias"],
+): Promise<string | null> {
+  for (const ref of referencias) {
+    const { data } = await admin.from(ref.tabela).select("id").eq("id", ref.id).eq("company_id", companyId).maybeSingle();
+    if (!data) return ref.campo;
+  }
+  return null;
+}
