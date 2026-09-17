@@ -338,6 +338,50 @@ Deno.serve(async (req) => {
       return jsonResponse(req, 200, { success: true, status: "pronto_contabilidade" });
     }
 
+    /**
+     * Conferência da ficha oficial: ato EXPLÍCITO do gestor, separado do anexo.
+     * Exige documento vigente anexado e confirmação; nunca acontece no upload.
+     */
+    if (acao === "conferir_ficha_oficial") {
+      if (!["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(pa.status)) {
+        return jsonResponse(req, 409, {
+          error: "A conferência só é registrada depois do envio à contabilidade.",
+          status: pa.status,
+        });
+      }
+      if (body?.confirmado !== true) {
+        return jsonResponse(req, 400, { error: "Confirme que a ficha oficial foi conferida." });
+      }
+      const documentoId = String(body?.documento_id ?? "").trim();
+      if (!documentoId) return jsonResponse(req, 400, { error: "Indique a ficha oficial conferida." });
+      const { data: doc } = await admin
+        .from("dp_preadmissao_documentos")
+        .select("id, requisito_codigo, substituido_em")
+        .eq("id", documentoId)
+        .eq("preadmissao_id", pa.id)
+        .eq("company_id", pa.company_id)
+        .eq("requisito_codigo", "ficha_oficial")
+        .maybeSingle();
+      if (!doc) return jsonResponse(req, 400, { error: "Anexe a ficha oficial da contabilidade antes de conferir." });
+      if (doc.substituido_em) {
+        return jsonResponse(req, 409, { error: "Esta versão da ficha oficial foi substituída. Confira a mais recente." });
+      }
+      const t = await transicionar(
+        admin,
+        pa.id,
+        ["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"],
+        "registro_recebido",
+        { ficha_oficial_conferida_em: true, ficha_oficial_conferida_por: caller.id },
+      );
+      if (!t.ok) {
+        return t.motivo === "status_inesperado"
+          ? jsonResponse(req, 409, { error: "A situação mudou enquanto você trabalhava. Recarregue a ficha.", status: t.status })
+          : jsonError(req, "internal", "não foi possível registrar a conferência");
+      }
+      await registrarEvento(admin, pa.id, pa.company_id, "ficha_oficial_conferida", { documento_id: doc.id }, caller.id);
+      return jsonResponse(req, 200, { success: true, status: "registro_recebido" });
+    }
+
     if (acao === "marcar_status") {
       const novo = String(body?.status ?? "");
       // Receber a ficha oficial NÃO é uma simples mudança de situação: exige o
