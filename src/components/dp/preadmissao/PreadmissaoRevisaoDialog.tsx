@@ -21,6 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { notifyError } from "@/lib/notifyError";
+import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
+import { useDpSetores } from "@/hooks/useDpSetores";
 import {
   PREADMISSAO_STATUS_LABEL, abrirDocumentoPreadmissao, anexarFichaOficial,
   useDpPreadmissao, useDpPreadmissaoGestor, type PreadmissaoStatus,
