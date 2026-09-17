@@ -280,6 +280,27 @@ export default function PreAdmissao() {
     }
   };
 
+  /** O candidato revê o próprio arquivo por link temporário do convite. */
+  const verArquivo = async (documentoId: string) => {
+    try {
+      const r = await chamar<{ url: string }>("dp-preadmissao-arquivo", {
+        action: "url_candidato",
+        t, c,
+        documento_id: documentoId,
+      });
+      window.open(r.url, "_blank", "noopener");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const documentoPorChave = useMemo(() => {
+    const m = new Map<string, { id: string; file_name: string; status: string }>();
+    (estado?.documentos ?? []).forEach((d) =>
+      m.set(`${d.requisito_codigo}:${d.pessoa_id ?? ""}`, { id: d.id, file_name: d.file_name, status: d.status }));
+    return m;
+  }, [estado?.documentos]);
+
   const enviadosPorChave = useMemo(() => {
     const m = new Set<string>();
     (estado?.documentos ?? []).forEach((d) => m.add(`${d.requisito_codigo}:${d.pessoa_id ?? ""}`));
@@ -514,7 +535,9 @@ export default function PreAdmissao() {
                 <p className="text-sm text-muted-foreground">Nenhum documento pedido para esta ficha.</p>
               )}
               {(estado?.checklist ?? []).map((item) => {
-                const ok = enviadosPorChave.has(`${item.codigo}:${item.pessoa_id ?? ""}`);
+                const chave = `${item.codigo}:${item.pessoa_id ?? ""}`;
+                const ok = enviadosPorChave.has(chave);
+                const doc = documentoPorChave.get(chave);
                 return (
                   <div key={item.key} className="rounded-lg border p-3 flex items-center gap-3">
                     <div className="min-w-0 flex-1">
@@ -523,6 +546,20 @@ export default function PreAdmissao() {
                         {item.pessoa_nome ? item.pessoa_nome : "Seu documento"}
                         {item.obrigatorio ? " · obrigatório" : " · opcional"}
                       </p>
+                      {doc && (
+                        <button
+                          type="button"
+                          className="text-xs text-primary underline mt-1"
+                          onClick={() => verArquivo(doc.id)}
+                        >
+                          Ver o que você enviou
+                        </button>
+                      )}
+                      {doc?.status === "recusado" && (
+                        <p className="text-xs text-destructive mt-1">
+                          A empresa pediu uma nova foto deste documento.
+                        </p>
+                      )}
                     </div>
                     {ok && <Badge variant="outline" className="text-emerald-600">Enviado</Badge>}
                     <Button size="sm" variant={ok ? "outline" : "default"} className="h-10"
