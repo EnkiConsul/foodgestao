@@ -100,6 +100,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const { ativos: setores } = useDpSetores(admin.unidade_id || null);
   const fichaRef = useRef<HTMLInputElement>(null);
   const [enviandoFicha, setEnviandoFicha] = useState(false);
+  const [excluir, setExcluir] = useState(false);
 
   const pa = data?.preadmissao;
   const status = (pa?.status ?? "aguardando_preenchimento") as PreadmissaoStatus;
