@@ -1,6 +1,6 @@
 # Próxima etapa
 
-Os 15 ajustes da ficha de admissão estão fechados. Ficaram três frentes em aberto na lista de tarefas. Sugiro esta ordem:
+Os 15 ajustes da ficha de admissão estão fechados. Dentro de Pessoas 360° ficaram duas frentes em aberto. Sugiro esta ordem:
 
 ## Etapa A (recomendada agora) — Fechar o endereço e os pendentes visuais da admissão
 
@@ -16,13 +16,11 @@ Os 15 ajustes da ficha de admissão estão fechados. Ficaram três frentes em ab
 
 Nada é enviado por WhatsApp ou e-mail a pessoas reais e os dados de teste não são apagados.
 
-## Etapa C — Auditoria de Open Finance e conciliação
-
-Cinco pontos já mapeados: permissão nas rotinas de conciliação, trava contra confirmação dupla, resultado detalhado na tela de conciliação, contadores reais da sincronização e tratamento de webhook/revogação/extrato. Os três lançamentos marcados para revisão manual continuam intocados.
+Fora de escopo: a parte financeira (Open Finance e conciliação) fica com o Rafael e não entra neste plano.
 
 ## Detalhes técnicos
 
 - Etapa A reaproveita `src/components/shared/EnderecoFields.tsx` e `src/lib/endereco.ts`; a ficha do colaborador guarda o endereço em campo estruturado (JSON) em `dp_colaboradores`, então a mudança é só de tela, sem migration. `FichaRevisaoCard` mantém o modo de comparação e apenas troca os campos de entrada.
 - Etapa B roda com fixtures próprias em empresa de teste, chamadas HTTP reais às funções de admissão e sessões distintas para o teste de arquivos.
-- Etapa C exige migrations (permissões e travas) e será apresentada com o SQL para aprovação antes de aplicar.
+
 - Verificação em todas as etapas: tipos, lint dos arquivos alterados e os testes já existentes — sem baterias completas.
