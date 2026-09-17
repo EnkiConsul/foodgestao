@@ -158,3 +158,37 @@ Concorrência: garantida por `pg_advisory_xact_lock` na ficha, `SELECT ... FOR U
 
 ### Observação de compatibilidade
 O frontend do gestor (ainda não construído) deve ler diretamente e escrever apenas via Edge Functions/RPCs; nenhum código atual chamava a assinatura removida.
+
+## Incremento 4 — Telas (gestor, candidato e pendências)
+
+- Rotina `dp-preadmissao-gestor`: nova ação `listar` (empresa autorizada pelo servidor,
+  validade do convite vigente) e `avaliar_documento` (aprovar/recusar com motivo obrigatório,
+  recusa exige justificativa, versão substituída não pode ser avaliada, evento registrado).
+- `src/hooks/dp/useDpPreadmissoes.ts`: leitura da lista/detalhe, convite (criar/renovar/cancelar),
+  ações de revisão, abertura de documento por URL assinada e anexo da ficha oficial conferida.
+  Mensagens de erro sempre vêm da rotina do servidor (nunca texto técnico do invoke).
+- `/dp/colaboradores/pre-admissoes` (`DpPreadmissoes.tsx`): lista com busca, situação, cargo/unidade,
+  validade do link, gerar novo link (invalida o anterior) e cancelar. Cartões no celular, tabela no desktop.
+- `PreadmissaoConviteDialog`: cria o convite (validade padrão 7 dias, renovável), mostra o link uma
+  única vez e oferece envio pelo WhatsApp.
+- `PreadmissaoRevisaoDialog`: dados do candidato, familiares (dependente/Sesc), documentos com
+  visualização e análise, pendências, aviso de bloqueio (menor de 18 + após 22h), dados administrativos,
+  pedido de correção, preparar/enviar à contabilidade, anexar e conferir a ficha oficial e, só em
+  `registro_recebido`, "Conferir Dados E Criar Cadastro" → Importar Ficha com `?preadmissao=`
+  (conclusão atômica por `dp_preadmissao_efetivar_com_ficha`).
+- `/pre-admissao` (`PreAdmissao.tsx`): página pública em etapas (dados, contato, endereço, documentos e
+  registros, familiares, envio de arquivos), retomada pelo mesmo link, upload por foto, mensagens claras
+  para link inválido/expirado/fase encerrada; `noindex`.
+- Pendências: `useDpPendencias` passou a listar pré-admissões em `aguardando_revisao`,
+  `aguardando_nova_versao`, `pronto_contabilidade` e `registro_recebido`, com a ação esperada.
+
+### Verificações
+- `npx tsgo --noEmit` sem erros; 29 testes unitários de regras verdes.
+- QA real no navegador: `/pre-admissao` com link inválido em 390×844 e 1366×768 (mensagem amigável,
+  sem erro de console) e `/dp/colaboradores/pre-admissoes` autenticado em 390×844 e 1440×900
+  (item no menu, lista vazia com orientação, sem erros de console).
+- Nada publicado. Rollback do incremento: remover rota/itens de tela; o banco não mudou nesta etapa.
+
+### Ainda pendente
+- Testes de integração das telas (critérios 110–123), aviso/notificação no sino, aviso de CPF já
+  cadastrado antes do convite e QA nas demais resoluções combinadas.
