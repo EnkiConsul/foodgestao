@@ -160,10 +160,11 @@ Deno.serve(async (req) => {
       const preadmissaoId = String(body?.preadmissao_id ?? "").trim();
       const { data: pa } = await admin
         .from("dp_preadmissoes")
-        .select("id, company_id, status")
+        .select("id, company_id, status, removido_em")
         .eq("id", preadmissaoId)
         .maybeSingle();
       if (!pa) return jsonError(req, "not_found");
+      if (pa.removido_em) return jsonError(req, "not_found");
       const access = await requireCompanyAccess(caller.id, pa.company_id as string);
       if (!access || !canAdminister(access)) return jsonError(req, "forbidden");
       if (!["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(pa.status as string)) {
