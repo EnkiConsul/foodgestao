@@ -119,7 +119,9 @@ export function ColaboradorDocumentosPanel({
                 item={item}
                 somenteEnvio={somenteEnvio}
                 ocupado={ocupado}
-                onEnviar={(file, validade) => doc.enviar.mutate({ item, file, validade })}
+                onEnviar={(file, validade, novaParte) =>
+                  doc.enviar.mutate({ item, file, validade, novaParte })
+                }
                 onAbrir={(anexo) => doc.abrirArquivo(anexo)}
                 onAprovar={(anexo, validade) => doc.aprovar.mutate({ item, anexo, validade })}
                 onRecusar={(anexo, motivo) => doc.recusar.mutate({ item, anexo, motivo })}

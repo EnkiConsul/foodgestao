@@ -270,6 +270,15 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
   };
 
   const vigentes = useMemo(() => (data?.documentos ?? []).filter((d) => !d.substituido_em), [data?.documentos]);
+  /** Rótulo da foto enviada: frente, verso ou fotos extras do mesmo documento. */
+  const rotuloParte = (d: { parte?: number | null; parte_rotulo?: string | null }) => {
+    const rotulo = (d.parte_rotulo ?? "").trim();
+    if (rotulo) return rotulo;
+    const parte = Number(d.parte ?? 1);
+    if (parte <= 1) return "Frente";
+    if (parte === 2) return "Verso";
+    return `Foto ${parte}`;
+  };
   const nomePessoa = (id: string | null) =>
     id ? (data?.pessoas ?? []).find((p) => p.id === id)?.nome ?? "Familiar" : "O candidato";
 
@@ -421,6 +430,7 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                   <div key={d.id} className="rounded-lg border p-2 text-sm">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium">{d.requisito_codigo.replace(/_/g, " ")}</span>
+                      <Badge variant="secondary">{rotuloParte(d)}</Badge>
                       <span className="text-xs text-muted-foreground">{nomePessoa(d.pessoa_id)}</span>
                       {d.status === "aprovado" && <Badge variant="outline" className="text-emerald-600">Aprovado</Badge>}
                       {d.status === "recusado" && <Badge variant="destructive">Recusado</Badge>}

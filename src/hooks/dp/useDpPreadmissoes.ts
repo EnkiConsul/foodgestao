@@ -82,6 +82,9 @@ export interface PreadmissaoDocumento {
   versao: number;
   created_at: string;
   substituido_em: string | null;
+  /** Frente, verso ou fotos extras do mesmo documento (1 a 10). */
+  parte?: number | null;
+  parte_rotulo?: string | null;
 }
 
 export interface PreadmissaoDetalhe {

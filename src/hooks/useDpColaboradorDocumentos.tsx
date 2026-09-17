@@ -121,13 +121,17 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
 
   const arquivoDoItem = (item: ItemChecklist) => arquivoDoAnexo(item.vinculo);
 
-  /** Anexa um arquivo ao requisito. Itens com vários arquivos criam nova linha. */
+  /**
+   * Anexa um arquivo ao requisito. Itens com vários arquivos criam nova linha;
+   * `novaParte` guarda frente, verso e fotos extras sem apagar o que já existe.
+   */
   const enviar = useMutation({
     mutationFn: async ({
       item,
       file,
       validade,
-    }: { item: ItemChecklist; file: File; validade?: string | null }) => {
+      novaParte,
+    }: { item: ItemChecklist; file: File; validade?: string | null; novaParte?: boolean }) => {
       const ctx = base.data;
       if (!ctx) throw new Error("Checklist não carregado");
       const path = `${ctx.colaborador.company_id}/${ctx.colaborador.id}/requisitos/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
@@ -179,8 +183,9 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
         aceito_em: null,
       };
 
-      // Substitui a linha existente apenas quando o item aceita um único arquivo.
-      const substituir = !item.multiplos && item.vinculo;
+      // Substitui a linha existente apenas quando o item aceita um único
+      // arquivo e não é uma foto adicional (frente/verso).
+      const substituir = !item.multiplos && !novaParte && item.vinculo;
       if (substituir) {
         const { error } = await supabase
           .from("dp_colaborador_documentos")
