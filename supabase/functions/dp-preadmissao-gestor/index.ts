@@ -164,7 +164,8 @@ Deno.serve(async (req) => {
 
     if (acao === "salvar_admin") {
       const entrada = (body?.admin_dados ?? {}) as Record<string, unknown>;
-      const t = await transicionar(admin, pa.id, null, null, {
+      // Versão sobe: uma conferência iniciada antes disso não será aplicada.
+      const t = await transicionarComVersao(admin, pa.id, null, null, {
         admin_dados: { ...(pa.admin_dados ?? {}), ...entrada },
       });
       if (!t.ok) return jsonError(req, "internal", "não foi possível salvar os dados administrativos");
@@ -192,7 +193,9 @@ Deno.serve(async (req) => {
       }
       if (typeof body?.trabalho_apos_22h === "boolean") patch.trabalho_apos_22h = body.trabalho_apos_22h;
       if (!Object.keys(patch).length) return jsonError(req, "invalid_input", "nada a alterar");
-      const t = await transicionar(admin, pa.id, null, null, patch);
+      // Muda os requisitos exigidos: a versão sobe para invalidar preparações
+      // que já tinham conferido o checklist antigo.
+      const t = await transicionarComVersao(admin, pa.id, null, null, patch);
       if (!t.ok) return jsonError(req, "internal", "não foi possível alterar a previsão");
       await registrarEvento(admin, pa.id, pa.company_id, "previsto_alterado", { campos: Object.keys(patch) }, caller.id);
       // Documentos já enviados nunca são apagados; o checklist é recalculado.
