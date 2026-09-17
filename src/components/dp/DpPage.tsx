@@ -103,7 +103,10 @@ export function DpPageHeader({
       <div className="flex min-w-0 items-start gap-2 sm:gap-3">
         <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary sm:mt-1 sm:h-7 sm:w-7" aria-hidden="true" />
         <div className="min-w-0">
-          <h1 className="text-lg font-bold leading-tight tracking-normal sm:text-2xl md:text-3xl">{toTitleCase(title)}</h1>
+          <h1 className="flex items-center gap-1 text-lg font-bold leading-tight tracking-normal sm:text-2xl md:text-3xl">
+            {toTitleCase(title)}
+            {helpKey && <HelpHint helpKey={helpKey} size="md" side="bottom" align="start" />}
+          </h1>
           {description && (
             <p className="mt-0.5 text-xs text-muted-foreground break-words leading-snug sm:mt-1 sm:text-sm">{description}</p>
           )}
