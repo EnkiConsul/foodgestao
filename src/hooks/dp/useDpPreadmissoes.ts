@@ -92,6 +92,8 @@ export interface PreadmissaoDetalhe {
   checklist: Array<{ key: string; codigo: string; titulo: string; pessoa_id?: string | null; pessoa_nome?: string | null; obrigatorio: boolean }>;
   pendencias: Array<{ key: string; titulo: string; pessoa_nome?: string | null }>;
   bloqueio: { situacao: "ok" | "bloqueado" | "pendente"; mensagem: string };
+  /** Aviso: CPF informado já existe na empresa (não bloqueia a revisão). */
+  cpf_existente: { situacao: "ativo" | "desligado"; nome: string } | null;
   eventos: Array<{ evento: string; detalhe: unknown; created_at: string }>;
 }
 
@@ -221,6 +223,11 @@ export function useDpPreadmissaoGestor(id: string | null) {
         await acao({ action: "avaliar_documento", ...entrada }),
       onSuccess: invalidar,
     }),
+    conferirFichaOficial: useMutation({
+      mutationFn: async (documentoId: string) =>
+        await acao({ action: "conferir_ficha_oficial", documento_id: documentoId, confirmado: true }),
+      onSuccess: invalidar,
+    }),
     marcarStatus: useMutation({
       mutationFn: async (status: PreadmissaoStatus) => await acao({ action: "marcar_status", status }),
       onSuccess: invalidar,
@@ -234,11 +241,13 @@ export async function abrirDocumentoPreadmissao(documentoId: string): Promise<st
   return r.url;
 }
 
-/** Anexa a ficha oficial devolvida pela contabilidade e registra a conferência. */
+/**
+ * Anexa a ficha oficial devolvida pela contabilidade. Anexar NÃO confere: a
+ * conferência é registrada depois, pelo gestor, em ação própria.
+ */
 export async function anexarFichaOficial(
   preadmissaoId: string,
   arquivo: File,
-  conferida: boolean,
 ): Promise<void> {
   const base64 = await new Promise<string>((resolve, reject) => {
     const fr = new FileReader();
@@ -252,6 +261,5 @@ export async function anexarFichaOficial(
     file_name: arquivo.name,
     mime_type: arquivo.type || "application/pdf",
     content_base64: base64,
-    conferida,
   });
 }

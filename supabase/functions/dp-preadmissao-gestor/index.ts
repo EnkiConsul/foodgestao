@@ -11,17 +11,22 @@ import {
   registrarEvento,
   requisitosEmpresa,
   requisitosPrevistos,
+  ESTADOS_ABERTOS_GESTOR,
+  gestorPodeAlterar,
+  referenciasDaEmpresa,
   transicionar,
   transicionarComVersao,
+  validarAdminDados,
   type Preadmissao,
 } from "../_shared/preadmissao.ts";
 import { bloqueioMenorNoturno, montarChecklist, pendenciasDocumentais } from "../_shared/preadmissao-checklist.ts";
 
 /**
- * Situações em que a ficha pode seguir para a contabilidade. Correção pedida
- * NÃO entra: a ficha está com o candidato, ainda sem a nova versão.
+ * Única situação em que a ficha pode seguir para a contabilidade. Correção
+ * pedida e "aguardando nova versão" NÃO entram: a ficha está com o candidato,
+ * que ainda pode editar os dados.
  */
-const PODE_PREPARAR = ["aguardando_revisao", "aguardando_nova_versao"];
+const PODE_PREPARAR = ["aguardando_revisao"];
 
 /** Mínimos administrativos que a contabilidade precisa receber. */
 const ADMIN_OBRIGATORIOS: Array<[string, string]> = [
@@ -107,8 +112,11 @@ Deno.serve(async (req) => {
 
     /** Sempre relê a ficha: nenhuma resposta é montada com estado antigo. */
     const montar = async () => {
-      const [{ data: atual }, { data: pessoas }, { data: docs }, reqs, reqsEmpresa, { data: eventos }] = await Promise.all([
-        admin.from("dp_preadmissoes").select("*").eq("id", pa.id).maybeSingle(),
+      // A ficha é lida ANTES dos requisitos: cargo/unidade recém-alterados
+      // valem imediatamente no checklist (nunca o estado antigo em memória).
+      const { data: atual } = await admin.from("dp_preadmissoes").select("*").eq("id", pa.id).maybeSingle();
+      const fichaAtual = (atual ?? pa) as unknown as Preadmissao;
+      const [{ data: pessoas }, { data: docs }, reqs, reqsEmpresa, { data: eventos }] = await Promise.all([
         admin.from("dp_preadmissao_pessoas").select("*").eq("preadmissao_id", pa.id)
           .is("removido_em", null).order("created_at"),
         admin
@@ -116,12 +124,12 @@ Deno.serve(async (req) => {
           .select("id, requisito_codigo, pessoa_id, file_name, status, motivo_recusa, versao, created_at, substituido_em")
           .eq("preadmissao_id", pa.id)
           .order("created_at", { ascending: false }),
-        requisitosPrevistos(admin, pa),
+        requisitosPrevistos(admin, fichaAtual),
         requisitosEmpresa(admin, pa.company_id),
         admin.from("dp_preadmissao_eventos").select("evento, detalhe, created_at").eq("preadmissao_id", pa.id)
           .order("created_at", { ascending: false }).limit(50),
       ]);
-      const ficha = (atual ?? pa) as unknown as Preadmissao;
+      const ficha = fichaAtual;
       const dados = (ficha.dados ?? {}) as Record<string, unknown>;
       const vigentes = (docs ?? []).filter((d) => !d.substituido_em);
       const checklist = montarChecklist({
@@ -132,7 +140,26 @@ Deno.serve(async (req) => {
         requisitosEmpresa: reqsEmpresa,
       });
       const pendencias = pendenciasDocumentais(checklist, vigentes as never);
+      // Aviso (não bloqueio): o CPF informado já existe na empresa?
+      let cpfExistente: { situacao: "ativo" | "desligado"; nome: string } | null = null;
+      const cpfLimpo = String(ficha.cpf ?? "").replace(/\D/g, "");
+      if (cpfLimpo.length === 11) {
+        const { data: colab } = await admin
+          .from("dp_colaboradores")
+          .select("nome, desligado_em")
+          .eq("company_id", pa.company_id)
+          .eq("cpf", cpfLimpo)
+          .limit(1)
+          .maybeSingle();
+        if (colab) {
+          cpfExistente = {
+            situacao: colab.desligado_em ? "desligado" : "ativo",
+            nome: String(colab.nome ?? ""),
+          };
+        }
+      }
       return {
+        cpf_existente: cpfExistente,
         preadmissao: ficha,
         pessoas: pessoas ?? [],
         documentos: docs ?? [],
@@ -163,17 +190,48 @@ Deno.serve(async (req) => {
     }
 
     if (acao === "salvar_admin") {
-      const entrada = (body?.admin_dados ?? {}) as Record<string, unknown>;
+      if (!gestorPodeAlterar(pa.status)) {
+        return jsonResponse(req, 409, { error: "Esta pré-admissão já foi encerrada.", status: pa.status });
+      }
+      const val = validarAdminDados(body?.admin_dados ?? {});
+      if (val.fora.length) {
+        return jsonResponse(req, 400, { error: "Pedido inválido: campos não permitidos.", campos: val.fora });
+      }
+      if (Object.keys(val.erros).length) {
+        return jsonResponse(req, 400, { error: "Confira os dados administrativos.", erros: val.erros });
+      }
+      const refInvalida = await referenciasDaEmpresa(admin, pa.company_id, val.referencias);
+      if (refInvalida) {
+        return jsonResponse(req, 400, { error: "A referência informada não pertence a esta empresa.", campo: refInvalida });
+      }
+      // Relê a ficha para mesclar sobre o estado atual, não sobre o carregado.
+      const { data: fresca } = await admin.from("dp_preadmissoes")
+        .select("status, admin_dados").eq("id", pa.id).maybeSingle();
+      if (!fresca || !gestorPodeAlterar(String(fresca.status))) {
+        return jsonResponse(req, 409, { error: "Esta pré-admissão já foi encerrada.", status: fresca?.status });
+      }
       // Versão sobe: uma conferência iniciada antes disso não será aplicada.
-      const t = await transicionarComVersao(admin, pa.id, null, null, {
-        admin_dados: { ...(pa.admin_dados ?? {}), ...entrada },
+      const t = await transicionarComVersao(admin, pa.id, [...ESTADOS_ABERTOS_GESTOR], null, {
+        admin_dados: { ...((fresca.admin_dados ?? {}) as Record<string, unknown>), ...val.campos },
       });
       if (!t.ok) return jsonError(req, "internal", "não foi possível salvar os dados administrativos");
-      await registrarEvento(admin, pa.id, pa.company_id, "dados_administrativos_salvos", {}, caller.id);
+      await registrarEvento(
+        admin, pa.id, pa.company_id, "dados_administrativos_salvos",
+        { campos: Object.keys(val.campos) }, caller.id,
+      );
       return jsonResponse(req, 200, { success: true, ...(await montar()) });
     }
 
     if (acao === "alterar_previsto") {
+      if (!gestorPodeAlterar(pa.status)) {
+        return jsonResponse(req, 409, { error: "Esta pré-admissão já foi encerrada.", status: pa.status });
+      }
+      const foraRaiz = Object.keys(body ?? {}).filter(
+        (k) => !["action", "preadmissao_id", "cargo_previsto_id", "unidade_prevista_id", "trabalho_apos_22h"].includes(k),
+      );
+      if (foraRaiz.length) {
+        return jsonResponse(req, 400, { error: "Pedido inválido: campos não permitidos.", campos: foraRaiz });
+      }
       const patch: Record<string, unknown> = {};
       if (body?.cargo_previsto_id !== undefined) {
         const cargoId = body.cargo_previsto_id ? String(body.cargo_previsto_id) : null;
@@ -195,8 +253,12 @@ Deno.serve(async (req) => {
       if (!Object.keys(patch).length) return jsonError(req, "invalid_input", "nada a alterar");
       // Muda os requisitos exigidos: a versão sobe para invalidar preparações
       // que já tinham conferido o checklist antigo.
-      const t = await transicionarComVersao(admin, pa.id, null, null, patch);
-      if (!t.ok) return jsonError(req, "internal", "não foi possível alterar a previsão");
+      const t = await transicionarComVersao(admin, pa.id, [...ESTADOS_ABERTOS_GESTOR], null, patch);
+      if (!t.ok) {
+        return t.motivo === "status_inesperado"
+          ? jsonResponse(req, 409, { error: "Esta pré-admissão já foi encerrada.", status: t.status })
+          : jsonError(req, "internal", "não foi possível alterar a previsão");
+      }
       await registrarEvento(admin, pa.id, pa.company_id, "previsto_alterado", { campos: Object.keys(patch) }, caller.id);
       // Documentos já enviados nunca são apagados; o checklist é recalculado.
       return jsonResponse(req, 200, await montar());
@@ -293,6 +355,50 @@ Deno.serve(async (req) => {
       }
       await registrarEvento(admin, pa.id, pa.company_id, "pronta_para_contabilidade", {}, caller.id);
       return jsonResponse(req, 200, { success: true, status: "pronto_contabilidade" });
+    }
+
+    /**
+     * Conferência da ficha oficial: ato EXPLÍCITO do gestor, separado do anexo.
+     * Exige documento vigente anexado e confirmação; nunca acontece no upload.
+     */
+    if (acao === "conferir_ficha_oficial") {
+      if (!["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(pa.status)) {
+        return jsonResponse(req, 409, {
+          error: "A conferência só é registrada depois do envio à contabilidade.",
+          status: pa.status,
+        });
+      }
+      if (body?.confirmado !== true) {
+        return jsonResponse(req, 400, { error: "Confirme que a ficha oficial foi conferida." });
+      }
+      const documentoId = String(body?.documento_id ?? "").trim();
+      if (!documentoId) return jsonResponse(req, 400, { error: "Indique a ficha oficial conferida." });
+      const { data: doc } = await admin
+        .from("dp_preadmissao_documentos")
+        .select("id, requisito_codigo, substituido_em")
+        .eq("id", documentoId)
+        .eq("preadmissao_id", pa.id)
+        .eq("company_id", pa.company_id)
+        .eq("requisito_codigo", "ficha_oficial")
+        .maybeSingle();
+      if (!doc) return jsonResponse(req, 400, { error: "Anexe a ficha oficial da contabilidade antes de conferir." });
+      if (doc.substituido_em) {
+        return jsonResponse(req, 409, { error: "Esta versão da ficha oficial foi substituída. Confira a mais recente." });
+      }
+      const t = await transicionar(
+        admin,
+        pa.id,
+        ["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"],
+        "registro_recebido",
+        { ficha_oficial_conferida_em: true, ficha_oficial_conferida_por: caller.id },
+      );
+      if (!t.ok) {
+        return t.motivo === "status_inesperado"
+          ? jsonResponse(req, 409, { error: "A situação mudou enquanto você trabalhava. Recarregue a ficha.", status: t.status })
+          : jsonError(req, "internal", "não foi possível registrar a conferência");
+      }
+      await registrarEvento(admin, pa.id, pa.company_id, "ficha_oficial_conferida", { documento_id: doc.id }, caller.id);
+      return jsonResponse(req, 200, { success: true, status: "registro_recebido" });
     }
 
     if (acao === "marcar_status") {

@@ -188,16 +188,14 @@ Deno.serve(async (req) => {
         return jsonError(req, "internal", "não foi possível registrar a ficha oficial");
       }
 
-      // A conferência é explícita: sem ela a admissão não é concluída.
-      const conferida = body?.conferida === true;
+      // Anexar NÃO é conferir: o arquivo entra como recebido e a situação só
+      // muda quando o gestor registra a conferência (ação do gestor).
       const t = await transicionar(
         admin as unknown as Parameters<typeof transicionar>[0],
         pa.id as string,
         ["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"],
-        conferida ? "registro_recebido" : (pa.status as string),
-        conferida
-          ? { contabilidade_retorno_em: true, ficha_oficial_conferida_em: true, ficha_oficial_conferida_por: caller.id }
-          : { contabilidade_retorno_em: true },
+        pa.status as string,
+        { contabilidade_retorno_em: true },
       );
       if (!t.ok) return jsonError(req, "internal", "não foi possível atualizar a pré-admissão");
 
@@ -205,11 +203,33 @@ Deno.serve(async (req) => {
         admin,
         pa.id as string,
         pa.company_id as string,
-        conferida ? "ficha_oficial_conferida" : "ficha_oficial_recebida",
+        "ficha_oficial_recebida",
         { documento_id: doc.id },
         caller.id,
       );
       return jsonResponse(req, 200, { success: true, documento_id: doc.id, status: t.status });
+    }
+
+    // ---------- Candidato: rever os próprios arquivos pelo convite ----------
+    if (acao === "url_candidato") {
+      if (await ipRateLimited(admin as unknown as Parameters<typeof ipRateLimited>[0], req, "preadmissao_url", 300)) {
+        return jsonError(req, "rate_limited");
+      }
+      const valid = await validarConvite(admin, String(body?.t ?? ""), String(body?.c ?? ""));
+      if (!valid.ok) return jsonResponse(req, 403, { error: "Este link não está mais válido." });
+      const documentoId = String(body?.documento_id ?? "").trim();
+      const { data: doc } = await admin
+        .from("dp_preadmissao_documentos")
+        .select("id, file_path, file_name, requisito_codigo, substituido_em")
+        .eq("id", documentoId)
+        .eq("preadmissao_id", valid.preadmissao.id)
+        .eq("company_id", valid.preadmissao.company_id)
+        .maybeSingle();
+      // A ficha oficial da contabilidade é documento interno: não vai ao candidato.
+      if (!doc || doc.requisito_codigo === "ficha_oficial") return jsonError(req, "not_found");
+      const signed = await admin.storage.from(BUCKET).createSignedUrl(doc.file_path as string, 120);
+      if (signed.error) return jsonError(req, "internal", signed.error.message);
+      return jsonResponse(req, 200, { url: signed.data.signedUrl, file_name: doc.file_name });
     }
 
     // ---------- Gestor: link temporário de visualização ----------

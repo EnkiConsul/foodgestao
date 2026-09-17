@@ -84,6 +84,51 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     });
   }, [pa?.id, pa?.admin_dados]);
 
+  const fichaOficial = useMemo(
+    () =>
+      (data?.documentos ?? []).find((d) => d.requisito_codigo === "ficha_oficial" && !d.substituido_em) ?? null,
+    [data?.documentos],
+  );
+
+  /** Monta uma folha imprimível com tudo que a contabilidade precisa conferir. */
+  const imprimirPacote = () => {
+    if (!data) return;
+    const esc = (v: unknown) =>
+      String(v ?? "").replace(/[<>&]/g, (m) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[m] as string));
+    const linhas = (obj: Record<string, unknown>) =>
+      Object.entries(obj)
+        .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "")
+        .map(([k, v]) => `<tr><th>${esc(k.replace(/_/g, " "))}</th><td>${esc(v)}</td></tr>`)
+        .join("");
+    const pessoas = (data.pessoas ?? [])
+      .map((pe) => `<li>${esc(pe.nome)} — ${esc(pe.parentesco)}${pe.data_nascimento ? ` — ${esc(pe.data_nascimento)}` : ""}</li>`)
+      .join("");
+    const docs = (data.documentos ?? [])
+      .filter((d) => !d.substituido_em)
+      .map((d) => `<li>${esc(d.requisito_codigo)} — ${esc(d.file_name)} (${esc(d.status)})</li>`)
+      .join("");
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<title>Pacote da contabilidade — ${esc(data.preadmissao.candidato_nome)}</title>
+<style>body{font-family:system-ui,sans-serif;padding:24px;color:#111}h1{font-size:18px}h2{font-size:14px;margin-top:20px}
+table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #ddd;padding:4px 6px;text-align:left}
+th{width:220px;background:#f6f6f6;text-transform:capitalize}ul{font-size:12px}</style></head><body>
+<h1>Pacote da contabilidade — ${esc(data.preadmissao.candidato_nome)}</h1>
+<h2>Dados do candidato</h2><table>${linhas((data.preadmissao.dados ?? {}) as Record<string, unknown>)}</table>
+<h2>Informações administrativas</h2><table>${linhas((data.preadmissao.admin_dados ?? {}) as Record<string, unknown>)}</table>
+<h2>Familiares</h2><ul>${pessoas || "<li>Nenhum</li>"}</ul>
+<h2>Documentos recebidos</h2><ul>${docs || "<li>Nenhum</li>"}</ul>
+</body></html>`;
+    const w = window.open("", "_blank", "noopener,width=900,height=700");
+    if (!w) {
+      toast.error("Libere as janelas pop-up para imprimir o pacote.");
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    w.print();
+  };
+
   const vigentes = useMemo(() => (data?.documentos ?? []).filter((d) => !d.substituido_em), [data?.documentos]);
   const nomePessoa = (id: string | null) =>
     id ? (data?.pessoas ?? []).find((p) => p.id === id)?.nome ?? "Familiar" : "O candidato";
@@ -107,11 +152,11 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     }
   };
 
-  const enviarFichaOficial = async (arquivo: File, conferida: boolean) => {
+  const enviarFichaOficial = async (arquivo: File) => {
     setEnviandoFicha(true);
     try {
-      await anexarFichaOficial(preadmissaoId!, arquivo, conferida);
-      toast.success(conferida ? "Ficha oficial anexada e conferida" : "Ficha oficial anexada");
+      await anexarFichaOficial(preadmissaoId!, arquivo);
+      toast.success("Ficha oficial anexada. Confira o arquivo e registre a conferência.");
       refetch();
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "anexar a ficha oficial" });
@@ -136,6 +181,17 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           </div>
         ) : (
           <div className="space-y-5">
+            {data.cpf_existente && (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+                <p className="font-semibold text-amber-700">CPF já cadastrado nesta empresa</p>
+                <p className="text-muted-foreground">
+                  {data.cpf_existente.situacao === "ativo"
+                    ? `${data.cpf_existente.nome} está com cadastro ativo. Confira antes de seguir: não é possível admitir o mesmo CPF duas vezes.`
+                    : `${data.cpf_existente.nome} já trabalhou aqui. A conclusão será registrada como recontratação.`}
+                </p>
+              </div>
+            )}
+
             {data.bloqueio.situacao !== "ok" && (
               <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
                 <p className="font-semibold flex items-center gap-2 text-destructive">
@@ -318,13 +374,20 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                 </div>
               )}
 
-              {["aguardando_revisao", "aguardando_nova_versao"].includes(status) && (
+              {status === "aguardando_revisao" && (
                 <Button
                   disabled={acoes.prepararContabilidade.isPending}
                   onClick={() =>
                     executar(() => acoes.prepararContabilidade.mutateAsync(), "Ficha pronta para a contabilidade")}
                 >
                   Preparar Para A Contabilidade
+                </Button>
+              )}
+
+              {["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade"].includes(status) && (
+                <Button variant="outline" onClick={imprimirPacote}>
+                  <FileUp className="h-4 w-4 mr-2" />
+                  Imprimir Pacote Da Contabilidade
                 </Button>
               )}
 
@@ -354,7 +417,8 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                 <div className="rounded-lg border p-3 space-y-2">
                   <p className="text-sm font-semibold">Ficha oficial devolvida pela contabilidade</p>
                   <p className="text-xs text-muted-foreground">
-                    Anexe o arquivo e confirme a conferência. O cadastro só é criado depois disso.
+                    Primeiro anexe o arquivo recebido. Depois abra, confira e registre a conferência: são
+                    dois atos distintos, e o cadastro só é criado após a conferência.
                   </p>
                   <input
                     ref={fichaRef}
@@ -364,13 +428,34 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                     onChange={(e) => {
                       const f = e.target.files?.[0];
                       e.target.value = "";
-                      if (f) enviarFichaOficial(f, true);
+                      if (f) enviarFichaOficial(f);
                     }}
                   />
-                  <Button variant="outline" disabled={enviandoFicha} onClick={() => fichaRef.current?.click()}>
-                    {enviandoFicha ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileUp className="h-4 w-4 mr-2" />}
-                    Anexar E Conferir Ficha Oficial
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" disabled={enviandoFicha} onClick={() => fichaRef.current?.click()}>
+                      {enviandoFicha ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileUp className="h-4 w-4 mr-2" />}
+                      {fichaOficial ? "Anexar Nova Versão" : "Anexar Ficha Oficial"}
+                    </Button>
+                    {fichaOficial && (
+                      <>
+                        <Button variant="outline" onClick={() => ver(fichaOficial.id)}>
+                          Abrir Ficha Oficial
+                        </Button>
+                        <Button
+                          onClick={() =>
+                            executar(
+                              () => acoes.conferirFichaOficial.mutateAsync(fichaOficial.id),
+                              "Conferência registrada",
+                            )}
+                        >
+                          Registrar Conferência
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                  {!fichaOficial && (
+                    <p className="text-xs text-muted-foreground">Nenhuma ficha oficial anexada ainda.</p>
+                  )}
                 </div>
               )}
 
