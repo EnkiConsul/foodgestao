@@ -1302,7 +1302,7 @@ export function useDpPendencias() {
             tipo: "Pré-Admissão",
             colaboradorNome: pa.candidato_nome,
             vencimento: null,
-            atrasoDias: desde ? Math.max(0, differenceInCalendarDays(hoje, new Date(desde))) : 0,
+            atrasoDias: desde ? Math.max(0, differenceInCalendarDays(today, new Date(desde))) : 0,
             url: "/dp/colaboradores/pre-admissoes",
           });
         }
