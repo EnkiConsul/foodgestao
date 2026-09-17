@@ -124,8 +124,29 @@ export function dadosParaCadastro(
     }
     if (escolhas[c.campo] !== "ficha") escrever(c.ficha, conferido);
   }
+  // Dados pessoais que o candidato preencheu e a ficha da contabilidade não
+  // traz (e-mail, escolaridade, nacionalidade e afins) não podem se perder.
+  for (const [chave, valor] of Object.entries(staging ?? {})) {
+    if (CHAVES_STAGING_MAPEADAS.has(chave) || CHAVES_STAGING_IGNORADAS.has(chave)) continue;
+    if (valor === null || valor === undefined) continue;
+    if (typeof valor === "object") continue;
+    const texto = String(valor).trim();
+    if (!texto) continue;
+    const atual = out[chave];
+    const jaTem = atual !== null && atual !== undefined && String(atual).trim() !== "";
+    if (!jaTem) out[chave] = texto;
+  }
   return out;
 }
+
+/** Chaves do staging já tratadas pela comparação campo a campo. */
+const CHAVES_STAGING_MAPEADAS = new Set(CAMPOS_COMPARAVEIS.map((c) => c.staging[0]));
+
+/** Chaves do staging que nunca vão para o cadastro por este caminho. */
+const CHAVES_STAGING_IGNORADAS = new Set([
+  "id", "company_id", "status", "versao", "pessoas", "documentos",
+  "admin_dados", "dados", "created_at", "updated_at",
+]);
 
 /** Divergências ainda sem decisão explícita do gestor. */
 export function divergenciasSemEscolha(
@@ -133,4 +154,90 @@ export function divergenciasSemEscolha(
   escolhas: Record<string, EscolhaDivergencia>,
 ): Divergencia[] {
   return divergencias.filter((d) => !escolhas[d.campo]);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Informações administrativas: vínculo, cargo, unidade, setor, salário, jornada
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Nomes canônicos já resolvidos pelo cadastro da empresa. */
+export interface NomesCanonicos {
+  cargo?: string | null;
+  unidade?: string | null;
+  setor?: string | null;
+  regime?: string | null;
+  forma_pagamento?: string | null;
+}
+
+export interface DivergenciaAdmin {
+  campo: string;
+  rotulo: string;
+  valorConferido: string;
+  valorFicha: string;
+}
+
+/** Campos administrativos comparados: conferido (pré-admissão) × ficha lida. */
+export const CAMPOS_ADMIN_COMPARAVEIS: Array<{ campo: string; rotulo: string; ficha: string[] }> = [
+  { campo: "data_admissao", rotulo: "Data de admissão", ficha: ["data_admissao"] },
+  { campo: "salario", rotulo: "Salário", ficha: ["salario_base"] },
+  { campo: "cargo", rotulo: "Cargo", ficha: ["cargo"] },
+  { campo: "unidade", rotulo: "Unidade", ficha: ["unidade"] },
+  { campo: "setor", rotulo: "Setor", ficha: ["setor"] },
+  { campo: "regime_trabalho", rotulo: "Vínculo", ficha: ["regime"] },
+  { campo: "forma_pagamento", rotulo: "Forma de pagamento", ficha: ["forma_pagamento"] },
+  { campo: "jornada_descricao", rotulo: "Jornada prevista", ficha: ["jornada"] },
+];
+
+/** Valor conferido de cada campo administrativo, já em texto de tela. */
+export function valorAdminConferido(
+  campo: string,
+  adminDados: Objeto | null,
+  nomes: NomesCanonicos,
+): string {
+  const a = adminDados ?? {};
+  if (campo === "cargo") return String(nomes.cargo ?? "").trim();
+  if (campo === "unidade") return String(nomes.unidade ?? "").trim();
+  if (campo === "setor") return String(nomes.setor ?? "").trim();
+  if (campo === "regime_trabalho") return String(nomes.regime ?? a.regime_trabalho ?? "").trim();
+  if (campo === "forma_pagamento") return String(nomes.forma_pagamento ?? a.forma_pagamento ?? "").trim();
+  const v = a[campo];
+  return v === null || v === undefined ? "" : String(v).trim();
+}
+
+/**
+ * Divergências administrativas entre o que o gestor preencheu na pré-admissão e
+ * o que veio na ficha da contabilidade. Campo vazio em um dos lados não conta.
+ */
+export function divergenciasAdmin(
+  adminDados: Objeto | null,
+  ficha: Objeto | null,
+  nomes: NomesCanonicos,
+): DivergenciaAdmin[] {
+  const out: DivergenciaAdmin[] = [];
+  for (const c of CAMPOS_ADMIN_COMPARAVEIS) {
+    const conferido = valorAdminConferido(c.campo, adminDados, nomes);
+    const lido = ler(ficha, c.ficha);
+    if (!conferido || !lido) continue;
+    if (equivalente(conferido, lido)) continue;
+    out.push({ campo: `admin.${c.campo}`, rotulo: c.rotulo, valorConferido: conferido, valorFicha: lido });
+  }
+  return out;
+}
+
+/** Divergências administrativas ainda sem decisão do gestor. */
+export function divergenciasAdminSemEscolha(
+  divergencias: DivergenciaAdmin[],
+  escolhas: Record<string, EscolhaDivergencia>,
+): DivergenciaAdmin[] {
+  return divergencias.filter((d) => !escolhas[d.campo]);
+}
+
+/** Busca um cadastro canônico pelo nome lido na ficha (comparação tolerante). */
+export function resolverPorNome<T extends { id: string; nome: string }>(
+  lista: T[],
+  nome: string,
+): T | null {
+  const alvo = String(nome ?? "").trim();
+  if (!alvo) return null;
+  return lista.find((i) => equivalente(i.nome, alvo)) ?? null;
 }
