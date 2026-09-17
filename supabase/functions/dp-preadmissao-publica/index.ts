@@ -74,12 +74,18 @@ Deno.serve(async (req) => {
 
     /** Sempre relê a ficha do banco: nada de responder com estado velho. */
     const carregar = async () => {
-      const [{ data: atual }, { data: pessoas }, { data: docs }, reqs, reqsEmpresa] = await Promise.all([
-        admin
-          .from("dp_preadmissoes")
-          .select("status, dados, correcao_motivo, data_nascimento, estado_civil, cpf, email, versao")
-          .eq("id", pa.id)
-          .maybeSingle(),
+      // Requisitos calculados com a ficha recém-lida: cargo/unidade alterados
+      // pelo gestor aparecem na hora para o candidato.
+      const { data: atual } = await admin
+        .from("dp_preadmissoes")
+        .select(
+          "status, dados, correcao_motivo, data_nascimento, estado_civil, cpf, email, versao, " +
+            "cargo_previsto_id, unidade_prevista_id, trabalho_apos_22h",
+        )
+        .eq("id", pa.id)
+        .maybeSingle();
+      const fichaAtual = { ...pa, ...((atual ?? {}) as Record<string, unknown>) } as typeof pa;
+      const [{ data: pessoas }, { data: docs }, reqs, reqsEmpresa] = await Promise.all([
         admin
           .from("dp_preadmissao_pessoas")
           .select("*")
@@ -91,7 +97,7 @@ Deno.serve(async (req) => {
           .select("id, requisito_codigo, pessoa_id, file_name, status, created_at")
           .eq("preadmissao_id", pa.id)
           .is("substituido_em", null),
-        requisitosPrevistos(admin, pa),
+        requisitosPrevistos(admin, fichaAtual),
         requisitosEmpresa(admin, pa.company_id),
       ]);
       const linha = (atual ?? {}) as Record<string, unknown>;
