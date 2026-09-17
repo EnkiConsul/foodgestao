@@ -102,6 +102,10 @@ export interface EfetivarPreadmissaoRpcArgs {
   p_forma_pagamento: string | null;
   p_jornada: { dias: Array<Record<string, unknown>> } | null;
   p_justificativa: string | null;
+  /** Salário decidido na revisão: vale também na recontratação. */
+  p_salario?: number | null;
+  /** Data de admissão decidida na revisão: vale também na recontratação. */
+  p_data_admissao?: string | null;
 }
 
 export interface EfetivarPreadmissaoRpcResultado {

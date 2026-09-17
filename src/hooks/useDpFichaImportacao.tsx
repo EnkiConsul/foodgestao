@@ -286,6 +286,12 @@ export function useAplicarFicha() {
             ? { dias: jornada.dias as unknown as Array<Record<string, unknown>> }
             : null,
           p_justificativa: null,
+          // Recontratação também respeita o que o gestor decidiu na revisão:
+          // salário e data de admissão da ficha conferida, não o rascunho.
+          p_salario: Number.isFinite(Number(dadosCadastro.salario_base))
+            ? Number(dadosCadastro.salario_base)
+            : null,
+          p_data_admissao: (dadosCadastro.data_admissao as string | null) ?? null,
         });
         return {
           colaboradorId: pr.colaborador_id,

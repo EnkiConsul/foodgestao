@@ -563,17 +563,26 @@ export async function conferirFichaOficial(
   return data as { ok: boolean; motivo?: string };
 }
 
-/** Somente anexar: registra o recebimento sem criar ou alterar cadastro. */
+/**
+ * Somente anexar: guarda o arquivo recebido como anexo consultável da
+ * pré-admissão. NÃO cria, reativa nem altera cadastro, dados pessoais ou
+ * vínculo, e NÃO conclui a pré-admissão.
+ */
 export async function anexarSomente(
   admin: Rpc,
   preadmissaoId: string,
   itemId: string,
   porUserId: string,
-): Promise<{ ok: boolean; motivo?: string; status?: string }> {
+  arquivo?: { path: string; nome?: string | null; mime?: string | null; tamanho?: number | null },
+): Promise<{ ok: boolean; motivo?: string; status?: string; documento_id?: string }> {
   const { data, error } = await admin.rpc("dp_preadmissao_anexar_somente", {
     p_preadmissao_id: preadmissaoId,
     p_item_id: itemId,
     p_por: porUserId,
+    p_file_path: arquivo?.path ?? null,
+    p_file_name: arquivo?.nome ?? null,
+    p_mime_type: arquivo?.mime ?? null,
+    p_file_size: arquivo?.tamanho ?? null,
   });
   if (error) {
     logFalha("anexo simples não registrado", error);

@@ -48,6 +48,30 @@ const FORMAS = [
   { value: "servico_acordo", label: "Por serviço / acordo" },
 ];
 
+/**
+ * Opções canônicas informadas pelo candidato. A conferência e o pacote da
+ * contabilidade mostram o rótulo lido pela pessoa, nunca o código interno.
+ */
+const ROTULOS_OPCOES: Record<string, Record<string, string>> = {
+  sexo: { feminino: "Feminino", masculino: "Masculino", nao_informado: "Prefiro não informar" },
+  estado_civil: {
+    solteiro: "Solteiro(a)", casado: "Casado(a)", divorciado: "Divorciado(a)",
+    viuvo: "Viúvo(a)", uniao_estavel: "União estável",
+  },
+  grau_instrucao: {
+    fundamental_incompleto: "Fundamental incompleto", fundamental_completo: "Fundamental completo",
+    medio_incompleto: "Médio incompleto", medio_completo: "Médio completo",
+    superior_incompleto: "Superior incompleto", superior_completo: "Superior completo",
+  },
+};
+
+/** Valor de um campo da ficha em linguagem de tela. */
+const valorFicha = (campo: string, valor: unknown): string => {
+  if (valor === null || valor === undefined || String(valor).trim() === "") return "";
+  const bruto = String(valor);
+  return ROTULOS_OPCOES[campo]?.[bruto] ?? bruto;
+};
+
 /** Campos da ficha mostrados na conferência, em linguagem de tela. */
 const CAMPOS_FICHA: Array<[string, string]> = [
   ["nome", "Nome"], ["cpf", "CPF"], ["data_nascimento", "Nascimento"], ["sexo", "Sexo"],
@@ -170,8 +194,8 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       .map(([rotulo, v]) => `<tr><th>${esc(rotulo)}</th><td>${esc(v)}</td></tr>`)
       .join("");
     const linhaPessoal = CAMPOS_FICHA
-      .map(([campo, rotulo]) => [rotulo, dados[campo]] as const)
-      .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "")
+      .map(([campo, rotulo]) => [rotulo, valorFicha(campo, dados[campo])] as const)
+      .filter(([, v]) => v.trim() !== "")
       .map(([rotulo, v]) => `<tr><th>${esc(rotulo)}</th><td>${esc(v)}</td></tr>`)
       .join("");
     const vaga = [
@@ -364,7 +388,7 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                 {CAMPOS_FICHA.map(([k, rotulo]) => (
                   <div key={k} className="flex justify-between gap-2 border-b border-dashed py-1">
                     <span className="text-muted-foreground">{rotulo}</span>
-                    <span className="text-right">{String(dados[k] ?? "—") || "—"}</span>
+                    <span className="text-right">{valorFicha(k, dados[k]) || "—"}</span>
                   </div>
                 ))}
               </div>
@@ -697,7 +721,10 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                 </Button>
               )}
 
-              {["enviado_contabilidade", "aguardando_retorno_contabilidade"].includes(status) && (
+              {/* "Registro recebido" também entra aqui: quando a contabilidade
+                  envia uma versão nova, a conferência anterior deixa de valer e
+                  o gestor precisa poder anexar e conferir novamente. */}
+              {["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(status) && (
                 <div className="rounded-lg border p-3 space-y-2">
                   <p className="text-sm font-semibold">Ficha oficial devolvida pela contabilidade</p>
                   <p className="text-xs text-muted-foreground">
@@ -746,15 +773,26 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
               {status === "registro_recebido" && (
                 <div className="rounded-lg border border-primary/40 p-3 space-y-2">
                   <p className="text-sm font-semibold">Concluir a admissão</p>
-                  <p className="text-xs text-muted-foreground">
-                    Confira os dados da ficha oficial na importação. Ao criar o cadastro, esta pré-admissão é concluída
-                    na mesma operação, com os familiares e documentos já enviados.
-                  </p>
-                  <Button
-                    onClick={() => navigate(`/dp/colaboradores/importar-ficha?preadmissao=${pa.id}`)}
-                  >
-                    Conferir Dados E Criar Cadastro
-                  </Button>
+                  {pa.ficha_oficial_conferida_em ? (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        Confira os dados da ficha oficial na importação. Ao criar o cadastro, esta pré-admissão é
+                        concluída na mesma operação, com os familiares e documentos já enviados.
+                      </p>
+                      <Button
+                        onClick={() => navigate(`/dp/colaboradores/importar-ficha?preadmissao=${pa.id}`)}
+                      >
+                        Conferir Dados E Criar Cadastro
+                      </Button>
+                    </>
+                  ) : (
+                    /* Versão nova recebida: a conferência anterior não vale mais
+                       e a conclusão fica bloqueada até a nova conferência. */
+                    <p className="text-xs text-amber-600">
+                      A ficha oficial foi substituída. Abra a versão mais recente e registre a conferência acima
+                      para liberar a criação do cadastro.
+                    </p>
+                  )}
                 </div>
               )}
 
