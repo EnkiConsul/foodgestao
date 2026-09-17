@@ -290,7 +290,7 @@ export default function PreAdmissao() {
   const [faltando, setFaltando] = useState<string[]>([]);
   const [avisoTopo, setAvisoTopo] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const alvo = useRef<ChecklistItem | null>(null);
+  const alvo = useRef<(ChecklistItem & { parte: number }) | null>(null);
 
   const aplicar = useCallback((e: Estado) => {
     setEstado(e);
