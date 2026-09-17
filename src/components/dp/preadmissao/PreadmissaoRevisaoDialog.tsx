@@ -194,8 +194,8 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       .map(([rotulo, v]) => `<tr><th>${esc(rotulo)}</th><td>${esc(v)}</td></tr>`)
       .join("");
     const linhaPessoal = CAMPOS_FICHA
-      .map(([campo, rotulo]) => [rotulo, dados[campo]] as const)
-      .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "")
+      .map(([campo, rotulo]) => [rotulo, valorFicha(campo, dados[campo])] as const)
+      .filter(([, v]) => v.trim() !== "")
       .map(([rotulo, v]) => `<tr><th>${esc(rotulo)}</th><td>${esc(v)}</td></tr>`)
       .join("");
     const vaga = [
@@ -388,7 +388,7 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                 {CAMPOS_FICHA.map(([k, rotulo]) => (
                   <div key={k} className="flex justify-between gap-2 border-b border-dashed py-1">
                     <span className="text-muted-foreground">{rotulo}</span>
-                    <span className="text-right">{String(dados[k] ?? "—") || "—"}</span>
+                    <span className="text-right">{valorFicha(k, dados[k]) || "—"}</span>
                   </div>
                 ))}
               </div>
