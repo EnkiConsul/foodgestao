@@ -97,12 +97,13 @@ function normaliza(v?: string | null): string {
   return (v ?? "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/_/g, " ")
     .trim()
     .toLowerCase();
 }
 
 /** Faixas de idade de dependente valem para filiação, não para cônjuge/pais. */
-const PARENTESCO_FILIACAO = new Set(["filho", "filha", "enteado", "enteada", "tutelado", "tutelada", "menor sob guarda"]);
+const PARENTESCO_FILIACAO = new Set(["filho", "filha", "enteado", "enteada", "tutelado", "tutelada", "menor sob guarda", "menor guarda"]);
 
 const SOLTEIRO = ["solteiro", "solteira"];
 const COM_CERTIDAO = ["casado", "casada", "uniao estavel", "divorciado", "divorciada", "viuvo", "viuva", "separado", "separada"];

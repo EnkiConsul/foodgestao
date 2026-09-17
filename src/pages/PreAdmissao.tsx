@@ -221,7 +221,7 @@ export default function PreAdmissao() {
     setSalvando(true);
     try {
       const novo = await chamar<Estado>("dp-preadmissao-publica", {
-        t, c, action: "salvar", dados: form, pessoas,
+        t, c, action: "salvar", dados: form, pessoas: pessoasParaEnviar(),
       });
       aplicar(novo);
       if (avancar) setEtapa((n) => Math.min(n + 1, totalEtapas - 1));
@@ -236,7 +236,7 @@ export default function PreAdmissao() {
   const enviar = async () => {
     setSalvando(true);
     try {
-      await chamar<Estado>("dp-preadmissao-publica", { t, c, action: "salvar", dados: form, pessoas });
+      await chamar<Estado>("dp-preadmissao-publica", { t, c, action: "salvar", dados: form, pessoas: pessoasParaEnviar() });
       await chamar<{ mensagem: string }>("dp-preadmissao-publica", { t, c, action: "enviar" });
       setEnviado(true);
     } catch (e) {
