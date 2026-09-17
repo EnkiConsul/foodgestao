@@ -25,6 +25,7 @@ import {
   jornadaDaFicha, useAplicarFicha, useIgnorarFicha, type FichaItem,
 } from "@/hooks/useDpFichaImportacao";
 import { notifyError } from "@/lib/notifyError";
+import { EnderecoFields } from "@/components/shared/EnderecoFields";
 import { anexarSomenteFicha, useDpPreadmissao } from "@/hooks/dp/useDpPreadmissoes";
 import {
   dadosParaCadastro, divergenciasAdmin, divergenciasAdminSemEscolha, divergenciasFicha,
@@ -295,23 +296,10 @@ export function FichaRevisaoCard({
     });
 
   const endereco = (dados.endereco ?? {}) as Record<string, unknown>;
-  const setEndereco = (parte: string, valor: string) =>
-    setDados((d) => ({
-      ...d,
-      endereco: { ...((d.endereco ?? {}) as Record<string, unknown>), [parte]: valor },
-    }));
 
-  const campoEndereco = (label: string, parte: string, className?: string) => (
-    <div className={cn("space-y-1", className)}>
-      <Label className="text-xs">{label}</Label>
-      <Input
-        className="h-9"
-        value={typeof endereco[parte] === "string" ? String(endereco[parte]) : ""}
-        onChange={(e) => setEndereco(parte, e.target.value)}
-        disabled={aplicado || ignorado}
-      />
-    </div>
-  );
+  /** Parte do endereço lida como texto, venha ela como texto ou vazia. */
+  const textoEndereco = (parte: string) =>
+    typeof endereco[parte] === "string" ? String(endereco[parte]) : "";
 
 
   const campo = (label: string, nome: string, tipo: "text" | "date" = "text") => {
@@ -610,14 +598,28 @@ export function FichaRevisaoCard({
                   {campo("E-mail", "email")}
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-                  {campoEndereco("Rua", "logradouro", "lg:col-span-3")}
-                  {campoEndereco("Número", "numero")}
-                  {campoEndereco("Bairro", "bairro", "lg:col-span-2")}
-                  {campoEndereco("Cidade", "cidade", "lg:col-span-3")}
-                  {campoEndereco("UF", "uf")}
-                  {campoEndereco("CEP", "cep", "lg:col-span-2")}
-                </div>
+                <EnderecoFields
+                  idPrefix="ficha-endereco"
+                  disabled={aplicado || ignorado}
+                  valor={{
+                    cep: textoEndereco("cep"),
+                    logradouro: textoEndereco("logradouro"),
+                    numero: textoEndereco("numero"),
+                    complemento: textoEndereco("complemento"),
+                    bairro: textoEndereco("bairro"),
+                    cidade: textoEndereco("cidade"),
+                    uf: textoEndereco("uf"),
+                  }}
+                  onChange={(patch) =>
+                    setDados((d) => ({
+                      ...d,
+                      endereco: {
+                        ...((d.endereco ?? {}) as Record<string, unknown>),
+                        ...patch,
+                      },
+                    }))
+                  }
+                />
 
                 <p className="text-[11px] text-muted-foreground">
                   Benefícios, dados bancários e jornada detalhada continuam no cadastro completo do colaborador.

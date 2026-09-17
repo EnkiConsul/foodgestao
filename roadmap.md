@@ -44,3 +44,9 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [ ] Pré-Admissão — teste ponta a ponta com convite sintético e sessão de gestor (formulário, upload, retomada, correção, contabilidade, importação)
 - [ ] Pré-Admissão — teste de Storage com sessões reais A/B/sem permissão (download/list/write)
 - [x] Pré-Admissão — incremento 10: revisão do commit c42f576 (Somente Anexar sem cadastro, comparação das informações administrativas, pacote legível sem código interno, status encerrados, ficha oficial atômica, requisitos por cargo/unidade configuráveis, logs sanitizados)
+
+## Endereço padronizado (2026-09-17)
+- [x] Bloco único de endereço (CEP primeiro, busca automática, lista de estados, "Sem número") em Empresas, Unidades, cadastro inicial da empresa, perfil do colaborador e ficha do candidato
+- [x] Endereço editável no cadastro do colaborador (aba Dados) e na conferência da ficha oficial
+- [ ] Etapa B — validações da admissão: duas finalizações simultâneas, percurso completo com convite fictício, acesso a arquivos com pessoas diferentes
+- Fora de escopo: módulo financeiro (Open Finance/conciliação) fica com o Rafael

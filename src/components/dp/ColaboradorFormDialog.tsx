@@ -110,6 +110,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { EnderecoFields, type EnderecoValor } from "@/components/shared/EnderecoFields";
 
 
 
@@ -254,6 +255,8 @@ export function ColaboradorFormDialog({
   const [beneficioEditando, setBeneficioEditando] = useState<Beneficio | null>(null);
 
   const [form, setForm] = useState(blank);
+  /** Endereço do colaborador, no mesmo bloco usado no resto do sistema. */
+  const [endereco, setEndereco] = useState<EnderecoValor>({});
   const { selectedCompanyId, companies } = useCompanyContext();
   const todosColaboradores = useDpColaboradores();
   /** Benefícios retirados que exigem ciência de isonomia neste salvamento. */
@@ -582,6 +585,17 @@ export function ColaboradorFormDialog({
     setCriadoId(null);
 
     const c = (colaborador ?? {}) as any;
+    const end = (c.endereco ?? {}) as Record<string, unknown>;
+    const texto = (chave: string) => (typeof end[chave] === "string" ? String(end[chave]) : "");
+    setEndereco({
+      cep: texto("cep"),
+      logradouro: texto("logradouro"),
+      numero: texto("numero"),
+      complemento: texto("complemento"),
+      bairro: texto("bairro"),
+      cidade: texto("cidade"),
+      uf: texto("uf"),
+    });
     const regime = c.regime ? String(c.regime) : "clt";
     setRem({
       ...remuneracaoBlank,
@@ -1063,8 +1077,8 @@ export function ColaboradorFormDialog({
           valor_diaria: numeroBR((rem as any).valor_diaria) || null,
           base_salarial: numeroBR(rem.base_salarial) || null,
           socio_remuneracao: socioSelecionado ? socioRem : null,
-          // Endereço, estado civil e PIS não são editados nesta tela.
-          endereco: "-",
+          // O endereço agora é editado aqui; estado civil e PIS seguem na ficha.
+          endereco: endereco,
           estado_civil: "-",
           pis_nit: "-",
         },
@@ -1073,7 +1087,7 @@ export function ColaboradorFormDialog({
     [
       form.setor_id, form.whatsapp, form.email, form.data_nascimento, form.tipo_vinculo,
       rem.salario_base, rem.valor_hora, rem.base_salarial, (rem as any).valor_diaria,
-      socioSelecionado, socioRem, salarioCargo,
+      socioSelecionado, socioRem, salarioCargo, endereco,
     ],
   );
 
@@ -1544,6 +1558,15 @@ export function ColaboradorFormDialog({
         domingos_folga_mes: domingosFolgaMes,
         email: form.email.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
+        // Endereço estruturado: guardamos só o que foi preenchido.
+        endereco: (() => {
+          const partes = Object.fromEntries(
+            Object.entries(endereco)
+              .map(([k, v]) => [k, String(v ?? "").trim()])
+              .filter(([, v]) => v),
+          );
+          return Object.keys(partes).length ? partes : null;
+        })(),
 
         // Sócio nunca é gravado com acesso de colaborador.
         perfil_acesso:
@@ -1925,6 +1948,17 @@ export function ColaboradorFormDialog({
               {...marca("whatsapp")}
               onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
               placeholder="(62) 99999-9999"
+            />
+          </div>
+
+          {/* Endereço no mesmo bloco padrão do restante do sistema */}
+          <div className="space-y-2 md:col-span-2">
+            <Label>Endereço</Label>
+            <EnderecoFields
+              idPrefix="colab"
+              upper
+              valor={endereco}
+              onChange={(patch) => setEndereco((e) => ({ ...e, ...patch }))}
             />
           </div>
 
