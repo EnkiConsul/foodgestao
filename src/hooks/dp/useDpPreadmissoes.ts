@@ -146,6 +146,7 @@ export function useDpPreadmissao(id: string | null) {
   return useQuery({
     queryKey: ["dp_preadmissao", id],
     enabled: !!id,
+    retry: false,
     queryFn: async () =>
       await chamar<PreadmissaoDetalhe>("dp-preadmissao-gestor", { action: "ler", preadmissao_id: id }),
   });
