@@ -296,11 +296,6 @@ export function FichaRevisaoCard({
     });
 
   const endereco = (dados.endereco ?? {}) as Record<string, unknown>;
-  const setEndereco = (parte: string, valor: string) =>
-    setDados((d) => ({
-      ...d,
-      endereco: { ...((d.endereco ?? {}) as Record<string, unknown>), [parte]: valor },
-    }));
 
   /** Parte do endereço lida como texto, venha ela como texto ou vazia. */
   const textoEndereco = (parte: string) =>
