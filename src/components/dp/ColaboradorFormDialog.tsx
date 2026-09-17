@@ -1077,8 +1077,8 @@ export function ColaboradorFormDialog({
           valor_diaria: numeroBR((rem as any).valor_diaria) || null,
           base_salarial: numeroBR(rem.base_salarial) || null,
           socio_remuneracao: socioSelecionado ? socioRem : null,
-          // Endereço, estado civil e PIS não são editados nesta tela.
-          endereco: "-",
+          // O endereço agora é editado aqui; estado civil e PIS seguem na ficha.
+          endereco: endereco,
           estado_civil: "-",
           pis_nit: "-",
         },
