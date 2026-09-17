@@ -10,6 +10,7 @@ import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
 import { serviceClient } from "../_shared/authz.ts";
 import { ipRateLimited } from "../_shared/rate-limit.ts";
 import {
+  CAMPOS_CANDIDATO,
   camposNaoPermitidos,
   camposNaoPermitidosPessoas,
   camposNaoPermitidosRaiz,
@@ -20,6 +21,7 @@ import {
   filtrarPessoasCandidato,
   MOTIVOS_GRAVACAO,
   registrarEvento,
+  regrasAdmissao,
   requisitosEmpresa,
   requisitosPrevistos,
   salvarCandidato,
@@ -27,7 +29,12 @@ import {
   validarConvite,
   validarDadosCandidato,
 } from "../_shared/preadmissao.ts";
-import { montarChecklist, pendenciasDocumentais } from "../_shared/preadmissao-checklist.ts";
+import {
+  aplicarRegrasDocumentos,
+  montarChecklist,
+  normaliza,
+  pendenciasDocumentais,
+} from "../_shared/preadmissao-checklist.ts";
 
 const MOTIVOS: Record<string, string> = {
   nao_encontrado: "Este link não é válido. Peça um novo link à empresa.",
