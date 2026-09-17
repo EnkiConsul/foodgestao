@@ -125,43 +125,124 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     [data?.documentos],
   );
 
-  /** Monta uma folha imprimível com tudo que a contabilidade precisa conferir. */
+  /** Rótulos das informações administrativas, em linguagem de tela. */
+  const ROTULOS_ADMIN: Array<[string, string]> = [
+    ["data_admissao", "Data de admissão"], ["cargo_id", "Cargo"], ["unidade_id", "Unidade"],
+    ["setor_id", "Setor"], ["regime_trabalho", "Vínculo"], ["salario", "Salário"],
+    ["forma_pagamento", "Forma de pagamento"], ["jornada_descricao", "Jornada prevista"],
+    ["carga_horaria_semanal", "Carga horária semanal"], ["experiencia_dias", "Experiência (dias)"],
+    ["vale_transporte", "Vale-transporte"], ["adicional_insalubridade", "Adicional de insalubridade"],
+    ["adicional_periculosidade", "Adicional de periculosidade"], ["observacoes", "Observações"],
+  ];
+
+  const PARENTESCO_LABEL: Record<string, string> = {
+    filho: "Filho(a)", enteado: "Enteado(a)", tutelado: "Tutelado(a)",
+    menor_guarda: "Menor sob guarda", conjuge: "Cônjuge", companheiro: "Companheiro(a)",
+    pai: "Pai", mae: "Mãe", avo: "Avô", ava: "Avó", irmao: "Irmão(ã)",
+  };
+  const STATUS_DOC_LABEL: Record<string, string> = {
+    pendente: "Aguardando conferência", aprovado: "Aprovado", recusado: "Recusado",
+  };
+
+  /**
+   * Folha imprimível com tudo que a contabilidade precisa conferir, em nomes
+   * de tela: nenhum código interno de cargo, unidade ou setor aparece.
+   */
   const imprimirPacote = () => {
     if (!data) return;
     const esc = (v: unknown) =>
       String(v ?? "").replace(/[<>&]/g, (m) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[m] as string));
-    const linhas = (obj: Record<string, unknown>) =>
-      Object.entries(obj)
-        .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "")
-        .map(([k, v]) => `<tr><th>${esc(k.replace(/_/g, " "))}</th><td>${esc(v)}</td></tr>`)
-        .join("");
-    const pessoas = (data.pessoas ?? [])
-      .map((pe) => `<li>${esc(pe.nome)} — ${esc(pe.parentesco)}${pe.data_nascimento ? ` — ${esc(pe.data_nascimento)}` : ""}</li>`)
+    const admDados = (data.preadmissao.admin_dados ?? {}) as Record<string, unknown>;
+    const valorAdmin = (campo: string): string => {
+      const v = admDados[campo];
+      if (campo === "cargo_id") return cargos.find((c) => c.id === v)?.nome ?? "";
+      if (campo === "unidade_id") return unidades.find((u) => u.id === v)?.nome ?? "";
+      if (campo === "setor_id") return setores.find((s) => s.id === v)?.nome ?? "";
+      if (campo === "regime_trabalho") return REGIMES.find((r) => r.value === v)?.label ?? String(v ?? "");
+      if (campo === "forma_pagamento") return FORMAS.find((f) => f.value === v)?.label ?? String(v ?? "");
+      if (v === true) return "Sim";
+      if (v === false) return "Não";
+      return v === null || v === undefined ? "" : String(v);
+    };
+    const linhaAdmin = ROTULOS_ADMIN
+      .map(([campo, rotulo]) => [rotulo, valorAdmin(campo)] as const)
+      .filter(([, v]) => v.trim() !== "")
+      .map(([rotulo, v]) => `<tr><th>${esc(rotulo)}</th><td>${esc(v)}</td></tr>`)
       .join("");
+    const linhaPessoal = CAMPOS_FICHA
+      .map(([campo, rotulo]) => [rotulo, dados[campo]] as const)
+      .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "")
+      .map(([rotulo, v]) => `<tr><th>${esc(rotulo)}</th><td>${esc(v)}</td></tr>`)
+      .join("");
+    const vaga = [
+      cargos.find((c) => c.id === (admDados.cargo_id ?? data.preadmissao.cargo_previsto_id))?.nome,
+      unidades.find((u) => u.id === (admDados.unidade_id ?? data.preadmissao.unidade_prevista_id))?.nome,
+    ].filter(Boolean).join(" — ");
+    const pessoas = (data.pessoas ?? [])
+      .map((pe) => {
+        const finalidades = [
+          pe.finalidade_dependente ? "Dependente" : null,
+          pe.finalidade_sesc ? "Sesc" : null,
+        ].filter(Boolean).join(" e ");
+        const partes = [
+          PARENTESCO_LABEL[pe.parentesco ?? ""] ?? pe.parentesco ?? "",
+          pe.data_nascimento ? `Nascimento: ${pe.data_nascimento}` : null,
+          pe.cpf ? `CPF: ${pe.cpf}` : null,
+          pe.rg ? `RG: ${pe.rg}` : null,
+          finalidades ? `Finalidade: ${finalidades}` : null,
+        ].filter(Boolean).join(" — ");
+        return `<li><strong>${esc(pe.nome)}</strong> — ${esc(partes)}</li>`;
+      })
+      .join("");
+    const tituloDoc = (codigo: string) =>
+      (data.checklist ?? []).find((c) => c.codigo === codigo)?.titulo ?? codigo.replace(/_/g, " ");
     const docs = (data.documentos ?? [])
       .filter((d) => !d.substituido_em)
-      .map((d) => `<li>${esc(d.requisito_codigo)} — ${esc(d.file_name)} (${esc(d.status)})</li>`)
+      .map((d) => {
+        const titular = d.pessoa_id
+          ? (data.pessoas ?? []).find((p) => p.id === d.pessoa_id)?.nome ?? "Familiar"
+          : data.preadmissao.candidato_nome;
+        const st = STATUS_DOC_LABEL[d.status] ?? d.status;
+        const motivo = d.status === "recusado" && d.motivo_recusa ? ` — Motivo: ${d.motivo_recusa}` : "";
+        return `<li>${esc(tituloDoc(d.requisito_codigo))} — Titular: ${esc(titular)} — ${esc(st)}${esc(motivo)}</li>`;
+      })
       .join("");
     const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <title>Pacote da contabilidade — ${esc(data.preadmissao.candidato_nome)}</title>
 <style>body{font-family:system-ui,sans-serif;padding:24px;color:#111}h1{font-size:18px}h2{font-size:14px;margin-top:20px}
 table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #ddd;padding:4px 6px;text-align:left}
-th{width:220px;background:#f6f6f6;text-transform:capitalize}ul{font-size:12px}</style></head><body>
+th{width:220px;background:#f6f6f6}ul{font-size:12px}p{font-size:12px}</style></head><body>
 <h1>Pacote da contabilidade — ${esc(data.preadmissao.candidato_nome)}</h1>
-<h2>Dados do candidato</h2><table>${linhas((data.preadmissao.dados ?? {}) as Record<string, unknown>)}</table>
-<h2>Informações administrativas</h2><table>${linhas((data.preadmissao.admin_dados ?? {}) as Record<string, unknown>)}</table>
+${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
+<h2>Dados do candidato</h2><table>${linhaPessoal || "<tr><td>Sem dados preenchidos</td></tr>"}</table>
+<h2>Informações administrativas</h2><table>${linhaAdmin || "<tr><td>Sem informações preenchidas</td></tr>"}</table>
 <h2>Familiares</h2><ul>${pessoas || "<li>Nenhum</li>"}</ul>
 <h2>Documentos recebidos</h2><ul>${docs || "<li>Nenhum</li>"}</ul>
 </body></html>`;
-    const w = window.open("", "_blank", "noopener,width=900,height=700");
-    if (!w) {
-      toast.error("Libere as janelas pop-up para imprimir o pacote.");
-      return;
-    }
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    w.print();
+    // Impressão por quadro interno: não depende de liberar pop-up nem de
+    // document.write, que pode falhar em janela bloqueada.
+    const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    const frame = document.createElement("iframe");
+    frame.style.position = "fixed";
+    frame.style.right = "0";
+    frame.style.bottom = "0";
+    frame.style.width = "0";
+    frame.style.height = "0";
+    frame.style.border = "0";
+    frame.src = url;
+    frame.onload = () => {
+      try {
+        frame.contentWindow?.focus();
+        frame.contentWindow?.print();
+      } catch {
+        toast.error("Não foi possível abrir a impressão. Tente novamente.");
+      }
+      window.setTimeout(() => {
+        frame.remove();
+        URL.revokeObjectURL(url);
+      }, 60_000);
+    };
+    document.body.appendChild(frame);
   };
 
   const vigentes = useMemo(() => (data?.documentos ?? []).filter((d) => !d.substituido_em), [data?.documentos]);
