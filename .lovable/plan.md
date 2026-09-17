@@ -16,9 +16,7 @@ Os 15 ajustes da ficha de admissão estão fechados. Ficaram três frentes em ab
 
 Nada é enviado por WhatsApp ou e-mail a pessoas reais e os dados de teste não são apagados.
 
-## Etapa C — Auditoria de Open Finance e conciliação
-
-Cinco pontos já mapeados: permissão nas rotinas de conciliação, trava contra confirmação dupla, resultado detalhado na tela de conciliação, contadores reais da sincronização e tratamento de webhook/revogação/extrato. Os três lançamentos marcados para revisão manual continuam intocados.
+Fora de escopo: a parte financeira (Open Finance e conciliação) fica com o Rafael e não entra neste plano.
 
 ## Detalhes técnicos
 
