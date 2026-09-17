@@ -250,7 +250,13 @@ export function useDpPreadmissaoGestor(id: string | null) {
     excluir: useMutation({
       mutationFn: async (entrada: { motivo?: string; versao?: number | null }) =>
         await acao({ action: "excluir", motivo: entrada.motivo ?? "", versao: entrada.versao ?? null }),
-      onSuccess: invalidar,
+      // A ficha excluída não existe mais para o gestor: descartamos a leitura
+      // dela (recarregar daria "não encontrada" e derrubaria a tela).
+      onSuccess: () => {
+        qc.removeQueries({ queryKey: ["dp_preadmissao", id] });
+        qc.invalidateQueries({ queryKey: ["dp_preadmissoes"] });
+        qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+      },
     }),
     marcarStatus: useMutation({
       mutationFn: async (status: PreadmissaoStatus) => await acao({ action: "marcar_status", status }),
