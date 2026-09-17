@@ -39,6 +39,8 @@ const accountTypeLabels: Record<AccountType, string> = {
   investimento: "Investimento",
   cartao_credito: "Cartão de Crédito",
   dinheiro: "Dinheiro",
+  maquina_cartao: "Máquina de Cartão",
+  ifood: "Ifood",
   emprestimo_concedido: "Empréstimo Concedido",
   emprestimo_tomado: "Empréstimo Tomado",
   outro: "Outro",
