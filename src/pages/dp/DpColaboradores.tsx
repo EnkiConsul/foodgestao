@@ -157,6 +157,7 @@ export default function DpColaboradores() {
     setMetodoOpen(false);
     if (m === "colaborador") return abrirCadastro(null);
     if (m === "importar") return navigate("/dp/colaboradores/importar-ficha");
+    if (m === "preadmissao") return navigate("/dp/colaboradores/pre-admissoes?novo=1");
     setApoioTipo(m === "teste" ? "teste" : "folguista");
     setApoioOpen(true);
   };
