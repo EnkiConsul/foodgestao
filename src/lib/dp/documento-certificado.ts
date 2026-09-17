@@ -1,10 +1,40 @@
 // ------------------------------------------------------------------
 // Domínio: DP → Certificado de validação de documento
 //
-// Monta o HTML imprimível que comprova a aprovação eletrônica de um
-// documento pelo colaborador. Função pura; a impressão fica isolada em
-// `imprimirCertificadoValidacao` (único ponto que toca no browser).
+// O certificado oficial é um PDF montado no servidor
+// (`certificadoValidacaoPdf`): capa com os dados da aprovação, o documento
+// assinado página por página, o comprovante de pagamento como anexo e o
+// rodapé de lastro em todas as páginas.
+//
+// O HTML abaixo é a versão simples de leitura rápida, mantida como
+// alternativa; a impressão fica isolada em `imprimirCertificadoValidacao`.
 // ------------------------------------------------------------------
+import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * Pede ao servidor o certificado completo em PDF e devolve um endereço
+ * temporário para abrir na própria tela (funciona no celular, onde abrir
+ * outra aba é bloqueado). Lança erro com a frase pronta para a tela.
+ */
+export async function certificadoValidacaoPdf(
+  documentoId: string,
+): Promise<{ url: string; revogar: () => void }> {
+  const { data, error } = await supabase.functions.invoke("dp-documento-certificado", {
+    body: { documento_id: documentoId },
+  });
+  if (error) {
+    let frase = "";
+    const ctx = (error as { context?: Response }).context;
+    if (ctx && typeof ctx.json === "function") {
+      const corpo = (await ctx.json().catch(() => null)) as { error?: string } | null;
+      frase = corpo?.error ?? "";
+    }
+    throw new Error(frase || "Não foi possível gerar o certificado agora.");
+  }
+  const blob = data instanceof Blob ? data : new Blob([data as BlobPart], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  return { url, revogar: () => URL.revokeObjectURL(url) };
+}
 
 export interface CertificadoValidacaoDados {
   empresa: string;
