@@ -53,6 +53,7 @@ export function PreadmissoesPanel({
   const convidando = convidarAberto ?? convidandoLocal;
   const setConvidando = (v: boolean) => (onConvidarChange ? onConvidarChange(v) : setConvidandoLocal(v));
   const [revisando, setRevisando] = useState<string | null>(null);
+  const [aba, setAba] = useState<"fichas" | "regras">("fichas");
 
   const nomeCargo = (id: string | null) => cargos.find((c) => c.id === id)?.nome ?? "—";
   const nomeUnidade = (id: string | null) => unidades.find((u) => u.id === id)?.nome ?? "—";
