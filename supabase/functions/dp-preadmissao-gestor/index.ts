@@ -119,29 +119,35 @@ Deno.serve(async (req) => {
       // valem imediatamente no checklist (nunca o estado antigo em memória).
       const { data: atual } = await admin.from("dp_preadmissoes").select("*").eq("id", pa.id).maybeSingle();
       const fichaAtual = (atual ?? pa) as unknown as Preadmissao;
-      const [{ data: pessoas }, { data: docs }, reqs, reqsEmpresa, { data: eventos }] = await Promise.all([
+      const [{ data: pessoas }, { data: docs }, reqs, reqsEmpresa, { data: eventos }, regras] = await Promise.all([
         admin.from("dp_preadmissao_pessoas").select("*").eq("preadmissao_id", pa.id)
           .is("removido_em", null).order("created_at"),
         admin
           .from("dp_preadmissao_documentos")
-          .select("id, requisito_codigo, pessoa_id, file_name, status, motivo_recusa, versao, created_at, substituido_em")
+          .select(
+            "id, requisito_codigo, pessoa_id, file_name, status, motivo_recusa, versao, created_at, substituido_em, parte, parte_rotulo",
+          )
           .eq("preadmissao_id", pa.id)
           .order("created_at", { ascending: false }),
         requisitosPrevistos(admin, fichaAtual),
         requisitosEmpresa(admin, pa.company_id),
         admin.from("dp_preadmissao_eventos").select("evento, detalhe, created_at").eq("preadmissao_id", pa.id)
           .order("created_at", { ascending: false }).limit(50),
+        regrasAdmissao(admin as never, fichaAtual),
       ]);
       const ficha = fichaAtual;
       const dados = (ficha.dados ?? {}) as Record<string, unknown>;
       const vigentes = (docs ?? []).filter((d) => !d.substituido_em);
-      const checklist = montarChecklist({
-        ficha: { data_nascimento: ficha.data_nascimento, estado_civil: ficha.estado_civil, sexo: (dados.sexo as string) ?? null },
-        pessoas: (pessoas ?? []) as never,
-        requisitosCargo: reqs.cargo,
-        requisitosUnidade: reqs.unidade,
-        requisitosEmpresa: reqsEmpresa,
-      });
+      const checklist = aplicarRegrasDocumentos(
+        montarChecklist({
+          ficha: { data_nascimento: ficha.data_nascimento, estado_civil: ficha.estado_civil, sexo: (dados.sexo as string) ?? null },
+          pessoas: (pessoas ?? []) as never,
+          requisitosCargo: reqs.cargo,
+          requisitosUnidade: reqs.unidade,
+          requisitosEmpresa: reqsEmpresa,
+        }),
+        regras.documentos,
+      );
       const pendencias = pendenciasDocumentais(checklist, vigentes as never);
       // Aviso (não bloqueio): o CPF informado já existe na empresa?
       let cpfExistente: { situacao: "ativo" | "desligado"; nome: string } | null = null;
