@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Button } from "@/components/ui/button";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -337,7 +338,7 @@ export default function ConexoesPluggy() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Conexões Open Finance</h1>
+          <h1 className="flex items-center gap-1 text-xl md:text-2xl font-bold tracking-tight">Conexões Open Finance<HelpHint helpKey="financeiro.conexoes" size="md" side="bottom" align="start" /></h1>
           <p className="text-xs md:text-sm text-muted-foreground">
             Gerencie os bancos conectados via Pluggy e sincronize lançamentos.
           </p>

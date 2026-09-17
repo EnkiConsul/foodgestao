@@ -19,6 +19,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { Button } from "@/components/ui/button";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear } from "date-fns";
@@ -284,7 +285,7 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
+          <h1 className="flex items-center gap-1 font-display text-xl md:text-2xl font-bold tracking-tight text-foreground">Dashboard<HelpHint helpKey="dashboard.visao" size="md" side="bottom" align="start" /></h1>
           <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
             Visão geral das suas finanças
             {refreshing && <span className="ml-2 text-xs italic opacity-70">atualizando…</span>}

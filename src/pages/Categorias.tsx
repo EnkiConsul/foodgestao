@@ -5,6 +5,7 @@ import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -563,7 +564,7 @@ export default function Categorias() {
     <div className="space-y-4">
       {/* Header */}
       <div className="min-w-0 space-y-1">
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Categorias</h1>
+        <h1 className="flex items-center gap-1 text-xl md:text-2xl font-bold tracking-tight">Categorias<HelpHint helpKey="financeiro.categorias" size="md" side="bottom" align="start" /></h1>
         <p className="text-xs md:text-sm text-muted-foreground">
           Organize seu plano de contas por grupos e subcategorias.
         </p>

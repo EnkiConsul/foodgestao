@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -124,7 +125,7 @@ export default function CentrosCusto() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Centros de Custo</h1>
+          <h1 className="flex items-center gap-1 text-xl md:text-2xl font-bold tracking-tight">Centros de Custo<HelpHint helpKey="financeiro.centrosCusto" size="md" side="bottom" align="start" /></h1>
           <p className="text-xs md:text-sm text-muted-foreground">
             Cadastre os centros de custo usados para classificar seus lançamentos
           </p>

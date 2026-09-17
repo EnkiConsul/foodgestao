@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -221,7 +222,7 @@ export default function Faturas() {
       <main className="max-w-6xl mx-auto px-4 py-6 md:py-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight">Minhas Faturas</h1>
+            <h1 className="flex items-center gap-1 text-xl md:text-2xl font-bold tracking-tight">Minhas Faturas<HelpHint helpKey="conta.faturas" size="md" side="bottom" align="start" /></h1>
             <div className="flex flex-wrap items-center gap-2 mt-1">
               <p className="text-muted-foreground text-sm">
                 Acompanhe suas cobranças — pendentes, pagas e atrasadas

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -164,7 +165,7 @@ export default function Empresas() {
     <div className="space-y-4 md:space-y-6">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Empresas</h1>
+          <h1 className="flex items-center gap-1 text-xl md:text-2xl font-bold tracking-tight">Empresas<HelpHint helpKey="empresas.cadastro" size="md" side="bottom" align="start" /></h1>
           <p className="text-xs md:text-sm text-muted-foreground">Gerencie suas empresas cadastradas</p>
         </div>
         <Button onClick={requestNewCompany} className="hidden md:flex">
