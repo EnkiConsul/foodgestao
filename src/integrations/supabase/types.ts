@@ -10214,6 +10214,7 @@ export type Database = {
           trabalho_apos_22h: boolean
           unidade_prevista_id: string | null
           updated_at: string
+          versao: number
           vinculo_admissao_em: string | null
           whatsapp: string
         }
@@ -10244,6 +10245,7 @@ export type Database = {
           trabalho_apos_22h?: boolean
           unidade_prevista_id?: string | null
           updated_at?: string
+          versao?: number
           vinculo_admissao_em?: string | null
           whatsapp: string
         }
@@ -10274,6 +10276,7 @@ export type Database = {
           trabalho_apos_22h?: boolean
           unidade_prevista_id?: string | null
           updated_at?: string
+          versao?: number
           vinculo_admissao_em?: string | null
           whatsapp?: string
         }
@@ -15206,6 +15209,8 @@ export type Database = {
         Args: { _company_id: string; _unidade_id?: string }
         Returns: string
       }
+      dp_cpf_valido: { Args: { p: string }; Returns: boolean }
+      dp_data_iso_valida: { Args: { p: string }; Returns: boolean }
       dp_desligar_colaborador: {
         Args: {
           p_colaborador_id: string
@@ -15995,12 +16000,42 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_preadmissao_enviar: {
+        Args: {
+          p_estados: string[]
+          p_preadmissao_id: string
+          p_versao_esperada: number
+        }
+        Returns: Json
+      }
+      dp_preadmissao_salvar_candidato: {
+        Args: {
+          p_campos: Json
+          p_dados: Json
+          p_estados: string[]
+          p_pessoas: Json
+          p_preadmissao_id: string
+          p_status_novo: string
+          p_versao_esperada?: number
+        }
+        Returns: Json
+      }
       dp_preadmissao_transicionar: {
         Args: {
           p_de: string[]
           p_para: string
           p_patch?: Json
           p_preadmissao_id: string
+        }
+        Returns: Json
+      }
+      dp_preadmissao_transicionar_versionado: {
+        Args: {
+          p_de: string[]
+          p_para: string
+          p_patch?: Json
+          p_preadmissao_id: string
+          p_versao_esperada?: number
         }
         Returns: Json
       }
@@ -16179,6 +16214,7 @@ export type Database = {
           versoes: number
         }[]
       }
+      dp_txt_norm: { Args: { p: string }; Returns: string }
       dre_apply_default_mapping: {
         Args: { _company_id: string }
         Returns: number
