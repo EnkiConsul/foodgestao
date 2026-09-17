@@ -154,7 +154,6 @@ export function FichaRevisaoCard({
       { ...base, setor_id: setorId, regime },
       { exigirSetor: setores.length > 0, salarioCargo },
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dados, setorId, regime, setores.length, salarioCargo]);
 
   /**
