@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.dp_preadmissao_avaliar_documento(uuid, uuid, text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.dp_preadmissao_avaliar_documento(uuid, uuid, text, text) TO service_role;
