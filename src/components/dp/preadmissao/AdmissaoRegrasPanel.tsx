@@ -29,19 +29,10 @@ import {
   resolverExigencia, useDpAdmissaoRegras,
   type AdmissaoRegra, type Exigencia, type TipoRegra,
 } from "@/hooks/dp/useDpAdmissaoRegras";
+import { REGIMES_ADMISSAO } from "@/lib/dp/regimesAdmissao";
 import { useDpDocumentoRequisitos } from "@/hooks/useDpDocumentoRequisitos";
 
 const TODOS = "__todos__";
-
-export const REGIMES_ADMISSAO: { value: string; label: string }[] = [
-  { value: "clt", label: "Fixo (CLT)" },
-  { value: "intermitente", label: "Intermitente" },
-  { value: "estagio", label: "Estágio" },
-  { value: "temporario", label: "Temporário" },
-  { value: "pj", label: "Prestador PJ" },
-  { value: "mei", label: "MEI" },
-  { value: "freelancer", label: "Freelancer" },
-];
 
 /** Campos da ficha do candidato, com o rótulo que o candidato vê. */
 const CAMPOS: { chave: string; label: string; grupo: string }[] = [
@@ -127,16 +118,15 @@ export function AdmissaoRegrasPanel() {
   const [simCargo, setSimCargo] = useState<string>(TODOS);
   const [simRegime, setSimRegime] = useState<string>(TODOS);
 
-  const lista = regras.data ?? [];
-
   const porItem = useMemo(() => {
     const m = new Map<string, AdmissaoRegra[]>();
+    const lista = regras.data ?? [];
     lista.forEach((r) => {
       const k = `${r.tipo}:${r.chave}`;
       m.set(k, [...(m.get(k) ?? []), r]);
     });
     return m;
-  }, [lista]);
+  }, [regras.data]);
 
   const nomeUnidade = (id: string) => unidades.find((u) => u.id === id)?.nome ?? "Unidade";
   const nomeCargo = (id: string) => cargos.find((c) => c.id === id)?.nome ?? "Cargo";

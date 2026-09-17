@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDpCargos, useDpCargosDaUnidade, useDpUnidades } from "@/hooks/useDpCadastros";
-import { REGIMES_ADMISSAO } from "@/components/dp/preadmissao/AdmissaoRegrasPanel";
+import { REGIMES_ADMISSAO } from "@/lib/dp/regimesAdmissao";
 import { isValidCpf, maskCpf } from "@/lib/cpf";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPreadmissaoConvite } from "@/hooks/dp/useDpPreadmissoes";
