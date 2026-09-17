@@ -767,17 +767,19 @@ export function FichaRevisaoCard({
               <p className="text-[11px] text-destructive">
                 Não foi possível carregar os dados conferidos da pré-admissão. Recarregue a página antes de concluir.
               </p>
-            ) : divergencias.length === 0 ? (
+            ) : divergencias.length === 0 && divergenciasDoAdmin.length === 0 ? (
               <p className="text-[11px] text-muted-foreground">
-                A ficha da contabilidade confere com os dados revisados. Nada será alterado sem sua escolha.
+                A ficha da contabilidade confere com os dados revisados, inclusive cargo, unidade, salário e jornada.
+                Nada será alterado sem sua escolha.
               </p>
             ) : (
               <div className="space-y-2">
                 <p className="text-[11px] text-muted-foreground">
-                  {divergencias.length} campo(s) diferentes do que foi conferido. Escolha qual valor vale em cada um —
-                  sem escolha, o valor conferido é mantido.
+                  {divergencias.length + divergenciasDoAdmin.length} campo(s) diferentes do que foi conferido — dados
+                  pessoais e informações administrativas. Escolha qual valor vale em cada um; sem escolha, o valor
+                  conferido é mantido.
                 </p>
-                {divergencias.map((d) => {
+                {[...divergencias, ...divergenciasDoAdmin].map((d) => {
                   const escolha = escolhas[d.campo];
                   return (
                     <div key={d.campo} className="rounded-md border bg-background p-2">
@@ -807,9 +809,9 @@ export function FichaRevisaoCard({
                     </div>
                   );
                 })}
-                {semEscolha.length > 0 && (
+                {faltaDecidir > 0 && (
                   <p className="text-[11px] text-amber-600 dark:text-amber-400">
-                    Falta decidir: {semEscolha.map((d) => d.rotulo).join(", ")}.
+                    Falta decidir: {[...semEscolha, ...semEscolhaAdmin].map((d) => d.rotulo).join(", ")}.
                   </p>
                 )}
               </div>
