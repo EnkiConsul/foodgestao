@@ -308,7 +308,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Identificação</h3>
             <div className="space-y-2">
-              <Label>Banco</Label>
+              <Label>Banco/Outras Contas Financeiras</Label>
               <BankSelect
                 value={bankSlug}
                 onChange={(slug, bankName) => {
