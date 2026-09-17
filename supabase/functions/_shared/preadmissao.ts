@@ -633,6 +633,13 @@ export function validarAdminDados(entrada: unknown): AdminValidado {
       else out.campos[campo] = num.toFixed(2);
       continue;
     }
+    if (CAMPOS_ADMIN_NUMEROS[campo]) {
+      const regra = CAMPOS_ADMIN_NUMEROS[campo];
+      const num = Number(v.replace(",", "."));
+      if (!Number.isFinite(num) || num < regra.min || num > regra.max) out.erros[campo] = regra.erro;
+      else out.campos[campo] = num;
+      continue;
+    }
     if (campo === "cargo_id" || campo === "unidade_id" || campo === "setor_id") {
       if (!UUID_RE.test(v)) {
         out.erros[campo] = "Referência inválida.";
