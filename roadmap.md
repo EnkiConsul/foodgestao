@@ -26,10 +26,12 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [x] Regras: bloqueio menor + após 22h (sem override), checklist por cargo/unidade, dependentes ≤5/6-14/≤14, Sesc
 - [x] Efetivação somente após conferir ficha oficial da contabilidade (atômica/idempotente)
 - [x] Testes de backend (32) + Deno check + typecheck + relatório docs/preadmissao-relatorio.md
-- [ ] Frontend gestor: 3ª opção em Colaboradores, aba Pré-Admissões, revisão, pacote para contabilidade
-- [ ] Frontend candidato: página pública em etapas, mobile-first
-- [ ] Pendência canônica no useDpPendencias + notificação
+- [x] Frontend gestor: 3ª opção em Colaboradores, aba Pré-Admissões, revisão, pacote para contabilidade
+- [x] Frontend candidato: página pública em etapas, mobile-first
+- [x] Pendência canônica no useDpPendencias (notificação no sino pendente)
 - [ ] Conferência com Importar Ficha, duplicidade de CPF na tela, QA desktop/mobile
 
 - [x] Pré-Admissão — incremento 2: correções da revisão do commit f276cab (fases, payload, atomicidade, MIME real, grants, menor+22h, ficha oficial conferida)
+- [x] Pré-Admissão — incremento 4: telas do gestor (lista, convite, revisão), página pública do candidato e pendências
+- [x] Pré-Admissão — incremento 5: concorrência (versão da ficha, gravação de familiares na mesma transação travada, payload da raiz/familiares recusado)
 - [x] Pré-Admissão — incremento 3: integridade composta, cliente somente leitura, promoção atômica com CPF/ficha conferida, documentos com titular/finalidade e vínculo por admissão

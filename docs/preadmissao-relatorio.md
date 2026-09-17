@@ -192,3 +192,48 @@ O frontend do gestor (ainda não construído) deve ler diretamente e escrever ap
 ### Ainda pendente
 - Testes de integração das telas (critérios 110–123), aviso/notificação no sino, aviso de CPF já
   cadastrado antes do convite e QA nas demais resoluções combinadas.
+
+## Incremento 5 — Concorrência na ficha do candidato
+
+Revisão atendida (código 3c3195): gravação de dados + familiares/remoções acontecia fora da transição.
+
+### Banco (migração com rollback documentado no próprio SQL)
+- `dp_preadmissoes.versao` (integer, default 1) como controle otimista; `dp_preadmissao_documento_registrar`
+  e a avaliação de documento também incrementam a versão.
+- `dp_preadmissao_salvar_candidato(...)`: advisory lock por ficha + `SELECT ... FOR UPDATE`; confere estado
+  editável e versão esperada; grava dados, campos derivados, familiares (insert/update) e remoções lógicas
+  numa única transação. Valida nome, parentesco (lista fechada), finalidade dependente/Sesc, parentesco
+  elegível ao Sesc, CPF, data ISO real, nascimento futuro/impossível e recusa `UPDATE` de 0 linhas
+  (familiar de outra ficha/empresa) com `pessoa_desconhecida`.
+- `dp_preadmissao_enviar(...)`: só a partir dos estados editáveis e com a versão conferida sob lock.
+- `dp_preadmissao_transicionar_versionado(...)`: transição com lock + versão esperada.
+- `dp_txt_norm` passou a normalizar sublinhado (o formulário grava `menor_guarda`); `normaliza()` do
+  checklist idem, e a lista de filiação aceita as duas grafias.
+- Todas as funções: `REVOKE` de `anon`/`authenticated`, `EXECUTE` só para `service_role`.
+
+### Edge Functions (reimplantadas)
+- `dp-preadmissao-publica`: `carregar` devolve a versão; `salvar` recusa chave estranha na raiz
+  (`CAMPOS_RAIZ_CANDIDATO`), em `dados` e em cada familiar (`familiar N: campo`) e grava por
+  `salvarCandidato`; `enviar` usa `enviarFicha` com a versão lida, nunca o status recebido do cliente;
+  409 para fase encerrada/versão alterada/familiar desconhecido, 400 para conteúdo inválido.
+- `dp-preadmissao-gestor`: `salvar_admin`, `alterar_previsto` e `avaliar_documento` passam por
+  `transicionarComVersao`; `preparar_contabilidade` exige a versão conferida e responde 409
+  ("A ficha mudou enquanto você conferia. Recarregue e confira novamente.").
+
+### Verificações
+- Testes no banco: 11 casos de validação + 3 provas de concorrência real com duas sessões
+  (`docs/security/preadmissao-concorrencia.report.json`, SQL em `preadmissao-concorrencia.sql`),
+  em Postgres 17.9 local descartável com réplica mínima e as definições reais das funções; nenhum dado
+  real tocado. Destaques: envio concorrente ficou 3,03 s bloqueado no lock e foi recusado por versão
+  alterada; salvar após o envio recusado por fase encerrada; de duas gravações simultâneas com a mesma
+  versão, uma gravou e a outra foi recusada.
+- 36 testes unitários verdes (novo `preadmissaoConcorrencia.test.ts` com 7), `deno check` nas três
+  funções e `npx tsgo --noEmit` sem erros.
+- QA no navegador: `/pre-admissao` com link inválido em 390×844 e 1366×768 (mensagem amigável).
+- Linter do banco: 234 avisos, os mesmos de antes da migração (nenhum novo).
+- Nada publicado. Rollback: restaurar as versões anteriores das três funções (o SQL antigo está no
+  histórico de migrações) e remover a coluna `versao` não é necessário — ela é aditiva e sem efeito
+  se as funções antigas voltarem.
+
+### Ainda pendente
+- Testes de integração das telas, aviso de CPF já cadastrado antes do convite e QA nas demais resoluções.
