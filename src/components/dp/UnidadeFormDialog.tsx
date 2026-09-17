@@ -17,6 +17,9 @@ import { UnidadeSindicatoPanel } from "@/components/dp/unidades/UnidadeSindicato
 import { UnidadeNegociacoesPanel } from "@/components/dp/unidades/UnidadeNegociacoesPanel";
 import { UnidadeSetoresPanel } from "@/components/dp/unidades/UnidadeSetoresPanel";
 import { UnidadeFeriadosPanel } from "@/components/dp/unidades/UnidadeFeriadosPanel";
+import { EnderecoFields } from "@/components/shared/EnderecoFields";
+import { maskCep } from "@/lib/endereco";
+import { parseEnderecoTexto } from "@/lib/dp/ficha-registro/endereco-parse";
 
 
 export const onlyNumbers = (v: string) => v.replace(/\D/g, "");
@@ -35,6 +38,11 @@ const blank = {
   nome: "",
   cnpj: "",
   endereco: "",
+  cep: "",
+  logradouro: "",
+  numero: "",
+  complemento: "",
+  bairro: "",
   cidade: "",
   uf: "",
   ativo: true,
@@ -51,6 +59,11 @@ export interface UnidadeEdicao {
   nome: string;
   cnpj?: string | null;
   endereco?: string | null;
+  cep?: string | null;
+  logradouro?: string | null;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
   cidade?: string | null;
   uf?: string | null;
   ativo: boolean;
@@ -139,6 +152,11 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         nome: force || !prev.nome ? (data.trade_name || data.name || prev.nome) : prev.nome,
         cnpj: force || !prev.cnpj ? cnpjDigits : prev.cnpj,
         endereco: force || !prev.endereco ? endereco : prev.endereco,
+        cep: force || !prev.cep ? maskCep(data.cep || "") : prev.cep,
+        logradouro: force || !prev.logradouro ? (data.logradouro || "") : prev.logradouro,
+        numero: force || !prev.numero ? (data.numero || "") : prev.numero,
+        complemento: force || !prev.complemento ? (data.complemento || "") : prev.complemento,
+        bairro: force || !prev.bairro ? (data.bairro || "") : prev.bairro,
         cidade: force || !prev.cidade ? cidade : prev.cidade,
         uf: force || !prev.uf ? (uf || "").toUpperCase().slice(0, 2) : prev.uf,
         telefone: force || !prev.telefone ? telefone : prev.telefone,
@@ -161,13 +179,20 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
     setCriadaId(null);
     setAba(unidade ? abaInicial : "dados");
     if (unidade) {
+      // Endereço antigo gravado em uma linha só é aproveitado nos campos novos.
+      const lido = parseEnderecoTexto(unidade.endereco);
       setForm({
         company_id: unidade.company_id ?? "",
         nome: unidade.nome,
         cnpj: unidade.cnpj ?? "",
         endereco: unidade.endereco ?? "",
-        cidade: unidade.cidade ?? "",
-        uf: unidade.uf ?? "",
+        cep: unidade.cep ?? lido.cep ?? "",
+        logradouro: unidade.logradouro ?? lido.logradouro ?? "",
+        numero: unidade.numero ?? lido.numero ?? "",
+        complemento: unidade.complemento ?? "",
+        bairro: unidade.bairro ?? lido.bairro ?? "",
+        cidade: unidade.cidade ?? lido.cidade ?? "",
+        uf: unidade.uf ?? lido.uf ?? "",
         ativo: unidade.ativo,
         telefone: unidade.telefone ?? "",
         possui_relogio_ponto: unidade.possui_relogio_ponto ?? false,
@@ -199,7 +224,21 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         company_id: form.company_id,
         nome: form.nome.trim(),
         cnpj: onlyNumbers(form.cnpj) || null,
-        endereco: form.endereco.trim() || null,
+        // Linha única mantida para telas e relatórios que mostram o endereço em texto.
+        endereco:
+          [
+            [form.logradouro.trim(), form.numero.trim()].filter(Boolean).join(", "),
+            form.complemento.trim(),
+            form.bairro.trim(),
+            form.cep.trim(),
+          ]
+            .filter(Boolean)
+            .join(" - ") || form.endereco.trim() || null,
+        cep: form.cep.trim() || null,
+        logradouro: form.logradouro.trim() || null,
+        numero: form.numero.trim() || null,
+        complemento: form.complemento.trim() || null,
+        bairro: form.bairro.trim() || null,
         cidade: form.cidade.trim() || null,
         uf: form.uf.trim().toUpperCase() || null,
         ativo: form.ativo,
@@ -316,30 +355,19 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
           </div>
           <div className="space-y-2">
             <Label>Endereço</Label>
-            <Input
-              value={form.endereco}
-              onChange={(e) => setForm({ ...form, endereco: e.target.value })}
-              placeholder="Ex: R 9 A, SN"
+            <EnderecoFields
+              idPrefix="unidade"
+              valor={{
+                cep: form.cep,
+                logradouro: form.logradouro,
+                numero: form.numero,
+                complemento: form.complemento,
+                bairro: form.bairro,
+                cidade: form.cidade,
+                uf: form.uf,
+              }}
+              onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
             />
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <div className="sm:col-span-2 space-y-2">
-              <Label>Cidade</Label>
-              <Input
-                value={form.cidade}
-                onChange={(e) => setForm({ ...form, cidade: e.target.value })}
-                placeholder="Ex: Aparecida de Goiânia"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>UF</Label>
-              <Input
-                value={form.uf}
-                onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })}
-                placeholder="GO"
-                maxLength={2}
-              />
-            </div>
           </div>
           <div className="space-y-2">
             <Label>Telefone</Label>

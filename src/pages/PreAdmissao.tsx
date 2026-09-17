@@ -226,7 +226,17 @@ interface Estado {
   documentos: DocumentoEnviado[];
   checklist: ChecklistItem[];
   pendencias: string[];
+  /** O que a empresa exige, dispensa ou nem pede em cada campo. */
+  regras_campos?: Record<string, "obrigatorio" | "opcional" | "nao_pedir"> | null;
+  /** Graus de parentesco aceitos pela empresa (nulo = todos). */
+  parentescos_permitidos?: string[] | null;
 }
+
+/** Campos que a ficha sempre pede quando a empresa não muda a regra. */
+const OBRIGATORIOS_PADRAO = new Set([
+  "nome", "cpf", "data_nascimento", "email", "estado_civil", "nome_mae",
+  "grau_instrucao", "telefone", "cep", "endereco", "cidade", "uf",
+]);
 
 /** Erro do servidor com o detalhamento por campo, quando houver. */
 class ErroServidor extends Error {
@@ -519,7 +529,22 @@ export default function PreAdmissao() {
     { nome: "cidade", rotulo: "Cidade" },
     { nome: "uf", rotulo: "UF" },
   ];
-  const camposDaRevisao = ETAPAS.flatMap((e) => (e.endereco ? CAMPOS_ENDERECO : e.campos));
+  /**
+   * Exigência do campo segundo as regras da empresa. A conferência final é
+   * sempre do servidor: aqui só mostramos e orientamos.
+   */
+  const regrasCampos = estado?.regras_campos ?? {};
+  const exigenciaCampo = (nome: string): "obrigatorio" | "opcional" | "nao_pedir" => {
+    const r = regrasCampos[nome];
+    if (r) return r;
+    return OBRIGATORIOS_PADRAO.has(nome) ? "obrigatorio" : "opcional";
+  };
+  const campoVisivel = (c: Campo) => exigenciaCampo(c.nome) !== "nao_pedir";
+  const parentescosPermitidos = estado?.parentescos_permitidos ?? null;
+  const parentescosDaLista = parentescosPermitidos
+    ? PARENTESCO.filter((p) => parentescosPermitidos.includes(p.value))
+    : PARENTESCO;
+  const camposDaRevisao = ETAPAS.flatMap((e) => (e.endereco ? CAMPOS_ENDERECO : e.campos)).filter(campoVisivel);
 
   /** Na revisão o valor aparece como a pessoa está acostumada a ver. */
   const valorLegivel = (campo: Campo) => {
@@ -665,7 +690,7 @@ export default function PreAdmissao() {
                 />
               ) : (
               <div className="grid gap-3 sm:grid-cols-2">
-                {etapaAtual.campos.map((campo) => {
+                {etapaAtual.campos.filter(campoVisivel).map((campo) => {
                   // Nome e CPF conferidos pela empresa: o candidato vê, aponta
                   // erro e a empresa decide — nunca altera por conta própria.
                   const travado = !!campo.somenteLeitura;
@@ -695,7 +720,12 @@ export default function PreAdmissao() {
                   };
                   return (
                   <div key={campo.nome} className="space-y-1">
-                    <Label className="text-xs" htmlFor={`campo-${campo.nome}`}>{campo.rotulo}</Label>
+                    <Label className="text-xs" htmlFor={`campo-${campo.nome}`}>
+                      {campo.rotulo}
+                      {exigenciaCampo(campo.nome) === "obrigatorio" && (
+                        <span className="text-destructive"> *</span>
+                      )}
+                    </Label>
                     {campo.opcoes ? (
                       <Select
                         value={valor}
@@ -784,7 +814,7 @@ export default function PreAdmissao() {
                         onValueChange={(v) => setPessoas(pessoas.map((x, j) => (j === i ? { ...x, parentesco: v } : x)))}>
                         <SelectTrigger id={`fam-par-${i}`} className="h-11"><SelectValue placeholder="Escolher" /></SelectTrigger>
                         <SelectContent>
-                          {PARENTESCO.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                          {parentescosDaLista.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>

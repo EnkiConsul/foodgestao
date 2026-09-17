@@ -8,6 +8,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { companySchema, validateWithToast } from "@/lib/validations";
 import { CnpjInput } from "@/components/shared/CnpjInput";
+import { EnderecoFields, type EnderecoValor } from "@/components/shared/EnderecoFields";
+import { maskCep } from "@/lib/endereco";
+import { parseEnderecoTexto } from "@/lib/dp/ficha-registro/endereco-parse";
 import type { CnpjLookupResult } from "@/hooks/useCnpjLookup";
 import { isValidCnpj } from "@/lib/cnpj";
 import type { Database } from "@/integrations/supabase/types";
@@ -31,7 +34,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [address, setAddress] = useState("");
+  const [endereco, setEndereco] = useState<EnderecoValor>({});
 
   useEffect(() => {
     if (company) {
@@ -41,16 +44,30 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
       setEmail(company.email ?? "");
       setPhone(company.phone ?? "");
       setWhatsapp((company as any).whatsapp ?? "");
-      const legacy = (company.address ?? "").trim();
-      if (legacy) {
-        setAddress(legacy);
+      const c = company as any;
+      const temPartes = [c.cep, c.logradouro, c.numero, c.bairro, c.cidade, c.uf].some(Boolean);
+      if (temPartes) {
+        setEndereco({
+          cep: c.cep ?? "",
+          logradouro: c.logradouro ?? "",
+          numero: c.numero ?? "",
+          complemento: c.complemento ?? "",
+          bairro: c.bairro ?? "",
+          cidade: c.cidade ?? "",
+          uf: c.uf ?? "",
+        });
       } else {
-        const c = company as any;
-        const linha1 = [c.logradouro, c.numero].filter(Boolean).join(", ");
-        const linha2 = [c.complemento, c.bairro].filter(Boolean).join(" - ");
-        const linha3 = [c.cidade, c.uf].filter(Boolean).join(" - ");
-        const composed = [linha1, linha2, linha3, c.cep].filter(Boolean).join(", ");
-        setAddress(composed);
+        // Endereço antigo gravado em uma linha só: aproveita o que der para ler.
+        const lido = parseEnderecoTexto(company.address);
+        setEndereco({
+          cep: lido.cep ?? "",
+          logradouro: lido.logradouro ?? "",
+          numero: lido.numero ?? "",
+          complemento: "",
+          bairro: lido.bairro ?? "",
+          cidade: lido.cidade ?? "",
+          uf: lido.uf ?? "",
+        });
       }
     } else {
       setName("");
@@ -59,9 +76,17 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
       setEmail("");
       setPhone("");
       setWhatsapp("");
-      setAddress("");
+      setEndereco({});
     }
   }, [company, open]);
+
+  /** Linha única mantida para as telas que já mostram o endereço em texto. */
+  const enderecoTexto = () => {
+    const linha1 = [endereco.logradouro, endereco.numero].filter(Boolean).join(", ");
+    const linha2 = [endereco.complemento, endereco.bairro].filter(Boolean).join(" - ");
+    const linha3 = [endereco.cidade, endereco.uf].filter(Boolean).join(" - ");
+    return [linha1, linha2, linha3, endereco.cep].filter(Boolean).join(", ").slice(0, 300);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,13 +115,28 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
       email: email || null,
       phone: phone || null,
       whatsapp: whatsapp || null,
-      address: address || null,
+      address: enderecoTexto() || null,
     }, toast.error);
     if (!validated) return;
 
     setSaving(true);
 
-    const payload = { ...validated, user_id: user.id, profile_type: "empresarial" };
+    const limpar = (v?: string | null) => {
+      const t = String(v ?? "").trim();
+      return t ? t : null;
+    };
+    const payload = {
+      ...validated,
+      user_id: user.id,
+      profile_type: "empresarial",
+      cep: limpar(endereco.cep),
+      logradouro: limpar(endereco.logradouro),
+      numero: limpar(endereco.numero),
+      complemento: limpar(endereco.complemento),
+      bairro: limpar(endereco.bairro),
+      cidade: limpar(endereco.cidade),
+      uf: limpar(endereco.uf),
+    };
 
     let error;
     if (company) {
@@ -152,7 +192,15 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
                       if (d.nome_fantasia) setTradeName(d.nome_fantasia);
                       if (d.email && !email) setEmail(d.email);
                       if (d.telefone && !phone) setPhone(d.telefone);
-                      if (d.endereco_formatado) setAddress(d.endereco_formatado);
+                      setEndereco((atual) => ({
+                        cep: d.cep ? maskCep(d.cep) : atual.cep,
+                        logradouro: d.logradouro ?? atual.logradouro,
+                        numero: d.numero ?? atual.numero,
+                        complemento: d.complemento ?? atual.complemento,
+                        bairro: d.bairro ?? atual.bairro,
+                        cidade: d.municipio ?? atual.cidade,
+                        uf: (d.uf ?? atual.uf ?? "").toUpperCase().slice(0, 2),
+                      }));
                     }}
                     onPendingChange={setCnpjLookupPending}
                   />
@@ -173,8 +221,12 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="company-address">Endereço</Label>
-                <Input id="company-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade - UF" maxLength={300} />
+                <Label>Endereço</Label>
+                <EnderecoFields
+                  idPrefix="company"
+                  valor={endereco}
+                  onChange={(patch) => setEndereco((e) => ({ ...e, ...patch }))}
+                />
               </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>

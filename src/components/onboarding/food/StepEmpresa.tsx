@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CnpjInput } from "@/components/shared/CnpjInput";
+import { EnderecoFields } from "@/components/shared/EnderecoFields";
 import { SegmentoSelect } from "./SegmentoSelect";
 import { maskPhone } from "@/lib/phone";
 import { AlertCircle } from "lucide-react";
@@ -116,44 +117,20 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
         <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Endereço
         </legend>
-        <div className="grid gap-4 md:grid-cols-[140px_1fr_120px]">
-          <Field label="CEP *" error={errors.cep}>
-            <Input
-              value={data.cep}
-              onChange={(e) => update({ cep: maskCep(e.target.value) })}
-              placeholder="00000-000"
-              maxLength={9}
-              inputMode="numeric"
-            />
-          </Field>
-          <Field label="Logradouro *" error={errors.logradouro}>
-            <Input value={data.logradouro} onChange={(e) => update({ logradouro: e.target.value })} maxLength={200} />
-          </Field>
-          <Field label="Número *" error={errors.numero}>
-            <Input value={data.numero} onChange={(e) => update({ numero: e.target.value })} maxLength={20} />
-          </Field>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Complemento" error={errors.complemento}>
-            <Input value={data.complemento} onChange={(e) => update({ complemento: e.target.value })} maxLength={100} />
-          </Field>
-          <Field label="Bairro *" error={errors.bairro}>
-            <Input value={data.bairro} onChange={(e) => update({ bairro: e.target.value })} maxLength={100} />
-          </Field>
-        </div>
-        <div className="grid gap-4 md:grid-cols-[1fr_120px]">
-          <Field label="Cidade *" error={errors.cidade}>
-            <Input value={data.cidade} onChange={(e) => update({ cidade: e.target.value })} maxLength={100} />
-          </Field>
-          <Field label="UF *" error={errors.uf}>
-            <Input
-              value={data.uf}
-              onChange={(e) => update({ uf: e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2) })}
-              maxLength={2}
-              placeholder="SP"
-            />
-          </Field>
-        </div>
+        <EnderecoFields
+          idPrefix="empresa"
+          valor={{
+            cep: data.cep,
+            logradouro: data.logradouro,
+            numero: data.numero,
+            complemento: data.complemento,
+            cidade: data.cidade,
+            bairro: data.bairro,
+            uf: data.uf,
+          }}
+          onChange={(patch) => update(patch as Partial<EmpresaFormData>)}
+          erros={errors as Record<string, string>}
+        />
       </fieldset>
 
       {/* Contato */}

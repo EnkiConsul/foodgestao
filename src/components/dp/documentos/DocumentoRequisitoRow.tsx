@@ -35,7 +35,8 @@ type Props = {
   /** Portal do colaborador: só envia e aceita, nunca aprova. */
   somenteEnvio?: boolean;
   ocupado?: boolean;
-  onEnviar: (file: File, validade: string | null) => void;
+  /** `novaParte` guarda mais uma foto (verso, páginas extras) sem substituir. */
+  onEnviar: (file: File, validade: string | null, novaParte?: boolean) => void;
   onAbrir: (anexo: Anexo) => void;
   onAprovar?: (anexo: Anexo, validade: string | null) => void;
   onRecusar?: (anexo: Anexo, motivo: string) => void;
@@ -52,6 +53,7 @@ export function DocumentoRequisitoRow({
   onEnviar, onAbrir, onAprovar, onRecusar, onDispensar, onExcluir, onPedirAceite, onAceitar,
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputParteRef = useRef<HTMLInputElement | null>(null);
   const [validade, setValidade] = useState<string>(item.validade ?? "");
   const [recusaAlvo, setRecusaAlvo] = useState<Anexo | null>(null);
   const [dispensaAberta, setDispensaAberta] = useState(false);
@@ -59,6 +61,14 @@ export function DocumentoRequisitoRow({
 
   const anexos = (item.anexos ?? []).filter((a) => !!a.documento_id) as Anexo[];
   const temArquivo = anexos.length > 0;
+  // Frente, verso e fotos extras seguem a ordem de envio.
+  const ordemEnvio = [...anexos].sort((a, b) => (a.created_at ?? "").localeCompare(b.created_at ?? ""));
+  const rotuloParte = (id: string) => {
+    const i = ordemEnvio.findIndex((a) => a.id === id);
+    if (i === 0) return "Frente";
+    if (i === 1) return "Verso";
+    return `Foto ${i + 1}`;
+  };
   const precisaValidade =
     item.requisito.periodicidade === "vencimento" || item.requisito.periodicidade === "anual";
 
@@ -129,10 +139,32 @@ export function DocumentoRequisitoRow({
               e.target.value = "";
             }}
           />
+          <input
+            ref={inputParteRef}
+            type="file"
+            className="hidden"
+            accept="image/*,application/pdf"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onEnviar(f, validade || null, true);
+              e.target.value = "";
+            }}
+          />
           <Button size="sm" variant="outline" disabled={ocupado} onClick={() => inputRef.current?.click()}>
             {ocupado ? <Loader2 className="mr-1 size-4 animate-spin" /> : <Upload className="mr-1 size-4" />}
             {item.multiplos ? "Adicionar arquivo" : temArquivo ? "Substituir" : "Anexar"}
           </Button>
+          {temArquivo && !item.multiplos && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={ocupado}
+              onClick={() => inputParteRef.current?.click()}
+            >
+              <Upload className="mr-1 size-4" />
+              {anexos.length === 1 ? "Anexar verso" : "Anexar outra foto"}
+            </Button>
+          )}
           {!somenteEnvio && item.status !== "dispensado" && (
             <Button size="sm" variant="ghost" onClick={() => setDispensaAberta(true)}>
               <Ban className="mr-1 size-4" /> Dispensar
@@ -151,6 +183,11 @@ export function DocumentoRequisitoRow({
                 <div className="min-w-0 space-y-0.5">
                   <p className="flex items-center gap-1 truncate text-sm">
                     <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+                    {anexos.length > 1 && (
+                      <Badge variant="secondary" className="text-[10px]">
+                        {rotuloParte(anexo.id)}
+                      </Badge>
+                    )}
                     {doc?.file_name ?? "Arquivo"}
                     <Badge
                       variant="outline"

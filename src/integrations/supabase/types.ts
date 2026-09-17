@@ -11390,14 +11390,19 @@ export type Database = {
       dp_unidades: {
         Row: {
           ativo: boolean
+          bairro: string | null
+          cep: string | null
           cidade: string | null
           cnpj: string | null
           company_id: string
+          complemento: string | null
           created_at: string
           dia_adiantamento: number | null
           endereco: string | null
           id: string
+          logradouro: string | null
           nome: string
+          numero: string | null
           possui_relogio_ponto: boolean
           telefone: string | null
           tem_adiantamento: boolean
@@ -11407,14 +11412,19 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          bairro?: string | null
+          cep?: string | null
           cidade?: string | null
           cnpj?: string | null
           company_id: string
+          complemento?: string | null
           created_at?: string
           dia_adiantamento?: number | null
           endereco?: string | null
           id?: string
+          logradouro?: string | null
           nome: string
+          numero?: string | null
           possui_relogio_ponto?: boolean
           telefone?: string | null
           tem_adiantamento?: boolean
@@ -11424,14 +11434,19 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          bairro?: string | null
+          cep?: string | null
           cidade?: string | null
           cnpj?: string | null
           company_id?: string
+          complemento?: string | null
           created_at?: string
           dia_adiantamento?: number | null
           endereco?: string | null
           id?: string
+          logradouro?: string | null
           nome?: string
+          numero?: string | null
           possui_relogio_ponto?: boolean
           telefone?: string | null
           tem_adiantamento?: boolean
