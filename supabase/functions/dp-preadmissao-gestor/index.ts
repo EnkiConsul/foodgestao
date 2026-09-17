@@ -18,10 +18,11 @@ import {
 import { bloqueioMenorNoturno, montarChecklist, pendenciasDocumentais } from "../_shared/preadmissao-checklist.ts";
 
 /**
- * Situações em que a ficha pode seguir para a contabilidade. Correção pedida
- * NÃO entra: a ficha está com o candidato, ainda sem a nova versão.
+ * Única situação em que a ficha pode seguir para a contabilidade. Correção
+ * pedida e "aguardando nova versão" NÃO entram: a ficha está com o candidato,
+ * que ainda pode editar os dados.
  */
-const PODE_PREPARAR = ["aguardando_revisao", "aguardando_nova_versao"];
+const PODE_PREPARAR = ["aguardando_revisao"];
 
 /** Mínimos administrativos que a contabilidade precisa receber. */
 const ADMIN_OBRIGATORIOS: Array<[string, string]> = [
