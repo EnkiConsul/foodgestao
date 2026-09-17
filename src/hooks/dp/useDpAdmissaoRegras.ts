@@ -25,6 +25,7 @@ export interface AdmissaoRegra {
   unidades: string[];
   cargos: string[];
   regimes: string[];
+  sexos: string[];
 }
 
 export interface AdmissaoParentesco {
@@ -44,6 +45,22 @@ export interface RegraEntrada {
   unidades: string[];
   cargos: string[];
   regimes: string[];
+  sexos: string[];
+}
+
+/** Traduz as recusas do servidor para um aviso que o gestor entende. */
+function mensagemRegra(bruto: string): string {
+  const m = (bruto ?? "").toLowerCase();
+  if (m.includes("sem_permissao")) return "Você não tem permissão para mudar as regras desta empresa.";
+  if (m.includes("empresa_obrigatoria")) return "Selecione uma empresa antes de salvar.";
+  if (m.includes("tipo_invalido") || m.includes("chave_invalida")) return "Este item da ficha não pôde ser identificado. Atualize a página e tente de novo.";
+  if (m.includes("exigencia_invalida")) return "Escolha entre Obrigatório, Opcional ou Não pedir.";
+  if (m.includes("vinculo_invalido")) return "Escolha um tipo de vínculo da lista.";
+  if (m.includes("sexo_invalido")) return "Escolha Masculino ou Feminino.";
+  if (m.includes("regra_nao_encontrada")) return "Esta regra foi alterada por outra pessoa. Atualize a página e tente de novo.";
+  if (m.includes("empresa_diferente") || m.includes("guard")) return "A unidade ou o cargo escolhido é de outra empresa.";
+  if (m.includes("duplicate key") || m.includes("padrao_uk")) return "Já existe uma regra padrão para este item. Edite a regra existente.";
+  return bruto || "Não foi possível salvar a regra.";
 }
 
 export function useDpAdmissaoRegras() {
@@ -54,7 +71,7 @@ export function useDpAdmissaoRegras() {
     queryKey: ["dp-admissao-regras", selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async (): Promise<AdmissaoRegra[]> => {
-      const [base, uni, car, reg] = await Promise.all([
+      const [base, uni, car, reg, sex] = await Promise.all([
         supabase
           .from("dp_admissao_regras")
           .select("id, company_id, tipo, chave, exigencia, padrao")
@@ -65,11 +82,14 @@ export function useDpAdmissaoRegras() {
           .eq("company_id", selectedCompanyId!),
         supabase.from("dp_admissao_regra_regimes").select("regra_id, regime")
           .eq("company_id", selectedCompanyId!),
+        supabase.from("dp_admissao_regra_sexos").select("regra_id, sexo")
+          .eq("company_id", selectedCompanyId!),
       ]);
       if (base.error) throw base.error;
       if (uni.error) throw uni.error;
       if (car.error) throw car.error;
       if (reg.error) throw reg.error;
+      if (sex.error) throw sex.error;
       const porRegra = <T,>(rows: { regra_id: string }[], pick: (r: never) => T) => {
         const m = new Map<string, T[]>();
         rows.forEach((r) => {
@@ -82,11 +102,13 @@ export function useDpAdmissaoRegras() {
       const mu = porRegra(uni.data ?? [], (r: { unidade_id: string }) => r.unidade_id);
       const mc = porRegra(car.data ?? [], (r: { cargo_id: string }) => r.cargo_id);
       const mr = porRegra(reg.data ?? [], (r: { regime: string }) => r.regime);
+      const ms = porRegra(sex.data ?? [], (r: { sexo: string }) => r.sexo);
       return (base.data ?? []).map((r) => ({
-        ...(r as Omit<AdmissaoRegra, "unidades" | "cargos" | "regimes">),
+        ...(r as Omit<AdmissaoRegra, "unidades" | "cargos" | "regimes" | "sexos">),
         unidades: mu.get(r.id) ?? [],
         cargos: mc.get(r.id) ?? [],
         regimes: mr.get(r.id) ?? [],
+        sexos: ms.get(r.id) ?? [],
       })) as AdmissaoRegra[];
     },
   });
@@ -114,6 +136,9 @@ export function useDpAdmissaoRegras() {
   const salvar = useMutation({
     mutationFn: async (p: RegraEntrada) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
+      if (!p.padrao && !p.unidades.length && !p.cargos.length && !p.regimes.length && !(p.sexos ?? []).length) {
+        throw new Error("Escolha ao menos uma unidade, cargo, tipo de vínculo ou sexo para a exceção.");
+      }
       const { data, error } = await supabase.rpc("dp_admissao_regra_salvar", {
         p_regra: {
           id: p.id ?? null,
@@ -125,9 +150,10 @@ export function useDpAdmissaoRegras() {
           unidades: p.padrao ? [] : p.unidades,
           cargos: p.padrao ? [] : p.cargos,
           regimes: p.padrao ? [] : p.regimes,
+          sexos: p.padrao ? [] : (p.sexos ?? []),
         },
       });
-      if (error) throw error;
+      if (error) throw new Error(mensagemRegra(error.message));
       return data as string;
     },
     onSuccess: invalidar,
@@ -136,7 +162,7 @@ export function useDpAdmissaoRegras() {
   const excluir = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.rpc("dp_admissao_regra_excluir", { p_id: id });
-      if (error) throw error;
+      if (error) throw new Error(mensagemRegra(error.message));
     },
     onSuccess: invalidar,
   });
@@ -166,21 +192,37 @@ export function useDpAdmissaoRegras() {
   return { regras, parentescos, salvar, excluir, definirParentesco };
 }
 
+/** "MASCULINO", "m", "Homem" → masculino; nada reconhecido → null. */
+export function sexoCanonico(v?: string | null): "masculino" | "feminino" | null {
+  const t = (v ?? "").trim().toLowerCase();
+  if (t.startsWith("m") || t.startsWith("h")) return "masculino";
+  if (t.startsWith("f")) return "feminino";
+  return null;
+}
+
 /**
  * Mesma decisão do servidor: entre as regras que casam com a combinação,
- * vence a mais específica (cargo 8 + vínculo 4 + unidade 2) e, no empate,
- * a última salva. Usada só para o simulador da tela.
+ * vence a mais específica (cargo 8 + vínculo 4 + unidade 2 + sexo 1) e, no
+ * empate, a última salva. Usada só para o simulador da tela.
  */
 export function resolverExigencia(
   regras: AdmissaoRegra[],
-  alvo: { unidade_id: string | null; cargo_id: string | null; regime: string | null },
+  alvo: {
+    unidade_id: string | null;
+    cargo_id: string | null;
+    regime: string | null;
+    sexo?: string | null;
+  },
 ): Exigencia | null {
+  const sexo = sexoCanonico(alvo.sexo);
   let melhor: { peso: number; exigencia: Exigencia } | null = null;
   for (const r of regras) {
     if (r.unidades.length && (!alvo.unidade_id || !r.unidades.includes(alvo.unidade_id))) continue;
     if (r.cargos.length && (!alvo.cargo_id || !r.cargos.includes(alvo.cargo_id))) continue;
     if (r.regimes.length && (!alvo.regime || !r.regimes.includes(alvo.regime))) continue;
-    const peso = (r.cargos.length ? 8 : 0) + (r.regimes.length ? 4 : 0) + (r.unidades.length ? 2 : 0);
+    if ((r.sexos ?? []).length && (!sexo || !r.sexos.includes(sexo))) continue;
+    const peso = (r.cargos.length ? 8 : 0) + (r.regimes.length ? 4 : 0)
+      + (r.unidades.length ? 2 : 0) + ((r.sexos ?? []).length ? 1 : 0);
     if (!melhor || peso > melhor.peso) melhor = { peso, exigencia: r.exigencia };
   }
   return melhor?.exigencia ?? null;

@@ -14,6 +14,9 @@ const completo = {
   regime: "clt",
   pis_nit: "12345678901",
   salario_base: 1800,
+  // Dados de pagamento: chave Pix já preenchida.
+  pix_tipo: "cpf",
+  pix_chave: "529.982.247-25",
 };
 
 describe("cadastro-completude", () => {
@@ -51,8 +54,8 @@ describe("cadastro-completude", () => {
 
   it("resume os faltantes em texto curto", () => {
     const campos = camposFaltando({});
-    expect(campos.length).toBe(9);
-    expect(resumoFaltando(campos, 2)).toBe("setor e telefone ou WhatsApp e mais 7");
+    expect(campos.length).toBe(10);
+    expect(resumoFaltando(campos, 2)).toBe("setor e telefone ou WhatsApp e mais 8");
     expect(resumoFaltando([])).toBe("");
   });
 
@@ -73,7 +76,25 @@ describe("cadastro-completude", () => {
     // Obrigatórios preenchidos + opcionais vazios → completo para a sinalização.
     expect(cadastroIncompleto({
       telefone: "62999990000", regime: "clt", salario_base: 1800,
+      pix_tipo: "cpf", pix_chave: "529.982.247-25",
     }, { exigirSetor: false })).toBe(false);
+  });
+});
+
+describe("dados de pagamento", () => {
+  it("acusa falta quando não há conta nem Pix", () => {
+    const c = { ...completo, pix_tipo: null, pix_chave: null };
+    expect(camposFaltando(c).map((x) => x.chave)).toEqual(["dados_pagamento"]);
+  });
+
+  it("conta para depósito também atende", () => {
+    const c = { ...completo, pix_tipo: null, pix_chave: null, banco_nome: "BANCO TESTE", agencia: "0001", conta: "123456" };
+    expect(camposFaltando(c)).toEqual([]);
+  });
+
+  it("quem recebe em espécie não é cobrado", () => {
+    const c = { ...completo, pix_tipo: null, pix_chave: null, recebe_em_especie: true };
+    expect(camposFaltando(c)).toEqual([]);
   });
 });
 

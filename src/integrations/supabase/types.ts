@@ -3216,6 +3216,39 @@ export type Database = {
           },
         ]
       }
+      dp_admissao_regra_sexos: {
+        Row: {
+          company_id: string
+          regra_id: string
+          sexo: string
+        }
+        Insert: {
+          company_id: string
+          regra_id: string
+          sexo: string
+        }
+        Update: {
+          company_id?: string
+          regra_id?: string
+          sexo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_admissao_regra_sexos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_admissao_regra_sexos_regra_id_fkey"
+            columns: ["regra_id"]
+            isOneToOne: false
+            referencedRelation: "dp_admissao_regras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_admissao_regra_unidades: {
         Row: {
           company_id: string
@@ -5175,6 +5208,7 @@ export type Database = {
           adicional_percentual: number
           adicional_tempo_servico_manual: number | null
           adicional_tempo_servico_override: boolean
+          agencia: string | null
           aprendiz: boolean
           aprovacao_status: Database["public"]["Enums"]["dp_aprovacao_status"]
           assiduidade_considera_atestado: boolean
@@ -5183,6 +5217,8 @@ export type Database = {
           assiduidade_max_atrasos: number | null
           assiduidade_tolerancia_min: number
           ativo: boolean
+          banco_codigo: string | null
+          banco_nome: string | null
           base_dias_mes: number | null
           base_horas_mes: number | null
           base_salarial: number | null
@@ -5191,6 +5227,9 @@ export type Database = {
           cnh_categoria: string | null
           cnh_validade: string | null
           company_id: string
+          conta: string | null
+          conta_digito: string | null
+          conta_tipo: string | null
           cpf: string | null
           created_at: string
           ctps_expedicao: string | null
@@ -5239,11 +5278,14 @@ export type Database = {
           perfil_acesso: Database["public"]["Enums"]["dp_perfil_acesso"]
           periculosidade_percentual: number
           pis_nit: string | null
+          pix_chave: string | null
+          pix_tipo: string | null
           possui_folha_ponto: boolean
           premio_assiduidade: boolean
           premio_assiduidade_tipo: string
           premio_assiduidade_valor: number | null
           raca_cor: string | null
+          recebe_em_especie: boolean
           regime: Database["public"]["Enums"]["dp_regime_trabalho"]
           reservista: string | null
           reservista_categoria: string | null
@@ -5257,6 +5299,9 @@ export type Database = {
           sindicato_id: string | null
           socio_remuneracao: string | null
           telefone: string | null
+          titular_cpf: string | null
+          titular_nome: string | null
+          titular_proprio: boolean
           titulo_eleitor: string | null
           titulo_secao: string | null
           titulo_zona: string | null
@@ -5296,6 +5341,7 @@ export type Database = {
           adicional_percentual?: number
           adicional_tempo_servico_manual?: number | null
           adicional_tempo_servico_override?: boolean
+          agencia?: string | null
           aprendiz?: boolean
           aprovacao_status?: Database["public"]["Enums"]["dp_aprovacao_status"]
           assiduidade_considera_atestado?: boolean
@@ -5304,6 +5350,8 @@ export type Database = {
           assiduidade_max_atrasos?: number | null
           assiduidade_tolerancia_min?: number
           ativo?: boolean
+          banco_codigo?: string | null
+          banco_nome?: string | null
           base_dias_mes?: number | null
           base_horas_mes?: number | null
           base_salarial?: number | null
@@ -5312,6 +5360,9 @@ export type Database = {
           cnh_categoria?: string | null
           cnh_validade?: string | null
           company_id: string
+          conta?: string | null
+          conta_digito?: string | null
+          conta_tipo?: string | null
           cpf?: string | null
           created_at?: string
           ctps_expedicao?: string | null
@@ -5360,11 +5411,14 @@ export type Database = {
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
           periculosidade_percentual?: number
           pis_nit?: string | null
+          pix_chave?: string | null
+          pix_tipo?: string | null
           possui_folha_ponto?: boolean
           premio_assiduidade?: boolean
           premio_assiduidade_tipo?: string
           premio_assiduidade_valor?: number | null
           raca_cor?: string | null
+          recebe_em_especie?: boolean
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
           reservista?: string | null
           reservista_categoria?: string | null
@@ -5378,6 +5432,9 @@ export type Database = {
           sindicato_id?: string | null
           socio_remuneracao?: string | null
           telefone?: string | null
+          titular_cpf?: string | null
+          titular_nome?: string | null
+          titular_proprio?: boolean
           titulo_eleitor?: string | null
           titulo_secao?: string | null
           titulo_zona?: string | null
@@ -5417,6 +5474,7 @@ export type Database = {
           adicional_percentual?: number
           adicional_tempo_servico_manual?: number | null
           adicional_tempo_servico_override?: boolean
+          agencia?: string | null
           aprendiz?: boolean
           aprovacao_status?: Database["public"]["Enums"]["dp_aprovacao_status"]
           assiduidade_considera_atestado?: boolean
@@ -5425,6 +5483,8 @@ export type Database = {
           assiduidade_max_atrasos?: number | null
           assiduidade_tolerancia_min?: number
           ativo?: boolean
+          banco_codigo?: string | null
+          banco_nome?: string | null
           base_dias_mes?: number | null
           base_horas_mes?: number | null
           base_salarial?: number | null
@@ -5433,6 +5493,9 @@ export type Database = {
           cnh_categoria?: string | null
           cnh_validade?: string | null
           company_id?: string
+          conta?: string | null
+          conta_digito?: string | null
+          conta_tipo?: string | null
           cpf?: string | null
           created_at?: string
           ctps_expedicao?: string | null
@@ -5481,11 +5544,14 @@ export type Database = {
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
           periculosidade_percentual?: number
           pis_nit?: string | null
+          pix_chave?: string | null
+          pix_tipo?: string | null
           possui_folha_ponto?: boolean
           premio_assiduidade?: boolean
           premio_assiduidade_tipo?: string
           premio_assiduidade_valor?: number | null
           raca_cor?: string | null
+          recebe_em_especie?: boolean
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
           reservista?: string | null
           reservista_categoria?: string | null
@@ -5499,6 +5565,9 @@ export type Database = {
           sindicato_id?: string | null
           socio_remuneracao?: string | null
           telefone?: string | null
+          titular_cpf?: string | null
+          titular_nome?: string | null
+          titular_proprio?: boolean
           titulo_eleitor?: string | null
           titulo_secao?: string | null
           titulo_zona?: string | null
@@ -6917,6 +6986,27 @@ export type Database = {
           },
         ]
       }
+      dp_doc_equivalencias: {
+        Row: {
+          atende: string
+          codigo: string
+          grupo: string
+          observacao: string | null
+        }
+        Insert: {
+          atende: string
+          codigo: string
+          grupo: string
+          observacao?: string | null
+        }
+        Update: {
+          atende?: string
+          codigo?: string
+          grupo?: string
+          observacao?: string | null
+        }
+        Relationships: []
+      }
       dp_doc_tipo_aprendizado: {
         Row: {
           assinatura: string
@@ -7108,6 +7198,7 @@ export type Database = {
           dias_aviso: number
           exige_aceite: boolean
           gerado_pelo_sistema: boolean
+          grupo: string
           id: string
           meses_validade: number | null
           nome: string
@@ -7131,6 +7222,7 @@ export type Database = {
           dias_aviso?: number
           exige_aceite?: boolean
           gerado_pelo_sistema?: boolean
+          grupo?: string
           id?: string
           meses_validade?: number | null
           nome: string
@@ -7154,6 +7246,7 @@ export type Database = {
           dias_aviso?: number
           exige_aceite?: boolean
           gerado_pelo_sistema?: boolean
+          grupo?: string
           id?: string
           meses_validade?: number | null
           nome?: string
@@ -14858,19 +14951,34 @@ export type Database = {
       }
       dp_admissao_regra_excluir: { Args: { p_id: string }; Returns: boolean }
       dp_admissao_regra_salvar: { Args: { p_regra: Json }; Returns: string }
-      dp_admissao_regras_resolver: {
-        Args: {
-          p_cargo_id?: string
-          p_company_id: string
-          p_regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
-          p_unidade_id?: string
-        }
-        Returns: {
-          chave: string
-          exigencia: string
-          tipo: string
-        }[]
-      }
+      dp_admissao_regras_resolver:
+        | {
+            Args: {
+              p_cargo_id?: string
+              p_company_id: string
+              p_regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
+              p_unidade_id?: string
+            }
+            Returns: {
+              chave: string
+              exigencia: string
+              tipo: string
+            }[]
+          }
+        | {
+            Args: {
+              p_cargo_id?: string
+              p_company_id: string
+              p_regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
+              p_sexo?: string
+              p_unidade_id?: string
+            }
+            Returns: {
+              chave: string
+              exigencia: string
+              tipo: string
+            }[]
+          }
       dp_bulk_batch_finalize: { Args: { _batch_id: string }; Returns: string }
       dp_bulk_claim_batches: {
         Args: { _lease_seconds?: number; _limit?: number; _worker: string }

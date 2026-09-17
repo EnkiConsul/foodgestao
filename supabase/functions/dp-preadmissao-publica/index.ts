@@ -27,6 +27,7 @@ import {
   salvarCandidato,
   transicionar,
   validarConvite,
+  pagamentoInformado,
   validarDadosCandidato,
 } from "../_shared/preadmissao.ts";
 import {
@@ -314,6 +315,10 @@ Deno.serve(async (req) => {
         const v = dados[campo];
         return !(typeof v === "string" ? v.trim() : v);
       });
+      // Conta para depósito ou chave Pix: uma das duas é sempre exigida.
+      if (!pagamentoInformado(dados)) {
+        if (!erros.pix_chave) erros.pix_chave = "Informe a conta para depósito ou a chave Pix.";
+      }
       if (faltando.length || estado.pendencias.length || Object.keys(erros).length) {
         return jsonResponse(req, 400, {
           error: "Ainda faltam informações ou documentos obrigatórios.",

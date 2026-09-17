@@ -24,6 +24,7 @@ import { EnderecoFields } from "@/components/shared/EnderecoFields";
 import { UFS } from "@/lib/endereco";
 import { maskCpf } from "@/lib/cpf";
 import { maskPhone } from "@/lib/phone";
+import { CONTA_TIPOS, PIX_TIPOS } from "@/lib/dp/dadosPagamento";
 
 type Opcao = { value: string; label: string };
 
@@ -94,6 +95,19 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?:
     ajuda: "Comece pelo CEP: o resto do endereço vem preenchido.",
     campos: [],
     endereco: true,
+  },
+  {
+    titulo: "Dados De Pagamento",
+    ajuda: "Informe a conta para depósito ou a sua chave Pix. Basta uma das duas.",
+    campos: [
+      { nome: "banco_nome", rotulo: "Banco", upper: true },
+      { nome: "agencia", rotulo: "Agência", inputMode: "numeric" },
+      { nome: "conta", rotulo: "Conta", inputMode: "numeric" },
+      { nome: "conta_digito", rotulo: "Dígito da conta", inputMode: "numeric" },
+      { nome: "conta_tipo", rotulo: "Tipo de conta", opcoes: CONTA_TIPOS },
+      { nome: "pix_tipo", rotulo: "Tipo da chave Pix", opcoes: PIX_TIPOS },
+      { nome: "pix_chave", rotulo: "Chave Pix" },
+    ],
   },
   {
     titulo: "Documentos E Registros",
