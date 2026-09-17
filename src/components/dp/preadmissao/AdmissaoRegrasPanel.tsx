@@ -99,7 +99,7 @@ const EXIGENCIAS: { value: Exigencia | "padrao"; label: string }[] = [
 export function AdmissaoRegrasPanel() {
   const { data: unidades = [] } = useDpUnidades();
   const { data: cargos = [] } = useDpCargos();
-  const { data: requisitos = [] } = useDpDocumentoRequisitos();
+  const { requisitos = [] } = useDpDocumentoRequisitos();
   const { regras, parentescos, definir, definirParentesco } = useDpAdmissaoRegras();
 
   const [unidadeId, setUnidadeId] = useState<string>(TODOS);
