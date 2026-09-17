@@ -217,11 +217,16 @@ export default function PreAdmissao() {
   const totalEtapas = ETAPAS.length + 2; // + familiares + documentos
   const progresso = Math.round(((etapa + 1) / totalEtapas) * 100);
 
+  /** Linha em branco recém-incluída não vai ao servidor. */
+  const pessoasParaEnviar = () =>
+    pessoas.filter((p) => p.id || p.nome.trim() || p.parentesco.trim() || p.data_nascimento.trim());
+
+
   const salvar = async (avancar: boolean) => {
     setSalvando(true);
     try {
       const novo = await chamar<Estado>("dp-preadmissao-publica", {
-        t, c, action: "salvar", dados: form, pessoas,
+        t, c, action: "salvar", dados: form, pessoas: pessoasParaEnviar(),
       });
       aplicar(novo);
       if (avancar) setEtapa((n) => Math.min(n + 1, totalEtapas - 1));
@@ -236,7 +241,7 @@ export default function PreAdmissao() {
   const enviar = async () => {
     setSalvando(true);
     try {
-      await chamar<Estado>("dp-preadmissao-publica", { t, c, action: "salvar", dados: form, pessoas });
+      await chamar<Estado>("dp-preadmissao-publica", { t, c, action: "salvar", dados: form, pessoas: pessoasParaEnviar() });
       await chamar<{ mensagem: string }>("dp-preadmissao-publica", { t, c, action: "enviar" });
       setEnviado(true);
     } catch (e) {

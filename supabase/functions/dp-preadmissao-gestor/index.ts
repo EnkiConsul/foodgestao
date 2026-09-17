@@ -12,6 +12,7 @@ import {
   requisitosEmpresa,
   requisitosPrevistos,
   transicionar,
+  transicionarComVersao,
   type Preadmissao,
 } from "../_shared/preadmissao.ts";
 import { bloqueioMenorNoturno, montarChecklist, pendenciasDocumentais } from "../_shared/preadmissao-checklist.ts";
@@ -163,7 +164,8 @@ Deno.serve(async (req) => {
 
     if (acao === "salvar_admin") {
       const entrada = (body?.admin_dados ?? {}) as Record<string, unknown>;
-      const t = await transicionar(admin, pa.id, null, null, {
+      // Versão sobe: uma conferência iniciada antes disso não será aplicada.
+      const t = await transicionarComVersao(admin, pa.id, null, null, {
         admin_dados: { ...(pa.admin_dados ?? {}), ...entrada },
       });
       if (!t.ok) return jsonError(req, "internal", "não foi possível salvar os dados administrativos");
@@ -191,7 +193,9 @@ Deno.serve(async (req) => {
       }
       if (typeof body?.trabalho_apos_22h === "boolean") patch.trabalho_apos_22h = body.trabalho_apos_22h;
       if (!Object.keys(patch).length) return jsonError(req, "invalid_input", "nada a alterar");
-      const t = await transicionar(admin, pa.id, null, null, patch);
+      // Muda os requisitos exigidos: a versão sobe para invalidar preparações
+      // que já tinham conferido o checklist antigo.
+      const t = await transicionarComVersao(admin, pa.id, null, null, patch);
       if (!t.ok) return jsonError(req, "internal", "não foi possível alterar a previsão");
       await registrarEvento(admin, pa.id, pa.company_id, "previsto_alterado", { campos: Object.keys(patch) }, caller.id);
       // Documentos já enviados nunca são apagados; o checklist é recalculado.
@@ -228,6 +232,8 @@ Deno.serve(async (req) => {
         })
         .eq("id", doc.id);
       if (error) return jsonError(req, "internal", error.message);
+      // A análise muda as pendências: a versão sobe para invalidar conferências antigas.
+      await transicionarComVersao(admin, pa.id, null, null, {});
       await registrarEvento(
         admin,
         pa.id,
@@ -268,11 +274,19 @@ Deno.serve(async (req) => {
           admin_faltando: adminFalta,
         });
       }
-      const t = await transicionar(admin, pa.id, PODE_PREPARAR, "pronto_contabilidade", {
+      // A conferência acima vale para esta versão: se cargo/unidade, dados
+      // administrativos ou documentos mudarem antes da transição, o banco recusa.
+      const t = await transicionarComVersao(admin, pa.id, PODE_PREPARAR, "pronto_contabilidade", {
         revisado_em: true,
         revisado_por: caller.id,
-      });
+      }, Number((estado.preadmissao as unknown as { versao?: number }).versao ?? 0));
       if (!t.ok) {
+        if (t.motivo === "versao_alterada") {
+          return jsonResponse(req, 409, {
+            error: "A ficha mudou enquanto você conferia. Recarregue e confira novamente.",
+            status: t.status,
+          });
+        }
         return t.motivo === "status_inesperado"
           ? jsonResponse(req, 409, { error: "A ficha ainda não está em revisão.", status: t.status })
           : jsonError(req, "internal", "não foi possível preparar o envio");

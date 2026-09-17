@@ -57,6 +57,7 @@ export interface Preadmissao {
   estado_civil: string | null;
   correcao_motivo: string | null;
   colaborador_id: string | null;
+  versao?: number;
 }
 
 export type ConviteInvalido = "nao_encontrado" | "expirado" | "revogado" | "encerrado";
@@ -359,4 +360,155 @@ export function tipoRealDoArquivo(bytes: Uint8Array): string | null {
     if (marca.startsWith("hei") || marca.startsWith("hev") || marca.startsWith("mif")) return "image/heic";
   }
   return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Allowlist da raiz e dos familiares + gravação sob trava (concorrência)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Chaves aceitas na raiz do pedido do candidato. */
+export const CAMPOS_RAIZ_CANDIDATO = ["t", "c", "action", "dados", "pessoas", "versao"] as const;
+
+/** Campos aceitos em cada familiar informado pelo candidato. */
+export const CAMPOS_PESSOA = [
+  "id", "nome", "parentesco", "data_nascimento", "cpf", "rg",
+  "finalidade_dependente", "finalidade_sesc",
+] as const;
+
+export function camposNaoPermitidosRaiz(
+  body: unknown,
+  permitidos: readonly string[] = CAMPOS_RAIZ_CANDIDATO,
+): string[] {
+  if (!body || typeof body !== "object") return [];
+  const set = new Set(permitidos);
+  return Object.keys(body as Record<string, unknown>).filter((k) => !set.has(k));
+}
+
+/** Campos fora da allowlist em qualquer familiar (requisito 70 também aqui). */
+export function camposNaoPermitidosPessoas(pessoas: unknown): string[] {
+  if (!Array.isArray(pessoas)) return [];
+  const set = new Set<string>(CAMPOS_PESSOA as readonly string[]);
+  const fora = new Set<string>();
+  pessoas.forEach((p, i) => {
+    if (!p || typeof p !== "object" || Array.isArray(p)) {
+      fora.add(`familiar ${i + 1}: registro inválido`);
+      return;
+    }
+    for (const k of Object.keys(p as Record<string, unknown>)) {
+      if (!set.has(k)) fora.add(`familiar ${i + 1}: ${k}`);
+    }
+  });
+  return [...fora];
+}
+
+export function filtrarPessoasCandidato(pessoas: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(pessoas)) return [];
+  return pessoas.map((p) => {
+    const src = (p ?? {}) as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const campo of CAMPOS_PESSOA) {
+      if (campo in src) {
+        const v = src[campo];
+        out[campo] = typeof v === "string" ? v.trim() : v;
+      }
+    }
+    return out;
+  });
+}
+
+/** Mensagens dos motivos devolvidos pela rotina travada do banco. */
+export const MOTIVOS_GRAVACAO: Record<string, string> = {
+  nao_encontrada: "Este link não é válido. Peça um novo link à empresa.",
+  fase_encerrada:
+    "Sua ficha já está em análise pela empresa. Aguarde o contato: não é possível alterar os dados agora.",
+  versao_alterada:
+    "Sua ficha foi atualizada em outro dispositivo. Recarregue a página e tente novamente.",
+  pessoa_nome: "Informe o nome completo de cada familiar.",
+  pessoa_parentesco: "Selecione o parentesco de cada familiar na lista.",
+  pessoa_finalidade: "Marque se o familiar é dependente, Sesc ou ambos.",
+  pessoa_sesc_parentesco: "Este parentesco não é aceito no Sesc.",
+  pessoa_cpf: "Informe um CPF válido para o familiar.",
+  pessoa_data: "Informe uma data de nascimento válida para o familiar.",
+  pessoa_data_futura: "A data de nascimento do familiar não pode ser futura.",
+  pessoa_desconhecida: "Um dos familiares informados não pertence mais a esta ficha. Recarregue a página.",
+  titular_invalido: "O familiar deste documento não pertence a esta ficha.",
+};
+
+export interface ResultadoGravacao {
+  ok: boolean;
+  motivo?: string;
+  status?: string;
+  versao?: number;
+  indice?: number;
+}
+
+/** Dados + familiares + remoções em uma única transação com trava na ficha. */
+export async function salvarCandidato(
+  admin: Rpc,
+  args: {
+    preadmissaoId: string;
+    estados: readonly string[];
+    statusNovo: string | null;
+    dados: Record<string, unknown>;
+    campos: Record<string, unknown>;
+    pessoas: Record<string, unknown>[] | null;
+    versaoEsperada?: number | null;
+  },
+): Promise<ResultadoGravacao> {
+  const { data, error } = await admin.rpc("dp_preadmissao_salvar_candidato", {
+    p_preadmissao_id: args.preadmissaoId,
+    p_estados: args.estados,
+    p_status_novo: args.statusNovo,
+    p_dados: args.dados,
+    p_campos: args.campos,
+    p_pessoas: args.pessoas,
+    p_versao_esperada: args.versaoEsperada ?? null,
+  });
+  if (error) {
+    console.error("[preadmissao] gravação falhou:", error.message);
+    return { ok: false, motivo: "erro_gravacao" };
+  }
+  return data as ResultadoGravacao;
+}
+
+/** Envio ao gestor: estado editável + conteúdo inalterado desde a conferência. */
+export async function enviarFicha(
+  admin: Rpc,
+  preadmissaoId: string,
+  estados: readonly string[],
+  versaoEsperada: number | null,
+): Promise<ResultadoGravacao & { status_anterior?: string }> {
+  const { data, error } = await admin.rpc("dp_preadmissao_enviar", {
+    p_preadmissao_id: preadmissaoId,
+    p_estados: estados,
+    p_versao_esperada: versaoEsperada,
+  });
+  if (error) {
+    console.error("[preadmissao] envio falhou:", error.message);
+    return { ok: false, motivo: "erro_gravacao" };
+  }
+  return data as ResultadoGravacao & { status_anterior?: string };
+}
+
+/** Transição com versão esperada: conferência antiga não é aplicada. */
+export async function transicionarComVersao(
+  admin: Rpc,
+  preadmissaoId: string,
+  de: string[] | null,
+  para: string | null,
+  patch: Record<string, unknown> = {},
+  versaoEsperada: number | null = null,
+): Promise<ResultadoTransicao & { versao?: number }> {
+  const { data, error } = await admin.rpc("dp_preadmissao_transicionar_versionado", {
+    p_preadmissao_id: preadmissaoId,
+    p_de: de,
+    p_para: para,
+    p_patch: patch,
+    p_versao_esperada: versaoEsperada,
+  });
+  if (error) {
+    console.error("[preadmissao] transição falhou:", error.message);
+    return { ok: false, motivo: "erro_gravacao" };
+  }
+  return data as ResultadoTransicao & { versao?: number };
 }
