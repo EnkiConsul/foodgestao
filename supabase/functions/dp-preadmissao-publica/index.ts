@@ -248,7 +248,7 @@ Deno.serve(async (req) => {
           company_id: pa.company_id,
           tipo: "preadmissao_enviada",
           titulo: "Pré-admissão enviada pelo candidato",
-          descricao: `${pa.nome_candidato ?? "Candidato"} concluiu o preenchimento da ficha.`,
+          descricao: `${pa.candidato_nome ?? "Candidato"} concluiu o preenchimento da ficha.`,
           ref_table: "dp_preadmissoes",
           ref_id: pa.id,
           para_admins: true,
