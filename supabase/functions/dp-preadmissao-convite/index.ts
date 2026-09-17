@@ -12,9 +12,17 @@ import {
   gerarToken,
   hashToken,
   linkPreadmissao,
+  cpfValido,
   normalizarWhatsapp,
   registrarEvento,
 } from "../_shared/preadmissao.ts";
+
+/** Fases em que a ficha do candidato ainda está viva (bloqueiam novo convite). */
+const FASES_ABERTAS = [
+  "aguardando_preenchimento", "em_preenchimento", "aguardando_revisao",
+  "correcao_solicitada", "aguardando_nova_versao", "pronto_contabilidade",
+  "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido",
+];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: strictCorsHeaders(req) });
@@ -46,7 +54,9 @@ Deno.serve(async (req) => {
       const cargoId = body?.cargo_previsto_id ? String(body.cargo_previsto_id) : null;
       const unidadeId = body?.unidade_prevista_id ? String(body.unidade_prevista_id) : null;
       const apos22h = body?.trabalho_apos_22h;
+      const cpf = String(body?.cpf ?? "").replace(/\D/g, "");
       if (nome.length < 3) return jsonError(req, "invalid_input", "nome curto");
+      if (!cpfValido(cpf)) return jsonResponse(req, 400, { error: "Informe um CPF válido." });
       if (!whatsapp) return jsonResponse(req, 400, { error: "Informe o WhatsApp com DDD." });
       if (typeof apos22h !== "boolean") {
         return jsonResponse(req, 400, { error: "Informe se haverá trabalho após as 22h." });
@@ -60,10 +70,53 @@ Deno.serve(async (req) => {
         const { data } = await admin.from("dp_unidades").select("id").eq("id", unidadeId).eq("company_id", companyId).maybeSingle();
         if (!data) return jsonResponse(req, 400, { error: "Unidade prevista não pertence a esta empresa." });
       }
+      // Cargo precisa estar vinculado à unidade — a menos que a unidade ainda
+      // não tenha vínculo nenhum cadastrado (aí vale qualquer cargo da empresa).
+      if (cargoId && unidadeId) {
+        const { data: vinculos } = await admin
+          .from("dp_unidade_cargos")
+          .select("cargo_id")
+          .eq("unidade_id", unidadeId);
+        const ids = (vinculos ?? []).map((v) => v.cargo_id as string);
+        if (ids.length > 0 && !ids.includes(cargoId)) {
+          return jsonResponse(req, 400, { error: "Este cargo não está vinculado à unidade escolhida." });
+        }
+      }
+
+      // Duplicidade: quem já é colaborador ativo desta empresa não entra de novo,
+      // e cada CPF tem no máximo uma ficha em andamento.
+      const { data: jaColaborador } = await admin
+        .from("dp_colaboradores")
+        .select("nome, desligado_em")
+        .eq("company_id", companyId)
+        .eq("cpf", cpf)
+        .is("desligado_em", null)
+        .limit(1)
+        .maybeSingle();
+      if (jaColaborador) {
+        return jsonResponse(req, 409, {
+          error: `Este CPF já é de um colaborador ativo (${jaColaborador.nome}). Use a recontratação se for o caso.`,
+        });
+      }
+      const { data: jaFicha } = await admin
+        .from("dp_preadmissoes")
+        .select("id, candidato_nome")
+        .eq("company_id", companyId)
+        .eq("cpf", cpf)
+        .in("status", FASES_ABERTAS)
+        .limit(1)
+        .maybeSingle();
+      if (jaFicha) {
+        return jsonResponse(req, 409, {
+          error: `Este CPF já tem uma pré-admissão em andamento (${jaFicha.candidato_nome}). Abra a ficha existente para continuar.`,
+          preadmissao_id: jaFicha.id,
+        });
+      }
 
       const { data: pa, error } = await admin
         .from("dp_preadmissoes")
         .insert({
+          cpf,
           company_id: companyId,
           candidato_nome: nome.toLocaleUpperCase("pt-BR"),
           whatsapp,

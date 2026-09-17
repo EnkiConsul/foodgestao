@@ -8,6 +8,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { RegraNegada } from "@/lib/dp/regraAviso";
 
 export type PreadmissaoStatus =
   | "aguardando_preenchimento"
@@ -44,6 +45,8 @@ export interface PreadmissaoResumo {
   company_id: string;
   candidato_nome: string;
   whatsapp: string;
+  /** CPF informado pelo gestor no convite (só números). */
+  cpf: string | null;
   status: PreadmissaoStatus;
   cargo_previsto_id: string | null;
   unidade_prevista_id: string | null;
@@ -109,10 +112,13 @@ async function chamar<T>(fn: string, body: Record<string, unknown>): Promise<T> 
       detalhe = corpo?.error ?? "";
     }
     if (!detalhe) detalhe = ((data as { error?: string } | null)?.error) ?? "";
-    throw new Error(detalhe || "Não foi possível concluir agora. Tente novamente.");
+    // A rotina devolve a frase pronta (ex.: CPF já cadastrado): é aviso de
+    // regra, mostrado como está e fora da Auditoria de erros.
+    if (detalhe) throw new RegraNegada(detalhe);
+    throw new Error("Não foi possível concluir agora. Tente novamente.");
   }
   const erro = (data as { error?: string } | null)?.error;
-  if (erro) throw new Error(erro);
+  if (erro) throw new RegraNegada(erro);
   return data as T;
 }
 
@@ -154,6 +160,8 @@ export function useDpPreadmissaoConvite() {
     mutationFn: async (entrada: {
       candidato_nome: string;
       whatsapp: string;
+      /** Obrigatório: é o que evita convidar quem já está cadastrado. */
+      cpf: string;
       cargo_previsto_id: string | null;
       unidade_prevista_id: string | null;
       trabalho_apos_22h: boolean;

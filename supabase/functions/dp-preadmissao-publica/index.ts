@@ -114,7 +114,11 @@ Deno.serve(async (req) => {
         requisitosEmpresa: reqsEmpresa,
       });
       const status = String(linha.status ?? pa.status);
+      // CPF informado pelo gestor no convite: o candidato vê, mas não altera.
+      const cpfConvite = String(linha.cpf ?? pa.cpf ?? "").replace(/\D/g, "");
+      if (cpfConvite) dados.cpf = cpfConvite;
       return {
+        cpf_bloqueado: cpfConvite || null,
         candidato_nome: pa.candidato_nome,
         cargo_previsto: cargo?.nome ?? null,
         unidade_prevista: unidade?.nome ?? null,
@@ -205,6 +209,9 @@ Deno.serve(async (req) => {
         });
       }
       const versaoEsperada: number = versaoBruta;
+      // O CPF do convite também vale dentro do bloco de dados.
+      const cpfConvite = String(pa.cpf ?? "").replace(/\D/g, "");
+      if (cpfConvite) dados.cpf = cpfConvite;
 
 
       // Dados, familiares e remoções em uma única transação com trava na ficha:
@@ -216,7 +223,9 @@ Deno.serve(async (req) => {
         versaoEsperada,
         dados,
         campos: {
-          cpf: (texto("cpf") ?? "").replace(/\D/g, ""),
+          // Quando o CPF veio no convite, ele manda: o que o candidato mandar
+          // no lugar é descartado (a conferência de duplicidade já foi feita).
+          cpf: String(pa.cpf ?? "").replace(/\D/g, "") || (texto("cpf") ?? "").replace(/\D/g, ""),
           email: texto("email") ?? "",
           data_nascimento: texto("data_nascimento") ?? "",
           estado_civil: texto("estado_civil") ?? "",

@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
       const { data, error } = await admin
         .from("dp_preadmissoes")
         .select(
-          "id, company_id, candidato_nome, whatsapp, status, cargo_previsto_id, unidade_prevista_id, " +
+          "id, company_id, candidato_nome, whatsapp, cpf, status, cargo_previsto_id, unidade_prevista_id, " +
             "trabalho_apos_22h, enviado_em, revisado_em, contabilidade_enviado_em, " +
             "ficha_oficial_conferida_em, colaborador_id, created_at, updated_at",
         )
