@@ -248,8 +248,15 @@ export function DocDetalhesDialog(props: {
                 </Campo>
               </div>
               {aceite && (
-                <Button size="sm" variant="outline" className="mt-3" onClick={imprimirCertificado}>
-                  <Printer className="mr-1 h-4 w-4" /> Certificado de validação
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-3"
+                  disabled={gerando}
+                  onClick={() => void imprimirCertificado()}
+                >
+                  <Printer className="mr-1 h-4 w-4" />
+                  {gerando ? "Gerando…" : "Certificado de validação"}
                 </Button>
               )}
             </div>
