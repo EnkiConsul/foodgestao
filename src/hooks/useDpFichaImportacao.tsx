@@ -220,6 +220,8 @@ export interface AplicarFichaResultado {
   jaAplicado: boolean;
   anexo: AnexoFichaStatus;
   anexoMotivo?: string;
+  /** Só na conferência de pré-admissão: "importacao", "recontratacao" ou "idempotente". */
+  modo?: string;
 }
 
 /**
