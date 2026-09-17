@@ -36,39 +36,11 @@ export function useDpRequisitoEscopo(requisitoId: string | null) {
     },
   });
 
-  /** Substitui o conjunto de vínculos: remove o que saiu e grava o que entrou. */
-  const salvar = useMutation({
-    mutationFn: async (novo: EscopoRequisito) => {
-      if (!requisitoId || !currentCompanyId) throw new Error("Selecione uma empresa antes de salvar.");
-      const atual = escopo.data ?? { cargos: [], unidades: [] };
-      const remCargos = atual.cargos.filter((id) => !novo.cargos.includes(id));
-      const remUnidades = atual.unidades.filter((id) => !novo.unidades.includes(id));
-      const addCargos = novo.cargos.filter((id) => !atual.cargos.includes(id));
-      const addUnidades = novo.unidades.filter((id) => !atual.unidades.includes(id));
+/** Lista de UUIDs no formato aceito pelo filtro `not.in` da API de dados. */
+const listaIds = (ids: string[]) => `(${ids.map((id) => `"${id}"`).join(",")})`;
 
-      if (remCargos.length) {
-        const { error } = await supabase.from("dp_requisito_cargos").delete()
-          .eq("requisito_id", requisitoId).in("cargo_id", remCargos);
-        if (error) throw error;
-      }
-      if (remUnidades.length) {
-        const { error } = await supabase.from("dp_requisito_unidades").delete()
-          .eq("requisito_id", requisitoId).in("unidade_id", remUnidades);
-        if (error) throw error;
-      }
-      if (addCargos.length) {
-        const { error } = await supabase.from("dp_requisito_cargos").insert(
-          addCargos.map((cargo_id) => ({ requisito_id: requisitoId, cargo_id, company_id: currentCompanyId })),
-        );
-        if (error) throw error;
-      }
-      if (addUnidades.length) {
-        const { error } = await supabase.from("dp_requisito_unidades").insert(
-          addUnidades.map((unidade_id) => ({ requisito_id: requisitoId, unidade_id, company_id: currentCompanyId })),
-        );
-        if (error) throw error;
-      }
-    },
+export function useDpRequisitoEscopoInterno() {}
+
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: chave });
       qc.invalidateQueries({ queryKey: ["dp-documento-requisitos"] });
