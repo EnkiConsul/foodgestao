@@ -535,7 +535,21 @@ export function gestorPodeAlterar(status: string): boolean {
 export const CAMPOS_ADMIN = [
   "data_admissao", "regime_trabalho", "forma_pagamento", "salario", "jornada_descricao",
   "cargo_id", "unidade_id", "setor_id", "observacoes",
+  // Completam o que a contabilidade precisa para registrar a admissão.
+  "carga_horaria_semanal", "experiencia_dias", "vale_transporte",
+  "adicional_insalubridade", "adicional_periculosidade",
 ] as const;
+
+/** Campos administrativos que valem Sim/Não. */
+export const CAMPOS_ADMIN_BOOLEANOS = [
+  "vale_transporte", "adicional_insalubridade", "adicional_periculosidade",
+] as const;
+
+/** Campos administrativos numéricos e seus limites aceitos. */
+export const CAMPOS_ADMIN_NUMEROS: Record<string, { min: number; max: number; erro: string }> = {
+  carga_horaria_semanal: { min: 1, max: 60, erro: "Informe a carga semanal entre 1 e 60 horas." },
+  experiencia_dias: { min: 0, max: 90, erro: "O contrato de experiência vai de 0 a 90 dias." },
+};
 
 /** Enums canônicos do banco (dp_regime_trabalho / dp_forma_pagamento). */
 export const REGIMES_TRABALHO = [
