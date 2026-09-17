@@ -185,7 +185,16 @@ export default function DpPreadmissoes() {
         </CardContent>
       </Card>
 
-      <PreadmissaoConviteDialog open={convidando} onOpenChange={setConvidando} />
+      <PreadmissaoConviteDialog
+        open={convidando}
+        onOpenChange={(v) => {
+          setConvidando(v);
+          if (!v && params.get("novo")) {
+            params.delete("novo");
+            setParams(params, { replace: true });
+          }
+        }}
+      />
       <PreadmissaoRevisaoDialog preadmissaoId={revisando} onOpenChange={() => setRevisando(null)} />
     </DpPage>
   );
