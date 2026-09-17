@@ -222,6 +222,7 @@ export function PreadmissoesPanel({
           )}
         </CardContent>
       </Card>
+      )}
 
       <PreadmissaoConviteDialog open={convidando} onOpenChange={setConvidando} />
       <PreadmissaoRevisaoDialog preadmissaoId={revisando} onOpenChange={() => setRevisando(null)} />
