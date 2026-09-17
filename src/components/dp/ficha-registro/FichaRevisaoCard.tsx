@@ -301,17 +301,9 @@ export function FichaRevisaoCard({
       endereco: { ...((d.endereco ?? {}) as Record<string, unknown>), [parte]: valor },
     }));
 
-  const campoEndereco = (label: string, parte: string, className?: string) => (
-    <div className={cn("space-y-1", className)}>
-      <Label className="text-xs">{label}</Label>
-      <Input
-        className="h-9"
-        value={typeof endereco[parte] === "string" ? String(endereco[parte]) : ""}
-        onChange={(e) => setEndereco(parte, e.target.value)}
-        disabled={aplicado || ignorado}
-      />
-    </div>
-  );
+  /** Parte do endereço lida como texto, venha ela como texto ou vazia. */
+  const textoEndereco = (parte: string) =>
+    typeof endereco[parte] === "string" ? String(endereco[parte]) : "";
 
 
   const campo = (label: string, nome: string, tipo: "text" | "date" = "text") => {
