@@ -90,6 +90,45 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     [data?.documentos],
   );
 
+  /** Monta uma folha imprimível com tudo que a contabilidade precisa conferir. */
+  const imprimirPacote = () => {
+    if (!data) return;
+    const esc = (v: unknown) =>
+      String(v ?? "").replace(/[<>&]/g, (m) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[m] as string));
+    const linhas = (obj: Record<string, unknown>) =>
+      Object.entries(obj)
+        .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "")
+        .map(([k, v]) => `<tr><th>${esc(k.replace(/_/g, " "))}</th><td>${esc(v)}</td></tr>`)
+        .join("");
+    const pessoas = (data.pessoas ?? [])
+      .map((pe) => `<li>${esc(pe.nome)} — ${esc(pe.parentesco)}${pe.data_nascimento ? ` — ${esc(pe.data_nascimento)}` : ""}</li>`)
+      .join("");
+    const docs = (data.documentos ?? [])
+      .filter((d) => !d.substituido_em)
+      .map((d) => `<li>${esc(d.requisito_codigo)} — ${esc(d.file_name)} (${esc(d.status)})</li>`)
+      .join("");
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<title>Pacote da contabilidade — ${esc(data.candidato_nome)}</title>
+<style>body{font-family:system-ui,sans-serif;padding:24px;color:#111}h1{font-size:18px}h2{font-size:14px;margin-top:20px}
+table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #ddd;padding:4px 6px;text-align:left}
+th{width:220px;background:#f6f6f6;text-transform:capitalize}ul{font-size:12px}</style></head><body>
+<h1>Pacote da contabilidade — ${esc(data.candidato_nome)}</h1>
+<h2>Dados do candidato</h2><table>${linhas(data.dados as Record<string, unknown>)}</table>
+<h2>Informações administrativas</h2><table>${linhas((data.admin_dados ?? {}) as Record<string, unknown>)}</table>
+<h2>Familiares</h2><ul>${pessoas || "<li>Nenhum</li>"}</ul>
+<h2>Documentos recebidos</h2><ul>${docs || "<li>Nenhum</li>"}</ul>
+</body></html>`;
+    const w = window.open("", "_blank", "noopener,width=900,height=700");
+    if (!w) {
+      toast.error("Libere as janelas pop-up para imprimir o pacote.");
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    w.print();
+  };
+
   const vigentes = useMemo(() => (data?.documentos ?? []).filter((d) => !d.substituido_em), [data?.documentos]);
   const nomePessoa = (id: string | null) =>
     id ? (data?.pessoas ?? []).find((p) => p.id === id)?.nome ?? "Familiar" : "O candidato";
@@ -324,13 +363,20 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                 </div>
               )}
 
-              {["aguardando_revisao", "aguardando_nova_versao"].includes(status) && (
+              {status === "aguardando_revisao" && (
                 <Button
                   disabled={acoes.prepararContabilidade.isPending}
                   onClick={() =>
                     executar(() => acoes.prepararContabilidade.mutateAsync(), "Ficha pronta para a contabilidade")}
                 >
                   Preparar Para A Contabilidade
+                </Button>
+              )}
+
+              {["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade"].includes(status) && (
+                <Button variant="outline" onClick={imprimirPacote}>
+                  <FileUp className="h-4 w-4 mr-2" />
+                  Imprimir Pacote Da Contabilidade
                 </Button>
               )}
 
