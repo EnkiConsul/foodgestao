@@ -1,6 +1,6 @@
 # Próxima etapa
 
-Os 15 ajustes da ficha de admissão estão fechados. Ficaram três frentes em aberto na lista de tarefas. Sugiro esta ordem:
+Os 15 ajustes da ficha de admissão estão fechados. Dentro de Pessoas 360° ficaram duas frentes em aberto. Sugiro esta ordem:
 
 ## Etapa A (recomendada agora) — Fechar o endereço e os pendentes visuais da admissão
 
