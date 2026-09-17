@@ -217,6 +217,11 @@ export default function PreAdmissao() {
   const totalEtapas = ETAPAS.length + 2; // + familiares + documentos
   const progresso = Math.round(((etapa + 1) / totalEtapas) * 100);
 
+  /** Linha em branco recém-incluída não vai ao servidor. */
+  const pessoasParaEnviar = () =>
+    pessoas.filter((p) => p.id || p.nome.trim() || p.parentesco.trim() || p.data_nascimento.trim());
+
+
   const salvar = async (avancar: boolean) => {
     setSalvando(true);
     try {
