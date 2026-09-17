@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -1106,7 +1107,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {/* Due date - only for receita/despesa (não para cartão de crédito) */}
           {type !== "transferencia" && !isCreditCardAccount && (
             <div className="space-y-2" data-field="due_date">
-              <Label>Data de vencimento{fieldSuffix("due_date")}</Label>
+              <div className="flex items-center gap-1">
+                <Label>Data de vencimento{fieldSuffix("due_date")}</Label>
+                <HelpHint helpKey="financeiro.lancamento.vencimento" />
+              </div>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -1161,7 +1165,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {/* Payment date - only for receita/despesa with confirmed status (não para cartão) */}
           {type !== "transferencia" && !isCreditCardAccount && status === "confirmado" && (
             <div className="space-y-2" data-field="payment_date">
-              <Label>Data de pagamento{fieldSuffix("payment_date")}</Label>
+              <div className="flex items-center gap-1">
+                <Label>Data de pagamento{fieldSuffix("payment_date")}</Label>
+                <HelpHint helpKey="financeiro.lancamento.pagamento" />
+              </div>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -1185,6 +1192,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 <div className="flex items-center gap-2">
                   <Repeat className="h-4 w-4 text-muted-foreground" />
                   <Label htmlFor="recurring-switch" className="cursor-pointer">Lançamento recorrente</Label>
+                  <HelpHint helpKey="financeiro.lancamento.recorrente" />
                 </div>
                 <Switch
                   id="recurring-switch"
@@ -1313,6 +1321,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 <div className="flex items-center gap-2">
                   <Repeat className="h-4 w-4 text-muted-foreground" />
                   <Label htmlFor="installment-switch" className="cursor-pointer">Lançamento parcelado</Label>
+                  <HelpHint helpKey="financeiro.lancamento.parcelado" />
                 </div>
                 <Switch
                   id="installment-switch"
@@ -1581,7 +1590,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
           {/* Contact (Cliente/Fornecedor) */}
           {type !== "transferencia" && (
             <div className="space-y-2" data-field="contact">
-              <Label>Cliente/Fornecedor{fieldSuffix("contact")}</Label>
+              <div className="flex items-center gap-1">
+                <Label>Cliente/Fornecedor{fieldSuffix("contact")}</Label>
+                <HelpHint helpKey="financeiro.lancamento.contato" />
+              </div>
               <div className="flex gap-2">
                 <SearchableSelect
                   value={contactId}
@@ -1630,7 +1642,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
           {/* Centro de Custo (opcional) */}
           <div className="space-y-2" data-field="cost_center">
-            <Label>Centro de custo <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+            <div className="flex items-center gap-1">
+              <Label>Centro de custo <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+              <HelpHint helpKey="financeiro.centrosCusto" />
+            </div>
             <SearchableSelect
               value={costCenterId}
               onValueChange={(v) => setCostCenterId(v === "__none__" ? "" : v)}
@@ -1698,7 +1713,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
           {/* Attachments */}
           <div className="space-y-2" data-field="attachments">
-            <Label>Anexos{fieldSuffix("attachments")} — {totalAttachments}/5</Label>
+            <div className="flex items-center gap-1">
+              <Label>Anexos{fieldSuffix("attachments")} — {totalAttachments}/5</Label>
+              <HelpHint helpKey="financeiro.lancamento.anexos" />
+            </div>
             {/* Existing attachments */}
             {existingAttachments.filter(a => !removedAttachmentIds.includes(a.id)).map((att) => (
               <div key={att.id} className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
