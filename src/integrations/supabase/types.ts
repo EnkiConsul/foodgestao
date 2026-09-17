@@ -9987,17 +9987,17 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "dp_preadm_conv_pre_fk"
+            columns: ["preadmissao_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_preadmissoes"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
             foreignKeyName: "dp_preadmissao_convites_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_preadmissao_convites_preadmissao_id_fkey"
-            columns: ["preadmissao_id"]
-            isOneToOne: false
-            referencedRelation: "dp_preadmissoes"
             referencedColumns: ["id"]
           },
         ]
@@ -10056,24 +10056,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "dp_preadm_doc_pessoa_fk"
+            columns: ["pessoa_id", "preadmissao_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_preadmissao_pessoas"
+            referencedColumns: ["id", "preadmissao_id", "company_id"]
+          },
+          {
+            foreignKeyName: "dp_preadm_doc_pre_fk"
+            columns: ["preadmissao_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_preadmissoes"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
             foreignKeyName: "dp_preadmissao_documentos_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_preadmissao_documentos_pessoa_id_fkey"
-            columns: ["pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "dp_preadmissao_pessoas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_preadmissao_documentos_preadmissao_id_fkey"
-            columns: ["preadmissao_id"]
-            isOneToOne: false
-            referencedRelation: "dp_preadmissoes"
             referencedColumns: ["id"]
           },
         ]
@@ -10108,17 +10108,17 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "dp_preadm_evt_pre_fk"
+            columns: ["preadmissao_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_preadmissoes"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
             foreignKeyName: "dp_preadmissao_eventos_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_preadmissao_eventos_preadmissao_id_fkey"
-            columns: ["preadmissao_id"]
-            isOneToOne: false
-            referencedRelation: "dp_preadmissoes"
             referencedColumns: ["id"]
           },
         ]
@@ -10171,17 +10171,17 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "dp_preadm_pessoa_pre_fk"
+            columns: ["preadmissao_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_preadmissoes"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
             foreignKeyName: "dp_preadmissao_pessoas_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_preadmissao_pessoas_preadmissao_id_fkey"
-            columns: ["preadmissao_id"]
-            isOneToOne: false
-            referencedRelation: "dp_preadmissoes"
             referencedColumns: ["id"]
           },
         ]
@@ -10204,6 +10204,7 @@ export type Database = {
           email: string | null
           enviado_em: string | null
           estado_civil: string | null
+          ficha_importacao_item_id: string | null
           ficha_oficial_conferida_em: string | null
           ficha_oficial_conferida_por: string | null
           id: string
@@ -10213,6 +10214,7 @@ export type Database = {
           trabalho_apos_22h: boolean
           unidade_prevista_id: string | null
           updated_at: string
+          vinculo_admissao_em: string | null
           whatsapp: string
         }
         Insert: {
@@ -10232,6 +10234,7 @@ export type Database = {
           email?: string | null
           enviado_em?: string | null
           estado_civil?: string | null
+          ficha_importacao_item_id?: string | null
           ficha_oficial_conferida_em?: string | null
           ficha_oficial_conferida_por?: string | null
           id?: string
@@ -10241,6 +10244,7 @@ export type Database = {
           trabalho_apos_22h?: boolean
           unidade_prevista_id?: string | null
           updated_at?: string
+          vinculo_admissao_em?: string | null
           whatsapp: string
         }
         Update: {
@@ -10260,6 +10264,7 @@ export type Database = {
           email?: string | null
           enviado_em?: string | null
           estado_civil?: string | null
+          ficha_importacao_item_id?: string | null
           ficha_oficial_conferida_em?: string | null
           ficha_oficial_conferida_por?: string | null
           id?: string
@@ -10269,9 +10274,17 @@ export type Database = {
           trabalho_apos_22h?: boolean
           unidade_prevista_id?: string | null
           updated_at?: string
+          vinculo_admissao_em?: string | null
           whatsapp?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "dp_preadm_ficha_item_fk"
+            columns: ["ficha_importacao_item_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_ficha_importacao_itens"
+            referencedColumns: ["id", "company_id"]
+          },
           {
             foreignKeyName: "dp_preadmissoes_cargo_previsto_id_fkey"
             columns: ["cargo_previsto_id"]
@@ -10499,24 +10512,24 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "dp_requisito_cargos_cargo_id_fkey"
-            columns: ["cargo_id"]
+            foreignKeyName: "dp_req_cargo_cargo_fk"
+            columns: ["cargo_id", "company_id"]
             isOneToOne: false
             referencedRelation: "dp_cargos"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "dp_req_cargo_req_fk"
+            columns: ["requisito_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documento_requisitos"
+            referencedColumns: ["id", "company_id"]
           },
           {
             foreignKeyName: "dp_requisito_cargos_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_requisito_cargos_requisito_id_fkey"
-            columns: ["requisito_id"]
-            isOneToOne: false
-            referencedRelation: "dp_documento_requisitos"
             referencedColumns: ["id"]
           },
         ]
@@ -10542,24 +10555,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "dp_req_unid_req_fk"
+            columns: ["requisito_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documento_requisitos"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "dp_req_unid_unid_fk"
+            columns: ["unidade_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
             foreignKeyName: "dp_requisito_unidades_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_requisito_unidades_requisito_id_fkey"
-            columns: ["requisito_id"]
-            isOneToOne: false
-            referencedRelation: "dp_documento_requisitos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_requisito_unidades_unidade_id_fkey"
-            columns: ["unidade_id"]
-            isOneToOne: false
-            referencedRelation: "dp_unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -15958,7 +15971,28 @@ export type Database = {
         Returns: Json
       }
       dp_preadmissao_efetivar: {
-        Args: { p_colaborador_id: string; p_preadmissao_id: string }
+        Args: {
+          p_colaborador_id: string
+          p_ficha_importacao_item_id?: string
+          p_preadmissao_id: string
+        }
+        Returns: Json
+      }
+      dp_preadmissao_efetivar_com_ficha: {
+        Args: {
+          p_campos?: string[]
+          p_cargo_id?: string
+          p_dados: Json
+          p_forma_pagamento?: string
+          p_item_id: string
+          p_jornada?: Json
+          p_justificativa?: string
+          p_preadmissao_id: string
+          p_regime?: string
+          p_setor_id?: string
+          p_turno_id?: string
+          p_unidade_id?: string
+        }
         Returns: Json
       }
       dp_preadmissao_transicionar: {
