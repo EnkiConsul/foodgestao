@@ -345,3 +345,60 @@ Recriar a versão anterior de `dp_preadmissao_efetivar_com_ficha` (SQL na migra�
   automatizados de integração das telas (o QA foi manual pelo navegador).
 - **Pendente de produto:** e-mail/WhatsApp automático do convite (hoje o link é copiado ou enviado
   pelo WhatsApp manualmente) e publicação do frontend (não autorizada).
+
+## Incremento 8 — Conferência da ficha oficial contra o staging + auditoria do Storage
+
+### Comparação com o staging revisado (não com o cadastro)
+- Nova fonte única `src/lib/dp/preadmissao/comparacaoFicha.ts`: mapa de campos comparáveis entre a
+  ficha lida (`dados_extraidos`, com endereço em objeto) e os dados JÁ CONFERIDOS da pré-admissão
+  (`dp_preadmissoes.dados`), comparação tolerante (caixa/acento/pontuação), lista de divergências,
+  divergências sem decisão e montagem dos dados que vão ao cadastro.
+- Regra aplicada: **o conferido é a referência**. A ficha só substitui um campo quando o gestor
+  escolhe explicitamente "Ficha oficial" naquele campo. Campo vazio na ficha é completado com o
+  conferido; nada é sobrescrito em silêncio.
+- `FichaRevisaoCard` (com `preadmissaoId`) lê a pré-admissão pelo painel do gestor, exibe a seção
+  "Conferência com a pré-admissão" com um par de botões por divergência (`aria-pressed`), bloqueia
+  a conclusão enquanto houver divergência sem decisão e recusa concluir sem os dados conferidos
+  carregados.
+- Caminho **"Somente anexar a ficha"**: conclui mantendo todos os valores conferidos (nenhum campo
+  alterado) e, quando já existe cadastro do CPF, envia `p_campos = []`, de modo que a rotina do
+  banco não grava coluna nenhuma. Nenhum cadastro é criado antes da conferência da ficha oficial —
+  a rotina continua exigindo `ficha_oficial_conferida_em`.
+
+### Validação real
+- `src/test/unit/preadmissaoComparacaoFicha.test.ts` — 7 testes verdes: equivalência tolerante,
+  divergências reais, manutenção do conferido sem escolha, troca só no campo escolhido, "somente
+  anexar" ignorando escolhas, preenchimento do campo ausente na ficha e lista de pendências.
+- `tsgo` sem erros.
+
+### Auditoria das policies reais de `storage.objects` (bucket `dp-documentos`)
+Consulta em `pg_policies` (estado real do banco), avaliada para o prefixo
+`{company_id}/preadmissao/{preadmissao_id}/…`:
+- `dp_doc_bucket_read_autorizado` (SELECT, `authenticated`): libera quem é dono/admin da empresa do
+  primeiro segmento do caminho, ou super admin; o ramo do colaborador exige `dp_documentos` com
+  `colaborador_id = dp_colaborador_ativo_of(auth.uid())`, o que **não existe** para arquivos de
+  pré-admissão. Resultado: membro autenticado da mesma empresa **sem** papel de dono/admin não lê os
+  arquivos do candidato.
+- `dp_doc_bucket_colab_insert` (INSERT): exige que o **segundo** segmento seja o id do colaborador
+  ativo do próprio usuário; em pré-admissão esse segmento é o literal `preadmissao`, então nunca
+  casa — nenhum membro consegue gravar dentro do prefixo. O upload do candidato continua sendo feito
+  pela função `dp-preadmissao-arquivo` (service role, caminho montado no servidor).
+- `dp_doc_bucket_admin_write` (ALL): escrita/remoção restrita a dono/admin da empresa do caminho.
+- Conclusão: bucket privado **mais** as policies acima restringem leitura/escrita ao gestor
+  autorizado da própria empresa; o candidato só alcança os próprios arquivos por URL temporária de
+  120 s emitida pela função e autenticada pelo convite.
+- Observação (pré-existente, fora do escopo desta fase): `dp_doc_bucket_read_autorizado` faz
+  `split_part(name,'/',1)::uuid`, que só é seguro porque os caminhos legados de prefixo `documentos/`
+  são atendidos pela policy própria.
+
+### O que ainda NÃO foi testado (declaração honesta)
+- Teste HTTP/Storage com sessões reais A/B/sem permissão: **não executado**. A auditoria acima é
+  leitura das policies reais em produção do projeto, não um teste de download/list/write com três
+  sessões; e o banco descartável usado nos incrementos anteriores **não** exercita HTTP nem Storage
+  (é clone de SQL apenas).
+- Teste com convite sintético válido + sessão de gestor percorrendo preenchimento, upload, retomada,
+  correção, contabilidade e importação: **não executado**. O QA de tela feito até aqui cobriu a lista
+  autenticada e a página de link inválido, o que **não** comprova formulário nem painel.
+- Teste simultâneo (duas sessões) de `dp_preadmissao_efetivar_com_ficha`: **não executado**;
+  a proteção (`FOR UPDATE` + advisory lock + idempotência) está implementada e provada apenas por
+  chamadas repetidas em sequência, que não valem como concorrência.
