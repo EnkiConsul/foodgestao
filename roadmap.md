@@ -63,3 +63,8 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - Exclusão não destrutiva: `dp_preadmissoes.removido_em/por/motivo`, RPC `dp_preadmissao_excluir` transacional, convites revogados e evento `ficha_excluida` no histórico.
 - Fichas removidas saem das listas, da revisão, das pendências, do link do candidato e do acesso aos arquivos.
 - Validado no navegador: ficha sintética excluída (evento gravado, convite revogado, nada apagado).
+
+## Certificado de validação e comprovante no celular (2026-09-17)
+- Comprovante de pagamento e certificado abrem na própria tela (sem aba nova, que o celular bloqueia).
+- Certificado virou PDF único do servidor (`dp-documento-certificado`): capa com dados da aprovação, documento assinado, comprovante como anexo (sem validação própria) e rodapé de lastro em todas as páginas.
+- Testado com documento real aprovado (contracheque + comprovante Pix): 4 páginas, rodapé e anexo conferidos.
