@@ -149,10 +149,12 @@ export function FichaRevisaoCard({
   /**
    * Conferência da ficha oficial contra o STAGING já revisado da pré-admissão.
    * O que o gestor conferiu é a referência: a ficha só substitui um campo por
-   * escolha explícita, e "Somente anexar" não altera campo algum.
+   * escolha explícita, tanto nos dados pessoais quanto nas informações
+   * administrativas (cargo, unidade, setor, salário, vínculo e jornada).
    */
   const preadmissao = useDpPreadmissao(preadmissaoId ?? null);
   const stagingDados = (preadmissao.data?.preadmissao.dados ?? null) as Record<string, unknown> | null;
+  const adminDados = (preadmissao.data?.preadmissao.admin_dados ?? null) as Record<string, unknown> | null;
   const divergencias = useMemo(
     () => (preadmissaoId ? divergenciasFicha(stagingDados, dados) : []),
     [preadmissaoId, stagingDados, dados],
@@ -160,33 +162,101 @@ export function FichaRevisaoCard({
   const [escolhas, setEscolhas] = useState<Record<string, EscolhaDivergencia>>({});
   const semEscolha = useMemo(() => divergenciasSemEscolha(divergencias, escolhas), [divergencias, escolhas]);
 
-  const executar = (camposPermitidos: string[] | null, somenteAnexar = false) => {
+  /** Nomes canônicos do que foi conferido — nunca mostramos códigos internos. */
+  const cargoConferidoId = (adminDados?.cargo_id as string) ?? preadmissao.data?.preadmissao.cargo_previsto_id ?? null;
+  const unidadeConferidaId = (adminDados?.unidade_id as string) ?? preadmissao.data?.preadmissao.unidade_prevista_id ?? null;
+  const setorConferidoId = (adminDados?.setor_id as string) ?? null;
+  const nomesConferidos = useMemo(
+    () => ({
+      cargo: cargos.find((c) => c.id === cargoConferidoId)?.nome ?? null,
+      unidade: unidades.find((u) => u.id === unidadeConferidaId)?.nome ?? null,
+      setor: setores.find((s) => s.id === setorConferidoId)?.nome ?? null,
+      regime: REGIMES.find((r) => r.value === adminDados?.regime_trabalho)?.label ?? null,
+      forma_pagamento: FORMAS_PAGAMENTO.find((f) => f.value === adminDados?.forma_pagamento)?.label ?? null,
+    }),
+    [cargos, unidades, setores, cargoConferidoId, unidadeConferidaId, setorConferidoId, adminDados],
+  );
+  const divergenciasDoAdmin = useMemo(
+    () => (preadmissaoId ? divergenciasAdmin(adminDados, dados, nomesConferidos) : []),
+    [preadmissaoId, adminDados, dados, nomesConferidos],
+  );
+  const semEscolhaAdmin = useMemo(
+    () => divergenciasAdminSemEscolha(divergenciasDoAdmin, escolhas),
+    [divergenciasDoAdmin, escolhas],
+  );
+  const faltaDecidir = semEscolha.length + semEscolhaAdmin.length;
+
+  /**
+   * Vínculo enviado ao cadastro: sai EXCLUSIVAMENTE da decisão do gestor. Sem
+   * decisão, vale o conferido na pré-admissão; a ficha só entra quando o nome
+   * lido corresponde a um cadastro real da empresa.
+   */
+  const vinculoDecidido = () => {
+    const escolheuFicha = (campo: string) => escolhas[`admin.${campo}`] === "ficha";
+    const lido = (chave: string) => String((dados[chave] as string) ?? "").trim();
+    const cargoFicha = escolheuFicha("cargo") ? resolverPorNome(cargos, lido("cargo")) : null;
+    const unidadeFicha = escolheuFicha("unidade") ? resolverPorNome(unidades, lido("unidade")) : null;
+    const setorFicha = escolheuFicha("setor") ? resolverPorNome(setores, lido("setor")) : null;
+    const regimeFicha = escolheuFicha("regime_trabalho")
+      ? REGIMES.find((r) => r.value === lido("regime"))?.value ?? null
+      : null;
+    const formaFicha = escolheuFicha("forma_pagamento")
+      ? FORMAS_PAGAMENTO.find((f) => f.value === lido("forma_pagamento"))?.value ?? null
+      : null;
+    return {
+      cargoId: cargoFicha?.id ?? cargoConferidoId ?? cargoId,
+      unidadeId: unidadeFicha?.id ?? unidadeConferidaId ?? unidadeId,
+      setorId: setorFicha?.id ?? setorConferidoId ?? setorId,
+      regime: regimeFicha ?? (adminDados?.regime_trabalho as string) ?? regime,
+      formaPagamento: formaFicha ?? (adminDados?.forma_pagamento as string) ?? formaPagamento,
+    };
+  };
+
+  /**
+   * Somente anexar a ficha: caminho PRÓPRIO, que não cria, não reativa e não
+   * altera cadastro algum. Nenhum dado da pré-admissão é alterado.
+   */
+  const [anexando, setAnexando] = useState(false);
+  const somenteAnexarFicha = async () => {
+    if (!preadmissaoId) return;
+    setAnexando(true);
+    try {
+      await anexarSomenteFicha(preadmissaoId, item.id);
+      toast.success("Ficha registrada como recebida. Nenhum cadastro foi criado ou alterado.");
+      await preadmissao.refetch();
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "registrar o anexo da ficha" });
+    } finally {
+      setAnexando(false);
+    }
+  };
+
+  const executar = (camposPermitidos: string[] | null) => {
     if (!regime || !formaPagamento || possuiFolhaPonto === null || optanteAdiantamento === null) {
       setCompletarAberto(true);
       toast.error("Confirme vínculo, pagamento, ponto e adiantamento antes de criar o cadastro.");
       return;
     }
-    if (preadmissaoId && !somenteAnexar && semEscolha.length > 0) {
+    if (preadmissaoId && faltaDecidir > 0) {
       toast.error("Escolha, em cada divergência, qual valor vale antes de concluir.");
       return;
     }
-    const dadosEnvio = preadmissaoId
-      ? dadosParaCadastro(stagingDados, dados, escolhas, somenteAnexar)
-      : dados;
+    const decidido = preadmissaoId ? vinculoDecidido() : null;
+    const dadosEnvio = preadmissaoId ? dadosParaCadastro(stagingDados, dados, escolhas) : dados;
     aplicar.mutate(
       {
         item,
         dados: dadosEnvio,
-        cargoId,
-        unidadeId,
-        setorId,
-        regime,
+        cargoId: decidido?.cargoId ?? cargoId,
+        unidadeId: decidido?.unidadeId ?? unidadeId,
+        setorId: decidido?.setorId ?? setorId,
+        regime: decidido?.regime ?? regime,
         atualizarExistente: atualizar && !!item.colaborador_existente_id,
         jornada: usarJornada ? jornada : null,
         turnoId: usarJornada ? turnoEscolhido : null,
         camposPermitidos,
         anexarFicha,
-        formaPagamento,
+        formaPagamento: decidido?.formaPagamento ?? formaPagamento,
         possuiFolhaPonto,
         optanteAdiantamento,
         preadmissaoId,
