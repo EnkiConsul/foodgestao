@@ -249,3 +249,22 @@ export function pendenciasDocumentais(
   const chaves = new Set(enviados.map((e) => `${e.requisito_codigo}:${e.pessoa_id ?? ""}`));
   return itens.filter((i) => i.obrigatorio && !chaves.has(i.key));
 }
+
+/**
+ * Aplica as regras da empresa sobre o checklist: documento marcado como
+ * "nao_pedir" sai da lista e "opcional" deixa de bloquear o envio. Documento
+ * sem regra segue o padrão do sistema.
+ */
+export function aplicarRegrasDocumentos(
+  itens: ItemChecklist[],
+  regras: Record<string, "obrigatorio" | "opcional" | "nao_pedir"> = {},
+): ItemChecklist[] {
+  return itens
+    .filter((i) => regras[i.codigo] !== "nao_pedir")
+    .map((i) => {
+      const r = regras[i.codigo];
+      if (r === "opcional") return { ...i, obrigatorio: false };
+      if (r === "obrigatorio") return { ...i, obrigatorio: true };
+      return i;
+    });
+}

@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
         .eq("id", pa.id)
         .maybeSingle();
       const fichaAtual = { ...pa, ...((atual ?? {}) as Record<string, unknown>) } as typeof pa;
-      const [{ data: pessoas }, { data: docs }, reqs, reqsEmpresa] = await Promise.all([
+      const [{ data: pessoas }, { data: docs }, reqs, reqsEmpresa, regras] = await Promise.all([
         admin
           .from("dp_preadmissao_pessoas")
           .select("*")
@@ -94,25 +94,32 @@ Deno.serve(async (req) => {
           .order("created_at"),
         admin
           .from("dp_preadmissao_documentos")
-          .select("id, requisito_codigo, pessoa_id, file_name, status, motivo_recusa, created_at")
+          .select(
+            "id, requisito_codigo, pessoa_id, file_name, status, motivo_recusa, created_at, parte, parte_rotulo",
+          )
           .eq("preadmissao_id", pa.id)
-          .is("substituido_em", null),
+          .is("substituido_em", null)
+          .order("parte"),
         requisitosPrevistos(admin, fichaAtual),
         requisitosEmpresa(admin, pa.company_id),
+        regrasAdmissao(admin as never, fichaAtual),
       ]);
       const linha = (atual ?? {}) as Record<string, unknown>;
       const dados = (linha.dados ?? {}) as Record<string, unknown>;
-      const checklist = montarChecklist({
-        ficha: {
-          data_nascimento: (linha.data_nascimento as string) ?? null,
-          estado_civil: (linha.estado_civil as string) ?? null,
-          sexo: (dados.sexo as string) ?? null,
-        },
-        pessoas: (pessoas ?? []) as never,
-        requisitosCargo: reqs.cargo,
-        requisitosUnidade: reqs.unidade,
-        requisitosEmpresa: reqsEmpresa,
-      });
+      const checklist = aplicarRegrasDocumentos(
+        montarChecklist({
+          ficha: {
+            data_nascimento: (linha.data_nascimento as string) ?? null,
+            estado_civil: (linha.estado_civil as string) ?? null,
+            sexo: (dados.sexo as string) ?? null,
+          },
+          pessoas: (pessoas ?? []) as never,
+          requisitosCargo: reqs.cargo,
+          requisitosUnidade: reqs.unidade,
+          requisitosEmpresa: reqsEmpresa,
+        }),
+        regras.documentos,
+      );
       const status = String(linha.status ?? pa.status);
       // CPF informado pelo gestor no convite: o candidato vê, mas não altera.
       const cpfConvite = String(linha.cpf ?? pa.cpf ?? "").replace(/\D/g, "");
@@ -140,6 +147,8 @@ Deno.serve(async (req) => {
         pessoas: pessoas ?? [],
         documentos: docs ?? [],
         checklist,
+        regras_campos: regras.campos,
+        parentescos_permitidos: regras.parentescos,
         pendencias: pendenciasDocumentais(checklist, (docs ?? []) as never).map((i) => i.key),
       };
     };
@@ -263,7 +272,18 @@ Deno.serve(async (req) => {
       }
       const dados = estado.dados as Record<string, unknown>;
       const erros = validarDadosCandidato(dados);
-      const faltando = OBRIGATORIOS.filter((campo) => {
+      // Obrigatoriedade = padrão do sistema ajustado pelas regras da empresa:
+      // "nao_pedir"/"opcional" liberam o campo; "obrigatorio" acrescenta.
+      const regrasCampos = (estado.regras_campos ?? {}) as Record<string, string>;
+      const exigidos = new Set<string>(
+        OBRIGATORIOS.filter((c) => regrasCampos[c] !== "opcional" && regrasCampos[c] !== "nao_pedir"),
+      );
+      for (const [campo, exigencia] of Object.entries(regrasCampos)) {
+        if (exigencia === "obrigatorio" && (CAMPOS_CANDIDATO as readonly string[]).includes(campo)) {
+          exigidos.add(campo);
+        }
+      }
+      const faltando = [...exigidos].filter((campo) => {
         const v = dados[campo];
         return !(typeof v === "string" ? v.trim() : v);
       });
