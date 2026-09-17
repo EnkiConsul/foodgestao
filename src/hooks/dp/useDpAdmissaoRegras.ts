@@ -138,7 +138,7 @@ export function useDpAdmissaoRegras() {
           sexos: p.padrao ? [] : (p.sexos ?? []),
         },
       });
-      if (error) throw error;
+      if (error) throw new Error(mensagemRegra(error.message));
       return data as string;
     },
     onSuccess: invalidar,
@@ -147,7 +147,7 @@ export function useDpAdmissaoRegras() {
   const excluir = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.rpc("dp_admissao_regra_excluir", { p_id: id });
-      if (error) throw error;
+      if (error) throw new Error(mensagemRegra(error.message));
     },
     onSuccess: invalidar,
   });
