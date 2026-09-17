@@ -454,9 +454,14 @@ export default function PreAdmissao() {
     }
   };
 
+  /** Todas as fotos enviadas de cada documento, em ordem de parte. */
   const documentoPorChave = useMemo(() => {
-    const m = new Map<string, DocumentoEnviado>();
-    (estado?.documentos ?? []).forEach((d) => m.set(`${d.requisito_codigo}:${d.pessoa_id ?? ""}`, d));
+    const m = new Map<string, DocumentoEnviado[]>();
+    (estado?.documentos ?? []).forEach((d) => {
+      const chave = `${d.requisito_codigo}:${d.pessoa_id ?? ""}`;
+      m.set(chave, [...(m.get(chave) ?? []), d]);
+    });
+    for (const lista of m.values()) lista.sort((a, b) => (a.parte ?? 1) - (b.parte ?? 1));
     return m;
   }, [estado?.documentos]);
 
