@@ -10,6 +10,7 @@ import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
 import { serviceClient } from "../_shared/authz.ts";
 import { ipRateLimited } from "../_shared/rate-limit.ts";
 import {
+  CAMPOS_CANDIDATO,
   camposNaoPermitidos,
   camposNaoPermitidosPessoas,
   camposNaoPermitidosRaiz,
@@ -20,6 +21,7 @@ import {
   filtrarPessoasCandidato,
   MOTIVOS_GRAVACAO,
   registrarEvento,
+  regrasAdmissao,
   requisitosEmpresa,
   requisitosPrevistos,
   salvarCandidato,
@@ -27,7 +29,12 @@ import {
   validarConvite,
   validarDadosCandidato,
 } from "../_shared/preadmissao.ts";
-import { montarChecklist, pendenciasDocumentais } from "../_shared/preadmissao-checklist.ts";
+import {
+  aplicarRegrasDocumentos,
+  montarChecklist,
+  normaliza,
+  pendenciasDocumentais,
+} from "../_shared/preadmissao-checklist.ts";
 
 const MOTIVOS: Record<string, string> = {
   nao_encontrado: "Este link não é válido. Peça um novo link à empresa.",
@@ -85,7 +92,7 @@ Deno.serve(async (req) => {
         .eq("id", pa.id)
         .maybeSingle();
       const fichaAtual = { ...pa, ...((atual ?? {}) as Record<string, unknown>) } as typeof pa;
-      const [{ data: pessoas }, { data: docs }, reqs, reqsEmpresa] = await Promise.all([
+      const [{ data: pessoas }, { data: docs }, reqs, reqsEmpresa, regras] = await Promise.all([
         admin
           .from("dp_preadmissao_pessoas")
           .select("*")
@@ -94,25 +101,32 @@ Deno.serve(async (req) => {
           .order("created_at"),
         admin
           .from("dp_preadmissao_documentos")
-          .select("id, requisito_codigo, pessoa_id, file_name, status, motivo_recusa, created_at")
+          .select(
+            "id, requisito_codigo, pessoa_id, file_name, status, motivo_recusa, created_at, parte, parte_rotulo",
+          )
           .eq("preadmissao_id", pa.id)
-          .is("substituido_em", null),
+          .is("substituido_em", null)
+          .order("parte"),
         requisitosPrevistos(admin, fichaAtual),
         requisitosEmpresa(admin, pa.company_id),
+        regrasAdmissao(admin as never, fichaAtual),
       ]);
       const linha = (atual ?? {}) as Record<string, unknown>;
       const dados = (linha.dados ?? {}) as Record<string, unknown>;
-      const checklist = montarChecklist({
-        ficha: {
-          data_nascimento: (linha.data_nascimento as string) ?? null,
-          estado_civil: (linha.estado_civil as string) ?? null,
-          sexo: (dados.sexo as string) ?? null,
-        },
-        pessoas: (pessoas ?? []) as never,
-        requisitosCargo: reqs.cargo,
-        requisitosUnidade: reqs.unidade,
-        requisitosEmpresa: reqsEmpresa,
-      });
+      const checklist = aplicarRegrasDocumentos(
+        montarChecklist({
+          ficha: {
+            data_nascimento: (linha.data_nascimento as string) ?? null,
+            estado_civil: (linha.estado_civil as string) ?? null,
+            sexo: (dados.sexo as string) ?? null,
+          },
+          pessoas: (pessoas ?? []) as never,
+          requisitosCargo: reqs.cargo,
+          requisitosUnidade: reqs.unidade,
+          requisitosEmpresa: reqsEmpresa,
+        }),
+        regras.documentos,
+      );
       const status = String(linha.status ?? pa.status);
       // CPF informado pelo gestor no convite: o candidato vê, mas não altera.
       const cpfConvite = String(linha.cpf ?? pa.cpf ?? "").replace(/\D/g, "");
@@ -140,6 +154,8 @@ Deno.serve(async (req) => {
         pessoas: pessoas ?? [],
         documentos: docs ?? [],
         checklist,
+        regras_campos: regras.campos,
+        parentescos_permitidos: regras.parentescos,
         pendencias: pendenciasDocumentais(checklist, (docs ?? []) as never).map((i) => i.key),
       };
     };
@@ -225,8 +241,28 @@ Deno.serve(async (req) => {
       // O nome é da empresa: o que vier do candidato é descartado.
       const nomeConvite = String(pa.candidato_nome ?? "").trim();
       if (nomeConvite) dados.nome = nomeConvite;
-
-
+      // Quando a empresa configurou a lista de parentescos aceitos, familiar
+      // fora dela é recusado antes de qualquer gravação (fail closed).
+      const pessoasPedido = Array.isArray(body?.pessoas) ? filtrarPessoasCandidato(body.pessoas) : null;
+      const regrasPessoas = await regrasAdmissao(admin as never, pa);
+      if (regrasPessoas.parentescos && pessoasPedido) {
+        for (let i = 0; i < pessoasPedido.length; i++) {
+          const p = pessoasPedido[i];
+          const grau = normaliza(String(p.parentesco ?? ""));
+          const permitido = regrasPessoas.parentescos.find((r) => normaliza(r.parentesco) === grau);
+          const ehDependente = p.finalidade_dependente === true;
+          const ehSesc = p.finalidade_sesc === true;
+          if (
+            !permitido || (ehDependente && !permitido.permite_dependente) ||
+            (ehSesc && !permitido.permite_sesc)
+          ) {
+            return jsonResponse(req, 400, {
+              error: `Este grau de parentesco não é aceito pela empresa (familiar ${i + 1}).`,
+              motivo: "parentesco_nao_permitido",
+            });
+          }
+        }
+      }
 
       // Dados, familiares e remoções em uma única transação com trava na ficha:
       // um "enviar" simultâneo não consegue fechar a ficha no meio da gravação.
@@ -244,7 +280,7 @@ Deno.serve(async (req) => {
           data_nascimento: texto("data_nascimento") ?? "",
           estado_civil: texto("estado_civil") ?? "",
         },
-        pessoas: Array.isArray(body?.pessoas) ? filtrarPessoasCandidato(body.pessoas) : null,
+        pessoas: pessoasPedido,
       });
       if (!gravado.ok) return respostaMotivo(gravado.motivo, gravado.status, gravado.indice);
 
@@ -263,7 +299,18 @@ Deno.serve(async (req) => {
       }
       const dados = estado.dados as Record<string, unknown>;
       const erros = validarDadosCandidato(dados);
-      const faltando = OBRIGATORIOS.filter((campo) => {
+      // Obrigatoriedade = padrão do sistema ajustado pelas regras da empresa:
+      // "nao_pedir"/"opcional" liberam o campo; "obrigatorio" acrescenta.
+      const regrasCampos = (estado.regras_campos ?? {}) as Record<string, string>;
+      const exigidos = new Set<string>(
+        OBRIGATORIOS.filter((c) => regrasCampos[c] !== "opcional" && regrasCampos[c] !== "nao_pedir"),
+      );
+      for (const [campo, exigencia] of Object.entries(regrasCampos)) {
+        if (exigencia === "obrigatorio" && (CAMPOS_CANDIDATO as readonly string[]).includes(campo)) {
+          exigidos.add(campo);
+        }
+      }
+      const faltando = [...exigidos].filter((campo) => {
         const v = dados[campo];
         return !(typeof v === "string" ? v.trim() : v);
       });

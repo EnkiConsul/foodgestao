@@ -353,8 +353,11 @@ export async function registrarDocumento(
     fileName: string;
     mimeType: string;
     fileSize: number;
+    /** Parte do documento (1 = frente, 2 = verso, e assim por diante). */
+    parte?: number;
+    parteRotulo?: string | null;
   },
-): Promise<{ ok: boolean; motivo?: string; documento_id?: string; versao?: number }> {
+): Promise<{ ok: boolean; motivo?: string; documento_id?: string; versao?: number; parte?: number }> {
   const { data, error } = await admin.rpc("dp_preadmissao_documento_registrar", {
     p_preadmissao_id: args.preadmissaoId,
     p_requisito_codigo: args.codigo,
@@ -363,12 +366,14 @@ export async function registrarDocumento(
     p_file_name: args.fileName,
     p_mime_type: args.mimeType,
     p_file_size: args.fileSize,
+    p_parte: args.parte ?? 1,
+    p_parte_rotulo: args.parteRotulo ?? null,
   });
   if (error) {
     logFalha("documento não registrado", error);
     return { ok: false, motivo: "erro_gravacao" };
   }
-  return data as { ok: boolean; motivo?: string };
+  return data as { ok: boolean; motivo?: string; parte?: number };
 }
 
 /**
@@ -794,4 +799,63 @@ export async function referenciasDaEmpresa(
     if (!data) return ref.campo;
   }
   return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Regras de admissão configuradas pela empresa (campo/documento por escopo)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type Exigencia = "obrigatorio" | "opcional" | "nao_pedir";
+
+export interface ParentescoPermitido {
+  parentesco: string;
+  permite_dependente: boolean;
+  permite_sesc: boolean;
+}
+
+export interface RegrasAdmissao {
+  campos: Record<string, Exigencia>;
+  documentos: Record<string, Exigencia>;
+  /** null = empresa não configurou lista; qualquer parentesco é aceito. */
+  parentescos: ParentescoPermitido[] | null;
+}
+
+const EXIGENCIAS = new Set<string>(["obrigatorio", "opcional", "nao_pedir"]);
+
+/**
+ * Lê as regras já resolvidas pela especificidade (cargo > vínculo > unidade >
+ * empresa). Falha de leitura devolve regras vazias: o padrão do sistema
+ * continua valendo, nunca se libera obrigatoriedade por erro de consulta.
+ */
+export async function regrasAdmissao(
+  admin: Db & Rpc,
+  pa: Pick<Preadmissao, "company_id" | "cargo_previsto_id" | "unidade_prevista_id" | "admin_dados">,
+): Promise<RegrasAdmissao> {
+  const regime = typeof (pa.admin_dados ?? {})?.regime_trabalho === "string"
+    ? String((pa.admin_dados as Record<string, unknown>).regime_trabalho)
+    : null;
+  const [resolvidas, lista] = await Promise.all([
+    admin.rpc("dp_admissao_regras_resolver", {
+      p_company_id: pa.company_id,
+      p_unidade_id: pa.unidade_prevista_id,
+      p_cargo_id: pa.cargo_previsto_id,
+      p_regime: regime,
+    }),
+    admin
+      .from("dp_admissao_regra_parentescos")
+      .select("parentesco, permite_dependente, permite_sesc")
+      .eq("company_id", pa.company_id),
+  ]);
+  const campos: Record<string, Exigencia> = {};
+  const documentos: Record<string, Exigencia> = {};
+  if (resolvidas.error) logFalha("regras de admissão não lidas", resolvidas.error);
+  for (const r of (resolvidas.data ?? []) as { tipo: string; chave: string; exigencia: string }[]) {
+    if (!EXIGENCIAS.has(r.exigencia)) continue;
+    const alvo = r.tipo === "documento" ? documentos : r.tipo === "campo" ? campos : null;
+    if (alvo) alvo[r.chave] = r.exigencia as Exigencia;
+  }
+  const parentescos = lista.error || !(lista.data ?? []).length
+    ? null
+    : (lista.data as ParentescoPermitido[]);
+  return { campos, documentos, parentescos };
 }

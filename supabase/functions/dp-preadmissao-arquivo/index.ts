@@ -113,7 +113,17 @@ Deno.serve(async (req) => {
       }
       const ext = EXTENSOES[real];
 
-      const caminho = `${pa.company_id}/preadmissao/${pa.id}/${codigo}-${pessoaIdPedido ?? "titular"}-${Date.now()}.${ext}`;
+      // Parte do documento: 1 = frente, 2 = verso, e assim por diante (até 10).
+      const parteBruta = body?.parte === undefined || body?.parte === null ? 1 : Number(body.parte);
+      if (!Number.isInteger(parteBruta) || parteBruta < 1 || parteBruta > 10) {
+        return jsonResponse(req, 400, { error: "Parte do documento inválida." });
+      }
+      const parteRotulo = typeof body?.parte_rotulo === "string"
+        ? body.parte_rotulo.trim().slice(0, 40) || null
+        : null;
+
+      const caminho =
+        `${pa.company_id}/preadmissao/${pa.id}/${codigo}-${pessoaIdPedido ?? "titular"}-p${parteBruta}-${Date.now()}.${ext}`;
       const up = await admin.storage.from(BUCKET).upload(caminho, bytes, { contentType: real, upsert: false });
       if (up.error) return jsonError(req, "internal", up.error.message);
 
@@ -126,16 +136,21 @@ Deno.serve(async (req) => {
         fileName: String(body?.file_name ?? `${codigo}.${ext}`).slice(0, 180),
         mimeType: real,
         fileSize: bytes.length,
+        parte: parteBruta,
+        parteRotulo,
       });
       if (!reg.ok) {
         await admin.storage.from(BUCKET).remove([caminho]);
         if (reg.motivo === "fase_encerrada") return jsonResponse(req, 409, { error: FASE_ENCERRADA });
+        if (reg.motivo === "parte_invalida") {
+          return jsonResponse(req, 400, { error: "Parte do documento inválida." });
+        }
         if (reg.motivo === "titular_invalido") {
           return jsonResponse(req, 400, { error: "Pessoa não encontrada nesta ficha." });
         }
         return jsonError(req, "internal", "não foi possível registrar o documento");
       }
-      return jsonResponse(req, 200, { success: true, versao: reg.versao });
+      return jsonResponse(req, 200, { success: true, versao: reg.versao, parte: reg.parte ?? parteBruta });
     }
 
     // ---------- Gestor: ficha oficial devolvida pela contabilidade ----------

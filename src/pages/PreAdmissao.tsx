@@ -198,6 +198,17 @@ interface DocumentoEnviado {
   file_name: string;
   status: string;
   motivo_recusa?: string | null;
+  /** 1 = frente, 2 = verso, e assim por diante. */
+  parte?: number | null;
+  parte_rotulo?: string | null;
+}
+
+/** Nome amigável da parte do documento (frente, verso, foto extra). */
+function rotuloParte(parte: number, rotulo?: string | null): string {
+  if (rotulo && rotulo.trim()) return rotulo.trim();
+  if (parte === 1) return "Frente";
+  if (parte === 2) return "Verso";
+  return `Foto ${parte}`;
 }
 
 interface Estado {
@@ -279,7 +290,7 @@ export default function PreAdmissao() {
   const [faltando, setFaltando] = useState<string[]>([]);
   const [avisoTopo, setAvisoTopo] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const alvo = useRef<ChecklistItem | null>(null);
+  const alvo = useRef<(ChecklistItem & { parte: number }) | null>(null);
 
   const aplicar = useCallback((e: Estado) => {
     setEstado(e);
@@ -396,15 +407,17 @@ export default function PreAdmissao() {
     }
   };
 
-  const escolherArquivo = (item: ChecklistItem) => {
-    alvo.current = item;
+  /** Cada documento aceita mais de uma foto (frente, verso e extras). */
+  const escolherArquivo = (item: ChecklistItem, parte: number) => {
+    alvo.current = { ...item, parte };
     fileRef.current?.click();
   };
 
   const enviarArquivo = async (arquivo: File) => {
     const item = alvo.current;
     if (!item) return;
-    setSubindo(item.key);
+    const parte = Math.min(Math.max(item.parte ?? 1, 1), 10);
+    setSubindo(`${item.key}:${parte}`);
     try {
       const base64 = await lerBase64(arquivo);
       await chamar<{ success: boolean }>("dp-preadmissao-arquivo", {
@@ -414,9 +427,11 @@ export default function PreAdmissao() {
         pessoa_id: item.pessoa_id ?? null,
         file_name: arquivo.name,
         content_base64: base64,
+        parte,
+        parte_rotulo: rotuloParte(parte),
       });
       aplicar(await chamar<Estado>("dp-preadmissao-publica", { t, c, action: "ler" }));
-      toast.success("Documento enviado");
+      toast.success(`${rotuloParte(parte)} enviada`);
     } catch (e) {
       void tratarFalha(e);
     } finally {
@@ -439,9 +454,14 @@ export default function PreAdmissao() {
     }
   };
 
+  /** Todas as fotos enviadas de cada documento, em ordem de parte. */
   const documentoPorChave = useMemo(() => {
-    const m = new Map<string, DocumentoEnviado>();
-    (estado?.documentos ?? []).forEach((d) => m.set(`${d.requisito_codigo}:${d.pessoa_id ?? ""}`, d));
+    const m = new Map<string, DocumentoEnviado[]>();
+    (estado?.documentos ?? []).forEach((d) => {
+      const chave = `${d.requisito_codigo}:${d.pessoa_id ?? ""}`;
+      m.set(chave, [...(m.get(chave) ?? []), d]);
+    });
+    for (const lista of m.values()) lista.sort((a, b) => (a.parte ?? 1) - (b.parte ?? 1));
     return m;
   }, [estado?.documentos]);
 
@@ -825,49 +845,76 @@ export default function PreAdmissao() {
               )}
               {(estado?.checklist ?? []).map((item) => {
                 const chave = `${item.codigo}:${item.pessoa_id ?? ""}`;
-                const doc = documentoPorChave.get(chave);
-                const recusado = doc?.status === "recusado";
+                const fotos = documentoPorChave.get(chave) ?? [];
+                const proximaParte = Math.min((fotos.reduce((max, d) => Math.max(max, d.parte ?? 1), 0)) + 1, 10);
                 return (
-                  <div key={item.key} className="rounded-lg border p-3 flex items-center gap-3">
-                    <div className="min-w-0 flex-1">
+                  <div key={item.key} className="rounded-lg border p-3 space-y-2">
+                    <div className="min-w-0">
                       <p className="text-sm font-medium">{item.titulo}</p>
                       <p className="text-xs text-muted-foreground">
                         {item.pessoa_nome ? item.pessoa_nome : "Seu documento"}
                         {item.obrigatorio ? " · obrigatório" : " · opcional"}
                       </p>
-                      {doc && (
-                        <button
-                          type="button"
-                          className="text-xs text-primary underline mt-1"
-                          onClick={() => verArquivo(doc.id)}
-                        >
-                          Ver o que você enviou
-                        </button>
-                      )}
-                      {recusado && (
-                        <p className="text-xs text-destructive mt-1">
-                          A empresa não aceitou este arquivo{doc?.motivo_recusa ? `: ${doc.motivo_recusa}` : ""}. Envie
-                          uma nova foto.
-                        </p>
-                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Se o documento tiver frente e verso, envie uma foto de cada lado.
+                      </p>
                     </div>
-                    {doc && !recusado && (
-                      <Badge variant="outline" className="text-emerald-600">
-                        {doc.status === "aprovado" ? "Aprovado" : "Enviado"}
-                      </Badge>
-                    )}
-                    {recusado && <Badge variant="destructive">Reenviar</Badge>}
+
+                    {fotos.map((doc) => {
+                      const parte = doc.parte ?? 1;
+                      const recusado = doc.status === "recusado";
+                      return (
+                        <div key={doc.id} className="rounded-md bg-muted/40 p-2 flex items-center gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium">{rotuloParte(parte, doc.parte_rotulo)}</p>
+                            <button
+                              type="button"
+                              className="text-xs text-primary underline"
+                              onClick={() => verArquivo(doc.id)}
+                            >
+                              Ver esta foto
+                            </button>
+                            {recusado && (
+                              <p className="text-xs text-destructive">
+                                A empresa não aceitou{doc.motivo_recusa ? `: ${doc.motivo_recusa}` : ""}. Envie outra foto.
+                              </p>
+                            )}
+                          </div>
+                          {recusado
+                            ? <Badge variant="destructive">Reenviar</Badge>
+                            : (
+                              <Badge variant="outline" className="text-emerald-600">
+                                {doc.status === "aprovado" ? "Aprovado" : "Enviado"}
+                              </Badge>
+                            )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-10"
+                            aria-label={`Substituir ${rotuloParte(parte, doc.parte_rotulo)} de ${item.titulo}`}
+                            disabled={subindo === `${item.key}:${parte}`}
+                            onClick={() => escolherArquivo(item, parte)}
+                          >
+                            {subindo === `${item.key}:${parte}`
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : <Camera className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      );
+                    })}
+
                     <Button
                       size="sm"
-                      variant={doc && !recusado ? "outline" : "default"}
-                      className="h-10"
-                      aria-label={`${doc ? "Enviar novamente" : "Enviar"} ${item.titulo}`}
-                      disabled={subindo === item.key}
-                      onClick={() => escolherArquivo(item)}
+                      variant={fotos.length ? "outline" : "default"}
+                      className="h-10 w-full"
+                      aria-label={`Enviar ${rotuloParte(proximaParte)} de ${item.titulo}`}
+                      disabled={subindo === `${item.key}:${proximaParte}` || fotos.length >= 10}
+                      onClick={() => escolherArquivo(item, proximaParte)}
                     >
-                      {subindo === item.key
-                        ? <Loader2 className="h-4 w-4 animate-spin" />
-                        : <Camera className="h-4 w-4" />}
+                      {subindo === `${item.key}:${proximaParte}`
+                        ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        : <Camera className="h-4 w-4 mr-2" />}
+                      {fotos.length ? `Enviar ${rotuloParte(proximaParte)}` : "Enviar Frente"}
                     </Button>
                   </div>
                 );

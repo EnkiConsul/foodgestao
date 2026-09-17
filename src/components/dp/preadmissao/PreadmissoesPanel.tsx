@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { AdmissaoRegrasPanel } from "@/components/dp/preadmissao/AdmissaoRegrasPanel";
 import { PreadmissaoConviteDialog } from "@/components/dp/preadmissao/PreadmissaoConviteDialog";
 import { PreadmissaoRevisaoDialog } from "@/components/dp/preadmissao/PreadmissaoRevisaoDialog";
 import { notifyError } from "@/lib/notifyError";
@@ -53,6 +54,7 @@ export function PreadmissoesPanel({
   const convidando = convidarAberto ?? convidandoLocal;
   const setConvidando = (v: boolean) => (onConvidarChange ? onConvidarChange(v) : setConvidandoLocal(v));
   const [revisando, setRevisando] = useState<string | null>(null);
+  const [aba, setAba] = useState<"fichas" | "regras">("fichas");
 
   const nomeCargo = (id: string | null) => cargos.find((c) => c.id === id)?.nome ?? "—";
   const nomeUnidade = (id: string | null) => unidades.find((u) => u.id === id)?.nome ?? "—";
@@ -88,6 +90,20 @@ export function PreadmissoesPanel({
 
   return (
     <>
+      <div className="flex gap-2 mb-3">
+        {([["fichas", "Fichas"], ["regras", "Regras"]] as const).map(([k, label]) => (
+          <Button
+            key={k}
+            size="sm"
+            variant={aba === k ? "default" : "outline"}
+            onClick={() => setAba(k)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+
+      {aba === "regras" ? <AdmissaoRegrasPanel /> : (
       <Card>
         <CardContent className="p-3 sm:p-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -208,6 +224,7 @@ export function PreadmissoesPanel({
           )}
         </CardContent>
       </Card>
+      )}
 
       <PreadmissaoConviteDialog open={convidando} onOpenChange={setConvidando} />
       <PreadmissaoRevisaoDialog preadmissaoId={revisando} onOpenChange={() => setRevisando(null)} />

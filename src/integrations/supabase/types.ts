@@ -3099,6 +3099,105 @@ export type Database = {
           },
         ]
       }
+      dp_admissao_regra_parentescos: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          parentesco: string
+          permite_dependente: boolean
+          permite_sesc: boolean
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          parentesco: string
+          permite_dependente?: boolean
+          permite_sesc?: boolean
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          parentesco?: string
+          permite_dependente?: boolean
+          permite_sesc?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_admissao_regra_parentescos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_admissao_regras: {
+        Row: {
+          cargo_id: string | null
+          chave: string
+          company_id: string
+          created_at: string
+          exigencia: string
+          id: string
+          regime: Database["public"]["Enums"]["dp_regime_trabalho"] | null
+          tipo: string
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cargo_id?: string | null
+          chave: string
+          company_id: string
+          created_at?: string
+          exigencia: string
+          id?: string
+          regime?: Database["public"]["Enums"]["dp_regime_trabalho"] | null
+          tipo: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cargo_id?: string | null
+          chave?: string
+          company_id?: string
+          created_at?: string
+          exigencia?: string
+          id?: string
+          regime?: Database["public"]["Enums"]["dp_regime_trabalho"] | null
+          tipo?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_admissao_regras_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_admissao_regras_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_admissao_regras_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_apoio_unidades: {
         Row: {
           ativo: boolean
@@ -10012,6 +10111,8 @@ export type Database = {
           id: string
           mime_type: string | null
           motivo_recusa: string | null
+          parte: number
+          parte_rotulo: string | null
           pessoa_id: string | null
           preadmissao_id: string
           requisito_codigo: string
@@ -10029,6 +10130,8 @@ export type Database = {
           id?: string
           mime_type?: string | null
           motivo_recusa?: string | null
+          parte?: number
+          parte_rotulo?: string | null
           pessoa_id?: string | null
           preadmissao_id: string
           requisito_codigo: string
@@ -10046,6 +10149,8 @@ export type Database = {
           id?: string
           mime_type?: string | null
           motivo_recusa?: string | null
+          parte?: number
+          parte_rotulo?: string | null
           pessoa_id?: string | null
           preadmissao_id?: string
           requisito_codigo?: string
@@ -14602,6 +14707,19 @@ export type Database = {
         Args: { _base: string; _dias: number; _timezone: string }
         Returns: string
       }
+      dp_admissao_regras_resolver: {
+        Args: {
+          p_cargo_id?: string
+          p_company_id: string
+          p_regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
+          p_unidade_id?: string
+        }
+        Returns: {
+          chave: string
+          exigencia: string
+          tipo: string
+        }[]
+      }
       dp_bulk_batch_finalize: { Args: { _batch_id: string }; Returns: string }
       dp_bulk_claim_batches: {
         Args: { _lease_seconds?: number; _limit?: number; _worker: string }
@@ -15990,6 +16108,8 @@ export type Database = {
           p_file_path: string
           p_file_size: number
           p_mime_type: string
+          p_parte?: number
+          p_parte_rotulo?: string
           p_pessoa_id: string
           p_preadmissao_id: string
           p_requisito_codigo: string
