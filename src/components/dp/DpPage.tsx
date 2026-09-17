@@ -77,9 +77,11 @@ function HeaderActions({
 }
 
 export function DpPageHeader({
-  icon: Icon, title, description, actions, actionItems, actionsExtra, className, actionsClassName,
+  icon: Icon, title, description, actions, actionItems, actionsExtra, className, actionsClassName, help,
 }: DpPageHeaderProps) {
   const embedded = useDpEmbedded();
+  const { pathname } = useLocation();
+  const helpKey = help === null ? undefined : (help ?? (embedded ? undefined : resolveHelpForPath(pathname)));
   const temAcoes = Boolean(actions || (actionItems && actionItems.length > 0));
   if (embedded) {
     return (
@@ -88,6 +90,7 @@ export function DpPageHeader({
           <h2 className="flex items-center gap-2 text-base font-semibold leading-tight sm:text-lg">
             <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
             {toTitleCase(title)}
+            {helpKey && <HelpHint helpKey={helpKey} side="bottom" align="start" />}
           </h2>
           {description && <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{description}</p>}
         </div>
