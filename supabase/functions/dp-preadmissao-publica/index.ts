@@ -242,6 +242,20 @@ Deno.serve(async (req) => {
       if (t.status_anterior === "aguardando_nova_versao") {
         await registrarEvento(admin, pa.id, pa.company_id, "ficha_reenviada");
       }
+      // Aviso interno para o time de Pessoas; falha aqui não invalida o envio.
+      try {
+        await admin.from("dp_notificacoes").insert({
+          company_id: pa.company_id,
+          tipo: "preadmissao_enviada",
+          titulo: "Pré-admissão enviada pelo candidato",
+          descricao: `${pa.nome_candidato ?? "Candidato"} concluiu o preenchimento da ficha.`,
+          ref_table: "dp_preadmissoes",
+          ref_id: pa.id,
+          para_admins: true,
+        });
+      } catch (_) {
+        // silencioso de propósito
+      }
       return jsonResponse(req, 200, {
         success: true,
         mensagem: "Seus dados e documentos foram enviados para análise da empresa.",
