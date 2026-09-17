@@ -48,6 +48,21 @@ export interface RegraEntrada {
   sexos: string[];
 }
 
+/** Traduz as recusas do servidor para um aviso que o gestor entende. */
+function mensagemRegra(bruto: string): string {
+  const m = (bruto ?? "").toLowerCase();
+  if (m.includes("sem_permissao")) return "Você não tem permissão para mudar as regras desta empresa.";
+  if (m.includes("empresa_obrigatoria")) return "Selecione uma empresa antes de salvar.";
+  if (m.includes("tipo_invalido") || m.includes("chave_invalida")) return "Este item da ficha não pôde ser identificado. Atualize a página e tente de novo.";
+  if (m.includes("exigencia_invalida")) return "Escolha entre Obrigatório, Opcional ou Não pedir.";
+  if (m.includes("vinculo_invalido")) return "Escolha um tipo de vínculo da lista.";
+  if (m.includes("sexo_invalido")) return "Escolha Masculino ou Feminino.";
+  if (m.includes("regra_nao_encontrada")) return "Esta regra foi alterada por outra pessoa. Atualize a página e tente de novo.";
+  if (m.includes("empresa_diferente") || m.includes("guard")) return "A unidade ou o cargo escolhido é de outra empresa.";
+  if (m.includes("duplicate key") || m.includes("padrao_uk")) return "Já existe uma regra padrão para este item. Edite a regra existente.";
+  return bruto || "Não foi possível salvar a regra.";
+}
+
 export function useDpAdmissaoRegras() {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
