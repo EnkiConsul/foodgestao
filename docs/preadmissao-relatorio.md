@@ -524,3 +524,60 @@ setor, salário ou regime que o histórico precisa capturar.
 Reverter os arquivos de tela e hooks alterados e deixar de chamar `dp_preadmissao_anexar_somente`,
 `dp_preadmissao_ficha_oficial_registrar` e `dp_preadmissao_ficha_oficial_conferir` (as rotinas
 permanecem no banco, sem uso). Nenhum dado é alterado ou apagado.
+
+---
+
+## Incremento 11 — regressões da revisão 51e989c
+
+### O que foi corrigido
+
+1. **RG do familiar voltou a ser gravado.** A versão anterior de
+   `dp_preadmissao_salvar_candidato` havia deixado `rg` fora do INSERT e do
+   UPDATE, então o RG digitado pelo candidato era descartado em silêncio. O
+   campo foi reposto nos dois caminhos (com normalização em CAIXA ALTA).
+2. **Campos espelhados com semântica consistente.** `COALESCE(NULLIF(...),
+   antigo)` impedia limpar CPF, data de nascimento, e-mail e estado civil
+   enquanto o JSON de dados ficava vazio. Agora vale a presença da chave:
+   chave ausente preserva o valor atual, chave presente e vazia limpa o campo —
+   igual ao JSON. CPF e data de nascimento espelhados passaram a ser validados
+   no banco (dígito verificador, data real, sem data futura, não antes de 1900),
+   antes de qualquer gravação.
+3. **`dp_preadmissao_avaliar_documento` com os estados reais.** O guard usava
+   `('concluida','cancelada','expirada')`, que nunca existiram: trocado por
+   `('concluido','cancelado','expirado')`. Grants reafirmados (só
+   `service_role` executa as duas rotinas).
+4. **Versão obrigatória no endpoint `salvar`.** A Edge aceitava pedido sem
+   `versao` e passava `NULL` à rotina, anulando a proteção. Agora versão ausente
+   ou inválida é recusada com 400 e mensagem para recarregar a página.
+
+### Validação real executada
+
+- **Teste no banco em transação desfeita** (`DO` com `RAISE` final, nada ficou
+  gravado): criar familiar com RG `12.345.678-X` e finalidade dupla →
+  `rg_criado=12.345.678-X dep=t sesc=t`; retomar e alterar → `rg=99 888 777`;
+  limpar espelhados → `cpf`, `email` e `data_nascimento` nulos; pedido sem a
+  chave `cpf` → CPF preservado; CPF inválido → `{"ok": false, "motivo":
+  "cpf_invalido"}` sem gravação.
+- **Teste HTTP real do endpoint** (`dp-preadmissao-publica` implantada, convite
+  sintético temporário, chamadas por rede com a chave pública):
+  - sem `versao` → **400** "Não foi possível ler a versão da ficha…";
+  - `versao: 99` → **409** `motivo: versao_alterada`;
+  - versão correta → **200**, RG do familiar devolvido como `12.345.678-X`,
+    finalidades `true/true`, versão 1 → 2;
+  - alterar pela rede → **200**, RG `99 888 777`, Sesc `false`, versão 2 → 3.
+  Isso supre a lacuna apontada: `preadmissaoContratoVersao.test` exercita apenas
+  o wrapper com RPC falso, sem provar a Edge.
+- A tentativa de apagar os registros sintéticos foi **recusada pelo guard**
+  (`dp_preadmissao_bloquear_delete`), confirmando a proteção; a ficha de teste
+  foi encerrada por remoção lógica (convite revogado, familiar retirado, ficha
+  cancelada).
+- `deno check` na função pública, `tsgo` sem erros e a suíte completa: 2127
+  testes verdes, 49 pulados.
+
+### O que continua NÃO testado
+
+Segue igual ao incremento 10, sem novidade: percurso completo pelo navegador
+(upload, retomada, correção, pacote da contabilidade, importação), acesso ao
+Storage com três sessões HTTP distintas (gestor A, gestor de outra empresa,
+membro sem permissão) e conclusão simultânea com ficha oficial, inclusive no
+ramo de recontratação. Nada foi publicado.
