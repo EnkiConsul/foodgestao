@@ -1,9 +1,13 @@
 import { createContext, useContext, type ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/titleCase";
 import { DpActions, type DpAction } from "@/components/dp/DpActions";
+import { HelpHint } from "@/components/ui/help-hint";
+import type { HelpKey } from "@/content/help/helpContent";
+import { resolveHelpForPath } from "@/content/help/helpRoutes";
 
 /**
  * Quando uma tela é renderizada dentro de outra (como aba), o wrapper
