@@ -7,7 +7,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/contexts/CompanyContext";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 
 export interface EscopoRequisito {
   cargos: string[];
@@ -15,7 +15,7 @@ export interface EscopoRequisito {
 }
 
 export function useDpRequisitoEscopo(requisitoId: string | null) {
-  const { currentCompanyId } = useCompany();
+  const { selectedCompanyId: currentCompanyId } = useCompanyContext();
   const qc = useQueryClient();
   const chave = ["dp-requisito-escopo", requisitoId, currentCompanyId];
 
