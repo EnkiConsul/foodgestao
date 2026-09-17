@@ -108,13 +108,13 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       .map((d) => `<li>${esc(d.requisito_codigo)} — ${esc(d.file_name)} (${esc(d.status)})</li>`)
       .join("");
     const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
-<title>Pacote da contabilidade — ${esc(data.candidato_nome)}</title>
+<title>Pacote da contabilidade — ${esc(data.preadmissao.candidato_nome)}</title>
 <style>body{font-family:system-ui,sans-serif;padding:24px;color:#111}h1{font-size:18px}h2{font-size:14px;margin-top:20px}
 table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #ddd;padding:4px 6px;text-align:left}
 th{width:220px;background:#f6f6f6;text-transform:capitalize}ul{font-size:12px}</style></head><body>
-<h1>Pacote da contabilidade — ${esc(data.candidato_nome)}</h1>
-<h2>Dados do candidato</h2><table>${linhas(data.dados as Record<string, unknown>)}</table>
-<h2>Informações administrativas</h2><table>${linhas((data.admin_dados ?? {}) as Record<string, unknown>)}</table>
+<h1>Pacote da contabilidade — ${esc(data.preadmissao.candidato_nome)}</h1>
+<h2>Dados do candidato</h2><table>${linhas((data.preadmissao.dados ?? {}) as Record<string, unknown>)}</table>
+<h2>Informações administrativas</h2><table>${linhas((data.preadmissao.admin_dados ?? {}) as Record<string, unknown>)}</table>
 <h2>Familiares</h2><ul>${pessoas || "<li>Nenhum</li>"}</ul>
 <h2>Documentos recebidos</h2><ul>${docs || "<li>Nenhum</li>"}</ul>
 </body></html>`;
@@ -181,6 +181,17 @@ th{width:220px;background:#f6f6f6;text-transform:capitalize}ul{font-size:12px}</
           </div>
         ) : (
           <div className="space-y-5">
+            {data.cpf_existente && (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+                <p className="font-semibold text-amber-700">CPF já cadastrado nesta empresa</p>
+                <p className="text-muted-foreground">
+                  {data.cpf_existente.situacao === "ativo"
+                    ? `${data.cpf_existente.nome} está com cadastro ativo. Confira antes de seguir: não é possível admitir o mesmo CPF duas vezes.`
+                    : `${data.cpf_existente.nome} já trabalhou aqui. A conclusão será registrada como recontratação.`}
+                </p>
+              </div>
+            )}
+
             {data.bloqueio.situacao !== "ok" && (
               <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
                 <p className="font-semibold flex items-center gap-2 text-destructive">
