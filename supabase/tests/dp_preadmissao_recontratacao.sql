@@ -1,7 +1,6 @@
 -- Teste de caminho feliz: RECONTRATAÇÃO na efetivação da pré-admissão.
 -- Executa em transação com ROLLBACK: nenhum dado real é alterado.
-BEGIN;
-
+-- Encerra sempre com erro proposital: a transacao e abortada e nada persiste.
 DO $$
 DECLARE
   v_user uuid := gen_random_uuid();
@@ -117,8 +116,6 @@ BEGIN
     RAISE EXCEPTION 'FALHA: segunda chamada nao foi idempotente (%)', v_res2;
   END IF;
 
-  RAISE NOTICE 'OK: recontratacao completa e idempotente. docs=% deps=%',
+  RAISE EXCEPTION 'ROLLBACK_TESTE_OK: recontratacao completa e idempotente. docs=% deps=%',
     v_res->>'documentos', v_res->>'dependentes';
 END $$;
-
-ROLLBACK;
