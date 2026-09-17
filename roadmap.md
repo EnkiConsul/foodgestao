@@ -28,8 +28,8 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [x] Testes de backend (32) + Deno check + typecheck + relatório docs/preadmissao-relatorio.md
 - [x] Frontend gestor: 3ª opção em Colaboradores, aba Pré-Admissões, revisão, pacote para contabilidade
 - [x] Frontend candidato: página pública em etapas, mobile-first
-- [x] Pendência canônica no useDpPendencias (notificação no sino pendente)
-- [ ] Conferência com Importar Ficha, duplicidade de CPF na tela, QA desktop/mobile
+- [x] Pendência canônica no useDpPendencias + aviso no sino ao enviar a ficha
+- [x] Conferência com Importar Ficha, duplicidade de CPF na tela, QA desktop/mobile
 
 - [x] Pré-Admissão — incremento 2: correções da revisão do commit f276cab (fases, payload, atomicidade, MIME real, grants, menor+22h, ficha oficial conferida)
 - [x] Pré-Admissão — incremento 4: telas do gestor (lista, convite, revisão), página pública do candidato e pendências
@@ -37,3 +37,5 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [x] Pré-Admissão — incremento 3: integridade composta, cliente somente leitura, promoção atômica com CPF/ficha conferida, documentos com titular/finalidade e vínculo por admissão
 - [x] Pré-Admissão — incremento 6: recontratação no caminho de conclusão (validação antes de mutar, item vinculado, dados pessoais/administrativos preservados, teste do caminho feliz)
 - [ ] Pré-Admissão — teste de concorrência simultânea da efetivação com ficha (duas sessões)
+- [x] Pré-Admissão — incremento 7: preparar só em revisão, requisitos recalculados, admin validado, anexar ≠ conferir, candidato revê arquivos, pacote da contabilidade, aviso de CPF, QA 3 resoluções
+- [ ] Pré-Admissão — testes automatizados de integração das telas

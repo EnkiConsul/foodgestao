@@ -297,3 +297,51 @@ Recriar a versão anterior de `dp_preadmissao_efetivar_com_ficha` (SQL na migra�
 ### Ainda pendente
 - Teste de concorrência simultânea da efetivação com ficha; testes de integração das telas;
   aviso de CPF já cadastrado antes do convite; QA nas demais resoluções.
+
+## Incremento 7 — Consolidação da fila de revisões, telas e pacote da contabilidade
+
+### Backend (validação real: `deno check` + 36 testes unitários + typecheck)
+- `preparar_contabilidade` aceita **apenas** `aguardando_revisao`; `aguardando_nova_versao` foi
+  removido (o candidato ainda pode editar nesse estado). A tela seguiu a mesma regra.
+- `montar()` lê a ficha do banco **antes** dos requisitos, então cargo/unidade recém-alterados
+  valem imediatamente no checklist (nunca `pa` em memória). Idem no `carregar` da ficha pública.
+- `salvar_admin` e `alterar_previsto`: recusam fichas encerradas (`concluido`, `cancelado`,
+  `expirado`) com 409; validam allowlist (`CAMPOS_ADMIN`), tipos, faixas de salário, enums de
+  regime/forma de pagamento e referências canônicas (cargo/unidade/setor da própria empresa);
+  releitura da ficha fresca antes da transição versionada.
+- **Anexar ≠ conferir:** `dp-preadmissao-arquivo/ficha_oficial` apenas anexa e registra
+  `ficha_oficial_recebida`. A conferência virou ação própria do gestor
+  (`conferir_ficha_oficial`), que exige `confirmado = true`, documento vigente
+  `ficha_oficial` da mesma ficha/empresa, grava `ficha_oficial_conferida_em/por` e o evento
+  `ficha_oficial_conferida`. Nada é conferido automaticamente pelo upload.
+- Novo `url_candidato` em `dp-preadmissao-arquivo`: o candidato revê os **próprios** arquivos por
+  URL temporária (120 s) autenticada pelo convite; a ficha oficial (documento interno da
+  contabilidade) é negada.
+- `cpf_existente` no retorno da revisão: aviso (não bloqueio) quando o CPF já existe na empresa,
+  distinguindo cadastro ativo de ex-colaborador (recontratação).
+- Aviso interno no sino: ao enviar a ficha, o candidato gera `dp_notificacoes`
+  (`preadmissao_enviada`, `para_admins`), com falha silenciosa para não invalidar o envio.
+  Migration apenas adiciona o valor ao tipo de notificação; rollback = parar de gerar o aviso
+  (o valor permanece sem uso, nada é removido).
+
+### Frontend (QA real em 390×844, 1366×768 e 1440×900)
+- Revisão: botões distintos "Anexar Ficha Oficial" / "Abrir Ficha Oficial" / "Registrar
+  Conferência"; aviso de CPF já cadastrado; campos canônicos do DP nas informações administrativas.
+- "Imprimir Pacote Da Contabilidade": folha imprimível com dados do candidato, informações
+  administrativas, familiares e documentos vigentes.
+- Ficha do candidato: link "Ver o que você enviou" por arquivo e aviso quando um documento foi
+  recusado.
+- QA: lista `/dp/colaboradores/pre-admissoes` autenticada nas três resoluções (item no menu, estado
+  vazio orientando o convite) e `/pre-admissao` com link inválido ("Link Indisponível", mensagem
+  amigável). Sem erros de console além dos avisos de `forwardRef` pré-existentes do App.
+
+### Item 124 — situação
+- **Validado de verdade:** regras/checklist/bloqueios (36 testes unitários), isolamento e negação
+  por RLS (`docs/security/preadmissao-isolamento.report.json`), concorrência simultânea de
+  `salvar`/`enviar` (`docs/security/preadmissao-concorrencia.report.json`), caminho feliz de
+  admissão nova e de recontratação em banco descartável, `deno check`, `tsgo`, QA de tela.
+- **Não executado:** teste com duas sessões simultâneas de `dp_preadmissao_efetivar_com_ficha`
+  (proteção implementada com `FOR UPDATE` + advisory lock, mas sem prova simultânea); testes
+  automatizados de integração das telas (o QA foi manual pelo navegador).
+- **Pendente de produto:** e-mail/WhatsApp automático do convite (hoje o link é copiado ou enviado
+  pelo WhatsApp manualmente) e publicação do frontend (não autorizada).
