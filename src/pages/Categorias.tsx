@@ -25,7 +25,6 @@ import { CategoryRow } from "@/components/categorias/CategoryRow";
 import { CategoryMobileRow } from "@/components/categorias/CategoryMobileRow";
 import { BatchActionBar } from "@/components/categorias/BatchActionBar";
 import { BatchVisibilityDialog } from "@/components/categorias/BatchVisibilityDialog";
-import { HelpHint } from "@/components/common/HelpHint";
 
 const CATEGORIA_HELP = {
   nova: "Cria uma categoria nova.",
@@ -583,7 +582,7 @@ export default function Categorias() {
               <Plus className="h-4 w-4" />
               Nova categoria
             </Button>
-            <HelpHint text={CATEGORIA_HELP.nova} label="Ajuda: nova categoria" />
+            <HelpHint text={CATEGORIA_HELP.nova} label="nova categoria" />
           </div>
 
           {/* Ações secundárias: visíveis no desktop */}
@@ -600,7 +599,7 @@ export default function Categorias() {
                   <Sparkles className="h-4 w-4" />
                   {seeding ? "Importando..." : "Importar plano Aveto 360"}
                 </Button>
-                <HelpHint text={CATEGORIA_HELP.importar} label="Ajuda: importar plano padrão" />
+                <HelpHint text={CATEGORIA_HELP.importar} label="importar plano padrão" />
               </div>
             )}
             {contextType === "pj" && selectedCompanyId && (
@@ -615,7 +614,7 @@ export default function Categorias() {
                   <RefreshCw className="h-4 w-4" />
                   {replacing ? "Aplicando..." : "Substituir pelo padrão"}
                 </Button>
-                <HelpHint text={CATEGORIA_HELP.substituir} label="Ajuda: substituir pelo padrão" />
+                <HelpHint text={CATEGORIA_HELP.substituir} label="substituir pelo padrão" />
               </div>
             )}
             <div className="flex items-center gap-1">
@@ -623,7 +622,7 @@ export default function Categorias() {
                 <ChevronsUpDown className="h-4 w-4" />
                 {allCollapsed ? "Expandir tudo" : "Recolher tudo"}
               </Button>
-              <HelpHint text={CATEGORIA_HELP.recolher} label="Ajuda: recolher ou expandir" />
+              <HelpHint text={CATEGORIA_HELP.recolher} label="recolher ou expandir" />
             </div>
           </div>
 
@@ -672,7 +671,7 @@ export default function Categorias() {
                 <TabsTrigger value="blocked" className="text-xs px-2.5 h-7">Bloqueadas ({counts.blocked})</TabsTrigger>
               </TabsList>
             </Tabs>
-            <HelpHint text={CATEGORIA_HELP.bloqueadas} label="Ajuda: filtro de status" />
+            <HelpHint text={CATEGORIA_HELP.bloqueadas} label="filtro de status" />
           </div>
 
 
