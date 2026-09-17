@@ -590,3 +590,25 @@ export function useSetDpSindicatoLaboralCargo() {
   });
 }
 
+
+/**
+ * Cargos vinculados a uma unidade (dp_unidade_cargos).
+ *
+ * O convite de pré-admissão usa esta lista para oferecer só os cargos que a
+ * unidade escolhida realmente tem. Quando a unidade ainda não tem vínculo
+ * nenhum, a tela mostra aviso e cai para todos os cargos da empresa.
+ */
+export function useDpCargosDaUnidade(unidadeId: string | null) {
+  return useQuery({
+    queryKey: ["dp_unidade_cargos", unidadeId],
+    enabled: !!unidadeId,
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await supabase
+        .from("dp_unidade_cargos")
+        .select("cargo_id")
+        .eq("unidade_id", unidadeId!);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.cargo_id as string);
+    },
+  });
+}

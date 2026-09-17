@@ -3,8 +3,9 @@
  * para enviar ao candidato pelo WhatsApp. O link aparece uma vez — depois só é
  * possível gerar um novo (o anterior deixa de valer).
  *
- * Não pedimos CPF aqui: o CPF vem do candidato. A duplicidade é conferida
- * quando o CPF chega (aviso na revisão) e outra vez antes da efetivação.
+ * O CPF é pedido aqui: com ele o servidor recusa o convite quando a pessoa já
+ * está cadastrada ou já tem uma ficha em andamento. A duplicidade é conferida
+ * outra vez antes da efetivação.
  */
 import { useState } from "react";
 import { toast } from "sonner";
@@ -16,7 +17,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
+import { useDpCargos, useDpCargosDaUnidade, useDpUnidades } from "@/hooks/useDpCadastros";
+import { isValidCpf, maskCpf } from "@/lib/cpf";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPreadmissaoConvite } from "@/hooks/dp/useDpPreadmissoes";
 import { notifyError } from "@/lib/notifyError";
@@ -36,6 +38,7 @@ export function PreadmissaoConviteDialog({ open, onOpenChange }: Props) {
   const [whatsapp, setWhatsapp] = useState("");
   const [cargoId, setCargoId] = useState<string>("");
   const [unidadeId, setUnidadeId] = useState<string>("");
+  const [cpf, setCpf] = useState("");
   /** Decisão obrigatória: sem escolha o convite não é criado. */
   const [apos22h, setApos22h] = useState<"" | "sim" | "nao">("");
   const [dias, setDias] = useState("7");
@@ -46,21 +49,40 @@ export function PreadmissaoConviteDialog({ open, onOpenChange }: Props) {
 
   const unidadesDaEmpresa = unidades.filter((u) => u.company_id === selectedCompanyId);
   const cargosDaEmpresa = cargos; // o hook já traz apenas os cargos da empresa selecionada
+  // Cargos da unidade escolhida. Sem vínculo cadastrado, mostramos todos com
+  // aviso: assim o convite não trava por falta de configuração.
+  const { data: cargosVinculados = [], isLoading: carregandoVinculos } = useDpCargosDaUnidade(unidadeId || null);
+  const semVinculo = !!unidadeId && !carregandoVinculos && cargosVinculados.length === 0;
+  const cargosDaUnidade = !unidadeId
+    ? []
+    : semVinculo
+    ? cargosDaEmpresa
+    : cargosDaEmpresa.filter((c) => cargosVinculados.includes(c.id));
+  const cpfDigitos = cpf.replace(/\D/g, "");
+  const cpfOk = isValidCpf(cpfDigitos);
+
+  /** Trocar a unidade limpa o cargo: nunca fica uma combinação inválida. */
+  const escolherUnidade = (v: string) => {
+    setUnidadeId(v);
+    setCargoId("");
+  };
 
   const fechar = () => {
     onOpenChange(false);
-    setNome(""); setWhatsapp(""); setCargoId(""); setUnidadeId("");
+    setNome(""); setWhatsapp(""); setCargoId(""); setUnidadeId(""); setCpf("");
     setApos22h(""); setDias("7"); setLink(null); setValidade(null); setNumeroEnvio(null);
   };
 
   const completo =
-    nome.trim().length >= 3 && whatsapp.replace(/\D/g, "").length >= 10 && !!cargoId && !!unidadeId && !!apos22h;
+    nome.trim().length >= 3 && whatsapp.replace(/\D/g, "").length >= 10 && cpfOk
+    && !!cargoId && !!unidadeId && !!apos22h;
 
   const enviar = async () => {
     try {
       const r = await criar.mutateAsync({
         candidato_nome: nome.trim(),
         whatsapp: whatsapp.trim(),
+        cpf: cpfDigitos,
         cargo_previsto_id: cargoId,
         unidade_prevista_id: unidadeId,
         trabalho_apos_22h: apos22h === "sim",
@@ -139,6 +161,18 @@ export function PreadmissaoConviteDialog({ open, onOpenChange }: Props) {
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
+                <Label className="text-xs" htmlFor="pa-cpf">CPF do candidato</Label>
+                <Input
+                  id="pa-cpf"
+                  value={cpf}
+                  inputMode="numeric"
+                  className="h-10"
+                  placeholder="000.000.000-00"
+                  onChange={(e) => setCpf(maskCpf(e.target.value))}
+                />
+                {cpf && !cpfOk && <p className="text-xs text-destructive">Confira o CPF: os números não fecham.</p>}
+              </div>
+              <div className="space-y-1">
                 <Label className="text-xs" htmlFor="pa-whats">WhatsApp com DDD</Label>
                 <Input
                   id="pa-whats"
@@ -163,22 +197,29 @@ export function PreadmissaoConviteDialog({ open, onOpenChange }: Props) {
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label className="text-xs">Cargo previsto</Label>
-                <Select value={cargoId} onValueChange={setCargoId}>
-                  <SelectTrigger className="h-10" aria-label="Cargo previsto"><SelectValue placeholder="Escolher" /></SelectTrigger>
-                  <SelectContent>
-                    {cargosDaEmpresa.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
                 <Label className="text-xs">Unidade prevista</Label>
-                <Select value={unidadeId} onValueChange={setUnidadeId}>
+                <Select value={unidadeId} onValueChange={escolherUnidade}>
                   <SelectTrigger className="h-10" aria-label="Unidade prevista"><SelectValue placeholder="Escolher" /></SelectTrigger>
                   <SelectContent>
                     {unidadesDaEmpresa.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Cargo previsto</Label>
+                <Select value={cargoId} onValueChange={setCargoId} disabled={!unidadeId}>
+                  <SelectTrigger className="h-10" aria-label="Cargo previsto">
+                    <SelectValue placeholder={unidadeId ? "Escolher" : "Escolha a unidade primeiro"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cargosDaUnidade.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {semVinculo && (
+                  <p className="text-xs text-muted-foreground">
+                    Esta unidade ainda não tem cargos vinculados: a lista mostra todos os cargos da empresa.
+                  </p>
+                )}
               </div>
             </div>
             <div className="space-y-1">
@@ -198,7 +239,7 @@ export function PreadmissaoConviteDialog({ open, onOpenChange }: Props) {
             </div>
             {!completo && (
               <p className="text-xs text-muted-foreground">
-                Informe nome, WhatsApp, cargo, unidade e a decisão sobre o trabalho após as 22h.
+                Informe nome, CPF, WhatsApp, unidade, cargo e a decisão sobre o trabalho após as 22h.
               </p>
             )}
           </div>

@@ -152,6 +152,8 @@ interface DocumentoEnviado {
 
 interface Estado {
   candidato_nome: string;
+  /** CPF informado pela empresa no convite: aparece, mas não pode ser mudado. */
+  cpf_bloqueado?: string | null;
   cargo_previsto: string | null;
   unidade_prevista: string | null;
   status: string;
@@ -522,12 +524,17 @@ export default function PreAdmissao() {
                 </div>
               )}
               <div className="grid gap-3 sm:grid-cols-2">
-                {etapaAtual.campos.map((campo) => (
+                {etapaAtual.campos.map((campo) => {
+                  // CPF vindo do convite: mostramos travado, com explicação.
+                  const travado = campo.nome === "cpf" && !!estado?.cpf_bloqueado;
+                  return (
                   <div key={campo.nome} className="space-y-1">
                     <Label className="text-xs" htmlFor={`campo-${campo.nome}`}>{campo.rotulo}</Label>
                     <Input
                       id={`campo-${campo.nome}`}
                       className="h-11"
+                      readOnly={travado}
+                      aria-readonly={travado || undefined}
                       type={campo.tipo ?? "text"}
                       inputMode={campo.inputMode}
                       autoComplete={campo.autoComplete}
@@ -539,20 +546,27 @@ export default function PreAdmissao() {
                         erros[campo.nome] ? `erro-${campo.nome}` : campo.ajuda ? `ajuda-${campo.nome}` : undefined
                       }
                       value={form[campo.nome] ?? ""}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        if (travado) return;
                         setForm({
                           ...form,
                           [campo.nome]: campo.upper ? e.target.value.toLocaleUpperCase("pt-BR") : e.target.value,
-                        })}
+                        });
+                      }}
                     />
-                    {campo.ajuda && !erros[campo.nome] && (
+                    {travado ? (
+                      <p id={`ajuda-${campo.nome}`} className="text-xs text-muted-foreground">
+                        A empresa já informou seu CPF. Se estiver errado, avise a empresa.
+                      </p>
+                    ) : campo.ajuda && !erros[campo.nome] ? (
                       <p id={`ajuda-${campo.nome}`} className="text-xs text-muted-foreground">{campo.ajuda}</p>
-                    )}
+                    ) : null}
                     {erros[campo.nome] && (
                       <p id={`erro-${campo.nome}`} className="text-xs text-destructive">{erros[campo.nome]}</p>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

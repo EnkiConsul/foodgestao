@@ -30,6 +30,7 @@ import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { NovoCadastroMetodoDialog, type NovoCadastroMetodo } from "@/components/dp/NovoCadastroMetodoDialog";
+import { PreadmissoesPanel } from "@/components/dp/preadmissao/PreadmissoesPanel";
 import { PessoaApoioFormDialog } from "@/components/dp/PessoaApoioFormDialog";
 import type { PessoaApoioTipo } from "@/hooks/useDpPessoasApoio";
 import { useNavigate } from "react-router-dom";
@@ -199,12 +200,13 @@ export default function DpColaboradores() {
 
 
 
-  type Origem = "todos" | "colaboradores" | "folguistas" | "teste";
+  type Origem = "todos" | "colaboradores" | "folguistas" | "teste" | "preadmissao";
   const ORIGENS: { key: Origem; label: string }[] = [
     { key: "todos", label: "Todos" },
     { key: "colaboradores", label: "Colaboradores" },
     { key: "folguistas", label: "Folguistas" },
     { key: "teste", label: "Em Teste" },
+    { key: "preadmissao", label: "Pré-Admissão" },
   ];
   const { prefs, save: savePrefs } = useDpUserPrefs();
   const origem = (prefs?.extras?.colaboradores_origem as Origem) ?? "colaboradores";
@@ -631,6 +633,12 @@ export default function DpColaboradores() {
         </DpTabsBar>
       </Tabs>
 
+      {origem === "preadmissao" ? (
+        // Fichas preenchidas pelos próprios candidatos: os filtros de
+        // colaborador não se aplicam aqui.
+        <PreadmissoesPanel mostrarBotaoConvidar />
+      ) : (
+      <>
       <Tabs value={statusFilter} onValueChange={setStatusFilter}>
         <DpTabsBar>
           <TabsTrigger value="all">Todos ({counts.todos})</TabsTrigger>
@@ -1271,6 +1279,9 @@ export default function DpColaboradores() {
           </div>
         </>
       )}
+      </>
+      )}
+
 
 
       {viewing && (
