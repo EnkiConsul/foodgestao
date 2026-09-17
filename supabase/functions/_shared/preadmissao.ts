@@ -597,6 +597,14 @@ export function validarAdminDados(entrada: unknown): AdminValidado {
 
   for (const campo of CAMPOS_ADMIN) {
     if (!(campo in src)) continue;
+    // Sim/Não: só booleano é aceito (texto "true" não passa).
+    if ((CAMPOS_ADMIN_BOOLEANOS as readonly string[]).includes(campo)) {
+      const b = src[campo];
+      if (b === null || b === undefined || b === "") continue;
+      if (typeof b !== "boolean") out.erros[campo] = "Responda Sim ou Não.";
+      else out.campos[campo] = b;
+      continue;
+    }
     const v = texto(campo);
     if (v === null) continue;
     if (v === "") {
