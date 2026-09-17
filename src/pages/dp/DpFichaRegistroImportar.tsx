@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, FileText, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +47,9 @@ const REGIMES: Array<{ value: string; label: string }> = [
 
 export default function DpFichaRegistroImportar() {
   const { selectedCompanyId } = useCompanyContext();
+  /** Quando a conferência é a da ficha oficial de uma Pré-Admissão. */
+  const [params] = useSearchParams();
+  const preadmissaoId = params.get("preadmissao");
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [importacaoId, setImportacaoId] = useState<string | null>(null);
@@ -150,6 +153,18 @@ export default function DpFichaRegistroImportar() {
           </Button>
         }
       />
+
+      {preadmissaoId && (
+        <Card className="border-primary/40">
+          <CardContent className="py-4 text-sm">
+            <p className="font-semibold">Conferência da ficha oficial de uma pré-admissão</p>
+            <p className="text-muted-foreground">
+              Envie a ficha que a contabilidade devolveu e confira os dados. Ao criar o cadastro, a pré-admissão é
+              concluída na mesma operação, com os familiares e os documentos que o candidato já enviou.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader className="pb-3">
@@ -316,6 +331,7 @@ export default function DpFichaRegistroImportar() {
               setorPadraoId={setorPadraoId}
               regimePadrao={regimePadrao}
               onAbrirCadastro={setCadastroAbertoId}
+              preadmissaoId={preadmissaoId}
             />
           ))}
         </div>
@@ -335,6 +351,7 @@ export default function DpFichaRegistroImportar() {
               unidadePadraoId={null}
               empresaCnpj={empresaCnpj}
               onAbrirCadastro={setCadastroAbertoId}
+              preadmissaoId={preadmissaoId}
             />
           ))}
         </div>

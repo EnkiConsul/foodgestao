@@ -62,6 +62,39 @@ Deno.serve(async (req) => {
     const admin = serviceClient();
     const body = await req.json().catch(() => ({}));
     const acao = String(body?.action ?? "ler").trim();
+
+    /** Lista da empresa: autorização pela empresa lida no banco, nunca pelo corpo. */
+    if (acao === "listar") {
+      const companyId = String(body?.company_id ?? "").trim();
+      if (!companyId) return jsonError(req, "invalid_input", "company_id ausente");
+      const acesso = await requireCompanyAccess(caller.id, companyId);
+      if (!acesso || !canAdminister(acesso)) return jsonError(req, "forbidden");
+      const { data, error } = await admin
+        .from("dp_preadmissoes")
+        .select(
+          "id, company_id, candidato_nome, whatsapp, status, cargo_previsto_id, unidade_prevista_id, " +
+            "trabalho_apos_22h, enviado_em, revisado_em, contabilidade_enviado_em, " +
+            "ficha_oficial_conferida_em, colaborador_id, created_at, updated_at",
+        )
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false })
+        .limit(300);
+      if (error) return jsonError(req, "internal", error.message);
+      const { data: convites } = await admin
+        .from("dp_preadmissao_convites")
+        .select("preadmissao_id, expires_at, revoked_at, created_at")
+        .eq("company_id", companyId)
+        .is("revoked_at", null);
+      const validade = new Map<string, string>();
+      for (const c of convites ?? []) validade.set(c.preadmissao_id as string, c.expires_at as string);
+      return jsonResponse(req, 200, {
+        preadmissoes: ((data ?? []) as unknown as Array<Record<string, unknown>>).map((p) => ({
+          ...p,
+          convite_expira_em: validade.get(String(p.id)) ?? null,
+        })),
+      });
+    }
+
     const id = String(body?.preadmissao_id ?? "").trim();
     if (!id) return jsonError(req, "invalid_input", "preadmissao_id ausente");
 
@@ -79,7 +112,7 @@ Deno.serve(async (req) => {
           .is("removido_em", null).order("created_at"),
         admin
           .from("dp_preadmissao_documentos")
-          .select("id, requisito_codigo, pessoa_id, file_name, status, versao, created_at, substituido_em")
+          .select("id, requisito_codigo, pessoa_id, file_name, status, motivo_recusa, versao, created_at, substituido_em")
           .eq("preadmissao_id", pa.id)
           .order("created_at", { ascending: false }),
         requisitosPrevistos(admin, pa),
@@ -162,6 +195,47 @@ Deno.serve(async (req) => {
       if (!t.ok) return jsonError(req, "internal", "não foi possível alterar a previsão");
       await registrarEvento(admin, pa.id, pa.company_id, "previsto_alterado", { campos: Object.keys(patch) }, caller.id);
       // Documentos já enviados nunca são apagados; o checklist é recalculado.
+      return jsonResponse(req, 200, await montar());
+    }
+
+    /** Análise de um documento enviado pelo candidato (nunca aprova em massa). */
+    if (acao === "avaliar_documento") {
+      const documentoId = String(body?.documento_id ?? "").trim();
+      const novo = String(body?.status ?? "");
+      if (!["aprovado", "recusado"].includes(novo)) {
+        return jsonError(req, "invalid_input", "situação inválida");
+      }
+      const motivo = String(body?.motivo ?? "").trim();
+      if (novo === "recusado" && motivo.length < 5) {
+        return jsonResponse(req, 400, { error: "Explique por que o documento foi recusado." });
+      }
+      const { data: doc } = await admin
+        .from("dp_preadmissao_documentos")
+        .select("id, requisito_codigo, substituido_em")
+        .eq("id", documentoId)
+        .eq("preadmissao_id", pa.id)
+        .eq("company_id", pa.company_id)
+        .maybeSingle();
+      if (!doc) return jsonError(req, "not_found");
+      if (doc.substituido_em) {
+        return jsonResponse(req, 409, { error: "Esta versão foi substituída por outra mais recente." });
+      }
+      const { error } = await admin
+        .from("dp_preadmissao_documentos")
+        .update({
+          status: novo,
+          motivo_recusa: novo === "recusado" ? motivo : null,
+        })
+        .eq("id", doc.id);
+      if (error) return jsonError(req, "internal", error.message);
+      await registrarEvento(
+        admin,
+        pa.id,
+        pa.company_id,
+        novo === "aprovado" ? "documento_aprovado" : "documento_recusado",
+        { requisito_codigo: doc.requisito_codigo },
+        caller.id,
+      );
       return jsonResponse(req, 200, await montar());
     }
 

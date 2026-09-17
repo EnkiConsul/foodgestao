@@ -81,3 +81,48 @@ export async function ignorarFichaRpc(itemId: string): Promise<IgnorarFichaRpcRe
   if (!data) throw new Error("A ficha não pôde ser ignorada.");
   return data;
 }
+
+/**
+ * Conclusão da Pré-Admissão pelo Candidato usando a MESMA ficha conferida.
+ *
+ * Uma única transação no banco: cria (ou recontrata) o cadastro a partir da
+ * ficha oficial e conclui a pré-admissão, aproveitando familiares e documentos.
+ * Repetir a chamada não duplica nada (a rotina devolve `ja_aplicado`).
+ */
+export interface EfetivarPreadmissaoRpcArgs {
+  p_preadmissao_id: string;
+  p_item_id: string;
+  p_dados: Record<string, unknown>;
+  p_campos: string[] | null;
+  p_cargo_id: string | null;
+  p_unidade_id: string | null;
+  p_setor_id: string | null;
+  p_turno_id: string | null;
+  p_regime: string | null;
+  p_forma_pagamento: string | null;
+  p_jornada: { dias: Array<Record<string, unknown>> } | null;
+  p_justificativa: string | null;
+}
+
+export interface EfetivarPreadmissaoRpcResultado {
+  colaborador_id: string;
+  ja_aplicado?: boolean;
+  modo?: string;
+  documentos_vinculados?: number;
+  dependentes?: number;
+}
+
+export async function efetivarPreadmissaoComFichaRpc(
+  args: EfetivarPreadmissaoRpcArgs,
+): Promise<EfetivarPreadmissaoRpcResultado> {
+  const cliente = supabase as unknown as {
+    rpc(
+      fn: "dp_preadmissao_efetivar_com_ficha",
+      a: EfetivarPreadmissaoRpcArgs,
+    ): PromiseLike<{ data: EfetivarPreadmissaoRpcResultado | null; error: { message: string } | null }>;
+  };
+  const { data, error } = await cliente.rpc("dp_preadmissao_efetivar_com_ficha", args);
+  if (error) throw new Error(error.message);
+  if (!data?.colaborador_id) throw new Error("A pré-admissão não pôde ser concluída.");
+  return data;
+}

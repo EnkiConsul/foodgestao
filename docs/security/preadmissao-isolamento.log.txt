@@ -1,0 +1,39 @@
+[2026-09-17T00:24:09.735Z] iniciando validação funcional isolada da P0.4
+[2026-09-17T00:24:09.741Z] guardas pré-start aprovadas (destino não colide com a conexão de origem)
+[2026-09-17T00:24:09.741Z] limpeza ignorada: nenhum cluster foi criado por esta execução
+[2026-09-17T00:24:09.741Z] limpeza abortada: marcador ausente em /tmp/p04pg-alheio-FNrlk8 (diretório não é desta execução)
+[2026-09-17T00:24:09.742Z] self-test falha_pre_start_nao_limpa_cluster_alheio: passed
+[2026-09-17T00:24:09.742Z] self-test sem_marcador_nao_apaga_diretorio: passed
+[2026-09-17T00:24:09.742Z] self-test guarda_colisao_com_origem: passed
+[2026-09-17T00:24:09.744Z] exportando ESTRUTURA real (schema-only: public, private, qa) com grants/policies/owners…
+[2026-09-17T00:26:00.407Z] estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)
+[2026-09-17T00:26:02.601Z] cluster próprio no ar (data_directory=/tmp/p04pg-run-tXPQZI/pgdata, porta 55437, listen 127.0.0.1)
+[2026-09-17T00:26:02.717Z] bootstrap de papéis/schemas/shims aplicado (public removido para o dump recriá-lo)
+[2026-09-17T00:26:05.451Z] restore concluído com ON_ERROR_STOP=1: exit 0, nenhum erro (2 meta-comando(s) de cliente removido(s))
+[2026-09-17T00:26:05.506Z] clone: 208 tabelas e 485 funções em public
+[2026-09-17T00:26:06.677Z] fidelidade acl_rotinas_criticas: IDÊNTICA (11 linha(s) na origem)
+[2026-09-17T00:26:07.844Z] fidelidade definicoes_rotinas_e_autorizacao: IDÊNTICA (21 linha(s) na origem)
+[2026-09-17T00:26:08.997Z] fidelidade policies_companies: IDÊNTICA (5 linha(s) na origem)
+[2026-09-17T00:26:10.144Z] fidelidade triggers_companies: IDÊNTICA (15 linha(s) na origem)
+[2026-09-17T00:26:11.299Z] fidelidade auth_helpers_equivalentes: IDÊNTICA (4 linha(s) na origem)
+[2026-09-17T00:26:11.455Z] teste supabase/tests/dp_preadmissao_isolated.test.sql: exit=0 status=passed preparacao=1 grupos=10 subcasos=0 pendentes=0
+[2026-09-17T00:26:11.455Z]   · PREP fixtures: 2 empresas, 6 usuários, 3 pré-admissões sintéticas
+[2026-09-17T00:26:11.455Z]   · OK P1: gestor A e gestor B isolados (registros existem e são vistos só pelo dono)
+[2026-09-17T00:26:11.455Z]   · OK P2: autenticado sem permissão não lê nem grava (negação 42501 comprovada)
+[2026-09-17T00:26:11.455Z]   · OK P3: cliente somente leitura (status/token/conferência/exclusão negados)
+[2026-09-17T00:26:11.455Z]   · OK P4: exclusão física bloqueada pelos gatilhos
+[2026-09-17T00:26:11.455Z]   · OK P5: visitante sem leitura e sem escrita
+[2026-09-17T00:26:11.455Z]   · OK P6: candidato A e candidato B isolados por token e por integridade composta
+[2026-09-17T00:26:11.455Z]   · OK P7: promoção negada a gestor de outra empresa, membro e usuário sem vínculo
+[2026-09-17T00:26:11.455Z]   · OK P8: ficha oficial e CPF idêntico exigidos (check_violation)
+[2026-09-17T00:26:11.455Z]   · OK P9: promoção atômica com dependente e documentos rastreáveis
+[2026-09-17T00:26:11.455Z]   · OK P10: conclusão repetida é idempotente
+[2026-09-17T00:26:11.684Z] 4 chamadas simultâneas da RPC concluídas sem erro (exit 0 em todas)
+[2026-09-17T00:26:11.684Z]   · idx=1 exit=0 retorno=set_config | set_config | set_config -----------------------------------------------------------------------------------------------------+---------------------
+[2026-09-17T00:26:11.685Z]   · idx=2 exit=0 retorno=set_config | set_config | set_config -----------------------------------------------------------------------------------------------------+---------------------
+[2026-09-17T00:26:11.685Z]   · idx=3 exit=0 retorno=set_config | set_config | set_config -----------------------------------------------------------------------------------------------------+---------------------
+[2026-09-17T00:26:11.685Z]   · idx=4 exit=0 retorno=set_config | set_config | set_config -----------------------------------------------------------------------------------------------------+---------------------
+[2026-09-17T00:26:11.723Z]   · OK concorrência: uma conclusão efetiva, demais idempotentes
+[2026-09-17T00:26:11.902Z] cluster desta execução destruído
+
+=== status geral: passed (exit 0) ===

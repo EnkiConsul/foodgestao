@@ -1,4 +1,5 @@
 import {
+  UserPlus,
   BarChart3,
   Bell,
   BellRing,
@@ -97,6 +98,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     matchPrefixes: ["/dp/colaboradores", "/dp/cadastros"],
     items: [
       { label: "Colaboradores", to: "/dp/colaboradores", icon: Users, shortcut: true, end: true },
+      { label: "Pré-Admissões", to: "/dp/colaboradores/pre-admissoes", icon: UserPlus },
       { label: "Cargos e Salários", to: "/dp/cadastros/cargos", icon: Briefcase },
       { label: "Unidades", to: "/dp/cadastros/unidades", icon: Building2 },
       { label: "Benefícios", to: "/dp/cadastros/beneficios", icon: Gift },
