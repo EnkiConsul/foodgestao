@@ -354,7 +354,8 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                 <div className="rounded-lg border p-3 space-y-2">
                   <p className="text-sm font-semibold">Ficha oficial devolvida pela contabilidade</p>
                   <p className="text-xs text-muted-foreground">
-                    Anexe o arquivo e confirme a conferência. O cadastro só é criado depois disso.
+                    Primeiro anexe o arquivo recebido. Depois abra, confira e registre a conferência: são
+                    dois atos distintos, e o cadastro só é criado após a conferência.
                   </p>
                   <input
                     ref={fichaRef}
@@ -364,13 +365,34 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                     onChange={(e) => {
                       const f = e.target.files?.[0];
                       e.target.value = "";
-                      if (f) enviarFichaOficial(f, true);
+                      if (f) enviarFichaOficial(f);
                     }}
                   />
-                  <Button variant="outline" disabled={enviandoFicha} onClick={() => fichaRef.current?.click()}>
-                    {enviandoFicha ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileUp className="h-4 w-4 mr-2" />}
-                    Anexar E Conferir Ficha Oficial
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" disabled={enviandoFicha} onClick={() => fichaRef.current?.click()}>
+                      {enviandoFicha ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileUp className="h-4 w-4 mr-2" />}
+                      {fichaOficial ? "Anexar Nova Versão" : "Anexar Ficha Oficial"}
+                    </Button>
+                    {fichaOficial && (
+                      <>
+                        <Button variant="outline" onClick={() => ver(fichaOficial.id)}>
+                          Abrir Ficha Oficial
+                        </Button>
+                        <Button
+                          onClick={() =>
+                            executar(
+                              () => acoes.conferirFichaOficial.mutateAsync(fichaOficial.id),
+                              "Conferência registrada",
+                            )}
+                        >
+                          Registrar Conferência
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                  {!fichaOficial && (
+                    <p className="text-xs text-muted-foreground">Nenhuma ficha oficial anexada ainda.</p>
+                  )}
                 </div>
               )}
 
