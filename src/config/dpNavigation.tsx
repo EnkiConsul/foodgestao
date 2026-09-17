@@ -1,5 +1,4 @@
 import {
-  UserPlus,
   BarChart3,
   Bell,
   BellRing,
