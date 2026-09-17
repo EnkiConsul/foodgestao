@@ -50,3 +50,10 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [x] Endereço editável no cadastro do colaborador (aba Dados) e na conferência da ficha oficial
 - [ ] Etapa B — validações da admissão: duas finalizações simultâneas, percurso completo com convite fictício, acesso a arquivos com pessoas diferentes
 - Fora de escopo: módulo financeiro (Open Finance/conciliação) fica com o Rafael
+
+## Regras de admissão, sexo e dados de pagamento (2026-09-18)
+- Exceções por sexo, agrupamento por tema e separação entre documentos do candidato e da empresa na aba Regras.
+- Equivalências de documentos: CNH vale como identidade com foto e atende o CPF; RG com CPF atende o CPF.
+- Dados de pagamento (banco/agência/conta/tipo, titular, Pix e recebimento em espécie) no cadastro do colaborador e na ficha do candidato; envio da ficha exige conta OU Pix; cadastro incompleto passa a apontar a falta.
+- Corrigida a falha que impedia salvar exceção por cargo (a checagem interna lia a coluna de unidade na tabela de cargos). Validado no navegador: CNH obrigatória para MOTOQUEIRO salva.
+- Pendente: pendências automáticas de dados bancários para colaboradores antigos.
