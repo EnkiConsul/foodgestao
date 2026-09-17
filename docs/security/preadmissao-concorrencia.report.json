@@ -1,0 +1,21 @@
+{
+  "escopo": "Pré-Admissão — incremento 5 (concorrência e validação de familiares)",
+  "ambiente": "Banco Postgres 17.9 local descartável (UTF8), réplica mínima das tabelas + definições reais das funções copiadas do projeto; nenhum dado real tocado",
+  "resultados": [
+    {"id": "T1", "caso": "Salvar com parentesco 'menor_guarda' (como o formulário grava)", "esperado": "aceito", "obtido": "ok, versão 2"},
+    {"id": "T2", "caso": "Parentesco fora da lista", "obtido": "recusado pessoa_parentesco"},
+    {"id": "T3", "caso": "CPF de familiar inválido", "obtido": "recusado pessoa_cpf"},
+    {"id": "T4", "caso": "Nascimento futuro", "obtido": "recusado pessoa_data_futura"},
+    {"id": "T5", "caso": "Sesc com parentesco não elegível", "obtido": "recusado pessoa_sesc_parentesco"},
+    {"id": "T6", "caso": "Familiar sem finalidade", "obtido": "recusado pessoa_finalidade"},
+    {"id": "T7", "caso": "Familiar de outra ficha/empresa (UPDATE 0 linhas)", "obtido": "recusado pessoa_desconhecida"},
+    {"id": "T8", "caso": "Versão divergente", "obtido": "recusado versao_alterada"},
+    {"id": "T9", "caso": "Fora do estado editável", "obtido": "recusado fase_encerrada"},
+    {"id": "T10", "caso": "Envio com versão correta e reenvio", "obtido": "primeiro envio ok; repetição recusada fase_encerrada"},
+    {"id": "T11", "caso": "Familiar retirado", "obtido": "marcado como removido, nunca apagado"},
+    {"id": "C1", "caso": "Salvar em transação aberta + Enviar concorrente com versão antiga", "obtido": "envio ficou 3,03 s bloqueado no lock da mesma ficha e depois foi recusado versao_alterada; ficha ficou consistente (versão 11, 1 familiar)"},
+    {"id": "C2", "caso": "Enviar em transação aberta + Salvar concorrente", "obtido": "salvar recusado fase_encerrada; nenhuma edição após o fechamento"},
+    {"id": "C3", "caso": "Duas gravações simultâneas com a mesma versão esperada", "obtido": "uma gravou (versão 31), a outra recusada versao_alterada"}
+  ],
+  "conclusao": "Dados do candidato, familiares, remoções e transição de estado acontecem em uma única transação travada por ficha, com versão conferida; nenhuma escrita ocorre após o fechamento da fase."
+}
