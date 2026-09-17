@@ -107,8 +107,11 @@ Deno.serve(async (req) => {
 
     /** Sempre relê a ficha: nenhuma resposta é montada com estado antigo. */
     const montar = async () => {
-      const [{ data: atual }, { data: pessoas }, { data: docs }, reqs, reqsEmpresa, { data: eventos }] = await Promise.all([
-        admin.from("dp_preadmissoes").select("*").eq("id", pa.id).maybeSingle(),
+      // A ficha é lida ANTES dos requisitos: cargo/unidade recém-alterados
+      // valem imediatamente no checklist (nunca o estado antigo em memória).
+      const { data: atual } = await admin.from("dp_preadmissoes").select("*").eq("id", pa.id).maybeSingle();
+      const fichaAtual = (atual ?? pa) as unknown as Preadmissao;
+      const [{ data: pessoas }, { data: docs }, reqs, reqsEmpresa, { data: eventos }] = await Promise.all([
         admin.from("dp_preadmissao_pessoas").select("*").eq("preadmissao_id", pa.id)
           .is("removido_em", null).order("created_at"),
         admin
@@ -116,7 +119,7 @@ Deno.serve(async (req) => {
           .select("id, requisito_codigo, pessoa_id, file_name, status, motivo_recusa, versao, created_at, substituido_em")
           .eq("preadmissao_id", pa.id)
           .order("created_at", { ascending: false }),
-        requisitosPrevistos(admin, pa),
+        requisitosPrevistos(admin, fichaAtual),
         requisitosEmpresa(admin, pa.company_id),
         admin.from("dp_preadmissao_eventos").select("evento, detalhe, created_at").eq("preadmissao_id", pa.id)
           .order("created_at", { ascending: false }).limit(50),
