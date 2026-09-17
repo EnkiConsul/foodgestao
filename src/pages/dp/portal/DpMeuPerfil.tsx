@@ -12,6 +12,7 @@ import { Pencil, Save, X, User } from "lucide-react";
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { CardListSkeleton } from "@/components/dp/DpSkeletons";
+import { EnderecoFields } from "@/components/shared/EnderecoFields";
 
 import { notifyError } from "@/lib/notifyError";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
@@ -155,19 +156,13 @@ export default function DpMeuPerfil() {
                     <div><Label htmlFor="whatsapp-2">WhatsApp</Label><Input id="whatsapp-2" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} /></div>
                   </div>
                   <div><Label htmlFor="e-mail-pessoal-3">E-mail pessoal</Label><Input id="e-mail-pessoal-3" type="email" value={form.email_contato} onChange={(e) => setForm({ ...form, email_contato: e.target.value })} /></div>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div className="sm:col-span-2"><Label htmlFor="logradouro-4">Logradouro</Label><Input id="logradouro-4" value={form.endereco.logradouro} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, logradouro: e.target.value } })} /></div>
-                    <div><Label htmlFor="no-5">Nº</Label><Input id="no-5" value={form.endereco.numero} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, numero: e.target.value } })} /></div>
-                  </div>
-                  <div><Label htmlFor="complemento-6">Complemento</Label><Input id="complemento-6" value={form.endereco.complemento} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, complemento: e.target.value } })} /></div>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div><Label htmlFor="bairro-7">Bairro</Label><Input id="bairro-7" value={form.endereco.bairro} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, bairro: e.target.value } })} /></div>
-                    <div><Label htmlFor="cidade-8">Cidade</Label><Input id="cidade-8" value={form.endereco.cidade} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, cidade: e.target.value } })} /></div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div><Label htmlFor="uf-9">UF</Label><Input id="uf-9" maxLength={2} value={form.endereco.uf} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, uf: e.target.value.toUpperCase() } })} /></div>
-                      <div><Label htmlFor="cep-10">CEP</Label><Input id="cep-10" value={form.endereco.cep} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, cep: e.target.value } })} /></div>
-                    </div>
-                  </div>
+                  <EnderecoFields
+                    idPrefix="perfil"
+                    valor={form.endereco}
+                    onChange={(patch) =>
+                      setForm((f) => ({ ...f, endereco: { ...f.endereco, ...patch } }))
+                    }
+                  />
                   <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-2">
                     <Button variant="outline" onClick={() => setEditing(false)} className="min-h-10 w-full sm:w-auto"><X className="h-4 w-4 mr-1" /> Cancelar</Button>
                     <Button disabled={save.isPending} onClick={() => save.mutate()} className="min-h-10 w-full sm:w-auto"><Save className="h-4 w-4 mr-1" /> Salvar</Button>

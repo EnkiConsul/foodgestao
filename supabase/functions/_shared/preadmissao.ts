@@ -34,9 +34,25 @@ export async function hashToken(token: string): Promise<string> {
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Caminho do link enviado ao candidato (a origem é montada pelo chamador). */
+/**
+ * Endereço público do aplicativo. O link do candidato NUNCA pode apontar para o
+ * ambiente de pré-visualização (lá o candidato veria a tela de acesso da
+ * plataforma antes do formulário).
+ */
+const ambiente = (globalThis as { Deno?: { env: { get(k: string): string | undefined } } }).Deno;
+export const APP_URL_PUBLICA = (ambiente?.env.get("APP_PUBLIC_URL") ?? "https://aveto360.com")
+  .replace(/\/$/, "");
+
+function origemPublica(origin: string | null): string {
+  const limpo = (origin ?? "").trim().replace(/\/$/, "");
+  const ehPrevisualizacao = /lovable\.app|lovableproject\.com|localhost|127\.0\.0\.1/i.test(limpo);
+  if (!/^https?:\/\//.test(limpo) || ehPrevisualizacao) return APP_URL_PUBLICA;
+  return limpo;
+}
+
+/** Caminho do link enviado ao candidato, sempre no domínio público. */
 export function linkPreadmissao(origin: string | null, conviteId: string, token: string): string {
-  const base = origin && /^https?:\/\//.test(origin) ? origin.replace(/\/$/, "") : "";
+  const base = origemPublica(origin);
   return `${base}/pre-admissao?t=${encodeURIComponent(conviteId)}&c=${encodeURIComponent(token)}`;
 }
 
@@ -160,7 +176,8 @@ export async function requisitosPrevistos(
 
 /** Campos que o candidato pode gravar. Qualquer outro é descartado. */
 export const CAMPOS_CANDIDATO = [
-  "nome", "cpf", "email", "data_nascimento", "estado_civil", "sexo", "nacionalidade", "naturalidade",
+  "nome", "nome_social", "cpf", "email", "data_nascimento", "estado_civil", "sexo",
+  "nacionalidade", "naturalidade", "naturalidade_uf",
   "nome_mae", "nome_pai", "grau_instrucao", "raca_cor", "deficiencia",
   "telefone", "whatsapp_contato",
   "cep", "endereco", "numero", "complemento", "bairro", "cidade", "uf",
@@ -377,7 +394,9 @@ export function tipoRealDoArquivo(bytes: Uint8Array): string | null {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Chaves aceitas na raiz do pedido do candidato. */
-export const CAMPOS_RAIZ_CANDIDATO = ["t", "c", "action", "dados", "pessoas", "versao"] as const;
+export const CAMPOS_RAIZ_CANDIDATO = [
+  "t", "c", "action", "dados", "pessoas", "versao", "campo", "mensagem",
+] as const;
 
 /** Campos aceitos em cada familiar informado pelo candidato. */
 export const CAMPOS_PESSOA = [

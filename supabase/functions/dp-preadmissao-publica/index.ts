@@ -117,8 +117,18 @@ Deno.serve(async (req) => {
       // CPF informado pelo gestor no convite: o candidato vê, mas não altera.
       const cpfConvite = String(linha.cpf ?? pa.cpf ?? "").replace(/\D/g, "");
       if (cpfConvite) dados.cpf = cpfConvite;
+      // Nome cadastrado pela empresa manda no formulário; o candidato apenas
+      // avisa quando estiver errado.
+      const nomeConvite = String(pa.candidato_nome ?? "").trim();
+      if (nomeConvite) dados.nome = nomeConvite;
+      // Telefone do convite aparece já preenchido (sem o código do país).
+      if (!String(dados.telefone ?? "").trim()) {
+        const zap = String(pa.whatsapp ?? "").replace(/\D/g, "").replace(/^55/, "");
+        if (zap.length >= 10) dados.telefone = zap.slice(0, 11);
+      }
       return {
         cpf_bloqueado: cpfConvite || null,
+        nome_bloqueado: nomeConvite || null,
         candidato_nome: pa.candidato_nome,
         cargo_previsto: cargo?.nome ?? null,
         unidade_prevista: unidade?.nome ?? null,
@@ -212,6 +222,10 @@ Deno.serve(async (req) => {
       // O CPF do convite também vale dentro do bloco de dados.
       const cpfConvite = String(pa.cpf ?? "").replace(/\D/g, "");
       if (cpfConvite) dados.cpf = cpfConvite;
+      // O nome é da empresa: o que vier do candidato é descartado.
+      const nomeConvite = String(pa.candidato_nome ?? "").trim();
+      if (nomeConvite) dados.nome = nomeConvite;
+
 
 
       // Dados, familiares e remoções em uma única transação com trava na ficha:
@@ -284,6 +298,34 @@ Deno.serve(async (req) => {
         success: true,
         mensagem: "Seus dados e documentos foram enviados para análise da empresa.",
       });
+    }
+
+    // Nome e CPF são conferidos pela empresa. O candidato não altera: registra
+    // o aviso, e o gestor decide. Nada da ficha muda aqui.
+    if (acao === "pedir_correcao") {
+      const campo = String(body?.campo ?? "").trim().slice(0, 60);
+      const mensagem = String(body?.mensagem ?? "").trim().slice(0, 500);
+      if (!campo || !mensagem) {
+        return jsonResponse(req, 400, { error: "Escreva o que está errado e o dado correto." });
+      }
+      await registrarEvento(admin, pa.id, pa.company_id, "correcao_identidade_pedida", {
+        campo,
+        mensagem,
+      });
+      try {
+        await admin.from("dp_notificacoes").insert({
+          company_id: pa.company_id,
+          tipo: "preadmissao_enviada",
+          titulo: "Candidato apontou erro em nome ou CPF",
+          descricao: `${pa.candidato_nome ?? "Candidato"} — ${campo}: ${mensagem}`,
+          ref_table: "dp_preadmissoes",
+          ref_id: pa.id,
+          para_admins: true,
+        });
+      } catch (_) {
+        // aviso interno: falha aqui não invalida o registro do evento
+      }
+      return jsonResponse(req, 200, { success: true });
     }
 
     return jsonError(req, "invalid_input", "ação desconhecida");
