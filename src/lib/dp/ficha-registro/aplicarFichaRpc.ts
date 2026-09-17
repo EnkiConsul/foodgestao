@@ -108,7 +108,9 @@ export interface EfetivarPreadmissaoRpcResultado {
   colaborador_id: string;
   ja_aplicado?: boolean;
   modo?: string;
-  documentos_vinculados?: number;
+  /** Documentos do candidato levados para a pasta do colaborador. */
+  documentos?: number;
+  admissao?: string;
   dependentes?: number;
 }
 
