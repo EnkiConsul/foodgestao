@@ -167,11 +167,14 @@ interface Estado {
 
 /** Erro do servidor com o detalhamento por campo, quando houver. */
 class ErroServidor extends Error {
+  /** Motivo técnico devolvido pela rotina (ex.: "versao_alterada"). */
+  motivo: string;
   erros: Record<string, string>;
   camposFaltando: string[];
   documentosFaltando: string[];
   constructor(mensagem: string, corpo: Record<string, unknown> | null) {
     super(mensagem);
+    this.motivo = String(corpo?.motivo ?? "");
     this.erros = (corpo?.erros as Record<string, string>) ?? {};
     this.camposFaltando = (corpo?.campos_faltando as string[]) ?? [];
     this.documentosFaltando = (corpo?.documentos_faltando as string[]) ?? [];
@@ -266,8 +269,19 @@ export default function PreAdmissao() {
   const pessoasParaEnviar = () =>
     pessoas.filter((p) => p.id || p.nome.trim() || p.parentesco.trim() || p.data_nascimento.trim());
 
-  const tratarFalha = (e: unknown) => {
+  const tratarFalha = async (e: unknown) => {
     if (e instanceof ErroServidor) {
+      // Ficha alterada em outro dispositivo: nada do que está na tela é
+      // descartado — só atualizamos o número da versão e avisamos, para que a
+      // pessoa confira e salve de novo.
+      if (e.motivo === "versao_alterada") {
+        try {
+          const atual = await chamar<Estado>("dp-preadmissao-publica", { t, c, action: "ler" });
+          setEstado(atual);
+        } catch (_) {
+          // sem rede: o aviso abaixo já orienta a recarregar
+        }
+      }
       setErros(e.erros);
       setFaltando(e.camposFaltando);
       setAvisoTopo(e.message);
@@ -290,7 +304,7 @@ export default function PreAdmissao() {
       else toast.success("Dados guardados");
       return true;
     } catch (e) {
-      tratarFalha(e);
+      await tratarFalha(e);
       return false;
     } finally {
       setSalvando(false);
@@ -307,7 +321,7 @@ export default function PreAdmissao() {
       await chamar<{ mensagem: string }>("dp-preadmissao-publica", { t, c, action: "enviar", versao: novo.versao });
       setEnviado(true);
     } catch (e) {
-      tratarFalha(e);
+      await tratarFalha(e);
     } finally {
       setSalvando(false);
     }
