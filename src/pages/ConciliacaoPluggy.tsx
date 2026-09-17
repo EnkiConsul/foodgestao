@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { HelpHint } from "@/components/ui/help-hint";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -1869,10 +1870,11 @@ export default function ConciliacaoPluggy() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+            <h1 className="flex flex-wrap items-center gap-1 text-xl font-bold tracking-tight sm:text-2xl">
               {scope
                 ? `Conciliação — ${scope.name ?? connections.find((c) => c.id === scope.connectionId)?.connector_name ?? "Conta"}`
                 : "Conciliação Open Finance"}
+              <HelpHint helpKey="financeiro.conciliacao" size="md" side="bottom" align="start" />
             </h1>
             <p className="text-sm text-muted-foreground">
               {scope
