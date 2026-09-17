@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
           .order("created_at"),
         admin
           .from("dp_preadmissao_documentos")
-          .select("id, requisito_codigo, pessoa_id, file_name, status, created_at")
+          .select("id, requisito_codigo, pessoa_id, file_name, status, motivo_recusa, created_at")
           .eq("preadmissao_id", pa.id)
           .is("substituido_em", null),
         requisitosPrevistos(admin, fichaAtual),
