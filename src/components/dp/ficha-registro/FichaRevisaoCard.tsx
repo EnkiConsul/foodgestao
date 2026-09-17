@@ -146,16 +146,37 @@ export function FichaRevisaoCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dados, setorId, regime, setores.length, salarioCargo]);
 
-  const executar = (camposPermitidos: string[] | null) => {
+  /**
+   * Conferência da ficha oficial contra o STAGING já revisado da pré-admissão.
+   * O que o gestor conferiu é a referência: a ficha só substitui um campo por
+   * escolha explícita, e "Somente anexar" não altera campo algum.
+   */
+  const preadmissao = useDpPreadmissao(preadmissaoId ?? null);
+  const stagingDados = (preadmissao.data?.preadmissao.dados ?? null) as Record<string, unknown> | null;
+  const divergencias = useMemo(
+    () => (preadmissaoId ? divergenciasFicha(stagingDados, dados) : []),
+    [preadmissaoId, stagingDados, dados],
+  );
+  const [escolhas, setEscolhas] = useState<Record<string, EscolhaDivergencia>>({});
+  const semEscolha = useMemo(() => divergenciasSemEscolha(divergencias, escolhas), [divergencias, escolhas]);
+
+  const executar = (camposPermitidos: string[] | null, somenteAnexar = false) => {
     if (!regime || !formaPagamento || possuiFolhaPonto === null || optanteAdiantamento === null) {
       setCompletarAberto(true);
       toast.error("Confirme vínculo, pagamento, ponto e adiantamento antes de criar o cadastro.");
       return;
     }
+    if (preadmissaoId && !somenteAnexar && semEscolha.length > 0) {
+      toast.error("Escolha, em cada divergência, qual valor vale antes de concluir.");
+      return;
+    }
+    const dadosEnvio = preadmissaoId
+      ? dadosParaCadastro(stagingDados, dados, escolhas, somenteAnexar)
+      : dados;
     aplicar.mutate(
       {
         item,
-        dados,
+        dados: dadosEnvio,
         cargoId,
         unidadeId,
         setorId,
