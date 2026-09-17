@@ -243,6 +243,15 @@ export function useDpPreadmissaoGestor(id: string | null) {
         await acao({ action: "conferir_ficha_oficial", documento_id: documentoId, confirmado: true }),
       onSuccess: invalidar,
     }),
+    /**
+     * Excluir a ficha: sai das listas e o link do candidato deixa de valer.
+     * Nada é apagado — o servidor guarda quem excluiu, quando e o motivo.
+     */
+    excluir: useMutation({
+      mutationFn: async (entrada: { motivo?: string; versao?: number | null }) =>
+        await acao({ action: "excluir", motivo: entrada.motivo ?? "", versao: entrada.versao ?? null }),
+      onSuccess: invalidar,
+    }),
     marcarStatus: useMutation({
       mutationFn: async (status: PreadmissaoStatus) => await acao({ action: "marcar_status", status }),
       onSuccess: invalidar,

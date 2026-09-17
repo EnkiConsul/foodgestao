@@ -1286,6 +1286,7 @@ export function useDpPendencias() {
           .from("dp_preadmissoes")
           .select("id, candidato_nome, status, enviado_em, ficha_oficial_conferida_em, updated_at")
           .eq("company_id", selectedCompanyId!)
+          .is("removido_em", null)
           .in("status", ["aguardando_revisao", "aguardando_nova_versao", "pronto_contabilidade", "registro_recebido"]);
         for (const pa of (preadms ?? []) as any[]) {
           const acao = pa.status === "registro_recebido"

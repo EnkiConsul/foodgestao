@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
             "ficha_oficial_conferida_em, colaborador_id, created_at, updated_at",
         )
         .eq("company_id", companyId)
+        .is("removido_em", null)
         .order("created_at", { ascending: false })
         .limit(300);
       if (error) return jsonError(req, "internal", error.message);
@@ -115,6 +116,8 @@ Deno.serve(async (req) => {
 
     const { data: paRow } = await admin.from("dp_preadmissoes").select("*").eq("id", id).maybeSingle();
     if (!paRow) return jsonError(req, "not_found");
+    // Ficha excluída não existe para nenhuma ação do gestor.
+    if ((paRow as { removido_em?: string | null }).removido_em) return jsonError(req, "not_found");
     const pa = paRow as unknown as Preadmissao;
     const access = await requireCompanyAccess(caller.id, pa.company_id);
     if (!access || !canAdminister(access)) return jsonError(req, "forbidden");
@@ -186,6 +189,30 @@ Deno.serve(async (req) => {
     };
 
     if (acao === "ler") return jsonResponse(req, 200, await montar());
+
+    /**
+     * Excluir a ficha: nada é apagado. A rotina do banco guarda quem excluiu,
+     * quando e por quê, revoga o link do candidato e registra o evento — tudo
+     * na mesma transação. Fichas já concluídas são recusadas.
+     */
+    if (acao === "excluir") {
+      const motivo = String(body?.motivo ?? "").trim().slice(0, 500);
+      // Versão só é conferida quando a tela informa um número de verdade
+      // (null/ausente = exclusão sem conferência de versão).
+      const versaoBruta = body?.versao;
+      const versaoNum = typeof versaoBruta === "number" ? versaoBruta : Number(versaoBruta ?? NaN);
+      const versao = Number.isInteger(versaoNum) && versaoNum > 0 ? versaoNum : null;
+      const { data, error } = await admin.rpc("dp_preadmissao_excluir", {
+        _preadmissao_id: pa.id,
+        _ator: caller.id,
+        _motivo: motivo || null,
+        _versao: versao,
+      });
+      if (error) return jsonError(req, "internal", "não foi possível excluir a ficha");
+      const res = (data ?? {}) as { ok?: boolean; erro?: string };
+      if (!res.ok) return jsonResponse(req, 409, { error: res.erro ?? "Não foi possível excluir a ficha." });
+      return jsonResponse(req, 200, { success: true });
+    }
 
     if (acao === "solicitar_correcao") {
       const motivo = String(body?.motivo ?? "").trim();

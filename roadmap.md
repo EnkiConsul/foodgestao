@@ -56,4 +56,10 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - Equivalências de documentos: CNH vale como identidade com foto e atende o CPF; RG com CPF atende o CPF.
 - Dados de pagamento (banco/agência/conta/tipo, titular, Pix e recebimento em espécie) no cadastro do colaborador e na ficha do candidato; envio da ficha exige conta OU Pix; cadastro incompleto passa a apontar a falta.
 - Corrigida a falha que impedia salvar exceção por cargo (a checagem interna lia a coluna de unidade na tabela de cargos). Validado no navegador: CNH obrigatória para MOTOQUEIRO salva.
-- Pendente: pendências automáticas de dados bancários para colaboradores antigos.
+- Pendências automáticas de dados bancários: item na lista do gestor e no portal, com bloco editável em Meu Cadastro (quem recebe em espécie não é cobrado).
+
+## Excluir fichas de admissão (2026-09-17)
+- Gestor (dono/administrador) exclui a ficha com confirmação e motivo opcional; concluídas ficam protegidas.
+- Exclusão não destrutiva: `dp_preadmissoes.removido_em/por/motivo`, RPC `dp_preadmissao_excluir` transacional, convites revogados e evento `ficha_excluida` no histórico.
+- Fichas removidas saem das listas, da revisão, das pendências, do link do candidato e do acesso aos arquivos.
+- Validado no navegador: ficha sintética excluída (evento gravado, convite revogado, nada apagado).

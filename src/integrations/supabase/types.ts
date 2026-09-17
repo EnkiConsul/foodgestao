@@ -10534,6 +10534,9 @@ export type Database = {
           regime_previsto:
             | Database["public"]["Enums"]["dp_regime_trabalho"]
             | null
+          removido_em: string | null
+          removido_motivo: string | null
+          removido_por: string | null
           revisado_em: string | null
           revisado_por: string | null
           status: string
@@ -10568,6 +10571,9 @@ export type Database = {
           regime_previsto?:
             | Database["public"]["Enums"]["dp_regime_trabalho"]
             | null
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           revisado_em?: string | null
           revisado_por?: string | null
           status?: string
@@ -10602,6 +10608,9 @@ export type Database = {
           regime_previsto?:
             | Database["public"]["Enums"]["dp_regime_trabalho"]
             | null
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           revisado_em?: string | null
           revisado_por?: string | null
           status?: string
@@ -16408,6 +16417,15 @@ export type Database = {
           p_estados: string[]
           p_preadmissao_id: string
           p_versao_esperada: number
+        }
+        Returns: Json
+      }
+      dp_preadmissao_excluir: {
+        Args: {
+          _ator: string
+          _motivo?: string
+          _preadmissao_id: string
+          _versao?: number
         }
         Returns: Json
       }
