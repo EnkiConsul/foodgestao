@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDpCargos, useDpCargosDaUnidade, useDpUnidades } from "@/hooks/useDpCadastros";
+import { REGIMES_ADMISSAO } from "@/lib/dp/regimesAdmissao";
 import { isValidCpf, maskCpf } from "@/lib/cpf";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPreadmissaoConvite } from "@/hooks/dp/useDpPreadmissoes";
@@ -39,6 +40,7 @@ export function PreadmissaoConviteDialog({ open, onOpenChange }: Props) {
   const [cargoId, setCargoId] = useState<string>("");
   const [unidadeId, setUnidadeId] = useState<string>("");
   const [cpf, setCpf] = useState("");
+  const [regime, setRegime] = useState<string>("");
   /** Decisão obrigatória: sem escolha o convite não é criado. */
   const [apos22h, setApos22h] = useState<"" | "sim" | "nao">("");
   const [dias, setDias] = useState("7");
@@ -70,12 +72,12 @@ export function PreadmissaoConviteDialog({ open, onOpenChange }: Props) {
   const fechar = () => {
     onOpenChange(false);
     setNome(""); setWhatsapp(""); setCargoId(""); setUnidadeId(""); setCpf("");
-    setApos22h(""); setDias("7"); setLink(null); setValidade(null); setNumeroEnvio(null);
+    setRegime(""); setApos22h(""); setDias("7"); setLink(null); setValidade(null); setNumeroEnvio(null);
   };
 
   const completo =
     nome.trim().length >= 3 && whatsapp.replace(/\D/g, "").length >= 10 && cpfOk
-    && !!cargoId && !!unidadeId && !!apos22h;
+    && !!cargoId && !!unidadeId && !!regime && !!apos22h;
 
   const enviar = async () => {
     try {
@@ -85,6 +87,7 @@ export function PreadmissaoConviteDialog({ open, onOpenChange }: Props) {
         cpf: cpfDigitos,
         cargo_previsto_id: cargoId,
         unidade_prevista_id: unidadeId,
+        regime_previsto: regime,
         trabalho_apos_22h: apos22h === "sim",
         dias_validade: Number(dias) || 7,
       });
@@ -223,6 +226,20 @@ export function PreadmissaoConviteDialog({ open, onOpenChange }: Props) {
               </div>
             </div>
             <div className="space-y-1">
+              <Label className="text-xs">Tipo de vínculo previsto</Label>
+              <Select value={regime} onValueChange={setRegime}>
+                <SelectTrigger className="h-10" aria-label="Tipo de vínculo previsto">
+                  <SelectValue placeholder="Escolher" />
+                </SelectTrigger>
+                <SelectContent>
+                  {REGIMES_ADMISSAO.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Define quais dados e documentos a ficha vai pedir ao candidato.
+              </p>
+            </div>
+            <div className="space-y-1">
               <Label className="text-xs">Vai trabalhar depois das 22h?</Label>
               <Select value={apos22h} onValueChange={(v) => setApos22h(v as "sim" | "nao")}>
                 <SelectTrigger className="h-10" aria-label="Trabalho depois das 22h">
@@ -239,7 +256,7 @@ export function PreadmissaoConviteDialog({ open, onOpenChange }: Props) {
             </div>
             {!completo && (
               <p className="text-xs text-muted-foreground">
-                Informe nome, CPF, WhatsApp, unidade, cargo e a decisão sobre o trabalho após as 22h.
+                Informe nome, CPF, WhatsApp, unidade, cargo, tipo de vínculo e a decisão sobre o trabalho após as 22h.
               </p>
             )}
           </div>

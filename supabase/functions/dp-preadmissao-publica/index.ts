@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
         .from("dp_preadmissoes")
         .select(
           "status, dados, correcao_motivo, data_nascimento, estado_civil, cpf, email, versao, " +
-            "cargo_previsto_id, unidade_prevista_id, trabalho_apos_22h",
+            "cargo_previsto_id, unidade_prevista_id, regime_previsto, trabalho_apos_22h",
         )
         .eq("id", pa.id)
         .maybeSingle();

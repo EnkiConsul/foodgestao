@@ -73,6 +73,8 @@ export interface Preadmissao {
   estado_civil: string | null;
   correcao_motivo: string | null;
   colaborador_id: string | null;
+  /** Tipo de vínculo previsto no convite (usado nas regras da ficha). */
+  regime_previsto?: string | null;
   versao?: number;
 }
 
@@ -105,7 +107,7 @@ export async function validarConvite(
   const { data: pa } = await admin
     .from("dp_preadmissoes")
     .select(
-      "id, company_id, candidato_nome, whatsapp, cargo_previsto_id, unidade_prevista_id, trabalho_apos_22h, status, dados, admin_dados, cpf, email, data_nascimento, estado_civil, correcao_motivo, colaborador_id",
+      "id, company_id, candidato_nome, whatsapp, cargo_previsto_id, unidade_prevista_id, regime_previsto, trabalho_apos_22h, status, dados, admin_dados, cpf, email, data_nascimento, estado_civil, correcao_motivo, colaborador_id",
     )
     .eq("id", convite.preadmissao_id as string)
     .maybeSingle();
@@ -829,11 +831,15 @@ const EXIGENCIAS = new Set<string>(["obrigatorio", "opcional", "nao_pedir"]);
  */
 export async function regrasAdmissao(
   admin: Db & Rpc,
-  pa: Pick<Preadmissao, "company_id" | "cargo_previsto_id" | "unidade_prevista_id" | "admin_dados">,
+  pa: Pick<Preadmissao, "company_id" | "cargo_previsto_id" | "unidade_prevista_id" | "admin_dados">
+    & { regime_previsto?: string | null },
 ): Promise<RegrasAdmissao> {
-  const regime = typeof (pa.admin_dados ?? {})?.regime_trabalho === "string"
+  const adminRegime = typeof (pa.admin_dados ?? {})?.regime_trabalho === "string"
     ? String((pa.admin_dados as Record<string, unknown>).regime_trabalho)
     : null;
+  // O vínculo do convite manda desde o primeiro acesso; a revisão do gestor
+  // pode ajustar depois em admin_dados.
+  const regime = (adminRegime ?? "").trim() || pa.regime_previsto || null;
   const [resolvidas, lista] = await Promise.all([
     admin.rpc("dp_admissao_regras_resolver", {
       p_company_id: pa.company_id,

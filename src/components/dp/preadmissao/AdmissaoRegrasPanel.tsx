@@ -1,18 +1,22 @@
 /**
- * Regras De Admissão — a empresa escolhe quais dados e documentos são
- * obrigatórios, opcionais ou não pedidos, e quais familiares podem entrar
- * na ficha.
+ * Regras De Admissão — para cada dado e cada documento da ficha a empresa
+ * define uma regra padrão (vale para todo mundo) e quantas exceções quiser.
  *
- * O escopo pode combinar unidade, tipo de vínculo e cargo; a regra mais
- * específica vence (cargo > vínculo > unidade > empresa). Quem aplica isso
- * na ficha é o servidor.
+ * Cada exceção pode listar várias unidades, vários tipos de vínculo e vários
+ * cargos; lista vazia significa "todos". A regra mais específica vence
+ * (cargo > vínculo > unidade > padrão). Quem aplica isso na ficha é o servidor.
  */
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -22,21 +26,13 @@ import {
 import { notifyError } from "@/lib/notifyError";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import {
-  useDpAdmissaoRegras, type Exigencia, type TipoRegra,
+  resolverExigencia, useDpAdmissaoRegras,
+  type AdmissaoRegra, type Exigencia, type TipoRegra,
 } from "@/hooks/dp/useDpAdmissaoRegras";
+import { REGIMES_ADMISSAO } from "@/lib/dp/regimesAdmissao";
 import { useDpDocumentoRequisitos } from "@/hooks/useDpDocumentoRequisitos";
 
 const TODOS = "__todos__";
-
-const REGIMES: { value: string; label: string }[] = [
-  { value: "clt", label: "Fixo (CLT)" },
-  { value: "intermitente", label: "Intermitente" },
-  { value: "estagio", label: "Estágio" },
-  { value: "temporario", label: "Temporário" },
-  { value: "pj", label: "Prestador PJ" },
-  { value: "mei", label: "MEI" },
-  { value: "freelancer", label: "Freelancer" },
-];
 
 /** Campos da ficha do candidato, com o rótulo que o candidato vê. */
 const CAMPOS: { chave: string; label: string; grupo: string }[] = [
@@ -89,49 +85,91 @@ const PARENTESCOS: { value: string; label: string }[] = [
   { value: "menor_guarda", label: "Menor sob guarda" },
 ];
 
-const EXIGENCIAS: { value: Exigencia | "padrao"; label: string }[] = [
-  { value: "padrao", label: "Padrão do sistema" },
+const EXIGENCIAS: { value: Exigencia; label: string }[] = [
   { value: "obrigatorio", label: "Obrigatório" },
   { value: "opcional", label: "Opcional" },
   { value: "nao_pedir", label: "Não pedir" },
 ];
 
+const rotuloExigencia = (e: Exigencia | null) =>
+  EXIGENCIAS.find((x) => x.value === e)?.label ?? "Padrão do sistema";
+
+interface Editando {
+  id: string | null;
+  tipo: TipoRegra;
+  chave: string;
+  label: string;
+  exigencia: Exigencia;
+  unidades: string[];
+  cargos: string[];
+  regimes: string[];
+}
+
 export function AdmissaoRegrasPanel() {
   const { data: unidades = [] } = useDpUnidades();
   const { data: cargos = [] } = useDpCargos();
   const { requisitos = [] } = useDpDocumentoRequisitos();
-  const { regras, parentescos, definir, definirParentesco } = useDpAdmissaoRegras();
+  const { regras, parentescos, salvar, excluir, definirParentesco } = useDpAdmissaoRegras();
 
-  const [unidadeId, setUnidadeId] = useState<string>(TODOS);
-  const [regime, setRegime] = useState<string>(TODOS);
-  const [cargoId, setCargoId] = useState<string>(TODOS);
+  const [aberto, setAberto] = useState<string | null>(null);
+  const [editando, setEditando] = useState<Editando | null>(null);
+  // Simulador: mostra o resultado final da combinação escolhida.
+  const [simUnidade, setSimUnidade] = useState<string>(TODOS);
+  const [simCargo, setSimCargo] = useState<string>(TODOS);
+  const [simRegime, setSimRegime] = useState<string>(TODOS);
 
-  const escopo = useMemo(() => ({
-    unidade_id: unidadeId === TODOS ? null : unidadeId,
-    cargo_id: cargoId === TODOS ? null : cargoId,
-    regime: regime === TODOS ? null : regime,
-  }), [unidadeId, cargoId, regime]);
-
-  const doEscopo = useMemo(() => {
-    const m = new Map<string, Exigencia>();
-    (regras.data ?? []).forEach((r) => {
-      if ((r.unidade_id ?? null) !== escopo.unidade_id) return;
-      if ((r.cargo_id ?? null) !== escopo.cargo_id) return;
-      if ((r.regime ?? null) !== escopo.regime) return;
-      m.set(`${r.tipo}:${r.chave}`, r.exigencia);
+  const porItem = useMemo(() => {
+    const m = new Map<string, AdmissaoRegra[]>();
+    const lista = regras.data ?? [];
+    lista.forEach((r) => {
+      const k = `${r.tipo}:${r.chave}`;
+      m.set(k, [...(m.get(k) ?? []), r]);
     });
     return m;
-  }, [regras.data, escopo]);
+  }, [regras.data]);
 
-  const salvar = async (tipo: TipoRegra, chave: string, valor: Exigencia | "padrao") => {
+  const nomeUnidade = (id: string) => unidades.find((u) => u.id === id)?.nome ?? "Unidade";
+  const nomeCargo = (id: string) => cargos.find((c) => c.id === id)?.nome ?? "Cargo";
+  const nomeRegime = (v: string) => REGIMES_ADMISSAO.find((r) => r.value === v)?.label ?? v;
+
+  const salvarPadrao = async (tipo: TipoRegra, chave: string, valor: Exigencia | "padrao") => {
+    const atual = (porItem.get(`${tipo}:${chave}`) ?? []).find((r) => r.padrao);
     try {
-      await definir.mutateAsync({
-        tipo, chave, escopo,
-        exigencia: valor === "padrao" ? null : valor,
-      });
+      if (valor === "padrao") {
+        if (atual) await excluir.mutateAsync(atual.id);
+      } else {
+        await salvar.mutateAsync({
+          id: atual?.id ?? null, tipo, chave, exigencia: valor,
+          padrao: true, unidades: [], cargos: [], regimes: [],
+        });
+      }
       toast.success("Regra salva");
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "salvar a regra de admissão" });
+    }
+  };
+
+  const salvarExcecao = async () => {
+    if (!editando) return;
+    try {
+      await salvar.mutateAsync({
+        id: editando.id, tipo: editando.tipo, chave: editando.chave,
+        exigencia: editando.exigencia, padrao: false,
+        unidades: editando.unidades, cargos: editando.cargos, regimes: editando.regimes,
+      });
+      setEditando(null);
+      toast.success("Exceção salva");
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "salvar a exceção" });
+    }
+  };
+
+  const removerExcecao = async (id: string) => {
+    try {
+      await excluir.mutateAsync(id);
+      toast.success("Exceção removida");
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "remover a exceção" });
     }
   };
 
@@ -143,30 +181,101 @@ export function AdmissaoRegrasPanel() {
     }
   };
 
+  const alvoSimulado = {
+    unidade_id: simUnidade === TODOS ? null : simUnidade,
+    cargo_id: simCargo === TODOS ? null : simCargo,
+    regime: simRegime === TODOS ? null : simRegime,
+  };
+
+  const alternar = (lista2: string[], id: string) =>
+    lista2.includes(id) ? lista2.filter((x) => x !== id) : [...lista2, id];
+
   const grupos = useMemo(() => {
     const out = new Map<string, typeof CAMPOS>();
     CAMPOS.forEach((c) => out.set(c.grupo, [...(out.get(c.grupo) ?? []), c]));
     return [...out.entries()];
   }, []);
 
+  const escopoTexto = (r: AdmissaoRegra) => {
+    const partes: string[] = [];
+    partes.push(r.unidades.length ? `Unidades: ${r.unidades.map(nomeUnidade).join(", ")}` : "Todas as unidades");
+    partes.push(r.regimes.length ? `Vínculos: ${r.regimes.map(nomeRegime).join(", ")}` : "Todos os vínculos");
+    partes.push(r.cargos.length ? `Cargos: ${r.cargos.map(nomeCargo).join(", ")}` : "Todos os cargos");
+    return partes.join(" · ");
+  };
+
   const linha = (tipo: TipoRegra, chave: string, label: string) => {
-    const atual = doEscopo.get(`${tipo}:${chave}`) ?? "padrao";
+    const doItem = porItem.get(`${tipo}:${chave}`) ?? [];
+    const padrao = doItem.find((r) => r.padrao);
+    const excecoes = doItem.filter((r) => !r.padrao);
+    const chaveAberta = `${tipo}:${chave}`;
+    const expandido = aberto === chaveAberta;
+    const simulado = resolverExigencia(doItem, alvoSimulado);
     return (
-      <TableRow key={`${tipo}:${chave}`}>
-        <TableCell className="text-sm">{label}</TableCell>
-        <TableCell className="w-[220px]">
-          <Select value={atual} onValueChange={(v) => void salvar(tipo, chave, v as Exigencia | "padrao")}>
-            <SelectTrigger className="h-10">
+      <div key={chaveAberta} className="border-b last:border-b-0 py-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="flex items-center gap-1 text-sm font-medium text-left flex-1 min-w-[160px]"
+            onClick={() => setAberto(expandido ? null : chaveAberta)}
+            aria-expanded={expandido}
+          >
+            <ChevronDown className={`h-4 w-4 transition-transform ${expandido ? "" : "-rotate-90"}`} />
+            {label}
+          </button>
+          <Select
+            value={padrao?.exigencia ?? "padrao"}
+            onValueChange={(v) => void salvarPadrao(tipo, chave, v as Exigencia | "padrao")}
+          >
+            <SelectTrigger className="h-9 w-[190px]" aria-label={`Regra padrão de ${label}`}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {EXIGENCIAS.map((e) => (
-                <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
-              ))}
+              <SelectItem value="padrao">Padrão do sistema</SelectItem>
+              {EXIGENCIAS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
             </SelectContent>
           </Select>
-        </TableCell>
-      </TableRow>
+          <Badge variant={excecoes.length ? "default" : "outline"} className="text-xs">
+            {excecoes.length ? `${excecoes.length} exceção(ões)` : "Sem exceções"}
+          </Badge>
+          <Badge variant="secondary" className="text-xs">Vale agora: {rotuloExigencia(simulado)}</Badge>
+        </div>
+
+        {expandido && (
+          <div className="mt-2 space-y-2 pl-5">
+            {excecoes.map((r) => (
+              <div key={r.id} className="flex flex-wrap items-center gap-2 text-xs bg-muted/40 rounded-md p-2">
+                <Badge variant="outline">{rotuloExigencia(r.exigencia)}</Badge>
+                <span className="flex-1 text-muted-foreground">{escopoTexto(r)}</span>
+                <Button
+                  type="button" size="sm" variant="ghost" className="h-8"
+                  onClick={() => setEditando({
+                    id: r.id, tipo, chave, label, exigencia: r.exigencia,
+                    unidades: r.unidades, cargos: r.cargos, regimes: r.regimes,
+                  })}
+                >
+                  <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                </Button>
+                <Button
+                  type="button" size="sm" variant="ghost" className="h-8 text-destructive"
+                  onClick={() => void removerExcecao(r.id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" /> Remover
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button" size="sm" variant="outline" className="h-9"
+              onClick={() => setEditando({
+                id: null, tipo, chave, label, exigencia: "obrigatorio",
+                unidades: [], cargos: [], regimes: [],
+              })}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Adicionar Exceção
+            </Button>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -175,39 +284,39 @@ export function AdmissaoRegrasPanel() {
       <Card>
         <CardContent className="p-3 sm:p-4 space-y-3">
           <div>
-            <h3 className="font-semibold text-sm">Para Quem Vale Esta Regra</h3>
+            <h3 className="font-semibold text-sm">Conferir Uma Combinação</h3>
             <p className="text-xs text-muted-foreground">
-              Sem escolher nada, a regra vale para toda a empresa. A regra mais específica vence:
-              cargo, depois tipo de vínculo, depois unidade.
+              Escolha unidade, tipo de vínculo e cargo para ver como cada item vai aparecer na ficha
+              do candidato. A regra mais específica vence: cargo, depois vínculo, depois unidade.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-1">
               <Label className="text-xs">Unidade</Label>
-              <Select value={unidadeId} onValueChange={setUnidadeId}>
-                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+              <Select value={simUnidade} onValueChange={setSimUnidade}>
+                <SelectTrigger className="h-10" aria-label="Unidade da simulação"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={TODOS}>Todas as unidades</SelectItem>
+                  <SelectItem value={TODOS}>Qualquer unidade</SelectItem>
                   {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Tipo de vínculo</Label>
-              <Select value={regime} onValueChange={setRegime}>
-                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+              <Select value={simRegime} onValueChange={setSimRegime}>
+                <SelectTrigger className="h-10" aria-label="Vínculo da simulação"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={TODOS}>Todos os vínculos</SelectItem>
-                  {REGIMES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                  <SelectItem value={TODOS}>Qualquer vínculo</SelectItem>
+                  {REGIMES_ADMISSAO.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Cargo</Label>
-              <Select value={cargoId} onValueChange={setCargoId}>
-                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+              <Select value={simCargo} onValueChange={setSimCargo}>
+                <SelectTrigger className="h-10" aria-label="Cargo da simulação"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={TODOS}>Todos os cargos</SelectItem>
+                  <SelectItem value={TODOS}>Qualquer cargo</SelectItem>
                   {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -225,41 +334,21 @@ export function AdmissaoRegrasPanel() {
           {grupos.map(([grupo, campos]) => (
             <Card key={grupo}>
               <CardContent className="p-3 sm:p-4">
-                <h3 className="font-semibold text-sm mb-2">{grupo}</h3>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Dado</TableHead>
-                      <TableHead>Como pedir</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {campos.map((c) => linha("campo", c.chave, c.label))}
-                  </TableBody>
-                </Table>
+                <h3 className="font-semibold text-sm mb-1">{grupo}</h3>
+                {campos.map((c) => linha("campo", c.chave, c.label))}
               </CardContent>
             </Card>
           ))}
 
           <Card>
             <CardContent className="p-3 sm:p-4">
-              <h3 className="font-semibold text-sm mb-2">Documentos</h3>
+              <h3 className="font-semibold text-sm mb-1">Documentos</h3>
               {!requisitos.length ? (
                 <p className="text-sm text-muted-foreground">
                   Nenhum documento cadastrado ainda para esta empresa.
                 </p>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Documento</TableHead>
-                      <TableHead>Como pedir</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {requisitos.map((r) => linha("documento", r.codigo, r.nome))}
-                  </TableBody>
-                </Table>
+                requisitos.map((r) => linha("documento", r.codigo, r.nome))
               )}
             </CardContent>
           </Card>
@@ -312,6 +401,88 @@ export function AdmissaoRegrasPanel() {
           </Card>
         </>
       )}
+
+      <Dialog open={!!editando} onOpenChange={(v) => (v ? null : setEditando(null))}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Exceção — {editando?.label}</DialogTitle>
+          </DialogHeader>
+          {editando && (
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <Label className="text-xs">Como pedir</Label>
+                <Select
+                  value={editando.exigencia}
+                  onValueChange={(v) => setEditando({ ...editando, exigencia: v as Exigencia })}
+                >
+                  <SelectTrigger className="h-10" aria-label="Como pedir"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {EXIGENCIAS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Unidades</Label>
+                <p className="text-xs text-muted-foreground">Sem marcar nenhuma, vale para todas.</p>
+                <div className="grid gap-1 sm:grid-cols-2">
+                  {unidades.map((u) => (
+                    <label key={u.id} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={editando.unidades.includes(u.id)}
+                        onCheckedChange={() =>
+                          setEditando({ ...editando, unidades: alternar(editando.unidades, u.id) })}
+                        aria-label={`Unidade ${u.nome}`}
+                      />
+                      {u.nome}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Tipos de vínculo</Label>
+                <p className="text-xs text-muted-foreground">Sem marcar nenhum, vale para todos.</p>
+                <div className="grid gap-1 sm:grid-cols-2">
+                  {REGIMES_ADMISSAO.map((r) => (
+                    <label key={r.value} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={editando.regimes.includes(r.value)}
+                        onCheckedChange={() =>
+                          setEditando({ ...editando, regimes: alternar(editando.regimes, r.value) })}
+                        aria-label={`Vínculo ${r.label}`}
+                      />
+                      {r.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Cargos</Label>
+                <p className="text-xs text-muted-foreground">Sem marcar nenhum, vale para todos.</p>
+                <div className="grid gap-1 sm:grid-cols-2">
+                  {cargos.map((c) => (
+                    <label key={c.id} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={editando.cargos.includes(c.id)}
+                        onCheckedChange={() =>
+                          setEditando({ ...editando, cargos: alternar(editando.cargos, c.id) })}
+                        aria-label={`Cargo ${c.nome}`}
+                      />
+                      {c.nome}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditando(null)}>Cancelar</Button>
+            <Button onClick={() => void salvarExcecao()} disabled={salvar.isPending}>Salvar Exceção</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
