@@ -69,11 +69,16 @@ interface Props {
   regimePadrao?: string | null;
   /** Abre o cadastro completo do colaborador criado por esta ficha. */
   onAbrirCadastro?: (colaboradorId: string) => void;
+  /**
+   * Conferência da ficha oficial de uma Pré-Admissão: cadastro e conclusão da
+   * pré-admissão acontecem na mesma operação.
+   */
+  preadmissaoId?: string | null;
 }
 
 export function FichaRevisaoCard({
   item, cargos, unidades, setores = [], turnos = [], unidadePadraoId, empresaCnpj,
-  setorPadraoId = null, regimePadrao = null, onAbrirCadastro,
+  setorPadraoId = null, regimePadrao = null, onAbrirCadastro, preadmissaoId = null,
 }: Props) {
   const extraidos = (item.dados_extraidos ?? {}) as Record<string, unknown>;
   const confianca = (item.confianca_campos ?? {}) as Record<string, string>;
@@ -159,11 +164,18 @@ export function FichaRevisaoCard({
         formaPagamento,
         possuiFolhaPonto,
         optanteAdiantamento,
+        preadmissaoId,
       },
       {
         onSuccess: () => {
           setComparacao(false);
-          toast.success(atualizar ? "Cadastro atualizado" : "Colaborador cadastrado");
+          toast.success(
+            preadmissaoId
+              ? "Pré-admissão concluída e cadastro criado"
+              : atualizar
+              ? "Cadastro atualizado"
+              : "Colaborador cadastrado",
+          );
         },
         onError: (e: Error) => notifyError(e, { surface: "Pessoas 360°", action: "concluir a ação" }),
       },

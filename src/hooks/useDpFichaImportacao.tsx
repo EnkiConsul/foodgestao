@@ -6,7 +6,11 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
 import { montarJornadaSugerida, type JornadaSugerida } from "@/lib/dp/ficha-registro/jornada-parse";
 import { digits, montarPayloadFicha, txt } from "@/lib/dp/ficha-registro/payload";
-import { aplicarFichaRpc, ignorarFichaRpc } from "@/lib/dp/ficha-registro/aplicarFichaRpc";
+import {
+  aplicarFichaRpc,
+  efetivarPreadmissaoComFichaRpc,
+  ignorarFichaRpc,
+} from "@/lib/dp/ficha-registro/aplicarFichaRpc";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
 import {
   anexarFichaRecorte,
@@ -203,6 +207,11 @@ export interface AplicarFichaInput {
   formaPagamento: string;
   possuiFolhaPonto: boolean;
   optanteAdiantamento: boolean;
+  /**
+   * Conferência da ficha oficial de uma Pré-Admissão: quando informado, o
+   * cadastro e a conclusão da pré-admissão acontecem na MESMA transação.
+   */
+  preadmissaoId?: string | null;
 }
 
 /** Resultado da aplicação: o cadastro é transacional; o anexo é separado. */
@@ -243,6 +252,7 @@ export function useAplicarFicha() {
       formaPagamento,
       possuiFolhaPonto,
       optanteAdiantamento,
+      preadmissaoId,
     }: AplicarFichaInput) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
       const nome = txt(dados.nome);
@@ -254,6 +264,33 @@ export function useAplicarFicha() {
       // ficha para as colunas do cadastro. Empresa, conta, perfil e permissões
       // nunca vão no payload.
       const dadosCadastro = montarPayloadFicha(dados as Record<string, unknown>);
+
+      // Conferência da ficha oficial de uma Pré-Admissão: cadastro + conclusão
+      // da pré-admissão em UMA transação, com familiares e documentos já
+      // enviados pelo candidato aproveitados pela própria rotina do banco.
+      if (preadmissaoId) {
+        const pr = await efetivarPreadmissaoComFichaRpc({
+          p_preadmissao_id: preadmissaoId,
+          p_item_id: item.id,
+          p_dados: { ...dadosCadastro, nome, cpf },
+          p_campos: camposPermitidos ?? null,
+          p_cargo_id: cargoId,
+          p_unidade_id: unidadeId,
+          p_setor_id: setorId ?? null,
+          p_turno_id: turnoId ?? null,
+          p_regime: regime ?? null,
+          p_forma_pagamento: formaPagamento,
+          p_jornada: jornada && !jornada.vazia
+            ? { dias: jornada.dias as unknown as Array<Record<string, unknown>> }
+            : null,
+          p_justificativa: null,
+        });
+        return {
+          colaboradorId: pr.colaborador_id,
+          jaAplicado: !!pr.ja_aplicado,
+          anexo: "nao_solicitado" as AnexoFichaStatus,
+        };
+      }
 
       const res = await aplicarFichaRpc({
         p_item_id: item.id,

@@ -355,18 +355,31 @@ function dumpSchema() {
   log("estrutura exportada nesta execução (sem reuso de snapshot; nenhum dado copiado)");
 }
 
-/** Restore estrito: --exit-on-error, exit 0 obrigatório, sem allowlist por nome. */
+/**
+ * Restore estrito: nenhuma allowlist por nome, qualquer erro reprova.
+ *
+ * O pg_restore 17.9 emite `\restrict`/`\unrestrict` (guarda anti-injeção do
+ * cliente) também no caminho direto para o banco, e o servidor rejeita esses
+ * meta-comandos. Por isso o restore é materializado em TEXTO e apenas essas
+ * duas linhas de meta-comando são removidas — nenhum objeto é filtrado — antes
+ * de aplicar com psql -v ON_ERROR_STOP=1.
+ */
 function restoreSchema() {
-  const r = run(
-    "pg_restore",
-    ["--exit-on-error", "-L", SCHEMA_LIST, "-d", DB, SCHEMA_FILE],
-    { env: targetEnv() }
-  );
-  if (r.error) throw new Error(`pg_restore do restore não executou: ${r.error.message}`);
+  const sqlFile = join(tmpdir(), `p04_schema_${process.pid}.sql`);
+  const bruto = must("pg_restore", ["-L", SCHEMA_LIST, "-f", "-", SCHEMA_FILE], { env: process.env });
+  const linhas = bruto.split("\n");
+  const limpo = linhas.filter((l) => !/^\\(un)?restrict\b/.test(l));
+  const removidas = linhas.length - limpo.length;
+  if (removidas > 2) throw new Error(`pré-processamento removeu ${removidas} linhas (esperado ≤ 2)`);
+  writeFileSync(sqlFile, limpo.join("\n"));
+
+  const r = run("psql", ["-v", "ON_ERROR_STOP=1", "-d", DB, "-f", sqlFile], { env: targetEnv() });
+  rmSync(sqlFile, { force: true });
+  if (r.error) throw new Error(`psql do restore não executou: ${r.error.message}`);
   const errors = (r.stderr || "")
     .split("\n")
     .filter((l) => /ERROR:|FATAL:|error:/.test(l))
-    .map((l) => l.replace(/^pg_restore:[^ ]+ /, "").trim());
+    .map((l) => l.trim());
   if (r.status !== 0 || errors.length > 0) {
     const amostra = errors.length
       ? errors
@@ -376,7 +389,9 @@ function restoreSchema() {
       `restore reprovado (exit ${r.status}, ${errors.length} erro(s)) — validação inválida`
     );
   }
-  log("restore concluído com --exit-on-error: exit 0 e nenhum erro");
+  log(
+    `restore concluído com ON_ERROR_STOP=1: exit 0, nenhum erro (${removidas} meta-comando(s) de cliente removido(s))`
+  );
   return { exit_code: r.status, erros: 0 };
 }
 

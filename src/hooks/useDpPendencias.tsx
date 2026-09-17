@@ -1279,6 +1279,37 @@ export function useDpPendencias() {
         console.warn("pendencias/cadastro-incompleto:", e);
       }
 
+      // Pré-Admissões que esperam uma ação do DP: revisar a ficha do candidato,
+      // enviar à contabilidade ou criar o cadastro depois da ficha conferida.
+      try {
+        const { data: preadms } = await supabase
+          .from("dp_preadmissoes")
+          .select("id, candidato_nome, status, enviado_em, ficha_oficial_conferida_em, updated_at")
+          .eq("company_id", selectedCompanyId!)
+          .in("status", ["aguardando_revisao", "aguardando_nova_versao", "pronto_contabilidade", "registro_recebido"]);
+        for (const pa of (preadms ?? []) as any[]) {
+          const acao = pa.status === "registro_recebido"
+            ? "Conferir a ficha oficial e criar o cadastro"
+            : pa.status === "pronto_contabilidade"
+              ? "Enviar a ficha à contabilidade"
+              : "Revisar os dados e documentos enviados";
+          const desde = pa.enviado_em || pa.updated_at;
+          results.push({
+            id: `preadmissao-${pa.id}`,
+            icon: UserCog,
+            titulo: `Pré-admissão de ${pa.candidato_nome}`,
+            subtitulo: acao,
+            tipo: "Pré-Admissão",
+            colaboradorNome: pa.candidato_nome,
+            vencimento: null,
+            atrasoDias: desde ? Math.max(0, differenceInCalendarDays(today, new Date(desde))) : 0,
+            url: "/dp/colaboradores/pre-admissoes",
+          });
+        }
+      } catch (e) {
+        console.warn("pendencias/preadmissao:", e);
+      }
+
       // Comprovante de pagamento em falta nos documentos de pagamento.
       // Só cobra documentos ativos a partir da data de início configurada.
       if (cfg.exigir_comprovante_pagamento) {
