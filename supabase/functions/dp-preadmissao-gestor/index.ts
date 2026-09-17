@@ -167,13 +167,35 @@ Deno.serve(async (req) => {
     }
 
     if (acao === "salvar_admin") {
-      const entrada = (body?.admin_dados ?? {}) as Record<string, unknown>;
+      if (!gestorPodeAlterar(pa.status)) {
+        return jsonResponse(req, 409, { error: "Esta pré-admissão já foi encerrada.", status: pa.status });
+      }
+      const val = validarAdminDados(body?.admin_dados ?? {});
+      if (val.fora.length) {
+        return jsonResponse(req, 400, { error: "Pedido inválido: campos não permitidos.", campos: val.fora });
+      }
+      if (Object.keys(val.erros).length) {
+        return jsonResponse(req, 400, { error: "Confira os dados administrativos.", erros: val.erros });
+      }
+      const refInvalida = await referenciasDaEmpresa(admin, pa.company_id, val.referencias);
+      if (refInvalida) {
+        return jsonResponse(req, 400, { error: "A referência informada não pertence a esta empresa.", campo: refInvalida });
+      }
+      // Relê a ficha para mesclar sobre o estado atual, não sobre o carregado.
+      const { data: fresca } = await admin.from("dp_preadmissoes")
+        .select("status, admin_dados").eq("id", pa.id).maybeSingle();
+      if (!fresca || !gestorPodeAlterar(String(fresca.status))) {
+        return jsonResponse(req, 409, { error: "Esta pré-admissão já foi encerrada.", status: fresca?.status });
+      }
       // Versão sobe: uma conferência iniciada antes disso não será aplicada.
       const t = await transicionarComVersao(admin, pa.id, null, null, {
-        admin_dados: { ...(pa.admin_dados ?? {}), ...entrada },
+        admin_dados: { ...((fresca.admin_dados ?? {}) as Record<string, unknown>), ...val.campos },
       });
       if (!t.ok) return jsonError(req, "internal", "não foi possível salvar os dados administrativos");
-      await registrarEvento(admin, pa.id, pa.company_id, "dados_administrativos_salvos", {}, caller.id);
+      await registrarEvento(
+        admin, pa.id, pa.company_id, "dados_administrativos_salvos",
+        { campos: Object.keys(val.campos) }, caller.id,
+      );
       return jsonResponse(req, 200, { success: true, ...(await montar()) });
     }
 
