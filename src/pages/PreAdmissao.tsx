@@ -349,7 +349,7 @@ export default function PreAdmissao() {
       aplicar(await chamar<Estado>("dp-preadmissao-publica", { t, c, action: "ler" }));
       toast.success("Documento enviado");
     } catch (e) {
-      tratarFalha(e);
+      void tratarFalha(e);
     } finally {
       setSubindo(null);
       alvo.current = null;
@@ -366,7 +366,7 @@ export default function PreAdmissao() {
       });
       window.open(r.url, "_blank", "noopener");
     } catch (e) {
-      tratarFalha(e);
+      void tratarFalha(e);
     }
   };
 
