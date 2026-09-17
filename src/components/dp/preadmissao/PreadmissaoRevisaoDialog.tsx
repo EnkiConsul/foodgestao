@@ -177,6 +177,40 @@ th{width:220px;background:#f6f6f6;text-transform:capitalize}ul{font-size:12px}</
     }
   };
 
+  /**
+   * Baixa os documentos vigentes com nomes organizados
+   * (candidato-documento-titular). Nada é enviado para fora do sistema.
+   */
+  const [baixando, setBaixando] = useState(false);
+  const baixarDocumentos = async () => {
+    if (!data || !vigentes.length) return;
+    setBaixando(true);
+    const limpar = (s: string) =>
+      s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w.-]+/g, "-").toLowerCase();
+    try {
+      for (const d of vigentes) {
+        const url = await abrirDocumentoPreadmissao(d.id);
+        const resposta = await fetch(url);
+        if (!resposta.ok) throw new Error("Não foi possível baixar o arquivo.");
+        const blob = await resposta.blob();
+        const extensao = d.file_name.includes(".") ? d.file_name.split(".").pop() : "bin";
+        const nome = limpar(
+          `${data.preadmissao.candidato_nome}-${d.requisito_codigo}-${nomePessoa(d.pessoa_id)}`,
+        );
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${nome}.${extensao}`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      }
+      toast.success("Documentos baixados.");
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "baixar os documentos" });
+    } finally {
+      setBaixando(false);
+    }
+  };
+
   const executar = async (fn: () => Promise<unknown>, ok: string) => {
     try {
       await fn();
