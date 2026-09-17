@@ -317,6 +317,65 @@ export const HELP_CONTENT = {
     texto: "Visão de folgas, férias, ausências e feriados no mês, por unidade.",
   },
 
+
+  // ── Seções (abas) de Pessoas 360° ──
+  "dp.complementosSalariais": {
+    titulo: "Complementos Salariais",
+    texto: "Adicionais por tempo de serviço, salário-família e prêmios ligados ao cargo. Entram no cálculo da remuneração da pessoa.",
+  },
+  "dp.sindicatosLaborais": {
+    titulo: "Sindicatos Laborais",
+    texto: "Sindicato dos trabalhadores por unidade, com documentos da convenção que embasam pisos e regras.",
+  },
+  "dp.folgasSolicitacoes": {
+    titulo: "Solicitações de Folga",
+    texto: "Pedidos do time aguardando decisão, com prazo e histórico de cada análise.",
+  },
+  "dp.folgasRegras": {
+    titulo: "Regras de Folga",
+    texto: "Limites por dia, datas bloqueadas e janela de escolha usados na atribuição das folgas.",
+  },
+  "dp.trocasGestor": {
+    titulo: "Trocas de Turno",
+    texto: "Trocas propostas entre colegas. Só valem após o aceite dos dois e a aprovação do gestor.",
+  },
+  "dp.conformidadeDsr": {
+    titulo: "Conformidade",
+    texto: "Aponta descanso semanal e folga em domingo fora da regra, para correção antes de publicar a escala.",
+  },
+  "dp.beneficiosCalculo": {
+    titulo: "Cálculo Mensal de Benefícios",
+    texto: "Apura vales do mês por dia útil, aplicando corte, faltas, folgas, atestados e férias.",
+  },
+  "dp.beneficiosCatalogo": {
+    titulo: "Cadastro de Benefícios",
+    texto: "Benefícios disponíveis e seus padrões por cargo, unidade ou empresa.",
+  },
+  "dp.beneficiosHistorico": {
+    titulo: "Histórico de Benefícios",
+    texto: "Apurações já fechadas, para conferência e reemissão de relatórios.",
+  },
+  "dp.colaboradoresIncompletos": {
+    titulo: "Cadastros Incompletos",
+    texto: "Pessoas com dados obrigatórios faltando. Complete a ficha para liberar escalas, benefícios e documentos.",
+  },
+  "dp.rotinaDia": {
+    titulo: "Rotina do Dia",
+    texto: "Situação de hoje por turno, com quem está escalado e onde falta cobertura.",
+  },
+  "dp.rotinaMes": {
+    titulo: "Rotina do Mês",
+    texto: "Visão mensal por dia, com padrão histórico do dia da semana e alertas dispensáveis.",
+  },
+  "dp.feriasStatus": {
+    titulo: "Status de Férias",
+    texto: "Saldo, período aquisitivo e prazo de cada pessoa, com sinalização de risco de dobra.",
+  },
+  "dp.feriasContabilidade": {
+    titulo: "Férias para a Contabilidade",
+    texto: "Consolida os períodos concedidos para envio ao escritório, sem calcular folha no sistema.",
+  },
+
   // ───────────────────────────── Portal do Colaborador ─────────────────────────────
   "portal.inicio": {
     titulo: "Portal do Colaborador",
