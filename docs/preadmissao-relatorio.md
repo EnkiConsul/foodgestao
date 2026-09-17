@@ -237,3 +237,63 @@ Revisão atendida (código 3c3195): gravação de dados + familiares/remoções 
 
 ### Ainda pendente
 - Testes de integração das telas, aviso de CPF já cadastrado antes do convite e QA nas demais resoluções.
+
+## Incremento 6 — Recontratação no caminho de conclusão
+
+### Achado (revisão do caminho feliz)
+Na migração `20260917000527`, o ramo de recontratação de `dp_preadmissao_efetivar_com_ficha`
+chamava `dp_recontratar_colaborador` mas **não vinculava o item da importação** ao colaborador.
+Em seguida, `dp_preadmissao_efetivar(pa, colab, p_item_id)` exige item da mesma empresa com
+`status in ('criado','atualizado')` e `colaborador_id` correspondente — logo, toda conclusão por
+recontratação falhava e a transação era revertida. Consolidado com a revisão de `salvar`+`enviar`
+(incremento 5): as duas correções tratam a mesma classe de risco — mutação fora do escopo
+validado/travado da transição.
+
+### Correção (migração nova, sem alterar dados)
+Ordem em `dp_preadmissao_efetivar_com_ficha`, agora com **toda validação antes de qualquer mutação**:
+1. ficha, permissão, lock por pré-admissão, idempotência, status `registro_recebido` + ficha oficial
+   conferida, CPF da pré-admissão igual ao CPF da ficha conferida;
+2. item da importação: existe, é da **mesma empresa**, o CPF extraído (quando houver) é o mesmo,
+   não foi aplicado a **outro** colaborador e não aponta para outro cadastro;
+3. colaborador existente pelo CPF: ativo → recusa; ex-colaborador → checa que a nova admissão é
+   posterior ao desligamento (mensagem clara, antes de escrever qualquer coisa).
+Só então muta, na mesma transação: item passa a apontar para o cadastro existente →
+`dp_ficha_aplicar(..., p_atualizar_existente := true)` aplica os **dados pessoais conferidos** e
+vincula o item (`status = 'atualizado'`, `colaborador_id`) → `dp_recontratar_colaborador` grava o
+**novo vínculo administrativo** (admissão, cargo, unidade, setor, salário, regime, forma de
+pagamento, histórico canônico) → `dp_preadmissao_efetivar` conclui e leva familiares e documentos.
+
+### Teste do caminho feliz (importação sintética válida)
+`supabase/tests/dp_preadmissao_recontratacao.sql`, executado no banco com fixtures fictícias
+(`*@example.test`) e **encerrado com erro proposital** — a transação é abortada, nada persiste.
+Resultado: `modo = recontratacao`, `documentos = 1`, colaborador do CPF reativado com
+`data_admissao = 2026-09-20`, `data_desligamento = null`, `nome_mae` conferido preservado,
+`salario_base = 2500`, histórico de condições com vigência na nova admissão, item da importação
+`atualizado` e vinculado, pré-admissão `concluido` com `ficha_importacao_item_id` e
+`vinculo_admissao_em`.
+
+### Prova de implementação × teste simultâneo (correção do relatório)
+- **Prova de implementação (sequencial):** a segunda chamada da mesma rotina devolveu
+  `ja_aplicado = true` (idempotência). Chamadas sequenciais e índices únicos **não** são teste de
+  concorrência — passam a ser descritos assim em todo o relatório.
+- **Teste simultâneo real (duas sessões concorrentes):** feito para `salvar`/`enviar` da ficha do
+  candidato (incremento 5, `docs/security/preadmissao-concorrencia.report.json`: lock de 3,03 s,
+  recusa por versão alterada e por fase encerrada). Para `dp_preadmissao_efetivar_com_ficha` a
+  proteção implementada é `FOR UPDATE` na pré-admissão + `pg_advisory_xact_lock` por ficha +
+  `FOR UPDATE` no item e no colaborador; o teste com **duas sessões simultâneas** desse caminho
+  segue **pendente** (exige banco descartável com réplica das tabelas da importação).
+
+### Interface
+- Conclusão pela conferência da ficha oficial devolve o modo; quando é recontratação, a tela avisa:
+  "Recontratação registrada: o cadastro anterior foi reativado com um novo vínculo e os dados
+  conferidos." A lista de pré-admissões é recarregada junto.
+- 36 testes unitários verdes, `npx tsgo --noEmit` sem erros, linter do banco com os mesmos 234 avisos
+  pré-existentes. Nada publicado.
+
+### Rollback
+Recriar a versão anterior de `dp_preadmissao_efetivar_com_ficha` (SQL na migração
+`20260917000527`). Nenhuma coluna, índice ou dado é alterado por esta correção.
+
+### Ainda pendente
+- Teste de concorrência simultânea da efetivação com ficha; testes de integração das telas;
+  aviso de CPF já cadastrado antes do convite; QA nas demais resoluções.

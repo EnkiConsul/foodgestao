@@ -35,3 +35,5 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [x] Pré-Admissão — incremento 4: telas do gestor (lista, convite, revisão), página pública do candidato e pendências
 - [x] Pré-Admissão — incremento 5: concorrência (versão da ficha, gravação de familiares na mesma transação travada, payload da raiz/familiares recusado)
 - [x] Pré-Admissão — incremento 3: integridade composta, cliente somente leitura, promoção atômica com CPF/ficha conferida, documentos com titular/finalidade e vínculo por admissão
+- [x] Pré-Admissão — incremento 6: recontratação no caminho de conclusão (validação antes de mutar, item vinculado, dados pessoais/administrativos preservados, teste do caminho feliz)
+- [ ] Pré-Admissão — teste de concorrência simultânea da efetivação com ficha (duas sessões)
