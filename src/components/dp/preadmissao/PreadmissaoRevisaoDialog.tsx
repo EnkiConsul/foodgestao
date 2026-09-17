@@ -36,12 +36,14 @@ const REGIMES = [
   { value: "freelancer", label: "Freelancer (sem registro)" },
 ];
 
+/** Formas de pagamento canônicas do DP (mesmos valores do cadastro). */
 const FORMAS = [
-  { value: "mensal", label: "Mensal" },
-  { value: "quinzenal", label: "Quinzenal" },
+  { value: "mensalista", label: "Mensalista" },
+  { value: "horista", label: "Horista" },
+  { value: "diarista", label: "Diarista" },
   { value: "semanal", label: "Semanal" },
-  { value: "diaria", label: "Diária" },
-  { value: "horista", label: "Por hora" },
+  { value: "por_turno", label: "Por turno" },
+  { value: "servico_acordo", label: "Por serviço / acordo" },
 ];
 
 /** Campos da ficha mostrados na conferência, em linguagem de tela. */
