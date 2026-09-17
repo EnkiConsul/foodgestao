@@ -431,6 +431,7 @@ export const MOTIVOS_GRAVACAO: Record<string, string> = {
   pessoa_data: "Informe uma data de nascimento válida para o familiar.",
   pessoa_data_futura: "A data de nascimento do familiar não pode ser futura.",
   pessoa_desconhecida: "Um dos familiares informados não pertence mais a esta ficha. Recarregue a página.",
+  pessoa_duplicada: "O mesmo familiar foi enviado duas vezes. Recarregue a página e tente novamente.",
   titular_invalido: "O familiar deste documento não pertence a esta ficha.",
 };
 
