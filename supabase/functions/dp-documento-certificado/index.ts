@@ -45,18 +45,35 @@ function limpar(v: unknown): string {
     .replace(/[^\x20-\xFF\n]/g, "");
 }
 
-/** Quebra o texto em linhas que caibam na largura informada. */
+/** Quebra o texto em linhas que caibam na largura, inclusive palavras longas. */
 function linhas(texto: string, fonte: PDFFont, tamanho: number, largura: number): string[] {
-  const palavras = limpar(texto).split(/\s+/).filter(Boolean);
+  const partir = (palavra: string): string[] => {
+    if (fonte.widthOfTextAtSize(palavra, tamanho) <= largura) return [palavra];
+    const pedacos: string[] = [];
+    let atual = "";
+    for (const ch of palavra) {
+      if (fonte.widthOfTextAtSize(atual + ch, tamanho) > largura && atual) {
+        pedacos.push(atual);
+        atual = ch;
+      } else {
+        atual += ch;
+      }
+    }
+    if (atual) pedacos.push(atual);
+    return pedacos;
+  };
+
   const saida: string[] = [];
   let atual = "";
-  for (const p of palavras) {
-    const teste = atual ? `${atual} ${p}` : p;
-    if (fonte.widthOfTextAtSize(teste, tamanho) > largura && atual) {
-      saida.push(atual);
-      atual = p;
-    } else {
-      atual = teste;
+  for (const palavra of limpar(texto).split(/\s+/).filter(Boolean)) {
+    for (const p of partir(palavra)) {
+      const teste = atual ? `${atual} ${p}` : p;
+      if (fonte.widthOfTextAtSize(teste, tamanho) > largura && atual) {
+        saida.push(atual);
+        atual = p;
+      } else {
+        atual = teste;
+      }
     }
   }
   if (atual) saida.push(atual);
@@ -88,7 +105,7 @@ function paginaCertificado(pdf: PDFDocument, fonte: PDFFont, negrito: PDFFont, d
   const largura = width - margem * 2;
   let y = height - margem;
 
-  page.drawText("Certificado de Validacao de Documento", {
+  page.drawText("Certificado de Validação de Documento", {
     x: margem, y: y - 8, size: 17, font: negrito, color: rgb(0.06, 0.11, 0.24),
   });
   y -= 28;
@@ -104,14 +121,14 @@ function paginaCertificado(pdf: PDFDocument, fonte: PDFFont, negrito: PDFFont, d
     ["Colaborador", d.colaborador],
     ["Documento", d.documentoTitulo],
     ["Tipo", d.documentoTipo],
-    ["Competencia", d.competencia],
-    ["Data e hora da aprovacao", dataHora(d.aceitoEm)],
+    ["Competência", d.competencia],
+    ["Data e hora da aprovação", dataHora(d.aceitoEm)],
     ["Aprovado por", d.aprovadoPor],
-    ["Endereco IP", d.ip],
+    ["Endereço IP", d.ip],
     ["Arquivo", d.arquivo],
     ["Dispositivo / navegador", d.dispositivo],
-    ["Codigo do registro", d.registroId],
-    ["Impressao digital do conteudo", d.conteudoHash],
+    ["Código do registro", d.registroId],
+    ["Impressão digital do conteúdo", d.conteudoHash],
   ];
 
   for (const [rotulo, valor] of campos) {
@@ -129,9 +146,9 @@ function paginaCertificado(pdf: PDFDocument, fonte: PDFFont, negrito: PDFFont, d
   y -= 8;
   const texto =
     "Este certificado comprova que o colaborador acima acessou e aprovou eletronicamente o documento " +
-    "identificado, declarando ter conferido e concordado com o seu conteudo. A aprovacao foi registrada pelo " +
-    "sistema com data, hora, endereco de internet e identificacao do dispositivo utilizado, alem da impressao " +
-    "digital do conteudo aprovado, que permite verificar que o arquivo nao foi alterado depois. As paginas " +
+    "identificado, declarando ter conferido e concordado com o seu conteúdo. A aprovação foi registrada pelo " +
+    "sistema com data, hora, endereço de internet e identificação do dispositivo utilizado, além da impressão " +
+    "digital do conteúdo aprovado, que permite verificar que o arquivo não foi alterado depois. As páginas " +
     "seguintes reproduzem o documento assinado e, quando houver, o comprovante de pagamento anexado.";
   for (const linha of linhas(texto, fonte, 9.5, largura)) {
     page.drawText(linha, { x: margem, y, size: 9.5, font: fonte, color: rgb(0.25, 0.25, 0.25) });
@@ -153,14 +170,14 @@ function paginaAnexo(pdf: PDFDocument, fonte: PDFFont, negrito: PDFFont, arquivo
   const { width, height } = page.getSize();
   const margem = 48;
   let y = height - 120;
-  page.drawText("Anexo - Comprovante de pagamento", {
+  page.drawText("Anexo — Comprovante de pagamento", {
     x: margem, y, size: 15, font: negrito, color: rgb(0.06, 0.11, 0.24),
   });
   y -= 24;
   for (
     const linha of linhas(
       `Arquivo: ${arquivo || "—"}. Pagamento registrado em ${pagoEm}. Este comprovante acompanha o documento ` +
-        "aprovado como anexo e nao possui validacao digital propria.",
+        "aprovado como anexo e não possui validação digital própria.",
       fonte, 10.5, width - margem * 2,
     )
   ) {
@@ -185,7 +202,7 @@ async function anexarArquivo(
       for (const p of paginas) pdf.addPage(p);
       return null;
     } catch {
-      return `Nao foi possivel reproduzir o arquivo "${nome}" neste certificado. O original continua guardado e disponivel para download.`;
+      return `Não foi possível reproduzir o arquivo "${nome}" neste certificado. O original continua guardado e disponível para download.`;
     }
   }
   try {
@@ -205,7 +222,7 @@ async function anexarArquivo(
     });
     return null;
   } catch {
-    return `Nao foi possivel reproduzir o arquivo "${nome}" neste certificado. O original continua guardado e disponivel para download.`;
+    return `Não foi possível reproduzir o arquivo "${nome}" neste certificado. O original continua guardado e disponível para download.`;
   }
 }
 
@@ -218,7 +235,7 @@ function rodape(pdf: PDFDocument, fonte: PDFFont, d: Dados): void {
     `${d.empresa} · ${d.colaborador} · ${d.documentoTitulo}`,
   );
   const linha2 = limpar(
-    `Aprovado em ${dataHora(d.aceitoEm)} · Registro ${d.registroId} · Conteudo ${hash}`,
+    `Aprovado em ${dataHora(d.aceitoEm)} · Registro ${d.registroId} · Conteúdo ${hash}`,
   );
   paginas.forEach((page: PDFPage, i: number) => {
     const { width } = page.getSize();
@@ -230,7 +247,7 @@ function rodape(pdf: PDFDocument, fonte: PDFFont, d: Dados): void {
     });
     page.drawText(linha1.slice(0, 130), { x: margem, y: 22, size: 6.5, font: fonte, color: rgb(0.4, 0.4, 0.4) });
     page.drawText(linha2.slice(0, 150), { x: margem, y: 12, size: 6.5, font: fonte, color: rgb(0.4, 0.4, 0.4) });
-    const pag = `Pagina ${i + 1} de ${total}`;
+    const pag = `Página ${i + 1} de ${total}`;
     page.drawText(pag, {
       x: width - margem - fonte.widthOfTextAtSize(pag, 6.5),
       y: 12, size: 6.5, font: fonte, color: rgb(0.4, 0.4, 0.4),
@@ -240,15 +257,15 @@ function rodape(pdf: PDFDocument, fonte: PDFFont, d: Dados): void {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return erro(405, "Metodo invalido.");
+  if (req.method !== "POST") return erro(405, "Método inválido.");
 
   let documentoId = "";
   try {
     const caller = await requireUser(req);
-    if (!caller) return erro(401, "Sessao expirada. Entre novamente.");
+    if (!caller) return erro(401, "Sessão expirada. Entre novamente.");
 
     const parsed = Body.safeParse(await req.json().catch(() => ({})));
-    if (!parsed.success) return erro(400, "Documento invalido.");
+    if (!parsed.success) return erro(400, "Documento inválido.");
     documentoId = parsed.data.documento_id;
 
     // A permissão é a mesma das telas: a função roda no contexto de quem pediu.
@@ -260,7 +277,7 @@ Deno.serve(async (req) => {
     const doc = (Array.isArray(arqDoc) ? arqDoc[0] : arqDoc) as
       | { file_path: string; file_name: string | null; mime_type: string | null }
       | null;
-    if (!doc?.file_path) return erro(403, "Sem permissao para este documento.");
+    if (!doc?.file_path) return erro(403, "Sem permissão para este documento.");
 
     const { data: arqComp } = await cliente.rpc("dp_documento_arquivo", {
       _documento_id: documentoId,
@@ -276,7 +293,7 @@ Deno.serve(async (req) => {
       .select("id, company_id, colaborador_id, titulo, tipo, referencia_data, comprovante_pago_em, comprovante_file_name")
       .eq("id", documentoId)
       .maybeSingle();
-    if (!registro) return erro(404, "Documento nao encontrado.");
+    if (!registro) return erro(404, "Documento não encontrado.");
 
     const { data: aceite } = await admin
       .from("dp_documento_aceites")
@@ -285,10 +302,10 @@ Deno.serve(async (req) => {
       .order("aceito_em", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (!aceite) return erro(409, "Este documento ainda nao foi aprovado pelo colaborador.");
+    if (!aceite) return erro(409, "Este documento ainda não foi aprovado pelo colaborador.");
 
     const [{ data: empresa }, { data: colab }] = await Promise.all([
-      admin.from("companies").select("razao_social, nome_fantasia, name").eq("id", registro.company_id).maybeSingle(),
+      admin.from("companies").select("name, trade_name").eq("id", registro.company_id).maybeSingle(),
       admin.from("dp_colaboradores").select("nome, nome_social").eq("id", registro.colaborador_id).maybeSingle(),
     ]);
 
@@ -299,9 +316,7 @@ Deno.serve(async (req) => {
 
     const empresaNome = (empresa as Record<string, unknown> | null);
     const dados: Dados = {
-      empresa: String(
-        empresaNome?.razao_social ?? empresaNome?.nome_fantasia ?? empresaNome?.name ?? "",
-      ),
+      empresa: String(empresaNome?.name ?? empresaNome?.trade_name ?? ""),
       colaborador: String(colab?.nome_social || colab?.nome || ""),
       documentoTitulo: String(registro.titulo ?? ""),
       documentoTipo: String(registro.tipo ?? ""),
@@ -322,7 +337,7 @@ Deno.serve(async (req) => {
     // Documento assinado
     const baixarDoc = await admin.storage.from(BUCKET).download(doc.file_path);
     if (baixarDoc.error || !baixarDoc.data) {
-      avisos.push("O arquivo do documento nao pudo ser lido no momento da emissao deste certificado.");
+      avisos.push("O arquivo do documento não pôde ser lido no momento da emissão deste certificado.");
     }
 
     // Comprovante (anexo, mesmo sem validação digital própria)
@@ -330,7 +345,7 @@ Deno.serve(async (req) => {
     if (comp?.file_path) {
       const baixarComp = await admin.storage.from(BUCKET).download(comp.file_path);
       if (baixarComp.data) compBytes = new Uint8Array(await baixarComp.data.arrayBuffer());
-      else avisos.push("O comprovante de pagamento nao pudo ser lido no momento da emissao.");
+      else avisos.push("O comprovante de pagamento não pôde ser lido no momento da emissão.");
     }
 
     // Página 1 depois dos avisos conhecidos do download.
@@ -367,7 +382,7 @@ Deno.serve(async (req) => {
       try {
         await pdf.attach(compBytes, String(comp?.file_name ?? "comprovante-pagamento"), {
           mimeType: String(comp?.mime_type ?? "application/octet-stream"),
-          description: "Comprovante de pagamento (sem validacao digital propria)",
+          description: "Comprovante de pagamento (sem validação digital própria)",
         });
       } catch {
         // anexo embutido é complementar: as páginas visíveis já garantem a leitura
@@ -378,7 +393,7 @@ Deno.serve(async (req) => {
       // Avisos descobertos na montagem entram em uma página final de observações.
       const page = pdf.addPage(A4);
       let y = page.getHeight() - 120;
-      page.drawText("Observacoes", { x: 48, y, size: 14, font: negrito, color: rgb(0.6, 0.2, 0.05) });
+      page.drawText("Observações", { x: 48, y, size: 14, font: negrito, color: rgb(0.6, 0.2, 0.05) });
       y -= 24;
       for (const aviso of pendentes) {
         for (const linha of linhas(aviso, fonte, 10.5, page.getWidth() - 96)) {
@@ -404,10 +419,10 @@ Deno.serve(async (req) => {
   } catch (e) {
     await recordEdgeError({
       functionName: FUNCAO,
-      action: "emitir certificado de validacao",
+      action: "emitir certificado de validação",
       error: e,
       details: { documento_id: documentoId },
     });
-    return erro(500, "Nao foi possivel gerar o certificado agora.");
+    return erro(500, "Não foi possível gerar o certificado agora.");
   }
 });
