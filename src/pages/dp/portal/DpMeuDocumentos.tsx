@@ -301,7 +301,7 @@ export default function DpMeuDocumentos() {
    * outra aba é bloqueado).
    */
   const [arquivoAberto, setArquivoAberto] = useState<
-    { url: string; titulo: string; revogar?: () => void } | null
+    { url: string; titulo: string; mime?: string; revogar?: () => void } | null
   >(null);
   const [gerando, setGerando] = useState<string | null>(null);
 
@@ -310,7 +310,7 @@ export default function DpMeuDocumentos() {
     setGerando(d.id);
     try {
       const { url, revogar } = await certificadoValidacaoPdf(documentoId);
-      setArquivoAberto({ url, titulo: `Certificado de validação — ${d.titulo}`, revogar });
+      setArquivoAberto({ url, titulo: `Certificado de validação — ${d.titulo}`, mime: "application/pdf", revogar });
     } catch (e) {
       toast.error((e as Error).message || "Não foi possível gerar o certificado agora.");
     } finally {
@@ -637,7 +637,7 @@ export default function DpMeuDocumentos() {
         }}
         title={arquivoAberto?.titulo}
         url={arquivoAberto?.url}
-        mime="application/pdf"
+        mime={arquivoAberto?.mime}
       />
 
     </DpPage>
