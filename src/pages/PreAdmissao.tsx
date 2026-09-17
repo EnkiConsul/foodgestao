@@ -407,15 +407,17 @@ export default function PreAdmissao() {
     }
   };
 
-  const escolherArquivo = (item: ChecklistItem) => {
-    alvo.current = item;
+  /** Cada documento aceita mais de uma foto (frente, verso e extras). */
+  const escolherArquivo = (item: ChecklistItem, parte: number) => {
+    alvo.current = { ...item, parte };
     fileRef.current?.click();
   };
 
   const enviarArquivo = async (arquivo: File) => {
     const item = alvo.current;
     if (!item) return;
-    setSubindo(item.key);
+    const parte = Math.min(Math.max(item.parte ?? 1, 1), 10);
+    setSubindo(`${item.key}:${parte}`);
     try {
       const base64 = await lerBase64(arquivo);
       await chamar<{ success: boolean }>("dp-preadmissao-arquivo", {
@@ -425,9 +427,11 @@ export default function PreAdmissao() {
         pessoa_id: item.pessoa_id ?? null,
         file_name: arquivo.name,
         content_base64: base64,
+        parte,
+        parte_rotulo: rotuloParte(parte),
       });
       aplicar(await chamar<Estado>("dp-preadmissao-publica", { t, c, action: "ler" }));
-      toast.success("Documento enviado");
+      toast.success(`${rotuloParte(parte)} enviada`);
     } catch (e) {
       void tratarFalha(e);
     } finally {
