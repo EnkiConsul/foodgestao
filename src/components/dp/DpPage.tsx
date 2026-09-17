@@ -55,6 +55,11 @@ interface DpPageHeaderProps {
   className?: string;
   /** Classe extra do container de ações (ex.: manter ações na mesma linha do título no mobile). */
   actionsClassName?: string;
+  /**
+   * Ajuda contextual do título. Quando omitida, o título principal da tela usa
+   * o registro de rota; seções embutidas só mostram ajuda se a chave for dada.
+   */
+  help?: HelpKey | null;
 }
 
 function HeaderActions({
