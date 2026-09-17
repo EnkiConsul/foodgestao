@@ -1558,6 +1558,15 @@ export function ColaboradorFormDialog({
         domingos_folga_mes: domingosFolgaMes,
         email: form.email.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
+        // Endereço estruturado: guardamos só o que foi preenchido.
+        endereco: (() => {
+          const partes = Object.fromEntries(
+            Object.entries(endereco)
+              .map(([k, v]) => [k, String(v ?? "").trim()])
+              .filter(([, v]) => v),
+          );
+          return Object.keys(partes).length ? partes : null;
+        })(),
 
         // Sócio nunca é gravado com acesso de colaborador.
         perfil_acesso:
@@ -1939,6 +1948,17 @@ export function ColaboradorFormDialog({
               {...marca("whatsapp")}
               onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
               placeholder="(62) 99999-9999"
+            />
+          </div>
+
+          {/* Endereço no mesmo bloco padrão do restante do sistema */}
+          <div className="space-y-2 md:col-span-2">
+            <Label>Endereço</Label>
+            <EnderecoFields
+              idPrefix="colab"
+              upper
+              valor={endereco}
+              onChange={(patch) => setEndereco((e) => ({ ...e, ...patch }))}
             />
           </div>
 
