@@ -32,3 +32,4 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [ ] Conferência com Importar Ficha, duplicidade de CPF na tela, QA desktop/mobile
 
 - [x] Pré-Admissão — incremento 2: correções da revisão do commit f276cab (fases, payload, atomicidade, MIME real, grants, menor+22h, ficha oficial conferida)
+- [x] Pré-Admissão — incremento 3: integridade composta, cliente somente leitura, promoção atômica com CPF/ficha conferida, documentos com titular/finalidade e vínculo por admissão

@@ -129,3 +129,32 @@ Cada migração deste incremento traz o bloco de rollback comentado no próprio 
 
 ### Falta (fora deste incremento)
 Frontend do gestor e página pública, integração de Pendências/notificações, pacote da contabilidade legível e reuso de Importar Ficha, checagem de duplicidade CPF/recontratação na promoção pela tela, testes de interface e QA nas resoluções combinadas.
+
+## Incremento 3 — complemento da revisão SQL (integridade, RLS e promoção atômica)
+
+### Migrations aplicadas (todas com bloco de rollback comentado no próprio SQL, sem apagar dados)
+1. **Integridade composta e anti-cascata** — `UNIQUE (id, company_id)` em `dp_preadmissoes`, `dp_documento_requisitos` e `UNIQUE (id, preadmissao_id, company_id)` em `dp_preadmissao_pessoas`; FKs de `dp_preadmissao_pessoas`, `_documentos`, `_eventos` e `_convites` passaram a ser `(preadmissao_id, company_id) → dp_preadmissoes(id, company_id) ON DELETE RESTRICT`; documento de familiar usa `(pessoa_id, preadmissao_id, company_id)`; `dp_requisito_cargos`/`dp_requisito_unidades` usam `(requisito_id, company_id)` e `(cargo_id|unidade_id, company_id)`. Triggers `BEFORE DELETE` em todas as tabelas de pré-admissão bloqueiam exclusão física (escape explícito de manutenção: `SET LOCAL dp.permitir_exclusao_preadmissao = 'on'`).
+2. **Cliente somente leitura** — policies `FOR ALL` substituídas por `FOR SELECT`; `REVOKE INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER` de `authenticated`, `REVOKE ALL` de `anon`, `GRANT ALL` a `service_role`. Status, token, conferência e metadados só mudam pelas RPCs de transição.
+3. **Promoção atômica** — colunas `vinculo_admissao_em` e `ficha_importacao_item_id` (FK composta com `dp_ficha_importacao_itens`); índice único global `dp_preadm_colaborador_uk` substituído por `dp_preadm_colab_admissao_uk (colaborador_id, vinculo_admissao_em)`, liberando recontratação futura; `dp_preadmissao_efetivar(pa, colaborador, item)` agora exige CPF idêntico (11 dígitos, comparação por dígitos), ficha oficial vigente e não recusada + `ficha_oficial_conferida_em`, e opcionalmente valida o item de importação aplicado àquele colaborador; documentos passam a preservar titular/finalidade/origem na descrição, entram como `pendente` (só `aprovado` se aprovado na pré-admissão) e **recusados não são copiados**; nova RPC `dp_preadmissao_efetivar_com_ficha(...)` aplica `dp_ficha_aplicar` **ou** `dp_recontratar_colaborador` e conclui a pré-admissão na mesma transação, com `pg_advisory_xact_lock` + `FOR UPDATE`, idempotência e bloqueio de CPF com colaborador ativo.
+4. **Limpeza** — assinatura antiga `dp_preadmissao_efetivar(uuid, uuid)` (sem conferência de CPF) removida; `EXECUTE` revogado de `PUBLIC`/`anon` nas novas funções. Linter voltou ao baseline de 234 avisos pré-existentes (nenhum novo).
+
+### Testes SQL executados (dados fictícios, sempre com ROLLBACK)
+| Teste | Resultado |
+| --- | --- |
+| T2 familiar com empresa diferente da ficha | bloqueado (`dp_preadm_pessoa_pre_fk`) |
+| T3 documento com titular de outra ficha | bloqueado (`dp_preadm_doc_pessoa_fk`) |
+| T4/T4b DELETE de familiar e de ficha | bloqueado pelo trigger |
+| T5 exigência documental com cargo de outra empresa | bloqueado (`dp_req_cargo_cargo_fk`) |
+| T6 efetivar sem ficha oficial conferida | bloqueado |
+| T7 efetivar com CPF divergente | bloqueado |
+| T8 efetivação correta | 1 dependente e 2 documentos (recusado ignorado), titular/finalidade preservados, ambos `pendente` |
+| T9 segunda chamada | idempotente (`ja_aplicado: true`, 0 gravações) |
+| T10 nova pré-admissão do mesmo colaborador em outra admissão | permitido |
+| T11 mesmo colaborador na mesma admissão | bloqueado (`dp_preadm_colab_admissao_uk`) |
+| T12 promoção com ficha de CPF diferente | bloqueada |
+| T13–T16 sessão `authenticated` (dono da empresa) | lê a ficha; alterar status, alterar token e apagar familiar → `permission denied` |
+
+Concorrência: garantida por `pg_advisory_xact_lock` na ficha, `SELECT ... FOR UPDATE` na ficha e no colaborador, verificação de estado esperado nas transições e pelo índice único de vínculo — evidenciada por T9 (idempotência) e T11 (segunda gravação recusada).
+
+### Observação de compatibilidade
+O frontend do gestor (ainda não construído) deve ler diretamente e escrever apenas via Edge Functions/RPCs; nenhum código atual chamava a assinatura removida.
