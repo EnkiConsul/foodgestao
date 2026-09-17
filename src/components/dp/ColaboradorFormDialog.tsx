@@ -111,6 +111,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EnderecoFields, type EnderecoValor } from "@/components/shared/EnderecoFields";
+import {
+  CONTA_TIPOS, PAGAMENTO_BLANK, PIX_TIPOS, erroPagamento,
+  pagamentoDoRegistro, pagamentoParaBanco, type DadosPagamento,
+} from "@/lib/dp/dadosPagamento";
 
 
 
@@ -257,6 +261,7 @@ export function ColaboradorFormDialog({
   const [form, setForm] = useState(blank);
   /** Endereço do colaborador, no mesmo bloco usado no resto do sistema. */
   const [endereco, setEndereco] = useState<EnderecoValor>({});
+  const [pagamento, setPagamento] = useState<DadosPagamento>(PAGAMENTO_BLANK);
   const { selectedCompanyId, companies } = useCompanyContext();
   const todosColaboradores = useDpColaboradores();
   /** Benefícios retirados que exigem ciência de isonomia neste salvamento. */
@@ -596,6 +601,7 @@ export function ColaboradorFormDialog({
       cidade: texto("cidade"),
       uf: texto("uf"),
     });
+    setPagamento(pagamentoDoRegistro(c as Record<string, unknown>));
     const regime = c.regime ? String(c.regime) : "clt";
     setRem({
       ...remuneracaoBlank,
@@ -1567,6 +1573,8 @@ export function ColaboradorFormDialog({
           );
           return Object.keys(partes).length ? partes : null;
         })(),
+        // Dados de pagamento: conta para depósito, Pix ou recebimento em espécie.
+        ...pagamentoParaBanco(pagamento),
 
         // Sócio nunca é gravado com acesso de colaborador.
         perfil_acesso:
@@ -1960,6 +1968,133 @@ export function ColaboradorFormDialog({
               valor={endereco}
               onChange={(patch) => setEndereco((e) => ({ ...e, ...patch }))}
             />
+          </div>
+
+          {/* Dados de pagamento: conta para depósito, chave Pix ou espécie */}
+          <div className="space-y-3 md:col-span-2 rounded-lg border p-3">
+            <div className="flex items-center justify-between gap-3">
+              <Label className="font-medium">Dados de pagamento</Label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={pagamento.recebe_em_especie}
+                  onCheckedChange={(v) =>
+                    setPagamento((p) => ({ ...p, recebe_em_especie: v === true }))
+                  }
+                />
+                Recebe em espécie
+              </label>
+            </div>
+            {!pagamento.recebe_em_especie && (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Informe a conta para depósito ou a chave Pix. Basta uma das duas.
+                </p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Banco</Label>
+                    <Input
+                      value={pagamento.banco_nome}
+                      onChange={(e) => setPagamento((p) => ({ ...p, banco_nome: e.target.value.toUpperCase() }))}
+                      placeholder="NOME DO BANCO"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Agência</Label>
+                    <Input
+                      value={pagamento.agencia}
+                      onChange={(e) => setPagamento((p) => ({ ...p, agencia: e.target.value }))}
+                      placeholder="0001"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Conta</Label>
+                    <Input
+                      value={pagamento.conta}
+                      onChange={(e) => setPagamento((p) => ({ ...p, conta: e.target.value }))}
+                      placeholder="123456"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Dígito</Label>
+                    <Input
+                      value={pagamento.conta_digito}
+                      onChange={(e) => setPagamento((p) => ({ ...p, conta_digito: e.target.value }))}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tipo de conta</Label>
+                    <Select
+                      value={pagamento.conta_tipo || "none"}
+                      onValueChange={(v) => setPagamento((p) => ({ ...p, conta_tipo: v === "none" ? "" : v }))}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Não informado</SelectItem>
+                        {CONTA_TIPOS.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tipo da chave Pix</Label>
+                    <Select
+                      value={pagamento.pix_tipo || "none"}
+                      onValueChange={(v) => setPagamento((p) => ({ ...p, pix_tipo: v === "none" ? "" : v }))}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Não informado</SelectItem>
+                        {PIX_TIPOS.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Chave Pix</Label>
+                    <Input
+                      value={pagamento.pix_chave}
+                      onChange={(e) => setPagamento((p) => ({ ...p, pix_chave: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={pagamento.titular_proprio}
+                        onCheckedChange={(v) =>
+                          setPagamento((p) => ({ ...p, titular_proprio: v === true }))
+                        }
+                      />
+                      A conta é do próprio colaborador
+                    </label>
+                  </div>
+                  {!pagamento.titular_proprio && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Nome do titular *</Label>
+                        <Input
+                          value={pagamento.titular_nome}
+                          onChange={(e) => setPagamento((p) => ({ ...p, titular_nome: e.target.value.toUpperCase() }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>CPF do titular *</Label>
+                        <Input
+                          value={pagamento.titular_cpf}
+                          onChange={(e) => setPagamento((p) => ({ ...p, titular_cpf: e.target.value }))}
+                          placeholder="000.000.000-00"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+                {erroPagamento(pagamento) && (
+                  <p className="text-xs text-destructive">{erroPagamento(pagamento)}</p>
+                )}
+              </>
+            )}
           </div>
 
           {/* Cargo / Unidade */}

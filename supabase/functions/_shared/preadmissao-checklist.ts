@@ -241,13 +241,25 @@ export function bloqueioMenorNoturno(
   return { situacao: "ok", titulo: "Condição regular", mensagem: "" };
 }
 
-/** Itens obrigatórios ainda sem arquivo enviado. */
+/**
+ * Documentos equivalentes do sistema: enviar um deles já atende o item.
+ * A CNH vale como identidade com foto e traz o CPF impresso; o RG com CPF
+ * também atende o CPF. Espelha `public.dp_doc_equivalencias`.
+ */
+export const EQUIVALENTES: Record<string, string[]> = {
+  identidade: ["identidade", "rg", "cnh_valida"],
+  cpf: ["cpf", "identidade", "cnh_valida"],
+};
+
+/** Itens obrigatórios ainda sem arquivo enviado (considerando equivalências). */
 export function pendenciasDocumentais(
   itens: ItemChecklist[],
   enviados: { requisito_codigo: string; pessoa_id?: string | null }[],
 ): ItemChecklist[] {
   const chaves = new Set(enviados.map((e) => `${e.requisito_codigo}:${e.pessoa_id ?? ""}`));
-  return itens.filter((i) => i.obrigatorio && !chaves.has(i.key));
+  const atendido = (i: ItemChecklist) =>
+    (EQUIVALENTES[i.codigo] ?? [i.codigo]).some((c) => chaves.has(`${c}:${i.pessoa_id ?? ""}`));
+  return itens.filter((i) => i.obrigatorio && !atendido(i));
 }
 
 /**

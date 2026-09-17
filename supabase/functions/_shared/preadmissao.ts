@@ -187,6 +187,9 @@ export const CAMPOS_CANDIDATO = [
   "ctps_numero", "ctps_serie", "ctps_uf", "ctps_expedicao",
   "titulo_eleitor", "titulo_zona", "titulo_secao",
   "reservista", "reservista_categoria", "pis",
+  // Dados de pagamento: conta para depósito ou chave Pix.
+  "banco_codigo", "banco_nome", "agencia", "conta", "conta_digito", "conta_tipo",
+  "titular_proprio", "titular_nome", "titular_cpf", "pix_tipo", "pix_chave",
 ] as const;
 
 export function filtrarCamposCandidato(entrada: unknown): Record<string, unknown> {
@@ -297,7 +300,37 @@ export function validarDadosCandidato(
   if (txt("uf") && !/^[A-Za-z]{2}$/.test(txt("uf"))) erros.uf = "Informe a UF com duas letras.";
   if (txt("cep") && txt("cep").replace(/\D/g, "").length !== 8) erros.cep = "Informe um CEP com 8 dígitos.";
   if (txt("pis") && txt("pis").replace(/\D/g, "").length !== 11) erros.pis = "Informe o PIS com 11 dígitos.";
+
+  // Dados de pagamento: listas fechadas e titular de terceiro identificado.
+  if (txt("conta_tipo") && !["corrente", "poupanca", "pagamento", "salario"].includes(txt("conta_tipo"))) {
+    erros.conta_tipo = "Selecione um tipo de conta da lista.";
+  }
+  if (txt("pix_tipo") && !["cpf", "cnpj", "email", "telefone", "aleatoria"].includes(txt("pix_tipo"))) {
+    erros.pix_tipo = "Selecione um tipo de chave Pix da lista.";
+  }
+  if (txt("pix_tipo") && !txt("pix_chave")) erros.pix_chave = "Informe a chave Pix.";
+  if (txt("pix_tipo") === "cpf" && txt("pix_chave") && !cpfValido(txt("pix_chave"))) {
+    erros.pix_chave = "Informe um CPF válido na chave Pix.";
+  }
+  if (txt("titular_cpf") && !cpfValido(txt("titular_cpf"))) {
+    erros.titular_cpf = "Informe um CPF válido para o titular da conta.";
+  }
+  if (dados.titular_proprio === false) {
+    if (!txt("titular_nome")) erros.titular_nome = "Informe o nome do titular da conta.";
+    if (!txt("titular_cpf")) erros.titular_cpf = "Informe o CPF do titular da conta.";
+  }
   return erros;
+}
+
+/**
+ * Pagamento informado: conta para depósito OU chave Pix. Vale para o envio da
+ * ficha, onde essa informação é obrigatória.
+ */
+export function pagamentoInformado(dados: Record<string, unknown>): boolean {
+  const txt = (k: string) => (typeof dados[k] === "string" ? (dados[k] as string).trim() : "");
+  const conta = !!(txt("agencia") && txt("conta"));
+  const pix = !!(txt("pix_tipo") && txt("pix_chave"));
+  return conta || pix;
 }
 
 /** Requisitos condicionais configurados pela empresa (sem vínculo de cargo/unidade). */
@@ -832,7 +865,7 @@ const EXIGENCIAS = new Set<string>(["obrigatorio", "opcional", "nao_pedir"]);
 export async function regrasAdmissao(
   admin: Db & Rpc,
   pa: Pick<Preadmissao, "company_id" | "cargo_previsto_id" | "unidade_prevista_id" | "admin_dados">
-    & { regime_previsto?: string | null },
+    & { regime_previsto?: string | null; dados?: Record<string, unknown> | null },
 ): Promise<RegrasAdmissao> {
   const adminRegime = typeof (pa.admin_dados ?? {})?.regime_trabalho === "string"
     ? String((pa.admin_dados as Record<string, unknown>).regime_trabalho)
@@ -840,12 +873,20 @@ export async function regrasAdmissao(
   // O vínculo do convite manda desde o primeiro acesso; a revisão do gestor
   // pode ajustar depois em admin_dados.
   const regime = (adminRegime ?? "").trim() || pa.regime_previsto || null;
+  // Sexo informado na própria ficha: usado só para escolher a regra (ex.:
+  // reservista exigido apenas de homens). Sem informação, regras por sexo
+  // simplesmente não se aplicam.
+  const sexoBruto = String((pa.dados ?? {})?.sexo ?? "").trim().toLowerCase();
+  const sexo = sexoBruto.startsWith("m") || sexoBruto.startsWith("h")
+    ? "masculino"
+    : sexoBruto.startsWith("f") ? "feminino" : null;
   const [resolvidas, lista] = await Promise.all([
     admin.rpc("dp_admissao_regras_resolver", {
       p_company_id: pa.company_id,
       p_unidade_id: pa.unidade_prevista_id,
       p_cargo_id: pa.cargo_previsto_id,
       p_regime: regime,
+      p_sexo: sexo,
     }),
     admin
       .from("dp_admissao_regra_parentescos")

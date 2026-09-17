@@ -25,6 +25,7 @@ export interface AdmissaoRegra {
   unidades: string[];
   cargos: string[];
   regimes: string[];
+  sexos: string[];
 }
 
 export interface AdmissaoParentesco {
@@ -44,6 +45,7 @@ export interface RegraEntrada {
   unidades: string[];
   cargos: string[];
   regimes: string[];
+  sexos: string[];
 }
 
 export function useDpAdmissaoRegras() {
@@ -54,7 +56,7 @@ export function useDpAdmissaoRegras() {
     queryKey: ["dp-admissao-regras", selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async (): Promise<AdmissaoRegra[]> => {
-      const [base, uni, car, reg] = await Promise.all([
+      const [base, uni, car, reg, sex] = await Promise.all([
         supabase
           .from("dp_admissao_regras")
           .select("id, company_id, tipo, chave, exigencia, padrao")
@@ -65,11 +67,14 @@ export function useDpAdmissaoRegras() {
           .eq("company_id", selectedCompanyId!),
         supabase.from("dp_admissao_regra_regimes").select("regra_id, regime")
           .eq("company_id", selectedCompanyId!),
+        supabase.from("dp_admissao_regra_sexos").select("regra_id, sexo")
+          .eq("company_id", selectedCompanyId!),
       ]);
       if (base.error) throw base.error;
       if (uni.error) throw uni.error;
       if (car.error) throw car.error;
       if (reg.error) throw reg.error;
+      if (sex.error) throw sex.error;
       const porRegra = <T,>(rows: { regra_id: string }[], pick: (r: never) => T) => {
         const m = new Map<string, T[]>();
         rows.forEach((r) => {
@@ -82,11 +87,13 @@ export function useDpAdmissaoRegras() {
       const mu = porRegra(uni.data ?? [], (r: { unidade_id: string }) => r.unidade_id);
       const mc = porRegra(car.data ?? [], (r: { cargo_id: string }) => r.cargo_id);
       const mr = porRegra(reg.data ?? [], (r: { regime: string }) => r.regime);
+      const ms = porRegra(sex.data ?? [], (r: { sexo: string }) => r.sexo);
       return (base.data ?? []).map((r) => ({
-        ...(r as Omit<AdmissaoRegra, "unidades" | "cargos" | "regimes">),
+        ...(r as Omit<AdmissaoRegra, "unidades" | "cargos" | "regimes" | "sexos">),
         unidades: mu.get(r.id) ?? [],
         cargos: mc.get(r.id) ?? [],
         regimes: mr.get(r.id) ?? [],
+        sexos: ms.get(r.id) ?? [],
       })) as AdmissaoRegra[];
     },
   });
@@ -125,6 +132,7 @@ export function useDpAdmissaoRegras() {
           unidades: p.padrao ? [] : p.unidades,
           cargos: p.padrao ? [] : p.cargos,
           regimes: p.padrao ? [] : p.regimes,
+          sexos: p.padrao ? [] : (p.sexos ?? []),
         },
       });
       if (error) throw error;
@@ -166,21 +174,37 @@ export function useDpAdmissaoRegras() {
   return { regras, parentescos, salvar, excluir, definirParentesco };
 }
 
+/** "MASCULINO", "m", "Homem" → masculino; nada reconhecido → null. */
+export function sexoCanonico(v?: string | null): "masculino" | "feminino" | null {
+  const t = (v ?? "").trim().toLowerCase();
+  if (t.startsWith("m") || t.startsWith("h")) return "masculino";
+  if (t.startsWith("f")) return "feminino";
+  return null;
+}
+
 /**
  * Mesma decisão do servidor: entre as regras que casam com a combinação,
- * vence a mais específica (cargo 8 + vínculo 4 + unidade 2) e, no empate,
- * a última salva. Usada só para o simulador da tela.
+ * vence a mais específica (cargo 8 + vínculo 4 + unidade 2 + sexo 1) e, no
+ * empate, a última salva. Usada só para o simulador da tela.
  */
 export function resolverExigencia(
   regras: AdmissaoRegra[],
-  alvo: { unidade_id: string | null; cargo_id: string | null; regime: string | null },
+  alvo: {
+    unidade_id: string | null;
+    cargo_id: string | null;
+    regime: string | null;
+    sexo?: string | null;
+  },
 ): Exigencia | null {
+  const sexo = sexoCanonico(alvo.sexo);
   let melhor: { peso: number; exigencia: Exigencia } | null = null;
   for (const r of regras) {
     if (r.unidades.length && (!alvo.unidade_id || !r.unidades.includes(alvo.unidade_id))) continue;
     if (r.cargos.length && (!alvo.cargo_id || !r.cargos.includes(alvo.cargo_id))) continue;
     if (r.regimes.length && (!alvo.regime || !r.regimes.includes(alvo.regime))) continue;
-    const peso = (r.cargos.length ? 8 : 0) + (r.regimes.length ? 4 : 0) + (r.unidades.length ? 2 : 0);
+    if ((r.sexos ?? []).length && (!sexo || !r.sexos.includes(sexo))) continue;
+    const peso = (r.cargos.length ? 8 : 0) + (r.regimes.length ? 4 : 0)
+      + (r.unidades.length ? 2 : 0) + ((r.sexos ?? []).length ? 1 : 0);
     if (!melhor || peso > melhor.peso) melhor = { peso, exigencia: r.exigencia };
   }
   return melhor?.exigencia ?? null;

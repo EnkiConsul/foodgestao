@@ -6,6 +6,7 @@
  * é a fonte única do que é considerado essencial, usado na conferência da ficha,
  * na lista de colaboradores, na ficha de consulta e nas pendências do DP.
  */
+import { pagamentoFaltando } from "@/lib/dp/dadosPagamento";
 
 export type CampoEssencial = {
   /** Chave estável (não é necessariamente uma coluna: contato cobre telefone/WhatsApp). */
@@ -29,6 +30,7 @@ export const CAMPOS_ESSENCIAIS: CampoEssencial[] = [
   { chave: "regime", label: "vínculo", obrigatorio: true },
   { chave: "pis_nit", label: "PIS", obrigatorio: false },
   { chave: "salario_base", label: "salário", obrigatorio: true },
+  { chave: "dados_pagamento", label: "dados bancários ou Pix", obrigatorio: true },
 ];
 
 export interface ColaboradorCompletude {
@@ -115,6 +117,8 @@ export function camposFaltando(
         return enderecoVazio(c.endereco);
       case "salario_base":
         return !salarioPreenchido(c, opts);
+      case "dados_pagamento":
+        return pagamentoFaltando(c as Record<string, unknown>);
       default:
         return vazio(c[campo.chave]);
     }
