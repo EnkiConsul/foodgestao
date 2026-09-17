@@ -850,7 +850,7 @@ export function FichaRevisaoCard({
                 aplicar.isPending ||
                 bloqueadoPorEmpresa ||
                 (!preadmissaoId && !!item.colaborador_existente_id && !atualizar) ||
-                (!!preadmissaoId && (!stagingDados || semEscolha.length > 0))
+                (!!preadmissaoId && (!stagingDados || faltaDecidir > 0))
               }
               onClick={() => {
                 if (preadmissaoId) executar(null);
