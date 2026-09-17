@@ -396,20 +396,71 @@ Deno.serve(async (req) => {
     if (acao === "anexar_somente") {
       const itemId = String(body?.ficha_importacao_item_id ?? "").trim();
       if (!itemId) return jsonResponse(req, 400, { error: "Indique a ficha importada recebida." });
-      const an = await anexarSomente(admin, pa.id, itemId, caller.id);
+
+      // O arquivo recebido fica no pacote da importação. Para que o anexo seja
+      // consultável e baixável na própria pré-admissão, copiamos o arquivo para
+      // a área de documentos ANTES de registrar. Nada além do anexo é alterado.
+      const { data: item } = await admin
+        .from("dp_ficha_importacao_itens")
+        .select("id, company_id, importacao_id, arquivo_path")
+        .eq("id", itemId)
+        .maybeSingle();
+      if (!item || item.company_id !== pa.company_id) {
+        return jsonResponse(req, 404, { error: "Ficha importada não encontrada." });
+      }
+      let origem = String(item.arquivo_path ?? "");
+      let bucketOrigem = "dp-documentos";
+      if (!origem) {
+        const { data: imp } = await admin
+          .from("dp_ficha_importacoes")
+          .select("arquivo_path, arquivo_nome, company_id")
+          .eq("id", item.importacao_id)
+          .maybeSingle();
+        if (!imp || imp.company_id !== pa.company_id || !imp.arquivo_path) {
+          return jsonResponse(req, 400, { error: "O arquivo da ficha recebida não está disponível." });
+        }
+        origem = String(imp.arquivo_path);
+        bucketOrigem = "dp-bulk-import";
+      }
+
+      const baixado = await admin.storage.from(bucketOrigem).download(origem);
+      if (baixado.error || !baixado.data) {
+        return jsonResponse(req, 400, { error: "O arquivo da ficha recebida não está disponível." });
+      }
+      const bytes = new Uint8Array(await baixado.data.arrayBuffer());
+      const tipo = baixado.data.type || "application/pdf";
+      const extensao = origem.includes(".") ? origem.split(".").pop() : "pdf";
+      const caminho = `${pa.company_id}/preadmissao/${pa.id}/ficha_anexada-${Date.now()}.${extensao}`;
+      const up = await admin.storage.from("dp-documentos").upload(caminho, bytes, {
+        contentType: tipo,
+        upsert: false,
+      });
+      if (up.error) {
+        return jsonResponse(req, 500, { error: "Não foi possível guardar o anexo agora." });
+      }
+
+      const an = await anexarSomente(admin, pa.id, itemId, caller.id, {
+        path: caminho,
+        nome: `Ficha recebida da contabilidade.${extensao}`,
+        mime: tipo,
+        tamanho: bytes.byteLength,
+      });
       if (!an.ok) {
+        // Sem registro no histórico, o arquivo copiado não deve permanecer.
+        await admin.storage.from("dp-documentos").remove([caminho]);
         const textos: Record<string, [number, string]> = {
           ja_concluida: [409, "Esta pré-admissão já foi concluída."],
           fase_invalida: [409, "A ficha oficial só é anexada depois do envio à contabilidade."],
           item_nao_encontrado: [404, "Ficha importada não encontrada."],
           item_outra_empresa: [403, "A ficha importada não pertence a esta empresa."],
           cpf_diferente: [409, "A ficha importada é de outro CPF."],
+          arquivo_obrigatorio: [400, "O arquivo da ficha recebida não está disponível."],
           nao_encontrada: [404, "Pré-admissão não encontrada."],
         };
         const [http, texto] = textos[an.motivo ?? ""] ?? [500, "Não foi possível registrar o anexo agora."];
         return jsonResponse(req, http, { error: texto, motivo: an.motivo });
       }
-      return jsonResponse(req, 200, { success: true, status: an.status });
+      return jsonResponse(req, 200, { success: true, status: an.status, documento_id: an.documento_id });
     }
 
     if (acao === "marcar_status") {

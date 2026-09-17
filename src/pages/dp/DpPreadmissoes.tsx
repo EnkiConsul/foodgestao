@@ -7,7 +7,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Ban, Copy, Loader2, RefreshCw, Search, UserPlus, UserSquare2 } from "lucide-react";
+import { Ban, Eye, Loader2, RefreshCw, Search, UserPlus, UserSquare2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -165,13 +165,31 @@ export default function DpPreadmissoes() {
                           {p.convite_expira_em ? new Date(p.convite_expira_em).toLocaleDateString("pt-BR") : "—"}
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                          <Button size="sm" variant="ghost" title="Gerar novo link" onClick={() => gerarNovoLink(p.id)}>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Gerar novo link"
+                            aria-label={`Gerar novo link de ${p.candidato_nome}`}
+                            onClick={() => gerarNovoLink(p.id)}
+                          >
                             <RefreshCw className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="ghost" title="Revisar" onClick={() => setRevisando(p.id)}>
-                            <Copy className="h-4 w-4" />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Revisar"
+                            aria-label={`Revisar a ficha de ${p.candidato_nome}`}
+                            onClick={() => setRevisando(p.id)}
+                          >
+                            <Eye className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="ghost" title="Cancelar link" onClick={() => cancelar(p.id)}>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Cancelar link"
+                            aria-label={`Cancelar o link de ${p.candidato_nome}`}
+                            onClick={() => cancelar(p.id)}
+                          >
                             <Ban className="h-4 w-4 text-destructive" />
                           </Button>
                         </TableCell>

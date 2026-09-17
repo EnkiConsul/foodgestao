@@ -697,7 +697,10 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                 </Button>
               )}
 
-              {["enviado_contabilidade", "aguardando_retorno_contabilidade"].includes(status) && (
+              {/* "Registro recebido" também entra aqui: quando a contabilidade
+                  envia uma versão nova, a conferência anterior deixa de valer e
+                  o gestor precisa poder anexar e conferir novamente. */}
+              {["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(status) && (
                 <div className="rounded-lg border p-3 space-y-2">
                   <p className="text-sm font-semibold">Ficha oficial devolvida pela contabilidade</p>
                   <p className="text-xs text-muted-foreground">
@@ -746,15 +749,26 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
               {status === "registro_recebido" && (
                 <div className="rounded-lg border border-primary/40 p-3 space-y-2">
                   <p className="text-sm font-semibold">Concluir a admissão</p>
-                  <p className="text-xs text-muted-foreground">
-                    Confira os dados da ficha oficial na importação. Ao criar o cadastro, esta pré-admissão é concluída
-                    na mesma operação, com os familiares e documentos já enviados.
-                  </p>
-                  <Button
-                    onClick={() => navigate(`/dp/colaboradores/importar-ficha?preadmissao=${pa.id}`)}
-                  >
-                    Conferir Dados E Criar Cadastro
-                  </Button>
+                  {pa.ficha_oficial_conferida_em ? (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        Confira os dados da ficha oficial na importação. Ao criar o cadastro, esta pré-admissão é
+                        concluída na mesma operação, com os familiares e documentos já enviados.
+                      </p>
+                      <Button
+                        onClick={() => navigate(`/dp/colaboradores/importar-ficha?preadmissao=${pa.id}`)}
+                      >
+                        Conferir Dados E Criar Cadastro
+                      </Button>
+                    </>
+                  ) : (
+                    /* Versão nova recebida: a conferência anterior não vale mais
+                       e a conclusão fica bloqueada até a nova conferência. */
+                    <p className="text-xs text-amber-600">
+                      A ficha oficial foi substituída. Abra a versão mais recente e registre a conferência acima
+                      para liberar a criação do cadastro.
+                    </p>
+                  )}
                 </div>
               )}
 

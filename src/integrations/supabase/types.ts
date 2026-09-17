@@ -15964,7 +15964,15 @@ export type Database = {
         Returns: boolean
       }
       dp_preadmissao_anexar_somente: {
-        Args: { p_item_id: string; p_por: string; p_preadmissao_id: string }
+        Args: {
+          p_file_name?: string
+          p_file_path?: string
+          p_file_size?: number
+          p_item_id: string
+          p_mime_type?: string
+          p_por: string
+          p_preadmissao_id: string
+        }
         Returns: Json
       }
       dp_preadmissao_avaliar_documento: {
@@ -15991,6 +15999,7 @@ export type Database = {
       dp_preadmissao_efetivar: {
         Args: {
           p_colaborador_id: string
+          p_data_admissao?: string
           p_ficha_importacao_item_id?: string
           p_preadmissao_id: string
         }
@@ -16001,12 +16010,14 @@ export type Database = {
           p_campos?: string[]
           p_cargo_id?: string
           p_dados: Json
+          p_data_admissao?: string
           p_forma_pagamento?: string
           p_item_id: string
           p_jornada?: Json
           p_justificativa?: string
           p_preadmissao_id: string
           p_regime?: string
+          p_salario?: number
           p_setor_id?: string
           p_turno_id?: string
           p_unidade_id?: string
