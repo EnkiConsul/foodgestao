@@ -491,6 +491,30 @@ export async function enviarFicha(
   return data as ResultadoGravacao & { status_anterior?: string };
 }
 
+/**
+ * Análise de um documento (aprovar/recusar) e versão da ficha na MESMA
+ * transação travada: nenhum preparo para a contabilidade passa no intervalo.
+ */
+export async function avaliarDocumento(
+  admin: Rpc,
+  preadmissaoId: string,
+  documentoId: string,
+  status: "aprovado" | "recusado",
+  motivo: string | null,
+): Promise<{ ok: boolean; motivo?: string; status?: string; requisito_codigo?: string; versao?: number }> {
+  const { data, error } = await admin.rpc("dp_preadmissao_avaliar_documento", {
+    p_preadmissao_id: preadmissaoId,
+    p_documento_id: documentoId,
+    p_status: status,
+    p_motivo: motivo,
+  });
+  if (error) {
+    console.error("[preadmissao] avaliação de documento falhou:", error.message);
+    return { ok: false, motivo: "erro_gravacao" };
+  }
+  return data as { ok: boolean; motivo?: string; status?: string; requisito_codigo?: string; versao?: number };
+}
+
 /** Transição com versão esperada: conferência antiga não é aplicada. */
 export async function transicionarComVersao(
   admin: Rpc,
