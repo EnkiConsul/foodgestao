@@ -107,11 +107,13 @@ export async function validarConvite(
   const { data: pa } = await admin
     .from("dp_preadmissoes")
     .select(
-      "id, company_id, candidato_nome, whatsapp, cargo_previsto_id, unidade_prevista_id, regime_previsto, trabalho_apos_22h, status, dados, admin_dados, cpf, email, data_nascimento, estado_civil, correcao_motivo, colaborador_id",
+      "id, company_id, candidato_nome, whatsapp, cargo_previsto_id, unidade_prevista_id, regime_previsto, trabalho_apos_22h, status, dados, admin_dados, cpf, email, data_nascimento, estado_civil, correcao_motivo, colaborador_id, removido_em",
     )
     .eq("id", convite.preadmissao_id as string)
     .maybeSingle();
   if (!pa) return { ok: false, motivo: "nao_encontrado" };
+  // Ficha excluída pelo gestor: o link deixa de valer na hora.
+  if (pa.removido_em) return { ok: false, motivo: "nao_encontrado" };
   if (ENCERRADOS.includes(pa.status as string)) return { ok: false, motivo: "encerrado" };
   return { ok: true, conviteId: convite.id as string, preadmissao: pa as unknown as Preadmissao };
 }
