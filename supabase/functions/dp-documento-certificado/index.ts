@@ -176,7 +176,9 @@ function paginaAnexo(pdf: PDFDocument, fonte: PDFFont, negrito: PDFFont, arquivo
   y -= 24;
   for (
     const linha of linhas(
-      `Arquivo: ${arquivo || "—"}. Pagamento registrado em ${pagoEm}. Este comprovante acompanha o documento ` +
+      `Arquivo: ${arquivo || "—"}. ${
+        pagoEm === "—" ? "Sem data de pagamento informada." : `Pagamento registrado em ${pagoEm}.`
+      } Este comprovante acompanha o documento ` +
         "aprovado como anexo e não possui validação digital própria.",
       fonte, 10.5, width - margem * 2,
     )
@@ -211,12 +213,14 @@ async function anexarArquivo(
       : await pdf.embedJpg(bytes);
     const page = pdf.addPage(A4);
     const margem = 40;
+    // O rodapé de lastro ocupa os 34pt de baixo: a imagem nunca entra ali.
+    const base = 46;
     const maxL = page.getWidth() - margem * 2;
-    const maxA = page.getHeight() - margem * 2 - 40;
+    const maxA = page.getHeight() - margem - base;
     const escala = Math.min(maxL / img.width, maxA / img.height, 1);
     page.drawImage(img, {
       x: (page.getWidth() - img.width * escala) / 2,
-      y: (page.getHeight() - 40 - img.height * escala) / 2 + 20,
+      y: base + (maxA - img.height * escala) / 2,
       width: img.width * escala,
       height: img.height * escala,
     });
@@ -230,7 +234,7 @@ async function anexarArquivo(
 function rodape(pdf: PDFDocument, fonte: PDFFont, d: Dados): void {
   const paginas = pdf.getPages();
   const total = paginas.length;
-  const hash = d.conteudoHash ? d.conteudoHash.slice(0, 24) : "—";
+  const hash = d.conteudoHash ? `${d.conteudoHash.slice(0, 28)}${d.conteudoHash.length > 28 ? "..." : ""}` : "—";
   const linha1 = limpar(
     `${d.empresa} · ${d.colaborador} · ${d.documentoTitulo}`,
   );
