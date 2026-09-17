@@ -154,7 +154,7 @@ export default function DpBeneficios() {
         />
       )}
 
-      <Tabs defaultValue="calculo" className="space-y-3 pb-24 md:pb-0">
+      <Tabs value={aba} onValueChange={setAba} className="space-y-3 pb-24 md:pb-0">
         <DpTabsBar
           value={aba}
           help={{
