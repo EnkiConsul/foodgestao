@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { AdmissaoRegrasPanel } from "@/components/dp/preadmissao/AdmissaoRegrasPanel";
 import { PreadmissaoConviteDialog } from "@/components/dp/preadmissao/PreadmissaoConviteDialog";
 import { PreadmissaoRevisaoDialog } from "@/components/dp/preadmissao/PreadmissaoRevisaoDialog";
 import { notifyError } from "@/lib/notifyError";
