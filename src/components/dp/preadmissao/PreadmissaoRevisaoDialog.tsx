@@ -582,10 +582,16 @@ th{width:220px;background:#f6f6f6;text-transform:capitalize}ul{font-size:12px}</
               )}
 
               {["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade"].includes(status) && (
-                <Button variant="outline" onClick={imprimirPacote}>
-                  <FileUp className="h-4 w-4 mr-2" />
-                  Imprimir Pacote Da Contabilidade
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={imprimirPacote}>
+                    <FileUp className="h-4 w-4 mr-2" />
+                    Imprimir Pacote Da Contabilidade
+                  </Button>
+                  <Button variant="outline" disabled={baixando || !vigentes.length} onClick={baixarDocumentos}>
+                    {baixando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                    Baixar Documentos
+                  </Button>
+                </div>
               )}
 
               {status === "pronto_contabilidade" && (
