@@ -197,8 +197,11 @@ Deno.serve(async (req) => {
      */
     if (acao === "excluir") {
       const motivo = String(body?.motivo ?? "").trim().slice(0, 500);
+      // Versão só é conferida quando a tela informa um número de verdade
+      // (null/ausente = exclusão sem conferência de versão).
       const versaoBruta = body?.versao;
-      const versao = Number.isFinite(Number(versaoBruta)) ? Number(versaoBruta) : null;
+      const versaoNum = typeof versaoBruta === "number" ? versaoBruta : Number(versaoBruta ?? NaN);
+      const versao = Number.isInteger(versaoNum) && versaoNum > 0 ? versaoNum : null;
       const { data, error } = await admin.rpc("dp_preadmissao_excluir", {
         _preadmissao_id: pa.id,
         _ator: caller.id,
