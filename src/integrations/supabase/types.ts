@@ -15963,6 +15963,10 @@ export type Database = {
         Args: { p_token_id: string }
         Returns: boolean
       }
+      dp_preadmissao_anexar_somente: {
+        Args: { p_item_id: string; p_por: string; p_preadmissao_id: string }
+        Returns: Json
+      }
       dp_preadmissao_avaliar_documento: {
         Args: {
           p_documento_id: string
@@ -16014,6 +16018,24 @@ export type Database = {
           p_estados: string[]
           p_preadmissao_id: string
           p_versao_esperada: number
+        }
+        Returns: Json
+      }
+      dp_preadmissao_ficha_oficial_conferir: {
+        Args: {
+          p_documento_id: string
+          p_por: string
+          p_preadmissao_id: string
+        }
+        Returns: Json
+      }
+      dp_preadmissao_ficha_oficial_registrar: {
+        Args: {
+          p_file_name: string
+          p_file_path: string
+          p_file_size: number
+          p_mime_type: string
+          p_preadmissao_id: string
         }
         Returns: Json
       }

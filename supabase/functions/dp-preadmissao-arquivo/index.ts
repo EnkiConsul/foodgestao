@@ -15,10 +15,10 @@ import {
   candidatoPodeEditar,
   registrarDocumento,
   registrarEvento,
+  registrarFichaOficial,
   requisitosEmpresa,
   requisitosPrevistos,
   tipoRealDoArquivo,
-  transicionar,
   validarConvite,
 } from "../_shared/preadmissao.ts";
 import { montarChecklist } from "../_shared/preadmissao-checklist.ts";
@@ -169,45 +169,42 @@ Deno.serve(async (req) => {
       const up = await admin.storage.from(BUCKET).upload(caminho, bytes, { contentType: real, upsert: false });
       if (up.error) return jsonError(req, "internal", up.error.message);
 
-      const { data: doc, error } = await admin
-        .from("dp_preadmissao_documentos")
-        .insert({
-          preadmissao_id: pa.id,
-          company_id: pa.company_id,
-          requisito_codigo: "ficha_oficial",
-          file_path: caminho,
-          file_name: String(body?.file_name ?? "ficha-oficial").slice(0, 180),
-          mime_type: real,
-          file_size: bytes.length,
-          versao: 1,
-        })
-        .select("id")
-        .single();
-      if (error || !doc) {
+      // Substituição da versão vigente, nova versão, invalidação da conferência
+      // anterior e registro do retorno: tudo numa transação travada. Anexar NÃO
+      // é conferir — a conferência continua sendo ato explícito do gestor.
+      const reg = await registrarFichaOficial(admin as unknown as Parameters<typeof registrarFichaOficial>[0], {
+        preadmissaoId: pa.id as string,
+        filePath: caminho,
+        fileName: String(body?.file_name ?? "ficha-oficial").slice(0, 180),
+        mimeType: real,
+        fileSize: bytes.length,
+      });
+      if (!reg.ok) {
         await admin.storage.from(BUCKET).remove([caminho]);
+        if (reg.motivo === "fase_invalida") {
+          return jsonResponse(req, 409, {
+            error: "A ficha oficial só é anexada depois do envio à contabilidade.",
+            status: reg.status,
+          });
+        }
+        if (reg.motivo === "nao_encontrada") return jsonError(req, "not_found");
         return jsonError(req, "internal", "não foi possível registrar a ficha oficial");
       }
-
-      // Anexar NÃO é conferir: o arquivo entra como recebido e a situação só
-      // muda quando o gestor registra a conferência (ação do gestor).
-      const t = await transicionar(
-        admin as unknown as Parameters<typeof transicionar>[0],
-        pa.id as string,
-        ["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"],
-        pa.status as string,
-        { contabilidade_retorno_em: true },
-      );
-      if (!t.ok) return jsonError(req, "internal", "não foi possível atualizar a pré-admissão");
 
       await registrarEvento(
         admin,
         pa.id as string,
         pa.company_id as string,
         "ficha_oficial_recebida",
-        { documento_id: doc.id },
+        { documento_id: reg.documento_id ?? null, versao: reg.versao ?? null },
         caller.id,
       );
-      return jsonResponse(req, 200, { success: true, documento_id: doc.id, status: t.status });
+      return jsonResponse(req, 200, {
+        success: true,
+        documento_id: reg.documento_id,
+        versao: reg.versao,
+        status: reg.status,
+      });
     }
 
     // ---------- Candidato: rever os próprios arquivos pelo convite ----------

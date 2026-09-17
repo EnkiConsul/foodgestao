@@ -98,6 +98,16 @@ export async function validarConvite(
   return { ok: true, conviteId: convite.id as string, preadmissao: pa as unknown as Preadmissao };
 }
 
+/**
+ * Log de falha SEM conteúdo do pedido: mensagens do banco podem carregar
+ * valores do payload (CPF, nome, endereço). Só o rótulo e o código entram.
+ */
+// deno-lint-ignore no-explicit-any
+export function logFalha(rotulo: string, error: any): void {
+  const codigo = typeof error?.code === "string" && error.code ? error.code : "sem_codigo";
+  console.error(`[preadmissao] ${rotulo} (codigo: ${codigo})`);
+}
+
 export async function registrarEvento(
   admin: Db,
   preadmissaoId: string,
@@ -113,7 +123,7 @@ export async function registrarEvento(
     detalhe,
     actor_user_id: actorUserId,
   });
-  if (error) console.error("[preadmissao] evento não registrado:", error.message);
+  if (error) logFalha("evento não registrado", error);
 }
 
 /** Códigos de documento exigidos pelo Cargo e pela Unidade previstos. */
@@ -310,7 +320,7 @@ export async function transicionar(
     p_patch: patch,
   });
   if (error) {
-    console.error("[preadmissao] transição falhou:", error.message);
+    logFalha("transição falhou", error);
     return { ok: false, motivo: "erro_gravacao" };
   }
   return data as ResultadoTransicao;
@@ -338,7 +348,7 @@ export async function registrarDocumento(
     p_file_size: args.fileSize,
   });
   if (error) {
-    console.error("[preadmissao] documento não registrado:", error.message);
+    logFalha("documento não registrado", error);
     return { ok: false, motivo: "erro_gravacao" };
   }
   return data as { ok: boolean; motivo?: string };
@@ -466,7 +476,7 @@ export async function salvarCandidato(
     p_versao_esperada: args.versaoEsperada ?? null,
   });
   if (error) {
-    console.error("[preadmissao] gravação falhou:", error.message);
+    logFalha("gravação falhou", error);
     return { ok: false, motivo: "erro_gravacao" };
   }
   return data as ResultadoGravacao;
@@ -485,7 +495,7 @@ export async function enviarFicha(
     p_versao_esperada: versaoEsperada,
   });
   if (error) {
-    console.error("[preadmissao] envio falhou:", error.message);
+    logFalha("envio falhou", error);
     return { ok: false, motivo: "erro_gravacao" };
   }
   return data as ResultadoGravacao & { status_anterior?: string };
@@ -509,10 +519,67 @@ export async function avaliarDocumento(
     p_motivo: motivo,
   });
   if (error) {
-    console.error("[preadmissao] avaliação de documento falhou:", error.message);
+    logFalha("avaliação de documento falhou", error);
     return { ok: false, motivo: "erro_gravacao" };
   }
   return data as { ok: boolean; motivo?: string; status?: string; requisito_codigo?: string; versao?: number };
+}
+
+/** Recebimento da ficha oficial: substitui a vigente e invalida a conferência. */
+export async function registrarFichaOficial(
+  admin: Rpc,
+  args: { preadmissaoId: string; filePath: string; fileName: string; mimeType: string; fileSize: number },
+): Promise<{ ok: boolean; motivo?: string; documento_id?: string; versao?: number; status?: string }> {
+  const { data, error } = await admin.rpc("dp_preadmissao_ficha_oficial_registrar", {
+    p_preadmissao_id: args.preadmissaoId,
+    p_file_path: args.filePath,
+    p_file_name: args.fileName,
+    p_mime_type: args.mimeType,
+    p_file_size: args.fileSize,
+  });
+  if (error) {
+    logFalha("ficha oficial não registrada", error);
+    return { ok: false, motivo: "erro_gravacao" };
+  }
+  return data as { ok: boolean; motivo?: string };
+}
+
+/** Conferência da ficha oficial vigente, sob a mesma trava da ficha. */
+export async function conferirFichaOficial(
+  admin: Rpc,
+  preadmissaoId: string,
+  documentoId: string,
+  porUserId: string,
+): Promise<{ ok: boolean; motivo?: string; status?: string; documento_id?: string }> {
+  const { data, error } = await admin.rpc("dp_preadmissao_ficha_oficial_conferir", {
+    p_preadmissao_id: preadmissaoId,
+    p_documento_id: documentoId,
+    p_por: porUserId,
+  });
+  if (error) {
+    logFalha("conferência não registrada", error);
+    return { ok: false, motivo: "erro_gravacao" };
+  }
+  return data as { ok: boolean; motivo?: string };
+}
+
+/** Somente anexar: registra o recebimento sem criar ou alterar cadastro. */
+export async function anexarSomente(
+  admin: Rpc,
+  preadmissaoId: string,
+  itemId: string,
+  porUserId: string,
+): Promise<{ ok: boolean; motivo?: string; status?: string }> {
+  const { data, error } = await admin.rpc("dp_preadmissao_anexar_somente", {
+    p_preadmissao_id: preadmissaoId,
+    p_item_id: itemId,
+    p_por: porUserId,
+  });
+  if (error) {
+    logFalha("anexo simples não registrado", error);
+    return { ok: false, motivo: "erro_gravacao" };
+  }
+  return data as { ok: boolean; motivo?: string };
 }
 
 /** Transição com versão esperada: conferência antiga não é aplicada. */
@@ -532,7 +599,7 @@ export async function transicionarComVersao(
     p_versao_esperada: versaoEsperada,
   });
   if (error) {
-    console.error("[preadmissao] transição falhou:", error.message);
+    logFalha("transição falhou", error);
     return { ok: false, motivo: "erro_gravacao" };
   }
   return data as ResultadoTransicao & { versao?: number };

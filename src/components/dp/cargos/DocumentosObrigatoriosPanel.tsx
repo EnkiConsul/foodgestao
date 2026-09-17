@@ -14,6 +14,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { useDpDocumentoRequisitos } from "@/hooks/useDpDocumentoRequisitos";
+import { RequisitoEscopoDialog } from "./RequisitoEscopoDialog";
 import {
   APLICA_LABEL, CATEGORIA_LABEL, PERIODICIDADE_LABEL, type DpDocumentoRequisito,
 } from "@/lib/dp/documentos-requisitos";
@@ -31,6 +32,8 @@ const OBRIGATORIEDADES = [
 export function DocumentosObrigatoriosPanel() {
   const { requisitos, isLoading, semear, salvar, criar, remover } = useDpDocumentoRequisitos();
   const [novoAberto, setNovoAberto] = useState(false);
+  /** Documento cujo alcance (cargos e unidades) está sendo ajustado. */
+  const [escopoDe, setEscopoDe] = useState<DpDocumentoRequisito | null>(null);
   const [novo, setNovo] = useState({
     nome: "",
     categoria: "admissao",
@@ -247,6 +250,9 @@ export function DocumentosObrigatoriosPanel() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <Button variant="outline" size="sm" onClick={() => setEscopoDe(r)}>
+                      Cargos E Unidades
+                    </Button>
                     {!r.sistema && (
                       <Button
                         size="icon"
@@ -264,6 +270,11 @@ export function DocumentosObrigatoriosPanel() {
           </DpContentCard>
         ))
       )}
+      <RequisitoEscopoDialog
+        requisitoId={escopoDe?.id ?? null}
+        requisitoNome={escopoDe?.nome ?? ""}
+        onOpenChange={(o) => { if (!o) setEscopoDe(null); }}
+      />
     </div>
   );
 }

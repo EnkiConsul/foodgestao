@@ -43,3 +43,4 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [ ] Pré-Admissão — testes automatizados de integração das telas
 - [ ] Pré-Admissão — teste ponta a ponta com convite sintético e sessão de gestor (formulário, upload, retomada, correção, contabilidade, importação)
 - [ ] Pré-Admissão — teste de Storage com sessões reais A/B/sem permissão (download/list/write)
+- [x] Pré-Admissão — incremento 10: revisão do commit c42f576 (Somente Anexar sem cadastro, comparação das informações administrativas, pacote legível sem código interno, status encerrados, ficha oficial atômica, requisitos por cargo/unidade configuráveis, logs sanitizados)

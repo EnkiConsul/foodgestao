@@ -455,3 +455,72 @@ Restaurar as versões anteriores das funções `dp_preadmissao_salvar_candidato`
   não por requisição HTTP ponta a ponta).
 - Os três itens já declarados acima: Storage com sessões A/B/sem permissão, ponta a ponta com convite
   sintético e sessão de gestor, e concorrência simultânea da efetivação com ficha.
+
+---
+
+## Incremento 10 — revisão do commit c42f576 (bloqueadores funcionais)
+
+### O que foi corrigido
+
+**A) "Somente anexar a ficha" não cria mais nada.** O botão do cartão de conferência deixou de chamar
+`aplicar.mutate`/`dp_preadmissao_efetivar_com_ficha`. Passou a existir caminho próprio:
+`anexarSomenteFicha()` → ação `anexar_somente` da rotina do gestor → `dp_preadmissao_anexar_somente`,
+que valida empresa e CPF, registra o evento `ficha_somente_anexada` e **não** cria, reativa ou altera
+cadastro, status, vínculo ou campo algum da ficha.
+
+**B) Comparação passou a cobrir as informações administrativas.** `comparacaoFicha.ts` ganhou
+`CAMPOS_ADMIN_COMPARAVEIS` (data de admissão, salário, cargo, unidade, setor, vínculo, forma de
+pagamento e jornada), `divergenciasAdmin`, `divergenciasAdminSemEscolha`, `valorAdminConferido` e
+`resolverPorNome`. A conclusão só libera depois de decidir **todas** as divergências (pessoais +
+administrativas). O vínculo enviado ao cadastro sai exclusivamente da decisão: sem escolha vale o
+conferido; com escolha "ficha", o nome lido é resolvido nos cadastros canônicos da empresa e, se não
+corresponder a nenhum, o conferido é mantido (nenhum identificador é inventado a partir de texto).
+`dadosParaCadastro` agora preserva os dados pessoais do staging que a ficha não traz (e-mail,
+escolaridade, nacionalidade e afins), ignorando chaves de controle.
+
+**C) Pacote da contabilidade legível e sem código interno.** A impressão deixou de usar
+`window.open` + `document.write`: gera um arquivo temporário e imprime por quadro interno, sem
+depender de liberar pop-up. A folha traz rótulos em português, nome da vaga (cargo — unidade), nomes
+canônicos de cargo/unidade/setor/vínculo/forma de pagamento, Sim/Não no lugar de valores técnicos,
+familiares com parentesco, nascimento, CPF, RG e finalidade (dependente e/ou Sesc), e documentos com
+título do requisito, titular, situação e motivo da recusa. Nenhum identificador técnico é impresso.
+
+**D) Status encerrados corrigidos** para `concluido`, `cancelado` e `expirado` (antes as formas
+femininas nunca casavam, deixando campos editáveis em ficha encerrada).
+
+**E) Ficha oficial com substituição atômica** (feito no mesmo turno): `dp_preadmissao_ficha_oficial_registrar`
+substitui a versão vigente, cria a nova versão, invalida a conferência anterior e sobe a versão da
+ficha em uma só operação travada; `dp_preadmissao_ficha_oficial_conferir` só aceita o documento
+vigente, sob a mesma trava. Anexar nunca confere: a conferência é ato explícito do gestor.
+
+**F) Requisitos por cargo/unidade agora são configuráveis.** Novo `useDpRequisitoEscopo` e
+`RequisitoEscopoDialog`, abertos pelo botão "Cargos E Unidades" em cada documento obrigatório
+(aba de Cargos e Salários). Grava em `dp_requisito_cargos`/`dp_requisito_unidades` com os cadastros
+canônicos; sem marcação, a exigência vale para toda a empresa.
+
+**H) Histórico da recontratação preservado:** `dp_recontratar_colaborador` roda **antes** de
+`dp_ficha_aplicar`, e a aplicação fica restrita aos campos pessoais, sem tocar em cargo, unidade,
+setor, salário ou regime que o histórico precisa capturar.
+
+**I) Logs sanitizados:** `logFalha(rotulo, error)` registra apenas rótulo e código; `error.message`
+(que pode conter CPF ou trechos do formulário) não é mais gravado.
+
+### Validação real executada neste incremento
+- `tsgo` (typecheck do app) sem erros após cada bloco de alterações.
+- 622 testes verdes em 76 arquivos (`vitest run src/test/unit`).
+- ESLint: 1 erro **pré-existente** em `src/pages/ContasContabeis.tsx:206` (`prefer-const`), fora do
+  escopo desta fase; nenhum erro novo introduzido.
+- `deno check` nas quatro funções da pré-admissão (executado no mesmo turno das rotinas).
+
+### O que continua NÃO testado (declarado sem rodeio)
+- Ponta a ponta com convite sintético e sessão de gestor: preenchimento completo, upload, retomada,
+  correção, pacote da contabilidade e importação.
+- Storage `dp-documentos` com três sessões (gestor A, gestor de outra empresa B, membro sem permissão):
+  auditoria das políticas foi feita por leitura e por clone SQL; **clone SQL não testa HTTP nem Storage**.
+- Conclusão simultânea (duas sessões ao mesmo tempo), inclusive no ramo de recontratação.
+- Impressão e download reais do pacote (validados por revisão de código, não por execução no navegador).
+
+### Rollback não destrutivo deste incremento
+Reverter os arquivos de tela e hooks alterados e deixar de chamar `dp_preadmissao_anexar_somente`,
+`dp_preadmissao_ficha_oficial_registrar` e `dp_preadmissao_ficha_oficial_conferir` (as rotinas
+permanecem no banco, sem uso). Nenhum dado é alterado ou apagado.
