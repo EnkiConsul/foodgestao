@@ -8,6 +8,8 @@
 import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
 import { canAdminister, requireCompanyAccess, requireUser, serviceClient } from "../_shared/authz.ts";
 import {
+  anexarSomente,
+  conferirFichaOficial,
   registrarEvento,
   requisitosEmpresa,
   requisitosPrevistos,
