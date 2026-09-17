@@ -241,8 +241,28 @@ Deno.serve(async (req) => {
       // O nome é da empresa: o que vier do candidato é descartado.
       const nomeConvite = String(pa.candidato_nome ?? "").trim();
       if (nomeConvite) dados.nome = nomeConvite;
-
-
+      // Quando a empresa configurou a lista de parentescos aceitos, familiar
+      // fora dela é recusado antes de qualquer gravação (fail closed).
+      const pessoasPedido = Array.isArray(body?.pessoas) ? filtrarPessoasCandidato(body.pessoas) : null;
+      const regrasPessoas = await regrasAdmissao(admin as never, pa);
+      if (regrasPessoas.parentescos && pessoasPedido) {
+        for (let i = 0; i < pessoasPedido.length; i++) {
+          const p = pessoasPedido[i];
+          const grau = normaliza(String(p.parentesco ?? ""));
+          const permitido = regrasPessoas.parentescos.find((r) => normaliza(r.parentesco) === grau);
+          const ehDependente = p.finalidade_dependente === true;
+          const ehSesc = p.finalidade_sesc === true;
+          if (
+            !permitido || (ehDependente && !permitido.permite_dependente) ||
+            (ehSesc && !permitido.permite_sesc)
+          ) {
+            return jsonResponse(req, 400, {
+              error: `Este grau de parentesco não é aceito pela empresa (familiar ${i + 1}).`,
+              motivo: "parentesco_nao_permitido",
+            });
+          }
+        }
+      }
 
       // Dados, familiares e remoções em uma única transação com trava na ficha:
       // um "enviar" simultâneo não consegue fechar a ficha no meio da gravação.
@@ -260,7 +280,7 @@ Deno.serve(async (req) => {
           data_nascimento: texto("data_nascimento") ?? "",
           estado_civil: texto("estado_civil") ?? "",
         },
-        pessoas: Array.isArray(body?.pessoas) ? filtrarPessoasCandidato(body.pessoas) : null,
+        pessoas: pessoasPedido,
       });
       if (!gravado.ok) return respostaMotivo(gravado.motivo, gravado.status, gravado.indice);
 
