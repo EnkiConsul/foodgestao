@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
       const [{ data: atual }, { data: pessoas }, { data: docs }, reqs, reqsEmpresa] = await Promise.all([
         admin
           .from("dp_preadmissoes")
-          .select("status, dados, correcao_motivo, data_nascimento, estado_civil, cpf, email")
+          .select("status, dados, correcao_motivo, data_nascimento, estado_civil, cpf, email, versao")
           .eq("id", pa.id)
           .maybeSingle(),
         admin
@@ -106,6 +106,7 @@ Deno.serve(async (req) => {
         cargo_previsto: cargo?.nome ?? null,
         unidade_prevista: unidade?.nome ?? null,
         status,
+        versao: Number(linha.versao ?? 0),
         editavel: candidatoPodeEditar(status),
         correcao_motivo: (linha.correcao_motivo as string) ?? null,
         dados,
@@ -115,6 +116,28 @@ Deno.serve(async (req) => {
         pendencias: pendenciasDocumentais(checklist, (docs ?? []) as never).map((i) => i.key),
       };
     };
+
+    /** Motivo devolvido pelo banco → resposta amigável, sempre fail closed. */
+    const respostaMotivo = (motivo: string | undefined, status?: string, indice?: number) => {
+      const conflito = motivo === "fase_encerrada" || motivo === "versao_alterada" ||
+        motivo === "pessoa_desconhecida";
+      const texto = MOTIVOS_GRAVACAO[motivo ?? ""] ??
+        "Não foi possível salvar agora. Tente novamente.";
+      return jsonResponse(req, conflito ? 409 : motivo?.startsWith("pessoa") ? 400 : 500, {
+        error: indice ? `${texto} (familiar ${indice})` : texto,
+        motivo,
+        status,
+      });
+    };
+
+    // Requisito 70: chave desconhecida na raiz derruba o pedido.
+    const foraDaRaiz = camposNaoPermitidosRaiz(body);
+    if (foraDaRaiz.length) {
+      return jsonResponse(req, 400, {
+        error: "Não foi possível processar o pedido: há informações inválidas no formulário.",
+        campos_invalidos: foraDaRaiz,
+      });
+    }
 
     if (acao === "ler") {
       if (pa.status === "aguardando_preenchimento") {
@@ -129,13 +152,16 @@ Deno.serve(async (req) => {
         return jsonResponse(req, 409, { error: FASE_ENCERRADA, status: pa.status });
       }
 
-      // Requisito 70: campo fora da allowlist derruba o pedido.
-      const invasores = camposNaoPermitidos(body?.dados);
+      // Requisito 70: campo fora da allowlist derruba o pedido (dados e familiares).
+      const invasores = [...camposNaoPermitidos(body?.dados), ...camposNaoPermitidosPessoas(body?.pessoas)];
       if (invasores.length) {
         return jsonResponse(req, 400, {
           error: "Não foi possível salvar: há informações inválidas no formulário.",
           campos_invalidos: invasores,
         });
+      }
+      if (body?.pessoas !== undefined && !Array.isArray(body?.pessoas)) {
+        return jsonResponse(req, 400, { error: "Não foi possível ler a lista de familiares." });
       }
 
       const dados = { ...((pa.dados ?? {}) as Record<string, unknown>), ...filtrarCamposCandidato(body?.dados) };
@@ -152,77 +178,24 @@ Deno.serve(async (req) => {
         ? "aguardando_nova_versao"
         : pa.status === "aguardando_preenchimento"
         ? "em_preenchimento"
-        : pa.status;
+        : null;
 
-      const t = await transicionar(admin, pa.id, [...new Set([pa.status])], proximo, {
+      // Dados, familiares e remoções em uma única transação com trava na ficha:
+      // um "enviar" simultâneo não consegue fechar a ficha no meio da gravação.
+      const gravado = await salvarCandidato(admin, {
+        preadmissaoId: pa.id,
+        estados: ESTADOS_EDITAVEIS_CANDIDATO,
+        statusNovo: proximo,
         dados,
-        cpf: (texto("cpf") ?? "").replace(/\D/g, ""),
-        email: texto("email") ?? "",
-        data_nascimento: texto("data_nascimento") ?? "",
-        estado_civil: texto("estado_civil") ?? "",
+        campos: {
+          cpf: (texto("cpf") ?? "").replace(/\D/g, ""),
+          email: texto("email") ?? "",
+          data_nascimento: texto("data_nascimento") ?? "",
+          estado_civil: texto("estado_civil") ?? "",
+        },
+        pessoas: Array.isArray(body?.pessoas) ? filtrarPessoasCandidato(body.pessoas) : null,
       });
-      if (!t.ok) {
-        return t.motivo === "status_inesperado"
-          ? jsonResponse(req, 409, { error: FASE_ENCERRADA, status: t.status })
-          : jsonError(req, "internal", "não foi possível salvar");
-      }
-
-      // Pessoas relacionadas: uma pessoa, várias finalidades.
-      if (Array.isArray(body?.pessoas)) {
-        const enviadas = body.pessoas as Record<string, unknown>[];
-        const manter: string[] = [];
-        for (const p of enviadas) {
-          const nome = String(p?.nome ?? "").trim();
-          if (!nome) continue;
-          const linha = {
-            preadmissao_id: pa.id,
-            company_id: pa.company_id,
-            nome: nome.toLocaleUpperCase("pt-BR"),
-            data_nascimento: /^\d{4}-\d{2}-\d{2}$/.test(String(p?.data_nascimento ?? "")) ? String(p.data_nascimento) : null,
-            parentesco: p?.parentesco ? String(p.parentesco) : null,
-            cpf: String(p?.cpf ?? "").replace(/\D/g, "") || null,
-            rg: p?.rg ? String(p.rg) : null,
-            finalidade_dependente: !!p?.finalidade_dependente,
-            finalidade_sesc: !!p?.finalidade_sesc,
-          };
-          if (!linha.finalidade_dependente && !linha.finalidade_sesc) continue;
-          const id = typeof p?.id === "string" && p.id.length === 36 ? p.id : null;
-          if (id) {
-            const { error } = await admin
-              .from("dp_preadmissao_pessoas")
-              .update(linha)
-              .eq("id", id)
-              .eq("preadmissao_id", pa.id)
-              .is("removido_em", null);
-            if (error) return jsonError(req, "internal", "não foi possível salvar as pessoas informadas");
-            manter.push(id);
-          } else {
-            const { data, error } = await admin
-              .from("dp_preadmissao_pessoas")
-              .insert(linha)
-              .select("id")
-              .single();
-            if (error || !data?.id) return jsonError(req, "internal", "não foi possível salvar as pessoas informadas");
-            manter.push(data.id as string);
-          }
-        }
-        // Quem sai da lista é marcado como removido: histórico e titular dos
-        // documentos continuam rastreáveis. Nada é apagado.
-        const { data: atuais, error: erroAtuais } = await admin
-          .from("dp_preadmissao_pessoas")
-          .select("id")
-          .eq("preadmissao_id", pa.id)
-          .is("removido_em", null);
-        if (erroAtuais) return jsonError(req, "internal", "não foi possível atualizar a lista de pessoas");
-        const remover = (atuais ?? []).map((a) => a.id as string).filter((id) => !manter.includes(id));
-        if (remover.length) {
-          const { error } = await admin
-            .from("dp_preadmissao_pessoas")
-            .update({ removido_em: new Date().toISOString() })
-            .in("id", remover);
-          if (error) return jsonError(req, "internal", "não foi possível atualizar a lista de pessoas");
-        }
-      }
+      if (!gravado.ok) return respostaMotivo(gravado.motivo, gravado.status, gravado.indice);
 
       return jsonResponse(req, 200, await carregar());
     }
@@ -231,7 +204,12 @@ Deno.serve(async (req) => {
       if (!candidatoPodeEditar(pa.status)) {
         return jsonResponse(req, 409, { error: FASE_ENCERRADA, status: pa.status });
       }
+      // A conferência vale para a versão lida agora; se algo mudar antes do
+      // envio, o banco recusa e o candidato revalida.
       const estado = await carregar();
+      if (!candidatoPodeEditar(estado.status)) {
+        return jsonResponse(req, 409, { error: FASE_ENCERRADA, status: estado.status });
+      }
       const dados = estado.dados as Record<string, unknown>;
       const erros = validarDadosCandidato(dados);
       const faltando = OBRIGATORIOS.filter((campo) => {
@@ -246,24 +224,11 @@ Deno.serve(async (req) => {
           erros,
         });
       }
-      const t = await transicionar(
-        admin,
-        pa.id,
-        [...new Set([pa.status, estado.status])],
-        "aguardando_revisao",
-        { enviado_em: true, correcao_motivo: "" },
-      );
-      if (!t.ok) {
-        return t.motivo === "status_inesperado"
-          ? jsonResponse(req, 409, { error: FASE_ENCERRADA, status: t.status })
-          : jsonError(req, "internal", "não foi possível enviar a ficha");
+      const t = await enviarFicha(admin, pa.id, ESTADOS_EDITAVEIS_CANDIDATO, estado.versao);
+      if (!t.ok) return respostaMotivo(t.motivo, t.status);
+      if (t.status_anterior === "aguardando_nova_versao") {
+        await registrarEvento(admin, pa.id, pa.company_id, "ficha_reenviada");
       }
-      await registrarEvento(
-        admin,
-        pa.id,
-        pa.company_id,
-        t.status_anterior === "aguardando_nova_versao" ? "ficha_reenviada" : "ficha_enviada",
-      );
       return jsonResponse(req, 200, {
         success: true,
         mensagem: "Seus dados e documentos foram enviados para análise da empresa.",
