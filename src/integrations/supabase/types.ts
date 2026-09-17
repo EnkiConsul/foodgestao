@@ -15970,19 +15970,14 @@ export type Database = {
         }
         Returns: Json
       }
-      dp_preadmissao_efetivar:
-        | {
-            Args: { p_colaborador_id: string; p_preadmissao_id: string }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_colaborador_id: string
-              p_ficha_importacao_item_id?: string
-              p_preadmissao_id: string
-            }
-            Returns: Json
-          }
+      dp_preadmissao_efetivar: {
+        Args: {
+          p_colaborador_id: string
+          p_ficha_importacao_item_id?: string
+          p_preadmissao_id: string
+        }
+        Returns: Json
+      }
       dp_preadmissao_efetivar_com_ficha: {
         Args: {
           p_campos?: string[]
