@@ -84,6 +84,12 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     });
   }, [pa?.id, pa?.admin_dados]);
 
+  const fichaOficial = useMemo(
+    () =>
+      (data?.documentos ?? []).find((d) => d.requisito_codigo === "ficha_oficial" && !d.substituido_em) ?? null,
+    [data?.documentos],
+  );
+
   const vigentes = useMemo(() => (data?.documentos ?? []).filter((d) => !d.substituido_em), [data?.documentos]);
   const nomePessoa = (id: string | null) =>
     id ? (data?.pessoas ?? []).find((p) => p.id === id)?.nome ?? "Familiar" : "O candidato";
@@ -107,11 +113,11 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     }
   };
 
-  const enviarFichaOficial = async (arquivo: File, conferida: boolean) => {
+  const enviarFichaOficial = async (arquivo: File) => {
     setEnviandoFicha(true);
     try {
-      await anexarFichaOficial(preadmissaoId!, arquivo, conferida);
-      toast.success(conferida ? "Ficha oficial anexada e conferida" : "Ficha oficial anexada");
+      await anexarFichaOficial(preadmissaoId!, arquivo);
+      toast.success("Ficha oficial anexada. Confira o arquivo e registre a conferência.");
       refetch();
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "anexar a ficha oficial" });
