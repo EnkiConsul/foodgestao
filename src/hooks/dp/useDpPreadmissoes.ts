@@ -160,7 +160,7 @@ export function useDpPreadmissaoConvite() {
       dias_validade?: number;
     }) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
-      return await chamar<{ preadmissao_id: string; link: string; expires_at: string }>(
+      return await chamar<{ preadmissao_id: string; whatsapp: string | null; link: string; expires_at: string }>(
         "dp-preadmissao-convite",
         { action: "criar", company_id: selectedCompanyId, ...entrada },
       );

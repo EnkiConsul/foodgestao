@@ -1,8 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { UserPlus, FileUp, Users, ClipboardCheck } from "lucide-react";
+import { UserPlus, FileUp, Users, ClipboardCheck, Send } from "lucide-react";
 
-export type NovoCadastroMetodo = "colaborador" | "folguista" | "teste" | "importar";
+export type NovoCadastroMetodo = "colaborador" | "folguista" | "teste" | "importar" | "preadmissao";
 
 interface Props {
   open: boolean;
@@ -22,6 +22,12 @@ const OPCOES: { key: NovoCadastroMetodo; icon: typeof UserPlus; titulo: string; 
     icon: FileUp,
     titulo: "Importar ficha de registro",
     desc: "Envie o PDF da ficha e o sistema preenche o cadastro para você revisar.",
+  },
+  {
+    key: "preadmissao",
+    icon: Send,
+    titulo: "Enviar link de pré-admissão",
+    desc: "O candidato preenche os dados e envia os documentos pelo celular; você revisa antes de cadastrar.",
   },
   {
     key: "folguista",

@@ -25,6 +25,10 @@ import {
   jornadaDaFicha, useAplicarFicha, useIgnorarFicha, type FichaItem,
 } from "@/hooks/useDpFichaImportacao";
 import { notifyError } from "@/lib/notifyError";
+import { useDpPreadmissao } from "@/hooks/dp/useDpPreadmissoes";
+import {
+  dadosParaCadastro, divergenciasFicha, divergenciasSemEscolha, type EscolhaDivergencia,
+} from "@/lib/dp/preadmissao/comparacaoFicha";
 
 
 
@@ -142,16 +146,37 @@ export function FichaRevisaoCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dados, setorId, regime, setores.length, salarioCargo]);
 
-  const executar = (camposPermitidos: string[] | null) => {
+  /**
+   * Conferência da ficha oficial contra o STAGING já revisado da pré-admissão.
+   * O que o gestor conferiu é a referência: a ficha só substitui um campo por
+   * escolha explícita, e "Somente anexar" não altera campo algum.
+   */
+  const preadmissao = useDpPreadmissao(preadmissaoId ?? null);
+  const stagingDados = (preadmissao.data?.preadmissao.dados ?? null) as Record<string, unknown> | null;
+  const divergencias = useMemo(
+    () => (preadmissaoId ? divergenciasFicha(stagingDados, dados) : []),
+    [preadmissaoId, stagingDados, dados],
+  );
+  const [escolhas, setEscolhas] = useState<Record<string, EscolhaDivergencia>>({});
+  const semEscolha = useMemo(() => divergenciasSemEscolha(divergencias, escolhas), [divergencias, escolhas]);
+
+  const executar = (camposPermitidos: string[] | null, somenteAnexar = false) => {
     if (!regime || !formaPagamento || possuiFolhaPonto === null || optanteAdiantamento === null) {
       setCompletarAberto(true);
       toast.error("Confirme vínculo, pagamento, ponto e adiantamento antes de criar o cadastro.");
       return;
     }
+    if (preadmissaoId && !somenteAnexar && semEscolha.length > 0) {
+      toast.error("Escolha, em cada divergência, qual valor vale antes de concluir.");
+      return;
+    }
+    const dadosEnvio = preadmissaoId
+      ? dadosParaCadastro(stagingDados, dados, escolhas, somenteAnexar)
+      : dados;
     aplicar.mutate(
       {
         item,
-        dados,
+        dados: dadosEnvio,
         cargoId,
         unidadeId,
         setorId,
@@ -650,6 +675,67 @@ export function FichaRevisaoCard({
           </div>
         )}
 
+        {!aplicado && preadmissaoId && (
+          <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+            <p className="text-xs font-medium">Conferência com a pré-admissão</p>
+            {preadmissao.isLoading ? (
+              <p className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> Carregando os dados conferidos…
+              </p>
+            ) : !stagingDados ? (
+              <p className="text-[11px] text-destructive">
+                Não foi possível carregar os dados conferidos da pré-admissão. Recarregue a página antes de concluir.
+              </p>
+            ) : divergencias.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground">
+                A ficha da contabilidade confere com os dados revisados. Nada será alterado sem sua escolha.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-[11px] text-muted-foreground">
+                  {divergencias.length} campo(s) diferentes do que foi conferido. Escolha qual valor vale em cada um —
+                  sem escolha, o valor conferido é mantido.
+                </p>
+                {divergencias.map((d) => {
+                  const escolha = escolhas[d.campo];
+                  return (
+                    <div key={d.campo} className="rounded-md border bg-background p-2">
+                      <p className="text-[11px] font-medium">{d.rotulo}</p>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={escolha === "conferido" ? "default" : "outline"}
+                          className="h-7 max-w-full justify-start text-[11px]"
+                          aria-pressed={escolha === "conferido"}
+                          onClick={() => setEscolhas((e) => ({ ...e, [d.campo]: "conferido" }))}
+                        >
+                          <span className="truncate">Conferido: {d.valorConferido}</span>
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={escolha === "ficha" ? "default" : "outline"}
+                          className="h-7 max-w-full justify-start text-[11px]"
+                          aria-pressed={escolha === "ficha"}
+                          onClick={() => setEscolhas((e) => ({ ...e, [d.campo]: "ficha" }))}
+                        >
+                          <span className="truncate">Ficha oficial: {d.valorFicha}</span>
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {semEscolha.length > 0 && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                    Falta decidir: {semEscolha.map((d) => d.rotulo).join(", ")}.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {!aplicado && (
 
           <div className="flex flex-wrap justify-end gap-2">
@@ -661,16 +747,36 @@ export function FichaRevisaoCard({
             >
               <X className="mr-1 h-4 w-4" /> Ignorar
             </Button>
+            {preadmissaoId && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={aplicar.isPending || bloqueadoPorEmpresa || !stagingDados}
+                onClick={() => executar(item.colaborador_existente_id ? [] : null, true)}
+              >
+                <FileText className="mr-1 h-4 w-4" /> Somente anexar a ficha
+              </Button>
+            )}
             <Button
               size="sm"
-              disabled={aplicar.isPending || bloqueadoPorEmpresa || (!!item.colaborador_existente_id && !atualizar)}
+              disabled={
+                aplicar.isPending ||
+                bloqueadoPorEmpresa ||
+                (!preadmissaoId && !!item.colaborador_existente_id && !atualizar) ||
+                (!!preadmissaoId && (!stagingDados || semEscolha.length > 0))
+              }
               onClick={() => {
-                if (atualizar && item.colaborador_existente_id) setComparacao(true);
+                if (preadmissaoId) executar(null);
+                else if (atualizar && item.colaborador_existente_id) setComparacao(true);
                 else executar(null);
               }}
             >
               {aplicar.isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Check className="mr-1 h-4 w-4" />}
-              {atualizar && item.colaborador_existente_id ? "Comparar e atualizar" : "Criar cadastro"}
+              {preadmissaoId
+                ? "Concluir admissão com esta ficha"
+                : atualizar && item.colaborador_existente_id
+                  ? "Comparar e atualizar"
+                  : "Criar cadastro"}
             </Button>
           </div>
         )}

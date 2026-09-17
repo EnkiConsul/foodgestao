@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, Clock, Eye, FileUp, Loader2, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Download, Eye, FileUp, Loader2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { notifyError } from "@/lib/notifyError";
+import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
+import { useDpSetores } from "@/hooks/useDpSetores";
 import {
   PREADMISSAO_STATUS_LABEL, abrirDocumentoPreadmissao, anexarFichaOficial,
   useDpPreadmissao, useDpPreadmissaoGestor, type PreadmissaoStatus,
@@ -36,12 +38,14 @@ const REGIMES = [
   { value: "freelancer", label: "Freelancer (sem registro)" },
 ];
 
+/** Formas de pagamento canônicas do DP (mesmos valores do cadastro). */
 const FORMAS = [
-  { value: "mensal", label: "Mensal" },
-  { value: "quinzenal", label: "Quinzenal" },
+  { value: "mensalista", label: "Mensalista" },
+  { value: "horista", label: "Horista" },
+  { value: "diarista", label: "Diarista" },
   { value: "semanal", label: "Semanal" },
-  { value: "diaria", label: "Diária" },
-  { value: "horista", label: "Por hora" },
+  { value: "por_turno", label: "Por turno" },
+  { value: "servico_acordo", label: "Por serviço / acordo" },
 ];
 
 /** Campos da ficha mostrados na conferência, em linguagem de tela. */
@@ -66,23 +70,54 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const acoes = useDpPreadmissaoGestor(preadmissaoId);
   const [motivo, setMotivo] = useState("");
   const [admin, setAdmin] = useState<Record<string, string>>({});
+  const { data: cargos = [] } = useDpCargos();
+  const { data: unidades = [] } = useDpUnidades();
+  const { ativos: setores } = useDpSetores(admin.unidade_id || null);
   const fichaRef = useRef<HTMLInputElement>(null);
   const [enviandoFicha, setEnviandoFicha] = useState(false);
 
   const pa = data?.preadmissao;
   const status = (pa?.status ?? "aguardando_preenchimento") as PreadmissaoStatus;
   const dados = (pa?.dados ?? {}) as Record<string, unknown>;
+  /** Ficha encerrada: nada mais pode ser alterado pelo gestor. */
+  const encerrada = ["concluida", "cancelada", "expirada"].includes(status);
 
   useEffect(() => {
     const a = (pa?.admin_dados ?? {}) as Record<string, unknown>;
+    const txt = (v: unknown) => (v === null || v === undefined ? "" : String(v));
+    const bool = (v: unknown) => (v === true ? "sim" : v === false ? "nao" : "");
     setAdmin({
-      data_admissao: String(a.data_admissao ?? ""),
-      regime_trabalho: String(a.regime_trabalho ?? ""),
-      salario: String(a.salario ?? ""),
-      forma_pagamento: String(a.forma_pagamento ?? ""),
-      jornada_descricao: String(a.jornada_descricao ?? ""),
+      data_admissao: txt(a.data_admissao),
+      regime_trabalho: txt(a.regime_trabalho),
+      salario: txt(a.salario),
+      forma_pagamento: txt(a.forma_pagamento),
+      jornada_descricao: txt(a.jornada_descricao),
+      carga_horaria_semanal: txt(a.carga_horaria_semanal),
+      experiencia_dias: txt(a.experiencia_dias),
+      cargo_id: txt(a.cargo_id) || (pa?.cargo_previsto_id ?? ""),
+      unidade_id: txt(a.unidade_id) || (pa?.unidade_prevista_id ?? ""),
+      setor_id: txt(a.setor_id),
+      vale_transporte: bool(a.vale_transporte),
+      adicional_insalubridade: bool(a.adicional_insalubridade),
+      adicional_periculosidade: bool(a.adicional_periculosidade),
+      observacoes: txt(a.observacoes),
     });
-  }, [pa?.id, pa?.admin_dados]);
+  }, [pa?.id, pa?.admin_dados, pa?.cargo_previsto_id, pa?.unidade_prevista_id]);
+
+  /** Converte a tela em payload aceito pelo servidor (números e Sim/Não). */
+  const adminParaEnvio = () => {
+    const out: Record<string, unknown> = {};
+    const trio = ["vale_transporte", "adicional_insalubridade", "adicional_periculosidade"];
+    for (const [k, v] of Object.entries(admin)) {
+      if (trio.includes(k)) {
+        if (v === "sim") out[k] = true;
+        else if (v === "nao") out[k] = false;
+        continue;
+      }
+      out[k] = v;
+    }
+    return out;
+  };
 
   const fichaOficial = useMemo(
     () =>
@@ -139,6 +174,40 @@ th{width:220px;background:#f6f6f6;text-transform:capitalize}ul{font-size:12px}</
       window.open(url, "_blank", "noopener");
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "abrir o documento" });
+    }
+  };
+
+  /**
+   * Baixa os documentos vigentes com nomes organizados
+   * (candidato-documento-titular). Nada é enviado para fora do sistema.
+   */
+  const [baixando, setBaixando] = useState(false);
+  const baixarDocumentos = async () => {
+    if (!data || !vigentes.length) return;
+    setBaixando(true);
+    const limpar = (s: string) =>
+      s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w.-]+/g, "-").toLowerCase();
+    try {
+      for (const d of vigentes) {
+        const url = await abrirDocumentoPreadmissao(d.id);
+        const resposta = await fetch(url);
+        if (!resposta.ok) throw new Error("Não foi possível baixar o arquivo.");
+        const blob = await resposta.blob();
+        const extensao = d.file_name.includes(".") ? d.file_name.split(".").pop() : "bin";
+        const nome = limpar(
+          `${data.preadmissao.candidato_nome}-${d.requisito_codigo}-${nomePessoa(d.pessoa_id)}`,
+        );
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${nome}.${extensao}`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      }
+      toast.success("Documentos baixados.");
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "baixar os documentos" });
+    } finally {
+      setBaixando(false);
     }
   };
 
@@ -305,49 +374,177 @@ th{width:220px;background:#f6f6f6;text-transform:capitalize}ul{font-size:12px}</
 
             <Separator />
 
+            {/* Previsão do convite: muda o que o candidato precisa enviar. */}
+            <section>
+              <h3 className="text-sm font-semibold mb-2">Vaga Prevista</h3>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <Label className="text-xs" htmlFor="pa-cargo-previsto">Cargo previsto</Label>
+                  <Select
+                    value={pa.cargo_previsto_id ?? ""}
+                    disabled={encerrada || acoes.alterarPrevisto.isPending}
+                    onValueChange={(v) =>
+                      executar(() => acoes.alterarPrevisto.mutateAsync({ cargo_previsto_id: v }), "Cargo previsto alterado")}
+                  >
+                    <SelectTrigger id="pa-cargo-previsto" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                    <SelectContent>
+                      {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs" htmlFor="pa-unidade-prevista">Unidade prevista</Label>
+                  <Select
+                    value={pa.unidade_prevista_id ?? ""}
+                    disabled={encerrada || acoes.alterarPrevisto.isPending}
+                    onValueChange={(v) =>
+                      executar(() => acoes.alterarPrevisto.mutateAsync({ unidade_prevista_id: v }), "Unidade prevista alterada")}
+                  >
+                    <SelectTrigger id="pa-unidade-prevista" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                    <SelectContent>
+                      {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs" htmlFor="pa-22h">Trabalha após as 22h</Label>
+                  <Select
+                    value={pa.trabalho_apos_22h ? "sim" : "nao"}
+                    disabled={encerrada || acoes.alterarPrevisto.isPending}
+                    onValueChange={(v) =>
+                      executar(
+                        () => acoes.alterarPrevisto.mutateAsync({ trabalho_apos_22h: v === "sim" }),
+                        "Informação de horário alterada",
+                      )}
+                  >
+                    <SelectTrigger id="pa-22h" className="h-10"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nao">Não</SelectItem>
+                      <SelectItem value="sim">Sim</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Mudar a vaga recalcula os documentos exigidos. Nada que o candidato já enviou é apagado.
+              </p>
+            </section>
+
+            <Separator />
+
             <section>
               <h3 className="text-sm font-semibold mb-2">Informações Da Empresa (Para A Contabilidade)</h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <Label className="text-xs">Data de admissão</Label>
-                  <Input type="date" className="h-10" value={admin.data_admissao}
+                  <Label className="text-xs" htmlFor="pa-adm-data">Data de admissão</Label>
+                  <Input id="pa-adm-data" type="date" className="h-10" value={admin.data_admissao}
+                    disabled={encerrada}
                     onChange={(e) => setAdmin({ ...admin, data_admissao: e.target.value })} />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Vínculo</Label>
-                  <Select value={admin.regime_trabalho} onValueChange={(v) => setAdmin({ ...admin, regime_trabalho: v })}>
-                    <SelectTrigger className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                  <Label className="text-xs" htmlFor="pa-adm-vinculo">Vínculo</Label>
+                  <Select value={admin.regime_trabalho} disabled={encerrada}
+                    onValueChange={(v) => setAdmin({ ...admin, regime_trabalho: v })}>
+                    <SelectTrigger id="pa-adm-vinculo" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
                     <SelectContent>
                       {REGIMES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Salário</Label>
-                  <Input className="h-10" value={admin.salario}
+                  <Label className="text-xs" htmlFor="pa-adm-cargo">Cargo</Label>
+                  <Select value={admin.cargo_id} disabled={encerrada}
+                    onValueChange={(v) => setAdmin({ ...admin, cargo_id: v })}>
+                    <SelectTrigger id="pa-adm-cargo" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                    <SelectContent>
+                      {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs" htmlFor="pa-adm-unidade">Unidade</Label>
+                  <Select value={admin.unidade_id} disabled={encerrada}
+                    onValueChange={(v) => setAdmin({ ...admin, unidade_id: v, setor_id: "" })}>
+                    <SelectTrigger id="pa-adm-unidade" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                    <SelectContent>
+                      {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs" htmlFor="pa-adm-setor">Setor</Label>
+                  <Select value={admin.setor_id} disabled={encerrada || !admin.unidade_id}
+                    onValueChange={(v) => setAdmin({ ...admin, setor_id: v })}>
+                    <SelectTrigger id="pa-adm-setor" className="h-10">
+                      <SelectValue placeholder={admin.unidade_id ? "Escolher" : "Escolha a unidade"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {setores.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs" htmlFor="pa-adm-salario">Salário</Label>
+                  <Input id="pa-adm-salario" className="h-10" value={admin.salario} inputMode="decimal"
+                    disabled={encerrada}
                     onChange={(e) => setAdmin({ ...admin, salario: e.target.value.replace(/[^\d.,]/g, "") })} />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Forma de pagamento</Label>
-                  <Select value={admin.forma_pagamento} onValueChange={(v) => setAdmin({ ...admin, forma_pagamento: v })}>
-                    <SelectTrigger className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                  <Label className="text-xs" htmlFor="pa-adm-forma">Forma de pagamento</Label>
+                  <Select value={admin.forma_pagamento} disabled={encerrada}
+                    onValueChange={(v) => setAdmin({ ...admin, forma_pagamento: v })}>
+                    <SelectTrigger id="pa-adm-forma" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
                     <SelectContent>
                       {FORMAS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1">
+                  <Label className="text-xs" htmlFor="pa-adm-carga">Carga semanal (horas)</Label>
+                  <Input id="pa-adm-carga" className="h-10" inputMode="numeric" value={admin.carga_horaria_semanal}
+                    disabled={encerrada} placeholder="Ex.: 44"
+                    onChange={(e) => setAdmin({ ...admin, carga_horaria_semanal: e.target.value.replace(/[^\d]/g, "") })} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs" htmlFor="pa-adm-exp">Experiência (dias)</Label>
+                  <Input id="pa-adm-exp" className="h-10" inputMode="numeric" value={admin.experiencia_dias}
+                    disabled={encerrada} placeholder="Ex.: 45"
+                    onChange={(e) => setAdmin({ ...admin, experiencia_dias: e.target.value.replace(/[^\d]/g, "") })} />
+                </div>
                 <div className="space-y-1 sm:col-span-2">
-                  <Label className="text-xs">Jornada prevista</Label>
-                  <Input className="h-10" placeholder="Ex.: 44h semanais, 12x36, escala 6x1"
-                    value={admin.jornada_descricao}
+                  <Label className="text-xs" htmlFor="pa-adm-jornada">Jornada prevista</Label>
+                  <Input id="pa-adm-jornada" className="h-10" placeholder="Ex.: 44h semanais, 12x36, escala 6x1"
+                    value={admin.jornada_descricao} disabled={encerrada}
                     onChange={(e) => setAdmin({ ...admin, jornada_descricao: e.target.value })} />
+                </div>
+                {[
+                  ["vale_transporte", "Vale-transporte"],
+                  ["adicional_insalubridade", "Adicional de insalubridade"],
+                  ["adicional_periculosidade", "Adicional de periculosidade"],
+                ].map(([campo, rotulo]) => (
+                  <div key={campo} className="space-y-1">
+                    <Label className="text-xs" htmlFor={`pa-adm-${campo}`}>{rotulo}</Label>
+                    <Select value={admin[campo] ?? ""} disabled={encerrada}
+                      onValueChange={(v) => setAdmin({ ...admin, [campo]: v })}>
+                      <SelectTrigger id={`pa-adm-${campo}`} className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nao">Não</SelectItem>
+                        <SelectItem value="sim">Sim</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-xs" htmlFor="pa-adm-obs">Observações para a contabilidade</Label>
+                  <Textarea id="pa-adm-obs" rows={2} value={admin.observacoes} disabled={encerrada}
+                    onChange={(e) => setAdmin({ ...admin, observacoes: e.target.value })} />
                 </div>
               </div>
               <Button
                 className="mt-3"
                 variant="outline"
-                disabled={acoes.salvarAdmin.isPending}
-                onClick={() => executar(() => acoes.salvarAdmin.mutateAsync({ ...admin }), "Informações salvas")}
+                disabled={encerrada || acoes.salvarAdmin.isPending}
+                onClick={() => executar(() => acoes.salvarAdmin.mutateAsync(adminParaEnvio()), "Informações salvas")}
               >
                 Salvar Informações
               </Button>
@@ -385,10 +582,16 @@ th{width:220px;background:#f6f6f6;text-transform:capitalize}ul{font-size:12px}</
               )}
 
               {["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade"].includes(status) && (
-                <Button variant="outline" onClick={imprimirPacote}>
-                  <FileUp className="h-4 w-4 mr-2" />
-                  Imprimir Pacote Da Contabilidade
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={imprimirPacote}>
+                    <FileUp className="h-4 w-4 mr-2" />
+                    Imprimir Pacote Da Contabilidade
+                  </Button>
+                  <Button variant="outline" disabled={baixando || !vigentes.length} onClick={baixarDocumentos}>
+                    {baixando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                    Baixar Documentos
+                  </Button>
+                </div>
               )}
 
               {status === "pronto_contabilidade" && (

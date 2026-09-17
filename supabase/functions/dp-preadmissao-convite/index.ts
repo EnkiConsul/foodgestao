@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
           trabalho_apos_22h: apos22h,
           created_by: caller.id,
         })
-        .select("id, company_id")
+        .select("id, company_id, whatsapp")
         .single();
       if (error || !pa) return jsonError(req, "internal", error?.message);
 
@@ -94,6 +94,8 @@ Deno.serve(async (req) => {
       return jsonResponse(req, 200, {
         success: true,
         preadmissao_id: pa.id,
+        // Número já normalizado (com DDI): a tela usa este valor no WhatsApp.
+        whatsapp,
         link: linkPreadmissao(origin, convite.id as string, token),
         expires_at: convite.expires_at,
       });
@@ -103,7 +105,7 @@ Deno.serve(async (req) => {
     if (!preadmissaoId) return jsonError(req, "invalid_input", "preadmissao_id ausente");
     const { data: pa } = await admin
       .from("dp_preadmissoes")
-      .select("id, company_id, status")
+      .select("id, company_id, status, whatsapp")
       .eq("id", preadmissaoId)
       .maybeSingle();
     if (!pa) return jsonError(req, "not_found");
@@ -134,6 +136,7 @@ Deno.serve(async (req) => {
       await registrarEvento(admin, pa.id, pa.company_id as string, "convite_reenviado", { dias }, caller.id);
       return jsonResponse(req, 200, {
         success: true,
+        whatsapp: pa.whatsapp,
         link: linkPreadmissao(origin, convite.id as string, token),
         expires_at: convite.expires_at,
       });

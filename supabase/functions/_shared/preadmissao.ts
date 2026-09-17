@@ -535,7 +535,21 @@ export function gestorPodeAlterar(status: string): boolean {
 export const CAMPOS_ADMIN = [
   "data_admissao", "regime_trabalho", "forma_pagamento", "salario", "jornada_descricao",
   "cargo_id", "unidade_id", "setor_id", "observacoes",
+  // Completam o que a contabilidade precisa para registrar a admissão.
+  "carga_horaria_semanal", "experiencia_dias", "vale_transporte",
+  "adicional_insalubridade", "adicional_periculosidade",
 ] as const;
+
+/** Campos administrativos que valem Sim/Não. */
+export const CAMPOS_ADMIN_BOOLEANOS = [
+  "vale_transporte", "adicional_insalubridade", "adicional_periculosidade",
+] as const;
+
+/** Campos administrativos numéricos e seus limites aceitos. */
+export const CAMPOS_ADMIN_NUMEROS: Record<string, { min: number; max: number; erro: string }> = {
+  carga_horaria_semanal: { min: 1, max: 60, erro: "Informe a carga semanal entre 1 e 60 horas." },
+  experiencia_dias: { min: 0, max: 90, erro: "O contrato de experiência vai de 0 a 90 dias." },
+};
 
 /** Enums canônicos do banco (dp_regime_trabalho / dp_forma_pagamento). */
 export const REGIMES_TRABALHO = [
@@ -583,6 +597,14 @@ export function validarAdminDados(entrada: unknown): AdminValidado {
 
   for (const campo of CAMPOS_ADMIN) {
     if (!(campo in src)) continue;
+    // Sim/Não: só booleano é aceito (texto "true" não passa).
+    if ((CAMPOS_ADMIN_BOOLEANOS as readonly string[]).includes(campo)) {
+      const b = src[campo];
+      if (b === null || b === undefined || b === "") continue;
+      if (typeof b !== "boolean") out.erros[campo] = "Responda Sim ou Não.";
+      else out.campos[campo] = b;
+      continue;
+    }
     const v = texto(campo);
     if (v === null) continue;
     if (v === "") {
@@ -609,6 +631,13 @@ export function validarAdminDados(entrada: unknown): AdminValidado {
       const num = Number(v.replace(/\./g, "").replace(",", "."));
       if (!Number.isFinite(num) || num < 0 || num > 1_000_000) out.erros[campo] = "Informe um salário válido.";
       else out.campos[campo] = num.toFixed(2);
+      continue;
+    }
+    if (CAMPOS_ADMIN_NUMEROS[campo]) {
+      const regra = CAMPOS_ADMIN_NUMEROS[campo];
+      const num = Number(v.replace(",", "."));
+      if (!Number.isFinite(num) || num < regra.min || num > regra.max) out.erros[campo] = regra.erro;
+      else out.campos[campo] = num;
       continue;
     }
     if (campo === "cargo_id" || campo === "unidade_id" || campo === "setor_id") {
