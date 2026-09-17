@@ -88,6 +88,20 @@ export function PreadmissoesPanel({
 
   return (
     <>
+      <div className="flex gap-2 mb-3">
+        {([["fichas", "Fichas"], ["regras", "Regras"]] as const).map(([k, label]) => (
+          <Button
+            key={k}
+            size="sm"
+            variant={aba === k ? "default" : "outline"}
+            onClick={() => setAba(k)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+
+      {aba === "regras" ? <AdmissaoRegrasPanel /> : (
       <Card>
         <CardContent className="p-3 sm:p-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
