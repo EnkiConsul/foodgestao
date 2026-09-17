@@ -1,9 +1,13 @@
 import { createContext, useContext, type ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/titleCase";
 import { DpActions, type DpAction } from "@/components/dp/DpActions";
+import { HelpHint } from "@/components/ui/help-hint";
+import type { HelpKey } from "@/content/help/helpContent";
+import { resolveHelpForPath } from "@/content/help/helpRoutes";
 
 /**
  * Quando uma tela é renderizada dentro de outra (como aba), o wrapper
@@ -51,6 +55,11 @@ interface DpPageHeaderProps {
   className?: string;
   /** Classe extra do container de ações (ex.: manter ações na mesma linha do título no mobile). */
   actionsClassName?: string;
+  /**
+   * Ajuda contextual do título. Quando omitida, o título principal da tela usa
+   * o registro de rota; seções embutidas só mostram ajuda se a chave for dada.
+   */
+  help?: HelpKey | null;
 }
 
 function HeaderActions({
@@ -68,9 +77,11 @@ function HeaderActions({
 }
 
 export function DpPageHeader({
-  icon: Icon, title, description, actions, actionItems, actionsExtra, className, actionsClassName,
+  icon: Icon, title, description, actions, actionItems, actionsExtra, className, actionsClassName, help,
 }: DpPageHeaderProps) {
   const embedded = useDpEmbedded();
+  const { pathname } = useLocation();
+  const helpKey = help === null ? undefined : (help ?? (embedded ? undefined : resolveHelpForPath(pathname)));
   const temAcoes = Boolean(actions || (actionItems && actionItems.length > 0));
   if (embedded) {
     return (
@@ -79,6 +90,7 @@ export function DpPageHeader({
           <h2 className="flex items-center gap-2 text-base font-semibold leading-tight sm:text-lg">
             <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
             {toTitleCase(title)}
+            {helpKey && <HelpHint helpKey={helpKey} side="bottom" align="start" />}
           </h2>
           {description && <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{description}</p>}
         </div>
@@ -91,7 +103,10 @@ export function DpPageHeader({
       <div className="flex min-w-0 items-start gap-2 sm:gap-3">
         <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary sm:mt-1 sm:h-7 sm:w-7" aria-hidden="true" />
         <div className="min-w-0">
-          <h1 className="text-lg font-bold leading-tight tracking-normal sm:text-2xl md:text-3xl">{toTitleCase(title)}</h1>
+          <h1 className="flex items-center gap-1 text-lg font-bold leading-tight tracking-normal sm:text-2xl md:text-3xl">
+            {toTitleCase(title)}
+            {helpKey && <HelpHint helpKey={helpKey} size="md" side="bottom" align="start" />}
+          </h1>
           {description && (
             <p className="mt-0.5 text-xs text-muted-foreground break-words leading-snug sm:mt-1 sm:text-sm">{description}</p>
           )}

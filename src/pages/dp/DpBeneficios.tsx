@@ -41,6 +41,7 @@ export default function DpBeneficios() {
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
 
+  const [aba, setAba] = useState("calculo");
   const [colabFilter, setColabFilter] = useState("todos");
   const b = useDpBeneficios(colabFilter);
   const cadastro = useDpBeneficiosCadastro(colabFilter);
@@ -154,8 +155,15 @@ export default function DpBeneficios() {
         />
       )}
 
-      <Tabs defaultValue="calculo" className="space-y-3 pb-24 md:pb-0">
-        <DpTabsBar>
+      <Tabs value={aba} onValueChange={setAba} className="space-y-3 pb-24 md:pb-0">
+        <DpTabsBar
+          value={aba}
+          help={{
+            calculo: "dp.beneficiosCalculo",
+            historico: "dp.beneficiosHistorico",
+            catalogo: "dp.beneficiosCatalogo",
+          }}
+        >
           <TabsTrigger value="calculo">Cálculo Mensal</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
           <TabsTrigger value="catalogo">Cadastro de Benefícios</TabsTrigger>

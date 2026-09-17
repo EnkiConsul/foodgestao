@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfYear, endOfYear, startOfMonth, endOfMonth, subMonths, subYears } from "date-fns";
@@ -325,7 +326,7 @@ export default function RelatorioFluxoCaixa() {
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Fluxo de Caixa</h1>
+          <h1 className="flex items-center gap-1 text-xl md:text-2xl font-bold tracking-tight">Fluxo de Caixa<HelpHint helpKey="financeiro.relatorioFluxoCaixa" size="md" side="bottom" align="start" /></h1>
           <p className="text-xs md:text-sm text-muted-foreground">
             Relatório gerencial por categoria — {periodoLabel}
           </p>

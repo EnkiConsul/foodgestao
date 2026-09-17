@@ -60,6 +60,13 @@ export default function DpFolgasHub() {
           value={aba}
           onValueChange={setAba}
           sectionTitle="Seções de Folgas"
+          help={{
+            calendario: "dp.calendario",
+            regras: "dp.folgasRegras",
+            solicitacoes: "dp.folgasSolicitacoes",
+            trocas: "dp.trocasGestor",
+            conformidade: "dp.conformidadeDsr",
+          }}
           sections={[
             { value: "calendario", label: "Calendário" },
             { value: "regras", label: "Regras" },

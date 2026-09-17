@@ -120,6 +120,13 @@ export default function DpFeriasHub() {
           value={aba}
           onValueChange={(v) => setParam("aba", v)}
           sectionTitle="Seções de Férias"
+          help={{
+            ferias: "dp.ferias",
+            status: "dp.feriasStatus",
+            calendario: "dp.calendario",
+            contabilidade: "dp.feriasContabilidade",
+            regras: "dp.folgasRegras",
+          }}
         >
           <TabsTrigger value="ferias">Férias</TabsTrigger>
           <TabsTrigger value="status">Status</TabsTrigger>

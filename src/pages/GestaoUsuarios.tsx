@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -204,7 +205,7 @@ export default function GestaoUsuarios() {
   if (loadingCompanies) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight">Gestão de Usuários</h1>
+        <h1 className="flex items-center gap-1 text-2xl font-bold tracking-tight">Gestão de Usuários<HelpHint helpKey="empresas.usuarios" size="md" side="bottom" align="start" /></h1>
         <p className="text-sm text-muted-foreground">Carregando...</p>
       </div>
     );
@@ -213,7 +214,7 @@ export default function GestaoUsuarios() {
   if (companies.length === 0) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight">Gestão de Usuários</h1>
+        <h1 className="flex items-center gap-1 text-2xl font-bold tracking-tight">Gestão de Usuários<HelpHint helpKey="empresas.usuarios" size="md" side="bottom" align="start" /></h1>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
@@ -230,7 +231,7 @@ export default function GestaoUsuarios() {
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Gestão de Usuários</h1>
+          <h1 className="flex items-center gap-1 text-xl md:text-2xl font-bold tracking-tight">Gestão de Usuários<HelpHint helpKey="empresas.usuarios" size="md" side="bottom" align="start" /></h1>
           <p className="text-xs md:text-sm text-muted-foreground">Gerencie os membros da sua empresa</p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">

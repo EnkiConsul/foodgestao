@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -117,7 +118,7 @@ export default function Configuracoes() {
   if (isLoading) {
     return (
       <div className="space-y-4 md:space-y-6">
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Configurações</h1>
+        <h1 className="flex items-center gap-1 text-xl md:text-2xl font-bold tracking-tight">Configurações<HelpHint helpKey="conta.configuracoes" size="md" side="bottom" align="start" /></h1>
         <p className="text-xs md:text-sm text-muted-foreground">Carregando...</p>
       </div>
     );
@@ -126,7 +127,7 @@ export default function Configuracoes() {
   return (
     <div className="space-y-4 md:space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Configurações</h1>
+        <h1 className="flex items-center gap-1 text-xl md:text-2xl font-bold tracking-tight">Configurações<HelpHint helpKey="conta.configuracoes" size="md" side="bottom" align="start" /></h1>
         <p className="text-xs md:text-sm text-muted-foreground">Gerencie seu perfil e preferências</p>
       </div>
 

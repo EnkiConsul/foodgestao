@@ -7,6 +7,7 @@ import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { compareBankLedger, isBankReferenceDiscarded } from "@/lib/transactions/balance";
 import { Button } from "@/components/ui/button";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
@@ -426,7 +427,7 @@ export default function ContasBancarias() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Contas Financeiras</h1>
+          <h1 className="flex items-center gap-1 text-xl md:text-2xl font-bold tracking-tight">Contas Financeiras<HelpHint helpKey="financeiro.contas" size="md" side="bottom" align="start" /></h1>
           <p className="text-xs md:text-sm text-muted-foreground">Gerencie suas contas e saldos</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

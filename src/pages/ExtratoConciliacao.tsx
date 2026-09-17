@@ -1,4 +1,5 @@
 import { toProperName } from "@/lib/text/properName";
+import { HelpHint } from "@/components/ui/help-hint";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowLeftRight, FileSpreadsheet, Loader2, Pencil, Printer, TrendingDown, TrendingUp } from "lucide-react";
@@ -380,8 +381,9 @@ export default function ExtratoConciliacao() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+            <h1 className="flex items-center gap-1 text-xl font-bold tracking-tight sm:text-2xl">
               {tituloSistema("Extrato de Conciliação")}
+              <HelpHint helpKey="financeiro.conciliacao" size="md" side="bottom" align="start" />
             </h1>
             <p className="text-sm text-muted-foreground">{subtitle}</p>
           </div>

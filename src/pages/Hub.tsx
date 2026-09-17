@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, MessageCircle, Sparkles, Lock, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Badge } from "@/components/ui/badge";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useCompanyModules } from "@/hooks/useCompanyModules";
@@ -108,7 +109,7 @@ export default function Hub() {
 
       <div className="mb-6 md:mb-8">
         <p className="text-xs md:text-sm text-muted-foreground mb-1">{contextLabel}</p>
-        <h1 className="text-xl md:text-3xl font-bold">Hub de Módulos</h1>
+        <h1 className="flex items-center gap-1 text-xl md:text-3xl font-bold">Hub de Módulos<HelpHint helpKey="hub.modulos" size="md" side="bottom" align="start" /></h1>
         <p className="text-xs md:text-base text-muted-foreground mt-1 md:mt-2">
           Selecione um módulo para começar. Cada módulo é uma contratação independente.
         </p>

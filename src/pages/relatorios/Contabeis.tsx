@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -78,7 +79,7 @@ export default function RelatoriosContabeis() {
       </Helmet>
 
       <div className="space-y-1">
-        <h1 className="text-xl md:text-2xl font-bold">DRE Gerencial</h1>
+        <h1 className="flex items-center gap-1 text-xl md:text-2xl font-bold">DRE Gerencial<HelpHint helpKey="financeiro.relatoriosContabeis" size="md" side="bottom" align="start" /></h1>
         <p className="text-xs md:text-sm text-muted-foreground">
           Estrutura derivada 100% do plano de contas cadastrado. Alterações no cadastro refletem em
           tempo real.

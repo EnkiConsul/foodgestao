@@ -15,6 +15,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { applyFinancialScope, assertFinancialScope, isFinancialScopeReady } from "@/lib/financialScope";
 import { Button } from "@/components/ui/button";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -882,7 +883,7 @@ export default function Lancamentos() {
   return (
     <div className="space-y-4">
       <div className="min-w-0">
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Lançamentos</h1>
+        <h1 className="flex items-center gap-1 text-xl md:text-2xl font-bold tracking-tight">Lançamentos<HelpHint helpKey="financeiro.lancamentos" size="md" side="bottom" align="start" /></h1>
         <p className="text-xs md:text-sm text-muted-foreground">Contas a pagar e a receber, transferências e movimentações</p>
       </div>
 

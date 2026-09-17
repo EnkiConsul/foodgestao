@@ -4,6 +4,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -200,7 +201,7 @@ export default function CartoesCredito() {
     <div className="p-4 md:p-6 space-y-4 max-w-6xl mx-auto">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">Cartões de Crédito</h1>
+          <h1 className="flex items-center gap-1 text-xl md:text-2xl font-bold tracking-tight text-foreground">Cartões de Crédito<HelpHint helpKey="financeiro.cartoes" size="md" side="bottom" align="start" /></h1>
           <p className="text-xs md:text-sm text-muted-foreground">Gerencie limites, faturas e pagamentos.</p>
         </div>
         <Button onClick={() => { setEditing(null); setFormOpen(true); }} className="gap-2 min-h-[40px]">

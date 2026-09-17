@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -360,7 +361,7 @@ export default function ContasContabeis() {
       <Helmet><title>Contas Contábeis | Aveto 360</title></Helmet>
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold">Contas Contábeis</h1>
+          <h1 className="flex items-center gap-1 text-xl md:text-2xl font-bold">Contas Contábeis<HelpHint helpKey="financeiro.contasContabeis" size="md" side="bottom" align="start" /></h1>
           <p className="text-xs md:text-sm text-muted-foreground">Plano de contas hierárquico. Sintéticas agrupam; Analíticas recebem lançamentos.</p>
         </div>
         <div className="flex gap-2 flex-wrap">

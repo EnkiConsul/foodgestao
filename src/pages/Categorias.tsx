@@ -5,6 +5,7 @@ import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -24,7 +25,6 @@ import { CategoryRow } from "@/components/categorias/CategoryRow";
 import { CategoryMobileRow } from "@/components/categorias/CategoryMobileRow";
 import { BatchActionBar } from "@/components/categorias/BatchActionBar";
 import { BatchVisibilityDialog } from "@/components/categorias/BatchVisibilityDialog";
-import { HelpHint } from "@/components/common/HelpHint";
 
 const CATEGORIA_HELP = {
   nova: "Cria uma categoria nova.",
@@ -563,7 +563,7 @@ export default function Categorias() {
     <div className="space-y-4">
       {/* Header */}
       <div className="min-w-0 space-y-1">
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Categorias</h1>
+        <h1 className="flex items-center gap-1 text-xl md:text-2xl font-bold tracking-tight">Categorias<HelpHint helpKey="financeiro.categorias" size="md" side="bottom" align="start" /></h1>
         <p className="text-xs md:text-sm text-muted-foreground">
           Organize seu plano de contas por grupos e subcategorias.
         </p>
@@ -582,7 +582,7 @@ export default function Categorias() {
               <Plus className="h-4 w-4" />
               Nova categoria
             </Button>
-            <HelpHint text={CATEGORIA_HELP.nova} label="Ajuda: nova categoria" />
+            <HelpHint text={CATEGORIA_HELP.nova} label="nova categoria" />
           </div>
 
           {/* Ações secundárias: visíveis no desktop */}
@@ -599,7 +599,7 @@ export default function Categorias() {
                   <Sparkles className="h-4 w-4" />
                   {seeding ? "Importando..." : "Importar plano Aveto 360"}
                 </Button>
-                <HelpHint text={CATEGORIA_HELP.importar} label="Ajuda: importar plano padrão" />
+                <HelpHint text={CATEGORIA_HELP.importar} label="importar plano padrão" />
               </div>
             )}
             {contextType === "pj" && selectedCompanyId && (
@@ -614,7 +614,7 @@ export default function Categorias() {
                   <RefreshCw className="h-4 w-4" />
                   {replacing ? "Aplicando..." : "Substituir pelo padrão"}
                 </Button>
-                <HelpHint text={CATEGORIA_HELP.substituir} label="Ajuda: substituir pelo padrão" />
+                <HelpHint text={CATEGORIA_HELP.substituir} label="substituir pelo padrão" />
               </div>
             )}
             <div className="flex items-center gap-1">
@@ -622,7 +622,7 @@ export default function Categorias() {
                 <ChevronsUpDown className="h-4 w-4" />
                 {allCollapsed ? "Expandir tudo" : "Recolher tudo"}
               </Button>
-              <HelpHint text={CATEGORIA_HELP.recolher} label="Ajuda: recolher ou expandir" />
+              <HelpHint text={CATEGORIA_HELP.recolher} label="recolher ou expandir" />
             </div>
           </div>
 
@@ -671,7 +671,7 @@ export default function Categorias() {
                 <TabsTrigger value="blocked" className="text-xs px-2.5 h-7">Bloqueadas ({counts.blocked})</TabsTrigger>
               </TabsList>
             </Tabs>
-            <HelpHint text={CATEGORIA_HELP.bloqueadas} label="Ajuda: filtro de status" />
+            <HelpHint text={CATEGORIA_HELP.bloqueadas} label="filtro de status" />
           </div>
 
 
