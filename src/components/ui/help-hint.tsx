@@ -37,6 +37,7 @@ export function HelpHint({ helpKey, label, text, side = "top", align = "center",
 
   const [aberto, setAberto] = React.useState(false);
   const suprimidoRef = React.useRef(false);
+  const abertoPorHoverRef = React.useRef(false);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const descricaoId = React.useId();
 
@@ -94,10 +95,13 @@ export function HelpHint({ helpKey, label, text, side = "top", align = "center",
             className,
           )}
           onPointerEnter={(event) => {
-            if (event.pointerType === "mouse") abrir();
+            if (event.pointerType !== "mouse") return;
+            abertoPorHoverRef.current = true;
+            abrir();
           }}
           onPointerLeave={(event) => {
             if (event.pointerType !== "mouse") return;
+            abertoPorHoverRef.current = false;
             suprimidoRef.current = false;
             agendarFechamento();
           }}
@@ -118,7 +122,10 @@ export function HelpHint({ helpKey, label, text, side = "top", align = "center",
             event.preventDefault();
             event.stopPropagation();
             cancelarFechamento();
-            if (aberto) {
+            if (aberto && abertoPorHoverRef.current) {
+              // Aberto pelo passar do mouse: o clique apenas fixa a ajuda.
+              abertoPorHoverRef.current = false;
+            } else if (aberto) {
               fecharComSupressao();
             } else {
               suprimidoRef.current = false;
