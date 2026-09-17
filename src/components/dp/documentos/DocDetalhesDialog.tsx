@@ -301,6 +301,19 @@ export function DocDetalhesDialog(props: {
             <Trash2 className="mr-1 h-4 w-4" /> Excluir
           </Button>
         </DialogFooter>
+
+        <DocumentPreview
+          open={!!certificadoPdf}
+          onOpenChange={(v) => {
+            if (!v) {
+              certificadoPdf?.revogar();
+              setCertificadoPdf(null);
+            }
+          }}
+          title={`Certificado de validação — ${target?.titulo ?? "documento"}`}
+          url={certificadoPdf?.url}
+          mime="application/pdf"
+        />
       </DialogContent>
     </Dialog>
   );
