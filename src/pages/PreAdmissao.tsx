@@ -624,8 +624,11 @@ export default function PreAdmissao() {
               </div>
               {etapa === 0 && (
                 <div className="grid gap-3 sm:grid-cols-2">
+                  {exigenciaCampo("sexo") !== "nao_pedir" && (
                   <div className="space-y-1">
-                    <Label className="text-xs" htmlFor="sexo">Sexo</Label>
+                    <Label className="text-xs" htmlFor="sexo">
+                      Sexo{exigenciaCampo("sexo") === "obrigatorio" && <span className="text-destructive"> *</span>}
+                    </Label>
                     <Select value={form.sexo ?? ""} onValueChange={(v) => setForm({ ...form, sexo: v })}>
                       <SelectTrigger id="sexo" className="h-11"><SelectValue placeholder="Escolher" /></SelectTrigger>
                       <SelectContent>
@@ -634,8 +637,13 @@ export default function PreAdmissao() {
                     </Select>
                     {erros.sexo && <p className="text-xs text-destructive">{erros.sexo}</p>}
                   </div>
+                  )}
+                  {exigenciaCampo("estado_civil") !== "nao_pedir" && (
                   <div className="space-y-1">
-                    <Label className="text-xs" htmlFor="estado_civil">Estado civil</Label>
+                    <Label className="text-xs" htmlFor="estado_civil">
+                      Estado civil
+                      {exigenciaCampo("estado_civil") === "obrigatorio" && <span className="text-destructive"> *</span>}
+                    </Label>
                     <Select value={form.estado_civil ?? ""} onValueChange={(v) => setForm({ ...form, estado_civil: v })}>
                       <SelectTrigger id="estado_civil" className="h-11"><SelectValue placeholder="Escolher" /></SelectTrigger>
                       <SelectContent>
@@ -644,8 +652,13 @@ export default function PreAdmissao() {
                     </Select>
                     {erros.estado_civil && <p className="text-xs text-destructive">{erros.estado_civil}</p>}
                   </div>
+                  )}
+                  {exigenciaCampo("grau_instrucao") !== "nao_pedir" && (
                   <div className="space-y-1 sm:col-span-2">
-                    <Label className="text-xs" htmlFor="grau_instrucao">Escolaridade</Label>
+                    <Label className="text-xs" htmlFor="grau_instrucao">
+                      Escolaridade
+                      {exigenciaCampo("grau_instrucao") === "obrigatorio" && <span className="text-destructive"> *</span>}
+                    </Label>
                     <Select value={form.grau_instrucao ?? ""} onValueChange={(v) => setForm({ ...form, grau_instrucao: v })}>
                       <SelectTrigger id="grau_instrucao" className="h-11"><SelectValue placeholder="Escolher" /></SelectTrigger>
                       <SelectContent>
@@ -653,6 +666,7 @@ export default function PreAdmissao() {
                       </SelectContent>
                     </Select>
                   </div>
+                  )}
                 </div>
               )}
               {etapaAtual.endereco ? (
