@@ -1087,7 +1087,7 @@ export function ColaboradorFormDialog({
     [
       form.setor_id, form.whatsapp, form.email, form.data_nascimento, form.tipo_vinculo,
       rem.salario_base, rem.valor_hora, rem.base_salarial, (rem as any).valor_diaria,
-      socioSelecionado, socioRem, salarioCargo,
+      socioSelecionado, socioRem, salarioCargo, endereco,
     ],
   );
 
