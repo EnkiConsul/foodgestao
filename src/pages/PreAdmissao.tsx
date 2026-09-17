@@ -139,10 +139,21 @@ interface Estado {
 
 async function chamar<T>(fn: string, body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke(fn, { body });
-  const corpo = data as (T & { error?: string }) | null;
-  if (error) throw new Error(corpo?.error || error.message);
-  if (corpo?.error) throw new Error(corpo.error);
-  return corpo as T;
+  if (error) {
+    // A rotina responde com uma frase pronta para a tela; nunca mostramos o
+    // texto técnico do invoke.
+    let detalhe = "";
+    const ctx = (error as { context?: Response }).context;
+    if (ctx && typeof ctx.json === "function") {
+      const corpo = await ctx.json().catch(() => null) as { error?: string } | null;
+      detalhe = corpo?.error ?? "";
+    }
+    if (!detalhe) detalhe = ((data as { error?: string } | null)?.error) ?? "";
+    throw new Error(detalhe || "Não foi possível concluir agora. Tente novamente.");
+  }
+  const erro = (data as { error?: string } | null)?.error;
+  if (erro) throw new Error(erro);
+  return data as T;
 }
 
 const lerBase64 = (arquivo: File) =>

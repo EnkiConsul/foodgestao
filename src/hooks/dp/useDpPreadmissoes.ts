@@ -98,8 +98,16 @@ export interface PreadmissaoDetalhe {
 async function chamar<T>(fn: string, body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke(fn, { body });
   if (error) {
-    const detalhe = (data as { error?: string } | null)?.error;
-    throw new Error(detalhe || error.message);
+    // A rotina responde com uma frase pronta para a tela; nunca mostramos o
+    // texto técnico do invoke.
+    let detalhe = "";
+    const ctx = (error as { context?: Response }).context;
+    if (ctx && typeof ctx.json === "function") {
+      const corpo = await ctx.json().catch(() => null) as { error?: string } | null;
+      detalhe = corpo?.error ?? "";
+    }
+    if (!detalhe) detalhe = ((data as { error?: string } | null)?.error) ?? "";
+    throw new Error(detalhe || "Não foi possível concluir agora. Tente novamente.");
   }
   const erro = (data as { error?: string } | null)?.error;
   if (erro) throw new Error(erro);
