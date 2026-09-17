@@ -25,9 +25,10 @@ import {
   jornadaDaFicha, useAplicarFicha, useIgnorarFicha, type FichaItem,
 } from "@/hooks/useDpFichaImportacao";
 import { notifyError } from "@/lib/notifyError";
-import { useDpPreadmissao } from "@/hooks/dp/useDpPreadmissoes";
+import { anexarSomenteFicha, useDpPreadmissao } from "@/hooks/dp/useDpPreadmissoes";
 import {
-  dadosParaCadastro, divergenciasFicha, divergenciasSemEscolha, type EscolhaDivergencia,
+  dadosParaCadastro, divergenciasAdmin, divergenciasAdminSemEscolha, divergenciasFicha,
+  divergenciasSemEscolha, resolverPorNome, type EscolhaDivergencia,
 } from "@/lib/dp/preadmissao/comparacaoFicha";
 
 
