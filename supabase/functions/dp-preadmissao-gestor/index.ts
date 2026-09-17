@@ -11,6 +11,7 @@ import {
   anexarSomente,
   conferirFichaOficial,
   registrarEvento,
+  regrasAdmissao,
   requisitosEmpresa,
   requisitosPrevistos,
   ESTADOS_ABERTOS_GESTOR,
@@ -22,7 +23,12 @@ import {
   validarAdminDados,
   type Preadmissao,
 } from "../_shared/preadmissao.ts";
-import { bloqueioMenorNoturno, montarChecklist, pendenciasDocumentais } from "../_shared/preadmissao-checklist.ts";
+import {
+  aplicarRegrasDocumentos,
+  bloqueioMenorNoturno,
+  montarChecklist,
+  pendenciasDocumentais,
+} from "../_shared/preadmissao-checklist.ts";
 
 /**
  * Única situação em que a ficha pode seguir para a contabilidade. Correção
