@@ -94,7 +94,8 @@ export function useDpAdmissaoRegras() {
           .eq("company_id", alvo.company_id).eq("tipo", alvo.tipo).eq("chave", alvo.chave);
         q = alvo.unidade_id ? q.eq("unidade_id", alvo.unidade_id) : q.is("unidade_id", null);
         q = alvo.cargo_id ? q.eq("cargo_id", alvo.cargo_id) : q.is("cargo_id", null);
-        q = alvo.regime ? q.eq("regime", alvo.regime) : q.is("regime", null);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        q = alvo.regime ? q.eq("regime", alvo.regime as any) : q.is("regime", null);
         const { error } = await q;
         if (error) throw error;
         return;
