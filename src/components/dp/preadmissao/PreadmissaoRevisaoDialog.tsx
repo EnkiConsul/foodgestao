@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, Clock, Download, Eye, FileUp, Loader2, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Download, Eye, FileUp, Loader2, Trash2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { notifyError } from "@/lib/notifyError";
+import { PreadmissaoExcluirDialog } from "@/components/dp/preadmissao/PreadmissaoExcluirDialog";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import {
@@ -813,6 +814,21 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
               )}
             </section>
 
+            {status !== "concluido" && !pa.colaborador_id && (
+              <section className="pt-2 border-t">
+                <Button
+                  variant="outline"
+                  className="text-destructive"
+                  onClick={() => setExcluir(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" /> Excluir Ficha
+                </Button>
+                <p className="text-xs text-muted-foreground mt-1">
+                  A ficha sai da lista e o link deixa de valer. Os documentos e o histórico continuam guardados.
+                </p>
+              </section>
+            )}
+
             {!!data.eventos.length && (
               <section>
                 <h3 className="text-sm font-semibold mb-2">Histórico</h3>
@@ -828,6 +844,12 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
           </div>
         )}
       </DialogContent>
+      <PreadmissaoExcluirDialog
+        preadmissaoId={excluir ? preadmissaoId : null}
+        candidatoNome={data?.preadmissao.candidato_nome ?? ""}
+        onOpenChange={setExcluir}
+        onExcluida={() => onOpenChange(false)}
+      />
     </Dialog>
   );
 }

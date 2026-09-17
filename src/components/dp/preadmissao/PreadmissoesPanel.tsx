@@ -7,7 +7,7 @@
  */
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Ban, Eye, Loader2, RefreshCw, Search, UserPlus } from "lucide-react";
+import { Ban, Eye, Loader2, RefreshCw, Search, Trash2, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import {
 import { AdmissaoRegrasPanel } from "@/components/dp/preadmissao/AdmissaoRegrasPanel";
 import { REGIMES_ADMISSAO } from "@/lib/dp/regimesAdmissao";
 import { PreadmissaoConviteDialog } from "@/components/dp/preadmissao/PreadmissaoConviteDialog";
+import { PreadmissaoExcluirDialog } from "@/components/dp/preadmissao/PreadmissaoExcluirDialog";
 import { PreadmissaoRevisaoDialog } from "@/components/dp/preadmissao/PreadmissaoRevisaoDialog";
 import { notifyError } from "@/lib/notifyError";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
@@ -55,6 +56,8 @@ export function PreadmissoesPanel({
   const convidando = convidarAberto ?? convidandoLocal;
   const setConvidando = (v: boolean) => (onConvidarChange ? onConvidarChange(v) : setConvidandoLocal(v));
   const [revisando, setRevisando] = useState<string | null>(null);
+  // Ficha marcada para exclusão (confirmação em janela própria).
+  const [excluindo, setExcluindo] = useState<{ id: string; nome: string } | null>(null);
   const [aba, setAba] = useState<"fichas" | "regras">("fichas");
 
   const nomeCargo = (id: string | null) => cargos.find((c) => c.id === id)?.nome ?? "—";
@@ -209,6 +212,18 @@ export function PreadmissoesPanel({
                           <Button
                             size="sm"
                             variant="ghost"
+                            title={p.status === "concluido" || p.colaborador_id
+                              ? "Esta admissão já virou cadastro de colaborador"
+                              : "Excluir ficha"}
+                            aria-label={`Excluir a ficha de ${p.candidato_nome}`}
+                            disabled={p.status === "concluido" || !!p.colaborador_id}
+                            onClick={() => setExcluindo({ id: p.id, nome: p.candidato_nome })}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
                             title="Cancelar link"
                             aria-label={`Cancelar o link de ${p.candidato_nome}`}
                             onClick={() => cancelar(p.id)}
@@ -228,7 +243,15 @@ export function PreadmissoesPanel({
       )}
 
       <PreadmissaoConviteDialog open={convidando} onOpenChange={setConvidando} />
-      <PreadmissaoRevisaoDialog preadmissaoId={revisando} onOpenChange={() => setRevisando(null)} />
+      <PreadmissaoRevisaoDialog
+        preadmissaoId={revisando}
+        onOpenChange={() => setRevisando(null)}
+      />
+      <PreadmissaoExcluirDialog
+        preadmissaoId={excluindo?.id ?? null}
+        candidatoNome={excluindo?.nome ?? ""}
+        onOpenChange={(v) => { if (!v) setExcluindo(null); }}
+      />
     </>
   );
 }
