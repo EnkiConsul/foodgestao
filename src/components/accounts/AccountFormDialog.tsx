@@ -447,11 +447,13 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
 
           {/* Seção 4 — Saldo */}
           <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-foreground">Saldo</h3>
+            <h3 className="flex items-center gap-1 text-sm font-semibold text-foreground">
+              Saldo
+              <HelpHint helpKey="financeiro.conta.saldoInicial" />
+            </h3>
             {isPersonal && (
               <div className="space-y-2">
                 <Label htmlFor="saldo-pessoal">Saldo inicial</Label>
-                <HelpHint helpKey="financeiro.conta.saldoInicial" />
                 <CurrencyInput
                   id="saldo-pessoal"
                   value={personalBalance}
