@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
         admin.from("dp_preadmissao_eventos").select("evento, detalhe, created_at").eq("preadmissao_id", pa.id)
           .order("created_at", { ascending: false }).limit(50),
       ]);
-      const ficha = (atual ?? pa) as unknown as Preadmissao;
+      const ficha = fichaAtual;
       const dados = (ficha.dados ?? {}) as Record<string, unknown>;
       const vigentes = (docs ?? []).filter((d) => !d.substituido_em);
       const checklist = montarChecklist({
