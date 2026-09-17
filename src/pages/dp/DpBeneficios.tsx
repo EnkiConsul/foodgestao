@@ -41,6 +41,7 @@ export default function DpBeneficios() {
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
 
+  const [aba, setAba] = useState("calculo");
   const [colabFilter, setColabFilter] = useState("todos");
   const b = useDpBeneficios(colabFilter);
   const cadastro = useDpBeneficiosCadastro(colabFilter);
