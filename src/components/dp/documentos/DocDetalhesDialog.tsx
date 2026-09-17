@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Download, Eye, FileText, History, Replace, Trash2, Loader2, Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { imprimirCertificadoValidacao } from "@/lib/dp/documento-certificado";
+import { certificadoValidacaoPdf } from "@/lib/dp/documento-certificado";
+import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -133,24 +135,25 @@ export function DocDetalhesDialog(props: {
 
   const aceite = detalhes.data?.aceite ?? null;
 
-  const imprimirCertificado = () => {
-    if (!target || !aceite) return;
-    const empresa = detalhes.data?.empresa as any;
-    const ok = imprimirCertificadoValidacao({
-      empresa: empresa?.razao_social ?? empresa?.nome_fantasia ?? "",
-      colaborador: target.colaborador_nome,
-      documentoTitulo: target.titulo,
-      documentoTipo: target.tipo_label,
-      competencia: target.competencia,
-      arquivo: detalhes.data?.doc?.file_name ?? target.file_path?.split("/").pop() ?? null,
-      aceitoEm: aceite.aceito_em,
-      aprovadoPor: nome(aceite.aceito_por),
-      ip: aceite.ip,
-      dispositivo: aceite.user_agent,
-      conteudoHash: aceite.conteudo_hash,
-      registroId: aceite.id,
-    });
-    if (!ok) toast.error("Libere as janelas pop-up para imprimir o certificado.");
+  /**
+   * Certificado de validação: PDF do servidor com o documento assinado e o
+   * comprovante anexado, aberto na própria tela (no celular, abrir outra aba
+   * é bloqueado).
+   */
+  const [certificadoPdf, setCertificadoPdf] = useState<{ url: string; revogar: () => void } | null>(null);
+  const [gerando, setGerando] = useState(false);
+
+  const imprimirCertificado = async () => {
+    if (!docId || !aceite) return;
+    setGerando(true);
+    try {
+      const pdf = await certificadoValidacaoPdf(docId);
+      setCertificadoPdf(pdf);
+    } catch (e) {
+      toast.error((e as Error).message || "Não foi possível gerar o certificado agora.");
+    } finally {
+      setGerando(false);
+    }
   };
 
 
@@ -245,8 +248,15 @@ export function DocDetalhesDialog(props: {
                 </Campo>
               </div>
               {aceite && (
-                <Button size="sm" variant="outline" className="mt-3" onClick={imprimirCertificado}>
-                  <Printer className="mr-1 h-4 w-4" /> Certificado de validação
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-3"
+                  disabled={gerando}
+                  onClick={() => void imprimirCertificado()}
+                >
+                  <Printer className="mr-1 h-4 w-4" />
+                  {gerando ? "Gerando…" : "Certificado de validação"}
                 </Button>
               )}
             </div>
@@ -291,6 +301,19 @@ export function DocDetalhesDialog(props: {
             <Trash2 className="mr-1 h-4 w-4" /> Excluir
           </Button>
         </DialogFooter>
+
+        <DocumentPreview
+          open={!!certificadoPdf}
+          onOpenChange={(v) => {
+            if (!v) {
+              certificadoPdf?.revogar();
+              setCertificadoPdf(null);
+            }
+          }}
+          title={`Certificado de validação — ${target?.titulo ?? "documento"}`}
+          url={certificadoPdf?.url}
+          mime="application/pdf"
+        />
       </DialogContent>
     </Dialog>
   );

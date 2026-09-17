@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { abrirDocumento } from "@/lib/documentoArquivo";
+import { abrirDocumento, linkDocumentoAssinado } from "@/lib/documentoArquivo";
+import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { aceitaComprovante } from "@/lib/dp/documentoTipos";
 import { useDpComprovantePagamento, type ComprovanteAlvo } from "@/hooks/useDpComprovantePagamento";
 
@@ -19,9 +20,34 @@ function validar(file: File): boolean {
   return true;
 }
 
-async function abrirComprovante(documentoId: string, download = false) {
-  const ok = await abrirDocumento(documentoId, { variante: "comprovante", download });
+async function baixarComprovante(documentoId: string) {
+  const ok = await abrirDocumento(documentoId, { variante: "comprovante", download: true });
   if (!ok) toast.error("Sem permissão para abrir este comprovante");
+}
+
+/**
+ * Ver o comprovante dentro da própria tela. No celular (e no aplicativo
+ * instalado) abrir outra aba é bloqueado, então nada aparecia.
+ */
+function useVerComprovante() {
+  const [aberto, setAberto] = useState<{ url: string; nome: string | null } | null>(null);
+  const ver = async (documentoId: string) => {
+    const link = await linkDocumentoAssinado(documentoId, 300, "comprovante");
+    if (!link) {
+      toast.error("Sem permissão para abrir este comprovante");
+      return;
+    }
+    setAberto({ url: link.url, nome: link.fileName });
+  };
+  const visualizador = (
+    <DocumentPreview
+      open={!!aberto}
+      onOpenChange={(v) => { if (!v) setAberto(null); }}
+      title={aberto?.nome ?? "Comprovante de pagamento"}
+      url={aberto?.url}
+    />
+  );
+  return { ver, visualizador };
 }
 
 /**
@@ -38,21 +64,25 @@ export function ComprovanteAcaoBotao(props: {
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { anexar, ocupado } = useDpComprovantePagamento();
+  const { ver, visualizador } = useVerComprovante();
   if (!aceitaComprovante(props.alvo.tipo)) return null;
 
   if (props.somenteLeitura) {
     if (!props.temComprovante) return null;
     return (
-      <Button
-        size="sm"
-        variant="ghost"
-        className={props.className}
-        aria-label="Ver comprovante de pagamento"
-        onClick={() => void abrirComprovante(props.alvo.documentoId)}
-      >
-        <Receipt className="size-4 text-emerald-600" />
-        {props.rotulo ? <span className="ml-1">{props.rotulo}</span> : null}
-      </Button>
+      <>
+        <Button
+          size="sm"
+          variant="ghost"
+          className={props.className}
+          aria-label="Ver comprovante de pagamento"
+          onClick={() => void ver(props.alvo.documentoId)}
+        >
+          <Receipt className="size-4 text-emerald-600" />
+          {props.rotulo ? <span className="ml-1">{props.rotulo}</span> : null}
+        </Button>
+        {visualizador}
+      </>
     );
   }
 
@@ -77,7 +107,7 @@ export function ComprovanteAcaoBotao(props: {
         aria-label={props.temComprovante ? "Ver comprovante de pagamento" : "Importar comprovante de pagamento"}
         title={props.temComprovante ? "Comprovante de pagamento anexado" : "Importar comprovante de pagamento"}
         onClick={() =>
-          props.temComprovante ? void abrirComprovante(props.alvo.documentoId) : inputRef.current?.click()
+          props.temComprovante ? void ver(props.alvo.documentoId) : inputRef.current?.click()
         }
       >
         {anexar.isPending ? (
@@ -89,6 +119,7 @@ export function ComprovanteAcaoBotao(props: {
         )}
         {props.rotulo ? <span className="ml-1">{props.rotulo}</span> : null}
       </Button>
+      {visualizador}
     </>
   );
 }
@@ -112,6 +143,7 @@ export function ComprovantePagamentoPanel(props: {
   const inputRef = useRef<HTMLInputElement>(null);
   const [pagoEm, setPagoEm] = useState("");
   const { anexar, remover, ocupado } = useDpComprovantePagamento();
+  const { ver, visualizador } = useVerComprovante();
   if (!aceitaComprovante(props.alvo.tipo)) return null;
 
   const { comprovante } = props;
@@ -156,10 +188,10 @@ export function ComprovantePagamentoPanel(props: {
             </p>
           )}
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => void abrirComprovante(props.alvo.documentoId)}>
+            <Button size="sm" variant="outline" onClick={() => void ver(props.alvo.documentoId)}>
               <Eye className="mr-1 size-4" /> Ver
             </Button>
-            <Button size="sm" variant="outline" onClick={() => void abrirComprovante(props.alvo.documentoId, true)}>
+            <Button size="sm" variant="outline" onClick={() => void baixarComprovante(props.alvo.documentoId)}>
               <Download className="mr-1 size-4" /> Baixar
             </Button>
             {!props.somenteLeitura && (
@@ -200,6 +232,7 @@ export function ComprovantePagamentoPanel(props: {
           </Button>
         </div>
       )}
+      {visualizador}
     </div>
   );
 }

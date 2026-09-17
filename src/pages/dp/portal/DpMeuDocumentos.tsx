@@ -22,9 +22,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
-import { imprimirCertificadoValidacao } from "@/lib/dp/documento-certificado";
+import { certificadoValidacaoPdf } from "@/lib/dp/documento-certificado";
 import { abrirArquivoDp } from "@/lib/dp/abrirDocumento";
-import { abrirDocumento } from "@/lib/documentoArquivo";
+import { linkDocumentoAssinado } from "@/lib/documentoArquivo";
 import { Receipt } from "lucide-react";
 import { baixarCsv } from "@/lib/dp/portal-csv";
 import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/ColaboradorDocumentosPanel";
@@ -295,26 +295,38 @@ export default function DpMeuDocumentos() {
     onError: (e: any) => notifyError(e, { surface: "Meus documentos", action: "concluir a ação", fallback: "Erro ao registrar o aceite" }),
   });
 
-  /** Certificado imprimível da aprovação eletrônica. */
-  const certificado = (d: UnifiedDoc) => {
-    const info = d.aceiteInfo;
-    if (!info) return;
-    const c = colaborador as any;
-    const ok = imprimirCertificadoValidacao({
-      empresa: c?.empresa_nome ?? "",
-      colaborador: c?.nome_social || c?.nome || "",
-      documentoTitulo: d.titulo,
-      documentoTipo: d.tipo_label,
-      competencia: d.competencia_label,
-      arquivo: d.arquivo_nome ?? null,
-      aceitoEm: info.aceito_em,
-      aprovadoPor: c?.nome_social || c?.nome || "",
-      ip: info.ip,
-      dispositivo: info.user_agent,
-      conteudoHash: info.conteudo_hash,
-      registroId: info.id,
-    });
-    if (!ok) toast.error("Libere as janelas pop-up para imprimir o certificado.");
+  /**
+   * Certificado de validação: PDF montado no servidor com o documento
+   * assinado e o comprovante anexado, aberto aqui mesmo (no celular, abrir
+   * outra aba é bloqueado).
+   */
+  const [arquivoAberto, setArquivoAberto] = useState<
+    { url: string; titulo: string; mime?: string; revogar?: () => void } | null
+  >(null);
+  const [gerando, setGerando] = useState<string | null>(null);
+
+  const certificado = async (d: UnifiedDoc) => {
+    const documentoId = String(d.meta?.originalId ?? d.id);
+    setGerando(d.id);
+    try {
+      const { url, revogar } = await certificadoValidacaoPdf(documentoId);
+      setArquivoAberto({ url, titulo: `Certificado de validação — ${d.titulo}`, mime: "application/pdf", revogar });
+    } catch (e) {
+      toast.error((e as Error).message || "Não foi possível gerar o certificado agora.");
+    } finally {
+      setGerando(null);
+    }
+  };
+
+  /** Comprovante de pagamento na própria tela, com baixar e imprimir. */
+  const verComprovante = async (d: UnifiedDoc) => {
+    const documentoId = String(d.meta?.originalId ?? d.id);
+    const link = await linkDocumentoAssinado(documentoId, 300, "comprovante");
+    if (!link) {
+      toast.error("Não foi possível abrir o comprovante agora.");
+      return;
+    }
+    setArquivoAberto({ url: link.url, titulo: `Comprovante de pagamento — ${d.titulo}` });
   };
 
   const cancelar = useMutation({
@@ -537,12 +549,7 @@ export default function DpMeuDocumentos() {
                             size="sm"
                             variant="outline"
                             className="min-h-9 flex-1 sm:flex-none"
-                            onClick={async () => {
-                              const ok = await abrirDocumento(String(d.meta?.originalId ?? d.id), {
-                                variante: "comprovante",
-                              });
-                              if (!ok) toast.error("Não foi possível abrir o comprovante agora.");
-                            }}
+                            onClick={() => void verComprovante(d)}
                           >
                             <Receipt className="h-4 w-4 mr-1 text-emerald-600" /> Comprovante de pagamento
                           </Button>
@@ -561,10 +568,12 @@ export default function DpMeuDocumentos() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => certificado(d)}
+                            onClick={() => void certificado(d)}
+                            disabled={gerando === d.id}
                             className="min-h-9 flex-1 sm:flex-none"
                           >
-                            <Printer className="h-4 w-4 mr-1" /> Certificado
+                            <Printer className="h-4 w-4 mr-1" />
+                            {gerando === d.id ? "Gerando…" : "Certificado"}
                           </Button>
                         )}
                         {d.origem === "meu_envio" && d.status_key === "pendente" && (
@@ -616,6 +625,21 @@ export default function DpMeuDocumentos() {
         path={preview?.file_path ?? undefined}
         mime={preview?.mime_type ?? undefined}
       />
+
+      {/* Comprovante e certificado abrem aqui mesmo: no celular, outra aba é bloqueada. */}
+      <DocumentPreview
+        open={!!arquivoAberto}
+        onOpenChange={(v) => {
+          if (!v) {
+            arquivoAberto?.revogar?.();
+            setArquivoAberto(null);
+          }
+        }}
+        title={arquivoAberto?.titulo}
+        url={arquivoAberto?.url}
+        mime={arquivoAberto?.mime}
+      />
+
     </DpPage>
   );
 }
