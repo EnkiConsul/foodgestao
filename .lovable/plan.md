@@ -22,5 +22,5 @@ Fora de escopo: a parte financeira (Open Finance e conciliação) fica com o Raf
 
 - Etapa A reaproveita `src/components/shared/EnderecoFields.tsx` e `src/lib/endereco.ts`; a ficha do colaborador guarda o endereço em campo estruturado (JSON) em `dp_colaboradores`, então a mudança é só de tela, sem migration. `FichaRevisaoCard` mantém o modo de comparação e apenas troca os campos de entrada.
 - Etapa B roda com fixtures próprias em empresa de teste, chamadas HTTP reais às funções de admissão e sessões distintas para o teste de arquivos.
-- Etapa C exige migrations (permissões e travas) e será apresentada com o SQL para aprovação antes de aplicar.
+
 - Verificação em todas as etapas: tipos, lint dos arquivos alterados e os testes já existentes — sem baterias completas.
