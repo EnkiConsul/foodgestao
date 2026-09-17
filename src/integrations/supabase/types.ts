@@ -3099,6 +3099,49 @@ export type Database = {
           },
         ]
       }
+      dp_admissao_regra_cargos: {
+        Row: {
+          cargo_id: string
+          company_id: string
+          created_at: string
+          regra_id: string
+        }
+        Insert: {
+          cargo_id: string
+          company_id: string
+          created_at?: string
+          regra_id: string
+        }
+        Update: {
+          cargo_id?: string
+          company_id?: string
+          created_at?: string
+          regra_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_admissao_regra_cargos_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_admissao_regra_cargos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_admissao_regra_cargos_regra_id_fkey"
+            columns: ["regra_id"]
+            isOneToOne: false
+            referencedRelation: "dp_admissao_regras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_admissao_regra_parentescos: {
         Row: {
           company_id: string
@@ -3137,6 +3180,85 @@ export type Database = {
           },
         ]
       }
+      dp_admissao_regra_regimes: {
+        Row: {
+          company_id: string
+          created_at: string
+          regime: Database["public"]["Enums"]["dp_regime_trabalho"]
+          regra_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          regime: Database["public"]["Enums"]["dp_regime_trabalho"]
+          regra_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
+          regra_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_admissao_regra_regimes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_admissao_regra_regimes_regra_id_fkey"
+            columns: ["regra_id"]
+            isOneToOne: false
+            referencedRelation: "dp_admissao_regras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_admissao_regra_unidades: {
+        Row: {
+          company_id: string
+          created_at: string
+          regra_id: string
+          unidade_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          regra_id: string
+          unidade_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          regra_id?: string
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_admissao_regra_unidades_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_admissao_regra_unidades_regra_id_fkey"
+            columns: ["regra_id"]
+            isOneToOne: false
+            referencedRelation: "dp_admissao_regras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_admissao_regra_unidades_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_admissao_regras: {
         Row: {
           cargo_id: string | null
@@ -3145,6 +3267,7 @@ export type Database = {
           created_at: string
           exigencia: string
           id: string
+          padrao: boolean
           regime: Database["public"]["Enums"]["dp_regime_trabalho"] | null
           tipo: string
           unidade_id: string | null
@@ -3157,6 +3280,7 @@ export type Database = {
           created_at?: string
           exigencia: string
           id?: string
+          padrao?: boolean
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"] | null
           tipo: string
           unidade_id?: string | null
@@ -3169,6 +3293,7 @@ export type Database = {
           created_at?: string
           exigencia?: string
           id?: string
+          padrao?: boolean
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"] | null
           tipo?: string
           unidade_id?: string | null
@@ -10313,6 +10438,9 @@ export type Database = {
           ficha_oficial_conferida_em: string | null
           ficha_oficial_conferida_por: string | null
           id: string
+          regime_previsto:
+            | Database["public"]["Enums"]["dp_regime_trabalho"]
+            | null
           revisado_em: string | null
           revisado_por: string | null
           status: string
@@ -10344,6 +10472,9 @@ export type Database = {
           ficha_oficial_conferida_em?: string | null
           ficha_oficial_conferida_por?: string | null
           id?: string
+          regime_previsto?:
+            | Database["public"]["Enums"]["dp_regime_trabalho"]
+            | null
           revisado_em?: string | null
           revisado_por?: string | null
           status?: string
@@ -10375,6 +10506,9 @@ export type Database = {
           ficha_oficial_conferida_em?: string | null
           ficha_oficial_conferida_por?: string | null
           id?: string
+          regime_previsto?:
+            | Database["public"]["Enums"]["dp_regime_trabalho"]
+            | null
           revisado_em?: string | null
           revisado_por?: string | null
           status?: string
@@ -14722,6 +14856,8 @@ export type Database = {
         Args: { _base: string; _dias: number; _timezone: string }
         Returns: string
       }
+      dp_admissao_regra_excluir: { Args: { p_id: string }; Returns: boolean }
+      dp_admissao_regra_salvar: { Args: { p_regra: Json }; Returns: string }
       dp_admissao_regras_resolver: {
         Args: {
           p_cargo_id?: string

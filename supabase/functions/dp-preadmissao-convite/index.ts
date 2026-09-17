@@ -55,8 +55,15 @@ Deno.serve(async (req) => {
       const unidadeId = body?.unidade_prevista_id ? String(body.unidade_prevista_id) : null;
       const apos22h = body?.trabalho_apos_22h;
       const cpf = String(body?.cpf ?? "").replace(/\D/g, "");
+      const REGIMES = new Set([
+        "clt", "pj", "estagio", "temporario", "mei", "intermitente", "freelancer",
+      ]);
+      const regime = String(body?.regime_previsto ?? "").trim();
       if (nome.length < 3) return jsonError(req, "invalid_input", "nome curto");
       if (!cpfValido(cpf)) return jsonResponse(req, 400, { error: "Informe um CPF válido." });
+      if (!REGIMES.has(regime)) {
+        return jsonResponse(req, 400, { error: "Informe o tipo de vínculo previsto." });
+      }
       if (!whatsapp) return jsonResponse(req, 400, { error: "Informe o WhatsApp com DDD." });
       if (typeof apos22h !== "boolean") {
         return jsonResponse(req, 400, { error: "Informe se haverá trabalho após as 22h." });
@@ -123,6 +130,7 @@ Deno.serve(async (req) => {
           cargo_previsto_id: cargoId,
           unidade_prevista_id: unidadeId,
           trabalho_apos_22h: apos22h,
+          regime_previsto: regime,
           created_by: caller.id,
         })
         .select("id, company_id, whatsapp")

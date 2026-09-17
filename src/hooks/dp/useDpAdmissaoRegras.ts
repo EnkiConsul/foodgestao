@@ -1,11 +1,12 @@
 /**
- * Regras de Admissão: a empresa define quais dados e documentos são
- * obrigatórios, opcionais ou não pedidos, por empresa, unidade, tipo de
- * vínculo e cargo. Também define quais graus de parentesco podem ser
- * incluídos na lista de familiares.
+ * Regras de Admissão: a empresa define, para cada dado e cada documento da
+ * ficha, uma regra padrão (vale para todo mundo) e quantas exceções quiser.
+ * Cada exceção pode listar várias unidades, vários tipos de vínculo e vários
+ * cargos ao mesmo tempo — lista vazia significa "todos".
  *
- * A tela só lê e grava; quem decide o que vale em cada ficha é a rotina do
- * servidor (dp_admissao_regras_resolver), usada também pelas funções de borda.
+ * A tela só lê e grava (sempre pela rotina do servidor
+ * `dp_admissao_regra_salvar`); quem decide o que vale em cada ficha é
+ * `dp_admissao_regras_resolver`, usada também pelas funções de borda.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,9 +21,10 @@ export interface AdmissaoRegra {
   tipo: TipoRegra;
   chave: string;
   exigencia: Exigencia;
-  unidade_id: string | null;
-  cargo_id: string | null;
-  regime: string | null;
+  padrao: boolean;
+  unidades: string[];
+  cargos: string[];
+  regimes: string[];
 }
 
 export interface AdmissaoParentesco {
@@ -33,10 +35,15 @@ export interface AdmissaoParentesco {
   permite_sesc: boolean;
 }
 
-export interface EscopoRegra {
-  unidade_id: string | null;
-  cargo_id: string | null;
-  regime: string | null;
+export interface RegraEntrada {
+  id?: string | null;
+  tipo: TipoRegra;
+  chave: string;
+  exigencia: Exigencia;
+  padrao: boolean;
+  unidades: string[];
+  cargos: string[];
+  regimes: string[];
 }
 
 export function useDpAdmissaoRegras() {
@@ -47,12 +54,40 @@ export function useDpAdmissaoRegras() {
     queryKey: ["dp-admissao-regras", selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async (): Promise<AdmissaoRegra[]> => {
-      const { data, error } = await supabase
-        .from("dp_admissao_regras")
-        .select("id, company_id, tipo, chave, exigencia, unidade_id, cargo_id, regime")
-        .eq("company_id", selectedCompanyId!);
-      if (error) throw error;
-      return (data ?? []) as AdmissaoRegra[];
+      const [base, uni, car, reg] = await Promise.all([
+        supabase
+          .from("dp_admissao_regras")
+          .select("id, company_id, tipo, chave, exigencia, padrao")
+          .eq("company_id", selectedCompanyId!),
+        supabase.from("dp_admissao_regra_unidades").select("regra_id, unidade_id")
+          .eq("company_id", selectedCompanyId!),
+        supabase.from("dp_admissao_regra_cargos").select("regra_id, cargo_id")
+          .eq("company_id", selectedCompanyId!),
+        supabase.from("dp_admissao_regra_regimes").select("regra_id, regime")
+          .eq("company_id", selectedCompanyId!),
+      ]);
+      if (base.error) throw base.error;
+      if (uni.error) throw uni.error;
+      if (car.error) throw car.error;
+      if (reg.error) throw reg.error;
+      const porRegra = <T,>(rows: { regra_id: string }[], pick: (r: never) => T) => {
+        const m = new Map<string, T[]>();
+        rows.forEach((r) => {
+          const lista = m.get(r.regra_id) ?? [];
+          lista.push(pick(r as never));
+          m.set(r.regra_id, lista);
+        });
+        return m;
+      };
+      const mu = porRegra(uni.data ?? [], (r: { unidade_id: string }) => r.unidade_id);
+      const mc = porRegra(car.data ?? [], (r: { cargo_id: string }) => r.cargo_id);
+      const mr = porRegra(reg.data ?? [], (r: { regime: string }) => r.regime);
+      return (base.data ?? []).map((r) => ({
+        ...(r as Omit<AdmissaoRegra, "unidades" | "cargos" | "regimes">),
+        unidades: mu.get(r.id) ?? [],
+        cargos: mc.get(r.id) ?? [],
+        regimes: mr.get(r.id) ?? [],
+      })) as AdmissaoRegra[];
     },
   });
 
@@ -75,37 +110,32 @@ export function useDpAdmissaoRegras() {
     void qc.invalidateQueries({ queryKey: ["dp-admissao-parentescos", selectedCompanyId] });
   };
 
-  /** Define (ou remove) a exigência de um campo/documento em um escopo. */
-  const definir = useMutation({
-    mutationFn: async (
-      p: { tipo: TipoRegra; chave: string; exigencia: Exigencia | null; escopo: EscopoRegra },
-    ) => {
+  /** Cria ou atualiza uma regra (padrão ou exceção) com suas seleções. */
+  const salvar = useMutation({
+    mutationFn: async (p: RegraEntrada) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
-      const alvo = {
-        company_id: selectedCompanyId,
-        tipo: p.tipo,
-        chave: p.chave,
-        unidade_id: p.escopo.unidade_id,
-        cargo_id: p.escopo.cargo_id,
-        regime: p.escopo.regime,
-      };
-      if (p.exigencia === null) {
-        let q = supabase.from("dp_admissao_regras").delete()
-          .eq("company_id", alvo.company_id).eq("tipo", alvo.tipo).eq("chave", alvo.chave);
-        q = alvo.unidade_id ? q.eq("unidade_id", alvo.unidade_id) : q.is("unidade_id", null);
-        q = alvo.cargo_id ? q.eq("cargo_id", alvo.cargo_id) : q.is("cargo_id", null);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        q = alvo.regime ? q.eq("regime", alvo.regime as any) : q.is("regime", null);
-        const { error } = await q;
-        if (error) throw error;
-        return;
-      }
-      const { error } = await supabase
-        .from("dp_admissao_regras")
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .upsert({ ...alvo, exigencia: p.exigencia } as any, {
-          onConflict: "company_id,tipo,chave,unidade_id,cargo_id,regime",
-        });
+      const { data, error } = await supabase.rpc("dp_admissao_regra_salvar", {
+        p_regra: {
+          id: p.id ?? null,
+          company_id: selectedCompanyId,
+          tipo: p.tipo,
+          chave: p.chave,
+          exigencia: p.exigencia,
+          padrao: p.padrao,
+          unidades: p.padrao ? [] : p.unidades,
+          cargos: p.padrao ? [] : p.cargos,
+          regimes: p.padrao ? [] : p.regimes,
+        },
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: invalidar,
+  });
+
+  const excluir = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("dp_admissao_regra_excluir", { p_id: id });
       if (error) throw error;
     },
     onSuccess: invalidar,
@@ -127,12 +157,31 @@ export function useDpAdmissaoRegras() {
           parentesco: p.parentesco,
           permite_dependente: p.dependente,
           permite_sesc: p.sesc,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any, { onConflict: "company_id,parentesco" });
+        }, { onConflict: "company_id,parentesco" });
       if (error) throw error;
     },
     onSuccess: invalidar,
   });
 
-  return { regras, parentescos, definir, definirParentesco };
+  return { regras, parentescos, salvar, excluir, definirParentesco };
+}
+
+/**
+ * Mesma decisão do servidor: entre as regras que casam com a combinação,
+ * vence a mais específica (cargo 8 + vínculo 4 + unidade 2) e, no empate,
+ * a última salva. Usada só para o simulador da tela.
+ */
+export function resolverExigencia(
+  regras: AdmissaoRegra[],
+  alvo: { unidade_id: string | null; cargo_id: string | null; regime: string | null },
+): Exigencia | null {
+  let melhor: { peso: number; exigencia: Exigencia } | null = null;
+  for (const r of regras) {
+    if (r.unidades.length && (!alvo.unidade_id || !r.unidades.includes(alvo.unidade_id))) continue;
+    if (r.cargos.length && (!alvo.cargo_id || !r.cargos.includes(alvo.cargo_id))) continue;
+    if (r.regimes.length && (!alvo.regime || !r.regimes.includes(alvo.regime))) continue;
+    const peso = (r.cargos.length ? 8 : 0) + (r.regimes.length ? 4 : 0) + (r.unidades.length ? 2 : 0);
+    if (!melhor || peso > melhor.peso) melhor = { peso, exigencia: r.exigencia };
+  }
+  return melhor?.exigencia ?? null;
 }
