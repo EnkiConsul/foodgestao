@@ -61,6 +61,16 @@ const ESTADOS_CIVIS: Array<{ value: string; label: string }> = [
   { value: "viuvo", label: "Viúvo(a)" },
 ];
 
+/** Formas de pagamento do cadastro (enum dp_forma_pagamento). */
+const FORMAS_PAGAMENTO: Array<{ value: string; label: string }> = [
+  { value: "mensalista", label: "Mensalista" },
+  { value: "horista", label: "Horista" },
+  { value: "diarista", label: "Diarista" },
+  { value: "semanal", label: "Semanal" },
+  { value: "por_turno", label: "Por turno" },
+  { value: "servico_acordo", label: "Serviço acordado" },
+];
+
 interface Props {
   item: FichaItem;
   cargos: Array<{ id: string; nome: string; cbo?: string | null }>;
