@@ -338,49 +338,177 @@ th{width:220px;background:#f6f6f6;text-transform:capitalize}ul{font-size:12px}</
 
             <Separator />
 
+            {/* Previsão do convite: muda o que o candidato precisa enviar. */}
+            <section>
+              <h3 className="text-sm font-semibold mb-2">Vaga Prevista</h3>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <Label className="text-xs" htmlFor="pa-cargo-previsto">Cargo previsto</Label>
+                  <Select
+                    value={pa.cargo_previsto_id ?? ""}
+                    disabled={encerrada || acoes.alterarPrevisto.isPending}
+                    onValueChange={(v) =>
+                      executar(() => acoes.alterarPrevisto.mutateAsync({ cargo_previsto_id: v }), "Cargo previsto alterado")}
+                  >
+                    <SelectTrigger id="pa-cargo-previsto" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                    <SelectContent>
+                      {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs" htmlFor="pa-unidade-prevista">Unidade prevista</Label>
+                  <Select
+                    value={pa.unidade_prevista_id ?? ""}
+                    disabled={encerrada || acoes.alterarPrevisto.isPending}
+                    onValueChange={(v) =>
+                      executar(() => acoes.alterarPrevisto.mutateAsync({ unidade_prevista_id: v }), "Unidade prevista alterada")}
+                  >
+                    <SelectTrigger id="pa-unidade-prevista" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                    <SelectContent>
+                      {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs" htmlFor="pa-22h">Trabalha após as 22h</Label>
+                  <Select
+                    value={pa.trabalho_apos_22h ? "sim" : "nao"}
+                    disabled={encerrada || acoes.alterarPrevisto.isPending}
+                    onValueChange={(v) =>
+                      executar(
+                        () => acoes.alterarPrevisto.mutateAsync({ trabalho_apos_22h: v === "sim" }),
+                        "Informação de horário alterada",
+                      )}
+                  >
+                    <SelectTrigger id="pa-22h" className="h-10"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nao">Não</SelectItem>
+                      <SelectItem value="sim">Sim</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Mudar a vaga recalcula os documentos exigidos. Nada que o candidato já enviou é apagado.
+              </p>
+            </section>
+
+            <Separator />
+
             <section>
               <h3 className="text-sm font-semibold mb-2">Informações Da Empresa (Para A Contabilidade)</h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <Label className="text-xs">Data de admissão</Label>
-                  <Input type="date" className="h-10" value={admin.data_admissao}
+                  <Label className="text-xs" htmlFor="pa-adm-data">Data de admissão</Label>
+                  <Input id="pa-adm-data" type="date" className="h-10" value={admin.data_admissao}
+                    disabled={encerrada}
                     onChange={(e) => setAdmin({ ...admin, data_admissao: e.target.value })} />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Vínculo</Label>
-                  <Select value={admin.regime_trabalho} onValueChange={(v) => setAdmin({ ...admin, regime_trabalho: v })}>
-                    <SelectTrigger className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                  <Label className="text-xs" htmlFor="pa-adm-vinculo">Vínculo</Label>
+                  <Select value={admin.regime_trabalho} disabled={encerrada}
+                    onValueChange={(v) => setAdmin({ ...admin, regime_trabalho: v })}>
+                    <SelectTrigger id="pa-adm-vinculo" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
                     <SelectContent>
                       {REGIMES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Salário</Label>
-                  <Input className="h-10" value={admin.salario}
+                  <Label className="text-xs" htmlFor="pa-adm-cargo">Cargo</Label>
+                  <Select value={admin.cargo_id} disabled={encerrada}
+                    onValueChange={(v) => setAdmin({ ...admin, cargo_id: v })}>
+                    <SelectTrigger id="pa-adm-cargo" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                    <SelectContent>
+                      {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs" htmlFor="pa-adm-unidade">Unidade</Label>
+                  <Select value={admin.unidade_id} disabled={encerrada}
+                    onValueChange={(v) => setAdmin({ ...admin, unidade_id: v, setor_id: "" })}>
+                    <SelectTrigger id="pa-adm-unidade" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                    <SelectContent>
+                      {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs" htmlFor="pa-adm-setor">Setor</Label>
+                  <Select value={admin.setor_id} disabled={encerrada || !admin.unidade_id}
+                    onValueChange={(v) => setAdmin({ ...admin, setor_id: v })}>
+                    <SelectTrigger id="pa-adm-setor" className="h-10">
+                      <SelectValue placeholder={admin.unidade_id ? "Escolher" : "Escolha a unidade"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {setores.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs" htmlFor="pa-adm-salario">Salário</Label>
+                  <Input id="pa-adm-salario" className="h-10" value={admin.salario} inputMode="decimal"
+                    disabled={encerrada}
                     onChange={(e) => setAdmin({ ...admin, salario: e.target.value.replace(/[^\d.,]/g, "") })} />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Forma de pagamento</Label>
-                  <Select value={admin.forma_pagamento} onValueChange={(v) => setAdmin({ ...admin, forma_pagamento: v })}>
-                    <SelectTrigger className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                  <Label className="text-xs" htmlFor="pa-adm-forma">Forma de pagamento</Label>
+                  <Select value={admin.forma_pagamento} disabled={encerrada}
+                    onValueChange={(v) => setAdmin({ ...admin, forma_pagamento: v })}>
+                    <SelectTrigger id="pa-adm-forma" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
                     <SelectContent>
                       {FORMAS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1">
+                  <Label className="text-xs" htmlFor="pa-adm-carga">Carga semanal (horas)</Label>
+                  <Input id="pa-adm-carga" className="h-10" inputMode="numeric" value={admin.carga_horaria_semanal}
+                    disabled={encerrada} placeholder="Ex.: 44"
+                    onChange={(e) => setAdmin({ ...admin, carga_horaria_semanal: e.target.value.replace(/[^\d]/g, "") })} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs" htmlFor="pa-adm-exp">Experiência (dias)</Label>
+                  <Input id="pa-adm-exp" className="h-10" inputMode="numeric" value={admin.experiencia_dias}
+                    disabled={encerrada} placeholder="Ex.: 45"
+                    onChange={(e) => setAdmin({ ...admin, experiencia_dias: e.target.value.replace(/[^\d]/g, "") })} />
+                </div>
                 <div className="space-y-1 sm:col-span-2">
-                  <Label className="text-xs">Jornada prevista</Label>
-                  <Input className="h-10" placeholder="Ex.: 44h semanais, 12x36, escala 6x1"
-                    value={admin.jornada_descricao}
+                  <Label className="text-xs" htmlFor="pa-adm-jornada">Jornada prevista</Label>
+                  <Input id="pa-adm-jornada" className="h-10" placeholder="Ex.: 44h semanais, 12x36, escala 6x1"
+                    value={admin.jornada_descricao} disabled={encerrada}
                     onChange={(e) => setAdmin({ ...admin, jornada_descricao: e.target.value })} />
+                </div>
+                {[
+                  ["vale_transporte", "Vale-transporte"],
+                  ["adicional_insalubridade", "Adicional de insalubridade"],
+                  ["adicional_periculosidade", "Adicional de periculosidade"],
+                ].map(([campo, rotulo]) => (
+                  <div key={campo} className="space-y-1">
+                    <Label className="text-xs" htmlFor={`pa-adm-${campo}`}>{rotulo}</Label>
+                    <Select value={admin[campo] ?? ""} disabled={encerrada}
+                      onValueChange={(v) => setAdmin({ ...admin, [campo]: v })}>
+                      <SelectTrigger id={`pa-adm-${campo}`} className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nao">Não</SelectItem>
+                        <SelectItem value="sim">Sim</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-xs" htmlFor="pa-adm-obs">Observações para a contabilidade</Label>
+                  <Textarea id="pa-adm-obs" rows={2} value={admin.observacoes} disabled={encerrada}
+                    onChange={(e) => setAdmin({ ...admin, observacoes: e.target.value })} />
                 </div>
               </div>
               <Button
                 className="mt-3"
                 variant="outline"
-                disabled={acoes.salvarAdmin.isPending}
-                onClick={() => executar(() => acoes.salvarAdmin.mutateAsync({ ...admin }), "Informações salvas")}
+                disabled={encerrada || acoes.salvarAdmin.isPending}
+                onClick={() => executar(() => acoes.salvarAdmin.mutateAsync(adminParaEnvio()), "Informações salvas")}
               >
                 Salvar Informações
               </Button>
