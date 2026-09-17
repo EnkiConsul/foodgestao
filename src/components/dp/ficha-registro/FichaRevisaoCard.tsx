@@ -610,14 +610,28 @@ export function FichaRevisaoCard({
                   {campo("E-mail", "email")}
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-                  {campoEndereco("Rua", "logradouro", "lg:col-span-3")}
-                  {campoEndereco("Número", "numero")}
-                  {campoEndereco("Bairro", "bairro", "lg:col-span-2")}
-                  {campoEndereco("Cidade", "cidade", "lg:col-span-3")}
-                  {campoEndereco("UF", "uf")}
-                  {campoEndereco("CEP", "cep", "lg:col-span-2")}
-                </div>
+                <EnderecoFields
+                  idPrefix="ficha-endereco"
+                  disabled={aplicado || ignorado}
+                  valor={{
+                    cep: textoEndereco("cep"),
+                    logradouro: textoEndereco("logradouro"),
+                    numero: textoEndereco("numero"),
+                    complemento: textoEndereco("complemento"),
+                    bairro: textoEndereco("bairro"),
+                    cidade: textoEndereco("cidade"),
+                    uf: textoEndereco("uf"),
+                  }}
+                  onChange={(patch) =>
+                    setDados((d) => ({
+                      ...d,
+                      endereco: {
+                        ...((d.endereco ?? {}) as Record<string, unknown>),
+                        ...patch,
+                      },
+                    }))
+                  }
+                />
 
                 <p className="text-[11px] text-muted-foreground">
                   Benefícios, dados bancários e jornada detalhada continuam no cadastro completo do colaborador.
