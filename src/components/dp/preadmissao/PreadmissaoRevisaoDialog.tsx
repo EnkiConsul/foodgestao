@@ -80,7 +80,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const status = (pa?.status ?? "aguardando_preenchimento") as PreadmissaoStatus;
   const dados = (pa?.dados ?? {}) as Record<string, unknown>;
   /** Ficha encerrada: nada mais pode ser alterado pelo gestor. */
-  const encerrada = ["concluida", "cancelada", "expirada"].includes(status);
+  const encerrada = ["concluido", "cancelado", "expirado"].includes(status);
 
   useEffect(() => {
     const a = (pa?.admin_dados ?? {}) as Record<string, unknown>;
