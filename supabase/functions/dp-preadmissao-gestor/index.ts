@@ -364,43 +364,50 @@ Deno.serve(async (req) => {
      * Exige documento vigente anexado e confirmação; nunca acontece no upload.
      */
     if (acao === "conferir_ficha_oficial") {
-      if (!["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(pa.status)) {
-        return jsonResponse(req, 409, {
-          error: "A conferência só é registrada depois do envio à contabilidade.",
-          status: pa.status,
-        });
-      }
       if (body?.confirmado !== true) {
         return jsonResponse(req, 400, { error: "Confirme que a ficha oficial foi conferida." });
       }
       const documentoId = String(body?.documento_id ?? "").trim();
       if (!documentoId) return jsonResponse(req, 400, { error: "Indique a ficha oficial conferida." });
-      const { data: doc } = await admin
-        .from("dp_preadmissao_documentos")
-        .select("id, requisito_codigo, substituido_em")
-        .eq("id", documentoId)
-        .eq("preadmissao_id", pa.id)
-        .eq("company_id", pa.company_id)
-        .eq("requisito_codigo", "ficha_oficial")
-        .maybeSingle();
-      if (!doc) return jsonResponse(req, 400, { error: "Anexe a ficha oficial da contabilidade antes de conferir." });
-      if (doc.substituido_em) {
-        return jsonResponse(req, 409, { error: "Esta versão da ficha oficial foi substituída. Confira a mais recente." });
+      // Documento vigente + conferência + versão sob a MESMA trava: nenhuma nova
+      // versão da ficha oficial pode entrar no meio e ser tida como conferida.
+      const cf = await conferirFichaOficial(admin, pa.id, documentoId, caller.id);
+      if (!cf.ok) {
+        const textos: Record<string, [number, string]> = {
+          fase_invalida: [409, "A conferência só é registrada depois do envio à contabilidade."],
+          documento_nao_encontrado: [400, "Anexe a ficha oficial da contabilidade antes de conferir."],
+          documento_substituido: [409, "Esta versão da ficha oficial foi substituída. Confira a mais recente."],
+          nao_encontrada: [404, "Pré-admissão não encontrada."],
+        };
+        const [http, texto] = textos[cf.motivo ?? ""] ?? [500, "Não foi possível registrar a conferência agora."];
+        return jsonResponse(req, http, { error: texto, motivo: cf.motivo, status: cf.status });
       }
-      const t = await transicionar(
-        admin,
-        pa.id,
-        ["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"],
-        "registro_recebido",
-        { ficha_oficial_conferida_em: true, ficha_oficial_conferida_por: caller.id },
-      );
-      if (!t.ok) {
-        return t.motivo === "status_inesperado"
-          ? jsonResponse(req, 409, { error: "A situação mudou enquanto você trabalhava. Recarregue a ficha.", status: t.status })
-          : jsonError(req, "internal", "não foi possível registrar a conferência");
-      }
-      await registrarEvento(admin, pa.id, pa.company_id, "ficha_oficial_conferida", { documento_id: doc.id }, caller.id);
+      await registrarEvento(admin, pa.id, pa.company_id, "ficha_oficial_conferida", { documento_id: documentoId }, caller.id);
       return jsonResponse(req, 200, { success: true, status: "registro_recebido" });
+    }
+
+    /**
+     * Somente anexar a ficha da contabilidade: NÃO cria, NÃO reativa e NÃO
+     * altera nenhum cadastro. Apenas confere empresa/CPF e registra o
+     * recebimento no histórico da pré-admissão.
+     */
+    if (acao === "anexar_somente") {
+      const itemId = String(body?.ficha_importacao_item_id ?? "").trim();
+      if (!itemId) return jsonResponse(req, 400, { error: "Indique a ficha importada recebida." });
+      const an = await anexarSomente(admin, pa.id, itemId, caller.id);
+      if (!an.ok) {
+        const textos: Record<string, [number, string]> = {
+          ja_concluida: [409, "Esta pré-admissão já foi concluída."],
+          fase_invalida: [409, "A ficha oficial só é anexada depois do envio à contabilidade."],
+          item_nao_encontrado: [404, "Ficha importada não encontrada."],
+          item_outra_empresa: [403, "A ficha importada não pertence a esta empresa."],
+          cpf_diferente: [409, "A ficha importada é de outro CPF."],
+          nao_encontrada: [404, "Pré-admissão não encontrada."],
+        };
+        const [http, texto] = textos[an.motivo ?? ""] ?? [500, "Não foi possível registrar o anexo agora."];
+        return jsonResponse(req, http, { error: texto, motivo: an.motivo });
+      }
+      return jsonResponse(req, 200, { success: true, status: an.status });
     }
 
     if (acao === "marcar_status") {
