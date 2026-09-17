@@ -112,7 +112,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     const bool = (v: unknown) => (v === true ? "sim" : v === false ? "nao" : "");
     setAdmin({
       data_admissao: txt(a.data_admissao),
-      regime_trabalho: txt(a.regime_trabalho),
+      regime_trabalho: txt(a.regime_trabalho) || (pa?.regime_previsto ?? ""),
       salario: txt(a.salario),
       forma_pagamento: txt(a.forma_pagamento),
       jornada_descricao: txt(a.jornada_descricao),
@@ -126,7 +126,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       adicional_periculosidade: bool(a.adicional_periculosidade),
       observacoes: txt(a.observacoes),
     });
-  }, [pa?.id, pa?.admin_dados, pa?.cargo_previsto_id, pa?.unidade_prevista_id]);
+  }, [pa?.id, pa?.admin_dados, pa?.cargo_previsto_id, pa?.unidade_prevista_id, pa?.regime_previsto]);
 
   /** Converte a tela em payload aceito pelo servidor (números e Sim/Não). */
   const adminParaEnvio = () => {

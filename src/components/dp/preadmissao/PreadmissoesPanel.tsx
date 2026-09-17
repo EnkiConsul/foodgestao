@@ -16,6 +16,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { AdmissaoRegrasPanel } from "@/components/dp/preadmissao/AdmissaoRegrasPanel";
+import { REGIMES_ADMISSAO } from "@/components/dp/preadmissao/AdmissaoRegrasPanel";
 import { PreadmissaoConviteDialog } from "@/components/dp/preadmissao/PreadmissaoConviteDialog";
 import { PreadmissaoRevisaoDialog } from "@/components/dp/preadmissao/PreadmissaoRevisaoDialog";
 import { notifyError } from "@/lib/notifyError";
@@ -149,7 +150,7 @@ export function PreadmissoesPanel({
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {nomeCargo(p.cargo_previsto_id)} · {nomeUnidade(p.unidade_prevista_id)}
+                      {nomeCargo(p.cargo_previsto_id)} · {nomeUnidade(p.unidade_prevista_id)}{p.regime_previsto ? ` · ${REGIMES_ADMISSAO.find((r) => r.value === p.regime_previsto)?.label ?? p.regime_previsto}` : ""}
                     </p>
                     <p className="text-xs text-muted-foreground">{p.whatsapp}</p>
                   </button>
@@ -181,7 +182,7 @@ export function PreadmissoesPanel({
                           </Badge>
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                          {nomeCargo(p.cargo_previsto_id)} · {nomeUnidade(p.unidade_prevista_id)}
+                          {nomeCargo(p.cargo_previsto_id)} · {nomeUnidade(p.unidade_prevista_id)}{p.regime_previsto ? ` · ${REGIMES_ADMISSAO.find((r) => r.value === p.regime_previsto)?.label ?? p.regime_previsto}` : ""}
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                           {p.convite_expira_em ? new Date(p.convite_expira_em).toLocaleDateString("pt-BR") : "—"}

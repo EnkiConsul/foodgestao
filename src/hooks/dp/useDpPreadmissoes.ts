@@ -59,6 +59,8 @@ export interface PreadmissaoResumo {
   created_at: string;
   updated_at: string;
   convite_expira_em: string | null;
+  /** Tipo de vínculo previsto no convite (define o que a ficha pede). */
+  regime_previsto?: string | null;
 }
 
 export interface PreadmissaoPessoa {
@@ -167,6 +169,8 @@ export function useDpPreadmissaoConvite() {
       cpf: string;
       cargo_previsto_id: string | null;
       unidade_prevista_id: string | null;
+      /** Obrigatório: monta as regras da ficha desde o primeiro acesso. */
+      regime_previsto: string;
       trabalho_apos_22h: boolean;
       dias_validade?: number;
     }) => {
