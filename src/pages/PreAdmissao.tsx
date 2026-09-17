@@ -20,6 +20,12 @@ import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { EnderecoFields } from "@/components/shared/EnderecoFields";
+import { UFS } from "@/lib/endereco";
+import { maskCpf } from "@/lib/cpf";
+import { maskPhone } from "@/lib/phone";
+
+type Opcao = { value: string; label: string };
 
 type Campo = {
   nome: string;
@@ -29,40 +35,65 @@ type Campo = {
   inputMode?: "text" | "numeric" | "tel" | "email";
   autoComplete?: string;
   ajuda?: string;
+  /** Máscara aplicada na digitação (o valor guardado segue o padrão do sistema). */
+  mask?: "cpf" | "data" | "telefone";
+  /** Campo em lista: o candidato escolhe, não digita. */
+  opcoes?: Opcao[];
+  /** Só o gestor pode mudar; o candidato pede correção. */
+  somenteLeitura?: boolean;
 };
 
-const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[] }> = [
+const RACA_COR: Opcao[] = [
+  { value: "branca", label: "Branca" },
+  { value: "preta", label: "Preta" },
+  { value: "parda", label: "Parda" },
+  { value: "amarela", label: "Amarela" },
+  { value: "indigena", label: "Indígena" },
+  { value: "nao_informado", label: "Prefiro não informar" },
+];
+
+const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?: boolean }> = [
   {
     titulo: "Seus Dados",
     ajuda: "Escreva como está no seu documento.",
     campos: [
-      { nome: "nome", rotulo: "Nome completo", upper: true, autoComplete: "name" },
-      { nome: "cpf", rotulo: "CPF", inputMode: "numeric", ajuda: "Só os números." },
-      { nome: "data_nascimento", rotulo: "Data de nascimento", tipo: "date", autoComplete: "bday" },
+      { nome: "nome", rotulo: "Nome completo", upper: true, autoComplete: "name", somenteLeitura: true },
+      { nome: "cpf", rotulo: "CPF", inputMode: "numeric", mask: "cpf", somenteLeitura: true },
+      {
+        nome: "nome_social",
+        rotulo: "Como prefere ser chamado(a)",
+        upper: true,
+        ajuda: "Opcional. É o nome que usamos no dia a dia.",
+      },
+      { nome: "data_nascimento", rotulo: "Data de nascimento", mask: "data", inputMode: "numeric", ajuda: "dd/mm/aaaa" },
       { nome: "nome_mae", rotulo: "Nome da mãe", upper: true },
       { nome: "nome_pai", rotulo: "Nome do pai (se tiver)", upper: true },
+      { nome: "nacionalidade", rotulo: "Nacionalidade", upper: true, ajuda: "Ex.: BRASILEIRA." },
+      { nome: "naturalidade", rotulo: "Cidade onde nasceu", upper: true },
+      { nome: "naturalidade_uf", rotulo: "Estado onde nasceu", opcoes: UFS.map((uf) => ({ value: uf, label: uf })) },
+      { nome: "raca_cor", rotulo: "Raça / cor", opcoes: RACA_COR },
     ],
   },
   {
     titulo: "Contato",
     ajuda: "Usamos para falar com você sobre a admissão.",
     campos: [
-      { nome: "telefone", rotulo: "Telefone com DDD", tipo: "tel", inputMode: "tel", autoComplete: "tel" },
+      {
+        nome: "telefone",
+        rotulo: "Telefone com DDD",
+        tipo: "tel",
+        inputMode: "tel",
+        autoComplete: "tel",
+        mask: "telefone",
+      },
       { nome: "email", rotulo: "E-mail", tipo: "email", inputMode: "email", autoComplete: "email" },
     ],
   },
   {
     titulo: "Endereço",
-    ajuda: "Onde você mora hoje.",
-    campos: [
-      { nome: "cep", rotulo: "CEP", inputMode: "numeric", autoComplete: "postal-code" },
-      { nome: "endereco", rotulo: "Rua", upper: true, autoComplete: "address-line1" },
-      { nome: "numero", rotulo: "Número", inputMode: "numeric" },
-      { nome: "complemento", rotulo: "Complemento", upper: true },
-      { nome: "bairro", rotulo: "Bairro", upper: true },
-      { nome: "cidade", rotulo: "Cidade", upper: true },
-      { nome: "uf", rotulo: "UF", upper: true },
-    ],
+    ajuda: "Comece pelo CEP: o resto do endereço vem preenchido.",
+    campos: [],
+    endereco: true,
   },
   {
     titulo: "Documentos E Registros",
@@ -70,7 +101,7 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[] }> = [
     campos: [
       { nome: "rg_numero", rotulo: "RG", inputMode: "numeric" },
       { nome: "rg_orgao", rotulo: "Órgão emissor do RG", upper: true },
-      { nome: "rg_uf", rotulo: "UF do RG", upper: true },
+      { nome: "rg_uf", rotulo: "UF do RG", opcoes: UFS.map((uf) => ({ value: uf, label: uf })) },
       { nome: "pis", rotulo: "PIS / NIS", inputMode: "numeric" },
       { nome: "ctps_numero", rotulo: "Carteira de trabalho", inputMode: "numeric" },
       { nome: "ctps_serie", rotulo: "Série da carteira", inputMode: "numeric" },
@@ -79,6 +110,25 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[] }> = [
     ],
   },
 ];
+
+/** Data digitada (dd/mm/aaaa) ↔ data guardada (AAAA-MM-DD). */
+function isoParaBr(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
+}
+
+function mascararData(valor: string): string {
+  const d = valor.replace(/\D/g, "").slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+  return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+}
+
+function brParaIso(texto: string): string {
+  const d = texto.replace(/\D/g, "");
+  if (d.length !== 8) return "";
+  return `${d.slice(4)}-${d.slice(2, 4)}-${d.slice(0, 2)}`;
+}
 
 const SEXO = [
   { value: "feminino", label: "Feminino" },
@@ -329,6 +379,23 @@ export default function PreAdmissao() {
     }
   };
 
+  /**
+   * Nome e CPF vêm conferidos pela empresa. Se estiverem errados, o candidato
+   * registra o aviso e quem decide é o gestor — nada muda aqui.
+   */
+  const pedirCorrecao = async (rotulo: string) => {
+    const texto = window.prompt(`O que está errado em "${rotulo}"? Escreva o dado correto.`);
+    if (!texto || !texto.trim()) return;
+    try {
+      await chamar<{ success: boolean }>("dp-preadmissao-publica", {
+        t, c, action: "pedir_correcao", campo: rotulo, mensagem: texto.trim().slice(0, 500),
+      });
+      toast.success("Aviso enviado à empresa.");
+    } catch (e) {
+      void tratarFalha(e);
+    }
+  };
+
   const escolherArquivo = (item: ChecklistItem) => {
     alvo.current = item;
     fileRef.current?.click();
@@ -423,7 +490,27 @@ export default function PreAdmissao() {
   const ehDocumentos = etapa === ETAPAS.length + 1;
   const ehRevisao = etapa === ETAPAS.length + 2;
 
-  const camposDaRevisao = ETAPAS.flatMap((e) => e.campos);
+  const CAMPOS_ENDERECO: Campo[] = [
+    { nome: "cep", rotulo: "CEP" },
+    { nome: "endereco", rotulo: "Rua" },
+    { nome: "numero", rotulo: "Número" },
+    { nome: "complemento", rotulo: "Complemento" },
+    { nome: "bairro", rotulo: "Bairro" },
+    { nome: "cidade", rotulo: "Cidade" },
+    { nome: "uf", rotulo: "UF" },
+  ];
+  const camposDaRevisao = ETAPAS.flatMap((e) => (e.endereco ? CAMPOS_ENDERECO : e.campos));
+
+  /** Na revisão o valor aparece como a pessoa está acostumada a ver. */
+  const valorLegivel = (campo: Campo) => {
+    const bruto = form[campo.nome]?.trim() ?? "";
+    if (!bruto) return "—";
+    if (campo.mask === "cpf") return maskCpf(bruto);
+    if (campo.mask === "telefone") return maskPhone(bruto);
+    if (campo.mask === "data") return isoParaBr(bruto);
+    if (campo.opcoes) return campo.opcoes.find((o) => o.value === bruto)?.label ?? bruto;
+    return bruto;
+  };
   const pendentesObrigatorios = (estado?.checklist ?? []).filter(
     (i) => i.obrigatorio && !documentoPorChave.has(`${i.codigo}:${i.pessoa_id ?? ""}`),
   );
@@ -523,19 +610,93 @@ export default function PreAdmissao() {
                   </div>
                 </div>
               )}
+              {etapaAtual.endereco ? (
+                <EnderecoFields
+                  idPrefix="campo"
+                  upper
+                  erros={{
+                    cep: erros.cep ?? "",
+                    logradouro: erros.endereco ?? "",
+                    bairro: erros.bairro ?? "",
+                    cidade: erros.cidade ?? "",
+                    uf: erros.uf ?? "",
+                  }}
+                  valor={{
+                    cep: form.cep ?? "",
+                    logradouro: form.endereco ?? "",
+                    numero: form.numero ?? "",
+                    complemento: form.complemento ?? "",
+                    bairro: form.bairro ?? "",
+                    cidade: form.cidade ?? "",
+                    uf: form.uf ?? "",
+                  }}
+                  onChange={(patch) =>
+                    setForm((f) => ({
+                      ...f,
+                      ...(patch.cep !== undefined ? { cep: String(patch.cep ?? "") } : {}),
+                      ...(patch.logradouro !== undefined ? { endereco: String(patch.logradouro ?? "") } : {}),
+                      ...(patch.numero !== undefined ? { numero: String(patch.numero ?? "") } : {}),
+                      ...(patch.complemento !== undefined ? { complemento: String(patch.complemento ?? "") } : {}),
+                      ...(patch.bairro !== undefined ? { bairro: String(patch.bairro ?? "") } : {}),
+                      ...(patch.cidade !== undefined ? { cidade: String(patch.cidade ?? "") } : {}),
+                      ...(patch.uf !== undefined ? { uf: String(patch.uf ?? "") } : {}),
+                    }))
+                  }
+                />
+              ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 {etapaAtual.campos.map((campo) => {
-                  // CPF vindo do convite: mostramos travado, com explicação.
-                  const travado = campo.nome === "cpf" && !!estado?.cpf_bloqueado;
+                  // Nome e CPF conferidos pela empresa: o candidato vê, aponta
+                  // erro e a empresa decide — nunca altera por conta própria.
+                  const travado = !!campo.somenteLeitura;
+                  const valor = form[campo.nome] ?? "";
+                  const exibido = campo.mask === "cpf"
+                    ? maskCpf(valor)
+                    : campo.mask === "data"
+                    ? mascararData(isoParaBr(valor))
+                    : campo.mask === "telefone"
+                    ? maskPhone(valor)
+                    : valor;
+                  const digitar = (bruto: string) => {
+                    if (travado) return;
+                    if (campo.mask === "data") {
+                      const texto = mascararData(bruto);
+                      setForm((f) => ({ ...f, [campo.nome]: texto.length === 10 ? brParaIso(texto) : texto }));
+                      return;
+                    }
+                    const limpo = campo.mask === "cpf"
+                      ? bruto.replace(/\D/g, "").slice(0, 11)
+                      : campo.mask === "telefone"
+                      ? bruto.replace(/\D/g, "").slice(0, 11)
+                      : campo.upper
+                      ? bruto.toLocaleUpperCase("pt-BR")
+                      : bruto;
+                    setForm((f) => ({ ...f, [campo.nome]: limpo }));
+                  };
                   return (
                   <div key={campo.nome} className="space-y-1">
                     <Label className="text-xs" htmlFor={`campo-${campo.nome}`}>{campo.rotulo}</Label>
+                    {campo.opcoes ? (
+                      <Select
+                        value={valor}
+                        onValueChange={(v) => setForm((f) => ({ ...f, [campo.nome]: v }))}
+                      >
+                        <SelectTrigger id={`campo-${campo.nome}`} className="h-11">
+                          <SelectValue placeholder="Escolher" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {campo.opcoes.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
                     <Input
                       id={`campo-${campo.nome}`}
                       className="h-11"
                       readOnly={travado}
                       aria-readonly={travado || undefined}
-                      type={campo.tipo ?? "text"}
+                      type={campo.mask ? "text" : campo.tipo ?? "text"}
                       inputMode={campo.inputMode}
                       autoComplete={campo.autoComplete}
                       autoCapitalize={campo.upper ? "characters" : campo.tipo === "email" ? "none" : "sentences"}
@@ -545,19 +706,21 @@ export default function PreAdmissao() {
                       aria-describedby={
                         erros[campo.nome] ? `erro-${campo.nome}` : campo.ajuda ? `ajuda-${campo.nome}` : undefined
                       }
-                      value={form[campo.nome] ?? ""}
-                      onChange={(e) => {
-                        if (travado) return;
-                        setForm({
-                          ...form,
-                          [campo.nome]: campo.upper ? e.target.value.toLocaleUpperCase("pt-BR") : e.target.value,
-                        });
-                      }}
+                      value={exibido}
+                      onChange={(e) => digitar(e.target.value)}
                     />
+                    )}
                     {travado ? (
-                      <p id={`ajuda-${campo.nome}`} className="text-xs text-muted-foreground">
-                        A empresa já informou seu CPF. Se estiver errado, avise a empresa.
-                      </p>
+                      <div id={`ajuda-${campo.nome}`} className="text-xs text-muted-foreground">
+                        Esta informação foi cadastrada pela empresa.{" "}
+                        <button
+                          type="button"
+                          className="text-primary underline"
+                          onClick={() => pedirCorrecao(campo.rotulo)}
+                        >
+                          Está errado? Avise a empresa
+                        </button>
+                      </div>
                     ) : campo.ajuda && !erros[campo.nome] ? (
                       <p id={`ajuda-${campo.nome}`} className="text-xs text-muted-foreground">{campo.ajuda}</p>
                     ) : null}
@@ -568,6 +731,7 @@ export default function PreAdmissao() {
                   );
                 })}
               </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -728,7 +892,7 @@ export default function PreAdmissao() {
                   {camposDaRevisao.map((campo) => (
                     <div key={campo.nome} className="flex justify-between gap-3 border-b border-dashed py-1">
                       <dt className="text-muted-foreground">{campo.rotulo}</dt>
-                      <dd className="text-right">{form[campo.nome]?.trim() || "—"}</dd>
+                      <dd className="text-right">{valorLegivel(campo)}</dd>
                     </div>
                   ))}
                 </dl>

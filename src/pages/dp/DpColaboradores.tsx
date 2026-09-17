@@ -208,11 +208,8 @@ export default function DpColaboradores() {
     { key: "teste", label: "Em Teste" },
     { key: "preadmissao", label: "Pré-Admissão" },
   ];
-  const { prefs, save: savePrefs } = useDpUserPrefs();
-  const origem = (prefs?.extras?.colaboradores_origem as Origem) ?? "colaboradores";
-  const setOrigem = (o: Origem) => {
-    savePrefs({ extras: { ...(prefs?.extras ?? {}), colaboradores_origem: o } });
-  };
+  // A tela sempre abre em "Colaboradores"; a escolha vale só enquanto navega.
+  const [origem, setOrigem] = useState<Origem>("colaboradores");
 
   useEffect(() => {
     if (statusFilter === "incompletos" && origem !== "colaboradores") {
