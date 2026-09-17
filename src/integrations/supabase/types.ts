@@ -16944,6 +16944,8 @@ export type Database = {
         | "cartao_credito"
         | "dinheiro"
         | "outro"
+        | "emprestimo_concedido"
+        | "emprestimo_tomado"
       app_module:
         | "financeiro"
         | "dp"
@@ -17397,6 +17399,8 @@ export const Constants = {
         "cartao_credito",
         "dinheiro",
         "outro",
+        "emprestimo_concedido",
+        "emprestimo_tomado",
       ],
       app_module: [
         "financeiro",
