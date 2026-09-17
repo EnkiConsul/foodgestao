@@ -232,6 +232,8 @@ Deno.serve(async (req) => {
         })
         .eq("id", doc.id);
       if (error) return jsonError(req, "internal", error.message);
+      // A análise muda as pendências: a versão sobe para invalidar conferências antigas.
+      await transicionarComVersao(admin, pa.id, null, null, {});
       await registrarEvento(
         admin,
         pa.id,
@@ -272,11 +274,19 @@ Deno.serve(async (req) => {
           admin_faltando: adminFalta,
         });
       }
-      const t = await transicionar(admin, pa.id, PODE_PREPARAR, "pronto_contabilidade", {
+      // A conferência acima vale para esta versão: se cargo/unidade, dados
+      // administrativos ou documentos mudarem antes da transição, o banco recusa.
+      const t = await transicionarComVersao(admin, pa.id, PODE_PREPARAR, "pronto_contabilidade", {
         revisado_em: true,
         revisado_por: caller.id,
-      });
+      }, Number((estado.preadmissao as unknown as { versao?: number }).versao ?? 0));
       if (!t.ok) {
+        if (t.motivo === "versao_alterada") {
+          return jsonResponse(req, 409, {
+            error: "A ficha mudou enquanto você conferia. Recarregue e confira novamente.",
+            status: t.status,
+          });
+        }
         return t.motivo === "status_inesperado"
           ? jsonResponse(req, 409, { error: "A ficha ainda não está em revisão.", status: t.status })
           : jsonError(req, "internal", "não foi possível preparar o envio");

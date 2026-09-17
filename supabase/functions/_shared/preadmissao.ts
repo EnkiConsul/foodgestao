@@ -57,6 +57,7 @@ export interface Preadmissao {
   estado_civil: string | null;
   correcao_motivo: string | null;
   colaborador_id: string | null;
+  versao?: number;
 }
 
 export type ConviteInvalido = "nao_encontrado" | "expirado" | "revogado" | "encerrado";
