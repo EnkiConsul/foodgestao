@@ -389,13 +389,15 @@ export function camposNaoPermitidosPessoas(pessoas: unknown): string[] {
   if (!Array.isArray(pessoas)) return [];
   const set = new Set<string>(CAMPOS_PESSOA as readonly string[]);
   const fora = new Set<string>();
-  for (const p of pessoas) {
-    if (!p || typeof p !== "object") {
-      fora.add("pessoas");
-      continue;
+  pessoas.forEach((p, i) => {
+    if (!p || typeof p !== "object" || Array.isArray(p)) {
+      fora.add(`familiar ${i + 1}: registro inválido`);
+      return;
     }
-    for (const k of Object.keys(p as Record<string, unknown>)) if (!set.has(k)) fora.add(k);
-  }
+    for (const k of Object.keys(p as Record<string, unknown>)) {
+      if (!set.has(k)) fora.add(`familiar ${i + 1}: ${k}`);
+    }
+  });
   return [...fora];
 }
 
