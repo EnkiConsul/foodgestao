@@ -70,17 +70,19 @@ export function ComprovanteAcaoBotao(props: {
   if (props.somenteLeitura) {
     if (!props.temComprovante) return null;
     return (
-      <Button
-        size="sm"
-        variant="ghost"
-        className={props.className}
-        aria-label="Ver comprovante de pagamento"
-        onClick={() => void ver(props.alvo.documentoId)}
-      >
-        <Receipt className="size-4 text-emerald-600" />
-        {props.rotulo ? <span className="ml-1">{props.rotulo}</span> : null}
+      <>
+        <Button
+          size="sm"
+          variant="ghost"
+          className={props.className}
+          aria-label="Ver comprovante de pagamento"
+          onClick={() => void ver(props.alvo.documentoId)}
+        >
+          <Receipt className="size-4 text-emerald-600" />
+          {props.rotulo ? <span className="ml-1">{props.rotulo}</span> : null}
+        </Button>
         {visualizador}
-      </Button>
+      </>
     );
   }
 
