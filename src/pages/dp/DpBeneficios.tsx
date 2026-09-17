@@ -155,7 +155,14 @@ export default function DpBeneficios() {
       )}
 
       <Tabs defaultValue="calculo" className="space-y-3 pb-24 md:pb-0">
-        <DpTabsBar>
+        <DpTabsBar
+          value={aba}
+          help={{
+            calculo: "dp.beneficiosCalculo",
+            historico: "dp.beneficiosHistorico",
+            catalogo: "dp.beneficiosCatalogo",
+          }}
+        >
           <TabsTrigger value="calculo">Cálculo Mensal</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
           <TabsTrigger value="catalogo">Cadastro de Benefícios</TabsTrigger>

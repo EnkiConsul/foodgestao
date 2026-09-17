@@ -1214,7 +1214,7 @@ export default function DpOperacaoPanorama() {
       </DpFilterCard>
 
       <Tabs value={aba} onValueChange={trocarAba} className="space-y-4">
-        <DpTabsBar>
+        <DpTabsBar value={aba} help={{ dia: "dp.rotinaDia", mes: "dp.rotinaMes" }}>
           <TabsTrigger value="dia">Rotina do Dia</TabsTrigger>
           <TabsTrigger value="mes">Rotina do Mês</TabsTrigger>
         </DpTabsBar>

@@ -130,7 +130,16 @@ export default function DpCargos() {
       />
 
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
-        <DpTabsBar>
+        <DpTabsBar
+          value={aba}
+          help={{
+            cargos: "dp.cargos",
+            complementos: "dp.complementosSalariais",
+            turnos: "dp.turnos",
+            documentos: "dp.documentosExigidos",
+            sindicatos: "dp.sindicatosLaborais",
+          }}
+        >
           <TabsTrigger value="cargos">Cargos</TabsTrigger>
           <TabsTrigger value="complementos">Complementos Salariais</TabsTrigger>
           <TabsTrigger value="turnos">Turnos</TabsTrigger>
