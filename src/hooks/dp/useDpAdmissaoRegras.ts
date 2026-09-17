@@ -121,6 +121,9 @@ export function useDpAdmissaoRegras() {
   const salvar = useMutation({
     mutationFn: async (p: RegraEntrada) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
+      if (!p.padrao && !p.unidades.length && !p.cargos.length && !p.regimes.length && !(p.sexos ?? []).length) {
+        throw new Error("Escolha ao menos uma unidade, cargo, tipo de vínculo ou sexo para a exceção.");
+      }
       const { data, error } = await supabase.rpc("dp_admissao_regra_salvar", {
         p_regra: {
           id: p.id ?? null,
