@@ -15,10 +15,10 @@ import {
   candidatoPodeEditar,
   registrarDocumento,
   registrarEvento,
+  registrarFichaOficial,
   requisitosEmpresa,
   requisitosPrevistos,
   tipoRealDoArquivo,
-  transicionar,
   validarConvite,
 } from "../_shared/preadmissao.ts";
 import { montarChecklist } from "../_shared/preadmissao-checklist.ts";
