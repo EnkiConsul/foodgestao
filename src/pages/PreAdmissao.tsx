@@ -198,6 +198,17 @@ interface DocumentoEnviado {
   file_name: string;
   status: string;
   motivo_recusa?: string | null;
+  /** 1 = frente, 2 = verso, e assim por diante. */
+  parte?: number | null;
+  parte_rotulo?: string | null;
+}
+
+/** Nome amigável da parte do documento (frente, verso, foto extra). */
+function rotuloParte(parte: number, rotulo?: string | null): string {
+  if (rotulo && rotulo.trim()) return rotulo.trim();
+  if (parte === 1) return "Frente";
+  if (parte === 2) return "Verso";
+  return `Foto ${parte}`;
 }
 
 interface Estado {
