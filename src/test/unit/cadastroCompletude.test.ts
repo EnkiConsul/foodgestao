@@ -88,7 +88,7 @@ describe("dados de pagamento", () => {
   });
 
   it("conta para depósito também atende", () => {
-    const c = { ...completo, pix_tipo: null, pix_chave: null, agencia: "0001", conta: "123456" };
+    const c = { ...completo, pix_tipo: null, pix_chave: null, banco_nome: "BANCO TESTE", agencia: "0001", conta: "123456" };
     expect(camposFaltando(c)).toEqual([]);
   });
 
