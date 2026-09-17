@@ -520,6 +520,13 @@ export async function transicionarComVersao(
 /** Fichas encerradas não aceitam mais nenhuma alteração do gestor. */
 export const ESTADOS_ENCERRADOS_GESTOR = ["concluido", "cancelado", "expirado"] as const;
 
+/** Situações em que o gestor ainda pode alterar a ficha (guarda atômica). */
+export const ESTADOS_ABERTOS_GESTOR = [
+  "aguardando_preenchimento", "em_preenchimento", "aguardando_revisao", "correcao_solicitada",
+  "aguardando_nova_versao", "pronto_contabilidade", "enviado_contabilidade",
+  "aguardando_retorno_contabilidade", "registro_recebido",
+] as const;
+
 export function gestorPodeAlterar(status: string): boolean {
   return !(ESTADOS_ENCERRADOS_GESTOR as readonly string[]).includes(status);
 }

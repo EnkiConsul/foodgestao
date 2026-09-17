@@ -11,8 +11,12 @@ import {
   registrarEvento,
   requisitosEmpresa,
   requisitosPrevistos,
+  ESTADOS_ABERTOS_GESTOR,
+  gestorPodeAlterar,
+  referenciasDaEmpresa,
   transicionar,
   transicionarComVersao,
+  validarAdminDados,
   type Preadmissao,
 } from "../_shared/preadmissao.ts";
 import { bloqueioMenorNoturno, montarChecklist, pendenciasDocumentais } from "../_shared/preadmissao-checklist.ts";
@@ -188,7 +192,7 @@ Deno.serve(async (req) => {
         return jsonResponse(req, 409, { error: "Esta pré-admissão já foi encerrada.", status: fresca?.status });
       }
       // Versão sobe: uma conferência iniciada antes disso não será aplicada.
-      const t = await transicionarComVersao(admin, pa.id, null, null, {
+      const t = await transicionarComVersao(admin, pa.id, [...ESTADOS_ABERTOS_GESTOR], null, {
         admin_dados: { ...((fresca.admin_dados ?? {}) as Record<string, unknown>), ...val.campos },
       });
       if (!t.ok) return jsonError(req, "internal", "não foi possível salvar os dados administrativos");
@@ -230,8 +234,12 @@ Deno.serve(async (req) => {
       if (!Object.keys(patch).length) return jsonError(req, "invalid_input", "nada a alterar");
       // Muda os requisitos exigidos: a versão sobe para invalidar preparações
       // que já tinham conferido o checklist antigo.
-      const t = await transicionarComVersao(admin, pa.id, null, null, patch);
-      if (!t.ok) return jsonError(req, "internal", "não foi possível alterar a previsão");
+      const t = await transicionarComVersao(admin, pa.id, [...ESTADOS_ABERTOS_GESTOR], null, patch);
+      if (!t.ok) {
+        return t.motivo === "status_inesperado"
+          ? jsonResponse(req, 409, { error: "Esta pré-admissão já foi encerrada.", status: t.status })
+          : jsonError(req, "internal", "não foi possível alterar a previsão");
+      }
       await registrarEvento(admin, pa.id, pa.company_id, "previsto_alterado", { campos: Object.keys(patch) }, caller.id);
       // Documentos já enviados nunca são apagados; o checklist é recalculado.
       return jsonResponse(req, 200, await montar());
