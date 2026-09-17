@@ -5,6 +5,7 @@
  * servidor, que reconferem empresa, permissão e a fase da ficha.
  */
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Ban, Copy, Loader2, RefreshCw, Search, UserPlus, UserSquare2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +40,10 @@ export default function DpPreadmissoes() {
   const { data: unidades = [] } = useDpUnidades();
   const { reenviar, revogar } = useDpPreadmissaoConvite();
   const [busca, setBusca] = useState("");
-  const [convidando, setConvidando] = useState(false);
+  // Chegando por "Enviar Link De Pré-Admissão" na tela de Colaboradores, o
+  // convite já abre na frente (não existe entrada própria no menu).
+  const [params, setParams] = useSearchParams();
+  const [convidando, setConvidando] = useState(params.get("novo") === "1");
   const [revisando, setRevisando] = useState<string | null>(null);
 
   const nomeCargo = (id: string | null) => cargos.find((c) => c.id === id)?.nome ?? "—";
