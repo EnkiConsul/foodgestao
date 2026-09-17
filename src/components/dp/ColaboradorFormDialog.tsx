@@ -254,6 +254,8 @@ export function ColaboradorFormDialog({
   const [beneficioEditando, setBeneficioEditando] = useState<Beneficio | null>(null);
 
   const [form, setForm] = useState(blank);
+  /** Endereço do colaborador, no mesmo bloco usado no resto do sistema. */
+  const [endereco, setEndereco] = useState<EnderecoValor>({});
   const { selectedCompanyId, companies } = useCompanyContext();
   const todosColaboradores = useDpColaboradores();
   /** Benefícios retirados que exigem ciência de isonomia neste salvamento. */
