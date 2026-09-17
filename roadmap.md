@@ -39,6 +39,7 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [ ] Pré-Admissão — teste de concorrência simultânea da efetivação com ficha (duas sessões)
 - [x] Pré-Admissão — incremento 7: preparar só em revisão, requisitos recalculados, admin validado, anexar ≠ conferir, candidato revê arquivos, pacote da contabilidade, aviso de CPF, QA 3 resoluções
 - [x] Pré-Admissão — incremento 8: conferência da ficha contra o staging revisado, divergências com escolha explícita, caminho Somente Anexar, auditoria das policies de Storage
+- [x] Pré-Admissão — incremento 9: revisão do commit d5c25a6 (atomicidade dos familiares, versão na chamada real, análise de documento atômica, avô/avó no Sesc)
 - [ ] Pré-Admissão — testes automatizados de integração das telas
 - [ ] Pré-Admissão — teste ponta a ponta com convite sintético e sessão de gestor (formulário, upload, retomada, correção, contabilidade, importação)
 - [ ] Pré-Admissão — teste de Storage com sessões reais A/B/sem permissão (download/list/write)

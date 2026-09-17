@@ -15,6 +15,7 @@ import {
   gestorPodeAlterar,
   referenciasDaEmpresa,
   transicionar,
+  avaliarDocumento,
   transicionarComVersao,
   validarAdminDados,
   type Preadmissao,
@@ -275,33 +276,34 @@ Deno.serve(async (req) => {
       if (novo === "recusado" && motivo.length < 5) {
         return jsonResponse(req, 400, { error: "Explique por que o documento foi recusado." });
       }
-      const { data: doc } = await admin
-        .from("dp_preadmissao_documentos")
-        .select("id, requisito_codigo, substituido_em")
-        .eq("id", documentoId)
-        .eq("preadmissao_id", pa.id)
-        .eq("company_id", pa.company_id)
-        .maybeSingle();
-      if (!doc) return jsonError(req, "not_found");
-      if (doc.substituido_em) {
-        return jsonResponse(req, 409, { error: "Esta versão foi substituída por outra mais recente." });
+      // Análise e versão da ficha na MESMA transação travada: um preparo para a
+      // contabilidade não consegue passar entre a mudança e o novo número de
+      // versão (era o intervalo que permitia conferir pendências desatualizadas).
+      const av = await avaliarDocumento(
+        admin,
+        pa.id,
+        documentoId,
+        novo as "aprovado" | "recusado",
+        novo === "recusado" ? motivo : null,
+      );
+      if (!av.ok) {
+        const textos: Record<string, [number, string]> = {
+          documento_nao_encontrado: [404, "Documento não encontrado nesta ficha."],
+          documento_substituido: [409, "Esta versão foi substituída por outra mais recente."],
+          fase_encerrada: [409, "Esta ficha já foi encerrada e não aceita mais análise."],
+          motivo_obrigatorio: [400, "Explique por que o documento foi recusado."],
+          status_invalido: [400, "Situação inválida."],
+          nao_encontrada: [404, "Pré-admissão não encontrada."],
+        };
+        const [http, texto] = textos[av.motivo ?? ""] ?? [500, "Não foi possível registrar a análise agora."];
+        return jsonResponse(req, http, { error: texto, motivo: av.motivo });
       }
-      const { error } = await admin
-        .from("dp_preadmissao_documentos")
-        .update({
-          status: novo,
-          motivo_recusa: novo === "recusado" ? motivo : null,
-        })
-        .eq("id", doc.id);
-      if (error) return jsonError(req, "internal", error.message);
-      // A análise muda as pendências: a versão sobe para invalidar conferências antigas.
-      await transicionarComVersao(admin, pa.id, null, null, {});
       await registrarEvento(
         admin,
         pa.id,
         pa.company_id,
         novo === "aprovado" ? "documento_aprovado" : "documento_recusado",
-        { requisito_codigo: doc.requisito_codigo },
+        { requisito_codigo: av.requisito_codigo ?? null },
         caller.id,
       );
       return jsonResponse(req, 200, await montar());

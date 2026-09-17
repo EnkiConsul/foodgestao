@@ -15963,6 +15963,15 @@ export type Database = {
         Args: { p_token_id: string }
         Returns: boolean
       }
+      dp_preadmissao_avaliar_documento: {
+        Args: {
+          p_documento_id: string
+          p_motivo?: string
+          p_preadmissao_id: string
+          p_status: string
+        }
+        Returns: Json
+      }
       dp_preadmissao_documento_registrar: {
         Args: {
           p_file_name: string

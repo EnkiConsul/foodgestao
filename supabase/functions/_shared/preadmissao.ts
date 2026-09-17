@@ -431,6 +431,7 @@ export const MOTIVOS_GRAVACAO: Record<string, string> = {
   pessoa_data: "Informe uma data de nascimento válida para o familiar.",
   pessoa_data_futura: "A data de nascimento do familiar não pode ser futura.",
   pessoa_desconhecida: "Um dos familiares informados não pertence mais a esta ficha. Recarregue a página.",
+  pessoa_duplicada: "O mesmo familiar foi enviado duas vezes. Recarregue a página e tente novamente.",
   titular_invalido: "O familiar deste documento não pertence a esta ficha.",
 };
 
@@ -488,6 +489,30 @@ export async function enviarFicha(
     return { ok: false, motivo: "erro_gravacao" };
   }
   return data as ResultadoGravacao & { status_anterior?: string };
+}
+
+/**
+ * Análise de um documento (aprovar/recusar) e versão da ficha na MESMA
+ * transação travada: nenhum preparo para a contabilidade passa no intervalo.
+ */
+export async function avaliarDocumento(
+  admin: Rpc,
+  preadmissaoId: string,
+  documentoId: string,
+  status: "aprovado" | "recusado",
+  motivo: string | null,
+): Promise<{ ok: boolean; motivo?: string; status?: string; requisito_codigo?: string; versao?: number }> {
+  const { data, error } = await admin.rpc("dp_preadmissao_avaliar_documento", {
+    p_preadmissao_id: preadmissaoId,
+    p_documento_id: documentoId,
+    p_status: status,
+    p_motivo: motivo,
+  });
+  if (error) {
+    console.error("[preadmissao] avaliação de documento falhou:", error.message);
+    return { ok: false, motivo: "erro_gravacao" };
+  }
+  return data as { ok: boolean; motivo?: string; status?: string; requisito_codigo?: string; versao?: number };
 }
 
 /** Transição com versão esperada: conferência antiga não é aplicada. */

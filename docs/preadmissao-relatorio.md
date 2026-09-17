@@ -402,3 +402,56 @@ Consulta em `pg_policies` (estado real do banco), avaliada para o prefixo
 - Teste simultâneo (duas sessões) de `dp_preadmissao_efetivar_com_ficha`: **não executado**;
   a proteção (`FOR UPDATE` + advisory lock + idempotência) está implementada e provada apenas por
   chamadas repetidas em sequência, que não valem como concorrência.
+
+## Incremento 9 — Revisão do commit d5c25a6 (atomicidade, versão na chamada real, análise de documento)
+
+### Correções aplicadas
+1. **Gravação parcial de familiares eliminada.** `dp_preadmissao_salvar_candidato` confere TODOS os
+   familiares antes de escrever qualquer linha (PASSO 1 sem escrita, PASSO 2 gravação). Um familiar
+   inválido, desconhecido, de outra ficha/empresa ou repetido recusa o pedido inteiro; nada é gravado
+   e a versão não sobe.
+2. **Defeito real encontrado pelo teste e corrigido.** A conferência do familiar já cadastrado usava
+   `SELECT count(*) … FOR UPDATE`, combinação que o Postgres rejeita (`0A000`): toda gravação que
+   reenviava um familiar existente falhava. Agora trava a própria linha (`SELECT id … FOR UPDATE`),
+   mantendo a exigência de mesma ficha E mesma empresa.
+3. **Versão da chamada real.** `dp-preadmissao-publica` (ação `salvar`) lê `versao` do corpo, valida
+   que é inteiro não negativo (senão 400 com aviso para recarregar) e repassa como `p_versao_esperada`.
+   A tela já enviava a versão que acompanhou os dados; ao receber `versao_alterada` ela recarrega o
+   número da versão **sem descartar** o que está preenchido e avisa a pessoa (aviso no topo + toast).
+4. **Análise de documento atômica.** `dp-preadmissao-gestor` usa `dp_preadmissao_avaliar_documento`
+   (advisory lock + `FOR UPDATE`), que muda situação/motivo e incrementa a versão na MESMA transação;
+   não existe mais o intervalo em que um preparo para a contabilidade passava com pendências velhas.
+5. **Versão só sobe em transição aceita** (`dp_preadmissao_transicionar_versionado`).
+6. **Sesc com avô/avó** alinhado entre tela (`PARENTESCO`) e banco (`c_sesc`).
+
+### Validação real executada
+- Teste de comportamento no banco do projeto dentro de uma transação **desfeita ao final** (bloco
+  `DO` encerrado com exceção proposital; conferido depois: nenhuma ficha sintética permaneceu):
+  - `A0/A1` versão inicial 1; familiar 1 válido + familiar 2 com parentesco inválido →
+    `{"ok":false,"motivo":"pessoa_parentesco","indice":2}`, nome do familiar 1 **inalterado**,
+    1 familiar, versão **1**, `dados` inalterado (ZERO alterações).
+  - `A2` familiar 1 válido + id de OUTRA ficha → `pessoa_desconhecida` índice 2; nada alterado nas
+    duas fichas, versão **1**.
+  - `A3` gravação válida → `ok:true`, versão 1 → 2 (uma única vez).
+  - `B1` avô e avó no Sesc aceitos (3 familiares vivos); `B2` irmão no Sesc → `pessoa_sesc_parentesco`.
+  - `C1` recusa de documento → `ok:true`, situação `recusado` + motivo gravados e versão 3 → 4 na
+    mesma operação; `C2` motivo curto → `motivo_obrigatorio` e versão inalterada; `C3` documento
+    substituído → `documento_substituido` e versão inalterada.
+  - `D1` transição inválida → `status_inesperado` e versão inalterada.
+- `src/test/unit/preadmissaoContratoVersao.test.ts` (4 testes) prova o contrato da chamada real:
+  a versão do navegador chega ao banco como `p_versao_esperada`, ausência vira nulo, `versao_alterada`
+  volta com aviso pronto e a análise de documento usa uma **única** chamada de rotina.
+- 18 testes verdes nas suítes de pré-admissão executadas; `deno check` nas quatro funções da
+  pré-admissão e `tsgo` sem erros; linter do banco no mesmo patamar de antes (234 avisos
+  pré-existentes, nenhum novo).
+
+### Rollback não destrutivo
+Restaurar as versões anteriores das funções `dp_preadmissao_salvar_candidato`,
+`dp_preadmissao_transicionar_versionado` e deixar de chamar `dp_preadmissao_avaliar_documento`
+(a rotina permanece sem uso). Nenhum dado é alterado ou apagado.
+
+### O que continua NÃO testado
+- Teste HTTP real da rotina pública `salvar` com convite válido (contrato coberto por teste unitário,
+  não por requisição HTTP ponta a ponta).
+- Os três itens já declarados acima: Storage com sessões A/B/sem permissão, ponta a ponta com convite
+  sintético e sessão de gestor, e concorrência simultânea da efetivação com ficha.

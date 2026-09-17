@@ -193,12 +193,25 @@ Deno.serve(async (req) => {
         ? "em_preenchimento"
         : null;
 
+      // A versão que acompanhou os dados no navegador precisa continuar valendo:
+      // gravação em cima de uma ficha já alterada é recusada com aviso, jamais
+      // descartada em silêncio.
+      let versaoEsperada: number | null = null;
+      if (body?.versao !== undefined && body?.versao !== null) {
+        const n = Number(body.versao);
+        if (!Number.isInteger(n) || n < 0) {
+          return jsonResponse(req, 400, { error: "Não foi possível ler a versão da ficha. Recarregue a página." });
+        }
+        versaoEsperada = n;
+      }
+
       // Dados, familiares e remoções em uma única transação com trava na ficha:
       // um "enviar" simultâneo não consegue fechar a ficha no meio da gravação.
       const gravado = await salvarCandidato(admin, {
         preadmissaoId: pa.id,
         estados: ESTADOS_EDITAVEIS_CANDIDATO,
         statusNovo: proximo,
+        versaoEsperada,
         dados,
         campos: {
           cpf: (texto("cpf") ?? "").replace(/\D/g, ""),
