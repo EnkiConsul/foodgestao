@@ -140,7 +140,26 @@ Deno.serve(async (req) => {
         requisitosEmpresa: reqsEmpresa,
       });
       const pendencias = pendenciasDocumentais(checklist, vigentes as never);
+      // Aviso (não bloqueio): o CPF informado já existe na empresa?
+      let cpfExistente: { situacao: "ativo" | "desligado"; nome: string } | null = null;
+      const cpfLimpo = String(ficha.cpf ?? "").replace(/\D/g, "");
+      if (cpfLimpo.length === 11) {
+        const { data: colab } = await admin
+          .from("dp_colaboradores")
+          .select("nome, desligado_em")
+          .eq("company_id", pa.company_id)
+          .eq("cpf", cpfLimpo)
+          .limit(1)
+          .maybeSingle();
+        if (colab) {
+          cpfExistente = {
+            situacao: colab.desligado_em ? "desligado" : "ativo",
+            nome: String(colab.nome ?? ""),
+          };
+        }
+      }
       return {
+        cpf_existente: cpfExistente,
         preadmissao: ficha,
         pessoas: pessoas ?? [],
         documentos: docs ?? [],
