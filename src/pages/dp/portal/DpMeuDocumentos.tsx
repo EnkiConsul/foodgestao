@@ -549,12 +549,7 @@ export default function DpMeuDocumentos() {
                             size="sm"
                             variant="outline"
                             className="min-h-9 flex-1 sm:flex-none"
-                            onClick={async () => {
-                              const ok = await abrirDocumento(String(d.meta?.originalId ?? d.id), {
-                                variante: "comprovante",
-                              });
-                              if (!ok) toast.error("Não foi possível abrir o comprovante agora.");
-                            }}
+                            onClick={() => void verComprovante(d)}
                           >
                             <Receipt className="h-4 w-4 mr-1 text-emerald-600" /> Comprovante de pagamento
                           </Button>
@@ -573,10 +568,12 @@ export default function DpMeuDocumentos() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => certificado(d)}
+                            onClick={() => void certificado(d)}
+                            disabled={gerando === d.id}
                             className="min-h-9 flex-1 sm:flex-none"
                           >
-                            <Printer className="h-4 w-4 mr-1" /> Certificado
+                            <Printer className="h-4 w-4 mr-1" />
+                            {gerando === d.id ? "Gerando…" : "Certificado"}
                           </Button>
                         )}
                         {d.origem === "meu_envio" && d.status_key === "pendente" && (
