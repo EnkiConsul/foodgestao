@@ -110,6 +110,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { EnderecoFields, type EnderecoValor } from "@/components/shared/EnderecoFields";
 
 
 
@@ -584,6 +585,17 @@ export function ColaboradorFormDialog({
     setCriadoId(null);
 
     const c = (colaborador ?? {}) as any;
+    const end = (c.endereco ?? {}) as Record<string, unknown>;
+    const texto = (chave: string) => (typeof end[chave] === "string" ? String(end[chave]) : "");
+    setEndereco({
+      cep: texto("cep"),
+      logradouro: texto("logradouro"),
+      numero: texto("numero"),
+      complemento: texto("complemento"),
+      bairro: texto("bairro"),
+      cidade: texto("cidade"),
+      uf: texto("uf"),
+    });
     const regime = c.regime ? String(c.regime) : "clt";
     setRem({
       ...remuneracaoBlank,
