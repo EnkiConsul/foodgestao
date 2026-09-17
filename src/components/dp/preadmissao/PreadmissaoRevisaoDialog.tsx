@@ -48,6 +48,30 @@ const FORMAS = [
   { value: "servico_acordo", label: "Por serviço / acordo" },
 ];
 
+/**
+ * Opções canônicas informadas pelo candidato. A conferência e o pacote da
+ * contabilidade mostram o rótulo lido pela pessoa, nunca o código interno.
+ */
+const ROTULOS_OPCOES: Record<string, Record<string, string>> = {
+  sexo: { feminino: "Feminino", masculino: "Masculino", nao_informado: "Prefiro não informar" },
+  estado_civil: {
+    solteiro: "Solteiro(a)", casado: "Casado(a)", divorciado: "Divorciado(a)",
+    viuvo: "Viúvo(a)", uniao_estavel: "União estável",
+  },
+  grau_instrucao: {
+    fundamental_incompleto: "Fundamental incompleto", fundamental_completo: "Fundamental completo",
+    medio_incompleto: "Médio incompleto", medio_completo: "Médio completo",
+    superior_incompleto: "Superior incompleto", superior_completo: "Superior completo",
+  },
+};
+
+/** Valor de um campo da ficha em linguagem de tela. */
+const valorFicha = (campo: string, valor: unknown): string => {
+  if (valor === null || valor === undefined || String(valor).trim() === "") return "";
+  const bruto = String(valor);
+  return ROTULOS_OPCOES[campo]?.[bruto] ?? bruto;
+};
+
 /** Campos da ficha mostrados na conferência, em linguagem de tela. */
 const CAMPOS_FICHA: Array<[string, string]> = [
   ["nome", "Nome"], ["cpf", "CPF"], ["data_nascimento", "Nascimento"], ["sexo", "Sexo"],
