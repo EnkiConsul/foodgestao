@@ -357,7 +357,7 @@ export async function registrarDocumento(
     parte?: number;
     parteRotulo?: string | null;
   },
-): Promise<{ ok: boolean; motivo?: string; documento_id?: string; versao?: number }> {
+): Promise<{ ok: boolean; motivo?: string; documento_id?: string; versao?: number; parte?: number }> {
   const { data, error } = await admin.rpc("dp_preadmissao_documento_registrar", {
     p_preadmissao_id: args.preadmissaoId,
     p_requisito_codigo: args.codigo,
@@ -373,7 +373,7 @@ export async function registrarDocumento(
     logFalha("documento não registrado", error);
     return { ok: false, motivo: "erro_gravacao" };
   }
-  return data as { ok: boolean; motivo?: string };
+  return data as { ok: boolean; motivo?: string; parte?: number };
 }
 
 /**
