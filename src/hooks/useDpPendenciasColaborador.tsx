@@ -4,8 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
 import {
-  CalendarPlus, FileWarning, Repeat2, Palmtree, Megaphone, UserCog, FileCheck2,
+  CalendarPlus, FileWarning, Repeat2, Palmtree, Megaphone, UserCog, FileCheck2, Landmark,
 } from "lucide-react";
+import { pagamentoFaltando } from "@/lib/dp/dadosPagamento";
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
 import { folgaDominicalAutomatica } from "@/lib/dp/dsr-rules";
 import { atrasoAprovacao, vencimentoAprovacao } from "@/lib/dp/documento-aprovacao";
@@ -242,7 +243,9 @@ export function useDpPendenciasColaborador() {
       try {
         const { data: colab } = await supabase
           .from("dp_colaboradores")
-          .select("telefone, endereco, data_nascimento")
+          .select(
+            "telefone, endereco, data_nascimento, banco_codigo, banco_nome, agencia, conta, pix_tipo, pix_chave, recebe_em_especie",
+          )
           .eq("id", colabId as string)
           .maybeSingle();
         if (colab) {
@@ -250,6 +253,19 @@ export function useDpPendenciasColaborador() {
           if (!colab.telefone) faltando.push("telefone");
           if (!colab.endereco) faltando.push("endereço");
           if (!colab.data_nascimento) faltando.push("data de nascimento");
+          // Dados bancários/Pix: pendência própria, com link direto para o bloco.
+          if (pagamentoFaltando(colab as Record<string, unknown>)) {
+            results.push({
+              id: "dados-bancarios",
+              icon: Landmark,
+              titulo: "Informar seus dados para pagamento",
+              subtitulo: "Cadastre a conta bancária ou a chave Pix onde você recebe.",
+              tipo: "Dados bancários",
+              vencimento: null,
+              atrasoDias: 0,
+              url: "/dp/meu/perfil",
+            });
+          }
           if (faltando.length) {
             results.push({
               id: "cadastro-incompleto",
