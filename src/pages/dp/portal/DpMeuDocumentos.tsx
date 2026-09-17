@@ -625,6 +625,21 @@ export default function DpMeuDocumentos() {
         path={preview?.file_path ?? undefined}
         mime={preview?.mime_type ?? undefined}
       />
+
+      {/* Comprovante e certificado abrem aqui mesmo: no celular, outra aba é bloqueada. */}
+      <DocumentPreview
+        open={!!arquivoAberto}
+        onOpenChange={(v) => {
+          if (!v) {
+            arquivoAberto?.revogar?.();
+            setArquivoAberto(null);
+          }
+        }}
+        title={arquivoAberto?.titulo}
+        url={arquivoAberto?.url}
+        mime="application/pdf"
+      />
+
     </DpPage>
   );
 }
