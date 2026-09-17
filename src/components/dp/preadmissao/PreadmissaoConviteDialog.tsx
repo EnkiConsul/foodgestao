@@ -45,7 +45,7 @@ export function PreadmissaoConviteDialog({ open, onOpenChange }: Props) {
   const [numeroEnvio, setNumeroEnvio] = useState<string | null>(null);
 
   const unidadesDaEmpresa = unidades.filter((u) => u.company_id === selectedCompanyId);
-  const cargosDaEmpresa = cargos.filter((c) => !selectedCompanyId || c.company_id === selectedCompanyId);
+  const cargosDaEmpresa = cargos; // o hook já traz apenas os cargos da empresa selecionada
 
   const fechar = () => {
     onOpenChange(false);
