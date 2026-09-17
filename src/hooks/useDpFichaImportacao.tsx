@@ -385,6 +385,12 @@ export function useAplicarFicha() {
           `Cadastro salvo, mas o PDF da ficha não foi anexado.${motivo} Anexe o arquivo pelos documentos do colaborador.`,
         );
       }
+      if (res.modo === "recontratacao") {
+        toast.success(
+          "Recontratação registrada: o cadastro anterior foi reativado com um novo vínculo e os dados conferidos.",
+        );
+      }
+      qc.invalidateQueries({ queryKey: ["dp_preadmissoes"] });
       qc.invalidateQueries({ queryKey: ["dp_ficha_itens"] });
       qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] });
       qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
