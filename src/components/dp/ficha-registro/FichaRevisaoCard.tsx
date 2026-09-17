@@ -832,10 +832,14 @@ export function FichaRevisaoCard({
               <Button
                 variant="outline"
                 size="sm"
-                disabled={aplicar.isPending || bloqueadoPorEmpresa || !stagingDados}
-                onClick={() => executar(item.colaborador_existente_id ? [] : null, true)}
+                disabled={anexando}
+                title="Guarda a ficha recebida sem criar ou alterar cadastro"
+                onClick={somenteAnexarFicha}
               >
-                <FileText className="mr-1 h-4 w-4" /> Somente anexar a ficha
+                {anexando
+                  ? <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  : <FileText className="mr-1 h-4 w-4" />}
+                Somente anexar a ficha
               </Button>
             )}
             <Button
