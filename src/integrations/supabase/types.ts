@@ -16946,6 +16946,8 @@ export type Database = {
         | "outro"
         | "emprestimo_concedido"
         | "emprestimo_tomado"
+        | "maquina_cartao"
+        | "ifood"
       app_module:
         | "financeiro"
         | "dp"
@@ -17401,6 +17403,8 @@ export const Constants = {
         "outro",
         "emprestimo_concedido",
         "emprestimo_tomado",
+        "maquina_cartao",
+        "ifood",
       ],
       app_module: [
         "financeiro",
