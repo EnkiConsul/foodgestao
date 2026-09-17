@@ -25,6 +25,16 @@ Ao adicionar/editar uma exceção o gestor vê um painel curto:
 
 Cada lista é independente, então "Centro + Shopping" com "Intermitente" cobre as duas unidades quando o vínculo é intermitente — o sistema monta a combinação sozinho, sem o gestor precisar repetir a regra unidade por unidade.
 
+Exigências diferentes por cargo no mesmo documento são suportadas: basta uma exceção para cada exigência, cada uma com seus cargos.
+
+```text
+COMPROVANTE DE CNH
+  Padrão da empresa:  Não pedir  ▾
+  Exceções:
+   • Obrigatório  — Cargos: MOTOQUEIRO
+   • Opcional     — Cargos: ATENDENTE, PIZZAIOLO
+```
+
 Para não confundir, a tela ganha ainda:
 
 - **Resumo em uma linha** por campo ("Obrigatório · 2 exceções"), com a lista de exceções aberta apenas quando o gestor clicar no campo.
