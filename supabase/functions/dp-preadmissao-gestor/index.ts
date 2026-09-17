@@ -200,6 +200,15 @@ Deno.serve(async (req) => {
     }
 
     if (acao === "alterar_previsto") {
+      if (!gestorPodeAlterar(pa.status)) {
+        return jsonResponse(req, 409, { error: "Esta pré-admissão já foi encerrada.", status: pa.status });
+      }
+      const foraRaiz = Object.keys(body ?? {}).filter(
+        (k) => !["action", "preadmissao_id", "cargo_previsto_id", "unidade_prevista_id", "trabalho_apos_22h"].includes(k),
+      );
+      if (foraRaiz.length) {
+        return jsonResponse(req, 400, { error: "Pedido inválido: campos não permitidos.", campos: foraRaiz });
+      }
       const patch: Record<string, unknown> = {};
       if (body?.cargo_previsto_id !== undefined) {
         const cargoId = body.cargo_previsto_id ? String(body.cargo_previsto_id) : null;
