@@ -338,14 +338,8 @@ Deno.serve(async (req) => {
     if (baixarDoc.data) docBytes = new Uint8Array(await baixarDoc.data.arrayBuffer());
 
     const pendentes: string[] = [];
-    const rascunho = await PDFDocument.create();
-    void rascunho; // mantém a montagem em uma única passagem
 
-    if (docBytes) {
-      // anexa depois da capa: guardamos os bytes e montamos a capa primeiro
-    }
-
-    // Capa
+    // Capa primeiro; o documento e o anexo entram nas páginas seguintes.
     paginaCertificado(pdf, fonte, negrito, dados);
 
     if (docBytes) {
