@@ -82,14 +82,40 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
 
   useEffect(() => {
     const a = (pa?.admin_dados ?? {}) as Record<string, unknown>;
+    const txt = (v: unknown) => (v === null || v === undefined ? "" : String(v));
+    const bool = (v: unknown) => (v === true ? "sim" : v === false ? "nao" : "");
     setAdmin({
-      data_admissao: String(a.data_admissao ?? ""),
-      regime_trabalho: String(a.regime_trabalho ?? ""),
-      salario: String(a.salario ?? ""),
-      forma_pagamento: String(a.forma_pagamento ?? ""),
-      jornada_descricao: String(a.jornada_descricao ?? ""),
+      data_admissao: txt(a.data_admissao),
+      regime_trabalho: txt(a.regime_trabalho),
+      salario: txt(a.salario),
+      forma_pagamento: txt(a.forma_pagamento),
+      jornada_descricao: txt(a.jornada_descricao),
+      carga_horaria_semanal: txt(a.carga_horaria_semanal),
+      experiencia_dias: txt(a.experiencia_dias),
+      cargo_id: txt(a.cargo_id) || (pa?.cargo_previsto_id ?? ""),
+      unidade_id: txt(a.unidade_id) || (pa?.unidade_prevista_id ?? ""),
+      setor_id: txt(a.setor_id),
+      vale_transporte: bool(a.vale_transporte),
+      adicional_insalubridade: bool(a.adicional_insalubridade),
+      adicional_periculosidade: bool(a.adicional_periculosidade),
+      observacoes: txt(a.observacoes),
     });
-  }, [pa?.id, pa?.admin_dados]);
+  }, [pa?.id, pa?.admin_dados, pa?.cargo_previsto_id, pa?.unidade_prevista_id]);
+
+  /** Converte a tela em payload aceito pelo servidor (números e Sim/Não). */
+  const adminParaEnvio = () => {
+    const out: Record<string, unknown> = {};
+    const trio = ["vale_transporte", "adicional_insalubridade", "adicional_periculosidade"];
+    for (const [k, v] of Object.entries(admin)) {
+      if (trio.includes(k)) {
+        if (v === "sim") out[k] = true;
+        else if (v === "nao") out[k] = false;
+        continue;
+      }
+      out[k] = v;
+    }
+    return out;
+  };
 
   const fichaOficial = useMemo(
     () =>
