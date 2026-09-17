@@ -11,11 +11,18 @@ import { serviceClient } from "../_shared/authz.ts";
 import { ipRateLimited } from "../_shared/rate-limit.ts";
 import {
   camposNaoPermitidos,
+  camposNaoPermitidosPessoas,
+  camposNaoPermitidosRaiz,
   candidatoPodeEditar,
+  enviarFicha,
+  ESTADOS_EDITAVEIS_CANDIDATO,
   filtrarCamposCandidato,
+  filtrarPessoasCandidato,
+  MOTIVOS_GRAVACAO,
   registrarEvento,
   requisitosEmpresa,
   requisitosPrevistos,
+  salvarCandidato,
   transicionar,
   validarConvite,
   validarDadosCandidato,
