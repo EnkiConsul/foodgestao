@@ -1224,7 +1224,7 @@ export function useDpPendencias() {
         const { data: colabs } = await supabase
           .from("dp_colaboradores")
           .select(
-            "id, nome, setor_id, telefone, whatsapp, email_contato, endereco, data_nascimento, estado_civil, regime, pis_nit, salario_base, forma_pagamento, valor_hora, valor_diaria, base_salarial, socio_remuneracao, cargo_id, unidade_id",
+            "id, nome, setor_id, telefone, whatsapp, email_contato, endereco, data_nascimento, estado_civil, regime, pis_nit, salario_base, forma_pagamento, valor_hora, valor_diaria, base_salarial, socio_remuneracao, cargo_id, unidade_id, banco_codigo, banco_nome, agencia, conta, conta_tipo, pix_tipo, pix_chave, recebe_em_especie",
           )
           .eq("company_id", selectedCompanyId!)
           .eq("ativo", true);

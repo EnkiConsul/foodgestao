@@ -13,6 +13,12 @@ import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { CardListSkeleton } from "@/components/dp/DpSkeletons";
 import { EnderecoFields } from "@/components/shared/EnderecoFields";
+import {
+  CONTA_TIPOS, PIX_TIPOS, PAGAMENTO_BLANK, erroPagamento, pagamentoDoRegistro,
+  pagamentoParaBanco, type DadosPagamento,
+} from "@/lib/dp/dadosPagamento";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { notifyError } from "@/lib/notifyError";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
@@ -49,6 +55,18 @@ export default function DpMeuPerfil() {
             "telefone",
             "whatsapp",
             "endereco",
+            "banco_codigo",
+            "banco_nome",
+            "agencia",
+            "conta",
+            "conta_digito",
+            "conta_tipo",
+            "titular_proprio",
+            "titular_nome",
+            "titular_cpf",
+            "pix_tipo",
+            "pix_chave",
+            "recebe_em_especie",
             "dp_unidades(nome)",
             "dp_cargos(nome)",
             "dp_sindicatos(nome)",
@@ -62,6 +80,7 @@ export default function DpMeuPerfil() {
   });
 
   const [editing, setEditing] = useState(false);
+  const [pagamento, setPagamento] = useState<DadosPagamento>(PAGAMENTO_BLANK);
   const [form, setForm] = useState({
     telefone: "", whatsapp: "", email_contato: "",
     endereco: { logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "", cep: "" },
@@ -84,17 +103,25 @@ export default function DpMeuPerfil() {
         cep: p.endereco?.cep ?? "",
       },
     });
+    setPagamento(pagamentoDoRegistro(p as Record<string, unknown>));
   }, [perfil.data]);
 
   const save = useMutation({
     mutationFn: async () => {
       const p = perfil.data as any;
       if (!p) throw new Error("Perfil não encontrado");
+      const problema = erroPagamento(pagamento);
+      if (problema) throw new Error(problema);
       const { error } = await supabase.from("dp_colaboradores").update({
         telefone: form.telefone || null,
         whatsapp: form.whatsapp || null,
         email_contato: form.email_contato || null,
         endereco: form.endereco,
+        // A empresa é quem define recebimento em espécie; o portal só grava conta/Pix.
+        ...(() => {
+          const { recebe_em_especie: _ignorado, ...resto } = pagamentoParaBanco(pagamento);
+          return p.recebe_em_especie === true ? {} : resto;
+        })(),
       }).eq("id", p.id);
       if (error) throw error;
     },
@@ -116,7 +143,7 @@ export default function DpMeuPerfil() {
         title="Meu Cadastro"
         actions={p && !editing ? (
           <Button variant="outline" onClick={() => setEditing(true)} className="min-h-10 w-full sm:w-auto">
-            <Pencil className="h-4 w-4 mr-1" /> Editar contato/endereço
+            <Pencil className="h-4 w-4 mr-1" /> Editar meus dados
           </Button>
         ) : undefined}
       />
@@ -176,6 +203,101 @@ export default function DpMeuPerfil() {
                   <Field label="Endereço" value={
                     p.endereco ? [p.endereco.logradouro, p.endereco.numero, p.endereco.complemento, p.endereco.bairro, p.endereco.cidade, p.endereco.uf, p.endereco.cep].filter(Boolean).join(", ") : null
                   } />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="dp-content-card">
+            <CardHeader><CardTitle className="text-base">Dados Para Pagamento</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              {p.recebe_em_especie === true ? (
+                <p className="text-sm text-muted-foreground">
+                  Sua empresa registrou que você recebe em espécie. Nada a informar aqui.
+                </p>
+              ) : editing ? (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    Informe a conta bancária ou a chave Pix — um dos dois é suficiente.
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor="perfil-banco">Banco</Label>
+                      <Input id="perfil-banco" value={pagamento.banco_nome}
+                        onChange={(e) => setPagamento({ ...pagamento, banco_nome: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label htmlFor="perfil-agencia">Agência</Label>
+                      <Input id="perfil-agencia" value={pagamento.agencia}
+                        onChange={(e) => setPagamento({ ...pagamento, agencia: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label htmlFor="perfil-conta">Conta</Label>
+                      <Input id="perfil-conta" value={pagamento.conta}
+                        onChange={(e) => setPagamento({ ...pagamento, conta: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label htmlFor="perfil-conta-digito">Dígito</Label>
+                      <Input id="perfil-conta-digito" value={pagamento.conta_digito}
+                        onChange={(e) => setPagamento({ ...pagamento, conta_digito: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label htmlFor="perfil-conta-tipo">Tipo de conta</Label>
+                      <Select value={pagamento.conta_tipo || "none"}
+                        onValueChange={(v) => setPagamento({ ...pagamento, conta_tipo: v === "none" ? "" : v })}>
+                        <SelectTrigger id="perfil-conta-tipo"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Não informado</SelectItem>
+                          {CONTA_TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="perfil-pix-tipo">Tipo da chave Pix</Label>
+                      <Select value={pagamento.pix_tipo || "none"}
+                        onValueChange={(v) => setPagamento({ ...pagamento, pix_tipo: v === "none" ? "" : v })}>
+                        <SelectTrigger id="perfil-pix-tipo"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Não informado</SelectItem>
+                          {PIX_TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="perfil-pix-chave">Chave Pix</Label>
+                      <Input id="perfil-pix-chave" value={pagamento.pix_chave}
+                        onChange={(e) => setPagamento({ ...pagamento, pix_chave: e.target.value })} />
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox checked={!pagamento.titular_proprio}
+                      onCheckedChange={(v) => setPagamento({ ...pagamento, titular_proprio: !v })} />
+                    A conta é de outra pessoa
+                  </label>
+                  {!pagamento.titular_proprio && (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <Label htmlFor="perfil-titular-nome">Nome do titular</Label>
+                        <Input id="perfil-titular-nome" value={pagamento.titular_nome}
+                          onChange={(e) => setPagamento({ ...pagamento, titular_nome: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label htmlFor="perfil-titular-cpf">CPF do titular</Label>
+                        <Input id="perfil-titular-cpf" value={pagamento.titular_cpf}
+                          onChange={(e) => setPagamento({ ...pagamento, titular_cpf: e.target.value })} />
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 text-sm">
+                  <Field label="Banco" value={p.banco_nome} />
+                  <Field label="Agência" value={p.agencia} />
+                  <Field label="Conta" value={p.conta ? `${p.conta}${p.conta_digito ? `-${p.conta_digito}` : ""}` : null} />
+                  <Field label="Tipo de conta" value={CONTA_TIPOS.find((t) => t.value === p.conta_tipo)?.label} />
+                  <Field label="Chave Pix" value={p.pix_chave} />
+                  <Field label="Tipo da chave" value={PIX_TIPOS.find((t) => t.value === p.pix_tipo)?.label} />
+                  {p.titular_proprio === false && <Field label="Titular" value={p.titular_nome} />}
                 </div>
               )}
             </CardContent>
