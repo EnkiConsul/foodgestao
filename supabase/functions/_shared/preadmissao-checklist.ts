@@ -93,7 +93,7 @@ export function idadeEmAnos(nascimento?: string | null, hoje = new Date()): numb
   return anos;
 }
 
-function normaliza(v?: string | null): string {
+export function normaliza(v?: string | null): string {
   return (v ?? "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
