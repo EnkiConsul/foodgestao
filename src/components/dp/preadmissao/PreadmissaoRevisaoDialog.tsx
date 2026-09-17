@@ -72,7 +72,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const [admin, setAdmin] = useState<Record<string, string>>({});
   const { data: cargos = [] } = useDpCargos();
   const { data: unidades = [] } = useDpUnidades();
-  const { data: setores = [] } = useDpSetores(admin.unidade_id || null);
+  const { ativos: setores } = useDpSetores(admin.unidade_id || null);
   const fichaRef = useRef<HTMLInputElement>(null);
   const [enviandoFicha, setEnviandoFicha] = useState(false);
 
