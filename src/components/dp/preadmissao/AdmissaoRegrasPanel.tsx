@@ -24,7 +24,7 @@ import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import {
   useDpAdmissaoRegras, type Exigencia, type TipoRegra,
 } from "@/hooks/dp/useDpAdmissaoRegras";
-import { useDpDocumentoRequisitos } from "@/hooks/dp/useDpDocumentoRequisitos";
+import { useDpDocumentoRequisitos } from "@/hooks/useDpDocumentoRequisitos";
 
 const TODOS = "__todos__";
 
