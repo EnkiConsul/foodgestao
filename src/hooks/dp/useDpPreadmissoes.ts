@@ -242,6 +242,21 @@ export async function abrirDocumentoPreadmissao(documentoId: string): Promise<st
 }
 
 /**
+ * Somente anexar a ficha da contabilidade: registra o recebimento e NÃO cria,
+ * reativa ou altera qualquer cadastro. Nenhum dado da pré-admissão muda.
+ */
+export async function anexarSomenteFicha(
+  preadmissaoId: string,
+  fichaImportacaoItemId: string,
+): Promise<void> {
+  await chamar("dp-preadmissao-gestor", {
+    action: "anexar_somente",
+    preadmissao_id: preadmissaoId,
+    ficha_importacao_item_id: fichaImportacaoItemId,
+  });
+}
+
+/**
  * Anexa a ficha oficial devolvida pela contabilidade. Anexar NÃO confere: a
  * conferência é registrada depois, pelo gestor, em ação própria.
  */
