@@ -12,6 +12,7 @@ import {
   requisitosEmpresa,
   requisitosPrevistos,
   transicionar,
+  transicionarComVersao,
   type Preadmissao,
 } from "../_shared/preadmissao.ts";
 import { bloqueioMenorNoturno, montarChecklist, pendenciasDocumentais } from "../_shared/preadmissao-checklist.ts";
