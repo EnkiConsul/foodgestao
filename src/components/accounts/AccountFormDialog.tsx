@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { HelpHint } from "@/components/ui/help-hint";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CurrencyInput, formatCurrency, parseCurrencyToNumber } from "@/components/ui/currency-input";
@@ -367,7 +368,10 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
             )}
             {!isPersonal && (!isEdit || isCopyMode) && selectableCompanies.length > 0 && (
               <div className="space-y-2">
-                <Label>{isCopyMode ? "Criar em outras empresas" : "Empresas"}</Label>
+                <div className="flex items-center gap-1">
+                  <Label>{isCopyMode ? "Criar em outras empresas" : "Empresas"}</Label>
+                  <HelpHint helpKey="contexto.empresa" />
+                </div>
                 <div className="space-y-2 rounded-md border p-3">
                   {selectableCompanies.map((c) => (
                     <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -388,7 +392,10 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Tipo de conta</Label>
+                <div className="flex items-center gap-1">
+                  <Label>Tipo de conta</Label>
+                  <HelpHint helpKey="financeiro.conta.tipo" />
+                </div>
                 <Select value={accountType} onValueChange={(v) => setAccountType(v as AccountType)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -400,7 +407,10 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Natureza Contábil</Label>
+              <div className="flex items-center gap-1">
+                <Label>Natureza Contábil</Label>
+                <HelpHint helpKey="financeiro.contasContabeis" />
+              </div>
               <Select
                 value={isAccounting}
                 onValueChange={(v) => setIsAccounting(v as "contabil" | "nao_contabil")}
@@ -441,6 +451,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
             {isPersonal && (
               <div className="space-y-2">
                 <Label htmlFor="saldo-pessoal">Saldo inicial</Label>
+                <HelpHint helpKey="financeiro.conta.saldoInicial" />
                 <CurrencyInput
                   id="saldo-pessoal"
                   value={personalBalance}
