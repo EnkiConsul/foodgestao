@@ -10,7 +10,7 @@ import {
   camposNaoPermitidosRaiz,
   filtrarPessoasCandidato,
 } from "../../../supabase/functions/_shared/preadmissao";
-import { PARENTESCO_FILIACAO } from "../../../supabase/functions/_shared/preadmissao-checklist";
+import { normaliza } from "../../../supabase/functions/_shared/preadmissao-checklist";
 
 describe("payload da raiz", () => {
   it("aceita apenas as chaves previstas", () => {
@@ -55,8 +55,8 @@ describe("payload dos familiares", () => {
 });
 
 describe("faixas de idade valem só para filiação", () => {
-  it("inclui as duas grafias de menor sob guarda", () => {
-    expect(PARENTESCO_FILIACAO).toContain("menor sob guarda");
-    expect(PARENTESCO_FILIACAO).toContain("menor guarda");
+  it("normaliza o parentesco gravado pelo formulário", () => {
+    expect(normaliza("Menor_Guarda")).toBe("menor guarda");
+    expect(normaliza(" Enteado ")).toBe("enteado");
   });
 });
