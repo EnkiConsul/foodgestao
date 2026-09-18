@@ -1,9 +1,9 @@
 /**
  * Impressão de documentos HTML gerados pelo app, compatível com CSP restrita.
  *
- * Por que existe: `window.open("", "_blank")` + `document.write` depende de
+ * Por que existe: abrir uma janela em branco e gravar o HTML nela depende de
  * pop-up liberado e herda a política da página; e scripts embutidos no HTML
- * gerado (`<script>window.print()</script>`, `onclick="window.print()"`) são
+ * gerado (tag de script com window.print, ou handler no atributo) são
  * bloqueados por `script-src` sem `'unsafe-inline'`. Aqui o HTML vai para um
  * quadro interno (iframe) servido por `blob:` — coberto por `child-src`/
  * `frame-src blob:` — e a impressão é disparada pelo próprio app, sem nenhum
