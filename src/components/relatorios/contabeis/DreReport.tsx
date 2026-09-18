@@ -8,6 +8,7 @@ import { AccountTreeTable } from "./AccountTreeTable";
 import { brlAcc, pct, signClass, dreSign } from "@/lib/format-contabil";
 import { computeDreTotais } from "@/lib/relatorios/dre";
 import { cn } from "@/lib/utils";
+import { escapeHtml, imprimirHtmlEmQuadro } from "@/lib/print/imprimirHtml";
 
 interface Props {
   nodes: ReportNode[];
