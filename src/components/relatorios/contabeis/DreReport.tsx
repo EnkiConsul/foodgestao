@@ -74,9 +74,9 @@ export function DreReport({ nodes, onSelectAnalytic, from, to, regime, contextLa
       </style></head><body>
       <h1>DRE Gerencial</h1>
       <div class="meta">
-        ${contextLabel ? `<div><strong>${contextLabel}</strong></div>` : ""}
-        <div>Período: ${periodLabel} · Regime: ${regimeLabel}</div>
-        <div>Gerado em ${now}</div>
+        ${contextLabel ? `<div><strong>${escapeHtml(contextLabel)}</strong></div>` : ""}
+        <div>Período: ${escapeHtml(periodLabel)} · Regime: ${escapeHtml(regimeLabel)}</div>
+        <div>Gerado em ${escapeHtml(now)}</div>
       </div>
 
       <div class="kpis">
