@@ -59,15 +59,30 @@ describe("Escape de valores do usuário no HTML impresso", () => {
     expect(html).toContain("&lt;script&gt;");
   });
 
-  it("certificado de validação escapa os dados do registro", () => {
-    const html = certificadoValidacaoHtml({
+  it("certificado de validação escapa todos os campos do registro", () => {
+    const dados: CertificadoValidacaoDados = {
+      empresa: `Empresa <b>Teste</b>`,
       colaborador: `<script>alert(1)</script>`,
       documentoTitulo: `Contracheque "maio"`,
+      documentoTipo: `<i>contracheque</i>`,
+      competencia: `05/2026 <span>`,
+      arquivo: `arq<uivo>.pdf`,
       aceitoEm: new Date("2026-05-10T12:00:00Z").toISOString(),
       aprovadoPor: `<img onerror="z">`,
-      conteudoHash: "abc123",
-    } as Parameters<typeof certificadoValidacaoHtml>[0]);
+      ip: `10.0.0.1"><b>`,
+      dispositivo: `<svg onload="w">`,
+      conteudoHash: `abc123<hr>`,
+      registroId: `id<">`,
+    };
+    const html = certificadoValidacaoHtml(dados);
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).not.toMatch(/onerror="z"/);
+    expect(html).not.toMatch(/onload="w"/);
+    expect(html).not.toContain("<b>Teste</b>");
+    expect(html).not.toContain("<svg");
+    expect(html).not.toContain("<hr>");
+    // conteúdo preservado em forma escapada
+    expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
+    expect(html).toContain("Contracheque &quot;maio&quot;");
   });
 });
