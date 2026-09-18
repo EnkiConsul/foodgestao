@@ -13,6 +13,10 @@ Esta alteração separa testes remotos dos testes unitários, exige identificaç
 
 ## Evidências e limites
 
+### Aprovação parcial versus aceite da reoferta
+
+Validadas ambas as ordens sequenciais e uma rodada HTTP simultânea entre gestor e trabalhador; uma única oferta aceita e remuneração parcial correta. Fixtures removidas. Sem nova alteração de regra. Limites em [l02-mixed-concurrency.md](l02-mixed-concurrency.md).
+
 ### Reoferta parcial e concorrência HTTP
 
 Corrigida restrição que rejeitava reoferta_parcial. Em homologação, quatro chamadas HTTP simultâneas criaram uma única reoferta; três retornaram NO_ELIGIBLE. Fixtures removidas. Detalhes e limites em [l02-partial-reoffer.md](l02-partial-reoffer.md). Sem mudança na produção.
