@@ -13,6 +13,10 @@ Esta alteração separa testes remotos dos testes unitários, exige identificaç
 
 ## Evidências e limites
 
+### Publicação e aceite: snapshot de remuneração
+
+Corrigido contrato de retorno do avaliador: publicação sem horário específico perdia o snapshot de remuneração. Dois cenários integrados SQL (com/sem horário específico) passaram em homologação, incluindo publicação/aceite, idempotência e recusas de acesso. Produção e histórico não alterados. Detalhes em [l02-publication-acceptance.md](l02-publication-acceptance.md).
+
 ### L02: agenda e caminhos indiretos de remuneração
 
 Restritos mais três auxiliares internos, incluindo dois caminhos indiretos para remuneração. Regressão em homologação confirmou bloqueio direto e execução aninhada pelo gestor autorizado em pre_avaliar_grupo; usuário alheio/gestor bloqueado recusados. Detalhes: [l02-scheduling-helpers.md](l02-scheduling-helpers.md). Sem mudança em produção ou aprovação integral do AUD-011.
