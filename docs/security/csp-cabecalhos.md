@@ -24,9 +24,28 @@ Isso prova que o arquivo é ignorado.
   existe solução dentro do código do app. Nenhuma meta tag de CSP foi adicionada.
 
 **Conclusão:** o achado S1 **não pode ser encerrado** com alterações no
-repositório. Ele depende de uma camada de proxy sob controle do proprietário
-(por exemplo, a zona do domínio no Cloudflare do próprio cliente) — o que exige
-decisão de infraestrutura, não código.
+repositório. Ele depende de uma camada de CDN/proxy reverso colocada na frente
+da hospedagem — decisão de infraestrutura, não código.
+
+Estado real do domínio hoje (confirmado pelo proprietário): `aveto360.com` está
+registrado na Namecheap, com nameservers `registrar-servers.com` e registro A
+apontando direto para `185.158.133.1` (hospedagem da Lovable). **Não existe zona
+Cloudflare do proprietário.** Logo, não há nenhum ponto onde inserir cabeçalho
+hoje — nem via este repositório, nem via painel atual do domínio.
+
+A própria documentação da Lovable trata esse cenário na seção *Advanced* de
+[custom domain](https://docs.lovable.dev/features/custom-domain): quem precisa
+controlar tráfego, cabeçalhos ou região mantém **a sua própria CDN ou proxy
+reverso na frente da Lovable**, administrando o SSL e as regras nessa camada. É
+exatamente esse o caminho para a fase 1 aqui: passar a servir `aveto360.com` por
+uma camada intermediária de propriedade do cliente, que responde ao navegador e
+repassa para a hospedagem, e configurar os cabeçalhos ali.
+
+Enquanto essa camada não existir e não houver `curl` mostrando o cabeçalho na
+resposta, **não há CSP ativo em produção** — nada nesta preparação liga a
+política por si só. Este documento não recomenda mexer no registro A atual nem
+ativar proxy sobre ele: a troca do modo de entrega do domínio é decisão do
+proprietário e envolve SSL e janela de indisponibilidade.
 
 ## 2. Valores de cabeçalho da fase 1 (fonte única)
 
