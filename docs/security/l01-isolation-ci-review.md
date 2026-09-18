@@ -13,6 +13,10 @@ Esta alteração separa testes remotos dos testes unitários, exige identificaç
 
 ## Evidências e limites
 
+### Aprovação parcial
+
+Corrigido bloqueio por restrição incompatível e atualização de remuneração/horários na aprovação parcial. Testes SQL para horista, diarista e snapshot ausente passaram na homologação. Detalhes: [l02-partial-approval.md](l02-partial-approval.md). Concorrência e navegador permanecem pendentes; produção inalterada.
+
 ### Publicação e aceite: snapshot de remuneração
 
 Corrigido contrato de retorno do avaliador: publicação sem horário específico perdia o snapshot de remuneração. Dois cenários integrados SQL (com/sem horário específico) passaram em homologação, incluindo publicação/aceite, idempotência e recusas de acesso. Produção e histórico não alterados. Detalhes em [l02-publication-acceptance.md](l02-publication-acceptance.md).
