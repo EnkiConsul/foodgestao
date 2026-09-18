@@ -14,6 +14,7 @@ import "@fontsource/epilogue/600.css";
 import "./index.css";
 
 installStaleBundleRecovery();
+installCspViolationLogger();
 // Offline caching was removed because an old app-shell cache could route valid
 // URLs to the legacy 404 page. Aqui desregistramos qualquer Service Worker
 // remanescente para garantir sempre o bundle novo.
