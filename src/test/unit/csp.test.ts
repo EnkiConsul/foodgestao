@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { createHash } from "node:crypto";
 import {
   CSP_FRAME_ANCESTORS,
@@ -10,7 +11,7 @@ import {
 } from "@/lib/security/csp";
 import { sanitizarViolacaoCsp } from "@/lib/security/cspViolationLogger";
 
-const html = readFileSync(new URL("../../../index.html", import.meta.url), "utf8");
+const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
 
 type BlocoInline = { tipo: string; conteudo: string };
 
