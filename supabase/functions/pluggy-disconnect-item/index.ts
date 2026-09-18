@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
 
     // Pausar, retomar ou revogar altera a origem dos lançamentos: exige dono ou
     // permissão de edição, não apenas participação na empresa.
-    const { data: canEdit } = await admin.rpc('pluggy_user_can_edit', {
+    const { data: canEdit } = await admin.rpc('pluggy_user_can_manage_accounts', {
       _user_id: userId,
       _company_id: conn.company_id,
     });

@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
       const userId = claims.claims.sub as string;
       // Conectar um banco altera lançamentos: exige dono ou permissão de edição
       // (leitores e contabilidade ficam de fora).
-      const { data: canEdit } = await admin.rpc('pluggy_user_can_edit', {
+      const { data: canEdit } = await admin.rpc('pluggy_user_can_manage_accounts', {
         _user_id: userId,
         _company_id: companyId,
       });
