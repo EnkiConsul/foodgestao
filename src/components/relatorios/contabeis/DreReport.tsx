@@ -8,6 +8,7 @@ import { AccountTreeTable } from "./AccountTreeTable";
 import { brlAcc, pct, signClass, dreSign } from "@/lib/format-contabil";
 import { computeDreTotais } from "@/lib/relatorios/dre";
 import { cn } from "@/lib/utils";
+import { escapeHtml, imprimirHtmlEmQuadro } from "@/lib/print/imprimirHtml";
 
 interface Props {
   nodes: ReportNode[];
@@ -43,17 +44,15 @@ export function DreReport({ nodes, onSelectAnalytic, from, to, regime, contextLa
       .map(
         (n) => `
         <tr>
-          <td>${n.code}</td>
-          <td>${n.name}</td>
-          <td class="num">${fmt(Number(n.saldo_proprio || 0) * dreSign(n))}</td>
+          <td>${escapeHtml(n.code)}</td>
+          <td>${escapeHtml(n.name)}</td>
+          <td class="num">${escapeHtml(fmt(Number(n.saldo_proprio || 0) * dreSign(n)))}</td>
         </tr>`
       )
       .join("");
 
-    const pdfWindow = window.open("", "_blank");
-    if (!pdfWindow) return;
-    pdfWindow.document.write(`
-      <!DOCTYPE html><html><head><title>DRE Gerencial ${periodLabel}</title>
+    const html = `
+      <!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>DRE Gerencial ${escapeHtml(periodLabel)}</title>
       <style>
         body { font-family: Arial, sans-serif; font-size: 11px; padding: 16px; color: #111; }
         h1 { font-size: 18px; margin: 0 0 4px; }
@@ -76,9 +75,9 @@ export function DreReport({ nodes, onSelectAnalytic, from, to, regime, contextLa
       </style></head><body>
       <h1>DRE Gerencial</h1>
       <div class="meta">
-        ${contextLabel ? `<div><strong>${contextLabel}</strong></div>` : ""}
-        <div>Período: ${periodLabel} · Regime: ${regimeLabel}</div>
-        <div>Gerado em ${now}</div>
+        ${contextLabel ? `<div><strong>${escapeHtml(contextLabel)}</strong></div>` : ""}
+        <div>Período: ${escapeHtml(periodLabel)} · Regime: ${escapeHtml(regimeLabel)}</div>
+        <div>Gerado em ${escapeHtml(now)}</div>
       </div>
 
       <div class="kpis">
@@ -109,9 +108,9 @@ export function DreReport({ nodes, onSelectAnalytic, from, to, regime, contextLa
         <tbody>${analyticRows || `<tr><td colspan="3" class="muted">Sem movimento no período.</td></tr>`}</tbody>
       </table>
       </body></html>
-    `);
-    pdfWindow.document.close();
-    setTimeout(() => pdfWindow.print(), 300);
+    `;
+    // Quadro interno: não depende de pop-up liberado nem de script embutido.
+    imprimirHtmlEmQuadro(html);
   };
 
   return (

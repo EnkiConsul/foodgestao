@@ -246,7 +246,7 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
 <h2>Documentos recebidos</h2><ul>${docs || "<li>Nenhum</li>"}</ul>
 </body></html>`;
     // Impressão por quadro interno: não depende de liberar pop-up nem de
-    // document.write, que pode falhar em janela bloqueada.
+    // gravar HTML na janela, o que falha em janela bloqueada.
     const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
     const frame = document.createElement("iframe");
     frame.style.position = "fixed";

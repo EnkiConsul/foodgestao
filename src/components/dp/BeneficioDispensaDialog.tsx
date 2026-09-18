@@ -7,6 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { escapeHtml, imprimirHtmlEmQuadro } from "@/lib/print/imprimirHtml";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -54,7 +55,7 @@ function imprimirTermo(
     cidade: empresa.cidade,
   });
   const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
-<title>Termo de não adesão — ${beneficio}</title>
+<title>Termo de não adesão — ${escapeHtml(beneficio)}</title>
 <style>
   body{font-family:Georgia,serif;max-width:720px;margin:40px auto;padding:0 24px;line-height:1.7;color:#111}
   h1{font-size:18px;text-align:center;text-transform:uppercase;letter-spacing:.5px;margin-bottom:28px}
@@ -64,17 +65,14 @@ function imprimirTermo(
   @media print{body{margin:0}}
 </style></head><body>
 <h1>Termo de ciência e não adesão a benefício</h1>
-${paragrafos.map((t) => `<p>${t}</p>`).join("\n")}
+${paragrafos.map((t) => `<p>${escapeHtml(t)}</p>`).join("\n")}
 <div class="assinaturas">
-  <div class="linha">${colaborador.nome}</div>
-  <div class="linha">${empresa.nome}</div>
+  <div class="linha">${escapeHtml(colaborador.nome)}</div>
+  <div class="linha">${escapeHtml(empresa.nome)}</div>
 </div>
-<script>window.onload=function(){window.print()}</script>
 </body></html>`;
-  const w = window.open("", "_blank", "width=820,height=900");
-  if (!w) return;
-  w.document.write(html);
-  w.document.close();
+  // Sem script embutido e sem pop-up: o app dispara a impressão do quadro interno.
+  imprimirHtmlEmQuadro(html);
 }
 
 /**

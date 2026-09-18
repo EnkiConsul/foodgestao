@@ -139,22 +139,25 @@ export function certificadoValidacaoHtml(d: CertificadoValidacaoDados): string {
   </body></html>`;
 }
 
-const BOTAO_IMPRIMIR = `
-  <div style="text-align:center;margin-top:14px" class="acoes">
-    <button type="button" onclick="window.print()"
-      style="font:600 13px Arial,sans-serif;padding:10px 18px;border:0;border-radius:8px;background:#EB6119;color:#fff">
-      Salvar em PDF / imprimir
-    </button>
+/**
+ * Orientação de impressão sem nenhum executável embutido.
+ * O botão antigo usava `onclick="window.print()"`, bloqueado por CSP de
+ * scripts (`script-src` sem 'unsafe-inline'); a ação passou a ser o comando
+ * Imprimir/Compartilhar do próprio navegador.
+ */
+const AVISO_IMPRIMIR = `
+  <div style="text-align:center;margin-top:14px;font:600 13px Arial,sans-serif;color:#0F1B3D" class="acoes">
+    Para salvar em PDF, use Imprimir (ou Compartilhar → Imprimir) no menu do navegador.
   </div>
   <style>@media print { .acoes { display:none } }</style>`;
 
 /**
  * Abre o certificado em uma nova aba para leitura. A impressão (ou "salvar em
- * PDF", no celular) fica no botão dentro da página — nada é enviado direto
+ * PDF", no celular) é feita pelo comando do navegador — nada é enviado direto
  * para a impressora. Retorna false se o navegador bloqueou a nova aba.
  */
 export function imprimirCertificadoValidacao(d: CertificadoValidacaoDados): boolean {
-  const html = certificadoValidacaoHtml(d).replace("</body>", `${BOTAO_IMPRIMIR}</body>`);
+  const html = certificadoValidacaoHtml(d).replace("</body>", `${AVISO_IMPRIMIR}</body>`);
   const url = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
   const win = window.open(url, "_blank");
   if (!win) {

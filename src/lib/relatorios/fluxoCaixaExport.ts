@@ -32,13 +32,9 @@ export function downloadCsv(filename: string, rows: CsvCell[][]) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function escapeHtml(value: unknown): string {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+import { escapeHtml, imprimirHtmlEmQuadro } from "@/lib/print/imprimirHtml";
+
+export { escapeHtml };
 
 export type PrintableTable = {
   title: string;
@@ -99,15 +95,12 @@ export function buildPrintableHtml(t: PrintableTable): string {
 </body></html>`;
 }
 
-/** Abre uma janela com o HTML imprimível e dispara a caixa de impressão (Salvar como PDF). */
+/**
+ * Dispara a caixa de impressão (Salvar como PDF) do HTML imprimível.
+ * Usa quadro interno: não depende de pop-up liberado nem de script embutido.
+ */
 export function openPrintable(t: PrintableTable): boolean {
-  const win = window.open("", "_blank", "width=1024,height=768");
-  if (!win) return false;
-  win.document.write(buildPrintableHtml(t));
-  win.document.close();
-  win.focus();
-  setTimeout(() => win.print(), 350);
-  return true;
+  return imprimirHtmlEmQuadro(buildPrintableHtml(t));
 }
 
 /* ------------------------------------------------------------------ */
