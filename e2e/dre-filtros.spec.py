@@ -28,7 +28,7 @@ from playwright.async_api import async_playwright, expect
 SCREENSHOTS = Path("/tmp/browser/dre-filtros/screenshots")
 SCREENSHOTS.mkdir(parents=True, exist_ok=True)
 
-BASE_URL = "http://localhost:8080"
+from test_environment import BASE_URL, PROJECT_REF, SUPABASE_URL, ANON_KEY
 ROUTE = "/relatorios/contabeis"
 
 KPIS = ["receita-liquida", "lucro-bruto", "ebitda", "resultado-liquido"]

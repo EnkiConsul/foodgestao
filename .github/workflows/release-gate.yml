@@ -83,7 +83,7 @@ jobs:
       - name: Vitest
         run: npm test
       - name: Proteções dos scripts operacionais
-        run: node --test scripts/restore-safety.test.mjs scripts/gates-prerequisites.test.mjs scripts/test-target-safety.test.mjs scripts/integration-report-check.test.mjs
+        run: node --test scripts/restore-safety.test.mjs scripts/gates-prerequisites.test.mjs scripts/test-target-safety.test.mjs scripts/integration-report-check.test.mjs scripts/e2e-preflight.test.mjs
 
   tenancy:
     name: Tenancy real (multiempresa)
@@ -257,6 +257,18 @@ jobs:
     name: E2E Playwright (preview local)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      TEST_EXPECTED_PROJECT_REF: ${{ secrets.TEST_EXPECTED_PROJECT_REF }}
+      TEST_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+      TEST_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+      VITE_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+      VITE_SUPABASE_PROJECT_ID: ${{ secrets.TEST_EXPECTED_PROJECT_REF }}
+      SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      LOVABLE_BROWSER_SUPABASE_SESSION_JSON: ${{ secrets.E2E_SUPABASE_SESSION_JSON }}
+      E2E_BASE_URL: http://127.0.0.1:8080
+      LOVABLE_BROWSER_AUTH_STATUS: injected
+      LOVABLE_BROWSER_SUPABASE_STORAGE_KEY: sb-${{ secrets.TEST_EXPECTED_PROJECT_REF }}-auth-token
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -267,9 +279,15 @@ jobs:
         with:
           python-version: "3.12"
       - run: npm ci --no-audit --no-fund
+      - name: Validar isolamento antes do build
+        run: node scripts/e2e-preflight.mjs
+
+      - name: Instalar psql para rotinas QA
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
       - name: Instalar Playwright (Python)
         run: |
-          pip install --quiet playwright
+          pip install --quiet playwright Pillow
           python -m playwright install --with-deps chromium
 
       - name: Build + preview

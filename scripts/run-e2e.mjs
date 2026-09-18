@@ -9,6 +9,8 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { assertNoProductionReferences } from "./test-target-safety.mjs";
 
+import { validateE2EEnvironment } from "./e2e-preflight.mjs";
+
 const REQUIRE = process.argv.includes("--require") || !!process.env.CI;
 const BASE = process.env.E2E_BASE_URL || "http://localhost:8080";
 
@@ -32,10 +34,13 @@ if (!existsSync("e2e")) softExit("pasta e2e ausente");
 try { assertNoProductionReferences("e2e"); }
 catch (error) { console.error(error.message); process.exit(1); }
 
+try { validateE2EEnvironment(process.env); }
+catch { console.error("E2E bloqueado: configuração de homologação incompleta ou divergente."); process.exit(1); }
+
 const specs = readdirSync("e2e").filter((f) => f.endsWith(".spec.py")).sort();
 if (!specs.length) softExit("nenhum spec .spec.py encontrado");
 
-if (spawnSync("python3", ["-c", "import playwright"], { encoding: "utf8" }).status !== 0) {
+if (spawnSync("python3", ["-c", "import playwright; import PIL"], { encoding: "utf8" }).status !== 0) {
   softExit("python3 + playwright indisponíveis");
 }
 

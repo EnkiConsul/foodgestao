@@ -25,7 +25,7 @@ from pathlib import Path
 
 from playwright.async_api import async_playwright, expect
 
-BASE_URL = "http://localhost:8080"
+from test_environment import BASE_URL, PROJECT_REF, SUPABASE_URL, ANON_KEY
 ROUTE = "/relatorios/contabeis"
 OUT_DIR = Path("/tmp/browser/dre-foco")
 OUT_DIR.mkdir(parents=True, exist_ok=True)

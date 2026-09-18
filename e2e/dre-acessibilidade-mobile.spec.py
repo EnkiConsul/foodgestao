@@ -21,7 +21,7 @@ from pathlib import Path
 
 from playwright.async_api import async_playwright, expect
 
-BASE_URL = "http://localhost:8080"
+from test_environment import BASE_URL, PROJECT_REF, SUPABASE_URL, ANON_KEY
 ROUTE = "/relatorios/contabeis"
 
 AXE_PATH = Path("node_modules/axe-core/axe.min.js")

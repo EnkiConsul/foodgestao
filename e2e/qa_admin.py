@@ -33,6 +33,8 @@ import shutil
 import subprocess
 from urllib.parse import parse_qsl, unquote, urlsplit
 
+from test_environment import PROJECT_REF  # validates target before any QA subprocess
+
 QA_SCHEMA = "qa"
 
 # Allowlist explícita das rotinas de QA conhecidas + tipo de retorno.

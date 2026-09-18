@@ -26,15 +26,7 @@ from qa_admin import qa_rpc, session_user_id  # noqa: E402
 SCREENSHOTS = Path("/tmp/browser/adjust-balance/screenshots")
 SCREENSHOTS.mkdir(parents=True, exist_ok=True)
 
-BASE_URL = "http://localhost:8080"
-PROJECT_REF = "grtxmbffgmgnkawlvqhm"
-SUPABASE_URL = f"https://{PROJECT_REF}.supabase.co"
-ANON_KEY = (
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
-    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdydHhtYmZmZ21nbmthd2x2cWhtIiwicm9sZSI6ImFub24i"
-    "LCJpYXQiOjE3NzA4MDM5ODYsImV4cCI6MjA4NjM3OTk4Nn0."
-    "izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko"
-)
+from test_environment import BASE_URL, PROJECT_REF, SUPABASE_URL, ANON_KEY
 
 def _rpc(name: str, payload: dict):
     return qa_rpc(name, {**payload, "_user_id": session_user_id()})

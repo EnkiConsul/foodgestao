@@ -13,6 +13,17 @@ Esta alteração separa testes remotos dos testes unitários, exige identificaç
 
 ## Evidências e limites
 
+### Isolamento E2E — revisão atual
+
+Os dez specs de navegador usam E2E_BASE_URL e configuração explícita de homologação; quatro referências fixas e chaves publicáveis de produção foram removidas. O teste multiempresa não usa cache de sessão e falha quando não há sessão ou duas empresas. O helper Python comum valida o ambiente também na execução direta de specs e rotinas QA.
+
+Preflight verifica projeto independente, URL/chave/ref do build, preview local, sessão do mesmo projeto não expirada, chave de storage e conexão PostgreSQL direta/pooler do projeto esperado. Recusa roteamento alternativo e cookies importados. A checagem de claims do JWT serve para confirmar destino; o servidor continua verificando a assinatura.
+
+O workflow fornece as variáveis do build e instala psql e Pillow. Requer agora E2E_SUPABASE_SESSION_JSON (sessão curta e válida de homologação), além de STAGING_SUPABASE_DB_URL e TEST_SUPABASE_* / TEST_EXPECTED_PROJECT_REF. Não foram cadastrados secrets nesta revisão. Automatizar a obtenção de uma sessão nova por execução ainda é pendência; uma sessão armazenada expirará e o gate bloqueará.
+
+Verificações locais: 56 testes de proteção aprovados; após incluir também o project ID do build, os 15 testes específicos passaram novamente. Treze arquivos Python passaram em ast.parse, YAML válido e varredura sem referência de produção. O runner obrigatório sem credenciais saiu com código 1 antes de abrir navegador ou chamar QA. Nenhum fluxo E2E completo foi executado ou declarado aprovado nesta revisão.
+
+
 ### Ausência de valores e herança por unidade — revisão atual
 
 TypeScript strict concluído com zero erros (antes: 12; linha de base: 82). Foram preservados os contratos nullable de analytics e jornadas, impedidas ações de regras sem identificador e de folgas sem data, e o resumo contábil informa quando a quantidade de dias está ausente. Horários próprios sem UUID são distinguidos por seus horários no resumo, sem inventar identificadores persistidos.

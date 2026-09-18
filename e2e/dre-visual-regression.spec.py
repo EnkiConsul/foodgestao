@@ -30,7 +30,7 @@ from pathlib import Path
 from PIL import Image, ImageChops
 from playwright.async_api import async_playwright, expect
 
-BASE_URL = "http://localhost:8080"
+from test_environment import BASE_URL, PROJECT_REF, SUPABASE_URL, ANON_KEY
 ROUTE = "/relatorios/contabeis"
 
 BASELINE_DIR = Path(__file__).parent / "__baselines__" / "dre-visual"
