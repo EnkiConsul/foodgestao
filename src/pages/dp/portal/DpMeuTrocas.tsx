@@ -210,7 +210,7 @@ export default function DpMeuTrocas() {
       qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
       void resolverPendencias(qc, { companyId: meRef.data?.company_id ?? null });
       setOpen(false);
-      setForm({ destino_id: "", data_original: undefined, data_proposta: undefined, motivo: "" });
+      setForm({ destino_id: "", data_original: "", data_proposta: "", motivo: "" });
     },
     onError: (e: any) => notifyError(e, { surface: "Trocas de folga", action: "concluir a ação", fallback: "Erro" }),
   });

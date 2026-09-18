@@ -81,8 +81,9 @@ function parse(tokens: Token[]): number | null {
   const peek = () => tokens[pos];
 
   function parseExpr(): number | null {
-    let left = parseTerm();
-    if (left === null) return null;
+    const initial = parseTerm();
+    if (initial === null) return null;
+    let left: number = initial;
     while (true) {
       const tk = peek();
       if (tk && tk.t === "op" && (tk.v === "+" || tk.v === "-")) {
@@ -90,7 +91,7 @@ function parse(tokens: Token[]): number | null {
         const right = parseTerm();
         if (right === null) return null;
         // percentual relativo: 100 + 10% = 110
-        const applied = pendingPct ? (left * right) / 100 : right;
+        const applied: number = pendingPct ? (left * right) / 100 : right;
         pendingPct = false;
         left = tk.v === "+" ? left + applied : left - applied;
       } else break;

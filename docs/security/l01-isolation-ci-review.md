@@ -13,6 +13,10 @@ Esta alteração separa testes remotos dos testes unitários, exige identificaç
 
 ## Evidências e limites
 
+### Correções pontuais de tipagem após o primeiro CI
+
+TypeScript strict caiu de 82 para 70 erros, sem novos diagnósticos. O parser de expressões mantém o acumulador numérico após validar a entrada; a ordenação usa diretamente o callback opcional; documentos pessoais preservam os tipos de data e texto sem coerção estrutural; alterações de endereço emitem strings; o panorama aceita ausência de dia já tratada pelo código; o formulário de troca volta a texto vazio ao concluir. Não foram alterados argumentos de RPC nem regras do banco. Sete suítes dirigidas passaram com 85 testes e zero casos pulados. Os 70 erros restantes continuam impedindo afirmar aprovação integral.
+
 Quarenta testes de proteção passaram localmente. A configuração YAML do workflow foi validada, e o verificador obrigatório recusou o relatório real de integração incompleta. A instalação npm ci sem scripts e o build foram executados na cópia de preparação anteriormente. O build no Windows gerou um import MCP inválido; esse arquivo foi restaurado e não faz parte do diff.
 
 Na homologação independente, a suíte RLS mais recente teve 284 aprovações, 12 falhas pela ausência do relatório do executor PostgreSQL isolado e 26 casos pulados por falta de conexão/runtime. Dez cenários de pré-admissão passaram em transação revertida; quatro chamadas HTTP paralelas produziram uma conclusão e três respostas idempotentes. Essas evidências parciais não aprovam o release.

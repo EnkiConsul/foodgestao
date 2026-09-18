@@ -106,7 +106,7 @@ export function DpTableColumnHeader(props: {
               <ArrowDown className="mr-2 h-3.5 w-3.5" /> Ordenar Decrescente
             </DropdownMenuItem>
             {props.onResetSort && (
-              <DropdownMenuItem onClick={() => props.onResetSort()}>
+              <DropdownMenuItem onClick={props.onResetSort}>
                 <RotateCcw className="mr-2 h-3.5 w-3.5" /> Ordenação Padrão
               </DropdownMenuItem>
             )}
