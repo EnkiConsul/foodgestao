@@ -107,9 +107,9 @@ export function DreReport({ nodes, onSelectAnalytic, from, to, regime, contextLa
         <tbody>${analyticRows || `<tr><td colspan="3" class="muted">Sem movimento no período.</td></tr>`}</tbody>
       </table>
       </body></html>
-    `);
-    pdfWindow.document.close();
-    setTimeout(() => pdfWindow.print(), 300);
+    `;
+    // Quadro interno: não depende de pop-up liberado nem de script embutido.
+    imprimirHtmlEmQuadro(html);
   };
 
   return (
