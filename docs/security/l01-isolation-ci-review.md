@@ -13,6 +13,15 @@ Esta alteração separa testes remotos dos testes unitários, exige identificaç
 
 ## Evidências e limites
 
+### Parâmetros opcionais de RPC — revisão atual
+
+A consulta somente leitura ao catálogo de funções do Lovable Cloud confirmou DEFAULT NULL para 58 argumentos alterados em 16 arquivos. Quando não há valor, essas chamadas agora omitem o argumento, preservando o padrão do servidor e respeitando os tipos gerados. Os dois parâmetros obrigatórios de unidade em DpFolgas continuam pendentes; não receberam essa transformação. Não houve alteração de funções, schema ou dados de produção.
+
+TypeScript strict passou de 70 para 12 erros. A execução completa local teve 1.758 testes, 1.757 aprovados e uma falha no teste de desempenho de re-render da DRE. A repetição isolada dessa suíte passou nos 12 casos, com média de 358,6 ms no teste que havia falhado; a oscilação permanece registrada, sem declarar a execução completa aprovada. Um teste de transporte com fetch simulado confirmou que PostgREST omite undefined e preserva zero, false, string vazia e null explícito, sem acesso à rede.
+
+As evidências detalhadas estão no diretório local de homologação: rpc-null-defaults-verified.json, typecheck-rpc-defaults.txt e unit-rpc-defaults-results.json. Credenciais não integram o PR. Ainda faltam os 12 erros, credenciais do CI, parametrização E2E e execução comprovada da recuperação; o release não está aprovado.
+
+
 ### Correções pontuais de tipagem após o primeiro CI
 
 TypeScript strict caiu de 82 para 70 erros, sem novos diagnósticos. O parser de expressões mantém o acumulador numérico após validar a entrada; a ordenação usa diretamente o callback opcional; documentos pessoais preservam os tipos de data e texto sem coerção estrutural; alterações de endereço emitem strings; o panorama aceita ausência de dia já tratada pelo código; o formulário de troca volta a texto vazio ao concluir. Não foram alterados argumentos de RPC nem regras do banco. Sete suítes dirigidas passaram com 85 testes e zero casos pulados. Os 70 erros restantes continuam impedindo afirmar aprovação integral.
@@ -21,7 +30,7 @@ Quarenta testes de proteção passaram localmente. A configuração YAML do work
 
 Na homologação independente, a suíte RLS mais recente teve 284 aprovações, 12 falhas pela ausência do relatório do executor PostgreSQL isolado e 26 casos pulados por falta de conexão/runtime. Dez cenários de pré-admissão passaram em transação revertida; quatro chamadas HTTP paralelas produziram uma conclusão e três respostas idempotentes. Essas evidências parciais não aprovam o release.
 
-TypeScript strict ainda apresenta 82 erros. Recuperação de backup, CI remoto completo, fluxos positivos de Storage e integrações externas continuam pendentes. Nenhuma alteração de banco em produção integra este PR. As correções de políticas aplicadas na homologação permanecem fora deste pacote.
+A linha de base inicial de TypeScript strict apresentava 82 erros; a contagem atual está registrada acima. Recuperação de backup, CI remoto completo, fluxos positivos de Storage e integrações externas continuam pendentes. Nenhuma alteração de banco em produção integra este PR. As correções de políticas aplicadas na homologação permanecem fora deste pacote.
 
 ## Antes de aprovar o merge
 

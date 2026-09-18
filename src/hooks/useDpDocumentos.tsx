@@ -154,7 +154,7 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
     mutationFn: async ({ row, motivo }: { row: DpDocumentoRow; motivo?: string }) => {
       const { error } = await supabase.rpc("dp_documento_arquivar", {
         _documento_id: row.id,
-        _motivo: motivo ?? null,
+        _motivo: motivo ?? undefined,
       });
       if (error) throw error;
     },

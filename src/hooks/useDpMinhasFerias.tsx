@@ -98,7 +98,7 @@ export function useDpMinhasFerias() {
         _data_fim: input.dataFim,
         _dias_abono: input.diasAbono,
         _adiantar_13: input.adiantar13,
-        _observacao: input.observacao?.trim() || null,
+        _observacao: (input.observacao?.trim() || null) ?? undefined,
       });
       if (error) throw error;
     },

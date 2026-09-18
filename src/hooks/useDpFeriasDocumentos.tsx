@@ -160,8 +160,8 @@ export function useDpFeriasDocumentos() {
         _gozo_id: input.gozoId,
         _aviso_em: input.avisoEm,
         _retroativo: input.retroativo,
-        _justificativa: input.justificativa?.trim() || null,
-        _documento_id: input.documentoId ?? null,
+        _justificativa: (input.justificativa?.trim() || null) ?? undefined,
+        _documento_id: input.documentoId ?? undefined,
       });
       if (error) throw error;
     },

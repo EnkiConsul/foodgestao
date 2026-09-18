@@ -49,7 +49,7 @@ export function useDpOcorrenciasIndicadores(params: {
         _company_id: selectedCompanyId!,
         _inicio: params.inicio,
         _fim: params.fim,
-        _unidade_id: unidadeId,
+        _unidade_id: (unidadeId) ?? undefined,
       });
       if (error) throw error;
       return { ...VAZIO, ...((data ?? {}) as Partial<OcorrenciasIndicadores>) };

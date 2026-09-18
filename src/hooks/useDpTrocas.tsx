@@ -123,7 +123,7 @@ export function useDpTrocas(filtros: TrocaFiltros = FILTROS_TROCA_PADRAO) {
       const { error } = await supabase.rpc("dp_troca_responder_gestor", {
         p_id: id,
         p_aceito: aceito,
-        p_observacao: obs?.trim() || null,
+        p_observacao: (obs?.trim() || null) ?? undefined,
       });
       if (error) throw new Error(mensagemErroTroca(error.message));
     },
