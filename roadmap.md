@@ -68,3 +68,8 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - Comprovante de pagamento e certificado abrem na própria tela (sem aba nova, que o celular bloqueia).
 - Certificado virou PDF único do servidor (`dp-documento-certificado`): capa com dados da aprovação, documento assinado, comprovante como anexo (sem validação própria) e rodapé de lastro em todas as páginas.
 - Testado com documento real aprovado (contracheque + comprovante Pix): 4 páginas, rodapé e anexo conferidos.
+
+## Autorização do Open Finance — P0 (2026-09-18)
+- Migrations aplicadas em produção: sync_runs somente leitura para o app; cancelamento de autorização exige dono/editor; helpers pluggy_can_edit/pluggy_user_can_edit recusam usuário bloqueado; policies restritivas "not_blocked" nas tabelas pluggy_*.
+- Edge Functions deployadas: pluggy-sync-item (exige permissão de edição; conflito sem nomes de empresas sem acesso) e pluggy-pause-or-delete (empresa lida da conta, exige editor, só pausa conta desativada).
+- Matriz testada em transação revertida: sem vínculo/empresa alheia/bloqueado negados; dono e service_role preservados.
