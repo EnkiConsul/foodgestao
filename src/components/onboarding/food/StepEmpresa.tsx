@@ -179,11 +179,11 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
         />
         <label htmlFor="lgpd-accept" className="text-xs leading-relaxed cursor-pointer text-muted-foreground">
           Li e concordo com os{" "}
-          <a href="/legal/termos" target="_blank" className="text-primary underline hover:no-underline">
+          <a href="/legal/termos" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:no-underline">
             Termos de Uso
           </a>{" "}
           e com a{" "}
-          <a href="/legal/privacidade" target="_blank" className="text-primary underline hover:no-underline">
+          <a href="/legal/privacidade" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:no-underline">
             Política de Privacidade
           </a>{" "}
           do Aveto 360.

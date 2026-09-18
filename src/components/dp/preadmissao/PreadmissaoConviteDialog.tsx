@@ -139,7 +139,7 @@ export function PreadmissaoConviteDialog({ open, onOpenChange }: Props) {
                     `Olá! Para começar sua admissão, preencha seus dados neste link: ${link}`,
                   )}`}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                 >
                   <Send className="h-4 w-4 mr-2" /> Enviar Pelo WhatsApp
                 </a>
