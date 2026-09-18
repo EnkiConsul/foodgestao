@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
     // qualquer empresa efetiva passa por esta checagem.
     const assertUserCanAccessCompany = async (targetCompanyId: string): Promise<boolean> => {
       if (!userId) return isServiceCall; // só o caminho interno verificado
-      const { data: canEdit } = await admin.rpc('pluggy_user_can_edit', {
+      const { data: canEdit } = await admin.rpc('pluggy_user_can_manage_accounts', {
         _user_id: userId,
         _company_id: targetCompanyId,
       });

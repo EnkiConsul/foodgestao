@@ -107,17 +107,14 @@ export function PluggyCreditCardReviewDialog({ open, onOpenChange, accounts, onD
 
   const markReviewed = async (status: "linked" | "ignored", creditCardId: string | null) => {
     if (!account) return;
-    const { error } = await supabase
-      .from("pluggy_accounts")
-      .update({
-        credit_review_status: status,
-        credit_review_at: new Date().toISOString(),
-        credit_review_by: user?.id ?? null,
-        linked_credit_card_id: creditCardId,
-        ...(cardName.trim() ? { name: cardName.trim() } : {}),
-      })
-      .eq("id", account.id);
+    const { error } = await supabase.rpc("pluggy_review_credit_account", {
+      _account_id: account.id,
+      _status: status,
+      _credit_card_id: creditCardId,
+      _name: cardName.trim() ? cardName.trim() : null,
+    });
     if (error) throw new Error(error.message);
+
   };
 
   const handleIgnore = async () => {

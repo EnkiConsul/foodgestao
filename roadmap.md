@@ -73,3 +73,9 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - Migrations aplicadas em produção: sync_runs somente leitura para o app; cancelamento de autorização exige dono/editor; helpers pluggy_can_edit/pluggy_user_can_edit recusam usuário bloqueado; policies restritivas "not_blocked" nas tabelas pluggy_*.
 - Edge Functions deployadas: pluggy-sync-item (exige permissão de edição; conflito sem nomes de empresas sem acesso) e pluggy-pause-or-delete (empresa lida da conta, exige editor, só pausa conta desativada).
 - Matriz testada em transação revertida: sem vínculo/empresa alheia/bloqueado negados; dono e service_role preservados.
+
+## Autorização do Open Finance — P0 parte 2 (2026-09-18)
+- [x] Revogadas escritas (INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES, inclusive por coluna) de PUBLIC/anon/authenticated nas 8 tabelas Pluggy; SELECT e service_role preservados; policies de escrita do cliente removidas.
+- [x] Novas RPCs: pluggy_clear_pending_staging, pluggy_clear_staging_suggestions, pluggy_set_staging_counterparties, pluggy_set_staging_description (transactions=edit), pluggy_review_credit_account (accounts=edit).
+- [x] Permissão por módulo explícita nos helpers (private.pluggy_module_edit); cancelamento e endpoints de conexão/conta exigem accounts=edit.
+- [x] Frontend migrado (ConciliacaoPluggy, PluggyCreditCardReviewDialog) — exige publish.

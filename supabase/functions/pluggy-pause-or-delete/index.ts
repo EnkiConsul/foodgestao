@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
 
     // Pausar coleta altera a origem dos lançamentos: exige dono ou permissão de
     // edição (leitor, contabilidade e usuário bloqueado ficam de fora).
-    const { data: canEdit } = await admin.rpc('pluggy_user_can_edit', {
+    const { data: canEdit } = await admin.rpc('pluggy_user_can_manage_accounts', {
       _user_id: userId,
       _company_id: localAcc.company_id,
     });

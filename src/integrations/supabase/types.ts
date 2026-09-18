@@ -17080,6 +17080,14 @@ export type Database = {
         Args: { _company_id: string; _request_id?: string }
         Returns: number
       }
+      pluggy_clear_pending_staging: {
+        Args: { _company_id: string; _connection_id?: string }
+        Returns: number
+      }
+      pluggy_clear_staging_suggestions: {
+        Args: { _company_id: string; _ids: string[] }
+        Returns: number
+      }
       pluggy_confirm_staging: {
         Args: {
           p_account_id: string
@@ -17168,7 +17176,28 @@ export type Database = {
         Args: { _error: string; _id: string; _max_attempts?: number }
         Returns: undefined
       }
+      pluggy_review_credit_account: {
+        Args: {
+          _account_id: string
+          _credit_card_id?: string
+          _name?: string
+          _status: string
+        }
+        Returns: string
+      }
+      pluggy_set_staging_counterparties: {
+        Args: { _company_id: string; _items: Json }
+        Returns: number
+      }
+      pluggy_set_staging_description: {
+        Args: { _company_id: string; _description: string; _id: string }
+        Returns: number
+      }
       pluggy_user_can_edit: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
+      pluggy_user_can_manage_accounts: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }

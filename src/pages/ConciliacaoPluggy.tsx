@@ -976,15 +976,16 @@ export default function ConciliacaoPluggy() {
       // Limpa a sugestão bancária gravada nas linhas de cartão
       const cardIdsToClear = cardRows.filter((r) => r.suggested_account_id).map((r) => r.id);
       if (cardIdsToClear.length > 0) {
-        const { error } = await supabase
-          .from("pluggy_staging_transactions")
-          .update({ suggested_account_id: null })
-          .in("id", cardIdsToClear);
+        const { error } = await supabase.rpc("pluggy_clear_staging_suggestions", {
+          _company_id: selectedCompanyId,
+          _ids: cardIdsToClear,
+        });
         if (error) {
           toast.error("Falha ao reprocessar: " + error.message);
           return;
         }
       }
+
 
       setRowAccount((prev) => {
         const next = { ...prev };
@@ -1019,6 +1020,7 @@ export default function ConciliacaoPluggy() {
   // Descarta o extrato pendente do escopo atual — útil quando o usuário apagou
   // contas/cartões e quer recomeçar a conciliação sem resíduo.
   const clearPending = async () => {
+    if (!selectedCompanyId) return;
     const ids = rows
       .filter((r) => r.status === "pending")
       .filter((r) => connectionId === "all" || r.connection_id === connectionId)
@@ -1029,17 +1031,21 @@ export default function ConciliacaoPluggy() {
       return;
     }
     setClearing(true);
-    const { error } = await supabase.from("pluggy_staging_transactions").delete().in("id", ids);
+    const { data, error } = await supabase.rpc("pluggy_clear_pending_staging", {
+      _company_id: selectedCompanyId,
+      _connection_id: connectionId === "all" ? null : connectionId,
+    });
     setClearing(false);
     setClearOpen(false);
     if (error) {
       toast.error("Não foi possível limpar o extrato pendente", { description: error.message });
       return;
     }
-    setRows((prev) => prev.filter((r) => !ids.includes(r.id)));
+    setRows((prev) => prev.filter((r) => r.status !== "pending" || (connectionId !== "all" && r.connection_id !== connectionId)));
     setSelected(new Set());
-    toast.success(`${ids.length} lançamento(s) pendente(s) removido(s).`);
+    toast.success(`${Number(data ?? ids.length)} lançamento(s) pendente(s) removido(s).`);
   };
+
 
   const reprocessCounterparties = async () => {
     if (!selectedCompanyId) return;
@@ -1086,24 +1092,23 @@ export default function ConciliacaoPluggy() {
 
     setCounterpartyReprocessing(true);
     try {
-      for (let i = 0; i < updates.length; i += 25) {
-        const chunk = updates.slice(i, i + 25);
-        const results = await Promise.all(chunk.map((u) =>
-          supabase
-            .from("pluggy_staging_transactions")
-            .update({
-              counterparty_name: u.counterparty_name,
-              counterparty_document: u.counterparty_document,
-              counterparty_document_type: u.counterparty_document_type,
-            })
-            .eq("id", u.id),
-        ));
-        const failed = results.find((result) => result.error);
-        if (failed?.error) {
-          toast.error("Falha ao reprocessar fornecedores/clientes", { description: failed.error.message });
+      for (let i = 0; i < updates.length; i += 200) {
+        const chunk = updates.slice(i, i + 200);
+        const { error } = await supabase.rpc("pluggy_set_staging_counterparties", {
+          _company_id: selectedCompanyId,
+          _items: chunk.map((u) => ({
+            id: u.id,
+            name: u.counterparty_name,
+            document: u.counterparty_document,
+            document_type: u.counterparty_document_type,
+          })),
+        });
+        if (error) {
+          toast.error("Falha ao reprocessar fornecedores/clientes", { description: error.message });
           return;
         }
       }
+
       setRows((prev) => prev.map((r) => {
         const u = updates.find((item) => item.id === r.id);
         return u ? { ...r, ...u } : r;
@@ -1359,10 +1364,13 @@ export default function ConciliacaoPluggy() {
 
   /** Salva a descrição editada do lançamento importado (antes de conciliar). */
   const saveDescription = async (id: string, description: string) => {
-    const { error } = await supabase
-      .from("pluggy_staging_transactions")
-      .update({ description })
-      .eq("id", id);
+    if (!selectedCompanyId) return false;
+    const { error } = await supabase.rpc("pluggy_set_staging_description", {
+      _company_id: selectedCompanyId,
+      _id: id,
+      _description: description,
+    });
+
     if (error) {
       toast.error("Não foi possível alterar a descrição", { description: error.message });
       return false;
