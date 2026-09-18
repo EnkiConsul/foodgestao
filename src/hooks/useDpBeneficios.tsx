@@ -126,7 +126,7 @@ export function useDpBeneficios(colaboradorFilter = "todos") {
       toast.success("Benefício salvo");
       invalidate("dp_beneficios", "dp_colaborador_beneficios");
     },
-    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao salvar benefício" }),
+    onError: (e) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao salvar benefício" }),
   });
 
   const deleteBeneficio = useMutation({
@@ -177,7 +177,7 @@ export function useDpBeneficios(colaboradorFilter = "todos") {
       toast.success("Vínculo removido");
       invalidate("dp_colaborador_beneficios");
     },
-    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao excluir" }),
+    onError: (e) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao excluir" }),
   });
 
   return {

@@ -34,7 +34,7 @@ export function useUpsertCoupon() {
       qc.invalidateQueries({ queryKey: ["admin-coupons"] });
       toast.success("Cupom salvo");
     },
-    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao salvar cupom" }),
+    onError: (e) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao salvar cupom" }),
   });
 }
 
@@ -49,6 +49,6 @@ export function useDeleteCoupon() {
       qc.invalidateQueries({ queryKey: ["admin-coupons"] });
       toast.success("Cupom excluído");
     },
-    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro" }),
+    onError: (e) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro" }),
   });
 }

@@ -50,7 +50,7 @@ export function useUpsertPlan() {
       qc.invalidateQueries({ queryKey: ["admin-plans"] });
       toast.success("Plano salvo");
     },
-    onError: (e: any) => notifyError(e, { surface: "Planos", action: "concluir a ação", fallback: "Erro ao salvar plano" }),
+    onError: (e) => notifyError(e, { surface: "Planos", action: "concluir a ação", fallback: "Erro ao salvar plano" }),
   });
 }
 

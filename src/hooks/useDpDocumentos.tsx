@@ -179,7 +179,7 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
       toast.success("Documento aprovado");
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
     },
-    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro" }),
+    onError: (e) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const recusar = useMutation({
@@ -196,7 +196,7 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
       toast.success("Documento recusado");
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
     },
-    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro" }),
+    onError: (e) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro" }),
   });
 
   return {

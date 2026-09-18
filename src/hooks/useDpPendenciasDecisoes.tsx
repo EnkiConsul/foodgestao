@@ -93,7 +93,7 @@ export function useDpPendenciasDecisoes() {
       qc.invalidateQueries({ queryKey: ["dp_pendencias_decisoes"] });
       toast.success(args.acao === "ignorar" ? "Pendência ignorada para toda a empresa." : "Pendência adiada para toda a empresa.");
     },
-    onError: (e: any) => notifyError(e, { surface: "Pendências", action: "concluir a ação", fallback: "Não foi possível registrar a decisão." }),
+    onError: (e) => notifyError(e, { surface: "Pendências", action: "concluir a ação", fallback: "Não foi possível registrar a decisão." }),
   });
 
   const remover = useMutation({
@@ -109,7 +109,7 @@ export function useDpPendenciasDecisoes() {
       qc.invalidateQueries({ queryKey: ["dp_pendencias_decisoes"] });
       toast.success("Decisão removida — a pendência voltou a aparecer.");
     },
-    onError: (e: any) => notifyError(e, { surface: "Pendências", action: "concluir a ação", fallback: "Não foi possível remover a decisão." }),
+    onError: (e) => notifyError(e, { surface: "Pendências", action: "concluir a ação", fallback: "Não foi possível remover a decisão." }),
   });
 
   return { decisoes, ignoradas, adiadas, decisaoDe, decidir, remover, isLoading: query.isLoading };

@@ -103,7 +103,7 @@ export function useDpFerias(colaboradorFilter: string) {
       );
       invalidate();
     },
-    onError: (e: any) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Erro ao gerar períodos" }),
+    onError: (e) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Erro ao gerar períodos" }),
   });
 
   /**

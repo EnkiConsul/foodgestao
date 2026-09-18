@@ -143,7 +143,7 @@ export function useDpMural() {
       if (error) throw error;
     },
     onSuccess: invalidate,
-    onError: (e: any) => notifyError(e, { surface: "Mural", action: "concluir a ação", fallback: "Erro ao confirmar leitura" }),
+    onError: (e) => notifyError(e, { surface: "Mural", action: "concluir a ação", fallback: "Erro ao confirmar leitura" }),
   });
 
   const toggleReacao = useMutation({
@@ -167,7 +167,7 @@ export function useDpMural() {
       if (error) throw error;
     },
     onSuccess: invalidate,
-    onError: (e: any) => notifyError(e, { surface: "Mural", action: "concluir a ação", fallback: "Erro ao reagir" }),
+    onError: (e) => notifyError(e, { surface: "Mural", action: "concluir a ação", fallback: "Erro ao reagir" }),
   });
 
   const comentar = useMutation({
@@ -194,7 +194,7 @@ export function useDpMural() {
       invalidate();
       toast.success("Comentário enviado para moderação");
     },
-    onError: (e: any) => notifyError(e, { surface: "Mural", action: "concluir a ação", fallback: "Erro ao comentar" }),
+    onError: (e) => notifyError(e, { surface: "Mural", action: "concluir a ação", fallback: "Erro ao comentar" }),
   });
 
   const removerComentario = useMutation({
@@ -203,7 +203,7 @@ export function useDpMural() {
       if (error) throw error;
     },
     onSuccess: invalidate,
-    onError: (e: any) => notifyError(e, { surface: "Mural", action: "concluir a ação", fallback: "Erro ao remover" }),
+    onError: (e) => notifyError(e, { surface: "Mural", action: "concluir a ação", fallback: "Erro ao remover" }),
   });
 
   return {
@@ -263,7 +263,7 @@ export function useDpAvisoEngajamento(avisoId: string | null) {
       qc.invalidateQueries({ queryKey: ["dp_mural_comentarios"] });
       toast.success("Comentário moderado");
     },
-    onError: (e: any) => notifyError(e, { surface: "Mural", action: "concluir a ação", fallback: "Erro ao moderar" }),
+    onError: (e) => notifyError(e, { surface: "Mural", action: "concluir a ação", fallback: "Erro ao moderar" }),
   });
 
   return { ...query, moderar };

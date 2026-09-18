@@ -288,7 +288,7 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
       toast.success(vars.editId ? "Regra atualizada" : "Regra criada");
       await qc.invalidateQueries({ queryKey: ["dp_bloqueio_regras"] });
     },
-    onError: (e: any) => notifyError(e, { surface: "Bloqueios", action: "concluir a ação", fallback: "Erro" }),
+    onError: (e) => notifyError(e, { surface: "Bloqueios", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const delRegra = useMutation({
@@ -300,7 +300,7 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
       toast.success("Regra excluída");
       await qc.invalidateQueries({ queryKey: ["dp_bloqueio_regras"] });
     },
-    onError: (e: any) => notifyError(e, { surface: "Bloqueios", action: "concluir a ação", fallback: "Erro" }),
+    onError: (e) => notifyError(e, { surface: "Bloqueios", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const saveData = useMutation({
@@ -328,7 +328,7 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
       toast.success(vars.editId ? "Bloqueio atualizado" : "Data bloqueada");
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
     },
-    onError: (e: any) => notifyError(e, { surface: "Bloqueios", action: "concluir a ação", fallback: "Erro" }),
+    onError: (e) => notifyError(e, { surface: "Bloqueios", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const delData = useMutation({
@@ -340,7 +340,7 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
       toast.success("Bloqueio removido");
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
     },
-    onError: (e: any) => notifyError(e, { surface: "Bloqueios", action: "concluir a ação", fallback: "Erro" }),
+    onError: (e) => notifyError(e, { surface: "Bloqueios", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const rebloquear = useMutation({
@@ -360,7 +360,7 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
       toast.success("Data bloqueada novamente");
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
     },
-    onError: (e: any) => notifyError(e, { surface: "Bloqueios", action: "concluir a ação", fallback: "Erro" }),
+    onError: (e) => notifyError(e, { surface: "Bloqueios", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const liberar = useMutation({
@@ -387,7 +387,7 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_geral"] });
     },
-    onError: (e: any) => notifyError(e, { surface: "Bloqueios", action: "concluir a ação", fallback: "Erro ao liberar" }),
+    onError: (e) => notifyError(e, { surface: "Bloqueios", action: "concluir a ação", fallback: "Erro ao liberar" }),
   });
 
   return {

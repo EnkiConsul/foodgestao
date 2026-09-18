@@ -66,7 +66,7 @@ export function useDpFeriasConfigUnidades() {
       toast.success("Exceção da unidade atualizada");
       void qc.invalidateQueries({ queryKey: chave });
     },
-    onError: (e: any) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Não foi possível salvar a exceção" }),
+    onError: (e) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Não foi possível salvar a exceção" }),
   });
 
   return { overrides: query.data ?? [], isLoading: query.isLoading, save };

@@ -13,6 +13,13 @@ Esta alteração separa testes remotos dos testes unitários, exige identificaç
 
 ## Evidências e limites
 
+### Redução de avisos com inferência dos callbacks
+
+Removidas 49 anotações any desnecessárias de callbacks onError que encaminham o erro diretamente a notifyError, em 17 hooks. O tipo do erro agora vem de useMutation. Comparação por transpileModule confirmou JavaScript idêntico antes e depois em todos os arquivos alterados; não houve alteração de comportamento.
+
+TypeScript strict completo aprovado com código 0. ESLint completo: zero erros e 1744 avisos (antes: zero erros e 1793 avisos). O limite continua 1471; faltam reduzir 273 avisos para aprovar essa etapa. Não foram desativadas regras nem adicionadas supressões. Evidências locais: lint-inferred-errors-summary.json, eslint-inferred-errors.json e typecheck-inferred-errors.txt no diretório de homologação.
+
+
 ### Sessão E2E por execução e próximo bloqueio do CI
 
 O workflow agora autentica o usuário TEST_USER_A em cada execução e prepara a sessão curta no ambiente do job. Não depende mais do secret E2E_SUPABASE_SESSION_JSON. Destino/API/build/conexão QA são validados antes de transmitir a senha; redirects são recusados. Tokens e JSON de sessão são mascarados antes da gravação no GITHUB_ENV. Credenciais do usuário são fornecidas somente à etapa de login.

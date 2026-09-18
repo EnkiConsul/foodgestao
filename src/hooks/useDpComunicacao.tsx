@@ -78,7 +78,7 @@ export function useDpAvisos() {
       qc.invalidateQueries({ queryKey: ["dp_avisos"] });
       toast.success("Aviso salvo");
     },
-    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao salvar aviso" }),
+    onError: (e) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao salvar aviso" }),
   });
 
   const remove = useMutation({
@@ -90,7 +90,7 @@ export function useDpAvisos() {
       qc.invalidateQueries({ queryKey: ["dp_avisos"] });
       toast.success("Aviso removido");
     },
-    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao remover" }),
+    onError: (e) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao remover" }),
   });
 
   return { ...query, upsert, remove };
@@ -134,7 +134,7 @@ export function useDpMensagens() {
       qc.invalidateQueries({ queryKey: ["dp_mensagens"] });
       toast.success("Mensagem enviada");
     },
-    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao enviar" }),
+    onError: (e) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao enviar" }),
   });
 
   const remove = useMutation({
@@ -146,7 +146,7 @@ export function useDpMensagens() {
       qc.invalidateQueries({ queryKey: ["dp_mensagens"] });
       toast.success("Mensagem removida");
     },
-    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao remover" }),
+    onError: (e) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao remover" }),
   });
 
   return { ...query, send, remove };
