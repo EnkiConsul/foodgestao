@@ -66,7 +66,17 @@ function diretivasBase(frameAncestors: string[]): Diretivas {
     "style-src": ["'self'", "'unsafe-inline'", ...fontes],
     "font-src": ["'self'", "data:", ...fontes],
     // blob:/data: cobrem pré-visualização de documentos, PDF e exportações.
-    "img-src": ["'self'", "data:", "blob:", ...imagens, ...google, ...meta, ...supabase.slice(0, 1)],
+    // cdn.pluggy.ai serve os logotipos das instituições no widget de conexão.
+    "img-src": [
+      "'self'",
+      "data:",
+      "blob:",
+      ...imagens,
+      ...google,
+      ...meta,
+      ...supabase.slice(0, 1),
+      "https://cdn.pluggy.ai",
+    ],
     "connect-src": [
       "'self'",
       "blob:",

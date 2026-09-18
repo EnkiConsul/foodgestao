@@ -72,6 +72,16 @@ describe("CSP — valores de cabeçalho", () => {
     expect(scriptSrc).not.toContain("'unsafe-inline'");
   });
 
+  it("img-src permite os logotipos do widget Pluggy (cdn.pluggy.ai)", () => {
+    const imgSrc = cspReportOnlyHeaderValue()
+      .split("; ")
+      .find((d) => d.startsWith("img-src "))!;
+    expect(imgSrc).toContain("https://cdn.pluggy.ai");
+    // não abre as demais origens do Pluggy para imagens
+    expect(imgSrc).not.toContain("https://api.pluggy.ai");
+    expect(imgSrc).not.toContain("https://connect.pluggy.ai");
+  });
+
   it("frame-ancestors em modo bloqueio permite o editor da Lovable e o domínio próprio", () => {
     const v = cspFrameAncestorsHeaderValue();
     expect(v.startsWith("frame-ancestors ")).toBe(true);
