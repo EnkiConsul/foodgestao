@@ -224,11 +224,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Membership guard: verifica se o usuário autenticado pertence à empresa
-    // (super admins têm bypass). Aplicado a QUALQUER empresa efetiva, mesmo
-    // quando o company_id não veio no corpo da requisição.
+    // Guard de autorização: sincronizar grava extrato e altera a origem dos
+    // lançamentos, portanto exige dono ou permissão de edição (leitor,
+    // contabilidade e usuário bloqueado ficam de fora). Super admin é coberto
+    // pelo próprio helper. A empresa nunca é aceita por confiança no corpo:
+    // qualquer empresa efetiva passa por esta checagem.
     const assertUserCanAccessCompany = async (targetCompanyId: string): Promise<boolean> => {
       if (!userId) return isServiceCall; // só o caminho interno verificado
+      const { data: canEdit } = await admin.rpc('pluggy_user_can_edit', {
+        _user_id: userId,
+        _company_id: targetCompanyId,
+      });
+      return canEdit === true;
+    };
+
+    // Empresas às quais o usuário tem acesso de leitura — usado para não
+    // devolver nomes/contas de empresas que ele não pode ver.
+    const userCanSeeCompany = async (targetCompanyId: string): Promise<boolean> => {
+      if (!userId) return false;
       const { data: isSuper } = await admin
         .from('user_roles').select('role')
         .eq('user_id', userId).eq('role', 'super_admin').maybeSingle();
@@ -236,11 +249,7 @@ Deno.serve(async (req) => {
       const { data: mem } = await admin
         .from('company_members').select('id')
         .eq('company_id', targetCompanyId).eq('user_id', userId).maybeSingle();
-      if (mem) return true;
-      const { data: ownedCompany } = await admin
-        .from('companies').select('id')
-        .eq('id', targetCompanyId).eq('user_id', userId).maybeSingle();
-      return !!ownedCompany;
+      return !!mem;
     };
 
     const forbidden = () => new Response(JSON.stringify({ error: 'forbidden' }), {
@@ -487,14 +496,26 @@ Deno.serve(async (req) => {
             companies: { name: string | null; trade_name: string | null } | null;
           }>;
           if (conflitos.length) {
+            // Nome da empresa e nome da conta só aparecem quando o usuário tem
+            // acesso àquela empresa. Caso contrário, aviso genérico — nunca
+            // devolvemos cadastro de empresa de terceiros.
+            const empresasVisiveis = new Set<string>();
+            for (const cid of new Set(conflitos.map((c) => c.company_id))) {
+              if (await userCanSeeCompany(cid)) empresasVisiveis.add(cid);
+            }
             return new Response(JSON.stringify({
               error: 'duplicate_account_other_company',
               message: 'Estas contas já estão ligadas em outra empresa.',
-              conflicts: conflitos.map((c) => ({
-                number_masked: c.number_masked,
-                account_name: c.name,
-                company_name: c.companies?.trade_name ?? c.companies?.name ?? null,
-              })),
+              conflicts: conflitos.map((c) => {
+                const visivel = empresasVisiveis.has(c.company_id);
+                return {
+                  number_masked: c.number_masked,
+                  account_name: visivel ? c.name : null,
+                  company_name: visivel
+                    ? (c.companies?.trade_name ?? c.companies?.name ?? null)
+                    : null,
+                };
+              }),
             }), {
               status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
