@@ -64,17 +64,14 @@ function imprimirTermo(
   @media print{body{margin:0}}
 </style></head><body>
 <h1>Termo de ciência e não adesão a benefício</h1>
-${paragrafos.map((t) => `<p>${t}</p>`).join("\n")}
+${paragrafos.map((t) => `<p>${escapeHtml(t)}</p>`).join("\n")}
 <div class="assinaturas">
-  <div class="linha">${colaborador.nome}</div>
-  <div class="linha">${empresa.nome}</div>
+  <div class="linha">${escapeHtml(colaborador.nome)}</div>
+  <div class="linha">${escapeHtml(empresa.nome)}</div>
 </div>
-<script>window.onload=function(){window.print()}</script>
 </body></html>`;
-  const w = window.open("", "_blank", "width=820,height=900");
-  if (!w) return;
-  w.document.write(html);
-  w.document.close();
+  // Sem script embutido e sem pop-up: o app dispara a impressão do quadro interno.
+  imprimirHtmlEmQuadro(html);
 }
 
 /**
