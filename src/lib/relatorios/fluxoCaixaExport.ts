@@ -32,7 +32,7 @@ export function downloadCsv(filename: string, rows: CsvCell[][]) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export { escapeHtml } from "@/lib/print/imprimirHtml";
+export { escapeHtml };
 
 export type PrintableTable = {
   title: string;
