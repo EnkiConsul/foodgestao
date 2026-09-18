@@ -1,3 +1,7 @@
+# ATENÇÃO: a hospedagem da Lovable NÃO processa este arquivo (convenção da
+# Netlify). Verificado em produção: X-Frame-Options e Permissions-Policy abaixo
+# não chegam na resposta. Os cabeçalhos que realmente valem precisam ser postos
+# na camada de proxy/domínio — ver docs/security/csp-cabecalhos.md.
 /*
   X-Content-Type-Options: nosniff
   X-Frame-Options: SAMEORIGIN

@@ -79,3 +79,10 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [x] Novas RPCs: pluggy_clear_pending_staging, pluggy_clear_staging_suggestions, pluggy_set_staging_counterparties, pluggy_set_staging_description (transactions=edit), pluggy_review_credit_account (accounts=edit).
 - [x] Permissão por módulo explícita nos helpers (private.pluggy_module_edit); cancelamento e endpoints de conexão/conta exigem accounts=edit.
 - [x] Frontend migrado (ConciliacaoPluggy, PluggyCreditCardReviewDialog) — exige publish.
+
+## CSP / cabeçalhos de segurança (S1) — 2026-09-18
+- [x] Scripts inline próprios externalizados (public/scripts/gtag-init.js, meta-pixel.js); index.html sem script inline executável (teste garante).
+- [x] Política fase 1 (Report-Only + frame-ancestors enforce) em src/lib/security/csp.ts, com allowlist inventariada.
+- [x] Observação de violações sem coletor e sem dados sensíveis (src/lib/security/cspViolationLogger.ts).
+- [x] Configuração pronta para proxy + verificação em docs/security/csp-cabecalhos.md.
+- [ ] BLOQUEADO: hospedagem Lovable não envia cabeçalhos personalizados nem lê public/_headers. S1 só encerra com evidência de cabeçalho na resposta HTTP, aplicada na camada de proxy/domínio do proprietário.
