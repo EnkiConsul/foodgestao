@@ -42,8 +42,12 @@ function fakeWindow(href: string) {
     addEventListener: () => undefined,
     document: {
       referrer: "",
-      createElement: () => ({ setAttribute: () => undefined }),
-      getElementsByTagName: () => [{ parentNode: { insertBefore: () => undefined } }],
+      // Registra as bibliotecas de tracker que o script tentaria baixar.
+      createElement: () => ({ setAttribute: () => undefined, src: "" }),
+      head: { appendChild: (el: { src: string }) => chamadas.push(["script", el.src]) },
+      getElementsByTagName: () => [
+        { parentNode: { insertBefore: (el: { src: string }) => chamadas.push(["script", el.src]) } },
+      ],
     },
     localStorage: { getItem: () => JSON.stringify({ marketing: true }) },
     __chamadas: chamadas,
@@ -127,10 +131,11 @@ describe("carga inicial antes do React (scripts reais)", () => {
     return chamadas;
   }
 
-  it("rota de ativação com token não envia visualização", () => {
+  it("rota de ativação com token não baixa a biblioteca nem envia visualização", () => {
     const chamadas = rodarGtag(`https://aveto360.com/ativar-acesso?t=${TOKEN_FICTICIO}&c=${CODIGO_FICTICIO}`);
     const config = chamadas.find((c) => c[0] === "config");
     expect(config?.[2]).toEqual({ send_page_view: false });
+    expect(JSON.stringify(chamadas)).not.toContain("googletagmanager.com");
     expect(JSON.stringify(chamadas)).not.toContain(TOKEN_FICTICIO);
     expect(JSON.stringify(chamadas)).not.toContain(CODIGO_FICTICIO);
   });
