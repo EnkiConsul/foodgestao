@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { installStaleBundleRecovery } from "./lib/staleBundle";
+import { installCspViolationLogger } from "./lib/security/cspViolationLogger";
 
 
 import "@fontsource/urbanist/600.css";
