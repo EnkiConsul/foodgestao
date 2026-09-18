@@ -13,6 +13,10 @@ Esta alteração separa testes remotos dos testes unitários, exige identificaç
 
 ## Evidências e limites
 
+### L02: agenda e caminhos indiretos de remuneração
+
+Restritos mais três auxiliares internos, incluindo dois caminhos indiretos para remuneração. Regressão em homologação confirmou bloqueio direto e execução aninhada pelo gestor autorizado em pre_avaliar_grupo; usuário alheio/gestor bloqueado recusados. Detalhes: [l02-scheduling-helpers.md](l02-scheduling-helpers.md). Sem mudança em produção ou aprovação integral do AUD-011.
+
 ### L02: restringir consultas internas de admissão e remuneração
 
 Migration 20260918104932 restringe três assinaturas auxiliares ao serviço/proprietário. Vazamento reproduzido em homologação; testes pós-migration confirmaram negação de chamadas anônimas/autenticadas e manutenção do cálculo e das regras no serviço. Detalhes e limites: [l02-internal-reads.md](l02-internal-reads.md). AUD-011 continua parcial; produção inalterada.
