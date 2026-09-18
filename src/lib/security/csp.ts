@@ -94,13 +94,20 @@ function serializar(d: Diretivas): string {
 }
 
 /** Quem pode embutir o app em iframe: o próprio domínio e o editor da Lovable. */
+/**
+ * Quem pode embutir o app em iframe. Somente origens exatas.
+ *
+ * Nada de curinga em `*.lovable.app`: esse espaço é multi-inquilino — qualquer
+ * pessoa publica um app ali e poderia embutir a nossa tela de login. Pelo mesmo
+ * motivo não há curinga em `*.lovable.dev`. Só entra aqui o editor da Lovable e
+ * a origem exata do preview deste projeto.
+ */
 export const CSP_FRAME_ANCESTORS = [
   "'self'",
   "https://aveto360.com",
   "https://www.aveto360.com",
   "https://lovable.dev",
-  "https://*.lovable.dev",
-  "https://*.lovable.app",
+  "https://id-preview--ceeb4a17-6191-46b0-a351-c97a8211c03e.lovable.app",
 ];
 
 /**
