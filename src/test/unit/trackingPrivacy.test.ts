@@ -155,14 +155,19 @@ describe("carga inicial antes do React (scripts reais)", () => {
         win.document,
         win.localStorage,
       );
-      const fbq = win.fbq as (...args: unknown[]) => void;
-      const original = fbq;
-      win.fbq = (...args: unknown[]) => {
-        eventos.push(args);
-        return original(...args);
+      // O script da Meta nunca é baixado no teste, então tudo fica na fila em
+      // memória — é ela que provamos estar sem PageView e sem credenciais.
+      const fila = (((win.fbq as unknown as { queue?: unknown[][] }).queue ?? []) as unknown[][]).map((a) =>
+        Array.from(a),
+      );
+      eventos.push(...fila);
+      const pageView = () => {
+        const antes = ((win.fbq as unknown as { queue: unknown[][] }).queue ?? []).length;
+        const ok = (win.__avetoPixelPageView as () => boolean)();
+        const depois = ((win.fbq as unknown as { queue: unknown[][] }).queue ?? []).length;
+        return ok && depois > antes;
       };
-      const fila = ((win.fbq as unknown as { queue?: unknown[] }).queue ?? []) as unknown[][];
-      return { eventos: fila.map((a) => Array.from(a)), pageView: win.__avetoPixelPageView as () => boolean };
+      return { eventos, pageView };
     }
 
     const sensivel = rodarPixel(`https://aveto360.com/redefinir-acesso?t=${TOKEN_FICTICIO}`, true);
