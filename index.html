@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="pt-BR">
   <head>
-    <!-- Privacidade de rastreamento (AUD-021): precisa carregar antes dos trackers. -->
-    <script src="/scripts/tracking-privacy.js"></script>
-
-    <!-- Google tag (gtag.js): a biblioteca é pedida pelo próprio script de
-         inicialização, e somente fora de rotas com credencial (AUD-021). -->
-    <script src="/scripts/gtag-init.js"></script>
+    <!-- AUD-021: métricas de marketing (Google Analytics e pixel da Meta)
+         desativadas temporariamente neste aplicativo. Nenhum SDK é carregado,
+         inicializado, pré-conectado ou enfileirado aqui. Reativar somente
+         depois de isolar as páginas de marketing das páginas autenticadas e
+         dos links com credencial temporária.
+         Ver docs/security/metricas-marketing-desativadas.md -->
 
 
     <meta charset="UTF-8" />
@@ -105,20 +105,12 @@
 
 
 
-    <!-- Meta Pixel Code -->
-    <script src="/scripts/meta-pixel.js"></script>
-
-
-    <!-- End Meta Pixel Code -->
+    <!-- AUD-021: pixel da Meta removido (script e imagem em <noscript>). -->
 
   </head>
 
   <body>
     <div id="root"></div>
-    <!-- AUD-021: o pixel em <noscript> foi removido. Ele disparava em qualquer
-         URL (inclusive links de ativação/recuperação), enviando o endereço
-         completo à Meta pelo cabeçalho Referer e ignorando o consentimento. -->
-
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
