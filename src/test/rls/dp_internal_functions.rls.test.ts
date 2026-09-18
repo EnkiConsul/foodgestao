@@ -13,11 +13,13 @@
  */
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
+import { validateCatalogEnvironment } from "../../../scripts/test-target-safety.mjs";
 
 const DB_AVAILABLE = (() => {
   if (!process.env.PGHOST && !process.env.PGDATABASE) return false;
+  validateCatalogEnvironment(process.env);
   try {
-    execFileSync("psql", ["-At", "-c", "select 1"], { stdio: ["ignore", "pipe", "pipe"] });
+    execFileSync("psql", ["-At", "-c", "select 1"], { timeout: 15000, stdio: ["ignore", "pipe", "pipe"] });
     return true;
   } catch {
     return false;

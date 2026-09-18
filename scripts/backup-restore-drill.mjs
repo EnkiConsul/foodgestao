@@ -15,6 +15,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { mkdirSync, statSync, writeFileSync } from "node:fs";
+import { validateRestoreTarget, validateRestoreMarker } from "./restore-safety.mjs";
 
 const args = new Set(process.argv.slice(2));
 const REQUIRE = args.has("--require");
@@ -41,6 +42,10 @@ function bail(msg) {
 if (!SRC) bail("SUPABASE_DB_URL/STAGING_SUPABASE_DB_URL ausente");
 if (!DST) bail("RESTORE_DB_URL ausente (banco descartável de restore)");
 
+let target;
+try { target = validateRestoreTarget(SRC, DST); }
+catch (error) { console.error(error.message); process.exit(1); }
+
 function run(cmd, argv, opts = {}) {
   const res = spawnSync(cmd, argv, { encoding: "utf8", ...opts });
   if (res.error) {
@@ -53,11 +58,27 @@ function run(cmd, argv, opts = {}) {
 function psql(url, sql) {
   const res = run("psql", [url, "-v", "ON_ERROR_STOP=1", "-Atc", sql]);
   if (res.status !== 0) {
-    console.error(`${RED}✗ psql falhou:${RESET}\n${res.stderr}`);
+    console.error(`${RED}✗ psql falhou; detalhes omitidos para proteger credenciais.${RESET}`);
     process.exit(1);
   }
   return res.stdout.trim();
 }
+
+// Read-only identity check happens BEFORE dumping or deleting anything.
+// Provision the marker only on a fresh disposable local database, never production.
+function verifyDisposableDestination() {
+try {
+  const identity = JSON.parse(psql(DST, `select json_build_object(
+    'database', current_database(),
+    'marker', shobj_description(oid, 'pg_database')
+  ) from pg_database where datname = current_database()`));
+  validateRestoreMarker(identity, target.database);
+} catch (error) {
+  console.error('Restore recusado: não foi possível validar o destino descartável.');
+  process.exit(1);
+}
+}
+verifyDisposableDestination();
 
 mkdirSync("reports", { recursive: true });
 const dumpPath = "reports/backup-drill.dump";
@@ -88,6 +109,7 @@ if (dumpBytes < 1024) {
 console.log(`${GREEN}✓ dump ok${RESET} — ${(dumpBytes / 1024 / 1024).toFixed(2)} MB em ${dumpMs}ms`);
 
 console.log(`${CYAN}▶ preparando destino${RESET}`);
+verifyDisposableDestination();
 psql(DST, "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;");
 
 console.log(`${CYAN}▶ pg_restore${RESET}`);
@@ -116,6 +138,8 @@ const srcFns = Number(psql(SRC, FN_SQL));
 const dstFns = Number(psql(DST, FN_SQL));
 
 const report = {
+  scope: "public-only",
+  fullRecoveryVerified: false,
   ranAt: new Date().toISOString(),
   schemaOnly: SCHEMA_ONLY,
   dumpBytes,

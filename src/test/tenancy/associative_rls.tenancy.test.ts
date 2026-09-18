@@ -71,6 +71,7 @@ const specs: Spec[] = [
       user_id: uid,
       name: `rls-fixture-cat-${Date.now()}`,
       transaction_type: "saida",
+      category_subtype: "despesa",
       context: "pj",
     }),
   },
@@ -82,7 +83,6 @@ const specs: Spec[] = [
       user_id: uid,
       name: `rls-fixture-contact-${Date.now()}`,
       contact_type: "cliente",
-      context: "pj",
     }),
   },
 ];
@@ -142,7 +142,7 @@ suite.each(specs)(
       const { error } = await clientC
         .from(table)
         .insert({ company_id: COMPANY_1, [entityColumn]: entityId } as never);
-      expect(error).toBeTruthy();
+      expect(error?.code).toBe('42501');
     });
 
     it("D (owner E2) NÃO enxerga vínculos da E1", async () => {
@@ -162,12 +162,17 @@ suite.each(specs)(
     });
 
     it("UPDATE de company_id bloqueado pela trigger de integridade", async () => {
-      const { error } = await clientA
+      const { data: before, error: beforeError } = await clientA.from(table).select('company_id').eq(entityColumn, entityId);
+      expect(beforeError).toBeNull();
+      expect(before).toEqual([{company_id: COMPANY_1}]);
+      const { data: changed, error } = await clientA
         .from(table)
         .update({ company_id: COMPANY_2 } as never)
         .eq("company_id", COMPANY_1)
-        .eq(entityColumn, entityId);
-      expect(error).toBeTruthy();
+        .eq(entityColumn, entityId).select('company_id');
+      expect(error !== null || changed?.length === 0).toBe(true);
+      const {data: after} = await clientA.from(table).select('company_id').eq(entityColumn, entityId);
+      expect(after).toEqual([{company_id: COMPANY_1}]);
     });
 
     it("A remove vínculo em E1", async () => {

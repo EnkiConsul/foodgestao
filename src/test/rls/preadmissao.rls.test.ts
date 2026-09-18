@@ -20,9 +20,8 @@ import { createClient, type PostgrestError } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const SUPABASE_URL = "https://grtxmbffgmgnkawlvqhm.supabase.co";
-const ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdydHhtYmZmZ21nbmthd2x2cWhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MDM5ODYsImV4cCI6MjA4NjM3OTk4Nn0.izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko";
+const SUPABASE_URL = process.env.TEST_SUPABASE_URL!;
+const ANON_KEY = process.env.TEST_SUPABASE_ANON_KEY!;
 
 const FORGED_JWT = [
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",

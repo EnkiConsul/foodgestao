@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {requireCompleteIntegrationReport as check} from './integration-report-check.mjs';
+const valid={success:true,numTotalTests:2,numPassedTests:2,numFailedTests:0,numPendingTests:0,numTodoTests:0,testResults:[{assertionResults:[{status:'passed'},{status:'passed'}]}]};
+test('aprova somente evidência completa',()=>assert.doesNotThrow(()=>check(valid)));
+test('rejeita execução vazia',()=>assert.throws(()=>check({...valid,numTotalTests:0})));
+test('rejeita teste pulado mesmo com exit code de sucesso',()=>assert.throws(()=>check({...valid,numPendingTests:1,numPassedTests:1})));
+test('rejeita todo mesmo com relatório de sucesso',()=>assert.throws(()=>check({...valid,numTodoTests:1})));
+test('rejeita resumo aprovado com asserção pulada',()=>assert.throws(()=>check({...valid,testResults:[{assertionResults:[{status:'passed'},{status:'skipped'}]}]})));
+test('rejeita relatório sem asserções',()=>assert.throws(()=>check({...valid,testResults:[]})));
+test('rejeita falha declarada',()=>assert.throws(()=>check({...valid,success:false})));

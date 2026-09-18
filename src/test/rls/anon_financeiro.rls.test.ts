@@ -13,9 +13,8 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = "https://grtxmbffgmgnkawlvqhm.supabase.co";
-const ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdydHhtYmZmZ21nbmthd2x2cWhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MDM5ODYsImV4cCI6MjA4NjM3OTk4Nn0.izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko";
+const SUPABASE_URL = process.env.TEST_SUPABASE_URL!;
+const ANON_KEY = process.env.TEST_SUPABASE_ANON_KEY!;
 
 const TABELAS_FINANCEIRAS = [
   "accounts",
@@ -63,7 +62,7 @@ const anon = () =>
 describe("anon não lê dados financeiros", () => {
   for (const tabela of TABELAS_FINANCEIRAS) {
     it(`bloqueia SELECT anônimo em ${tabela}`, async () => {
-      if (!networkAvailable) return;
+      if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
       const { data, error } = await anon()
         .from(tabela)
         .select("id")
@@ -77,7 +76,7 @@ describe("anon não lê dados financeiros", () => {
 describe("anon não escreve dados financeiros", () => {
   for (const tabela of TABELAS_FINANCEIRAS) {
     it(`bloqueia INSERT anônimo em ${tabela}`, async () => {
-      if (!networkAvailable) return;
+      if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
       const { data, error } = await anon()
         .from(tabela)
         .insert({} as never)
@@ -90,7 +89,7 @@ describe("anon não escreve dados financeiros", () => {
 describe("anon não executa rotinas internas", () => {
   for (const rpc of RPCS_REVOGADAS) {
     it(`bloqueia execução anônima de ${rpc}`, async () => {
-      if (!networkAvailable) return;
+      if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
       const { error } = await anon().rpc(rpc as never, {} as never);
       expect(error).toBeTruthy();
     });
@@ -99,7 +98,7 @@ describe("anon não executa rotinas internas", () => {
 
 describe("Realtime não entrega dados financeiros para anon", () => {
   it("inscrição anônima em accounts/transactions não recebe linhas", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     const client = anon();
     const recebidos: unknown[] = [];
 

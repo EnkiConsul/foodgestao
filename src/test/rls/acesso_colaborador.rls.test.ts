@@ -16,9 +16,8 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = "https://grtxmbffgmgnkawlvqhm.supabase.co";
-const ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdydHhtYmZmZ21nbmthd2x2cWhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MDM5ODYsImV4cCI6MjA4NjM3OTk4Nn0.izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko";
+const SUPABASE_URL = process.env.TEST_SUPABASE_URL!;
+const ANON_KEY = process.env.TEST_SUPABASE_ANON_KEY!;
 
 const ID = "00000000-0000-4000-8000-0000000000ac";
 
@@ -70,7 +69,7 @@ describe("Acesso do colaborador: ações do gestor exigem sessão válida", () =
 
   for (const [fn, body] of acoes) {
     it(`${fn} (${JSON.stringify(body)}) recusa sem sessão e com token forjado`, async () => {
-      if (!networkAvailable) return;
+      if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
       const sem = await chamar(fn, body);
       expect(NEGADO, `${fn} respondeu ${sem.status}`).toContain(sem.status);
       const forjado = await chamar(fn, body, `Bearer ${FORGED_JWT}`);
@@ -79,7 +78,7 @@ describe("Acesso do colaborador: ações do gestor exigem sessão válida", () =
   }
 
   it("nenhuma recusa devolve senha, token ou link", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     for (const [fn, body] of acoes) {
       const { text } = await chamar(fn, body, `Bearer ${FORGED_JWT}`);
       const lower = text.toLowerCase();
@@ -92,7 +91,7 @@ describe("Acesso do colaborador: ações do gestor exigem sessão válida", () =
 
 describe("Acesso do colaborador: criação da própria senha", () => {
   it("recusa sem link de uso único válido", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     const r = await chamar("dp-alterar-senha-colaborador", {
       cpf: "00000000000",
       token_id: ID,
@@ -104,7 +103,7 @@ describe("Acesso do colaborador: criação da própria senha", () => {
   }, 30_000);
 
   it("recusa finalidade inválida", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     const r = await chamar("dp-alterar-senha-colaborador", {
       cpf: "00000000000",
       token_id: ID,
@@ -118,7 +117,7 @@ describe("Acesso do colaborador: criação da própria senha", () => {
 
 describe("Acesso do colaborador: fluxo legado desativado", () => {
   it("dp-invite-colaborador não existe mais", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     const r = await chamar("dp-invite-colaborador", { colaborador_id: ID, email: "x@y.com" });
     expect([404, 401, 403]).toContain(r.status);
   }, 30_000);
@@ -129,13 +128,13 @@ describe("Acesso do colaborador: visitante negado nas tabelas", () => {
 
   for (const t of tabelas) {
     it(`não lê ${t}`, async () => {
-      if (!networkAvailable) return;
+      if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
       const { data, error } = await anon().from(t as never).select("*").limit(1);
       expect(error || (data ?? []).length === 0).toBeTruthy();
     });
 
     it(`não grava em ${t}`, async () => {
-      if (!networkAvailable) return;
+      if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
       const { error } = await anon()
         .from(t as never)
         .insert({ user_id: ID } as never);
@@ -144,7 +143,7 @@ describe("Acesso do colaborador: visitante negado nas tabelas", () => {
   }
 
   it("não consulta a situação de acesso de terceiros", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     const { error } = await anon().rpc("dp_portal_acesso_status" as never, {
       p_colaborador_id: ID,
     } as never);

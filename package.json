@@ -19,6 +19,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:watch": "vitest",
     "typecheck:strict": "tsc -p ./tsconfig.strict.json --noEmit",
     "deno:check": "node scripts/deno-check.mjs",

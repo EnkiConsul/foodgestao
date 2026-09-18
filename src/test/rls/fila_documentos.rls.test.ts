@@ -12,9 +12,8 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = "https://grtxmbffgmgnkawlvqhm.supabase.co";
-const ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdydHhtYmZmZ21nbmthd2x2cWhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MDM5ODYsImV4cCI6MjA4NjM3OTk4Nn0.izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko";
+const SUPABASE_URL = process.env.TEST_SUPABASE_URL!;
+const ANON_KEY = process.env.TEST_SUPABASE_ANON_KEY!;
 
 const ID = "00000000-0000-4000-8000-0000000000dd";
 
@@ -56,7 +55,7 @@ const rotinas: Array<[string, string, Record<string, unknown>]> = [
 describe("Fila de documentos: visitante negado nas rotinas", () => {
   for (const [nome, fn, args] of rotinas) {
     it(`nega ${nome}`, async () => {
-      if (!networkAvailable) return;
+      if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
       const { error } = await anon().rpc(fn as never, args as never);
       expect(error).toBeTruthy();
     });
@@ -68,7 +67,7 @@ describe("Fila de documentos: visitante negado nas tabelas", () => {
 
   for (const t of tabelas) {
     it(`não lê ${t}`, async () => {
-      if (!networkAvailable) return;
+      if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
       const { data, error } = await anon()
         .from(t as never)
         .select("id")
@@ -79,7 +78,7 @@ describe("Fila de documentos: visitante negado nas tabelas", () => {
   }
 
   it("não cria lote direto na tabela", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     const { error } = await anon()
       .from("dp_bulk_import_batches")
       .insert({
@@ -93,7 +92,7 @@ describe("Fila de documentos: visitante negado nas tabelas", () => {
   });
 
   it("não reserva item da fila alterando a tabela", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     const { data, error } = await anon()
       .from("dp_bulk_import_items")
       .update({ status: "processing", locked_by: "invasor" } as never)
@@ -106,7 +105,7 @@ describe("Fila de documentos: visitante negado nas tabelas", () => {
 
 describe("Fila de documentos: processador não é público", () => {
   it("nega chamada do processador sem segredo interno", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     const res = await fetch(`${SUPABASE_URL}/functions/v1/dp-doc-bulk-worker`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: ANON_KEY },
@@ -116,7 +115,7 @@ describe("Fila de documentos: processador não é público", () => {
   });
 
   it("nega chamada do processador com segredo errado", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     const res = await fetch(`${SUPABASE_URL}/functions/v1/dp-doc-bulk-worker`, {
       method: "POST",
       headers: {

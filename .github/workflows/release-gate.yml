@@ -56,7 +56,7 @@ jobs:
         run: node scripts/deno-check.mjs --require
 
       - name: Migrations (estático + estrutura)
-        run: node scripts/migrations-check.mjs
+        run: node scripts/migrations-check.mjs --static
 
       - name: Build de produção
         run: npx vite build
@@ -70,7 +70,7 @@ jobs:
           if-no-files-found: ignore
 
   tests:
-    name: Testes unitários + RLS
+    name: Testes unitários
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -82,6 +82,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Vitest
         run: npm test
+      - name: Proteções dos scripts operacionais
+        run: node --test scripts/restore-safety.test.mjs scripts/gates-prerequisites.test.mjs scripts/test-target-safety.test.mjs scripts/integration-report-check.test.mjs
 
   tenancy:
     name: Tenancy real (multiempresa)
@@ -97,6 +99,7 @@ jobs:
 
       - name: Verificar credenciais de tenancy
         env:
+          TEST_EXPECTED_PROJECT_REF: ${{ secrets.TEST_EXPECTED_PROJECT_REF }}
           TEST_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
           TEST_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
           TEST_COMPANY_1_ID: ${{ secrets.TEST_COMPANY_1_ID }}
@@ -105,19 +108,16 @@ jobs:
           TEST_USER_B_EMAIL: ${{ secrets.TEST_USER_B_EMAIL }}
           TEST_USER_C_EMAIL: ${{ secrets.TEST_USER_C_EMAIL }}
           TEST_USER_D_EMAIL: ${{ secrets.TEST_USER_D_EMAIL }}
+          TEST_USER_A_PASSWORD: ${{ secrets.TEST_USER_A_PASSWORD }}
+          TEST_USER_B_PASSWORD: ${{ secrets.TEST_USER_B_PASSWORD }}
+          TEST_USER_C_PASSWORD: ${{ secrets.TEST_USER_C_PASSWORD }}
+          TEST_USER_D_PASSWORD: ${{ secrets.TEST_USER_D_PASSWORD }}
         run: |
-          missing=""
-          for v in TEST_SUPABASE_URL TEST_SUPABASE_ANON_KEY TEST_COMPANY_1_ID TEST_COMPANY_2_ID \
-                   TEST_USER_A_EMAIL TEST_USER_B_EMAIL TEST_USER_C_EMAIL TEST_USER_D_EMAIL; do
-            [ -z "${!v}" ] && missing="$missing $v"
-          done
-          if [ -n "$missing" ]; then
-            echo "::error::Gate de tenancy exige secrets ausentes:$missing"
-            exit 1
-          fi
+          node --input-type=module -e "import {validateTestEnvironment} from './scripts/test-target-safety.mjs'; validateTestEnvironment(process.env);"
 
       - name: Vitest — suíte de tenancy (sem skip)
         env:
+          TEST_EXPECTED_PROJECT_REF: ${{ secrets.TEST_EXPECTED_PROJECT_REF }}
           TEST_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
           TEST_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
           TEST_USER_A_EMAIL: ${{ secrets.TEST_USER_A_EMAIL }}
@@ -130,7 +130,7 @@ jobs:
           TEST_USER_D_PASSWORD: ${{ secrets.TEST_USER_D_PASSWORD }}
           TEST_COMPANY_1_ID: ${{ secrets.TEST_COMPANY_1_ID }}
           TEST_COMPANY_2_ID: ${{ secrets.TEST_COMPANY_2_ID }}
-        run: npx vitest run src/test/tenancy src/test/rls --reporter=verbose
+        run: node scripts/integration-required.mjs
 
   security:
     name: Security lint + Policy sweep (staging)
@@ -187,7 +187,7 @@ jobs:
     timeout-minutes: 30
     services:
       restore:
-        image: postgres:15
+        image: postgres:17
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: restore_drill
@@ -200,10 +200,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Instalar client Postgres 15
+      - name: Instalar client Postgres 17
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client-15 || sudo apt-get install -y postgresql-client
+          sudo apt-get install -y postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
+      - name: Identificar banco descartável criado pelo serviço deste job
+        run: >-
+          psql postgres://postgres:postgres@localhost:5432/restore_drill
+          -v ON_ERROR_STOP=1
+          -c "COMMENT ON DATABASE restore_drill IS 'aveto360:disposable-restore:v1'"
 
       - name: Verificar secret do banco
         env:
@@ -222,7 +229,7 @@ jobs:
       - name: Migrations em sincronia (dry-run)
         env:
           SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
-        run: node scripts/migrations-check.mjs
+        run: node scripts/migrations-check.mjs --require
 
       - name: Backup/restore drill
         env:
