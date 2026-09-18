@@ -41,10 +41,15 @@ export function CookieConsentBanner() {
               <div className="flex-1 text-xs sm:text-sm">
                 <p className="font-semibold text-foreground">Cookies e privacidade</p>
                 <p className="mt-1 text-muted-foreground">
-                  Usamos cookies essenciais para o funcionamento e, com sua autorização, cookies
-                  analíticos/marketing. Saiba mais na nossa{" "}
+                  Usamos apenas cookies essenciais para o funcionamento e a segurança da
+                  plataforma. A coleta analítica e de marketing está atualmente desativada:
+                  salvar uma preferência aqui não ativa nenhum rastreador. Saiba mais na{" "}
                   <Link to="/cookies" className="text-primary underline">
                     Política de Cookies
+                  </Link>{" "}
+                  e na{" "}
+                  <Link to="/privacidade" className="text-primary underline">
+                    Política de Privacidade
                   </Link>
                   .
                 </p>
@@ -80,36 +85,62 @@ export function CookieConsentBanner() {
           <DialogHeader>
             <DialogTitle>Preferências de cookies</DialogTitle>
             <DialogDescription>
-              Você pode alterar essas configurações a qualquer momento.
+              Hoje nenhuma coleta analítica ou de marketing está ativa. Sua escolha fica
+              registrada apenas como preferência e não liga rastreadores. Você pode revisar ou
+              revogar quando quiser em{" "}
+              <Link to="/cookies" className="text-primary underline">
+                Cookies
+              </Link>{" "}
+              e{" "}
+              <Link to="/privacidade" className="text-primary underline">
+                Privacidade
+              </Link>
+              .
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <Label className="font-medium">Necessários</Label>
+                <Label htmlFor="cookie-necessarios" className="font-medium">
+                  Necessários
+                </Label>
                 <p className="text-xs text-muted-foreground">
                   Essenciais para autenticação e segurança. Sempre ativos.
                 </p>
               </div>
-              <Switch checked disabled />
+              <Switch id="cookie-necessarios" checked disabled aria-label="Cookies necessários (sempre ativos)" />
             </div>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <Label className="font-medium">Analíticos</Label>
+                <Label htmlFor="cookie-analiticos" className="font-medium">
+                  Analíticos
+                </Label>
                 <p className="text-xs text-muted-foreground">
-                  Métricas agregadas de uso para melhorar a plataforma.
+                  Métricas agregadas de uso. Finalidade desativada no momento.
                 </p>
               </div>
-              <Switch checked={analytics} onCheckedChange={setAnalytics} />
+              <Switch
+                id="cookie-analiticos"
+                aria-label="Cookies analíticos"
+                checked={analytics}
+                onCheckedChange={setAnalytics}
+              />
             </div>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <Label className="font-medium">Marketing</Label>
+                <Label htmlFor="cookie-marketing" className="font-medium">
+                  Marketing
+                </Label>
                 <p className="text-xs text-muted-foreground">
-                  Personalização de comunicações e medição de campanhas.
+                  Medição de campanhas. Finalidade desativada no momento.
                 </p>
               </div>
-              <Switch checked={marketing} onCheckedChange={setMarketing} />
+              <Switch
+                id="cookie-marketing"
+                aria-label="Cookies de marketing"
+                checked={marketing}
+                onCheckedChange={setMarketing}
+              />
             </div>
           </div>
           <DialogFooter>
