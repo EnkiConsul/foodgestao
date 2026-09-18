@@ -24,8 +24,8 @@
 
 /** Nome do passo do funil. Nenhum dado de evento é aceito nem lido. */
 export function trackEvent(_eventName: string, _params?: Record<string, unknown>): void {
-  // Desativado de propósito. Não criar window.dataLayer, não chamar gtag/fbq,
-  // não acumular fila para replay: qualquer fila viraria vazamento no futuro.
+  // Desativado de propósito: nenhuma camada de dados é criada, nenhum SDK é
+  // chamado e nada é acumulado para reenvio — fila guardada viraria vazamento.
   return;
 }
 
