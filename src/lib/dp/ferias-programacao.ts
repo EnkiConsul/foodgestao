@@ -479,14 +479,9 @@ export function programacaoDocumento(d: ProgramacaoDados, colunas?: ProgramacaoC
   <body>${corpo}</body></html>`;
 }
 
-/** Abre a janela de impressão com o relatório. */
+/** Abre a caixa de impressão com o relatório (quadro interno, sem pop-up). */
 export function imprimirProgramacao(d: ProgramacaoDados, colunas?: ProgramacaoColKey[]): boolean {
-  const win = window.open("", "_blank");
-  if (!win) return false;
-  win.document.write(programacaoDocumento(d, colunas));
-  win.document.close();
-  setTimeout(() => win.print(), 300);
-  return true;
+  return imprimirHtmlEmQuadro(programacaoDocumento(d, colunas));
 }
 
 /** Reexporta metadados de tom para a tela usar os mesmos tons do resto do DP. */
