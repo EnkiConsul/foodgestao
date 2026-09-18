@@ -75,10 +75,21 @@ describe("CSP — valores de cabeçalho", () => {
   it("frame-ancestors em modo bloqueio permite o editor da Lovable e o domínio próprio", () => {
     const v = cspFrameAncestorsHeaderValue();
     expect(v.startsWith("frame-ancestors ")).toBe(true);
-    expect(CSP_FRAME_ANCESTORS).toContain("https://*.lovable.app");
     expect(v).toContain("https://aveto360.com");
+    expect(v).toContain("https://lovable.dev");
     // o cabeçalho de bloqueio não restringe scripts na fase 1
     expect(v).not.toContain("script-src");
+  });
+
+  it("frame-ancestors nunca usa curinga multi-inquilino", () => {
+    // *.lovable.app / *.lovable.dev deixariam qualquer app de terceiros embutir
+    // a nossa tela de login. Só origens exatas são aceitas.
+    for (const origem of CSP_FRAME_ANCESTORS) {
+      expect(origem).not.toContain("*");
+    }
+    expect(CSP_FRAME_ANCESTORS).not.toContain("https://*.lovable.app");
+    expect(CSP_FRAME_ANCESTORS).not.toContain("https://*.lovable.dev");
+    expect(cspFrameAncestorsHeaderValue()).not.toContain("*");
   });
 
   it("fase 1 entrega report-only e frame-ancestors separados", () => {
