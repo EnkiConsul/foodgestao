@@ -127,7 +127,7 @@ export function useDpFeriasDocumentos() {
       toast.success("Documento anexado às férias");
       invalidate();
     },
-    onError: (e: any) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Erro ao anexar documento" }),
+    onError: (e) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Erro ao anexar documento" }),
   });
 
   const excluir = useMutation({
@@ -140,7 +140,7 @@ export function useDpFeriasDocumentos() {
       toast.success("Documento removido");
       invalidate();
     },
-    onError: (e: any) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Erro ao remover documento" }),
+    onError: (e) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Erro ao remover documento" }),
   });
 
   /** Abre o arquivo em nova aba com link temporário. */
@@ -160,8 +160,8 @@ export function useDpFeriasDocumentos() {
         _gozo_id: input.gozoId,
         _aviso_em: input.avisoEm,
         _retroativo: input.retroativo,
-        _justificativa: input.justificativa?.trim() || null,
-        _documento_id: input.documentoId ?? null,
+        _justificativa: (input.justificativa?.trim() || null) ?? undefined,
+        _documento_id: input.documentoId ?? undefined,
       });
       if (error) throw error;
     },

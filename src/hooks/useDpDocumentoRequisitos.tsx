@@ -66,7 +66,7 @@ export function useDpDocumentoRequisitos() {
       toast.success(qtd > 0 ? `${qtd} documento(s) padrão adicionados` : "A lista padrão já está completa");
       invalidar();
     },
-    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao restaurar a lista padrão" }),
+    onError: (e) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao restaurar a lista padrão" }),
   });
 
   const salvar = useMutation({
@@ -75,7 +75,7 @@ export function useDpDocumentoRequisitos() {
       if (error) throw error;
     },
     onSuccess: invalidar,
-    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao salvar" }),
+    onError: (e) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao salvar" }),
   });
 
   const criar = useMutation({
@@ -111,7 +111,7 @@ export function useDpDocumentoRequisitos() {
       toast.success("Documento adicionado à lista da empresa");
       invalidar();
     },
-    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao adicionar" }),
+    onError: (e) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao adicionar" }),
   });
 
   const remover = useMutation({
@@ -123,7 +123,7 @@ export function useDpDocumentoRequisitos() {
       toast.success("Documento removido da lista");
       invalidar();
     },
-    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao remover" }),
+    onError: (e) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao remover" }),
   });
 
   return {

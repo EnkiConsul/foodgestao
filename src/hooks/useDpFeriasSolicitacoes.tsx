@@ -85,8 +85,8 @@ export function useDpFeriasSolicitacoes(status: SolicitacaoStatus[] = ["pendente
     mutationFn: async (input: { id: string; justificativa?: string | null; resposta?: string | null }) => {
       const { error } = await supabase.rpc("dp_ferias_aprovar", {
         _solicitacao_id: input.id,
-        _justificativa: input.justificativa?.trim() || null,
-        _resposta: input.resposta?.trim() || null,
+        _justificativa: (input.justificativa?.trim() || null) ?? undefined,
+        _resposta: (input.resposta?.trim() || null) ?? undefined,
       });
       if (error) throw error;
     },

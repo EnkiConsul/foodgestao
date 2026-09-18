@@ -19,9 +19,8 @@
  */
 import { describe, it, expect, beforeAll } from "vitest";
 
-const SUPABASE_URL = "https://grtxmbffgmgnkawlvqhm.supabase.co";
-const ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdydHhtYmZmZ21nbmthd2x2cWhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MDM5ODYsImV4cCI6MjA4NjM3OTk4Nn0.izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko";
+const SUPABASE_URL = process.env.TEST_SUPABASE_URL!;
+const ANON_KEY = process.env.TEST_SUPABASE_ANON_KEY!;
 
 /** Rotinas de QA e um payload válido de formato. */
 const ROTINAS_TESTE: Array<[string, Record<string, unknown>]> = [
@@ -72,7 +71,7 @@ const negado = (texto: string) =>
 describe("P0.3: visitante não alcança rotinas de QA", () => {
   for (const [nome, corpo] of ROTINAS_TESTE) {
     it(`bloqueia ${nome}`, async () => {
-      if (!networkAvailable) return;
+      if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
       const { status } = await chamar(nome, corpo);
       expect(status).toBeGreaterThanOrEqual(400);
     });
@@ -109,7 +108,7 @@ describe("P0.3: schema `qa` não é exposto pelo PostgREST", () => {
 
   for (const prefixado of ["qa._e2e_seed_delete_accounts", "qa._test_balance_engine"]) {
     it(`bloqueia ${prefixado} via API anônima`, async () => {
-      if (!networkAvailable) return;
+      if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
       const { status } = await chamar(prefixado, {});
       expect(status).toBeGreaterThanOrEqual(400);
     });

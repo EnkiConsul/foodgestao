@@ -281,10 +281,10 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
         _colaborador_id: input.colaboradorId,
         _data: input.data,
         _tipo: input.tipo,
-        _justificativa: input.justificativa ?? null,
-        _horario_estimado: input.horarioEstimado ?? null,
-        _horario_real: input.horarioReal ?? null,
-        _marcacao_alvo: input.marcacaoAlvo ?? null,
+        _justificativa: input.justificativa ?? undefined,
+        _horario_estimado: input.horarioEstimado ?? undefined,
+        _horario_real: input.horarioReal ?? undefined,
+        _marcacao_alvo: input.marcacaoAlvo ?? undefined,
       });
       if (error) throw error;
       return data as string;
@@ -305,8 +305,8 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
     }) => {
       const { error } = await supabase.rpc("dp_ocorrencia_confirmar", {
         _ocorrencia_id: input.id,
-        _horario_real: input.horarioReal ?? null,
-        _justificativa_final: input.justificativaFinal ?? null,
+        _horario_real: input.horarioReal ?? undefined,
+        _justificativa_final: input.justificativaFinal ?? undefined,
         _confirmar_falta: input.confirmar ?? true,
       });
       if (error) throw error;
@@ -341,8 +341,8 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
     }) => {
       const { error } = await supabase.rpc("dp_ocorrencia_classificar", {
         _ocorrencia_id: input.id,
-        _impacta_assiduidade: input.impactaAssiduidade ?? null,
-        _impacta_ferias: input.impactaFerias ?? null,
+        _impacta_assiduidade: input.impactaAssiduidade ?? undefined,
+        _impacta_ferias: input.impactaFerias ?? undefined,
       });
       if (error) throw error;
     },
@@ -358,7 +358,7 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
       const { error } = await supabase.rpc("dp_ocorrencia_analisar", {
         _ocorrencia_id: input.id,
         _status: input.status,
-        _observacao: input.observacao ?? null,
+        _observacao: input.observacao ?? undefined,
       });
       if (error) throw error;
     },
@@ -374,7 +374,7 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
       const { error } = await supabase.rpc("dp_ocorrencia_tratar", {
         _ocorrencia_id: input.id,
         _decisao: input.decisao,
-        _observacao: input.observacao ?? null,
+        _observacao: input.observacao ?? undefined,
       });
       if (error) throw error;
     },

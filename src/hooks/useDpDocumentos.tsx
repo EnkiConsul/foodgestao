@@ -154,7 +154,7 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
     mutationFn: async ({ row, motivo }: { row: DpDocumentoRow; motivo?: string }) => {
       const { error } = await supabase.rpc("dp_documento_arquivar", {
         _documento_id: row.id,
-        _motivo: motivo ?? null,
+        _motivo: motivo ?? undefined,
       });
       if (error) throw error;
     },
@@ -179,7 +179,7 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
       toast.success("Documento aprovado");
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
     },
-    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro" }),
+    onError: (e) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const recusar = useMutation({
@@ -196,7 +196,7 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
       toast.success("Documento recusado");
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
     },
-    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro" }),
+    onError: (e) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro" }),
   });
 
   return {

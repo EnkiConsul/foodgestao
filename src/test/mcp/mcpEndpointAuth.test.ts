@@ -12,7 +12,7 @@ import path from "node:path";
 
 const MCP_DIR = path.resolve(process.cwd(), "src/lib/mcp");
 const TOOLS_DIR = path.join(MCP_DIR, "tools");
-const ENDPOINT = "https://grtxmbffgmgnkawlvqhm.supabase.co/functions/v1/mcp";
+const ENDPOINT = `${process.env.TEST_SUPABASE_URL}/functions/v1/mcp`;
 
 function readAll(dir: string): { file: string; source: string }[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {

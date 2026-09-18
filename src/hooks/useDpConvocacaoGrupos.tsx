@@ -280,7 +280,7 @@ export function useDefinirDestinatarios() {
         p_colaboradores: args.colaboradores,
         p_expected_updated_at: args.expected_updated_at,
         p_niveis: args.niveis && args.niveis.length ? args.niveis : null,
-        p_intervalo_niveis_horas: args.intervalo_niveis_horas ?? null,
+        p_intervalo_niveis_horas: args.intervalo_niveis_horas ?? undefined,
       });
       if (error) throw error;
       return data as any;

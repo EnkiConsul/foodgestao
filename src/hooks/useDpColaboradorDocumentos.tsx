@@ -252,7 +252,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
       toast.success("Documento aprovado");
       invalidar();
     },
-    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao aprovar" }),
+    onError: (e) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao aprovar" }),
   });
 
   const recusar = useMutation({
@@ -284,7 +284,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
       toast.success("Documento recusado — o colaborador foi notificado na lista de pendências");
       invalidar();
     },
-    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao recusar" }),
+    onError: (e) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao recusar" }),
   });
 
   const dispensar = useMutation({
@@ -315,7 +315,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
       toast.success("Documento dispensado com justificativa");
       invalidar();
     },
-    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao dispensar" }),
+    onError: (e) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao dispensar" }),
   });
 
   const definirValidade = useMutation({
@@ -333,7 +333,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
       if (error) throw error;
     },
     onSuccess: invalidar,
-    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao salvar a validade" }),
+    onError: (e) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao salvar a validade" }),
   });
 
   /** Remove um anexo (arquivo) do requisito. */
@@ -358,7 +358,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
       toast.success("Anexo removido");
       invalidar();
     },
-    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao remover o anexo" }),
+    onError: (e) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao remover o anexo" }),
   });
 
   /** Envia um anexo já existente para o aceite eletrônico do colaborador (opcional). */
@@ -374,7 +374,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
       toast.success("Enviado para o aceite do colaborador no portal");
       invalidar();
     },
-    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao enviar para aceite" }),
+    onError: (e) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao enviar para aceite" }),
   });
 
   /** Cancela a solicitação de aceite ainda não assinada. */
@@ -390,7 +390,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
       toast.success("Solicitação de aceite cancelada");
       invalidar();
     },
-    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao cancelar" }),
+    onError: (e) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao cancelar" }),
   });
 
   /** Aceite eletrônico do colaborador, com hash e trilha de auditoria. */
@@ -426,7 +426,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
       toast.success("Aceite registrado com data, hora e dispositivo");
       invalidar();
     },
-    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao registrar o aceite" }),
+    onError: (e) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao registrar o aceite" }),
   });
 
   /** Abre o arquivo com link temporário liberado pelo servidor. */

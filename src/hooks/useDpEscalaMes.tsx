@@ -248,7 +248,7 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
       const id = await garantirEscala();
       const { error } = await supabase.rpc("dp_escala_publicar", {
         p_competencia: competencia,
-        p_unidade_id: unidadeId,
+        p_unidade_id: (unidadeId) ?? undefined,
         p_escala_id: id,
       });
       if (error) throw new Error(mensagemErroEscala(error.message));

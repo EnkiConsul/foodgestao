@@ -884,7 +884,7 @@ export default function DpOperacaoPanorama() {
   };
 
   /** Blocos de um dia pelos períodos de funcionamento da loja, agrupados por cargo. */
-  const blocosDe = (iso: string, d: DiaPanorama | undefined) => {
+  const blocosDe = (iso: string, d: DiaPanorama | null | undefined) => {
     if (!d) return [];
     const trabalhando = d.pessoas.filter(
       (p) => p.categoria === "fixo" || p.categoria === "convocado_aceito" || p.categoria === "convocado_pendente",
@@ -900,7 +900,7 @@ export default function DpOperacaoPanorama() {
   };
 
   /** Sócios em folga ou férias no dia — substitui o antigo card de carga. */
-  const sociosDe = (d: DiaPanorama | undefined) =>
+  const sociosDe = (d: DiaPanorama | null | undefined) =>
     (d?.pessoas ?? []).filter(
       (p) => p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria),
     );

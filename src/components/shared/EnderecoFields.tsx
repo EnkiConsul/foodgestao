@@ -31,7 +31,8 @@ export interface EnderecoValor {
 
 interface Props {
   valor: EnderecoValor;
-  onChange: (patch: EnderecoValor) => void;
+  /** Edição em campos de texto emite strings; null é aceito apenas na leitura. */
+  onChange: (patch: Partial<Record<keyof EnderecoValor, string>>) => void;
   /** Sufixo dos ids, para conviver com mais de um endereço na mesma tela. */
   idPrefix?: string;
   /** Mostra tudo em CAIXA ALTA (cadastros). */

@@ -22,6 +22,10 @@ const value = (name) => argv.find((a) => a.startsWith(`--${name}=`))?.split("=")
 const REQUIRE = flag("require");
 const only = value("only")?.split(",").map((s) => s.trim()).filter(Boolean);
 const skip = new Set(value("skip")?.split(",").map((s) => s.trim()) ?? []);
+if (REQUIRE && (only || skip.size)) {
+  console.error('Gate obrigatório não permite --only/--skip. Use execução diagnóstica sem --require.');
+  process.exit(1);
+}
 
 const RED = "\x1b[31m";
 const GREEN = "\x1b[32m";
@@ -35,6 +39,7 @@ const env = process.env;
 const has = (...keys) => keys.every((k) => !!env[k]);
 
 const TENANCY_ENV = [
+  "TEST_EXPECTED_PROJECT_REF",
   "TEST_SUPABASE_URL",
   "TEST_SUPABASE_ANON_KEY",
   "TEST_USER_A_EMAIL",
@@ -65,15 +70,15 @@ const STAGES = [
   },
   {
     id: "tests",
-    label: "Vitest (unit + RLS)",
+    label: "Vitest (unitários)",
     cmd: "npm",
     args: ["test"],
   },
   {
     id: "tenancy",
     label: "Tenancy real (multiempresa contra banco de testes)",
-    cmd: "npx",
-    args: ["vitest", "run", "src/test/tenancy", "--reporter=verbose"],
+    cmd: "node",
+    args: ["scripts/integration-required.mjs"],
     needs: () =>
       has(...TENANCY_ENV)
         ? null
@@ -83,27 +88,27 @@ const STAGES = [
     id: "security",
     label: "Security lint (strict)",
     cmd: "node",
-    args: ["scripts/security-lint.mjs", "--ci", "--strict"],
+    args: ["scripts/security-lint.mjs", "--ci", "--strict", ...(REQUIRE ? ["--require"] : [])],
     needs: () => (has("SUPABASE_DB_URL") ? null : "SUPABASE_DB_URL ausente"),
   },
   {
     id: "policy",
     label: "Policy sweep (RLS em massa)",
     cmd: "node",
-    args: ["scripts/policy-sweep.mjs"],
+    args: ["scripts/policy-sweep.mjs", ...(REQUIRE ? ["--require"] : [])],
     needs: () => (has("SUPABASE_DB_URL") ? null : "SUPABASE_DB_URL ausente"),
   },
   {
     id: "deno",
     label: "Deno check das edge functions",
     cmd: "node",
-    args: ["scripts/deno-check.mjs"],
+    args: ["scripts/deno-check.mjs", ...(REQUIRE ? ["--require"] : [])],
   },
   {
     id: "migrations",
     label: "Migrations aplicáveis (supabase db push --dry-run)",
     cmd: "node",
-    args: ["scripts/migrations-check.mjs"],
+    args: ["scripts/migrations-check.mjs", ...(REQUIRE ? ["--require"] : [])],
   },
   {
     id: "functions-config",
@@ -131,7 +136,7 @@ const STAGES = [
     id: "e2e",
     label: "E2E Playwright",
     cmd: "node",
-    args: ["scripts/run-e2e.mjs"],
+    args: ["scripts/run-e2e.mjs", ...(REQUIRE ? ["--require"] : [])],
   },
   {
     id: "backup",

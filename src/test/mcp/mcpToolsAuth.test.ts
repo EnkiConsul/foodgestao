@@ -13,7 +13,7 @@ vi.mock("@supabase/supabase-js", () => ({
   createClient: (...args: unknown[]) => createClientMock(...args),
 }));
 
-const SUPABASE_URL = "https://grtxmbffgmgnkawlvqhm.supabase.co";
+const SUPABASE_URL = "https://mock-supabase.example.invalid";
 const PUBLISHABLE = "sb_publishable_test_key";
 
 process.env.SUPABASE_URL = SUPABASE_URL;

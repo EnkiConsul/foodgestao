@@ -321,10 +321,10 @@ export function resumoConfigTexto(config: ConfigTrabalho, turnos: TurnoResolvido
     trabalhados.map((d) => DOW_CURTO[d]).join(", "),
   ];
 
-  const usados = new Map<string, TurnoResolvido>();
+  const usados = new Map<string, TurnoDia>();
   for (const dia of config.dias) {
     const t = turnoDoDia(dia, config.turno_padrao_id, turnos);
-    if (t) usados.set(t.id, t);
+    if (t) usados.set(JSON.stringify([t.id, t.entrada, t.saida, t.intervalo_minutos]), t);
   }
   if (usados.size === 1) {
     const t = [...usados.values()][0];

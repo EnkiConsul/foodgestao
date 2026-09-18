@@ -9,7 +9,7 @@
  *   --json    Saída JSON pura, sem cores.
  *   --strict  Falha em qualquer finding (default em CI).
  *
- * Sem credenciais (psql/SUPABASE_DB_URL ausentes) → sai 0 com aviso.
+ * Sem pré-requisitos: falha em --require/CI; uso local avulso pode ignorar.
  */
 import { spawnSync } from "node:child_process";
 
@@ -37,10 +37,10 @@ function err(msg) {
 function skip(reason) {
   warn(`${YELLOW}[policy-sweep] skipped: ${reason}${RESET}`);
   if (JSON_ONLY) console.log(JSON.stringify({ skipped: true, reason }));
-  process.exit(0);
+  process.exit(args.has("--require") || !!process.env.CI ? 1 : 0);
 }
 
-const which = spawnSync("which", ["psql"], { encoding: "utf8" });
+const which = spawnSync("psql", ["--version"], { encoding: "utf8" });
 if (which.status !== 0) skip("psql not found on PATH");
 
 const dbUrl = process.env.SUPABASE_DB_URL;

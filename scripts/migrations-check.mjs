@@ -16,9 +16,15 @@ const CYAN = "\x1b[36m";
 const RESET = "\x1b[0m";
 
 const DIR = "supabase/migrations";
+const REQUIRE = process.argv.includes("--require") || !!process.env.CI;
+const STATIC_ONLY = process.argv.includes("--static");
+if (STATIC_ONLY && process.argv.includes("--require")) {
+  console.error('--static não pode ser combinado com --require.');
+  process.exit(1);
+}
 if (!existsSync(DIR)) {
   console.log(`${YELLOW}⚠ ${DIR} não existe.${RESET}`);
-  process.exit(0);
+  process.exit(REQUIRE ? 1 : 0);
 }
 
 // Baseline: migrations anteriores a este timestamp são históricas e ficam fora
@@ -74,13 +80,17 @@ if (errors.length) {
   process.exit(1);
 }
 console.log(`${GREEN}✓ verificação estática de migrations aprovada${RESET}`);
+if (STATIC_ONLY) {
+  console.log('Modo estático: sincronia com banco NÃO verificada.');
+  process.exit(0);
+}
 
 const hasCli = spawnSync("supabase", ["--version"], { encoding: "utf8" }).status === 0;
 if (!hasCli || !process.env.SUPABASE_DB_URL) {
   console.log(
     `${YELLOW}⚠ dry-run ignorado (${!hasCli ? "supabase CLI ausente" : "SUPABASE_DB_URL ausente"}).${RESET}`,
   );
-  process.exit(0);
+  process.exit(REQUIRE ? 1 : 0);
 }
 
 console.log(`${CYAN}▶ supabase db push --dry-run${RESET}`);

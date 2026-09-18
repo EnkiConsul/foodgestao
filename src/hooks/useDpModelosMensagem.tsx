@@ -58,7 +58,7 @@ export function useDpModelosMensagem(canal?: DpModeloMensagem["canal"]) {
       qc.invalidateQueries({ queryKey: ["dp_modelos_mensagem"] });
       toast.success("Modelo salvo");
     },
-    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro" }),
+    onError: (e) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const remove = useMutation({
@@ -73,7 +73,7 @@ export function useDpModelosMensagem(canal?: DpModeloMensagem["canal"]) {
       qc.invalidateQueries({ queryKey: ["dp_modelos_mensagem"] });
       toast.success("Modelo removido");
     },
-    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao remover" }),
+    onError: (e) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao remover" }),
   });
 
   return { ...query, upsert, remove };

@@ -115,7 +115,7 @@ export function useDpFeriasConfig() {
       void qc.invalidateQueries({ queryKey: ["dp_ferias_config", selectedCompanyId] });
       void qc.invalidateQueries({ queryKey: ["dp_pendencias", selectedCompanyId] });
     },
-    onError: (e: any) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Não foi possível salvar a regra" }),
+    onError: (e) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Não foi possível salvar a regra" }),
   });
 
   return {

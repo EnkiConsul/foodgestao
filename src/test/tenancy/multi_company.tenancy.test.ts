@@ -80,7 +80,7 @@ suite("Tenancy: multiempresa (Bloco I)", () => {
       .select("id")
       .eq("company_id", COMPANY_1)
       .limit(1);
-    if (!createdByA || createdByA.length === 0) return; // sem dados de fixture
+    if (!createdByA || createdByA.length === 0) throw new Error('Fixture de lançamento ausente');
     const { data: seenByB } = await clientB
       .from("transactions")
       .select("id")
@@ -89,16 +89,23 @@ suite("Tenancy: multiempresa (Bloco I)", () => {
   });
 
   it("C (viewer) não consegue INSERT em transactions da Empresa 1", async () => {
+    const {data: accounts, error: accountError} = await clientC.from('accounts').select('id').eq('company_id',COMPANY_1).limit(1);
+    expect(accountError).toBeNull();
+    expect(accounts?.length).toBe(1);
+    const {data: session} = await clientC.auth.getUser();
+    expect(session.user?.id).toBeTruthy();
     const { error } = await clientC.from("transactions").insert({
+      user_id: session.user!.id,
+      account_id: accounts![0].id,
       company_id: COMPANY_1,
       context: "pj",
       description: "tenancy-test-viewer",
       amount: 1,
-      type: "saida",
+      transaction_type: "saida",
       due_date: "2026-01-01",
       status: "pendente",
     } as never);
-    expect(error).toBeTruthy();
+    expect(error?.code).toBe('42501');
   });
 
   it("A não consegue transferir transaction da Empresa 1 para Empresa 2", async () => {
@@ -107,7 +114,7 @@ suite("Tenancy: multiempresa (Bloco I)", () => {
       .select("id")
       .eq("company_id", COMPANY_1)
       .limit(1);
-    if (!rows || rows.length === 0) return;
+    if (!rows || rows.length === 0) throw new Error('Fixture de lançamento ausente');
     const { error } = await clientA
       .from("transactions")
       .update({ company_id: COMPANY_2 })
@@ -122,7 +129,7 @@ suite("Tenancy: multiempresa (Bloco I)", () => {
       .select("contact_id")
       .eq("company_id", COMPANY_1)
       .limit(1);
-    if (!ids || ids.length === 0) return;
+    if (!ids || ids.length === 0) throw new Error('Fixture de contato ausente');
     const { data } = await clientD.from("contacts").select("id").eq("id", ids[0].contact_id);
     expect(data ?? []).toEqual([]);
   });
@@ -133,7 +140,7 @@ suite("Tenancy: multiempresa (Bloco I)", () => {
       .select("category_id")
       .eq("company_id", COMPANY_1)
       .limit(1);
-    if (!ids || ids.length === 0) return;
+    if (!ids || ids.length === 0) throw new Error('Fixture de categoria ausente');
     const { data } = await clientD.from("categories").select("id").eq("id", ids[0].category_id);
     expect(data ?? []).toEqual([]);
   });
@@ -144,7 +151,7 @@ suite("Tenancy: multiempresa (Bloco I)", () => {
       .select("payment_method_id")
       .eq("company_id", COMPANY_1)
       .limit(1);
-    if (!ids || ids.length === 0) return;
+    if (!ids || ids.length === 0) throw new Error('Fixture de forma de pagamento ausente');
     const { data } = await clientD
       .from("payment_methods")
       .select("id")
@@ -153,12 +160,15 @@ suite("Tenancy: multiempresa (Bloco I)", () => {
   });
 
   it("D não vê faturas de cartão da Empresa 1", async () => {
-    const { data } = await clientD
+    const {data: own, error: ownError} = await clientA.from('credit_card_invoices').select('id').eq('company_id',COMPANY_1).limit(1);
+    expect(ownError).toBeNull();
+    expect(own?.length).toBe(1);
+    const { data, error } = await clientD
       .from("credit_card_invoices")
       .select("id")
       .eq("company_id", COMPANY_1)
       .limit(1);
+    expect(error).toBeNull();
     expect(data ?? []).toEqual([]);
   });
 });
-

@@ -13,9 +13,8 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = "https://grtxmbffgmgnkawlvqhm.supabase.co";
-const ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdydHhtYmZmZ21nbmthd2x2cWhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MDM5ODYsImV4cCI6MjA4NjM3OTk4Nn0.izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko";
+const SUPABASE_URL = process.env.TEST_SUPABASE_URL!;
+const ANON_KEY = process.env.TEST_SUPABASE_ANON_KEY!;
 
 const UUID = "00000000-0000-4000-8000-0000000000d8";
 
@@ -37,14 +36,14 @@ const anon = () =>
 
 describe("Fase 8 — acesso ao portal (visitante)", () => {
   it("decisão de acesso não responde a visitante", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     const { data, error } = await anon().rpc("dp_meu_acesso_portal");
     const vazio = !data || (Array.isArray(data) && data.length === 0);
     expect(!!error || vazio).toBe(true);
   });
 
   it("decisão interna não é executável por visitante", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     for (const fn of ["dp_portal_decisao", "dp_pode_agir", "dp_pode_ver_documentos"]) {
       const { error } = await anon().rpc(fn as never, { _user_id: UUID } as never);
       expect(error).toBeTruthy();
@@ -52,7 +51,7 @@ describe("Fase 8 — acesso ao portal (visitante)", () => {
   });
 
   it("operações do portal recusam chamada direta sem sessão", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     const rpcs: [string, Record<string, unknown>][] = [
       ["dp_folga_solicitar", { _data: "2026-12-01" }],
       ["dp_ferias_solicitar", { _inicio: "2026-12-01", _dias: 10 }],
@@ -67,7 +66,7 @@ describe("Fase 8 — acesso ao portal (visitante)", () => {
   });
 
   it("visitante não lê documentos nem colaboradores", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     for (const t of ["dp_documentos", "dp_colaboradores", "auth_user_security_state"]) {
       const { data, error } = await anon().from(t).select("id").limit(1);
       expect(!!error || (data ?? []).length === 0).toBe(true);

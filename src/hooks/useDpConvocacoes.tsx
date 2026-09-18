@@ -70,10 +70,10 @@ export function useDpConvocacoes(inicio: string, fim: string, colaboradorId?: st
         p_intervalo_minutos: snap.intervalo_minutos,
         p_termina_no_dia_seguinte: snap.termina_no_dia_seguinte,
         p_carga_prevista_horas: snap.carga_prevista_horas,
-        p_unidade: form.unidade_id,
-        p_turno: form.turno_id,
-        p_prazo_resposta: form.prazo_resposta ?? null,
-        p_observacao: form.observacao,
+        p_unidade: (form.unidade_id) ?? undefined,
+        p_turno: (form.turno_id) ?? undefined,
+        p_prazo_resposta: form.prazo_resposta ?? undefined,
+        p_observacao: (form.observacao) ?? undefined,
       });
       if (error) throw new Error(mensagemErroConvocacao(error.message));
     },
@@ -84,7 +84,7 @@ export function useDpConvocacoes(inicio: string, fim: string, colaboradorId?: st
     mutationFn: async (id: string) => {
       const { error } = await supabase.rpc("dp_convocacao_cancelar", {
         p_id: id,
-        p_motivo: null,
+        p_motivo: undefined,
       });
       if (error) throw new Error(mensagemErroConvocacao(error.message));
     },

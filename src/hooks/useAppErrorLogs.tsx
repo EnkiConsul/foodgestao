@@ -157,7 +157,7 @@ export function useAppErrorReportStatus() {
       const { error } = await supabase.rpc("app_error_report_update_status", {
         _report_id: input.id,
         _status: input.status,
-        _internal_note: input.nota?.trim() || null,
+        _internal_note: (input.nota?.trim() || null) ?? undefined,
       });
       if (error) throw error;
     },

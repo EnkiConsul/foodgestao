@@ -11,9 +11,8 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = "https://grtxmbffgmgnkawlvqhm.supabase.co";
-const ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdydHhtYmZmZ21nbmthd2x2cWhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MDM5ODYsImV4cCI6MjA4NjM3OTk4Nn0.izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko";
+const SUPABASE_URL = process.env.TEST_SUPABASE_URL!;
+const ANON_KEY = process.env.TEST_SUPABASE_ANON_KEY!;
 
 let networkAvailable = true;
 
@@ -35,7 +34,7 @@ const anon = () =>
 
 describe("Regressão: app_hidden_screens_public_select", () => {
   it("bloqueia SELECT anônimo em app_hidden_screens", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     const { data, error } = await anon().from("app_hidden_screens").select("enabled").limit(1);
     if (error) {
       expect(error).toBeTruthy();
@@ -45,7 +44,7 @@ describe("Regressão: app_hidden_screens_public_select", () => {
   });
 
   it("bloqueia UPSERT anônimo em app_hidden_screens", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     const { data, error } = await anon()
       .from("app_hidden_screens")
       .upsert({ singleton: true, enabled: false, routes: [] } as never, {
@@ -59,7 +58,7 @@ describe("Regressão: app_hidden_screens_public_select", () => {
 
 describe("Regressão: dp_documentos_storage_member_read_bypass", () => {
   it("bloqueia listagem anônima do bucket dp-documentos", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     const { data, error } = await anon().storage.from("dp-documentos").list();
     if (error) {
       expect(error).toBeTruthy();
@@ -69,7 +68,7 @@ describe("Regressão: dp_documentos_storage_member_read_bypass", () => {
   });
 
   it("não expõe URL pública utilizável (bucket privado)", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     const res = await fetch(
       `${SUPABASE_URL}/storage/v1/object/public/dp-documentos/probe.pdf`,
       { headers: { apikey: ANON_KEY } },
@@ -78,7 +77,7 @@ describe("Regressão: dp_documentos_storage_member_read_bypass", () => {
   });
 
   it("bloqueia signed URL anônima em dp-documentos", async () => {
-    if (!networkAvailable) return;
+    if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
     const { data, error } = await anon()
       .storage.from("dp-documentos")
       .createSignedUrl("probe/probe.pdf", 60);
@@ -89,7 +88,7 @@ describe("Regressão: dp_documentos_storage_member_read_bypass", () => {
   it(
     "bloqueia upload anônimo em dp-documentos",
     async () => {
-      if (!networkAvailable) return;
+      if (!networkAvailable) throw new Error('Backend de homologação indisponível; teste não executado.');
       const { error } = await anon()
         .storage.from("dp-documentos")
         .upload(`probe/${Date.now()}.txt`, new Blob(["probe"]));

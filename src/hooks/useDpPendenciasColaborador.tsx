@@ -122,7 +122,7 @@ export function useDpPendenciasColaborador() {
           .eq("submetido_por_colaborador", true)
           .order("revisado_em", { ascending: true })
           .limit(10);
-        (docs ?? []).forEach((d: any) => {
+        (docs ?? []).forEach((d) => {
           const base = new Date(d.revisado_em ?? d.created_at);
           base.setDate(base.getDate() + 3);
           results.push({
@@ -149,7 +149,7 @@ export function useDpPendenciasColaborador() {
           .eq("status", "pendente_colega")
           .order("created_at", { ascending: true })
           .limit(10);
-        (trocas ?? []).forEach((t: any) => {
+        (trocas ?? []).forEach((t) => {
           const base = new Date(t.created_at);
           base.setDate(base.getDate() + 2);
           results.push({
@@ -181,7 +181,7 @@ export function useDpPendenciasColaborador() {
           .in("status", ["disponivel", "parcial", "vencido"])
           .order("limite_concessivo", { ascending: true })
           .limit(5);
-        (periodos ?? []).forEach((p: any) => {
+        (periodos ?? []).forEach((p) => {
           if ((p.dias_saldo ?? 0) <= 0) return;
           const limite = new Date(p.limite_concessivo + "T00:00:00");
           const dias = differenceInCalendarDays(today, limite);
@@ -209,7 +209,7 @@ export function useDpPendenciasColaborador() {
           .eq("leitura_obrigatoria", true)
           .order("publicado_em", { ascending: true })
           .limit(20);
-        const ids = (avisos ?? []).map((a: any) => a.id);
+        const ids = (avisos ?? []).map((a) => a.id);
         let lidos = new Set<string>();
         if (ids.length) {
           const { data: leituras } = await supabase
@@ -217,11 +217,11 @@ export function useDpPendenciasColaborador() {
             .select("aviso_id")
             .in("aviso_id", ids)
             .eq("user_id", user!.id);
-          lidos = new Set((leituras ?? []).map((l: any) => l.aviso_id));
+          lidos = new Set((leituras ?? []).map((l) => l.aviso_id));
         }
         (avisos ?? [])
-          .filter((a: any) => !lidos.has(a.id))
-          .forEach((a: any) => {
+          .filter((a) => !lidos.has(a.id))
+          .forEach((a) => {
             const base = new Date(a.publicado_em);
             base.setDate(base.getDate() + 2);
             results.push({
@@ -296,23 +296,23 @@ export function useDpPendenciasColaborador() {
           .order("created_at", { ascending: true })
           .limit(50);
 
-        const ids = (docsAceite ?? []).map((d: any) => d.id);
-        let aprovados = new Set<string>();
+        const ids = (docsAceite ?? []).map((d) => d.id);
+        let aprovados = new Set<string | null>();
         if (ids.length) {
           const { data: aceites } = await supabase
             .from("dp_documento_aceites")
             .select("documento_id")
             .eq("colaborador_id", colabId as string)
             .in("documento_id", ids);
-          aprovados = new Set((aceites ?? []).map((a: any) => a.documento_id));
+          aprovados = new Set((aceites ?? []).map((a) => a.documento_id));
         }
 
         (docsAceite ?? [])
-          .filter((d: any) => !aprovados.has(d.id))
+          .filter((d) => !aprovados.has(d.id))
           // Documento cuja data de referência ainda não chegou (ex.: adiantamento
           // que só será pago no fim do mês) fica disponível, mas não é cobrado.
-          .filter((d: any) => !d.referencia_data || d.referencia_data <= ymd(today))
-          .forEach((d: any) => {
+          .filter((d) => !d.referencia_data || d.referencia_data <= ymd(today))
+          .forEach((d) => {
             const limite = vencimentoAprovacao(d.created_at);
             const atraso = atrasoAprovacao(d.created_at, today);
             const comp = d.referencia_data
@@ -399,7 +399,7 @@ export function useDpPendenciasColaborador() {
             });
           }
           const aceites = itens.filter((i) =>
-            (i.anexos ?? []).some((a: any) => a.aceite_solicitado_em && !a.aceito_em),
+            (i.anexos ?? []).some((a) => a.aceite_solicitado_em && !a.aceito_em),
           );
           if (aceites.length > 0) {
             results.push({

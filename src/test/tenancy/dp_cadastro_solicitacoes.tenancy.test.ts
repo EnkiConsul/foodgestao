@@ -43,7 +43,7 @@ async function signIn(email: string, password: string): Promise<SupabaseClient> 
 function payload(companyId: string, suffix: string) {
   return {
     company_id: companyId,
-    nome_completo: `RLS Cadastro Probe ${suffix}`,
+    nome: `RLS Cadastro Probe ${suffix}`,
     cpf: "00000000000",
     email: `rls-cadastro-${suffix}@example.com`,
     status: "pendente" as const,

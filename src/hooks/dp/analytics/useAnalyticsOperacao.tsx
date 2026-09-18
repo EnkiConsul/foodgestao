@@ -126,7 +126,7 @@ export function useAnalyticsOperacao({ periodo, filtros, nomes, enabled = true }
     const extras: ExtraAnalytics[] = dados.avulsos.map((a) => ({
       id: a.id,
       tipo: a.tipo,
-      colaborador_id: a.colaborador_id,
+      colaborador_id: a.colaborador_id ?? null,
       unidade_id: a.unidade_id,
       cargo_id: a.cargo_id,
       data_inicio: a.data_inicio,

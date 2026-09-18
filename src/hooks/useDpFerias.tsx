@@ -103,7 +103,7 @@ export function useDpFerias(colaboradorFilter: string) {
       );
       invalidate();
     },
-    onError: (e: any) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Erro ao gerar períodos" }),
+    onError: (e) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Erro ao gerar períodos" }),
   });
 
   /**
@@ -139,7 +139,7 @@ export function useDpFerias(colaboradorFilter: string) {
       const { error } = await supabase.rpc("dp_ferias_informar_faltas", {
         _periodo_id: periodoId,
         _faltas: faltas,
-        _motivo: motivo?.trim() || null,
+        _motivo: (motivo?.trim() || null) ?? undefined,
       });
       if (error) throw error;
     },
@@ -164,8 +164,8 @@ export function useDpFerias(colaboradorFilter: string) {
         _data_fim: input.data_fim,
         _dias_abono: input.dias_abono,
         _adiantar_13: input.adiantar_13,
-        _observacao: input.observacao?.trim() || null,
-        _justificativa: input.justificativa?.trim() || null,
+        _observacao: (input.observacao?.trim() || null) ?? undefined,
+        _justificativa: (input.justificativa?.trim() || null) ?? undefined,
       });
       if (error) throw error;
     },
@@ -192,9 +192,9 @@ export function useDpFerias(colaboradorFilter: string) {
         p_data_fim: input.data_fim,
         p_dias_abono: input.dias_abono ?? 0,
         p_adiantar_13: input.adiantar_13 ?? false,
-        p_aviso_em: input.aviso_em || null,
-        p_observacao: input.observacao?.trim() || null,
-        p_justificativa: input.justificativa?.trim() || null,
+        p_aviso_em: (input.aviso_em || null) ?? undefined,
+        p_observacao: (input.observacao?.trim() || null) ?? undefined,
+        p_justificativa: (input.justificativa?.trim() || null) ?? undefined,
       });
       if (error) throw error;
     },
@@ -271,7 +271,7 @@ export function useDpFerias(colaboradorFilter: string) {
       const { error } = await supabase.rpc("dp_ferias_definir_saldo_inicial", {
         _periodo_id: periodoId,
         _dias: dias,
-        _obs: observacao?.trim() || null,
+        _obs: (observacao?.trim() || null) ?? undefined,
       });
       if (error) throw error;
     },

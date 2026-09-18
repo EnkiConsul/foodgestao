@@ -124,7 +124,7 @@ export function useDpPendencias() {
           .eq("status", "pendente")
           .order("created_at", { ascending: true })
           .limit(20);
-        (sols ?? []).forEach((s: any) => {
+        (sols ?? []).forEach((s) => {
           const vencimento = new Date(s.created_at);
           vencimento.setDate(vencimento.getDate() + cfg.alerta_solicitacao_dias);
           const dias = differenceInCalendarDays(today, vencimento);
@@ -153,7 +153,7 @@ export function useDpPendencias() {
           .in("status", ["pendente_gestor"])
           .order("created_at", { ascending: true })
           .limit(10);
-        (trocas ?? []).forEach((t: any) => {
+        (trocas ?? []).forEach((t) => {
           const vencimento = new Date(t.created_at);
           vencimento.setDate(vencimento.getDate() + cfg.alerta_troca_dias);
           const dias = differenceInCalendarDays(today, vencimento);
@@ -186,12 +186,12 @@ export function useDpPendencias() {
           .limit(50);
         (ocs ?? [])
           .filter(
-            (o: any) =>
+            (o) =>
               o.estado === "aguardando_confirmacao" ||
               o.analise_status === "pendente" ||
               (o.tratativa_ponto && o.tratativa_status === "pendente"),
           )
-          .forEach((o: any) => {
+          .forEach((o) => {
             const vencimento = new Date(o.created_at);
             vencimento.setHours(vencimento.getHours() + cfg.alerta_ocorrencia_horas);
             const dias = differenceInCalendarDays(today, vencimento);
@@ -253,7 +253,7 @@ export function useDpPendencias() {
             "id, nome, unidade_id, ativo, regime, vinculo_label, possui_folha_ponto, optante_adiantamento, data_admissao, data_desligamento",
           )
           .eq("company_id", selectedCompanyId!);
-        (colabsU ?? []).forEach((c: any) => {
+        (colabsU ?? []).forEach((c) => {
           if (c.unidade_id) unidadeDoColab.set(c.id, c.unidade_id);
         });
         colaboradoresDocs = (colabsU ?? []) as any;
@@ -266,10 +266,10 @@ export function useDpPendencias() {
       const solicitacoesPorColab = new Map<string, AdiantamentoSolicitacao[]>();
       try {
         const { data: sols } = await supabase
-          .from("dp_adiantamento_solicitacoes" as any)
+          .from("dp_adiantamento_solicitacoes")
           .select("id, colaborador_id, tipo, data_solicitacao, competencia_efeito, origem, created_at")
           .eq("company_id", selectedCompanyId!);
-        (sols ?? []).forEach((s: any) => {
+        (sols ?? []).forEach((s) => {
           if (!solicitacoesPorColab.has(s.colaborador_id)) solicitacoesPorColab.set(s.colaborador_id, []);
           solicitacoesPorColab.get(s.colaborador_id)!.push(s as AdiantamentoSolicitacao);
         });
@@ -281,10 +281,10 @@ export function useDpPendencias() {
       const confirmacaoIntermitente = new Map<string, boolean>();
       try {
         const { data: confs } = await supabase
-          .from("dp_intermitente_competencia_confirmacoes" as any)
+          .from("dp_intermitente_competencia_confirmacoes")
           .select("colaborador_id, competencia, trabalhou")
           .eq("company_id", selectedCompanyId!);
-        (confs ?? []).forEach((c: any) => {
+        (confs ?? []).forEach((c) => {
           confirmacaoIntermitente.set(`${c.colaborador_id}:${c.competencia}`, c.trabalhou === true);
         });
       } catch (e) {
@@ -316,7 +316,7 @@ export function useDpPendencias() {
             .in("tipo", tiposDb as any)
             .gte("referencia_data", inicio)
             .lte("referencia_data", fim);
-          (data ?? []).forEach((d: any) => {
+          (data ?? []).forEach((d) => {
             if (d.colaborador_id && d.referencia_data) {
               set.add(`${d.colaborador_id}:${String(d.referencia_data).slice(0, 7)}`);
             }
@@ -356,7 +356,7 @@ export function useDpPendencias() {
           .in("tipo", [...TIPOS_AFASTAMENTO] as any)
           .eq("status", "aprovada")
           .not("colaborador_id", "is", null);
-        (afast ?? []).forEach((a: any) => {
+        (afast ?? []).forEach((a) => {
           if (a.colaborador_id && a.data_alvo) {
             afastamentosAprovados.push({
               colaborador_id: a.colaborador_id,
@@ -634,7 +634,7 @@ export function useDpPendencias() {
           .eq("tipo", "laboral")
           .eq("ativo", true);
         const sindicatoNome = new Map<string, string>(
-          (sinds ?? []).map((s: any) => [s.id, s.nome])
+          (sinds ?? []).map((s) => [s.id, s.nome])
         );
         const sindIds = Array.from(sindicatoNome.keys());
 
@@ -652,7 +652,7 @@ export function useDpPendencias() {
             .from("dp_unidade_cargos")
             .select("unidade_id, cargo_id")
             .in("unidade_id", unidadeIdsAtivas);
-          const cargoIds = Array.from(new Set((uc ?? []).map((r: any) => r.cargo_id)));
+          const cargoIds = Array.from(new Set((uc ?? []).map((r) => r.cargo_id)));
           if (cargoIds.length > 0) {
             const { data: sc } = await supabase
               .from("dp_sindicato_cargos")
@@ -660,11 +660,11 @@ export function useDpPendencias() {
               .in("cargo_id", cargoIds)
               .in("sindicato_id", sindIds);
             const sindByCargo = new Map<string, string[]>();
-            (sc ?? []).forEach((r: any) => {
+            (sc ?? []).forEach((r) => {
               if (!sindByCargo.has(r.cargo_id)) sindByCargo.set(r.cargo_id, []);
               sindByCargo.get(r.cargo_id)!.push(r.sindicato_id);
             });
-            (uc ?? []).forEach((r: any) => {
+            (uc ?? []).forEach((r) => {
               (sindByCargo.get(r.cargo_id) ?? []).forEach((sid) => addPar(r.unidade_id, sid));
             });
           }
@@ -674,7 +674,7 @@ export function useDpPendencias() {
             .select("unidade_id, sindicato_id, sindicato_laboral_id")
             .eq("company_id", selectedCompanyId!)
             .not("unidade_id", "is", null);
-          (negPairs ?? []).forEach((r: any) => {
+          (negPairs ?? []).forEach((r) => {
             const sid = r.sindicato_laboral_id ?? r.sindicato_id;
             if (r.unidade_id && sid) addPar(r.unidade_id, sid);
           });
@@ -692,7 +692,7 @@ export function useDpPendencias() {
             .not("unidade_id", "is", null)
             .not("ano", "is", null)
             .not("mes", "is", null);
-          (todasNegs ?? []).forEach((n: any) => {
+          (todasNegs ?? []).forEach((n) => {
             const sid = n.sindicato_laboral_id ?? n.sindicato_id;
             if (!n.unidade_id || !sid) return;
             const key = `${n.unidade_id}|${sid}`;
@@ -760,7 +760,7 @@ export function useDpPendencias() {
           .from("dp_config_dp")
           .select("unidade_id")
           .eq("company_id", selectedCompanyId!);
-        const comRegra = new Set((regras ?? []).map((r: any) => r.unidade_id).filter(Boolean));
+        const comRegra = new Set((regras ?? []).map((r) => r.unidade_id).filter(Boolean));
         const semRegra = unidades.filter((u) => !comRegra.has(u.id));
         if ((regras ?? []).length === 0) {
           results.push({
@@ -812,7 +812,7 @@ export function useDpPendencias() {
           .eq("company_id", selectedCompanyId!)
           .limit(2000);
         const idsAcumulo = periodosComAcumulo((todosPeriodos ?? []) as any[]);
-        (periodos ?? []).forEach((p: any) => {
+        (periodos ?? []).forEach((p) => {
           // Sócio não tem férias legais; desligado não agenda férias.
           const vinculo = String(p.dp_colaboradores?.vinculo_label ?? "").toLowerCase();
           if (vinculo.includes("sóci")) return;
@@ -860,7 +860,7 @@ export function useDpPendencias() {
           .in("status", ["aprovado", "em_gozo", "concluido"])
           .order("data_inicio", { ascending: true })
           .limit(200);
-        const ids = (gozos ?? []).map((g: any) => g.id);
+        const ids = (gozos ?? []).map((g) => g.id);
         const { data: docsFerias } = ids.length
           ? await supabase
               .from("dp_documentos")
@@ -870,10 +870,10 @@ export function useDpPendencias() {
           : { data: [] as any[] };
         const comRecibo = new Set(
           (docsFerias ?? [])
-            .filter((d: any) => d.tipo === "recibo_ferias")
-            .map((d: any) => d.ferias_gozo_id as string),
+            .filter((d) => d.tipo === "recibo_ferias")
+            .map((d) => d.ferias_gozo_id as string),
         );
-        (gozos ?? []).forEach((g: any) => {
+        (gozos ?? []).forEach((g) => {
           const nome = g.dp_colaboradores?.nome ?? "Colaborador";
           // Aviso: precisa sair 30 dias antes do início.
           if (!g.aviso_em && g.status === "aprovado") {
@@ -927,10 +927,11 @@ export function useDpPendencias() {
           .lte("data_fim", ymd(limiteRetorno))
           .order("data_fim", { ascending: true })
           .limit(30);
-        (licencas ?? []).forEach((l: any) => {
+        (licencas ?? []).forEach((l) => {
           if (l.dp_colaboradores?.ativo === false) return;
+          // O filtro lte(data_alvo, hojeISO) da consulta exclui datas NULL.
           const situacao = situacaoRetorno(
-            { colaborador_id: l.colaborador_id, tipo: l.tipo, data_alvo: l.data_alvo, data_fim: l.data_fim },
+            { colaborador_id: l.colaborador_id, tipo: l.tipo, data_alvo: l.data_alvo!, data_fim: l.data_fim },
             today,
           );
           if (situacao !== "lembrete" && situacao !== "vencido") return;
@@ -984,8 +985,8 @@ export function useDpPendencias() {
               .gte("data", ymd(inicioProx))
               .lte("data", ymd(fimProx)),
           ]);
-          const comFolga = new Set((folgas ?? []).map((f: any) => f.colaborador_id));
-          const semEscala = (colabs ?? []).filter((c: any) => !comFolga.has(c.id)).length;
+          const comFolga = new Set((folgas ?? []).map((f) => f.colaborador_id));
+          const semEscala = (colabs ?? []).filter((c) => !comFolga.has(c.id)).length;
           if (semEscala > 0) {
             const prazo = new Date(anoVigente, mesVigente - 1, ultimoDia);
             results.push({
@@ -1014,7 +1015,7 @@ export function useDpPendencias() {
           .eq("status", "ready")
           .order("created_at", { ascending: true })
           .limit(10);
-        const loteIds = (lotes ?? []).map((l: any) => l.id);
+        const loteIds = (lotes ?? []).map((l) => l.id);
         const { data: itensLote } = loteIds.length
           ? await supabase
             .from("dp_bulk_import_items")
@@ -1022,15 +1023,15 @@ export function useDpPendencias() {
             .in("batch_id", loteIds)
           : { data: [] };
         const itensPorLote = new Map<string, any[]>();
-        (itensLote ?? []).forEach((item: any) => {
+        (itensLote ?? []).forEach((item) => {
           const atuais = itensPorLote.get(item.batch_id) ?? [];
           atuais.push(item);
           itensPorLote.set(item.batch_id, atuais);
         });
-        (lotes ?? []).forEach((l: any) => {
-          const itensAtivos = (itensPorLote.get(l.id) ?? []).filter((item: any) => item.status !== "rejected");
+        (lotes ?? []).forEach((l) => {
+          const itensAtivos = (itensPorLote.get(l.id) ?? []).filter((item) => item.status !== "rejected");
           const todosComUnidade = itensAtivos.length > 0 && itensAtivos.every(
-            (item: any) => !!item.detected_unidade_id || !!unidadeDoColab.get(item.matched_colaborador_id),
+            (item) => !!item.detected_unidade_id || !!unidadeDoColab.get(item.matched_colaborador_id),
           );
           // Um lote pode ser multiunidade. Se cada página já conhece sua unidade,
           // não existe pendência de identificação do cabeçalho.
@@ -1098,10 +1099,10 @@ export function useDpPendencias() {
           .eq("company_id", selectedCompanyId!)
           .is("cessado_em", null);
         const porId = new Map(
-          (deps ?? []).map((d: any) => [d.id as string, d.dp_colaboradores?.nome ?? "Colaborador"]),
+          (deps ?? []).map((d) => [d.id as string, d.dp_colaboradores?.nome ?? "Colaborador"]),
         );
         const colabDoDep = new Map(
-          (deps ?? []).map((d: any) => [d.id as string, d.colaborador_id as string]),
+          (deps ?? []).map((d) => [d.id as string, d.colaborador_id as string]),
         );
         alertasDependentes((deps ?? []) as any, ymd(today)).forEach((a) => {
           const colabId = colabDoDep.get(a.dependenteId);

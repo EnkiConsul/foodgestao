@@ -49,3 +49,10 @@ describe("simularDia", () => {
     expect(r).toMatchObject({ antes: 1, depois: 2, adicionados: 1 });
   });
 });
+
+it("usa os padrões quando o intervalo da jornada é nulo", () => {
+  expect(resolverHorarioDestinatario({ jornada: {
+    entrada: "08:00", saida: "12:00", intervalo_minutos: null,
+    termina_no_dia_seguinte: null,
+  } })).toMatchObject({ origem: "jornada", intervalo_minutos: 0, termina_no_dia_seguinte: false, carga_prevista_horas: 4 });
+});

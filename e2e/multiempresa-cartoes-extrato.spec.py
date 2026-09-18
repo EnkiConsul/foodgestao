@@ -1,7 +1,7 @@
 """
 E2E — Isolamento multiempresa nas telas de cartão, faturas, lançamentos e extrato.
 
-Faz login com uma sessão real (Lovable injetada ou `lovable auth-session`),
+Usa exclusivamente uma sessão explícita da homologação,
 troca de empresa pelo seletor do topo e percorre TODAS as rotas relacionadas:
 
   /cartoes-credito
@@ -17,7 +17,7 @@ nomes de conexão do Open Finance. A asserção é dupla:
   1. Nenhum dado exclusivo da OUTRA empresa aparece na tela.
   2. Ao menos um dado próprio aparece (quando a empresa tem dados).
 
-Sem sessão disponível o teste é ignorado (exit 0) para não quebrar o CI.
+Sessão e dados de duas empresas são pré-requisitos obrigatórios.
 """
 
 import asyncio
@@ -35,15 +35,7 @@ from playwright.async_api import async_playwright
 SCREENSHOTS = Path("/tmp/browser/multiempresa/screenshots")
 SCREENSHOTS.mkdir(parents=True, exist_ok=True)
 
-BASE_URL = "http://localhost:8080"
-PROJECT_REF = "grtxmbffgmgnkawlvqhm"
-SUPABASE_URL = f"https://{PROJECT_REF}.supabase.co"
-ANON_KEY = (
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
-    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdydHhtYmZmZ21nbmthd2x2cWhtIiwicm9sZSI6ImFub24i"
-    "LCJpYXQiOjE3NzA4MDM5ODYsImV4cCI6MjA4NjM3OTk4Nn0."
-    "izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko"
-)
+from test_environment import BASE_URL, PROJECT_REF, SUPABASE_URL, ANON_KEY
 # A variável injetada pode existir vazia — daí o `or` no fallback.
 STORAGE_KEY = (
     os.environ.get("LOVABLE_BROWSER_SUPABASE_STORAGE_KEY") or f"sb-{PROJECT_REF}-auth-token"
@@ -61,14 +53,7 @@ ROUTES = [
 # ---------------------------------------------------------------- sessão / REST
 
 def load_session() -> dict | None:
-    """Sessão mais recente primeiro: o cache de `lovable auth-session` é
-    preferido porque a variável injetada pode estar expirada."""
-    cached = Path.home() / ".cache" / "lovable-auth" / "session.json"
-    if cached.exists():
-        data = json.loads(cached.read_text())
-        sess = data.get("session", data)
-        if sess.get("access_token"):
-            return sess
+    """Usa somente a sessão explícita validada da homologação."""
     raw = os.environ.get("LOVABLE_BROWSER_SUPABASE_SESSION_JSON")
     if raw:
         return json.loads(raw)
@@ -179,8 +164,8 @@ async def page_text(page, route: str, slug: str, company: str) -> str:
 async def main() -> int:
     session = load_session()
     if not session or not session.get("access_token"):
-        print("⚠ sem sessão disponível — teste ignorado")
-        return 0
+        print("❌ sessão obrigatória ausente")
+        return 2
     token = session["access_token"]
 
     memberships = rest(f"company_members?{q(select='company_id,companies(name,trade_name)')}", token)
@@ -194,8 +179,8 @@ async def main() -> int:
         if m.get("companies")
     ]
     if len(companies) < 2:
-        print("⚠ usuário com menos de 2 empresas — teste ignorado")
-        return 0
+        print("❌ usuário precisa de duas empresas")
+        return 2
 
     prints = {c["id"]: company_fingerprint(c["id"], token) for c in companies}
     # Escolhe o par com maior diferença de dados (garante evidência real).
