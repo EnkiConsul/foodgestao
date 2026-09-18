@@ -496,14 +496,26 @@ Deno.serve(async (req) => {
             companies: { name: string | null; trade_name: string | null } | null;
           }>;
           if (conflitos.length) {
+            // Nome da empresa e nome da conta só aparecem quando o usuário tem
+            // acesso àquela empresa. Caso contrário, aviso genérico — nunca
+            // devolvemos cadastro de empresa de terceiros.
+            const empresasVisiveis = new Set<string>();
+            for (const cid of new Set(conflitos.map((c) => c.company_id))) {
+              if (await userCanSeeCompany(cid)) empresasVisiveis.add(cid);
+            }
             return new Response(JSON.stringify({
               error: 'duplicate_account_other_company',
               message: 'Estas contas já estão ligadas em outra empresa.',
-              conflicts: conflitos.map((c) => ({
-                number_masked: c.number_masked,
-                account_name: c.name,
-                company_name: c.companies?.trade_name ?? c.companies?.name ?? null,
-              })),
+              conflicts: conflitos.map((c) => {
+                const visivel = empresasVisiveis.has(c.company_id);
+                return {
+                  number_masked: c.number_masked,
+                  account_name: visivel ? c.name : null,
+                  company_name: visivel
+                    ? (c.companies?.trade_name ?? c.companies?.name ?? null)
+                    : null,
+                };
+              }),
             }), {
               status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
