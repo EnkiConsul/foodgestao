@@ -66,3 +66,16 @@ produto não dependem disso.
 3. Desligar medição avançada / captura automática na configuração da
    propriedade, não apenas no código.
 4. Rever a allowlist de CSP junto com a mudança.
+
+## Consentimentos antigos não reativam coleta
+
+O aviso de cookies registra apenas preferência (`plin_cookie_consent`). Nenhum
+caminho do aplicativo lê esse valor para carregar SDK: aceitar, recusar ou
+personalizar não cria fila nem dispara rede. Consentimentos guardados antes da
+desativação **não** valem como base para religar nada.
+
+Se qualquer finalidade, provedor ou escopo de dados mudar na reativação, é
+necessário **revalidar o consentimento** (novo aviso, nova decisão explícita),
+além dos itens da seção "Condição para reativar". O texto do aviso também deve
+ser atualizado no mesmo commit, porque hoje ele afirma que a coleta está
+desativada.
