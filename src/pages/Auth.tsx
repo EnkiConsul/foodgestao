@@ -22,7 +22,6 @@ import { consumePendingInviteToken } from "@/lib/auth/invite";
 import { z } from "zod";
 import { toast } from "sonner";
 import { trackEvent, FunnelStep } from "@/lib/analytics";
-import { safeReferrer } from "@/lib/security/trackingPrivacy";
 import loginDesktop from "@/assets/aveto360-login-desktop-v2.png.asset.json";
 import loginMobile from "@/assets/aveto360-login-mobile-v2.png.asset.json";
 
@@ -166,10 +165,8 @@ export default function Auth() {
   useEffect(() => {
     if (isSignup && !signupViewTracked.current) {
       signupViewTracked.current = true;
-      trackEvent(FunnelStep.SignupFormView, {
-        // AUD-021: origem reduzida, nunca a URL de origem completa.
-        referrer: safeReferrer(document.referrer, window.location.origin),
-      });
+      // AUD-021: métricas de marketing desativadas; não lemos document.referrer.
+      trackEvent(FunnelStep.SignupFormView);
     }
     if (!isSignup) signupViewTracked.current = false;
   }, [isSignup]);
