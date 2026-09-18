@@ -13,6 +13,10 @@ Esta alteração separa testes remotos dos testes unitários, exige identificaç
 
 ## Evidências e limites
 
+### Reoferta parcial e concorrência HTTP
+
+Corrigida restrição que rejeitava reoferta_parcial. Em homologação, quatro chamadas HTTP simultâneas criaram uma única reoferta; três retornaram NO_ELIGIBLE. Fixtures removidas. Detalhes e limites em [l02-partial-reoffer.md](l02-partial-reoffer.md). Sem mudança na produção.
+
 ### Aprovação parcial
 
 Corrigido bloqueio por restrição incompatível e atualização de remuneração/horários na aprovação parcial. Testes SQL para horista, diarista e snapshot ausente passaram na homologação. Detalhes: [l02-partial-approval.md](l02-partial-approval.md). Concorrência e navegador permanecem pendentes; produção inalterada.
