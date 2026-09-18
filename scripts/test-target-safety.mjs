@@ -38,7 +38,7 @@ export function assertNoProductionReferences(root) {
     for (const entry of readdirSync(dir, {withFileTypes:true})) {
       const file = join(dir, entry.name);
       if (entry.isDirectory()) walk(file);
-      else if (/\.[cm]?[jt]sx?$/.test(entry.name) && readFileSync(file,'utf8').includes(productionRef)) matches.push(file);
+      else if (/(?:\.[cm]?[jt]sx?|\.py)$/.test(entry.name) && readFileSync(file,'utf8').includes(productionRef)) matches.push(file);
     }
   }
   walk(root);

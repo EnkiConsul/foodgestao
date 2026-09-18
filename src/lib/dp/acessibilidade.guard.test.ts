@@ -1,10 +1,21 @@
-import { globSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 // Guarda de regressão: botões que só mostram um ícone precisam de nome falado,
 // senão quem usa leitor de tela ouve apenas "botão".
 function arquivosDp(): string[] {
-  return globSync("src/{pages,components}/dp/**/*.tsx").filter((p) => !p.includes(".test."));
+  const arquivos: string[] = [];
+  function visitar(diretorio: string) {
+    for (const entrada of readdirSync(diretorio, { withFileTypes: true })) {
+      const caminho = join(diretorio, entrada.name);
+      if (entrada.isDirectory()) visitar(caminho);
+      else if (entrada.isFile() && caminho.endsWith(".tsx") && !caminho.includes(".test.")) arquivos.push(caminho);
+    }
+  }
+  visitar("src/pages/dp");
+  visitar("src/components/dp");
+  return arquivos.sort();
 }
 
 function tagsDeBotao(fonte: string): string[] {
@@ -31,7 +42,9 @@ function tagsDeBotao(fonte: string): string[] {
 describe("acessibilidade do módulo Pessoas", () => {
   it("todo botão só com ícone tem nome falado", () => {
     const semNome: string[] = [];
-    for (const arquivo of arquivosDp()) {
+    const arquivos = arquivosDp();
+    expect(arquivos.length, "a guarda precisa examinar arquivos reais").toBeGreaterThan(0);
+    for (const arquivo of arquivos) {
       const fonte = readFileSync(arquivo, "utf8");
       for (const tag of tagsDeBotao(fonte)) {
         if (!tag.includes('size="icon"')) continue;

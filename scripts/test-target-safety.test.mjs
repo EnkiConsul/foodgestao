@@ -39,3 +39,8 @@ test('bloqueia referência a produção em helper importado sem executar arquivo
   writeFileSync(join(dir,'helper.ts'),`throw new Error('não executar'); const host='${productionRef}';`);
   assert.throws(()=>assertNoProductionReferences(dir),/1 arquivos/);
 });
+test('bloqueia também helper Python de E2E antes da execução',()=>{
+  const dir=mkdtempSync(join(tmpdir(),'aveto-python-scan-'));
+  writeFileSync(join(dir,'helper.py'),`raise Exception('não executar')\nPROJECT_REF='${productionRef}'`);
+  assert.throws(()=>assertNoProductionReferences(dir),/1 arquivos/);
+});

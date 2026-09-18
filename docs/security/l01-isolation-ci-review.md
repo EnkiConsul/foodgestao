@@ -21,4 +21,10 @@ TypeScript strict ainda apresenta 82 erros. Recuperação de backup, CI remoto c
 
 ## Antes de aprovar o merge
 
+### Diagnóstico do primeiro CI remoto
+
+O job unitário executou 1758 casos: 1757 passaram e um falhou por uso de fs.globSync indisponível no Node 20. A guarda agora percorre os diretórios com readdirSync e exige arquivos reais; seus dois testes passaram localmente. O job de recuperação falhou na instalação de postgresql-client-17: foi adicionada a configuração assinada do repositório oficial PostgreSQL APT, conforme https://www.postgresql.org/download/linux/ubuntu/.
+
+Tenancy não recebeu nenhuma das credenciais obrigatórias. E2E apresentou sessão ausente e dependência PIL ausente; a inspeção também identificou quatro arquivos Python ainda referenciando produção. O runner agora bloqueia esses arquivos antes de iniciar subprocessos. Isso é uma pendência de parametrização, não um teste aprovado. A recuperação ainda precisa ser executada após a instalação e configuração do banco.
+
 Executar os jobs obrigatórios com infraestrutura e credenciais de homologação, reconciliar migrations e produzir o relatório do executor isolado. Revisar os resultados do teste de recuperação, sem tratar reconstrução de catálogo como restore de backup. Resolver os bloqueios de qualidade e verificar que o artefato MCP publicado contém imports válidos.
