@@ -78,7 +78,7 @@ function DocEditor<S extends LegalSection>({
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
         <Button asChild variant="ghost" size="sm">
-          <Link to={publicPath} target="_blank">
+          <Link to={publicPath} target="_blank" rel="noopener noreferrer">
             <ExternalLink className="h-4 w-4 mr-1" /> Ver página pública
           </Link>
         </Button>
