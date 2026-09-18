@@ -5660,7 +5660,7 @@ export type Database = {
           domingos_por_mes_mulher: number
           exige_validacao_menor: boolean
           exigir_contracheque_mes_desligamento: boolean
-          ferias_adiantamento_13: string
+          ferias_adiantamento_13: string | null
           ferias_aviso_antecedencia_dias: number
           ferias_controle_inicio: string | null
           ferias_fracao_maior_dias: number | null
@@ -5723,7 +5723,7 @@ export type Database = {
           domingos_por_mes_mulher?: number
           exige_validacao_menor?: boolean
           exigir_contracheque_mes_desligamento?: boolean
-          ferias_adiantamento_13?: string
+          ferias_adiantamento_13?: string | null
           ferias_aviso_antecedencia_dias?: number
           ferias_controle_inicio?: string | null
           ferias_fracao_maior_dias?: number | null
@@ -5786,7 +5786,7 @@ export type Database = {
           domingos_por_mes_mulher?: number
           exige_validacao_menor?: boolean
           exigir_contracheque_mes_desligamento?: boolean
-          ferias_adiantamento_13?: string
+          ferias_adiantamento_13?: string | null
           ferias_aviso_antecedencia_dias?: number
           ferias_controle_inicio?: string | null
           ferias_fracao_maior_dias?: number | null

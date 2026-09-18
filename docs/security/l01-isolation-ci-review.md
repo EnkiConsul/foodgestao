@@ -13,6 +13,19 @@ Esta alteração separa testes remotos dos testes unitários, exige identificaç
 
 ## Evidências e limites
 
+### Ausência de valores e herança por unidade — revisão atual
+
+TypeScript strict concluído com zero erros (antes: 12; linha de base: 82). Foram preservados os contratos nullable de analytics e jornadas, impedidas ações de regras sem identificador e de folgas sem data, e o resumo contábil informa quando a quantidade de dias está ausente. Horários próprios sem UUID são distinguidos por seus horários no resumo, sem inventar identificadores persistidos.
+
+As duas RPCs de distribuição de folgas aceitam NULL explícito como todas as unidades, confirmado por consulta somente leitura ao corpo das funções no Lovable Cloud. Um adaptador de tipos restrito a essas duas chamadas mantém o cliente autenticado e não altera os tipos gerados das funções. Testes de transporte confirmam tanto unidade específica quanto NULL.
+
+A opção Seguir a empresa falhava porque dp_config_dp.ferias_adiantamento_13 era NOT NULL, embora dp_ferias_config já resolvesse herança com COALESCE. A migração 20260918010000 permite NULL apenas nas unidades, mantendo a política da empresa obrigatória por CHECK. Aplicada somente em homologação; os três campos Row/Insert/Update foram sincronizados com essa estrutura. A migração deve acompanhar a publicação do código; a funcionalidade em produção continua dependendo dessa aplicação.
+
+Validação: 124 testes dirigidos aprovados, zero falhas; teste SQL transacional na homologação aprovou herança, exceção, retorno a NULL e rejeição de NULL na empresa, com ROLLBACK dos dados temporários. Nenhuma escrita em produção. A suíte completa não foi repetida nesta revisão; a execução anterior e sua oscilação de desempenho permanecem registradas abaixo.
+
+Advisors de segurança executados na homologação: permanecem avisos de funções SECURITY DEFINER executáveis, extensões em public e proteção de senhas, além da tabela auxiliar com RLS sem política. Esses achados não equivalem a aprovação de segurança; nenhuma política ou permissão foi ampliada nesta migração. Credenciais do CI, E2E e restauração comprovada continuam pendentes.
+
+
 ### Parâmetros opcionais de RPC — revisão atual
 
 A consulta somente leitura ao catálogo de funções do Lovable Cloud confirmou DEFAULT NULL para 58 argumentos alterados em 16 arquivos. Quando não há valor, essas chamadas agora omitem o argumento, preservando o padrão do servidor e respeitando os tipos gerados. Os dois parâmetros obrigatórios de unidade em DpFolgas continuam pendentes; não receberam essa transformação. Não houve alteração de funções, schema ou dados de produção.

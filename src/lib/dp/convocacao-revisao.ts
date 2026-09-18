@@ -40,7 +40,7 @@ export function resolverHorarioDestinatario(args: {
   geral?: Partial<HorarioConvocacao> | null;
   jornada?: JornadaDia | null;
 }): HorarioResolvido | null {
-  const fontes: { origem: OrigemHorario; h: Partial<HorarioConvocacao> | null | undefined }[] = [
+  const fontes: { origem: OrigemHorario; h: Partial<HorarioConvocacao> | JornadaDia | null | undefined }[] = [
     { origem: "individual", h: args.override },
     { origem: "geral", h: args.geral },
     { origem: "jornada", h: args.jornada },

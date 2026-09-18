@@ -1,3 +1,4 @@
+import { planejarFolgas, aplicarFolgas } from "@/integrations/supabase/folgasRpc";
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 
@@ -398,7 +399,7 @@ export default function DpFolgas() {
     queryKey: ["dp_folga_auto_plano", selectedCompanyId, unidadeAlvo, competenciaAtual],
     enabled: !!selectedCompanyId && podeDistribuir && autoOpen,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("dp_folga_autoatribuicao_plano", {
+      const { data, error } = await planejarFolgas({
         _company: selectedCompanyId!,
         _unidade: unidadeAlvo,
         _competencia: competenciaAtual,
@@ -441,7 +442,7 @@ export default function DpFolgas() {
   const distribuirAuto = useMutation({
     mutationFn: async () => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const { data, error } = await supabase.rpc("dp_folga_autoatribuir_aplicar", {
+      const { data, error } = await aplicarFolgas({
         _company: selectedCompanyId,
         _unidade: unidadeAlvo,
         _competencia: competenciaAtual,
@@ -1329,6 +1330,7 @@ export default function DpFolgas() {
                                 size="sm"
                                 className="rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground"
                                 onClick={() => {
+                                  if (!ev.data_alvo) { toast.error("Folga sem data definida"); return; }
                                   setFolgaGerenciar({
                                     id: ev.id,
                                      colaboradorId: ev.colaborador_id,

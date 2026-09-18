@@ -314,7 +314,7 @@ export function FolgaRegrasPanel({
                               (item.clientId ?? item.id) === chave ? { ...item, ativo: v } : item,
                             ),
                           );
-                        } else {
+                        } else if (r.id) {
                           alternarAtivo.mutate({ id: r.id, ativo: v });
                         }
                       }}
@@ -338,7 +338,8 @@ export function FolgaRegrasPanel({
                       variant="ghost"
                       size="icon"
                       aria-label="Excluir regra"
-                      onClick={() => setExcluirId(chave)}
+                      disabled={!chave}
+                      onClick={() => { if (chave) setExcluirId(chave); }}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
                     </Button>

@@ -123,3 +123,12 @@ describe("aviso de carga semanal", () => {
     expect(v?.mensagem).toContain("excede o teto da CLT (44h) em 2h");
   });
 });
+
+it("distingue horários próprios sem UUID no resumo", () => {
+  const c = config({ turno_padrao_id: null, dias: [
+    { dow: 1, trabalha: true, turno_id: null, entrada: "08:00", saida: "12:00" },
+    { dow: 2, trabalha: true, turno_id: null, entrada: "14:00", saida: "18:00" },
+  ] });
+  expect(resumoConfigTexto(c, [])).toContain("2 turnos diferentes");
+  expect(turnoDoDia(c.dias[0], null, [])?.id).toBeNull();
+});

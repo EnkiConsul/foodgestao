@@ -12,7 +12,7 @@ export type ResumoContabilidade = {
   unidade: string;
   periodoAquisitivo: string;
   datas: string;
-  dias: number;
+  dias: number | null;
   diasAbono: number;
   adiantar13: boolean;
   observacao: string | null;
@@ -26,7 +26,7 @@ export function textoResumo(r: ResumoContabilidade): string {
     `Unidade: ${r.unidade}`,
     `Período aquisitivo: ${r.periodoAquisitivo}`,
     `Férias: ${r.datas}`,
-    `Dias de férias: ${r.dias}`,
+    `Dias de férias: ${r.dias ?? "não informado"}`,
     `Dias de abono: ${r.diasAbono}`,
     `Adiantamento do 13º: ${r.adiantar13 ? "sim" : "não"}`,
     r.observacao ? `Observação: ${r.observacao}` : null,
