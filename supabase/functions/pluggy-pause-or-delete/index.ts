@@ -36,17 +36,32 @@ Deno.serve(async (req) => {
     const accountId = typeof body?.account_id === 'string' ? body.account_id : null;
     if (!accountId) return json({ error: 'account_id_required' }, 400);
 
+    // A empresa NUNCA vem do corpo da requisição: é lida da própria conta.
+    const { data: localAcc } = await admin
+      .from('accounts')
+      .select('id, company_id, is_active')
+      .eq('id', accountId)
+      .maybeSingle();
+    if (!localAcc?.company_id) return json({ error: 'account_not_found' }, 404);
+
+    // Pausar coleta altera a origem dos lançamentos: exige dono ou permissão de
+    // edição (leitor, contabilidade e usuário bloqueado ficam de fora).
+    const { data: canEdit } = await admin.rpc('pluggy_user_can_edit', {
+      _user_id: userId,
+      _company_id: localAcc.company_id,
+    });
+    if (canEdit !== true) return json({ error: 'forbidden' }, 403);
+
+    // Só pausa conta realmente desativada — evita pausar coleta de conta em uso.
+    if (localAcc.is_active !== false) return json({ error: 'account_still_active' }, 409);
+
     const { data: ofAcc } = await admin
       .from('pluggy_accounts')
       .select('id, connection_id, pluggy_account_id, company_id')
       .eq('linked_account_id', accountId)
+      .eq('company_id', localAcc.company_id)
       .maybeSingle();
     if (!ofAcc) return json({ ok: true, scope: 'no_link' });
-
-    const { data: mem } = await admin
-      .from('company_members').select('id')
-      .eq('company_id', ofAcc.company_id).eq('user_id', userId).maybeSingle();
-    if (!mem) return json({ error: 'forbidden' }, 403);
 
     // Desativar a conta NUNCA remove a conexão na Pluggy: garantimos apenas
     // que a conta local vinculada esteja com a sincronização pausada.
