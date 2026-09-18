@@ -682,11 +682,11 @@ export default function Auth() {
                   />
                   <Label htmlFor="acceptTerms" className="text-xs font-normal leading-relaxed cursor-pointer">
                     Li e aceito os{" "}
-                    <Link to="/termos" target="_blank" className="text-primary underline hover:no-underline">
+                    <Link to="/termos" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:no-underline">
                       Termos de Uso
                     </Link>{" "}
                     e a{" "}
-                    <Link to="/privacidade" target="_blank" className="text-primary underline hover:no-underline">
+                    <Link to="/privacidade" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:no-underline">
                       Política de Privacidade
                     </Link>
                     .
