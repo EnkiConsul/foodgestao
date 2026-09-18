@@ -86,3 +86,8 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [x] Observação de violações sem coletor e sem dados sensíveis (src/lib/security/cspViolationLogger.ts).
 - [x] Configuração pronta para proxy + verificação em docs/security/csp-cabecalhos.md.
 - [ ] BLOQUEADO: hospedagem Lovable não envia cabeçalhos personalizados nem lê public/_headers. S1 só encerra com evidência de cabeçalho na resposta HTTP, aplicada na camada de proxy/domínio do proprietário.
+
+## AUD-021 — Métricas de marketing (frontend)
+- [x] Google Analytics e pixel da Meta desativados no aplicativo inteiro (sem SDK, sem fila, sem noscript/prefetch); `trackEvent` e visualizações de página são no-op.
+- [ ] Reativar somente após isolar as páginas de marketing das rotas autenticadas e dos links com credencial — condições em `docs/security/metricas-marketing-desativadas.md`. BLOQUEADO por essa separação.
+- [ ] Publicar a desativação (aguardando decisão do proprietário).
