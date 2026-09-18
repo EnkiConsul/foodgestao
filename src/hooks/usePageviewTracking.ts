@@ -11,6 +11,7 @@ declare global {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     dataLayer?: any[];
     __avetoPixelPageView?: () => boolean;
+    __avetoLoadGtag?: () => boolean;
   }
 }
 
@@ -44,6 +45,8 @@ export function usePageviewTracking() {
           // Limpa qualquer URL anterior nos padrões do tracker e não reporta.
           window.gtag("config", GA_ID, { send_page_view: false });
         } else {
+          // Ao sair de uma rota sensível a biblioteca pode não ter sido pedida.
+          window.__avetoLoadGtag?.();
           const pagePath = sanitizePath(location.pathname, location.search);
           const pageLocation = sanitizeUrl(window.location.origin, location.pathname, location.search);
           const pageTitle = document.title;

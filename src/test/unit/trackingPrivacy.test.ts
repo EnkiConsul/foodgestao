@@ -106,6 +106,12 @@ describe("paridade entre a fonte TypeScript e o bootstrap", () => {
     expect(gtagInit).not.toMatch(/location\.href/);
     expect(metaPixel).not.toMatch(/location\.href/);
     expect(gtagInit).not.toMatch(/page_referrer:\s*document\.referrer/);
+    // A biblioteca dos trackers não pode ser pedida antes da decisão de rota:
+    // o próprio cabeçalho Referer levaria a credencial.
+    expect(readFileSync("index.html", "utf8")).not.toContain("googletagmanager.com/gtag/js");
+    expect(readFileSync("index.html", "utf8")).not.toContain("facebook.com/tr");
+    expect(gtagInit).toContain('referrerPolicy = "no-referrer"');
+    expect(metaPixel).toContain('referrerPolicy = "no-referrer"');
   });
 });
 
