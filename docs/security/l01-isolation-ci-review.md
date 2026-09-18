@@ -13,6 +13,10 @@ Esta alteração separa testes remotos dos testes unitários, exige identificaç
 
 ## Evidências e limites
 
+### L02: leitura de configurações por empresa
+
+Migration 20260918020000 aplicada somente na homologação: dp_config_resolvida e dp_ferias_config agora usam SECURITY INVOKER e respeitam RLS nas chamadas diretas. Regressão SQL reproduziu o vazamento anterior e confirmou isolamento após a correção, incluindo usuário bloqueado, vínculo removido, portal ativo e contexto de serviço. Fixtures revertidas. AUD-011 permanece parcialmente pendente; jornadas completas e produção não foram validadas. Detalhes em [l02-config-isolation.md](l02-config-isolation.md), teste manual em scripts/qa/l02-config-isolation.sql.
+
 ### Inferência nas pendências de gestor e colaborador
 
 Removidas 44 anotações any de callbacks em useDpPendencias e useDpPendenciasColaborador. Duas consultas também deixaram de converter o nome da tabela para any: ambas já existem no schema gerado. O conjunto de aceites admite os IDs nulos que já podiam vir da consulta; a data da licença tem a garantia documentada do filtro lte, que exclui NULL. Comparação do JavaScript sem comentários confirmou comportamento gerado idêntico nos dois arquivos.
