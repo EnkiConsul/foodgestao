@@ -3,7 +3,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { escapeHtml } from "@/lib/print/imprimirHtml";
 import { buildPrintableHtml } from "@/lib/relatorios/fluxoCaixaExport";
-import { certificadoValidacaoHtml } from "@/lib/dp/documento-certificado";
+import {
+  certificadoValidacaoHtml,
+  type CertificadoValidacaoDados,
+} from "@/lib/dp/documento-certificado";
 
 /** Arquivos que geram HTML imprimível/documentos no navegador. */
 const ARQUIVOS_DOCUMENTOS = [
