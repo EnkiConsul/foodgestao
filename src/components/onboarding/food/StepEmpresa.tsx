@@ -183,7 +183,7 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
             Termos de Uso
           </a>{" "}
           e com a{" "}
-          <a href="/legal/privacidade" target="_blank" className="text-primary underline hover:no-underline">
+          <a href="/legal/privacidade" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:no-underline">
             Política de Privacidade
           </a>{" "}
           do Aveto 360.
