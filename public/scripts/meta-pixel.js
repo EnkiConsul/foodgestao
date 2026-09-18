@@ -1,9 +1,19 @@
 /* Meta Pixel com respeito ao consentimento de marketing.
- * Externalizado do index.html (comportamento idêntico ao script inline
- * anterior) para permitir uma futura política de segurança de conteúdo (CSP)
- * sem 'unsafe-inline' em script-src. */
+ * Externalizado do index.html para permitir uma futura política de segurança
+ * de conteúdo (CSP) sem 'unsafe-inline' em script-src.
+ *
+ * AUD-021: em rota sensível (login, ativação, recuperação, convite, OAuth) ou
+ * em URL com credencial temporária na query/fragmento, nenhuma visualização é
+ * enviada — nem na carga inicial, nem quando o consentimento muda. */
 (function () {
   const FB_PIXEL_ID = "1575266947199692";
+  const privacidade = window.__avetoTracking;
+
+  function rotaSensivel() {
+    if (!privacidade) return true;
+    const l = window.location;
+    return privacidade.isSensitiveLocation(l.pathname, l.search, l.hash);
+  }
 
   function marketingConsent() {
     try {
@@ -36,17 +46,24 @@
   var granted = marketingConsent();
   fbq("consent", granted ? "grant" : "revoke");
   fbq("init", FB_PIXEL_ID);
-  if (granted) fbq("track", "PageView");
+  if (granted && !rotaSensivel()) fbq("track", "PageView");
 
   window.addEventListener("plin:cookie-consent-change", function (e) {
     var allow = !!(e.detail && e.detail.marketing);
     if (allow && !granted) {
       granted = true;
       fbq("consent", "grant");
-      fbq("track", "PageView");
+      if (!rotaSensivel()) fbq("track", "PageView");
     } else if (!allow && granted) {
       granted = false;
       fbq("consent", "revoke");
     }
   });
+
+  /** Visualização de rota do SPA: sempre reavalia rota sensível e consentimento. */
+  window.__avetoPixelPageView = function () {
+    if (!granted || rotaSensivel()) return false;
+    fbq("track", "PageView");
+    return true;
+  };
 })();
