@@ -22,6 +22,7 @@ import { consumePendingInviteToken } from "@/lib/auth/invite";
 import { z } from "zod";
 import { toast } from "sonner";
 import { trackEvent, FunnelStep } from "@/lib/analytics";
+import { safeReferrer } from "@/lib/security/trackingPrivacy";
 import loginDesktop from "@/assets/aveto360-login-desktop-v2.png.asset.json";
 import loginMobile from "@/assets/aveto360-login-mobile-v2.png.asset.json";
 
