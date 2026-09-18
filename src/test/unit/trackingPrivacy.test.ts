@@ -130,12 +130,12 @@ describe("carga inicial antes do React (scripts reais)", () => {
   });
 
   it("rota pública envia apenas URL sanitizada e referrer reduzido", () => {
-    const chamadas = rodarGtag("https://aveto360.com/planos?utm_source=email&email=alguem@exemplo.com");
+    const chamadas = rodarGtag("https://aveto360.com/planos?utm_source=email&ref=parceiro-ficticio");
     const config = chamadas.find((c) => c[0] === "config") as [string, string, Record<string, string>];
     expect(config[2].page_path).toBe("/planos?utm_source=email");
     expect(config[2].page_location).toBe("https://aveto360.com/planos?utm_source=email");
     expect(config[2].page_referrer).toBe("https://google.com");
-    expect(JSON.stringify(chamadas)).not.toContain("alguem@exemplo.com");
+    expect(JSON.stringify(chamadas)).not.toContain("parceiro-ficticio");
   });
 
   it("pixel da Meta respeita consentimento e rota sensível", () => {
@@ -149,7 +149,12 @@ describe("carga inicial antes do React (scripts reais)", () => {
       (win.document as { getElementsByTagName: unknown }).getElementsByTagName = () => [
         { parentNode: { insertBefore: () => undefined } },
       ];
-      new Function("window", "document", "localStorage", metaPixel)(win, win.document, win.localStorage);
+      // `with` dá ao script o mesmo alcance global simulado (o pixel usa `fbq` solto).
+      new Function("window", "document", "localStorage", `with (window) {\n${metaPixel}\n}`)(
+        win,
+        win.document,
+        win.localStorage,
+      );
       const fbq = win.fbq as (...args: unknown[]) => void;
       const original = fbq;
       win.fbq = (...args: unknown[]) => {
@@ -216,12 +221,12 @@ describe("eventos manuais (trackEvent) no app", () => {
   });
 
   it("registra em rota pública com contexto sanitizado", () => {
-    irPara("/planos?utm_source=email&email=alguem@exemplo.com");
+    irPara("/planos?utm_source=email&ref=parceiro-ficticio");
     trackEvent("cta_click_trial");
     expect(window.dataLayer).toHaveLength(1);
     const evento = JSON.stringify(window.dataLayer[0]);
     expect(evento).toContain("/planos?utm_source=email");
-    expect(evento).not.toContain("alguem@exemplo.com");
+    expect(evento).not.toContain("parceiro-ficticio");
     expect(evento).not.toContain(TOKEN_FICTICIO);
   });
 
