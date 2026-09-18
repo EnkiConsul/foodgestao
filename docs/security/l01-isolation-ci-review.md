@@ -13,6 +13,10 @@ Esta alteração separa testes remotos dos testes unitários, exige identificaç
 
 ## Evidências e limites
 
+### L02: restringir consultas internas de admissão e remuneração
+
+Migration 20260918104932 restringe três assinaturas auxiliares ao serviço/proprietário. Vazamento reproduzido em homologação; testes pós-migration confirmaram negação de chamadas anônimas/autenticadas e manutenção do cálculo e das regras no serviço. Detalhes e limites: [l02-internal-reads.md](l02-internal-reads.md). AUD-011 continua parcial; produção inalterada.
+
 ### L02: leitura de configurações por empresa
 
 Migration 20260918020000 aplicada somente na homologação: dp_config_resolvida e dp_ferias_config agora usam SECURITY INVOKER e respeitam RLS nas chamadas diretas. Regressão SQL reproduziu o vazamento anterior e confirmou isolamento após a correção, incluindo usuário bloqueado, vínculo removido, portal ativo e contexto de serviço. Fixtures revertidas. AUD-011 permanece parcialmente pendente; jornadas completas e produção não foram validadas. Detalhes em [l02-config-isolation.md](l02-config-isolation.md), teste manual em scripts/qa/l02-config-isolation.sql.
