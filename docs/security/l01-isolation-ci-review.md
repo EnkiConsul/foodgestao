@@ -13,6 +13,13 @@ Esta alteração separa testes remotos dos testes unitários, exige identificaç
 
 ## Evidências e limites
 
+### Inferência nas pendências de gestor e colaborador
+
+Removidas 44 anotações any de callbacks em useDpPendencias e useDpPendenciasColaborador. Duas consultas também deixaram de converter o nome da tabela para any: ambas já existem no schema gerado. O conjunto de aceites admite os IDs nulos que já podiam vir da consulta; a data da licença tem a garantia documentada do filtro lte, que exclui NULL. Comparação do JavaScript sem comentários confirmou comportamento gerado idêntico nos dois arquivos.
+
+TypeScript strict completo passou com código 0. Lint dos dois arquivos passou sem erros e com 46 avisos a menos. Consolidação com o relatório completo anterior, mantendo os outros arquivos inalterados: 1698 avisos, zero erros. Ainda faltam reduzir 227 avisos para o teto 1471; não é aprovação do gate. Evidências: typecheck-pendencias-final.txt, eslint-pendencias.json e lint-pendencias-summary.json na homologação local.
+
+
 ### Redução de avisos com inferência dos callbacks
 
 Removidas 49 anotações any desnecessárias de callbacks onError que encaminham o erro diretamente a notifyError, em 17 hooks. O tipo do erro agora vem de useMutation. Comparação por transpileModule confirmou JavaScript idêntico antes e depois em todos os arquivos alterados; não houve alteração de comportamento.
