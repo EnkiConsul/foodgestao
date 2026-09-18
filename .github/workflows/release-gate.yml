@@ -83,7 +83,7 @@ jobs:
       - name: Vitest
         run: npm test
       - name: Proteções dos scripts operacionais
-        run: node --test scripts/restore-safety.test.mjs scripts/gates-prerequisites.test.mjs scripts/test-target-safety.test.mjs scripts/integration-report-check.test.mjs scripts/e2e-preflight.test.mjs
+        run: node --test scripts/restore-safety.test.mjs scripts/gates-prerequisites.test.mjs scripts/test-target-safety.test.mjs scripts/integration-report-check.test.mjs scripts/e2e-preflight.test.mjs scripts/e2e-session.test.mjs
 
   tenancy:
     name: Tenancy real (multiempresa)
@@ -265,7 +265,6 @@ jobs:
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
       VITE_SUPABASE_PROJECT_ID: ${{ secrets.TEST_EXPECTED_PROJECT_REF }}
       SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
-      LOVABLE_BROWSER_SUPABASE_SESSION_JSON: ${{ secrets.E2E_SUPABASE_SESSION_JSON }}
       E2E_BASE_URL: http://127.0.0.1:8080
       LOVABLE_BROWSER_AUTH_STATUS: injected
       LOVABLE_BROWSER_SUPABASE_STORAGE_KEY: sb-${{ secrets.TEST_EXPECTED_PROJECT_REF }}-auth-token
@@ -279,6 +278,12 @@ jobs:
         with:
           python-version: "3.12"
       - run: npm ci --no-audit --no-fund
+      - name: Criar sessão nova de homologação
+        env:
+          TEST_USER_A_EMAIL: ${{ secrets.TEST_USER_A_EMAIL }}
+          TEST_USER_A_PASSWORD: ${{ secrets.TEST_USER_A_PASSWORD }}
+        run: node scripts/e2e-session.mjs
+
       - name: Validar isolamento antes do build
         run: node scripts/e2e-preflight.mjs
 

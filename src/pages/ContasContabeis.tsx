@@ -204,7 +204,7 @@ export default function ContasContabeis() {
 
     // Verifica histórico ANTES de excluir: conta ou qualquer descendente com
     // categoria usada em lançamentos fica de fora.
-    let comHistorico = new Set<string>();
+    const comHistorico = new Set<string>();
     try {
       const universo = new Set<string>();
       deletable.forEach((id) => coletarArvore(id, childrenById).forEach((sid) => universo.add(sid)));

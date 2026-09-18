@@ -1,10 +1,9 @@
 import { pathToFileURL } from 'node:url';
 import { productionRef, validateCatalogEnvironment } from './test-target-safety.mjs';
 
-export function validateE2EEnvironment(env) {
+export function validateE2ETarget(env) {
   const required = ['E2E_BASE_URL', 'TEST_EXPECTED_PROJECT_REF', 'TEST_SUPABASE_URL',
     'TEST_SUPABASE_ANON_KEY', 'VITE_SUPABASE_URL', 'VITE_SUPABASE_PUBLISHABLE_KEY', 'VITE_SUPABASE_PROJECT_ID',
-    'LOVABLE_BROWSER_SUPABASE_SESSION_JSON', 'LOVABLE_BROWSER_SUPABASE_STORAGE_KEY',
     'SUPABASE_DB_URL'];
   if (required.some(key => !env[key]?.trim())) throw new Error('E2E: configuração obrigatória ausente.');
   const ref = env.TEST_EXPECTED_PROJECT_REF;
@@ -29,6 +28,11 @@ export function validateE2EEnvironment(env) {
   }
   validateCatalogEnvironment({...env, PGHOST: db.hostname, PGUSER: decodeURIComponent(db.username),
     PGPORT: db.port || '5432', PGDATABASE: decodeURIComponent(db.pathname.slice(1))});
+}
+
+export function validateE2EEnvironment(env) {
+  validateE2ETarget(env);
+  const ref = env.TEST_EXPECTED_PROJECT_REF;
   const session = JSON.parse(env.LOVABLE_BROWSER_SUPABASE_SESSION_JSON);
   const payload = JSON.parse(Buffer.from(session.access_token.split('.')[1], 'base64url').toString());
   // Routing/expiry check only. Supabase still verifies the JWT signature.

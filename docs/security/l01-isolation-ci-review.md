@@ -13,6 +13,15 @@ Esta alteração separa testes remotos dos testes unitários, exige identificaç
 
 ## Evidências e limites
 
+### Sessão E2E por execução e próximo bloqueio do CI
+
+O workflow agora autentica o usuário TEST_USER_A em cada execução e prepara a sessão curta no ambiente do job. Não depende mais do secret E2E_SUPABASE_SESSION_JSON. Destino/API/build/conexão QA são validados antes de transmitir a senha; redirects são recusados. Tokens e JSON de sessão são mascarados antes da gravação no GITHUB_ENV. Credenciais do usuário são fornecidas somente à etapa de login.
+
+Validação local: 66 testes de proteção aprovados, incluindo login simulado, recusa antes de qualquer chamada de rede, sessão expirada/divergente, identidade inconsistente e mascaramento. YAML validado. Não houve login remoto nem cadastramento de secrets nesta revisão; a execução E2E completa continua pendente das credenciais.
+
+O CI d30ef51, run 35303875456, passou pela etapa TypeScript strict e parou em ESLint: um erro prefer-const em ContasContabeis.tsx e 1793 warnings contra teto 1471. A variável comHistorico agora é const, preservando as alterações no Set; lint dirigido saiu com código 0. Os warnings continuam pendentes; o teto não foi elevado. Log: https://github.com/EnkiConsul/foodgestao/actions/runs/35303875456/job/105471961354.
+
+
 ### Isolamento E2E — revisão atual
 
 Os dez specs de navegador usam E2E_BASE_URL e configuração explícita de homologação; quatro referências fixas e chaves publicáveis de produção foram removidas. O teste multiempresa não usa cache de sessão e falha quando não há sessão ou duas empresas. O helper Python comum valida o ambiente também na execução direta de specs e rotinas QA.
