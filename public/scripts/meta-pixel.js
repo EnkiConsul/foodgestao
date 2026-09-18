@@ -66,7 +66,10 @@
     if (allow && !granted) {
       granted = true;
       fbq("consent", "grant");
-      if (!rotaSensivel()) fbq("track", "PageView");
+      if (!rotaSensivel()) {
+        carregarBiblioteca();
+        fbq("track", "PageView");
+      }
     } else if (!allow && granted) {
       granted = false;
       fbq("consent", "revoke");
@@ -76,6 +79,7 @@
   /** Visualização de rota do SPA: sempre reavalia rota sensível e consentimento. */
   window.__avetoPixelPageView = function () {
     if (!granted || rotaSensivel()) return false;
+    carregarBiblioteca();
     fbq("track", "PageView");
     return true;
   };
