@@ -339,7 +339,7 @@ export default function ExtratoConciliacao() {
       notes: notes(),
       landscape: true,
     });
-    if (!ok) toast.error("Permita janelas pop-up para gerar o PDF");
+    if (!ok) toast.error("Não foi possível abrir a impressão do PDF");
   };
 
   const handleXlsx = async () => {

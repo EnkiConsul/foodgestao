@@ -380,7 +380,7 @@ export function FluxoCaixaDrilldown({
           },
         ],
       });
-      if (!ok) toast.error("Permita pop-ups para gerar o PDF");
+      if (!ok) toast.error("Não foi possível abrir a impressão do PDF");
     } catch {
       toast.error("Não foi possível gerar o PDF");
     } finally {
