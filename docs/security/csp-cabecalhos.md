@@ -49,18 +49,20 @@ proprietário e envolve SSL e janela de indisponibilidade.
 
 ## 2. Valores de cabeçalho da fase 1 (fonte única)
 
-Gerados por `src/lib/security/csp.ts`. Para imprimi-los:
+Fonte: `src/lib/security/csp.ts`. Os valores **literais**, prontos para colar em
+qualquer painel, ficam em `docs/security/csp-headers-phase1.json`, gerado a
+partir da fonte por:
 
 ```bash
-bunx tsx -e "import('./src/lib/security/csp.ts').then(m=>console.log(JSON.stringify(m.cspHeadersFase1(),null,2)))"
+bun scripts/gerar-csp-headers-json.ts
 ```
 
 Fase 1 = observação + anticlickjacking:
 
 | Cabeçalho | Efeito |
 | --- | --- |
-| `Content-Security-Policy-Report-Only: <cspReportOnlyHeaderValue()>` | não bloqueia nada; só relata |
-| `Content-Security-Policy: frame-ancestors <lista>` | bloqueia embutir o app em sites terceiros (mantém o editor da Lovable) |
+| `Content-Security-Policy-Report-Only` | não bloqueia nada; só relata |
+| `Content-Security-Policy: frame-ancestors <lista>` | bloqueia embutir o app em sites de terceiros |
 | `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` | reforço padrão |
 
 Sem `report-uri`/`report-to`: **nenhum coletor público foi criado**. As
@@ -68,30 +70,53 @@ violações são observadas no console do navegador, via o ouvinte sanitizado
 `installCspViolationLogger()` (registra apenas diretiva + origem; descarta
 caminho, query string, `sample`, CPF, senha e token).
 
-## 3. Configuração pronta — Cloudflare (zona do proprietário, plano gratuito)
+### `frame-ancestors`: somente origens exatas
 
-Regras → **Transform Rules** → **Modify Response Header** → Create rule.
+A lista é `'self'`, `https://aveto360.com`, `https://www.aveto360.com`,
+`https://lovable.dev` e a origem exata do preview deste projeto
+(`https://id-preview--ceeb4a17-6191-46b0-a351-c97a8211c03e.lovable.app`).
 
-- Expressão (aplica a todo o site):
-  `(http.host in {"aveto360.com" "www.aveto360.com"})`
-- Ações **Set static**:
-  - `Content-Security-Policy-Report-Only` = valor de `cspReportOnlyHeaderValue()`
-  - `Content-Security-Policy` = valor de `cspFrameAncestorsHeaderValue()`
-  - `X-Content-Type-Options` = `nosniff`
-  - `Permissions-Policy` = `geolocation=(), microphone=(), camera=()`
+**Proibido curinga**: `https://*.lovable.app` (e `https://*.lovable.dev`) é
+espaço multi-inquilino — qualquer pessoa publica um app nesse domínio e passaria
+a poder embutir a nossa tela de login em iframe, o que é exatamente o ataque que
+esta diretiva existe para impedir. Um teste em `src/test/unit/csp.test.ts`
+falha se algum curinga voltar para a lista. Se o editor precisar de outra
+origem, acrescente a origem exata — nunca um curinga.
 
-Requer que a zona esteja no Cloudflare do proprietário e em modo proxy. Não
-altere DNS nem contrate serviço para isso sem decisão explícita — Transform
-Rules são gratuitas, mas a zona precisa existir lá.
+## 3. Onde aplicar: CDN/proxy reverso próprio na frente da Lovable
 
-## 4. Configuração pronta — nginx (se houver proxy próprio)
+A hospedagem não expõe configuração de cabeçalhos, e hoje o domínio vai direto
+para ela (Namecheap → A `185.158.133.1`), sem camada intermediária. A rota
+suportada é a da seção *Advanced* de
+[custom domain](https://docs.lovable.dev/features/custom-domain): manter **uma
+CDN ou proxy reverso do próprio cliente na frente da Lovable**, com o SSL e as
+regras administradas nessa camada. Em termos práticos, a camada escolhida passa
+a ser quem responde ao navegador em `aveto360.com`, encaminha as requisições
+para a hospedagem e acrescenta os cabeçalhos da fase 1 na resposta.
+
+Decisões que **não** estão tomadas aqui e dependem do proprietário: qual
+provedor de CDN/proxy usar, como o domínio passará a ser entregue por ele e o
+tratamento do certificado. Nada neste repositório altera DNS, e este documento
+não instrui ativar proxy sobre o registro A atual.
+
+## 4. Configuração pronta — nginx (proxy reverso próprio)
+
+Valores literais em `docs/security/csp-headers-phase1.json`; o exemplo abaixo
+mostra o `frame-ancestors` final, sem curinga:
 
 ```nginx
-add_header Content-Security-Policy-Report-Only "<cspReportOnlyHeaderValue()>" always;
-add_header Content-Security-Policy "frame-ancestors 'self' https://aveto360.com https://www.aveto360.com https://lovable.dev https://*.lovable.dev https://*.lovable.app" always;
+add_header Content-Security-Policy-Report-Only "<valor de csp_report_only no JSON>" always;
+add_header Content-Security-Policy "frame-ancestors 'self' https://aveto360.com https://www.aveto360.com https://lovable.dev https://id-preview--ceeb4a17-6191-46b0-a351-c97a8211c03e.lovable.app" always;
 add_header X-Content-Type-Options "nosniff" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
 ```
+
+Se a camada escolhida for o Cloudflare do próprio cliente, os mesmos valores vão
+em Rules → Transform Rules → Modify Response Header → *Set static*, com
+expressão `(http.host in {"aveto360.com" "www.aveto360.com"})`. Isso pressupõe a
+zona já operando lá — o que hoje não é o caso.
+
 
 ## 5. Como verificar depois de aplicar
 
