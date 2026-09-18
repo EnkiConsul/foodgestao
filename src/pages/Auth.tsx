@@ -166,7 +166,8 @@ export default function Auth() {
     if (isSignup && !signupViewTracked.current) {
       signupViewTracked.current = true;
       trackEvent(FunnelStep.SignupFormView, {
-        referrer: document.referrer || "direct",
+        // AUD-021: origem reduzida, nunca a URL de origem completa.
+        referrer: safeReferrer(document.referrer, window.location.origin),
       });
     }
     if (!isSignup) signupViewTracked.current = false;
