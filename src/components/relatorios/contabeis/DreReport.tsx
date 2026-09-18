@@ -43,17 +43,15 @@ export function DreReport({ nodes, onSelectAnalytic, from, to, regime, contextLa
       .map(
         (n) => `
         <tr>
-          <td>${n.code}</td>
-          <td>${n.name}</td>
-          <td class="num">${fmt(Number(n.saldo_proprio || 0) * dreSign(n))}</td>
+          <td>${escapeHtml(n.code)}</td>
+          <td>${escapeHtml(n.name)}</td>
+          <td class="num">${escapeHtml(fmt(Number(n.saldo_proprio || 0) * dreSign(n)))}</td>
         </tr>`
       )
       .join("");
 
-    const pdfWindow = window.open("", "_blank");
-    if (!pdfWindow) return;
-    pdfWindow.document.write(`
-      <!DOCTYPE html><html><head><title>DRE Gerencial ${periodLabel}</title>
+    const html = `
+      <!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>DRE Gerencial ${escapeHtml(periodLabel)}</title>
       <style>
         body { font-family: Arial, sans-serif; font-size: 11px; padding: 16px; color: #111; }
         h1 { font-size: 18px; margin: 0 0 4px; }
