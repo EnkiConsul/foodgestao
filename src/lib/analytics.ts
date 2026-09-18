@@ -1,52 +1,32 @@
-// Lightweight analytics helpers for GA4 + GTM dataLayer.
-// Safe to call in any environment — no-ops when gtag/dataLayer are unavailable.
-//
-// AUD-021: nenhum evento sai em rota sensível (login, ativação, recuperação,
-// convite, OAuth) ou em URL com credencial temporária na query/fragmento. O
-// contexto de página é sanitizado por allowlist: caminho + parâmetros de
-// campanha, sem fragmento, sem IDs sensíveis e sem referrer bruto.
+/**
+ * Métricas de marketing — DESATIVADAS (AUD-021).
+ *
+ * Nenhum SDK de Google Analytics ou pixel da Meta é carregado neste
+ * aplicativo, e este módulo não envia, não enfileira e não guarda nada para
+ * reenvio futuro: `trackEvent` é intencionalmente um no-op.
+ *
+ * Motivo: os SDKs leem a URL por conta própria (medição avançada e captura
+ * automática de eventos), então nenhuma sanitização feita aqui impediria o
+ * vazamento de credenciais temporárias presentes em links de ativação,
+ * recuperação, convite e autorização. Enquanto as páginas de marketing não
+ * estiverem isoladas das páginas autenticadas, a contenção previsível é não
+ * ter tracker algum.
+ *
+ * Os sanitizadores continuam em `@/lib/security/trackingPrivacy` para o
+ * trabalho futuro de reativação. Consulte
+ * docs/security/metricas-marketing-desativadas.md antes de religar qualquer
+ * coisa; a assinatura pública abaixo é mantida somente para não obrigar as
+ * telas a mudar.
+ *
+ * O registro de violações de CSP (`@/lib/security/cspViolationLogger`) é outra
+ * coisa: é segurança, fica apenas no console e permanece ativo.
+ */
 
-import { isSensitiveLocation, sanitizePath, sanitizeUrl } from "@/lib/security/trackingPrivacy";
-
-declare global {
-  interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    dataLayer?: any[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    gtag?: (...args: any[]) => void;
-  }
-}
-
-type Params = Record<string, unknown>;
-
-function withPageContext(params: Params = {}): Params {
-  if (typeof window === "undefined") return params;
-  const { origin, pathname, search } = window.location;
-  return {
-    page_location: sanitizeUrl(origin, pathname, search),
-    page_path: sanitizePath(pathname, search),
-    ...params,
-  };
-}
-
-/** Push an event to GTM dataLayer AND send it via GA4 gtag. */
-export function trackEvent(eventName: string, params: Params = {}) {
-  if (typeof window === "undefined") return;
-  const { pathname, search, hash } = window.location;
-  // Rota sensível ou URL com credencial: nada é registrado, nem no dataLayer.
-  if (isSensitiveLocation(pathname, search, hash)) return;
-  const payload = withPageContext(params);
-  try {
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({ event: eventName, ...payload });
-  } catch {
-    /* noop */
-  }
-  try {
-    window.gtag?.("event", eventName, payload);
-  } catch {
-    /* noop */
-  }
+/** Nome do passo do funil. Nenhum dado de evento é aceito nem lido. */
+export function trackEvent(_eventName: string, _params?: Record<string, unknown>): void {
+  // Desativado de propósito: nenhuma camada de dados é criada, nenhum SDK é
+  // chamado e nada é acumulado para reenvio — fila guardada viraria vazamento.
+  return;
 }
 
 /** Funnel step names used across the landing → signup flow. */

@@ -41,9 +41,15 @@ describe("CSP — index.html sem script inline executável", () => {
     expect(new Set(CSP_INLINE_SCRIPT_HASHES)).toEqual(new Set(hashes));
   });
 
-  it("os scripts próprios são carregados de arquivos do próprio domínio", () => {
-    expect(html).toContain('src="/scripts/gtag-init.js"');
-    expect(html).toContain('src="/scripts/meta-pixel.js"');
+  it("AUD-021: nenhum SDK de marketing é carregado pela página", () => {
+    expect(html).not.toContain("/scripts/gtag-init.js");
+    expect(html).not.toContain("/scripts/meta-pixel.js");
+    expect(html).not.toContain("/scripts/tracking-privacy.js");
+    expect(html).not.toContain("googletagmanager.com");
+    expect(html).not.toContain("connect.facebook.net");
+    expect(html).not.toContain("facebook.com/tr");
+    // Nem pré-conexão/prefetch para os domínios de tracker.
+    expect(html).not.toMatch(/rel="(preconnect|dns-prefetch|preload|prefetch)"[^>]*(google|facebook)/i);
   });
 });
 
