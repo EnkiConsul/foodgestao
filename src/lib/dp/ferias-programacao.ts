@@ -7,6 +7,7 @@
 // impressão é o único ponto que toca no browser.
 // ------------------------------------------------------------------
 
+import { imprimirHtmlEmQuadro } from "@/lib/print/imprimirHtml";
 import {
   nivelVencimentoPeriodo,
   periodosComAcumulo,
