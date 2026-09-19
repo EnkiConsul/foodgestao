@@ -9,6 +9,7 @@
 import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
 import { serviceClient } from "../_shared/authz.ts";
 import { ipRateLimited, isRateLimited, sha256Hex } from "../_shared/rate-limit.ts";
+import { avaliarSenha, SENHA_MIN } from "../_shared/password-policy.ts";
 import {
   confirmarToken,
   liberarToken,
@@ -20,15 +21,9 @@ import {
 const MAX_POR_IP = 20;
 const MAX_POR_TOKEN = 8;
 
+// Regra única de senha nova (S3), espelhada de src/lib/security/passwordPolicy.ts
 function senhaForte(s: string): boolean {
-  return (
-    s.length >= 8 &&
-    s.length <= 72 &&
-    /[A-Z]/.test(s) &&
-    /[a-z]/.test(s) &&
-    /[0-9]/.test(s) &&
-    /[^A-Za-z0-9]/.test(s)
-  );
+  return avaliarSenha(s).valida;
 }
 
 Deno.serve(async (req) => {
@@ -63,7 +58,8 @@ Deno.serve(async (req) => {
     if (!senhaForte(novaSenha)) {
       return jsonResponse(req, 400, {
         error:
-          "A senha precisa ter ao menos 8 caracteres, com maiúscula, minúscula, número e um símbolo.",
+          avaliarSenha(novaSenha).mensagem ??
+          `A senha precisa ter ao menos ${SENHA_MIN} caracteres, com maiúscula, minúscula, número e um símbolo.`,
       });
     }
 

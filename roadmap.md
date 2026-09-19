@@ -91,3 +91,13 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [x] Google Analytics e pixel da Meta desativados no aplicativo inteiro (sem SDK, sem fila, sem noscript/prefetch); `trackEvent` e visualizações de página são no-op.
 - [ ] Reativar somente após isolar as páginas de marketing das rotas autenticadas e dos links com credencial — condições em `docs/security/metricas-marketing-desativadas.md`. BLOQUEADO por essa separação.
 - [ ] Publicar a desativação (aguardando decisão do proprietário).
+
+## S3 — Política de senhas (2026-09-19)
+- [x] Regra única de senha nova: 12+ caracteres, quatro classes, até 72 bytes (recusa explícita, sem truncar), bloqueio de senhas comuns/padrões e de nome/e-mail/CPF — `src/lib/security/passwordPolicy.ts` espelhada em `supabase/functions/_shared/password-policy.ts`.
+- [x] Aplicada em criar conta, redefinição por link, primeiro acesso, recuperação por código e portal do colaborador (subiu de 8 para 12); login legado de 6 preservado.
+- [x] Medidor de força local em português (`src/components/auth/MedidorSenha.tsx`), sem biblioteca externa e sem enviar senha a terceiros.
+- [x] Edges ajustadas: `dp-alterar-senha-colaborador` e `auth-recovery-reset`.
+- [x] Bloqueio de senhas vazadas ativado na configuração gerenciada (resposta: configuração atualizada com sucesso).
+- [ ] Conferir na interface o mínimo de caracteres e as classes exigidas pelo serviço de contas (fora do alcance das ferramentas).
+- [ ] Obrigar verificação em duas etapas (ex.: Open Finance) — item separado, exige implantação gradual.
+- [ ] Publicar o frontend (aguardando decisão do proprietário).

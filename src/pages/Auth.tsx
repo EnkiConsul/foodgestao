@@ -20,6 +20,8 @@ import { resolveLandingTarget, landingPathFor } from "@/lib/auth/landing";
 import { consumePendingInviteToken } from "@/lib/auth/invite";
 
 import { z } from "zod";
+import { avaliarSenha } from "@/lib/security/passwordPolicy";
+import { MedidorSenha } from "@/components/auth/MedidorSenha";
 import { toast } from "sonner";
 import { trackEvent, FunnelStep } from "@/lib/analytics";
 import loginDesktop from "@/assets/aveto360-login-desktop-v2.png.asset.json";
@@ -36,12 +38,18 @@ const loginSchema = z.object({
 
 const signupSchema = z.object({
   email: z.string().trim().email("E-mail inválido").max(255),
-  password: z.string().min(6, "Mínimo 6 caracteres").max(128),
+  // Regra única de senha nova (S3): src/lib/security/passwordPolicy.ts
+  password: z.string().max(200),
   fullName: z.string().trim().min(2, "Nome deve ter ao menos 2 caracteres").max(100),
   confirmPassword: z.string(),
   acceptTerms: z.literal(true, {
     errorMap: () => ({ message: "Você precisa aceitar os Termos e a Política de Privacidade" }),
   }),
+}).superRefine((d, ctx) => {
+  const av = avaliarSenha(d.password, { nome: d.fullName, email: d.email });
+  if (!av.valida) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message: av.mensagem as string });
+  }
 }).refine((d) => d.password === d.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
@@ -676,6 +684,7 @@ export default function Auth() {
                     {errors.password}
                   </p>
                 )}
+                {isSignup && <MedidorSenha senha={password} dados={{ nome: fullName, email }} />}
               </div>
             )}
 

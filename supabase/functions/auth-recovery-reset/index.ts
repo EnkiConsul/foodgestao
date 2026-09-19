@@ -3,11 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { ipRateLimited } from "../_shared/rate-limit.ts";
+import { avaliarSenha, SENHA_MIN } from "../_shared/password-policy.ts";
 
 const BodySchema = z.object({
   challenge_id: z.string().uuid(),
   reset_token: z.string().min(32).max(128),
-  new_password: z.string().min(12).max(128),
+  new_password: z.string().min(SENHA_MIN).max(200),
 });
 
 const MAX_RESET_PER_IP_PER_HOUR = 10;
@@ -25,13 +26,9 @@ async function sha256Hex(text: string): Promise<string> {
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Regra única de senha nova (S3), espelhada de src/lib/security/passwordPolicy.ts
 function isStrongPassword(pw: string): boolean {
-  if (pw.length < 12) return false;
-  const hasLower = /[a-z]/.test(pw);
-  const hasUpper = /[A-Z]/.test(pw);
-  const hasDigit = /\d/.test(pw);
-  const hasSymbol = /[^A-Za-z0-9]/.test(pw);
-  return hasLower && hasUpper && hasDigit && hasSymbol;
+  return avaliarSenha(pw).valida;
 }
 
 Deno.serve(async (req) => {
@@ -60,7 +57,8 @@ Deno.serve(async (req) => {
 
   if (!isStrongPassword(body.new_password)) {
     return json(400, {
-      error: "A senha deve ter no mínimo 12 caracteres, com maiúscula, minúscula, número e símbolo.",
+      error: avaliarSenha(body.new_password).mensagem ??
+        `A senha deve ter no mínimo ${SENHA_MIN} caracteres, com maiúscula, minúscula, número e símbolo.`,
       code: "weak_password",
     });
   }
