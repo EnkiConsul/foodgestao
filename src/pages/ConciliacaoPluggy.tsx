@@ -1031,19 +1031,35 @@ export default function ConciliacaoPluggy() {
       return;
     }
     setClearing(true);
-    const { data, error } = await supabase.rpc("pluggy_clear_pending_staging", {
-      _company_id: selectedCompanyId,
-      _connection_id: connectionId === "all" ? null : connectionId,
-    });
+    // Apaga somente as linhas pendentes carregadas nesta tela (escopo/filtro
+    // atual): a exclusão por empresa/conexão atingia contas fora da visão.
+    const removidosSet = new Set<string>();
+    let total = 0;
+    let erro: string | null = null;
+    for (let i = 0; i < ids.length; i += 2000) {
+      const chunk = ids.slice(i, i + 2000);
+      const { data, error } = await supabase.rpc("pluggy_clear_pending_staging", {
+        _company_id: selectedCompanyId,
+        _ids: chunk,
+      });
+      if (error) {
+        erro = error.message;
+        break;
+      }
+      chunk.forEach((id) => removidosSet.add(id));
+      total += Number(data ?? 0);
+    }
     setClearing(false);
     setClearOpen(false);
-    if (error) {
-      toast.error("Não foi possível limpar o extrato pendente", { description: error.message });
+    if (removidosSet.size > 0) {
+      setRows((prev) => prev.filter((r) => !removidosSet.has(r.id)));
+      setSelected(new Set());
+    }
+    if (erro) {
+      toast.error("Não foi possível limpar o extrato pendente", { description: erro });
       return;
     }
-    setRows((prev) => prev.filter((r) => r.status !== "pending" || (connectionId !== "all" && r.connection_id !== connectionId)));
-    setSelected(new Set());
-    toast.success(`${Number(data ?? ids.length)} lançamento(s) pendente(s) removido(s).`);
+    toast.success(`${total} lançamento(s) pendente(s) removido(s).`);
   };
 
 
