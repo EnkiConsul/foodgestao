@@ -233,6 +233,18 @@ export default function Auth() {
   };
 
 
+  // Foco no primeiro campo inválido somente depois de um envio inválido
+  // (nunca durante a digitação), na ordem visual do formulário.
+  const focarPrimeiroCampoInvalido = (fieldErrors: Record<string, string>) => {
+    const ordem = ["fullName", "identifier", "email", "password", "confirmPassword", "acceptTerms"];
+    const primeiro = ordem.find((campo) => fieldErrors[campo]);
+    if (!primeiro) return;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(primeiro);
+      if (el instanceof HTMLElement) el.focus();
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
