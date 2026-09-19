@@ -9,8 +9,8 @@
 import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
 import { serviceClient } from "../_shared/authz.ts";
 import { ipRateLimited, isRateLimited, sha256Hex } from "../_shared/rate-limit.ts";
-import {
 import { avaliarSenha, SENHA_MIN } from "../_shared/password-policy.ts";
+import {
   confirmarToken,
   liberarToken,
   registrarEvento,
