@@ -28,6 +28,13 @@ Deno.test("senhas comuns e padrões óbvios são recusados", () => {
   }
 });
 
+Deno.test("sequência numérica e símbolo do conjunto aceito", () => {
+  assert(!avaliarSenha("Trilha123456#Vx").valida, "sequência numérica deve ser recusada");
+  assert(!avaliarSenha("Trilha Verde42x").valida, "espaço não é símbolo");
+  assert(!avaliarSenha("TrilhaVerdeçã42").valida, "letra acentuada não é símbolo");
+  assert(avaliarSenha("Trilha Verde42x#").valida);
+});
+
 Deno.test("as duas funções de senha recusam antes de mudar credencial ou token", async () => {
   const dp = await Deno.readTextFile(
     new URL("../dp-alterar-senha-colaborador/index.ts", import.meta.url),

@@ -75,6 +75,38 @@ describe("regra única de senha (S3)", () => {
     expect(forte.rotulo === "Forte" || forte.rotulo === "Muito forte").toBe(true);
   });
 
+  it("pega sequência numérica mesmo em senha longa e complexa", () => {
+    const r = avaliarSenha("Trilha123456#Vx");
+    expect(r.problemas).toContain("sequencial");
+    expect(r.valida).toBe(false);
+    expect(avaliarSenha("Verde#98765Trz").problemas).toContain("sequencial");
+  });
+
+  it("espaço ou letra acentuada não contam como símbolo", () => {
+    expect(avaliarSenha("Trilha Verde42x").problemas).toContain("sem_simbolo");
+    expect(avaliarSenha("TrilhaVerdeçã42").problemas).toContain("sem_simbolo");
+    expect(avaliarSenha("Trilha Verde42x#").valida).toBe(true);
+  });
+
+  it("mensagem do limite fala em bytes", () => {
+    const r = avaliarSenha("Aa1!" + "ç".repeat(40));
+    expect(r.mensagem).toContain("72 bytes");
+  });
+
+  it("weak genérico não é tratado como vazamento", () => {
+    const generico = mensagemDoServidorDeContas("Password is too weak");
+    expect(generico).not.toContain("vazamentos");
+    expect(generico).toContain("fraca");
+    expect(mensagemDoServidorDeContas("password is known to be pwned")).toContain("vazamentos");
+  });
+
+  it("mensagem de senha nova fala em 12 caracteres", () => {
+    const auth = readFileSync("src/pages/Auth.tsx", "utf8");
+    const traducao = auth.slice(auth.indexOf("function translateAuthError"), auth.indexOf("function classifySignupError"));
+    expect(traducao).toContain("${SENHA_MIN} caracteres");
+    expect(traducao).not.toContain("mínimo 6 caracteres");
+  });
+
   it("traduz as recusas do serviço de contas", () => {
     expect(mensagemDoServidorDeContas("Password is known to be weak and easy to guess (pwned)")).toContain("vazamentos");
     expect(mensagemDoServidorDeContas("Password should be at least 12 characters")).toContain("12 caracteres");
