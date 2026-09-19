@@ -20,7 +20,7 @@ import { resolveLandingTarget, landingPathFor } from "@/lib/auth/landing";
 import { consumePendingInviteToken } from "@/lib/auth/invite";
 
 import { z } from "zod";
-import { avaliarSenha } from "@/lib/security/passwordPolicy";
+import { avaliarSenha, mensagemDoServidorDeContas, SENHA_MIN } from "@/lib/security/passwordPolicy";
 import { MedidorSenha } from "@/components/auth/MedidorSenha";
 import { toast } from "sonner";
 import { trackEvent, FunnelStep } from "@/lib/analytics";
@@ -59,8 +59,10 @@ type Mode = "login" | "signup" | "forgot" | "confirm-email";
 
 function translateAuthError(message: string): string {
   const m = message.toLowerCase();
+  // Erros de senha NOVA (cadastro/troca) seguem a regra de 12+; o login legado
+  // continua aceitando senha de 6 (ver loginSchema).
   if (m.includes("weak") || m.includes("pwned") || m.includes("known to be")) {
-    return "Senha comprometida ou muito fraca. Escolha outra com no mínimo 6 caracteres, combinando letras maiúsculas, minúsculas, números e símbolos.";
+    return mensagemDoServidorDeContas(message);
   }
   if (m.includes("email not confirmed") || m.includes("not confirmed")) {
     return "Seu e-mail ainda não foi confirmado. Abra o link que enviamos para a sua caixa de entrada e confirme o cadastro.";
@@ -69,7 +71,7 @@ function translateAuthError(message: string): string {
     return "Este e-mail já está cadastrado. Tente entrar ou recuperar sua senha.";
   }
   if (m.includes("password should be at least")) {
-    return "A senha deve ter no mínimo 6 caracteres.";
+    return `A senha nova deve ter no mínimo ${SENHA_MIN} caracteres.`;
   }
   if (m.includes("invalid") && m.includes("email")) {
     return "E-mail inválido.";
