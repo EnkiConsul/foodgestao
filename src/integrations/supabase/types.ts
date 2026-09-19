@@ -17080,10 +17080,12 @@ export type Database = {
         Args: { _company_id: string; _request_id?: string }
         Returns: number
       }
-      pluggy_clear_pending_staging: {
-        Args: { _company_id: string; _connection_id?: string }
-        Returns: number
-      }
+      pluggy_clear_pending_staging:
+        | {
+            Args: { _company_id: string; _connection_id?: string }
+            Returns: number
+          }
+        | { Args: { _company_id: string; _ids: string[] }; Returns: number }
       pluggy_clear_staging_suggestions: {
         Args: { _company_id: string; _ids: string[] }
         Returns: number
