@@ -21,6 +21,13 @@ export const SENHA_MIN = 12;
  */
 export const SENHA_MAX_BYTES = 72;
 
+/**
+ * Conjunto de símbolos aceito pelo servidor de contas (ASCII configurado lá).
+ * Espaço e letra acentuada NÃO contam como símbolo.
+ */
+export const SIMBOLOS_ACEITOS = "!@#$%^&*()_+-=[]{};'\\:\"|<>?,./`~";
+const RE_SIMBOLO = /[!@#$%^&*()_+\-=[\]{};'\\:"|<>?,./`~]/;
+
 export type SenhaProblema =
   | "curta"
   | "longa"
@@ -35,11 +42,11 @@ export type SenhaProblema =
 
 export const MENSAGENS_SENHA: Record<SenhaProblema, string> = {
   curta: `Use pelo menos ${SENHA_MIN} caracteres`,
-  longa: `A senha é longa demais: use até ${SENHA_MAX_BYTES} caracteres (acentos contam mais)`,
+  longa: `A senha passa do limite de ${SENHA_MAX_BYTES} bytes do servidor de contas — letras acentuadas e emojis ocupam mais de 1 byte cada`,
   sem_maiuscula: "Inclua ao menos 1 letra maiúscula",
   sem_minuscula: "Inclua ao menos 1 letra minúscula",
   sem_numero: "Inclua ao menos 1 número",
-  sem_simbolo: "Inclua ao menos 1 símbolo, como ! @ # ou *",
+  sem_simbolo: "Inclua ao menos 1 símbolo do conjunto aceito: ! @ # $ % ^ & * ( ) _ + - = [ ] { } ; ' : \" | < > ? , . / ` ~ (espaço e letra acentuada não valem)",
   comum: "Essa senha é muito comum. Escolha outra combinação",
   sequencial: "Evite sequências como 123456 ou abcdef",
   repetida: "Evite repetir o mesmo caractere muitas vezes",
@@ -89,11 +96,13 @@ export function tamanhoEmBytes(senha: string): number {
   return new TextEncoder().encode(senha).length;
 }
 
-function temSequencia(normalizada: string): boolean {
-  const limpa = normalizada.replace(/[^a-z0-9]/g, "");
-  for (const seq of SEQUENCIAS) {
-    for (let i = 0; i + 5 <= seq.length; i++) {
-      if (limpa.includes(seq.slice(i, i + 5))) return true;
+function temSequencia(...formas: string[]): boolean {
+  for (const forma of formas) {
+    const limpa = forma.replace(/[^a-z0-9]/g, "");
+    for (const seq of SEQUENCIAS) {
+      for (let i = 0; i + 5 <= seq.length; i++) {
+        if (limpa.includes(seq.slice(i, i + 5))) return true;
+      }
     }
   }
   return false;
@@ -103,9 +112,15 @@ function temRepeticao(senha: string): boolean {
   return /(.)\1{3,}/.test(senha);
 }
 
-function ehComum(normalizada: string): boolean {
-  const limpa = normalizada.replace(/[^a-z0-9]/g, "");
-  return COMUNS.some((c) => limpa.includes(c));
+const COMUNS_NORMALIZADOS = [
+  ...new Set(COMUNS.flatMap((c) => [normalizarBasico(c), normalizar(c).replace(/[^a-z0-9]/g, "")])),
+].filter((c) => c.length >= 4);
+
+function ehComum(...formas: string[]): boolean {
+  return formas.some((forma) => {
+    const limpa = forma.replace(/[^a-z0-9]/g, "");
+    return COMUNS_NORMALIZADOS.some((c) => limpa.includes(c));
+  });
 }
 
 /** Pedaços de dados pessoais que não podem aparecer na senha. */
@@ -156,13 +171,14 @@ export function avaliarSenha(
   if (!/[A-Z]/.test(senha)) problemas.push("sem_maiuscula");
   if (!/[a-z]/.test(senha)) problemas.push("sem_minuscula");
   if (!/[0-9]/.test(senha)) problemas.push("sem_numero");
-  if (!/[^A-Za-z0-9]/.test(senha)) problemas.push("sem_simbolo");
-  if (senha && ehComum(normalizada)) problemas.push("comum");
-  if (senha && temSequencia(normalizada)) problemas.push("sequencial");
+  if (!RE_SIMBOLO.test(senha)) problemas.push("sem_simbolo");
+  const basicaPrevia = normalizarBasico(senha);
+  if (senha && ehComum(basicaPrevia, normalizada)) problemas.push("comum");
+  if (senha && temSequencia(basicaPrevia, normalizada)) problemas.push("sequencial");
   if (senha && temRepeticao(senha)) problemas.push("repetida");
 
   const pedacos = pedacosPessoais(dados);
-  const basica = normalizarBasico(senha);
+  const basica = basicaPrevia;
   if (senha && pedacos.some((p) => basica.includes(p) || normalizada.replace(/[^a-z0-9]/g, "").includes(p))) {
     problemas.push("dado_pessoal");
   }
@@ -186,6 +202,10 @@ const ROTULOS: AvaliacaoSenha["rotulo"][] = [
   "Muito forte",
 ];
 
+/**
+ * Medidor local e HEURÍSTICO (não sai da máquina): serve apenas de orientação
+ * visual, não é medida de entropia real nem substitui a regra de avaliarSenha.
+ */
 /** Medidor local (não sai da máquina): tamanho, variedade e ausência de padrões óbvios. */
 export function medirForca(
   senha: string,
@@ -198,7 +218,7 @@ export function medirForca(
   if (senha.length >= SENHA_MIN) pontos += 1;
   if (senha.length >= 16) pontos += 1;
 
-  const classes = [/[A-Z]/, /[a-z]/, /[0-9]/, /[^A-Za-z0-9]/].filter((r) => r.test(senha)).length;
+  const classes = [/[A-Z]/, /[a-z]/, /[0-9]/, RE_SIMBOLO].filter((r) => r.test(senha)).length;
   if (classes >= 3) pontos += 1;
   if (classes === 4) pontos += 1;
   if (new Set(senha).size >= 10) pontos += 1;
@@ -220,7 +240,9 @@ export function mensagemDoServidorDeContas(msg: string): string {
     return MENSAGENS_SENHA.curta + ".";
   if (m.includes("different from the old") || m.includes("should be different"))
     return "Escolha uma senha diferente da anterior.";
-  if (m.includes("weak") || m.includes("pwned") || m.includes("compromised") || m.includes("leaked"))
+  if (m.includes("pwned") || m.includes("compromised") || m.includes("leaked") || m.includes("known to be"))
     return "Essa senha apareceu em vazamentos conhecidos. Escolha outra combinação.";
+  if (m.includes("weak"))
+    return "Essa senha foi recusada por ser fraca, comum ou por faltar maiúscula, minúscula, número ou símbolo. Escolha outra combinação.";
   return "Não foi possível salvar essa senha. Tente outra combinação.";
 }
