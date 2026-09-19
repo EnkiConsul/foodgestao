@@ -9,15 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCpf } from "@/lib/cpf";
+import { avaliarSenha } from "@/lib/security/passwordPolicy";
+import { MedidorSenha } from "@/components/auth/MedidorSenha";
 
-/** Regra alinhada ao servidor de contas e ao servidor da ativação. */
+/** Regra única de senha nova (S3): src/lib/security/passwordPolicy.ts */
 function validarSenha(senha: string): string | null {
-  if (senha.length < 8) return "Use pelo menos 8 caracteres";
-  if (!/[A-Z]/.test(senha)) return "Inclua ao menos 1 letra maiúscula";
-  if (!/[a-z]/.test(senha)) return "Inclua ao menos 1 letra minúscula";
-  if (!/[0-9]/.test(senha)) return "Inclua ao menos 1 número";
-  if (!/[^A-Za-z0-9]/.test(senha)) return "Inclua ao menos 1 símbolo, como ! @ # ou *";
-  return null;
+  return avaliarSenha(senha).mensagem;
 }
 
 /**

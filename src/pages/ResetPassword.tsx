@@ -8,12 +8,21 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { avaliarSenha, mensagemDoServidorDeContas } from "@/lib/security/passwordPolicy";
+import { MedidorSenha } from "@/components/auth/MedidorSenha";
 import { logAudit } from "@/lib/audit";
 
 const schema = z
   .object({
-    password: z.string().min(6, "Mínimo 6 caracteres").max(128),
+    // Regra única de senha nova (S3): src/lib/security/passwordPolicy.ts
+    password: z.string().max(200),
     confirmPassword: z.string(),
+  })
+  .superRefine((d, ctx) => {
+    const av = avaliarSenha(d.password);
+    if (!av.valida) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message: av.mensagem as string });
+    }
   })
   .refine((d) => d.password === d.confirmPassword, {
     message: "As senhas não coincidem",
