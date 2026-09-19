@@ -123,6 +123,8 @@ export default function ResetPassword() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
+                    name="password"
+                    autoComplete="new-password"
                     type="password"
                     placeholder="••••••"
                     value={password}
@@ -142,6 +144,8 @@ export default function ResetPassword() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="confirmPassword"
+                    name="confirmPassword"
+                    autoComplete="new-password"
                     type="password"
                     placeholder="••••••"
                     value={confirmPassword}

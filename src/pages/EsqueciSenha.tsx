@@ -193,6 +193,8 @@ export default function EsqueciSenha() {
                   <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="identifier"
+                    name="username"
+                    autoComplete="username"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                     placeholder="seu@email.com ou 000.000.000-00"
@@ -314,6 +316,8 @@ export default function EsqueciSenha() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="new-pw"
+                    name="password"
+                    autoComplete="new-password"
                     type={showPw ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
@@ -346,6 +350,8 @@ export default function EsqueciSenha() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="confirm-pw"
+                    name="confirmPassword"
+                    autoComplete="new-password"
                     type={showPw ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
