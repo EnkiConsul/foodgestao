@@ -142,8 +142,10 @@ export default function AtivarAcesso() {
                     {mostrar ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                <MedidorSenha senha={senha} />
                 <p className="text-xs text-muted-foreground">
-                  Pelo menos 8 caracteres, com maiúscula, minúscula, número e um símbolo (ex.: Ale!2026).
+                  Pelo menos 12 caracteres, com maiúscula, minúscula, número e um símbolo, sem
+                  sequências óbvias.
                 </p>
               </div>
               <div className="space-y-2">
