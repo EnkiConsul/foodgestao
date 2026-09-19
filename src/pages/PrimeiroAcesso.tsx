@@ -130,7 +130,7 @@ export default function PrimeiroAcesso() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10"
-                  maxLength={128}
+                  maxLength={72}
                   autoComplete="new-password"
                 />
                 <button
@@ -143,6 +143,7 @@ export default function PrimeiroAcesso() {
                   {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              <MedidorSenha senha={password} />
               {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
               <p className="text-xs text-muted-foreground">
                 Pelo menos 8 caracteres, com maiúscula, minúscula, número e um símbolo (ex.: Ale!2026).
@@ -158,7 +159,7 @@ export default function PrimeiroAcesso() {
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   className="pl-10"
-                  maxLength={128}
+                  maxLength={72}
                   autoComplete="new-password"
                 />
               </div>

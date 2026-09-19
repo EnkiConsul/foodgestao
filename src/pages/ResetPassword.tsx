@@ -122,11 +122,12 @@ export default function ResetPassword() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
-                    maxLength={128}
+                    maxLength={72}
                     autoFocus
                   />
                 </div>
                 {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+                <MedidorSenha senha={password} />
               </div>
 
               <div className="space-y-2">
@@ -140,7 +141,7 @@ export default function ResetPassword() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10"
-                    maxLength={128}
+                    maxLength={72}
                   />
                 </div>
                 {errors.confirmPassword && (
