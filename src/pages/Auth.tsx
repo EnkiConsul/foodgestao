@@ -751,7 +751,7 @@ export default function Auth() {
                 tema escuro para não herdar texto escuro. Sem opacity no hover. */}
             <Button
               type="submit"
-              className="h-9 w-full font-semibold bg-[#007A29] text-[#FFFFFF] hover:bg-[#006622] active:bg-[#006622] focus-visible:bg-[#007A29] disabled:bg-[#007A29] dark:bg-[#007A29] dark:text-[#FFFFFF] dark:hover:bg-[#006622] dark:active:bg-[#006622] dark:focus-visible:bg-[#007A29] dark:disabled:bg-[#007A29]"
+              className="h-9 w-full font-semibold bg-[#007A29] text-[#FFFFFF] hover:!bg-[#006622] active:!bg-[#006622] focus-visible:!bg-[#006622] disabled:!bg-[#007A29] dark:!bg-[#007A29] dark:!text-[#FFFFFF] dark:hover:!bg-[#006622] dark:active:!bg-[#006622] dark:focus-visible:!bg-[#006622] dark:disabled:!bg-[#007A29]"
               disabled={submitting || (isLogin && !!turnstileError)}
             >
               {submitting
