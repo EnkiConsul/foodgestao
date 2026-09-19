@@ -658,7 +658,7 @@ export default function Auth() {
                     placeholder="••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                     className="h-9 bg-background/80 pl-10 pr-12"
+                     className="h-11 bg-background/80 pl-10 pr-12"
                     maxLength={128}
                   />
                   <button
@@ -693,7 +693,7 @@ export default function Auth() {
                     placeholder="••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                     className="h-9 bg-background/80 pl-10 pr-12"
+                     className="h-11 bg-background/80 pl-10 pr-12"
                     maxLength={128}
                   />
                   <button
