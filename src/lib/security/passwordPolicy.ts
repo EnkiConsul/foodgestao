@@ -114,7 +114,8 @@ export function pedacosPessoais(dados?: {
   }
   const email = (dados?.email ?? "").trim();
   if (email) {
-    const local = normalizar(email).split("@")[0]?.replace(/[^a-z0-9]/g, "") ?? "";
+    // separa antes de normalizar: a normalização troca "@" por "a"
+    const local = normalizar(email.split("@")[0] ?? "").replace(/[^a-z0-9]/g, "");
     if (local.length >= 4) pedacos.push(local);
   }
   const cpf = (dados?.cpf ?? "").replace(/\D/g, "");
