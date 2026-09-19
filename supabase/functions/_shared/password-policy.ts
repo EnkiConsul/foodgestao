@@ -76,6 +76,15 @@ function normalizar(valor: string): string {
     .replace(/[7]/g, "t");
 }
 
+/** Só minúscula/sem acento e apenas letras e números: preserva dígitos (CPF). */
+function normalizarBasico(valor: string): string {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
 export function tamanhoEmBytes(senha: string): number {
   return new TextEncoder().encode(senha).length;
 }
@@ -108,14 +117,15 @@ export function pedacosPessoais(dados?: {
   const pedacos: string[] = [];
   const nome = (dados?.nome ?? "").trim();
   if (nome) {
-    for (const parte of normalizar(nome).split(/\s+/)) {
-      if (parte.length >= 4) pedacos.push(parte);
+    for (const parte of nome.split(/\s+/)) {
+      const limpa = normalizarBasico(parte);
+      if (limpa.length >= 4) pedacos.push(limpa);
     }
   }
   const email = (dados?.email ?? "").trim();
   if (email) {
     // separa antes de normalizar: a normalização troca "@" por "a"
-    const local = normalizar(email.split("@")[0] ?? "").replace(/[^a-z0-9]/g, "");
+    const local = normalizarBasico(email.split("@")[0] ?? "");
     if (local.length >= 4) pedacos.push(local);
   }
   const cpf = (dados?.cpf ?? "").replace(/\D/g, "");
@@ -152,7 +162,8 @@ export function avaliarSenha(
   if (senha && temRepeticao(senha)) problemas.push("repetida");
 
   const pedacos = pedacosPessoais(dados);
-  if (senha && pedacos.some((p) => normalizada.replace(/[^a-z0-9]/g, "").includes(p))) {
+  const basica = normalizarBasico(senha);
+  if (senha && pedacos.some((p) => basica.includes(p) || normalizada.replace(/[^a-z0-9]/g, "").includes(p))) {
     problemas.push("dado_pessoal");
   }
 
