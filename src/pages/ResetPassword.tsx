@@ -73,7 +73,13 @@ export default function ResetPassword() {
     const { error } = await supabase.auth.updateUser({ password });
     setSubmitting(false);
     if (error) {
-      toast.error("Erro ao redefinir senha", { description: error.message });
+      // Só erros de senha ganham tradução; expiração de link e outras falhas
+      // seguem com a mensagem original, para não mascarar a causa.
+      const bruto = error.message ?? "";
+      const ehErroDeSenha = /password|weak|pwned|leaked|compromised|known to be/i.test(bruto);
+      const descricao = ehErroDeSenha ? mensagemDoServidorDeContas(bruto) : bruto;
+      if (ehErroDeSenha) setErrors({ password: descricao });
+      toast.error("Erro ao redefinir senha", { description: descricao });
       return;
     }
     toast.success("Senha redefinida com sucesso");

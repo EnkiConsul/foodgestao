@@ -146,7 +146,8 @@ export default function PrimeiroAcesso() {
               <MedidorSenha senha={password} />
               {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
               <p className="text-xs text-muted-foreground">
-                Pelo menos 8 caracteres, com maiúscula, minúscula, número e um símbolo (ex.: Ale!2026).
+                Pelo menos 12 caracteres, com maiúscula, minúscula, número e um símbolo (espaço e
+                letra acentuada não valem como símbolo). Evite sequências, seu nome, e-mail ou CPF.
               </p>
             </div>
             <div className="space-y-2">
