@@ -319,7 +319,7 @@ export default function EsqueciSenha() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     className="pl-10 pr-10"
                     minLength={12}
-                    maxLength={128}
+                    maxLength={72}
                     autoFocus
                     required
                   />
@@ -333,6 +333,7 @@ export default function EsqueciSenha() {
                     {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                <MedidorSenha senha={newPassword} />
                 <p className="text-xs text-muted-foreground">
                   Mín. 12 caracteres com maiúscula, minúscula, número e símbolo.
                 </p>
