@@ -98,6 +98,7 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [x] Medidor de força local em português (`src/components/auth/MedidorSenha.tsx`), sem biblioteca externa e sem enviar senha a terceiros.
 - [x] Edges ajustadas: `dp-alterar-senha-colaborador` e `auth-recovery-reset`.
 - [x] Bloqueio de senhas vazadas ativado na configuração gerenciada (resposta: configuração atualizada com sucesso).
-- [ ] Conferir na interface o mínimo de caracteres e as classes exigidas pelo serviço de contas (fora do alcance das ferramentas).
+- [x] Configuração gerenciada verificada pelo proprietário: mínimo 12 salvo e confirmado ao reabrir, senhas vazadas marcadas e quatro classes exigidas.
+- [x] Revisão: sequência numérica também comparada na forma com dígitos, lista de senhas comuns normalizada, símbolo restrito ao conjunto ASCII do serviço, mensagem do limite em bytes, "fraca" genérica não descrita como vazamento e mensagem de senha nova em 12.
 - [ ] Obrigar verificação em duas etapas (ex.: Open Finance) — item separado, exige implantação gradual.
 - [ ] Publicar o frontend (aguardando decisão do proprietário).

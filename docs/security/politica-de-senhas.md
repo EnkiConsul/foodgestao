@@ -10,14 +10,18 @@ Vale para **todos os caminhos que definem senha**:
 
 - mínimo de **12** caracteres;
 - máximo de **72 bytes** (UTF-8) — limite real do bcrypt usado pelo serviço de
-  contas. Acima disso a senha é **recusada com mensagem**, nunca truncada em
-  silêncio (acentos e emojis ocupam mais de 1 byte);
+  contas. Acima disso a senha é **recusada com mensagem que fala em bytes**,
+  nunca truncada em silêncio (letra acentuada e emoji ocupam mais de 1 byte);
 - as **quatro classes** continuam obrigatórias: maiúscula, minúscula, número e
-  símbolo;
+  símbolo. Símbolo é só o conjunto ASCII aceito pelo serviço de contas
+  (`!@#$%^&*()_+-=[]{};'\:"|<>?,./` e `~`): **espaço e letra acentuada não
+  contam**;
 - bloqueio de senhas comuns e padrões óbvios (sequências de teclado e de
   números, repetição do mesmo caractere, raízes como `senha`, `password`,
   `aveto`, times, `teste`), comparando sem acento, sem caixa e desfazendo trocas
-  do tipo `@`→`a`, `0`→`o`, `3`→`e`;
+  do tipo `@`→`a`, `0`→`o`, `3`→`e`. A comparação roda nas **duas formas** — com
+  os dígitos preservados e com as trocas desfeitas — para que `123456` dentro de
+  uma senha longa e complexa também seja pego;
 - bloqueio de nome, parte local do e-mail e CPF dentro da senha.
 
 O **login não usa esta regra**: senha antiga de 6 caracteres continua entrando
@@ -35,7 +39,12 @@ normalmente (`loginSchema` em `src/pages/Auth.tsx` e `auth-login`).
 
 Medidor de força: `src/components/auth/MedidorSenha.tsx`. É **local** — a
 avaliação roda em memória, sem biblioteca externa e sem enviar a senha a
-terceiros.
+terceiros. É **heurístico**: orienta visualmente (tamanho, variedade e padrões
+óbvios) e não mede entropia real; o que aprova ou recusa é sempre `avaliarSenha`.
+
+Recusa genérica de "senha fraca" vinda do serviço de contas **não** é
+apresentada como vazamento: só quando a resposta indica vazamento (`pwned`,
+`leaked`, `compromised`, `known to be`) a mensagem fala em vazamentos.
 
 ## Servidor de contas gerenciado
 
@@ -43,6 +52,11 @@ terceiros.
 gerenciado: o arquivo só traz `project_id` e `verify_jwt` por função. Tamanho
 mínimo e classes obrigatórias do serviço são ajustados na própria configuração
 gerenciada (Usuários → Configurações de autenticação → E-mail).
+
+**Verificado pelo proprietário em 19/09/2026:** mínimo de **12** salvo e
+confirmado ao reabrir a tela (captura de tela), bloqueio de senhas vazadas
+marcado e as **quatro classes** exigidas. A regra do aplicativo está alinhada a
+essa configuração, inclusive no conjunto de símbolos.
 
 **Bloqueio de senhas vazadas: ATIVADO** em 19/09/2026 pela ferramenta nativa de
 configuração de autenticação, que respondeu `Auth configuration updated
