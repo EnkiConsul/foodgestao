@@ -144,8 +144,8 @@ export default function AtivarAcesso() {
                 </div>
                 <MedidorSenha senha={senha} />
                 <p className="text-xs text-muted-foreground">
-                  Pelo menos 12 caracteres, com maiúscula, minúscula, número e um símbolo, sem
-                  sequências óbvias.
+                  Pelo menos 12 caracteres, com maiúscula, minúscula, número e um símbolo (espaço e
+                  letra acentuada não valem como símbolo). Evite sequências, seu nome, e-mail ou CPF.
                 </p>
               </div>
               <div className="space-y-2">

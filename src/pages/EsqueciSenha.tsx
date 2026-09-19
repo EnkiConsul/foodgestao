@@ -335,7 +335,8 @@ export default function EsqueciSenha() {
                 </div>
                 <MedidorSenha senha={newPassword} />
                 <p className="text-xs text-muted-foreground">
-                  Mín. 12 caracteres com maiúscula, minúscula, número e símbolo.
+                  Mín. 12 caracteres com maiúscula, minúscula, número e símbolo (espaço e letra
+                  acentuada não valem). Evite sequências, seu nome, e-mail ou CPF.
                 </p>
               </div>
 
