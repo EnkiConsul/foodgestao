@@ -233,6 +233,18 @@ export default function Auth() {
   };
 
 
+  // Foco no primeiro campo inválido somente depois de um envio inválido
+  // (nunca durante a digitação), na ordem visual do formulário.
+  const focarPrimeiroCampoInvalido = (fieldErrors: Record<string, string>) => {
+    const ordem = ["fullName", "identifier", "email", "password", "confirmPassword", "acceptTerms"];
+    const primeiro = ordem.find((campo) => fieldErrors[campo]);
+    if (!primeiro) return;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(primeiro);
+      if (el instanceof HTMLElement) el.focus();
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
@@ -241,6 +253,7 @@ export default function Auth() {
       const emailParsed = z.string().trim().email("E-mail inválido").max(255).safeParse(email);
       if (!emailParsed.success) {
         setErrors({ email: emailParsed.error.errors[0].message });
+        focarPrimeiroCampoInvalido({ email: "erro" });
         return;
       }
       setSubmitting(true);
@@ -272,6 +285,7 @@ export default function Auth() {
         if (err.path[0]) fieldErrors[err.path[0] as string] = err.message;
       });
       setErrors(fieldErrors);
+      focarPrimeiroCampoInvalido(fieldErrors);
       if (isSignup) {
         trackEvent(FunnelStep.SignupValidationError, {
           method: "email",
@@ -546,6 +560,8 @@ export default function Auth() {
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="fullName"
+                    aria-invalid={errors.fullName ? true : undefined}
+                    aria-describedby={errors.fullName ? "erro-fullName" : undefined}
                     placeholder="Seu nome"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
@@ -553,7 +569,11 @@ export default function Auth() {
                     maxLength={100}
                   />
                 </div>
-                {errors.fullName && <p className="text-xs text-destructive">{errors.fullName}</p>}
+                {errors.fullName && (
+                  <p id="erro-fullName" role="alert" className="text-xs text-destructive">
+                    {errors.fullName}
+                  </p>
+                )}
               </div>
             )}
 
@@ -564,6 +584,8 @@ export default function Auth() {
                   <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="identifier"
+                    aria-invalid={errors.identifier ? true : undefined}
+                    aria-describedby={errors.identifier ? "erro-identifier" : undefined}
                     name="username"
                     type="text"
                     inputMode="email"
@@ -577,7 +599,11 @@ export default function Auth() {
                     autoCorrect="off"
                   />
                 </div>
-                {errors.identifier && <p className="text-xs text-destructive">{errors.identifier}</p>}
+                {errors.identifier && (
+                  <p id="erro-identifier" role="alert" className="text-xs text-destructive">
+                    {errors.identifier}
+                  </p>
+                )}
               </div>
             ) : (
               <div className="space-y-1">
@@ -586,6 +612,8 @@ export default function Auth() {
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
+                    aria-invalid={errors.email ? true : undefined}
+                    aria-describedby={errors.email ? "erro-email" : undefined}
                     name="email"
                     autoComplete="email"
                     type="email"
@@ -596,7 +624,11 @@ export default function Auth() {
                     maxLength={255}
                   />
                 </div>
-                {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+                {errors.email && (
+                  <p id="erro-email" role="alert" className="text-xs text-destructive">
+                    {errors.email}
+                  </p>
+                )}
               </div>
             )}
 
@@ -618,6 +650,8 @@ export default function Auth() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
+                    aria-invalid={errors.password ? true : undefined}
+                    aria-describedby={errors.password ? "erro-password" : undefined}
                     name="password"
                     autoComplete={isLogin ? "current-password" : "new-password"}
                     type={showPassword ? "text" : "password"}
@@ -637,7 +671,11 @@ export default function Auth() {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+                {errors.password && (
+                  <p id="erro-password" role="alert" className="text-xs text-destructive">
+                    {errors.password}
+                  </p>
+                )}
               </div>
             )}
 
@@ -648,6 +686,8 @@ export default function Auth() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="confirmPassword"
+                    aria-invalid={errors.confirmPassword ? true : undefined}
+                    aria-describedby={errors.confirmPassword ? "erro-confirmPassword" : undefined}
                     name="confirmPassword"
                     autoComplete="new-password"
                     type={showConfirmPassword ? "text" : "password"}
@@ -667,7 +707,11 @@ export default function Auth() {
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
+                {errors.confirmPassword && (
+                  <p id="erro-confirmPassword" role="alert" className="text-xs text-destructive">
+                    {errors.confirmPassword}
+                  </p>
+                )}
               </div>
             )}
 
@@ -676,6 +720,8 @@ export default function Auth() {
                 <div className="flex items-start gap-2">
                   <Checkbox
                     id="acceptTerms"
+                    aria-invalid={errors.acceptTerms ? true : undefined}
+                    aria-describedby={errors.acceptTerms ? "erro-acceptTerms" : undefined}
                     checked={acceptTerms}
                     onCheckedChange={(c) => setAcceptTerms(c === true)}
                     className="mt-0.5"
@@ -692,7 +738,11 @@ export default function Auth() {
                     .
                   </Label>
                 </div>
-                {errors.acceptTerms && <p className="text-xs text-destructive">{errors.acceptTerms}</p>}
+                {errors.acceptTerms && (
+                  <p id="erro-acceptTerms" role="alert" className="text-xs text-destructive">
+                    {errors.acceptTerms}
+                  </p>
+                )}
               </div>
             )}
 
