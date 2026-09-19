@@ -746,7 +746,14 @@ export default function Auth() {
           </CardContent>
 
           <CardFooter className="flex flex-col gap-1 px-4 pb-2 pt-0 md:gap-2 md:pb-4 md:pt-1">
-            <Button type="submit" className="h-9 w-full font-semibold" disabled={submitting || (isLogin && !!turnstileError)}>
+            {/* CTA principal da autenticação: verde escuro opaco para contraste
+                AA (~5.5:1 normal, ~7:1 hover/ativo). Cores explícitas também no
+                tema escuro para não herdar texto escuro. Sem opacity no hover. */}
+            <Button
+              type="submit"
+              className="h-9 w-full font-semibold bg-[#007A29] text-[#FFFFFF] hover:bg-[#006622] active:bg-[#006622] focus-visible:bg-[#007A29] disabled:bg-[#007A29] dark:bg-[#007A29] dark:text-[#FFFFFF] dark:hover:bg-[#006622] dark:active:bg-[#006622] dark:focus-visible:bg-[#007A29] dark:disabled:bg-[#007A29]"
+              disabled={submitting || (isLogin && !!turnstileError)}
+            >
               {submitting
                 ? "Aguarde..."
                 : isForgot
