@@ -241,6 +241,7 @@ export default function Auth() {
       const emailParsed = z.string().trim().email("E-mail inválido").max(255).safeParse(email);
       if (!emailParsed.success) {
         setErrors({ email: emailParsed.error.errors[0].message });
+        focarPrimeiroCampoInvalido({ email: "erro" });
         return;
       }
       setSubmitting(true);
