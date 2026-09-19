@@ -107,6 +107,27 @@ describe("regra única de senha (S3)", () => {
     expect(traducao).not.toContain("mínimo 6 caracteres");
   });
 
+  it("os textos das telas falam em 12 e não trazem senha de exemplo", () => {
+    for (const arq of [
+      "src/pages/Auth.tsx",
+      "src/pages/ResetPassword.tsx",
+      "src/pages/PrimeiroAcesso.tsx",
+      "src/pages/AtivarAcesso.tsx",
+      "src/pages/EsqueciSenha.tsx",
+    ]) {
+      const src = readFileSync(arq, "utf8");
+      expect(src).not.toMatch(/Pelo menos 8 caracteres|Mín\. 8 caracteres/);
+      expect(src).not.toContain("Ale!2026");
+    }
+  });
+
+  it("a redefinição por link traduz só erro de senha, sem mascarar link expirado", () => {
+    const src = readFileSync("src/pages/ResetPassword.tsx", "utf8");
+    expect(src).toContain("ehErroDeSenha");
+    expect(src).toContain("mensagemDoServidorDeContas(bruto)");
+    expect(src).toMatch(/ehErroDeSenha \? mensagemDoServidorDeContas\(bruto\) : bruto/);
+  });
+
   it("traduz as recusas do serviço de contas", () => {
     expect(mensagemDoServidorDeContas("Password is known to be weak and easy to guess (pwned)")).toContain("vazamentos");
     expect(mensagemDoServidorDeContas("Password should be at least 12 characters")).toContain("12 caracteres");
