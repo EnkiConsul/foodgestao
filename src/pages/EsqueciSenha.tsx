@@ -12,6 +12,8 @@ import { useTurnstileConfig } from "@/hooks/useTurnstileSiteKey";
 import { describeTurnstileError, currentHostname } from "@/lib/auth/turnstileErrors";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { avaliarSenha } from "@/lib/security/passwordPolicy";
+import { MedidorSenha } from "@/components/auth/MedidorSenha";
 
 type Step = "identify" | "otp" | "password" | "done";
 
@@ -125,18 +127,13 @@ export default function EsqueciSenha() {
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
     if (!challengeId || !resetToken) return;
-    if (newPassword.length < 12) {
-      toast.error("A senha deve ter no mínimo 12 caracteres.");
+    const av = avaliarSenha(newPassword);
+    if (!av.valida) {
+      toast.error(av.mensagem as string);
       return;
     }
     if (newPassword !== confirmPassword) {
       toast.error("As senhas não coincidem.");
-      return;
-    }
-    const strong = /[a-z]/.test(newPassword) && /[A-Z]/.test(newPassword)
-      && /\d/.test(newPassword) && /[^A-Za-z0-9]/.test(newPassword);
-    if (!strong) {
-      toast.error("Use letras maiúsculas, minúsculas, números e símbolos.");
       return;
     }
     setSubmitting(true);
