@@ -37,7 +37,7 @@ Deno.test("as duas funções de senha recusam antes de mudar credencial ou token
   );
 
   // A checagem da senha aparece antes de reservar token / atualizar a conta.
-  assert(dp.indexOf("senhaForte(novaSenha)") < dp.indexOf("reservarToken"));
+  assert(dp.indexOf("senhaForte(novaSenha)") < dp.indexOf("await reservarToken"));
   assert(dp.indexOf("senhaForte(novaSenha)") < dp.indexOf("updateUserById"));
   assert(rec.indexOf("isStrongPassword(body.new_password)") < rec.indexOf("updateUserById"));
 
