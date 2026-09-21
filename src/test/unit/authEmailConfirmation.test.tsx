@@ -65,6 +65,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Auth from "@/pages/Auth";
 
+// jsdom não implementa ResizeObserver (usado pelos componentes de formulário).
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+(globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
+  (globalThis as unknown as { ResizeObserver?: unknown }).ResizeObserver ?? ResizeObserverStub;
+
 const SENHA = "Trilha Verde42x#";
 
 function Consumidor({ onResultado }: { onResultado: (r: unknown) => void }) {
