@@ -31,6 +31,9 @@ import {
   instalarFetchGuardHomologacao,
   nomeFuncaoDaUrl,
 } from "@/lib/env/homologacaoFetchGuard";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
+
 
 import { cnpjFixture, cepFixture } from "@/lib/env/homologacaoFixtures";
 
