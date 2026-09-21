@@ -166,7 +166,10 @@ export function ContactFormDialog({
     } else {
       setName(defaultName ?? ""); setContactType(defaultContactType ?? "cliente"); setEmail(""); setPhone("");
       setDocument(defaultDocument ? maskCpfCnpj(defaultDocument) : ""); setAddress(""); setNotes("");
-      setSelectedCompanyIds(defaultCompanyIds ?? []);
+      // Nasce vinculado à empresa em uso: sem vínculo não apareceria na lista.
+      const iniciais = new Set(defaultCompanyIds ?? []);
+      if (selectedCompanyId) iniciais.add(selectedCompanyId);
+      setSelectedCompanyIds([...iniciais]);
     }
     // `defaultCompanyIds` entra pela chave estável abaixo para não reabrir o efeito
     // a cada render do componente pai (o que apagaria o que o usuário digitou).

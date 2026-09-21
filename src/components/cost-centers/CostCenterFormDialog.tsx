@@ -72,9 +72,17 @@ export function CostCenterFormDialog({ open, onOpenChange, onSaved, editItem }: 
         });
     } else {
       reset({ name: "", description: "", is_active: true });
-      setSelectedCompanyIds([]);
+      // Nasce vinculado à empresa em uso: sem vínculo não apareceria na lista.
+      setSelectedCompanyIds(selectedCompanyId ? [selectedCompanyId] : []);
     }
-  }, [open, editItem, setValue, reset]);
+  }, [open, editItem, setValue, reset, selectedCompanyId]);
+
+  // A lista de empresas pode chegar depois da abertura: mantém a empresa em uso
+  // marcada sem apagar o que o usuário escolheu.
+  useEffect(() => {
+    if (!open || editItem || !selectedCompanyId) return;
+    setSelectedCompanyIds((prev) => (prev.includes(selectedCompanyId) ? prev : [...prev, selectedCompanyId]));
+  }, [open, editItem, selectedCompanyId, companies.length]);
 
   const onSubmit = async (values: FormValues) => {
     if (!user) return;

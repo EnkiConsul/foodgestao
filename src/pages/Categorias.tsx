@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { traduzErroExclusao, ehErroHistoricoVinculado, mensagemHistoricoVinculado } from "@/lib/finance/exclusaoHistorico";
 import { verificarExclusaoSimples, idsComLancamentos } from "@/lib/finance/verificarHistorico";
 import { buildCategoryTree, type Category, type TreeNode } from "@/lib/categories/tree";
-import { syncCategoryCompanies } from "@/lib/categories/visibility";
+import { syncCategoryCompanies, garantirEmpresaAtiva } from "@/lib/categories/visibility";
 import { CategoryRow } from "@/components/categorias/CategoryRow";
 import { CategoryMobileRow } from "@/components/categorias/CategoryMobileRow";
 import { BatchActionBar } from "@/components/categorias/BatchActionBar";
