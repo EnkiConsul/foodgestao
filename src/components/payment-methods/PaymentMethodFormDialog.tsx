@@ -75,6 +75,21 @@ export function PaymentMethodFormDialog({ open, onOpenChange, onSaved, editItem 
     setSelectedCompanyIds((prev) => (prev.includes(selectedCompanyId) ? prev : [...prev, selectedCompanyId]));
   }, [open, editItem, selectedCompanyId, companies.length]);
 
+  /** Grava os vínculos e avisa em caso de falha (sem vínculo não aparece na lista). */
+  const vincularEmpresas = async (paymentMethodId: string, ids: string[]) => {
+    if (ids.length === 0) return true;
+    const { error } = await supabase.from("payment_method_companies" as any).insert(
+      ids.map((cid) => ({ payment_method_id: paymentMethodId, company_id: cid })) as any
+    );
+    if (error) {
+      toast.error("A forma de pagamento não pôde ser vinculada à empresa", {
+        description: `${error.message} — ela não aparecerá na lista até o vínculo ser gravado.`,
+      });
+      return false;
+    }
+    return true;
+  };
+
   const onSubmit = async (values: FormValues) => {
     if (!user) return;
 
