@@ -80,13 +80,38 @@ export function EnderecoFields({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [valor.cep]);
 
+  const erroId = (campo: string) => `${id(campo)}-erro`;
+  const obrigatorio = (campo: string) => obrigatorios.includes(campo);
+
   const erro = (campo: string) =>
-    erros[campo] ? <p className="text-xs text-destructive">{erros[campo]}</p> : null;
+    erros[campo]
+      ? <p id={erroId(campo)} role="alert" className="text-xs text-destructive">{erros[campo]}</p>
+      : null;
+
+  /** Props de acessibilidade comuns: obrigatório, inválido e erro associado. */
+  const a11y = (campo: string) => ({
+    "aria-required": obrigatorio(campo) || undefined,
+    "aria-invalid": erros[campo] ? true : undefined,
+    "aria-describedby": erros[campo] ? erroId(campo) : undefined,
+  });
+
+  const rotulo = (campo: string, texto: string) => (
+    <Label className="text-xs" htmlFor={id(campo)}>
+      {texto}
+      {obrigatorio(campo) && (
+        <>
+          {" "}
+          <span aria-hidden="true">*</span>
+          <span className="sr-only">obrigatório</span>
+        </>
+      )}
+    </Label>
+  );
 
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="space-y-1">
-        <Label className="text-xs" htmlFor={id("cep")}>CEP</Label>
+        {rotulo("cep", "CEP")}
         <div className="relative">
           <Input
             id={id("cep")}
@@ -96,6 +121,7 @@ export function EnderecoFields({
             disabled={disabled}
             value={maskCep(String(valor.cep ?? ""))}
             onChange={(e) => onChange({ cep: maskCep(e.target.value) })}
+            {...a11y("cep")}
           />
           {buscando && (
             <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-3.5 text-muted-foreground" />
@@ -105,7 +131,7 @@ export function EnderecoFields({
       </div>
 
       <div className="space-y-1">
-        <Label className="text-xs" htmlFor={id("logradouro")}>Rua / Avenida</Label>
+        {rotulo("logradouro", "Rua / Avenida")}
         <Input
           id={id("logradouro")}
           className="h-11"
@@ -113,12 +139,13 @@ export function EnderecoFields({
           disabled={disabled}
           value={String(valor.logradouro ?? "")}
           onChange={(e) => onChange({ logradouro: caixa(e.target.value) })}
+          {...a11y("logradouro")}
         />
         {erro("logradouro")}
       </div>
 
       <div className="space-y-1">
-        <Label className="text-xs" htmlFor={id("numero")}>Número</Label>
+        {rotulo("numero", "Número")}
         <Input
           id={id("numero")}
           className="h-11"
@@ -126,6 +153,7 @@ export function EnderecoFields({
           disabled={disabled || semNumero}
           value={semNumero ? "" : String(valor.numero ?? "")}
           onChange={(e) => onChange({ numero: e.target.value })}
+          {...a11y("numero")}
         />
         <div className="flex items-center gap-2 pt-1">
           <Checkbox
@@ -140,48 +168,51 @@ export function EnderecoFields({
       </div>
 
       <div className="space-y-1">
-        <Label className="text-xs" htmlFor={id("complemento")}>Complemento</Label>
+        {rotulo("complemento", "Complemento")}
         <Input
           id={id("complemento")}
           className="h-11"
           disabled={disabled}
           value={String(valor.complemento ?? "")}
           onChange={(e) => onChange({ complemento: caixa(e.target.value) })}
+          {...a11y("complemento")}
         />
       </div>
 
       <div className="space-y-1">
-        <Label className="text-xs" htmlFor={id("bairro")}>Bairro</Label>
+        {rotulo("bairro", "Bairro")}
         <Input
           id={id("bairro")}
           className="h-11"
           disabled={disabled}
           value={String(valor.bairro ?? "")}
           onChange={(e) => onChange({ bairro: caixa(e.target.value) })}
+          {...a11y("bairro")}
         />
         {erro("bairro")}
       </div>
 
       <div className="space-y-1">
-        <Label className="text-xs" htmlFor={id("cidade")}>Cidade</Label>
+        {rotulo("cidade", "Cidade")}
         <Input
           id={id("cidade")}
           className="h-11"
           disabled={disabled}
           value={String(valor.cidade ?? "")}
           onChange={(e) => onChange({ cidade: caixa(e.target.value) })}
+          {...a11y("cidade")}
         />
         {erro("cidade")}
       </div>
 
       <div className="space-y-1">
-        <Label className="text-xs" htmlFor={id("uf")}>Estado (UF)</Label>
+        {rotulo("uf", "Estado (UF)")}
         <Select
           value={String(valor.uf ?? "")}
           disabled={disabled}
           onValueChange={(v) => onChange({ uf: v })}
         >
-          <SelectTrigger id={id("uf")} className="h-11">
+          <SelectTrigger id={id("uf")} className="h-11" {...a11y("uf")}>
             <SelectValue placeholder="Escolher" />
           </SelectTrigger>
           <SelectContent>
