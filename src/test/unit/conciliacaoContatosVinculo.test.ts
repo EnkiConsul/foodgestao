@@ -60,7 +60,7 @@ vi.mock("@/integrations/supabase/client", () => {
 });
 
 import { fetchConciliacaoContacts, ensureContactCompanyLink } from "@/lib/conciliacao/contacts";
-import { MENSAGEM_MOTIVO } from "@/lib/conciliacao/confirmResultado";
+import { criarResultado, resumoConfirmacao } from "@/lib/conciliacao/confirmResultado";
 
 beforeEach(() => {
   estado.contatosDaEmpresa = [];
@@ -118,7 +118,10 @@ describe("gravação do vínculo contato ↔ empresa", () => {
 });
 
 describe("motivo de bloqueio", () => {
-  it("tem mensagem em português para contato sem vínculo", () => {
-    expect(MENSAGEM_MOTIVO.contato_sem_vinculo).toContain("não está ligado à empresa");
+  it("explica em português o contato sem vínculo", () => {
+    const r = criarResultado();
+    r.falhas.push({ ids: ["s1"], motivo: "contato_sem_vinculo" });
+    const resumo = resumoConfirmacao(r, 1);
+    expect(JSON.stringify(resumo)).toContain("não está ligado à empresa");
   });
 });
