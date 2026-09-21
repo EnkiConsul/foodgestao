@@ -227,6 +227,13 @@ describe("guardas de homologação", () => {
     }
   });
 
+  it("identifica a função pela URL do endpoint e classifica o erro de bloqueio", () => {
+    expect(nomeFuncaoDaUrl(`${URL_HOMOLOGACAO}/functions/v1/lookup-cnpj`)).toBe("lookup-cnpj");
+    expect(nomeFuncaoDaUrl(`${URL_HOMOLOGACAO}/rest/v1/categories?select=*`)).toBeNull();
+    expect(new FuncaoBloqueadaError("asaas-create-checkout")).toBeInstanceOf(Error);
+  });
+
+
   it("bloqueia no TRANSPORTE com o cliente real do SDK: zero rede em duas chamadas separadas", async () => {
     const { createClient } = await import("@supabase/supabase-js");
     const fetchSpy = vi.fn(async () => new Response("{}", { status: 200 }));
