@@ -56,7 +56,7 @@ interface Props {
 
 export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, defaultParentId, defaultType, defaultName }: Props) {
   const { user } = useAuth();
-  const { contextType, selectedCompanyId } = useCompanyContext();
+  const { contextType, selectedCompanyId, companies: contextCompanies } = useCompanyContext();
   const [name, setName] = useState("");
   const [type, setType] = useState<"entrada" | "saida">("saida");
   const [color, setColor] = useState("#3b82f6");
