@@ -238,12 +238,33 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
   );
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({
+  id, label, error, required, children,
+}: {
+  id: string;
+  label: string;
+  error?: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium">{label}</Label>
+      <Label className="text-xs font-medium" htmlFor={id}>
+        {label}
+        {required && (
+          <>
+            {" "}
+            <span aria-hidden="true">*</span>
+            <span className="sr-only">obrigatório</span>
+          </>
+        )}
+      </Label>
       {children}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && (
+        <p id={`${id}-erro`} role="alert" className="text-xs text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
