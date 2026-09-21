@@ -11,6 +11,7 @@ import { SubscriptionBanner } from "@/components/billing/SubscriptionBanner";
 import { useBillingRealtime } from "@/hooks/useBillingRealtime";
 import { Outlet } from "react-router-dom";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { MfaNudgeDialog } from "@/components/security/MfaNudgeDialog";
 
 export function AppLayout() {
   useBillingRealtime();
