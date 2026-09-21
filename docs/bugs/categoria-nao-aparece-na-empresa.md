@@ -91,3 +91,19 @@ lista da empresa.
    você indicar empresa e nome, e com autorização explícita.
 
 Nenhuma dessas mudanças foi aplicada nesta análise.
+
+## Complemento (segunda passagem de leitura, mesma conclusão)
+
+- `buildCategoryTree` (`src/lib/categories/tree.ts:12-39`) percorre somente a partir das
+  raízes: se o pai não vier na consulta (por não estar vinculado à empresa), o filho
+  vinculado **também deixa de ser exibido**, mesmo existindo. Isso amplia o efeito do
+  defeito principal — basta a raiz ficar sem vínculo para o ramo inteiro desaparecer da
+  tela, e há 56 raízes de semente sem vínculo hoje.
+- A tela atualiza com `refetch()` direto, não com invalidação por prefixo, então outras
+  telas que leem categorias com chaves próprias (`categories-for-parent`,
+  `categories-simple`, `fc-matriz-categories`) não são atualizadas ao criar a categoria.
+  É um incômodo secundário, não a causa do sintoma relatado.
+- Ainda não verificado (fora do escopo desta leitura): se as funções de semente
+  (`apply_default_categories` / `seed_default_categories`, acionadas em
+  `src/pages/Categorias.tsx:106,123`) gravam os vínculos das raízes que criam. É a
+  suspeita natural para as 56 raízes sem vínculo.
