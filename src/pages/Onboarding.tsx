@@ -257,7 +257,13 @@ export default function Onboarding() {
     <>
       <OnboardingShell currentStep={step}>
         {step === 1 && (
-          <>
+          <form
+            noValidate
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleAvancar();
+            }}
+          >
             <StepEmpresa
               data={empresa}
               update={updateEmpresaWithCnpjReset}
