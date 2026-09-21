@@ -193,8 +193,9 @@ describe("tela de cadastro para na confirmação, sem navegar", () => {
     await waitFor(() => expect(supabase.auth.signUp).toHaveBeenCalled());
     // Etapa de confirmação visível…
     await waitFor(() =>
-      expect(screen.getByText(/confirme seu e-mail/i)).toBeInTheDocument(),
+      expect(screen.getAllByText(/confirme seu e-mail/i).length).toBeGreaterThan(0),
     );
+    expect(screen.getByText(/abra sua caixa de entrada/i)).toBeInTheDocument();
     // …e nenhuma navegação para área interna.
     expect(navigateMock).not.toHaveBeenCalled();
   });
