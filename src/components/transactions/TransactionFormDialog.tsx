@@ -114,7 +114,6 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     contacts,
     paymentMethods,
     creditCards,
-    categoryCompanyIds,
     contactCompanyIds,
     paymentMethodCompanyIds,
     costCenters,
