@@ -346,17 +346,32 @@ describe("guardas de homologação", () => {
   });
 });
 
-describe("trava de ambiente dos E2E (marcador do build)", () => {
-  // E2E_BASE_URL aponta para porta fechada: o runner nunca executa spec nenhum
-  // durante o teste — só a trava de ambiente é exercitada.
-  const rodar = (manifesto?: string) =>
+describe("trava de destino dos E2E (marcador lido do servidor alvo por HTTP)", () => {
+  /**
+   * Sobe um servidor real e serve /build-env.json. A trava tem de julgar o que o
+   * SERVIDOR ALVO declara — arquivo local não prova destino nenhum.
+   */
+  const servir = async (corpo: string | null) => {
+    const servidor = createServer((req, res) => {
+      if (corpo === null || !req.url?.startsWith("/build-env.json")) {
+        res.writeHead(404).end("nao encontrado");
+        return;
+      }
+      res.writeHead(200, { "Content-Type": "application/json" }).end(corpo);
+    });
+    await new Promise<void>((ok) => servidor.listen(0, "127.0.0.1", ok));
+    const porta = (servidor.address() as AddressInfo).port;
+    return { base: `http://127.0.0.1:${porta}`, fechar: () => servidor.close() };
+  };
+
+  const rodar = (base: string, manifestoLocal?: string) =>
     spawnSync("node", ["scripts/run-e2e.mjs"], {
       encoding: "utf8",
       env: {
         ...process.env,
         CI: "",
-        E2E_BASE_URL: "http://127.0.0.1:9",
-        E2E_BUILD_MANIFEST: manifesto ?? "/tmp/marcador-inexistente.json",
+        E2E_BASE_URL: base,
+        ...(manifestoLocal ? { E2E_BUILD_MANIFEST: manifestoLocal } : { E2E_BUILD_MANIFEST: "" }),
       },
     });
 
@@ -367,26 +382,78 @@ describe("trava de ambiente dos E2E (marcador do build)", () => {
     return arq;
   };
 
-  it("aborta sem marcador de build (localhost não é prova)", () => {
-    const r = rodar();
+  const MARCADOR_HOM = {
+    app_env: "homologacao",
+    supabase_ref: REF_HOMOLOGACAO,
+    build_id: "build-hom-1",
+    built_at: "2026-01-01T00:00:00.000Z",
+  };
+
+  it("recusa host de produção mesmo com marcador local de homologação", () => {
+    const r = rodar("https://aveto360.com", escrever(MARCADOR_HOM));
     expect(r.status).toBe(1);
-    expect(r.stderr).toContain("marcador de ambiente ausente");
+    expect(r.stderr).toContain("host de produção recusado");
   });
 
-  it("aborta quando o marcador é de produção", () => {
-    const r = rodar(escrever({ app_env: "producao", supabase_ref: REF_PRODUCAO }));
-    expect(r.status).toBe(1);
-    expect(r.stderr).toContain('app_env="producao"');
+  it("aborta quando o servidor alvo não expõe o marcador", async () => {
+    const s = await servir(null);
+    try {
+      const r = rodar(s.base);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toContain("não obtido por HTTP");
+    } finally {
+      s.fechar();
+    }
   });
 
-  it("aborta quando o ambiente é homologação mas o banco não", () => {
-    const r = rodar(escrever({ app_env: "homologacao", supabase_ref: REF_PRODUCAO }));
-    expect(r.status).toBe(1);
-    expect(r.stderr).toContain("exigido o de homologação");
+  it("aborta quando o servidor alvo declara outro banco (ref errado)", async () => {
+    const s = await servir(
+      JSON.stringify({ app_env: "homologacao", supabase_ref: REF_PRODUCAO, build_id: "x" }),
+    );
+    try {
+      const r = rodar(s.base);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toContain("exigido o de homologação");
+    } finally {
+      s.fechar();
+    }
   });
 
-  it("confirma o ambiente quando o marcador é de homologação", () => {
-    const r = rodar(escrever({ app_env: "homologacao", supabase_ref: REF_HOMOLOGACAO, built_at: "2026-01-01" }));
-    expect(r.stdout).toContain("Ambiente confirmado pelo marcador");
+  it("aborta quando o servidor alvo é de produção", async () => {
+    const s = await servir(
+      JSON.stringify({ app_env: "producao", supabase_ref: REF_PRODUCAO, build_id: "x" }),
+    );
+    try {
+      const r = rodar(s.base);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toContain('app_env="producao"');
+    } finally {
+      s.fechar();
+    }
+  });
+
+  it("aborta quando o marcador servido não tem build_id", async () => {
+    const s = await servir(
+      JSON.stringify({ app_env: "homologacao", supabase_ref: REF_HOMOLOGACAO }),
+    );
+    try {
+      const r = rodar(s.base);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toContain("sem build_id");
+    } finally {
+      s.fechar();
+    }
+  });
+
+  it("aborta quando o build servido no alvo não é o build local informado", async () => {
+    const s = await servir(JSON.stringify(MARCADOR_HOM));
+    try {
+      const r = rodar(s.base, escrever({ ...MARCADOR_HOM, build_id: "build-hom-2" }));
+      expect(r.status).toBe(1);
+      expect(r.stderr).toContain("diferente do servido");
+    } finally {
+      s.fechar();
+    }
   });
 });
+
