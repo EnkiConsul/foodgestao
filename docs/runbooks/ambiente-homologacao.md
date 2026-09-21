@@ -35,21 +35,40 @@ Produção segue com `npm run dev` / `npm run build`, sem nenhuma mudança.
 1. `src/bootstrap/ambiente.ts` é o **primeiro** módulo avaliado por `main.tsx`,
    antes de `src/integrations/supabase/client.ts` criar o cliente.
 2. `resolverAmbiente` (`src/lib/env/appEnv.ts`) recusa e impede o app de subir quando:
-   URL ausente/fora de padrão, chave publicável ausente/malformada, `project_id`
-   divergente, flag inválida, flag de homologação com banco de produção,
-   banco de homologação **sem** a flag, ou banco desconhecido. Não há fallback.
-3. Tarja permanente "Ambiente de homologação" (`AmbienteBanner`), invisível em produção.
-4. Em homologação, `supabase.functions.invoke` é interceptado uma única vez
-   (`src/lib/env/homologacaoRuntime.ts`):
-   - **Simulado sem rede:** `lookup-cnpj` → fixture determinística fictícia.
-   - **Bloqueado (erro imediato):** `asaas-*`, `pluggy-*`, `ai-*`,
-     `inspect-search-console`, `dp-send-broadcast`, `admin-resend-confirmation`,
-     `auth-recovery-request`, `auth-email-hook`, `sync-extra-companies`, `validate-coupon`.
-   - **Liberado:** funções próprias da plataforma (`check-onboarding-cnpj`, `auth-login`,
-     `accept-invite`, rotinas de Pessoas 360°), que só falam com o banco de homologação.
-5. CEP (`consultarCep`) responde por fixture em homologação — ViaCEP não é chamado.
-6. Produção não ganhou CNPJ mágico, parâmetro de URL nem qualquer bypass: os mocks
-   só existem sob `isHomologacao()`, que exige o banco de homologação.
+   URL ausente/fora de padrão, chave inválida, `project_id` divergente, flag inválida,
+   flag de homologação com banco de produção, banco de homologação **sem** a flag, ou
+   banco desconhecido. Não há fallback.
+3. `validarChavePublica` (mesma regra em `scripts/check-hom-env.mjs`) aceita **somente**
+   chave publicável:
+   - formato moderno: apenas prefixo `sb_publishable_`; qualquer outro `sb_*`
+     (inclusive `sb_secret_`) é recusado como `chave_nao_publicavel`;
+   - formato JWT: o payload é **lido** (base64url) e precisa ter `role: "anon"` e `ref`
+     igual ao ref da URL. Isso é leitura de conteúdo, **não** verificação criptográfica
+     de assinatura — serve para barrar `service_role` e chave de outro projeto.
+4. Tarja permanente "Ambiente de homologação" (`AmbienteBanner`), invisível em produção.
+5. Em homologação, `supabase.functions.invoke` é interceptado uma única vez
+   (`src/lib/env/homologacaoRuntime.ts`) com **allowlist e negação padrão**:
+   - **Liberadas** apenas as funções internas aprovadas, que são as existentes no ref de
+     homologação: `dp-refresh-pendencias`, `dp-sorteio-folgas`, `dp-preadmissao-gestor`,
+     `dp-preadmissao-publica`, `dp-preadmissao-arquivo`, `dp-doc-bulk-approve`,
+     `dp-doc-bulk-discard`, `dp-bloquear-acesso-colaborador`, `auth-config`.
+   - **Simuladas sem rede:** `lookup-cnpj` (fixture fictícia) e `check-onboarding-cnpj`
+     (`registered` só para o CNPJ de fixture, `available` para os demais).
+   - **Bloqueado tudo o mais, por padrão** — nome desconhecido também falha. Isso cobre
+     pagamentos, Open Finance, IA, e-mail/WhatsApp, convites e qualquer função nova.
+6. Envio nativo de e-mail do Auth bloqueado em homologação: `signUp`, `resend`,
+   `resetPasswordForEmail`, `signInWithOtp`, `reauthenticate` e `updateUser({ email })`
+   retornam erro imediato. Login por senha com as fixtures A–D segue funcionando.
+7. CEP (`consultarCep`) responde por fixture em homologação — ViaCEP não é chamado.
+8. O modo `homologacao` **não cai para produção**: `vite.config.ts` carrega
+   `.env.homologacao` por cima das variáveis do shell (que são as de produção) e
+   **aborta o build** se o resultado não for exatamente a flag + o banco de homologação.
+9. `vite build` grava `dist/build-env.json` (`app_env`, `supabase_ref`, `built_at`).
+   `scripts/run-e2e.mjs` só roda spec se esse marcador existir e disser
+   `homologacao` + `utjhzpdbqzajrhnzcher`; endereço `localhost` não é aceito como prova.
+   Aponte `E2E_BASE_URL` e `E2E_BUILD_MANIFEST` para o build de homologação.
+10. Produção não ganhou CNPJ mágico, parâmetro de URL nem qualquer bypass: os mocks
+    só existem sob `isHomologacao()`, que exige o banco de homologação.
 
 ## 4. Regra crítica — não reaplicar migrations históricas em homologação
 
