@@ -56,12 +56,17 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
         <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Responsável pelo Cadastro
         </legend>
-        <Field label="Nome Completo *" error={errors.nomeCompleto}>
+        <Field id="onb-nome" label="Nome Completo" required error={errors.nomeCompleto}>
           <Input
+            id="onb-nome"
             value={data.nomeCompleto}
             onChange={(e) => update({ nomeCompleto: e.target.value })}
             placeholder="Seu nome completo"
             maxLength={120}
+            autoComplete="name"
+            aria-required="true"
+            aria-invalid={errors.nomeCompleto ? true : undefined}
+            aria-describedby={errors.nomeCompleto ? "onb-nome-erro" : undefined}
           />
         </Field>
       </fieldset>
@@ -72,12 +77,16 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
           Empresa
         </legend>
 
-        <Field label="CNPJ *" error={errors.cnpj}>
+        <Field id="onb-cnpj" label="CNPJ" required error={errors.cnpj}>
           <CnpjInput
+            id="onb-cnpj"
             value={data.cnpj}
             onChange={(v) => update({ cnpj: v })}
             onLookup={handleCnpjLookup}
             onPendingChange={setCnpjPending}
+            required
+            invalid={Boolean(errors.cnpj)}
+            describedBy={errors.cnpj ? "onb-cnpj-erro" : undefined}
           />
         </Field>
 
