@@ -63,7 +63,7 @@ export default function Configuracoes() {
   // Vindo do aviso opcional de verificação em duas etapas: rola até o cartão.
   useEffect(() => {
     if (searchParams.get("secao") !== "2fa") return;
-    const alvo = document.getElementById("secao-2fa");
+    const alvo = window.document.getElementById("secao-2fa");
     alvo?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [searchParams]);
 
