@@ -130,10 +130,22 @@ export function CostCenterFormDialog({ open, onOpenChange, onSaved, editItem }: 
       await (supabase.from("cost_center_companies" as any) as any)
         .delete()
         .eq("cost_center_id", costCenterId);
-      if (selectedCompanyIds.length > 0) {
-        await (supabase.from("cost_center_companies" as any) as any).insert(
-          selectedCompanyIds.map((cid) => ({ cost_center_id: costCenterId, company_id: cid }))
+      // A empresa em uso é sempre vinculada: sem vínculo o centro de custo
+      // existiria no banco sem aparecer em nenhuma lista.
+      const idsFinais = selectedCompanyId && !selectedCompanyIds.includes(selectedCompanyId)
+        ? [...selectedCompanyIds, selectedCompanyId]
+        : selectedCompanyIds;
+      if (idsFinais.length > 0) {
+        const { error: vinculoError } = await (supabase.from("cost_center_companies" as any) as any).insert(
+          idsFinais.map((cid) => ({ cost_center_id: costCenterId, company_id: cid }))
         );
+        if (vinculoError) {
+          toast.error("O centro de custo não pôde ser vinculado à empresa", {
+            description: `${vinculoError.message} — ele não aparecerá na lista até o vínculo ser gravado.`,
+          });
+          onSaved(costCenterId);
+          return;
+        }
       }
     }
 
