@@ -78,4 +78,4 @@ Sem criar projeto novo nem contratar serviços: usar o projeto já existente `ut
 
 ## O que falta, em uma linha
 
-Falta apenas ligar o app ao projeto de homologação já existente: `.env.staging` + scripts de modo, migrations/funções/segredos aplicados nesse ref, provedor de CNPJ em modo fixture por variável de servidor, script de semeadura e guarda nos E2E.
+Falta apenas ligar o app ao projeto de homologação já existente (feito nesta fase: `.env.homologacao` + scripts `dev:hom`/`build:hom`), mais o deploy das funções nesse ref, os segredos sandbox, o provedor de CNPJ em modo fixture por variável de servidor e a guarda nos E2E. Schema e dados de teste já existem em homologação e não devem ser reaplicados nem recriados.
