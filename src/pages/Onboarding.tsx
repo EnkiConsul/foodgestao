@@ -273,10 +273,10 @@ export default function Onboarding() {
               setCnpjInactive={setCnpjInactive}
             />
             <div className="mt-6 md:mt-8 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
-              <Button variant="ghost" onClick={requestExit} className="w-full sm:w-auto min-h-10">
+              <Button type="button" variant="ghost" onClick={requestExit} className="w-full sm:w-auto min-h-10">
                 Sair
               </Button>
-              <Button onClick={handleAvancar} disabled={cnpjPending || cnpjChecking} size="lg" className="w-full sm:w-auto min-h-11">
+              <Button type="submit" disabled={cnpjPending || cnpjChecking} size="lg" className="w-full sm:w-auto min-h-11">
                 {cnpjChecking ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
