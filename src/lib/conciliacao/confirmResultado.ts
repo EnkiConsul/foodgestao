@@ -10,6 +10,7 @@ export type MotivoBloqueio =
   | "conta_destino_ausente"
   | "contraparte_ausente"
   | "contraparte_igual"
+  | "contato_sem_vinculo"
   | "erro_rpc";
 
 export interface FalhaConfirmacao {
