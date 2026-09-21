@@ -16,10 +16,18 @@ interface CnpjInputProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  /** Marca o campo como obrigatório para leitores de tela. */
+  required?: boolean;
+  /** Erro externo (validação do formulário) a ser anunciado junto do campo. */
+  describedBy?: string;
+  invalid?: boolean;
 }
 
 export const CnpjInput = forwardRef<HTMLInputElement, CnpjInputProps>(function CnpjInput(
-  { id, value, onChange, onLookup, onPendingChange, placeholder = "00.000.000/0000-00", disabled, className },
+  {
+    id, value, onChange, onLookup, onPendingChange, placeholder = "00.000.000/0000-00",
+    disabled, className, required, describedBy, invalid,
+  },
   ref,
 ) {
   const lookup = useCnpjLookup();
@@ -61,8 +69,9 @@ export const CnpjInput = forwardRef<HTMLInputElement, CnpjInputProps>(function C
           maxLength={18}
           disabled={disabled || lookup.isPending}
           inputMode="numeric"
-          aria-invalid={showError}
-          aria-describedby={showError ? errorId : undefined}
+          aria-required={required || undefined}
+          aria-invalid={showError || invalid || undefined}
+          aria-describedby={[showError ? errorId : null, describedBy].filter(Boolean).join(" ") || undefined}
           className={cn(showError && "border-destructive focus-visible:ring-destructive")}
         />
         <Button

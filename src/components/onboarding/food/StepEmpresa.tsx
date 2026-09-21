@@ -56,12 +56,17 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
         <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Responsável pelo Cadastro
         </legend>
-        <Field label="Nome Completo *" error={errors.nomeCompleto}>
+        <Field id="onb-nome" label="Nome Completo" required error={errors.nomeCompleto}>
           <Input
+            id="onb-nome"
             value={data.nomeCompleto}
             onChange={(e) => update({ nomeCompleto: e.target.value })}
             placeholder="Seu nome completo"
             maxLength={120}
+            autoComplete="name"
+            aria-required="true"
+            aria-invalid={errors.nomeCompleto ? true : undefined}
+            aria-describedby={errors.nomeCompleto ? "onb-nome-erro" : undefined}
           />
         </Field>
       </fieldset>
@@ -72,12 +77,16 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
           Empresa
         </legend>
 
-        <Field label="CNPJ *" error={errors.cnpj}>
+        <Field id="onb-cnpj" label="CNPJ" required error={errors.cnpj}>
           <CnpjInput
+            id="onb-cnpj"
             value={data.cnpj}
             onChange={(v) => update({ cnpj: v })}
             onLookup={handleCnpjLookup}
             onPendingChange={setCnpjPending}
+            required
+            invalid={Boolean(errors.cnpj)}
+            describedBy={errors.cnpj ? "onb-cnpj-erro" : undefined}
           />
         </Field>
 
@@ -91,24 +100,38 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
         )}
 
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Razão Social *" error={errors.razaoSocial}>
+          <Field id="onb-razao" label="Razão Social" required error={errors.razaoSocial}>
             <Input
+              id="onb-razao"
               value={data.razaoSocial}
               onChange={(e) => update({ razaoSocial: e.target.value })}
               maxLength={200}
+              aria-required="true"
+              aria-invalid={errors.razaoSocial ? true : undefined}
+              aria-describedby={errors.razaoSocial ? "onb-razao-erro" : undefined}
             />
           </Field>
-          <Field label="Nome Fantasia" error={errors.nomeFantasia}>
+          <Field id="onb-fantasia" label="Nome Fantasia" error={errors.nomeFantasia}>
             <Input
+              id="onb-fantasia"
               value={data.nomeFantasia}
               onChange={(e) => update({ nomeFantasia: e.target.value })}
               maxLength={200}
+              aria-invalid={errors.nomeFantasia ? true : undefined}
+              aria-describedby={errors.nomeFantasia ? "onb-fantasia-erro" : undefined}
             />
           </Field>
         </div>
 
-        <Field label="Segmento *" error={errors.segmentoId}>
-          <SegmentoSelect value={data.segmentoId} onChange={(v) => update({ segmentoId: v })} />
+        <Field id="onb-segmento" label="Segmento" required error={errors.segmentoId}>
+          <SegmentoSelect
+            id="onb-segmento"
+            value={data.segmentoId}
+            onChange={(v) => update({ segmentoId: v })}
+            required
+            invalid={Boolean(errors.segmentoId)}
+            describedBy={errors.segmentoId ? "onb-segmento-erro" : undefined}
+          />
         </Field>
       </fieldset>
 
@@ -130,6 +153,7 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
           }}
           onChange={(patch) => update(patch as Partial<EmpresaFormData>)}
           erros={errors as Record<string, string>}
+          obrigatorios={["cep", "logradouro", "numero", "bairro", "cidade", "uf"]}
         />
       </fieldset>
 
@@ -139,32 +163,45 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
           Contato
         </legend>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Telefone" error={errors.telefoneEmpresa}>
+          <Field id="onb-telefone" label="Telefone" error={errors.telefoneEmpresa}>
             <Input
+              id="onb-telefone"
               value={data.telefoneEmpresa}
               onChange={(e) => update({ telefoneEmpresa: maskPhone(e.target.value) })}
               placeholder="(00) 0000-0000"
               maxLength={16}
               inputMode="numeric"
+              autoComplete="tel"
+              aria-invalid={errors.telefoneEmpresa ? true : undefined}
+              aria-describedby={errors.telefoneEmpresa ? "onb-telefone-erro" : undefined}
             />
           </Field>
-          <Field label="WhatsApp *" error={errors.whatsappEmpresa}>
+          <Field id="onb-whatsapp" label="WhatsApp" required error={errors.whatsappEmpresa}>
             <Input
+              id="onb-whatsapp"
               value={data.whatsappEmpresa}
               onChange={(e) => update({ whatsappEmpresa: maskPhone(e.target.value) })}
               placeholder="(00) 90000-0000"
               maxLength={16}
               inputMode="numeric"
+              aria-required="true"
+              aria-invalid={errors.whatsappEmpresa ? true : undefined}
+              aria-describedby={errors.whatsappEmpresa ? "onb-whatsapp-erro" : undefined}
             />
           </Field>
         </div>
-        <Field label="E-mail *" error={errors.emailEmpresa}>
+        <Field id="onb-email" label="E-mail" required error={errors.emailEmpresa}>
           <Input
+            id="onb-email"
             type="email"
             value={data.emailEmpresa}
             onChange={(e) => update({ emailEmpresa: e.target.value })}
             placeholder="contato@empresa.com"
             maxLength={150}
+            autoComplete="email"
+            aria-required="true"
+            aria-invalid={errors.emailEmpresa ? true : undefined}
+            aria-describedby={errors.emailEmpresa ? "onb-email-erro" : undefined}
           />
         </Field>
       </fieldset>
@@ -176,6 +213,9 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
           checked={data.aceitouLgpd}
           onCheckedChange={(v) => update({ aceitouLgpd: v === true })}
           className="mt-0.5"
+          aria-required="true"
+          aria-invalid={errors.aceitouLgpd ? true : undefined}
+          aria-describedby={errors.aceitouLgpd ? "lgpd-accept-erro" : undefined}
         />
         <label htmlFor="lgpd-accept" className="text-xs leading-relaxed cursor-pointer text-muted-foreground">
           Li e concordo com os{" "}
@@ -189,17 +229,42 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
           do Aveto 360.
         </label>
       </div>
-      {errors.aceitouLgpd && <p className="text-xs text-destructive">{errors.aceitouLgpd}</p>}
+      {errors.aceitouLgpd && (
+        <p id="lgpd-accept-erro" role="alert" className="text-xs text-destructive">
+          {errors.aceitouLgpd}
+        </p>
+      )}
     </div>
   );
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({
+  id, label, error, required, children,
+}: {
+  id: string;
+  label: string;
+  error?: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium">{label}</Label>
+      <Label className="text-xs font-medium" htmlFor={id}>
+        {label}
+        {required && (
+          <>
+            {" "}
+            <span aria-hidden="true">*</span>
+            <span className="sr-only">obrigatório</span>
+          </>
+        )}
+      </Label>
       {children}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && (
+        <p id={`${id}-erro`} role="alert" className="text-xs text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
