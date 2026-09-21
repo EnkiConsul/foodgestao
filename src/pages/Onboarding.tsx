@@ -290,7 +290,7 @@ export default function Onboarding() {
                 )}
               </Button>
             </div>
-          </>
+          </form>
         )}
 
         {step === 2 && (
