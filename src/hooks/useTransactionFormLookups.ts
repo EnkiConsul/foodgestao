@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
+import { lerVinculos } from "@/lib/companyLinks";
 
 export function useTransactionFormLookups(enabled: boolean) {
   const { user } = useAuth();
