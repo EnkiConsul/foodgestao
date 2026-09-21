@@ -1735,7 +1735,11 @@ export default function ConciliacaoPluggy() {
         });
         const existing = similar.find((c) => c.reason === "documento" || c.reason === "nome") ?? null;
         if (existing) {
-          await ensureContactCompanyLink(existing.id, selectedCompanyId);
+          const vinculoExistente = await ensureContactCompanyLink(existing.id, selectedCompanyId);
+          if (!vinculoExistente.ok) {
+            skipped += 1;
+            continue;
+          }
           for (const rowId of candidate.rowIds) rowLinks[rowId] = existing.id;
           localContacts.push({
             id: existing.id,
