@@ -135,13 +135,14 @@ export function useTransactionFormLookups(enabled: boolean) {
   });
 
   const paymentMethodCompaniesQuery = useQuery({
-    queryKey: ["form-payment-method-companies", user?.id],
+    queryKey: ["form-payment-method-companies", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await (supabase.from("payment_method_companies" as any) as any)
-        .select("payment_method_id, company_id");
-      return (data ?? []) as { payment_method_id: string; company_id: string }[];
-    },
+    queryFn: () =>
+      lerVinculos<{ payment_method_id: string; company_id: string }>(
+        "payment_method_companies",
+        "payment_method_id",
+        contextType === "pj" ? selectedCompanyId : null,
+      ),
   });
 
   const categoryCompanyIds = useMemo(() => {
