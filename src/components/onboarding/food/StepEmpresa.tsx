@@ -100,24 +100,38 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
         )}
 
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Razão Social *" error={errors.razaoSocial}>
+          <Field id="onb-razao" label="Razão Social" required error={errors.razaoSocial}>
             <Input
+              id="onb-razao"
               value={data.razaoSocial}
               onChange={(e) => update({ razaoSocial: e.target.value })}
               maxLength={200}
+              aria-required="true"
+              aria-invalid={errors.razaoSocial ? true : undefined}
+              aria-describedby={errors.razaoSocial ? "onb-razao-erro" : undefined}
             />
           </Field>
-          <Field label="Nome Fantasia" error={errors.nomeFantasia}>
+          <Field id="onb-fantasia" label="Nome Fantasia" error={errors.nomeFantasia}>
             <Input
+              id="onb-fantasia"
               value={data.nomeFantasia}
               onChange={(e) => update({ nomeFantasia: e.target.value })}
               maxLength={200}
+              aria-invalid={errors.nomeFantasia ? true : undefined}
+              aria-describedby={errors.nomeFantasia ? "onb-fantasia-erro" : undefined}
             />
           </Field>
         </div>
 
-        <Field label="Segmento *" error={errors.segmentoId}>
-          <SegmentoSelect value={data.segmentoId} onChange={(v) => update({ segmentoId: v })} />
+        <Field id="onb-segmento" label="Segmento" required error={errors.segmentoId}>
+          <SegmentoSelect
+            id="onb-segmento"
+            value={data.segmentoId}
+            onChange={(v) => update({ segmentoId: v })}
+            required
+            invalid={Boolean(errors.segmentoId)}
+            describedBy={errors.segmentoId ? "onb-segmento-erro" : undefined}
+          />
         </Field>
       </fieldset>
 
