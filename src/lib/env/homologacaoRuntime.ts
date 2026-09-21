@@ -34,10 +34,17 @@ export const FUNCOES_PERMITIDAS_HOM = [
   "dp-doc-bulk-discard",
   "dp-bloquear-acesso-colaborador",
   "auth-config",
+  // Instalada no ref de homologação com guard de URL exata e verificação de JWT
+  // (getClaims); chamada sem JWT responde 401. Por existir lá, roda de verdade.
+  "check-onboarding-cnpj",
 ] as const;
 
-/** Funções cuja resposta é simulada localmente em homologação (sem rede). */
-export const FUNCOES_MOCKADAS_HOM = ["lookup-cnpj", "check-onboarding-cnpj"] as const;
+/**
+ * Funções cuja resposta é simulada localmente em homologação (sem rede).
+ * `lookup-cnpj` não existe no ref de homologação e consultaria a BrasilAPI.
+ */
+export const FUNCOES_MOCKADAS_HOM = ["lookup-cnpj"] as const;
+
 
 /**
  * Métodos do Auth que disparam e-mail real pelo provedor do projeto.
