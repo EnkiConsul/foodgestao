@@ -121,7 +121,7 @@ describe("motivo de bloqueio", () => {
   it("explica em português o contato sem vínculo", () => {
     const r = criarResultado();
     r.falhas.push({ ids: ["s1"], motivo: "contato_sem_vinculo" });
-    const resumo = resumoConfirmacao(r, 1);
+    const resumo = resumoConfirmacao(["s1"], r);
     expect(JSON.stringify(resumo)).toContain("não está ligado à empresa");
   });
 });
