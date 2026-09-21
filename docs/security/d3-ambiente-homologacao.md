@@ -41,8 +41,9 @@ Conclusão: sim — o preview usa o banco de produção. Qualquer cadastro feito
 - Specs existentes mexem em contas bancárias (`e2e/adjust-account-balance.spec.py`, `contas-bancarias-delete.spec.py`, `delete-account-hard-regression.spec.py`).
 
 ### A4 — infraestrutura de staging declarada mas incompleta
-- `scripts/preflight-secrets.mjs:29-81` declara os grupos `staging-db` (`STAGING_SUPABASE_DB_URL`, obrigatório), `tenancy` (`TEST_SUPABASE_URL`, usuários A–D…), `smoke-checkout` (`SMOKE_BASE_URL`, `SMOKE_SUPABASE_URL`, `SMOKE_SUPABASE_ANON_KEY`), `asaas-sandbox`, `pluggy-sandbox` e `seed-staging` (`STAGING_SUPABASE_URL`, `STAGING_SERVICE_ROLE_KEY`).
+- `scripts/preflight-secrets.mjs:29-81` declara os grupos `staging-db` (`STAGING_SUPABASE_DB_URL`, obrigatório), `tenancy` (`TEST_SUPABASE_URL`, usuários A–D…), `smoke-checkout` (`SMOKE_BASE_URL`, `SMOKE_SUPABASE_URL`, `SMOKE_SUPABASE_ANON_KEY`), `asaas-sandbox`, `pluggy-sandbox` e `seed-staging` (`STAGING_SUPABASE_URL`, `STAGING_SERVICE_ROLE_KEY`). **Não foi inspecionado** se esses segredos estão configurados no CI ou no ambiente — este relatório não afirma ausência, apenas que o código os exige.
 - `scripts/seed-staging.mjs` **não existe** no repositório (`ls scripts | grep seed` vazio), embora seja citado em `preflight-secrets.mjs:80`.
+- O banco de homologação `utjhzpdbqzajrhnzcher` **já está provisionado** (catálogo bootstrapped, ~216 tabelas, usuários de teste A–D e fixtures). Nada de reaplicar o histórico de migrations nem recriar esses usuários/fixtures; ver `docs/runbooks/ambiente-homologacao.md`, seção 4.
 - `.github/workflows/release-gate.yml:136-171,275` e `staging-security-gate.yml:11-57` já consomem `STAGING_SUPABASE_DB_URL` — o gate de segurança presume um banco de homologação, mas o app nunca aponta para ele.
 - Smokes prontos e isoláveis: `scripts/smoke-asaas-sandbox.mjs` (exige URL contendo `sandbox`, `:59-60`), `scripts/smoke-pluggy-sandbox.mjs`, `scripts/smoke-checkout.mjs`.
 
