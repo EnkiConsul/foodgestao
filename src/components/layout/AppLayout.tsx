@@ -35,6 +35,7 @@ export function AppLayout() {
       </div>
       <MobileBottomNav />
       <InstallPrompt />
+      <MfaNudgeDialog />
     </SidebarProvider>
   );
 }
