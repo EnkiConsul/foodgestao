@@ -163,32 +163,45 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
           Contato
         </legend>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Telefone" error={errors.telefoneEmpresa}>
+          <Field id="onb-telefone" label="Telefone" error={errors.telefoneEmpresa}>
             <Input
+              id="onb-telefone"
               value={data.telefoneEmpresa}
               onChange={(e) => update({ telefoneEmpresa: maskPhone(e.target.value) })}
               placeholder="(00) 0000-0000"
               maxLength={16}
               inputMode="numeric"
+              autoComplete="tel"
+              aria-invalid={errors.telefoneEmpresa ? true : undefined}
+              aria-describedby={errors.telefoneEmpresa ? "onb-telefone-erro" : undefined}
             />
           </Field>
-          <Field label="WhatsApp *" error={errors.whatsappEmpresa}>
+          <Field id="onb-whatsapp" label="WhatsApp" required error={errors.whatsappEmpresa}>
             <Input
+              id="onb-whatsapp"
               value={data.whatsappEmpresa}
               onChange={(e) => update({ whatsappEmpresa: maskPhone(e.target.value) })}
               placeholder="(00) 90000-0000"
               maxLength={16}
               inputMode="numeric"
+              aria-required="true"
+              aria-invalid={errors.whatsappEmpresa ? true : undefined}
+              aria-describedby={errors.whatsappEmpresa ? "onb-whatsapp-erro" : undefined}
             />
           </Field>
         </div>
-        <Field label="E-mail *" error={errors.emailEmpresa}>
+        <Field id="onb-email" label="E-mail" required error={errors.emailEmpresa}>
           <Input
+            id="onb-email"
             type="email"
             value={data.emailEmpresa}
             onChange={(e) => update({ emailEmpresa: e.target.value })}
             placeholder="contato@empresa.com"
             maxLength={150}
+            autoComplete="email"
+            aria-required="true"
+            aria-invalid={errors.emailEmpresa ? true : undefined}
+            aria-describedby={errors.emailEmpresa ? "onb-email-erro" : undefined}
           />
         </Field>
       </fieldset>
@@ -200,6 +213,9 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
           checked={data.aceitouLgpd}
           onCheckedChange={(v) => update({ aceitouLgpd: v === true })}
           className="mt-0.5"
+          aria-required="true"
+          aria-invalid={errors.aceitouLgpd ? true : undefined}
+          aria-describedby={errors.aceitouLgpd ? "lgpd-accept-erro" : undefined}
         />
         <label htmlFor="lgpd-accept" className="text-xs leading-relaxed cursor-pointer text-muted-foreground">
           Li e concordo com os{" "}
