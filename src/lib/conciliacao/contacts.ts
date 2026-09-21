@@ -219,19 +219,41 @@ export async function findSimilarContacts(params: {
   return out.slice(0, limit);
 }
 
-/** Garante o vínculo do contato com a empresa (idempotente). */
-
-export async function ensureContactCompanyLink(contactId: string, companyId: string) {
-  const { data } = await supabase
+/**
+ * Garante o vínculo do contato com a empresa (idempotente) e CONFERE o
+ * resultado. Antes o erro era descartado em silêncio: o cadastro ficava sem
+ * empresa e a confirmação do lançamento falhava depois com `contact_forbidden`.
+ */
+export async function ensureContactCompanyLink(
+  contactId: string,
+  companyId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const { data: existente } = await supabase
     .from("contact_companies")
     .select("contact_id")
     .eq("contact_id", contactId)
     .eq("company_id", companyId)
     .maybeSingle();
-  if (!data) {
-    await supabase.from("contact_companies").insert({
-      contact_id: contactId,
-      company_id: companyId,
-    } as never);
-  }
+  if (existente) return { ok: true };
+
+  const { error } = await supabase.from("contact_companies").insert({
+    contact_id: contactId,
+    company_id: companyId,
+  } as never);
+
+  // Corrida entre duas gravações: confere o estado final antes de reprovar.
+  const { data: confirmado } = await supabase
+    .from("contact_companies")
+    .select("contact_id")
+    .eq("contact_id", contactId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  if (confirmado) return { ok: true };
+
+  return {
+    ok: false,
+    error:
+      error?.message ??
+      "Não foi possível vincular o cliente/fornecedor à empresa.",
+  };
 }
