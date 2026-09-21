@@ -72,7 +72,7 @@ Sem criar projeto novo nem contratar serviços: usar o projeto já existente `ut
    - Provedor de CNPJ configurável por variável na própria função: `CNPJ_PROVIDER=brasilapi|fixture`. Em `fixture`, a função responde do `cnpj_cache`/tabela de fixtures e **nunca** faz `fetch` externo. Em produção a variável fica ausente e o comportamento é idêntico ao atual — sem CNPJ mágico, sem query param, sem bypass.
    - `expire-trials` e crons desligados ou com agenda própria em homologação.
    - Webhooks Asaas/Pluggy de homologação apontando somente para as funções do projeto de homologação.
-6. **Semear dados de teste**: criar o `scripts/seed-staging.mjs` que hoje só é citado (usuários A–D e duas empresas, batendo com as variáveis do grupo `tenancy`), usando `STAGING_SUPABASE_URL`/`STAGING_SERVICE_ROLE_KEY`. Isso destrava as suítes de tenancy e o `smoke:checkout` sem tocar produção.
+6. **Dados de teste já existentes**: usuários A–D e fixtures **já estão** no banco de homologação — não recriar. Se `scripts/seed-staging.mjs` (hoje só citado) vier a existir, deve ser idempotente, detectar o que já está lá e apenas complementar, usando `STAGING_SUPABASE_URL`/`STAGING_SERVICE_ROLE_KEY`.
 7. **E2E deixam de mirar produção**: exigir `E2E_BASE_URL` apontando para o build de homologação e abortar quando o ref do backend for o de produção (guarda em `scripts/run-e2e.mjs`).
 8. **Testes locais sem rede** (podem ser feitos já, nesta fase): fixture do payload BrasilAPI + testes de `useCnpjLookup` (cache 6 h, erros `timeout`/`not_found`/`rate_limited`) e do passo final do onboarding com `rpc` mockada, cobrindo `empresa_ja_cadastrada`, `cnpj_invalido`, `nenhum_modulo_selecionado`.
 
