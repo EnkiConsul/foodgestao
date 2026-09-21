@@ -58,8 +58,11 @@ Produção segue com `npm run dev` / `npm run build`, sem nenhuma mudança.
      homologação: `dp-refresh-pendencias`, `dp-sorteio-folgas`, `dp-preadmissao-gestor`,
      `dp-preadmissao-publica`, `dp-preadmissao-arquivo`, `dp-doc-bulk-approve`,
      `dp-doc-bulk-discard`, `dp-bloquear-acesso-colaborador`, `auth-config`.
-   - **Simuladas sem rede:** `lookup-cnpj` (fixture fictícia) e `check-onboarding-cnpj`
-     (`registered` só para o CNPJ de fixture, `available` para os demais).
+   - `check-onboarding-cnpj` **também está liberada**: ela foi instalada no ref de
+     homologação (agora 6 edge functions lá), com guard de URL exata e verificação de
+     JWT via `getClaims` (chamada sem JWT responde 401). Não é replicada nem simulada.
+   - **Simulada sem rede:** apenas `lookup-cnpj` — não existe no ref de homologação e
+     consultaria a BrasilAPI.
    - **Bloqueado tudo o mais, por padrão** — nome desconhecido também falha. Isso cobre
      pagamentos, Open Finance, IA, e-mail/WhatsApp, convites e qualquer função nova.
    Prova em teste: `createClient` **real** do SDK com `fetch` espião — dois acessos
@@ -73,11 +76,19 @@ Produção segue com `npm run dev` / `npm run build`, sem nenhuma mudança.
 8. O modo `homologacao` **não cai para produção**: `vite.config.ts` carrega
    `.env.homologacao` por cima das variáveis do shell (que são as de produção) e
    **aborta o build** se o resultado não for exatamente a flag + o banco de homologação.
-9. `vite build` grava `dist/build-env.json` (`app_env`, `supabase_ref`, `built_at`).
-   `scripts/run-e2e.mjs` só roda spec se esse marcador existir e disser
-   `homologacao` + `utjhzpdbqzajrhnzcher`; endereço `localhost` não é aceito como prova.
-   Por padrão o marcador é lido **por HTTP** em `${E2E_BASE_URL}/build-env.json`, ou seja,
-   do app realmente servido; `E2E_BUILD_MANIFEST` é um override explícito para arquivo local.
+9. `vite build` grava `dist/build-env.json` (`app_env`, `supabase_ref`, `build_id`,
+   `built_at`). `scripts/run-e2e.mjs` valida o **DESTINO**, não a máquina:
+   - o marcador é lido **por HTTP** em `new URL("/build-env.json", E2E_BASE_URL)`, com
+     timeout de 10 s e **sem seguir redirecionamento** (`--max-redirs 0`, além de conferir
+     que a URL efetiva é a solicitada);
+   - exige `app_env = "homologacao"`, `supabase_ref = utjhzpdbqzajrhnzcher` e `build_id`
+     presente, **do próprio servidor alvo**;
+   - **hosts de produção são recusados explicitamente** (`aveto360.com`,
+     `www.aveto360.com`, `aveto360.lovable.app`, `grtxmbffgmgnkawlvqhm.supabase.co`),
+     mesmo que exista marcador local de homologação;
+   - `E2E_BUILD_MANIFEST` deixou de ser prova: quando informado, serve só para conferir
+     que o `build_id` local é igual ao servido no alvo;
+   - nenhum spec roda antes dessa validação; `localhost` não é prova por si só.
 10. Produção não ganhou CNPJ mágico, parâmetro de URL nem qualquer bypass: os mocks
     só existem sob `isHomologacao()`, que exige o banco de homologação.
 

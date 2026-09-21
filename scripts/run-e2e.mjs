@@ -4,8 +4,16 @@
  *
  * TRAVA DE AMBIENTE (fail-closed, antes de qualquer spec): os E2E escrevem no
  * banco, então só rodam contra um build de HOMOLOGAÇÃO comprovado pelo marcador
- * `build-env.json` gerado no próprio build (`app_env` + `supabase_ref`).
- * Endereço local (localhost) NÃO é prova de ambiente e não é aceito como tal.
+ * `build-env.json` do PRÓPRIO SERVIDOR ALVO, lido por HTTP em
+ * `new URL("/build-env.json", E2E_BASE_URL)`.
+ *
+ * Por que não vale arquivo local: `dist/build-env.json` descreve o build da
+ * máquina, não o app servido em `E2E_BASE_URL`. Um marcador local de homologação
+ * com `E2E_BASE_URL=https://aveto360.com` provaria nada e os testes escreveriam
+ * em produção. O arquivo local, quando informado, serve apenas como conferência
+ * extra de `build_id` — nunca substitui a leitura HTTP.
+ *
+ * Endereço local (localhost) também NÃO é prova de ambiente por si só.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -13,7 +21,16 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 const REQUIRE = process.argv.includes("--require") || !!process.env.CI;
 const BASE = process.env.E2E_BASE_URL || "http://localhost:8080";
 const REF_HOM = "utjhzpdbqzajrhnzcher";
-const MANIFESTO = process.env.E2E_BUILD_MANIFEST || "dist/build-env.json";
+const REF_PROD = "grtxmbffgmgnkawlvqhm";
+const MANIFESTO_LOCAL = process.env.E2E_BUILD_MANIFEST || null;
+
+/** Hosts de produção — recusados explicitamente, mesmo com marcador válido. */
+const HOSTS_PROIBIDOS = [
+  "aveto360.com",
+  "www.aveto360.com",
+  "aveto360.lovable.app",
+  `${REF_PROD}.supabase.co`,
+];
 
 const RED = "\x1b[31m";
 const GREEN = "\x1b[32m";
@@ -35,61 +52,94 @@ function abortar(msg) {
   console.error(`${RED}✗ E2E abortado: ${msg}${RESET}`);
   console.error(
     `${YELLOW}  Gere o build de homologação (bun run build:hom), sirva-o (bun run preview:hom)` +
-      ` e aponte E2E_BASE_URL/E2E_BUILD_MANIFEST para ele.${RESET}`,
+      ` e aponte E2E_BASE_URL para esse endereço.${RESET}`,
   );
   process.exit(1);
 }
 
-const MANIFESTO_LOCAL = !!process.env.E2E_BUILD_MANIFEST;
-const URL_MANIFESTO = `${BASE.replace(/\/$/, "")}/build-env.json`;
+// ---------------------------------------------------------------- destino
+let alvo;
+try {
+  alvo = new URL(BASE);
+} catch {
+  abortar(`E2E_BASE_URL inválida: "${BASE}".`);
+}
+if (alvo.protocol !== "http:" && alvo.protocol !== "https:") {
+  abortar(`E2E_BASE_URL precisa ser http(s): "${BASE}".`);
+}
+const host = alvo.hostname.toLowerCase();
+if (HOSTS_PROIBIDOS.includes(host)) {
+  abortar(
+    `host de produção recusado explicitamente (${host}). Os E2E escrevem no banco e nunca rodam contra produção.`,
+  );
+}
 
-let bruto;
-let origem;
-if (MANIFESTO_LOCAL) {
-  // Override explícito: arquivo do build gerado localmente.
-  if (!existsSync(MANIFESTO)) {
-    abortar(
-      `marcador de ambiente ausente (${MANIFESTO}). Sem ele não há prova de que o app em teste usa o banco de homologação.`,
-    );
-  }
-  try {
-    bruto = readFileSync(MANIFESTO, "utf8");
-  } catch {
-    abortar(`marcador ${MANIFESTO} ilegível.`);
-  }
-  origem = MANIFESTO;
-} else {
-  // Prova padrão: o marcador é lido POR HTTP do próprio endereço testado, para
-  // que a verificação recaia sobre o app realmente servido em BASE — e não sobre
-  // um arquivo qualquer da máquina.
-  const res = spawnSync("curl", ["-sf", "-m", "10", URL_MANIFESTO], { encoding: "utf8" });
-  if (res.status !== 0 || !res.stdout) {
-    abortar(
-      `marcador de ambiente não obtido em ${URL_MANIFESTO}. Sem ele não há prova de que o app servido em ${BASE} usa o banco de homologação.`,
-    );
-  }
-  bruto = res.stdout;
-  origem = URL_MANIFESTO;
+// -------------------------------------------- marcador do servidor alvo (HTTP)
+const URL_MANIFESTO = new URL("/build-env.json", alvo).toString();
+
+// Sem seguir redirecionamento (`--max-redirs 0`): um redirect poderia levar a
+// leitura do marcador para outro host, diferente do que será testado.
+const res = spawnSync(
+  "curl",
+  ["-sS", "-f", "--max-redirs", "0", "--max-time", "10", "-w", "\\n%{url_effective}", URL_MANIFESTO],
+  { encoding: "utf8" },
+);
+if (res.status !== 0 || !res.stdout) {
+  abortar(
+    `marcador de ambiente não obtido por HTTP em ${URL_MANIFESTO}. Sem ele não há prova de que o app servido em ${BASE} usa o banco de homologação.`,
+  );
+}
+const partes = res.stdout.trimEnd().split("\n");
+const urlFinal = partes.pop();
+const bruto = partes.join("\n");
+if (urlFinal !== URL_MANIFESTO) {
+  abortar(`marcador veio de destino diferente do solicitado (${urlFinal}) — redirecionamento recusado.`);
 }
 
 let marcador;
 try {
   marcador = JSON.parse(bruto);
 } catch {
-  abortar(`marcador ${origem} ilegível ou não é JSON.`);
+  abortar(`marcador ${URL_MANIFESTO} ilegível ou não é JSON.`);
 }
 
 if (marcador.app_env !== "homologacao") {
-  abortar(`marcador declara app_env="${marcador.app_env ?? "ausente"}" — exigido "homologacao".`);
+  abortar(
+    `o app servido em ${BASE} declara app_env="${marcador.app_env ?? "ausente"}" — exigido "homologacao".`,
+  );
 }
 if (marcador.supabase_ref !== REF_HOM) {
   abortar(
-    `marcador aponta para o projeto "${marcador.supabase_ref ?? "ausente"}" — exigido o de homologação (${REF_HOM}).`,
+    `o app servido em ${BASE} aponta para o projeto "${marcador.supabase_ref ?? "ausente"}" — exigido o de homologação (${REF_HOM}).`,
   );
 }
+if (!marcador.build_id) {
+  abortar(`marcador do servidor alvo sem build_id — regenere o build de homologação.`);
+}
+
+// Conferência opcional: o build local precisa ser o MESMO servido no alvo.
+if (MANIFESTO_LOCAL) {
+  if (!existsSync(MANIFESTO_LOCAL)) {
+    abortar(`marcador local informado não existe (${MANIFESTO_LOCAL}).`);
+  }
+  let local;
+  try {
+    local = JSON.parse(readFileSync(MANIFESTO_LOCAL, "utf8"));
+  } catch {
+    abortar(`marcador local ${MANIFESTO_LOCAL} ilegível ou não é JSON.`);
+  }
+  if (local.build_id !== marcador.build_id) {
+    abortar(
+      `build_id local (${local.build_id ?? "ausente"}) diferente do servido em ${BASE} (${marcador.build_id}) — o alvo não é o build que você gerou.`,
+    );
+  }
+}
+
 console.log(
-  `${GREEN}✓ Ambiente confirmado pelo marcador (${origem}): homologação (${REF_HOM}), build de ${marcador.built_at ?? "data desconhecida"}.${RESET}`,
+  `${GREEN}✓ Destino confirmado pelo próprio servidor (${URL_MANIFESTO}): homologação (${REF_HOM}),` +
+    ` build ${marcador.build_id}, de ${marcador.built_at ?? "data desconhecida"}.${RESET}`,
 );
+
 
 
 if (!existsSync("e2e")) softExit("pasta e2e ausente");

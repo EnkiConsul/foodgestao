@@ -2,6 +2,8 @@ import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import fs from "fs";
+import { randomUUID } from "node:crypto";
+
 import { componentTagger } from "lovable-tagger";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 
@@ -51,16 +53,25 @@ function marcadorDeAmbiente(mode: string, env: Record<string, string | undefined
     name: "marcador-de-ambiente",
     apply: "build",
     generateBundle() {
+      // build_id identifica ESTE build: permite conferir que o servidor alvo
+      // dos E2E serve exatamente o pacote gerado (scripts/run-e2e.mjs).
+      const buildId = randomUUID();
       this.emitFile({
         type: "asset",
         fileName: "build-env.json",
         source: JSON.stringify(
-          { app_env: appEnv, supabase_ref: ref, built_at: new Date().toISOString() },
+          {
+            app_env: appEnv,
+            supabase_ref: ref,
+            build_id: buildId,
+            built_at: new Date().toISOString(),
+          },
           null,
           2,
         ),
       });
     },
+
   };
 }
 
