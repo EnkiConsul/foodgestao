@@ -51,13 +51,13 @@ function renderStep(errors: Partial<Record<keyof EmpresaFormData, string>> = {})
 
 const ROTULOS = [
   "Nome Completo", "CNPJ", "Razão Social", "Nome Fantasia", "Segmento",
-  "CEP", "Rua / Avenida", "Número", "Complemento", "Bairro", "Cidade", "Estado (UF)",
+  "CEP", "Rua / Avenida", "Número", "Complemento", "Bairro", "Cidade", "Estado \\(UF\\)",
   "Telefone", "WhatsApp", "E-mail",
 ];
 
 const OBRIGATORIOS = [
   "Nome Completo", "CNPJ", "Razão Social", "Segmento",
-  "CEP", "Rua / Avenida", "Número", "Bairro", "Cidade", "Estado (UF)",
+  "CEP", "Rua / Avenida", "Número", "Bairro", "Cidade", "Estado \\(UF\\)",
   "WhatsApp", "E-mail",
 ];
 
