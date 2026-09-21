@@ -229,7 +229,11 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
           do Aveto 360.
         </label>
       </div>
-      {errors.aceitouLgpd && <p className="text-xs text-destructive">{errors.aceitouLgpd}</p>}
+      {errors.aceitouLgpd && (
+        <p id="lgpd-accept-erro" role="alert" className="text-xs text-destructive">
+          {errors.aceitouLgpd}
+        </p>
+      )}
     </div>
   );
 }
