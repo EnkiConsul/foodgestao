@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
+import { lerVinculos } from "@/lib/companyLinks";
 
 export function useTransactionFormLookups(enabled: boolean) {
   const { user } = useAuth();
@@ -102,41 +103,47 @@ export function useTransactionFormLookups(enabled: boolean) {
   });
 
   const costCenterCompaniesQuery = useQuery({
-    queryKey: ["form-cost-center-companies", user?.id],
+    queryKey: ["form-cost-center-companies", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await (supabase.from("cost_center_companies" as any) as any)
-        .select("cost_center_id, company_id");
-      return (data ?? []) as { cost_center_id: string; company_id: string }[];
-    },
+    queryFn: () =>
+      lerVinculos<{ cost_center_id: string; company_id: string }>(
+        "cost_center_companies",
+        "cost_center_id",
+        contextType === "pj" ? selectedCompanyId : null,
+      ),
   });
 
   const categoryCompaniesQuery = useQuery({
-    queryKey: ["form-category-companies", user?.id],
+    queryKey: ["form-category-companies", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase.from("category_companies").select("category_id, company_id");
-      return data ?? [];
-    },
+    queryFn: () =>
+      lerVinculos<{ category_id: string; company_id: string }>(
+        "category_companies",
+        "category_id",
+        contextType === "pj" ? selectedCompanyId : null,
+      ),
   });
 
   const contactCompaniesQuery = useQuery({
-    queryKey: ["form-contact-companies", user?.id],
+    queryKey: ["form-contact-companies", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase.from("contact_companies").select("contact_id, company_id");
-      return data ?? [];
-    },
+    queryFn: () =>
+      lerVinculos<{ contact_id: string; company_id: string }>(
+        "contact_companies",
+        "contact_id",
+        contextType === "pj" ? selectedCompanyId : null,
+      ),
   });
 
   const paymentMethodCompaniesQuery = useQuery({
-    queryKey: ["form-payment-method-companies", user?.id],
+    queryKey: ["form-payment-method-companies", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await (supabase.from("payment_method_companies" as any) as any)
-        .select("payment_method_id, company_id");
-      return (data ?? []) as { payment_method_id: string; company_id: string }[];
-    },
+    queryFn: () =>
+      lerVinculos<{ payment_method_id: string; company_id: string }>(
+        "payment_method_companies",
+        "payment_method_id",
+        contextType === "pj" ? selectedCompanyId : null,
+      ),
   });
 
   const categoryCompanyIds = useMemo(() => {
