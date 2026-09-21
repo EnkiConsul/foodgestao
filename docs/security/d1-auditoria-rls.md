@@ -139,6 +139,8 @@ Qualquer edição direta de conta pela API falha por permissão antes da RLS —
 
 ## 5. Próxima etapa (preparada, não executada)
 
+Ver também `docs/security/d1-achado-a7-conta-do-lancamento.md` (achado A7, registrado separadamente).
+
 `docs/security/d1/d1-teste-isolamento-homologacao.sql` traz o roteiro controlado para **homologação**,
 com duas empresas e dois usuários fictícios, cobrindo: positivos do próprio tenant; negativos cruzados
 em SELECT/INSERT/UPDATE/DELETE; tentativa de reatribuir `company_id`; FK apontando para linha de outra
