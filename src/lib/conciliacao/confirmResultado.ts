@@ -53,6 +53,8 @@ const MENSAGEM_MOTIVO: Record<MotivoBloqueio, string> = {
   contraparte_ausente: "Falta escolher a conta da contraparte da transferência.",
   contraparte_igual:
     "A contraparte deve ser diferente da conta do extrato.",
+  contato_sem_vinculo:
+    "Este fornecedor/cliente não está ligado à empresa deste lançamento.",
   erro_rpc: "O sistema recusou a gravação.",
 };
 
