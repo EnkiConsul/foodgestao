@@ -111,11 +111,7 @@ export function PaymentMethodFormDialog({ open, onOpenChange, onSaved, editItem 
 
       // Sync junction table
       await (supabase.from("payment_method_companies" as any) as any).delete().eq("payment_method_id", editItem.id);
-      if (selectedCompanyIds.length > 0) {
-        await supabase.from("payment_method_companies" as any).insert(
-          selectedCompanyIds.map((cid) => ({ payment_method_id: editItem.id, company_id: cid }))
-        );
-      }
+      if (!(await vincularEmpresas(editItem.id, selectedCompanyIds))) return;
       toast.success("Forma de pagamento atualizada");
     } else {
       const { data: inserted, error } = await supabase
@@ -125,11 +121,10 @@ export function PaymentMethodFormDialog({ open, onOpenChange, onSaved, editItem 
         .single();
       if (error || !inserted) { toast.error("Erro ao criar", { description: error?.message }); return; }
 
-      if (selectedCompanyIds.length > 0) {
-        await supabase.from("payment_method_companies" as any).insert(
-          selectedCompanyIds.map((cid) => ({ payment_method_id: (inserted as any).id, company_id: cid }))
-        );
-      }
+      const idsFinais = selectedCompanyId && !selectedCompanyIds.includes(selectedCompanyId)
+        ? [...selectedCompanyIds, selectedCompanyId]
+        : selectedCompanyIds;
+      if (!(await vincularEmpresas((inserted as any).id, idsFinais))) { onSaved((inserted as any).id); return; }
       toast.success("Forma de pagamento criada");
       onSaved((inserted as any).id);
       onOpenChange(false);
