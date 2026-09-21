@@ -1,5 +1,10 @@
+// Validação fail-closed do ambiente ANTES de qualquer outro módulo (inclusive
+// do cliente do banco, importado indiretamente por App).
+import "./bootstrap/ambiente";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
+import { supabase } from "./integrations/supabase/client";
+import { instalarGuardasHomologacao } from "./lib/env/homologacaoRuntime";
 import { installStaleBundleRecovery } from "./lib/staleBundle";
 import { installCspViolationLogger } from "./lib/security/cspViolationLogger";
 
@@ -13,6 +18,9 @@ import "@fontsource/epilogue/500.css";
 import "@fontsource/epilogue/600.css";
 import "./index.css";
 
+// Em homologação: consultas de cadastro por fixture e bloqueio das integrações
+// externas não aprovadas. Em produção não instala nada.
+instalarGuardasHomologacao(supabase as never);
 installStaleBundleRecovery();
 installCspViolationLogger();
 // Offline caching was removed because an old app-shell cache could route valid

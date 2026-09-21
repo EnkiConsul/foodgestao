@@ -4,6 +4,9 @@
  * Antes cada formulário repetia a máscara e a lista de estados, e nenhum deles
  * preenchia rua/bairro/cidade a partir do CEP. Agora todos usam estas funções.
  */
+import { isHomologacao } from "@/lib/env/appEnv";
+import { cepFixture } from "@/lib/env/homologacaoFixtures";
+
 
 export const UFS = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
@@ -46,6 +49,13 @@ export async function consultarCep(valor: string): Promise<EnderecoConsultado | 
   const cep = cepDigitos(valor);
   if (cep.length !== 8) return null;
   if (cache.has(cep)) return cache.get(cep) ?? null;
+  // Homologação: resposta determinística e fictícia, sem nenhuma transmissão
+  // ao provedor externo.
+  if (isHomologacao()) {
+    const fixo = cepFixture(cep);
+    cache.set(cep, fixo);
+    return fixo;
+  }
   try {
     const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
     if (!r.ok) return null;
