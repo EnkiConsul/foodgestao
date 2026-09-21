@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isHomologacao } from "@/lib/env/appEnv";
 
 export type TurnstileMode = "test" | "live";
 type Config = { siteKey: string; mode: TurnstileMode };
@@ -8,6 +9,7 @@ let cached: Config | null = null;
 let inflight: Promise<Config> | null = null;
 
 async function fetchConfig(): Promise<Config> {
+  if (isHomologacao()) return { siteKey: "", mode: "test" };
   if (cached) return cached;
   if (inflight) return inflight;
   inflight = (async () => {

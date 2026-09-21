@@ -15,6 +15,7 @@ import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
 import { useTurnstileConfig } from "@/hooks/useTurnstileSiteKey";
 import { describeTurnstileError, currentHostname } from "@/lib/auth/turnstileErrors";
 import { unifiedSignIn } from "@/lib/authUnified";
+import { isHomologacao } from "@/lib/env/appEnv";
 import { sanitizeRedirect } from "@/lib/safeRedirect";
 import { resolveLandingTarget, landingPathFor } from "@/lib/auth/landing";
 import { consumePendingInviteToken } from "@/lib/auth/invite";
@@ -315,14 +316,14 @@ export default function Auth() {
     setSubmitting(true);
     try {
       if (isLogin) {
-        if (turnstileError) {
+        if (!isHomologacao() && turnstileError) {
           toast.error("Verificação de segurança indisponível", {
             description: "Não foi possível carregar o CAPTCHA neste domínio. Acesse pelo site oficial ou avise o administrador.",
           });
           setSubmitting(false);
           return;
         }
-        if (!turnstileToken) {
+        if (!isHomologacao() && !turnstileToken) {
           toast.error("Verificação de segurança", { description: "Aguarde ou complete o desafio antes de entrar." });
           setSubmitting(false);
           return;
@@ -763,7 +764,12 @@ export default function Auth() {
               </p>
             )}
 
-            {isLogin && turnstileSiteKey && (
+            {isLogin && isHomologacao() && (
+              <p className="text-sm text-muted-foreground">
+                Ambiente de testes: use sua conta fictícia @example.invalid e senha de homologação. O CAPTCHA externo está desativado somente neste ambiente.
+              </p>
+            )}
+            {isLogin && !isHomologacao() && turnstileSiteKey && (
               <div className="space-y-1 pt-0 md:space-y-2 md:pt-1">
                 <TurnstileWidget
                   key={turnstileNonce}
