@@ -46,7 +46,15 @@ Artefatos (sem dados e sem segredos) em `docs/security/d1/`:
   desabilitada ou policy permissiva.
 
 RLS habilitada **não** é tratada aqui como prova de isolamento: os achados abaixo vêm da leitura dos
-predicados, dos grants e dos corpos das funções privilegiadas.
+predicados, dos grants e dos corpos das funções privilegiadas. Também não é tratada como cobertura
+universal: **`TRUNCATE` não é filtrado por RLS** (ver A5), e chaves estrangeiras não carregam empresa
+(ver A7).
+
+Duas ressalvas de método, aplicadas no texto abaixo:
+- `USAGE` em um schema **não** prova exposição via REST. O schema `private` não é schema exposto do
+  PostgREST; um helper executável ali é superfície de banco, não exploração HTTP comprovada.
+- Uma função `SECURITY DEFINER` sem `auth.uid()` **não** é, por si, um exploit: a autorização pode
+  estar na cadeia de chamada. A lista de 59 é **triagem**, não 59 vulnerabilidades.
 
 ## 2. Matriz das tabelas prioritárias (predicados reais)
 
@@ -61,8 +69,13 @@ predicados, dos grants e dos corpos das funções privilegiadas.
 | `invoices` | somente `auth.uid() = user_id`; super admin gerencia | sem escrita de cliente |
 | `pluggy_connections`, `pluggy_accounts`, `pluggy_staging_transactions`, `pluggy_v2_*` | SELECT por empresa | **sem grant de escrita para cliente** (`authenticated` só `SELECT`); escrita via `service_role`/RPCs |
 
-Esse núcleo está consistente: todos os predicados usam `auth.uid()` e helpers `private.*`, nunca um
-`company_id` vindo do cliente como fonte de verdade.
+Os predicados desse núcleo são consistentes: todos usam `auth.uid()` e helpers `private.*`, nunca um
+`company_id` vindo do cliente como fonte de verdade. **Isso não significa que o núcleo esteja seguro.**
+O predicado decide sobre a coluna `company_id` da própria linha, e não sobre as linhas referenciadas
+por ela: as chaves estrangeiras (`account_id`, `credit_card_id`, `category_id`, `contact_id`,
+`cost_center_id`) não carregam empresa e não têm guard equivalente ao da conta de destino — é
+exatamente o caminho confirmado em A7. A conclusão sobre o núcleo só pode ser dada depois de fechar
+esse item.
 
 ## 3. Achados
 
@@ -74,8 +87,14 @@ Esse núcleo está consistente: todos os predicados usam `auth.uid()` e helpers 
 lido do catálogo. Efeito: qualquer visitante, sem sessão, lê as regras de admissão de qualquer
 empresa informando o identificador dela.
 
-### A2 — ALTO (sistêmico): 59 funções `SECURITY DEFINER` confiam no parâmetro de empresa/colaborador
-Funções em `public` executáveis por `authenticated` que recebem `company_id`/`colaborador_id` e não
+### A2 — TRIAGEM (não confirmado): 59 funções `SECURITY DEFINER` que confiam no parâmetro recebido
+**Esta é uma lista de triagem, não 59 vulnerabilidades.** Cada item precisa de verificação individual:
+a autorização pode estar na cadeia de chamada (função chamadora, trigger, RPC de fachada), e parte
+delas provavelmente nunca é chamada direto pelo cliente. Severidade fica indefinida até a verificação
+caso a caso; os itens de escrita abaixo são os candidatos prioritários.
+
+Critério da triagem: funções em `public` executáveis por `authenticated` que recebem
+`company_id`/`colaborador_id`/`user_id` e não
 consultam `auth.uid()` nem helper de vínculo — logo ignoram RLS em nome do dono da função. Exemplos
 verificados no corpo:
 - Leitura cruzada: `dp_config_resolvida`, `dp_ocorrencia_config`, `dp_ferias_config`,
@@ -86,9 +105,8 @@ verificados no corpo:
   empresa), `seed_default_contacts` / `seed_default_payment_methods` (INSERT com `_user_id`
   arbitrário), `dp_folga_atribuir_admin` (delega a `dp_solicitacao_criar_admin`; a cadeia precisa ser
   reverificada função por função).
-Lista completa em `09-definer-sem-uid.csv`. Muitas dessas funções provavelmente só são chamadas por
-triggers ou por outras funções privilegiadas — mas o EXECUTE para `authenticated` as torna alcançáveis
-direto pela API.
+Lista completa em `09-definer-sem-uid.csv`. O fato objetivo é o EXECUTE concedido a `authenticated` em
+schema exposto; a explorabilidade de cada uma é o que falta verificar.
 
 ### A3 — MÉDIO: sobrecarga nova de RPC de conciliação voltou a ser executável por `anon`
 `public.pluggy_clear_pending_staging(_company_id uuid, _ids uuid[])` tem `anon:EXECUTE` (o padrão
@@ -97,18 +115,54 @@ direto pela API.
 Mitigação existente: o corpo levanta `not_authenticated` quando `auth.uid()` é nulo — não há
 exploração direta, mas a divergência é exatamente a regressão que o item anterior fechou.
 
-### A4 — MÉDIO: helpers de permissão em `private` com `EXECUTE` para `PUBLIC`
-`private.pluggy_can_edit`, `private.pluggy_can_manage_accounts` e `private.pluggy_module_edit` têm
-`PUBLIC:EXECUTE`; `private.dp_pode_agir`, `dp_pode_ver_documentos`, `dp_portal_decisao`,
-`is_company_owner`, `is_dp_colaborador_of_company` idem. `anon` **não** tem `USAGE` em `private`
-(portanto não alcança), mas `authenticated` tem: qualquer usuário logado pode consultar a permissão de
-**outro** usuário em **qualquer** empresa passando `_user_id`/`_company_id` (vazamento booleano de
-vínculo/papel).
+### A4 — BAIXO, exploração HTTP não comprovada: helpers de `private` com `EXECUTE` para `PUBLIC`
+`private.pluggy_can_edit`, `private.pluggy_can_manage_accounts`, `private.pluggy_module_edit`,
+`private.dp_pode_agir`, `dp_pode_ver_documentos`, `dp_portal_decisao`, `is_company_owner`,
+`is_dp_colaborador_of_company` têm `PUBLIC:EXECUTE`. Medição de privilégio efetivo:
+`has_schema_privilege('anon','private','USAGE') = false`,
+`has_schema_privilege('authenticated','private','USAGE') = true`, `CREATE` negado para ambos.
 
-### A5 — BAIXO: grants amplos de escrita para `anon` em 173 tabelas de `public`
-Herança do padrão do Supabase. O bloqueio efetivo hoje é só a RLS (nenhuma policy concede escrita a
-`anon`, e as policies `{public}` exigem `auth.uid()`). Ainda assim é superfície desnecessária —
-inclusive em `companies`, `profiles`, `categories`, `audit_logs*` e `pluggy_webhook_events`.
+**Qualificação:** `USAGE` no schema não implica alcance pela API. `private` não é schema exposto do
+PostgREST, então a chamada não é possível por HTTP pelo caminho normal do aplicativo — nenhuma
+exploração foi demonstrada. O que fica registrado é superfície de banco a apertar (o helper deveria ser
+exclusivo de `service_role`, como já foi feito em `pluggy_user_can_edit`), não um vazamento
+confirmado. Se a exposição de schema mudar, o item vira imediatamente vazamento booleano de
+vínculo/papel de outro usuário.
+
+Ainda em `private`, duas funções `SECURITY DEFINER` que executam SQL dinâmico têm EXECUTE para
+`authenticated`: `private.apply_audit_log_partition_policies` e `private.manage_audit_logs_partitions`
+(DDL de partição de auditoria). Mesma qualificação de alcance; mesma recomendação de restringir a
+`service_role`. A única função de schema exposto com SQL dinâmico é `public.dp_ficha_aplicar`, que é
+`SECURITY INVOKER` (portanto sujeita à RLS) e monta colunas por lista branca com lista de campos
+proibidos — verificada e sem injeção de identificador.
+
+### A5 — MÉDIO: grants de tabela que a RLS não cobre (`TRUNCATE`) e escrita ampla para `anon`
+Correção de classificação: o item anterior tratava todos os grants como "protegidos pela RLS". **Isso
+é falso para `TRUNCATE`** — a RLS não filtra `TRUNCATE`; quem tem o privilégio apaga a tabela inteira
+sem passar por policy alguma. Medição por `has_table_privilege` sobre as 215 tabelas base de `public`
+(nenhum comando destrutivo foi executado):
+
+| Privilégio | `anon` | `authenticated` |
+|---|---|---|
+| `SELECT` | 162 | 206 |
+| `INSERT` | 165 | 185 |
+| `UPDATE` | 167 | 185 |
+| `DELETE` | 167 | 186 |
+| **`TRUNCATE`** | **167** | **186** |
+| `TRIGGER` | 168 | 194 |
+| `REFERENCES` | 167 | 186 |
+| `MAINTAIN` | 168 | 199 |
+
+Inclui `accounts`, `companies`, `profiles`, `categories`, `audit_logs*` e `pluggy_webhook_events`.
+
+Alcance real, medido: PostgREST não expõe `TRUNCATE` (não há verbo para isso), nenhuma função
+executável por `anon`/`authenticated` contém `TRUNCATE` no corpo (varredura em `pg_proc`), e
+`CREATE` em `public`/`private` está negado às duas roles — logo `TRIGGER` e `REFERENCES` não permitem
+criar gatilho nem chave estrangeira. **Nenhum caminho de exploração por HTTP foi comprovado**, e é por
+isso que o item é MÉDIO e não ALTO. Mas a afirmação "a RLS protege" não se sustenta: basta qualquer
+superfície futura que execute SQL arbitrário sob a role do cliente para o dano ser total e irreversível.
+Recomendação: `REVOKE TRUNCATE, TRIGGER, REFERENCES, MAINTAIN` de `anon` e `authenticated` em `public`,
+e revogar também a escrita de `anon` onde nenhuma policy a concede.
 Lista em `d1-catalogo-resumo.json → tabelas_com_grant_escrita_anon`.
 
 ### A6 — BAIXO (funcional, não isolamento): `public.accounts` sem `UPDATE` para `authenticated`
@@ -116,28 +170,60 @@ As policies permitem UPDATE ao editor da empresa, mas o grant de tabela não inc
 (`03-grants.csv`: `accounts|authenticated|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE`).
 Qualquer edição direta de conta pela API falha por permissão antes da RLS — hoje depende de RPC.
 
-### Pontos verificados e íntegros
+### A7 — ALTO, CONFIRMADO: conta/cartão de outra empresa no lançamento altera o saldo dela
+Registrado em detalhe em `docs/security/d1-achado-a7-conta-do-lancamento.md`. Resumo: `account_id` e
+`credit_card_id` não têm guard de empresa (só `destination_account_id`, e só em transferência), e o
+cálculo de saldo é `SECURITY DEFINER` sem checagem de tenant.
+
+### Pontos verificados, com o alcance da verificação explícito
 - `get_accessible_accounts` e `get_accessible_categories`: exigem sessão e `private.is_company_member`
   antes de retornar; `company_access_status` e `auth_access_enabled` derivam de `auth.uid()`.
-- Nenhuma função `SECURITY DEFINER` sem `search_path` fixado.
+  Verificado no corpo das funções e, para `get_accessible_accounts`, também em homologação (`42501`
+  para empresa alheia).
+- Nenhuma função `SECURITY DEFINER` sem `search_path` fixado (medido em `pg_proc.proconfig`).
 - Triggers anti reatribuição de tenant presentes em `transactions` e nas associativas
   (`prevent_association_tenant_change` em `category_companies`, `chart_account_companies`,
-  `contact_companies`, `payment_method_companies`) e em `companies` (transferência de dono).
+  `contact_companies`, `payment_method_companies`) e em `companies` (transferência de dono). Isso cobre
+  a **troca de `company_id` da própria linha**, e não as referências para outras empresas (A7).
 
-## 4. Limites desta etapa (declarados)
+## 4. Evidências de execução (homologação `utjhzpdbqzajrhnzcher`)
 
-- Houve acesso SQL real de leitura ao catálogo de produção; **não** houve execução de teste de
-  isolamento com sessões reais (exigiria criar usuários/linhas, fora do escopo autorizado).
-- `information_schema.role_table_grants` não é visível ao papel de leitura usado; os grants foram
-  obtidos por `aclexplode(pg_class.relacl)`, que é a fonte autoritativa.
-- Configuração do GoTrue/PostgREST (schemas expostos, `db-extra-search-path`) não é legível por SQL;
-  a exposição foi inferida do `USAGE` por schema e das RPCs alcançáveis.
-- A cadeia de chamada das 59 funções de A2 não foi percorrida até o fim: a lista é o **inventário da
-  superfície**, e cada item exige confirmação individual antes de qualquer revogação, para não
-  quebrar triggers e fluxos legítimos.
+Testes feitos **em homologação**, dentro de `BEGIN ... ROLLBACK`, com contas temporárias A e B criadas
+no próprio teste (`context = 'pj'`), `SET LOCAL ROLE authenticated` e JWT com `sub` do usuário A.
+Limpeza confirmada ao final: contas e lançamentos de teste = 0. Nenhum dado real envolvido.
+
+| Cenário | Resultado |
+|---|---|
+| Leitura e CRUD cruzados por `company_id` | **bloqueados** |
+| `get_accessible_accounts('pj', empresaB, false)` | **`42501`** |
+| INSERT `company_id = A`, `account_id` = conta **B**, `context = 'pj'`, confirmada, `amount = 7` | **aceito** e o **saldo da conta B passou a 7** via `trg_sync_account_balance` → `apply_tx_balance` (`SECURITY DEFINER`) |
+| INSERT `company_id = A`, `account_id` = conta **A**, mesmas condições | aceito, saldo da conta A = 7 (comportamento legítimo, serve de controle) |
+| Rodada anterior (menos refinada): INSERT com `account_id` de outra empresa | aceito, 1 linha; inverso também aceito |
+
+A homologação é uma base **antiga**, então nada disso foi concluído como vulnerabilidade de produção a
+partir dela. A comparação foi feita lendo o catálogo de produção: `public.apply_tx_balance` continua
+`SECURITY DEFINER` e atualiza `accounts.current_balance` por `_tx.account_id`/`_tx.destination_account_id`
+sem nenhuma verificação de empresa ou vínculo; e a lista de gatilhos de `transactions` em produção não
+tem nenhuma validação de empresa para a conta de origem nem para o cartão. **Os dois lados batem** — por
+isso A7 está classificado como confirmado em produção, sem que nenhum lançamento tenha sido criado lá.
+
+## 5. Limites desta etapa (declarados)
+
+- Em **produção** houve apenas leitura de catálogo: nenhum teste com sessão real, nenhum INSERT,
+  nenhum comando destrutivo. As contagens de privilégio vieram de `has_table_privilege`;
+  `TRUNCATE` **nunca foi executado**, em nenhum ambiente.
+- A prova de execução existe só em homologação, cuja base é antiga; a extrapolação para produção se
+  apoia na comparação de corpo de função e de gatilhos, declarada acima.
+- `information_schema.role_table_grants` não é visível ao papel de leitura usado; os grants vieram de
+  `aclexplode(pg_class.relacl)` e foram conferidos com `has_table_privilege`.
+- A configuração do PostgREST (schemas expostos, `db-extra-search-path`) **não** é legível por SQL.
+  Onde o alcance por HTTP não pôde ser medido, isso está dito no próprio achado (A4, A5) em vez de
+  assumido em qualquer direção.
+- A2 é triagem: a cadeia de chamada das 59 funções não foi percorrida, nenhuma delas está confirmada
+  como explorável, e cada uma exige verificação antes de revogação para não quebrar triggers e fluxos.
 - Contagens agregadas apenas; nenhuma linha de dado pessoal ou financeiro foi lida ou registrada.
 
-## 5. Próxima etapa (preparada, não executada)
+## 6. Próxima etapa (preparada, não executada)
 
 Ver também `docs/security/d1-achado-a7-conta-do-lancamento.md` (achado A7, registrado separadamente).
 
