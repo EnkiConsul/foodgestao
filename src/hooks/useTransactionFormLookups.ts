@@ -102,13 +102,14 @@ export function useTransactionFormLookups(enabled: boolean) {
   });
 
   const costCenterCompaniesQuery = useQuery({
-    queryKey: ["form-cost-center-companies", user?.id],
+    queryKey: ["form-cost-center-companies", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await (supabase.from("cost_center_companies" as any) as any)
-        .select("cost_center_id, company_id");
-      return (data ?? []) as { cost_center_id: string; company_id: string }[];
-    },
+    queryFn: () =>
+      lerVinculos<{ cost_center_id: string; company_id: string }>(
+        "cost_center_companies",
+        "cost_center_id",
+        contextType === "pj" ? selectedCompanyId : null,
+      ),
   });
 
   const categoryCompaniesQuery = useQuery({
