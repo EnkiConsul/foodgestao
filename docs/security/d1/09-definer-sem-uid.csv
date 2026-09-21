@@ -1,0 +1,61 @@
+nspname|proname|args|anon_x|tem_uid|tem_helper
+private|dp_pode_agir|_user_id uuid|t|f|f
+private|dp_pode_ver_documentos|_user_id uuid|t|f|f
+private|dp_portal_decisao|_user_id uuid|t|f|f
+private|is_company_owner|_user_id uuid, _company_id uuid|t|f|t
+private|is_dp_colaborador_of_company|_user_id uuid, _company_id uuid|t|f|f
+private|pluggy_can_edit|_user_id uuid, _company_id uuid|t|f|f
+private|pluggy_can_manage_accounts|_user_id uuid, _company_id uuid|t|f|f
+private|pluggy_module_edit|_user_id uuid, _company_id uuid, _module text|t|f|t
+public|dp_admissao_regras_resolver|p_company_id uuid, p_unidade_id uuid, p_cargo_id uuid, p_regime dp_regime_trabalho, p_sexo text|t|f|f
+public|dp_admissao_regras_resolver|p_company_id uuid, p_unidade_id uuid, p_cargo_id uuid, p_regime dp_regime_trabalho|t|f|f
+private|can_edit_company_module|_user_id uuid, _company_id uuid, _module text|f|f|t
+private|can_view_company_module|_user_id uuid, _company_id uuid, _module text|f|f|t
+private|company_owner_snapshot|_company_id uuid|f|f|f
+private|dp_access_enabled|_user_id uuid|f|f|f
+private|get_company_role|_user_id uuid, _company_id uuid|f|f|f
+private|get_user_company_ids|_user_id uuid|f|f|f
+private|is_company_accountant|_user_id uuid, _company_id uuid|f|f|f
+private|is_company_admin_or_owner|_user_id uuid, _company_id uuid|f|f|f
+private|is_company_member|_user_id uuid, _company_id uuid|f|f|f
+private|member_can_edit|_user_id uuid, _company_id uuid, _module text|f|f|f
+private|member_permission|_user_id uuid, _company_id uuid, _module text|f|f|f
+public|dp_colaborador_horario_ocupado|_colaborador_id uuid, _data date, _entrada time without time zone, _saida time without time zone, _vira boolean, _ignorar_convocacao_id uuid, _pendente_bloqueia boolean|f|f|f
+public|dp_colaboradores_lixeira|p_company_id uuid|f|f|t
+public|dp_config_resolvida|_company_id uuid, _unidade_id uuid|f|f|f
+public|dp_convocacao_atualizar_ocorrencia|p_ocorrencia_id uuid, p_expected_updated_at timestamp with time zone, p_cargo_id uuid, p_data date, p_necessidade_entrada time without time zone, p_necessidade_saida time without time zone, p_necessidade_termina_no_dia_seguinte boolean, p_turno_referencia_id uuid, p_horario_modo text, p_entrada time without time zone, p_saida time without time zone, p_intervalo_minutos integer, p_termina_no_dia_seguinte boolean, p_carga_prevista_horas numeric, p_vagas integer, p_condicoes_comuns jsonb, p_colaborador_alvo_id uuid|f|f|f
+public|dp_convocacao_avaliar_candidato|_colaborador_id uuid, _ocorrencia_id uuid, _ignorar_convocacao_id uuid, _pendente_bloqueia boolean|f|f|f
+public|dp_convocacao_criar_ocorrencia|p_ocorrencia_id uuid, p_grupo_id uuid, p_cargo_id uuid, p_data date, p_necessidade_entrada time without time zone, p_necessidade_saida time without time zone, p_necessidade_termina_no_dia_seguinte boolean, p_turno_referencia_id uuid, p_horario_modo text, p_entrada time without time zone, p_saida time without time zone, p_intervalo_minutos integer, p_termina_no_dia_seguinte boolean, p_carga_prevista_horas numeric, p_vagas integer, p_condicoes_comuns jsonb, p_colaborador_alvo_id uuid|f|f|f
+public|dp_convocacao_decidir_parcial|p_convocacao_id uuid, p_acao text, p_motivo text, p_prazo timestamp with time zone, p_colaborador_ids uuid[], p_confirmado boolean|f|f|f
+public|dp_convocacao_horario_efetivo|_ocorrencia_id uuid, _colaborador_id uuid, _aval jsonb|f|f|f
+public|dp_convocacao_jornada_na_data|_colaborador_id uuid, _data date|f|f|f
+public|dp_convocacao_parciais_pendentes|p_company_id uuid|f|f|f
+public|dp_convocacao_remuneracao_snapshot|_colaborador_id uuid, _carga_prevista_horas numeric|f|f|f
+public|dp_convocacao_salvar_config|p_company_id uuid, p_unidade_id uuid, p_antecedencia_minima_dias integer, p_prazo_resposta_dias_uteis integer, p_aprovacao_modo text, p_sub_intermitente_por_intermitente boolean, p_sub_intermitente_por_freelancer boolean, p_sub_freelancer_por_intermitente boolean, p_sub_freelancer_por_freelancer boolean, p_sub_fixo_em_folga_dominical boolean, p_reabre_vaga_em_desistencia boolean, p_autonomia_colaborador_desistir boolean, p_permite_oferta_aberta boolean, p_exige_justificativa_excecao boolean, p_disponibilidade_janela_abre_dia integer, p_disponibilidade_janela_fecha_dia integer, p_disponibilidade_reserva_folga boolean, p_disponibilidade_lembrete_dias integer, p_expected_updated_at timestamp with time zone|f|f|f
+public|dp_convocacao_timezone|_company_id uuid, _unidade_id uuid|f|f|f
+public|dp_disponibilidade_janela|_company_id uuid, _unidade_id uuid, _competencia date|f|f|f
+public|dp_disponibilidade_painel|_company_id uuid, _unidade_id uuid, _competencia date|f|f|t
+public|dp_ferias_config|_company_id uuid, _unidade_id uuid|f|f|f
+public|dp_ferias_corte_efetivo|_colaborador_id uuid|f|f|f
+public|dp_ferias_em_curso|_colaborador_id uuid, _data date|f|f|f
+public|dp_ferias_periodo_conflitos|_colaborador_id uuid, _inicio date, _fim date|f|f|f
+public|dp_ferias_validar_programacao|_colaborador_id uuid, _periodo_id uuid, _data_inicio date, _data_fim date, _dias_abono integer, _justificativa text, _ignorar_gozo_id uuid|f|f|f
+public|dp_folga_atribuir_admin|p_colaborador uuid, p_data date, p_motivo text|f|f|f
+public|dp_folga_conflito_colaboradores|_company uuid, _colaborador uuid, _data date|f|f|f
+public|dp_folga_dias_fds_aplicaveis|_company uuid, _unidade uuid|f|f|f
+public|dp_folga_marcadas_no_mes|_company uuid, _colab uuid, _competencia date, _dias integer[]|f|f|f
+public|dp_folga_ocupado_no_dia|_company uuid, _colab uuid, _data date|f|f|f
+public|dp_folgas_janela_efetiva|_company uuid, _unidade uuid, _data_ref date|f|f|f
+public|dp_jornada_dia_prevista|p_colaborador uuid, p_data date|f|f|f
+public|dp_notificar_admins_empresa|_company_id uuid, _tipo text, _titulo text, _descricao text, _ref_table text, _ref_id uuid|f|f|f
+public|dp_ocorrencia_config|_company_id uuid|f|f|f
+public|dp_ocorrencia_previsto|_colaborador_id uuid, _data date|f|f|f
+public|dp_regra_bloqueia_data|_company_id uuid, _unidade_id uuid, _data date|f|f|f
+public|dp_setor_previsto|p_colaborador_id uuid, p_data date|f|f|f
+public|dp_setor_previsto_id|p_colaborador_id uuid, p_data date|f|f|f
+public|get_password_change_required|_user_id uuid|f|f|f
+public|is_company_admin_or_owner|_user_id uuid, _company_id uuid|f|f|f
+public|is_dp_colaborador|_user_id uuid|f|f|f
+public|seed_default_contacts|_user_id uuid, _company_id uuid|f|f|f
+public|seed_default_payment_methods|_user_id uuid, _company_id uuid|f|f|f
+(59 rows)

@@ -1,0 +1,15 @@
+nspname|coalesce|privilege_type
+extensions|anon|USAGE
+extensions|authenticated|USAGE
+extensions|service_role|USAGE
+private|authenticated|USAGE
+private|service_role|USAGE
+public|PUBLIC|USAGE
+public|anon|USAGE
+public|authenticated|USAGE
+public|service_role|USAGE
+qa|service_role|USAGE
+storage|anon|USAGE
+storage|authenticated|USAGE
+storage|service_role|USAGE
+(13 rows)
