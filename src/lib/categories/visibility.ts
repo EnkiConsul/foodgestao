@@ -34,3 +34,16 @@ export async function syncCategoryCompanies(
 
   return { error: null };
 }
+
+/**
+ * Garante que a empresa em uso esteja no conjunto de empresas a vincular.
+ * Sem esse vínculo o cadastro é gravado mas não aparece na lista da empresa.
+ */
+export function garantirEmpresaAtiva(
+  desejado: Iterable<string>,
+  empresaAtivaId: string | null | undefined,
+): string[] {
+  const set = new Set(desejado);
+  if (empresaAtivaId) set.add(empresaAtivaId);
+  return [...set];
+}

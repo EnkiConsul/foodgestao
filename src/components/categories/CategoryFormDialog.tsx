@@ -148,19 +148,11 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   });
 
 
-  const { data: companies = [] } = useQuery({
-    queryKey: ["companies-for-category", user?.id],
-    enabled: !!user && open,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("companies")
-        .select("id, name")
-        .eq("user_id", user!.id)
-        .eq("is_active", true)
-        .order("name");
-      return data ?? [];
-    },
-  });
+  // Empresas que o usuário realmente acessa (dono OU membro), vindas do
+  // contexto — a consulta antiga só trazia as empresas das quais ele é dono,
+  // então membros criavam categorias sem vínculo nenhum.
+  const { companies: contextCompanies } = useCompanyContext();
+  const companies = contextCompanies.map((c) => ({ id: c.id, name: c.trade_name || c.name }));
 
   const { data: chartAccounts = [] } = useQuery({
     queryKey: ["chart-accounts-for-category", user?.id, contextType],
