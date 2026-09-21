@@ -205,7 +205,7 @@ var list_colaboradores_default = defineTool4({
 });
 
 // src/lib/mcp/index.ts
-var projectRef = "utjhzpdbqzajrhnzcher";
+var projectRef = "grtxmbffgmgnkawlvqhm";
 var mcp_default = defineMcp({
   name: "360-food",
   title: "Aveto 360",
