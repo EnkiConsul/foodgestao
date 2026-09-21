@@ -232,13 +232,19 @@ export default function Categorias() {
     );
     await Promise.all(updates);
 
-    // Sync category_companies gravando só a diferença de cada categoria
+    // Sync category_companies gravando só a diferença de cada categoria.
+    // A empresa em uso é mantida para nenhuma categoria ficar sem empresa
+    // (sem vínculo ela desaparece da lista mesmo existindo no banco).
+    const empresasDesejadas = garantirEmpresaAtiva(
+      batchSelectedCompanies,
+      contextType === "pj" ? selectedCompanyId : null,
+    );
     const results = await Promise.all(
       ids.map((id) =>
         syncCategoryCompanies(
           id,
           categoryCompanies.filter((cc) => cc.category_id === id).map((cc) => cc.company_id),
-          batchSelectedCompanies,
+          empresasDesejadas,
         )
       )
     );
