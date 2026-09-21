@@ -23,7 +23,7 @@ Produção auditada: `grtxmbffgmgnkawlvqhm`. Projeto de homologação informado:
 ### A1 — uma única conexão, e ela é produção
 - `src/integrations/supabase/client.ts:6-7` lê `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY`; arquivo é autogerado e não editável.
 - `.env` contém apenas `VITE_SUPABASE_PROJECT_ID`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_LOVABLE_CONNECTOR_LOGO_DEV_API_KEY`; as duas ocorrências do ref são do projeto de produção e **zero** do ref de homologação.
-- `supabase/config.toml:1` → `project_id = "grtxmbffgmgnkawlvqhm"` (um único `config.toml`, portanto `supabase functions deploy` e `db push` sempre alvejam produção por padrão).
+- `supabase/config.toml:1` → `project_id = "grtxmbffgmgnkawlvqhm"` (um único `config.toml`). Isso define o **alvo padrão** do CLI quando nenhum destino é informado; não implica destino sempre produção — `--project-ref`, um projeto linkado ou `SUPABASE_DB_URL` explícito prevalecem.
 - Busca por `staging|homolog|sandbox|VITE_APP_ENV|isPreview` em `src/`: **nenhuma** ocorrência em código de aplicação (apenas em `scripts/`).
 
 Conclusão: sim — o preview usa o banco de produção. Qualquer cadastro feito "para testar" é dado real.
