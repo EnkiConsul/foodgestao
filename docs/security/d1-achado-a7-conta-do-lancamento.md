@@ -66,6 +66,34 @@ Pré-requisito: conhecer o identificador da conta/cartão de B. O caminho realis
 identificador, e sim o usuário que participa de **duas** empresas (comum nesta base) com permissão
 de edição em apenas uma: ele lê o identificador pela empresa onde é membro e escreve pela outra.
 
+## Contagens agregadas em produção (21/09/2026)
+
+Somente `SELECT count(*)`, sem expor identificador, nome, descrição ou valor. Consulta registrada em
+`docs/security/d1/d1-a7-contagens.sql`.
+
+| Medida | Resultado |
+|---|---|
+| Lançamentos totais | 159 |
+| Contexto empresarial / não empresarial | 159 / 0 |
+| Sem conta (`account_id` nulo) | 1 |
+| Sem cartão (`credit_card_id` nulo) | 158 |
+| **Conta de outra empresa (empresarial)** | **0** |
+| **Cartão de outra empresa (empresarial)** | **0** |
+| Conta de outro usuário (contexto pessoal) | 0 |
+| Conta com empresa em lançamento pessoal | 0 |
+| Cartão de outro usuário (contexto pessoal) | 0 |
+| Conta de destino de outra empresa | 0 |
+| Categoria de outra empresa | 0 |
+| Contato de outro usuário | 0 |
+
+Leitura: **nenhum lançamento histórico está inconsistente hoje**. Os nulos são casos válidos
+(`transactions_source_xor` exige exatamente um entre conta e cartão) e não indicam divergência.
+Portanto o achado é de **superfície aberta**, não de dano já ocorrido — e a correção pode validar
+`INSERT` e `UPDATE` sem travar edição de linha legada, porque não há linha legada divergente.
+
+Observação de escopo: `cost_centers` não tem coluna de empresa (é por usuário), então a divergência
+por centro de custo não se aplica nesse formato.
+
 ## Correção preparada (não aplicada)
 
 `docs/security/d1/d1-fix-a7-conta-tenant-guard.sql` — trigger `BEFORE INSERT OR UPDATE` em
