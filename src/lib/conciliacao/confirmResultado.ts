@@ -10,6 +10,7 @@ export type MotivoBloqueio =
   | "conta_destino_ausente"
   | "contraparte_ausente"
   | "contraparte_igual"
+  | "contato_sem_vinculo"
   | "erro_rpc";
 
 export interface FalhaConfirmacao {
@@ -52,6 +53,8 @@ const MENSAGEM_MOTIVO: Record<MotivoBloqueio, string> = {
   contraparte_ausente: "Falta escolher a conta da contraparte da transferência.",
   contraparte_igual:
     "A contraparte deve ser diferente da conta do extrato.",
+  contato_sem_vinculo:
+    "Este fornecedor/cliente não está ligado à empresa deste lançamento.",
   erro_rpc: "O sistema recusou a gravação.",
 };
 

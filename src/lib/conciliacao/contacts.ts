@@ -47,26 +47,20 @@ export async function fetchAllUserContacts(
 }
 
 /**
- * Lista da conciliação: contatos da empresa (`linkedToCompany: true`) mais os
- * contatos do usuário sem vínculo (`linkedToCompany: false`), que passam a
- * gerar sugestão e são vinculados à empresa ao confirmar a linha.
+ * Lista da conciliação: SOMENTE os clientes/fornecedores vinculados à empresa
+ * em uso. Antes a lista também trazia cadastros sem vínculo, o que oferecia
+ * opções que o servidor recusava na confirmação (`contact_forbidden`).
+ * O vínculo é criado no cadastro/atalho de duplicados, nunca na confirmação.
  */
 export async function fetchConciliacaoContacts(
   companyId: string,
-  userId: string | null,
+  _userId: string | null,
 ): Promise<{ data: CompanyContact[]; error: { message: string } | null }> {
   const company = await fetchAllCompanyContacts(companyId);
-  if (company.error || !userId) {
-    return { data: company.data.map((c) => ({ ...c, linkedToCompany: true })), error: company.error };
-  }
-  const mine = await fetchAllUserContacts(userId);
-  const linked = new Set(company.data.map((c) => c.id));
-  const merged: CompanyContact[] = [
-    ...company.data.map((c) => ({ ...c, linkedToCompany: true })),
-    ...mine.data.filter((c) => !linked.has(c.id)).map((c) => ({ ...c, linkedToCompany: false })),
-  ];
-  merged.sort((a, b) => a.name.localeCompare(b.name));
-  return { data: merged, error: mine.error };
+  return {
+    data: company.data.map((c) => ({ ...c, linkedToCompany: true })),
+    error: company.error,
+  };
 }
 
 
@@ -225,19 +219,41 @@ export async function findSimilarContacts(params: {
   return out.slice(0, limit);
 }
 
-/** Garante o vínculo do contato com a empresa (idempotente). */
-
-export async function ensureContactCompanyLink(contactId: string, companyId: string) {
-  const { data } = await supabase
+/**
+ * Garante o vínculo do contato com a empresa (idempotente) e CONFERE o
+ * resultado. Antes o erro era descartado em silêncio: o cadastro ficava sem
+ * empresa e a confirmação do lançamento falhava depois com `contact_forbidden`.
+ */
+export async function ensureContactCompanyLink(
+  contactId: string,
+  companyId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const { data: existente } = await supabase
     .from("contact_companies")
     .select("contact_id")
     .eq("contact_id", contactId)
     .eq("company_id", companyId)
     .maybeSingle();
-  if (!data) {
-    await supabase.from("contact_companies").insert({
-      contact_id: contactId,
-      company_id: companyId,
-    } as never);
-  }
+  if (existente) return { ok: true };
+
+  const { error } = await supabase.from("contact_companies").insert({
+    contact_id: contactId,
+    company_id: companyId,
+  } as never);
+
+  // Corrida entre duas gravações: confere o estado final antes de reprovar.
+  const { data: confirmado } = await supabase
+    .from("contact_companies")
+    .select("contact_id")
+    .eq("contact_id", contactId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  if (confirmado) return { ok: true };
+
+  return {
+    ok: false,
+    error:
+      error?.message ??
+      "Não foi possível vincular o cliente/fornecedor à empresa.",
+  };
 }

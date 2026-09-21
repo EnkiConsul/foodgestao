@@ -1147,8 +1147,29 @@ export default function ConciliacaoPluggy() {
     const resultado = criarResultado();
     if (ids.length === 0) return resultado;
 
+    // Rede de segurança: a lista só oferece fornecedores/clientes da empresa em
+    // uso, mas se algum item ficou com um cadastro sem vínculo (lista antiga em
+    // memória) ele não é enviado à RPC — nunca mais "contact_forbidden" cru.
+    const idsDaEmpresa = new Set(contacts.map((c) => c.id));
+    const semVinculo = ids.filter((id) => {
+      const cid = rowContact[id];
+      return !!cid && !idsDaEmpresa.has(cid);
+    });
+    if (semVinculo.length > 0) {
+      resultado.falhas.push({ ids: semVinculo, motivo: "contato_sem_vinculo" });
+      toast.error("Fornecedor/cliente não ligado a esta empresa", {
+        description:
+          "Cadastre ou vincule o fornecedor/cliente à empresa antes de confirmar estes lançamentos.",
+      });
+    }
+    const idsEnviaveis = ids.filter((id) => !semVinculo.includes(id));
+    if (idsEnviaveis.length === 0) {
+      setSelected(new Set(idsRemanescentes(ids, resultado)));
+      return resultado;
+    }
+
     // Linhas de cartão vão para o cartão vinculado (e para a fatura), não para conta bancária.
-    const routed = routeStagingRows(ids, pluggyAccountByRow, cardRouting);
+    const routed = routeStagingRows(idsEnviaveis, pluggyAccountByRow, cardRouting);
     if (routed.blockedIds.length > 0) {
       resultado.falhas.push({ ids: routed.blockedIds, motivo: "cartao_nao_autorizado" });
       toast.error("Cartão do Open Finance ainda não autorizado", {
@@ -1178,24 +1199,6 @@ export default function ConciliacaoPluggy() {
       toast.error("Selecione a conta da contraparte nas transferências");
     }
 
-    // Contato cadastrado só no perfil Pessoal: vinculamos à empresa antes de
-    // confirmar, senão o lançamento nasceria sem fornecedor/cliente válido.
-    if (selectedCompanyId) {
-      const pendingLinks = new Set(
-        ids
-          .map((id) => rowContact[id])
-          .filter((cid): cid is string => !!cid)
-          .filter((cid) => contacts.find((c) => c.id === cid)?.linkedToCompany === false),
-      );
-      for (const cid of pendingLinks) {
-        await ensureContactCompanyLink(cid, selectedCompanyId);
-      }
-      if (pendingLinks.size > 0) {
-        setContacts((prev) =>
-          prev.map((c) => (pendingLinks.has(c.id) ? { ...c, linkedToCompany: true } : c)),
-        );
-      }
-    }
 
     for (const [acctId, staging_ids] of Object.entries(byAccount)) {
       const transferIds = staging_ids.filter((sid) => rowKind[sid] === "transfer");
@@ -1262,8 +1265,16 @@ export default function ConciliacaoPluggy() {
           p_contact_id: ct === "__none__" ? undefined : ct,
         });
         if (error) {
-          resultado.falhas.push({ ids: sids, motivo: "erro_rpc", detalhe: error.message });
-          toast.error("Falha ao confirmar: " + error.message);
+          resultado.falhas.push(
+            error.message.includes("contact_forbidden")
+              ? { ids: sids, motivo: "contato_sem_vinculo" }
+              : { ids: sids, motivo: "erro_rpc", detalhe: error.message },
+          );
+          toast.error(
+            error.message.includes("contact_forbidden")
+              ? "Este fornecedor/cliente não está ligado à empresa deste lançamento"
+              : "Falha ao confirmar: " + error.message,
+          );
           continue;
         }
         const list = (Array.isArray(data) ? data : []) as { staging_id: string }[];
@@ -1304,8 +1315,16 @@ export default function ConciliacaoPluggy() {
           p_contact_id: ct === "__none__" ? undefined : ct,
         });
         if (error) {
-          resultado.falhas.push({ ids: sids, motivo: "erro_rpc", detalhe: error.message });
-          toast.error("Falha ao confirmar no cartão: " + error.message);
+          resultado.falhas.push(
+            error.message.includes("contact_forbidden")
+              ? { ids: sids, motivo: "contato_sem_vinculo" }
+              : { ids: sids, motivo: "erro_rpc", detalhe: error.message },
+          );
+          toast.error(
+            error.message.includes("contact_forbidden")
+              ? "Este fornecedor/cliente não está ligado à empresa deste lançamento"
+              : "Falha ao confirmar no cartão: " + error.message,
+          );
           continue;
         }
         const list = (Array.isArray(data) ? data : []) as { staging_id: string }[];
@@ -1664,7 +1683,15 @@ export default function ConciliacaoPluggy() {
     const rowId = duplicateCheck?.rowId ?? null;
     setDuplicateBusy(contact.id);
     try {
-      if (selectedCompanyId) await ensureContactCompanyLink(contact.id, selectedCompanyId);
+      if (selectedCompanyId) {
+        const vinculo = await ensureContactCompanyLink(contact.id, selectedCompanyId);
+        if (!vinculo.ok) {
+          toast.error("Não foi possível vincular o cadastro à empresa", {
+            description: vinculo.error,
+          });
+          return;
+        }
+      }
       setContacts((prev) =>
         prev.some((c) => c.id === contact.id)
           ? prev.map((c) => (c.id === contact.id ? { ...c, linkedToCompany: true } : c))
@@ -1708,7 +1735,11 @@ export default function ConciliacaoPluggy() {
         });
         const existing = similar.find((c) => c.reason === "documento" || c.reason === "nome") ?? null;
         if (existing) {
-          await ensureContactCompanyLink(existing.id, selectedCompanyId);
+          const vinculoExistente = await ensureContactCompanyLink(existing.id, selectedCompanyId);
+          if (!vinculoExistente.ok) {
+            skipped += 1;
+            continue;
+          }
           for (const rowId of candidate.rowIds) rowLinks[rowId] = existing.id;
           localContacts.push({
             id: existing.id,
@@ -1739,7 +1770,11 @@ export default function ConciliacaoPluggy() {
         }
 
         const contactRow = newContact as unknown as { id: string; name: string; contact_type: string | null; document: string | null };
-        await ensureContactCompanyLink(contactRow.id, selectedCompanyId);
+        const vinculoNovo = await ensureContactCompanyLink(contactRow.id, selectedCompanyId);
+        if (!vinculoNovo.ok) {
+          skipped += 1;
+          continue;
+        }
         await supabase.rpc("insert_audit_log", {
           _action: "contact_created_from_conciliacao_bulk",
           _entity_type: "contact",
@@ -1839,7 +1874,15 @@ export default function ConciliacaoPluggy() {
     const rowId = contactForm?.rowId ?? null;
     setContactForm(null);
     if (!selectedCompanyId) return;
-    if (newId) await ensureContactCompanyLink(newId, selectedCompanyId);
+    if (newId) {
+      const vinculo = await ensureContactCompanyLink(newId, selectedCompanyId);
+      if (!vinculo.ok) {
+        toast.error("Cadastro salvo, mas não foi vinculado à empresa", {
+          description: vinculo.error,
+        });
+        return;
+      }
+    }
     await recarregarContatos(selectedCompanyId);
     if (newId && rowId) setRowContact((prev) => ({ ...prev, [rowId]: newId }));
   };
