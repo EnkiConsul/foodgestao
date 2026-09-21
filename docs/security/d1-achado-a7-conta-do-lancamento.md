@@ -15,13 +15,21 @@ Em `BEGIN` com `SET LOCAL ROLE authenticated` e JWT do usuário da empresa A, o 
 `transactions` com `user_id = A`, `company_id = A` e `account_id` = **conta da empresa B**
 (`transaction_type='entrada'`, `description='D1 ROLLBACK ONLY'`, `amount=1`) foi **aceito**
 (1 linha). O inverso (empresa D apontando para conta da empresa A) também foi aceito.
-Tudo revertido por `ROLLBACK`. Leitura e CRUD cruzados **por `company_id`** seguem bloqueados e
-`get_accessible_accounts('pj', empresaB, false)` devolve `42501`.
 
-## Confirmação em produção (somente leitura)
+Rodada refinada, no mesmo ambiente: contas temporárias A e B criadas dentro do `BEGIN`
+(`context = 'pj'`), lançamento **confirmado** com `company_id = A` e `account_id` = conta B,
+`amount = 7` — aceito, e **o saldo da conta B passou a 7**, gravado por
+`trg_sync_account_balance` → `public.apply_tx_balance` (`SECURITY DEFINER`). O caso legítimo
+(`company_id = A` com conta A) também resultou em 7, servindo de controle. `ROLLBACK` e limpeza
+conferidos: contas e lançamentos de teste = 0. Leitura e CRUD cruzados **por `company_id`** seguem
+bloqueados e `get_accessible_accounts('pj', empresaB, false)` devolve `42501`.
 
-A homologação é antiga, então o comportamento foi reconferido contra o catálogo atual de produção.
-**O mesmo caminho existe em produção.** Evidências:
+## Confirmação em produção — por definições e caminho, sem exploração executada
+
+A homologação é uma base antiga, então nada foi concluído a partir dela. Em produção houve **apenas
+leitura**: definições de gatilhos, constraints, corpos de função e contagens agregadas.
+**Nenhum `INSERT`, nenhum teste de sessão, nenhuma exploração.** O que a leitura mostra é que o mesmo
+caminho existe:
 
 1. `public.transactions` tem 14 triggers. Nenhuma valida a empresa de `account_id` nem de
    `credit_card_id`. A única validação de tenant de conta é
