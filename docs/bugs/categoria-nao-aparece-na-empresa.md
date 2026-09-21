@@ -107,3 +107,44 @@ Nenhuma dessas mudanças foi aplicada nesta análise.
   (`apply_default_categories` / `seed_default_categories`, acionadas em
   `src/pages/Categorias.tsx:106,123`) gravam os vínculos das raízes que criam. É a
   suspeita natural para as 56 raízes sem vínculo.
+
+## Verificação direcionada (empresa AVETO 360) — somente leitura
+
+Empresa: AVETO 360 (`9293cf25-…`), ativa. Nenhum dado de outras empresas foi listado;
+os números abaixo são contagens agregadas.
+
+1. **Atribuição à AVETO 360 não é demonstrável pelo registro.** A coluna `categories.company_id`
+   existe, mas está **NULL em 100% das 56 categorias ativas sem vínculo** (0 com valor). O
+   caminho de criação da tela não grava essa coluna; a empresa só existe em
+   `category_companies`. Sem vínculo e sem `company_id`, não há no banco nenhum campo que
+   ligue a categoria órfã à AVETO 360 — inferir pelo dono seria suposição, não evidência.
+2. **Sintoma confirmado no lado da AVETO 360:** existe **1 única** categoria vinculada à
+   empresa em `category_companies` (`Simples Nacional`, 28/07/2026). Nos últimos 30 dias:
+   **0 vínculos novos** para a AVETO 360.
+3. **Onde as categorias recentes foram parar:** os usuários com acesso à AVETO 360 criaram
+   **39 categorias ativas nos últimos 30 dias**, que geraram **44 vínculos, todos para 1
+   única empresa que não é a AVETO 360**. Ou seja: as categorias são gravadas e vinculadas,
+   mas nunca à empresa selecionada no contexto — exatamente o efeito de o formulário montar
+   a lista de empresas por `companies.user_id = auth.uid()` e ignorar `selectedCompanyId`.
+4. **Órfãs recentes:** 4 categorias ativas sem vínculo criadas nos últimos 30 dias, todas
+   raízes de semente (`RECEITAS`/`RECEITA`, `template_code` preenchido, `is_system=false`),
+   coerentes com as rotinas de plano padrão e não com criação manual.
+5. **Perfis envolvidos:** dos 2 usuários com acesso à AVETO 360, um tem 4 empresas próprias
+   e 4 vínculos; o outro tem **0 empresas próprias** e 1 vínculo — para este a consulta do
+   formulário devolve lista vazia, então nenhuma empresa é marcada e o vínculo é pulado, com
+   "Categoria criada!" exibido de qualquer forma.
+
+### Schema e gatilhos efetivos de `categories`
+`categories_uppercase_root_name_trg` (BEFORE INSERT/UPDATE de name/parent_id),
+`trg_categories_autogen_template_code` (BEFORE INSERT), `trg_categories_require_subtype`,
+`trg_categories_parent_scope_guard`, `trg_categories_protect_template_code` (BEFORE UPDATE),
+`trg_audit_categories` (AFTER INSERT/UPDATE/DELETE). **Nenhum gatilho preenche `company_id`
+nem cria vínculo em `category_companies`** — o vínculo depende inteiramente do cliente.
+`apply_default_categories` e `seed_default_categories` referenciam `category_companies`.
+
+### Conclusão
+Bug reproduzido e agora corroborado por dados de produção no escopo da AVETO 360. A
+atribuição das 56 órfãs a esta empresa **não é demonstrável** e nenhuma delas deve ser
+associada automaticamente. A correção segue a proposta anterior (usar as empresas acessíveis
+do contexto, marcar sempre a empresa ativa, reexecutar quando a lista carregar e falhar
+fechado sem sucesso falso). Nada foi alterado em produto nem no banco.
