@@ -46,8 +46,14 @@ Produção segue com `npm run dev` / `npm run build`, sem nenhuma mudança.
      igual ao ref da URL. Isso é leitura de conteúdo, **não** verificação criptográfica
      de assinatura — serve para barrar `service_role` e chave de outro projeto.
 4. Tarja permanente "Ambiente de homologação" (`AmbienteBanner`), invisível em produção.
-5. Em homologação, `supabase.functions.invoke` é interceptado uma única vez
-   (`src/lib/env/homologacaoRuntime.ts`) com **allowlist e negação padrão**:
+5. O bloqueio de funções vive na **guarda de transporte** (`src/lib/env/homologacaoFetchGuard.ts`),
+   instalada no `fetch` global pelo bootstrap **antes** de qualquer cliente do banco existir.
+   Motivo técnico: no SDK real, `SupabaseClient.functions` é um *getter* que devolve uma
+   instância **nova** de `FunctionsClient` a cada acesso
+   (`node_modules/@supabase/supabase-js/src/SupabaseClient.ts`), portanto substituir
+   `cliente.functions.invoke` altera só um objeto descartável e a chamada seguinte iria
+   para a rede. A guarda intercepta as URLs `/functions/v1/<nome>` com **allowlist e
+   negação padrão**:
    - **Liberadas** apenas as funções internas aprovadas, que são as existentes no ref de
      homologação: `dp-refresh-pendencias`, `dp-sorteio-folgas`, `dp-preadmissao-gestor`,
      `dp-preadmissao-publica`, `dp-preadmissao-arquivo`, `dp-doc-bulk-approve`,
@@ -56,9 +62,13 @@ Produção segue com `npm run dev` / `npm run build`, sem nenhuma mudança.
      (`registered` só para o CNPJ de fixture, `available` para os demais).
    - **Bloqueado tudo o mais, por padrão** — nome desconhecido também falha. Isso cobre
      pagamentos, Open Finance, IA, e-mail/WhatsApp, convites e qualquer função nova.
-6. Envio nativo de e-mail do Auth bloqueado em homologação: `signUp`, `resend`,
-   `resetPasswordForEmail`, `signInWithOtp`, `reauthenticate` e `updateUser({ email })`
-   retornam erro imediato. Login por senha com as fixtures A–D segue funcionando.
+   Prova em teste: `createClient` **real** do SDK com `fetch` espião — dois acessos
+   separados a `cliente.functions.invoke` (`lookup-cnpj` e nome desconhecido) resultam em
+   **zero** chamadas de rede; função aprovada chega ao transporte.
+6. Envio nativo de e-mail bloqueado em homologação em **duas camadas**: no transporte
+   (`/auth/v1/signup`, `/recover`, `/resend`, `/otp`, `/invite`, `/magiclink` e
+   `PUT /auth/v1/user` com `email`) e nos métodos do cliente (`signUp`, `resend`,
+   `resetPasswordForEmail`, `signInWithOtp`, `reauthenticate`, `updateUser({ email })`). Login por senha com as fixtures A–D segue funcionando.
 7. CEP (`consultarCep`) responde por fixture em homologação — ViaCEP não é chamado.
 8. O modo `homologacao` **não cai para produção**: `vite.config.ts` carrega
    `.env.homologacao` por cima das variáveis do shell (que são as de produção) e
@@ -66,7 +76,8 @@ Produção segue com `npm run dev` / `npm run build`, sem nenhuma mudança.
 9. `vite build` grava `dist/build-env.json` (`app_env`, `supabase_ref`, `built_at`).
    `scripts/run-e2e.mjs` só roda spec se esse marcador existir e disser
    `homologacao` + `utjhzpdbqzajrhnzcher`; endereço `localhost` não é aceito como prova.
-   Aponte `E2E_BASE_URL` e `E2E_BUILD_MANIFEST` para o build de homologação.
+   Por padrão o marcador é lido **por HTTP** em `${E2E_BASE_URL}/build-env.json`, ou seja,
+   do app realmente servido; `E2E_BUILD_MANIFEST` é um override explícito para arquivo local.
 10. Produção não ganhou CNPJ mágico, parâmetro de URL nem qualquer bypass: os mocks
     só existem sob `isHomologacao()`, que exige o banco de homologação.
 
