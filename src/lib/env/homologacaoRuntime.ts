@@ -90,12 +90,12 @@ export class AuthEmailBloqueadoError extends Error {
 }
 
 type Resposta = { data: unknown; error: unknown };
-type Invoke = (nome: string, opcoes?: { body?: unknown }) => Promise<Resposta>;
 
-interface ClienteComFuncoes {
-  functions: { invoke: Invoke; __homGuard?: boolean };
+/** Só o Auth é tocado no cliente; funções são bloqueadas no transporte. */
+export interface ClienteComAuth {
   auth?: Record<string, unknown> & { __homGuard?: boolean };
 }
+
 
 const digitosDe = (v: unknown) => String(v ?? "").replace(/\D/g, "");
 
@@ -129,7 +129,7 @@ export function respostaMockada(nome: string, body: unknown): Resposta | null {
   return null;
 }
 
-function instalarGuardaAuth(cliente: ClienteComFuncoes): void {
+function instalarGuardaAuth(cliente: ClienteComAuth): void {
   const auth = cliente.auth;
   if (!auth || auth.__homGuard) return;
 
@@ -157,29 +157,21 @@ function instalarGuardaAuth(cliente: ClienteComFuncoes): void {
 }
 
 /**
- * Instala as guardas no cliente informado. Idempotente.
- * Retorna `true` quando as guardas ficaram ativas.
+ * Guarda complementar nos métodos do Auth do cliente (propriedade estável,
+ * criada no construtor do SDK). Idempotente.
+ *
+ * ATENÇÃO: o bloqueio de FUNÇÕES não é feito aqui. `cliente.functions` é um
+ * getter que devolve uma instância nova a cada acesso no SDK real, então
+ * qualquer substituição ali seria descartada. Esse bloqueio vive na guarda de
+ * transporte (`homologacaoFetchGuard.ts`), instalada no `fetch` antes do
+ * cliente existir.
  */
 export function instalarGuardasHomologacao(
-  cliente: ClienteComFuncoes,
+  cliente: ClienteComAuth,
   ativo = isHomologacao(),
 ): boolean {
   if (!ativo) return false;
-
   instalarGuardaAuth(cliente);
-
-  if (cliente.functions.__homGuard) return true;
-
-  const original = cliente.functions.invoke.bind(cliente.functions) as Invoke;
-
-  cliente.functions.invoke = async (nome: string, opcoes?: { body?: unknown }) => {
-    const mock = respostaMockada(nome, opcoes?.body);
-    if (mock) return mock;
-    if (funcaoBloqueadaEmHomologacao(nome)) {
-      return { data: null, error: new FuncaoBloqueadaError(nome) };
-    }
-    return original(nome, opcoes);
-  };
-  cliente.functions.__homGuard = true;
   return true;
 }
+

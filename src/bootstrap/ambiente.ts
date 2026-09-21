@@ -8,6 +8,8 @@
  * cair silenciosamente em produção.
  */
 import { assertAmbienteValido, AmbienteInvalidoError } from "@/lib/env/appEnv";
+import { instalarFetchGuardHomologacao } from "@/lib/env/homologacaoFetchGuard";
+
 
 function telaDeBloqueio(mensagem: string) {
   const alvo = document.getElementById("root");
@@ -41,3 +43,10 @@ export function validarAmbienteOuBloquear(): void {
 }
 
 validarAmbienteOuBloquear();
+
+// Guarda de TRANSPORTE: precisa estar no `fetch` antes de qualquer cliente do
+// banco ser criado. É aqui que ficam os mocks de consulta, a allowlist de
+// funções (default deny) e o bloqueio de e-mails nativos do Auth.
+// Em produção não instala nada.
+instalarFetchGuardHomologacao();
+

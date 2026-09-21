@@ -18,9 +18,11 @@ import "@fontsource/epilogue/500.css";
 import "@fontsource/epilogue/600.css";
 import "./index.css";
 
-// Em homologação: consultas de cadastro por fixture e bloqueio das integrações
-// externas não aprovadas. Em produção não instala nada.
+// Em homologação, mocks/allowlist/bloqueio de e-mail já foram instalados no
+// `fetch` por `./bootstrap/ambiente` (antes deste cliente existir). Aqui só a
+// guarda complementar dos métodos do Auth. Em produção não instala nada.
 instalarGuardasHomologacao(supabase as never);
+
 installStaleBundleRecovery();
 installCspViolationLogger();
 // Offline caching was removed because an old app-shell cache could route valid
