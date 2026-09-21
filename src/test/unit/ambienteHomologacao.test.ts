@@ -222,32 +222,78 @@ describe("guardas de homologação", () => {
     }
   });
 
-  it("instala o interceptador só quando o ambiente é homologação", async () => {
-    const invokeReal = vi.fn().mockResolvedValue({ data: "real", error: null });
-    const clienteProd = { functions: { invoke: invokeReal } };
-    expect(instalarGuardasHomologacao(clienteProd, false)).toBe(false);
-    await clienteProd.functions.invoke("asaas-create-checkout");
-    expect(invokeReal).toHaveBeenCalledTimes(1);
+  it("bloqueia no TRANSPORTE com o cliente real do SDK: zero rede em duas chamadas separadas", async () => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const fetchSpy = vi.fn(async () => new Response("{}", { status: 200 }));
 
-    const invokeHom = vi.fn().mockResolvedValue({ data: "real", error: null });
-    const clienteHom = { functions: { invoke: invokeHom } };
-    expect(instalarGuardasHomologacao(clienteHom, true)).toBe(true);
-    expect(instalarGuardasHomologacao(clienteHom, true)).toBe(true); // idempotente
+    // Escopo isolado: a guarda embrulha o fetch entregue ao SDK, antes do cliente existir.
+    const escopo: { fetch: typeof fetch } = { fetch: fetchSpy as unknown as typeof fetch };
+    expect(instalarFetchGuardHomologacao(escopo, true)).toBe(true);
+    expect(instalarFetchGuardHomologacao(escopo, true)).toBe(true); // idempotente
 
-    for (const nome of ["asaas-create-checkout", "generate-category-ai-description", "funcao-nova-qualquer"]) {
-      const bloqueado = await clienteHom.functions.invoke(nome);
-      expect(bloqueado.error).toBeInstanceOf(FuncaoBloqueadaError);
-      expect(bloqueado.data).toBeNull();
-    }
+    const cliente = createClient(URL_HOMOLOGACAO, CHAVE_HOM, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { fetch: escopo.fetch },
+    });
 
-    const mock = await clienteHom.functions.invoke("lookup-cnpj", { body: { cnpj: CNPJ_FIXTURE_REGISTRADO } });
+    // Cada acesso a `cliente.functions` cria um FunctionsClient NOVO no SDK real:
+    // por isso as duas chamadas abaixo são acessos separados ao getter.
+    const mock = await cliente.functions.invoke("lookup-cnpj", {
+      body: { cnpj: CNPJ_FIXTURE_REGISTRADO },
+    });
+    expect(mock.error).toBeNull();
     expect((mock.data as { cnpj: string }).cnpj).toBe(CNPJ_FIXTURE_REGISTRADO);
-    expect(invokeHom).not.toHaveBeenCalled();
 
-    const liberado = await clienteHom.functions.invoke("dp-refresh-pendencias", { body: {} });
-    expect(liberado.data).toBe("real");
-    expect(invokeHom).toHaveBeenCalledTimes(1);
+    const desconhecida = await cliente.functions.invoke("funcao-que-ninguem-aprovou", { body: {} });
+    expect(desconhecida.error).toBeTruthy();
+    expect(desconhecida.data).toBeNull();
+
+    // Prova central: nenhuma das duas operações chegou à rede.
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    // Função aprovada segue para o transporte (uma única chamada de rede).
+    await cliente.functions.invoke("dp-refresh-pendencias", { body: {} });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
+
+  it("não toca no fetch quando o build é de produção", async () => {
+    const fetchSpy = vi.fn(async () => new Response("{}", { status: 200 }));
+    const escopo: { fetch: typeof fetch } = { fetch: fetchSpy as unknown as typeof fetch };
+    expect(instalarFetchGuardHomologacao(escopo, false)).toBe(false);
+    expect(escopo.fetch).toBe(fetchSpy);
+
+    const { createClient } = await import("@supabase/supabase-js");
+    const cliente = createClient(URL_PRODUCAO, CHAVE_PROD, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { fetch: escopo.fetch },
+    });
+    await cliente.functions.invoke("asaas-create-checkout", { body: {} });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("nega endpoints nativos de e-mail do Auth no transporte, mantendo login por senha", async () => {
+    const fetchSpy = vi.fn(async () => new Response("{}", { status: 200 }));
+    const escopo: { fetch: typeof fetch } = { fetch: fetchSpy as unknown as typeof fetch };
+    instalarFetchGuardHomologacao(escopo, true);
+
+    for (const rota of ["/auth/v1/signup", "/auth/v1/recover", "/auth/v1/resend", "/auth/v1/otp"]) {
+      const r = await escopo.fetch(`${URL_HOMOLOGACAO}${rota}`, { method: "POST", body: "{}" });
+      expect(r.status).toBe(403);
+    }
+    const troca = await escopo.fetch(`${URL_HOMOLOGACAO}/auth/v1/user`, {
+      method: "PUT",
+      body: JSON.stringify({ email: "novo@exemplo-homologacao.test" }),
+    });
+    expect(troca.status).toBe(403);
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    await escopo.fetch(`${URL_HOMOLOGACAO}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      body: "{}",
+    });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
 
   it("bloqueia envio nativo de e-mail do Auth e mantém login por senha", async () => {
     const signInWithPassword = vi.fn().mockResolvedValue({ data: { session: {} }, error: null });
