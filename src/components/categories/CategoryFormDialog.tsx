@@ -151,7 +151,6 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   // Empresas que o usuário realmente acessa (dono OU membro), vindas do
   // contexto — a consulta antiga só trazia as empresas das quais ele é dono,
   // então membros criavam categorias sem vínculo nenhum.
-  const { companies: contextCompanies } = useCompanyContext();
   const companies = contextCompanies.map((c) => ({ id: c.id, name: c.trade_name || c.name }));
 
   const { data: chartAccounts = [] } = useQuery({
