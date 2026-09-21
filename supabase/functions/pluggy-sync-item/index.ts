@@ -1124,7 +1124,10 @@ Deno.serve(async (req) => {
         last_sync_status: parcial ? 'partial_success' : 'success',
         last_sync_error: parcial ? motivos.join(' ') : null,
         last_sync_attempt_at: concluidoEm,
-        last_synced_at: parcial ? undefined : concluidoEm,
+        // Coleta parcial do banco ainda gravou extrato: marcar como sincronizado
+        // agora evita a tela mostrar sincronização vencida indefinidamente.
+        // Só falha de gravação nossa mantém a data anterior.
+        last_synced_at: (falhasGravacao > 0 || !v2Materializado) ? undefined : concluidoEm,
         next_sync_at: new Date(Date.now() + intervaloMin * 60_000).toISOString(),
       })
       .eq('id', conn.id);
