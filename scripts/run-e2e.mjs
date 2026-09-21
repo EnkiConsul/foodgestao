@@ -2,14 +2,18 @@
 /**
  * Runner dos E2E Playwright (specs em e2e/*.spec.py).
  *
- * Sobe/valida o app em E2E_BASE_URL (default http://localhost:8080) e executa
- * cada spec com python3. Sem python/playwright: falha em CI, avisa localmente.
+ * TRAVA DE AMBIENTE (fail-closed, antes de qualquer spec): os E2E escrevem no
+ * banco, então só rodam contra um build de HOMOLOGAÇÃO comprovado pelo marcador
+ * `build-env.json` gerado no próprio build (`app_env` + `supabase_ref`).
+ * Endereço local (localhost) NÃO é prova de ambiente e não é aceito como tal.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 
 const REQUIRE = process.argv.includes("--require") || !!process.env.CI;
 const BASE = process.env.E2E_BASE_URL || "http://localhost:8080";
+const REF_HOM = "utjhzpdbqzajrhnzcher";
+const MANIFESTO = process.env.E2E_BUILD_MANIFEST || "dist/build-env.json";
 
 const RED = "\x1b[31m";
 const GREEN = "\x1b[32m";
@@ -25,6 +29,41 @@ function softExit(msg) {
   console.warn(`${YELLOW}⚠ ${msg} — E2E ignorado.${RESET}`);
   process.exit(0);
 }
+
+/** Aborta sempre (sem modo brando): risco de escrever no banco errado. */
+function abortar(msg) {
+  console.error(`${RED}✗ E2E abortado: ${msg}${RESET}`);
+  console.error(
+    `${YELLOW}  Gere o build de homologação (bun run build:hom), sirva-o (bun run preview:hom)` +
+      ` e aponte E2E_BASE_URL/E2E_BUILD_MANIFEST para ele.${RESET}`,
+  );
+  process.exit(1);
+}
+
+if (!existsSync(MANIFESTO)) {
+  abortar(
+    `marcador de ambiente ausente (${MANIFESTO}). Sem ele não há prova de que o app em teste usa o banco de homologação.`,
+  );
+}
+
+let marcador;
+try {
+  marcador = JSON.parse(readFileSync(MANIFESTO, "utf8"));
+} catch {
+  abortar(`marcador ${MANIFESTO} ilegível ou não é JSON.`);
+}
+
+if (marcador.app_env !== "homologacao") {
+  abortar(`marcador declara app_env="${marcador.app_env ?? "ausente"}" — exigido "homologacao".`);
+}
+if (marcador.supabase_ref !== REF_HOM) {
+  abortar(
+    `marcador aponta para o projeto "${marcador.supabase_ref ?? "ausente"}" — exigido o de homologação (${REF_HOM}).`,
+  );
+}
+console.log(
+  `${GREEN}✓ Ambiente confirmado pelo marcador: homologação (${REF_HOM}), build de ${marcador.built_at ?? "data desconhecida"}.${RESET}`,
+);
 
 if (!existsSync("e2e")) softExit("pasta e2e ausente");
 

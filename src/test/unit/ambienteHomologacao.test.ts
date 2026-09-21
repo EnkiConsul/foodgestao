@@ -1,12 +1,18 @@
 /**
  * Guard de ambiente (fail-closed) + consultas simuladas de homologação.
  *
- * Cobre: produção preservada, flag ausente/inválida, banco trocado, mocks sem
- * rede e bloqueio das integrações externas.
+ * Cobre: produção preservada, flag ausente/inválida, banco trocado, recusa de
+ * chave secreta/service_role, allowlist com negação padrão, bloqueio de e-mails
+ * nativos do Auth, mocks sem rede e trava dos E2E pelo marcador do build.
  */
 import { describe, it, expect, vi } from "vitest";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import {
   resolverAmbiente,
+  validarChavePublica,
   REF_PRODUCAO,
   REF_HOMOLOGACAO,
   URL_PRODUCAO,
@@ -14,24 +20,34 @@ import {
 } from "@/lib/env/appEnv";
 import {
   funcaoBloqueadaEmHomologacao,
+  funcaoPermitidaEmHomologacao,
   respostaMockada,
   instalarGuardasHomologacao,
   FuncaoBloqueadaError,
+  AuthEmailBloqueadoError,
+  CNPJ_FIXTURE_REGISTRADO,
 } from "@/lib/env/homologacaoRuntime";
 import { cnpjFixture, cepFixture } from "@/lib/env/homologacaoFixtures";
 
-const CHAVE = `eyJ${"a".repeat(60)}`;
+/** Monta um JWT de teste (sem assinatura real — só conteúdo legível). */
+function jwt(payload: Record<string, unknown>): string {
+  const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString("base64url");
+  return `${b64({ alg: "HS256", typ: "JWT" })}.${b64(payload)}.assinatura_de_teste`;
+}
+
+const CHAVE_PROD = jwt({ iss: "supabase", ref: REF_PRODUCAO, role: "anon" });
+const CHAVE_HOM = jwt({ iss: "supabase", ref: REF_HOMOLOGACAO, role: "anon" });
 
 const prod = {
   VITE_APP_ENV: "",
   VITE_SUPABASE_URL: URL_PRODUCAO,
-  VITE_SUPABASE_PUBLISHABLE_KEY: CHAVE,
+  VITE_SUPABASE_PUBLISHABLE_KEY: CHAVE_PROD,
   VITE_SUPABASE_PROJECT_ID: REF_PRODUCAO,
 };
 const hom = {
   VITE_APP_ENV: "homologacao",
   VITE_SUPABASE_URL: URL_HOMOLOGACAO,
-  VITE_SUPABASE_PUBLISHABLE_KEY: CHAVE,
+  VITE_SUPABASE_PUBLISHABLE_KEY: CHAVE_HOM,
   VITE_SUPABASE_PROJECT_ID: REF_HOMOLOGACAO,
 };
 
@@ -45,12 +61,22 @@ describe("resolverAmbiente — fail-closed", () => {
   });
 
   it("recusa build de homologação apontando para produção (sem fallback)", () => {
-    const r = resolverAmbiente({ ...hom, VITE_SUPABASE_URL: URL_PRODUCAO, VITE_SUPABASE_PROJECT_ID: REF_PRODUCAO });
+    const r = resolverAmbiente({
+      ...hom,
+      VITE_SUPABASE_URL: URL_PRODUCAO,
+      VITE_SUPABASE_PUBLISHABLE_KEY: CHAVE_PROD,
+      VITE_SUPABASE_PROJECT_ID: REF_PRODUCAO,
+    });
     expect(r).toMatchObject({ ok: false, motivo: "homologacao_com_banco_errado" });
   });
 
   it("recusa banco de homologação sem a flag (flag ausente)", () => {
-    const r = resolverAmbiente({ ...prod, VITE_SUPABASE_URL: URL_HOMOLOGACAO, VITE_SUPABASE_PROJECT_ID: REF_HOMOLOGACAO });
+    const r = resolverAmbiente({
+      ...prod,
+      VITE_SUPABASE_URL: URL_HOMOLOGACAO,
+      VITE_SUPABASE_PUBLISHABLE_KEY: CHAVE_HOM,
+      VITE_SUPABASE_PROJECT_ID: REF_HOMOLOGACAO,
+    });
     expect(r).toMatchObject({ ok: false, motivo: "producao_com_banco_homologacao" });
   });
 
@@ -75,18 +101,67 @@ describe("resolverAmbiente — fail-closed", () => {
     expect(resolverAmbiente({ ...hom, VITE_SUPABASE_PROJECT_ID: REF_PRODUCAO })).toMatchObject({
       motivo: "project_id_divergente",
     });
+    const refFalso = "z".repeat(20);
     expect(
       resolverAmbiente({
         ...prod,
-        VITE_SUPABASE_URL: `https://${"z".repeat(20)}.supabase.co`,
-        VITE_SUPABASE_PROJECT_ID: "z".repeat(20),
+        VITE_SUPABASE_URL: `https://${refFalso}.supabase.co`,
+        VITE_SUPABASE_PUBLISHABLE_KEY: jwt({ ref: refFalso, role: "anon" }),
+        VITE_SUPABASE_PROJECT_ID: refFalso,
       }),
     ).toMatchObject({ motivo: "banco_desconhecido" });
   });
 });
 
+describe("validação da chave publicável", () => {
+  it("recusa chave secreta moderna (sb_secret_)", () => {
+    const r = validarChavePublica(`sb_secret_${"x".repeat(40)}`, REF_HOMOLOGACAO);
+    expect(r).toMatchObject({ ok: false, motivo: "chave_nao_publicavel" });
+    expect(resolverAmbiente({ ...hom, VITE_SUPABASE_PUBLISHABLE_KEY: `sb_secret_${"x".repeat(40)}` })).toMatchObject({
+      ok: false,
+      motivo: "chave_nao_publicavel",
+    });
+  });
+
+  it("recusa qualquer sb_ que não seja sb_publishable_ e aceita a publicável", () => {
+    expect(validarChavePublica(`sb_anon_${"x".repeat(40)}`, REF_HOMOLOGACAO)).toMatchObject({
+      ok: false,
+      motivo: "chave_nao_publicavel",
+    });
+    expect(validarChavePublica(`sb_publishable_${"x".repeat(40)}`, REF_HOMOLOGACAO)).toEqual({ ok: true });
+  });
+
+  it("recusa JWT de service_role mesmo com ref correto", () => {
+    const chave = jwt({ ref: REF_HOMOLOGACAO, role: "service_role" });
+    expect(validarChavePublica(chave, REF_HOMOLOGACAO)).toMatchObject({
+      ok: false,
+      motivo: "chave_nao_publicavel",
+    });
+    expect(resolverAmbiente({ ...hom, VITE_SUPABASE_PUBLISHABLE_KEY: chave })).toMatchObject({
+      ok: false,
+      motivo: "chave_nao_publicavel",
+    });
+  });
+
+  it("recusa JWT anon de outro projeto (ref diferente da URL)", () => {
+    expect(validarChavePublica(CHAVE_PROD, REF_HOMOLOGACAO)).toMatchObject({
+      ok: false,
+      motivo: "chave_de_outro_projeto",
+    });
+    expect(resolverAmbiente({ ...hom, VITE_SUPABASE_PUBLISHABLE_KEY: CHAVE_PROD })).toMatchObject({
+      ok: false,
+      motivo: "chave_de_outro_projeto",
+    });
+  });
+
+  it("recusa JWT malformado ou com conteúdo ilegível", () => {
+    expect(validarChavePublica("eyJabc", REF_HOMOLOGACAO)).toMatchObject({ ok: false });
+    expect(validarChavePublica("eyJa.@@@.z", REF_HOMOLOGACAO)).toMatchObject({ ok: false });
+  });
+});
+
 describe("guardas de homologação", () => {
-  it("bloqueia pagamentos, Open Finance, e-mail/mensagens e IA", () => {
+  it("bloqueia pagamentos, Open Finance, e-mail/mensagens, IA e convites", () => {
     for (const nome of [
       "asaas-create-checkout",
       "asaas-refresh-pix",
@@ -97,24 +172,41 @@ describe("guardas de homologação", () => {
       "auth-recovery-request",
       "ai-categorize-transactions",
       "inspect-search-console",
+      "generate-category-ai-description",
+      "dp-preadmissao-convite",
+      "send-company-invite",
+      "dp-criar-acesso-colaborador",
     ]) {
       expect(funcaoBloqueadaEmHomologacao(nome)).toBe(true);
     }
   });
 
-  it("mantém liberadas as funções próprias do cadastro", () => {
-    for (const nome of ["check-onboarding-cnpj", "auth-login", "accept-invite", "dp-refresh-pendencias"]) {
+  it("nega por padrão nomes desconhecidos, inclusive vazio", () => {
+    expect(funcaoBloqueadaEmHomologacao("funcao-que-ninguem-aprovou")).toBe(true);
+    expect(funcaoBloqueadaEmHomologacao("")).toBe(true);
+    expect(funcaoPermitidaEmHomologacao("funcao-que-ninguem-aprovou")).toBe(false);
+  });
+
+  it("libera apenas as funções internas aprovadas", () => {
+    for (const nome of ["dp-refresh-pendencias", "dp-sorteio-folgas", "auth-config"]) {
       expect(funcaoBloqueadaEmHomologacao(nome)).toBe(false);
+      expect(funcaoPermitidaEmHomologacao(nome)).toBe(true);
     }
   });
 
-  it("responde CNPJ por fixture determinística, sem rede", () => {
+  it("responde CNPJ e disponibilidade por fixture determinística, sem rede", () => {
     const a = respostaMockada("lookup-cnpj", { cnpj: "58.241.366/0001-32" });
     const b = respostaMockada("lookup-cnpj", { cnpj: "58241366000132" });
     expect(a?.error).toBeNull();
     expect(a?.data).toEqual(b?.data);
     expect((a?.data as { razao_social: string }).razao_social).toContain("HOMOLOGACAO");
-    expect(respostaMockada("check-onboarding-cnpj", { cnpj: "58241366000132" })).toBeNull();
+
+    expect(respostaMockada("check-onboarding-cnpj", { cnpj: "58241366000132" })?.data).toEqual({
+      status: "available",
+    });
+    expect(respostaMockada("check-onboarding-cnpj", { cnpj: CNPJ_FIXTURE_REGISTRADO })?.data).toEqual({
+      status: "registered",
+    });
   });
 
   it("CEP simulado é estável e não consulta provedor", () => {
@@ -142,22 +234,101 @@ describe("guardas de homologação", () => {
     expect(instalarGuardasHomologacao(clienteHom, true)).toBe(true);
     expect(instalarGuardasHomologacao(clienteHom, true)).toBe(true); // idempotente
 
-    const bloqueado = await clienteHom.functions.invoke("asaas-create-checkout");
-    expect(bloqueado.error).toBeInstanceOf(FuncaoBloqueadaError);
-    expect(bloqueado.data).toBeNull();
+    for (const nome of ["asaas-create-checkout", "generate-category-ai-description", "funcao-nova-qualquer"]) {
+      const bloqueado = await clienteHom.functions.invoke(nome);
+      expect(bloqueado.error).toBeInstanceOf(FuncaoBloqueadaError);
+      expect(bloqueado.data).toBeNull();
+    }
 
-    const mock = await clienteHom.functions.invoke("lookup-cnpj", { body: { cnpj: "19131243000197" } });
-    expect((mock.data as { cnpj: string }).cnpj).toBe("19131243000197");
+    const mock = await clienteHom.functions.invoke("lookup-cnpj", { body: { cnpj: CNPJ_FIXTURE_REGISTRADO } });
+    expect((mock.data as { cnpj: string }).cnpj).toBe(CNPJ_FIXTURE_REGISTRADO);
     expect(invokeHom).not.toHaveBeenCalled();
 
-    const liberado = await clienteHom.functions.invoke("check-onboarding-cnpj", { body: { cnpj: "1" } });
+    const liberado = await clienteHom.functions.invoke("dp-refresh-pendencias", { body: {} });
     expect(liberado.data).toBe("real");
     expect(invokeHom).toHaveBeenCalledTimes(1);
+  });
+
+  it("bloqueia envio nativo de e-mail do Auth e mantém login por senha", async () => {
+    const signInWithPassword = vi.fn().mockResolvedValue({ data: { session: {} }, error: null });
+    const updateUserReal = vi.fn().mockResolvedValue({ data: { user: {} }, error: null });
+    const cliente = {
+      functions: { invoke: vi.fn() },
+      auth: {
+        signUp: vi.fn(),
+        resend: vi.fn(),
+        resetPasswordForEmail: vi.fn(),
+        signInWithOtp: vi.fn(),
+        signInWithPassword,
+        updateUser: updateUserReal,
+      },
+    };
+    instalarGuardasHomologacao(cliente, true);
+
+    for (const metodo of ["signUp", "resend", "resetPasswordForEmail", "signInWithOtp"] as const) {
+      const r = await (cliente.auth[metodo] as () => Promise<{ error: unknown }>)();
+      expect(r.error).toBeInstanceOf(AuthEmailBloqueadoError);
+    }
+
+    const trocaEmail = await cliente.auth.updateUser({ email: "novo@exemplo-homologacao.test" });
+    expect(trocaEmail.error).toBeInstanceOf(AuthEmailBloqueadoError);
+
+    const trocaSenha = await cliente.auth.updateUser({ password: "Senha-De-Teste-123456" });
+    expect(trocaSenha.error).toBeNull();
+
+    const login = await cliente.auth.signInWithPassword();
+    expect(login.error).toBeNull();
+    expect(signInWithPassword).toHaveBeenCalledTimes(1);
   });
 
   it("fixture de CNPJ nunca devolve dado real e é derivada dos dígitos", () => {
     const f = cnpjFixture("11222333000181");
     expect(f.email).toMatch(/exemplo-homologacao\.test$/);
     expect(f.razao_social).toBe("EMPRESA HOMOLOGACAO 0181 LTDA");
+  });
+});
+
+describe("trava de ambiente dos E2E (marcador do build)", () => {
+  // E2E_BASE_URL aponta para porta fechada: o runner nunca executa spec nenhum
+  // durante o teste — só a trava de ambiente é exercitada.
+  const rodar = (manifesto?: string) =>
+    spawnSync("node", ["scripts/run-e2e.mjs"], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CI: "",
+        E2E_BASE_URL: "http://127.0.0.1:9",
+        E2E_BUILD_MANIFEST: manifesto ?? "/tmp/marcador-inexistente.json",
+      },
+    });
+
+  const escrever = (conteudo: unknown) => {
+    const dir = mkdtempSync(join(tmpdir(), "marcador-"));
+    const arq = join(dir, "build-env.json");
+    writeFileSync(arq, JSON.stringify(conteudo));
+    return arq;
+  };
+
+  it("aborta sem marcador de build (localhost não é prova)", () => {
+    const r = rodar();
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain("marcador de ambiente ausente");
+  });
+
+  it("aborta quando o marcador é de produção", () => {
+    const r = rodar(escrever({ app_env: "producao", supabase_ref: REF_PRODUCAO }));
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain('app_env="producao"');
+  });
+
+  it("aborta quando o ambiente é homologação mas o banco não", () => {
+    const r = rodar(escrever({ app_env: "homologacao", supabase_ref: REF_PRODUCAO }));
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain("exigido o de homologação");
+  });
+
+  it("confirma o ambiente quando o marcador é de homologação", () => {
+    const r = rodar(escrever({ app_env: "homologacao", supabase_ref: REF_HOMOLOGACAO, built_at: "2026-01-01" }));
+    expect(r.stdout).toContain("Ambiente confirmado pelo marcador");
   });
 });

@@ -46,8 +46,32 @@ if (url !== `https://${REF_HOM}.supabase.co`) {
   falhar(`VITE_SUPABASE_URL precisa ser exatamente https://${REF_HOM}.supabase.co`);
 }
 if (projectId && projectId !== REF_HOM) falhar("VITE_SUPABASE_PROJECT_ID divergente da URL.");
-if (!(chave.length >= 40 && (chave.startsWith("eyJ") || chave.startsWith("sb_")))) {
-  falhar("VITE_SUPABASE_PUBLISHABLE_KEY ausente ou fora do formato esperado (anon/publicável).");
+// Mesma regra de src/lib/env/appEnv.ts: moderno só sb_publishable_; JWT precisa
+// ter role "anon" e ref igual ao da URL. Decodificar o payload é leitura de
+// conteúdo, NÃO verificação criptográfica de assinatura.
+if (!chave) falhar("VITE_SUPABASE_PUBLISHABLE_KEY ausente.");
+if (chave.startsWith("sb_")) {
+  if (!chave.startsWith("sb_publishable_")) {
+    falhar("Somente chaves sb_publishable_ são aceitas no frontend (sb_secret_ é recusada).");
+  }
+  if (chave.length < 40) falhar("Chave sb_publishable_ curta demais.");
+} else if (chave.startsWith("eyJ")) {
+  const partes = chave.split(".");
+  if (partes.length !== 3) falhar("Chave JWT malformada (esperados 3 segmentos).");
+  let payload;
+  try {
+    payload = JSON.parse(Buffer.from(partes[1], "base64url").toString("utf8"));
+  } catch {
+    falhar("Não foi possível ler o conteúdo da chave JWT.");
+  }
+  if (payload.role !== "anon") {
+    falhar(`A chave do frontend precisa ter role "anon" (encontrado: "${payload.role ?? "ausente"}").`);
+  }
+  if (payload.ref !== REF_HOM) {
+    falhar("O projeto declarado na chave não é o de homologação.");
+  }
+} else {
+  falhar("VITE_SUPABASE_PUBLISHABLE_KEY fora dos formatos aceitos (sb_publishable_ ou JWT anon).");
 }
 
 console.log(`${GREEN}✓ ${ARQ} válido — build apontará para o banco de homologação (${REF_HOM}).${RESET}`);

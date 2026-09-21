@@ -28,10 +28,86 @@ export type ResolucaoAmbiente =
 
 const texto = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 
-/** Chave publicável (anon) plausível: JWT legado ou formato novo `sb_...`. */
-function chavePublicaPlausivel(chave: string): boolean {
-  if (chave.length < 40) return false;
-  return chave.startsWith("eyJ") || chave.startsWith("sb_");
+/** Decodifica base64url sem depender de Node (roda no browser e em testes). */
+function base64UrlParaTexto(seg: string): string | null {
+  try {
+    const b64 = seg.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(seg.length / 4) * 4, "=");
+    const atobFn = (globalThis as { atob?: (s: string) => string }).atob;
+    if (atobFn) return atobFn(b64);
+    const buf = (globalThis as { Buffer?: { from(s: string, enc: string): { toString(e: string): string } } })
+      .Buffer;
+    return buf ? buf.from(b64, "base64").toString("utf8") : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Valida a chave publicável (anon) do frontend. FAIL-CLOSED.
+ *
+ * - Formato moderno: aceita SOMENTE `sb_publishable_...`. Qualquer outro `sb_`
+ *   (em especial `sb_secret_`) é recusado.
+ * - Formato legado (JWT): o payload é decodificado (base64url) para ler `role` e
+ *   `ref`; exige `role === "anon"` e `ref` igual ao ref da URL. A decodificação
+ *   é apenas leitura de conteúdo — NÃO é verificação criptográfica de
+ *   assinatura, que o frontend não tem como fazer.
+ */
+export function validarChavePublica(
+  chave: string,
+  refUrl: string,
+): { ok: true } | { ok: false; motivo: string; detalhe: string } {
+  if (!chave) {
+    return { ok: false, motivo: "chave_ausente", detalhe: "VITE_SUPABASE_PUBLISHABLE_KEY não está definida." };
+  }
+  if (chave.startsWith("sb_")) {
+    if (!chave.startsWith("sb_publishable_")) {
+      return {
+        ok: false,
+        motivo: "chave_nao_publicavel",
+        detalhe: "Somente chaves sb_publishable_ são aceitas no frontend (sb_secret_ é recusada).",
+      };
+    }
+    if (chave.length < 40) {
+      return { ok: false, motivo: "chave_publica_invalida", detalhe: "Chave sb_publishable_ curta demais." };
+    }
+    return { ok: true };
+  }
+  if (chave.startsWith("eyJ")) {
+    const partes = chave.split(".");
+    if (partes.length !== 3) {
+      return { ok: false, motivo: "chave_publica_invalida", detalhe: "Chave JWT malformada (esperados 3 segmentos)." };
+    }
+    const bruto = base64UrlParaTexto(partes[1]);
+    if (!bruto) {
+      return { ok: false, motivo: "chave_publica_invalida", detalhe: "Não foi possível ler o conteúdo da chave JWT." };
+    }
+    let payload: { role?: unknown; ref?: unknown };
+    try {
+      payload = JSON.parse(bruto) as { role?: unknown; ref?: unknown };
+    } catch {
+      return { ok: false, motivo: "chave_publica_invalida", detalhe: "Conteúdo da chave JWT não é JSON válido." };
+    }
+    if (payload.role !== "anon") {
+      return {
+        ok: false,
+        motivo: "chave_nao_publicavel",
+        detalhe: `A chave do frontend precisa ter role "anon" (encontrado: "${String(payload.role ?? "ausente")}").`,
+      };
+    }
+    if (payload.ref !== refUrl) {
+      return {
+        ok: false,
+        motivo: "chave_de_outro_projeto",
+        detalhe: "O projeto declarado na chave não corresponde ao banco de VITE_SUPABASE_URL.",
+      };
+    }
+    return { ok: true };
+  }
+  return {
+    ok: false,
+    motivo: "chave_publica_invalida",
+    detalhe: "VITE_SUPABASE_PUBLISHABLE_KEY fora dos formatos aceitos (sb_publishable_ ou JWT anon).",
+  };
 }
 
 function refDaUrl(url: string): string | null {
@@ -59,12 +135,9 @@ export function resolverAmbiente(env: EnvBruto): ResolucaoAmbiente {
       detalhe: "VITE_SUPABASE_URL não tem o formato https://<ref>.supabase.co.",
     };
   }
-  if (!chavePublicaPlausivel(chave)) {
-    return {
-      ok: false,
-      motivo: "chave_publica_invalida",
-      detalhe: "VITE_SUPABASE_PUBLISHABLE_KEY ausente ou fora do formato esperado.",
-    };
+  const chaveOk = validarChavePublica(chave, ref);
+  if (chaveOk.ok === false) {
+    return { ok: false, motivo: chaveOk.motivo, detalhe: chaveOk.detalhe };
   }
   if (projectId && projectId !== ref) {
     return {
