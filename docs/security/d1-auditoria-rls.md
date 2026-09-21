@@ -87,8 +87,14 @@ esse item.
 lido do catálogo. Efeito: qualquer visitante, sem sessão, lê as regras de admissão de qualquer
 empresa informando o identificador dela.
 
-### A2 — ALTO (sistêmico): 59 funções `SECURITY DEFINER` confiam no parâmetro de empresa/colaborador
-Funções em `public` executáveis por `authenticated` que recebem `company_id`/`colaborador_id` e não
+### A2 — TRIAGEM (não confirmado): 59 funções `SECURITY DEFINER` que confiam no parâmetro recebido
+**Esta é uma lista de triagem, não 59 vulnerabilidades.** Cada item precisa de verificação individual:
+a autorização pode estar na cadeia de chamada (função chamadora, trigger, RPC de fachada), e parte
+delas provavelmente nunca é chamada direto pelo cliente. Severidade fica indefinida até a verificação
+caso a caso; os itens de escrita abaixo são os candidatos prioritários.
+
+Critério da triagem: funções em `public` executáveis por `authenticated` que recebem
+`company_id`/`colaborador_id`/`user_id` e não
 consultam `auth.uid()` nem helper de vínculo — logo ignoram RLS em nome do dono da função. Exemplos
 verificados no corpo:
 - Leitura cruzada: `dp_config_resolvida`, `dp_ocorrencia_config`, `dp_ferias_config`,
