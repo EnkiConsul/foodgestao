@@ -6,7 +6,7 @@
  * nativos do Auth, mocks sem rede e trava dos E2E pelo marcador do build.
  */
 import { describe, it, expect, vi } from "vitest";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -31,8 +31,6 @@ import {
   instalarFetchGuardHomologacao,
   nomeFuncaoDaUrl,
 } from "@/lib/env/homologacaoFetchGuard";
-import { createServer } from "node:http";
-import type { AddressInfo } from "node:net";
 
 
 import { cnpjFixture, cepFixture } from "@/lib/env/homologacaoFixtures";
