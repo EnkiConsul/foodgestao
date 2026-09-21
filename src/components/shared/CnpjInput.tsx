@@ -69,8 +69,9 @@ export const CnpjInput = forwardRef<HTMLInputElement, CnpjInputProps>(function C
           maxLength={18}
           disabled={disabled || lookup.isPending}
           inputMode="numeric"
-          aria-invalid={showError}
-          aria-describedby={showError ? errorId : undefined}
+          aria-required={required || undefined}
+          aria-invalid={showError || invalid || undefined}
+          aria-describedby={[showError ? errorId : null, describedBy].filter(Boolean).join(" ") || undefined}
           className={cn(showError && "border-destructive focus-visible:ring-destructive")}
         />
         <Button
