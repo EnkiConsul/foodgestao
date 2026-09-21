@@ -40,17 +40,43 @@ function abortar(msg) {
   process.exit(1);
 }
 
-if (!existsSync(MANIFESTO)) {
-  abortar(
-    `marcador de ambiente ausente (${MANIFESTO}). Sem ele não há prova de que o app em teste usa o banco de homologação.`,
-  );
+const MANIFESTO_LOCAL = !!process.env.E2E_BUILD_MANIFEST;
+const URL_MANIFESTO = `${BASE.replace(/\/$/, "")}/build-env.json`;
+
+let bruto;
+let origem;
+if (MANIFESTO_LOCAL) {
+  // Override explícito: arquivo do build gerado localmente.
+  if (!existsSync(MANIFESTO)) {
+    abortar(
+      `marcador de ambiente ausente (${MANIFESTO}). Sem ele não há prova de que o app em teste usa o banco de homologação.`,
+    );
+  }
+  try {
+    bruto = readFileSync(MANIFESTO, "utf8");
+  } catch {
+    abortar(`marcador ${MANIFESTO} ilegível.`);
+  }
+  origem = MANIFESTO;
+} else {
+  // Prova padrão: o marcador é lido POR HTTP do próprio endereço testado, para
+  // que a verificação recaia sobre o app realmente servido em BASE — e não sobre
+  // um arquivo qualquer da máquina.
+  const res = spawnSync("curl", ["-sf", "-m", "10", URL_MANIFESTO], { encoding: "utf8" });
+  if (res.status !== 0 || !res.stdout) {
+    abortar(
+      `marcador de ambiente não obtido em ${URL_MANIFESTO}. Sem ele não há prova de que o app servido em ${BASE} usa o banco de homologação.`,
+    );
+  }
+  bruto = res.stdout;
+  origem = URL_MANIFESTO;
 }
 
 let marcador;
 try {
-  marcador = JSON.parse(readFileSync(MANIFESTO, "utf8"));
+  marcador = JSON.parse(bruto);
 } catch {
-  abortar(`marcador ${MANIFESTO} ilegível ou não é JSON.`);
+  abortar(`marcador ${origem} ilegível ou não é JSON.`);
 }
 
 if (marcador.app_env !== "homologacao") {
@@ -62,8 +88,9 @@ if (marcador.supabase_ref !== REF_HOM) {
   );
 }
 console.log(
-  `${GREEN}✓ Ambiente confirmado pelo marcador: homologação (${REF_HOM}), build de ${marcador.built_at ?? "data desconhecida"}.${RESET}`,
+  `${GREEN}✓ Ambiente confirmado pelo marcador (${origem}): homologação (${REF_HOM}), build de ${marcador.built_at ?? "data desconhecida"}.${RESET}`,
 );
+
 
 if (!existsSync("e2e")) softExit("pasta e2e ausente");
 
