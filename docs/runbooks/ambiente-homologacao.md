@@ -114,8 +114,9 @@ Não foram executados (exigem credenciais/decisão no projeto de homologação):
 4. `scripts/seed-staging.mjs` é citado em `scripts/preflight-secrets.mjs` e não existe
    no repositório. Se for criado, deve ser **idempotente** e reaproveitar os usuários
    A–D e as fixtures já presentes, sem recriar nada.
-5. E2E (`npm run e2e` / `bun run e2e`) continuam mirando `http://localhost:8080`;
-   rode-os apenas com `dev:hom` ativo, ou contra o `preview:hom`.
+5. E2E: o alvo padrão continua `http://localhost:8080`, mas agora a execução só começa
+   com o marcador de build de homologação (item 3.9). Gere `build:hom` e rode
+   `E2E_BASE_URL=<preview:hom> E2E_BUILD_MANIFEST=dist/build-env.json bun run e2e`.
 
 Nenhuma URL hospedada foi inventada, nenhum projeto pago foi criado e nenhum deploy de
 produção foi feito.
