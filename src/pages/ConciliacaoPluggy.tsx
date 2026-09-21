@@ -1307,8 +1307,16 @@ export default function ConciliacaoPluggy() {
           p_contact_id: ct === "__none__" ? undefined : ct,
         });
         if (error) {
-          resultado.falhas.push({ ids: sids, motivo: "erro_rpc", detalhe: error.message });
-          toast.error("Falha ao confirmar no cartão: " + error.message);
+          resultado.falhas.push(
+            error.message.includes("contact_forbidden")
+              ? { ids: sids, motivo: "contato_sem_vinculo" }
+              : { ids: sids, motivo: "erro_rpc", detalhe: error.message },
+          );
+          toast.error(
+            error.message.includes("contact_forbidden")
+              ? "Este fornecedor/cliente não está ligado à empresa deste lançamento"
+              : "Falha ao confirmar no cartão: " + error.message,
+          );
           continue;
         }
         const list = (Array.isArray(data) ? data : []) as { staging_id: string }[];
