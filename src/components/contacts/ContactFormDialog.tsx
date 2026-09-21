@@ -394,8 +394,12 @@ export function ContactFormDialog({
         setSaving(false); return;
       }
 
-      if (selectedCompanyIds.length > 0) {
-        const linkOk = await vincularEmpresas((newContact as any).id, selectedCompanyIds);
+      // A empresa em uso é sempre vinculada, senão o contato não apareceria.
+      const idsFinais = selectedCompanyId && !selectedCompanyIds.includes(selectedCompanyId)
+        ? [...selectedCompanyIds, selectedCompanyId]
+        : selectedCompanyIds;
+      if (idsFinais.length > 0) {
+        const linkOk = await vincularEmpresas((newContact as any).id, idsFinais);
         if (!linkOk) { setSaving(false); return; }
       }
       await supabase.rpc("insert_audit_log", {
