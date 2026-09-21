@@ -170,25 +170,57 @@ As policies permitem UPDATE ao editor da empresa, mas o grant de tabela não inc
 (`03-grants.csv`: `accounts|authenticated|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE`).
 Qualquer edição direta de conta pela API falha por permissão antes da RLS — hoje depende de RPC.
 
-### Pontos verificados e íntegros
+### A7 — ALTO, CONFIRMADO: conta/cartão de outra empresa no lançamento altera o saldo dela
+Registrado em detalhe em `docs/security/d1-achado-a7-conta-do-lancamento.md`. Resumo: `account_id` e
+`credit_card_id` não têm guard de empresa (só `destination_account_id`, e só em transferência), e o
+cálculo de saldo é `SECURITY DEFINER` sem checagem de tenant.
+
+### Pontos verificados, com o alcance da verificação explícito
 - `get_accessible_accounts` e `get_accessible_categories`: exigem sessão e `private.is_company_member`
   antes de retornar; `company_access_status` e `auth_access_enabled` derivam de `auth.uid()`.
-- Nenhuma função `SECURITY DEFINER` sem `search_path` fixado.
+  Verificado no corpo das funções e, para `get_accessible_accounts`, também em homologação (`42501`
+  para empresa alheia).
+- Nenhuma função `SECURITY DEFINER` sem `search_path` fixado (medido em `pg_proc.proconfig`).
 - Triggers anti reatribuição de tenant presentes em `transactions` e nas associativas
   (`prevent_association_tenant_change` em `category_companies`, `chart_account_companies`,
-  `contact_companies`, `payment_method_companies`) e em `companies` (transferência de dono).
+  `contact_companies`, `payment_method_companies`) e em `companies` (transferência de dono). Isso cobre
+  a **troca de `company_id` da própria linha**, e não as referências para outras empresas (A7).
 
-## 4. Limites desta etapa (declarados)
+## 4. Evidências de execução (homologação `utjhzpdbqzajrhnzcher`)
 
-- Houve acesso SQL real de leitura ao catálogo de produção; **não** houve execução de teste de
-  isolamento com sessões reais (exigiria criar usuários/linhas, fora do escopo autorizado).
-- `information_schema.role_table_grants` não é visível ao papel de leitura usado; os grants foram
-  obtidos por `aclexplode(pg_class.relacl)`, que é a fonte autoritativa.
-- Configuração do GoTrue/PostgREST (schemas expostos, `db-extra-search-path`) não é legível por SQL;
-  a exposição foi inferida do `USAGE` por schema e das RPCs alcançáveis.
-- A cadeia de chamada das 59 funções de A2 não foi percorrida até o fim: a lista é o **inventário da
-  superfície**, e cada item exige confirmação individual antes de qualquer revogação, para não
-  quebrar triggers e fluxos legítimos.
+Testes feitos **em homologação**, dentro de `BEGIN ... ROLLBACK`, com contas temporárias A e B criadas
+no próprio teste (`context = 'pj'`), `SET LOCAL ROLE authenticated` e JWT com `sub` do usuário A.
+Limpeza confirmada ao final: contas e lançamentos de teste = 0. Nenhum dado real envolvido.
+
+| Cenário | Resultado |
+|---|---|
+| Leitura e CRUD cruzados por `company_id` | **bloqueados** |
+| `get_accessible_accounts('pj', empresaB, false)` | **`42501`** |
+| INSERT `company_id = A`, `account_id` = conta **B**, `context = 'pj'`, confirmada, `amount = 7` | **aceito** e o **saldo da conta B passou a 7** via `trg_sync_account_balance` → `apply_tx_balance` (`SECURITY DEFINER`) |
+| INSERT `company_id = A`, `account_id` = conta **A**, mesmas condições | aceito, saldo da conta A = 7 (comportamento legítimo, serve de controle) |
+| Rodada anterior (menos refinada): INSERT com `account_id` de outra empresa | aceito, 1 linha; inverso também aceito |
+
+A homologação é uma base **antiga**, então nada disso foi concluído como vulnerabilidade de produção a
+partir dela. A comparação foi feita lendo o catálogo de produção: `public.apply_tx_balance` continua
+`SECURITY DEFINER` e atualiza `accounts.current_balance` por `_tx.account_id`/`_tx.destination_account_id`
+sem nenhuma verificação de empresa ou vínculo; e a lista de gatilhos de `transactions` em produção não
+tem nenhuma validação de empresa para a conta de origem nem para o cartão. **Os dois lados batem** — por
+isso A7 está classificado como confirmado em produção, sem que nenhum lançamento tenha sido criado lá.
+
+## 5. Limites desta etapa (declarados)
+
+- Em **produção** houve apenas leitura de catálogo: nenhum teste com sessão real, nenhum INSERT,
+  nenhum comando destrutivo. As contagens de privilégio vieram de `has_table_privilege`;
+  `TRUNCATE` **nunca foi executado**, em nenhum ambiente.
+- A prova de execução existe só em homologação, cuja base é antiga; a extrapolação para produção se
+  apoia na comparação de corpo de função e de gatilhos, declarada acima.
+- `information_schema.role_table_grants` não é visível ao papel de leitura usado; os grants vieram de
+  `aclexplode(pg_class.relacl)` e foram conferidos com `has_table_privilege`.
+- A configuração do PostgREST (schemas expostos, `db-extra-search-path`) **não** é legível por SQL.
+  Onde o alcance por HTTP não pôde ser medido, isso está dito no próprio achado (A4, A5) em vez de
+  assumido em qualquer direção.
+- A2 é triagem: a cadeia de chamada das 59 funções não foi percorrida, nenhuma delas está confirmada
+  como explorável, e cada uma exige verificação antes de revogação para não quebrar triggers e fluxos.
 - Contagens agregadas apenas; nenhuma linha de dado pessoal ou financeiro foi lida ou registrada.
 
 ## 5. Próxima etapa (preparada, não executada)
