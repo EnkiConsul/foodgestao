@@ -170,10 +170,23 @@ As policies permitem UPDATE ao editor da empresa, mas o grant de tabela não inc
 (`03-grants.csv`: `accounts|authenticated|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE`).
 Qualquer edição direta de conta pela API falha por permissão antes da RLS — hoje depende de RPC.
 
-### A7 — ALTO, CONFIRMADO: conta/cartão de outra empresa no lançamento altera o saldo dela
+### A7 — ALTO: conta/cartão de outra empresa no lançamento altera o saldo dela
 Registrado em detalhe em `docs/security/d1-achado-a7-conta-do-lancamento.md`. Resumo: `account_id` e
 `credit_card_id` não têm guard de empresa (só `destination_account_id`, e só em transferência), e o
 cálculo de saldo é `SECURITY DEFINER` sem checagem de tenant.
+
+Exploração **executada em homologação** (transação revertida): o saldo da conta da outra empresa passou
+a 7. Em **produção** a confirmação é por **definições e caminho de código** — gatilhos, constraints e
+corpos de função batem com o ambiente de teste — mais **contagens agregadas**; nenhuma exploração foi
+executada em produção.
+
+Contagens agregadas em produção (`docs/security/d1/d1-a7-contagens.sql`, somente `count(*)`, sem expor
+identificador, nome ou valor): em 159 lançamentos, **0** com conta de outra empresa, **0** com cartão de
+outra empresa, 0 com conta de destino/categoria/contato divergentes, 0 em contexto pessoal (a base é
+100% empresarial); 1 sem conta e 158 sem cartão, casos válidos pela constraint
+`transactions_source_xor`. Ou seja: **superfície aberta, sem dano registrado até agora** — e a correção
+pode validar `INSERT` e `UPDATE` sem travar edição de histórico, porque não há linha legada divergente.
+O SQL da correção está apenas **preparado**, não aplicado nesta auditoria.
 
 ### Pontos verificados, com o alcance da verificação explícito
 - `get_accessible_accounts` e `get_accessible_categories`: exigem sessão e `private.is_company_member`
@@ -200,6 +213,9 @@ Limpeza confirmada ao final: contas e lançamentos de teste = 0. Nenhum dado rea
 | INSERT `company_id = A`, `account_id` = conta **A**, mesmas condições | aceito, saldo da conta A = 7 (comportamento legítimo, serve de controle) |
 | Rodada anterior (menos refinada): INSERT com `account_id` de outra empresa | aceito, 1 linha; inverso também aceito |
 
+Nada disso foi executado em produção. Em produção houve apenas leitura de catálogo e as contagens
+agregadas de A7 (`docs/security/d1/d1-a7-contagens.sql`).
+
 A homologação é uma base **antiga**, então nada disso foi concluído como vulnerabilidade de produção a
 partir dela. A comparação foi feita lendo o catálogo de produção: `public.apply_tx_balance` continua
 `SECURITY DEFINER` e atualiza `accounts.current_balance` por `_tx.account_id`/`_tx.destination_account_id`
@@ -209,9 +225,12 @@ isso A7 está classificado como confirmado em produção, sem que nenhum lançam
 
 ## 5. Limites desta etapa (declarados)
 
-- Em **produção** houve apenas leitura de catálogo: nenhum teste com sessão real, nenhum INSERT,
-  nenhum comando destrutivo. As contagens de privilégio vieram de `has_table_privilege`;
-  `TRUNCATE` **nunca foi executado**, em nenhum ambiente.
+- Em **produção** houve apenas leitura: catálogo e contagens agregadas (`count(*)`). Nenhum teste
+  com sessão real, nenhum INSERT, nenhum comando destrutivo, nenhuma exploração executada. As
+  contagens de privilégio vieram de `has_table_privilege`; `TRUNCATE` **nunca foi executado**, em
+  nenhum ambiente. As contagens de A7 não expõem identificador, nome, descrição nem valor.
+- Nenhum SQL de correção foi aplicado nesta auditoria: os arquivos em `docs/security/d1/` são
+  preparação, e a aplicação depende de autorização explícita numa etapa própria.
 - A prova de execução existe só em homologação, cuja base é antiga; a extrapolação para produção se
   apoia na comparação de corpo de função e de gatilhos, declarada acima.
 - `information_schema.role_table_grants` não é visível ao papel de leitura usado; os grants vieram de
