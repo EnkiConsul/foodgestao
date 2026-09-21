@@ -1683,7 +1683,15 @@ export default function ConciliacaoPluggy() {
     const rowId = duplicateCheck?.rowId ?? null;
     setDuplicateBusy(contact.id);
     try {
-      if (selectedCompanyId) await ensureContactCompanyLink(contact.id, selectedCompanyId);
+      if (selectedCompanyId) {
+        const vinculo = await ensureContactCompanyLink(contact.id, selectedCompanyId);
+        if (!vinculo.ok) {
+          toast.error("Não foi possível vincular o cadastro à empresa", {
+            description: vinculo.error,
+          });
+          return;
+        }
+      }
       setContacts((prev) =>
         prev.some((c) => c.id === contact.id)
           ? prev.map((c) => (c.id === contact.id ? { ...c, linkedToCompany: true } : c))
