@@ -9,11 +9,13 @@
  * Nenhuma conta real é criada, nenhum e-mail é enviado e nenhum link é
  * consumido: o cliente de autenticação é simulado.
  */
+import * as React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // ---- Estado controlado pelos testes ----
 const respostaSignUp = {
@@ -78,13 +80,20 @@ function Consumidor({ onResultado }: { onResultado: (r: unknown) => void }) {
   );
 }
 
+function comProvedores(children: React.ReactNode) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+}
+
 function renderProvider(onResultado: (r: unknown) => void) {
   return render(
-    <MemoryRouter>
-      <AuthProvider>
-        <Consumidor onResultado={onResultado} />
-      </AuthProvider>
-    </MemoryRouter>,
+    comProvedores(
+      <MemoryRouter>
+        <AuthProvider>
+          <Consumidor onResultado={onResultado} />
+        </AuthProvider>
+      </MemoryRouter>,
+    ),
   );
 }
 
@@ -146,15 +155,17 @@ describe("tela de cadastro para na confirmação, sem navegar", () => {
     respostaSignUp.data = { user: { id: "u1", identities: [{ id: "i1" }] }, session: null };
 
     render(
-      <HelmetProvider>
-        <MemoryRouter initialEntries={["/auth?mode=signup"]}>
-          <AuthProvider>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-            </Routes>
-          </AuthProvider>
-        </MemoryRouter>
-      </HelmetProvider>,
+      comProvedores(
+        <HelmetProvider>
+          <MemoryRouter initialEntries={["/auth?mode=signup"]}>
+            <AuthProvider>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+              </Routes>
+            </AuthProvider>
+          </MemoryRouter>
+        </HelmetProvider>,
+      ),
     );
 
     const alternar = await screen.findByRole("button", { name: /cadastre-se/i });
