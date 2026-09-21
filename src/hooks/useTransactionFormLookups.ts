@@ -112,21 +112,25 @@ export function useTransactionFormLookups(enabled: boolean) {
   });
 
   const categoryCompaniesQuery = useQuery({
-    queryKey: ["form-category-companies", user?.id],
+    queryKey: ["form-category-companies", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase.from("category_companies").select("category_id, company_id");
-      return data ?? [];
-    },
+    queryFn: () =>
+      lerVinculos<{ category_id: string; company_id: string }>(
+        "category_companies",
+        "category_id",
+        contextType === "pj" ? selectedCompanyId : null,
+      ),
   });
 
   const contactCompaniesQuery = useQuery({
-    queryKey: ["form-contact-companies", user?.id],
+    queryKey: ["form-contact-companies", user?.id, contextType, selectedCompanyId],
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase.from("contact_companies").select("contact_id, company_id");
-      return data ?? [];
-    },
+    queryFn: () =>
+      lerVinculos<{ contact_id: string; company_id: string }>(
+        "contact_companies",
+        "contact_id",
+        contextType === "pj" ? selectedCompanyId : null,
+      ),
   });
 
   const paymentMethodCompaniesQuery = useQuery({
