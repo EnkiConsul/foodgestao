@@ -1766,7 +1766,11 @@ export default function ConciliacaoPluggy() {
         }
 
         const contactRow = newContact as unknown as { id: string; name: string; contact_type: string | null; document: string | null };
-        await ensureContactCompanyLink(contactRow.id, selectedCompanyId);
+        const vinculoNovo = await ensureContactCompanyLink(contactRow.id, selectedCompanyId);
+        if (!vinculoNovo.ok) {
+          skipped += 1;
+          continue;
+        }
         await supabase.rpc("insert_audit_log", {
           _action: "contact_created_from_conciliacao_bulk",
           _entity_type: "contact",
