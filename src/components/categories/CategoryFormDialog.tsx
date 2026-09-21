@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import { categorySchema, validateWithToast } from "@/lib/validations";
 import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/display";
 import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
-import { syncCategoryCompanies } from "@/lib/categories/visibility";
+import { syncCategoryCompanies, garantirEmpresaAtiva } from "@/lib/categories/visibility";
 import type { Tables } from "@/integrations/supabase/types";
 
 
@@ -56,7 +56,7 @@ interface Props {
 
 export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, defaultParentId, defaultType, defaultName }: Props) {
   const { user } = useAuth();
-  const { contextType, selectedCompanyId } = useCompanyContext();
+  const { contextType, selectedCompanyId, companies: contextCompanies } = useCompanyContext();
   const [name, setName] = useState("");
   const [type, setType] = useState<"entrada" | "saida">("saida");
   const [color, setColor] = useState("#3b82f6");
@@ -148,19 +148,10 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   });
 
 
-  const { data: companies = [] } = useQuery({
-    queryKey: ["companies-for-category", user?.id],
-    enabled: !!user && open,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("companies")
-        .select("id, name")
-        .eq("user_id", user!.id)
-        .eq("is_active", true)
-        .order("name");
-      return data ?? [];
-    },
-  });
+  // Empresas que o usuário realmente acessa (dono OU membro), vindas do
+  // contexto — a consulta antiga só trazia as empresas das quais ele é dono,
+  // então membros criavam categorias sem vínculo nenhum.
+  const companies = contextCompanies.map((c) => ({ id: c.id, name: c.trade_name || c.name }));
 
   const { data: chartAccounts = [] } = useQuery({
     queryKey: ["chart-accounts-for-category", user?.id, contextType],
@@ -245,10 +236,20 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
       setSubtype("");
       setAiDescription("");
-      setSelectedCompanies(new Set(companies.map((c) => c.id)));
+      // Nasce vinculada à empresa em uso (o usuário pode acrescentar outras).
+      setSelectedCompanies(new Set(selectedCompanyId ? [selectedCompanyId] : []));
       setInitialCompanies(new Set());
     }
-  }, [editCategory, open, defaultParentId, defaultType, defaultName]);
+  }, [editCategory, open, defaultParentId, defaultType, defaultName, selectedCompanyId]);
+
+  // A lista de empresas pode chegar depois da abertura do diálogo: garante que
+  // a empresa em uso continue marcada sem apagar o que o usuário já escolheu.
+  useEffect(() => {
+    if (!open || editCategory || contextType !== "pj" || !selectedCompanyId) return;
+    setSelectedCompanies((prev) =>
+      prev.has(selectedCompanyId) ? prev : new Set([...prev, selectedCompanyId]),
+    );
+  }, [open, editCategory, contextType, selectedCompanyId, contextCompanies.length]);
 
   // Filter parent options: same type, exclude self (e descendentes, para evitar ciclos)
   const sameTypeCategories = allCategories.filter((c: any) => c.transaction_type === type);
@@ -408,13 +409,21 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         return;
       }
 
-      // Save company visibility
-      if (newCat && selectedCompanies.size > 0) {
-        const { error: visError } = await syncCategoryCompanies(newCat.id, [], selectedCompanies);
+      // Vínculo com as empresas: a empresa em uso é sempre gravada, senão a
+      // categoria existiria no banco sem aparecer em nenhuma lista.
+      const empresasParaVincular = garantirEmpresaAtiva(
+        selectedCompanies,
+        contextType === "pj" ? selectedCompanyId : null,
+      );
+      if (newCat && empresasParaVincular.length > 0) {
+        const { error: visError } = await syncCategoryCompanies(newCat.id, [], empresasParaVincular);
         if (visError) {
-          toast.error("Categoria criada, mas a visibilidade não foi salva", {
-            description: visError.message,
+          toast.error("A categoria não pôde ser vinculada à empresa", {
+            description: `${visError.message} — ela não aparecerá na lista até o vínculo ser gravado.`,
           });
+          setSaving(false);
+          onSaved(newCat.id);
+          return;
         }
       }
 

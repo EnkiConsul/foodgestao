@@ -132,7 +132,7 @@ export function ContactFormDialog({
   defaultVisiblePf,
 }: Props) {
   const { user } = useAuth();
-  const { companies } = useCompanyContext();
+  const { companies, selectedCompanyId } = useCompanyContext();
   const [name, setName] = useState("");
   const [contactType, setContactType] = useState<"cliente" | "fornecedor" | "ambos">("cliente");
   const [email, setEmail] = useState("");
@@ -166,12 +166,22 @@ export function ContactFormDialog({
     } else {
       setName(defaultName ?? ""); setContactType(defaultContactType ?? "cliente"); setEmail(""); setPhone("");
       setDocument(defaultDocument ? maskCpfCnpj(defaultDocument) : ""); setAddress(""); setNotes("");
-      setSelectedCompanyIds(defaultCompanyIds ?? []);
+      // Nasce vinculado à empresa em uso: sem vínculo não apareceria na lista.
+      const iniciais = new Set(defaultCompanyIds ?? []);
+      if (selectedCompanyId) iniciais.add(selectedCompanyId);
+      setSelectedCompanyIds([...iniciais]);
     }
     // `defaultCompanyIds` entra pela chave estável abaixo para não reabrir o efeito
     // a cada render do componente pai (o que apagaria o que o usuário digitou).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editContact, open, defaultName, defaultContactType, defaultDocument, defaultVisiblePf, (defaultCompanyIds ?? []).join(",")]);
+  }, [editContact, open, defaultName, defaultContactType, defaultDocument, defaultVisiblePf, selectedCompanyId, (defaultCompanyIds ?? []).join(",")]);
+
+  // A lista de empresas pode chegar depois da abertura: mantém a empresa em uso
+  // marcada sem apagar o que o usuário já escolheu.
+  useEffect(() => {
+    if (!open || editContact || !selectedCompanyId) return;
+    setSelectedCompanyIds((prev) => (prev.includes(selectedCompanyId) ? prev : [...prev, selectedCompanyId]));
+  }, [open, editContact, selectedCompanyId, companies.length]);
 
   // Bloqueio de duplicidade: procura outro contato com o mesmo CPF/CNPJ comparando a
   // chave normalizada (sem máscara, sem zeros perdidos), para evitar falsos negativos.
@@ -384,8 +394,12 @@ export function ContactFormDialog({
         setSaving(false); return;
       }
 
-      if (selectedCompanyIds.length > 0) {
-        const linkOk = await vincularEmpresas((newContact as any).id, selectedCompanyIds);
+      // A empresa em uso é sempre vinculada, senão o contato não apareceria.
+      const idsFinais = selectedCompanyId && !selectedCompanyIds.includes(selectedCompanyId)
+        ? [...selectedCompanyIds, selectedCompanyId]
+        : selectedCompanyIds;
+      if (idsFinais.length > 0) {
+        const linkOk = await vincularEmpresas((newContact as any).id, idsFinais);
         if (!linkOk) { setSaving(false); return; }
       }
       await supabase.rpc("insert_audit_log", {
