@@ -13,7 +13,7 @@ Produção auditada: `grtxmbffgmgnkawlvqhm`. Projeto de homologação informado:
 | A1 | Preview e desenvolvimento local apontam para o banco de **produção**; não existe segunda conexão | Alto |
 | A2 | Onboarding grava direto em produção via RPC `SECURITY DEFINER`, sem flag de ambiente | Alto |
 | A3 | E2E Playwright rodam contra `localhost:8080`, que usa o banco de produção | Alto |
-| A4 | Nenhuma referência ao projeto de homologação; scripts de staging dependem de segredos ausentes e de um script inexistente | Alto |
+| A4 | Nenhuma referência ao projeto de homologação no código do app; scripts de staging exigem variáveis cuja configuração **não foi inspecionada** e um script que não existe no repositório | Alto |
 | A5 | `ContactFormDialog` consulta a Receita automaticamente ao digitar (debounce 600 ms); onboarding só consulta por clique | Médio |
 | A6 | Não há provedor de CNPJ simulável (URL fixa no código da função) nem fixtures de onboarding/CNPJ | Médio |
 | A7 | Onboarding **não** dispara checkout nem e-mail — risco menor do que o esperado | Informativo |
