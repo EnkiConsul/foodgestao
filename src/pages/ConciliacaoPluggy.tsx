@@ -1147,8 +1147,29 @@ export default function ConciliacaoPluggy() {
     const resultado = criarResultado();
     if (ids.length === 0) return resultado;
 
+    // Rede de segurança: a lista só oferece fornecedores/clientes da empresa em
+    // uso, mas se algum item ficou com um cadastro sem vínculo (lista antiga em
+    // memória) ele não é enviado à RPC — nunca mais "contact_forbidden" cru.
+    const idsDaEmpresa = new Set(contacts.map((c) => c.id));
+    const semVinculo = ids.filter((id) => {
+      const cid = rowContact[id];
+      return !!cid && !idsDaEmpresa.has(cid);
+    });
+    if (semVinculo.length > 0) {
+      resultado.falhas.push({ ids: semVinculo, motivo: "contato_sem_vinculo" });
+      toast.error("Fornecedor/cliente não ligado a esta empresa", {
+        description:
+          "Cadastre ou vincule o fornecedor/cliente à empresa antes de confirmar estes lançamentos.",
+      });
+    }
+    const idsEnviaveis = ids.filter((id) => !semVinculo.includes(id));
+    if (idsEnviaveis.length === 0) {
+      setSelected(new Set(idsRemanescentes(ids, resultado)));
+      return resultado;
+    }
+
     // Linhas de cartão vão para o cartão vinculado (e para a fatura), não para conta bancária.
-    const routed = routeStagingRows(ids, pluggyAccountByRow, cardRouting);
+    const routed = routeStagingRows(idsEnviaveis, pluggyAccountByRow, cardRouting);
     if (routed.blockedIds.length > 0) {
       resultado.falhas.push({ ids: routed.blockedIds, motivo: "cartao_nao_autorizado" });
       toast.error("Cartão do Open Finance ainda não autorizado", {
