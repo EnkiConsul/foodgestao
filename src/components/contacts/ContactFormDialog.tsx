@@ -174,7 +174,14 @@ export function ContactFormDialog({
     // `defaultCompanyIds` entra pela chave estável abaixo para não reabrir o efeito
     // a cada render do componente pai (o que apagaria o que o usuário digitou).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editContact, open, defaultName, defaultContactType, defaultDocument, defaultVisiblePf, (defaultCompanyIds ?? []).join(",")]);
+  }, [editContact, open, defaultName, defaultContactType, defaultDocument, defaultVisiblePf, selectedCompanyId, (defaultCompanyIds ?? []).join(",")]);
+
+  // A lista de empresas pode chegar depois da abertura: mantém a empresa em uso
+  // marcada sem apagar o que o usuário já escolheu.
+  useEffect(() => {
+    if (!open || editContact || !selectedCompanyId) return;
+    setSelectedCompanyIds((prev) => (prev.includes(selectedCompanyId) ? prev : [...prev, selectedCompanyId]));
+  }, [open, editContact, selectedCompanyId, companies.length]);
 
   // Bloqueio de duplicidade: procura outro contato com o mesmo CPF/CNPJ comparando a
   // chave normalizada (sem máscara, sem zeros perdidos), para evitar falsos negativos.
