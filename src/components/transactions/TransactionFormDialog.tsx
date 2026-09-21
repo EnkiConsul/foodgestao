@@ -289,15 +289,14 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
   const isEditing = !!transaction;
 
+  // Em PJ a função do banco (`get_accessible_categories`) já limita as categorias
+  // à empresa em uso e traz as categorias-pai só para montar a hierarquia; por
+  // isso não se refiltra aqui pelo mapa de vínculos — isso descartava pais e,
+  // quando o mapa vinha incompleto, escondia categorias válidas.
   const filteredCategories = categories.filter((c) => {
     if (type === "transferencia") return true;
     if (c.transaction_type !== type) return false;
-
     if (contextType === "pf") return (c as any).visible_pf !== false;
-    if (contextType === "pj" && selectedCompanyId) {
-      const companyIds = categoryCompanyIds.get(c.id) || [];
-      return companyIds.includes(selectedCompanyId);
-    }
     return true;
   });
 
