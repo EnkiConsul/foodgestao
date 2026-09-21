@@ -90,12 +90,12 @@ export class AuthEmailBloqueadoError extends Error {
 }
 
 type Resposta = { data: unknown; error: unknown };
-type Invoke = (nome: string, opcoes?: { body?: unknown }) => Promise<Resposta>;
 
-interface ClienteComFuncoes {
-  functions: { invoke: Invoke; __homGuard?: boolean };
+/** Só o Auth é tocado no cliente; funções são bloqueadas no transporte. */
+export interface ClienteComAuth {
   auth?: Record<string, unknown> & { __homGuard?: boolean };
 }
+
 
 const digitosDe = (v: unknown) => String(v ?? "").replace(/\D/g, "");
 
