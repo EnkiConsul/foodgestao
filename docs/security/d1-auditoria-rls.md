@@ -46,7 +46,15 @@ Artefatos (sem dados e sem segredos) em `docs/security/d1/`:
   desabilitada ou policy permissiva.
 
 RLS habilitada **não** é tratada aqui como prova de isolamento: os achados abaixo vêm da leitura dos
-predicados, dos grants e dos corpos das funções privilegiadas.
+predicados, dos grants e dos corpos das funções privilegiadas. Também não é tratada como cobertura
+universal: **`TRUNCATE` não é filtrado por RLS** (ver A5), e chaves estrangeiras não carregam empresa
+(ver A7).
+
+Duas ressalvas de método, aplicadas no texto abaixo:
+- `USAGE` em um schema **não** prova exposição via REST. O schema `private` não é schema exposto do
+  PostgREST; um helper executável ali é superfície de banco, não exploração HTTP comprovada.
+- Uma função `SECURITY DEFINER` sem `auth.uid()` **não** é, por si, um exploit: a autorização pode
+  estar na cadeia de chamada. A lista de 59 é **triagem**, não 59 vulnerabilidades.
 
 ## 2. Matriz das tabelas prioritárias (predicados reais)
 
