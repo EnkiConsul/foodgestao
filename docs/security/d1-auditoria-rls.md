@@ -213,6 +213,9 @@ Limpeza confirmada ao final: contas e lançamentos de teste = 0. Nenhum dado rea
 | INSERT `company_id = A`, `account_id` = conta **A**, mesmas condições | aceito, saldo da conta A = 7 (comportamento legítimo, serve de controle) |
 | Rodada anterior (menos refinada): INSERT com `account_id` de outra empresa | aceito, 1 linha; inverso também aceito |
 
+Nada disso foi executado em produção. Em produção houve apenas leitura de catálogo e as contagens
+agregadas de A7 (`docs/security/d1/d1-a7-contagens.sql`).
+
 A homologação é uma base **antiga**, então nada disso foi concluído como vulnerabilidade de produção a
 partir dela. A comparação foi feita lendo o catálogo de produção: `public.apply_tx_balance` continua
 `SECURITY DEFINER` e atualiza `accounts.current_balance` por `_tx.account_id`/`_tx.destination_account_id`
@@ -222,9 +225,12 @@ isso A7 está classificado como confirmado em produção, sem que nenhum lançam
 
 ## 5. Limites desta etapa (declarados)
 
-- Em **produção** houve apenas leitura de catálogo: nenhum teste com sessão real, nenhum INSERT,
-  nenhum comando destrutivo. As contagens de privilégio vieram de `has_table_privilege`;
-  `TRUNCATE` **nunca foi executado**, em nenhum ambiente.
+- Em **produção** houve apenas leitura: catálogo e contagens agregadas (`count(*)`). Nenhum teste
+  com sessão real, nenhum INSERT, nenhum comando destrutivo, nenhuma exploração executada. As
+  contagens de privilégio vieram de `has_table_privilege`; `TRUNCATE` **nunca foi executado**, em
+  nenhum ambiente. As contagens de A7 não expõem identificador, nome, descrição nem valor.
+- Nenhum SQL de correção foi aplicado nesta auditoria: os arquivos em `docs/security/d1/` são
+  preparação, e a aplicação depende de autorização explícita numa etapa própria.
 - A prova de execução existe só em homologação, cuja base é antiga; a extrapolação para produção se
   apoia na comparação de corpo de função e de gatilhos, declarada acima.
 - `information_schema.role_table_grants` não é visível ao papel de leitura usado; os grants vieram de
