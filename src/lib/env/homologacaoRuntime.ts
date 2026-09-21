@@ -129,7 +129,7 @@ export function respostaMockada(nome: string, body: unknown): Resposta | null {
   return null;
 }
 
-function instalarGuardaAuth(cliente: ClienteComFuncoes): void {
+function instalarGuardaAuth(cliente: ClienteComAuth): void {
   const auth = cliente.auth;
   if (!auth || auth.__homGuard) return;
 
