@@ -16,10 +16,18 @@ interface CnpjInputProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  /** Marca o campo como obrigatório para leitores de tela. */
+  required?: boolean;
+  /** Erro externo (validação do formulário) a ser anunciado junto do campo. */
+  describedBy?: string;
+  invalid?: boolean;
 }
 
 export const CnpjInput = forwardRef<HTMLInputElement, CnpjInputProps>(function CnpjInput(
-  { id, value, onChange, onLookup, onPendingChange, placeholder = "00.000.000/0000-00", disabled, className },
+  {
+    id, value, onChange, onLookup, onPendingChange, placeholder = "00.000.000/0000-00",
+    disabled, className, required, describedBy, invalid,
+  },
   ref,
 ) {
   const lookup = useCnpjLookup();
