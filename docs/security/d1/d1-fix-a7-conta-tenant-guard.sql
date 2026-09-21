@@ -6,14 +6,17 @@
 --
 -- Não altera policies, grants, funções de saldo nem dados históricos.
 --
--- PASSO 0 (medir antes de aplicar; somente leitura, agregado):
+-- PASSO 0 — JÁ MEDIDO em produção em 21/09/2026 (docs/security/d1/d1-a7-contagens.sql):
+--   contas divergentes = 0, cartões divergentes = 0, conta de destino = 0.
+--   Não há linha legada inconsistente, portanto a validação pode cobrir INSERT e UPDATE
+--   sem travar edição de histórico. Reexecutar a medição se a aplicação demorar:
 --   SELECT count(*) AS contas_divergentes
 --     FROM public.transactions t JOIN public.accounts a ON a.id = t.account_id
 --    WHERE t.company_id IS DISTINCT FROM a.company_id;
 --   SELECT count(*) AS cartoes_divergentes
 --     FROM public.transactions t JOIN public.credit_cards cc ON cc.id = t.credit_card_id
 --    WHERE t.company_id IS DISTINCT FROM cc.company_id;
--- Se houver linhas divergentes, restringir o gatilho de UPDATE às colunas
+-- Se uma medição futura apontar linhas divergentes, restringir o gatilho de UPDATE às colunas
 -- account_id/credit_card_id/company_id para não travar a edição de linhas legadas.
 -- ============================================================================
 
