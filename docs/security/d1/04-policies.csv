@@ -1,0 +1,868 @@
+schemaname|tablename|policyname|permissive|roles|cmd|coalesce|coalesce
+public|accounts|Company editors can delete company accounts|PERMISSIVE|authenticated|DELETE|((company_id IS NOT NULL) AND private.member_can_edit(( SELECT auth.uid() AS uid), company_id, 'accounts'::text))|
+public|accounts|Company editors can insert company accounts|PERMISSIVE|authenticated|INSERT||((company_id IS NOT NULL) AND private.member_can_edit(( SELECT auth.uid() AS uid), company_id, 'accounts'::text))
+public|accounts|Company editors can update company accounts|PERMISSIVE|authenticated|UPDATE|((company_id IS NOT NULL) AND private.member_can_edit(( SELECT auth.uid() AS uid), company_id, 'accounts'::text))|((company_id IS NOT NULL) AND private.member_can_edit(( SELECT auth.uid() AS uid), company_id, 'accounts'::text))
+public|accounts|Company members can view company accounts|PERMISSIVE|authenticated|SELECT|((company_id IS NOT NULL) AND private.is_company_member(( SELECT auth.uid() AS uid), company_id) AND (is_accounting OR (NOT private.is_company_accountant(( SELECT auth.uid() AS uid), company_id))))|
+public|accounts|Super admins can view all accounts|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|accounts|Users can manage personal accounts|PERMISSIVE|authenticated|ALL|((( SELECT auth.uid() AS uid) = user_id) AND (company_id IS NULL))|((( SELECT auth.uid() AS uid) = user_id) AND (company_id IS NULL))
+public|app_error_logs|app_error_logs_insert_self|PERMISSIVE|authenticated|INSERT||((user_id = auth.uid()) AND ((company_id IS NULL) OR (EXISTS ( SELECT 1
+   FROM company_members m
+  WHERE ((m.company_id = app_error_logs.company_id) AND (m.user_id = auth.uid())))) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = app_error_logs.company_id) AND (c.user_id = auth.uid())))) OR has_role(auth.uid(), 'super_admin'::app_role)))
+public|app_error_logs|app_error_logs_select_company|PERMISSIVE|authenticated|SELECT|((company_id IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM company_members m
+  WHERE ((m.company_id = app_error_logs.company_id) AND (m.user_id = auth.uid()) AND (m.role = ANY (ARRAY['owner'::company_role, 'admin'::company_role]))))))|
+public|app_error_logs|app_error_logs_select_super|PERMISSIVE|authenticated|SELECT|has_role(auth.uid(), 'super_admin'::app_role)|
+public|app_error_logs|app_error_logs_update_company|PERMISSIVE|authenticated|UPDATE|((company_id IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM company_members m
+  WHERE ((m.company_id = app_error_logs.company_id) AND (m.user_id = auth.uid()) AND (m.role = ANY (ARRAY['owner'::company_role, 'admin'::company_role]))))))|((company_id IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM company_members m
+  WHERE ((m.company_id = app_error_logs.company_id) AND (m.user_id = auth.uid()) AND (m.role = ANY (ARRAY['owner'::company_role, 'admin'::company_role]))))))
+public|app_error_logs|app_error_logs_update_super|PERMISSIVE|authenticated|UPDATE|has_role(auth.uid(), 'super_admin'::app_role)|has_role(auth.uid(), 'super_admin'::app_role)
+public|app_error_occurrences|app_error_occurrences_select_company|PERMISSIVE|authenticated|SELECT|((company_id IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM company_members m
+  WHERE ((m.company_id = app_error_occurrences.company_id) AND (m.user_id = auth.uid()) AND (m.role = ANY (ARRAY['owner'::company_role, 'admin'::company_role]))))))|
+public|app_error_occurrences|app_error_occurrences_select_super|PERMISSIVE|authenticated|SELECT|has_role(auth.uid(), 'super_admin'::app_role)|
+public|app_error_report_events|app_error_report_events_insert_allowed|PERMISSIVE|authenticated|INSERT||((actor_user_id = auth.uid()) AND (EXISTS ( SELECT 1
+   FROM app_error_reports r
+  WHERE ((r.id = app_error_report_events.report_id) AND (r.company_id = app_error_report_events.company_id) AND ((r.reporter_user_id = auth.uid()) OR has_role(auth.uid(), 'super_admin'::app_role) OR (EXISTS ( SELECT 1
+           FROM company_members m
+          WHERE ((m.company_id = r.company_id) AND (m.user_id = auth.uid()) AND (m.role = ANY (ARRAY['owner'::company_role, 'admin'::company_role]))))))))))
+public|app_error_report_events|app_error_report_events_select_allowed|PERMISSIVE|authenticated|SELECT|(has_role(auth.uid(), 'super_admin'::app_role) OR (EXISTS ( SELECT 1
+   FROM app_error_reports r
+  WHERE ((r.id = app_error_report_events.report_id) AND ((r.reporter_user_id = auth.uid()) OR (EXISTS ( SELECT 1
+           FROM company_members m
+          WHERE ((m.company_id = r.company_id) AND (m.user_id = auth.uid()) AND (m.role = ANY (ARRAY['owner'::company_role, 'admin'::company_role]))))))))))|
+public|app_error_reports|app_error_reports_insert_own|PERMISSIVE|authenticated|INSERT||((reporter_user_id = auth.uid()) AND (EXISTS ( SELECT 1
+   FROM app_error_logs e
+  WHERE ((e.id = app_error_reports.error_log_id) AND (e.company_id = app_error_reports.company_id)))) AND (has_role(auth.uid(), 'super_admin'::app_role) OR (EXISTS ( SELECT 1
+   FROM company_members m
+  WHERE ((m.company_id = app_error_reports.company_id) AND (m.user_id = auth.uid()))))))
+public|app_error_reports|app_error_reports_select_company_admin|PERMISSIVE|authenticated|SELECT|(has_role(auth.uid(), 'super_admin'::app_role) OR (EXISTS ( SELECT 1
+   FROM company_members m
+  WHERE ((m.company_id = app_error_reports.company_id) AND (m.user_id = auth.uid()) AND (m.role = ANY (ARRAY['owner'::company_role, 'admin'::company_role]))))))|
+public|app_error_reports|app_error_reports_select_own|PERMISSIVE|authenticated|SELECT|(reporter_user_id = auth.uid())|
+public|app_error_reports|app_error_reports_update_company_admin|PERMISSIVE|authenticated|UPDATE|(has_role(auth.uid(), 'super_admin'::app_role) OR (EXISTS ( SELECT 1
+   FROM company_members m
+  WHERE ((m.company_id = app_error_reports.company_id) AND (m.user_id = auth.uid()) AND (m.role = ANY (ARRAY['owner'::company_role, 'admin'::company_role]))))))|(has_role(auth.uid(), 'super_admin'::app_role) OR (EXISTS ( SELECT 1
+   FROM company_members m
+  WHERE ((m.company_id = app_error_reports.company_id) AND (m.user_id = auth.uid()) AND (m.role = ANY (ARRAY['owner'::company_role, 'admin'::company_role]))))))
+public|app_hidden_screens|Super admin atualiza a config de telas ocultas|PERMISSIVE|authenticated|UPDATE|has_role(auth.uid(), 'super_admin'::app_role)|has_role(auth.uid(), 'super_admin'::app_role)
+public|app_hidden_screens|Super admin cria a config de telas ocultas|PERMISSIVE|authenticated|INSERT||has_role(auth.uid(), 'super_admin'::app_role)
+public|app_hidden_screens|Usuarios autenticados leem a config de telas ocultas|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) IS NOT NULL)|
+public|app_table_layouts|app_table_layouts_read_all|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) IS NOT NULL)|
+public|app_table_layouts|app_table_layouts_super_admin_write|PERMISSIVE|authenticated|ALL|is_super_admin(auth.uid())|is_super_admin(auth.uid())
+public|asaas_webhook_events|Super admins view webhook events|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|asaas_webhook_events|no_client_delete_webhook_events|PERMISSIVE|anon,authenticated|DELETE|false|
+public|asaas_webhook_events|no_client_insert_webhook_events|PERMISSIVE|anon,authenticated|INSERT||false
+public|asaas_webhook_events|no_client_update_webhook_events|PERMISSIVE|anon,authenticated|UPDATE|false|false
+public|audit_logs|Deny delete on audit logs|RESTRICTIVE|anon,authenticated|DELETE|false|
+public|audit_logs|Deny insert on audit logs|RESTRICTIVE|anon,authenticated|INSERT||false
+public|audit_logs|Deny update on audit logs|RESTRICTIVE|anon,authenticated|UPDATE|false|false
+public|audit_logs|Super admins can view audit logs|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|audit_logs_2025_09|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_2025_09|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_2025_09|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_2025_09|Super admins can view audit logs|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|audit_logs_2025_10|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_2025_10|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_2025_10|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_2025_10|Super admins can view audit logs|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|audit_logs_2025_11|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_2025_11|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_2025_11|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_2025_11|Super admins can view audit logs|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|audit_logs_2025_12|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_2025_12|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_2025_12|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_2025_12|Super admins can view audit logs|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|audit_logs_2026_01|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_2026_01|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_2026_01|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_2026_01|Super admins can view audit logs|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|audit_logs_2026_02|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_2026_02|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_2026_02|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_2026_02|Super admins can view audit logs|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|audit_logs_2026_03|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_2026_03|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_2026_03|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_2026_03|Super admins can view audit logs|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|audit_logs_2026_04|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_2026_04|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_2026_04|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_2026_04|Super admins can view audit logs|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|audit_logs_2026_05|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_2026_05|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_2026_05|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_2026_05|Super admins can view audit logs|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|audit_logs_2026_06|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_2026_06|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_2026_06|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_2026_06|Super admins can view audit logs|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|audit_logs_2026_07|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_2026_07|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_2026_07|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_2026_07|Super admins can view audit logs|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|audit_logs_2026_08|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_2026_08|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_2026_08|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_2026_08|Super admins can view audit logs|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|audit_logs_2026_09|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_2026_09|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_2026_09|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_2026_09|Super admins can view audit logs|PERMISSIVE|public|SELECT|is_super_admin(auth.uid())|
+public|audit_logs_2026_10|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_2026_10|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_2026_10|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_2026_10|Super admins can view audit logs|PERMISSIVE|public|SELECT|is_super_admin(auth.uid())|
+public|audit_logs_2026_11|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_2026_11|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_2026_11|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_2026_11|Super admins can view audit logs|PERMISSIVE|public|SELECT|is_super_admin(auth.uid())|
+public|audit_logs_2026_12|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_2026_12|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_2026_12|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_2026_12|Super admins can view audit logs|PERMISSIVE|public|SELECT|is_super_admin(auth.uid())|
+public|audit_logs_default|Deny delete on audit logs|RESTRICTIVE|public|DELETE|false|
+public|audit_logs_default|Deny insert on audit logs|RESTRICTIVE|public|INSERT||false
+public|audit_logs_default|Deny update on audit logs|RESTRICTIVE|public|UPDATE|false|false
+public|audit_logs_default|Super admins can view audit logs|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|auth_login_identifiers|deny_all_anon|RESTRICTIVE|anon|ALL|false|false
+public|auth_login_identifiers|deny_all_authenticated|RESTRICTIVE|authenticated|ALL|false|false
+public|auth_rate_limits|deny_all_anon|RESTRICTIVE|anon|ALL|false|false
+public|auth_rate_limits|deny_all_authenticated|RESTRICTIVE|authenticated|ALL|false|false
+public|auth_recovery_challenges|auth_recovery_challenges_deny_clients|RESTRICTIVE|anon,authenticated|ALL|false|false
+public|auth_recovery_challenges|deny_all_anon|RESTRICTIVE|anon|ALL|false|false
+public|auth_recovery_challenges|deny_all_authenticated|RESTRICTIVE|authenticated|ALL|false|false
+public|auth_user_security_state|No client deletes of security state|RESTRICTIVE|anon,authenticated|DELETE|false|
+public|auth_user_security_state|No client updates to security state|RESTRICTIVE|anon,authenticated|UPDATE|false|false
+public|auth_user_security_state|No client writes to security state|RESTRICTIVE|anon,authenticated|INSERT||false
+public|auth_user_security_state|Own security state readable|PERMISSIVE|authenticated|SELECT|(user_id = ( SELECT auth.uid() AS uid))|
+public|balance_drift_snapshots|super_admins read drift|PERMISSIVE|authenticated|SELECT|has_role(( SELECT auth.uid() AS uid), 'super_admin'::app_role)|
+public|balance_drift_snapshots|super_admins update drift|PERMISSIVE|authenticated|UPDATE|has_role(( SELECT auth.uid() AS uid), 'super_admin'::app_role)|has_role(( SELECT auth.uid() AS uid), 'super_admin'::app_role)
+public|banks|Authenticated can read active banks|PERMISSIVE|authenticated|SELECT|((is_active = true) OR is_super_admin(( SELECT auth.uid() AS uid)))|
+public|banks|Super admin can delete banks|PERMISSIVE|authenticated|DELETE|is_super_admin(( SELECT auth.uid() AS uid))|
+public|banks|Super admin can insert banks|PERMISSIVE|authenticated|INSERT||is_super_admin(( SELECT auth.uid() AS uid))
+public|banks|Super admin can update banks|PERMISSIVE|authenticated|UPDATE|is_super_admin(( SELECT auth.uid() AS uid))|is_super_admin(( SELECT auth.uid() AS uid))
+public|categories|categories_delete_scoped|PERMISSIVE|authenticated|DELETE|(private.category_editable_by_member(( SELECT auth.uid() AS uid), id) OR ((( SELECT auth.uid() AS uid) = user_id) AND (NOT (EXISTS ( SELECT 1
+   FROM category_companies cc
+  WHERE (cc.category_id = categories.id))))))|
+public|categories|categories_insert_owner|PERMISSIVE|authenticated|INSERT||(( SELECT auth.uid() AS uid) = user_id)
+public|categories|categories_select_scoped|PERMISSIVE|authenticated|SELECT|(private.category_visible_to_member(( SELECT auth.uid() AS uid), id) OR ((( SELECT auth.uid() AS uid) = user_id) AND (NOT (EXISTS ( SELECT 1
+   FROM category_companies cc
+  WHERE (cc.category_id = categories.id))))))|
+public|categories|categories_update_scoped|PERMISSIVE|authenticated|UPDATE|(private.category_editable_by_member(( SELECT auth.uid() AS uid), id) OR ((( SELECT auth.uid() AS uid) = user_id) AND (NOT (EXISTS ( SELECT 1
+   FROM category_companies cc
+  WHERE (cc.category_id = categories.id))))))|(private.category_editable_by_member(( SELECT auth.uid() AS uid), id) OR ((( SELECT auth.uid() AS uid) = user_id) AND (NOT (EXISTS ( SELECT 1
+   FROM category_companies cc
+  WHERE (cc.category_id = categories.id))))))
+public|categorization_rules|manage company rules as admin|PERMISSIVE|authenticated|ALL|((scope = 'company'::text) AND (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = categorization_rules.company_id) AND ((c.user_id = ( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1
+           FROM company_members m
+          WHERE ((m.company_id = c.id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.role = ANY (ARRAY['admin'::company_role, 'owner'::company_role]))))))))))|((scope = 'company'::text) AND (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = categorization_rules.company_id) AND ((c.user_id = ( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1
+           FROM company_members m
+          WHERE ((m.company_id = c.id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.role = ANY (ARRAY['admin'::company_role, 'owner'::company_role]))))))))))
+public|categorization_rules|manage own user rules|PERMISSIVE|authenticated|ALL|((scope = 'user'::text) AND (user_id = ( SELECT auth.uid() AS uid)))|((scope = 'user'::text) AND (user_id = ( SELECT auth.uid() AS uid)))
+public|categorization_rules|manage system rules as super admin|PERMISSIVE|authenticated|ALL|((scope = 'system'::text) AND has_role(( SELECT auth.uid() AS uid), 'super_admin'::app_role))|((scope = 'system'::text) AND has_role(( SELECT auth.uid() AS uid), 'super_admin'::app_role))
+public|categorization_rules|read company rules as member|PERMISSIVE|authenticated|SELECT|((scope = 'company'::text) AND (company_id IS NOT NULL) AND ((EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = categorization_rules.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR (EXISTS ( SELECT 1
+   FROM company_members m
+  WHERE ((m.company_id = categorization_rules.company_id) AND (m.user_id = ( SELECT auth.uid() AS uid)))))))|
+public|categorization_rules|read own user rules|PERMISSIVE|authenticated|SELECT|((scope = 'user'::text) AND (user_id = ( SELECT auth.uid() AS uid)))|
+public|categorization_rules|read system rules|PERMISSIVE|authenticated|SELECT|(scope = 'system'::text)|
+public|categorization_rules|super admin read all rules|PERMISSIVE|authenticated|SELECT|has_role(( SELECT auth.uid() AS uid), 'super_admin'::app_role)|
+public|category_companies|category_companies_delete_policy|PERMISSIVE|authenticated|DELETE|private.can_edit_company_module(( SELECT auth.uid() AS uid), company_id, 'categories'::text)|
+public|category_companies|category_companies_insert_policy|PERMISSIVE|authenticated|INSERT||(private.can_edit_company_module(( SELECT auth.uid() AS uid), company_id, 'categories'::text) AND (EXISTS ( SELECT 1
+   FROM categories c
+  WHERE ((c.id = category_companies.category_id) AND (c.user_id = ( SELECT auth.uid() AS uid)) AND ((c.context IS NULL) OR (c.context = 'pj'::context_type))))))
+public|category_companies|category_companies_select_policy|PERMISSIVE|authenticated|SELECT|private.can_view_company_module(( SELECT auth.uid() AS uid), company_id, 'categories'::text)|
+public|category_template_chart_links_log|super_admin_read_chart_links_log|PERMISSIVE|authenticated|SELECT|is_super_admin(auth.uid())|
+public|category_templates|Any authenticated user reads templates|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) IS NOT NULL)|
+public|category_templates|category_templates_super_admin_write|PERMISSIVE|authenticated|ALL|is_super_admin(auth.uid())|is_super_admin(auth.uid())
+public|chart_account_companies|chart_account_companies_delete_policy|PERMISSIVE|authenticated|DELETE|private.can_edit_company_module(( SELECT auth.uid() AS uid), company_id, 'chart_accounts'::text)|
+public|chart_account_companies|chart_account_companies_insert_policy|PERMISSIVE|authenticated|INSERT||(private.can_edit_company_module(( SELECT auth.uid() AS uid), company_id, 'chart_accounts'::text) AND (EXISTS ( SELECT 1
+   FROM chart_accounts ca
+  WHERE ((ca.id = chart_account_companies.chart_account_id) AND (ca.user_id = ( SELECT auth.uid() AS uid))))))
+public|chart_account_companies|chart_account_companies_select_policy|PERMISSIVE|authenticated|SELECT|private.can_view_company_module(( SELECT auth.uid() AS uid), company_id, 'chart_accounts'::text)|
+public|chart_account_templates|chart_account_templates_read_authenticated|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) IS NOT NULL)|
+public|chart_account_templates|chart_account_templates_super_admin_write|PERMISSIVE|authenticated|ALL|is_super_admin(auth.uid())|is_super_admin(auth.uid())
+public|chart_accounts|chart_accounts_owner_all|PERMISSIVE|authenticated|ALL|(( SELECT auth.uid() AS uid) = user_id)|(( SELECT auth.uid() AS uid) = user_id)
+public|chart_accounts_root_meta|chart_accounts_root_meta_super_admin_write|PERMISSIVE|authenticated|ALL|is_super_admin(auth.uid())|is_super_admin(auth.uid())
+public|chart_accounts_root_meta|root_meta_read_authenticated|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) IS NOT NULL)|
+public|cnpj_cache|deny_all_anon|RESTRICTIVE|anon|ALL|false|false
+public|cnpj_cache|deny_all_authenticated|RESTRICTIVE|authenticated|ALL|false|false
+public|companies|Company admins can update companies|PERMISSIVE|authenticated|UPDATE|((( SELECT auth.uid() AS uid) = user_id) OR private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), id))|(((( SELECT auth.uid() AS uid) = user_id) OR private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), id)) AND ((user_id = private.company_owner_snapshot(id)) OR (( SELECT auth.uid() AS uid) = private.company_owner_snapshot(id)) OR is_super_admin(( SELECT auth.uid() AS uid))))
+public|companies|Company members can view companies|PERMISSIVE|authenticated|SELECT|((( SELECT auth.uid() AS uid) = user_id) OR private.is_company_member(( SELECT auth.uid() AS uid), id))|
+public|companies|Company owners can delete companies|PERMISSIVE|authenticated|DELETE|(( SELECT auth.uid() AS uid) = user_id)|
+public|companies|Super admins can view all companies|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|companies|Users can create own companies|PERMISSIVE|authenticated|INSERT||(( SELECT auth.uid() AS uid) = user_id)
+public|company_invites|Admins can create invites|PERMISSIVE|authenticated|INSERT||(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) AND (invited_by = ( SELECT auth.uid() AS uid)) AND ((role <> 'owner'::company_role) OR private.is_company_owner(( SELECT auth.uid() AS uid), company_id)))
+public|company_invites|Admins can delete invites|PERMISSIVE|authenticated|DELETE|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|company_invites|Admins can update invites|PERMISSIVE|authenticated|UPDATE|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) AND ((role <> 'owner'::company_role) OR private.is_company_owner(( SELECT auth.uid() AS uid), company_id)))|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) AND ((role <> 'owner'::company_role) OR private.is_company_owner(( SELECT auth.uid() AS uid), company_id)))
+public|company_invites|Admins can view company invites|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|company_members|Admins can add company members|PERMISSIVE|authenticated|INSERT||(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) AND ((role <> 'owner'::company_role) OR private.is_company_owner(( SELECT auth.uid() AS uid), company_id)))
+public|company_members|Admins can remove company members|PERMISSIVE|authenticated|DELETE|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|company_members|Admins can update company members|PERMISSIVE|authenticated|UPDATE|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) AND ((role <> 'owner'::company_role) OR private.is_company_owner(( SELECT auth.uid() AS uid), company_id)))|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) AND ((role <> 'owner'::company_role) OR private.is_company_owner(( SELECT auth.uid() AS uid), company_id)))
+public|company_members|Members can view company members|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|company_modules|Company members can view company_modules|PERMISSIVE|authenticated|SELECT|(private.is_company_member(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = company_modules.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))|
+public|company_modules|Super admins can delete company_modules|PERMISSIVE|authenticated|DELETE|is_super_admin(( SELECT auth.uid() AS uid))|
+public|company_modules|Super admins can insert company_modules|PERMISSIVE|authenticated|INSERT||is_super_admin(( SELECT auth.uid() AS uid))
+public|company_modules|Super admins can update company_modules|PERMISSIVE|authenticated|UPDATE|is_super_admin(( SELECT auth.uid() AS uid))|is_super_admin(( SELECT auth.uid() AS uid))
+public|contact_companies|contact_companies_delete_policy|PERMISSIVE|authenticated|DELETE|private.can_edit_company_module(( SELECT auth.uid() AS uid), company_id, 'contacts'::text)|
+public|contact_companies|contact_companies_insert_policy|PERMISSIVE|authenticated|INSERT||(private.can_edit_company_module(( SELECT auth.uid() AS uid), company_id, 'contacts'::text) AND (EXISTS ( SELECT 1
+   FROM contacts c
+  WHERE ((c.id = contact_companies.contact_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))))
+public|contact_companies|contact_companies_select_policy|PERMISSIVE|authenticated|SELECT|private.can_view_company_module(( SELECT auth.uid() AS uid), company_id, 'contacts'::text)|
+public|contacts|contacts_delete_scoped|PERMISSIVE|authenticated|DELETE|(private.contact_editable_by_member(( SELECT auth.uid() AS uid), id) OR ((( SELECT auth.uid() AS uid) = user_id) AND (NOT (EXISTS ( SELECT 1
+   FROM contact_companies cc
+  WHERE (cc.contact_id = contacts.id))))))|
+public|contacts|contacts_insert_owner|PERMISSIVE|authenticated|INSERT||(( SELECT auth.uid() AS uid) = user_id)
+public|contacts|contacts_select_scoped|PERMISSIVE|authenticated|SELECT|(private.contact_visible_to_member(( SELECT auth.uid() AS uid), id) OR ((( SELECT auth.uid() AS uid) = user_id) AND (NOT (EXISTS ( SELECT 1
+   FROM contact_companies cc
+  WHERE (cc.contact_id = contacts.id))))))|
+public|contacts|contacts_update_scoped|PERMISSIVE|authenticated|UPDATE|(private.contact_editable_by_member(( SELECT auth.uid() AS uid), id) OR ((( SELECT auth.uid() AS uid) = user_id) AND (NOT (EXISTS ( SELECT 1
+   FROM contact_companies cc
+  WHERE (cc.contact_id = contacts.id))))))|(private.contact_editable_by_member(( SELECT auth.uid() AS uid), id) OR ((( SELECT auth.uid() AS uid) = user_id) AND (NOT (EXISTS ( SELECT 1
+   FROM contact_companies cc
+  WHERE (cc.contact_id = contacts.id))))))
+public|cost_center_companies|cost_center_companies_delete_policy|PERMISSIVE|authenticated|DELETE|((private.cost_center_owner(cost_center_id) = ( SELECT auth.uid() AS uid)) OR private.can_edit_company_module(( SELECT auth.uid() AS uid), company_id, 'cost_centers'::text))|
+public|cost_center_companies|cost_center_companies_insert_policy|PERMISSIVE|authenticated|INSERT||((private.cost_center_owner(cost_center_id) = ( SELECT auth.uid() AS uid)) OR private.can_edit_company_module(( SELECT auth.uid() AS uid), company_id, 'cost_centers'::text))
+public|cost_center_companies|cost_center_companies_select_policy|PERMISSIVE|authenticated|SELECT|((private.cost_center_owner(cost_center_id) = ( SELECT auth.uid() AS uid)) OR private.can_view_company_module(( SELECT auth.uid() AS uid), company_id, 'cost_centers'::text))|
+public|cost_centers|cost_centers_delete_scoped|PERMISSIVE|authenticated|DELETE|((EXISTS ( SELECT 1
+   FROM private.cost_center_company_ids(cost_centers.id) t(cid)
+  WHERE private.can_edit_company_module(( SELECT auth.uid() AS uid), t.cid, 'cost_centers'::text))) OR ((( SELECT auth.uid() AS uid) = user_id) AND (NOT (EXISTS ( SELECT 1
+   FROM cost_center_companies cc
+  WHERE (cc.cost_center_id = cost_centers.id))))))|
+public|cost_centers|cost_centers_insert_owner|PERMISSIVE|authenticated|INSERT||(( SELECT auth.uid() AS uid) = user_id)
+public|cost_centers|cost_centers_select_scoped|PERMISSIVE|authenticated|SELECT|((EXISTS ( SELECT 1
+   FROM private.cost_center_company_ids(cost_centers.id) t(cid)
+  WHERE private.can_view_company_module(( SELECT auth.uid() AS uid), t.cid, 'cost_centers'::text))) OR ((( SELECT auth.uid() AS uid) = user_id) AND (NOT (EXISTS ( SELECT 1
+   FROM cost_center_companies cc
+  WHERE (cc.cost_center_id = cost_centers.id))))))|
+public|cost_centers|cost_centers_update_scoped|PERMISSIVE|authenticated|UPDATE|((EXISTS ( SELECT 1
+   FROM private.cost_center_company_ids(cost_centers.id) t(cid)
+  WHERE private.can_edit_company_module(( SELECT auth.uid() AS uid), t.cid, 'cost_centers'::text))) OR ((( SELECT auth.uid() AS uid) = user_id) AND (NOT (EXISTS ( SELECT 1
+   FROM cost_center_companies cc
+  WHERE (cc.cost_center_id = cost_centers.id))))))|((EXISTS ( SELECT 1
+   FROM private.cost_center_company_ids(cost_centers.id) t(cid)
+  WHERE private.can_edit_company_module(( SELECT auth.uid() AS uid), t.cid, 'cost_centers'::text))) OR ((( SELECT auth.uid() AS uid) = user_id) AND (NOT (EXISTS ( SELECT 1
+   FROM cost_center_companies cc
+  WHERE (cc.cost_center_id = cost_centers.id))))))
+public|coupon_redemptions|Super admins manage redemptions|PERMISSIVE|authenticated|ALL|is_super_admin(( SELECT auth.uid() AS uid))|is_super_admin(( SELECT auth.uid() AS uid))
+public|coupon_redemptions|Users view own redemptions|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) = user_id)|
+public|coupons|Super admins manage coupons|PERMISSIVE|authenticated|ALL|is_super_admin(( SELECT auth.uid() AS uid))|is_super_admin(( SELECT auth.uid() AS uid))
+public|credit_card_invoices|cc_invoices_delete|PERMISSIVE|authenticated|DELETE|(((company_id IS NOT NULL) AND private.member_can_edit(( SELECT auth.uid() AS uid), company_id, 'transactions'::text)) OR ((company_id IS NULL) AND (( SELECT auth.uid() AS uid) = user_id)))|
+public|credit_card_invoices|cc_invoices_insert|PERMISSIVE|authenticated|INSERT||((( SELECT auth.uid() AS uid) = user_id) AND ((company_id IS NULL) OR private.member_can_edit(( SELECT auth.uid() AS uid), company_id, 'transactions'::text)))
+public|credit_card_invoices|cc_invoices_select|PERMISSIVE|authenticated|SELECT|(((company_id IS NOT NULL) AND private.is_company_member(( SELECT auth.uid() AS uid), company_id)) OR ((company_id IS NULL) AND (( SELECT auth.uid() AS uid) = user_id)))|
+public|credit_card_invoices|cc_invoices_update|PERMISSIVE|authenticated|UPDATE|(((company_id IS NOT NULL) AND private.member_can_edit(( SELECT auth.uid() AS uid), company_id, 'transactions'::text)) OR ((company_id IS NULL) AND (( SELECT auth.uid() AS uid) = user_id)))|(((company_id IS NOT NULL) AND private.member_can_edit(( SELECT auth.uid() AS uid), company_id, 'transactions'::text)) OR ((company_id IS NULL) AND (( SELECT auth.uid() AS uid) = user_id)))
+public|credit_cards|credit_cards_delete|PERMISSIVE|authenticated|DELETE|(((company_id IS NULL) AND (( SELECT auth.uid() AS uid) = user_id)) OR ((company_id IS NOT NULL) AND private.member_can_edit(( SELECT auth.uid() AS uid), company_id, 'transactions'::text)))|
+public|credit_cards|credit_cards_insert|PERMISSIVE|authenticated|INSERT||((( SELECT auth.uid() AS uid) = user_id) AND ((company_id IS NULL) OR private.member_can_edit(( SELECT auth.uid() AS uid), company_id, 'transactions'::text)))
+public|credit_cards|credit_cards_select|PERMISSIVE|authenticated|SELECT|(((company_id IS NULL) AND (( SELECT auth.uid() AS uid) = user_id)) OR ((company_id IS NOT NULL) AND private.is_company_member(( SELECT auth.uid() AS uid), company_id)))|
+public|credit_cards|credit_cards_update|PERMISSIVE|authenticated|UPDATE|(((company_id IS NULL) AND (( SELECT auth.uid() AS uid) = user_id)) OR ((company_id IS NOT NULL) AND private.member_can_edit(( SELECT auth.uid() AS uid), company_id, 'transactions'::text)))|(((company_id IS NULL) AND (( SELECT auth.uid() AS uid) = user_id)) OR ((company_id IS NOT NULL) AND private.member_can_edit(( SELECT auth.uid() AS uid), company_id, 'transactions'::text)))
+public|dp_acesso_concessoes|dp_acesso_concessoes_select|PERMISSIVE|authenticated|SELECT|(has_role(auth.uid(), 'super_admin'::app_role) OR is_company_admin_or_owner(auth.uid(), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_acesso_concessoes.company_id) AND (c.user_id = auth.uid())))))|
+public|dp_adiantamento_solicitacoes|dp_ads_admin_all|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_adiantamento_solicitacoes|dp_ads_insert_self|PERMISSIVE|authenticated|INSERT||((origem = 'portal'::text) AND (dp_colaborador_ativo_of(( SELECT auth.uid() AS uid)) IS NOT NULL) AND (colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))))
+public|dp_adiantamento_solicitacoes|dp_ads_read_self|PERMISSIVE|authenticated|SELECT|((dp_colaborador_ativo_of(( SELECT auth.uid() AS uid)) IS NOT NULL) AND (colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))))|
+public|dp_adicionais_tempo_servico|dp_adic_ts_select_members|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_adicionais_tempo_servico|dp_adic_ts_write_admin|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_admissao_regra_cargos|dp_admissao_regra_cargos_read|PERMISSIVE|authenticated|SELECT|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR is_super_admin(( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1
+   FROM dp_colaboradores c
+  WHERE ((c.company_id = dp_admissao_regra_cargos.company_id) AND (c.id = dp_colaborador_of(( SELECT auth.uid() AS uid)))))))|
+public|dp_admissao_regra_parentescos|dp_admissao_parentescos_admin_all|PERMISSIVE|authenticated|ALL|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR is_super_admin(( SELECT auth.uid() AS uid)))|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_admissao_regra_parentescos|dp_admissao_parentescos_colab_read|PERMISSIVE|authenticated|SELECT|(EXISTS ( SELECT 1
+   FROM dp_colaboradores c
+  WHERE ((c.company_id = dp_admissao_regra_parentescos.company_id) AND (c.id = dp_colaborador_of(( SELECT auth.uid() AS uid))))))|
+public|dp_admissao_regra_regimes|dp_admissao_regra_regimes_read|PERMISSIVE|authenticated|SELECT|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR is_super_admin(( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1
+   FROM dp_colaboradores c
+  WHERE ((c.company_id = dp_admissao_regra_regimes.company_id) AND (c.id = dp_colaborador_of(( SELECT auth.uid() AS uid)))))))|
+public|dp_admissao_regra_sexos|dp_admissao_regra_sexos_select|PERMISSIVE|authenticated|SELECT|(private.is_company_member(auth.uid(), company_id) OR is_super_admin(auth.uid()))|
+public|dp_admissao_regra_unidades|dp_admissao_regra_unidades_read|PERMISSIVE|authenticated|SELECT|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR is_super_admin(( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1
+   FROM dp_colaboradores c
+  WHERE ((c.company_id = dp_admissao_regra_unidades.company_id) AND (c.id = dp_colaborador_of(( SELECT auth.uid() AS uid)))))))|
+public|dp_admissao_regras|dp_admissao_regras_admin_all|PERMISSIVE|authenticated|ALL|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR is_super_admin(( SELECT auth.uid() AS uid)))|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_admissao_regras|dp_admissao_regras_colab_read|PERMISSIVE|authenticated|SELECT|(EXISTS ( SELECT 1
+   FROM dp_colaboradores c
+  WHERE ((c.company_id = dp_admissao_regras.company_id) AND (c.id = dp_colaborador_of(( SELECT auth.uid() AS uid))))))|
+public|dp_apoio_unidades|Admin/dono gerencia disponibilidades|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(auth.uid(), company_id)|private.is_company_admin_or_owner(auth.uid(), company_id)
+public|dp_apoio_unidades|Membros da empresa veem disponibilidades|PERMISSIVE|authenticated|SELECT|private.is_company_member(auth.uid(), company_id)|
+public|dp_avisos|dp_avisos_read|PERMISSIVE|authenticated|SELECT|(private.is_company_member(( SELECT auth.uid() AS uid), company_id) OR private.is_dp_colaborador_of_company(( SELECT auth.uid() AS uid), company_id))|
+public|dp_avisos|dp_avisos_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_avisos_comentarios|dp_comentarios_admin_update|PERMISSIVE|authenticated|UPDATE|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_avisos_comentarios|dp_comentarios_read|PERMISSIVE|authenticated|SELECT|((private.is_company_member(( SELECT auth.uid() AS uid), company_id) OR private.is_dp_colaborador_of_company(( SELECT auth.uid() AS uid), company_id)) AND ((status = 'aprovado'::text) OR (user_id = ( SELECT auth.uid() AS uid)) OR private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)))|
+public|dp_avisos_comentarios|dp_comentarios_self_delete|PERMISSIVE|authenticated|DELETE|((user_id = ( SELECT auth.uid() AS uid)) OR private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id))|
+public|dp_avisos_comentarios|dp_comentarios_self_insert|PERMISSIVE|authenticated|INSERT||((user_id = ( SELECT auth.uid() AS uid)) AND (private.is_company_member(( SELECT auth.uid() AS uid), company_id) OR (private.is_dp_colaborador_of_company(( SELECT auth.uid() AS uid), company_id) AND private.dp_pode_agir(( SELECT auth.uid() AS uid)))))
+public|dp_avisos_leituras|dp_leituras_admin_read|PERMISSIVE|authenticated|SELECT|(EXISTS ( SELECT 1
+   FROM dp_avisos a
+  WHERE ((a.id = dp_avisos_leituras.aviso_id) AND private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), a.company_id))))|
+public|dp_avisos_leituras|dp_leituras_self|PERMISSIVE|authenticated|ALL|(user_id = ( SELECT auth.uid() AS uid))|(user_id = ( SELECT auth.uid() AS uid))
+public|dp_avisos_reacoes|dp_reacoes_read|PERMISSIVE|authenticated|SELECT|(EXISTS ( SELECT 1
+   FROM dp_avisos a
+  WHERE ((a.id = dp_avisos_reacoes.aviso_id) AND (private.is_company_member(( SELECT auth.uid() AS uid), a.company_id) OR private.is_dp_colaborador_of_company(( SELECT auth.uid() AS uid), a.company_id)))))|
+public|dp_avisos_reacoes|dp_reacoes_self_write|PERMISSIVE|authenticated|ALL|(user_id = ( SELECT auth.uid() AS uid))|((user_id = ( SELECT auth.uid() AS uid)) AND (EXISTS ( SELECT 1
+   FROM dp_avisos a
+  WHERE ((a.id = dp_avisos_reacoes.aviso_id) AND a.permitir_reacoes AND private.is_company_member(( SELECT auth.uid() AS uid), a.company_id)))))
+public|dp_beneficios|dp_beneficios_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_beneficios|dp_beneficios_colab_read|PERMISSIVE|authenticated|SELECT|((dp_colaborador_of(( SELECT auth.uid() AS uid)) IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM dp_colaboradores c
+  WHERE ((c.id = dp_colaborador_of(( SELECT auth.uid() AS uid))) AND (c.company_id = dp_beneficios.company_id)))))|
+public|dp_beneficios_padroes|dp_beneficios_padroes_select_members|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_beneficios_padroes|dp_beneficios_padroes_write_admin|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_bloqueio_regra_unidades|dp_bloq_regra_unid_admin_write|PERMISSIVE|authenticated|ALL|(EXISTS ( SELECT 1
+   FROM dp_bloqueio_regras r
+  WHERE ((r.id = dp_bloqueio_regra_unidades.regra_id) AND private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), r.company_id))))|(EXISTS ( SELECT 1
+   FROM dp_bloqueio_regras r
+  WHERE ((r.id = dp_bloqueio_regra_unidades.regra_id) AND private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), r.company_id))))
+public|dp_bloqueio_regra_unidades|dp_bloq_regra_unid_read|PERMISSIVE|authenticated|SELECT|(EXISTS ( SELECT 1
+   FROM dp_bloqueio_regras r
+  WHERE ((r.id = dp_bloqueio_regra_unidades.regra_id) AND (private.is_company_member(( SELECT auth.uid() AS uid), r.company_id) OR (EXISTS ( SELECT 1
+           FROM dp_colaboradores c
+          WHERE ((c.id = dp_colaborador_of(( SELECT auth.uid() AS uid))) AND (c.company_id = r.company_id))))))))|
+public|dp_bloqueio_regras|dp_bloq_regras_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_bloqueio_regras|dp_bloq_regras_read|PERMISSIVE|authenticated|SELECT|(private.is_company_member(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM dp_colaboradores c
+  WHERE ((c.id = dp_colaborador_of(( SELECT auth.uid() AS uid))) AND (c.company_id = dp_bloqueio_regras.company_id)))))|
+public|dp_bloqueios|dp_bloq_read|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_bloqueios|dp_bloq_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_bulk_import_batches|dp_bulk_batch_admin_all|PERMISSIVE|authenticated|ALL|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_bulk_import_batches.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_bulk_import_batches.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))
+public|dp_bulk_import_items|dp_bulk_item_admin_all|PERMISSIVE|authenticated|ALL|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_bulk_import_items.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_bulk_import_items.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))
+public|dp_cadastro_solicitacoes|admins_delete_cadastro|PERMISSIVE|authenticated|DELETE|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_cadastro_solicitacoes|admins_select_cadastro|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_cadastro_solicitacoes|admins_update_cadastro|PERMISSIVE|authenticated|UPDATE|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_cadastro_solicitacoes|members_can_create_cadastro|PERMISSIVE|authenticated|INSERT||((status = 'pendente'::dp_aprovacao_status) AND private.is_company_member(( SELECT auth.uid() AS uid), company_id))
+public|dp_cargo_salarios|dp_cargo_salarios_select_admin|PERMISSIVE|authenticated|SELECT|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR has_role(( SELECT auth.uid() AS uid), 'super_admin'::app_role))|
+public|dp_cargo_salarios|dp_cargo_salarios_write_admin|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_cargos|dp_cargos_select_members|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_cargos|dp_cargos_write_admin|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_cobertura_minima|dp_cobertura_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_cobertura_minima|dp_cobertura_read_member|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_colaborador_beneficios|dp_colaborador_beneficios_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_colaborador_beneficios|dp_colaborador_beneficios_self_read|PERMISSIVE|authenticated|SELECT|((dp_colaborador_of(( SELECT auth.uid() AS uid)) IS NOT NULL) AND (colaborador_id = dp_colaborador_of(( SELECT auth.uid() AS uid))))|
+public|dp_colaborador_config_dias|dp_ccd_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_colaborador_config_dias|dp_ccd_read_member|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_colaborador_config_dias|dp_ccd_read_self|PERMISSIVE|authenticated|SELECT|(EXISTS ( SELECT 1
+   FROM dp_colaborador_config_trabalho c
+  WHERE ((c.id = dp_colaborador_config_dias.config_id) AND (dp_colaborador_ativo_of(( SELECT auth.uid() AS uid)) IS NOT NULL) AND (c.colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))))))|
+public|dp_colaborador_config_trabalho|dp_cct_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_colaborador_config_trabalho|dp_cct_read_member|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_colaborador_config_trabalho|dp_cct_read_self|PERMISSIVE|authenticated|SELECT|((dp_colaborador_ativo_of(( SELECT auth.uid() AS uid)) IS NOT NULL) AND (colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))))|
+public|dp_colaborador_desligamento_restrito|dp_deslig_restrito_admin_read|PERMISSIVE|authenticated|SELECT|(is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_colaborador_desligamento_restrito.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))|
+public|dp_colaborador_desligamento_restrito|dp_deslig_restrito_admin_write|PERMISSIVE|authenticated|ALL|(is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_colaborador_desligamento_restrito.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))|(is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_colaborador_desligamento_restrito.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))
+public|dp_colaborador_documentos|dp_colab_doc_admin_all|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_colaborador_documentos|dp_colab_doc_self_aceite|PERMISSIVE|authenticated|UPDATE|(colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid)))|((colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))) AND (dispensado = false) AND (status = ANY (ARRAY['enviado'::text, 'aprovado'::text])))
+public|dp_colaborador_documentos|dp_colab_doc_self_insert|PERMISSIVE|authenticated|INSERT||((colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))) AND (status = 'enviado'::text) AND (dispensado = false) AND (EXISTS ( SELECT 1
+   FROM dp_colaboradores c
+  WHERE ((c.id = dp_colaborador_documentos.colaborador_id) AND (c.company_id = dp_colaborador_documentos.company_id)))))
+public|dp_colaborador_documentos|dp_colab_doc_self_read|PERMISSIVE|authenticated|SELECT|(colaborador_id = dp_colaborador_of(( SELECT auth.uid() AS uid)))|
+public|dp_colaborador_historico_condicoes|Admin/owner gerencia histórico de condições|PERMISSIVE|authenticated|ALL|(private.is_company_admin_or_owner(auth.uid(), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_colaborador_historico_condicoes.company_id) AND (c.user_id = auth.uid())))))|(private.is_company_admin_or_owner(auth.uid(), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_colaborador_historico_condicoes.company_id) AND (c.user_id = auth.uid())))))
+public|dp_colaborador_historico_condicoes|Colaborador lê próprio histórico|PERMISSIVE|authenticated|SELECT|(EXISTS ( SELECT 1
+   FROM dp_colaboradores c
+  WHERE ((c.id = dp_colaborador_historico_condicoes.colaborador_id) AND (c.user_id = auth.uid()))))|
+public|dp_colaborador_jornadas|dp_colab_jornadas_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_colaborador_jornadas|dp_colab_jornadas_read_member|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_colaborador_jornadas|dp_colab_jornadas_read_self|PERMISSIVE|authenticated|SELECT|((dp_colaborador_ativo_of(( SELECT auth.uid() AS uid)) IS NOT NULL) AND (colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))))|
+public|dp_colaboradores|dp_colab_admin_read|PERMISSIVE|authenticated|SELECT|((deleted_at IS NULL) AND (private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_colaboradores.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid))))|
+public|dp_colaboradores|dp_colab_admin_write|PERMISSIVE|authenticated|ALL|((deleted_at IS NULL) AND (private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_colaboradores.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid))))|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_colaboradores.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))
+public|dp_colaboradores|dp_colab_self_read|PERMISSIVE|authenticated|SELECT|((deleted_at IS NULL) AND (user_id = ( SELECT auth.uid() AS uid)))|
+public|dp_config_dp|dp_config_dp_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_config_dp|dp_config_dp_read_colaborador|PERMISSIVE|authenticated|SELECT|(company_id = ( SELECT c.company_id
+   FROM dp_colaboradores c
+  WHERE (c.id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid)))))|
+public|dp_config_dp|dp_config_dp_read_member|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_convocacao_config|dp_conv_config_select_admin|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_convocacao_descumprimentos|dp_conv_descump_select_admin|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_convocacao_descumprimentos|dp_conv_descump_select_proprio|PERMISSIVE|authenticated|SELECT|(colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid)))|
+public|dp_convocacao_destinatarios|dp_conv_dest_select_admin|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_convocacao_eventos|dp_conv_eventos_select_admin|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_convocacao_grupos|dp_convocacao_grupos_select_admin|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_convocacao_ocorrencias|dp_conv_ocor_select_admin|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_convocacoes|dp_convocacoes_admin_delete_legacy|PERMISSIVE|authenticated|DELETE|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) AND (ocorrencia_id IS NULL))|
+public|dp_convocacoes|dp_convocacoes_admin_insert_legacy|PERMISSIVE|authenticated|INSERT||(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) AND (ocorrencia_id IS NULL))
+public|dp_convocacoes|dp_convocacoes_admin_select|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_convocacoes|dp_convocacoes_admin_update_legacy|PERMISSIVE|authenticated|UPDATE|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) AND (ocorrencia_id IS NULL))|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) AND (ocorrencia_id IS NULL))
+public|dp_convocacoes|dp_convocacoes_read_self|PERMISSIVE|authenticated|SELECT|((dp_colaborador_ativo_of(( SELECT auth.uid() AS uid)) IS NOT NULL) AND (colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))))|
+public|dp_datas_bloqueadas|dp_datas_bloq_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_datas_bloqueadas|dp_datas_bloq_read|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_dependentes|dp_dependentes_admin_all|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_dependentes|dp_dependentes_self_read|PERMISSIVE|authenticated|SELECT|(colaborador_id = dp_colaborador_of(( SELECT auth.uid() AS uid)))|
+public|dp_dia_config|dp_dia_config_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_dia_config|dp_dia_config_read|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_dia_trabalho_excepcional|dp_dia_trab_exc_admin_all|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(auth.uid(), company_id)|private.is_company_admin_or_owner(auth.uid(), company_id)
+public|dp_dia_trabalho_excepcional|dp_dia_trab_exc_self_read|PERMISSIVE|authenticated|SELECT|(colaborador_id = dp_colaborador_of(auth.uid()))|
+public|dp_doc_equivalencias|dp_doc_equivalencias_select|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) IS NOT NULL)|
+public|dp_doc_tipo_aprendizado|dp_doc_aprendizado_admin_all|PERMISSIVE|authenticated|ALL|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_doc_tipo_aprendizado.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_doc_tipo_aprendizado.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))
+public|dp_documento_aceites|dp_doc_aceites_admin_insert|PERMISSIVE|authenticated|INSERT||private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_documento_aceites|dp_doc_aceites_admin_read|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_documento_aceites|dp_doc_aceites_self_insert|PERMISSIVE|authenticated|INSERT||((colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))) AND (aceito_por = ( SELECT auth.uid() AS uid)))
+public|dp_documento_aceites|dp_doc_aceites_self_read|PERMISSIVE|authenticated|SELECT|(colaborador_id = dp_colaborador_of(( SELECT auth.uid() AS uid)))|
+public|dp_documento_eventos|dp_doc_eventos_admin_insert|PERMISSIVE|authenticated|INSERT||(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) AND (autor_id = ( SELECT auth.uid() AS uid)))
+public|dp_documento_eventos|dp_doc_eventos_admin_read|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_documento_requisitos|dp_doc_req_admin_all|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_documento_requisitos|dp_doc_req_colab_read|PERMISSIVE|authenticated|SELECT|(EXISTS ( SELECT 1
+   FROM dp_colaboradores c
+  WHERE ((c.company_id = dp_documento_requisitos.company_id) AND (c.id = dp_colaborador_of(( SELECT auth.uid() AS uid))))))|
+public|dp_documentos|dp_doc_admin_read|PERMISSIVE|authenticated|SELECT|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_documentos.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))|
+public|dp_documentos|dp_doc_admin_write|PERMISSIVE|authenticated|ALL|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_documentos.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_documentos.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))
+public|dp_documentos|dp_doc_colab_cancel_pending|PERMISSIVE|authenticated|DELETE|((colaborador_id IS NOT NULL) AND (colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))) AND (submetido_por_colaborador = true) AND (aprovacao_status = 'pendente'::dp_documento_aprovacao_status))|
+public|dp_documentos|dp_doc_colab_self_read|PERMISSIVE|authenticated|SELECT|((colaborador_id IS NOT NULL) AND (colaborador_id = dp_colaborador_of(( SELECT auth.uid() AS uid))) AND (tipo <> 'disciplinar'::dp_documento_tipo))|
+public|dp_documentos|dp_doc_colab_submit|PERMISSIVE|authenticated|INSERT||((colaborador_id IS NOT NULL) AND (colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))) AND (submetido_por_colaborador = true) AND (aprovacao_status = 'pendente'::dp_documento_aprovacao_status))
+public|dp_escala_itens|dp_escala_itens_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_escala_itens|dp_escala_itens_read_member|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_escala_itens|dp_escala_itens_read_self|PERMISSIVE|authenticated|SELECT|((dp_colaborador_ativo_of(( SELECT auth.uid() AS uid)) IS NOT NULL) AND (colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))))|
+public|dp_escalas|dp_escalas_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_escalas|dp_escalas_read_member|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_escalas|dp_escalas_read_self_publicada|PERMISSIVE|authenticated|SELECT|((status = 'publicada'::dp_escala_status) AND (EXISTS ( SELECT 1
+   FROM dp_colaboradores c
+  WHERE ((c.id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))) AND (c.company_id = dp_escalas.company_id)))))|
+public|dp_ferias_bloqueios|dp_ferias_bloqueios_admin_all|PERMISSIVE|authenticated|ALL|((company_id IS NOT NULL) AND private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id))|((company_id IS NOT NULL) AND private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id))
+public|dp_ferias_faltas_historico|ferias_faltas_hist_select|PERMISSIVE|authenticated|SELECT|(private.is_company_member(auth.uid(), company_id) OR private.is_company_owner(auth.uid(), company_id))|
+public|dp_ferias_gozos|dp_ferias_gozos_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_ferias_gozos|dp_ferias_gozos_self_read|PERMISSIVE|authenticated|SELECT|((dp_colaborador_of(( SELECT auth.uid() AS uid)) IS NOT NULL) AND (colaborador_id = dp_colaborador_of(( SELECT auth.uid() AS uid))))|
+public|dp_ferias_periodos|dp_ferias_periodos_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_ferias_periodos|dp_ferias_periodos_self_read|PERMISSIVE|authenticated|SELECT|((dp_colaborador_of(( SELECT auth.uid() AS uid)) IS NOT NULL) AND (colaborador_id = dp_colaborador_of(( SELECT auth.uid() AS uid))))|
+public|dp_ferias_regras|dp_ferias_regras_admin_all|PERMISSIVE|authenticated|ALL|((company_id IS NOT NULL) AND private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id))|((company_id IS NOT NULL) AND private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id))
+public|dp_ferias_solicitacao_detalhes|ferias_sol_det_select|PERMISSIVE|authenticated|SELECT|(private.is_company_member(auth.uid(), company_id) OR private.is_company_owner(auth.uid(), company_id) OR (EXISTS ( SELECT 1
+   FROM dp_colaboradores c
+  WHERE ((c.id = dp_ferias_solicitacao_detalhes.colaborador_id) AND (c.user_id = auth.uid())))))|
+public|dp_ficha_importacao_itens|dp_ficha_itens_admin_all|PERMISSIVE|authenticated|ALL|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_ficha_importacao_itens.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_ficha_importacao_itens.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))
+public|dp_ficha_importacoes|dp_ficha_importacoes_admin_all|PERMISSIVE|authenticated|ALL|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_ficha_importacoes.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_ficha_importacoes.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))
+public|dp_folga_autoatribuicao_execucoes|dp_folga_auto_exec_read_admin|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(auth.uid(), company_id)|
+public|dp_folga_limite_regra_cargos|dp_folga_limite_cargo_admin_write|PERMISSIVE|authenticated|ALL|(EXISTS ( SELECT 1
+   FROM dp_folga_limite_regras r
+  WHERE ((r.id = dp_folga_limite_regra_cargos.regra_id) AND private.is_company_admin_or_owner(auth.uid(), r.company_id))))|(EXISTS ( SELECT 1
+   FROM dp_folga_limite_regras r
+  WHERE ((r.id = dp_folga_limite_regra_cargos.regra_id) AND private.is_company_admin_or_owner(auth.uid(), r.company_id))))
+public|dp_folga_limite_regra_cargos|dp_folga_limite_cargo_read_member|PERMISSIVE|authenticated|SELECT|(EXISTS ( SELECT 1
+   FROM dp_folga_limite_regras r
+  WHERE ((r.id = dp_folga_limite_regra_cargos.regra_id) AND private.is_company_member(auth.uid(), r.company_id))))|
+public|dp_folga_limite_regra_colaboradores|dp_folga_limite_colab_read|PERMISSIVE|authenticated|SELECT|(EXISTS ( SELECT 1
+   FROM dp_folga_limite_regras r
+  WHERE ((r.id = dp_folga_limite_regra_colaboradores.regra_id) AND private.is_company_member(auth.uid(), r.company_id))))|
+public|dp_folga_limite_regra_colaboradores|dp_folga_limite_colab_write|PERMISSIVE|authenticated|ALL|(EXISTS ( SELECT 1
+   FROM dp_folga_limite_regras r
+  WHERE ((r.id = dp_folga_limite_regra_colaboradores.regra_id) AND private.is_company_admin_or_owner(auth.uid(), r.company_id))))|(EXISTS ( SELECT 1
+   FROM dp_folga_limite_regras r
+  WHERE ((r.id = dp_folga_limite_regra_colaboradores.regra_id) AND private.is_company_admin_or_owner(auth.uid(), r.company_id))))
+public|dp_folga_limite_regra_setores|dp_folga_limite_setor_read|PERMISSIVE|authenticated|SELECT|(EXISTS ( SELECT 1
+   FROM dp_folga_limite_regras r
+  WHERE ((r.id = dp_folga_limite_regra_setores.regra_id) AND private.is_company_member(auth.uid(), r.company_id))))|
+public|dp_folga_limite_regra_setores|dp_folga_limite_setor_write|PERMISSIVE|authenticated|ALL|(EXISTS ( SELECT 1
+   FROM dp_folga_limite_regras r
+  WHERE ((r.id = dp_folga_limite_regra_setores.regra_id) AND private.is_company_admin_or_owner(auth.uid(), r.company_id))))|(EXISTS ( SELECT 1
+   FROM dp_folga_limite_regras r
+  WHERE ((r.id = dp_folga_limite_regra_setores.regra_id) AND private.is_company_admin_or_owner(auth.uid(), r.company_id))))
+public|dp_folga_limite_regras|dp_folga_limite_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(auth.uid(), company_id)|private.is_company_admin_or_owner(auth.uid(), company_id)
+public|dp_folga_limite_regras|dp_folga_limite_read_member|PERMISSIVE|authenticated|SELECT|private.is_company_member(auth.uid(), company_id)|
+public|dp_folgas|dp_folgas_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_folgas|dp_folgas_read_colaborador|PERMISSIVE|authenticated|SELECT|((company_id IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM dp_colaboradores c
+  WHERE ((c.id = dp_colaborador_of(( SELECT auth.uid() AS uid))) AND (c.company_id = dp_folgas.company_id)))))|
+public|dp_folgas|dp_folgas_read_member|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_folgas|dp_folgas_self_delete|PERMISSIVE|authenticated|DELETE|((colaborador_id IS NOT NULL) AND (dp_colaborador_ativo_of(( SELECT auth.uid() AS uid)) IS NOT NULL) AND (colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))) AND (criado_por = ( SELECT auth.uid() AS uid)) AND (origem = 'solicitacao'::dp_folga_origem) AND (status = 'agendada'::dp_folga_status) AND (data >= CURRENT_DATE))|
+public|dp_folgas|dp_folgas_self_insert|PERMISSIVE|authenticated|INSERT||((colaborador_id IS NOT NULL) AND (dp_colaborador_ativo_of(( SELECT auth.uid() AS uid)) IS NOT NULL) AND (colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))) AND (company_id = ( SELECT c.company_id
+   FROM dp_colaboradores c
+  WHERE (c.id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))))) AND (criado_por = ( SELECT auth.uid() AS uid)) AND (origem = 'solicitacao'::dp_folga_origem) AND (extra = false) AND (tipo = 'normal'::dp_folga_tipo) AND (status = 'agendada'::dp_folga_status))
+public|dp_folgas_canceladas|dp_folgas_canc_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_folgas_canceladas|dp_folgas_canc_read|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_indisponibilidades|dp_indisp_select_admin|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_indisponibilidades|dp_indisp_select_propria|PERMISSIVE|authenticated|SELECT|(colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid)))|
+public|dp_intermitente_competencia_confirmacoes|dp_icc_admin_all|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_jornada_horarios|Admins gerenciam horarios de jornada|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_jornada_horarios|Membros da empresa leem horarios de jornada|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_jornadas|dp_jornadas_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_jornadas|dp_jornadas_read_colaborador|PERMISSIVE|authenticated|SELECT|(company_id = ( SELECT c.company_id
+   FROM dp_colaboradores c
+  WHERE (c.id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid)))))|
+public|dp_jornadas|dp_jornadas_read_member|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_legacy_import_errors|Super admins podem ver erros legados|PERMISSIVE|authenticated|SELECT|has_role(( SELECT auth.uid() AS uid), 'super_admin'::app_role)|
+public|dp_legacy_import_id_map|Super admins podem ver mapa legado|PERMISSIVE|authenticated|SELECT|has_role(( SELECT auth.uid() AS uid), 'super_admin'::app_role)|
+public|dp_legacy_import_runs|Super admins podem ver runs legadas|PERMISSIVE|authenticated|SELECT|has_role(( SELECT auth.uid() AS uid), 'super_admin'::app_role)|
+public|dp_mensagens|dp_mensagens_admin_read|PERMISSIVE|authenticated|SELECT|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_mensagens.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))|
+public|dp_mensagens|dp_mensagens_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_mensagens|dp_msg_colab_self_read|PERMISSIVE|authenticated|SELECT|((destinatario_colaborador_id = dp_colaborador_of(( SELECT auth.uid() AS uid))) OR (destinatario_user_id = ( SELECT auth.uid() AS uid)))|
+public|dp_menu_defaults|dp_menu_defaults_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_menu_defaults|dp_menu_defaults_member_read|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_modelos_mensagem|dp_modelos_mensagem_select|PERMISSIVE|authenticated|SELECT|(private.is_company_member(( SELECT auth.uid() AS uid), company_id) OR is_super_admin(( SELECT auth.uid() AS uid)))|
+public|dp_modelos_mensagem|dp_modelos_mensagem_write|PERMISSIVE|authenticated|ALL|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR is_super_admin(( SELECT auth.uid() AS uid)))|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR is_super_admin(( SELECT auth.uid() AS uid)))
+public|dp_notificacoes|Admins read shared dp_notificacoes|PERMISSIVE|authenticated|SELECT|((user_id IS NULL) AND para_admins AND private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id))|
+public|dp_notificacoes|User reads own dp_notificacoes|PERMISSIVE|authenticated|SELECT|(user_id = ( SELECT auth.uid() AS uid))|
+public|dp_notificacoes|User updates own dp_notificacoes|PERMISSIVE|authenticated|UPDATE|(user_id = ( SELECT auth.uid() AS uid))|(user_id = ( SELECT auth.uid() AS uid))
+public|dp_notificacoes_leituras|User inserts own notif leituras|PERMISSIVE|authenticated|INSERT||(user_id = ( SELECT auth.uid() AS uid))
+public|dp_notificacoes_leituras|User reads own notif leituras|PERMISSIVE|authenticated|SELECT|(user_id = ( SELECT auth.uid() AS uid))|
+public|dp_ocorrencia_coberturas|Admins delete ocorrencia coberturas|PERMISSIVE|authenticated|DELETE|private.is_company_admin_or_owner(auth.uid(), company_id)|
+public|dp_ocorrencia_coberturas|Admins insert ocorrencia coberturas|PERMISSIVE|authenticated|INSERT||private.is_company_admin_or_owner(auth.uid(), company_id)
+public|dp_ocorrencia_coberturas|Admins update ocorrencia coberturas|PERMISSIVE|authenticated|UPDATE|private.is_company_admin_or_owner(auth.uid(), company_id)|private.is_company_admin_or_owner(auth.uid(), company_id)
+public|dp_ocorrencia_coberturas|ocorrencia_coberturas_select|PERMISSIVE|authenticated|SELECT|private.is_company_member(auth.uid(), company_id)|
+public|dp_ocorrencia_eventos|ocorrencia_eventos_select|PERMISSIVE|authenticated|SELECT|private.is_company_member(auth.uid(), company_id)|
+public|dp_ocorrencia_tipo_config|ocorrencia_tipo_config_select|PERMISSIVE|authenticated|SELECT|private.is_company_member(auth.uid(), company_id)|
+public|dp_ocorrencias|ocorrencias_select_empresa|PERMISSIVE|authenticated|SELECT|private.is_company_member(auth.uid(), company_id)|
+public|dp_ocorrencias|ocorrencias_select_propria|PERMISSIVE|authenticated|SELECT|(colaborador_id = dp_colaborador_of(auth.uid()))|
+public|dp_operacao_alertas_dispensas|dp_operacao_dispensas_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_operacao_alertas_dispensas|dp_operacao_dispensas_read_member|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_pendencias_apuracoes|dp_pendencias_apuracoes_select|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_pendencias_config|Admins can delete pendencias config|PERMISSIVE|authenticated|DELETE|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_pendencias_config|Admins can insert pendencias config|PERMISSIVE|authenticated|INSERT||private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_pendencias_config|Admins can update pendencias config|PERMISSIVE|authenticated|UPDATE|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_pendencias_config|Members can view pendencias config|PERMISSIVE|authenticated|SELECT|(EXISTS ( SELECT 1
+   FROM company_members cm
+  WHERE ((cm.company_id = dp_pendencias_config.company_id) AND (cm.user_id = ( SELECT auth.uid() AS uid)))))|
+public|dp_pendencias_decisoes|dp_pd_admin_all|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_pendencias_materializadas|dp_pendencias_materializadas_select|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_pessoas_apoio|dp_pessoas_apoio_delete_admin|PERMISSIVE|authenticated|DELETE|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_pessoas_apoio|dp_pessoas_apoio_insert_admin|PERMISSIVE|authenticated|INSERT||private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_pessoas_apoio|dp_pessoas_apoio_select_membro|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_pessoas_apoio|dp_pessoas_apoio_update_admin|PERMISSIVE|authenticated|UPDATE|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_pessoas_avulsas|dp_pessoas_avulsas_delete_admin|PERMISSIVE|authenticated|DELETE|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_pessoas_avulsas|dp_pessoas_avulsas_insert_admin|PERMISSIVE|authenticated|INSERT||private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_pessoas_avulsas|dp_pessoas_avulsas_select_membro|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_pessoas_avulsas|dp_pessoas_avulsas_update_admin|PERMISSIVE|authenticated|UPDATE|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_portal_access_tokens|dp_portal_tokens_no_client|PERMISSIVE|anon,authenticated|ALL|false|false
+public|dp_preadmissao_convites|dp_preadm_conv_admin_read|PERMISSIVE|authenticated|SELECT|(private.is_company_admin_or_owner(auth.uid(), company_id) OR is_super_admin(auth.uid()))|
+public|dp_preadmissao_documentos|dp_preadm_doc_admin_read|PERMISSIVE|authenticated|SELECT|(private.is_company_admin_or_owner(auth.uid(), company_id) OR is_super_admin(auth.uid()))|
+public|dp_preadmissao_eventos|dp_preadm_evt_admin_read|PERMISSIVE|authenticated|SELECT|(private.is_company_admin_or_owner(auth.uid(), company_id) OR is_super_admin(auth.uid()))|
+public|dp_preadmissao_pessoas|dp_preadm_pessoa_admin_read|PERMISSIVE|authenticated|SELECT|(private.is_company_admin_or_owner(auth.uid(), company_id) OR is_super_admin(auth.uid()))|
+public|dp_preadmissoes|dp_preadm_admin_read|PERMISSIVE|authenticated|SELECT|(private.is_company_admin_or_owner(auth.uid(), company_id) OR is_super_admin(auth.uid()))|
+public|dp_prioridade_aniversario|dp_prio_aniv_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_prioridade_aniversario|dp_prio_aniv_read|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_registros_disciplinares|dp_disc_read|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_registros_disciplinares|dp_disc_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_regras_historico|dp_regras_historico_admin_insert|PERMISSIVE|authenticated|INSERT||(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) AND (usuario_id = ( SELECT auth.uid() AS uid)))
+public|dp_regras_historico|dp_regras_historico_admin_read|PERMISSIVE|authenticated|SELECT|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|
+public|dp_requisito_cargos|dp_req_cargo_admin_all|PERMISSIVE|authenticated|ALL|(private.is_company_admin_or_owner(auth.uid(), company_id) OR is_super_admin(auth.uid()))|private.is_company_admin_or_owner(auth.uid(), company_id)
+public|dp_requisito_unidades|dp_req_unidade_admin_all|PERMISSIVE|authenticated|ALL|(private.is_company_admin_or_owner(auth.uid(), company_id) OR is_super_admin(auth.uid()))|private.is_company_admin_or_owner(auth.uid(), company_id)
+public|dp_setores|dp_setores_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(auth.uid(), company_id)|private.is_company_admin_or_owner(auth.uid(), company_id)
+public|dp_setores|dp_setores_read_member|PERMISSIVE|authenticated|SELECT|private.is_company_member(auth.uid(), company_id)|
+public|dp_sindicato_cargos|dp_sindicato_cargos_all|PERMISSIVE|authenticated|ALL|(EXISTS ( SELECT 1
+   FROM dp_sindicatos s
+  WHERE ((s.id = dp_sindicato_cargos.sindicato_id) AND private.is_company_member(( SELECT auth.uid() AS uid), s.company_id))))|(EXISTS ( SELECT 1
+   FROM dp_sindicatos s
+  WHERE ((s.id = dp_sindicato_cargos.sindicato_id) AND private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), s.company_id))))
+public|dp_sindicato_negociacoes|Admins manage dp_sindicato_negociacoes|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_sindicato_negociacoes|Members read dp_sindicato_negociacoes|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_sindicato_unidades|dp_sindicato_unidades_all|PERMISSIVE|authenticated|ALL|(EXISTS ( SELECT 1
+   FROM dp_sindicatos s
+  WHERE ((s.id = dp_sindicato_unidades.sindicato_id) AND private.is_company_member(( SELECT auth.uid() AS uid), s.company_id))))|(EXISTS ( SELECT 1
+   FROM dp_sindicatos s
+  WHERE ((s.id = dp_sindicato_unidades.sindicato_id) AND private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), s.company_id))))
+public|dp_sindicatos|dp_sindicatos_select_members|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_sindicatos|dp_sindicatos_write_admin|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_solicitacoes|dp_sol_admin_delete|PERMISSIVE|authenticated|DELETE|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_solicitacoes.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))|
+public|dp_solicitacoes|dp_sol_admin_update|PERMISSIVE|authenticated|UPDATE|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_solicitacoes.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))|(private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_solicitacoes.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))
+public|dp_solicitacoes|dp_sol_colab_self_read|PERMISSIVE|authenticated|SELECT|((colaborador_id IS NOT NULL) AND (dp_colaborador_of(( SELECT auth.uid() AS uid)) IS NOT NULL) AND (colaborador_id = dp_colaborador_of(( SELECT auth.uid() AS uid))))|
+public|dp_solicitacoes|dp_sol_colab_self_write|PERMISSIVE|authenticated|INSERT||((colaborador_id IS NOT NULL) AND (dp_colaborador_ativo_of(( SELECT auth.uid() AS uid)) IS NOT NULL) AND (colaborador_id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))) AND (company_id = ( SELECT c.company_id
+   FROM dp_colaboradores c
+  WHERE (c.id = dp_colaborador_ativo_of(( SELECT auth.uid() AS uid))))))
+public|dp_solicitacoes|dp_sol_member_insert|PERMISSIVE|authenticated|INSERT||(private.is_company_member(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_solicitacoes.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))
+public|dp_solicitacoes|dp_sol_member_read|PERMISSIVE|authenticated|SELECT|(private.is_company_member(( SELECT auth.uid() AS uid), company_id) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = dp_solicitacoes.company_id) AND (c.user_id = ( SELECT auth.uid() AS uid))))) OR is_super_admin(( SELECT auth.uid() AS uid)))|
+public|dp_trocas|dp_trocas_colab_self_read|PERMISSIVE|authenticated|SELECT|((solicitante_id = dp_colaborador_of(( SELECT auth.uid() AS uid))) OR (destino_id = dp_colaborador_of(( SELECT auth.uid() AS uid))))|
+public|dp_trocas|dp_trocas_read|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_trocas|dp_trocas_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_turnos|dp_turnos_select_members|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_turnos|dp_turnos_write_admin|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_unidade_cargos|dp_unidade_cargos_all|PERMISSIVE|authenticated|ALL|(EXISTS ( SELECT 1
+   FROM dp_unidades u
+  WHERE ((u.id = dp_unidade_cargos.unidade_id) AND private.is_company_member(( SELECT auth.uid() AS uid), u.company_id))))|(EXISTS ( SELECT 1
+   FROM dp_unidades u
+  WHERE ((u.id = dp_unidade_cargos.unidade_id) AND private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), u.company_id))))
+public|dp_unidade_feriados|dp_unidade_feriados_delete|PERMISSIVE|authenticated|DELETE|private.is_company_admin_or_owner(auth.uid(), company_id)|
+public|dp_unidade_feriados|dp_unidade_feriados_insert|PERMISSIVE|authenticated|INSERT||private.is_company_admin_or_owner(auth.uid(), company_id)
+public|dp_unidade_feriados|dp_unidade_feriados_select|PERMISSIVE|authenticated|SELECT|(private.is_company_member(auth.uid(), company_id) OR private.is_company_owner(auth.uid(), company_id))|
+public|dp_unidade_feriados|dp_unidade_feriados_update|PERMISSIVE|authenticated|UPDATE|private.is_company_admin_or_owner(auth.uid(), company_id)|private.is_company_admin_or_owner(auth.uid(), company_id)
+public|dp_unidade_horarios_funcionamento|dp_uhf_select_members|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_unidade_horarios_funcionamento|dp_uhf_write_admin|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_unidades|dp_unidades_select_members|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|dp_unidades|dp_unidades_write_admin|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_user_prefs|dp_user_prefs self|PERMISSIVE|authenticated|ALL|(( SELECT auth.uid() AS uid) = user_id)|(( SELECT auth.uid() AS uid) = user_id)
+public|dp_va_apuracoes|dp_va_apuracoes_admin_write|PERMISSIVE|authenticated|ALL|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)|private.is_company_admin_or_owner(( SELECT auth.uid() AS uid), company_id)
+public|dp_va_apuracoes|dp_va_apuracoes_self_read|PERMISSIVE|authenticated|SELECT|((dp_colaborador_of(( SELECT auth.uid() AS uid)) IS NOT NULL) AND (colaborador_id = dp_colaborador_of(( SELECT auth.uid() AS uid))))|
+public|email_send_log|Service role manages send log|PERMISSIVE|service_role|ALL|true|true
+public|email_send_state|Service role manages send state|PERMISSIVE|service_role|ALL|true|true
+public|email_unsubscribe_tokens|Service role manages unsubscribe tokens|PERMISSIVE|service_role|ALL|true|true
+public|ia_conversations|ia_conversations delete own|PERMISSIVE|authenticated|DELETE|(( SELECT auth.uid() AS uid) = user_id)|
+public|ia_conversations|ia_conversations insert own|PERMISSIVE|authenticated|INSERT||(( SELECT auth.uid() AS uid) = user_id)
+public|ia_conversations|ia_conversations select own|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) = user_id)|
+public|ia_usage_control|ia_usage_control select own|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) = user_id)|
+public|import_rules|import_rules_delete_scoped|PERMISSIVE|authenticated|DELETE|(((company_id IS NOT NULL) AND private.is_company_member(( SELECT auth.uid() AS uid), company_id)) OR ((company_id IS NULL) AND (( SELECT auth.uid() AS uid) = user_id)))|
+public|import_rules|import_rules_insert_owner|PERMISSIVE|authenticated|INSERT||((( SELECT auth.uid() AS uid) = user_id) AND ((company_id IS NULL) OR private.is_company_member(( SELECT auth.uid() AS uid), company_id)))
+public|import_rules|import_rules_select_scoped|PERMISSIVE|authenticated|SELECT|(((company_id IS NOT NULL) AND private.is_company_member(( SELECT auth.uid() AS uid), company_id)) OR ((company_id IS NULL) AND (( SELECT auth.uid() AS uid) = user_id)))|
+public|import_rules|import_rules_update_scoped|PERMISSIVE|authenticated|UPDATE|(((company_id IS NOT NULL) AND private.is_company_member(( SELECT auth.uid() AS uid), company_id)) OR ((company_id IS NULL) AND (( SELECT auth.uid() AS uid) = user_id)))|(((company_id IS NOT NULL) AND private.is_company_member(( SELECT auth.uid() AS uid), company_id)) OR ((company_id IS NULL) AND (( SELECT auth.uid() AS uid) = user_id)))
+public|invoices|Super admins manage invoices|PERMISSIVE|authenticated|ALL|is_super_admin(( SELECT auth.uid() AS uid))|is_super_admin(( SELECT auth.uid() AS uid))
+public|invoices|Users view own invoices|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) = user_id)|
+public|landing_content|Public can read published landing content|PERMISSIVE|anon,authenticated|SELECT|(is_published = true)|
+public|landing_content|Super admins manage landing content|PERMISSIVE|authenticated|ALL|is_super_admin(( SELECT auth.uid() AS uid))|is_super_admin(( SELECT auth.uid() AS uid))
+public|legal_acceptances|Super admins view all legal acceptances|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|legal_acceptances|Users insert own legal acceptances|PERMISSIVE|authenticated|INSERT||(( SELECT auth.uid() AS uid) = user_id)
+public|legal_acceptances|Users view own legal acceptances|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) = user_id)|
+public|mkt_cases|mkt_cases public read published|PERMISSIVE|anon,authenticated|SELECT|((published = true) AND (is_demo = false))|
+public|mkt_cases|mkt_cases super admin all|PERMISSIVE|authenticated|ALL|has_role(auth.uid(), 'super_admin'::app_role)|has_role(auth.uid(), 'super_admin'::app_role)
+public|mkt_client_logos|mkt_client_logos public read published|PERMISSIVE|anon,authenticated|SELECT|(published = true)|
+public|mkt_client_logos|mkt_client_logos super admin all|PERMISSIVE|authenticated|ALL|has_role(auth.uid(), 'super_admin'::app_role)|has_role(auth.uid(), 'super_admin'::app_role)
+public|mkt_faqs|mkt_faqs public read published|PERMISSIVE|anon,authenticated|SELECT|(published = true)|
+public|mkt_faqs|mkt_faqs super admin all|PERMISSIVE|authenticated|ALL|has_role(auth.uid(), 'super_admin'::app_role)|has_role(auth.uid(), 'super_admin'::app_role)
+public|mkt_leads|mkt_leads super admin read|PERMISSIVE|authenticated|SELECT|has_role(auth.uid(), 'super_admin'::app_role)|
+public|mkt_leads|mkt_leads super admin update|PERMISSIVE|authenticated|UPDATE|has_role(auth.uid(), 'super_admin'::app_role)|has_role(auth.uid(), 'super_admin'::app_role)
+public|mkt_posts|mkt_posts public read published|PERMISSIVE|anon,authenticated|SELECT|(published = true)|
+public|mkt_posts|mkt_posts super admin all|PERMISSIVE|authenticated|ALL|has_role(auth.uid(), 'super_admin'::app_role)|has_role(auth.uid(), 'super_admin'::app_role)
+public|mkt_site_settings|mkt_site_settings public read|PERMISSIVE|anon,authenticated|SELECT|(key = 'contact'::text)|
+public|mkt_site_settings|mkt_site_settings super admin all|PERMISSIVE|authenticated|ALL|has_role(auth.uid(), 'super_admin'::app_role)|has_role(auth.uid(), 'super_admin'::app_role)
+public|mkt_testimonials|mkt_testimonials public read published|PERMISSIVE|anon,authenticated|SELECT|((published = true) AND (is_demo = false))|
+public|mkt_testimonials|mkt_testimonials super admin all|PERMISSIVE|authenticated|ALL|has_role(auth.uid(), 'super_admin'::app_role)|has_role(auth.uid(), 'super_admin'::app_role)
+public|module_dependencies|Authenticated can read module_dependencies|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) IS NOT NULL)|
+public|module_dependencies|Super admins manage module_dependencies|PERMISSIVE|authenticated|ALL|is_super_admin(( SELECT auth.uid() AS uid))|is_super_admin(( SELECT auth.uid() AS uid))
+public|modulos_catalogo|modulos_catalogo_admin_write|PERMISSIVE|authenticated|ALL|has_role(auth.uid(), 'super_admin'::app_role)|has_role(auth.uid(), 'super_admin'::app_role)
+public|modulos_catalogo|modulos_catalogo_select_anon|PERMISSIVE|anon|SELECT|(ativo = true)|
+public|modulos_catalogo|modulos_catalogo_select_authenticated|PERMISSIVE|authenticated|SELECT|((ativo = true) OR has_role(auth.uid(), 'super_admin'::app_role))|
+public|payment_method_companies|payment_method_companies_delete_policy|PERMISSIVE|authenticated|DELETE|private.can_edit_company_module(( SELECT auth.uid() AS uid), company_id, 'payment_methods'::text)|
+public|payment_method_companies|payment_method_companies_insert_policy|PERMISSIVE|authenticated|INSERT||(private.can_edit_company_module(( SELECT auth.uid() AS uid), company_id, 'payment_methods'::text) AND (EXISTS ( SELECT 1
+   FROM payment_methods pm
+  WHERE ((pm.id = payment_method_companies.payment_method_id) AND (pm.user_id = ( SELECT auth.uid() AS uid))))))
+public|payment_method_companies|payment_method_companies_select_policy|PERMISSIVE|authenticated|SELECT|private.can_view_company_module(( SELECT auth.uid() AS uid), company_id, 'payment_methods'::text)|
+public|payment_method_templates|pm_templates_admin_write|PERMISSIVE|authenticated|ALL|has_role(( SELECT auth.uid() AS uid), 'super_admin'::app_role)|has_role(( SELECT auth.uid() AS uid), 'super_admin'::app_role)
+public|payment_method_templates|pm_templates_read|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) IS NOT NULL)|
+public|payment_methods|payment_methods_delete_scoped|PERMISSIVE|authenticated|DELETE|((EXISTS ( SELECT 1
+   FROM payment_method_companies pmc
+  WHERE ((pmc.payment_method_id = payment_methods.id) AND private.member_can_edit(( SELECT auth.uid() AS uid), pmc.company_id, 'payment_methods'::text)))) OR ((( SELECT auth.uid() AS uid) = user_id) AND (NOT (EXISTS ( SELECT 1
+   FROM payment_method_companies pmc
+  WHERE (pmc.payment_method_id = payment_methods.id))))))|
+public|payment_methods|payment_methods_insert_owner|PERMISSIVE|authenticated|INSERT||(( SELECT auth.uid() AS uid) = user_id)
+public|payment_methods|payment_methods_select_scoped|PERMISSIVE|authenticated|SELECT|((EXISTS ( SELECT 1
+   FROM payment_method_companies pmc
+  WHERE ((pmc.payment_method_id = payment_methods.id) AND private.is_company_member(( SELECT auth.uid() AS uid), pmc.company_id)))) OR ((( SELECT auth.uid() AS uid) = user_id) AND (NOT (EXISTS ( SELECT 1
+   FROM payment_method_companies pmc
+  WHERE (pmc.payment_method_id = payment_methods.id))))))|
+public|payment_methods|payment_methods_update_scoped|PERMISSIVE|authenticated|UPDATE|((EXISTS ( SELECT 1
+   FROM payment_method_companies pmc
+  WHERE ((pmc.payment_method_id = payment_methods.id) AND private.member_can_edit(( SELECT auth.uid() AS uid), pmc.company_id, 'payment_methods'::text)))) OR ((( SELECT auth.uid() AS uid) = user_id) AND (NOT (EXISTS ( SELECT 1
+   FROM payment_method_companies pmc
+  WHERE (pmc.payment_method_id = payment_methods.id))))))|((EXISTS ( SELECT 1
+   FROM payment_method_companies pmc
+  WHERE ((pmc.payment_method_id = payment_methods.id) AND private.member_can_edit(( SELECT auth.uid() AS uid), pmc.company_id, 'payment_methods'::text)))) OR ((( SELECT auth.uid() AS uid) = user_id) AND (NOT (EXISTS ( SELECT 1
+   FROM payment_method_companies pmc
+  WHERE (pmc.payment_method_id = payment_methods.id))))))
+public|plans|Anyone can view active public plans|PERMISSIVE|anon,authenticated|SELECT|((is_active = true) AND (is_public = true))|
+public|plans|Super admins manage plans|PERMISSIVE|authenticated|ALL|is_super_admin(( SELECT auth.uid() AS uid))|is_super_admin(( SELECT auth.uid() AS uid))
+public|pluggy_accounts|pluggy_accounts_member_read|PERMISSIVE|authenticated|SELECT|((company_id IN ( SELECT cm.company_id
+   FROM company_members cm
+  WHERE (cm.user_id = auth.uid()))) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = pluggy_accounts.company_id) AND (c.user_id = auth.uid())))))|
+public|pluggy_accounts|pluggy_accounts_not_blocked|RESTRICTIVE|authenticated|ALL|auth_access_enabled()|auth_access_enabled()
+public|pluggy_connect_requests|pluggy_connect_requests_member_read|PERMISSIVE|authenticated|SELECT|((user_id = ( SELECT auth.uid() AS uid)) OR (company_id IN ( SELECT cm.company_id
+   FROM company_members cm
+  WHERE (cm.user_id = ( SELECT auth.uid() AS uid)))))|
+public|pluggy_connect_requests|pluggy_connect_requests_not_blocked|RESTRICTIVE|authenticated|ALL|auth_access_enabled()|auth_access_enabled()
+public|pluggy_connections|pluggy_connections_member_read|PERMISSIVE|authenticated|SELECT|(company_id IN ( SELECT company_members.company_id
+   FROM company_members
+  WHERE (company_members.user_id = ( SELECT auth.uid() AS uid))))|
+public|pluggy_connections|pluggy_connections_not_blocked|RESTRICTIVE|authenticated|ALL|auth_access_enabled()|auth_access_enabled()
+public|pluggy_staging_transactions|pluggy_staging_member_read|PERMISSIVE|authenticated|SELECT|private.is_company_member(( SELECT auth.uid() AS uid), company_id)|
+public|pluggy_staging_transactions|pluggy_staging_not_blocked|RESTRICTIVE|authenticated|ALL|auth_access_enabled()|auth_access_enabled()
+public|pluggy_v2_accounts|pv2_acc_company_read|PERMISSIVE|authenticated|SELECT|((company_id IN ( SELECT cm.company_id
+   FROM company_members cm
+  WHERE (cm.user_id = auth.uid()))) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = pluggy_v2_accounts.company_id) AND (c.user_id = auth.uid())))))|
+public|pluggy_v2_accounts|pv2_acc_not_blocked|RESTRICTIVE|authenticated|ALL|auth_access_enabled()|auth_access_enabled()
+public|pluggy_v2_accounts|pv2_acc_service_role_all|PERMISSIVE|service_role|ALL|true|true
+public|pluggy_v2_connections|pv2_conn_company_read|PERMISSIVE|authenticated|SELECT|((company_id IN ( SELECT cm.company_id
+   FROM company_members cm
+  WHERE (cm.user_id = auth.uid()))) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = pluggy_v2_connections.company_id) AND (c.user_id = auth.uid())))))|
+public|pluggy_v2_connections|pv2_conn_not_blocked|RESTRICTIVE|authenticated|ALL|auth_access_enabled()|auth_access_enabled()
+public|pluggy_v2_connections|pv2_conn_service_role_all|PERMISSIVE|service_role|ALL|true|true
+public|pluggy_v2_sync_runs|pv2_run_company_select|PERMISSIVE|authenticated|SELECT|(auth_access_enabled() AND (company_id IN ( SELECT cm.company_id
+   FROM company_members cm
+  WHERE (cm.user_id = auth.uid())
+UNION
+ SELECT c.id
+   FROM companies c
+  WHERE (c.user_id = auth.uid()))))|
+public|pluggy_v2_sync_runs|pv2_run_service_role_all|PERMISSIVE|service_role|ALL|true|true
+public|pluggy_v2_transactions_raw|pv2_raw_not_blocked|RESTRICTIVE|authenticated|ALL|auth_access_enabled()|auth_access_enabled()
+public|pluggy_v2_transactions_raw|pv2_tx_company_read|PERMISSIVE|authenticated|SELECT|((company_id IN ( SELECT cm.company_id
+   FROM company_members cm
+  WHERE (cm.user_id = auth.uid()))) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = pluggy_v2_transactions_raw.company_id) AND (c.user_id = auth.uid())))))|
+public|pluggy_v2_transactions_raw|pv2_tx_service_role_all|PERMISSIVE|service_role|ALL|true|true
+public|pluggy_v2_transactions_raw_archive|pv2_tx_arch_company_select|PERMISSIVE|authenticated|SELECT|(company_id IN ( SELECT cm.company_id
+   FROM company_members cm
+  WHERE (cm.user_id = auth.uid())
+UNION
+ SELECT c.id
+   FROM companies c
+  WHERE (c.user_id = auth.uid())))|
+public|pluggy_v2_transactions_raw_archive|pv2_tx_arch_service_role_all|PERMISSIVE|service_role|ALL|true|true
+public|pluggy_webhook_events|pluggy_webhook_events_service_only|PERMISSIVE|service_role|ALL|true|true
+public|profiles|Super admins can update all profiles|PERMISSIVE|authenticated|UPDATE|is_super_admin(( SELECT auth.uid() AS uid))|is_super_admin(( SELECT auth.uid() AS uid))
+public|profiles|Super admins can view all profiles|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|profiles|Users can insert own profile|PERMISSIVE|authenticated|INSERT||(( SELECT auth.uid() AS uid) = user_id)
+public|profiles|Users can update own profile|PERMISSIVE|authenticated|UPDATE|(( SELECT auth.uid() AS uid) = user_id)|(( SELECT auth.uid() AS uid) = user_id)
+public|profiles|Users can view own profile|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) = user_id)|
+public|segmentos|segmentos_select_authenticated|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) IS NOT NULL)|
+public|subscription_cards|Super admins manage subscription cards|PERMISSIVE|authenticated|ALL|is_super_admin(( SELECT auth.uid() AS uid))|is_super_admin(( SELECT auth.uid() AS uid))
+public|subscription_cycle_events|Super admins manage cycle events|PERMISSIVE|authenticated|ALL|is_super_admin(( SELECT auth.uid() AS uid))|is_super_admin(( SELECT auth.uid() AS uid))
+public|subscription_cycle_events|Users view own cycle events|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) = user_id)|
+public|subscriptions|Super admins manage subscriptions|PERMISSIVE|authenticated|ALL|is_super_admin(( SELECT auth.uid() AS uid))|is_super_admin(( SELECT auth.uid() AS uid))
+public|subscriptions|Users view own subscription|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) = user_id)|
+public|suppressed_emails|Service role manages suppressed emails|PERMISSIVE|service_role|ALL|true|true
+public|tags|tags_delete_scoped|PERMISSIVE|authenticated|DELETE|(((company_id IS NOT NULL) AND private.is_company_member(( SELECT auth.uid() AS uid), company_id)) OR ((company_id IS NULL) AND (( SELECT auth.uid() AS uid) = user_id)))|
+public|tags|tags_insert_owner|PERMISSIVE|authenticated|INSERT||((( SELECT auth.uid() AS uid) = user_id) AND ((company_id IS NULL) OR private.is_company_member(( SELECT auth.uid() AS uid), company_id)))
+public|tags|tags_select_scoped|PERMISSIVE|authenticated|SELECT|(((company_id IS NOT NULL) AND private.is_company_member(( SELECT auth.uid() AS uid), company_id)) OR ((company_id IS NULL) AND (( SELECT auth.uid() AS uid) = user_id)))|
+public|tags|tags_update_scoped|PERMISSIVE|authenticated|UPDATE|(((company_id IS NOT NULL) AND private.is_company_member(( SELECT auth.uid() AS uid), company_id)) OR ((company_id IS NULL) AND (( SELECT auth.uid() AS uid) = user_id)))|(((company_id IS NOT NULL) AND private.is_company_member(( SELECT auth.uid() AS uid), company_id)) OR ((company_id IS NULL) AND (( SELECT auth.uid() AS uid) = user_id)))
+public|transaction_attachments|Company members can view company attachments|PERMISSIVE|authenticated|SELECT|(EXISTS ( SELECT 1
+   FROM transactions t
+  WHERE ((t.id = transaction_attachments.transaction_id) AND (t.company_id IS NOT NULL) AND private.is_company_member(( SELECT auth.uid() AS uid), t.company_id))))|
+public|transaction_attachments|Users can manage own attachments|PERMISSIVE|authenticated|ALL|(( SELECT auth.uid() AS uid) = user_id)|(( SELECT auth.uid() AS uid) = user_id)
+public|transaction_origin_changes|Members read origin changes|PERMISSIVE|authenticated|SELECT|(private.is_company_member(auth.uid(), company_id) OR is_super_admin(auth.uid()))|
+public|transaction_tags|Company members can manage company transaction tags|PERMISSIVE|authenticated|ALL|((EXISTS ( SELECT 1
+   FROM transactions t
+  WHERE ((t.id = transaction_tags.transaction_id) AND (t.company_id IS NOT NULL) AND private.is_company_member(( SELECT auth.uid() AS uid), t.company_id)))) AND (EXISTS ( SELECT 1
+   FROM (tags g
+     JOIN transactions t2 ON ((t2.id = transaction_tags.transaction_id)))
+  WHERE ((g.id = transaction_tags.tag_id) AND ((g.user_id = ( SELECT auth.uid() AS uid)) OR private.is_company_member(( SELECT auth.uid() AS uid), t2.company_id))))))|((EXISTS ( SELECT 1
+   FROM transactions t
+  WHERE ((t.id = transaction_tags.transaction_id) AND (t.company_id IS NOT NULL) AND private.is_company_member(( SELECT auth.uid() AS uid), t.company_id)))) AND (EXISTS ( SELECT 1
+   FROM (tags g
+     JOIN transactions t2 ON ((t2.id = transaction_tags.transaction_id)))
+  WHERE ((g.id = transaction_tags.tag_id) AND ((g.user_id = ( SELECT auth.uid() AS uid)) OR private.is_company_member(( SELECT auth.uid() AS uid), t2.company_id))))))
+public|transaction_tags|Users can manage own transaction tags|PERMISSIVE|authenticated|ALL|((EXISTS ( SELECT 1
+   FROM transactions t
+  WHERE ((t.id = transaction_tags.transaction_id) AND (t.user_id = ( SELECT auth.uid() AS uid))))) AND (EXISTS ( SELECT 1
+   FROM tags g
+  WHERE ((g.id = transaction_tags.tag_id) AND (g.user_id = ( SELECT auth.uid() AS uid))))))|((EXISTS ( SELECT 1
+   FROM transactions t
+  WHERE ((t.id = transaction_tags.transaction_id) AND (t.user_id = ( SELECT auth.uid() AS uid))))) AND (EXISTS ( SELECT 1
+   FROM tags g
+  WHERE ((g.id = transaction_tags.tag_id) AND (g.user_id = ( SELECT auth.uid() AS uid))))))
+public|transactions|Company editors can delete company transactions|PERMISSIVE|authenticated|DELETE|((company_id IS NOT NULL) AND private.member_can_edit(( SELECT auth.uid() AS uid), company_id, 'transactions'::text))|
+public|transactions|Company editors can insert company transactions|PERMISSIVE|authenticated|INSERT||((company_id IS NOT NULL) AND private.member_can_edit(( SELECT auth.uid() AS uid), company_id, 'transactions'::text))
+public|transactions|Company editors can update company transactions|PERMISSIVE|authenticated|UPDATE|((company_id IS NOT NULL) AND private.member_can_edit(( SELECT auth.uid() AS uid), company_id, 'transactions'::text))|((company_id IS NOT NULL) AND private.member_can_edit(( SELECT auth.uid() AS uid), company_id, 'transactions'::text))
+public|transactions|Company members can view company transactions|PERMISSIVE|authenticated|SELECT|((company_id IS NOT NULL) AND private.is_company_member(( SELECT auth.uid() AS uid), company_id) AND ((NOT private.is_company_accountant(( SELECT auth.uid() AS uid), company_id)) OR ((EXISTS ( SELECT 1
+   FROM accounts a
+  WHERE ((a.id = transactions.account_id) AND a.is_accounting))) AND ((destination_account_id IS NULL) OR (EXISTS ( SELECT 1
+   FROM accounts d
+  WHERE ((d.id = transactions.destination_account_id) AND d.is_accounting)))))))|
+public|transactions|Super admins can view all transactions|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|transactions|Users can manage personal transactions|PERMISSIVE|authenticated|ALL|((( SELECT auth.uid() AS uid) = user_id) AND (company_id IS NULL))|((( SELECT auth.uid() AS uid) = user_id) AND (company_id IS NULL))
+public|usage_counters|Super admins manage usage|PERMISSIVE|authenticated|ALL|is_super_admin(( SELECT auth.uid() AS uid))|is_super_admin(( SELECT auth.uid() AS uid))
+public|usage_counters|Users insert own usage|PERMISSIVE|authenticated|INSERT||(( SELECT auth.uid() AS uid) = user_id)
+public|usage_counters|Users update own usage|PERMISSIVE|authenticated|UPDATE|(( SELECT auth.uid() AS uid) = user_id)|
+public|usage_counters|Users view own usage|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) = user_id)|
+public|user_roles|Super admins can manage roles|PERMISSIVE|authenticated|ALL|is_super_admin(( SELECT auth.uid() AS uid))|is_super_admin(( SELECT auth.uid() AS uid))
+public|user_roles|Super admins can view all roles|PERMISSIVE|authenticated|SELECT|is_super_admin(( SELECT auth.uid() AS uid))|
+public|user_roles|Users can view own roles|PERMISSIVE|authenticated|SELECT|(( SELECT auth.uid() AS uid) = user_id)|
+storage|objects|Authenticated users can delete attachments|PERMISSIVE|authenticated|DELETE|((bucket_id = 'transaction-attachments'::text) AND ((auth.uid())::text = (storage.foldername(name))[1]))|
+storage|objects|Company editors can delete company transaction attachments|PERMISSIVE|authenticated|DELETE|((bucket_id = 'transaction-attachments'::text) AND (EXISTS ( SELECT 1
+   FROM (transactions t
+     JOIN company_members cm ON ((cm.company_id = t.company_id)))
+  WHERE (((t.id)::text = (storage.foldername(objects.name))[2]) AND (cm.user_id = auth.uid()) AND private.member_can_edit(auth.uid(), t.company_id, 'transactions'::text)))))|
+storage|objects|Company editors can insert company transaction attachments|PERMISSIVE|authenticated|INSERT||((bucket_id = 'transaction-attachments'::text) AND (EXISTS ( SELECT 1
+   FROM (transactions t
+     JOIN company_members cm ON ((cm.company_id = t.company_id)))
+  WHERE (((t.id)::text = (storage.foldername(objects.name))[2]) AND (cm.user_id = auth.uid()) AND private.member_can_edit(auth.uid(), t.company_id, 'transactions'::text)))))
+storage|objects|Company editors can update company transaction attachments|PERMISSIVE|authenticated|UPDATE|((bucket_id = 'transaction-attachments'::text) AND (EXISTS ( SELECT 1
+   FROM (transactions t
+     JOIN company_members cm ON ((cm.company_id = t.company_id)))
+  WHERE (((t.id)::text = (storage.foldername(objects.name))[2]) AND (cm.user_id = auth.uid()) AND private.member_can_edit(auth.uid(), t.company_id, 'transactions'::text)))))|((bucket_id = 'transaction-attachments'::text) AND (EXISTS ( SELECT 1
+   FROM (transactions t
+     JOIN company_members cm ON ((cm.company_id = t.company_id)))
+  WHERE (((t.id)::text = (storage.foldername(objects.name))[2]) AND (cm.user_id = auth.uid()) AND private.member_can_edit(auth.uid(), t.company_id, 'transactions'::text)))))
+storage|objects|Company members can read company transaction attachments|PERMISSIVE|authenticated|SELECT|((bucket_id = 'transaction-attachments'::text) AND (EXISTS ( SELECT 1
+   FROM (transactions t
+     JOIN company_members cm ON ((cm.company_id = t.company_id)))
+  WHERE (((t.id)::text = (storage.foldername(objects.name))[2]) AND (cm.user_id = auth.uid())))))|
+storage|objects|Users can update own attachments|PERMISSIVE|authenticated|UPDATE|((bucket_id = 'transaction-attachments'::text) AND ((auth.uid())::text = (storage.foldername(name))[1]))|((bucket_id = 'transaction-attachments'::text) AND ((auth.uid())::text = (storage.foldername(name))[1]))
+storage|objects|Users can upload to own folder|PERMISSIVE|authenticated|INSERT||((bucket_id = 'transaction-attachments'::text) AND (auth.uid() IS NOT NULL) AND ((auth.uid())::text = (storage.foldername(name))[1]))
+storage|objects|Users can view own attachments|PERMISSIVE|authenticated|SELECT|((bucket_id = 'transaction-attachments'::text) AND ((auth.uid())::text = (storage.foldername(name))[1]))|
+storage|objects|dp_bulk_storage_admin_delete|PERMISSIVE|authenticated|DELETE|((bucket_id = 'dp-bulk-import'::text) AND (private.is_company_admin_or_owner(auth.uid(), ((storage.foldername(name))[1])::uuid) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = ((storage.foldername(objects.name))[1])::uuid) AND (c.user_id = auth.uid())))) OR is_super_admin(auth.uid())))|
+storage|objects|dp_bulk_storage_admin_read|PERMISSIVE|authenticated|SELECT|((bucket_id = 'dp-bulk-import'::text) AND (private.is_company_admin_or_owner(auth.uid(), ((storage.foldername(name))[1])::uuid) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = ((storage.foldername(objects.name))[1])::uuid) AND (c.user_id = auth.uid())))) OR is_super_admin(auth.uid())))|
+storage|objects|dp_bulk_storage_admin_update|PERMISSIVE|authenticated|UPDATE|((bucket_id = 'dp-bulk-import'::text) AND (private.is_company_admin_or_owner(auth.uid(), ((storage.foldername(name))[1])::uuid) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = ((storage.foldername(objects.name))[1])::uuid) AND (c.user_id = auth.uid())))) OR is_super_admin(auth.uid())))|
+storage|objects|dp_bulk_storage_admin_write|PERMISSIVE|authenticated|INSERT||((bucket_id = 'dp-bulk-import'::text) AND (private.is_company_admin_or_owner(auth.uid(), ((storage.foldername(name))[1])::uuid) OR (EXISTS ( SELECT 1
+   FROM companies c
+  WHERE ((c.id = ((storage.foldername(objects.name))[1])::uuid) AND (c.user_id = auth.uid())))) OR is_super_admin(auth.uid())))
+storage|objects|dp_disciplinar_delete|PERMISSIVE|authenticated|DELETE|((bucket_id = 'dp-disciplinar'::text) AND private.is_company_admin_or_owner(auth.uid(), (split_part(name, '/'::text, 1))::uuid))|
+storage|objects|dp_disciplinar_read|PERMISSIVE|authenticated|SELECT|((bucket_id = 'dp-disciplinar'::text) AND private.is_company_admin_or_owner(auth.uid(), (split_part(name, '/'::text, 1))::uuid))|
+storage|objects|dp_disciplinar_update|PERMISSIVE|authenticated|UPDATE|((bucket_id = 'dp-disciplinar'::text) AND private.is_company_admin_or_owner(auth.uid(), (split_part(name, '/'::text, 1))::uuid))|
+storage|objects|dp_disciplinar_write|PERMISSIVE|authenticated|INSERT||((bucket_id = 'dp-disciplinar'::text) AND private.is_company_admin_or_owner(auth.uid(), (split_part(name, '/'::text, 1))::uuid))
+storage|objects|dp_doc_bucket_admin_write|PERMISSIVE|authenticated|ALL|((bucket_id = 'dp-documentos'::text) AND (private.is_company_admin_or_owner(auth.uid(), (split_part(name, '/'::text, 1))::uuid) OR is_super_admin(auth.uid())))|((bucket_id = 'dp-documentos'::text) AND (private.is_company_admin_or_owner(auth.uid(), (split_part(name, '/'::text, 1))::uuid) OR is_super_admin(auth.uid())))
+storage|objects|dp_doc_bucket_colab_insert|PERMISSIVE|authenticated|INSERT||((bucket_id = 'dp-documentos'::text) AND (split_part(name, '/'::text, 2) = (dp_colaborador_ativo_of(auth.uid()))::text) AND (EXISTS ( SELECT 1
+   FROM dp_colaboradores c
+  WHERE (((c.id)::text = split_part(objects.name, '/'::text, 2)) AND ((c.company_id)::text = split_part(objects.name, '/'::text, 1))))))
+storage|objects|dp_doc_bucket_legacy_read|PERMISSIVE|authenticated|SELECT|((bucket_id = 'dp-documentos'::text) AND (name ~~ 'documentos/%'::text) AND (EXISTS ( SELECT 1
+   FROM dp_documentos d
+  WHERE ((d.file_path = objects.name) AND (private.is_company_admin_or_owner(auth.uid(), d.company_id) OR is_super_admin(auth.uid()) OR ((d.colaborador_id = dp_colaborador_ativo_of(auth.uid())) AND (d.tipo <> 'disciplinar'::dp_documento_tipo)))))))|
+storage|objects|dp_doc_bucket_read_autorizado|PERMISSIVE|authenticated|SELECT|((bucket_id = 'dp-documentos'::text) AND (private.is_company_admin_or_owner(auth.uid(), (split_part(name, '/'::text, 1))::uuid) OR is_super_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM dp_documentos d
+  WHERE (((d.file_path = objects.name) OR (d.comprovante_file_path = objects.name)) AND (d.company_id = (split_part(objects.name, '/'::text, 1))::uuid) AND (d.colaborador_id IS NOT NULL) AND (d.colaborador_id = dp_colaborador_ativo_of(auth.uid())) AND (d.tipo <> 'disciplinar'::dp_documento_tipo) AND (d.ciclo_status = ANY (ARRAY['ativo'::text, 'arquivado'::text])))))))|
+(543 rows)

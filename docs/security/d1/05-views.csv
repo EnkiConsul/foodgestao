@@ -1,0 +1,6 @@
+nspname|relname|relkind|si|sb
+private|rls_associative_audit|v|unset|unset
+public|company_member_profiles|v|true|unset
+public|dp_colaboradores_public|v|true|unset
+public|transaction_sources|v|true|unset
+(4 rows)
