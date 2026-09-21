@@ -47,26 +47,20 @@ export async function fetchAllUserContacts(
 }
 
 /**
- * Lista da conciliação: contatos da empresa (`linkedToCompany: true`) mais os
- * contatos do usuário sem vínculo (`linkedToCompany: false`), que passam a
- * gerar sugestão e são vinculados à empresa ao confirmar a linha.
+ * Lista da conciliação: SOMENTE os clientes/fornecedores vinculados à empresa
+ * em uso. Antes a lista também trazia cadastros sem vínculo, o que oferecia
+ * opções que o servidor recusava na confirmação (`contact_forbidden`).
+ * O vínculo é criado no cadastro/atalho de duplicados, nunca na confirmação.
  */
 export async function fetchConciliacaoContacts(
   companyId: string,
-  userId: string | null,
+  _userId: string | null,
 ): Promise<{ data: CompanyContact[]; error: { message: string } | null }> {
   const company = await fetchAllCompanyContacts(companyId);
-  if (company.error || !userId) {
-    return { data: company.data.map((c) => ({ ...c, linkedToCompany: true })), error: company.error };
-  }
-  const mine = await fetchAllUserContacts(userId);
-  const linked = new Set(company.data.map((c) => c.id));
-  const merged: CompanyContact[] = [
-    ...company.data.map((c) => ({ ...c, linkedToCompany: true })),
-    ...mine.data.filter((c) => !linked.has(c.id)).map((c) => ({ ...c, linkedToCompany: false })),
-  ];
-  merged.sort((a, b) => a.name.localeCompare(b.name));
-  return { data: merged, error: mine.error };
+  return {
+    data: company.data.map((c) => ({ ...c, linkedToCompany: true })),
+    error: company.error,
+  };
 }
 
 
