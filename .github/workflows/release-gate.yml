@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "24"
 
 jobs:
   static:
@@ -258,8 +258,27 @@ jobs:
           python -m playwright install --with-deps chromium
 
       - name: Build + preview
+        env:
+          TEST_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+          TEST_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+          HOM_ENV_FILE: .env.homologacao.local
         run: |
-          npx vite build
+          node --input-type=module <<'NODE'
+          import { writeFileSync } from 'node:fs';
+          const ref = 'utjhzpdbqzajrhnzcher';
+          const url = process.env.TEST_SUPABASE_URL;
+          const key = process.env.TEST_SUPABASE_ANON_KEY;
+          if (url !== `https://${ref}.supabase.co` || !key || /[\r\n]/.test(key)) {
+            throw new Error('E2E exige URL exata e chave pública de homologação nos secrets TEST_SUPABASE_*');
+          }
+          writeFileSync('.env.homologacao.local', [
+            'VITE_APP_ENV=homologacao',
+            `VITE_SUPABASE_PROJECT_ID=${ref}`,
+            `VITE_SUPABASE_URL=${url}`,
+            `VITE_SUPABASE_PUBLISHABLE_KEY=${key}`,
+          ].join('\n') + '\n', { mode: 0o600 });
+          NODE
+          npm run build:hom
           nohup npx vite preview --port 8080 --host 127.0.0.1 > /tmp/preview.log 2>&1 &
           for i in $(seq 1 40); do
             curl -sf -o /dev/null http://127.0.0.1:8080/ && break
@@ -270,6 +289,7 @@ jobs:
       - name: Rodar specs
         env:
           E2E_BASE_URL: http://127.0.0.1:8080
+          E2E_BUILD_MANIFEST: dist/build-env.json
         run: node scripts/run-e2e.mjs --require
 
   staging-smoke:
