@@ -66,7 +66,7 @@ function marcadorDeAmbiente(mode: string, env: Record<string, string | undefined
 
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }) => (aplicarEnvHomologacao(mode), {
   server: {
     host: "::",
     port: 8080,
