@@ -1,10 +1,29 @@
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import fs from "fs";
 import { componentTagger } from "lovable-tagger";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 
 const REF_HOM_BUILD = "utjhzpdbqzajrhnzcher";
+
+/**
+ * No modo `homologacao`, as variáveis do arquivo `.env.homologacao` passam à
+ * frente de qualquer VITE_* já presente no ambiente do shell (que são as de
+ * produção). Sem isso o pacote de homologação embutiria o banco de produção,
+ * porque `loadEnv` dá precedência ao ambiente do processo.
+ */
+function aplicarEnvHomologacao(mode: string): void {
+  if (mode !== "homologacao") return;
+  const arquivo = process.env.HOM_ENV_FILE || ".env.homologacao";
+  if (!fs.existsSync(arquivo)) return;
+  for (const linha of fs.readFileSync(arquivo, "utf8").split(/\r?\n/)) {
+    const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)$/.exec(linha);
+    if (!m || !m[1].startsWith("VITE_")) continue;
+    process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, "");
+  }
+}
+
 
 /**
  * Marcador do build + trava do modo de homologação.
