@@ -223,7 +223,7 @@ isso A7 está classificado como confirmado em produção, sem que nenhum lançam
   como explorável, e cada uma exige verificação antes de revogação para não quebrar triggers e fluxos.
 - Contagens agregadas apenas; nenhuma linha de dado pessoal ou financeiro foi lida ou registrada.
 
-## 5. Próxima etapa (preparada, não executada)
+## 6. Próxima etapa (preparada, não executada)
 
 Ver também `docs/security/d1-achado-a7-conta-do-lancamento.md` (achado A7, registrado separadamente).
 
