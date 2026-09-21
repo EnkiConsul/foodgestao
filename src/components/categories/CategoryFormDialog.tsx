@@ -409,13 +409,21 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         return;
       }
 
-      // Save company visibility
-      if (newCat && selectedCompanies.size > 0) {
-        const { error: visError } = await syncCategoryCompanies(newCat.id, [], selectedCompanies);
+      // Vínculo com as empresas: a empresa em uso é sempre gravada, senão a
+      // categoria existiria no banco sem aparecer em nenhuma lista.
+      const empresasParaVincular = garantirEmpresaAtiva(
+        selectedCompanies,
+        contextType === "pj" ? selectedCompanyId : null,
+      );
+      if (newCat && empresasParaVincular.length > 0) {
+        const { error: visError } = await syncCategoryCompanies(newCat.id, [], empresasParaVincular);
         if (visError) {
-          toast.error("Categoria criada, mas a visibilidade não foi salva", {
-            description: visError.message,
+          toast.error("A categoria não pôde ser vinculada à empresa", {
+            description: `${visError.message} — ela não aparecerá na lista até o vínculo ser gravado.`,
           });
+          setSaving(false);
+          onSaved(newCat.id);
+          return;
         }
       }
 
