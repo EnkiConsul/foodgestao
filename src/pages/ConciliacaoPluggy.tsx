@@ -1858,7 +1858,15 @@ export default function ConciliacaoPluggy() {
     const rowId = contactForm?.rowId ?? null;
     setContactForm(null);
     if (!selectedCompanyId) return;
-    if (newId) await ensureContactCompanyLink(newId, selectedCompanyId);
+    if (newId) {
+      const vinculo = await ensureContactCompanyLink(newId, selectedCompanyId);
+      if (!vinculo.ok) {
+        toast.error("Cadastro salvo, mas não foi vinculado à empresa", {
+          description: vinculo.error,
+        });
+        return;
+      }
+    }
     await recarregarContatos(selectedCompanyId);
     if (newId && rowId) setRowContact((prev) => ({ ...prev, [rowId]: newId }));
   };
