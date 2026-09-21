@@ -69,8 +69,13 @@ Duas ressalvas de método, aplicadas no texto abaixo:
 | `invoices` | somente `auth.uid() = user_id`; super admin gerencia | sem escrita de cliente |
 | `pluggy_connections`, `pluggy_accounts`, `pluggy_staging_transactions`, `pluggy_v2_*` | SELECT por empresa | **sem grant de escrita para cliente** (`authenticated` só `SELECT`); escrita via `service_role`/RPCs |
 
-Esse núcleo está consistente: todos os predicados usam `auth.uid()` e helpers `private.*`, nunca um
-`company_id` vindo do cliente como fonte de verdade.
+Os predicados desse núcleo são consistentes: todos usam `auth.uid()` e helpers `private.*`, nunca um
+`company_id` vindo do cliente como fonte de verdade. **Isso não significa que o núcleo esteja seguro.**
+O predicado decide sobre a coluna `company_id` da própria linha, e não sobre as linhas referenciadas
+por ela: as chaves estrangeiras (`account_id`, `credit_card_id`, `category_id`, `contact_id`,
+`cost_center_id`) não carregam empresa e não têm guard equivalente ao da conta de destino — é
+exatamente o caminho confirmado em A7. A conclusão sobre o núcleo só pode ser dada depois de fechar
+esse item.
 
 ## 3. Achados
 
