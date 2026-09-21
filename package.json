@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "hom:check": "node scripts/check-hom-env.mjs",
+    "dev:hom": "node scripts/check-hom-env.mjs && vite --mode homologacao",
+    "build:hom": "node scripts/check-hom-env.mjs && vite build --mode homologacao",
+    "preview:hom": "vite preview --mode homologacao",
     "security-lint": "node scripts/security-lint.mjs",
     "scope-lint": "node scripts/company-scope-lint.mjs",
     "scope-lint:ci": "node scripts/company-scope-lint.mjs --ci --strict",

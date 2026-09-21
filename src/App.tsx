@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { decidirAcessoPortal } from "@/lib/portalAccessDecision";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AmbienteBanner } from "@/components/system/AmbienteBanner";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { PresenceTracker } from "@/hooks/usePresence";
@@ -646,6 +647,7 @@ const App = () => (
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
+          <AmbienteBanner />
           <Toaster />
           <Sonner />
           <BrowserRouter>
