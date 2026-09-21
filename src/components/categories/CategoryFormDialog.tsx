@@ -236,10 +236,20 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
       setSubtype("");
       setAiDescription("");
-      setSelectedCompanies(new Set(companies.map((c) => c.id)));
+      // Nasce vinculada à empresa em uso (o usuário pode acrescentar outras).
+      setSelectedCompanies(new Set(selectedCompanyId ? [selectedCompanyId] : []));
       setInitialCompanies(new Set());
     }
-  }, [editCategory, open, defaultParentId, defaultType, defaultName]);
+  }, [editCategory, open, defaultParentId, defaultType, defaultName, selectedCompanyId]);
+
+  // A lista de empresas pode chegar depois da abertura do diálogo: garante que
+  // a empresa em uso continue marcada sem apagar o que o usuário já escolheu.
+  useEffect(() => {
+    if (!open || editCategory || contextType !== "pj" || !selectedCompanyId) return;
+    setSelectedCompanies((prev) =>
+      prev.has(selectedCompanyId) ? prev : new Set([...prev, selectedCompanyId]),
+    );
+  }, [open, editCategory, contextType, selectedCompanyId, contextCompanies.length]);
 
   // Filter parent options: same type, exclude self (e descendentes, para evitar ciclos)
   const sameTypeCategories = allCategories.filter((c: any) => c.transaction_type === type);
