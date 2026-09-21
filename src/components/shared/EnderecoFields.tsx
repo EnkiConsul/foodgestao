@@ -38,10 +38,12 @@ interface Props {
   upper?: boolean;
   erros?: Record<string, string>;
   disabled?: boolean;
+  /** Campos obrigatórios nesta tela (ex.: ["cep","logradouro"]). */
+  obrigatorios?: string[];
 }
 
 export function EnderecoFields({
-  valor, onChange, idPrefix = "end", upper = false, erros = {}, disabled,
+  valor, onChange, idPrefix = "end", upper = false, erros = {}, disabled, obrigatorios = [],
 }: Props) {
   const [buscando, setBuscando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
