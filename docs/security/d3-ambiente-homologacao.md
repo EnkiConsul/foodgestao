@@ -13,7 +13,7 @@ Produção auditada: `grtxmbffgmgnkawlvqhm`. Projeto de homologação informado:
 | A1 | Preview e desenvolvimento local apontam para o banco de **produção**; não existe segunda conexão | Alto |
 | A2 | Onboarding grava direto em produção via RPC `SECURITY DEFINER`, sem flag de ambiente | Alto |
 | A3 | E2E Playwright rodam contra `localhost:8080`, que usa o banco de produção | Alto |
-| A4 | Nenhuma referência ao projeto de homologação; scripts de staging dependem de segredos ausentes e de um script inexistente | Alto |
+| A4 | Nenhuma referência ao projeto de homologação no código do app; scripts de staging exigem variáveis cuja configuração **não foi inspecionada** e um script que não existe no repositório | Alto |
 | A5 | `ContactFormDialog` consulta a Receita automaticamente ao digitar (debounce 600 ms); onboarding só consulta por clique | Médio |
 | A6 | Não há provedor de CNPJ simulável (URL fixa no código da função) nem fixtures de onboarding/CNPJ | Médio |
 | A7 | Onboarding **não** dispara checkout nem e-mail — risco menor do que o esperado | Informativo |
@@ -23,7 +23,7 @@ Produção auditada: `grtxmbffgmgnkawlvqhm`. Projeto de homologação informado:
 ### A1 — uma única conexão, e ela é produção
 - `src/integrations/supabase/client.ts:6-7` lê `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY`; arquivo é autogerado e não editável.
 - `.env` contém apenas `VITE_SUPABASE_PROJECT_ID`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_LOVABLE_CONNECTOR_LOGO_DEV_API_KEY`; as duas ocorrências do ref são do projeto de produção e **zero** do ref de homologação.
-- `supabase/config.toml:1` → `project_id = "grtxmbffgmgnkawlvqhm"` (um único `config.toml`, portanto `supabase functions deploy` e `db push` sempre alvejam produção por padrão).
+- `supabase/config.toml:1` → `project_id = "grtxmbffgmgnkawlvqhm"` (um único `config.toml`). Isso define o **alvo padrão** do CLI quando nenhum destino é informado; não implica destino sempre produção — `--project-ref`, um projeto linkado ou `SUPABASE_DB_URL` explícito prevalecem.
 - Busca por `staging|homolog|sandbox|VITE_APP_ENV|isPreview` em `src/`: **nenhuma** ocorrência em código de aplicação (apenas em `scripts/`).
 
 Conclusão: sim — o preview usa o banco de produção. Qualquer cadastro feito "para testar" é dado real.
@@ -41,8 +41,9 @@ Conclusão: sim — o preview usa o banco de produção. Qualquer cadastro feito
 - Specs existentes mexem em contas bancárias (`e2e/adjust-account-balance.spec.py`, `contas-bancarias-delete.spec.py`, `delete-account-hard-regression.spec.py`).
 
 ### A4 — infraestrutura de staging declarada mas incompleta
-- `scripts/preflight-secrets.mjs:29-81` declara os grupos `staging-db` (`STAGING_SUPABASE_DB_URL`, obrigatório), `tenancy` (`TEST_SUPABASE_URL`, usuários A–D…), `smoke-checkout` (`SMOKE_BASE_URL`, `SMOKE_SUPABASE_URL`, `SMOKE_SUPABASE_ANON_KEY`), `asaas-sandbox`, `pluggy-sandbox` e `seed-staging` (`STAGING_SUPABASE_URL`, `STAGING_SERVICE_ROLE_KEY`).
+- `scripts/preflight-secrets.mjs:29-81` declara os grupos `staging-db` (`STAGING_SUPABASE_DB_URL`, obrigatório), `tenancy` (`TEST_SUPABASE_URL`, usuários A–D…), `smoke-checkout` (`SMOKE_BASE_URL`, `SMOKE_SUPABASE_URL`, `SMOKE_SUPABASE_ANON_KEY`), `asaas-sandbox`, `pluggy-sandbox` e `seed-staging` (`STAGING_SUPABASE_URL`, `STAGING_SERVICE_ROLE_KEY`). **Não foi inspecionado** se esses segredos estão configurados no CI ou no ambiente — este relatório não afirma ausência, apenas que o código os exige.
 - `scripts/seed-staging.mjs` **não existe** no repositório (`ls scripts | grep seed` vazio), embora seja citado em `preflight-secrets.mjs:80`.
+- O banco de homologação `utjhzpdbqzajrhnzcher` **já está provisionado** (catálogo bootstrapped, ~216 tabelas, usuários de teste A–D e fixtures). Nada de reaplicar o histórico de migrations nem recriar esses usuários/fixtures; ver `docs/runbooks/ambiente-homologacao.md`, seção 4.
 - `.github/workflows/release-gate.yml:136-171,275` e `staging-security-gate.yml:11-57` já consomem `STAGING_SUPABASE_DB_URL` — o gate de segurança presume um banco de homologação, mas o app nunca aponta para ele.
 - Smokes prontos e isoláveis: `scripts/smoke-asaas-sandbox.mjs` (exige URL contendo `sandbox`, `:59-60`), `scripts/smoke-pluggy-sandbox.mjs`, `scripts/smoke-checkout.mjs`.
 
@@ -65,16 +66,16 @@ Sem criar projeto novo nem contratar serviços: usar o projeto já existente `ut
 
 1. **Build apontável por modo** (frontend, sem tocar `.env` de produção): criar `.env.staging` com as três variáveis `VITE_SUPABASE_*` do projeto de homologação e rodar `vite --mode staging` / `vite build --mode staging`. `client.ts` já lê de `import.meta.env`, então nenhuma mudança de código é necessária. Adicionar scripts `dev:hom` e `build:hom` no `package.json`.
 2. **Faixa visível de ambiente**: derivar de `VITE_SUPABASE_PROJECT_ID` (não de query param) uma tarja "HOMOLOGAÇÃO" no topo, para impedir confusão. Zero efeito quando o ref é o de produção.
-3. **Paridade de schema**: aplicar `supabase/migrations` no projeto de homologação por `SUPABASE_DB_URL=<hom> npm run db:migrate` (com `--project-ref` explícito; não alterar `config.toml`). Conferir com `npm run migrations:check` e `npm run security-lint`.
+3. **Paridade de schema por leitura**: o banco de homologação já está provisionado (~216 tabelas, fixtures em uso), então **não** se reaplica o histórico de `supabase/migrations` nele — comparar catálogo hom × prod em consultas somente leitura e, se faltar algo, aplicar apenas migration nova e incremental, com autorização. `npm run migrations:check` e `npm run security-lint` seguem valendo como conferência.
 4. **Deploy das funções em homologação** via `supabase functions deploy --project-ref <hom>` e segredos próprios: chave Asaas **sandbox**, credenciais Pluggy **sandbox**, chave de e-mail em modo teste (ou domínio de captura). Nunca copiar segredos de produção.
 5. **Garantias no servidor de homologação** (sem bypass em produção):
    - Provedor de CNPJ configurável por variável na própria função: `CNPJ_PROVIDER=brasilapi|fixture`. Em `fixture`, a função responde do `cnpj_cache`/tabela de fixtures e **nunca** faz `fetch` externo. Em produção a variável fica ausente e o comportamento é idêntico ao atual — sem CNPJ mágico, sem query param, sem bypass.
    - `expire-trials` e crons desligados ou com agenda própria em homologação.
    - Webhooks Asaas/Pluggy de homologação apontando somente para as funções do projeto de homologação.
-6. **Semear dados de teste**: criar o `scripts/seed-staging.mjs` que hoje só é citado (usuários A–D e duas empresas, batendo com as variáveis do grupo `tenancy`), usando `STAGING_SUPABASE_URL`/`STAGING_SERVICE_ROLE_KEY`. Isso destrava as suítes de tenancy e o `smoke:checkout` sem tocar produção.
+6. **Dados de teste já existentes**: usuários A–D e fixtures **já estão** no banco de homologação — não recriar. Se `scripts/seed-staging.mjs` (hoje só citado) vier a existir, deve ser idempotente, detectar o que já está lá e apenas complementar, usando `STAGING_SUPABASE_URL`/`STAGING_SERVICE_ROLE_KEY`.
 7. **E2E deixam de mirar produção**: exigir `E2E_BASE_URL` apontando para o build de homologação e abortar quando o ref do backend for o de produção (guarda em `scripts/run-e2e.mjs`).
 8. **Testes locais sem rede** (podem ser feitos já, nesta fase): fixture do payload BrasilAPI + testes de `useCnpjLookup` (cache 6 h, erros `timeout`/`not_found`/`rate_limited`) e do passo final do onboarding com `rpc` mockada, cobrindo `empresa_ja_cadastrada`, `cnpj_invalido`, `nenhum_modulo_selecionado`.
 
 ## O que falta, em uma linha
 
-Falta apenas ligar o app ao projeto de homologação já existente: `.env.staging` + scripts de modo, migrations/funções/segredos aplicados nesse ref, provedor de CNPJ em modo fixture por variável de servidor, script de semeadura e guarda nos E2E.
+Falta apenas ligar o app ao projeto de homologação já existente (feito nesta fase: `.env.homologacao` + scripts `dev:hom`/`build:hom`), mais o deploy das funções nesse ref, os segredos sandbox, o provedor de CNPJ em modo fixture por variável de servidor e a guarda nos E2E. Schema e dados de teste já existem em homologação e não devem ser reaplicados nem recriados.

@@ -51,25 +51,52 @@ Produção segue com `npm run dev` / `npm run build`, sem nenhuma mudança.
 6. Produção não ganhou CNPJ mágico, parâmetro de URL nem qualquer bypass: os mocks
    só existem sob `isHomologacao()`, que exige o banco de homologação.
 
-## 4. O que ainda falta para isolamento completo (bloqueios fora deste escopo)
+## 4. Regra crítica — não reaplicar migrations históricas em homologação
 
-Estes passos exigem credenciais/DDL no projeto de homologação e **não** foram executados,
-conforme a restrição de não aplicar DDL nem alterar conexões:
+O banco de homologação **já está provisionado** (catálogo bootstrapped, ~216 tabelas,
+usuários de teste A–D e fixtures existentes). Portanto:
 
-1. Aplicar `supabase/migrations` no ref de homologação:
-   `SUPABASE_DB_URL=<url do banco hom> npm run db:migrate` (ou `supabase db push --project-ref utjhzpdbqzajrhnzcher`).
-   Sem isso o app sobe, mas as telas falham por tabelas ausentes.
-2. Publicar as funções no ref de homologação:
-   `supabase functions deploy --project-ref utjhzpdbqzajrhnzcher` (sem editar `supabase/config.toml`,
-   que continua apontando para produção).
-3. Definir segredos próprios nesse projeto — Asaas **sandbox**, Pluggy **sandbox**,
-   e-mail em modo teste. Enquanto não existirem, o bloqueio do item 3.4 mantém o
+- **Proibido** rodar `supabase db push`, `npm run db:migrate` ou qualquer reaplicação
+  do histórico de `supabase/migrations` contra `utjhzpdbqzajrhnzcher`. Reaplicar
+  destrói/duplica objetos e derruba as fixtures já usadas nos testes.
+- **Proibido** recriar os usuários A–D e as empresas de teste. Qualquer script de
+  semeadura precisa ser idempotente e só complementar o que faltar.
+- Mudanças de schema em homologação, quando necessárias, entram como migration
+  **nova e incremental**, aplicada isoladamente e apenas após autorização.
+- Paridade de schema se verifica por **leitura** (comparar catálogo hom × prod),
+  nunca por reaplicação.
+
+## 5. Instalação de dependências
+
+O repositório tem `bun.lockb` como lock oficial; o `package-lock.json` está
+desatualizado e `npm ci` falha por isso. Para validar o commit em worktree local:
+
+```bash
+bun install --frozen-lockfile
+```
+
+Use `bun run <script>` (ou `npx` direto) no lugar de `npm ci`. Não regenere nem
+"conserte" o `package-lock.json` sem pedido explícito.
+
+## 6. Itens pendentes fora deste escopo
+
+Não foram executados (exigem credenciais/decisão no projeto de homologação):
+
+1. Publicar/atualizar as funções no ref de homologação:
+   `supabase functions deploy --project-ref utjhzpdbqzajrhnzcher`. O `project_id` em
+   `supabase/config.toml` é o padrão quando nenhum alvo é informado — ele **não**
+   determina o destino quando `--project-ref` (ou um projeto linkado/`SUPABASE_DB_URL`)
+   é passado explicitamente. Ainda assim, não edite o `config.toml`.
+2. Segredos próprios nesse projeto — Asaas **sandbox**, Pluggy **sandbox**, e-mail em
+   modo teste. **Não inspecionados** neste escopo: o relatório não afirma se existem ou
+   não. Enquanto não estiverem configurados, o bloqueio do item 3.4 mantém o
    comportamento seguro (falha explícita em vez de chamada real).
-4. Desligar/reagendar crons (`expire-trials` etc.) no projeto de homologação.
-5. Semear usuários e empresas de teste: `scripts/seed-staging.mjs` é citado em
-   `scripts/preflight-secrets.mjs` mas **não existe** — precisa ser criado com
-   `STAGING_SUPABASE_URL`/`STAGING_SERVICE_ROLE_KEY` do projeto de homologação.
-6. E2E (`npm run e2e`) continuam mirando `http://localhost:8080`; rode-os apenas com
-   `npm run dev:hom` ativo, ou contra o `preview:hom`.
+3. Conferir agenda de crons (`expire-trials` etc.) no projeto de homologação.
+4. `scripts/seed-staging.mjs` é citado em `scripts/preflight-secrets.mjs` e não existe
+   no repositório. Se for criado, deve ser **idempotente** e reaproveitar os usuários
+   A–D e as fixtures já presentes, sem recriar nada.
+5. E2E (`npm run e2e` / `bun run e2e`) continuam mirando `http://localhost:8080`;
+   rode-os apenas com `dev:hom` ativo, ou contra o `preview:hom`.
 
-Nenhuma URL hospedada foi inventada e nenhum projeto pago foi criado.
+Nenhuma URL hospedada foi inventada, nenhum projeto pago foi criado e nenhum deploy de
+produção foi feito.
