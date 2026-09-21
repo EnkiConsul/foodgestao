@@ -351,21 +351,28 @@ describe("guardas de homologação", () => {
 
 describe("trava de destino dos E2E (marcador lido do servidor alvo por HTTP)", () => {
   /**
-   * Sobe um servidor real e serve /build-env.json. A trava tem de julgar o que o
-   * SERVIDOR ALVO declara — arquivo local não prova destino nenhum.
+   * Sobe um servidor HTTP real em OUTRO PROCESSO e serve /build-env.json.
+   * Outro processo é obrigatório: o runner é executado com `spawnSync`, que
+   * bloqueia o event loop — um servidor no processo de teste não atenderia.
+   * A trava tem de julgar o que o SERVIDOR ALVO declara; arquivo local não prova
+   * destino nenhum.
    */
   const servir = async (corpo: string | null) => {
-    const servidor = createServer((req, res) => {
-      if (corpo === null || !req.url?.startsWith("/build-env.json")) {
-        res.writeHead(404).end("nao encontrado");
-        return;
-      }
-      res.writeHead(200, { "Content-Type": "application/json" }).end(corpo);
+    const dir = mkdtempSync(join(tmpdir(), "alvo-e2e-"));
+    if (corpo !== null) writeFileSync(join(dir, "build-env.json"), corpo);
+    const porta = 31000 + Math.floor(Math.random() * 3000);
+    const proc = spawn("python3", ["-m", "http.server", String(porta), "--directory", dir, "--bind", "127.0.0.1"], {
+      stdio: "ignore",
     });
-    await new Promise<void>((ok) => servidor.listen(0, "127.0.0.1", ok));
-    const porta = (servidor.address() as AddressInfo).port;
-    return { base: `http://127.0.0.1:${porta}`, fechar: () => servidor.close() };
+    const base = `http://127.0.0.1:${porta}`;
+    for (let i = 0; i < 60; i++) {
+      const r = spawnSync("curl", ["-sS", "-o", "/dev/null", "-m", "2", `${base}/`], { encoding: "utf8" });
+      if (r.status === 0) break;
+      await new Promise((ok) => setTimeout(ok, 100));
+    }
+    return { base, fechar: () => proc.kill("SIGKILL") };
   };
+
 
   const rodar = (base: string, manifestoLocal?: string) =>
     spawnSync("node", ["scripts/run-e2e.mjs"], {
