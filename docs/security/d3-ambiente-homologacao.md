@@ -31,7 +31,7 @@ Conclusão: sim — o preview usa o banco de produção. Qualquer cadastro feito
 ### A2 — caminho de gravação do onboarding
 - `src/pages/Onboarding.tsx:155` → `checkOnboardingCnpj` (edge `check-onboarding-cnpj`); `:180-206` → `submit.mutateAsync`.
 - `src/hooks/useOnboardingSubmit.tsx:36` → `supabase.rpc("fn_cadastrar_empresa_onboarding")`.
-- `supabase/migrations/20260715181826_…sql:92-185`: função `SECURITY DEFINER, search_path=public`. Valida `auth.uid()`, módulos, 14 dígitos e CNPJ já cadastrado (`:124-141`); insere `profiles` (`:144`), `companies` com `status_tenant='trial'` e trial de 14 dias (`:152-162`), `company_members` como `owner` (`:165`), `company_modules` em `trial` por slug (`:169-178`).
+- `supabase/migrations/20260715181826_…sql:92-185` (versão final em `20260715184211_…sql`): função `SECURITY DEFINER, search_path=public`. Valida `auth.uid()`, módulos, 14 dígitos e CNPJ já cadastrado; faz upsert em `profiles`; insere `companies` com `status_tenant='trial'` e trial de 14 dias; insere `company_modules` em `trial` por slug (`ON CONFLICT DO NOTHING`). Na versão final o vínculo de proprietário **não** é inserido pela RPC — vem do gatilho `a_auto_add_company_owner` (renomeado em `20260826172825_…sql:2-5`).
 - `…184320_…sql:1-11`: `EXECUTE` revogado de `PUBLIC`/`anon`, concedido a `authenticated` — menor privilégio correto.
 - Seeds de empresa rodam por **triggers** em `public.companies` (categorias, plano de contas, contatos, formas de pagamento, módulos, documentos de Pessoas 360°, configuração de DP) — ver `.lovable/plan/corrigir-erro-ao-concluir-o-onboarding-2026-08-26.md`. Ou seja: um cadastro de teste cria dezenas de registros dependentes, sem rollback.
 - Não existe nenhuma checagem de ambiente na RPC nem no frontend antes de gravar.
