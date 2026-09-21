@@ -12,6 +12,8 @@ Agravante: no fluxo da conciliação a tentativa de ligar o contato à empresa *
 
 ## O que será feito
 
+0. **A lista passa a mostrar só os ligados à empresa em uso**: o seletor de fornecedor/cliente da conciliação deixa de incluir cadastros sem ligação com a empresa. Assim o item recusado pelo servidor nem chega a ser oferecido. Quem não estiver na empresa se cadastra ou se liga pelo botão de cadastro, que já grava a ligação.
+
 1. **Corrigir a regra de gravação da ligação contato ↔ empresa** (mesma solução já usada nas categorias): uma função de checagem isolada decide se a pessoa pode ligar aquele contato, sem a consulta circular. Permissão continua a mesma: só quem pode editar clientes/fornecedores da empresa, e só sobre contatos próprios ou já ligados a empresas dela.
 2. **Nunca mais falhar em silêncio**: se a ligação não puder ser gravada, a conciliação para aquele item, mantém a linha selecionada e mostra o motivo, em vez de seguir e devolver erro técnico.
 3. **Mensagem clara no lugar do código técnico**: `contact_forbidden` passa a aparecer como "Este fornecedor/cliente não está ligado à empresa deste lançamento", com ação de ligar e tentar de novo.
@@ -22,7 +24,8 @@ Agravante: no fluxo da conciliação a tentativa de ligar o contato à empresa *
 
 - Migração: `private.contact_linkable_by(_user_id, _contact_id)` SECURITY DEFINER (espelho de `private.category_linkable_by`) e substituição de `contact_companies_insert_policy` por `can_edit_company_module(uid, company_id, 'contacts') AND private.contact_linkable_by(uid, contact_id)`, eliminando o `EXISTS` sobre `public.contacts` que reentra em `contact_companies`. Reversível (a policy anterior é recriada no rollback). Nenhuma outra policy alterada.
 - Verificar na mesma migração a divergência de nome de módulo já observada: as policies de `contact_companies` usam `'contacts'` e `private.contact_editable_by_member` usa `'contatos'`; alinhar para o nome usado em `company_members.permissions` sem ampliar permissão.
-- `src/lib/conciliacao/contacts.ts`: `ensureContactCompanyLink` passa a devolver sucesso/erro (lê o retorno do insert e confere a linha) em vez de descartar o erro.
+- `src/lib/conciliacao/contacts.ts`: `fetchConciliacaoContacts` devolve apenas os contatos de `fetchAllCompanyContacts` (fim da mistura com `fetchAllUserContacts`/`linkedToCompany: false`); `ensureContactCompanyLink` passa a devolver sucesso/erro (lê o retorno do insert e confere a linha) em vez de descartar o erro.
+- `src/pages/ConciliacaoPluggy.tsx`: sugestões automáticas e importação em lote passam a considerar só contatos da empresa; `unlinkedContactIds` e o bloco de `pendingLinks` deixam de ser necessários para a lista, permanecendo apenas a checagem de segurança antes da RPC.
 - `src/pages/ConciliacaoPluggy.tsx` (`confirmIds`, bloco de `pendingLinks`): item cujo vínculo falhar entra em `resultado.falhas` com novo motivo `contato_sem_vinculo` e não é enviado à RPC.
 - `src/lib/conciliacao/confirmResultado.ts`: novo motivo em `MotivoBloqueio` + texto em `MENSAGEM_MOTIVO`; mapear também `contact_forbidden` vindo da RPC para esse motivo.
 - Dados: `INSERT` das duas ligações faltantes em `contact_companies` (somente esses dois contatos, empresa do próprio usuário), sem tocar em lançamentos, saldos ou nas linhas do extrato.
