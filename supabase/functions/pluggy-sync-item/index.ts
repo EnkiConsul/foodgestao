@@ -458,12 +458,28 @@ Deno.serve(async (req) => {
     const itemExec = String(item?.executionStatus ?? '').toUpperCase();
     const isRunning = itemStatus === 'UPDATING' || itemExec === 'CREATED' || itemExec === 'UPDATING';
 
+    // O banco só aceita uma coleta por janela (padrão 1h). Pedir antes disso
+    // devolvia 409 e a sincronização era registrada como falha, mesmo com os
+    // dados da coleta anterior intactos. Agora, se a última coleta é recente,
+    // nem pedimos; se o provedor recusar pela janela, tratamos como pulo normal.
+    const janelaMin = Number(Deno.env.get('PLUGGY_MIN_REFRESH_MIN') ?? '60');
+    const ultimaColeta = item?.lastUpdatedAt ? Date.parse(String(item.lastUpdatedAt)) : NaN;
+    const coletaRecente = Number.isFinite(ultimaColeta)
+      && Date.now() - ultimaColeta < janelaMin * 60_000;
+
     if (!skipRefresh && itemStatus !== 'WAITING_USER_INPUT') {
       try {
-        if (!isRunning) {
-          await refreshItem(itemId);
+        let pulouPorJanela = coletaRecente;
+        if (!isRunning && !coletaRecente) {
+          const r = await refreshItem(itemId) as { skipped?: string } | null;
+          if (r && r.skipped === 'rate_limited') {
+            pulouPorJanela = true;
+            console.log('pluggy refresh pulado: janela de coleta do banco ainda aberta', { itemId });
+          }
         }
-        item = await waitForItem(itemId, 45000);
+        if (!pulouPorJanela || isRunning) {
+          item = await waitForItem(itemId, 45000);
+        }
       } catch (e) {
         console.error('pluggy refresh failed', e);
         item = await getItem(itemId);
@@ -1108,7 +1124,10 @@ Deno.serve(async (req) => {
         last_sync_status: parcial ? 'partial_success' : 'success',
         last_sync_error: parcial ? motivos.join(' ') : null,
         last_sync_attempt_at: concluidoEm,
-        last_synced_at: parcial ? undefined : concluidoEm,
+        // Coleta parcial do banco ainda gravou extrato: marcar como sincronizado
+        // agora evita a tela mostrar sincronização vencida indefinidamente.
+        // Só falha de gravação nossa mantém a data anterior.
+        last_synced_at: (falhasGravacao > 0 || !v2Materializado) ? undefined : concluidoEm,
         next_sync_at: new Date(Date.now() + intervaloMin * 60_000).toISOString(),
       })
       .eq('id', conn.id);

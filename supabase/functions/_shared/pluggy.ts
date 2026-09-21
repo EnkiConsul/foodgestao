@@ -153,9 +153,30 @@ export async function deleteItem(itemId: string): Promise<void> {
   if (!res.ok && res.status !== 404) throw new Error(`delete_item_failed: ${res.status}`);
 }
 
-/** Dispara uma nova coleta no banco (refresh do item). */
+/**
+ * Dispara uma nova coleta no banco (refresh do item).
+ *
+ * O provedor só permite uma coleta por janela (hoje 1h). Quando a janela ainda
+ * não fechou ele responde 409 CLIENT_IS_UPDATING_BEFORE_ALLOWED_FREQUENCY —
+ * isso NÃO é erro: os dados já coletados continuam válidos. Nesse caso
+ * devolvemos `{ skipped: 'rate_limited' }` para o chamador seguir com a leitura
+ * em vez de registrar falha de sincronização.
+ */
 export async function refreshItem(itemId: string) {
   const res = await pluggyFetch(`/items/${itemId}`, { method: "PATCH", body: JSON.stringify({}) });
+  if (res.status === 409) {
+    const texto = await res.text();
+    if (texto.includes("CLIENT_IS_UPDATING_BEFORE_ALLOWED_FREQUENCY")) {
+      let janelaHoras: number | null = null;
+      try {
+        const j = JSON.parse(texto);
+        const h = Number(j?.minUpdateFrequencyAllowedInHours ?? j?.data?.minUpdateFrequencyAllowedInHours);
+        if (Number.isFinite(h) && h > 0) janelaHoras = h;
+      } catch { /* corpo não-JSON: janela desconhecida */ }
+      return { skipped: "rate_limited" as const, minUpdateFrequencyAllowedInHours: janelaHoras };
+    }
+    throw new Error(`refresh_item_failed: 409 ${texto}`);
+  }
   if (!res.ok) throw new Error(`refresh_item_failed: ${res.status} ${await res.text()}`);
   return res.json();
 }
