@@ -170,10 +170,23 @@ As policies permitem UPDATE ao editor da empresa, mas o grant de tabela não inc
 (`03-grants.csv`: `accounts|authenticated|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE`).
 Qualquer edição direta de conta pela API falha por permissão antes da RLS — hoje depende de RPC.
 
-### A7 — ALTO, CONFIRMADO: conta/cartão de outra empresa no lançamento altera o saldo dela
+### A7 — ALTO: conta/cartão de outra empresa no lançamento altera o saldo dela
 Registrado em detalhe em `docs/security/d1-achado-a7-conta-do-lancamento.md`. Resumo: `account_id` e
 `credit_card_id` não têm guard de empresa (só `destination_account_id`, e só em transferência), e o
 cálculo de saldo é `SECURITY DEFINER` sem checagem de tenant.
+
+Exploração **executada em homologação** (transação revertida): o saldo da conta da outra empresa passou
+a 7. Em **produção** a confirmação é por **definições e caminho de código** — gatilhos, constraints e
+corpos de função batem com o ambiente de teste — mais **contagens agregadas**; nenhuma exploração foi
+executada em produção.
+
+Contagens agregadas em produção (`docs/security/d1/d1-a7-contagens.sql`, somente `count(*)`, sem expor
+identificador, nome ou valor): em 159 lançamentos, **0** com conta de outra empresa, **0** com cartão de
+outra empresa, 0 com conta de destino/categoria/contato divergentes, 0 em contexto pessoal (a base é
+100% empresarial); 1 sem conta e 158 sem cartão, casos válidos pela constraint
+`transactions_source_xor`. Ou seja: **superfície aberta, sem dano registrado até agora** — e a correção
+pode validar `INSERT` e `UPDATE` sem travar edição de histórico, porque não há linha legada divergente.
+O SQL da correção está apenas **preparado**, não aplicado nesta auditoria.
 
 ### Pontos verificados, com o alcance da verificação explícito
 - `get_accessible_accounts` e `get_accessible_categories`: exigem sessão e `private.is_company_member`
