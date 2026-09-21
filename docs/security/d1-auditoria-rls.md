@@ -115,18 +115,54 @@ schema exposto; a explorabilidade de cada uma é o que falta verificar.
 Mitigação existente: o corpo levanta `not_authenticated` quando `auth.uid()` é nulo — não há
 exploração direta, mas a divergência é exatamente a regressão que o item anterior fechou.
 
-### A4 — MÉDIO: helpers de permissão em `private` com `EXECUTE` para `PUBLIC`
-`private.pluggy_can_edit`, `private.pluggy_can_manage_accounts` e `private.pluggy_module_edit` têm
-`PUBLIC:EXECUTE`; `private.dp_pode_agir`, `dp_pode_ver_documentos`, `dp_portal_decisao`,
-`is_company_owner`, `is_dp_colaborador_of_company` idem. `anon` **não** tem `USAGE` em `private`
-(portanto não alcança), mas `authenticated` tem: qualquer usuário logado pode consultar a permissão de
-**outro** usuário em **qualquer** empresa passando `_user_id`/`_company_id` (vazamento booleano de
-vínculo/papel).
+### A4 — BAIXO, exploração HTTP não comprovada: helpers de `private` com `EXECUTE` para `PUBLIC`
+`private.pluggy_can_edit`, `private.pluggy_can_manage_accounts`, `private.pluggy_module_edit`,
+`private.dp_pode_agir`, `dp_pode_ver_documentos`, `dp_portal_decisao`, `is_company_owner`,
+`is_dp_colaborador_of_company` têm `PUBLIC:EXECUTE`. Medição de privilégio efetivo:
+`has_schema_privilege('anon','private','USAGE') = false`,
+`has_schema_privilege('authenticated','private','USAGE') = true`, `CREATE` negado para ambos.
 
-### A5 — BAIXO: grants amplos de escrita para `anon` em 173 tabelas de `public`
-Herança do padrão do Supabase. O bloqueio efetivo hoje é só a RLS (nenhuma policy concede escrita a
-`anon`, e as policies `{public}` exigem `auth.uid()`). Ainda assim é superfície desnecessária —
-inclusive em `companies`, `profiles`, `categories`, `audit_logs*` e `pluggy_webhook_events`.
+**Qualificação:** `USAGE` no schema não implica alcance pela API. `private` não é schema exposto do
+PostgREST, então a chamada não é possível por HTTP pelo caminho normal do aplicativo — nenhuma
+exploração foi demonstrada. O que fica registrado é superfície de banco a apertar (o helper deveria ser
+exclusivo de `service_role`, como já foi feito em `pluggy_user_can_edit`), não um vazamento
+confirmado. Se a exposição de schema mudar, o item vira imediatamente vazamento booleano de
+vínculo/papel de outro usuário.
+
+Ainda em `private`, duas funções `SECURITY DEFINER` que executam SQL dinâmico têm EXECUTE para
+`authenticated`: `private.apply_audit_log_partition_policies` e `private.manage_audit_logs_partitions`
+(DDL de partição de auditoria). Mesma qualificação de alcance; mesma recomendação de restringir a
+`service_role`. A única função de schema exposto com SQL dinâmico é `public.dp_ficha_aplicar`, que é
+`SECURITY INVOKER` (portanto sujeita à RLS) e monta colunas por lista branca com lista de campos
+proibidos — verificada e sem injeção de identificador.
+
+### A5 — MÉDIO: grants de tabela que a RLS não cobre (`TRUNCATE`) e escrita ampla para `anon`
+Correção de classificação: o item anterior tratava todos os grants como "protegidos pela RLS". **Isso
+é falso para `TRUNCATE`** — a RLS não filtra `TRUNCATE`; quem tem o privilégio apaga a tabela inteira
+sem passar por policy alguma. Medição por `has_table_privilege` sobre as 215 tabelas base de `public`
+(nenhum comando destrutivo foi executado):
+
+| Privilégio | `anon` | `authenticated` |
+|---|---|---|
+| `SELECT` | 162 | 206 |
+| `INSERT` | 165 | 185 |
+| `UPDATE` | 167 | 185 |
+| `DELETE` | 167 | 186 |
+| **`TRUNCATE`** | **167** | **186** |
+| `TRIGGER` | 168 | 194 |
+| `REFERENCES` | 167 | 186 |
+| `MAINTAIN` | 168 | 199 |
+
+Inclui `accounts`, `companies`, `profiles`, `categories`, `audit_logs*` e `pluggy_webhook_events`.
+
+Alcance real, medido: PostgREST não expõe `TRUNCATE` (não há verbo para isso), nenhuma função
+executável por `anon`/`authenticated` contém `TRUNCATE` no corpo (varredura em `pg_proc`), e
+`CREATE` em `public`/`private` está negado às duas roles — logo `TRIGGER` e `REFERENCES` não permitem
+criar gatilho nem chave estrangeira. **Nenhum caminho de exploração por HTTP foi comprovado**, e é por
+isso que o item é MÉDIO e não ALTO. Mas a afirmação "a RLS protege" não se sustenta: basta qualquer
+superfície futura que execute SQL arbitrário sob a role do cliente para o dano ser total e irreversível.
+Recomendação: `REVOKE TRUNCATE, TRIGGER, REFERENCES, MAINTAIN` de `anon` e `authenticated` em `public`,
+e revogar também a escrita de `anon` onde nenhuma policy a concede.
 Lista em `d1-catalogo-resumo.json → tabelas_com_grant_escrita_anon`.
 
 ### A6 — BAIXO (funcional, não isolamento): `public.accounts` sem `UPDATE` para `authenticated`
