@@ -58,6 +58,15 @@ export default function Configuracoes() {
   const [privacyMode, setPrivacyMode] = useState(false);
   const [fieldSettings, setFieldSettings] = useState<TransactionFieldSettings>({});
   const [saving, setSaving] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  // Vindo do aviso opcional de verificação em duas etapas: rola até o cartão.
+  useEffect(() => {
+    if (searchParams.get("secao") !== "2fa") return;
+    const alvo = document.getElementById("secao-2fa");
+    alvo?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [searchParams]);
+
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile-settings", user?.id],
