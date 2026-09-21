@@ -153,6 +153,7 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
           }}
           onChange={(patch) => update(patch as Partial<EmpresaFormData>)}
           erros={errors as Record<string, string>}
+          obrigatorios={["cep", "logradouro", "numero", "bairro", "cidade", "uf"]}
         />
       </fieldset>
 
