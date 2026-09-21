@@ -27,6 +27,11 @@ import {
   AuthEmailBloqueadoError,
   CNPJ_FIXTURE_REGISTRADO,
 } from "@/lib/env/homologacaoRuntime";
+import {
+  instalarFetchGuardHomologacao,
+  nomeFuncaoDaUrl,
+} from "@/lib/env/homologacaoFetchGuard";
+
 import { cnpjFixture, cepFixture } from "@/lib/env/homologacaoFixtures";
 
 /** Monta um JWT de teste (sem assinatura real — só conteúdo legível). */
