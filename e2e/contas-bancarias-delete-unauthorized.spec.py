@@ -18,13 +18,9 @@ from playwright.async_api import async_playwright, expect
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from qa_admin import qa_rpc, session_user_id  # noqa: E402
 
-BASE_URL = "http://localhost:8080"
-SUPABASE_URL = "https://grtxmbffgmgnkawlvqhm.supabase.co"
-ANON = (
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
-    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdydHhtYmZmZ21nbmthd2x2cWhtIiwicm9sZSI6ImFub24iLCJp"
-    "YXQiOjE3NzA4MDM5ODYsImV4cCI6MjA4NjM3OTk4Nn0.izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko"
-)
+BASE_URL = os.environ.get("E2E_BASE_URL", "http://localhost:8080")
+from staging_env import public_config
+PROJECT_REF, SUPABASE_URL, ANON = public_config()
 
 SCREENSHOTS = Path("/tmp/browser/contas-delete-authz/screenshots")
 SCREENSHOTS.mkdir(parents=True, exist_ok=True)

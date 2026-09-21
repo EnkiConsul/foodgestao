@@ -32,7 +32,7 @@ from playwright.async_api import async_playwright, expect
 SCREENSHOTS = Path("/tmp/browser/dre-performance/screenshots")
 SCREENSHOTS.mkdir(parents=True, exist_ok=True)
 
-BASE_URL = "http://localhost:8080"
+BASE_URL = os.environ.get("E2E_BASE_URL", "http://localhost:8080")
 ROUTE = "/relatorios/contabeis"
 
 # Orçamentos em ms. Generosos por rodarem em dev (Vite, sem build de produção,

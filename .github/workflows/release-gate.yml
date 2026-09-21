@@ -251,6 +251,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Validar guardas de destino sem acesso à rede
+        run: python -m unittest discover -s e2e -p test_staging_env.py
       - run: npm ci --no-audit --no-fund
       - name: Instalar Playwright (Python)
         run: |
@@ -290,6 +292,12 @@ jobs:
         env:
           E2E_BASE_URL: http://127.0.0.1:8080
           E2E_BUILD_MANIFEST: dist/build-env.json
+          TEST_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+          TEST_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          LOVABLE_BROWSER_AUTH_STATUS: injected
+          LOVABLE_BROWSER_SUPABASE_STORAGE_KEY: sb-utjhzpdbqzajrhnzcher-auth-token
+          LOVABLE_BROWSER_SUPABASE_SESSION_JSON: ${{ secrets.E2E_SUPABASE_SESSION_JSON }}
         run: node scripts/run-e2e.mjs --require
 
   staging-smoke:

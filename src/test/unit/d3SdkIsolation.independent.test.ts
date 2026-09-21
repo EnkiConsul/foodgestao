@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { instalarFetchGuardHomologacao } from '@/lib/env/homologacaoFetchGuard';
 
 describe('D3 independent SDK isolation', () => {
+  it('blocks legacy test requests to production before HTTP', async () => {
+    await expect(fetch('https://grtxmbffgmgnkawlvqhm.supabase.co/rest/v1/companies')).rejects.toThrow('chamadas ao Supabase de produção são proibidas');
+  });
   it('intercepts every functions getter access without network', async () => {
     const fetchSpy = vi.fn(async () => new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }));
     const transport = { fetch: fetchSpy as typeof fetch };

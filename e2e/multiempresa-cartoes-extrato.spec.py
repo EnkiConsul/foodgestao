@@ -35,15 +35,9 @@ from playwright.async_api import async_playwright
 SCREENSHOTS = Path("/tmp/browser/multiempresa/screenshots")
 SCREENSHOTS.mkdir(parents=True, exist_ok=True)
 
-BASE_URL = "http://localhost:8080"
-PROJECT_REF = "grtxmbffgmgnkawlvqhm"
-SUPABASE_URL = f"https://{PROJECT_REF}.supabase.co"
-ANON_KEY = (
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
-    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdydHhtYmZmZ21nbmthd2x2cWhtIiwicm9sZSI6ImFub24i"
-    "LCJpYXQiOjE3NzA4MDM5ODYsImV4cCI6MjA4NjM3OTk4Nn0."
-    "izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko"
-)
+BASE_URL = os.environ.get("E2E_BASE_URL", "http://localhost:8080")
+from staging_env import public_config
+PROJECT_REF, SUPABASE_URL, ANON_KEY = public_config()
 # A variável injetada pode existir vazia — daí o `or` no fallback.
 STORAGE_KEY = (
     os.environ.get("LOVABLE_BROWSER_SUPABASE_STORAGE_KEY") or f"sb-{PROJECT_REF}-auth-token"
@@ -61,14 +55,7 @@ ROUTES = [
 # ---------------------------------------------------------------- sessão / REST
 
 def load_session() -> dict | None:
-    """Sessão mais recente primeiro: o cache de `lovable auth-session` é
-    preferido porque a variável injetada pode estar expirada."""
-    cached = Path.home() / ".cache" / "lovable-auth" / "session.json"
-    if cached.exists():
-        data = json.loads(cached.read_text())
-        sess = data.get("session", data)
-        if sess.get("access_token"):
-            return sess
+    """Usa somente a sessão explicitamente fornecida para o teste."""
     raw = os.environ.get("LOVABLE_BROWSER_SUPABASE_SESSION_JSON")
     if raw:
         return json.loads(raw)
