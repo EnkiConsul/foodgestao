@@ -288,7 +288,9 @@ export default function Configuracoes() {
         </CardContent>
       </Card>
 
-      <TwoFactorCard />
+      <div id="secao-2fa">
+        <TwoFactorCard />
+      </div>
 
       <ResetOnboardingCard />
 
