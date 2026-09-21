@@ -12,6 +12,8 @@ Agravante: no fluxo da conciliação a tentativa de ligar o contato à empresa *
 
 ## O que será feito
 
+0. **A lista passa a mostrar só os ligados à empresa em uso**: o seletor de fornecedor/cliente da conciliação deixa de incluir cadastros sem ligação com a empresa. Assim o item recusado pelo servidor nem chega a ser oferecido. Quem não estiver na empresa se cadastra ou se liga pelo botão de cadastro, que já grava a ligação.
+
 1. **Corrigir a regra de gravação da ligação contato ↔ empresa** (mesma solução já usada nas categorias): uma função de checagem isolada decide se a pessoa pode ligar aquele contato, sem a consulta circular. Permissão continua a mesma: só quem pode editar clientes/fornecedores da empresa, e só sobre contatos próprios ou já ligados a empresas dela.
 2. **Nunca mais falhar em silêncio**: se a ligação não puder ser gravada, a conciliação para aquele item, mantém a linha selecionada e mostra o motivo, em vez de seguir e devolver erro técnico.
 3. **Mensagem clara no lugar do código técnico**: `contact_forbidden` passa a aparecer como "Este fornecedor/cliente não está ligado à empresa deste lançamento", com ação de ligar e tentar de novo.
