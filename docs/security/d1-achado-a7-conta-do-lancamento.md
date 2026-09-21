@@ -2,8 +2,12 @@
 
 Registrado em 21/09/2026. Achado **separado** do relatório D1 (`docs/security/d1-auditoria-rls.md`).
 Severidade: **ALTA** (escrita cruzada entre empresas em dado financeiro).
-Confirmação: leitura do catálogo de **produção** (`grtxmbffgmgnkawlvqhm`). Nenhum dado real foi
-alterado, nenhuma transação de teste foi executada em produção.
+Natureza da confirmação, sem ambiguidade:
+- **Homologação (`utjhzpdbqzajrhnzcher`): exploração executada de verdade**, em transação revertida —
+  o lançamento foi aceito e o saldo da conta da outra empresa passou a 7.
+- **Produção (`grtxmbffgmgnkawlvqhm`): confirmação por definições e por caminho de código**
+  (gatilhos, constraints, corpo das funções) mais **contagens agregadas**. Nenhuma exploração foi
+  executada em produção, nenhum lançamento de teste foi criado, nenhum dado real foi alterado.
 
 ## Evidência independente (homologação `utjhzpdbqzajrhnzcher`)
 
