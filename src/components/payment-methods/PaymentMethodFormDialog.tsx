@@ -31,7 +31,7 @@ interface Props {
 
 export function PaymentMethodFormDialog({ open, onOpenChange, onSaved, editItem }: Props) {
   const { user } = useAuth();
-  const { companies } = useCompanyContext();
+  const { companies, selectedCompanyId } = useCompanyContext();
   const { register, handleSubmit, reset, setValue, watch, formState: { isSubmitting } } = useForm<FormValues>({
     defaultValues: { name: "", is_active: true },
   });

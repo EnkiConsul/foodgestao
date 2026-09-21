@@ -132,7 +132,7 @@ export function ContactFormDialog({
   defaultVisiblePf,
 }: Props) {
   const { user } = useAuth();
-  const { companies } = useCompanyContext();
+  const { companies, selectedCompanyId } = useCompanyContext();
   const [name, setName] = useState("");
   const [contactType, setContactType] = useState<"cliente" | "fornecedor" | "ambos">("cliente");
   const [email, setEmail] = useState("");

@@ -41,7 +41,7 @@ interface Props {
 
 export function CostCenterFormDialog({ open, onOpenChange, onSaved, editItem }: Props) {
   const { user } = useAuth();
-  const { companies } = useCompanyContext();
+  const { companies, selectedCompanyId } = useCompanyContext();
   const { register, handleSubmit, reset, setValue, watch, formState: { isSubmitting } } = useForm<FormValues>({
     defaultValues: { name: "", description: "", is_active: true },
   });
