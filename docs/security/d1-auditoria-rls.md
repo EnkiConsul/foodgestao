@@ -105,9 +105,8 @@ verificados no corpo:
   empresa), `seed_default_contacts` / `seed_default_payment_methods` (INSERT com `_user_id`
   arbitrário), `dp_folga_atribuir_admin` (delega a `dp_solicitacao_criar_admin`; a cadeia precisa ser
   reverificada função por função).
-Lista completa em `09-definer-sem-uid.csv`. Muitas dessas funções provavelmente só são chamadas por
-triggers ou por outras funções privilegiadas — mas o EXECUTE para `authenticated` as torna alcançáveis
-direto pela API.
+Lista completa em `09-definer-sem-uid.csv`. O fato objetivo é o EXECUTE concedido a `authenticated` em
+schema exposto; a explorabilidade de cada uma é o que falta verificar.
 
 ### A3 — MÉDIO: sobrecarga nova de RPC de conciliação voltou a ser executável por `anon`
 `public.pluggy_clear_pending_staging(_company_id uuid, _ids uuid[])` tem `anon:EXECUTE` (o padrão
