@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -57,6 +58,15 @@ export default function Configuracoes() {
   const [privacyMode, setPrivacyMode] = useState(false);
   const [fieldSettings, setFieldSettings] = useState<TransactionFieldSettings>({});
   const [saving, setSaving] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  // Vindo do aviso opcional de verificação em duas etapas: rola até o cartão.
+  useEffect(() => {
+    if (searchParams.get("secao") !== "2fa") return;
+    const alvo = window.document.getElementById("secao-2fa");
+    alvo?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [searchParams]);
+
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile-settings", user?.id],
@@ -278,7 +288,9 @@ export default function Configuracoes() {
         </CardContent>
       </Card>
 
-      <TwoFactorCard />
+      <div id="secao-2fa">
+        <TwoFactorCard />
+      </div>
 
       <ResetOnboardingCard />
 

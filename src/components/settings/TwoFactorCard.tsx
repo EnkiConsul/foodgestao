@@ -182,7 +182,9 @@ export function TwoFactorCard() {
           />
         </div>
         <CardDescription>
-          Opcional. Use o Google Authenticator (ou outro app TOTP) para proteger sua conta com um código adicional no login.
+          {verified
+            ? "Ativa. Sua conta pede um código do aplicativo autenticador além da senha."
+            : "Sua conta está sem verificação em duas etapas. Continua opcional, mas ativar protege seus dados financeiros e as conexões bancárias caso alguém descubra sua senha."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

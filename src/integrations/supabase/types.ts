@@ -1306,6 +1306,8 @@ export type Database = {
           blocked_by: string | null
           created_at: string
           last_context: Json | null
+          mfa_nudge_last_shown_at: string | null
+          mfa_nudge_opt_out: boolean
           must_change_password: boolean
           password_changed_at: string | null
           password_changed_by: string | null
@@ -1322,6 +1324,8 @@ export type Database = {
           blocked_by?: string | null
           created_at?: string
           last_context?: Json | null
+          mfa_nudge_last_shown_at?: string | null
+          mfa_nudge_opt_out?: boolean
           must_change_password?: boolean
           password_changed_at?: string | null
           password_changed_by?: string | null
@@ -1338,6 +1342,8 @@ export type Database = {
           blocked_by?: string | null
           created_at?: string
           last_context?: Json | null
+          mfa_nudge_last_shown_at?: string | null
+          mfa_nudge_opt_out?: boolean
           must_change_password?: boolean
           password_changed_at?: string | null
           password_changed_by?: string | null
@@ -16731,6 +16737,17 @@ export type Database = {
           p_whatsapp_empresa: string
         }
         Returns: Json
+      }
+      fn_mfa_nudge_estado: {
+        Args: never
+        Returns: {
+          last_shown_at: string
+          opt_out: boolean
+        }[]
+      }
+      fn_mfa_nudge_registrar: {
+        Args: { _opt_out?: boolean }
+        Returns: undefined
       }
       get_accessible_accounts: {
         Args: {
