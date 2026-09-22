@@ -62,19 +62,16 @@ export function DpLicencaRetornoDialog({
   const salvar = useMutation({
     mutationFn: async () => {
       if (!alvo) return;
-      const hoje = format(new Date(), "yyyy-MM-dd");
       if (escolha === "prorrogar") {
         if (!data || data <= alvo.dataFimPrevista) {
           throw new Error("Informe uma nova data final posterior à prevista.");
         }
-        const { error } = await supabase
-          .from("dp_solicitacoes")
-          .update({
-            data_fim: data,
-            resposta_admin: observacao.trim() || "Licença prorrogada.",
-          })
-          .eq("id", alvo.solicitacaoId);
-        if (error) throw error;
+        await registrarRetornoLicenca({
+          solicitacaoId: alvo.solicitacaoId,
+          acao: "prorrogar",
+          data,
+          observacao,
+        });
         return;
       }
 
@@ -83,20 +80,12 @@ export function DpLicencaRetornoDialog({
       if (retorno < alvo.dataInicio) {
         throw new Error("A data do retorno não pode ser anterior ao início da licença.");
       }
-      const { data: sessao } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("dp_solicitacoes")
-        .update({
-          retorno_em: retorno,
-          retorno_confirmado_em: new Date().toISOString(),
-          retorno_confirmado_por: sessao?.user?.id ?? null,
-          // Retorno antecipado encerra a licença na data efetiva.
-          data_fim: retorno < alvo.dataFimPrevista ? retorno : alvo.dataFimPrevista,
-          resposta_admin: observacao.trim() || `Retorno confirmado em ${retorno}.`,
-        })
-        .eq("id", alvo.solicitacaoId);
-      if (error) throw error;
-      void hoje;
+      await registrarRetornoLicenca({
+        solicitacaoId: alvo.solicitacaoId,
+        acao: "confirmar",
+        data: retorno,
+        observacao,
+      });
     },
     onSuccess: () => {
       toast.success(escolha === "prorrogar" ? "Licença prorrogada" : "Retorno confirmado");
