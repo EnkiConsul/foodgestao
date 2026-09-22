@@ -110,3 +110,5 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [ ] Publicar o frontend (aguardando decisão do proprietário).
 
 - [x] Fase 1 Pessoas 360 — Documentos, versionamento e aceites (RPC dp_documento_aceitar, função dp-documento-aceitar, imutabilidade da versão aceita, SHA-256 real, certificado por versão)
+- [x] Fase 2 Pessoas 360 — Solicitações e estados administrativos (correção/exclusão lógica de atestado, retorno de licença, adiantamento com origem do servidor, folga do gestor por RPC, escrita direta revogada, listagens ignorando excluídas)
+- [ ] Publicar o frontend das fases 1 e 2 (aguardando decisão do proprietário)
