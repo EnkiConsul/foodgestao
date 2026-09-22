@@ -40,7 +40,6 @@ export type EnviarDocumentosInput = {
  */
 export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters: DpDocumentosFilters) {
   const { selectedCompanyId } = useCompanyContext();
-  const { user } = useAuth();
   const qc = useQueryClient();
 
   const list = useQuery({
