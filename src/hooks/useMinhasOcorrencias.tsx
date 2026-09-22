@@ -111,6 +111,7 @@ export function useMinhasOcorrencias() {
     colaboradorId: colaborador.data ?? null,
     previsto: previsto.data,
     minhas: minhas.data ?? [],
+    regraAssiduidade: regra.data ?? null,
     loading: colaborador.isLoading || previsto.isLoading,
     registrar,
   };
