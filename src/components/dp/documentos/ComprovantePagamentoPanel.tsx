@@ -303,7 +303,7 @@ export function ComprovantePagamentoPanel(props: {
             </Button>
             {!props.somenteLeitura && (
               <>
-                <Button size="sm" variant="outline" disabled={ocupado} onClick={() => inputRef.current?.click()}>
+                <Button size="sm" variant="outline" disabled={ocupado} onClick={() => setAnexarOpen(true)}>
                   <Upload className="mr-1 size-4" /> Substituir
                 </Button>
                 <Button
