@@ -14,6 +14,8 @@ import { useDpValeCalculadora, VALE_LABEL, type LinhaVale, type ValeTipo } from 
 import { useDpValeApuracoes, type FecharLinha } from "@/hooks/useDpValeApuracoes";
 import { ValeMemoriaDialog } from "@/components/dp/beneficios/ValeMemoriaDialog";
 import { calcularVaDeposito, diferencaCicloAnterior } from "@/lib/dp/va-calculo";
+import { diasAjustadosPeloGestor, diasNumero, limitarDias } from "@/lib/dp/vale-dias";
+import { toast } from "sonner";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -36,8 +38,6 @@ const baixarCsv = (nome: string, conteudo: string) => {
   URL.revokeObjectURL(url);
 };
 
-const soDigitos = (v: string) => v.replace(/\D/g, "").slice(0, 3);
-
 interface Props {
   /** `va` = vale-alimentação, `vt` = vale-transporte. */
   tipo: ValeTipo;
@@ -47,6 +47,9 @@ interface LinhaCalculo {
   base: LinhaVale;
   pagos: string;
   trabalhados: string;
+  /** Dias a trabalhar do ciclo atual, editáveis pelo gestor. */
+  previstos: string;
+  previstosManual: boolean;
   pagosDoFechamento: boolean;
   diferenca: number;
   totalDias: number;
@@ -70,7 +73,9 @@ export function ValeCalculadora({ tipo }: Props) {
   const label = VALE_LABEL[tipo];
 
   /** Rascunho local dos dias informados, sincronizado com o que está salvo. */
-  const [edits, setEdits] = useState<Record<string, { pagos?: string; trabalhados?: string }>>({});
+  const [edits, setEdits] = useState<
+    Record<string, { pagos?: string; trabalhados?: string; previstos?: string }>
+  >({});
   useEffect(() => {
     setEdits({});
   }, [competencia, tipo, unidade]);
@@ -90,13 +95,20 @@ export function ValeCalculadora({ tipo }: Props) {
       const pagos = draft.pagos ?? (pagosSalvos == null ? "" : String(pagosSalvos));
       const trabalhados =
         draft.trabalhados ??
-        (salvo?.dias_trabalhados_anterior == null ? "" : String(salvo.dias_trabalhados_anterior));
+        (salvo?.dias_trabalhados_anterior == null
+          ? String(base.sugestaoTrabalhadosAnterior)
+          : String(salvo.dias_trabalhados_anterior));
+
+      const previstos =
+        draft.previstos ??
+        (salvo?.dias_previstos_manual ? String(salvo.dias_previstos) : String(base.diasPrevistos));
+      const previstosNum = diasNumero(previstos);
 
       const pagosNum = pagos === "" ? 0 : Number(pagos);
       const trabalhadosNum = trabalhados === "" ? null : Number(trabalhados);
       const diferenca = diferencaCicloAnterior(pagosNum, trabalhadosNum);
       const deposito = calcularVaDeposito({
-        diasPrevistos: base.diasPrevistos,
+        diasPrevistos: previstosNum,
         diasDescontados: 0,
         diferencaAnterior: diferenca,
         valorDia: base.valorDia,
@@ -107,6 +119,8 @@ export function ValeCalculadora({ tipo }: Props) {
         base,
         pagos,
         trabalhados,
+        previstos,
+        previstosManual: diasAjustadosPeloGestor(previstos, base.diasPrevistos),
         pagosDoFechamento: draft.pagos == null && salvo?.dias_pagos_anterior == null && !!anterior,
         diferenca,
         totalDias: deposito.diasPagos,
@@ -128,12 +142,13 @@ export function ValeCalculadora({ tipo }: Props) {
     [linhas],
   );
 
-  const persistir = (l: LinhaCalculo, pagos: string, trabalhados: string) => {
+  const persistir = (l: LinhaCalculo, pagos: string, trabalhados: string, previstos: string) => {
     const pagosNum = pagos === "" ? 0 : Number(pagos);
     const trabalhadosNum = trabalhados === "" ? null : Number(trabalhados);
+    const previstosNum = diasNumero(previstos);
     const diferenca = diferencaCicloAnterior(pagosNum, trabalhadosNum);
     const deposito = calcularVaDeposito({
-      diasPrevistos: l.base.diasPrevistos,
+      diasPrevistos: previstosNum,
       diasDescontados: 0,
       diferencaAnterior: diferenca,
       valorDia: l.base.valorDia,
@@ -143,33 +158,47 @@ export function ValeCalculadora({ tipo }: Props) {
       colaborador_id: l.base.colaborador_id,
       dias_pagos_anterior: pagosNum,
       dias_trabalhados_anterior: trabalhadosNum,
-      dias_previstos: l.base.diasPrevistos,
+      dias_previstos: previstosNum,
+      dias_previstos_manual: diasAjustadosPeloGestor(previstos, l.base.diasPrevistos),
+      dias_previstos_calculado: l.base.diasPrevistos,
       total_dias: deposito.diasPagos,
       valor_dia: l.base.valorDia,
       valor_depositar: deposito.depositar,
     });
   };
 
-  const editar = (l: LinhaCalculo, campo: "pagos" | "trabalhados", bruto: string) => {
-    const valor = soDigitos(bruto);
+  const editar = (
+    l: LinhaCalculo,
+    campo: "pagos" | "trabalhados" | "previstos",
+    bruto: string,
+  ) => {
+    const { valor, erro } = limitarDias(bruto);
+    if (erro) toast.error(erro);
     const proximo = {
       pagos: campo === "pagos" ? valor : l.pagos,
       trabalhados: campo === "trabalhados" ? valor : l.trabalhados,
+      previstos: campo === "previstos" ? valor : l.previstos,
     };
     setEdits((prev) => ({ ...prev, [l.base.colaborador_id]: proximo }));
     clearTimeout(timers.current[l.base.colaborador_id]);
     timers.current[l.base.colaborador_id] = setTimeout(
-      () => persistir(l, proximo.pagos, proximo.trabalhados),
+      () => persistir(l, proximo.pagos, proximo.trabalhados, proximo.previstos),
       700,
     );
   };
+
+  /** Volta os dias a trabalhar para o número apurado pelo sistema. */
+  const usarCalculado = (l: LinhaCalculo) =>
+    editar(l, "previstos", String(l.base.diasPrevistos));
 
   const fechar = () => {
     const payload: FecharLinha[] = linhas.map((l) => ({
       colaborador_id: l.base.colaborador_id,
       dias_pagos_anterior: l.pagos === "" ? 0 : Number(l.pagos),
       dias_trabalhados_anterior: l.trabalhados === "" ? null : Number(l.trabalhados),
-      dias_previstos: l.base.diasPrevistos,
+      dias_previstos: diasNumero(l.previstos),
+      dias_previstos_manual: l.previstosManual,
+      dias_previstos_calculado: l.base.diasPrevistos,
       total_dias: l.totalDias,
       valor_dia: l.base.valorDia,
       valor_depositar: l.depositar,
@@ -180,13 +209,15 @@ export function ValeCalculadora({ tipo }: Props) {
   const exportar = () => {
     const cab = [
       "Colaborador", "Unidade", "Valor do dia", "Dias a trabalhar (ciclo atual)",
+      "Dias a trabalhar informados pelo gestor", "Dias a trabalhar calculados",
       "Dias pagos (ciclo anterior)", "Dias trabalhados (ciclo anterior)", "Diferenca",
       "Total de dias", "Desconto", "A depositar",
     ].join(";");
     const corpo = linhas.map((l) =>
       [
         l.base.nome, l.base.unidade_nome ?? "", l.base.valorDia.toFixed(2).replace(".", ","),
-        l.base.diasPrevistos, l.pagos === "" ? 0 : l.pagos, l.trabalhados === "" ? "" : l.trabalhados,
+        diasNumero(l.previstos), l.previstosManual ? "Sim" : "Não", l.base.diasPrevistos,
+        l.pagos === "" ? 0 : l.pagos, l.trabalhados === "" ? "" : l.trabalhados,
         l.diferenca, l.totalDias,
         l.desconto.toFixed(2).replace(".", ","),
         l.depositar.toFixed(2).replace(".", ","),
