@@ -67,6 +67,7 @@ describe("CSP — valores de cabeçalho", () => {
       "https://img.logo.dev",
       "https://viacep.com.br",
       "https://brasilapi.com.br",
+      "https://s3.amazonaws.com",
     ]) {
       expect(v).toContain(origem);
     }
