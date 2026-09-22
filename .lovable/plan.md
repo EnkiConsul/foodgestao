@@ -19,21 +19,24 @@ Os filtros valem para as três abas:
 
 O seletor de unidade que existe dentro da calculadora deixa de ser duplicado: passa a usar a barra de filtros da tela, mantendo o mês do pagamento junto dos botões de exportar e fechar ciclo.
 
-### 2. Sócio não entra nos vales
-Tamires está cadastrada como sócia e aparece no cálculo do vale-alimentação. A tela passa a:
+### 2. Vale só para quem tem o benefício de fato na ficha
+Sócio continua podendo receber vale — desde que o benefício esteja cadastrado na ficha dele. O problema da Tamires é outro: na ficha dela o vale-alimentação está marcado com R$ 24 por mês, mesmo você não tendo cadastrado nada (provavelmente veio do padrão de benefícios aplicado no cadastro; a causa exata ainda não está comprovada).
 
-- Deixar sócios fora do cálculo mensal, do fechamento de ciclo, do histórico e do CSV dos vales — igual ao que já acontece com férias e jornada, onde sócio não entra.
-- Na ficha do colaborador, ao marcar o vínculo como sócio, os vales ficam desmarcados e indisponíveis, com a explicação de que sócio recebe por pró-labore ou lucros, e não por benefício de vale.
-- Um filtro "Sócios" continua disponível na lista de colaboradores, então nada deixa de ser localizável.
+O que muda:
 
-Observação: na ficha da Tamires o vale-alimentação está marcado com R$ 24 por mês, mesmo você não tendo cadastrado. A causa desse preenchimento ainda não está comprovada (provavelmente veio do padrão de benefícios aplicado no cadastro). Com a mudança acima ela deixa de aparecer no cálculo de imediato. Limpar essa marcação na ficha dela é uma alteração de dado e só faço com a sua autorização — me diga se quer que eu limpe.
+- Antes de qualquer outra coisa, verifico como essa marcação foi criada (padrão de benefícios por cargo/unidade aplicado no cadastro, importação ou edição) e corrijo a origem, para não voltar a marcar vale em quem não tem.
+- A ficha passa a mostrar com clareza de onde veio o vale: "cadastrado na ficha" ou "herdado do padrão da empresa/cargo", com a opção de remover.
+- No cálculo mensal, quem está marcado mas sem valor por dia continua aparecendo com o aviso "Sem valor por dia cadastrado", para você não pagar errado nem perder alguém de vista.
+- Nenhuma regra nova exclui sócio: a lista dos vales segue exatamente o que está na ficha de cada pessoa.
+
+Limpar a marcação de vale-alimentação na ficha da Tamires é alteração de dado: só faço com a sua autorização — me diga se quer que eu tire.
 
 ## Detalhes técnicos
 
 - `src/pages/dp/DpBeneficios.tsx`: substituir o card de filtro único por `DpFilters` + `DpFilterField` (mesmo padrão de `DpColaboradores.tsx`), com estados `search`, `unidadeFilter`, `cargoFilter`, `situacaoFilter`, `colabFilter`; repassar o conjunto para calculadora, cadastro e histórico.
-- `useDpValeCalculadora`: receber filtros (unidade, cargo, situação, busca, colaborador) em vez de só `unidadeFilter`; incluir `vinculo_label` no select e excluir `isSocio(vinculo_label)` das linhas; `useDpBeneficios`/`useDpBeneficiosCadastro`/`useDpValeHistorico` passam a aceitar os mesmos filtros.
+- `useDpValeCalculadora`: receber filtros (unidade, cargo, situação, busca, colaborador) em vez de só `unidadeFilter`; sem exclusão por vínculo — a flag da ficha segue sendo a única fonte; linhas com flag e sem valor por dia ganham aviso próprio.
 - `ValeCalculadora.tsx`: remover o Select de unidade interno e consumir os filtros por props; KPIs e CSV seguem as linhas filtradas.
 - `ValeHistorico.tsx`: aplicar filtros de unidade/cargo nas apurações.
-- `RemuneracaoFields.tsx` / `ColaboradorFormDialog.tsx`: quando `isSocio(vinculo_label)`, desmarcar e bloquear vale-alimentação e vale-transporte com texto explicativo.
-- Testes novos em `src/lib/dp/__tests__`: sócio fora das linhas de vale e filtros combinados (unidade + cargo + situação).
+- Investigar `apply_default_*` / `dp_beneficios_padroes` e o fluxo de criação de colaborador para achar onde `vale_alimentacao` é marcado sem cadastro explícito; corrigir a origem e mostrar a procedência na ficha (`RemuneracaoFields.tsx`).
+- Testes novos em `src/lib/dp/__tests__`: filtros combinados (unidade + cargo + situação) e linha com benefício marcado sem valor por dia.
 - Nenhuma migration; nenhum dado alterado; nada publicado.
