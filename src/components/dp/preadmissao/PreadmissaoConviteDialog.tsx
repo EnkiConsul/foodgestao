@@ -44,7 +44,7 @@ interface Props {
 
 export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props) {
   const { selectedCompanyId } = useCompanyContext();
-  const { data: cargos = [] } = useDpCargos();
+  const { data: cargos = [], isLoading: carregandoCargos, isError: erroCargos, refetch: recarregarCargos } = useDpCargos();
   const { data: unidades = [] } = useDpUnidades();
   const { criar } = useDpPreadmissaoConvite();
 
