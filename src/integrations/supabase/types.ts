@@ -15411,7 +15411,12 @@ export type Database = {
         }[]
       }
       dp_comprovante_anexar: {
-        Args: { p_arquivo: Json; p_documento_id: string; p_pago_em?: string }
+        Args: {
+          p_arquivo: Json
+          p_confirmar_competencia?: boolean
+          p_documento_id: string
+          p_pago_em?: string
+        }
         Returns: string
       }
       dp_comprovante_reassociar: {
