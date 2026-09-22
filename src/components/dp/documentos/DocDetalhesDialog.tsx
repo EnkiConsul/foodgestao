@@ -80,7 +80,7 @@ export function DocDetalhesDialog(props: {
         source === "doc"
           ? supabase
               .from("dp_documentos")
-              .select("id, file_name, file_size, uploaded_by, created_at, exige_aceite, assinatura_detectada, submetido_por_colaborador, colaborador_id, tipo, comprovante_file_path, comprovante_file_name, comprovante_pago_em, comprovante_uploaded_at, replaces_by_documento_id")
+              .select("id, file_name, file_size, uploaded_by, created_at, exige_aceite, assinatura_detectada, submetido_por_colaborador, colaborador_id, tipo, comprovante_file_path, comprovante_file_name, comprovante_pago_em, comprovante_uploaded_at, replaced_by_documento_id")
               .eq("id", docId!)
               .maybeSingle()
           : Promise.resolve({ data: null } as any),
