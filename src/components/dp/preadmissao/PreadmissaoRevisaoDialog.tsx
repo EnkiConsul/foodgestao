@@ -516,6 +516,13 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                       </CargoSelectItems>
                     </SelectContent>
                   </Select>
+                  <CargoSelectAviso
+                    carregando={carregandoCargos}
+                    erro={erroCargos}
+                    total={cargos.length}
+                    onRecarregar={() => void recarregarCargos()}
+                    origem="Revisão da pré-admissão"
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs" htmlFor="pa-unidade-prevista">Unidade prevista</Label>
