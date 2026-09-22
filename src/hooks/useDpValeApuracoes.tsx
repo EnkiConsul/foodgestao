@@ -22,6 +22,10 @@ export interface ApuracaoVale {
   dias_pagos_anterior: number;
   dias_trabalhados_anterior: number | null;
   dias_previstos: number;
+  /** Dias a trabalhar informados pelo gestor (não recalculam pela escala). */
+  dias_previstos_manual: boolean;
+  /** Dias a trabalhar apurados pelo sistema quando a linha foi gravada. */
+  dias_previstos_calculado: number | null;
   total_dias: number;
   valor_dia: number;
   valor_depositar: number;
@@ -46,6 +50,9 @@ const linhaDe = (row: any): ApuracaoVale => ({
   dias_trabalhados_anterior:
     row.dias_trabalhados_anterior == null ? null : Number(row.dias_trabalhados_anterior),
   dias_previstos: Number(row.dias_previstos ?? 0),
+  dias_previstos_manual: row.dias_previstos_manual === true,
+  dias_previstos_calculado:
+    row.dias_previstos_calculado == null ? null : Number(row.dias_previstos_calculado),
   total_dias: Number(row.total_dias ?? 0),
   valor_dia: Number(row.valor_dia ?? 0),
   valor_depositar: Number(row.valor_depositar ?? 0),
@@ -53,13 +60,15 @@ const linhaDe = (row: any): ApuracaoVale => ({
 });
 
 const COLUNAS =
-  "id, colaborador_id, competencia, tipo, dias_pagos_anterior, dias_trabalhados_anterior, dias_previstos, total_dias, valor_dia, valor_depositar, fechado_em";
+  "id, colaborador_id, competencia, tipo, dias_pagos_anterior, dias_trabalhados_anterior, dias_previstos, dias_previstos_manual, dias_previstos_calculado, total_dias, valor_dia, valor_depositar, fechado_em";
 
 export interface FecharLinha {
   colaborador_id: string;
   dias_pagos_anterior: number;
   dias_trabalhados_anterior: number | null;
   dias_previstos: number;
+  dias_previstos_manual: boolean;
+  dias_previstos_calculado: number;
   total_dias: number;
   valor_dia: number;
   valor_depositar: number;
@@ -111,6 +120,8 @@ export function useDpValeApuracoes(tipo: ValeTipo, competencia: string) {
       dias_pagos_anterior: number;
       dias_trabalhados_anterior: number | null;
       dias_previstos: number;
+      dias_previstos_manual: boolean;
+      dias_previstos_calculado: number;
       total_dias: number;
       valor_dia: number;
       valor_depositar: number;
@@ -124,6 +135,8 @@ export function useDpValeApuracoes(tipo: ValeTipo, competencia: string) {
           dias_pagos_anterior: input.dias_pagos_anterior,
           dias_trabalhados_anterior: input.dias_trabalhados_anterior,
           dias_previstos: input.dias_previstos,
+          dias_previstos_manual: input.dias_previstos_manual,
+          dias_previstos_calculado: input.dias_previstos_calculado,
           dias_descontados: 0,
           total_dias: input.total_dias,
           valor_dia: input.valor_dia,
@@ -151,6 +164,8 @@ export function useDpValeApuracoes(tipo: ValeTipo, competencia: string) {
           dias_pagos_anterior: l.dias_pagos_anterior,
           dias_trabalhados_anterior: l.dias_trabalhados_anterior,
           dias_previstos: l.dias_previstos,
+          dias_previstos_manual: l.dias_previstos_manual,
+          dias_previstos_calculado: l.dias_previstos_calculado,
           dias_descontados: 0,
           total_dias: l.total_dias,
           valor_dia: l.valor_dia,

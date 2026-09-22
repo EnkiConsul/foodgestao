@@ -11902,6 +11902,8 @@ export type Database = {
           dias_descontados: number
           dias_pagos_anterior: number
           dias_previstos: number
+          dias_previstos_calculado: number | null
+          dias_previstos_manual: boolean
           dias_trabalhados_anterior: number | null
           fechado_em: string | null
           fechado_por: string | null
@@ -11923,6 +11925,8 @@ export type Database = {
           dias_descontados?: number
           dias_pagos_anterior?: number
           dias_previstos?: number
+          dias_previstos_calculado?: number | null
+          dias_previstos_manual?: boolean
           dias_trabalhados_anterior?: number | null
           fechado_em?: string | null
           fechado_por?: string | null
@@ -11944,6 +11948,8 @@ export type Database = {
           dias_descontados?: number
           dias_pagos_anterior?: number
           dias_previstos?: number
+          dias_previstos_calculado?: number | null
+          dias_previstos_manual?: boolean
           dias_trabalhados_anterior?: number | null
           fechado_em?: string | null
           fechado_por?: string | null
