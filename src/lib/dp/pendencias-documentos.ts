@@ -230,8 +230,42 @@ export function vinculosEncerrados(
   return encerrados.sort((a, b) => a.dataFim.localeCompare(b.dataFim));
 }
 
+/**
+ * Limites do vínculo que cobre a competência, segundo o histórico.
+ *
+ * Recontratar no mesmo cadastro reescreve a admissão da ficha; sem olhar o
+ * histórico, competências antigas passariam a ser lidas com a data do vínculo
+ * novo (e um documento correto do vínculo anterior viraria "inconsistência").
+ *
+ * Retorna null quando não há histórico cobrindo a competência — nesse caso
+ * valem as datas da própria ficha.
+ */
+export function limitesVinculoNaCompetencia(
+  historico: VinculoHistorico[] | undefined | null,
+  colaboradorId: string,
+  comp: Competencia,
+): { admissao: string; desligamento: string | null } | null {
+  const { inicio, fim } = intervaloCompetencia(comp);
+  const cobrem = (historico ?? [])
+    .filter((h) => h.colaborador_id === colaboradorId)
+    .map((h) => ({
+      ini: String(h.vigencia_inicio ?? "").slice(0, 10),
+      fim: String(h.vigencia_fim ?? "").slice(0, 10),
+    }))
+    .filter((h) => h.ini && h.ini <= fim && (!h.fim || h.fim >= inicio))
+    .sort((a, b) => a.ini.localeCompare(b.ini));
+  const v = cobrem[0];
+  if (!v) return null;
+  return { admissao: v.ini, desligamento: v.fim || null };
+}
+
 export type ElegibilidadeOpts = {
   unidadeTemRelogio?: boolean;
+  /**
+   * Vínculo vigente na competência (histórico). Quando informado, substitui
+   * admissão/desligamento da ficha na conferência daquela competência.
+   */
+  vinculoNaCompetencia?: { admissao: string; desligamento: string | null } | null;
   /** Dia do adiantamento da unidade (quando ela paga adiantamento). */
   diaAdiantamento?: number | null;
   /** Empresa que emite contracheque separado também no mês do desligamento. */
