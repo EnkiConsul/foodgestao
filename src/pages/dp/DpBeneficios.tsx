@@ -278,7 +278,7 @@ export default function DpBeneficios() {
               </Button>
             ))}
           </div>
-          <ValeCalculadora tipo={valeTipo} />
+          <ValeCalculadora tipo={valeTipo} filtros={filtros} />
         </TabsContent>
 
         <TabsContent value="historico" className="space-y-3">
