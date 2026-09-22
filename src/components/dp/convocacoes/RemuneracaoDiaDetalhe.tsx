@@ -43,6 +43,12 @@ export function RemuneracaoDiaDetalhe({
 
       {open ? (
         <div className="mt-3 space-y-1">
+          {r.estimada ? (
+            <p className="rounded-md bg-amber-500/10 px-2 py-1 text-xs text-amber-700 dark:text-amber-400">
+              Estimativa pelo cadastro atual: esta convocação foi criada antes de o vale-alimentação,
+              o prêmio de assiduidade e o descanso semanal entrarem no resumo do dia.
+            </p>
+          ) : null}
           {r.proventos.map((p) => (
             <div key={p.chave} className="flex items-start justify-between gap-3">
               <span className="min-w-0">

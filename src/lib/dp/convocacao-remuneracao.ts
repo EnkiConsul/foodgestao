@@ -69,7 +69,9 @@ export interface ConvocacaoRemuneracaoInput {
   valeAlimentacaoDescontoDia?: number | null;
   premioAssiduidadeDia?: number | null;
   dependentesIrrf?: number | null;
-  /** Intermitente recebe 13º e férias proporcionais no próprio dia. */
+  /** Divisor do descanso semanal remunerado (padrão 6 dias trabalhados : 1 de descanso). */
+  dsrDivisor?: number | null;
+  /** Intermitente recebe DSR, 13º e férias proporcionais no próprio dia. */
   comVerbasProporcionais?: boolean;
 }
 
@@ -87,21 +89,31 @@ export interface ConvocacaoRemuneracao {
   valorHoras: number;
   adicionalNoturno: number;
   adicionalInsalubridade: number;
+  /** Base do DSR: horas + adicional noturno + insalubridade/periculosidade. */
+  baseDsr: number;
+  /** Descanso semanal remunerado proporcional às horas do dia. */
+  dsr: number;
   decimoTerceiro: number;
   ferias: number;
   tercoFerias: number;
   premioAssiduidade: number;
-  /** Base tributável (INSS/FGTS): remuneração do trabalho e adicionais. */
+  /** Base tributável (INSS/FGTS): remuneração do dia, DSR e 13º proporcional. */
   baseTributavel: number;
+  /** Base do INSS do dia (sem o 13º, que é tributado à parte). */
+  baseInss: number;
   valeAlimentacao: number;
   valeAlimentacaoDesconto: number;
-  /** Bruto do dia: base tributável + vale-alimentação concedido. */
+  /** Bruto do dia: todas as parcelas + vale-alimentação concedido. */
   bruto: number;
   inss: number;
+  /** INSS do 13º proporcional, tributado separadamente. */
+  inssDecimoTerceiro: number;
   fgts: number;
   descontos: number;
   /** O que a pessoa recebe no dia (bruto − INSS − desconto do vale). */
   liquido: number;
+  /** Verdadeiro quando o resumo foi recalculado pelo cadastro atual. */
+  estimada?: boolean;
   proventos: ConvocacaoRemuneracaoParcela[];
   descontosLista: ConvocacaoRemuneracaoParcela[];
 }
@@ -132,24 +144,34 @@ export function calcularRemuneracaoConvocacao(
   const adicionalInsalubridade = pctAdicional > 0 ? round2(valorHoras * (pctAdicional / 100)) : 0;
 
   const premioAssiduidade = round2(Math.max(0, num(input.premioAssiduidadeDia)));
-
-  const baseVerbas = round2(valorHoras + adicionalNoturno + adicionalInsalubridade + premioAssiduidade);
   const comVerbas = input.comVerbasProporcionais !== false;
+
+  // DSR do intermitente: proporcional às horas do dia, com o reflexo do
+  // adicional noturno e da insalubridade/periculosidade na base.
+  const baseDsr = round2(valorHoras + adicionalNoturno + adicionalInsalubridade);
+  const divisorDsr = Math.max(1, num(input.dsrDivisor ?? 6));
+  const dsr = comVerbas ? round2(baseDsr / divisorDsr) : 0;
+
+  const baseVerbas = round2(baseDsr + dsr + premioAssiduidade);
   const decimoTerceiro = comVerbas ? round2(baseVerbas / 12) : 0;
   const ferias = comVerbas ? round2(baseVerbas / 12) : 0;
   const tercoFerias = comVerbas ? round2(ferias / 3) : 0;
 
-  const baseTributavel = round2(baseVerbas + decimoTerceiro + ferias + tercoFerias);
+  // Férias proporcionais e 1/3 são indenizadas ao intermitente: ficam fora das
+  // bases de INSS e FGTS. O 13º entra, mas tributado separadamente no INSS.
+  const baseInss = baseVerbas;
+  const baseTributavel = round2(baseVerbas + decimoTerceiro);
 
   const valeAlimentacao = round2(Math.max(0, num(input.valeAlimentacaoDia)));
   const valeAlimentacaoDesconto = round2(
     Math.min(valeAlimentacao, Math.max(0, num(input.valeAlimentacaoDescontoDia))),
   );
 
-  const bruto = round2(baseTributavel + valeAlimentacao);
-  const inss = comVerbas ? calcularInss(baseTributavel) : 0;
+  const bruto = round2(baseVerbas + decimoTerceiro + ferias + tercoFerias + valeAlimentacao);
+  const inss = comVerbas ? calcularInss(baseInss) : 0;
+  const inssDecimoTerceiro = comVerbas && decimoTerceiro > 0 ? calcularInss(decimoTerceiro) : 0;
   const fgts = comVerbas ? calcularFgts(baseTributavel) : 0;
-  const descontos = round2(inss + valeAlimentacaoDesconto);
+  const descontos = round2(inss + inssDecimoTerceiro + valeAlimentacaoDesconto);
   const liquido = round2(bruto - descontos);
 
   const proventos: ConvocacaoRemuneracaoParcela[] = [
@@ -165,6 +187,12 @@ export function calcularRemuneracaoConvocacao(
     { chave: "noturno", label: `Adicional noturno (${pctNoturno}%)`, valor: adicionalNoturno, detalhe: horasNoturnas ? `${horasNoturnas.toLocaleString("pt-BR")} h após as 22h` : undefined },
     { chave: "adicional", label: `Insalubridade/periculosidade (${pctAdicional}%)`, valor: adicionalInsalubridade },
     { chave: "premio", label: "Prêmio de assiduidade (parte do dia)", valor: premioAssiduidade },
+    {
+      chave: "dsr",
+      label: "Descanso semanal remunerado",
+      valor: dsr,
+      detalhe: `1/${divisorDsr} de ${baseDsr.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} (horas + adicionais)`,
+    },
     { chave: "decimo", label: "13º proporcional", valor: decimoTerceiro },
     { chave: "ferias", label: "Férias proporcionais", valor: ferias },
     { chave: "terco", label: "1/3 de férias", valor: tercoFerias },
@@ -173,6 +201,7 @@ export function calcularRemuneracaoConvocacao(
 
   const descontosLista: ConvocacaoRemuneracaoParcela[] = [
     { chave: "inss", label: "INSS", valor: inss },
+    { chave: "inss_13", label: "INSS do 13º", valor: inssDecimoTerceiro },
     { chave: "va_desc", label: "Desconto do vale-alimentação", valor: valeAlimentacaoDesconto },
   ].filter((p) => p.valor > 0);
 
@@ -182,15 +211,19 @@ export function calcularRemuneracaoConvocacao(
     valorHoras,
     adicionalNoturno,
     adicionalInsalubridade,
+    baseDsr,
+    dsr,
     decimoTerceiro,
     ferias,
     tercoFerias,
     premioAssiduidade,
     baseTributavel,
+    baseInss,
     valeAlimentacao,
     valeAlimentacaoDesconto,
     bruto,
     inss,
+    inssDecimoTerceiro,
     fgts,
     descontos,
     liquido,
@@ -199,27 +232,48 @@ export function calcularRemuneracaoConvocacao(
   };
 }
 
-/** Lê o snapshot gravado na publicação e devolve a abertura do dia. */
+/** Versão mínima do resumo que já traz vale-alimentação, prêmio e DSR. */
+export const REMUNERACAO_SNAPSHOT_VERSAO = 2;
+
+/** Verdadeiro quando o resumo gravado é anterior às parcelas atuais. */
+export function snapshotDesatualizado(snap: any): boolean {
+  if (!snap || typeof snap !== "object") return false;
+  return num(snap.versao) < REMUNERACAO_SNAPSHOT_VERSAO;
+}
+
+/**
+ * Lê o resumo gravado na publicação e devolve a abertura do dia.
+ * Quando o resumo é de versão anterior e o recálculo pelo cadastro atual é
+ * informado em `atual`, a abertura usa o cadastro atual e sai marcada como
+ * estimativa — o resumo histórico nunca é reescrito.
+ */
 export function remuneracaoDoSnapshot(
   snap: any,
   oferta?: { entrada?: string | null; saida?: string | null; termina_no_dia_seguinte?: boolean | null },
+  atual?: any,
 ): ConvocacaoRemuneracao | null {
-  if (!snap || typeof snap !== "object") return null;
-  const unitario = num(snap.valor_unitario);
-  const qtd = num(snap.quantidade_prevista);
+  const estimada = !!atual && typeof atual === "object" && atual.elegivel === true
+    && snapshotDesatualizado(snap);
+  const base = estimada ? atual : snap;
+  if (!base || typeof base !== "object") return null;
+  const unitario = num(base.valor_unitario);
+  const qtd = num(base.quantidade_prevista);
   if (unitario <= 0 || qtd <= 0) return null;
-  return calcularRemuneracaoConvocacao({
+  const snapshot = base;
+  const r = calcularRemuneracaoConvocacao({
     valorUnitario: unitario,
     quantidade: qtd,
-    unidade: snap.unidade_remuneracao === "diaria" ? "diaria" : "hora",
+    unidade: snapshot.unidade_remuneracao === "diaria" ? "diaria" : "hora",
     entrada: oferta?.entrada,
     saida: oferta?.saida,
     terminaNoDiaSeguinte: oferta?.termina_no_dia_seguinte ?? false,
-    adicionalPercentual: snap.adicional_percentual,
-    adicionalNoturnoPercentual: snap.adicional_noturno_percentual ?? 20,
-    valeAlimentacaoDia: snap.vale_alimentacao_dia,
-    valeAlimentacaoDescontoDia: snap.vale_alimentacao_desconto_dia,
-    premioAssiduidadeDia: snap.premio_assiduidade_dia,
-    dependentesIrrf: snap.dependentes_irrf,
+    adicionalPercentual: snapshot.adicional_percentual,
+    adicionalNoturnoPercentual: snapshot.adicional_noturno_percentual ?? 20,
+    valeAlimentacaoDia: snapshot.vale_alimentacao_dia,
+    valeAlimentacaoDescontoDia: snapshot.vale_alimentacao_desconto_dia,
+    premioAssiduidadeDia: snapshot.premio_assiduidade_dia,
+    dependentesIrrf: snapshot.dependentes_irrf,
+    dsrDivisor: snapshot.dsr_divisor ?? 6,
   });
+  return estimada ? { ...r, estimada: true } : r;
 }
