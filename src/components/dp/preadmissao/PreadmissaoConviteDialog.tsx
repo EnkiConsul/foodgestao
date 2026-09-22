@@ -58,6 +58,12 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
   const { data: cargos = [], isLoading: carregandoCargos, isError: erroCargos, refetch: recarregarCargos } = useDpCargos();
   const { data: unidades = [] } = useDpUnidades();
   const { criar } = useDpPreadmissaoConvite();
+  // Rascunho do convite: guardado por empresa e por usuário, para o gestor
+  // fechar a janela e retomar depois sem perder o que digitou.
+  const chaveRascunho = chaveRascunhoConvite({ pessoaApoioId: inicial?.pessoaApoioId ?? null });
+  const rascunho = useDpAdmissaoRascunho(chaveRascunho);
+  const [rascunhoGuardado, setRascunhoGuardado] = useState<{ campos: CamposRascunhoConvite; em: string } | null>(null);
+
 
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
