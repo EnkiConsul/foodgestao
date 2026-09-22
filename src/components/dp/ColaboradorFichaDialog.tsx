@@ -417,7 +417,9 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
           {faltandoFicha.length > 0 && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
               <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
-                {faltandoObrig.length > 0 ? "Cadastro incompleto" : "Cadastro quase completo"}
+                {faltandoObrig.length > 0
+                  ? `Cadastro incompleto (${faltandoObrig.length})`
+                  : "Cadastro quase completo"}
               </p>
               {faltandoObrig.length > 0 && (
                 <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
