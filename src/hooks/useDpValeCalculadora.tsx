@@ -262,9 +262,7 @@ export function useDpValeCalculadora(
   });
 
   const resumo = useMemo<ResumoVale>(() => {
-    const colaboradores = (colabQ.data ?? []).filter(
-      (c) => c.ativo !== false && (!c.data_desligamento || c.data_desligamento >= janelaInicio),
-    );
+    const colaboradores = colaboradoresFiltrados;
     const ev = eventosQ.data;
 
     const dowPorConfig = new Map<string, number[]>();
