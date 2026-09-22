@@ -1970,7 +1970,7 @@ export function ColaboradorFormDialog({
           </div>
 
           {/* Endereço no mesmo bloco padrão do restante do sistema */}
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2 md:col-span-2" data-field="endereco" tabIndex={-1}>
             <Label>Endereço</Label>
             <EnderecoFields
               idPrefix="colab"
@@ -1981,7 +1981,11 @@ export function ColaboradorFormDialog({
           </div>
 
           {/* Dados de pagamento: conta para depósito, chave Pix ou espécie */}
-          <div className="space-y-3 md:col-span-2 rounded-lg border p-3">
+          <div
+            className="space-y-3 md:col-span-2 rounded-lg border p-3"
+            data-field="dados_pagamento"
+            tabIndex={-1}
+          >
             <div className="flex items-center justify-between gap-3">
               <Label className="font-medium">Dados de pagamento</Label>
               <label className="flex items-center gap-2 text-sm">
