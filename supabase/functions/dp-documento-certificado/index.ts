@@ -167,7 +167,14 @@ function paginaCertificado(pdf: PDFDocument, fonte: PDFFont, negrito: PDFFont, d
 }
 
 /** Página separadora do anexo (comprovante sem validação digital própria). */
-function paginaAnexo(pdf: PDFDocument, fonte: PDFFont, negrito: PDFFont, arquivo: string, pagoEm: string): void {
+function paginaAnexo(
+  pdf: PDFDocument,
+  fonte: PDFFont,
+  negrito: PDFFont,
+  arquivo: string,
+  pagoEm: string,
+  competencia: string,
+): void {
   const page = pdf.addPage(A4);
   const { width, height } = page.getSize();
   const margem = 48;
