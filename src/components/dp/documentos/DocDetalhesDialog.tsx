@@ -235,7 +235,9 @@ export function DocDetalhesDialog(props: {
                   pago_em: detalhes.data?.doc?.comprovante_pago_em ?? null,
                   uploaded_at: detalhes.data?.doc?.comprovante_uploaded_at ?? null,
                 }}
-                versaoAnterior={!!detalhes.data?.doc?.replaces_by_documento_id}
+                versaoAnterior={!!detalhes.data?.doc?.replaced_by_documento_id}
+                documentoTitulo={target.titulo}
+                colaboradorNome={target.colaborador_nome}
               />
             )}
 

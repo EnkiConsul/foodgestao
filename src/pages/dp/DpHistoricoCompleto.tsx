@@ -1032,6 +1032,8 @@ export default function DpHistoricoCompleto() {
                   <ComprovanteAcaoBotao
                     alvo={{ documentoId: r.id.slice(4), colaboradorId: r.colaborador_id, tipo: r.tipo_key }}
                     temComprovante={!!r.tem_comprovante}
+                    documentoTitulo={r.titulo}
+                    colaboradorNome={r.colaborador_nome}
                     rotulo="Comprovante"
                     className="min-h-11 flex-1 max-w-[45%]"
                   />
