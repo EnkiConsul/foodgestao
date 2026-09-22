@@ -31,7 +31,7 @@
 - Bloqueado não consegue reativar pelo link antigo; link é recusado.
 - Bloqueado e desligado não recebem novo link de ativação nem de redefinição.
 - Ao desligar: links pendentes invalidados, sessões marcadas como revogadas, evento em auditoria.
-- Desligado no prazo: lê e baixa documentos; não registra ocorrência, não cria pedidos.
+- Desligado nos 30 dias: lê e baixa os próprios documentos; negado em folga, férias, troca, convocação, ocorrência de ponto, pedidos ao DP e comentários — um teste por caminho.
 - Desligado com prazo vencido: portal nega tudo.
 - Empresa A não bloqueia, libera nem revoga colaborador da Empresa B.
 - Dupla execução da revogação não duplica evento nem falha (idempotência).
@@ -39,7 +39,7 @@
 
 ## Detalhes técnicos
 - Migration nova com `private.dp_acesso_liberavel(user_id)` e `public.dp_portal_acesso_revogar(colaborador_id, motivo)` (SECURITY DEFINER, advisory lock, idempotente), gatilho `AFTER UPDATE OF ativo, data_desligamento, deleted_at` em `dp_colaboradores`, grants restritos a `authenticated` + `service_role`.
-- `dp_ocorrencia_registrar` passa a usar `dp_colaborador_ativo_of`.
+- `dp_ocorrencia_registrar` passa a usar `dp_colaborador_ativo_of`; varredura de todas as policies de escrita e RPCs do portal que hoje aceitam `dp_colaborador_of`/`is_dp_colaborador_of_company` (que incluem `desligado_no_prazo`) para trocar por `private.dp_pode_agir`, mantendo leitura/download de documentos com o escopo atual.
 - Edge Functions alteradas: `dp-criar-acesso-colaborador`, `dp-reset-password`, `dp-alterar-senha-colaborador`, `dp-bloquear-acesso-colaborador`; helper compartilhado em `_shared/portal-access.ts`.
 - Frontend: `ColaboradorAcessoPanel.tsx`, `ColaboradorDesligamentoPanel.tsx`; `src/integrations/supabase/types.ts` atualizado se o schema mudar.
 - Nenhuma alteração no módulo financeiro. Nada é apagado: revogação é sempre marcação, com histórico preservado.
