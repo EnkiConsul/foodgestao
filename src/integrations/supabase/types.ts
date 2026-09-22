@@ -15917,18 +15917,32 @@ export type Database = {
         }
         Returns: string
       }
-      dp_ferias_validar_programacao: {
-        Args: {
-          _colaborador_id: string
-          _data_fim: string
-          _data_inicio: string
-          _dias_abono: number
-          _ignorar_gozo_id?: string
-          _justificativa: string
-          _periodo_id: string
-        }
-        Returns: undefined
-      }
+      dp_ferias_validar_programacao:
+        | {
+            Args: {
+              _colaborador_id: string
+              _data_fim: string
+              _data_inicio: string
+              _dias_abono?: number
+              _ignorar_gozo_id?: string
+              _justificativa?: string
+              _modo?: string
+              _periodo_id: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _colaborador_id: string
+              _data_fim: string
+              _data_inicio: string
+              _dias_abono: number
+              _ignorar_gozo_id?: string
+              _justificativa: string
+              _periodo_id: string
+            }
+            Returns: undefined
+          }
       dp_ficha_aplicar: {
         Args: {
           p_atualizar_existente?: boolean
