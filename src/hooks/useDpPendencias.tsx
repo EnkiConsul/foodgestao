@@ -614,8 +614,7 @@ export function useDpPendencias() {
             .select(
               "colaborador_id, vigencia_inicio, vigencia_fim, regime, unidade_id, modo_continuidade",
             )
-            .eq("company_id", selectedCompanyId!)
-            .not("vigencia_fim", "is", null);
+            .eq("company_id", selectedCompanyId!);
           historicoVinculos = (data ?? []) as unknown as VinculoHistorico[];
         } catch (e) {
           console.warn("pendencias/historico-vinculos:", e);
