@@ -245,6 +245,7 @@ export function DocDetalhesDialog(props: {
                 versaoAnterior={!!detalhes.data?.doc?.replaced_by_documento_id}
                 documentoTitulo={target.titulo}
                 colaboradorNome={target.colaborador_nome}
+                competencia={target.competencia}
               />
             )}
 

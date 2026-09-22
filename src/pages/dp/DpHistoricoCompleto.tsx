@@ -978,6 +978,7 @@ export default function DpHistoricoCompleto() {
                           temComprovante={!!r.tem_comprovante}
                           documentoTitulo={r.titulo}
                           colaboradorNome={r.colaborador_nome}
+                          competencia={r.competencia}
                           className="h-8 w-8 p-0"
                         />
                       )}
@@ -1034,6 +1035,7 @@ export default function DpHistoricoCompleto() {
                     temComprovante={!!r.tem_comprovante}
                     documentoTitulo={r.titulo}
                     colaboradorNome={r.colaborador_nome}
+                    competencia={r.competencia}
                     rotulo="Comprovante"
                     className="min-h-11 flex-1 max-w-[45%]"
                   />
