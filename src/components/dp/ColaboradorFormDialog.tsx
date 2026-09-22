@@ -1751,6 +1751,8 @@ export function ColaboradorFormDialog({
       // próxima aba para completar turno e jornada.
       setCriadoId(colaboradorId);
       setBaseline(snapshot);
+      // Cadastro concluído: o rascunho guardado deixa de existir.
+      void rascunho.descartar();
       toast.success("Colaborador cadastrado");
 
       if (intencaoRef.current !== "close" && tab === "dados") {
