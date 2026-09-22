@@ -85,7 +85,14 @@ export function useMenuSwipeVertical() {
       const dy = clientY - startY;
       if (Math.abs(dy) < MIN_DELTA_Y) return;
       const direcao = dy < 0 ? "cima" : "baixo";
-      if (!comecouNaBordaVertical(direcao) && rolagemBloqueiaGesto(scroller, direcao)) return;
+      if (
+        gestoVerticalBloqueado({
+          scrollerInterno: !!scroller,
+          comecouNaBorda: comecouNaBordaVertical(direcao),
+          documentoComRolagemRestante: rolagemDoDocumento(direcao),
+        })
+      )
+        return;
 
       const destino = destinoMenuVertical({
         rotas: ref.current.rotas,
