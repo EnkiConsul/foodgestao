@@ -167,7 +167,7 @@ export function useDpValeCalculadora(
     queryFn: async () => {
       // Colunas montadas em runtime (VA/VT): tipagem genérica do client não ajuda aqui.
       let q: any = (supabase.from("dp_colaboradores") as any)
-        .select(`id, nome, regime, sexo, ativo, data_desligamento, unidade_id, ${cols.colaborador}, dp_unidades(nome)`)
+        .select(`id, nome, regime, sexo, ativo, data_desligamento, unidade_id, cargo_id, ${cols.colaborador}, dp_unidades(nome)`)
         .eq("company_id", selectedCompanyId!)
         .eq(cols.flag, true)
         .order("nome");
@@ -178,7 +178,22 @@ export function useDpValeCalculadora(
     },
   });
 
-  const colabIds = (colabQ.data ?? []).map((c) => c.id);
+  /** Filtros da tela aplicados às pessoas que têm o benefício marcado na ficha. */
+  const colaboradoresFiltrados = useMemo(
+    () => (colabQ.data ?? []).filter((c) => pessoaAtendeFiltros(c, filtros, { janelaInicio })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      colabQ.data,
+      janelaInicio,
+      filtros.busca,
+      filtros.cargo,
+      filtros.colaborador,
+      filtros.situacao,
+      filtros.unidade,
+    ],
+  );
+
+  const colabIds = colaboradoresFiltrados.map((c) => c.id);
 
   const eventosQ = useQuery({
     queryKey: [
