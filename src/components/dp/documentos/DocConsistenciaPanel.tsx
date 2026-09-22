@@ -236,7 +236,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
       const competencias: string[] = [];
       for (let c = inicio; c <= fim; c = addMeses(c, 1)) competencias.push(c);
 
-      const [colabsRes, docsRes, unidadesRes, gozosRes, solsRes] = await Promise.all([
+      const [colabsRes, docsRes, unidadesRes, gozosRes, solsRes, histRes] = await Promise.all([
         // Inclui desligados: quem saiu no meio do mês continua devendo o
         // documento daquela competência (a elegibilidade é por competência).
         supabase
