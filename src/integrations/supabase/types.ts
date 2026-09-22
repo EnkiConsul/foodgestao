@@ -11215,6 +11215,8 @@ export type Database = {
           arquivo_path: string | null
           colaborador_id: string
           company_id: string
+          corrigido_em: string | null
+          corrigido_por: string | null
           created_at: string
           criado_por: string | null
           data_alvo: string | null
@@ -11222,6 +11224,9 @@ export type Database = {
           fora_da_janela: boolean
           id: string
           motivo: string | null
+          removido_em: string | null
+          removido_motivo: string | null
+          removido_por: string | null
           respondido_em: string | null
           respondido_por: string | null
           resposta_admin: string | null
@@ -11236,6 +11241,8 @@ export type Database = {
           arquivo_path?: string | null
           colaborador_id: string
           company_id: string
+          corrigido_em?: string | null
+          corrigido_por?: string | null
           created_at?: string
           criado_por?: string | null
           data_alvo?: string | null
@@ -11243,6 +11250,9 @@ export type Database = {
           fora_da_janela?: boolean
           id?: string
           motivo?: string | null
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           respondido_em?: string | null
           respondido_por?: string | null
           resposta_admin?: string | null
@@ -11257,6 +11267,8 @@ export type Database = {
           arquivo_path?: string | null
           colaborador_id?: string
           company_id?: string
+          corrigido_em?: string | null
+          corrigido_por?: string | null
           created_at?: string
           criado_por?: string | null
           data_alvo?: string | null
@@ -11264,6 +11276,9 @@ export type Database = {
           fora_da_janela?: boolean
           id?: string
           motivo?: string | null
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           respondido_em?: string | null
           respondido_por?: string | null
           resposta_admin?: string | null
@@ -14975,6 +14990,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      dp_adiantamento_registrar: {
+        Args: {
+          p_colaborador: string
+          p_data: string
+          p_observacao?: string
+          p_tipo: string
+        }
+        Returns: Json
+      }
       dp_adicionar_dias_uteis: {
         Args: { _base: string; _dias: number; _timezone: string }
         Returns: string
@@ -16087,6 +16111,15 @@ export type Database = {
         Args: { p_colaborador: string; p_data: string }
         Returns: Json
       }
+      dp_licenca_retorno_registrar: {
+        Args: {
+          p_acao: string
+          p_data: string
+          p_id: string
+          p_observacao?: string
+        }
+        Returns: Json
+      }
       dp_meu_acesso_portal: {
         Args: never
         Returns: {
@@ -16614,6 +16647,17 @@ export type Database = {
         }[]
       }
       dp_solicitacao_cancelar: { Args: { p_id: string }; Returns: Json }
+      dp_solicitacao_corrigir: {
+        Args: {
+          p_colaborador: string
+          p_data_alvo: string
+          p_data_fim: string
+          p_id: string
+          p_justificativa?: string
+          p_motivo?: string
+        }
+        Returns: Json
+      }
       dp_solicitacao_criar: {
         Args: {
           p_arquivo_path?: string
@@ -16634,6 +16678,10 @@ export type Database = {
           p_motivo?: string
           p_tipo: Database["public"]["Enums"]["dp_solicitacao_tipo"]
         }
+        Returns: Json
+      }
+      dp_solicitacao_excluir: {
+        Args: { p_id: string; p_motivo?: string }
         Returns: Json
       }
       dp_solicitacao_responder: {
