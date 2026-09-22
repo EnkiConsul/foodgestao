@@ -52,10 +52,14 @@ function erro(e: { message?: string } | null, fallback?: string): never | void {
   if (e) throw new Error(mensagemErroRegra(e, fallback ?? mensagemErroRegra(e)));
 }
 
-const rpc = supabase.rpc.bind(supabase) as unknown as (
+type RpcFn = (
   nome: string,
   args?: Record<string, unknown>,
 ) => Promise<{ data: unknown; error: { message?: string } | null }>;
+
+/** Chamada das rotinas oficiais (resolvida na hora do uso). */
+const rpc: RpcFn = (nome, args) =>
+  (supabase.rpc as unknown as RpcFn)(nome, args);
 
 /** Configuração do DP (regras de folgas, férias, vales, adicionais). */
 export async function salvarConfigDp(input: {
