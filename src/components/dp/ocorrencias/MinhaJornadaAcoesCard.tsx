@@ -100,7 +100,7 @@ export function MinhaJornadaAcoesCard() {
         upsert: false,
       });
       if (up.error) throw up.error;
-      const { error } = await supabase.from("dp_documentos").insert({
+      await registrarDocumento({
         company_id: vinculo.companyId,
         colaborador_id: vinculo.colaboradorId,
         tipo: "atestado",
@@ -111,11 +111,7 @@ export function MinhaJornadaAcoesCard() {
         file_size: arquivo.size,
         mime_type: arquivo.type,
         referencia_data: hoje,
-        uploaded_by: user?.id,
-        submetido_por_colaborador: true,
-        aprovacao_status: "pendente",
       });
-      if (error) throw error;
       registrar.mutate(
         { tipo: "atestado", justificativa: motivo || null },
         { onSuccess: fechar },

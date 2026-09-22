@@ -363,8 +363,8 @@ export function useAplicarFicha() {
               if (q.error) throw q.error;
               return !!q.data?.id;
             },
-            registrarDocumento: async ({ destino, descricao }) =>
-              await supabase.from("dp_documentos").insert({
+            registrarDocumento: async ({ destino, descricao }) => {
+              await registrarDocumentoOficial({
                 company_id: selectedCompanyId,
                 colaborador_id: colaboradorId,
                 file_path: destino,
@@ -373,7 +373,9 @@ export function useAplicarFicha() {
                 tipo: "ficha_registro",
                 titulo: "Ficha de registro importada",
                 descricao,
-              }),
+              });
+              return { error: null };
+            },
           },
         );
         anexo = r.status;
