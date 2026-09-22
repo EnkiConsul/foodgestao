@@ -15171,6 +15171,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      dp_adiantamento_encerrar_no_vinculo: {
+        Args: { p_colaborador: string; p_data_fim: string; p_motivo: string }
+        Returns: string
+      }
       dp_adiantamento_registrar: {
         Args: {
           p_colaborador: string
