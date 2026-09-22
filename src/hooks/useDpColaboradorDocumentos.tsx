@@ -3,6 +3,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { aceitarDocumentoAnexo } from "@/lib/dp/colaborador-oficial";
+import {
+  registrarDocumento,
+  salvarChecklistDocumento,
+  excluirChecklistDocumento,
+} from "@/lib/dp/documentos-oficial";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { useAuth } from "@/hooks/useAuth";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
