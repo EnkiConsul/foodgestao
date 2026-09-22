@@ -3,7 +3,7 @@ import {
   DP_DOC_TIPOS_IMPORTAVEIS,
   detectarTipoDocumento,
   docTipoLabel,
-  tipoAceitaComprovante,
+  aceitaComprovante,
   tiposDoGrupo,
 } from "@/lib/dp/documentoTipos";
 
@@ -34,7 +34,7 @@ describe("Naturezas unificadas de Admissão e Desligamento", () => {
   });
 
   it("Desligamento aceita comprovante de pagamento", () => {
-    expect(tipoAceitaComprovante("desligamento")).toBe(true);
-    expect(tipoAceitaComprovante("admissao")).toBe(false);
+    expect(aceitaComprovante("desligamento")).toBe(true);
+    expect(aceitaComprovante("admissao")).toBe(false);
   });
 });
