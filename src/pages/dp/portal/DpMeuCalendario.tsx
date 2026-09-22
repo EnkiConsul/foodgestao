@@ -1356,6 +1356,106 @@ export default function DpMeuCalendario() {
         </DialogContent>
       </Dialog>
 
+      {/* Dialog mudança do dia da minha folga */}
+      <Dialog open={!!remarcarOpen} onOpenChange={(o) => !o && setRemarcarOpen(null)}>
+        <DialogContent className="max-w-md max-h-[90svh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black flex items-center gap-3">
+              <CalendarClock className="size-6 text-primary" />
+              Mudar o dia da folga
+            </DialogTitle>
+            <DialogDescription>
+              Sua folga de <b>{remarcarOpen && formatBR(parseYMD(remarcarOpen))}</b> passa para outro
+              dia de descanso do mesmo mês. O setor de pessoal é avisado da mudança.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Novo dia</Label>
+              <Select
+                value={remarcarNova}
+                onValueChange={(v) => {
+                  setRemarcarNova(v);
+                  setRemarcarAviso(null);
+                }}
+              >
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="Escolha o novo dia" />
+                </SelectTrigger>
+                <SelectContent>
+                  {diasRemarcacao.map((d) => (
+                    <SelectItem key={d.iso} value={d.iso}>
+                      {formatBR(parseYMD(d.iso))}
+                      {d.disponivel ? "" : ` — ${d.motivo}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {diasRemarcacao.length === 0 && (
+                <p className="text-xs text-destructive mt-1">
+                  Não há outro dia de descanso disponível neste mês. Fale com o setor de pessoal.
+                </p>
+              )}
+              {diaRemarcacaoEscolhido && !diaRemarcacaoEscolhido.disponivel && (
+                <p className="text-xs text-amber-700 mt-1">
+                  {diaRemarcacaoEscolhido.motivo}. Você pode pedir a mudança ao setor de pessoal.
+                </p>
+              )}
+              {remarcarAviso && <p className="text-xs text-amber-700 mt-1">{remarcarAviso}</p>}
+            </div>
+            <div>
+              <Label className="flex items-center gap-2">
+                Motivo
+                <span className="text-muted-foreground text-xs font-normal">(opcional)</span>
+              </Label>
+              <Textarea
+                rows={3}
+                className="rounded-xl"
+                placeholder="Conte o motivo da mudança"
+                value={remarcarMotivo}
+                onChange={(e) => setRemarcarMotivo(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setRemarcarOpen(null)}
+              className="min-h-10 w-full sm:w-auto"
+            >
+              Cancelar
+            </Button>
+            {diaRemarcacaoEscolhido && !diaRemarcacaoEscolhido.disponivel ? (
+              <Button
+                onClick={() => pedirRemarcacao.mutate()}
+                disabled={pedirRemarcacao.isPending || !remarcarNova}
+                className="min-h-10 w-full sm:w-auto"
+              >
+                {pedirRemarcacao.isPending ? "Enviando..." : "Pedir mudança ao DP"}
+              </Button>
+            ) : remarcarAviso ? (
+              <Button
+                onClick={() => pedirRemarcacao.mutate()}
+                disabled={pedirRemarcacao.isPending || !remarcarNova}
+                className="min-h-10 w-full sm:w-auto"
+              >
+                {pedirRemarcacao.isPending ? "Enviando..." : "Pedir mudança ao DP"}
+              </Button>
+            ) : (
+              <Button
+                onClick={() => remarcarFolga.mutate()}
+                disabled={remarcarFolga.isPending || !remarcarNova}
+                className="min-h-10 w-full sm:w-auto"
+              >
+                {remarcarFolga.isPending ? "Mudando..." : "Mudar a folga"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+
       {socioBloqueio && companyId && (
         <SocioBloqueioDialog
           open
