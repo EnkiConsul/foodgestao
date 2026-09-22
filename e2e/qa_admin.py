@@ -32,6 +32,7 @@ import os
 import shutil
 import subprocess
 from urllib.parse import parse_qsl, unquote, urlsplit
+from staging_env import assert_staging_db
 
 QA_SCHEMA = "qa"
 
@@ -67,7 +68,7 @@ def db_url() -> str:
     url = os.environ.get("SUPABASE_DB_URL") or os.environ.get("QA_DB_URL")
     if not url:
         raise RuntimeError(MISSING_DB_URL_MESSAGE)
-    return url
+    return assert_staging_db(url)
 
 
 def has_db_url() -> bool:

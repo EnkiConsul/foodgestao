@@ -109,15 +109,16 @@ usuários de teste A–D e fixtures existentes). Portanto:
 
 ## 5. Instalação de dependências
 
-O repositório tem `bun.lockb` como lock oficial; o `package-lock.json` está
-desatualizado e `npm ci` falha por isso. Para validar o commit em worktree local:
+O Lovable mantém `bun.lockb`; os workflows do GitHub usam `package-lock.json`.
+O lock do npm foi sincronizado para corrigir a falha de instalação no CI.
+Para reproduzir a instalação usada nas verificações do GitHub, use Node 24:
 
 ```bash
-bun install --frozen-lockfile
+npm ci --no-audit --no-fund
 ```
 
-Use `bun run <script>` (ou `npx` direto) no lugar de `npm ci`. Não regenere nem
-"conserte" o `package-lock.json` sem pedido explícito.
+Ao alterar dependências, mantenha o lock usado pelo CI sincronizado. Não
+substitua `npm ci` por uma instalação que altere versões durante o CI.
 
 ## 6. Itens pendentes fora deste escopo
 

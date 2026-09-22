@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
+import { assertAmbienteValido } from "@/lib/env/appEnv";
 
 export interface UnifiedSignInResult {
   ok: boolean;
@@ -14,6 +15,18 @@ export async function unifiedSignIn(
   turnstileToken: string,
 ): Promise<UnifiedSignInResult> {
   try {
+    // Homologação usa credenciais reais do Auth isolado, nunca uma sessão simulada.
+    if (assertAmbienteValido() === "homologacao") {
+      const email = identifier.trim().toLowerCase();
+      if (!/^[^\s@]+@example\.invalid$/.test(email)) {
+        return { ok: false, errorMessage: "Use o e-mail fictício @example.invalid da sua conta de testes." };
+      }
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error || !data.session) {
+        return { ok: false, errorMessage: "Credenciais de teste inválidas ou login indisponível." };
+      }
+      return { ok: true, identifierSource: "email" };
+    }
     const { data, error } = await supabase.functions.invoke("auth-login", {
       body: { identifier, password, turnstile_token: turnstileToken },
     });

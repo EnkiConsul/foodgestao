@@ -359,12 +359,12 @@ describe("trava de destino dos E2E (marcador lido do servidor alvo por HTTP)", (
     const dir = mkdtempSync(join(tmpdir(), "alvo-e2e-"));
     if (corpo !== null) writeFileSync(join(dir, "build-env.json"), corpo);
     const porta = 31000 + Math.floor(Math.random() * 3000);
-    const proc = spawn("python3", ["-m", "http.server", String(porta), "--directory", dir, "--bind", "127.0.0.1"], {
+    const proc = spawn(process.env.PYTHON || "python3", ["-m", "http.server", String(porta), "--directory", dir, "--bind", "127.0.0.1"], {
       stdio: "ignore",
     });
     const base = `http://127.0.0.1:${porta}`;
     for (let i = 0; i < 60; i++) {
-      const r = spawnSync("curl", ["-sS", "-o", "/dev/null", "-m", "2", `${base}/`], { encoding: "utf8" });
+      const r = spawnSync("curl", ["-sS", "-o", process.platform === "win32" ? "NUL" : "/dev/null", "-m", "2", `${base}/`], { encoding: "utf8" });
       if (r.status === 0) break;
       await new Promise((ok) => setTimeout(ok, 100));
     }
