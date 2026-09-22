@@ -133,3 +133,13 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [x] Fase 1 Pessoas 360 — Documentos, versionamento e aceites (RPC dp_documento_aceitar, função dp-documento-aceitar, imutabilidade da versão aceita, SHA-256 real, certificado por versão)
 - [x] Fase 2 Pessoas 360 — Solicitações e estados administrativos (correção/exclusão lógica de atestado, retorno de licença, adiantamento com origem do servidor, folga do gestor por RPC, escrita direta revogada, listagens ignorando excluídas)
 - [ ] Publicar o frontend das fases 1 e 2 (aguardando decisão do proprietário)
+
+## Fase 5 Pessoas 360 — Escala do mês e operação segura (concluída 2026-09-22)
+- [x] Rotinas oficiais `dp_escala_gerar_mes` e `dp_escala_item_ajustar`: fila por empresa/unidade/mês, conferência de pessoa (empresa, unidade, ativa), turno, setor, jornada, dia fora do mês e dia repetido; mês inteiro gravado numa única transação.
+- [x] Gatilho `trg_dp_escala_item_publicada`: escala publicada não aceita alteração de dias fora das rotinas oficiais (marcação de sessão `dp.escala_oficial`).
+- [x] `dp_convocacao_sync_escala` e `dp_escala_definir_setor_dia` reconhecidas como rotinas oficiais (corpo preservado).
+- [x] `dp_cancelar_troca` com fila por troca (clique repetido não duplica efeito).
+- [x] Gravação direta fechada em dp_escalas, dp_escala_itens, dp_trocas, dp_convocacoes, dp_convocacao_destinatarios, dp_ocorrencias, dp_ocorrencia_coberturas (authenticated só leitura; anon sem acesso; service_role completo).
+- [x] Correção de bug antigo: `private.is_company_admin_or_owner(company)` de um argumento não existia — setor do dia, criar/cancelar folga administrativa, gerar folgas CLT e painel de disponibilidade falhavam com erro de função inexistente.
+- [x] Frontend `useDpEscalaMes` usa as rotinas; mensagens de erro em linguagem de negócio; testes em `src/test/rls/operacoes_criticas.rls.test.ts`.
+- [ ] Publicar o frontend das fases 1 a 5 (aguardando decisão do proprietário)
