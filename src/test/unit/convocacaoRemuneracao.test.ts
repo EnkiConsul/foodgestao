@@ -101,7 +101,7 @@ describe("calcularRemuneracaoConvocacao", () => {
     expect(r.horasNoturnas).toBe(4);
     expect(r.adicionalNoturno).toBeCloseTo(8, 2);
     expect(r.valeAlimentacao).toBe(22);
-    expect(r.descontos).toBeCloseTo(Number((r.inss + 2).toFixed(2)), 2);
+    expect(r.descontos).toBeCloseTo(Number((r.inss + r.inssDecimoTerceiro + 2).toFixed(2)), 2);
   });
 
   it("freelancer não gera verbas CLT, DSR nem INSS", () => {
