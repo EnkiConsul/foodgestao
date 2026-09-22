@@ -12,6 +12,11 @@ import {
   type GrupoPadrao,
   type PadraoAlcance,
 } from "@/lib/dp/beneficiosPadrao";
+import {
+  salvarBeneficioPadrao,
+  definirBeneficiosColaboradorLote,
+  excluirCadastroRemuneracao,
+} from "@/lib/dp/remuneracao-oficial";
 
 const KEY = "dp_beneficios_padroes";
 
@@ -25,7 +30,8 @@ export function useDpBeneficiosPadroes() {
       const { data, error } = await supabase
         .from("dp_beneficios_padroes")
         .select("id, unidade_id, cargo_id, payload, updated_at")
-        .eq("company_id", selectedCompanyId!);
+        .eq("company_id", selectedCompanyId!)
+        .is("removido_em", null);
       if (error) throw error;
       return (data ?? []).map((r: any) => ({
         id: r.id,
@@ -64,11 +70,11 @@ export function useSalvarDpBeneficiosPadrao() {
     }): Promise<{ id: string; atualizados: number }> => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
 
-      const { data: userData } = await supabase.auth.getUser();
       let q = supabase
         .from("dp_beneficios_padroes")
         .select("id, payload")
-        .eq("company_id", selectedCompanyId);
+        .eq("company_id", selectedCompanyId)
+        .is("removido_em", null);
       q = input.unidade_id ? q.eq("unidade_id", input.unidade_id) : q.is("unidade_id", null);
       q = input.cargo_id ? q.eq("cargo_id", input.cargo_id) : q.is("cargo_id", null);
       const { data: existente, error: erroBusca } = await q.maybeSingle();
@@ -81,32 +87,6 @@ export function useSalvarDpBeneficiosPadrao() {
         input.payload,
         grupos,
       );
-
-      // Empresa manda em todos; unidade manda nos cargos dela.
-      if (input.limparEscoposMaisEspecificos) {
-        let del = supabase
-          .from("dp_beneficios_padroes")
-          .delete()
-          .eq("company_id", selectedCompanyId);
-        if (input.unidade_id) {
-          del = del.eq("unidade_id", input.unidade_id).not("cargo_id", "is", null);
-        } else {
-          del = del.not("unidade_id", "is", null);
-        }
-        const { error: erroDel } = await del;
-        if (erroDel) throw erroDel;
-        if (!input.unidade_id) {
-          const { error: erroCargos } = await supabase
-            .from("dp_beneficios_padroes")
-            .delete()
-            .eq("company_id", selectedCompanyId)
-            .is("unidade_id", null)
-            .not("cargo_id", "is", null);
-          if (erroCargos) throw erroCargos;
-        }
-      }
-
-
 
       /**
        * Alcance "todos": propaga para os colaboradores ativos do escopo
@@ -148,9 +128,11 @@ export function useSalvarDpBeneficiosPadrao() {
             .from("dp_colaborador_beneficios")
             .select("id, colaborador_id, beneficio_id, ativo")
             .eq("company_id", selectedCompanyId!)
+            .is("removido_em", null)
             .in("colaborador_id", ids);
           if (erroFicha) throw erroFicha;
           const hoje = new Date().toISOString().slice(0, 10);
+          const itens: Record<string, unknown>[] = [];
           for (const colaboradorId of ids) {
             for (const [beneficioId, marcadoRaw] of ficha) {
               const marcado = !!marcadoRaw;
@@ -160,50 +142,31 @@ export function useSalvarDpBeneficiosPadrao() {
               if (!atual && !marcado) continue;
               if (atual && !!atual.ativo === marcado) continue;
               if (atual) {
-                const { error } = await supabase
-                  .from("dp_colaborador_beneficios")
-                  .update({ ativo: marcado })
-                  .eq("id", atual.id);
-                if (error) throw error;
+                itens.push({ id: atual.id, ativo: marcado });
               } else {
-                const { error } = await supabase.from("dp_colaborador_beneficios").insert({
-                  company_id: selectedCompanyId,
+                itens.push({
                   colaborador_id: colaboradorId,
                   beneficio_id: beneficioId,
                   data_inicio: hoje,
                   ativo: true,
-                } as any);
-                if (error) throw error;
+                });
               }
             }
           }
+          await definirBeneficiosColaboradorLote(itens);
         }
         return ids.length;
       }
 
-      if (existente?.id) {
-        const { error } = await supabase
-          .from("dp_beneficios_padroes")
-          .update({ payload: payloadFinal as any })
-          .eq("id", existente.id);
-        if (error) throw error;
-        const atualizados = await aplicarAosColaboradores();
-        return { id: existente.id as string, atualizados };
-      }
-      const { data, error } = await supabase
-        .from("dp_beneficios_padroes")
-        .insert({
-          company_id: selectedCompanyId,
-          unidade_id: input.unidade_id,
-          cargo_id: input.cargo_id ?? null,
-          payload: payloadFinal as any,
-          created_by: userData.user?.id ?? null,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
+      const id = await salvarBeneficioPadrao({
+        companyId: selectedCompanyId,
+        payload: payloadFinal as unknown as Record<string, unknown>,
+        unidadeId: input.unidade_id,
+        cargoId: input.cargo_id ?? null,
+        limparEscoposMaisEspecificos: input.limparEscoposMaisEspecificos ?? false,
+      });
       const atualizados = await aplicarAosColaboradores();
-      return { id: data.id as string, atualizados };
+      return { id, atualizados };
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: [KEY] });
@@ -217,8 +180,7 @@ export function useRemoverDpBeneficiosPadrao() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_beneficios_padroes").delete().eq("id", id);
-      if (error) throw error;
+      await excluirCadastroRemuneracao("dp_beneficios_padroes", id);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
   });
