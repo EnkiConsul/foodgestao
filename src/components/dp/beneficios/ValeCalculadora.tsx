@@ -41,6 +41,8 @@ const baixarCsv = (nome: string, conteudo: string) => {
 interface Props {
   /** `va` = vale-alimentação, `vt` = vale-transporte. */
   tipo: ValeTipo;
+  /** Filtros da tela (unidade, cargo, situação, busca e colaborador). */
+  filtros: BeneficiosFiltros;
 }
 
 interface LinhaCalculo {
