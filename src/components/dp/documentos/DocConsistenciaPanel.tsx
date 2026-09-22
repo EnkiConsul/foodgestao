@@ -409,16 +409,17 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
               competencia: comp,
               diaAdiantamento,
               optanteNaCompetencia: optanteAdiantamento,
+              vinculoNaCompetencia: vinculoComp,
             });
 
           const checks: Array<[Tipo, boolean]> = socio
             ? [["pro_labore", socioProLabore]]
             : [
                 ["contracheque", cobraContracheque],
-                ["rescisao", assalariado && desligadoNoMes],
+                ["rescisao", assalariadoComp && desligadoNoMes],
                 [
                   "contracheque_13",
-                  assalariado && !intermitenteSemTrabalho && !!prazoDecimo && !decimoNoPrazo,
+                  assalariadoComp && !intermitenteSemTrabalho && !!prazoDecimo && !decimoNoPrazo,
                 ],
                 ["contracheque_ferias", !!gozos?.has(comp)],
                 [
