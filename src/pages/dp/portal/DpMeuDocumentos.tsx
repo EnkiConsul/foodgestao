@@ -55,6 +55,8 @@ const TIPO_ICON: Record<UnifiedTipo, any> = {
   disciplinar: ShieldAlert,
   act_cct: Scale,
   contrato: FileText,
+  admissao: FileText,
+  desligamento: FileText,
   ferias: FileText,
   outros: Files,
 };
