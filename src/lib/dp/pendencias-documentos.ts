@@ -334,7 +334,8 @@ export function elegivelDocumento(
   const desligadoNoMes = comp
     ? !!desligamentoEfetivo && competenciaDe(desligamentoEfetivo) === comp
     : false;
-  const assalariado = REGIMES_ASSALARIADOS.has(String(c.regime ?? "").toLowerCase()) && !isSocio(c);
+  const regimeEfetivo = String(vinculo?.regime ?? c.regime ?? "").toLowerCase();
+  const assalariado = REGIMES_ASSALARIADOS.has(regimeEfetivo) && !isSocio(c);
 
   if (tipo === "rescisao") {
     return assalariado && desligadoNoMes;
