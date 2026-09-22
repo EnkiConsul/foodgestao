@@ -6,24 +6,23 @@ import {
   aceitaComprovante,
   tiposDoGrupo,
 } from "@/lib/dp/documentoTipos";
+import { DOC_TIPOS_RESCISAO } from "@/lib/dp/pendencias-documentos";
 
 describe("Naturezas unificadas de Admissão e Desligamento", () => {
   it("oferece apenas um tipo de admissão e um de desligamento", () => {
     const admissao = DP_DOC_TIPOS_IMPORTAVEIS.filter((t) => t.grupo === "admissao").map((t) => t.value);
     const desligamento = DP_DOC_TIPOS_IMPORTAVEIS.filter((t) => t.grupo === "desligamento").map((t) => t.value);
-    expect(admissao).toEqual(["admissao"]);
-    expect(desligamento).toEqual(["aviso_previo", "desligamento"]);
+    expect(admissao).toEqual(["admissao", "aso_admissional"]);
+    expect(desligamento).toEqual(["aviso_previo", "desligamento", "aso_demissional"]);
   });
 
-  it("reconhece contrato, ficha e ASO admissional como Admissão", () => {
+  it("reconhece contrato e ficha como Admissão", () => {
     expect(detectarTipoDocumento("Contrato de trabalho.pdf")).toBe("admissao");
     expect(detectarTipoDocumento("Ficha de registro")).toBe("admissao");
-    expect(detectarTipoDocumento("ASO admissional")).toBe("admissao");
   });
 
-  it("reconhece TRCT e ASO demissional como Desligamento, mantendo Aviso Prévio", () => {
+  it("reconhece TRCT como Desligamento, mantendo Aviso Prévio", () => {
     expect(detectarTipoDocumento("TRCT assinado")).toBe("desligamento");
-    expect(detectarTipoDocumento("ASO demissional")).toBe("desligamento");
     expect(detectarTipoDocumento("Aviso prévio indenizado")).toBe("aviso_previo");
   });
 
