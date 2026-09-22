@@ -15613,6 +15613,10 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_dias_descanso_validos: {
+        Args: { _company: string; _unidade: string }
+        Returns: number[]
+      }
       dp_dias_fixos_folga: {
         Args: { _colaborador: string; _data?: string }
         Returns: number[]
@@ -15993,6 +15997,14 @@ export type Database = {
       dp_folga_ocupado_no_dia: {
         Args: { _colab: string; _company: string; _data: string }
         Returns: boolean
+      }
+      dp_folga_remarcar: {
+        Args: { p_data_atual: string; p_data_nova: string; p_motivo?: string }
+        Returns: Json
+      }
+      dp_folga_remarcar_solicitar: {
+        Args: { p_data_atual: string; p_data_nova: string; p_motivo?: string }
+        Returns: Json
       }
       dp_folga_remover: { Args: { p_data: string }; Returns: Json }
       dp_folga_reserva_indisponibilidade: {
@@ -17575,6 +17587,7 @@ export type Database = {
         | "documento_novo"
         | "comprovante_pagamento"
         | "preadmissao_enviada"
+        | "folga_remarcada"
       dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
       dp_ocorrencia_cobertura_execucao:
         | "prevista"
@@ -18045,6 +18058,7 @@ export const Constants = {
         "documento_novo",
         "comprovante_pagamento",
         "preadmissao_enviada",
+        "folga_remarcada",
       ],
       dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
       dp_ocorrencia_cobertura_execucao: [
