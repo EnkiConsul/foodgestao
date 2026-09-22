@@ -59,7 +59,7 @@ export type DocEventoMeta = {
  */
 async function registrarEvento(params: {
   rowId: string;
-  acao: "excluido" | "substituido";
+  acao: "excluido" | "substituido" | "nova_versao";
   meta?: DocEventoMeta;
   arquivo_anterior?: string | null;
   arquivo_novo?: string | null;
