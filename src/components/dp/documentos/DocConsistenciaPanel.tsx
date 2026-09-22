@@ -16,7 +16,11 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { ativoNaCompetencia, tipoColetivoDoc } from "@/lib/dp/bulk-coverage";
-import { elegivelDocumento } from "@/lib/dp/pendencias-documentos";
+import {
+  elegivelDocumento,
+  limitesVinculoNaCompetencia,
+  type VinculoHistorico,
+} from "@/lib/dp/pendencias-documentos";
 import {
   optanteNaCompetencia,
   type AdiantamentoSolicitacao,
