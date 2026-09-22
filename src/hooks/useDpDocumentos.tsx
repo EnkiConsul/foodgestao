@@ -107,7 +107,8 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
       });
       if (up.error) throw up.error;
       const tituloFinal = files.length > 1 ? file.name.replace(/\.[^.]+$/, "") : titulo.trim();
-      const { error } = await supabase.from("dp_documentos").insert({
+      // O servidor confere empresa, colaborador e arquivo antes de gravar.
+      await registrarDocumento({
         company_id: selectedCompanyId,
         colaborador_id: colaborador_id || null,
         tipo,
@@ -118,9 +119,7 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
         file_size: file.size,
         mime_type: file.type,
         referencia_data: referencia_data || null,
-        uploaded_by: user?.id,
       });
-      if (error) throw error;
       ok++;
     }
     // Baixa imediata da pendência que este envio resolve.
