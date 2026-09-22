@@ -2689,6 +2689,28 @@ export function ColaboradorFormDialog({
 
       </DialogContent>
 
+      {/* Rascunho guardado: retomar o preenchimento ou começar em branco. */}
+      <AlertDialog open={!!rascunhoOferta}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Continuar o cadastro que você começou?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {rotuloRascunho(rascunhoOferta?.atualizadoEm)}
+              {rascunhoOferta?.dados?.form && typeof rascunhoOferta.dados.form.nome === "string"
+                && String(rascunhoOferta.dados.form.nome).trim()
+                ? ` · ${toUpperCadastro(String(rascunhoOferta.dados.form.nome))}`
+                : ""}
+              . Nada foi cadastrado ainda: você pode retomar de onde parou ou começar em branco.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => void descartarRascunho()}>Começar Em Branco</AlertDialogCancel>
+            <AlertDialogAction onClick={retomarRascunho}>Continuar O Rascunho</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
       <CienciaLegalDialog
         open={cienciaAberta}
         titulo="Vínculo sem registro em carteira"
