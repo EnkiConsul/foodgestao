@@ -317,7 +317,18 @@ export function elegivelDocumento(
   opts: ElegibilidadeOpts & { competencia?: Competencia | null } = {},
 ): boolean {
   const comp = opts.competencia ?? null;
-  const desligadoNoMes = comp ? desligadoNaCompetencia(c, comp) : false;
+  // Vínculo da competência (histórico) tem prioridade sobre as datas da ficha:
+  // recontratar no mesmo cadastro não reescreve o passado.
+  const vinculo = opts.vinculoNaCompetencia ?? null;
+  const admissaoEfetiva = vinculo
+    ? vinculo.admissao
+    : String(c.data_admissao ?? "").slice(0, 10);
+  const desligamentoEfetivo = vinculo
+    ? vinculo.desligamento
+    : String(c.data_desligamento ?? "").slice(0, 10) || null;
+  const desligadoNoMes = comp
+    ? !!desligamentoEfetivo && competenciaDe(desligamentoEfetivo) === comp
+    : false;
   const assalariado = REGIMES_ASSALARIADOS.has(String(c.regime ?? "").toLowerCase()) && !isSocio(c);
 
   if (tipo === "rescisao") {
