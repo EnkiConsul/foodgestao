@@ -25,6 +25,7 @@ import { UFS } from "@/lib/endereco";
 import { maskCpf } from "@/lib/cpf";
 import { maskPhone } from "@/lib/phone";
 import { CONTA_TIPOS, PIX_TIPOS } from "@/lib/dp/dadosPagamento";
+import { rotuloSalvoEm } from "@/lib/dp/admissao-rascunho";
 
 type Opcao = { value: string; label: string };
 
