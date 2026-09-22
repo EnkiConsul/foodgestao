@@ -16,7 +16,7 @@ export type MotivoListaCargos =
   | "vinculo_indisponivel"
   | "erro";
 
-export interface EntradaListaCargos<T extends { id: string }> {
+export interface EntradaListaCargos<T extends CargoBasico> {
   /** Cargos ativos da empresa selecionada. */
   cargosEmpresa: T[];
   /** Ids vinculados à unidade (dp_unidade_cargos). */
