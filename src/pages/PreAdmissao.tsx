@@ -305,6 +305,8 @@ export default function PreAdmissao() {
   const [erroLink, setErroLink] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  /** Momento do último rascunho guardado, mostrado ao candidato. */
+  const [salvoEm, setSalvoEm] = useState<string | null>(null);
   const [etapa, setEtapa] = useState(0);
   const [form, setForm] = useState<Record<string, string>>({});
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
