@@ -49,6 +49,8 @@ export type DpDocTipo =
   | "recibo_ferias"
   | "outros_ferias"
   | "admissao"
+  | "aso_admissional"
+  | "aso_demissional"
   | "contrato"
   | "ficha_registro"
   | "termos"
@@ -225,9 +227,6 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
       "termo de contrato",
       "ficha de registro",
       "ficha de empregado",
-      "aso admissional",
-      "exame admissional",
-      "atestado de saude ocupacional admissional",
       "termo de responsabilidade",
       "termo de ciencia",
       "termo de adesao",
@@ -235,6 +234,21 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
       "admissao",
     ],
     badgeClass: "border-slate-300 text-slate-700",
+  },
+
+  {
+    value: "aso_admissional",
+    label: "ASO Admissional",
+    grupo: "admissao",
+    importavel: true,
+    exigeAceite: true,
+    keywords: [
+      "aso admissional",
+      "exame admissional",
+      "atestado de saude ocupacional admissional",
+      "aso de admissao",
+    ],
+    badgeClass: "border-emerald-300 text-emerald-700",
   },
 
   // ---------- Desligamento ----------
@@ -259,15 +273,25 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
       "demonstrativo rescisorio",
       "calculo rescisorio",
       "rescisao",
-      "aso demissional",
-      "exame demissional",
-      "atestado de saude ocupacional demissional",
       "desligamento",
       "demissao",
     ],
     badgeClass: "border-red-300 text-red-700",
   },
-
+  {
+    value: "aso_demissional",
+    label: "ASO Demissional",
+    grupo: "desligamento",
+    importavel: true,
+    exigeAceite: true,
+    keywords: [
+      "aso demissional",
+      "exame demissional",
+      "atestado de saude ocupacional demissional",
+      "aso de demissao",
+    ],
+    badgeClass: "border-orange-300 text-orange-700",
+  },
 
   // ---------- Fiscais / Anuais ----------
   {
@@ -410,6 +434,8 @@ export function detectarTipoDocumento(texto: string | null | undefined): DpDocTi
     "ajuste_jornada",
     "ponto",
     "aviso_previo",
+    "aso_admissional",
+    "aso_demissional",
     "desligamento",
     "atestado",
     "disciplinar",

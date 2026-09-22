@@ -7,6 +7,8 @@
  * aviso correspondente — o convite de pré-admissão não trava por configuração.
  */
 
+import { cargoSugereVinculoSocio } from "./cargos";
+
 export type MotivoListaCargos =
   | "carregando"
   | "sem_unidade"
@@ -16,7 +18,13 @@ export type MotivoListaCargos =
   | "vinculo_indisponivel"
   | "erro";
 
-export interface EntradaListaCargos<T extends { id: string }> {
+/** O mínimo que a lista precisa saber de um cargo. */
+export interface CargoBasico {
+  id: string;
+  nome?: string | null;
+}
+
+export interface EntradaListaCargos<T extends CargoBasico> {
   /** Cargos ativos da empresa selecionada. */
   cargosEmpresa: T[];
   /** Ids vinculados à unidade (dp_unidade_cargos). */
@@ -27,14 +35,25 @@ export interface EntradaListaCargos<T extends { id: string }> {
   erro: boolean;
 }
 
-export interface ListaCargos<T extends { id: string }> {
+export interface ListaCargos<T extends CargoBasico> {
   cargos: T[];
   motivo: MotivoListaCargos;
   /** Mensagem a exibir sob o campo (vazio = nada a dizer). */
   aviso: string;
 }
 
-export function listaCargosDaUnidade<T extends { id: string }>(
+/**
+ * Cargos de sócio não pertencem a uma unidade operacional: eles aparecem em
+ * qualquer unidade, mesmo sem vínculo em dp_unidade_cargos.
+ */
+function comSocios<T extends CargoBasico>(selecionados: T[], todos: T[]): T[] {
+  const ids = new Set(selecionados.map((c) => c.id));
+  const extras = todos.filter((c) => !ids.has(c.id) && cargoSugereVinculoSocio(c.nome));
+  if (extras.length === 0) return selecionados;
+  return todos.filter((c) => ids.has(c.id) || extras.some((e) => e.id === c.id));
+}
+
+export function listaCargosDaUnidade<T extends CargoBasico>(
   e: EntradaListaCargos<T>,
 ): ListaCargos<T> {
   if (!e.unidadeId) {
@@ -65,7 +84,10 @@ export function listaCargosDaUnidade<T extends { id: string }>(
       aviso: "Esta unidade ainda não tem cargos vinculados: a lista mostra todos os cargos da empresa.",
     };
   }
-  const daUnidade = e.cargosEmpresa.filter((c) => e.vinculados.includes(c.id));
+  const daUnidade = comSocios(
+    e.cargosEmpresa.filter((c) => e.vinculados.includes(c.id)),
+    e.cargosEmpresa,
+  );
   if (daUnidade.length === 0) {
     return {
       cargos: e.cargosEmpresa,

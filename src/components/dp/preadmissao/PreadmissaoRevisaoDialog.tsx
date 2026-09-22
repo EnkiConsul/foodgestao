@@ -23,6 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { notifyError } from "@/lib/notifyError";
 import { PreadmissaoExcluirDialog } from "@/components/dp/preadmissao/PreadmissaoExcluirDialog";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
+import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import {
   PREADMISSAO_STATUS_LABEL, abrirDocumentoPreadmissao, anexarFichaOficial,
@@ -95,7 +96,12 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const acoes = useDpPreadmissaoGestor(preadmissaoId);
   const [motivo, setMotivo] = useState("");
   const [admin, setAdmin] = useState<Record<string, string>>({});
-  const { data: cargos = [] } = useDpCargos();
+  const {
+    data: cargos = [],
+    isLoading: carregandoCargos,
+    isError: erroCargos,
+    refetch: recarregarCargos,
+  } = useDpCargos();
   const { data: unidades = [] } = useDpUnidades();
   const { ativos: setores } = useDpSetores(admin.unidade_id || null);
   const fichaRef = useRef<HTMLInputElement>(null);
@@ -505,9 +511,18 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                   >
                     <SelectTrigger id="pa-cargo-previsto" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
                     <SelectContent>
-                      {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                      <CargoSelectItems carregando={carregandoCargos} erro={erroCargos} total={cargos.length}>
+                        {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                      </CargoSelectItems>
                     </SelectContent>
                   </Select>
+                  <CargoSelectAviso
+                    carregando={carregandoCargos}
+                    erro={erroCargos}
+                    total={cargos.length}
+                    onRecarregar={() => void recarregarCargos()}
+                    origem="Revisão da pré-admissão"
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs" htmlFor="pa-unidade-prevista">Unidade prevista</Label>
@@ -574,9 +589,18 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                     onValueChange={(v) => setAdmin({ ...admin, cargo_id: v })}>
                     <SelectTrigger id="pa-adm-cargo" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
                     <SelectContent>
-                      {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                      <CargoSelectItems carregando={carregandoCargos} erro={erroCargos} total={cargos.length}>
+                        {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                      </CargoSelectItems>
                     </SelectContent>
                   </Select>
+                  <CargoSelectAviso
+                    carregando={carregandoCargos}
+                    erro={erroCargos}
+                    total={cargos.length}
+                    onRecarregar={() => void recarregarCargos()}
+                    origem="Revisão da pré-admissão"
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs" htmlFor="pa-adm-unidade">Unidade</Label>

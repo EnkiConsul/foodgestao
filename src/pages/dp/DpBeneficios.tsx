@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
 import { useMemo, useState } from "react";
 import { Gift, Plus, Pencil, Trash2, Users, Wallet, Copy } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
@@ -216,11 +217,24 @@ export default function DpBeneficios() {
             <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent className="max-h-72">
               <SelectItem value="todos">Todos</SelectItem>
-              {(cargos.data ?? []).map((c: any) => (
-                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-              ))}
+              <CargoSelectItems
+                carregando={cargos.isLoading}
+                erro={cargos.isError}
+                total={(cargos.data ?? []).length}
+              >
+                {(cargos.data ?? []).map((c: any) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </CargoSelectItems>
             </SelectContent>
           </Select>
+          <CargoSelectAviso
+            carregando={cargos.isLoading}
+            erro={cargos.isError}
+            total={(cargos.data ?? []).length}
+            onRecarregar={() => void cargos.refetch()}
+            origem="Filtro de cargo em Benefícios"
+          />
         </DpFilterField>
         <DpFilterField label="Situação">
           <Select

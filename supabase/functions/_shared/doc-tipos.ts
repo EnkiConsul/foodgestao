@@ -15,6 +15,8 @@ export type DocTipo =
   | "recibo_ferias"
   | "outros_ferias"
   | "admissao"
+  | "aso_admissional"
+  | "aso_demissional"
   | "contrato"
   | "ficha_registro"
   | "termos"
@@ -53,6 +55,8 @@ export const DOC_TIPO_LABEL: Record<string, string> = {
   outros_admissao: "Outros (Admissão)",
   aviso_previo: "Aviso Prévio",
   desligamento: "Desligamento",
+  aso_admissional: "ASO Admissional",
+  aso_demissional: "ASO Demissional",
   trct: "TRCT (Desligamento)",
   demonstrativo_rescisorio: "Demonstrativo Rescisório (Desligamento)",
   outros_desligamento: "Outros (Desligamento)",
@@ -82,6 +86,8 @@ const KEYWORDS: Array<[DocTipo, string[]]> = [
   ["ajuste_jornada", ["ajuste de jornada", "acordo de compensacao", "alteracao de jornada"]],
   ["ponto", ["folha de ponto", "espelho de ponto", "cartao ponto", "registro de ponto"]],
   ["aviso_previo", ["aviso previo"]],
+  ["aso_admissional", ["aso admissional", "exame admissional", "atestado de saude ocupacional admissional", "aso de admissao"]],
+  ["aso_demissional", ["aso demissional", "exame demissional", "atestado de saude ocupacional demissional", "aso de demissao"]],
   [
     "desligamento",
     [
@@ -90,8 +96,6 @@ const KEYWORDS: Array<[DocTipo, string[]]> = [
       "demonstrativo rescisorio",
       "calculo rescisorio",
       "rescisao",
-      "aso demissional",
-      "exame demissional",
       "desligamento",
       "demissao",
     ],
@@ -104,8 +108,6 @@ const KEYWORDS: Array<[DocTipo, string[]]> = [
       "ficha de registro",
       "ficha de empregado",
       "contrato de trabalho",
-      "aso admissional",
-      "exame admissional",
       "termo de responsabilidade",
       "termo de ciencia",
       "termo de adesao",

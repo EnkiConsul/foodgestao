@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
@@ -729,11 +730,24 @@ export default function DpColaboradores() {
             <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              {(cargos.data ?? []).map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-              ))}
+              <CargoSelectItems
+                carregando={cargos.isLoading}
+                erro={cargos.isError}
+                total={(cargos.data ?? []).length}
+              >
+                {(cargos.data ?? []).map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </CargoSelectItems>
             </SelectContent>
           </Select>
+          <CargoSelectAviso
+            carregando={cargos.isLoading}
+            erro={cargos.isError}
+            total={(cargos.data ?? []).length}
+            onRecarregar={() => void cargos.refetch()}
+            origem="Filtro de cargo em Colaboradores"
+          />
         </DpFilterField>
         {mostrarSetor && (
           <DpFilterField label="Setor">

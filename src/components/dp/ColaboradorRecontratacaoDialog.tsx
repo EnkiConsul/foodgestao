@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
+import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { contratoPolicy, formasPagamentoDoRegime } from "@/lib/dp/contrato-policy";
 import { useRecontratarDpColaborador, type DpColaborador } from "@/hooks/useDpColaboradores";
@@ -39,7 +40,12 @@ interface Props {
 export function ColaboradorRecontratacaoDialog({ colaborador, open, onOpenChange }: Props) {
   const recontratar = useRecontratarDpColaborador();
   const { data: unidades = [] } = useDpUnidades();
-  const { data: cargos = [] } = useDpCargos();
+  const {
+    data: cargos = [],
+    isLoading: carregandoCargos,
+    isError: erroCargos,
+    refetch: recarregarCargos,
+  } = useDpCargos();
   const { setores = [] } = useDpSetores();
 
   const [admissao, setAdmissao] = useState(hoje());
@@ -161,11 +167,20 @@ export function ColaboradorRecontratacaoDialog({ colaborador, open, onOpenChange
               <Select value={cargoId} onValueChange={setCargoId}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {cargos.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
+                  <CargoSelectItems carregando={carregandoCargos} erro={erroCargos} total={cargos.length}>
+                    {cargos.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </CargoSelectItems>
                 </SelectContent>
               </Select>
+              <CargoSelectAviso
+                carregando={carregandoCargos}
+                erro={erroCargos}
+                total={cargos.length}
+                onRecarregar={() => void recarregarCargos()}
+                origem="Recontratação do colaborador"
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Unidade</Label>

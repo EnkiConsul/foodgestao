@@ -29,6 +29,7 @@ import { divergenciasIsonomia, DIAS_BASE_PADRAO, type DivergenciaIsonomia } from
 import { snapshotColegaBeneficios } from "@/lib/dp/isonomia-snapshot";
 import { itensIsonomiaDoCadastro } from "@/hooks/useDpIsonomiaBeneficios";
 import { BeneficioDispensaDialog, type DispensaBeneficio, type MotivoIsonomiaEscolhido } from "@/components/dp/BeneficioDispensaDialog";
+import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
 import { useDpUnidades, useDpCargos, useUpsertDpCargo, usePropagarRiscosCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, useDpSindicatos, type DpCargo } from "@/hooks/useDpCadastros";
 import { salarioCargoNaUnidade, salarioSocioNaUnidade, mensagemErroPiso, rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios";
 import { generoPorNome } from "@/lib/dp/generoPorNome";
@@ -2177,6 +2178,11 @@ export function ColaboradorFormDialog({
               <Select value={form.cargo_id} onValueChange={escolherCargoId}>
                 <SelectTrigger {...marca("cargo_id", "flex-1")}><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
                 <SelectContent>
+                  <CargoSelectItems
+                    carregando={cargos.isLoading}
+                    erro={cargos.isError}
+                    total={(cargos.data ?? []).length}
+                  >
                   {(cargos.data ?? []).map((c) => {
                     const rot = rotuloSalarioCargo(
                       (pisosPorCargo.get(c.id) ?? []) as any,
@@ -2192,12 +2198,20 @@ export function ColaboradorFormDialog({
                       </SelectItem>
                     );
                   })}
+                  </CargoSelectItems>
                 </SelectContent>
               </Select>
               <Button type="button" variant="outline" className="shrink-0" onClick={() => setNovoCargoOpen(true)}>
                 Novo cargo
               </Button>
             </div>
+            <CargoSelectAviso
+              carregando={cargos.isLoading}
+              erro={cargos.isError}
+              total={(cargos.data ?? []).length}
+              onRecarregar={() => void cargos.refetch()}
+              origem="Ficha do colaborador"
+            />
             <p className="text-[11px] text-muted-foreground">
               Cada cargo tem um único salário de referência. Cargos criados aqui já entram na tela de Cargos.
             </p>

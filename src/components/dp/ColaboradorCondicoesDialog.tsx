@@ -25,6 +25,7 @@ import {
 import {
   useDpUnidades, useDpCargos, useDpSindicatos, useDpCargoSalarios, useDpPatronalPorUnidade,
 } from "@/hooks/useDpCadastros";
+import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { useDpTurnos } from "@/hooks/useDpTurnos";
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
@@ -113,7 +114,12 @@ interface Props {
 export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: Props) {
   const { historico, aplicar, isLoading } = useDpColaboradorCondicoes(colaborador?.id);
   const { data: unidades = [] } = useDpUnidades();
-  const { data: cargos = [] } = useDpCargos();
+  const {
+    data: cargos = [],
+    isLoading: carregandoCargos,
+    isError: erroCargos,
+    refetch: recarregarCargos,
+  } = useDpCargos();
   const { setores = [] } = useDpSetores();
   const { data: sindicatos = [] } = useDpSindicatos();
   const { turnos = [] } = useDpTurnos();
@@ -671,11 +677,20 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                 <Select value={cargoId} onValueChange={setCargoId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {cargos.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
+                    <CargoSelectItems carregando={carregandoCargos} erro={erroCargos} total={cargos.length}>
+                      {cargos.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                      ))}
+                    </CargoSelectItems>
                   </SelectContent>
                 </Select>
+                <CargoSelectAviso
+                  carregando={carregandoCargos}
+                  erro={erroCargos}
+                  total={cargos.length}
+                  onRecarregar={() => void recarregarCargos()}
+                  origem="Alteração de condições do colaborador"
+                />
                 {cargoId && (cargoPadrao.data?.base ?? 0) > 0 ? (
                   <p className="text-xs text-muted-foreground">
                     Campos preenchidos pelo padrão de {cargoPadrao.data?.base} colaborador(es) neste cargo
