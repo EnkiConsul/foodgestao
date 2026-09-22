@@ -144,7 +144,14 @@ const MAX_NOMES = 6;
  * exibidos, para que Início, Pendências e Importar mostrem exatamente a
  * mesma lista — incluindo o que foi ignorado ou adiado pelo gestor.
  */
-const TIPOS_DA_FONTE_UNICA = new Set<Tipo>(["contracheque", "adiantamento", "ponto"]);
+const TIPOS_DA_FONTE_UNICA = new Set<Tipo>([
+  "contracheque",
+  "adiantamento",
+  "ponto",
+  // A rescisão também vem das Pendências: calcular aqui de novo duplicava a
+  // mesma cobrança na lista de "Falta Importar".
+  "rescisao",
+]);
 
 type Pessoa = { nome: string; desligamento: string | null };
 
