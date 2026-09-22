@@ -224,7 +224,7 @@ export function ComprovanteAcaoBotao(props: {
         aria-label={props.temComprovante ? "Ver comprovante de pagamento" : "Importar comprovante de pagamento"}
         title={props.temComprovante ? "Comprovante de pagamento anexado" : "Importar comprovante de pagamento"}
         onClick={() =>
-          props.temComprovante ? void ver(props.alvo.documentoId) : inputRef.current?.click()
+          props.temComprovante ? void ver(props.alvo.documentoId) : setAnexarOpen(true)
         }
       >
         {anexar.isPending ? (
