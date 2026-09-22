@@ -110,6 +110,12 @@ export function ColaboradorAcessoPanel({
   const cpfDigits = (colaborador.cpf ?? "").replace(/\D/g, "");
   const acessoAte = (colaborador as any).acesso_portal_ate as string | null;
   const temAcesso = situacao !== null && situacao !== "sem_acesso";
+  // Impedimento vindo do servidor: bloqueio, prazo vencido, cadastro removido
+  // ou empresa inativa. Enquanto não carregou, nada é liberado às cegas.
+  const impedimento = vinculo && vinculo !== "ok" && vinculo !== "prazo_documentos"
+    ? (IMPEDIMENTO[vinculo] ?? "Não é possível liberar o acesso agora.")
+    : null;
+  const somenteDocumentos = vinculo === "prazo_documentos";
 
   const copiarLink = async () => {
     if (!link) return;
