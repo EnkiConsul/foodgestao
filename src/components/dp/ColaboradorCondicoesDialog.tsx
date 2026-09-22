@@ -113,7 +113,12 @@ interface Props {
 export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: Props) {
   const { historico, aplicar, isLoading } = useDpColaboradorCondicoes(colaborador?.id);
   const { data: unidades = [] } = useDpUnidades();
-  const { data: cargos = [] } = useDpCargos();
+  const {
+    data: cargos = [],
+    isLoading: carregandoCargos,
+    isError: erroCargos,
+    refetch: recarregarCargos,
+  } = useDpCargos();
   const { setores = [] } = useDpSetores();
   const { data: sindicatos = [] } = useDpSindicatos();
   const { turnos = [] } = useDpTurnos();

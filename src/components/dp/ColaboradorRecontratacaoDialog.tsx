@@ -39,7 +39,12 @@ interface Props {
 export function ColaboradorRecontratacaoDialog({ colaborador, open, onOpenChange }: Props) {
   const recontratar = useRecontratarDpColaborador();
   const { data: unidades = [] } = useDpUnidades();
-  const { data: cargos = [] } = useDpCargos();
+  const {
+    data: cargos = [],
+    isLoading: carregandoCargos,
+    isError: erroCargos,
+    refetch: recarregarCargos,
+  } = useDpCargos();
   const { setores = [] } = useDpSetores();
 
   const [admissao, setAdmissao] = useState(hoje());
