@@ -160,16 +160,23 @@ export function useDpCargos() {
       if (error) throw error;
       const cargos = (data ?? []) as DpCargo[];
       if (cargos.length === 0) return [];
-      const { data: cols, error: colErr } = await supabase
-        .from("dp_colaboradores")
-        .select("cargo_id")
-        .eq("company_id", selectedCompanyId!)
-        .not("cargo_id", "is", null);
-      if (colErr) throw colErr;
+      // A contagem de pessoas por cargo é informativa: se falhar (permissão,
+      // rede), os cargos continuam na lista com contagem zero. Nunca deixar a
+      // lista de cargos vazia por causa dela.
       const map = new Map<string, number>();
-      (cols ?? []).forEach((c: any) => {
-        if (c.cargo_id) map.set(c.cargo_id, (map.get(c.cargo_id) ?? 0) + 1);
-      });
+      try {
+        const { data: cols, error: colErr } = await supabase
+          .from("dp_colaboradores")
+          .select("cargo_id")
+          .eq("company_id", selectedCompanyId!)
+          .not("cargo_id", "is", null);
+        if (colErr) throw colErr;
+        (cols ?? []).forEach((c: any) => {
+          if (c.cargo_id) map.set(c.cargo_id, (map.get(c.cargo_id) ?? 0) + 1);
+        });
+      } catch {
+        // segue sem contagem
+      }
       return cargos.map((c) => ({ ...c, colaboradores_count: map.get(c.id) ?? 0 }));
     },
   });
