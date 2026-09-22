@@ -19,17 +19,17 @@ Os filtros valem para as três abas:
 
 O seletor de unidade que existe dentro da calculadora deixa de ser duplicado: passa a usar a barra de filtros da tela, mantendo o mês do pagamento junto dos botões de exportar e fechar ciclo.
 
-### 2. Vale só para quem tem o benefício de fato na ficha
-Sócio continua podendo receber vale — desde que o benefício esteja cadastrado na ficha dele. O problema da Tamires é outro: na ficha dela o vale-alimentação está marcado com R$ 24 por mês, mesmo você não tendo cadastrado nada (provavelmente veio do padrão de benefícios aplicado no cadastro; a causa exata ainda não está comprovada).
+### 2. Ficha do sócio ganha os benefícios
+Você tem razão: confirmei na ficha que, quando o vínculo é sócio, a tela mostra somente "Remuneração do sócio" (forma de remuneração e pró-labore) e esconde completamente vale-alimentação, vale-transporte e a lista de benefícios da empresa. Por isso não há como cadastrar nem como tirar o vale da Tamires — o valor de R$ 24 existe no cadastro dela mas fica invisível.
 
 O que muda:
 
-- Antes de qualquer outra coisa, verifico como essa marcação foi criada (padrão de benefícios por cargo/unidade aplicado no cadastro, importação ou edição) e corrijo a origem, para não voltar a marcar vale em quem não tem.
-- A ficha passa a mostrar com clareza de onde veio o vale: "cadastrado na ficha" ou "herdado do padrão da empresa/cargo", com a opção de remover.
-- No cálculo mensal, quem está marcado mas sem valor por dia continua aparecendo com o aviso "Sem valor por dia cadastrado", para você não pagar errado nem perder alguém de vista.
-- Nenhuma regra nova exclui sócio: a lista dos vales segue exatamente o que está na ficha de cada pessoa.
+- A ficha do sócio passa a ter o bloco de benefícios: vale-alimentação, vale-transporte (com valor, dias-base, dia de pagamento e regras de desconto) e os benefícios cadastrados da empresa, com os mesmos campos usados nos demais vínculos.
+- O bloco de remuneração do sócio continua como está, acima dos benefícios, deixando claro que vale é opcional e não faz parte da folha CLT.
+- O sócio entra no cálculo dos vales exatamente conforme o que estiver marcado na ficha dele — nada de regra escondida excluindo ou incluindo sócio.
+- No cálculo mensal, quem está marcado sem valor por dia aparece com o aviso "Sem valor por dia cadastrado", para não pagar errado nem perder alguém de vista.
 
-Limpar a marcação de vale-alimentação na ficha da Tamires é alteração de dado: só faço com a sua autorização — me diga se quer que eu tire.
+Depois disso você mesmo consegue abrir a ficha da Tamires e deixar o vale-alimentação como deve ser — marcado com o valor certo ou desmarcado.
 
 ## Detalhes técnicos
 
