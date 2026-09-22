@@ -28,13 +28,23 @@ export const CONTA_TIPOS: { value: string; label: string }[] = [
   { value: "salario", label: "Conta salário" },
 ];
 
-export const PIX_TIPOS: { value: string; label: string }[] = [
-  { value: "cpf", label: "CPF" },
-  { value: "cnpj", label: "CNPJ" },
+/**
+ * Tipos de chave Pix, na ordem da tela. CPF e celular são os recomendados —
+ * são os que comprovam que a chave é do próprio colaborador; os demais ficam
+ * disponíveis com aviso.
+ */
+export const PIX_TIPOS: { value: string; label: string; recomendado?: boolean }[] = [
+  { value: "cpf", label: "CPF (recomendado)", recomendado: true },
+  { value: "telefone", label: "Celular (recomendado)", recomendado: true },
   { value: "email", label: "E-mail" },
-  { value: "telefone", label: "Telefone" },
   { value: "aleatoria", label: "Chave aleatória" },
+  { value: "cnpj", label: "CNPJ" },
 ];
+
+export const PIX_TIPOS_RECOMENDADOS = ["cpf", "telefone"] as const;
+
+export const pixTipoRecomendado = (tipo: string): boolean =>
+  (PIX_TIPOS_RECOMENDADOS as readonly string[]).includes(String(tipo ?? "").trim());
 
 export const CAMPOS_PAGAMENTO = [
   "banco_codigo", "banco_nome", "agencia", "conta", "conta_digito", "conta_tipo",
