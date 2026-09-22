@@ -72,9 +72,9 @@ describe("risco de perder o prêmio de assiduidade", () => {
 
   it("só as decididas como perde entram no cálculo do prêmio", () => {
     const lista = [
-      { tipo: "falta", assiduidade_risco: true, assiduidade_decidido_em: "2026-09-22", impacta_assiduidade: "sim" },
-      { tipo: "falta", assiduidade_risco: true, assiduidade_decidido_em: "2026-09-22", impacta_assiduidade: "nao" },
-      { tipo: "atraso", assiduidade_risco: true, assiduidade_decidido_em: null, impacta_assiduidade: "aguardando" },
+      { tipo: "falta", assiduidade_risco: true, assiduidade_decidido_em: "2026-09-22", impacta_assiduidade: "sim" as const },
+      { tipo: "falta", assiduidade_risco: true, assiduidade_decidido_em: "2026-09-22", impacta_assiduidade: "nao" as const },
+      { tipo: "atraso", assiduidade_risco: true, assiduidade_decidido_em: null, impacta_assiduidade: "aguardando" as const },
     ];
     expect(ocorrenciasQuePerdemPremio(lista)).toHaveLength(1);
     const mes = ocorrenciasMesParaPremio(lista, 22);
@@ -86,7 +86,7 @@ describe("risco de perder o prêmio de assiduidade", () => {
 
   it("mantém o prêmio quando todas foram abonadas pelo gestor", () => {
     const lista = [
-      { tipo: "falta", assiduidade_risco: true, assiduidade_decidido_em: "2026-09-22", impacta_assiduidade: "nao" },
+      { tipo: "falta", assiduidade_risco: true, assiduidade_decidido_em: "2026-09-22", impacta_assiduidade: "nao" as const },
     ];
     const mes = ocorrenciasMesParaPremio(lista, 22);
     expect(premioAssiduidadeDevido(REGRA, mes)).toBe(100);
