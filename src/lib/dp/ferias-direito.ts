@@ -308,6 +308,10 @@ export const FERIAS_ERRO_TEXTO: Record<string, string> = {
     "Esse saldo é menor do que os dias já marcados neste período. Ajuste as férias primeiro.",
   FERIAS_CONTROLE_EXTERNO:
     "Este período é anterior ao início do controle no sistema e fica apenas como histórico.",
+  FERIAS_COBERTURA_MINIMA:
+    "Nessas datas o turno ficaria abaixo da cobertura mínima. Registre uma justificativa para seguir.",
+  dp_ferias_gozos_sem_sobreposicao:
+    "Já existem férias marcadas nessas datas para esta pessoa.",
 };
 
 /**
@@ -335,6 +339,11 @@ export function corteFeriasPadrao(admissaoISO: string, hojeISO: string): string 
 
 export function textoErroFerias(mensagem?: string | null): string {
   if (!mensagem) return "Não foi possível concluir a operação.";
+  // A cobertura mínima devolve o primeiro dia descoberto junto do código.
+  const cobertura = mensagem.match(/FERIAS_COBERTURA_MINIMA:(\d{2}\/\d{2}\/\d{4})/);
+  if (cobertura) {
+    return `Em ${cobertura[1]} o turno ficaria abaixo da cobertura mínima. Registre uma justificativa para seguir.`;
+  }
   for (const [codigo, texto] of Object.entries(FERIAS_ERRO_TEXTO)) {
     if (mensagem.includes(codigo)) return texto;
   }

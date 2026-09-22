@@ -1,0 +1,1 @@
+ALTER TYPE public.dp_notificacao_tipo ADD VALUE IF NOT EXISTS 'ferias_aviso';

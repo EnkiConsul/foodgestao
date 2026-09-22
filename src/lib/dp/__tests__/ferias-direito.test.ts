@@ -78,6 +78,20 @@ describe("mensagens de erro", () => {
   it("mantém a mensagem quando não conhece o código", () => {
     expect(textoErroFerias("erro estranho")).toBe("erro estranho");
   });
+
+  it("mostra o dia em que o turno ficaria descoberto", () => {
+    const texto = textoErroFerias("FERIAS_COBERTURA_MINIMA:12/01/2027");
+    expect(texto).toContain("12/01/2027");
+    expect(texto).toContain("cobertura mínima");
+  });
+
+  it("explica a sobreposição barrada pelo banco", () => {
+    expect(
+      textoErroFerias(
+        'duplicate key value violates exclusion constraint "dp_ferias_gozos_sem_sobreposicao"',
+      ),
+    ).toContain("Já existem férias marcadas");
+  });
 });
 
 describe("nivelVencimentoPeriodo — ciclos já encerrados", () => {

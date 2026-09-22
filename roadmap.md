@@ -8,7 +8,18 @@
 - [x] Desligado nos 30 dias: só consulta e baixa documentos; folga, férias, troca, convocação, ocorrência, pedidos e comentários exigem vínculo ativo
 - [x] Avisos na ficha (acesso e desligamento) em linguagem de negócio
 - [x] Testes: desligado negado em folga, férias, ocorrência e comentário; ativo intacto; dupla revogação inofensiva; acesso de outra empresa negado
-- [ ] Publicação do site (Fases 1, 2 e 3) — aguardando sua decisão
+
+## Correções Pessoas 360° — Fase 4: Concorrência de férias (concluída)
+- [x] Fila de atendimento por pessoa e por unidade: dois gestores aprovando ao mesmo tempo são atendidos em ordem
+- [x] Duas férias ativas nas mesmas datas para a mesma pessoa são impossíveis, inclusive entre períodos aquisitivos diferentes
+- [x] Limite de pessoas simultaneamente em férias conferido também contra o que está sendo gravado
+- [x] Cobertura mínima do turno barra a marcação sem justificativa; com justificativa o gestor segue
+- [x] Pedido do colaborador confere as mesmas regras da aprovação
+- [x] Férias e períodos aquisitivos só mudam pelas rotinas oficiais (aplicativo não grava direto)
+- [x] Corrigido: a conferência de regras usava um campo de turno inexistente e travava qualquer marcação
+- [x] Corrigido: o aviso de férias usava um tipo de notificação inexistente e travava programar/alterar
+- [x] Testes: duplo clique, sobreposição, limite, cobertura, outra empresa, gravação direta e fila
+- [ ] Publicação do site (Fases 1, 2, 3 e 4) — aguardando sua decisão
 
 ## Comprovante da Hanna — Adiantamento 08/2026
 - [x] Transferir o comprovante vinculado ao contracheque para o adiantamento, preservando arquivo e metadados

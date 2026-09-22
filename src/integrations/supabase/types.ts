@@ -15922,9 +15922,10 @@ export type Database = {
           _colaborador_id: string
           _data_fim: string
           _data_inicio: string
-          _dias_abono: number
+          _dias_abono?: number
           _ignorar_gozo_id?: string
-          _justificativa: string
+          _justificativa?: string
+          _modo?: string
           _periodo_id: string
         }
         Returns: undefined
@@ -17683,6 +17684,7 @@ export type Database = {
         | "comprovante_pagamento"
         | "preadmissao_enviada"
         | "folga_remarcada"
+        | "ferias_aviso"
       dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
       dp_ocorrencia_cobertura_execucao:
         | "prevista"
@@ -18154,6 +18156,7 @@ export const Constants = {
         "comprovante_pagamento",
         "preadmissao_enviada",
         "folga_remarcada",
+        "ferias_aviso",
       ],
       dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
       dp_ocorrencia_cobertura_execucao: [

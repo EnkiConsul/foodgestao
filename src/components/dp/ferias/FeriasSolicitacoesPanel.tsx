@@ -98,18 +98,32 @@ export function FeriasSolicitacoesPanel() {
             </DialogDescription>
           </DialogHeader>
 
-          {aprovando && emCimaDaHora(aprovando) && (
-            <div className="space-y-2 rounded-xl border border-amber-400/60 bg-amber-500/10 p-3">
-              <p className="text-sm font-medium text-amber-700">
-                O aviso fica com {antecedencia(aprovando)} dia(s) de antecedência — a empresa pede{" "}
-                {config.avisoAntecedenciaDias}.
-              </p>
-              <Label>Justificativa</Label>
+          {aprovando && (
+            <div
+              className={
+                emCimaDaHora(aprovando)
+                  ? "space-y-2 rounded-xl border border-amber-400/60 bg-amber-500/10 p-3"
+                  : "space-y-2"
+              }
+            >
+              {emCimaDaHora(aprovando) && (
+                <p className="text-sm font-medium text-amber-700">
+                  O aviso fica com {antecedencia(aprovando)} dia(s) de antecedência — a empresa pede{" "}
+                  {config.avisoAntecedenciaDias}.
+                </p>
+              )}
+              <Label>
+                Justificativa{emCimaDaHora(aprovando) ? "" : " (opcional)"}
+              </Label>
               <Textarea
                 rows={2}
                 value={justificativa}
                 onChange={(e) => setJustificativa(e.target.value)}
-                placeholder="Explique por que estas férias serão aprovadas em cima da hora."
+                placeholder={
+                  emCimaDaHora(aprovando)
+                    ? "Explique por que estas férias serão aprovadas em cima da hora."
+                    : "Use se o turno ficar abaixo da cobertura mínima nessas datas."
+                }
               />
             </div>
           )}
