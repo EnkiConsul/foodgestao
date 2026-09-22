@@ -733,6 +733,68 @@ export function ColaboradorFormDialog({
     if (!open) { setDispensas([]); isonomiaConfirmada.current = false; }
   }, [open]);
 
+  /**
+   * Rascunho da ficha de admissão (só cadastro novo): ao abrir, oferecemos
+   * retomar o que já estava preenchido; nada entra no cadastro antes disso.
+   */
+  useEffect(() => {
+    if (!open) {
+      rascunhoDecidido.current = false;
+      setRascunhoOferta(null);
+      rascunho.reiniciar();
+      return;
+    }
+    if (colaborador?.id) return;
+    let vivo = true;
+    void rascunho.carregar().then((r) => {
+      if (!vivo) return;
+      if (!r) { rascunhoDecidido.current = true; return; }
+      setRascunhoOferta({ dados: r.dados, atualizadoEm: r.atualizadoEm });
+    });
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, colaborador?.id, chaveRascunho]);
+
+  /** Conteúdo guardado no rascunho: o que o gestor já preencheu. */
+  const conteudoRascunho = useMemo<ConteudoRascunhoAdmissao>(
+    () => ({ form, endereco, pagamento, remuneracao: rem, socio_remuneracao: socioRem }),
+    [form, endereco, pagamento, rem, socioRem],
+  );
+
+  /** Gravação automática a cada pausa na digitação. */
+  useEffect(() => {
+    if (!open || isEdit || criadoId) return;
+    if (rascunhoOferta || !rascunhoDecidido.current) return;
+    rascunho.agendar(conteudoRascunho);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isEdit, criadoId, rascunhoOferta, conteudoRascunho]);
+
+  const retomarRascunho = () => {
+    const r = rascunhoOferta;
+    if (!r) return;
+    if (r.dados.form) setForm((f) => ({ ...f, ...(r.dados.form as typeof f) }));
+    if (r.dados.endereco) setEndereco(r.dados.endereco as EnderecoValor);
+    if (r.dados.pagamento) setPagamento(r.dados.pagamento as DadosPagamento);
+    if (r.dados.remuneracao) setRem((x) => ({ ...x, ...(r.dados.remuneracao as RemuneracaoFormState) }));
+    if (r.dados.socio_remuneracao) setSocioRem(r.dados.socio_remuneracao as SocioRemuneracao);
+    vinculoTocado.current = true;
+    setRascunhoOferta(null);
+    rascunhoDecidido.current = true;
+    toast.success("Rascunho retomado. Confira os dados antes de concluir.");
+  };
+
+  const descartarRascunho = async () => {
+    setRascunhoOferta(null);
+    rascunhoDecidido.current = true;
+    await rascunho.descartar();
+  };
+
+  const salvarRascunhoAgora = async () => {
+    const ok = await rascunho.salvarAgora(conteudoRascunho);
+    if (ok) toast.success("Rascunho salvo. Você pode continuar depois, em qualquer aparelho.");
+    else toast.warning("Preencha ao menos o nome ou o CPF para guardar o rascunho.");
+  };
+
   // Ressalvas do desligamento ficam em tabela restrita ao RH/dono.
   const ressalvasQuery = useDpDesligamentoRessalvas(open ? colaborador?.id : null);
   const salvarRessalvas = useSalvarDpDesligamentoRessalvas();
