@@ -325,20 +325,23 @@ export function ComprovantePagamentoPanel(props: {
         </p>
       ) : (
         <div className="space-y-3">
-          <div className="grid gap-1.5 sm:max-w-[220px]">
-            <Label className="text-xs">Data do pagamento (opcional)</Label>
-            <Input type="date" value={pagoEm} onChange={(e) => setPagoEm(e.target.value)} />
-          </div>
-          <Button size="sm" disabled={ocupado} onClick={() => inputRef.current?.click()}>
-            {anexar.isPending ? (
-              <Loader2 className="mr-1 size-4 animate-spin" />
-            ) : (
-              <Upload className="mr-1 size-4" />
-            )}
-            Importar comprovante
+          <p className="text-sm text-muted-foreground">
+            Informe a data do pagamento e escolha o arquivo do comprovante.
+          </p>
+          <Button size="sm" disabled={ocupado} onClick={() => setAnexarOpen(true)}>
+            <Upload className="mr-1 size-4" /> Anexar comprovante
           </Button>
         </div>
       )}
+      <ComprovanteAnexarDialog
+        open={anexarOpen}
+        onOpenChange={setAnexarOpen}
+        alvo={props.alvo}
+        substituir={comprovante.tem}
+        documentoTitulo={props.documentoTitulo}
+        colaboradorNome={props.colaboradorNome}
+        pagoEmAtual={comprovante.pago_em}
+      />
       {visualizador}
     </div>
   );
