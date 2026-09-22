@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
+import { ReclameAquiSeal } from "@/components/marketing/ReclameAquiSeal";
 import { useTurnstileConfig } from "@/hooks/useTurnstileSiteKey";
 import { describeTurnstileError, currentHostname } from "@/lib/auth/turnstileErrors";
 import { unifiedSignIn } from "@/lib/authUnified";
@@ -844,6 +845,7 @@ export default function Auth() {
           </form>
         )}
         </Card>
+        <ReclameAquiSeal className="mt-4 flex justify-center" />
           </div>
         </section>
       </div>
