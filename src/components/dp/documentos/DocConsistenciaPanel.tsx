@@ -373,15 +373,23 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           const prazoDecimo = prazo13(comp);
           const decimoNoPrazo = !!prazoDecimo && hoje <= prazoDecimo;
 
+          // Vínculo que existia nesta competência. Recontratar no mesmo cadastro
+          // reescreve a admissão da ficha; sem isso, o documento correto do
+          // vínculo anterior apareceria como inconsistência.
+          const vinculoComp = limitesVinculoNaCompetencia(historicoVinculos, c.id, comp);
+          const desligamentoComp = vinculoComp ? vinculoComp.desligamento : desligamento;
+          const regimeComp = String(vinculoComp?.regime ?? regime).toLowerCase();
+          const assalariadoComp = REGIMES_ASSALARIADOS.has(regimeComp) && !socio;
+
           // Mês do desligamento: por padrão o pagamento vem no acerto da
           // rescisão, então cobra-se TRCT/demonstrativo e não o contracheque.
-          const desligadoNoMes = !!desligamento && desligamento.slice(0, 7) === comp;
+          const desligadoNoMes = !!desligamentoComp && desligamentoComp.slice(0, 7) === comp;
           // Intermitente sem marcação de ponto no mês: pode simplesmente não
           // ter sido convocado — nada de cobrança, só o alerta em Pendências.
           const intermitenteSemTrabalho =
-            regime === "intermitente" && !pontoNaComp.has(`${c.id}::${comp}`);
+            regimeComp === "intermitente" && !pontoNaComp.has(`${c.id}::${comp}`);
           const cobraContracheque =
-            assalariado &&
+            assalariadoComp &&
             !intermitenteSemTrabalho &&
             (!desligadoNoMes || exigirContrachequeMesDesligamento);
           const optanteAdiantamento = optanteNaCompetencia(
