@@ -323,9 +323,9 @@ export default function DpMeuDocumentos() {
         const { error } = await supabase.rpc("dp_solicitacao_cancelar", { p_id: d.meta.originalId });
         if (error) throw error;
       } else {
+        // O servidor só permite cancelar o próprio envio ainda pendente.
+        await excluirDocumento(String(d.meta?.originalId), "Envio cancelado pelo colaborador");
         if (d.file_path) await supabase.storage.from(d.bucket).remove([d.file_path]);
-        const { error } = await supabase.from("dp_documentos").delete().eq("id", d.meta?.originalId);
-        if (error) throw error;
       }
     },
     onSuccess: () => {
