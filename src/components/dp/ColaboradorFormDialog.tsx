@@ -340,6 +340,16 @@ export function ColaboradorFormDialog({
 
 
   const isEdit = !!colaborador?.id;
+
+  /** Rascunho guardado no sistema: vale só para cadastro novo. */
+  const chaveRascunho = useMemo(
+    () => chaveRascunhoAdmissao({ colaboradorId: colaborador?.id, pessoaApoioId: pessoaApoioInicial?.id }),
+    [colaborador?.id, pessoaApoioInicial?.id],
+  );
+  const rascunho = useDpAdmissaoRascunho(open && !colaborador?.id ? chaveRascunho : null);
+  const [rascunhoOferta, setRascunhoOferta] = useState<{ dados: ConteudoRascunhoAdmissao; atualizadoEm: string } | null>(null);
+  /** Enquanto false, o autosave aguarda a decisão de retomar ou começar em branco. */
+  const rascunhoDecidido = useRef(false);
   // Inativo sem data de demissão também conta como desligado: o banco exige a data.
   const isDesligado = isEdit && (!!colaborador?.data_desligamento || colaborador?.ativo === false);
   // Comportamento da jornada/folga é derivado do contrato, nunca testado inline.
