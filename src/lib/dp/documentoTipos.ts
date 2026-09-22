@@ -460,6 +460,7 @@ export const TIPOS_COM_COMPROVANTE = [
   "recibo_ferias",
   "aviso_ferias",
   "adiantamento",
+  "desligamento",
   "trct",
   "demonstrativo_rescisorio",
   "plr",
