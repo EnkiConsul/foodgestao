@@ -349,12 +349,12 @@ export function elegivelDocumento(
     const dia = opts.diaAdiantamento ?? null;
     // Admitido no mês depois do dia do pagamento: não há adiantamento nesta
     // competência (a primeira competência com adiantamento é a seguinte).
-    const admissao = String(c.data_admissao ?? "").slice(0, 10);
+    const admissao = admissaoEfetiva;
     if (comp && dia && admissao && admissao.slice(0, 7) === comp) {
       if (Number(admissao.slice(8, 10)) > dia) return false;
     }
     // Desligado antes do dia do adiantamento não recebe adiantamento no mês.
-    const desligamento = String(c.data_desligamento ?? "").slice(0, 10);
+    const desligamento = desligamentoEfetivo ?? "";
     if (desligadoNoMes && dia && desligamento) {
       return Number(desligamento.slice(8, 10)) >= dia;
     }
