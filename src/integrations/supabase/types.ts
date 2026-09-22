@@ -8215,6 +8215,7 @@ export type Database = {
           nome_extraido: string | null
           pagina_fim: number
           pagina_inicio: number
+          pessoa_apoio_id: string | null
           status: string
           texto_origem: string | null
           updated_at: string
@@ -8234,6 +8235,7 @@ export type Database = {
           nome_extraido?: string | null
           pagina_fim: number
           pagina_inicio: number
+          pessoa_apoio_id?: string | null
           status?: string
           texto_origem?: string | null
           updated_at?: string
@@ -8253,6 +8255,7 @@ export type Database = {
           nome_extraido?: string | null
           pagina_fim?: number
           pagina_inicio?: number
+          pessoa_apoio_id?: string | null
           status?: string
           texto_origem?: string | null
           updated_at?: string
@@ -8298,6 +8301,13 @@ export type Database = {
             columns: ["importacao_id"]
             isOneToOne: false
             referencedRelation: "dp_ficha_importacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ficha_importacao_itens_pessoa_apoio_id_fkey"
+            columns: ["pessoa_apoio_id"]
+            isOneToOne: false
+            referencedRelation: "dp_pessoas_apoio"
             referencedColumns: ["id"]
           },
         ]
@@ -10642,6 +10652,7 @@ export type Database = {
           ficha_oficial_conferida_em: string | null
           ficha_oficial_conferida_por: string | null
           id: string
+          pessoa_apoio_id: string | null
           regime_previsto:
             | Database["public"]["Enums"]["dp_regime_trabalho"]
             | null
@@ -10679,6 +10690,7 @@ export type Database = {
           ficha_oficial_conferida_em?: string | null
           ficha_oficial_conferida_por?: string | null
           id?: string
+          pessoa_apoio_id?: string | null
           regime_previsto?:
             | Database["public"]["Enums"]["dp_regime_trabalho"]
             | null
@@ -10716,6 +10728,7 @@ export type Database = {
           ficha_oficial_conferida_em?: string | null
           ficha_oficial_conferida_por?: string | null
           id?: string
+          pessoa_apoio_id?: string | null
           regime_previsto?:
             | Database["public"]["Enums"]["dp_regime_trabalho"]
             | null
@@ -10766,6 +10779,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_preadmissoes_pessoa_apoio_id_fkey"
+            columns: ["pessoa_apoio_id"]
+            isOneToOne: false
+            referencedRelation: "dp_pessoas_apoio"
             referencedColumns: ["id"]
           },
           {
@@ -16726,6 +16746,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      dp_pessoa_apoio_vincular_origem: {
+        Args: {
+          p_ficha_item_id?: string
+          p_pessoa_apoio_id: string
+          p_preadmissao_id?: string
+        }
+        Returns: Json
       }
       dp_pessoa_avulsa_definir_setor_dia: {
         Args: {

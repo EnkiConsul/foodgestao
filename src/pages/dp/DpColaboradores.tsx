@@ -30,6 +30,9 @@ import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { NovoCadastroMetodoDialog, type NovoCadastroMetodo } from "@/components/dp/NovoCadastroMetodoDialog";
+import {
+  PromoverApoioMetodoDialog, type PromoverApoioMetodo,
+} from "@/components/dp/PromoverApoioMetodoDialog";
 import { PreadmissoesPanel } from "@/components/dp/preadmissao/PreadmissoesPanel";
 import { PessoaApoioFormDialog } from "@/components/dp/PessoaApoioFormDialog";
 import type { PessoaApoioTipo } from "@/hooks/useDpPessoasApoio";
@@ -119,6 +122,8 @@ export default function DpColaboradores() {
   const [viewingApoio, setViewingApoio] = useState<PessoaApoio | null>(null);
   const [editing, setEditing] = useState<DpColaborador | null>(null);
   const [transformando, setTransformando] = useState<PessoaApoio | null>(null);
+  /** Pessoa escolhida para promover, enquanto ela decide por qual caminho. */
+  const [promovendo, setPromovendo] = useState<PessoaApoio | null>(null);
   type AbaCadastro =
     | "dados" | "acesso" | "desligamento" | "jornada" | "remuneracao" | "dependentes" | "documentos";
   /** Aba aberta ao abrir o cadastro pelas ações da lista e pelos atalhos de pendências. */
@@ -143,7 +148,7 @@ export default function DpColaboradores() {
       label: "Promover a Colaborador",
       icon: UserPlus,
       disabled: !!p.colaborador_id,
-      onSelect: () => setTransformando(p),
+      onSelect: () => setPromovendo(p),
     },
     {
       key: "remover",
@@ -161,6 +166,31 @@ export default function DpColaboradores() {
     if (m === "preadmissao") return navigate("/dp/colaboradores/pre-admissoes?novo=1");
     setApoioTipo(m === "teste" ? "teste" : "folguista");
     setApoioOpen(true);
+  };
+  /**
+   * Promoção de folguista: os três caminhos do novo cadastro, levando os dados
+   * que já existem da pessoa. A ligação com a admissão é feita no servidor.
+   */
+  const escolherMetodoPromocao = (m: PromoverApoioMetodo) => {
+    const pessoa = promovendo;
+    setPromovendo(null);
+    if (!pessoa) return;
+    if (m === "manual") return setTransformando(pessoa);
+    if (m === "importar") {
+      return navigate(`/dp/colaboradores/importar-ficha?apoio=${pessoa.id}`);
+    }
+    navigate("/dp/colaboradores/pre-admissoes?novo=1", {
+      state: {
+        conviteInicial: {
+          nome: pessoa.nome,
+          whatsapp: pessoa.telefone,
+          cpf: pessoa.cpf,
+          cargoId: pessoa.cargo_id,
+          unidadeId: pessoa.unidade_id,
+          pessoaApoioId: pessoa.id,
+        },
+      },
+    });
   };
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
   const [condicoesDe, setCondicoesDe] = useState<DpColaborador | null>(null);
@@ -1353,6 +1383,14 @@ export default function DpColaboradores() {
       />
 
       <NovoCadastroMetodoDialog open={metodoOpen} onOpenChange={setMetodoOpen} onSelect={escolherMetodo} />
+      <PromoverApoioMetodoDialog
+        open={!!promovendo}
+        nome={promovendo?.nome ?? null}
+        onOpenChange={(o) => {
+          if (!o) setPromovendo(null);
+        }}
+        onSelect={escolherMetodoPromocao}
+      />
 
       <PessoaApoioFormDialog
         open={apoioOpen}

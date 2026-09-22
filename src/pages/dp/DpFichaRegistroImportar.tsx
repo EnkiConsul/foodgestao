@@ -50,6 +50,8 @@ export default function DpFichaRegistroImportar() {
   /** Quando a conferência é a da ficha oficial de uma Pré-Admissão. */
   const [params] = useSearchParams();
   const preadmissaoId = params.get("preadmissao");
+  /** Promoção de folguista / pessoa em teste por ficha de registro. */
+  const pessoaApoioId = params.get("apoio");
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [importacaoId, setImportacaoId] = useState<string | null>(null);
@@ -332,6 +334,7 @@ export default function DpFichaRegistroImportar() {
               regimePadrao={regimePadrao}
               onAbrirCadastro={setCadastroAbertoId}
               preadmissaoId={preadmissaoId}
+              pessoaApoioId={pessoaApoioId}
             />
           ))}
         </div>
@@ -352,6 +355,7 @@ export default function DpFichaRegistroImportar() {
               empresaCnpj={empresaCnpj}
               onAbrirCadastro={setCadastroAbertoId}
               preadmissaoId={preadmissaoId}
+              pessoaApoioId={pessoaApoioId}
             />
           ))}
         </div>
