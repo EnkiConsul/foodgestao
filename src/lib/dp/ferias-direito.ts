@@ -308,6 +308,10 @@ export const FERIAS_ERRO_TEXTO: Record<string, string> = {
     "Esse saldo é menor do que os dias já marcados neste período. Ajuste as férias primeiro.",
   FERIAS_CONTROLE_EXTERNO:
     "Este período é anterior ao início do controle no sistema e fica apenas como histórico.",
+  FERIAS_COBERTURA_MINIMA:
+    "Nessas datas o turno ficaria abaixo da cobertura mínima. Registre uma justificativa para seguir.",
+  dp_ferias_gozos_sem_sobreposicao:
+    "Já existem férias marcadas nessas datas para esta pessoa.",
 };
 
 /**
