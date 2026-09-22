@@ -1067,11 +1067,11 @@ export default function PreAdmissao() {
       </main>
 
       <footer className="fixed bottom-0 left-0 right-0 border-t bg-background p-3">
-      {rotuloSalvoEm(salvoEm) && (
-        <p className="mb-2 text-center text-[11px] text-muted-foreground">
-          {`Rascunho ${rotuloSalvoEm(salvoEm).toLowerCase()} — você pode sair e continuar depois.`}
-        </p>
-      )}
+      <p className="mb-2 text-center text-[11px] text-muted-foreground">
+        {rotuloSalvoEm(salvoEm)
+          ? `Rascunho ${rotuloSalvoEm(salvoEm).toLowerCase()} — você pode sair e continuar depois.`
+          : "O que você preencher fica guardado. Pode sair e voltar por este mesmo link."}
+      </p>
       <div className="flex gap-2">
         <Button variant="outline" className="h-12" disabled={etapa === 0 || salvando}
           aria-label="Voltar uma etapa"
