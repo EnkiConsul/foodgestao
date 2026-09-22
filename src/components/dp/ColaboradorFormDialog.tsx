@@ -2058,37 +2058,17 @@ export function ColaboradorFormDialog({
                       value={pagamento.pix_chave}
                       onChange={(e) => setPagamento((p) => ({ ...p, pix_chave: e.target.value }))}
                     />
+                    {pagamento.pix_tipo && !pixTipoRecomendado(pagamento.pix_tipo) && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        O recomendado é a chave de CPF ou de celular do próprio colaborador.
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <label className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={pagamento.titular_proprio}
-                        onCheckedChange={(v) =>
-                          setPagamento((p) => ({ ...p, titular_proprio: v === true }))
-                        }
-                      />
-                      A conta é do próprio colaborador
-                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      A conta ou a chave Pix precisa ser de titularidade do próprio colaborador.
+                    </p>
                   </div>
-                  {!pagamento.titular_proprio && (
-                    <>
-                      <div className="space-y-2">
-                        <Label>Nome do titular *</Label>
-                        <Input
-                          value={pagamento.titular_nome}
-                          onChange={(e) => setPagamento((p) => ({ ...p, titular_nome: e.target.value.toUpperCase() }))}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>CPF do titular *</Label>
-                        <Input
-                          value={pagamento.titular_cpf}
-                          onChange={(e) => setPagamento((p) => ({ ...p, titular_cpf: e.target.value }))}
-                          placeholder="000.000.000-00"
-                        />
-                      </div>
-                    </>
-                  )}
                 </div>
                 {erroPagamento(pagamento) && (
                   <p className="text-xs text-destructive">{erroPagamento(pagamento)}</p>
