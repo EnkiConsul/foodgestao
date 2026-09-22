@@ -27,7 +27,7 @@ Regras que seguem valendo:
    - Valores antigos do enum permanecem declarados (Postgres não remove valor de enum), apenas deixam de ser oferecidos.
 
 2. **Catálogo do frontend** — `src/lib/dp/documentoTipos.ts`
-   - Substituir as quatro entradas do grupo `admissao` por uma única `admissao` ("Admissão", `exigeAceite: true`, palavras-chave somadas: contrato de trabalho, ficha de registro, ASO admissional, exame admissional, termo de...) e as quatro do grupo `desligamento` por uma única `desligamento` ("Desligamento", palavras-chave: TRCT, termo de rescisão, aviso prévio, demonstrativo rescisório, ASO demissional, exame demissional).
+   - Substituir as quatro entradas do grupo `admissao` por uma única `admissao` ("Admissão", `exigeAceite: true`, palavras-chave somadas: contrato de trabalho, ficha de registro, ASO admissional, exame admissional, termo de...). No grupo `desligamento`, manter `aviso_previo` como está e substituir as outras três por uma única `desligamento` ("Desligamento", palavras-chave: TRCT, termo de rescisão, demonstrativo rescisório, ASO demissional, exame demissional) — a detecção automática testa Aviso Prévio antes de Desligamento, para o aviso não cair no grupão.
    - Manter os valores antigos num mapa de compatibilidade (`DP_DOC_TIPOS_LEGADOS`) com `importavel: false`, para que qualquer registro histórico ainda tenha rótulo e cor.
    - `detectarTipoDocumento` passa a devolver os dois tipos unificados; `TIPOS_COM_COMPROVANTE` ganha `desligamento`.
 
