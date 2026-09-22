@@ -1156,6 +1156,19 @@ export default function DpMeuCalendario() {
                   </p>
                 )}
                 {selectedDay.status === "mine" && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setRemarcarOpen(selectedDay.iso);
+                      setRemarcarNova("");
+                      setRemarcarMotivo("");
+                      setRemarcarAviso(null);
+                    }}
+                  >
+                    <CalendarClock className="mr-2 h-4 w-4" /> Mudar o dia da minha folga
+                  </Button>
+                )}
+                {selectedDay.status === "mine" && (
                   <ConfirmarAcaoDialog
                     titulo="Remover esta folga?"
                     descricao="O dia volta a ficar livre e pode ser escolhido por outra pessoa da equipe."
