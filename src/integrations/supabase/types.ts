@@ -16398,6 +16398,14 @@ export type Database = {
         Args: { _company_id: string }
         Returns: boolean
       }
+      dp_portal_acesso_revogar: {
+        Args: { p_colaborador_id: string; p_motivo?: string }
+        Returns: Json
+      }
+      dp_portal_acesso_situacao: {
+        Args: { p_colaborador_id: string }
+        Returns: string
+      }
       dp_portal_acesso_status: {
         Args: { p_colaborador_id: string }
         Returns: {

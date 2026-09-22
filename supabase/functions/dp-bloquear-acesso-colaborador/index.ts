@@ -6,7 +6,7 @@
  */
 import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
 import { requireColaboradorAdmin } from "../_shared/authz.ts";
-import { registrarEvento, revogarSessoes } from "../_shared/portal-access.ts";
+import { registrarEvento, revogarAcessoPortal } from "../_shared/portal-access.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: strictCorsHeaders(req) });
@@ -38,16 +38,12 @@ Deno.serve(async (req) => {
     );
     if (secErr) return jsonError(req, "internal", secErr.message);
 
-    if (bloquear) {
-      await admin
-        .from("dp_portal_access_tokens")
-        .update({ consumed_at: agora })
-        .eq("user_id", colab.user_id)
-        .is("consumed_at", null);
-    }
-
+    // Links pendentes, sessões e histórico em uma única operação do banco.
     let sessoesRevogadas = false;
-    if (bloquear) sessoesRevogadas = await revogarSessoes(colab.user_id);
+    if (bloquear) {
+      const r = await revogarAcessoPortal(admin, colab.id, "bloqueio_manual", colab.user_id);
+      sessoesRevogadas = r.sessoesRevogadas;
+    }
 
     await registrarEvento(admin, bloquear ? "access_blocked" : "access_unblocked", {
       actorUserId: caller.id,

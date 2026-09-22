@@ -6,7 +6,13 @@
  */
 import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
 import { requireColaboradorAdmin } from "../_shared/authz.ts";
-import { emitirToken, linkDeAcesso, registrarEvento } from "../_shared/portal-access.ts";
+import {
+  emitirToken,
+  linkDeAcesso,
+  mensagemSituacao,
+  registrarEvento,
+  situacaoAcesso,
+} from "../_shared/portal-access.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: strictCorsHeaders(req) });
@@ -25,6 +31,13 @@ Deno.serve(async (req) => {
       return jsonResponse(req, 400, {
         error: "Este colaborador ainda não tem acesso ao portal. Use 'Liberar acesso'.",
       });
+    }
+
+    // Bloqueado ou vínculo encerrado não recebe link novo.
+    const situacao = await situacaoAcesso(admin, colab.id);
+    const impedimento = mensagemSituacao(situacao);
+    if (impedimento) {
+      return jsonResponse(req, 409, { code: situacao, error: impedimento });
     }
 
     const { tokenId, codigo, expiresAt } = await emitirToken(admin, {

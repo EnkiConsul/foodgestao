@@ -23,6 +23,25 @@ const fmtPrazo = (iso?: string | null) =>
 
 type Situacao = "sem_acesso" | "pendente_ativacao" | "ativo" | "reset_solicitado" | "bloqueado";
 
+/** Situação do vínculo para liberar acesso — decidida pelo servidor. */
+type SituacaoVinculo =
+  | "ok"
+  | "prazo_documentos"
+  | "bloqueado"
+  | "vinculo_encerrado"
+  | "cadastro_removido"
+  | "cadastro_nao_encontrado"
+  | "empresa_inativa";
+
+const IMPEDIMENTO: Record<string, string> = {
+  bloqueado: "O acesso está bloqueado. Use 'Reativar acesso' para liberar novamente.",
+  vinculo_encerrado:
+    "O prazo de consulta deste colaborador desligado já terminou — não é possível liberar acesso.",
+  cadastro_removido: "Este cadastro foi removido.",
+  cadastro_nao_encontrado: "Cadastro não encontrado.",
+  empresa_inativa: "A empresa está inativa. Regularize a situação antes de liberar o acesso.",
+};
+
 const ROTULO: Record<Situacao, string> = {
   sem_acesso: "Sem acesso",
   pendente_ativacao: "Acesso pendente de ativação",
@@ -47,6 +66,7 @@ export function ColaboradorAcessoPanel({
 }) {
   const [busy, setBusy] = useState<null | "liberar" | "redefinir" | "bloquear">(null);
   const [situacao, setSituacao] = useState<Situacao | null>(null);
+  const [vinculo, setVinculo] = useState<SituacaoVinculo | null>(null);
   const [prazo, setPrazo] = useState<string | null>(null);
   const [link, setLink] = useState<{ url: string; kind: "activation" | "reset"; expires: string | null } | null>(null);
   const [copiado, setCopiado] = useState(false);
@@ -68,6 +88,11 @@ export function ColaboradorAcessoPanel({
     const linha = (data as any[] | null)?.[0];
     setSituacao((linha?.status as Situacao) ?? "sem_acesso");
     setPrazo(linha?.expires_at ?? null);
+
+    const { data: sit } = await supabase.rpc("dp_portal_acesso_situacao", {
+      p_colaborador_id: colaboradorId,
+    });
+    setVinculo((sit as SituacaoVinculo | null) ?? null);
   }, [colaboradorId]);
 
   useEffect(() => {
@@ -85,6 +110,12 @@ export function ColaboradorAcessoPanel({
   const cpfDigits = (colaborador.cpf ?? "").replace(/\D/g, "");
   const acessoAte = (colaborador as any).acesso_portal_ate as string | null;
   const temAcesso = situacao !== null && situacao !== "sem_acesso";
+  // Impedimento vindo do servidor: bloqueio, prazo vencido, cadastro removido
+  // ou empresa inativa. Enquanto não carregou, nada é liberado às cegas.
+  const impedimento = vinculo && vinculo !== "ok" && vinculo !== "prazo_documentos"
+    ? (IMPEDIMENTO[vinculo] ?? "Não é possível liberar o acesso agora.")
+    : null;
+  const somenteDocumentos = vinculo === "prazo_documentos";
 
   const copiarLink = async () => {
     if (!link) return;
@@ -217,22 +248,41 @@ export function ColaboradorAcessoPanel({
           escritório vê ou define a senha dele.
         </p>
 
+        {impedimento && (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-100">
+            {impedimento}
+          </p>
+        )}
+        {somenteDocumentos && (
+          <p className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+            Colaborador desligado: o portal fica apenas para consultar e baixar documentos até o fim do prazo.
+          </p>
+        )}
+
         <div className="flex flex-wrap gap-2">
           {!temAcesso ? (
-            <Button onClick={() => void liberarAcesso()} disabled={busy !== null}>
+            <Button onClick={() => void liberarAcesso()} disabled={busy !== null || impedimento !== null}>
               <KeyRound className="mr-2 h-4 w-4" aria-hidden="true" />
               {busy === "liberar" ? "Liberando..." : "Liberar acesso"}
             </Button>
           ) : (
             <>
               {situacao === "pendente_ativacao" && (
-                <Button variant="outline" onClick={() => void liberarAcesso()} disabled={busy !== null}>
+                <Button
+                  variant="outline"
+                  onClick={() => void liberarAcesso()}
+                  disabled={busy !== null || impedimento !== null}
+                >
                   <KeyRound className="mr-2 h-4 w-4" aria-hidden="true" />
                   {busy === "liberar" ? "Gerando..." : "Reenviar ativação"}
                 </Button>
               )}
               {situacao !== "bloqueado" && (
-                <Button variant="outline" onClick={() => void redefinirAcesso()} disabled={busy !== null}>
+                <Button
+                  variant="outline"
+                  onClick={() => void redefinirAcesso()}
+                  disabled={busy !== null || impedimento !== null}
+                >
                   <KeyRound className="mr-2 h-4 w-4" aria-hidden="true" />
                   {busy === "redefinir" ? "Gerando..." : "Redefinir acesso"}
                 </Button>

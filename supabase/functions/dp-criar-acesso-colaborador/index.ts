@@ -12,7 +12,14 @@
 
 import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
 import { requireColaboradorAdmin } from "../_shared/authz.ts";
-import { emitirToken, gerarCodigo, linkDeAcesso, registrarEvento } from "../_shared/portal-access.ts";
+import {
+  emitirToken,
+  gerarCodigo,
+  linkDeAcesso,
+  mensagemSituacao,
+  registrarEvento,
+  situacaoAcesso,
+} from "../_shared/portal-access.ts";
 
 const SYNTHETIC_EMAIL_DOMAIN = "portal.360food.local";
 
@@ -49,6 +56,14 @@ Deno.serve(async (req) => {
       return jsonResponse(req, 400, {
         error: "O CPF do colaborador está incompleto. Complete o cadastro antes de liberar o acesso.",
       });
+    }
+
+    // Falha fechada: bloqueio, vínculo encerrado, cadastro removido ou empresa
+    // inativa impedem liberar acesso. Reativar é sempre uma ação explícita.
+    const situacao = await situacaoAcesso(admin, colab.id);
+    const impedimento = mensagemSituacao(situacao);
+    if (impedimento) {
+      return jsonResponse(req, 409, { code: situacao, error: impedimento });
     }
 
     const origin = req.headers.get("origin");
