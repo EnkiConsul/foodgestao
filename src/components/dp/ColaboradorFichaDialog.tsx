@@ -139,15 +139,19 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
     (colaborador as any)?.unidade_id ?? null,
   );
 
+  /** Setor só é cobrado quando a empresa já usa setores (igual à lista). */
+  const { todos: setoresDaEmpresa } = useDpSetores();
+  const exigirSetor = setoresDaEmpresa.some((s) => s.ativo !== false);
+
   /** Campos essenciais em branco — aviso no topo da ficha (obrigatórios primeiro). */
   const faltandoFicha = useMemo(
     () =>
       colaborador && colaborador.ativo
-        ? [...camposFaltando(colaborador as never, { salarioCargo })].sort(
+        ? [...camposFaltando(colaborador as never, { salarioCargo, exigirSetor })].sort(
             (a, b) => Number(b.obrigatorio) - Number(a.obrigatorio),
           )
         : [],
-    [colaborador, salarioCargo],
+    [colaborador, salarioCargo, exigirSetor],
   );
   const faltandoObrig = faltandoFicha.filter((c) => c.obrigatorio);
   const faltandoOpc = faltandoFicha.filter((c) => !c.obrigatorio);
