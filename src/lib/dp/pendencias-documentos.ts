@@ -244,19 +244,20 @@ export function limitesVinculoNaCompetencia(
   historico: VinculoHistorico[] | undefined | null,
   colaboradorId: string,
   comp: Competencia,
-): { admissao: string; desligamento: string | null } | null {
+): { admissao: string; desligamento: string | null; regime: string | null } | null {
   const { inicio, fim } = intervaloCompetencia(comp);
   const cobrem = (historico ?? [])
     .filter((h) => h.colaborador_id === colaboradorId)
     .map((h) => ({
       ini: String(h.vigencia_inicio ?? "").slice(0, 10),
       fim: String(h.vigencia_fim ?? "").slice(0, 10),
+      regime: h.regime ?? null,
     }))
     .filter((h) => h.ini && h.ini <= fim && (!h.fim || h.fim >= inicio))
     .sort((a, b) => a.ini.localeCompare(b.ini));
   const v = cobrem[0];
   if (!v) return null;
-  return { admissao: v.ini, desligamento: v.fim || null };
+  return { admissao: v.ini, desligamento: v.fim || null, regime: v.regime };
 }
 
 export type ElegibilidadeOpts = {
