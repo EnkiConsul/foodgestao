@@ -239,22 +239,10 @@ export function ValeCalculadora({ tipo, filtros }: Props) {
   return (
     <div className="space-y-3">
       <DpContentCard contentClassName="p-4 md:p-5">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">Mês do pagamento</Label>
             <Input type="month" value={competencia} onChange={(e) => setCompetencia(e.target.value || mesAtual())} />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Unidade</Label>
-            <Select value={unidade} onValueChange={setUnidade}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent className="max-h-72">
-                <SelectItem value="todas">Todas</SelectItem>
-                {unidades.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
           <div className="flex flex-col justify-end gap-2 sm:flex-row">
             <Button variant="secondary" className="w-full" onClick={exportar} disabled={linhas.length === 0}>
