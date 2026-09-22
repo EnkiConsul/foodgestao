@@ -6,6 +6,8 @@
  * também valida o titular de terceiro, então a tela nunca é a única barreira.
  */
 
+import { isValidCpf } from "@/lib/cpf";
+
 export interface DadosPagamento {
   banco_codigo: string;
   banco_nome: string;
