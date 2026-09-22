@@ -794,8 +794,8 @@ export function ColaboradorFormDialog({
     if (!r) return;
     if (r.dados.form) setForm((f) => ({ ...f, ...(r.dados.form as typeof f) }));
     if (r.dados.endereco) setEndereco(r.dados.endereco as EnderecoValor);
-    if (r.dados.pagamento) setPagamento(r.dados.pagamento as DadosPagamento);
-    if (r.dados.remuneracao) setRem((x) => ({ ...x, ...(r.dados.remuneracao as RemuneracaoFormState) }));
+    if (r.dados.pagamento) setPagamento(r.dados.pagamento as unknown as DadosPagamento);
+    if (r.dados.remuneracao) setRem((x) => ({ ...x, ...(r.dados.remuneracao as unknown as RemuneracaoFormState) }));
     if (r.dados.socio_remuneracao) setSocioRem(r.dados.socio_remuneracao as SocioRemuneracao);
     vinculoTocado.current = true;
     setRascunhoOferta(null);
