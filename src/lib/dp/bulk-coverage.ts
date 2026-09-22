@@ -11,6 +11,8 @@ export interface CoverageColaborador {
   optante_adiantamento?: boolean | null;
   data_admissao?: string | null;
   data_desligamento?: string | null;
+  /** Fins de vínculo do histórico ("YYYY-MM-DD"), inclusive de quem foi recontratado. */
+  vinculos_encerrados?: string[] | null;
   dp_unidades?: { nome?: string | null } | null;
 }
 
