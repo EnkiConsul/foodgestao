@@ -13,8 +13,10 @@ import { avaliarSenha, SENHA_MIN } from "../_shared/password-policy.ts";
 import {
   confirmarToken,
   liberarToken,
+  mensagemSituacao,
   registrarEvento,
   reservarToken,
+  situacaoAcesso,
   type Purpose,
 } from "../_shared/portal-access.ts";
 
