@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/select";
 import { DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
-import { useDpUnidades } from "@/hooks/useDpCadastros";
+import type { BeneficiosFiltros } from "@/lib/dp/beneficios-filtros";
 import { useDpValeCalculadora, VALE_LABEL, type LinhaVale, type ValeTipo } from "@/hooks/useDpValeCalculadora";
 import { useDpValeApuracoes, type FecharLinha } from "@/hooks/useDpValeApuracoes";
 import { ValeMemoriaDialog } from "@/components/dp/beneficios/ValeMemoriaDialog";
