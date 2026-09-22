@@ -1038,7 +1038,13 @@ export default function PreAdmissao() {
         )}
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 border-t bg-background p-3 flex gap-2">
+      <footer className="fixed bottom-0 left-0 right-0 border-t bg-background p-3">
+      {rotuloSalvoEm(salvoEm) && (
+        <p className="mb-2 text-center text-[11px] text-muted-foreground">
+          {`Rascunho ${rotuloSalvoEm(salvoEm).toLowerCase()} — você pode sair e continuar depois.`}
+        </p>
+      )}
+      <div className="flex gap-2">
         <Button variant="outline" className="h-12" disabled={etapa === 0 || salvando}
           aria-label="Voltar uma etapa"
           onClick={() => setEtapa((n) => Math.max(0, n - 1))}>
