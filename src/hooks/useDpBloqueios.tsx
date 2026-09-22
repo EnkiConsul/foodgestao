@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { salvarRegraBloqueio, excluirRegraBloqueio, salvarDataBloqueada, excluirDataBloqueada, rebloquearData } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
   parseYMD,
@@ -48,6 +49,7 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
         .from("dp_bloqueio_regras")
         .select("*")
         .eq("company_id", selectedCompanyId!)
+        .is("removido_em", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
 
@@ -245,9 +247,7 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
       if (form.tipo === "fixa_anual" && form.dias.length === 0) throw new Error("Selecione pelo menos um dia.");
       if (form.tipo === "dinamica" && (form.ordinal == null || form.dia_semana == null)) throw new Error("Preencha ordinal e dia da semana.");
 
-      const { data: userRes } = await supabase.auth.getUser();
       const payload = {
-        company_id: selectedCompanyId!,
         nome: form.nome.trim(),
         tipo: form.tipo,
         mes: form.meses.length === 1 ? form.meses[0] : null,
@@ -262,27 +262,13 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
           pos_pagamento_dia: form.tipo === "pos_pagamento" ? (form.pos_pagamento_dia ?? 5) : null,
         } as RegraJson,
         ativo: form.ativo,
-        criado_por: userRes.user?.id ?? null,
       };
 
-      let regraId = editId;
-      if (editId) {
-        const { error } = await supabase.from("dp_bloqueio_regras").update(payload).eq("id", editId);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase.from("dp_bloqueio_regras").insert(payload).select("id").single();
-        if (error) throw error;
-        regraId = data!.id;
-      }
-
-      if (regraId) {
-        await supabase.from("dp_bloqueio_regra_unidades").delete().eq("regra_id", regraId);
-        if (form.unidades.length > 0) {
-          const inserts = form.unidades.map((unidade_id) => ({ regra_id: regraId!, unidade_id }));
-          const { error } = await supabase.from("dp_bloqueio_regra_unidades").insert(inserts);
-          if (error) throw error;
-        }
-      }
+      await salvarRegraBloqueio({
+        companyId: selectedCompanyId!,
+        regra: { ...payload, ...(editId ? { id: editId } : {}) } as Record<string, unknown>,
+        unidades: form.unidades,
+      });
     },
     onSuccess: async (_d, vars) => {
       toast.success(vars.editId ? "Regra atualizada" : "Regra criada");
@@ -293,8 +279,7 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
 
   const delRegra = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_bloqueio_regras").delete().eq("id", id);
-      if (error) throw error;
+      await excluirRegraBloqueio(id);
     },
     onSuccess: async () => {
       toast.success("Regra excluída");
@@ -307,22 +292,13 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
     mutationFn: async ({ form, editId }: { form: DataFormState; editId: string | null }) => {
       if (!form.data) throw new Error("Selecione uma data");
       if (!form.motivo.trim()) throw new Error("Informe o motivo");
-      const { data: userRes } = await supabase.auth.getUser();
-      const payload = {
-        company_id: selectedCompanyId!,
+      await salvarDataBloqueada({
+        companyId: selectedCompanyId!,
         data: form.data,
         motivo: form.motivo.trim(),
-        unidade_id: form.unidade_id || null,
-        regra_id: null,
-        criado_por: userRes.user?.id ?? null,
-      };
-      if (editId) {
-        const { error } = await supabase.from("dp_datas_bloqueadas").update(payload).eq("id", editId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("dp_datas_bloqueadas").insert(payload);
-        if (error) throw error;
-      }
+        unidadeId: form.unidade_id || null,
+        id: editId,
+      });
     },
     onSuccess: (_d, vars) => {
       toast.success(vars.editId ? "Bloqueio atualizado" : "Data bloqueada");
@@ -333,8 +309,7 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
 
   const delData = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_datas_bloqueadas").delete().eq("id", id);
-      if (error) throw error;
+      await excluirDataBloqueada(id);
     },
     onSuccess: () => {
       toast.success("Bloqueio removido");
@@ -345,16 +320,7 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
 
   const rebloquear = useMutation({
     mutationFn: async (d: DataBloq) => {
-      if (d.regra_id) {
-        const { error } = await supabase.from("dp_datas_bloqueadas").delete().eq("id", d.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("dp_datas_bloqueadas")
-          .update({ liberada: false, liberada_por_solicitacao: null })
-          .eq("id", d.id);
-        if (error) throw error;
-      }
+      await rebloquearData(d.id);
     },
     onSuccess: () => {
       toast.success("Data bloqueada novamente");
@@ -365,21 +331,13 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
 
   const liberar = useMutation({
     mutationFn: async (d: DataBloq) => {
-      const { data: userRes } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("dp_datas_bloqueadas")
-        .upsert(
-          {
-            company_id: selectedCompanyId!,
-            data: d.data,
-            unidade_id: d.unidade_id ?? null,
-            liberada: true,
-            motivo: "Liberado manualmente pelo administrador",
-            criado_por: userRes.user?.id ?? null,
-          },
-          { onConflict: "company_id,unidade_id,data" },
-        );
-      if (error) throw error;
+      await salvarDataBloqueada({
+        companyId: selectedCompanyId!,
+        data: d.data,
+        unidadeId: d.unidade_id ?? null,
+        liberada: true,
+        motivo: "Liberado manualmente pelo administrador",
+      });
     },
     onSuccess: () => {
       toast.success("Data liberada");

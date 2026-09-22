@@ -10,6 +10,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { definirParentescoAdmissao } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 
 export type Exigencia = "obrigatorio" | "opcional" | "nao_pedir";
@@ -171,20 +172,12 @@ export function useDpAdmissaoRegras() {
   const definirParentesco = useMutation({
     mutationFn: async (p: { parentesco: string; dependente: boolean; sesc: boolean }) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
-      if (!p.dependente && !p.sesc) {
-        const { error } = await supabase.from("dp_admissao_regra_parentescos").delete()
-          .eq("company_id", selectedCompanyId).eq("parentesco", p.parentesco);
-        if (error) throw error;
-        return;
-      }
-      const { error } = await supabase.from("dp_admissao_regra_parentescos")
-        .upsert({
-          company_id: selectedCompanyId,
-          parentesco: p.parentesco,
-          permite_dependente: p.dependente,
-          permite_sesc: p.sesc,
-        }, { onConflict: "company_id,parentesco" });
-      if (error) throw error;
+      await definirParentescoAdmissao({
+        companyId: selectedCompanyId,
+        parentesco: p.parentesco,
+        dependente: p.dependente,
+        sesc: p.sesc,
+      });
     },
     onSuccess: invalidar,
   });

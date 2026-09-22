@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { salvarApoioUnidade, excluirApoioUnidade } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 
 /**
@@ -100,9 +101,7 @@ export function useSalvarDpApoioUnidade() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: ApoioUnidadeInput) => {
-      const { data: userData } = await supabase.auth.getUser();
       const payload = {
-        company_id: selectedCompanyId!,
         pessoa_apoio_id: input.pessoa_apoio_id ?? null,
         colaborador_id: input.colaborador_id ?? null,
         unidade_id: input.unidade_id,
@@ -114,22 +113,10 @@ export function useSalvarDpApoioUnidade() {
         pro_labore: input.pro_labore ?? null,
         horario: (input.horario ?? null) as never,
       };
-      if (input.id) {
-        const { error } = await supabase
-          .from("dp_apoio_unidades")
-          .update(payload)
-          .eq("id", input.id)
-          .eq("company_id", selectedCompanyId!);
-        if (error) throw error;
-        return input.id;
-      }
-      const { data, error } = await supabase
-        .from("dp_apoio_unidades")
-        .insert({ ...payload, criado_por: userData.user?.id ?? null })
-        .select("id")
-        .single();
-      if (error) throw error;
-      return data.id as string;
+      return await salvarApoioUnidade(selectedCompanyId!, {
+        ...payload,
+        ...(input.id ? { id: input.id } : {}),
+      } as Record<string, unknown>);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_apoio_unidades"] }),
   });
@@ -143,8 +130,7 @@ export function useExcluirDpApoioUnidade() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_apoio_unidades").delete().eq("id", id);
-      if (error) throw error;
+      await excluirApoioUnidade(id);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_apoio_unidades"] }),
   });

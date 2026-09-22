@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { salvarConfigDp } from "@/lib/dp/regras-oficial";
 import type { Json } from "@/integrations/supabase/types";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
@@ -44,19 +45,11 @@ export function useTurnoCategoriaLabels() {
     if (!selectedCompanyId) throw new Error("Empresa não selecionada");
     const limpo = serializarCategorias(lista);
     const payload = limpo as unknown as Json;
-    const rowId = query.data?.id ?? null;
-    if (rowId) {
-      const { error } = await supabase
-        .from("dp_config_dp")
-        .update({ turno_categoria_labels: payload })
-        .eq("id", rowId);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase
-        .from("dp_config_dp")
-        .insert({ company_id: selectedCompanyId, unidade_id: null, turno_categoria_labels: payload });
-      if (error) throw error;
-    }
+    await salvarConfigDp({
+      companyId: selectedCompanyId,
+      unidadeId: null,
+      patch: { turno_categoria_labels: payload },
+    });
     return limpo;
   };
 

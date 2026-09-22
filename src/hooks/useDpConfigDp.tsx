@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { salvarConfigDp, removerExcecaoConfigDp } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
   DP_CONFIG_DP_DEFAULT,
@@ -149,30 +150,14 @@ export function useDpConfigDp(unidadeId: string | null = null) {
     // Nunca herdar campos de identidade (id/unidade_id) da regra usada como base.
     const anterior: DpConfigDpForm = base ? stripIdentity(base) : DP_CONFIG_DP_DEFAULT;
     const merged: DpConfigDpForm = { ...anterior, ...patch };
-    const payload = { ...merged, company_id: selectedCompanyId, unidade_id: alvo };
 
-    if (existente) {
-      const { error } = await supabase
-        .from("dp_config_dp")
-        .update(payload)
-        .eq("id", existente.id);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase.from("dp_config_dp").insert(payload);
-      if (error) throw error;
-    }
-
-    const { data: userData } = await supabase.auth.getUser();
-    const { error: histError } = await supabase.from("dp_regras_historico").insert({
-      company_id: selectedCompanyId,
-      usuario_id: userData.user?.id ?? null,
-      tabela: alvo ? `Regras de folgas — ${opts.rotulo ?? `unidade ${alvo}`}` : "Regras de folgas — empresa",
-      valor_antigo: anterior as unknown as never,
-      valor_novo: merged as unknown as never,
+    await salvarConfigDp({
+      companyId: selectedCompanyId,
+      unidadeId: alvo,
+      patch: patch as Record<string, unknown>,
       justificativa: opts.justificativa ?? null,
-      ciencia_confirmada: !!opts.cienciaConfirmada,
+      ciencia: !!opts.cienciaConfirmada,
     });
-    if (histError) throw histError;
 
     return merged;
   };
@@ -224,12 +209,7 @@ export function useDpConfigDp(unidadeId: string | null = null) {
   const removerExcecao = useMutation({
     mutationFn: async (alvo: string) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const { error } = await supabase
-        .from("dp_config_dp")
-        .delete()
-        .eq("company_id", selectedCompanyId)
-        .eq("unidade_id", alvo);
-      if (error) throw error;
+      await removerExcecaoConfigDp(selectedCompanyId, alvo);
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["dp_config_dp", selectedCompanyId] });

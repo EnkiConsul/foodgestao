@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { salvarRegraFerias, excluirRegraFerias, salvarBloqueioFerias, excluirBloqueioFerias } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -46,6 +47,7 @@ export function useDpFeriasRegras() {
         .from("dp_ferias_regras")
         .select("*")
         .eq("company_id", selectedCompanyId!)
+        .is("removido_em", null)
         .order("created_at", { ascending: true });
       if (error) throw error;
       return (data ?? []) as FeriasRegra[];
@@ -60,6 +62,7 @@ export function useDpFeriasRegras() {
         .from("dp_ferias_bloqueios")
         .select("*")
         .eq("company_id", selectedCompanyId!)
+        .is("removido_em", null)
         .order("data_inicio", { ascending: true });
       if (error) throw error;
       return (data ?? []) as FeriasBloqueio[];
@@ -69,19 +72,14 @@ export function useDpFeriasRegras() {
   const saveRegra = useMutation({
     mutationFn: async (input: FeriasRegraInput) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
-      const payload = { ...input, company_id: selectedCompanyId };
-      const { error } = input.id
-        ? await supabase.from("dp_ferias_regras").update(payload).eq("id", input.id)
-        : await supabase.from("dp_ferias_regras").insert(payload);
-      if (error) throw error;
+      await salvarRegraFerias(selectedCompanyId, input as unknown as Record<string, unknown>);
     },
     onSuccess: invalidate,
   });
 
   const deleteRegra = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_ferias_regras").delete().eq("id", id);
-      if (error) throw error;
+      await excluirRegraFerias(id);
     },
     onSuccess: invalidate,
   });
@@ -90,19 +88,14 @@ export function useDpFeriasRegras() {
     mutationFn: async (input: FeriasBloqueioInput) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
       if (input.data_fim < input.data_inicio) throw new Error("A data final deve ser posterior à inicial.");
-      const payload = { ...input, company_id: selectedCompanyId };
-      const { error } = input.id
-        ? await supabase.from("dp_ferias_bloqueios").update(payload).eq("id", input.id)
-        : await supabase.from("dp_ferias_bloqueios").insert(payload);
-      if (error) throw error;
+      await salvarBloqueioFerias(selectedCompanyId, input as unknown as Record<string, unknown>);
     },
     onSuccess: invalidate,
   });
 
   const deleteBloqueio = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_ferias_bloqueios").delete().eq("id", id);
-      if (error) throw error;
+      await excluirBloqueioFerias(id);
     },
     onSuccess: invalidate,
   });

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Settings, CalendarClock, ShieldAlert, Save, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { definirLimiteDoDia, excluirLimiteDoDia } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Button } from "@/components/ui/button";
@@ -50,18 +51,12 @@ export default function DpConfiguracoes() {
   const upsert = useMutation({
     mutationFn: async ({ id, data, limite, observacao }: { id?: string; data: string; limite: number; observacao: string | null }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      if (id) {
-        const { error } = await supabase
-          .from("dp_dia_config")
-          .update({ limite_folgas: limite, observacao })
-          .eq("id", id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("dp_dia_config")
-          .insert({ company_id: selectedCompanyId, data, limite_folgas: limite, observacao });
-        if (error) throw error;
-      }
+      await definirLimiteDoDia({
+        companyId: selectedCompanyId,
+        data,
+        limite,
+        observacao,
+      });
     },
     onSuccess: () => {
       toast.success("Configuração salva");
@@ -75,8 +70,7 @@ export default function DpConfiguracoes() {
 
   const del = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_dia_config").delete().eq("id", id);
-      if (error) throw error;
+      await excluirLimiteDoDia(id);
     },
     onSuccess: () => {
       toast.success("Configuração removida");

@@ -10,6 +10,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { salvarConfigDp } from "@/lib/dp/regras-oficial";
 import { ajustarColaboradoresEmLote } from "@/lib/dp/colaborador-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { ValeTipo } from "@/hooks/useDpValeCalculadora";
@@ -74,26 +75,7 @@ export function useSalvarValeRegrasEmpresa() {
     }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
 
-      const { data: existente, error: erroBusca } = await supabase
-        .from("dp_config_dp")
-        .select("id")
-        .eq("company_id", selectedCompanyId)
-        .is("unidade_id", null)
-        .maybeSingle();
-      if (erroBusca) throw erroBusca;
-
-      if (existente?.id) {
-        const { error } = await supabase
-          .from("dp_config_dp")
-          .update(input.patch as any)
-          .eq("id", existente.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("dp_config_dp")
-          .insert({ ...(input.patch as any), company_id: selectedCompanyId, unidade_id: null });
-        if (error) throw error;
-      }
+      await salvarConfigDp({ companyId: selectedCompanyId, unidadeId: null, patch: input.patch });
 
       if (input.desligarColaboradores) {
         const campo = input.tipo === "va" ? "vale_alimentacao" : "vale_transporte";

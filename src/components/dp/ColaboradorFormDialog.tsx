@@ -922,23 +922,18 @@ export function ColaboradorFormDialog({
   const registrarCiencia = async (justificativa: string) => {
     if (!selectedCompanyId) return;
     try {
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth?.user?.id) return;
-      await supabase.from("dp_regras_historico").insert({
-        company_id: selectedCompanyId,
-        usuario_id: auth.user.id,
+      const { registrarCienciaRegra } = await import("@/lib/dp/regras-oficial");
+      await registrarCienciaRegra({
+        companyId: selectedCompanyId,
         tabela: "dp_colaboradores",
-        registro_id: colaborador?.id ?? null,
-        valor_antigo: null as never,
-        valor_novo: {
+        registroId: colaborador?.id ?? null,
+        valorNovo: {
           vinculo: form.tipo_vinculo,
           regime: regimeSelecionado,
           nome: form.nome.trim(),
           cpf: form.cpf.replace(/\D/g, ""),
-        } as never,
+        },
         justificativa: justificativa || null,
-        ciencia_confirmada: true,
       });
     } catch { /* o cadastro não deve falhar por causa do log */ }
   };
