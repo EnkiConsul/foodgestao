@@ -108,3 +108,5 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [x] Revisão: sequência numérica também comparada na forma com dígitos, lista de senhas comuns normalizada, símbolo restrito ao conjunto ASCII do serviço, mensagem do limite em bytes, "fraca" genérica não descrita como vazamento e mensagem de senha nova em 12.
 - [ ] Obrigar verificação em duas etapas (ex.: Open Finance) — item separado, exige implantação gradual.
 - [ ] Publicar o frontend (aguardando decisão do proprietário).
+
+- [x] Fase 1 Pessoas 360 — Documentos, versionamento e aceites (RPC dp_documento_aceitar, função dp-documento-aceitar, imutabilidade da versão aceita, SHA-256 real, certificado por versão)

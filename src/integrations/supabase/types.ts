@@ -7060,6 +7060,9 @@ export type Database = {
           company_id: string
           conteudo_hash: string
           documento_id: string | null
+          documento_snapshot: Json | null
+          documento_versao: number | null
+          hash_origem: string | null
           id: string
           ip: string | null
           modelo: string
@@ -7074,6 +7077,9 @@ export type Database = {
           company_id: string
           conteudo_hash: string
           documento_id?: string | null
+          documento_snapshot?: Json | null
+          documento_versao?: number | null
+          hash_origem?: string | null
           id?: string
           ip?: string | null
           modelo: string
@@ -7088,6 +7094,9 @@ export type Database = {
           company_id?: string
           conteudo_hash?: string
           documento_id?: string | null
+          documento_snapshot?: Json | null
+          documento_versao?: number | null
+          hash_origem?: string | null
           id?: string
           ip?: string | null
           modelo?: string
@@ -7282,6 +7291,8 @@ export type Database = {
           arquivado_em: string | null
           arquivado_por: string | null
           arquivamento_motivo: string | null
+          arquivo_sha256: string | null
+          arquivo_sha256_em: string | null
           assinatura_detectada: boolean | null
           ciclo_status: string
           colaborador_id: string | null
@@ -7324,6 +7335,8 @@ export type Database = {
           arquivado_em?: string | null
           arquivado_por?: string | null
           arquivamento_motivo?: string | null
+          arquivo_sha256?: string | null
+          arquivo_sha256_em?: string | null
           assinatura_detectada?: boolean | null
           ciclo_status?: string
           colaborador_id?: string | null
@@ -7366,6 +7379,8 @@ export type Database = {
           arquivado_em?: string | null
           arquivado_por?: string | null
           arquivamento_motivo?: string | null
+          arquivo_sha256?: string | null
+          arquivo_sha256_em?: string | null
           assinatura_detectada?: boolean | null
           ciclo_status?: string
           colaborador_id?: string | null
@@ -15641,6 +15656,10 @@ export type Database = {
       dp_documento_aceita_comprovante: {
         Args: { _tipo: Database["public"]["Enums"]["dp_documento_tipo"] }
         Returns: boolean
+      }
+      dp_documento_aceitar: {
+        Args: { _documento_id: string; _ip?: string; _user_agent?: string }
+        Returns: string
       }
       dp_documento_arquivar: {
         Args: { _documento_id: string; _motivo?: string }

@@ -37,6 +37,7 @@ import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 
 import type { Database } from "@/integrations/supabase/types";
 import { notifyError } from "@/lib/notifyError";
+import { assinarDocumento } from "@/lib/dp/documentoAceite";
 
 type Tipo = Database["public"]["Enums"]["dp_documento_tipo"];
 
@@ -274,17 +275,7 @@ export default function DpMeuDocumentos() {
       if (!colaborador) throw new Error("Colaborador não encontrado");
       const documentoId = d.meta?.originalId as string | undefined;
       if (!documentoId) throw new Error("Documento inválido");
-      const { error } = await supabase.from("dp_documento_aceites").insert({
-        company_id: colaborador.company_id,
-        colaborador_id: colaborador.id,
-        documento_id: documentoId,
-        modelo: d.tipo_key,
-        modelo_versao: "documento",
-        conteudo_hash: d.file_path ?? documentoId,
-        aceito_por: user?.id ?? null,
-        user_agent: navigator.userAgent.slice(0, 500),
-      });
-      if (error) throw error;
+      await assinarDocumento(documentoId);
     },
     onSuccess: () => {
       toast.success("Documento aprovado", {

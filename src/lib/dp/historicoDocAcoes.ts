@@ -59,7 +59,7 @@ export type DocEventoMeta = {
  */
 async function registrarEvento(params: {
   rowId: string;
-  acao: "excluido" | "substituido";
+  acao: "excluido" | "substituido" | "nova_versao";
   meta?: DocEventoMeta;
   arquivo_anterior?: string | null;
   arquivo_novo?: string | null;
@@ -96,8 +96,8 @@ async function removerArquivo(bucket: string, path?: string | null) {
 
 /**
  * Exclui definitivamente o documento e seu arquivo.
- * Para o acervo do DP, os aceites eletrônicos vinculados também são removidos,
- * de modo que a pendência do documento volte a aparecer na Conferência.
+ * Assinaturas eletrônicas já registradas NÃO são apagadas: elas são evidência
+ * histórica e ficam preservadas com uma cópia dos dados do documento.
  */
 export async function excluirDocumentoHistorico(
   rowId: string,
@@ -108,11 +108,6 @@ export async function excluirDocumentoHistorico(
   const cfg = CFG[source];
 
   await registrarEvento({ rowId, acao: "excluido", meta, arquivo_anterior: filePath });
-
-  if (source === "doc") {
-    const del = await supabase.from("dp_documento_aceites").delete().eq("documento_id", id);
-    if (del.error) throw del.error;
-  }
 
   const { error } = await supabase.from(cfg.table as any).delete().eq("id", id);
   if (error) throw error;
@@ -129,9 +124,22 @@ export type SubstituirPatch = {
   competencia?: string | null;
 };
 
+/** Quantas assinaturas eletrônicas já existem para o documento. */
+async function contarAceites(documentoId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("dp_documento_aceites")
+    .select("id", { count: "exact", head: true })
+    .eq("documento_id", documentoId);
+  if (error) throw error;
+  return count ?? 0;
+}
+
 /**
- * Substitui o arquivo de um documento já registrado, mantendo o histórico no
- * mesmo lugar. Aceites anteriores são invalidados, pois o conteúdo mudou.
+ * Substitui o arquivo de um documento já registrado.
+ *
+ * Se o documento já foi assinado pelo colaborador, o conteúdo anterior é
+ * intocável: uma NOVA VERSÃO é publicada, preservando o arquivo, a versão e a
+ * assinatura antigos, e a nova versão volta a pedir assinatura.
  */
 export async function substituirDocumentoHistorico(params: {
   rowId: string;
@@ -141,11 +149,12 @@ export async function substituirDocumentoHistorico(params: {
   patch?: SubstituirPatch;
   /** Descrição do documento para o log de alterações. */
   meta?: Omit<DocEventoMeta, "companyId">;
-}) {
+}): Promise<{ novaVersaoId?: string }> {
   const { rowId, companyId, filePathAtual, file, patch, meta } = params;
   const { source, id } = parseDocRowId(rowId);
   const cfg = CFG[source];
 
+  const assinado = source === "doc" ? (await contarAceites(id)) > 0 : false;
 
   const ext = (file.name.split(".").pop() || "pdf").toLowerCase();
   const novoPath = `${companyId}/${id}/${Date.now()}.${ext}`;
@@ -155,6 +164,67 @@ export async function substituirDocumentoHistorico(params: {
     upsert: true,
   });
   if (up.error) throw up.error;
+
+  // Documento já assinado: publica nova versão, sem tocar na versão aceita.
+  if (assinado) {
+    const atual = await supabase
+      .from("dp_documentos")
+      .select(
+        "company_id, colaborador_id, tipo, titulo, descricao, referencia_data, versao, exige_aceite, aprovacao_status, categoria, requisito_id, unidade_id",
+      )
+      .eq("id", id)
+      .maybeSingle();
+    if (atual.error) {
+      await removerArquivo(cfg.bucket, novoPath);
+      throw atual.error;
+    }
+    const base = (atual.data ?? {}) as Record<string, any>;
+
+    const novo: Record<string, unknown> = {
+      ...base,
+      colaborador_id:
+        patch?.colaborador_id !== undefined ? patch.colaborador_id : base.colaborador_id,
+      tipo: patch?.tipo ?? base.tipo,
+      referencia_data:
+        patch?.competencia !== undefined
+          ? (patch.competencia ? `${patch.competencia}-01` : null)
+          : base.referencia_data,
+      versao: Number(base.versao ?? 1) + 1,
+      file_path: novoPath,
+      file_name: file.name,
+      file_size: file.size,
+      mime_type: file.type || "application/pdf",
+      replaces_documento_id: id,
+    };
+
+    const criado = await supabase
+      .from("dp_documentos")
+      .insert(novo as any)
+      .select("id")
+      .single();
+    if (criado.error) {
+      await removerArquivo(cfg.bucket, novoPath);
+      throw criado.error;
+    }
+
+    const pub = await supabase.rpc("dp_documento_versao_publicar" as any, {
+      _novo_id: criado.data.id,
+      _anterior_id: id,
+      _motivo: meta?.motivo ?? "Novo arquivo enviado pelo Histórico",
+    });
+    if (pub.error) throw pub.error;
+
+    await registrarEvento({
+      rowId,
+      acao: "nova_versao",
+      meta: { ...(meta ?? {}), companyId },
+      arquivo_anterior: filePathAtual,
+      arquivo_novo: novoPath,
+    });
+
+    // O arquivo anterior permanece no acervo: é o conteúdo que foi assinado.
+    return { novaVersaoId: criado.data.id as string };
+  }
 
   const update: Record<string, unknown> = { [cfg.pathCol]: novoPath };
 
@@ -177,11 +247,6 @@ export async function substituirDocumentoHistorico(params: {
     throw error;
   }
 
-  if (source === "doc") {
-    // Conteúdo novo exige nova validação digital do colaborador.
-    await supabase.from("dp_documento_aceites").delete().eq("documento_id", id);
-  }
-
   await registrarEvento({
     rowId,
     acao: "substituido",
@@ -190,9 +255,10 @@ export async function substituirDocumentoHistorico(params: {
     arquivo_novo: novoPath,
   });
 
-
-
   if (filePathAtual && filePathAtual !== novoPath) {
     await removerArquivo(cfg.bucket, filePathAtual);
   }
+
+  return {};
 }
+
