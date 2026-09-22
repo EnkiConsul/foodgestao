@@ -37,6 +37,7 @@ import {
   type TipoAfastamento,
 } from "@/lib/dp/licencas";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { corrigirAtestado, excluirSolicitacao } from "@/lib/dp/solicitacoes-admin";
 import { notifyError } from "@/lib/notifyError";
 
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
@@ -93,6 +94,7 @@ export default function DpAtestados() {
   const [recusaId, setRecusaId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Row | null>(null);
   const [editing, setEditing] = useState<Row | null>(null);
+  const [motivoExclusao, setMotivoExclusao] = useState<string>("");
 
   // form
   const fileRef = useRef<HTMLInputElement>(null);
@@ -129,6 +131,7 @@ export default function DpAtestados() {
         .from("dp_solicitacoes")
         .select("*, dp_colaboradores(nome, unidade_id)")
         .eq("company_id", selectedCompanyId!)
+        .is("removido_em", null)
         .in("tipo", [...TIPOS_AFASTAMENTO])
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -378,12 +381,11 @@ export default function DpAtestados() {
 
   const doDelete = useMutation({
     mutationFn: async (r: Row) => {
-      if (r.arquivo_path) await supabase.storage.from(BUCKET).remove([r.arquivo_path]);
-      const { error } = await supabase.from("dp_solicitacoes").delete().eq("id", r.id);
-      if (error) throw error;
+      await excluirSolicitacao({ solicitacaoId: r.id, motivo: motivoExclusao });
     },
     onSuccess: () => {
-      toast.success("Atestado excluído");
+      toast.success("O atestado foi excluído e permanece no histórico");
+      setMotivoExclusao("");
       qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
       void resolverPendencias(qc, { companyId: selectedCompanyId });
       setToDelete(null);
@@ -398,13 +400,13 @@ export default function DpAtestados() {
       if (!editDataDoc) throw new Error("Informe a data do atestado");
       const d = parseInt(editDias || "0", 10);
       if (Number.isNaN(d) || d < 0) throw new Error("Dias de afastamento inválido");
-      const { error } = await supabase.from("dp_solicitacoes").update({
-        colaborador_id: editColaboradorId,
-        data_alvo: editDataDoc,
-        data_fim: d > 0 ? addDays(editDataDoc, d) : editDataDoc,
-        motivo: editObservacao || null,
-      }).eq("id", editing.id);
-      if (error) throw error;
+      await corrigirAtestado({
+        solicitacaoId: editing.id,
+        colaboradorId: editColaboradorId,
+        dataInicio: editDataDoc,
+        dias: d,
+        observacao: editObservacao,
+      });
     },
     onSuccess: () => {
       toast.success("Atestado atualizado");
@@ -850,11 +852,21 @@ export default function DpAtestados() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir atestado?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação removerá o registro e o arquivo anexo permanentemente.
+              O atestado sai das listas e continua guardado no histórico, com o arquivo anexo, para conferência futura.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="motivo-exclusao-atestado">Motivo da exclusão (opcional)</Label>
+            <Textarea
+              id="motivo-exclusao-atestado"
+              rows={2}
+              value={motivoExclusao}
+              onChange={(e) => setMotivoExclusao(e.target.value)}
+              placeholder="Ex.: atestado lançado em duplicidade."
+            />
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setMotivoExclusao("")}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => toDelete && doDelete.mutate(toDelete)}>
               Excluir
             </AlertDialogAction>
