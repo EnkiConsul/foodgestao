@@ -3114,6 +3114,47 @@ export type Database = {
           },
         ]
       }
+      dp_admissao_rascunhos: {
+        Row: {
+          chave: string
+          company_id: string
+          created_at: string
+          dados: Json
+          id: string
+          updated_at: string
+          user_id: string
+          versao: number
+        }
+        Insert: {
+          chave: string
+          company_id: string
+          created_at?: string
+          dados?: Json
+          id?: string
+          updated_at?: string
+          user_id: string
+          versao?: number
+        }
+        Update: {
+          chave?: string
+          company_id?: string
+          created_at?: string
+          dados?: Json
+          id?: string
+          updated_at?: string
+          user_id?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_admissao_rascunhos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_admissao_regra_cargos: {
         Row: {
           cargo_id: string
@@ -15146,6 +15187,23 @@ export type Database = {
       dp_adicionar_dias_uteis: {
         Args: { _base: string; _dias: number; _timezone: string }
         Returns: string
+      }
+      dp_admissao_rascunho_descartar: {
+        Args: { p_chave: string; p_company_id: string }
+        Returns: boolean
+      }
+      dp_admissao_rascunho_salvar: {
+        Args: {
+          p_chave: string
+          p_company_id: string
+          p_dados: Json
+          p_versao?: number
+        }
+        Returns: {
+          atualizado_em: string
+          conflito: boolean
+          versao: number
+        }[]
       }
       dp_admissao_regra_excluir: { Args: { p_id: string }; Returns: boolean }
       dp_admissao_regra_parentesco_definir: {
