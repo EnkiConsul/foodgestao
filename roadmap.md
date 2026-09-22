@@ -1,10 +1,10 @@
 # Roadmap — Remover telas em desenvolvimento
 
 ## Comprovante da Hanna — Adiantamento 08/2026
-- [ ] Transferir o comprovante vinculado ao contracheque para o adiantamento, preservando arquivo e metadados
-- [ ] Registrar a correção no histórico sem apagar dados
-- [ ] Destacar colaborador, tipo e competência antes de importar um comprovante
-- [ ] Validar o resultado e a abertura no celular
+- [x] Transferir o comprovante vinculado ao contracheque para o adiantamento, preservando arquivo e metadados
+- [x] Registrar a correção no histórico sem apagar dados
+- [x] Destacar colaborador, tipo e competência antes de importar um comprovante
+- [x] Validar o resultado e a abertura no celular
 
 Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-folha-rescis-2026-09-14.md`
 
