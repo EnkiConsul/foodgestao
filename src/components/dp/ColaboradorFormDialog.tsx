@@ -63,6 +63,7 @@ import { PadraoDivergenciaAviso } from "@/components/dp/PadraoDivergenciaAviso";
 import { ColaboradorJornadaPanel, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
 import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
+import { useDpSetores } from "@/hooks/useDpSetores";
 import { UnidadeFormDialog } from "@/components/dp/UnidadeFormDialog";
 import { MotivoDialog } from "@/components/dp/MotivoDialog";
 
@@ -1064,7 +1065,7 @@ export function ColaboradorFormDialog({
   });
 
   /** Setor só é cobrado quando a empresa já usa setores (igual à lista). */
-  const mostrarSetor = setoresDaEmpresaTodos.some((s) => s.ativo !== false);
+  const mostrarSetor = setoresDaEmpresa.todos.some((s) => s.ativo !== false);
 
   /**
    * Campos essenciais ainda em branco (o mesmo critério do selo "cadastro
