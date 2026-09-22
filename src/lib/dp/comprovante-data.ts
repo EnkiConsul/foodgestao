@@ -2,10 +2,13 @@
  * Data do pagamento informada ao anexar o comprovante.
  * Vazia é aceita (campo opcional); data futura é recusada.
  */
+export type DataPagamentoValida = { ok: true; valor: string | null; motivo?: undefined };
+export type DataPagamentoInvalida = { ok: false; valor?: undefined; motivo: string };
+
 export function validarDataPagamento(
   valor: string,
   hoje: string = new Date().toISOString().slice(0, 10),
-): { ok: true; valor: string | null } | { ok: false; motivo: string } {
+): DataPagamentoValida | DataPagamentoInvalida {
   const v = (valor ?? "").trim();
   if (!v) return { ok: true, valor: null };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return { ok: false, motivo: "Informe uma data válida." };
