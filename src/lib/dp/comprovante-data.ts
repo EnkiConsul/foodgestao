@@ -120,19 +120,32 @@ export function extrairDataDoTexto(
   return null;
 }
 
+function lerComoTexto(blob: Blob): Promise<string> {
+  return new Promise((resolve) => {
+    try {
+      const leitor = new FileReader();
+      leitor.onload = () => resolve(String(leitor.result ?? ""));
+      leitor.onerror = () => resolve("");
+      leitor.readAsText(blob);
+    } catch {
+      resolve("");
+    }
+  });
+}
+
 /** Texto legível de um arquivo (PDF com camada de texto, imagem sem OCR). */
 async function textoDoArquivo(file: File): Promise<string> {
   const limite = 2 * 1024 * 1024;
+  const parte = typeof file.slice === "function" ? file.slice(0, limite) : file;
   try {
-    const buf = await file.slice(0, limite).arrayBuffer();
-    return new TextDecoder("utf-8", { fatal: false }).decode(new Uint8Array(buf));
-  } catch {
-    try {
-      return await file.text();
-    } catch {
-      return "";
+    if (typeof (parte as Blob).arrayBuffer === "function") {
+      const buf = await (parte as Blob).arrayBuffer();
+      return new TextDecoder("utf-8", { fatal: false }).decode(new Uint8Array(buf));
     }
+  } catch {
+    // arquivo ilegível: a sugestão cai para o nome do arquivo
   }
+  return await lerComoTexto(parte);
 }
 
 /**
