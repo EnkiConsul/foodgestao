@@ -98,9 +98,21 @@ function fmtCompetencia(iso?: string | null): { label: string; sort: string } {
   return { label: `${mm}/${yyyy}`, sort: `${yyyy}-${mm}` };
 }
 
+/** Naturezas antigas continuam visíveis nos grupos unificados. */
+const LEGADOS: Record<string, UnifiedTipo> = {
+  contrato: "admissao",
+  ficha_registro: "admissao",
+  termos: "admissao",
+  outros_admissao: "admissao",
+  trct: "desligamento",
+  demonstrativo_rescisorio: "desligamento",
+  outros_desligamento: "desligamento",
+};
+
 function normalizeTipo(t: string | null | undefined): UnifiedTipo {
   const v = (t ?? "").toLowerCase();
   if (KNOWN.has(v)) return v as UnifiedTipo;
+  if (LEGADOS[v]) return LEGADOS[v];
   return "outros";
 }
 
