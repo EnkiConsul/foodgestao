@@ -25,7 +25,7 @@ export async function garantirHashDocumento(
   const baixar = await admin.storage.from(bucket).download(documento.file_path);
   if (baixar.error || !baixar.data) return { hash: null, divergente: false };
 
-  const hash = await sha256Hex(new Uint8Array(await baixar.data.arrayBuffer()));
+  const hash = await sha256Hex(await baixar.data.arrayBuffer());
   const atual = documento.arquivo_sha256 ?? null;
   if (atual === hash) return { hash, divergente: false };
 
