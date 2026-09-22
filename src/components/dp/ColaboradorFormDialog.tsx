@@ -1064,7 +1064,7 @@ export function ColaboradorFormDialog({
   });
 
   /** Setor só é cobrado quando a empresa já usa setores (igual à lista). */
-  const mostrarSetor = setoresDaEmpresa.some((s) => s.ativo !== false);
+  const mostrarSetor = setoresDaEmpresaTodos.some((s) => s.ativo !== false);
 
   /**
    * Campos essenciais ainda em branco (o mesmo critério do selo "cadastro
