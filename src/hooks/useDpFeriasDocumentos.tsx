@@ -10,6 +10,7 @@ import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
 import { linkDocumentoAssinado } from "@/lib/documentoArquivo";
+import { registrarDocumento, excluirDocumento } from "@/lib/dp/documentos-oficial";
 
 export type FeriasDocTipo = "aviso_ferias" | "recibo_ferias";
 
