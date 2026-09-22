@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
+import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { contratoPolicy, formasPagamentoDoRegime } from "@/lib/dp/contrato-policy";
 import { useRecontratarDpColaborador, type DpColaborador } from "@/hooks/useDpColaboradores";

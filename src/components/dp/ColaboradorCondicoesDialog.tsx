@@ -25,6 +25,7 @@ import {
 import {
   useDpUnidades, useDpCargos, useDpSindicatos, useDpCargoSalarios, useDpPatronalPorUnidade,
 } from "@/hooks/useDpCadastros";
+import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { useDpTurnos } from "@/hooks/useDpTurnos";
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";

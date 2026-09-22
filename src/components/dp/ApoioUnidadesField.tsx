@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
+import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
 import {
   mensagemApoioUnidade, useDpApoioUnidades, useExcluirDpApoioUnidade,
   useSalvarDpApoioUnidade,

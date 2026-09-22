@@ -10,6 +10,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
+import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
 import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
 import {
   useSalvarDpPessoaApoio, type PessoaApoio, type PessoaApoioTipo,
