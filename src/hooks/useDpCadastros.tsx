@@ -318,6 +318,7 @@ export function useDpCargoSalarios(cargoId?: string | null) {
         .from("dp_cargo_salarios")
         .select("*")
         .eq("company_id", selectedCompanyId!)
+        .is("removido_em", null)
         .order("vigencia_inicio", { ascending: false });
       if (cargoId) q = q.eq("cargo_id", cargoId);
       const { data, error } = await q;
@@ -327,6 +328,30 @@ export function useDpCargoSalarios(cargoId?: string | null) {
   });
 }
 
+/** Campos do piso aceitos pela rotina do servidor. */
+function pisoPayload(input: Record<string, unknown>): Record<string, unknown> {
+  const campos = [
+    "cargo_id",
+    "unidade_id",
+    "salario_base",
+    "vigencia_inicio",
+    "vigencia_fim",
+    "sindicato_patronal_id",
+    "observacao",
+  ] as const;
+  const saida: Record<string, unknown> = {};
+  for (const campo of campos) {
+    if (input[campo] !== undefined) saida[campo] = input[campo];
+  }
+  return saida;
+}
+
+async function lerPiso(id: string): Promise<DpCargoSalario> {
+  const { data, error } = await supabase.from("dp_cargo_salarios").select("*").eq("id", id).single();
+  if (error) throw error;
+  return data as DpCargoSalario;
+}
+
 export function useUpsertDpCargoSalario() {
   const qc = useQueryClient();
   const { selectedCompanyId } = useCompanyContext();
@@ -334,62 +359,13 @@ export function useUpsertDpCargoSalario() {
     mutationFn: async (
       input: Partial<DpCargoSalarioInsert> & { cargo_id: string; salario_base: number },
     ) => {
-
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const payload = { ...input, company_id: selectedCompanyId } as DpCargoSalarioInsert;
-      if (input.id) {
-        const { data, error } = await supabase
-          .from("dp_cargo_salarios")
-          .update(payload)
-          .eq("id", input.id)
-          .select("*")
-          .single();
-        if (error) throw error;
-        return data as DpCargoSalario;
-      }
-
-      // Só existe um valor em aberto por escopo (cargo + patronal, ou cargo +
-      // unidade): o novo piso sucede o anterior, encerrando sua vigência.
-      const inicio = (payload.vigencia_inicio as string) || new Date().toISOString().slice(0, 10);
-      if (!payload.vigencia_fim) {
-        let q = supabase
-          .from("dp_cargo_salarios")
-          .select("id, vigencia_inicio")
-          .eq("company_id", selectedCompanyId)
-          .eq("cargo_id", payload.cargo_id)
-          .is("vigencia_fim", null);
-        q = payload.unidade_id
-          ? q.eq("unidade_id", payload.unidade_id)
-          : q.is("unidade_id", null).eq("sindicato_patronal_id", payload.sindicato_patronal_id!);
-        const { data: abertos, error: abertosErr } = await q;
-        if (abertosErr) throw abertosErr;
-        for (const linha of abertos ?? []) {
-          if (linha.vigencia_inicio >= inicio) {
-            // Mesma vigência (ou posterior): atualiza a linha existente.
-            const { data, error } = await supabase
-              .from("dp_cargo_salarios")
-              .update({ ...payload, vigencia_inicio: inicio })
-              .eq("id", linha.id)
-              .select("*")
-              .single();
-            if (error) throw error;
-            return data as DpCargoSalario;
-          }
-          const { error } = await supabase
-            .from("dp_cargo_salarios")
-            .update({ vigencia_fim: diaAnterior(inicio) })
-            .eq("id", linha.id);
-          if (error) throw error;
-        }
-      }
-
-      const { data, error } = await supabase
-        .from("dp_cargo_salarios")
-        .insert({ ...payload, vigencia_inicio: inicio })
-        .select("*")
-        .single();
-      if (error) throw error;
-      return data as DpCargoSalario;
+      // O servidor encerra o piso em aberto do mesmo escopo e grava o novo.
+      const id = await definirPisoCargo({
+        id: input.id ?? null,
+        dados: pisoPayload(input as Record<string, unknown>),
+      });
+      return await lerPiso(id);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_cargo_salarios"] }),
   });
@@ -399,16 +375,15 @@ export function useDeleteDpCargoSalario() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_cargo_salarios").delete().eq("id", id);
-      if (error) throw error;
+      await excluirCadastroRemuneracao("dp_cargo_salarios", id);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_cargo_salarios"] }),
   });
 }
 
 // ---------------- Edição do piso com justificativa e log ----------------
-// Alterar um piso já cadastrado impacta folha e conferências, então a mudança
-// é registrada em dp_regras_historico (mesmo padrão de turnos e configurações).
+// Alterar um piso já cadastrado impacta a folha e as conferências: o servidor
+// exige justificativa para reduzir o valor e registra a mudança no histórico.
 
 export interface EdicaoPisoInput {
   id: string;
@@ -420,52 +395,21 @@ export interface EdicaoPisoInput {
   sindicato_patronal_id: string | null;
   observacao: string | null;
   justificativa: string;
-  /** Valores antes da alteração, gravados no log. */
-  anterior: Record<string, unknown>;
+  /** Valores antes da alteração; o histórico é gravado pelo servidor. */
+  anterior?: Record<string, unknown>;
 }
 
 export function useUpdateDpCargoSalarioComLog() {
   const qc = useQueryClient();
-  const { selectedCompanyId } = useCompanyContext();
   return useMutation({
     mutationFn: async (input: EdicaoPisoInput) => {
-      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const { anterior, justificativa, id, ...campos } = input;
-      const { data, error } = await supabase
-        .from("dp_cargo_salarios")
-        .update({
-          salario_base: campos.salario_base,
-          vigencia_inicio: campos.vigencia_inicio,
-          vigencia_fim: campos.vigencia_fim,
-          unidade_id: campos.unidade_id,
-          sindicato_patronal_id: campos.sindicato_patronal_id,
-          observacao: campos.observacao,
-        })
-        .eq("id", id)
-        .select("*")
-        .single();
-      if (error) throw error;
-
-      const { data: auth } = await supabase.auth.getUser();
-      const { error: logErr } = await supabase.from("dp_regras_historico").insert({
-        company_id: selectedCompanyId,
-        tabela: "dp_cargo_salarios",
-        registro_id: id,
-        usuario_id: auth?.user?.id ?? null,
+      const { anterior: _anterior, justificativa, id, ...campos } = input;
+      await definirPisoCargo({
+        id,
         justificativa,
-        valor_antigo: anterior as any,
-        valor_novo: {
-          cargo_id: campos.cargo_id,
-          salario_base: campos.salario_base,
-          vigencia_inicio: campos.vigencia_inicio,
-          vigencia_fim: campos.vigencia_fim,
-          unidade_id: campos.unidade_id,
-          sindicato_patronal_id: campos.sindicato_patronal_id,
-          observacao: campos.observacao,
-        } as any,
+        dados: pisoPayload(campos as Record<string, unknown>),
       });
-      if (logErr) throw logErr;
-      return data as DpCargoSalario;
+      return await lerPiso(id);
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["dp_cargo_salarios"] });
@@ -473,6 +417,7 @@ export function useUpdateDpCargoSalarioComLog() {
     },
   });
 }
+
 
 export interface PisoLogEntry {
   id: string;
