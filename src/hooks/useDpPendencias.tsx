@@ -1237,7 +1237,8 @@ export function useDpPendencias() {
         const [{ data: pisos }, { data: vinculosPatronal }] = await Promise.all([
           supabase
             .from("dp_cargo_salarios")
-            .select("cargo_id, unidade_id, sindicato_patronal_id, salario_base, vigencia_inicio, vigencia_fim"),
+            .select("cargo_id, unidade_id, sindicato_patronal_id, salario_base, vigencia_inicio, vigencia_fim")
+            .is("removido_em", null),
           supabase
             .from("dp_sindicato_unidades")
             .select("unidade_id, sindicato_id, dp_sindicatos!inner(tipo)")

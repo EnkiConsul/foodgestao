@@ -45,6 +45,7 @@ export function useAnalyticsCadastro(filtros: AnalyticsFiltros) {
           .from("dp_cargos")
           .select("id, nome")
           .eq("company_id", selectedCompanyId!)
+          .is("removido_em", null)
           .order("nome"),
         supabase
           .from("dp_setores")

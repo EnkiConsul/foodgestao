@@ -122,7 +122,7 @@ export async function carregarPanorama(
       .gte("competencia", inicio.slice(0, 7))
       .lte("competencia", fim.slice(0, 7)),
     supabase.from("dp_unidades").select("id, nome").eq("company_id", companyId).order("nome"),
-    supabase.from("dp_cargos").select("id, nome").eq("company_id", companyId),
+    supabase.from("dp_cargos").select("id, nome").eq("company_id", companyId).is("removido_em", null),
     supabase
       .from("dp_setores")
       .select("id, nome, ativo, unidade_id")

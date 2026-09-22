@@ -194,7 +194,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
             .select("id, nome, ativo")
             .eq("company_id", selectedCompanyId!)
             .order("nome"),
-          supabase.from("dp_cargos").select("id, nome").eq("company_id", selectedCompanyId!),
+          supabase.from("dp_cargos").select("id, nome").eq("company_id", selectedCompanyId!).is("removido_em", null),
           supabase
             .from("dp_setores")
             .select("id, nome, ativo, unidade_id")

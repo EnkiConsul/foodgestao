@@ -4,6 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
 import { notifyError } from "@/lib/notifyError";
+import {
+  salvarBeneficio,
+  definirBeneficioColaborador,
+  excluirCadastroRemuneracao,
+  mensagemErroRemuneracao,
+} from "@/lib/dp/remuneracao-oficial";
 
 export type Beneficio = Database["public"]["Tables"]["dp_beneficios"]["Row"];
 export type ColaboradorBeneficio =
@@ -71,6 +77,7 @@ export function useDpBeneficios(colaboradorFilter = "todos") {
         .from("dp_beneficios")
         .select("*")
         .eq("company_id", selectedCompanyId!)
+        .is("removido_em", null)
         .order("nome");
       if (error) throw error;
       return (data ?? []) as Beneficio[];
@@ -85,6 +92,7 @@ export function useDpBeneficios(colaboradorFilter = "todos") {
         .from("dp_colaborador_beneficios")
         .select("*, dp_colaboradores(nome), dp_beneficios(nome, tipo)")
         .eq("company_id", selectedCompanyId!)
+        .is("removido_em", null)
         .order("data_inicio", { ascending: false });
       if (colaboradorFilter !== "todos") q = q.eq("colaborador_id", colaboradorFilter);
       const { data, error } = await q;
@@ -103,20 +111,15 @@ export function useDpBeneficios(colaboradorFilter = "todos") {
     mutationFn: async (input: BeneficioInput): Promise<Beneficio> => {
       const company_id = requireCompany();
       const { id, ...rest } = input;
-      if (id) {
-        const { data, error } = await supabase
-          .from("dp_beneficios")
-          .update(rest)
-          .eq("id", id)
-          .select("*")
-          .single();
-        if (error) throw error;
-        return data as Beneficio;
-      }
+      const beneficioId = await salvarBeneficio({
+        id: id ?? null,
+        companyId: company_id,
+        dados: rest as Record<string, unknown>,
+      });
       const { data, error } = await supabase
         .from("dp_beneficios")
-        .insert({ ...rest, company_id })
         .select("*")
+        .eq("id", beneficioId)
         .single();
       if (error) throw error;
       return data as Beneficio;
@@ -131,47 +134,38 @@ export function useDpBeneficios(colaboradorFilter = "todos") {
 
   const deleteBeneficio = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_beneficios").delete().eq("id", id);
-      if (error) throw error;
+      await excluirCadastroRemuneracao("dp_beneficios", id);
     },
     onSuccess: () => {
       toast.success("Benefício excluído");
       invalidate("dp_beneficios", "dp_colaborador_beneficios");
     },
-    onError: () =>
-      toast.error("Não foi possível excluir. Existem colaboradores vinculados a este benefício."),
+    onError: (e: any) =>
+      toast.error(
+        mensagemErroRemuneracao(
+          e,
+          "Não foi possível excluir. Existem colaboradores vinculados a este benefício.",
+        ),
+      ),
   });
 
   const saveAtribuicao = useMutation({
     mutationFn: async (input: ColaboradorBeneficioInput) => {
-      const company_id = requireCompany();
+      requireCompany();
       const { id, ...rest } = input;
-      if (id) {
-        const { error } = await supabase.from("dp_colaborador_beneficios").update(rest).eq("id", id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("dp_colaborador_beneficios")
-          .insert({ ...rest, company_id });
-        if (error) throw error;
-      }
+      await definirBeneficioColaborador({ id: id ?? null, dados: rest as Record<string, unknown> });
     },
     onSuccess: () => {
       toast.success("Benefício do colaborador salvo");
       invalidate("dp_colaborador_beneficios");
     },
     onError: (e: any) =>
-      toast.error(
-        e?.code === "23505"
-          ? "Este benefício já está atribuído ao colaborador com a mesma data de início."
-          : e.message ?? "Erro ao salvar",
-      ),
+      toast.error(mensagemErroRemuneracao(e, "Erro ao salvar o benefício do colaborador")),
   });
 
   const deleteAtribuicao = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_colaborador_beneficios").delete().eq("id", id);
-      if (error) throw error;
+      await excluirCadastroRemuneracao("dp_colaborador_beneficios", id);
     },
     onSuccess: () => {
       toast.success("Vínculo removido");

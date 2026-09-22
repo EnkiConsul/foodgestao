@@ -2,6 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { RegraTempoServico } from "@/lib/dp/tempoServico";
+import {
+  salvarAdicionalTempoServico,
+  excluirCadastroRemuneracao,
+} from "@/lib/dp/remuneracao-oficial";
 
 const COLUNAS =
   "id, nome, escopo, sindicato_id, unidade_id, cargo_id, ciclo_meses, percentual_por_ciclo, base, " +
@@ -22,6 +26,7 @@ export function useDpAdicionaisTempoServico() {
         .from("dp_adicionais_tempo_servico")
         .select(COLUNAS)
         .eq("company_id", selectedCompanyId!)
+        .is("removido_em", null)
         .order("vigencia_inicio", { ascending: false });
       if (error) throw error;
       const rows = (data ?? []) as unknown as RegraTempoServico[];
@@ -39,8 +44,7 @@ export function useDpAdicionaisTempoServico() {
   const salvar = useMutation({
     mutationFn: async (input: RegraTempoServicoInput) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const payload = {
-        company_id: selectedCompanyId,
+      const dados = {
         nome: input.nome.trim() || "Adicional por tempo de serviço",
         escopo: input.escopo,
         sindicato_id: input.escopo === "sindicato" ? input.sindicato_id : null,
@@ -56,29 +60,18 @@ export function useDpAdicionaisTempoServico() {
         ativo: input.ativo,
         observacao: input.observacao?.trim() || null,
       };
-      if (input.id) {
-        const { error } = await supabase
-          .from("dp_adicionais_tempo_servico")
-          .update(payload)
-          .eq("id", input.id);
-        if (error) throw error;
-        return input.id;
-      }
-      const { data, error } = await supabase
-        .from("dp_adicionais_tempo_servico")
-        .insert(payload)
-        .select("id")
-        .single();
-      if (error) throw error;
-      return data.id as string;
+      return await salvarAdicionalTempoServico({
+        id: input.id ?? null,
+        companyId: selectedCompanyId,
+        dados,
+      });
     },
     onSuccess: invalidate,
   });
 
   const remover = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_adicionais_tempo_servico").delete().eq("id", id);
-      if (error) throw error;
+      await excluirCadastroRemuneracao("dp_adicionais_tempo_servico", id);
     },
     onSuccess: invalidate,
   });
