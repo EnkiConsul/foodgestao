@@ -133,11 +133,11 @@ export function useSalvarDpBeneficiosPadrao() {
         );
         if (!ids.length) return 0;
 
-        const { error: erroUpdate } = await supabase
-          .from("dp_colaboradores")
-          .update(padraoParaColunasColaborador(input.payload, grupos) as any)
-          .in("id", ids);
-        if (erroUpdate) throw erroUpdate;
+        await ajustarColaboradoresEmLote({
+          companyId: selectedCompanyId,
+          ids,
+          dados: padraoParaColunasColaborador(input.payload, grupos),
+        });
 
         // Ficha de benefícios: espelha os itens marcados/desmarcados no padrão.
         const ficha = grupos.includes("beneficios")

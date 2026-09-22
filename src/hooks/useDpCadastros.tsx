@@ -518,16 +518,18 @@ export function usePropagarRiscosCargo() {
       periculosidade_percentual: number;
     }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const { error } = await supabase
-        .from("dp_colaboradores")
-        .update({
+      await ajustarColaboradoresEmLote({
+        companyId: selectedCompanyId,
+        cargoId: input.cargoId,
+        dados: {
           insalubridade_percentual: input.insalubridade_percentual,
           periculosidade_percentual: input.periculosidade_percentual,
-          adicional_percentual: Math.max(input.insalubridade_percentual, input.periculosidade_percentual),
-        })
-        .eq("company_id", selectedCompanyId)
-        .eq("cargo_id", input.cargoId);
-      if (error) throw error;
+          adicional_percentual: Math.max(
+            input.insalubridade_percentual,
+            input.periculosidade_percentual,
+          ),
+        },
+      });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_colaboradores"] }),
   });

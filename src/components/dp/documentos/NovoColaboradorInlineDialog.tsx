@@ -113,11 +113,11 @@ export function NovoColaboradorInlineDialog({
         socio_remuneracao: vinculo === "Socio" ? socioRemuneracao : null,
         ativo: true,
       };
-      const { data, error } = await (supabase.from("dp_colaboradores") as any)
-        .insert({ ...payload, company_id: selectedCompanyId })
-        .select("id, nome")
-        .single();
-      if (error) throw error;
+      const novoId = await salvarColaborador({
+        companyId: selectedCompanyId,
+        dados: payload as Record<string, unknown>,
+      });
+      const data = { id: novoId, nome: payload.nome as string };
       // A lista da tela precisa conter o novo cadastro antes de vincular a página.
       await qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
       toast.success("Colaborador cadastrado");
