@@ -37,6 +37,7 @@ Depois disso você mesmo consegue abrir a ficha da Tamires e deixar o vale-alime
 - `useDpValeCalculadora`: receber filtros (unidade, cargo, situação, busca, colaborador) em vez de só `unidadeFilter`; sem exclusão por vínculo — a flag da ficha segue sendo a única fonte; linhas com flag e sem valor por dia ganham aviso próprio.
 - `ValeCalculadora.tsx`: remover o Select de unidade interno e consumir os filtros por props; KPIs e CSV seguem as linhas filtradas.
 - `ValeHistorico.tsx`: aplicar filtros de unidade/cargo nas apurações.
-- Investigar `apply_default_*` / `dp_beneficios_padroes` e o fluxo de criação de colaborador para achar onde `vale_alimentacao` é marcado sem cadastro explícito; corrigir a origem e mostrar a procedência na ficha (`RemuneracaoFields.tsx`).
+- `RemuneracaoFields.tsx`: o ramo `if (socio)` (linha ~433) hoje retorna antes dos blocos de vales/benefícios. Refatorar para que o bloco societário seja renderizado e, em seguida, os blocos de vale-alimentação, vale-transporte e `beneficios` (reaproveitando os mesmos componentes e `ValeCorteFields`), sem reexibir campos de folha CLT (salário-hora, adicional noturno, etc.).
 - Testes novos em `src/lib/dp/__tests__`: filtros combinados (unidade + cargo + situação) e linha com benefício marcado sem valor por dia.
+- Título da seção do sócio: manter "Remuneração do sócio" e acrescentar "Benefícios" como bloco separado.
 - Nenhuma migration; nenhum dado alterado; nada publicado.
