@@ -143,3 +143,10 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [x] Correção de bug antigo: `private.is_company_admin_or_owner(company)` de um argumento não existia — setor do dia, criar/cancelar folga administrativa, gerar folgas CLT e painel de disponibilidade falhavam com erro de função inexistente.
 - [x] Frontend `useDpEscalaMes` usa as rotinas; mensagens de erro em linguagem de negócio; testes em `src/test/rls/operacoes_criticas.rls.test.ts`.
 - [ ] Publicar o frontend das fases 1 a 5 (aguardando decisão do proprietário)
+
+## Fase 6 Pessoas 360 — Ficha do colaborador, recontratação e folgas (concluída 2026-09-23)
+- Recontratação preserva o vínculo anterior no histórico, encerra a configuração de trabalho antiga e abre a nova; idempotente.
+- Rotinas oficiais no servidor: salvar ficha, atualizar o próprio cadastro, ajustar benefícios/adicionais em lote, condições de trabalho, folgas do DP e medidas disciplinares (exclusão lógica).
+- Ficha, condições, histórico, folgas, disciplinares e aceites: gravação direta fechada; colaborador mantém a escolha da própria folga.
+- Função de sorteio de folgas passou a usar a rotina oficial.
+- Pendente: publicar o frontend das fases 1 a 6 (aguarda decisão do proprietário).
