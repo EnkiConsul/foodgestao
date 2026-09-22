@@ -1063,6 +1063,7 @@ export default function PreAdmissao() {
             {ehDocumentos ? "Revisar" : "Continuar"} <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         )}
+      </div>
       </footer>
     </div>
   );
