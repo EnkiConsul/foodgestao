@@ -582,8 +582,20 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                     onValueChange={(v) => setAdmin({ ...admin, cargo_id: v })}>
                     <SelectTrigger id="pa-adm-cargo" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
                     <SelectContent>
-                      {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                      <CargoSelectItems carregando={carregandoCargos} erro={erroCargos} total={cargos.length}>
+                        {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                      </CargoSelectItems>
                     </SelectContent>
+                    </Select>
+                    <CargoSelectAviso
+                      carregando={carregandoCargos}
+                      erro={erroCargos}
+                      total={cargos.length}
+                      onRecarregar={() => void recarregarCargos()}
+                      origem="Revisão da pré-admissão"
+                    />
+                    <Select value="__ignorar__">
+                    <SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">

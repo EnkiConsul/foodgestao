@@ -180,11 +180,24 @@ export function PessoaApoioFormDialog({
                 <SelectTrigger><SelectValue placeholder="Não definido" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="nenhum">Não definido</SelectItem>
-                  {(cargos.data ?? []).map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
+                  <CargoSelectItems
+                    carregando={cargos.isLoading}
+                    erro={cargos.isError}
+                    total={(cargos.data ?? []).length}
+                  >
+                    {(cargos.data ?? []).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </CargoSelectItems>
                 </SelectContent>
               </Select>
+              <CargoSelectAviso
+                carregando={cargos.isLoading}
+                erro={cargos.isError}
+                total={(cargos.data ?? []).length}
+                onRecarregar={() => void cargos.refetch()}
+                origem="Cadastro de pessoa de apoio"
+              />
             </div>
             <div className="grid gap-1.5">
               <Label>Unidade habitual</Label>

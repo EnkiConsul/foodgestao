@@ -165,11 +165,24 @@ export function ApoioUnidadesField({
               <SelectTrigger><SelectValue placeholder="Igual ao habitual" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={SEM}>Igual ao habitual</SelectItem>
-                {(cargos.data ?? []).map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
+                <CargoSelectItems
+                  carregando={cargos.isLoading}
+                  erro={cargos.isError}
+                  total={(cargos.data ?? []).length}
+                >
+                  {(cargos.data ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  ))}
+                </CargoSelectItems>
               </SelectContent>
             </Select>
+            <CargoSelectAviso
+              carregando={cargos.isLoading}
+              erro={cargos.isError}
+              total={(cargos.data ?? []).length}
+              onRecarregar={() => void cargos.refetch()}
+              origem="Atuação em outras unidades"
+            />
           </div>
           <div className="sm:col-span-2">
             <ColaboradorSetorField
