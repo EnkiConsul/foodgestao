@@ -248,22 +248,41 @@ export function ColaboradorAcessoPanel({
           escritório vê ou define a senha dele.
         </p>
 
+        {impedimento && (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-100">
+            {impedimento}
+          </p>
+        )}
+        {somenteDocumentos && (
+          <p className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+            Colaborador desligado: o portal fica apenas para consultar e baixar documentos até o fim do prazo.
+          </p>
+        )}
+
         <div className="flex flex-wrap gap-2">
           {!temAcesso ? (
-            <Button onClick={() => void liberarAcesso()} disabled={busy !== null}>
+            <Button onClick={() => void liberarAcesso()} disabled={busy !== null || impedimento !== null}>
               <KeyRound className="mr-2 h-4 w-4" aria-hidden="true" />
               {busy === "liberar" ? "Liberando..." : "Liberar acesso"}
             </Button>
           ) : (
             <>
               {situacao === "pendente_ativacao" && (
-                <Button variant="outline" onClick={() => void liberarAcesso()} disabled={busy !== null}>
+                <Button
+                  variant="outline"
+                  onClick={() => void liberarAcesso()}
+                  disabled={busy !== null || impedimento !== null}
+                >
                   <KeyRound className="mr-2 h-4 w-4" aria-hidden="true" />
                   {busy === "liberar" ? "Gerando..." : "Reenviar ativação"}
                 </Button>
               )}
               {situacao !== "bloqueado" && (
-                <Button variant="outline" onClick={() => void redefinirAcesso()} disabled={busy !== null}>
+                <Button
+                  variant="outline"
+                  onClick={() => void redefinirAcesso()}
+                  disabled={busy !== null || impedimento !== null}
+                >
                   <KeyRound className="mr-2 h-4 w-4" aria-hidden="true" />
                   {busy === "redefinir" ? "Gerando..." : "Redefinir acesso"}
                 </Button>
