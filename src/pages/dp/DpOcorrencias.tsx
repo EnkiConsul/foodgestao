@@ -18,6 +18,7 @@ import { OcorrenciaCard } from "@/components/dp/ocorrencias/OcorrenciaCard";
 import { OcorrenciaConfirmarDialog } from "@/components/dp/ocorrencias/OcorrenciaConfirmarDialog";
 import { OcorrenciaFormDialog } from "@/components/dp/ocorrencias/OcorrenciaFormDialog";
 import { OcorrenciaTratativaDialog } from "@/components/dp/ocorrencias/OcorrenciaTratativaDialog";
+import { AssiduidadeDecisaoDialog } from "@/components/dp/ocorrencias/AssiduidadeDecisaoDialog";
 import {
   ANALISE_LABEL,
   ESTADO_LABEL,
@@ -94,6 +95,7 @@ export default function DpOcorrencias() {
   const [cancelarId, setCancelarId] = useState<string | null>(null);
   const [cobrir, setCobrir] = useState<Ocorrencia | null>(null);
   const [historico, setHistorico] = useState<Ocorrencia | null>(null);
+  const [decidirPremio, setDecidirPremio] = useState<Ocorrencia | null>(null);
   const mes = useMemo(() => mesCorrente(), []);
 
 
@@ -152,6 +154,7 @@ export default function DpOcorrencias() {
       "impactaFerias",
       "tratativa",
       "cobertura",
+      "assiduidadeDecisao",
     ];
     return (
       chaves.filter((k) => filtros[k] !== "all").length +
@@ -356,6 +359,23 @@ export default function DpOcorrencias() {
           </Select>
         </DpFilterField>
 
+        <DpFilterField label="Prêmio de assiduidade">
+          <Select
+            value={filtros.assiduidadeDecisao}
+            onValueChange={(v) => set("assiduidadeDecisao", v)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="pendente">Aguardando decisão do gestor</SelectItem>
+              <SelectItem value="perde">Perdeu o prêmio</SelectItem>
+              <SelectItem value="mantem">Prêmio mantido</SelectItem>
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+
         <DpFilterField label="Impacto nas férias">
           <Select value={filtros.impactaFerias} onValueChange={(v) => set("impactaFerias", v)}>
             <SelectTrigger>
@@ -440,6 +460,7 @@ export default function DpOcorrencias() {
                 onCancelar={() => setCancelarId(o.id)}
                 onCobrir={() => setCobrir(o)}
                 onHistorico={() => setHistorico(o)}
+                onDecidirAssiduidade={() => setDecidirPremio(o)}
 
                 onImpacto={(campo, valor) =>
                   acoes.classificar.mutate(
@@ -524,6 +545,18 @@ export default function DpOcorrencias() {
         }
         onDecidir={(input) => acoes.decidirCobertura.mutate(input)}
         onConfirmar={(id) => acoes.confirmarCobertura.mutate(id)}
+      />
+      <AssiduidadeDecisaoDialog
+        ocorrencia={decidirPremio}
+        saving={acoes.decidirAssiduidade.isPending}
+        onOpenChange={(open) => !open && setDecidirPremio(null)}
+        onDecidir={({ perde, observacao }) =>
+          decidirPremio &&
+          acoes.decidirAssiduidade.mutate(
+            { id: decidirPremio.id, perde, observacao },
+            { onSuccess: () => setDecidirPremio(null) },
+          )
+        }
       />
       <OcorrenciaHistoricoDialog
         ocorrencia={historico}
