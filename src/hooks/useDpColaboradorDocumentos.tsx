@@ -284,20 +284,9 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
   /** Remove um anexo (arquivo) do requisito. */
   const excluirAnexo = useMutation({
     mutationFn: async ({ anexo, motivo }: { anexo: DpColaboradorDocumento; motivo?: string }) => {
-      // O documento em si é arquivado (histórico preservado); apenas o
-      // vínculo com o requisito deixa de existir.
-      if (anexo.documento_id) {
-        const { error: aErr } = await supabase.rpc("dp_documento_arquivar", {
-          _documento_id: anexo.documento_id,
-          _motivo: motivo ?? "anexo_removido_do_requisito",
-        });
-        if (aErr) throw aErr;
-      }
-      const { error } = await supabase
-        .from("dp_colaborador_documentos")
-        .delete()
-        .eq("id", anexo.id);
-      if (error) throw error;
+      // O documento em si fica guardado no histórico; apenas o vínculo com o
+      // requisito deixa de existir. Tudo na mesma rotina do servidor.
+      await excluirChecklistDocumento(anexo.id, motivo ?? "Anexo removido do requisito");
     },
     onSuccess: () => {
       toast.success("Anexo removido");
@@ -309,11 +298,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
   /** Envia um anexo já existente para o aceite eletrônico do colaborador (opcional). */
   const pedirAceite = useMutation({
     mutationFn: async ({ anexo }: { anexo: DpColaboradorDocumento }) => {
-      const { error } = await supabase
-        .from("dp_colaborador_documentos")
-        .update({ aceite_solicitado_em: new Date().toISOString(), aceito_em: null })
-        .eq("id", anexo.id);
-      if (error) throw error;
+      await salvarChecklistDocumento(anexo.id, { aceite_solicitado: true });
     },
     onSuccess: () => {
       toast.success("Enviado para o aceite do colaborador no portal");
@@ -325,11 +310,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
   /** Cancela a solicitação de aceite ainda não assinada. */
   const cancelarAceite = useMutation({
     mutationFn: async ({ anexo }: { anexo: DpColaboradorDocumento }) => {
-      const { error } = await supabase
-        .from("dp_colaborador_documentos")
-        .update({ aceite_solicitado_em: null })
-        .eq("id", anexo.id);
-      if (error) throw error;
+      await salvarChecklistDocumento(anexo.id, { aceite_solicitado: false });
     },
     onSuccess: () => {
       toast.success("Solicitação de aceite cancelada");
