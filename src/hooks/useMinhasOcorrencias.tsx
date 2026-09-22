@@ -47,7 +47,9 @@ export function useMinhasOcorrencias() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_ocorrencias")
-        .select("id, data_operacional, tipo, estado, minutos, horario_estimado, horario_real")
+        .select(
+          "id, data_operacional, tipo, estado, minutos, horario_estimado, horario_real, impacta_assiduidade, assiduidade_risco, assiduidade_risco_motivo, assiduidade_observacao",
+        )
         .eq("colaborador_id", colaborador.data!)
         .neq("estado", "cancelada")
         .gte("data_operacional", hoje)
