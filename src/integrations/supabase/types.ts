@@ -17684,6 +17684,7 @@ export type Database = {
         | "comprovante_pagamento"
         | "preadmissao_enviada"
         | "folga_remarcada"
+        | "ferias_aviso"
       dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
       dp_ocorrencia_cobertura_execucao:
         | "prevista"
@@ -18155,6 +18156,7 @@ export const Constants = {
         "comprovante_pagamento",
         "preadmissao_enviada",
         "folga_remarcada",
+        "ferias_aviso",
       ],
       dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
       dp_ocorrencia_cobertura_execucao: [
