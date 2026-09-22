@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { salvarConfigDp } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { SalarioFamiliaConfig } from "@/lib/dp/salarioFamilia";
 import type { ModoAdicional } from "@/lib/dp/tempoServico";
@@ -99,16 +100,7 @@ export function useDpSalarioFamiliaConfig() {
       if (input.confirmar)
         patch.salario_familia_confirmado_em = new Date().toISOString().slice(0, 10);
 
-      const atual = query.data;
-      if (atual?.id) {
-        const { error } = await supabase.from("dp_config_dp").update(patch).eq("id", atual.id);
-        if (error) throw error;
-        return;
-      }
-      const { error } = await supabase
-        .from("dp_config_dp")
-        .insert({ company_id: selectedCompanyId, unidade_id: null, ...patch });
-      if (error) throw error;
+      await salvarConfigDp({ companyId: selectedCompanyId, unidadeId: null, patch });
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["dp_salario_familia_config", selectedCompanyId] });

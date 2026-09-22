@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { supabase } from "@/integrations/supabase/client";
+import { registrarCienciaRegra } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
 import { cargaLiquidaHoras, turnoViraODia } from "@/lib/dp/turno-utils";
@@ -93,17 +94,14 @@ export function useDpTurnos(unidadeId?: string | null) {
     ciencia?: CienciaTurno | null;
   }) => {
     if (!selectedCompanyId) return;
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user?.id) return;
-    await supabase.from("dp_regras_historico").insert({
-      company_id: selectedCompanyId,
-      usuario_id: auth.user.id,
+    await registrarCienciaRegra({
+      companyId: selectedCompanyId,
       tabela: "dp_turnos",
-      registro_id: params.registro_id,
-      valor_antigo: (params.valor_antigo ?? null) as never,
-      valor_novo: params.valor_novo as never,
+      registroId: params.registro_id,
+      valorAntigo: params.valor_antigo ?? null,
+      valorNovo: params.valor_novo,
       justificativa: params.ciencia?.justificativa?.trim() || null,
-      ciencia_confirmada: !!params.ciencia?.confirmada,
+      ciencia: !!params.ciencia?.confirmada,
     });
   };
 

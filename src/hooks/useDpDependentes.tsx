@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { salvarDependente, excluirDependente } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Dependente } from "@/lib/dp/salarioFamilia";
 
@@ -54,26 +55,17 @@ export function useDpDependentes(colaboradorId: string | null | undefined) {
         cessado_em: input.cessado_em || null,
         observacao: input.observacao?.trim() || null,
       };
-      if (input.id) {
-        const { error } = await supabase.from("dp_dependentes").update(payload).eq("id", input.id);
-        if (error) throw error;
-        return input.id;
-      }
-      const { data, error } = await supabase
-        .from("dp_dependentes")
-        .insert(payload)
-        .select("id")
-        .single();
-      if (error) throw error;
-      return data.id as string;
+      return await salvarDependente(colaboradorId, {
+        ...payload,
+        ...(input.id ? { id: input.id } : {}),
+      } as Record<string, unknown>);
     },
     onSuccess: invalidate,
   });
 
   const remover = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_dependentes").delete().eq("id", id);
-      if (error) throw error;
+      await excluirDependente(id);
     },
     onSuccess: invalidate,
   });

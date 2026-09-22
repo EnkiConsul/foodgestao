@@ -53,6 +53,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CalendarSkeleton } from "@/components/dp/DpSkeletons";
 import { supabase } from "@/integrations/supabase/client";
+import { definirLimiteDoDia, salvarDataBloqueada, excluirDataBloqueada } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useDpFolgaReserva } from "@/hooks/useDpFolgaReserva";
@@ -229,20 +230,13 @@ export default function DpFolgas() {
   const liberarData = useMutation({
     mutationFn: async (params: { unidadeId: string | null }) => {
       if (!selectedCompanyId || !selectedDay) return;
-      const { error } = await supabase
-        .from("dp_datas_bloqueadas")
-        .upsert(
-          {
-            company_id: selectedCompanyId,
-            data: format(selectedDay, "yyyy-MM-dd"),
-            unidade_id: params.unidadeId,
-            liberada: true,
-            motivo: "Liberado manualmente pelo administrador",
-            criado_por: user?.id ?? null,
-          },
-          { onConflict: "company_id,unidade_id,data" },
-        );
-      if (error) throw error;
+      await salvarDataBloqueada({
+        companyId: selectedCompanyId,
+        data: format(selectedDay, "yyyy-MM-dd"),
+        unidadeId: params.unidadeId,
+        liberada: true,
+        motivo: "Liberado manualmente pelo administrador",
+      });
     },
     onSuccess: () => {
       toast.success("Data liberada");
@@ -258,11 +252,7 @@ export default function DpFolgas() {
 
   const rebloquearOverride = useMutation({
     mutationFn: async (overrideId: string) => {
-      const { error } = await supabase
-        .from("dp_datas_bloqueadas")
-        .delete()
-        .eq("id", overrideId);
-      if (error) throw error;
+      await excluirDataBloqueada(overrideId);
     },
     onSuccess: () => {
       toast.success("Data bloqueada novamente para a unidade");
@@ -277,18 +267,11 @@ export default function DpFolgas() {
   const salvarLimite = useMutation({
     mutationFn: async () => {
       if (!selectedCompanyId || !selectedDay) return;
-      const { error } = await supabase
-        .from("dp_dia_config")
-        .upsert(
-          {
-            company_id: selectedCompanyId,
-            data: format(selectedDay, "yyyy-MM-dd"),
-            limite_folgas: editLimit,
-            criado_por: user?.id ?? null,
-          },
-          { onConflict: "company_id,unidade_id,data" },
-        );
-      if (error) throw error;
+      await definirLimiteDoDia({
+        companyId: selectedCompanyId,
+        data: format(selectedDay, "yyyy-MM-dd"),
+        limite: editLimit,
+      });
     },
     onSuccess: () => {
       toast.success("Limite atualizado");

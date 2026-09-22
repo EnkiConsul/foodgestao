@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { definirLimiteDoDia, salvarDataBloqueada, excluirDataBloqueada } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { Button } from "@/components/ui/button";
@@ -475,20 +476,11 @@ export default function DpAdminCalendario() {
   const salvarLimite = useMutation({
     mutationFn: async () => {
       if (!dayOpen) return;
-      const { data: userRes } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("dp_dia_config")
-        .upsert(
-          {
-            company_id: selectedCompanyId!,
-            data: dayOpen,
-            limite_folgas: editLimit,
-            criado_por: userRes.user?.id ?? null,
-          },
-          { onConflict: "company_id,unidade_id,data" },
-        )
-        .select();
-      if (error) throw error;
+      await definirLimiteDoDia({
+        companyId: selectedCompanyId!,
+        data: dayOpen,
+        limite: editLimit,
+      });
     },
     onSuccess: () => {
       toast.success("Limite atualizado");
@@ -502,21 +494,13 @@ export default function DpAdminCalendario() {
   const liberarData = useMutation({
     mutationFn: async (params: { unidadeId: string | null }) => {
       if (!dayOpen) return;
-      const { data: userRes } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("dp_datas_bloqueadas")
-        .upsert(
-          {
-            company_id: selectedCompanyId!,
-            data: dayOpen,
-            unidade_id: params.unidadeId,
-            liberada: true,
-            motivo: "Liberado manualmente pelo administrador",
-            criado_por: userRes.user?.id ?? null,
-          },
-          { onConflict: "company_id,unidade_id,data" },
-        );
-      if (error) throw error;
+      await salvarDataBloqueada({
+        companyId: selectedCompanyId!,
+        data: dayOpen,
+        unidadeId: params.unidadeId,
+        liberada: true,
+        motivo: "Liberado manualmente pelo administrador",
+      });
     },
     onSuccess: () => {
       toast.success("Data liberada");
@@ -532,8 +516,7 @@ export default function DpAdminCalendario() {
   /** Remove o override de liberação, devolvendo a data ao estado bloqueado. */
   const rebloquearData = useMutation({
     mutationFn: async (overrideId: string) => {
-      const { error } = await supabase.from("dp_datas_bloqueadas").delete().eq("id", overrideId);
-      if (error) throw error;
+      await excluirDataBloqueada(overrideId);
     },
     onSuccess: () => {
       toast.success("Data bloqueada novamente");

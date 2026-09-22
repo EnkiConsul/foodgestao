@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CalendarOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { definirDatasBloqueadasLote } from "@/lib/dp/regras-oficial";
 import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -59,22 +60,12 @@ export function SocioBloqueioDialog({
     mutationFn: async () => {
       const alvo = unica ? unidades.map((u) => u.id) : selecionadas;
       if (!alvo.length) throw new Error("Escolha pelo menos uma unidade.");
-      const { data: userRes } = await supabase.auth.getUser();
-      const rows = datas.flatMap((data) =>
-        alvo.map((uid) => ({
-          company_id: companyId,
-          data,
-          unidade_id: uid,
-          liberada: false,
-          motivo: motivoBloqueioSocio(nome),
-          criado_por: userRes.user?.id ?? null,
-        })),
-      );
-      const { error } = await supabase
-        .from("dp_datas_bloqueadas")
-        .upsert(rows, { onConflict: "company_id,unidade_id,data" });
-      if (error) throw error;
-      return rows.length;
+      return await definirDatasBloqueadasLote({
+        companyId,
+        datas,
+        unidades: alvo,
+        motivo: motivoBloqueioSocio(nome),
+      });
     },
     onSuccess: (n) => {
       toast.success(`${n} data(s) bloqueada(s) para os demais colaboradores.`);

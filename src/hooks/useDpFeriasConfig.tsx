@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { salvarConfigDp } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { FeriasSinalizacaoCiclo } from "@/lib/dp/ferias-direito";
 import { notifyError } from "@/lib/notifyError";
@@ -97,18 +98,7 @@ export function useDpFeriasConfig() {
         ferias_sinalizacao_ciclo_encerrado:
           patch.sinalizacaoCicloEncerrado ?? atual.sinalizacaoCicloEncerrado,
       };
-      if (query.data?.id) {
-        const { error } = await supabase
-          .from("dp_config_dp")
-          .update(payload)
-          .eq("id", query.data.id);
-        if (error) throw error;
-        return;
-      }
-      const { error } = await supabase
-        .from("dp_config_dp")
-        .insert({ ...payload, company_id: selectedCompanyId, unidade_id: null });
-      if (error) throw error;
+      await salvarConfigDp({ companyId: selectedCompanyId, unidadeId: null, patch: payload });
     },
     onSuccess: () => {
       toast.success("Regra de férias atualizada");

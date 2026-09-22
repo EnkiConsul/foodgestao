@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { comentarAviso, excluirComentarioAviso, moderarComentarioAviso } from "@/lib/dp/regras-oficial";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { notifyError } from "@/lib/notifyError";
@@ -181,14 +182,11 @@ export function useDpMural() {
       autorNome?: string | null;
     }) => {
       if (!user?.id) return;
-      const { error } = await supabase.from("dp_avisos_comentarios").insert({
-        aviso_id: aviso.id,
-        company_id: aviso.company_id,
-        user_id: user.id,
-        autor_nome: autorNome ?? user.email ?? null,
+      await comentarAviso({
+        avisoId: aviso.id,
         conteudo,
+        autorNome: autorNome ?? user.email ?? null,
       });
-      if (error) throw error;
     },
     onSuccess: () => {
       invalidate();
@@ -199,8 +197,7 @@ export function useDpMural() {
 
   const removerComentario = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_avisos_comentarios").delete().eq("id", id);
-      if (error) throw error;
+      await excluirComentarioAviso(id);
     },
     onSuccess: invalidate,
     onError: (e: any) => notifyError(e, { surface: "Mural", action: "concluir a ação", fallback: "Erro ao remover" }),
@@ -247,16 +244,7 @@ export function useDpAvisoEngajamento(avisoId: string | null) {
 
   const moderar = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "aprovado" | "oculto" }) => {
-      const { data: userRes } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("dp_avisos_comentarios")
-        .update({
-          status,
-          moderado_por: userRes.user?.id ?? null,
-          moderado_em: new Date().toISOString(),
-        })
-        .eq("id", id);
-      if (error) throw error;
+      await moderarComentarioAviso(id, status);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_aviso_engajamento"] });

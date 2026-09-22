@@ -3923,6 +3923,9 @@ export type Database = {
           mes: number | null
           nome: string
           regra_json: Json | null
+          removido_em: string | null
+          removido_motivo: string | null
+          removido_por: string | null
           tipo: Database["public"]["Enums"]["dp_bloqueio_regra_tipo"]
           updated_at: string
         }
@@ -3936,6 +3939,9 @@ export type Database = {
           mes?: number | null
           nome: string
           regra_json?: Json | null
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           tipo: Database["public"]["Enums"]["dp_bloqueio_regra_tipo"]
           updated_at?: string
         }
@@ -3949,6 +3955,9 @@ export type Database = {
           mes?: number | null
           nome?: string
           regra_json?: Json | null
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           tipo?: Database["public"]["Enums"]["dp_bloqueio_regra_tipo"]
           updated_at?: string
         }
@@ -4538,6 +4547,9 @@ export type Database = {
           dia_semana: number | null
           id: string
           minimo: number
+          removido_em: string | null
+          removido_motivo: string | null
+          removido_por: string | null
           turno: Database["public"]["Enums"]["dp_turno"] | null
           turno_id: string | null
           unidade_id: string | null
@@ -4553,6 +4565,9 @@ export type Database = {
           dia_semana?: number | null
           id?: string
           minimo?: number
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           turno?: Database["public"]["Enums"]["dp_turno"] | null
           turno_id?: string | null
           unidade_id?: string | null
@@ -4568,6 +4583,9 @@ export type Database = {
           dia_semana?: number | null
           id?: string
           minimo?: number
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           turno?: Database["public"]["Enums"]["dp_turno"] | null
           turno_id?: string | null
           unidade_id?: string | null
@@ -7699,6 +7717,9 @@ export type Database = {
           observacao: string | null
           permite_excecao: boolean
           recorrente_anual: boolean
+          removido_em: string | null
+          removido_motivo: string | null
+          removido_por: string | null
           unidade_id: string | null
           updated_at: string
         }
@@ -7713,6 +7734,9 @@ export type Database = {
           observacao?: string | null
           permite_excecao?: boolean
           recorrente_anual?: boolean
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           unidade_id?: string | null
           updated_at?: string
         }
@@ -7727,6 +7751,9 @@ export type Database = {
           observacao?: string | null
           permite_excecao?: boolean
           recorrente_anual?: boolean
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           unidade_id?: string | null
           updated_at?: string
         }
@@ -8055,6 +8082,9 @@ export type Database = {
           id: string
           max_simultaneos: number
           observacao: string | null
+          removido_em: string | null
+          removido_motivo: string | null
+          removido_por: string | null
           turno: Database["public"]["Enums"]["dp_turno"] | null
           unidade_id: string | null
           updated_at: string
@@ -8067,6 +8097,9 @@ export type Database = {
           id?: string
           max_simultaneos?: number
           observacao?: string | null
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           turno?: Database["public"]["Enums"]["dp_turno"] | null
           unidade_id?: string | null
           updated_at?: string
@@ -8079,6 +8112,9 @@ export type Database = {
           id?: string
           max_simultaneos?: number
           observacao?: string | null
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           turno?: Database["public"]["Enums"]["dp_turno"] | null
           unidade_id?: string | null
           updated_at?: string
@@ -15071,6 +15107,15 @@ export type Database = {
         Returns: string
       }
       dp_admissao_regra_excluir: { Args: { p_id: string }; Returns: boolean }
+      dp_admissao_regra_parentesco_definir: {
+        Args: {
+          p_company_id: string
+          p_dependente: boolean
+          p_parentesco: string
+          p_sesc: boolean
+        }
+        Returns: undefined
+      }
       dp_admissao_regra_salvar: { Args: { p_regra: Json }; Returns: string }
       dp_admissao_regras_resolver:
         | {
@@ -15100,6 +15145,28 @@ export type Database = {
               tipo: string
             }[]
           }
+      dp_apoio_unidade_excluir: { Args: { p_id: string }; Returns: undefined }
+      dp_apoio_unidade_salvar: {
+        Args: { p_apoio: Json; p_company_id: string }
+        Returns: string
+      }
+      dp_aviso_comentar: {
+        Args: { p_autor_nome?: string; p_aviso_id: string; p_conteudo: string }
+        Returns: string
+      }
+      dp_aviso_comentario_excluir: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      dp_aviso_comentario_moderar: {
+        Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
+      dp_aviso_excluir: { Args: { p_id: string }; Returns: undefined }
+      dp_aviso_salvar: {
+        Args: { p_aviso: Json; p_company_id: string }
+        Returns: string
+      }
       dp_beneficio_padrao_salvar: {
         Args: {
           p_cargo_id?: string
@@ -15112,6 +15179,14 @@ export type Database = {
       }
       dp_beneficio_salvar: {
         Args: { p_company_id: string; p_dados: Json; p_id?: string }
+        Returns: string
+      }
+      dp_bloqueio_regra_excluir: {
+        Args: { p_id: string; p_motivo?: string }
+        Returns: undefined
+      }
+      dp_bloqueio_regra_salvar: {
+        Args: { p_company_id: string; p_regra: Json; p_unidades?: string[] }
         Returns: string
       }
       dp_bulk_batch_finalize: { Args: { _batch_id: string }; Returns: string }
@@ -15226,6 +15301,14 @@ export type Database = {
           salario_base: number
         }[]
       }
+      dp_cobertura_minima_excluir: {
+        Args: { p_id: string; p_motivo?: string }
+        Returns: undefined
+      }
+      dp_cobertura_minima_salvar: {
+        Args: { p_company_id: string; p_regra: Json }
+        Returns: string
+      }
       dp_colaborador_aplicar_condicao: {
         Args: {
           p_base_dias_mes: number
@@ -15337,6 +15420,20 @@ export type Database = {
       }
       dp_comprovante_remover: {
         Args: { p_documento_id: string }
+        Returns: string
+      }
+      dp_config_dp_excecao_excluir: {
+        Args: { p_company_id: string; p_unidade_id: string }
+        Returns: undefined
+      }
+      dp_config_dp_salvar: {
+        Args: {
+          p_ciencia?: boolean
+          p_company_id: string
+          p_justificativa?: string
+          p_patch: Json
+          p_unidade_id: string
+        }
         Returns: string
       }
       dp_config_resolvida: {
@@ -15792,7 +15889,38 @@ export type Database = {
         Returns: string
       }
       dp_cpf_valido: { Args: { p: string }; Returns: boolean }
+      dp_data_bloqueada_excluir: { Args: { p_id: string }; Returns: undefined }
+      dp_data_bloqueada_rebloquear: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      dp_data_bloqueada_salvar: {
+        Args: {
+          p_company_id: string
+          p_data: string
+          p_id?: string
+          p_liberada?: boolean
+          p_motivo: string
+          p_unidade_id?: string
+        }
+        Returns: string
+      }
       dp_data_iso_valida: { Args: { p: string }; Returns: boolean }
+      dp_datas_bloqueadas_definir_lote: {
+        Args: {
+          p_company_id: string
+          p_datas: string[]
+          p_liberada?: boolean
+          p_motivo: string
+          p_unidades: string[]
+        }
+        Returns: number
+      }
+      dp_dependente_excluir: { Args: { p_id: string }; Returns: undefined }
+      dp_dependente_salvar: {
+        Args: { p_colaborador_id: string; p_dependente: Json }
+        Returns: string
+      }
       dp_desligar_colaborador: {
         Args: {
           p_colaborador_id: string
@@ -15803,6 +15931,17 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_dia_config_definir: {
+        Args: {
+          p_company_id: string
+          p_data: string
+          p_limite: number
+          p_observacao?: string
+          p_unidade_id?: string
+        }
+        Returns: string
+      }
+      dp_dia_config_excluir: { Args: { p_id: string }; Returns: undefined }
       dp_dias_descanso_validos: {
         Args: { _company: string; _unidade: string }
         Returns: number[]
@@ -15959,6 +16098,14 @@ export type Database = {
         }
         Returns: string
       }
+      dp_ferias_bloqueio_excluir: {
+        Args: { p_id: string; p_motivo?: string }
+        Returns: undefined
+      }
+      dp_ferias_bloqueio_salvar: {
+        Args: { p_bloqueio: Json; p_company_id: string }
+        Returns: string
+      }
       dp_ferias_cancelar: {
         Args: { _gozo_id: string; _motivo: string }
         Returns: undefined
@@ -16098,6 +16245,14 @@ export type Database = {
       dp_ferias_registrar_ciencia: {
         Args: { _gozo_id: string }
         Returns: undefined
+      }
+      dp_ferias_regra_excluir: {
+        Args: { p_id: string; p_motivo?: string }
+        Returns: undefined
+      }
+      dp_ferias_regra_salvar: {
+        Args: { p_company_id: string; p_regra: Json }
+        Returns: string
       }
       dp_ferias_solicitar: {
         Args: {
@@ -16853,6 +17008,18 @@ export type Database = {
       dp_regra_bloqueia_data: {
         Args: { _company_id: string; _data: string; _unidade_id: string }
         Returns: boolean
+      }
+      dp_regras_ciencia_registrar: {
+        Args: {
+          p_ciencia?: boolean
+          p_company_id: string
+          p_justificativa?: string
+          p_registro_id?: string
+          p_tabela: string
+          p_valor_antigo?: Json
+          p_valor_novo?: Json
+        }
+        Returns: undefined
       }
       dp_reintegrar_colaborador: {
         Args: { p_colaborador_id: string }

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { salvarAviso, excluirAviso } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
 import { notifyError } from "@/lib/notifyError";
@@ -57,21 +58,8 @@ export function useDpAvisos() {
 
   const upsert = useMutation({
     mutationFn: async (input: Partial<DpAviso> & { titulo: string; conteudo: string }) => {
-      const { data: userRes } = await supabase.auth.getUser();
-      const payload = {
-        ...input,
-        company_id: selectedCompanyId!,
-        autor_id: input.autor_id ?? userRes.user?.id ?? null,
-      };
-      if (input.id) {
-        const { data, error } = await supabase.from("dp_avisos").update(payload).eq("id", input.id).select("id").single();
-        if (error) throw error;
-        return data;
-      } else {
-        const { data, error } = await supabase.from("dp_avisos").insert(payload as any).select("id").single();
-        if (error) throw error;
-        return data;
-      }
+      const id = await salvarAviso(selectedCompanyId!, { ...input } as unknown as Record<string, unknown>);
+      return { id };
     },
 
     onSuccess: () => {
@@ -83,8 +71,7 @@ export function useDpAvisos() {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_avisos").delete().eq("id", id);
-      if (error) throw error;
+      await excluirAviso(id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_avisos"] });

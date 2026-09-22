@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { salvarConfigDp } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { FeriasAdiantamento13 } from "@/hooks/useDpFeriasConfig";
 import { notifyError } from "@/lib/notifyError";
@@ -46,21 +47,11 @@ export function useDpFeriasConfigUnidades() {
       adiantamento13: FeriasAdiantamento13 | null;
     }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const existente = (query.data ?? []).find((o) => o.unidadeId === input.unidadeId);
-      if (existente) {
-        const { error } = await supabase
-          .from("dp_config_dp")
-          .update({ ferias_adiantamento_13: input.adiantamento13 })
-          .eq("id", existente.id);
-        if (error) throw error;
-        return;
-      }
-      const { error } = await supabase.from("dp_config_dp").insert({
-        company_id: selectedCompanyId,
-        unidade_id: input.unidadeId,
-        ferias_adiantamento_13: input.adiantamento13,
+      await salvarConfigDp({
+        companyId: selectedCompanyId,
+        unidadeId: input.unidadeId,
+        patch: { ferias_adiantamento_13: input.adiantamento13 },
       });
-      if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Exceção da unidade atualizada");
