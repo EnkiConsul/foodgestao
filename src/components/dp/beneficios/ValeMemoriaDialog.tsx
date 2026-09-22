@@ -43,7 +43,7 @@ interface Props {
  * Memória de cálculo do vale: mostra dia a dia como o período de cobertura foi
  * classificado, para o gestor conferir de onde vem a quantidade de dias pagos.
  */
-export function ValeMemoriaDialog({ open, onOpenChange, linha, valeLabel }: Props) {
+export function ValeMemoriaDialog({ open, onOpenChange, linha, valeLabel, diasInformados }: Props) {
   if (!linha) return null;
 
   const dias = linha.calendario;
@@ -56,6 +56,9 @@ export function ValeMemoriaDialog({ open, onOpenChange, linha, valeLabel }: Prop
     { label: "Folgas e atestados marcados", valor: `−${linha.folgasDescontadas}` },
     { label: "Férias no período", valor: `−${linha.feriasDescontadas}` },
     { label: "Dias previstos a pagar", valor: `${linha.diasPrevistos}` },
+    ...(diasInformados == null
+      ? []
+      : [{ label: "Dias a trabalhar informados pelo gestor", valor: `${diasInformados}` }]),
     { label: "Dias pagos e não trabalhados antes", valor: `−${linha.descontos.dias}` },
     { label: "Dias a depositar", valor: `${linha.deposito.diasPagos}` },
   ];
