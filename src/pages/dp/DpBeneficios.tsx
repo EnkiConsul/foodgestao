@@ -32,6 +32,14 @@ import type { ValeTipo } from "@/hooks/useDpValeCalculadora";
 
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
 import { descreverEscopoBeneficio } from "@/lib/dp/beneficioEscopo";
+import { DpFilters, DpFilterField, type DpFilterChip } from "@/components/dp/DpFilters";
+import {
+  FILTROS_BENEFICIOS_PADRAO,
+  SITUACAO_BENEFICIOS_LABEL,
+  contarFiltrosBeneficios,
+  type BeneficiosFiltros,
+  type SituacaoBeneficios,
+} from "@/lib/dp/beneficios-filtros";
 
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
