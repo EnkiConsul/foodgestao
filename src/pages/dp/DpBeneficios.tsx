@@ -114,7 +114,6 @@ export default function DpBeneficios() {
       });
     }
     return lista;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtros, unidades.data, cargos.data, colaboradores]);
 
 
