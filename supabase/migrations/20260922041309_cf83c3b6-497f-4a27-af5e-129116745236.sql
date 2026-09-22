@@ -1,0 +1,2 @@
+DROP FUNCTION IF EXISTS public.dp_ferias_validar_programacao(uuid, uuid, date, date, integer, text, uuid);
+REVOKE ALL ON FUNCTION public.dp_ferias_validar_programacao(uuid, uuid, date, date, integer, text, uuid, text) FROM anon;
