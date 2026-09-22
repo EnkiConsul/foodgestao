@@ -78,28 +78,68 @@ export function ComprovanteAnexarDialog(props: {
   const inputRef = useRef<HTMLInputElement>(null);
   const campoId = useId();
   const [pagoEm, setPagoEm] = useState(props.pagoEmAtual ?? "");
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [lida, setLida] = useState<"arquivo" | "nome" | null>(null);
+  const [confirmado, setConfirmado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const { anexar, ocupado } = useDpComprovantePagamento();
   const hoje = hojeISO();
 
-  const escolherArquivo = () => {
+  const divergente = competenciaDivergente(pagoEm, props.competencia);
+  const aviso =
+    divergente && props.competencia ? avisoCompetenciaDivergente(pagoEm, props.competencia) : null;
+
+  const limpar = () => {
+    setErro(null);
+    setArquivo(null);
+    setLida(null);
+    setConfirmado(false);
+    setPagoEm(props.pagoEmAtual ?? "");
+  };
+
+  const escolherArquivo = async (file: File) => {
+    setArquivo(file);
+    setErro(null);
+    setConfirmado(false);
+    if (pagoEm) return;
+    const sugestao = await sugerirDataPagamento(file, hoje);
+    if (sugestao.valor) {
+      setPagoEm(sugestao.valor);
+      setLida(sugestao.origem);
+    }
+  };
+
+  const importar = () => {
+    if (!arquivo) {
+      inputRef.current?.click();
+      return;
+    }
     const check = validarDataPagamento(pagoEm, hoje);
     if (!check.ok) {
       setErro(check.motivo);
       return;
     }
+    if (divergente && !confirmado) {
+      setErro(aviso ?? "Confirme a competência do comprovante.");
+      return;
+    }
     setErro(null);
-    inputRef.current?.click();
+    anexar.mutate(
+      {
+        alvo: props.alvo,
+        file: arquivo,
+        pagoEm: check.valor,
+        confirmarCompetencia: divergente && confirmado,
+      },
+      { onSuccess: () => props.onOpenChange(false) },
+    );
   };
 
   return (
     <Dialog
       open={props.open}
       onOpenChange={(v) => {
-        if (!v) {
-          setErro(null);
-          setPagoEm(props.pagoEmAtual ?? "");
-        }
+        if (!v) limpar();
         props.onOpenChange(v);
       }}
     >
@@ -109,7 +149,7 @@ export function ComprovanteAnexarDialog(props: {
             {props.substituir ? "Substituir comprovante de pagamento" : "Anexar comprovante de pagamento"}
           </DialogTitle>
           <DialogDescription>
-            Confira o documento antes de escolher o arquivo.
+            Escolha o arquivo e confira a data do pagamento antes de importar.
           </DialogDescription>
         </DialogHeader>
 
@@ -137,17 +177,21 @@ export function ComprovanteAnexarDialog(props: {
             const file = e.target.files?.[0];
             e.target.value = "";
             if (!file || !validar(file)) return;
-            const check = validarDataPagamento(pagoEm, hoje);
-            if (!check.ok) {
-              setErro(check.motivo);
-              return;
-            }
-            anexar.mutate(
-              { alvo: props.alvo, file, pagoEm: check.valor },
-              { onSuccess: () => props.onOpenChange(false) },
-            );
+            void escolherArquivo(file);
           }}
         />
+
+        <div className="grid gap-1.5">
+          <Label className="text-xs">Arquivo do comprovante</Label>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => inputRef.current?.click()} disabled={ocupado}>
+              <Upload className="mr-1 size-4" /> Escolher arquivo
+            </Button>
+            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              {arquivo ? arquivo.name : `PDF ou imagem, até ${MAX_MB} MB`}
+            </span>
+          </div>
+        </div>
 
         <div className="grid gap-1.5">
           <Label htmlFor={campoId} className="text-xs">Data do pagamento (opcional)</Label>
@@ -160,23 +204,41 @@ export function ComprovanteAnexarDialog(props: {
             aria-describedby={erro ? `${campoId}-erro` : undefined}
             onChange={(e) => {
               setPagoEm(e.target.value);
+              setLida(null);
+              setConfirmado(false);
               setErro(null);
             }}
           />
+          {lida ? (
+            <p className="text-xs text-primary">
+              Data lida do comprovante — confira antes de importar.
+            </p>
+          ) : null}
           {erro ? (
             <p id={`${campoId}-erro`} role="alert" className="text-xs text-destructive">{erro}</p>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              Arquivo em PDF ou imagem, até {MAX_MB} MB.
-            </p>
-          )}
+          ) : null}
         </div>
+
+        {aviso ? (
+          <label className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={confirmado}
+              onChange={(e) => {
+                setConfirmado(e.target.checked);
+                setErro(null);
+              }}
+            />
+            <span>{aviso}</span>
+          </label>
+        ) : null}
 
         <DialogFooter className="gap-2 sm:gap-2">
           <Button variant="outline" onClick={() => props.onOpenChange(false)} disabled={ocupado}>
             Cancelar
           </Button>
-          <Button onClick={escolherArquivo} disabled={ocupado}>
+          <Button onClick={importar} disabled={ocupado || !arquivo}>
             {anexar.isPending ? (
               <Loader2 className="mr-1 size-4 animate-spin" />
             ) : (
