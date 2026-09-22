@@ -38,3 +38,21 @@ describe("Naturezas unificadas de Admissão e Desligamento", () => {
     expect(aceitaComprovante("admissao")).toBe(false);
   });
 });
+
+describe("ASO separado de Admissão e Desligamento", () => {
+  it("detecta ASO admissional e demissional nos próprios tipos", () => {
+    expect(detectarTipoDocumento("ASO ADMISSIONAL JOAO.pdf")).toBe("aso_admissional");
+    expect(detectarTipoDocumento("exame admissional.pdf")).toBe("aso_admissional");
+    expect(detectarTipoDocumento("ASO DEMISSIONAL MARIA.pdf")).toBe("aso_demissional");
+    expect(detectarTipoDocumento("exame demissional.pdf")).toBe("aso_demissional");
+  });
+
+  it("mantém contrato e TRCT nos tipos unificados", () => {
+    expect(detectarTipoDocumento("contrato de trabalho.pdf")).toBe("admissao");
+    expect(detectarTipoDocumento("TRCT.pdf")).toBe("desligamento");
+  });
+
+  it("ASO não substitui a documentação cobrada de rescisão", () => {
+    expect(DOC_TIPOS_RESCISAO as readonly string[]).not.toContain("aso_demissional");
+  });
+});
