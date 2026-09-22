@@ -54,6 +54,7 @@ export function useDpCargoPadrao(
           .from("dp_colaborador_beneficios")
           .select("colaborador_id, beneficio_id, valor, ativo, data_fim")
           .eq("company_id", selectedCompanyId!)
+          .is("removido_em", null)
           .in("colaborador_id", ids),
       ]);
 
