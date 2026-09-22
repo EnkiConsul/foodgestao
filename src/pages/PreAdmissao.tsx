@@ -382,7 +382,7 @@ export default function PreAdmissao() {
     toast.error((e as Error).message);
   };
 
-  const salvar = async (avancar: boolean) => {
+  const salvar = async (avancar: boolean, silencioso = false) => {
     setSalvando(true);
     try {
       const novo = await chamar<Estado>("dp-preadmissao-publica", {
@@ -390,17 +390,40 @@ export default function PreAdmissao() {
       });
       aplicar(novo);
       setSalvoEm(new Date().toISOString());
-      setErros({}); setFaltando([]); setAvisoTopo(null);
+      // O rascunho automático não apaga avisos que a pessoa precisa ver.
+      if (!silencioso) { setErros({}); setFaltando([]); setAvisoTopo(null); }
+      assinaturaRef.current = null;
       if (avancar) setEtapa((n) => Math.min(n + 1, totalEtapas - 1));
-      else toast.success("Dados guardados");
+      else if (!silencioso) toast.success("Dados guardados");
       return true;
     } catch (e) {
-      await tratarFalha(e);
+      // Falha do rascunho automático não interrompe o preenchimento.
+      if (!silencioso) await tratarFalha(e);
       return false;
     } finally {
       setSalvando(false);
     }
   };
+
+  /**
+   * Rascunho automático: depois da pausa na digitação o que já foi preenchido
+   * vai para o servidor, sem tirar o candidato do lugar e sem aviso na tela.
+   */
+  useEffect(() => {
+    if (!estado || enviado || salvando) return;
+    const assinatura = JSON.stringify({ form, pessoas });
+    if (assinaturaRef.current === null) {
+      assinaturaRef.current = assinatura;
+      return;
+    }
+    if (assinaturaRef.current === assinatura) return;
+    const id = window.setTimeout(() => {
+      assinaturaRef.current = assinatura;
+      void salvar(false, true);
+    }, 2000);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, pessoas, estado, enviado, salvando]);
 
   const enviar = async () => {
     setSalvando(true);
