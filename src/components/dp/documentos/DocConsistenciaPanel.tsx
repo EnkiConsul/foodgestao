@@ -475,7 +475,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
                 (tipo === "ponto" ||
                   tipo === "adiantamento" ||
                   ((tipo === "contracheque" || tipo === "contracheque_13") &&
-                    !assalariado &&
+                    !assalariadoComp &&
                     !socioProLabore));
               if (inconsistente) {
                 alertas.push({
