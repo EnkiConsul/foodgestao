@@ -259,7 +259,12 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
               <li>{impacto.data?.folgas ?? 0} folga(s) futura(s) agendada(s) serão canceladas.</li>
               <li>{impacto.data?.solicitacoes ?? 0} solicitação(ões) pendente(s) serão canceladas.</li>
               <li>Trocas pendentes envolvendo o colaborador serão canceladas.</li>
-              <li>Portal apenas para consulta e download de documentos até <strong>{fmt(acessoAte)}</strong>.</li>
+              <li>Links de acesso ainda não usados deixam de valer e as sessões abertas são encerradas.</li>
+              <li>
+                Portal apenas para consulta e download de documentos até <strong>{fmt(acessoAte)}</strong> —
+                sem marcar folga ou férias, pedir troca, aceitar convocação, registrar ocorrência de ponto ou
+                abrir pedidos ao DP.
+              </li>
             </ul>
           </div>
         )}
