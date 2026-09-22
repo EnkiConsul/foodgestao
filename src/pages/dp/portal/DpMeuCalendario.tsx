@@ -7,6 +7,7 @@ import {
   AlertCircle,
   ArrowLeftRight,
   CalendarDays,
+  CalendarClock,
   Send,
   User as UserIcon,
 } from "lucide-react";
@@ -47,6 +48,11 @@ import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { resumoEscolhaFolgas, folgaDominicalAutomatica, podeTrocarFolga, domingosFolgaNoPeriodo } from "@/lib/dp/dsr-rules";
 import { folgasOfertaveis } from "@/lib/dp/troca-oferta";
 import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
+import {
+  diasParaRemarcar,
+  mensagemErroRemarcacao,
+  pedirAoDp,
+} from "@/lib/dp/folga-remarcacao";
 
 
 import {
@@ -123,6 +129,11 @@ export default function DpMeuCalendario() {
   const [tradeOpen, setTradeOpen] = useState<{ occupantId: string; occupantName: string; iso: string } | null>(null);
   const [tradeMyDate, setTradeMyDate] = useState<string>("");
   const [tradeMotivo, setTradeMotivo] = useState("");
+  /** Mudança do dia da própria folga: dia atual, novo dia e motivo. */
+  const [remarcarOpen, setRemarcarOpen] = useState<string | null>(null);
+  const [remarcarNova, setRemarcarNova] = useState("");
+  const [remarcarMotivo, setRemarcarMotivo] = useState("");
+  const [remarcarAviso, setRemarcarAviso] = useState<string | null>(null);
   const [socioBloqueio, setSocioBloqueio] = useState<{ nome: string; datas: string[]; unidadeId: string | null } | null>(
     null,
   );
