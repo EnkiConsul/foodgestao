@@ -148,7 +148,17 @@ describe("Operações críticas: visitante negado nas rotinas", () => {
 });
 
 describe("Operações críticas: visitante negado nas tabelas", () => {
-  const tabelas = ["dp_trocas", "dp_ferias_gozos", "dp_convocacoes", "dp_escalas", "dp_escala_itens"];
+  const tabelas = [
+    "dp_trocas",
+    "dp_ferias_gozos",
+    "dp_convocacoes",
+    "dp_convocacao_destinatarios",
+    "dp_escalas",
+    "dp_escala_itens",
+    "dp_ocorrencias",
+    "dp_ocorrencia_coberturas",
+  ];
+
 
   for (const t of tabelas) {
     it(`não lê ${t}`, async () => {
