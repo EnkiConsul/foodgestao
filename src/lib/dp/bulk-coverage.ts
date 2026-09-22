@@ -11,6 +11,8 @@ export interface CoverageColaborador {
   optante_adiantamento?: boolean | null;
   data_admissao?: string | null;
   data_desligamento?: string | null;
+  /** Fins de vínculo do histórico ("YYYY-MM-DD"), inclusive de quem foi recontratado. */
+  vinculos_encerrados?: string[] | null;
   dp_unidades?: { nome?: string | null } | null;
 }
 
@@ -111,14 +113,22 @@ export function resolveUnidadesLote({
   return [...porColab];
 }
 
-/** Desligado dentro da competência "YYYY-MM". */
+/**
+ * Vínculo encerrado dentro da competência "YYYY-MM".
+ * Além da data de desligamento da ficha, considera os fins de vínculo do
+ * histórico (`vinculos_encerrados`): quem foi recontratado continua devendo a
+ * documentação do vínculo anterior.
+ */
 export function desligadoNaCompetencia(
   c: CoverageColaborador,
   competencia: string | null,
 ): boolean {
   if (!competencia) return false;
   const d = String(c.data_desligamento ?? "").slice(0, 7);
-  return !!d && d === competencia;
+  if (d && d === competencia) return true;
+  return (c.vinculos_encerrados ?? []).some(
+    (f) => String(f ?? "").slice(0, 7) === competencia,
+  );
 }
 
 const TIPOS_RESCISAO = new Set(["desligamento", "trct", "demonstrativo_rescisorio", "rescisao"]);

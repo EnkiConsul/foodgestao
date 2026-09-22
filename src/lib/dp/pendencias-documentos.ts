@@ -146,6 +146,90 @@ export function desligadoNaCompetencia(c: ColabElegibilidade, comp: Competencia)
   return competenciaDoDesligamento(c) === comp;
 }
 
+/** Linha do histórico de vínculos da pessoa (dp_colaborador_historico_condicoes). */
+export type VinculoHistorico = {
+  colaborador_id: string;
+  vigencia_inicio?: string | null;
+  vigencia_fim?: string | null;
+  regime?: string | null;
+  unidade_id?: string | null;
+  modo_continuidade?: string | null;
+};
+
+/** Vínculo que terminou — a documentação de desligamento dele é cobrada. */
+export type VinculoEncerrado = {
+  colaboradorId: string;
+  /** Último dia do vínculo ("YYYY-MM-DD"). */
+  dataFim: string;
+  competencia: Competencia;
+  regime: string | null;
+  unidadeId: string | null;
+};
+
+/**
+ * O vínculo encerrado gera documentação de desligamento?
+ * Mesma regra do contracheque: assalariado e não sócio. Vale para o vínculo que
+ * terminou, mesmo que a pessoa tenha sido recontratada em outro regime depois.
+ */
+export function elegivelRescisaoDoVinculo(v: {
+  regime?: string | null;
+  vinculo_label?: string | null;
+}): boolean {
+  return (
+    REGIMES_ASSALARIADOS.has(String(v.regime ?? "").toLowerCase()) &&
+    !isSocio(v as ColabElegibilidade)
+  );
+}
+
+/**
+ * Todos os vínculos encerrados da pessoa, do mais antigo para o mais novo.
+ *
+ * Um período do histórico conta como vínculo encerrado quando o período seguinte
+ * é um novo contrato (recontratação) — mudança de cargo, salário ou unidade não
+ * encerra vínculo. A data de desligamento da ficha atual também entra, sem
+ * duplicar quando cair no mesmo dia de um período do histórico.
+ */
+export function vinculosEncerrados(
+  historico: VinculoHistorico[] | undefined | null,
+  c: ColabElegibilidade,
+): VinculoEncerrado[] {
+  const doColaborador = (historico ?? [])
+    .filter((h) => h.colaborador_id === c.id)
+    .map((h) => ({
+      ...h,
+      inicio: String(h.vigencia_inicio ?? "").slice(0, 10),
+      fim: String(h.vigencia_fim ?? "").slice(0, 10),
+    }))
+    .sort((a, b) => a.inicio.localeCompare(b.inicio));
+
+  const encerrados: VinculoEncerrado[] = [];
+  const vistos = new Set<string>();
+  const adicionar = (fim: string, regime: string | null, unidadeId: string | null) => {
+    if (!fim || vistos.has(fim)) return;
+    vistos.add(fim);
+    if (!elegivelRescisaoDoVinculo({ regime, vinculo_label: c.vinculo_label })) return;
+    encerrados.push({
+      colaboradorId: c.id,
+      dataFim: fim,
+      competencia: competenciaDe(fim),
+      regime,
+      unidadeId,
+    });
+  };
+
+  doColaborador.forEach((h, i) => {
+    const seguinte = doColaborador[i + 1];
+    if (!h.fim || !seguinte) return;
+    if (String(seguinte.modo_continuidade ?? "") !== "novo_contrato") return;
+    adicionar(h.fim, h.regime ?? c.regime ?? null, h.unidade_id ?? null);
+  });
+
+  const atual = String(c.data_desligamento ?? "").slice(0, 10);
+  if (atual) adicionar(atual, c.regime ?? null, null);
+
+  return encerrados.sort((a, b) => a.dataFim.localeCompare(b.dataFim));
+}
+
 export type ElegibilidadeOpts = {
   unidadeTemRelogio?: boolean;
   /** Dia do adiantamento da unidade (quando ela paga adiantamento). */

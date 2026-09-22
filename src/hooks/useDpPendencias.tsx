@@ -29,8 +29,11 @@ import {
   limiteMesSeguinte,
   limiteNoMes,
   somarMeses,
+  vinculosEncerrados,
   type ColabElegibilidade,
   type DocTipoColaborador,
+  type VinculoEncerrado,
+  type VinculoHistorico,
 } from "@/lib/dp/pendencias-documentos";
 import { ativoNaCompetencia } from "@/lib/dp/bulk-coverage";
 import {
@@ -598,33 +601,67 @@ export function useDpPendencias() {
         }
       }
 
-      // 5b. Rescisão não importada — pessoa desligada na competência sem TRCT/demonstrativo.
-      // Prazo legal do acerto: 10 dias corridos após o desligamento.
+      // 5b. Rescisão não importada — vínculo encerrado na competência sem
+      // documento de desligamento (TRCT/demonstrativo). Considera também os
+      // vínculos do histórico: recontratar não apaga a cobrança do anterior.
+      // Prazo legal do acerto: 10 dias corridos após o fim do vínculo.
       {
         const docs = await carregarTipo("rescisao", rangeInicio, rangeFim);
+        let historicoVinculos: VinculoHistorico[] = [];
+        try {
+          const { data } = await supabase
+            .from("dp_colaborador_historico_condicoes")
+            .select(
+              "colaborador_id, vigencia_inicio, vigencia_fim, regime, unidade_id, modo_continuidade",
+            )
+            .eq("company_id", selectedCompanyId!);
+          historicoVinculos = (data ?? []) as unknown as VinculoHistorico[];
+        } catch (e) {
+          console.warn("pendencias/historico-vinculos:", e);
+        }
+
+        const unidadesValidas = new Set(unidades.map((u) => u.id));
+        const encerradosPorUnidade = new Map<
+          string,
+          Array<VinculoEncerrado & { nome: string; recontratado: boolean }>
+        >();
+        colaboradoresDocs.forEach((c) => {
+          for (const v of vinculosEncerrados(historicoVinculos, c)) {
+            const unidadeId =
+              v.unidadeId && unidadesValidas.has(v.unidadeId) ? v.unidadeId : c.unidade_id;
+            if (!unidadeId) continue;
+            const lista = encerradosPorUnidade.get(unidadeId) ?? [];
+            lista.push({
+              ...v,
+              nome: c.nome,
+              recontratado: String(c.data_desligamento ?? "").slice(0, 10) !== v.dataFim,
+            });
+            encerradosPorUnidade.set(unidadeId, lista);
+          }
+        });
+
         for (const u of unidades) {
-          for (const comp of compsPorUnidade.get(u.id)?.ateVigente ?? []) {
-            const { faltantes } = faltantesDocumento("rescisao", docs, u, comp);
-            for (const c of faltantes) {
-              const desligamento = String(c.data_desligamento ?? "").slice(0, 10);
-              if (!desligamento) continue;
-              const vencimento = ymd(addDays(new Date(`${desligamento}T12:00:00`), 10));
-              results.push({
-                id: `rescisao-${c.id}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`,
-                icon: FileMinus,
-                titulo: "Rescisão não importada",
-                subtitulo: `${c.nome} · ${u.nome} — ${competenciaLabel(comp)} · desligado em ${format(
-                  new Date(`${desligamento}T12:00:00`),
-                  "dd/MM",
-                )}`,
-                tipo: "Rescisão",
-                colaboradorNome: c.nome,
-                unidadeNome: u.nome,
-                vencimento,
-                atrasoDias: atrasoEmDias(vencimento, hojeISO),
-                url: `/dp/documentos?tipo=trct&competencia=${comp}&unidade=${u.id}`,
-              });
-            }
+          const comps = new Set(compsPorUnidade.get(u.id)?.ateVigente ?? []);
+          for (const v of encerradosPorUnidade.get(u.id) ?? []) {
+            if (!comps.has(v.competencia)) continue;
+            if (docs.has(`${v.colaboradorId}:${v.competencia}`)) continue;
+            const vencimento = ymd(addDays(new Date(`${v.dataFim}T12:00:00`), 10));
+            const quando = format(new Date(`${v.dataFim}T12:00:00`), "dd/MM");
+            const comp = v.competencia;
+            results.push({
+              id: `rescisao-${v.colaboradorId}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`,
+              icon: FileMinus,
+              titulo: "Rescisão não importada",
+              subtitulo: `${v.nome} · ${u.nome} — ${competenciaLabel(comp)} · ${
+                v.recontratado ? "vínculo encerrado" : "desligado"
+              } em ${quando}`,
+              tipo: "Rescisão",
+              colaboradorNome: v.nome,
+              unidadeNome: u.nome,
+              vencimento,
+              atrasoDias: atrasoEmDias(vencimento, hojeISO),
+              url: `/dp/documentos?tipo=trct&competencia=${comp}&unidade=${u.id}`,
+            });
           }
         }
       }
