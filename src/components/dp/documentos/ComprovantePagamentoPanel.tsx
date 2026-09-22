@@ -16,7 +16,13 @@ import {
 import { abrirDocumento, linkDocumentoAssinado } from "@/lib/documentoArquivo";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { aceitaComprovante, docTipoLabel } from "@/lib/dp/documentoTipos";
-import { hojeISO, validarDataPagamento } from "@/lib/dp/comprovante-data";
+import {
+  avisoCompetenciaDivergente,
+  competenciaDivergente,
+  hojeISO,
+  sugerirDataPagamento,
+  validarDataPagamento,
+} from "@/lib/dp/comprovante-data";
 import { useDpComprovantePagamento, type ComprovanteAlvo } from "@/hooks/useDpComprovantePagamento";
 
 const MAX_MB = 15;
