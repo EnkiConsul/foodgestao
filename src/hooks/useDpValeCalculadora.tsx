@@ -4,6 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { domingosFolgaNoPeriodo } from "@/lib/dp/dsr-rules";
 import {
+  FILTROS_BENEFICIOS_PADRAO,
+  pessoaAtendeFiltros,
+  type BeneficiosFiltros,
+} from "@/lib/dp/beneficios-filtros";
+import {
   DIA_PAGAMENTO_PADRAO,
   DIAS_CORTE_PADRAO,
   REGRAS_DESCONTO_PADRAO,
