@@ -1083,17 +1083,20 @@ export function ColaboradorFormDialog({
           valor_diaria: numeroBR((rem as any).valor_diaria) || null,
           base_salarial: numeroBR(rem.base_salarial) || null,
           socio_remuneracao: socioSelecionado ? socioRem : null,
-          // O endereço agora é editado aqui; estado civil e PIS seguem na ficha.
+          // O endereço e os dados de pagamento são editados aqui; estado civil
+          // e PIS vêm do registro e continuam sendo mostrados como pendência.
           endereco: endereco,
-          estado_civil: "-",
-          pis_nit: "-",
+          estado_civil: (colaborador as any)?.estado_civil ?? null,
+          pis_nit: (colaborador as any)?.pis_nit ?? null,
+          ...pagamentoParaBanco(pagamento),
         },
-        { salarioCargo },
+        { salarioCargo, exigirSetor: mostrarSetor },
       ),
     [
       form.setor_id, form.whatsapp, form.email, form.data_nascimento, form.tipo_vinculo,
       rem.salario_base, rem.valor_hora, rem.base_salarial, (rem as any).valor_diaria,
-      socioSelecionado, socioRem, salarioCargo, endereco,
+      socioSelecionado, socioRem, salarioCargo, endereco, pagamento, mostrarSetor,
+      colaborador,
     ],
   );
 
@@ -1102,7 +1105,9 @@ export function ColaboradorFormDialog({
     setor_id: { campo: "setor_id", aba: "dados" as AbaVisivel },
     contato: { campo: "whatsapp", aba: "dados" as AbaVisivel },
     email_contato: { campo: "email", aba: "dados" as AbaVisivel },
+    endereco: { campo: "endereco", aba: "dados" as AbaVisivel },
     data_nascimento: { campo: "data_nascimento", aba: "dados" as AbaVisivel },
+    dados_pagamento: { campo: "dados_pagamento", aba: "dados" as AbaVisivel },
     salario_base: { campo: "salario_base", aba: "remuneracao" as AbaVisivel },
   };
   const faltantesNaTela = faltantesEssenciais.filter((c) => CAMPO_DA_CHAVE[c.chave]);
