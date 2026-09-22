@@ -15,10 +15,9 @@ import { CardListSkeleton } from "@/components/dp/DpSkeletons";
 import { EnderecoFields } from "@/components/shared/EnderecoFields";
 import {
   CONTA_TIPOS, PIX_TIPOS, PAGAMENTO_BLANK, erroPagamento, pagamentoDoRegistro,
-  pagamentoParaBanco, type DadosPagamento,
+  pagamentoParaBanco, pixTipoRecomendado, type DadosPagamento,
 } from "@/lib/dp/dadosPagamento";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 
 import { notifyError } from "@/lib/notifyError";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
