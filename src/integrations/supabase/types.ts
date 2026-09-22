@@ -15203,6 +15203,16 @@ export type Database = {
         Args: { p_company_id?: string; p_dados: Json; p_id?: string }
         Returns: string
       }
+      dp_colaboradores_ajustar_lote: {
+        Args: {
+          p_cargo_id?: string
+          p_company_id: string
+          p_dados: Json
+          p_ids?: string[]
+          p_somente_ativos?: boolean
+        }
+        Returns: number
+      }
       dp_colaboradores_lixeira: {
         Args: { p_company_id: string }
         Returns: {
