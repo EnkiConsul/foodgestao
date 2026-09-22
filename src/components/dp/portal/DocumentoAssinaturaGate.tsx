@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
+import { assinarDocumento } from "@/lib/dp/documentoAceite";
 import {
   useDocumentosAguardandoAssinatura,
   type DocParaAssinar,
@@ -55,17 +56,7 @@ export function DocumentoAssinaturaGate() {
   const assinar = useMutation({
     mutationFn: async (d: DocParaAssinar) => {
       if (!colaborador) throw new Error("Colaborador não encontrado");
-      const { error } = await supabase.from("dp_documento_aceites").insert({
-        company_id: colaborador.company_id,
-        colaborador_id: colaborador.id,
-        documento_id: d.id,
-        modelo: d.tipo,
-        modelo_versao: "documento",
-        conteudo_hash: d.file_path ?? d.id,
-        aceito_por: user?.id ?? null,
-        user_agent: navigator.userAgent.slice(0, 500),
-      });
-      if (error) throw error;
+      await assinarDocumento(d.id);
     },
     onSuccess: () => {
       toast.success("Documento assinado", {
