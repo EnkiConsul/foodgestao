@@ -65,12 +65,10 @@ interface LinhaCalculo {
  * jornada ou convocações; os dias do ciclo anterior são informados pelo gestor
  * (o ponto ainda não está implantado) e a diferença entra no total a depositar.
  */
-export function ValeCalculadora({ tipo }: Props) {
+export function ValeCalculadora({ tipo, filtros }: Props) {
   const [competencia, setCompetencia] = useState(mesAtual());
-  const [unidade, setUnidade] = useState("todas");
   const [memoria, setMemoria] = useState<{ linha: LinhaVale; diasInformados: number | null } | null>(null);
-  const { data: unidades = [] } = useDpUnidades();
-  const vale = useDpValeCalculadora(tipo, competencia, unidade);
+  const vale = useDpValeCalculadora(tipo, competencia, filtros);
   const apuracoes = useDpValeApuracoes(tipo, competencia);
   const label = VALE_LABEL[tipo];
 
@@ -80,7 +78,7 @@ export function ValeCalculadora({ tipo }: Props) {
   >({});
   useEffect(() => {
     setEdits({});
-  }, [competencia, tipo, unidade]);
+  }, [competencia, tipo, filtros]);
 
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
