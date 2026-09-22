@@ -1,5 +1,15 @@
 # Roadmap — Remover telas em desenvolvimento
 
+## Correções Pessoas 360° — Fase 3: Acesso ao portal no desligamento (concluída)
+- [x] Situação do acesso decidida pelo banco (bloqueio, prazo de documentos, prazo vencido, cadastro removido, empresa inativa)
+- [x] Desligamento encerra links pendentes, sessões abertas e registra no histórico (idempotente)
+- [x] Criar senha por link nunca desfaz um bloqueio; link antigo deixa de valer
+- [x] Liberar/reenviar/redefinir acesso barrados quando há impedimento
+- [x] Desligado nos 30 dias: só consulta e baixa documentos; folga, férias, troca, convocação, ocorrência, pedidos e comentários exigem vínculo ativo
+- [x] Avisos na ficha (acesso e desligamento) em linguagem de negócio
+- [x] Testes: desligado negado em folga, férias, ocorrência e comentário; ativo intacto; dupla revogação inofensiva; acesso de outra empresa negado
+- [ ] Publicação do site (Fases 1, 2 e 3) — aguardando sua decisão
+
 ## Comprovante da Hanna — Adiantamento 08/2026
 - [x] Transferir o comprovante vinculado ao contracheque para o adiantamento, preservando arquivo e metadados
 - [x] Registrar a correção no histórico sem apagar dados
