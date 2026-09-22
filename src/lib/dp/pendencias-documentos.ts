@@ -266,7 +266,11 @@ export type ElegibilidadeOpts = {
    * Vínculo vigente na competência (histórico). Quando informado, substitui
    * admissão/desligamento da ficha na conferência daquela competência.
    */
-  vinculoNaCompetencia?: { admissao: string; desligamento: string | null } | null;
+  vinculoNaCompetencia?: {
+    admissao: string;
+    desligamento: string | null;
+    regime?: string | null;
+  } | null;
   /** Dia do adiantamento da unidade (quando ela paga adiantamento). */
   diaAdiantamento?: number | null;
   /** Empresa que emite contracheque separado também no mês do desligamento. */
