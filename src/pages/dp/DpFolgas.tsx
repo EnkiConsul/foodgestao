@@ -309,7 +309,6 @@ export default function DpFolgas() {
         p_motivo: motivo || null,
       });
       if (error) throw error;
-      void resposta;
     },
     onSuccess: () => {
       toast.success("Folga cancelada", {
