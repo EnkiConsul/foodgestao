@@ -318,6 +318,8 @@ export default function PreAdmissao() {
   const [avisoTopo, setAvisoTopo] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const alvo = useRef<(ChecklistItem & { parte: number }) | null>(null);
+  /** Assinatura do que já foi guardado, para o rascunho automático. */
+  const assinaturaRef = useRef<string | null>(null);
 
   const aplicar = useCallback((e: Estado) => {
     setEstado(e);
