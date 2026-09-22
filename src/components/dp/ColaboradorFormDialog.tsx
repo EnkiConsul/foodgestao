@@ -771,7 +771,13 @@ export function ColaboradorFormDialog({
 
   /** Conteúdo guardado no rascunho: o que o gestor já preencheu. */
   const conteudoRascunho = useMemo<ConteudoRascunhoAdmissao>(
-    () => ({ form, endereco, pagamento, remuneracao: rem, socio_remuneracao: socioRem }),
+    () => ({
+      form: form as unknown as Record<string, unknown>,
+      endereco: endereco as unknown as Record<string, unknown>,
+      pagamento: pagamento as unknown as Record<string, unknown>,
+      remuneracao: rem as unknown as Record<string, unknown>,
+      socio_remuneracao: socioRem,
+    }),
     [form, endereco, pagamento, rem, socioRem],
   );
 
