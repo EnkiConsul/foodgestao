@@ -63,6 +63,7 @@ function diretivasBase(frameAncestors: string[]): Diretivas {
       ...meta,
       ...cloudflare,
       ...pluggy.filter((o) => o !== "https://api.pluggy.ai"),
+      ...reclameAqui,
       ...CSP_INLINE_SCRIPT_HASHES.map((h) => `'${h}'`),
     ],
     // Tailwind e bibliotecas de UI aplicam estilos inline em tempo de execução.
@@ -79,6 +80,7 @@ function diretivasBase(frameAncestors: string[]): Diretivas {
       ...meta,
       ...supabase.slice(0, 1),
       "https://cdn.pluggy.ai",
+      ...reclameAqui,
     ],
     "connect-src": [
       "'self'",
@@ -90,6 +92,7 @@ function diretivasBase(frameAncestors: string[]): Diretivas {
       ...pluggy,
       ...apisPublicas,
       ...imagens,
+      ...reclameAqui,
     ],
     // Workers do pdf.js (Vite emite same-origin; blob: cobre o fallback).
     "worker-src": ["'self'", "blob:"],
