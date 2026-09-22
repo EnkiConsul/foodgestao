@@ -37,6 +37,8 @@ interface Props {
   linha: LinhaVale | null;
   /** Rótulo do benefício, para o título. */
   valeLabel: string;
+  /** Dias a trabalhar informados pelo gestor, quando diferentes do calculado. */
+  diasInformados?: number | null;
 }
 
 /**
