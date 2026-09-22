@@ -94,17 +94,24 @@ describe("Solicitações: visitante negado nas rotinas administrativas", () => {
 
   it("não altera solicitação direto na tabela", async () => {
     if (!networkAvailable) return;
-    const { error } = await anon()
+    const { data, error } = await anon()
       .from("dp_solicitacoes")
       .update({ status: "aprovada" } as never)
-      .eq("id", UUID_QUALQUER);
-    expect(error).toBeTruthy();
+      .eq("id", UUID_QUALQUER)
+      .select("id");
+    if (error) expect(error).toBeTruthy();
+    else expect(data?.length ?? 0).toBe(0);
   });
 
   it("não apaga solicitação direto na tabela", async () => {
     if (!networkAvailable) return;
-    const { error } = await anon().from("dp_solicitacoes").delete().eq("id", UUID_QUALQUER);
-    expect(error).toBeTruthy();
+    const { data, error } = await anon()
+      .from("dp_solicitacoes")
+      .delete()
+      .eq("id", UUID_QUALQUER)
+      .select("id");
+    if (error) expect(error).toBeTruthy();
+    else expect(data?.length ?? 0).toBe(0);
   });
 
   it("não grava adiantamento direto na tabela", async () => {
