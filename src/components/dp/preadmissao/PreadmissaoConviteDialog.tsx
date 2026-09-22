@@ -23,6 +23,8 @@ import { isValidCpf, maskCpf } from "@/lib/cpf";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPreadmissaoConvite } from "@/hooks/dp/useDpPreadmissoes";
 import { notifyError } from "@/lib/notifyError";
+import { reportError } from "@/lib/errorLog";
+import { listaCargosDaUnidade } from "@/lib/dp/cargos-unidade";
 import { mensagemOrigemApoio, vincularOrigemApoio } from "@/lib/dp/apoio-origem";
 
 /** Dados já conhecidos da pessoa (promoção de folguista / pessoa em teste). */
@@ -98,11 +100,11 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
   /** Registra a falha de leitura para conseguirmos rastrear a causa depois. */
   useEffect(() => {
     if (!erroCargos && !erroVinculos) return;
-    notifyError(new Error("Não foi possível carregar os cargos do convite de pré-admissão"), {
+    void reportError({
+      error: new Error("Cargos do convite de pré-admissão não carregaram"),
       surface: "Pessoas 360°",
       action: "carregar os cargos da unidade",
-      silent: true,
-      extra: { unidadeId, companyId: selectedCompanyId, erroCargos, erroVinculos },
+      details: { unidadeId, companyId: selectedCompanyId, erroCargos, erroVinculos },
     });
   }, [erroCargos, erroVinculos, unidadeId, selectedCompanyId]);
   const cpfDigitos = cpf.replace(/\D/g, "");
@@ -272,10 +274,19 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
                     {cargosDaUnidade.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                {semVinculo && (
-                  <p className="text-xs text-muted-foreground">
-                    Esta unidade ainda não tem cargos vinculados: a lista mostra todos os cargos da empresa.
-                  </p>
+                {listaCargos.aviso && (
+                  <p className="text-xs text-muted-foreground">{listaCargos.aviso}</p>
+                )}
+                {(erroCargos || erroVinculos) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => { void recarregarCargos(); void recarregarVinculos(); }}
+                  >
+                    Tentar De Novo
+                  </Button>
                 )}
               </div>
             </div>
