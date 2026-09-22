@@ -815,6 +815,113 @@ export default function DpMeuCalendario() {
     onError: (e: any) => notifyError(e, { surface: "Meu calendário", action: "concluir a ação", fallback: "Erro ao solicitar troca" }),
   });
 
+  /** Dias do mês para onde a folga aberta no diálogo pode ser movida. */
+  const diasRemarcacao = useMemo(() => {
+    if (!remarcarOpen) return [];
+    const lotadas: string[] = [];
+    dayLimits.forEach((limite, iso) => {
+      const ocupantes = (occupantsByDate.get(iso) ?? []).filter(
+        (o) => o.colaboradorId !== meRef.data?.id,
+      ).length;
+      if (limite != null && ocupantes >= limite) lotadas.push(iso);
+    });
+    const bloqueadas: string[] = [];
+    manualBlocked.forEach((b, iso) => {
+      if (!b.liberada) bloqueadas.push(iso);
+    });
+    return diasParaRemarcar({
+      dataAtualIso: remarcarOpen,
+      hojeIso,
+      diasElegiveis: diasElegiveis.length ? diasElegiveis : [0, 6],
+      bloqueadas,
+      lotadas,
+      minhasFolgas: folgas
+        .filter((f) => f.colaborador_id === meRef.data?.id && f.status !== "cancelada")
+        .map((f) => f.data as string),
+    });
+  }, [
+    remarcarOpen,
+    hojeIso,
+    diasElegiveis,
+    dayLimits,
+    manualBlocked,
+    occupantsByDate,
+    folgas,
+    meRef.data?.id,
+  ]);
+
+  const diaRemarcacaoEscolhido = diasRemarcacao.find((d) => d.iso === remarcarNova) ?? null;
+
+  const remarcarFolga = useMutation({
+    mutationFn: async () => {
+      if (!remarcarOpen) throw new Error("Sem contexto");
+      if (!remarcarNova) negarRegra("Escolha o novo dia da sua folga.");
+      const { error } = await supabase.rpc("dp_folga_remarcar", {
+        p_data_atual: remarcarOpen,
+        p_data_nova: remarcarNova,
+        p_motivo: remarcarMotivo.trim() || null,
+      });
+      if (error) {
+        const raw = error.message ?? "";
+        if (pedirAoDp(raw)) {
+          setRemarcarAviso(mensagemErroRemarcacao(raw));
+          throw new Error(mensagemErroRemarcacao(raw));
+        }
+        throw new Error(mensagemErroRemarcacao(raw));
+      }
+    },
+    onSuccess: () => {
+      toast.success("Folga mudada de dia. O setor de pessoal foi avisado.");
+      setRemarcarOpen(null);
+      setRemarcarNova("");
+      setRemarcarMotivo("");
+      setRemarcarAviso(null);
+      setSelectedDay(null);
+      qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+    },
+    onError: (e: any) =>
+      notifyError(e, {
+        surface: "Meu calendário",
+        action: "mudar o dia da folga",
+        fallback: "Não foi possível mudar o dia da folga",
+      }),
+  });
+
+  const pedirRemarcacao = useMutation({
+    mutationFn: async () => {
+      if (!remarcarOpen) throw new Error("Sem contexto");
+      if (!remarcarNova) negarRegra("Escolha o dia que você quer folgar.");
+      const { error } = await supabase.rpc("dp_folga_remarcar_solicitar", {
+        p_data_atual: remarcarOpen,
+        p_data_nova: remarcarNova,
+        p_motivo: remarcarMotivo.trim() || null,
+      });
+      if (error) {
+        const raw = error.message ?? "";
+        if (raw.includes("DUPLICATE_REQUEST"))
+          negarRegra("Você já tem um pedido pendente para este dia.");
+        throw new Error("Não foi possível enviar o pedido. Tente novamente.");
+      }
+    },
+    onSuccess: () => {
+      toast.success("Pedido de mudança enviado ao setor de pessoal.");
+      setRemarcarOpen(null);
+      setRemarcarNova("");
+      setRemarcarMotivo("");
+      setRemarcarAviso(null);
+      setSelectedDay(null);
+      qc.invalidateQueries({ queryKey: ["dp_solic_meu_cal"] });
+    },
+    onError: (e: any) =>
+      notifyError(e, {
+        surface: "Meu calendário",
+        action: "pedir a mudança da folga",
+        fallback: "Não foi possível enviar o pedido",
+      }),
+  });
+
+
+
   // -------- Dados do dia selecionado --------
   const dayInfo = useMemo(() => {
     if (!selectedDay) return null;
