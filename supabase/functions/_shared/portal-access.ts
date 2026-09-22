@@ -146,6 +146,65 @@ export async function liberarToken(admin: SupabaseClient, tokenId: string): Prom
   if (error) console.error(`[token_release] ${error.message}`);
 }
 
+/** Situação do acesso decidida pelo banco (fonte única). */
+export type SituacaoAcesso =
+  | "ok"
+  | "bloqueado"
+  | "vinculo_encerrado"
+  | "cadastro_removido"
+  | "cadastro_nao_encontrado"
+  | "empresa_inativa";
+
+/** Mensagem de negócio para cada impedimento — sem detalhe técnico. */
+const MOTIVO_TEXTO: Record<Exclude<SituacaoAcesso, "ok">, string> = {
+  bloqueado:
+    "O acesso deste colaborador está bloqueado. Use 'Reativar acesso' antes de liberar um novo link.",
+  vinculo_encerrado:
+    "O vínculo deste colaborador está encerrado. Nos 30 dias após o desligamento o portal serve apenas para consultar e baixar documentos.",
+  cadastro_removido: "Este cadastro foi removido. Não é possível liberar acesso ao portal.",
+  cadastro_nao_encontrado: "Cadastro de colaborador não encontrado.",
+  empresa_inativa: "A empresa está inativa. Regularize a situação antes de liberar o acesso.",
+};
+
+export function mensagemSituacao(situacao: SituacaoAcesso): string | null {
+  return situacao === "ok" ? null : MOTIVO_TEXTO[situacao];
+}
+
+/** Consulta a situação do acesso pelo banco (nunca calculada aqui). */
+export async function situacaoAcesso(
+  admin: SupabaseClient,
+  colaboradorId: string,
+): Promise<SituacaoAcesso> {
+  const { data, error } = await admin.rpc("dp_portal_acesso_situacao", {
+    p_colaborador_id: colaboradorId,
+  });
+  if (error) throw new Error(`acesso_situacao: ${error.message}`);
+  return (data as SituacaoAcesso) ?? "cadastro_nao_encontrado";
+}
+
+/**
+ * Encerra o acesso: invalida todos os links pendentes, marca as sessões como
+ * encerradas e registra o evento no histórico — em uma única operação do banco,
+ * idempotente. Depois pede ao mecanismo de autenticação para derrubar as
+ * sessões abertas.
+ */
+export async function revogarAcessoPortal(
+  admin: SupabaseClient,
+  colaboradorId: string,
+  motivo: string,
+  userId: string | null,
+): Promise<{ linksInvalidados: number; sessoesRevogadas: boolean }> {
+  const { data, error } = await admin.rpc("dp_portal_acesso_revogar", {
+    p_colaborador_id: colaboradorId,
+    p_motivo: motivo,
+  });
+  if (error) throw new Error(`acesso_revogar: ${error.message}`);
+  const linha = (data ?? {}) as { links_invalidados?: number; user_id?: string };
+  const alvo = userId ?? linha.user_id ?? null;
+  const sessoesRevogadas = alvo ? await revogarSessoes(alvo) : false;
+  return { linksInvalidados: linha.links_invalidados ?? 0, sessoesRevogadas };
+}
+
 export type EventoAcesso =
   | "access_activation_requested"
   | "access_activated"
