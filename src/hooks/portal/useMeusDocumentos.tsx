@@ -210,6 +210,7 @@ export function useMeusDocumentos() {
       const { data: sols } = await supabase
         .from("dp_solicitacoes")
         .select("id, tipo, status, data_alvo, data_fim, arquivo_path, resposta_admin, motivo, created_at")
+        .is("removido_em", null)
         .eq("colaborador_id", colab.id)
         .in("tipo", [...TIPOS_AFASTAMENTO])
         .order("created_at", { ascending: false });

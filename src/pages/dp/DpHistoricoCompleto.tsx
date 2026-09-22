@@ -362,6 +362,7 @@ export default function DpHistoricoCompleto() {
         supabase
           .from("dp_solicitacoes")
           .select("id, tipo, status, data_alvo, arquivo_path, created_at, colaborador_id")
+          .is("removido_em", null)
           .eq("company_id", cId)
           .eq("tipo", "atestado" as any),
         supabase

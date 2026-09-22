@@ -157,6 +157,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           supabase
             .from("dp_solicitacoes")
             .select("colaborador_id, tipo, status, data_alvo, data_fim")
+            .is("removido_em", null)
             .eq("company_id", selectedCompanyId!)
             .in("tipo", [...TIPOS_AFASTAMENTO])
             .eq("status", "aprovada"),
@@ -165,6 +166,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           supabase
             .from("dp_solicitacoes")
             .select("colaborador_id, data_alvo")
+            .is("removido_em", null)
             .eq("company_id", selectedCompanyId!)
             .eq("tipo", "folga")
             .eq("status", "aprovada")
@@ -174,6 +176,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           supabase
             .from("dp_solicitacoes")
             .select("colaborador_id, tipo, status, data_alvo, data_fim, motivo")
+            .is("removido_em", null)
             .eq("company_id", selectedCompanyId!)
             .in("tipo", ["adiantamento", "outros"])
             .eq("status", "aprovada")

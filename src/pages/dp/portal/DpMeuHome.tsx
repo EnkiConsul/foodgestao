@@ -46,6 +46,7 @@ export default function DpMeuHome() {
       const { data } = await supabase
         .from("dp_solicitacoes")
         .select("id, tipo, status, created_at")
+        .is("removido_em", null)
         .eq("colaborador_id", colabId.data!)
         .eq("status", "pendente")
         .order("created_at", { ascending: false });

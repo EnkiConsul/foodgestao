@@ -138,6 +138,7 @@ export default function DpMeuSolicitacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_solicitacoes").select("*")
+        .is("removido_em", null)
         .eq("colaborador_id", meRef.data!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -227,6 +228,7 @@ export default function DpMeuSolicitacoes() {
         supabase
           .from("dp_solicitacoes")
           .select("id, colaborador_id, data_alvo")
+          .is("removido_em", null)
           .eq("company_id", companyId)
           .eq("tipo", "folga")
           .eq("status", "pendente")

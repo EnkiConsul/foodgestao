@@ -174,6 +174,7 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
       const { data } = await supabase
         .from("dp_solicitacoes")
         .select("colaborador_id, tipo, data_alvo, data_fim")
+        .is("removido_em", null)
         .eq("colaborador_id", colaborador!.id)
         .in("tipo", [...TIPOS_LICENCA])
         .eq("status", "aprovada")

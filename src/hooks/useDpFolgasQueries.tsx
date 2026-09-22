@@ -107,6 +107,7 @@ export function useDpFolgasQueries({
       let q = supabase
         .from("dp_solicitacoes")
         .select("*, dp_colaboradores(nome, unidade_id)")
+        .is("removido_em", null)
         .eq("company_id", selectedCompanyId!)
         .not("status", "in", "(cancelada,recusada)")
         .not("data_alvo", "is", null)
