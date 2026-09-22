@@ -84,7 +84,8 @@ const KNOWN = new Set<string>([
   "adiantamento",
   "ponto",
   "atestado",
-  "contrato",
+  "admissao",
+  "desligamento",
   "ferias",
 ]);
 
