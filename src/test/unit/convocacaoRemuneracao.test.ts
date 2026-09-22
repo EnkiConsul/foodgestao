@@ -3,6 +3,7 @@ import {
   calcularRemuneracaoConvocacao,
   minutosNoturnos,
   remuneracaoDoSnapshot,
+  snapshotDesatualizado,
 } from "@/lib/dp/convocacao-remuneracao";
 
 describe("minutosNoturnos", () => {
