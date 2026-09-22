@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { textoErroFerias } from "@/lib/dp/ferias-direito";
+import { regimeTemFeriasLegais, textoErroFerias } from "@/lib/dp/ferias-direito";
 import { isSocio } from "@/lib/dp/contrato-policy";
 
 import { toast } from "sonner";
@@ -17,6 +17,8 @@ export type FeriasPeriodo = Database["public"]["Tables"]["dp_ferias_periodos"]["
   /** Desligado: fica só como histórico/rescisão, sem cobrança de prazo. */
   desligado?: boolean;
   data_desligamento?: string | null;
+  /** Regime atual não possui controle legal de férias neste módulo. */
+  semFeriasLegais?: boolean;
 };
 export type FeriasGozo = Database["public"]["Tables"]["dp_ferias_gozos"]["Row"];
 export type FeriasPeriodoStatus = Database["public"]["Enums"]["dp_ferias_periodo_status"];
@@ -54,7 +56,7 @@ export function useDpFerias(colaboradorFilter: string) {
     queryFn: async () => {
       let q = supabase
         .from("dp_ferias_periodos")
-        .select("*, dp_colaboradores(nome, unidade_id, vinculo_label, ativo, data_desligamento)")
+        .select("*, dp_colaboradores(nome, unidade_id, vinculo_label, ativo, data_desligamento, regime)")
         .eq("company_id", selectedCompanyId!)
         .order("inicio_aquisitivo", { ascending: false });
       if (colaboradorFilter !== "todos") q = q.eq("colaborador_id", colaboradorFilter);
@@ -67,6 +69,7 @@ export function useDpFerias(colaboradorFilter: string) {
         socio: isSocio(r.dp_colaboradores?.vinculo_label),
         desligado: r.dp_colaboradores?.ativo === false,
         data_desligamento: r.dp_colaboradores?.data_desligamento ?? null,
+        semFeriasLegais: !regimeTemFeriasLegais(r.dp_colaboradores?.regime),
       })) as FeriasPeriodo[];
     },
   });

@@ -11,7 +11,7 @@ import { LEMBRETE_RETORNO_DIAS, TIPOS_AFASTAMENTO, TIPOS_LICENCA, afastamentoCob
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
 import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { agruparPisosPorCargo, salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
-import { alertaPendenciaFerias, periodosComAcumulo } from "@/lib/dp/ferias-direito";
+import { alertaPendenciaFerias, periodosComAcumulo, regimeTemFeriasLegais } from "@/lib/dp/ferias-direito";
 import { AVISO_FERIAS_PRAZO_DIAS } from "@/lib/dp/ferias-aviso";
 import { compararUrgencia } from "@/lib/dp/pendencias";
 import { TIPOS_COM_COMPROVANTE } from "@/lib/dp/documentoTipos";
@@ -839,7 +839,7 @@ export function useDpPendencias() {
         limite.setDate(limite.getDate() + cfg.alerta_ferias_dias);
         const { data: periodos } = await supabase
           .from("dp_ferias_periodos")
-          .select("id, colaborador_id, fim_aquisitivo, limite_concessivo, dias_saldo, dp_colaboradores(nome, vinculo_label, ativo)")
+          .select("id, colaborador_id, fim_aquisitivo, limite_concessivo, dias_saldo, dp_colaboradores(nome, vinculo_label, ativo, regime)")
           .eq("company_id", selectedCompanyId!)
           .eq("controle_externo", false)
           .gt("dias_saldo", 0)
@@ -859,6 +859,7 @@ export function useDpPendencias() {
           const vinculo = String(p.dp_colaboradores?.vinculo_label ?? "").toLowerCase();
           if (vinculo.includes("sóci")) return;
           if (p.dp_colaboradores?.ativo === false) return;
+          if (!regimeTemFeriasLegais(p.dp_colaboradores?.regime)) return;
           const vencimento = new Date(`${p.limite_concessivo}T00:00:00`);
           let dias = differenceInCalendarDays(today, vencimento);
           const alerta = alertaPendenciaFerias({

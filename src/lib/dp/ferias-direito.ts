@@ -14,6 +14,13 @@ export type FaixaFaltas = {
   dias: number;
 };
 
+/** Regimes com período aquisitivo e prazo legal de férias controlados pelo sistema. */
+export const REGIMES_COM_FERIAS_LEGAIS = new Set(["clt", "intermitente", "temporario", "aprendiz"]);
+
+export function regimeTemFeriasLegais(regime: string | null | undefined): boolean {
+  return REGIMES_COM_FERIAS_LEGAIS.has(String(regime ?? "").trim().toLowerCase());
+}
+
 /** Tabela legal de faltas injustificadas computáveis para férias. */
 export const FAIXAS_FALTAS: FaixaFaltas[] = [
   { de: 0, ate: 5, dias: 30 },

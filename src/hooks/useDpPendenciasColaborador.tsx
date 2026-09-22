@@ -10,6 +10,7 @@ import { pagamentoFaltando } from "@/lib/dp/dadosPagamento";
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
 import { folgaDominicalAutomatica } from "@/lib/dp/dsr-rules";
 import { atrasoAprovacao, vencimentoAprovacao } from "@/lib/dp/documento-aprovacao";
+import { regimeTemFeriasLegais } from "@/lib/dp/ferias-direito";
 
 export type PendenciaColaborador = {
   id: string;
@@ -55,6 +56,14 @@ export function useDpPendenciasColaborador() {
       const mesInicio = new Date(today.getFullYear(), today.getMonth(), 1);
       const mesFim = new Date(today.getFullYear(), today.getMonth() + 1, 0);
       const results: PendenciaColaborador[] = [];
+      let regimeAtual: string | null = null;
+
+      const { data: meuCadastro } = await supabase
+        .from("dp_colaboradores")
+        .select("regime")
+        .eq("id", colabId as string)
+        .maybeSingle();
+      regimeAtual = meuCadastro?.regime ?? null;
 
       // 1. Escolher a folga do mês vigente.
       // Só vale para quem NÃO tem dia fixo de folga na semana: quem já folga
@@ -173,30 +182,32 @@ export function useDpPendenciasColaborador() {
 
       // 4. Férias disponíveis com limite concessivo se aproximando.
       try {
-        const { data: periodos } = await supabase
-          .from("dp_ferias_periodos")
-          .select("id, dias_saldo, limite_concessivo, status")
-          .eq("colaborador_id", colabId as string)
-          .eq("controle_externo", false)
-          .in("status", ["disponivel", "parcial", "vencido"])
-          .order("limite_concessivo", { ascending: true })
-          .limit(5);
-        (periodos ?? []).forEach((p: any) => {
-          if ((p.dias_saldo ?? 0) <= 0) return;
-          const limite = new Date(p.limite_concessivo + "T00:00:00");
-          const dias = differenceInCalendarDays(today, limite);
-          if (dias < -90) return; // ainda distante — não polui o painel
-          results.push({
-            id: `ferias-${p.id}`,
-            icon: Palmtree,
-            titulo: "Programar suas férias",
-            subtitulo: `${p.dias_saldo} dias disponíveis — limite em ${limite.toLocaleDateString("pt-BR")}`,
-            tipo: "Férias",
-            vencimento: ymd(limite),
-            atrasoDias: dias,
-            url: "/dp/meu/solicitacoes",
+        if (regimeTemFeriasLegais(regimeAtual)) {
+          const { data: periodos } = await supabase
+            .from("dp_ferias_periodos")
+            .select("id, dias_saldo, limite_concessivo, status")
+            .eq("colaborador_id", colabId as string)
+            .eq("controle_externo", false)
+            .in("status", ["disponivel", "parcial", "vencido"])
+            .order("limite_concessivo", { ascending: true })
+            .limit(5);
+          (periodos ?? []).forEach((p: any) => {
+            if ((p.dias_saldo ?? 0) <= 0) return;
+            const limite = new Date(p.limite_concessivo + "T00:00:00");
+            const dias = differenceInCalendarDays(today, limite);
+            if (dias < -90) return; // ainda distante — não polui o painel
+            results.push({
+              id: `ferias-${p.id}`,
+              icon: Palmtree,
+              titulo: "Programar suas férias",
+              subtitulo: `${p.dias_saldo} dias disponíveis — limite em ${limite.toLocaleDateString("pt-BR")}`,
+              tipo: "Férias",
+              vencimento: ymd(limite),
+              atrasoDias: dias,
+              url: "/dp/meu/solicitacoes",
+            });
           });
-        });
+        }
       } catch (e) {
         console.warn("pendencias-colab/ferias:", e);
       }
