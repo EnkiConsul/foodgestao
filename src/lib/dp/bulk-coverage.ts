@@ -121,7 +121,7 @@ export function desligadoNaCompetencia(
   return !!d && d === competencia;
 }
 
-const TIPOS_RESCISAO = new Set(["trct", "demonstrativo_rescisorio", "rescisao"]);
+const TIPOS_RESCISAO = new Set(["desligamento", "trct", "demonstrativo_rescisorio", "rescisao"]);
 
 /**
  * Documentos coletivos mensais: a unidade recebe um por colaborador elegível na
@@ -144,7 +144,7 @@ export function tipoColetivoDoc(tipo?: string | null): boolean {
 /** Tipos gravados em dp_documentos equivalentes ao tipo do lote. */
 export function tiposEquivalentes(tipo?: string | null): string[] {
   if (!tipo) return [];
-  if (tipo === "rescisao") return ["trct", "demonstrativo_rescisorio"];
+  if (tipo === "rescisao") return ["desligamento", "trct", "demonstrativo_rescisorio"];
   return [tipo];
 }
 

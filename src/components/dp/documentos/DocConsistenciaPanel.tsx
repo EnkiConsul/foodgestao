@@ -101,7 +101,7 @@ const TIPO_ORDEM: Tipo[] = [
 ];
 
 /** Documentos gravados que satisfazem a pendência de rescisão. */
-const TIPOS_RESCISAO_DB = ["trct", "demonstrativo_rescisorio"] as const;
+const TIPOS_RESCISAO_DB = ["desligamento", "trct", "demonstrativo_rescisorio"] as const;
 
 /** Tipos consultados em dp_documentos (rescisão é lógica). */
 const TIPOS_DOC_QUERY = [

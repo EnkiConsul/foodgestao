@@ -17,6 +17,8 @@ export type UnifiedTipo =
   | "disciplinar"
   | "act_cct"
   | "contrato"
+  | "admissao"
+  | "desligamento"
   | "ferias"
   | "outros";
 
@@ -65,7 +67,9 @@ const TIPO_LABEL: Record<UnifiedTipo, string> = {
   atestado: "Atestado",
   disciplinar: "Disciplinar",
   act_cct: "ACT/CCT",
-  contrato: "Contrato",
+  contrato: "Contrato (Admissão)",
+  admissao: "Admissão",
+  desligamento: "Desligamento",
   ferias: "Férias",
   outros: "Outros",
 };
@@ -80,7 +84,8 @@ const KNOWN = new Set<string>([
   "adiantamento",
   "ponto",
   "atestado",
-  "contrato",
+  "admissao",
+  "desligamento",
   "ferias",
 ]);
 
@@ -94,9 +99,21 @@ function fmtCompetencia(iso?: string | null): { label: string; sort: string } {
   return { label: `${mm}/${yyyy}`, sort: `${yyyy}-${mm}` };
 }
 
+/** Naturezas antigas continuam visíveis nos grupos unificados. */
+const LEGADOS: Record<string, UnifiedTipo> = {
+  contrato: "admissao",
+  ficha_registro: "admissao",
+  termos: "admissao",
+  outros_admissao: "admissao",
+  trct: "desligamento",
+  demonstrativo_rescisorio: "desligamento",
+  outros_desligamento: "desligamento",
+};
+
 function normalizeTipo(t: string | null | undefined): UnifiedTipo {
   const v = (t ?? "").toLowerCase();
   if (KNOWN.has(v)) return v as UnifiedTipo;
+  if (LEGADOS[v]) return LEGADOS[v];
   return "outros";
 }
 

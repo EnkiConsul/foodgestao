@@ -48,11 +48,13 @@ export type DpDocTipo =
   | "aviso_ferias"
   | "recibo_ferias"
   | "outros_ferias"
+  | "admissao"
   | "contrato"
   | "ficha_registro"
   | "termos"
   | "outros_admissao"
   | "aviso_previo"
+  | "desligamento"
   | "trct"
   | "demonstrativo_rescisorio"
   | "outros_desligamento"
@@ -213,40 +215,26 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
 
   // ---------- Admissão ----------
   {
-    value: "contrato",
-    label: "Contrato",
+    value: "admissao",
+    label: "Admissão",
     grupo: "admissao",
     importavel: true,
     exigeAceite: true,
-    keywords: ["contrato de trabalho", "termo de contrato"],
+    keywords: [
+      "contrato de trabalho",
+      "termo de contrato",
+      "ficha de registro",
+      "ficha de empregado",
+      "aso admissional",
+      "exame admissional",
+      "atestado de saude ocupacional admissional",
+      "termo de responsabilidade",
+      "termo de ciencia",
+      "termo de adesao",
+      "termo de compromisso",
+      "admissao",
+    ],
     badgeClass: "border-slate-300 text-slate-700",
-  },
-  {
-    value: "ficha_registro",
-    label: "Ficha de Registro",
-    grupo: "admissao",
-    importavel: true,
-    exigeAceite: true,
-    keywords: ["ficha de registro", "ficha de empregado"],
-    badgeClass: "border-slate-300 text-slate-600",
-  },
-  {
-    value: "termos",
-    label: "Termos",
-    grupo: "admissao",
-    importavel: true,
-    exigeAceite: true,
-    keywords: ["termo de responsabilidade", "termo de ciencia", "termo de adesao", "termo de compromisso"],
-    badgeClass: "border-zinc-300 text-zinc-600",
-  },
-  {
-    value: "outros_admissao",
-    label: "Outros (Admissão)",
-    grupo: "admissao",
-    importavel: true,
-    exigeAceite: true,
-    keywords: [],
-    badgeClass: "border-zinc-200 text-zinc-600",
   },
 
   // ---------- Desligamento ----------
@@ -260,32 +248,26 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
     badgeClass: "border-rose-300 text-rose-700",
   },
   {
-    value: "trct",
-    label: "TRCT",
+    value: "desligamento",
+    label: "Desligamento",
     grupo: "desligamento",
     importavel: true,
     exigeAceite: true,
-    keywords: ["trct", "termo de rescisao do contrato de trabalho"],
+    keywords: [
+      "trct",
+      "termo de rescisao do contrato de trabalho",
+      "demonstrativo rescisorio",
+      "calculo rescisorio",
+      "rescisao",
+      "aso demissional",
+      "exame demissional",
+      "atestado de saude ocupacional demissional",
+      "desligamento",
+      "demissao",
+    ],
     badgeClass: "border-red-300 text-red-700",
   },
-  {
-    value: "demonstrativo_rescisorio",
-    label: "Demonstrativo Rescisório",
-    grupo: "desligamento",
-    importavel: true,
-    exigeAceite: true,
-    keywords: ["demonstrativo rescisorio", "calculo rescisorio", "rescisao"],
-    badgeClass: "border-red-200 text-red-600",
-  },
-  {
-    value: "outros_desligamento",
-    label: "Outros (Desligamento)",
-    grupo: "desligamento",
-    importavel: true,
-    exigeAceite: true,
-    keywords: [],
-    badgeClass: "border-rose-200 text-rose-600",
-  },
+
 
   // ---------- Fiscais / Anuais ----------
   {
@@ -346,8 +328,23 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
   },
 ];
 
+/**
+ * Naturezas antigas de Admissão e Desligamento, hoje unificadas.
+ * Não são oferecidas em novos envios, mas continuam com rótulo e cor para
+ * qualquer registro histórico que ainda as tenha.
+ */
+export const DP_DOC_TIPOS_LEGADOS: DpDocTipoDef[] = [
+  { value: "contrato", label: "Contrato (Admissão)", grupo: "admissao", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-slate-300 text-slate-700" },
+  { value: "ficha_registro", label: "Ficha de Registro (Admissão)", grupo: "admissao", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-slate-300 text-slate-600" },
+  { value: "termos", label: "Termos (Admissão)", grupo: "admissao", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-zinc-300 text-zinc-600" },
+  { value: "outros_admissao", label: "Outros (Admissão)", grupo: "admissao", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-zinc-200 text-zinc-600" },
+  { value: "trct", label: "TRCT (Desligamento)", grupo: "desligamento", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-red-300 text-red-700" },
+  { value: "demonstrativo_rescisorio", label: "Demonstrativo Rescisório (Desligamento)", grupo: "desligamento", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-red-200 text-red-600" },
+  { value: "outros_desligamento", label: "Outros (Desligamento)", grupo: "desligamento", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-rose-200 text-rose-600" },
+];
+
 export const DP_DOC_TIPO_MAP: Record<string, DpDocTipoDef> = Object.fromEntries(
-  DP_DOC_TIPOS.map((t) => [t.value, t]),
+  [...DP_DOC_TIPOS, ...DP_DOC_TIPOS_LEGADOS].map((t) => [t.value, t]),
 ) as Record<string, DpDocTipoDef>;
 
 export const DP_DOC_TIPOS_IMPORTAVEIS = DP_DOC_TIPOS.filter((t) => t.importavel);
@@ -377,8 +374,11 @@ export function docTipoGrupo(tipo?: string | null): DpDocGrupo {
   return DP_DOC_TIPO_MAP[tipo ?? ""]?.grupo ?? "outros";
 }
 
+/** Inclui as naturezas antigas do grupo, para os filtros alcançarem o histórico. */
 export function tiposDoGrupo(grupo: DpDocGrupo): string[] {
-  return DP_DOC_TIPOS.filter((t) => t.grupo === grupo).map((t) => t.value);
+  return [...DP_DOC_TIPOS, ...DP_DOC_TIPOS_LEGADOS]
+    .filter((t) => t.grupo === grupo)
+    .map((t) => t.value);
 }
 
 function normalizar(texto: string): string {
@@ -410,13 +410,10 @@ export function detectarTipoDocumento(texto: string | null | undefined): DpDocTi
     "ajuste_jornada",
     "ponto",
     "aviso_previo",
-    "trct",
-    "demonstrativo_rescisorio",
+    "desligamento",
     "atestado",
     "disciplinar",
-    "ficha_registro",
-    "contrato",
-    "termos",
+    "admissao",
     "sindicato",
     "contracheque",
     "ferias",
@@ -463,6 +460,7 @@ export const TIPOS_COM_COMPROVANTE = [
   "recibo_ferias",
   "aviso_ferias",
   "adiantamento",
+  "desligamento",
   "trct",
   "demonstrativo_rescisorio",
   "plr",

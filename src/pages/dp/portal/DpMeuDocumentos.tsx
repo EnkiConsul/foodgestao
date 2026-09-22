@@ -55,6 +55,8 @@ const TIPO_ICON: Record<UnifiedTipo, any> = {
   disciplinar: ShieldAlert,
   act_cct: Scale,
   contrato: FileText,
+  admissao: FileText,
+  desligamento: FileText,
   ferias: FileText,
   outros: Files,
 };
@@ -75,7 +77,8 @@ const ALL_TABS: { key: "all" | UnifiedTipo; label: string; requiresPonto?: boole
   { key: "atestado", label: "Atestados", hasEnvio: true },
   { key: "disciplinar", label: "Disciplinar" },
   { key: "act_cct", label: "ACT/CCT" },
-  { key: "contrato", label: "Contratos" },
+  { key: "admissao", label: "Admissão" },
+  { key: "desligamento", label: "Desligamento" },
   { key: "outros", label: "Outros", hasEnvio: true },
 ];
 

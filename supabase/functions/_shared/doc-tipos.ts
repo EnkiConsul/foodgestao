@@ -14,11 +14,13 @@ export type DocTipo =
   | "aviso_ferias"
   | "recibo_ferias"
   | "outros_ferias"
+  | "admissao"
   | "contrato"
   | "ficha_registro"
   | "termos"
   | "outros_admissao"
   | "aviso_previo"
+  | "desligamento"
   | "trct"
   | "demonstrativo_rescisorio"
   | "outros_desligamento"
@@ -44,13 +46,15 @@ export const DOC_TIPO_LABEL: Record<string, string> = {
   aviso_ferias: "Aviso de Férias",
   recibo_ferias: "Recibo de Férias",
   outros_ferias: "Outros (Férias)",
-  contrato: "Contrato",
-  ficha_registro: "Ficha de Registro",
-  termos: "Termos",
+  admissao: "Admissão",
+  contrato: "Contrato (Admissão)",
+  ficha_registro: "Ficha de Registro (Admissão)",
+  termos: "Termos (Admissão)",
   outros_admissao: "Outros (Admissão)",
   aviso_previo: "Aviso Prévio",
-  trct: "TRCT",
-  demonstrativo_rescisorio: "Demonstrativo Rescisório",
+  desligamento: "Desligamento",
+  trct: "TRCT (Desligamento)",
+  demonstrativo_rescisorio: "Demonstrativo Rescisório (Desligamento)",
   outros_desligamento: "Outros (Desligamento)",
   informe_rendimentos: "Informe de Rendimentos",
   outros_fiscais: "Outros (Fiscais)",
@@ -78,13 +82,37 @@ const KEYWORDS: Array<[DocTipo, string[]]> = [
   ["ajuste_jornada", ["ajuste de jornada", "acordo de compensacao", "alteracao de jornada"]],
   ["ponto", ["folha de ponto", "espelho de ponto", "cartao ponto", "registro de ponto"]],
   ["aviso_previo", ["aviso previo"]],
-  ["trct", ["trct", "termo de rescisao do contrato de trabalho"]],
-  ["demonstrativo_rescisorio", ["demonstrativo rescisorio", "calculo rescisorio", "rescisao"]],
+  [
+    "desligamento",
+    [
+      "trct",
+      "termo de rescisao do contrato de trabalho",
+      "demonstrativo rescisorio",
+      "calculo rescisorio",
+      "rescisao",
+      "aso demissional",
+      "exame demissional",
+      "desligamento",
+      "demissao",
+    ],
+  ],
   ["atestado", ["atestado medico", "atestado"]],
   ["disciplinar", ["advertencia", "suspensao disciplinar", "disciplinar"]],
-  ["ficha_registro", ["ficha de registro", "ficha de empregado"]],
-  ["contrato", ["contrato de trabalho"]],
-  ["termos", ["termo de responsabilidade", "termo de ciencia", "termo de adesao", "termo de compromisso"]],
+  [
+    "admissao",
+    [
+      "ficha de registro",
+      "ficha de empregado",
+      "contrato de trabalho",
+      "aso admissional",
+      "exame admissional",
+      "termo de responsabilidade",
+      "termo de ciencia",
+      "termo de adesao",
+      "termo de compromisso",
+      "admissao",
+    ],
+  ],
   ["sindicato", ["convencao coletiva", "acordo coletivo"]],
   ["contracheque", ["contracheque", "holerite", "recibo de pagamento", "demonstrativo de pagamento"]],
   ["ferias", ["ferias"]],
