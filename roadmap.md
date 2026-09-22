@@ -163,3 +163,11 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - Novas tabelas não nascem mais com gravação para visitante (privilégios padrão ajustados).
 - Funções de gatilho fora do alcance de qualquer papel de cliente; rotinas do esquema reservado e de Pessoas só para usuário logado e serviços internos.
 - Avisos do linter caíram de 309 para 280 (zerou o grupo "visitante executa rotina interna").
+
+## Fase 9 Pessoas 360 — Cadastros de remuneração e benefícios (concluída 2026-09-22)
+
+- 8 rotinas oficiais no servidor: cargo, piso salarial por unidade/sindicato, benefício, padrão de benefícios, adicional por tempo de serviço, benefício do colaborador (individual e em lote) e exclusão de cadastro.
+- Conferência de conteúdo no servidor: faixas de salário, percentual, horas e dias; escopo (empresa, unidade, cargo, sindicato) sempre da mesma empresa; vigências sem sobreposição.
+- Redução de piso exige justificativa e fica registrada no histórico de regras; repetir o mesmo cadastro devolve o registro existente (sem duplicar por duplo clique).
+- Exclusão é lógica: o registro fica preservado como excluído e cargo ou benefício em uso não pode ser excluído.
+- Gravação direta fechada em dp_cargos, dp_cargo_salarios, dp_beneficios, dp_beneficios_padroes, dp_adicionais_tempo_servico e dp_colaborador_beneficios (leitura mantida).
