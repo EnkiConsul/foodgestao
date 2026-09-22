@@ -15,6 +15,20 @@ desligamento, TRCT ou demonstrativo rescisório).
 O histórico do vínculo anterior está guardado (período 01/04/2017 a 27/08/2026,
 regime CLT), ou seja, a informação existe — só não é usada na cobrança.
 
+## Ficha única ou fichas separadas?
+
+Recomendação: **manter uma única ficha por pessoa**, com o histórico de vínculos
+— é assim que o sistema já foi construído.
+
+Ficha única mantém CPF sem duplicidade, um só acesso ao portal, e todos os
+documentos, férias, folgas e pagamentos da pessoa no mesmo lugar, com cada
+período identificado pelo seu vínculo. Criar uma segunda ficha para a mesma
+pessoa geraria CPF repetido (o próprio sistema bloqueia), dois acessos ao
+portal, documentos espalhados e risco de cobrar ou pagar duas vezes.
+
+O problema da Cristiane não é a ficha única: é a cobrança olhar só o vínculo
+atual. A correção abaixo faz a cobrança olhar cada vínculo encerrado.
+
 ## O que vai mudar
 
 - A cobrança da documentação de desligamento passa a considerar **todo vínculo
