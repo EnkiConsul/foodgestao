@@ -15949,6 +15949,26 @@ export type Database = {
         Returns: Json
       }
       dp_ficha_ignorar: { Args: { p_item_id: string }; Returns: Json }
+      dp_folga_admin_cancelar: {
+        Args: {
+          p_colaborador: string
+          p_data: string
+          p_folga_id: string
+          p_motivo?: string
+          p_solicitacao_id: string
+        }
+        Returns: Json
+      }
+      dp_folga_admin_remarcar: {
+        Args: {
+          p_colaborador: string
+          p_data_atual: string
+          p_data_nova: string
+          p_folga_id: string
+          p_solicitacao_id: string
+        }
+        Returns: Json
+      }
       dp_folga_atribuir_admin: {
         Args: { p_colaborador: string; p_data: string; p_motivo?: string }
         Returns: Json
