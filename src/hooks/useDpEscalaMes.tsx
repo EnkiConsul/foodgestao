@@ -26,13 +26,47 @@ const limites = (competencia: string) => {
 };
 
 /** Traduz os códigos do servidor para o texto que o gestor lê na tela. */
-function mensagemErroEscala(raw: string | null | undefined): string {
+export function mensagemErroEscala(raw: string | null | undefined): string {
   const msg = raw ?? "";
   if (msg.includes("ESCALA_VAZIA")) return "Gere os dias da escala antes de publicar.";
   if (msg.includes("ESCALA_NAO_ENCONTRADA")) return "Gere a escala do mês antes de publicar.";
-  if (msg.includes("FORBIDDEN")) return "Você não tem permissão para publicar esta escala.";
+  if (msg.includes("ESCALA_PUBLICADA"))
+    return "A escala do mês está publicada. Reabra a escala para alterar os dias.";
+  if (msg.includes("ESCALA_DATA_FORA_DO_MES"))
+    return "Há dia lançado fora do mês da escala. Gere a escala novamente.";
+  if (msg.includes("ESCALA_DIA_REPETIDO"))
+    return "Há mais de um registro para a mesma pessoa no mesmo dia.";
+  if (msg.includes("ESCALA_COLABORADOR_INVALIDO"))
+    return "Há dia lançado para pessoa de outra empresa ou de outra unidade.";
+  if (msg.includes("ESCALA_TURNO_INVALIDO"))
+    return "Há dia com turno que não pertence a esta unidade.";
+  if (msg.includes("ESCALA_SETOR_INVALIDO")) return "Há dia com setor de outra empresa.";
+  if (msg.includes("ESCALA_JORNADA_INVALIDA"))
+    return "Há dia com intervalo ou carga de horas fora do aceitável.";
+  if (msg.includes("UNAUTHENTICATED")) return "Entre novamente para continuar.";
+  if (msg.includes("NOT_FOUND")) return "Colaborador não encontrado.";
+  if (msg.includes("FORBIDDEN")) return "Você não tem permissão para alterar esta escala.";
   if (msg.includes("INVALID_INPUT")) return "Selecione a unidade e o mês da escala.";
   return "Não foi possível concluir a ação. Tente novamente.";
+}
+
+/** Formato enviado às rotinas oficiais da escala. */
+export function itemParaPayload(item: EscalaItem): Record<string, unknown> {
+  return {
+    colaborador_id: item.colaborador_id,
+    data: item.data,
+    tipo: item.tipo,
+    turno_id: item.turno_id ?? null,
+    entrada: item.entrada ?? null,
+    saida: item.saida ?? null,
+    intervalo_minutos: item.intervalo_minutos ?? 0,
+    termina_no_dia_seguinte: item.termina_no_dia_seguinte ?? false,
+    carga_prevista_horas: item.carga_prevista_horas ?? 0,
+    origem: item.origem ?? "gerado",
+    observacao: item.observacao ?? null,
+    setor_id: item.setor_id ?? null,
+    setor_motivo: item.setor_motivo ?? null,
+  };
 }
 
 /** Converte a linha do banco no item de domínio. */
