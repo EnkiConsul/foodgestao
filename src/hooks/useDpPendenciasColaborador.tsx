@@ -10,6 +10,7 @@ import { pagamentoFaltando } from "@/lib/dp/dadosPagamento";
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
 import { folgaDominicalAutomatica } from "@/lib/dp/dsr-rules";
 import { atrasoAprovacao, vencimentoAprovacao } from "@/lib/dp/documento-aprovacao";
+import { regimeTemFeriasLegais } from "@/lib/dp/ferias-direito";
 
 export type PendenciaColaborador = {
   id: string;
@@ -55,6 +56,14 @@ export function useDpPendenciasColaborador() {
       const mesInicio = new Date(today.getFullYear(), today.getMonth(), 1);
       const mesFim = new Date(today.getFullYear(), today.getMonth() + 1, 0);
       const results: PendenciaColaborador[] = [];
+      let regimeAtual: string | null = null;
+
+      const { data: meuCadastro } = await supabase
+        .from("dp_colaboradores")
+        .select("regime")
+        .eq("id", colabId as string)
+        .maybeSingle();
+      regimeAtual = meuCadastro?.regime ?? null;
 
       // 1. Escolher a folga do mês vigente.
       // Só vale para quem NÃO tem dia fixo de folga na semana: quem já folga
@@ -173,6 +182,7 @@ export function useDpPendenciasColaborador() {
 
       // 4. Férias disponíveis com limite concessivo se aproximando.
       try {
+        if (!regimeTemFeriasLegais(regimeAtual)) return results.sort((a, b) => b.atrasoDias - a.atrasoDias);
         const { data: periodos } = await supabase
           .from("dp_ferias_periodos")
           .select("id, dias_saldo, limite_concessivo, status")
