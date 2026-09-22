@@ -4,7 +4,9 @@
 
 Ao enviar um documento, no lugar de escolher entre Contrato, Ficha de Registro, Termos e "Outros (Admissão)", existe um único tipo **Admissão** — nele cabem contrato, ficha de registro, ASO admissional, termos e o que mais vier da admissão.
 
-Do mesmo lado, no lugar de Aviso Prévio, TRCT, Demonstrativo Rescisório e "Outros (Desligamento)", passa a existir um único tipo **Desligamento** — com TRCT, ASO demissional, ficha, aviso prévio e demais.
+Do mesmo lado, no lugar de TRCT, Demonstrativo Rescisório e "Outros (Desligamento)", passa a existir um único tipo **Desligamento** — com TRCT, ASO demissional, ficha e demais.
+
+O **Aviso Prévio** continua como tipo próprio, porque é comunicado antes do desligamento e precisa ser localizado e cobrado sozinho.
 
 Os outros tipos continuam como estão: contracheque, adiantamento, pró-labore, 13º, férias, ponto, banco de horas, atestado, disciplinar, informe de rendimentos, sindical e outros.
 
@@ -20,12 +22,12 @@ Regras que seguem valendo:
 
 1. **Banco (migration reversível)**
    - Acrescentar o valor `desligamento` ao enum `dp_documento_tipo` (o valor `admissao` já existe).
-   - Reclassificar `public.dp_documentos`: `contrato`, `ficha_registro`, `termos`, `outros_admissao` → `admissao`; `aviso_previo`, `trct`, `demonstrativo_rescisorio`, `outros_desligamento` → `desligamento`. Contagem atual nesses tipos: 0 — a migration roda idempotente e registra o antes/depois.
+   - Reclassificar `public.dp_documentos`: `contrato`, `ficha_registro`, `termos`, `outros_admissao` → `admissao`; `trct`, `demonstrativo_rescisorio`, `outros_desligamento` → `desligamento`. `aviso_previo` permanece intocado. Contagem atual nesses tipos: 0 — a migration roda idempotente e registra o antes/depois.
    - Atualizar `public.dp_documento_aceita_comprovante` para incluir `desligamento` (mantendo os tipos antigos aceitos, para não quebrar histórico).
    - Valores antigos do enum permanecem declarados (Postgres não remove valor de enum), apenas deixam de ser oferecidos.
 
 2. **Catálogo do frontend** — `src/lib/dp/documentoTipos.ts`
-   - Substituir as quatro entradas do grupo `admissao` por uma única `admissao` ("Admissão", `exigeAceite: true`, palavras-chave somadas: contrato de trabalho, ficha de registro, ASO admissional, exame admissional, termo de...) e as quatro do grupo `desligamento` por uma única `desligamento` ("Desligamento", palavras-chave: TRCT, termo de rescisão, aviso prévio, demonstrativo rescisório, ASO demissional, exame demissional).
+   - Substituir as quatro entradas do grupo `admissao` por uma única `admissao` ("Admissão", `exigeAceite: true`, palavras-chave somadas: contrato de trabalho, ficha de registro, ASO admissional, exame admissional, termo de...). No grupo `desligamento`, manter `aviso_previo` como está e substituir as outras três por uma única `desligamento` ("Desligamento", palavras-chave: TRCT, termo de rescisão, demonstrativo rescisório, ASO demissional, exame demissional) — a detecção automática testa Aviso Prévio antes de Desligamento, para o aviso não cair no grupão.
    - Manter os valores antigos num mapa de compatibilidade (`DP_DOC_TIPOS_LEGADOS`) com `importavel: false`, para que qualquer registro histórico ainda tenha rótulo e cor.
    - `detectarTipoDocumento` passa a devolver os dois tipos unificados; `TIPOS_COM_COMPROVANTE` ganha `desligamento`.
 
