@@ -179,7 +179,7 @@ export function useDpPendencias() {
         const { data: ocs } = await supabase
           .from("dp_ocorrencias")
           .select(
-            "id, tipo, estado, analise_status, tratativa_status, tratativa_ponto, data_operacional, created_at, colaborador:colaborador_id(nome)",
+            "id, tipo, estado, analise_status, tratativa_status, tratativa_ponto, data_operacional, created_at, assiduidade_risco, assiduidade_decidido_em, colaborador:colaborador_id(nome)",
           )
           .eq("company_id", selectedCompanyId!)
           .neq("estado", "cancelada")
@@ -190,18 +190,21 @@ export function useDpPendencias() {
             (o: any) =>
               o.estado === "aguardando_confirmacao" ||
               o.analise_status === "pendente" ||
-              (o.tratativa_ponto && o.tratativa_status === "pendente"),
+              (o.tratativa_ponto && o.tratativa_status === "pendente") ||
+              (o.assiduidade_risco && !o.assiduidade_decidido_em),
           )
           .forEach((o: any) => {
             const vencimento = new Date(o.created_at);
             vencimento.setHours(vencimento.getHours() + cfg.alerta_ocorrencia_horas);
             const dias = differenceInCalendarDays(today, vencimento);
             const titulo =
-              o.estado === "aguardando_confirmacao"
-                ? "Previsão aguardando confirmação"
-                : o.analise_status === "pendente"
-                  ? "Ocorrência aguardando análise"
-                  : "Ponto aguardando tratativa";
+              o.assiduidade_risco && !o.assiduidade_decidido_em
+                ? "Prêmio de assiduidade aguardando decisão"
+                : o.estado === "aguardando_confirmacao"
+                  ? "Previsão aguardando confirmação"
+                  : o.analise_status === "pendente"
+                    ? "Ocorrência aguardando análise"
+                    : "Ponto aguardando tratativa";
             results.push({
               id: `ocorrencia-${o.id}`,
               icon: ClipboardList,

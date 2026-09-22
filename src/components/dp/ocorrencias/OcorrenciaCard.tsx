@@ -4,6 +4,7 @@ import {
   ClipboardCheck,
   Clock,
   History as HistoryIcon,
+  ShieldAlert,
   User,
   UserPlus,
   XCircle,
@@ -32,6 +33,7 @@ import {
   type OcorrenciaImpacto,
 } from "@/lib/dp/ocorrencias";
 import type { Ocorrencia, OcorrenciaCobertura } from "@/hooks/useDpOcorrencias";
+import { ESTADO_ASSIDUIDADE_LABEL, estadoAssiduidade } from "@/lib/dp/assiduidade-risco";
 
 
 interface Props {
@@ -44,6 +46,7 @@ interface Props {
   onCobrir?: () => void;
   onHistorico?: () => void;
   onImpacto: (campo: "assiduidade" | "ferias", valor: OcorrenciaImpacto) => void;
+  onDecidirAssiduidade?: () => void;
 }
 
 const IMPACTOS: OcorrenciaImpacto[] = ["sim", "nao", "aguardando", "nao_se_aplica"];
@@ -58,7 +61,9 @@ export function OcorrenciaCard({
   onCobrir,
   onHistorico,
   onImpacto,
+  onDecidirAssiduidade,
 }: Props) {
+  const estadoPremio = estadoAssiduidade(o);
   const validas = coberturas.filter((c) => c.status !== "recusada");
   const cobrivel = TIPOS_COBRIVEIS.includes(o.tipo) && o.estado !== "cancelada";
 
@@ -133,6 +138,14 @@ export function OcorrenciaCard({
               {o.tratativa_observacao}
             </p>
           )}
+          {o.assiduidade_risco && (
+            <p className="mt-1 flex flex-wrap items-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/5 px-2 py-1 text-xs">
+              <ShieldAlert className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              <span className="font-medium">{ESTADO_ASSIDUIDADE_LABEL[estadoPremio]}</span>
+              {o.assiduidade_risco_motivo ? ` · ${o.assiduidade_risco_motivo}` : ""}
+              {o.assiduidade_observacao ? ` · Motivo: ${o.assiduidade_observacao}` : ""}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
@@ -144,6 +157,11 @@ export function OcorrenciaCard({
           {o.tratativa_ponto && o.tratativa_status === "pendente" && (
             <Button size="sm" variant="outline" onClick={onTratativa}>
               <ClipboardCheck className="mr-1 h-3.5 w-3.5" /> Tratativa
+            </Button>
+          )}
+          {estadoPremio === "aguardando" && o.estado !== "cancelada" && onDecidirAssiduidade && (
+            <Button size="sm" variant="outline" onClick={onDecidirAssiduidade}>
+              <ShieldAlert className="mr-1 h-3.5 w-3.5" /> Decidir prêmio
             </Button>
           )}
           {o.analise_status === "pendente" && o.estado !== "cancelada" && (

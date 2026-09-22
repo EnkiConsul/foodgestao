@@ -33,6 +33,11 @@ import {
   type PortalQuando,
 } from "@/lib/dp/ocorrencias-portal";
 import { useMinhasOcorrencias } from "@/hooks/useMinhasOcorrencias";
+import {
+  ESTADO_ASSIDUIDADE_LABEL,
+  avaliarRiscoAssiduidade,
+  estadoAssiduidade,
+} from "@/lib/dp/assiduidade-risco";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 import { useMinhaProximaFolga } from "@/hooks/useMinhaProximaFolga";
 
@@ -52,7 +57,8 @@ const ICONE: Record<PortalOpcaoId, typeof Clock> = {
 /** Ações rápidas do colaborador sobre a jornada de hoje. */
 export function MinhaJornadaAcoesCard() {
   const { user } = useAuth();
-  const { previsto, minhas, hoje, registrar, colaboradorId } = useMinhasOcorrencias();
+  const { previsto, minhas, hoje, registrar, colaboradorId, regraAssiduidade } =
+    useMinhasOcorrencias();
   const { data: vinculo } = useMeuVinculoPortal();
   const { folga } = useMinhaProximaFolga(colaboradorId);
   const usaPonto = vinculo?.unidadeUsaPonto ?? false;
@@ -145,6 +151,15 @@ export function MinhaJornadaAcoesCard() {
     );
   };
 
+  // Aviso antes de enviar: usa a mesma regra que o servidor aplica depois.
+  const riscoPrevio = (() => {
+    if (!aberta || !opcao || aberta === "esquecimento" || aberta === "problema_ponto") return null;
+    const tipo = tipoOcorrenciaPortal(aberta, quando, momento);
+    const min = aberta === "atraso" ? minutos : null;
+    const r = avaliarRiscoAssiduidade(regraAssiduidade, tipo, min);
+    return r.risco ? r.motivo : null;
+  })();
+
   const faltaHorario = !!opcao?.pedeHorario && aberta !== "outro" && aberta !== "atraso" && !horario;
   const faltaAtraso = aberta === "atraso" && !horario && !minutos;
 
@@ -174,13 +189,18 @@ export function MinhaJornadaAcoesCard() {
               )}
             >
               <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-              {resumoOperacional({
-                tipo: o.tipo,
-                estado: o.estado,
-                minutos: o.minutos,
-                horario_estimado: o.horario_estimado,
-                horario_real: o.horario_real,
-              })}
+              <span>
+                {resumoOperacional({
+                  tipo: o.tipo,
+                  estado: o.estado,
+                  minutos: o.minutos,
+                  horario_estimado: o.horario_estimado,
+                  horario_real: o.horario_real,
+                })}
+                {o.assiduidade_risco
+                  ? ` · Prêmio de assiduidade: ${ESTADO_ASSIDUIDADE_LABEL[estadoAssiduidade(o)].toLowerCase()}`
+                  : ""}
+              </span>
             </p>
           ))}
         </div>
@@ -337,6 +357,12 @@ export function MinhaJornadaAcoesCard() {
             {(aberta === "esquecimento" || aberta === "problema_ponto") && (
               <p className="rounded-md border border-border bg-muted/40 p-2 text-xs text-muted-foreground">
                 Isso só registra a informação — não altera nenhuma marcação de ponto.
+              </p>
+            )}
+
+            {riscoPrevio && (
+              <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs">
+                {riscoPrevio} O gestor decide se isso desconta o prêmio e você é avisado.
               </p>
             )}
 

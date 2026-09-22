@@ -403,3 +403,33 @@ export function valeAlimentacaoDoMes(cfg: ValeAlimentacaoConfig, dias?: ValeAlim
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 const round2 = (v: number) => Math.round(v * 100) / 100;
 
+
+/**
+ * Ocorrências do mês que pesam no prêmio: somente as que o gestor decidiu
+ * descontar. As que aguardam decisão ficam fora e são avisadas em separado.
+ */
+export function ocorrenciasMesParaPremio(
+  lista: Array<{
+    tipo: string;
+    assiduidade_risco?: boolean | null;
+    assiduidade_decidido_em?: string | null;
+    impacta_assiduidade?: string | null;
+  }>,
+  diasPrevistos?: number,
+): OcorrenciasMes & { aguardandoDecisao: number } {
+  const perde = lista.filter(
+    (o) => o.assiduidade_risco && !!o.assiduidade_decidido_em && o.impacta_assiduidade === "sim",
+  );
+  const aguardandoDecisao = lista.filter(
+    (o) => o.assiduidade_risco && !o.assiduidade_decidido_em,
+  ).length;
+  const conta = (predicado: (t: string) => boolean) => perde.filter((o) => predicado(o.tipo)).length;
+  return {
+    faltas: conta((t) => t === "falta" || t === "previsao_falta"),
+    atrasos: conta((t) => t.includes("atraso") || t.includes("saida_antecipada")),
+    atestados: conta((t) => t === "atestado"),
+    atestadosAbonados: 0,
+    diasPrevistos,
+    aguardandoDecisao,
+  };
+}

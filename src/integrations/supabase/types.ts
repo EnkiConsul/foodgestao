@@ -9620,6 +9620,11 @@ export type Database = {
           analisado_por: string | null
           analise_status: Database["public"]["Enums"]["dp_ocorrencia_analise_status"]
           antecedencia_minutos: number | null
+          assiduidade_decidido_em: string | null
+          assiduidade_decidido_por: string | null
+          assiduidade_observacao: string | null
+          assiduidade_risco: boolean
+          assiduidade_risco_motivo: string | null
           cancelado_em: string | null
           cancelado_por: string | null
           colaborador_id: string
@@ -9662,6 +9667,11 @@ export type Database = {
           analisado_por?: string | null
           analise_status?: Database["public"]["Enums"]["dp_ocorrencia_analise_status"]
           antecedencia_minutos?: number | null
+          assiduidade_decidido_em?: string | null
+          assiduidade_decidido_por?: string | null
+          assiduidade_observacao?: string | null
+          assiduidade_risco?: boolean
+          assiduidade_risco_motivo?: string | null
           cancelado_em?: string | null
           cancelado_por?: string | null
           colaborador_id: string
@@ -9704,6 +9714,11 @@ export type Database = {
           analisado_por?: string | null
           analise_status?: Database["public"]["Enums"]["dp_ocorrencia_analise_status"]
           antecedencia_minutos?: number | null
+          assiduidade_decidido_em?: string | null
+          assiduidade_decidido_por?: string | null
+          assiduidade_observacao?: string | null
+          assiduidade_risco?: boolean
+          assiduidade_risco_motivo?: string | null
           cancelado_em?: string | null
           cancelado_por?: string | null
           colaborador_id?: string
@@ -16599,6 +16614,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      dp_ocorrencia_assiduidade_decidir: {
+        Args: {
+          p_observacao?: string
+          p_ocorrencia_id: string
+          p_perde: boolean
+        }
+        Returns: undefined
+      }
       dp_ocorrencia_atestado_aplicar: {
         Args: { _solicitacao_id: string }
         Returns: number
@@ -18134,6 +18157,7 @@ export type Database = {
         | "preadmissao_enviada"
         | "folga_remarcada"
         | "ferias_aviso"
+        | "assiduidade_decidida"
       dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
       dp_ocorrencia_cobertura_execucao:
         | "prevista"
@@ -18607,6 +18631,7 @@ export const Constants = {
         "preadmissao_enviada",
         "folga_remarcada",
         "ferias_aviso",
+        "assiduidade_decidida",
       ],
       dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
       dp_ocorrencia_cobertura_execucao: [

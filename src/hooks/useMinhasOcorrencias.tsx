@@ -7,6 +7,7 @@ import {
   type OcorrenciaMarcacao,
   type OcorrenciaTipo,
 } from "@/lib/dp/ocorrencias";
+import type { RegraAssiduidade } from "@/lib/dp/assiduidade-risco";
 
 /** Jornada prevista de hoje e registro das ocorrências pelo próprio colaborador. */
 export function useMinhasOcorrencias() {
@@ -47,13 +48,32 @@ export function useMinhasOcorrencias() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_ocorrencias")
-        .select("id, data_operacional, tipo, estado, minutos, horario_estimado, horario_real")
+        .select(
+          "id, data_operacional, tipo, estado, minutos, horario_estimado, horario_real, impacta_assiduidade, assiduidade_risco, assiduidade_risco_motivo, assiduidade_observacao",
+        )
         .eq("colaborador_id", colaborador.data!)
         .neq("estado", "cancelada")
         .gte("data_operacional", hoje)
         .order("data_operacional");
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  // Regra do próprio colaborador: só para avisar na tela antes de enviar.
+  const regra = useQuery({
+    queryKey: ["minha_regra_assiduidade", colaborador.data],
+    enabled: !!colaborador.data,
+    queryFn: async (): Promise<RegraAssiduidade | null> => {
+      const { data, error } = await supabase
+        .from("dp_colaboradores")
+        .select(
+          "premio_assiduidade, premio_assiduidade_valor, assiduidade_criterio, assiduidade_tolerancia_min, assiduidade_max_atrasos, assiduidade_considera_atestado, assiduidade_max_atestados",
+        )
+        .eq("id", colaborador.data!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as RegraAssiduidade | null) ?? null;
     },
   });
 
@@ -91,6 +111,7 @@ export function useMinhasOcorrencias() {
     colaboradorId: colaborador.data ?? null,
     previsto: previsto.data,
     minhas: minhas.data ?? [],
+    regraAssiduidade: regra.data ?? null,
     loading: colaborador.isLoading || previsto.isLoading,
     registrar,
   };

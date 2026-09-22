@@ -17,6 +17,7 @@ import {
   type OcorrenciaTratativa,
 } from "@/lib/dp/ocorrencias";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { estadoAssiduidade, textoErroAssiduidade } from "@/lib/dp/assiduidade-risco";
 
 export interface OcorrenciaCobertura {
   id: string;
@@ -49,6 +50,8 @@ export interface OcorrenciaFiltros {
   tratativa: string;
   somentePendentes: boolean;
   cobertura: string;
+  /** Situação do prêmio de assiduidade: all | pendente | perde | mantem. */
+  assiduidadeDecisao: string;
   /** Quando informado, restringe a lista a esse dia (ignora o período). */
   data?: string | null;
 
@@ -68,6 +71,8 @@ export const FILTROS_PADRAO: OcorrenciaFiltros = {
   tratativa: "all",
   somentePendentes: true,
   cobertura: "all",
+  assiduidadeDecisao: "all",
+
 
   busca: "",
 };
@@ -91,6 +96,10 @@ export interface Ocorrencia {
   justificativa_final: string | null;
   impacta_assiduidade: OcorrenciaImpacto;
   impacta_ferias: OcorrenciaImpacto;
+  assiduidade_risco: boolean;
+  assiduidade_risco_motivo: string | null;
+  assiduidade_observacao: string | null;
+  assiduidade_decidido_em: string | null;
   relevancia_operacional: boolean;
   analise_status: OcorrenciaAnalise;
   analisado_em: string | null;
@@ -113,6 +122,7 @@ const COLS = `
   id, colaborador_id, unidade_id, setor_id, data_operacional, tipo, estado, origem,
   previsto_entrada, previsto_saida, horario_previsto, horario_estimado, horario_real, minutos,
   justificativa_inicial, justificativa_final, impacta_assiduidade, impacta_ferias,
+  assiduidade_risco, assiduidade_risco_motivo, assiduidade_observacao, assiduidade_decidido_em,
   relevancia_operacional, analise_status, analisado_em, tratativa_ponto, tratativa_status,
   tratativa_decisao, tratativa_observacao, marcacao_alvo, documento_id, informada_em,
   antecedencia_minutos, motivo_cancelamento, created_at,
@@ -253,10 +263,23 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
         )
           return false;
       }
+      if (filtros.assiduidadeDecisao !== "all") {
+        const estado = estadoAssiduidade(o);
+        if (filtros.assiduidadeDecisao === "pendente" && estado !== "aguardando") return false;
+        if (filtros.assiduidadeDecisao === "perde" && estado !== "perde") return false;
+        if (filtros.assiduidadeDecisao === "mantem" && estado !== "mantem") return false;
+      }
       if (termo && !(o.colaborador?.nome ?? "").toLowerCase().includes(termo)) return false;
       return true;
     });
-  }, [lista.data, filtros.busca, filtros.somentePendentes, filtros.cobertura, coberturasPorOcorrencia]);
+  }, [
+    lista.data,
+    filtros.busca,
+    filtros.somentePendentes,
+    filtros.cobertura,
+    filtros.assiduidadeDecisao,
+    coberturasPorOcorrencia,
+  ]);
 
 
   const config = useQuery({
@@ -351,6 +374,25 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
       toast.success("Impactos atualizados.");
     },
     onError: (e: Error) => toast.error(textoErroOcorrencia(e.message)),
+  });
+
+  const decidirAssiduidade = useMutation({
+    mutationFn: async (input: { id: string; perde: boolean; observacao?: string | null }) => {
+      const { error } = await supabase.rpc("dp_ocorrencia_assiduidade_decidir", {
+        p_ocorrencia_id: input.id,
+        p_perde: input.perde,
+        p_observacao: input.observacao ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      invalidate();
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+      toast.success(
+        v.perde ? "Registrado: a ocorrência desconta o prêmio." : "Registrado: o prêmio foi mantido.",
+      );
+    },
+    onError: (e: Error) => toast.error(textoErroAssiduidade(e.message)),
   });
 
   const analisar = useMutation({
@@ -474,6 +516,7 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
     confirmar,
     complementar,
     classificar,
+    decidirAssiduidade,
     analisar,
     tratar,
     cancelar,
