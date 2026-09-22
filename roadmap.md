@@ -156,3 +156,10 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - 12 rotinas oficiais no servidor para registrar, revisar, substituir, excluir, comprovante de pagamento, checklist, exigências e log de documentos.
 - Gravação direta fechada em dp_documentos, dp_colaborador_documentos, dp_documento_requisitos e dp_documento_eventos (leitura mantida).
 - Telas e histórico migrados para as rotinas; nenhuma gravação direta restante no aplicativo.
+
+## Fase 8 Pessoas 360 — Menor privilégio no banco (concluída 2026-09-22)
+
+- Visitante (sem sessão) perdeu inserir/alterar/apagar em todas as tabelas do schema público; leitura pública preservada (site, planos, catálogo de módulos).
+- Novas tabelas não nascem mais com gravação para visitante (privilégios padrão ajustados).
+- Funções de gatilho fora do alcance de qualquer papel de cliente; rotinas do esquema reservado e de Pessoas só para usuário logado e serviços internos.
+- Avisos do linter caíram de 309 para 280 (zerou o grupo "visitante executa rotina interna").
