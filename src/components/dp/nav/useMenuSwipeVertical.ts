@@ -5,7 +5,7 @@ import { applyMenuLayout } from "@/lib/dp/menuLayout";
 import { useDpMenuLayout } from "@/hooks/useDpMenuLayout";
 import { useHiddenScreens } from "@/hooks/useHiddenScreens";
 import { filterSurface } from "@/lib/nav/hiddenScreens";
-import { destinoMenuVertical } from "@/lib/nav/menuSwipe";
+import { destinoMenuVertical, gestoVerticalBloqueado } from "@/lib/nav/menuSwipe";
 import { haptic } from "@/lib/haptics";
 import { isMobileLayoutViewport } from "@/lib/responsive";
 
