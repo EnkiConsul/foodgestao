@@ -104,8 +104,10 @@ const COLUNAS: Record<ValeTipo, { config: string; colaborador: string; flag: str
 export function useDpValeCalculadora(
   tipo: ValeTipo,
   competencia: string,
-  unidadeFilter = "todas",
+  filtrosParciais: Partial<BeneficiosFiltros> = {},
 ) {
+  const filtros: BeneficiosFiltros = { ...FILTROS_BENEFICIOS_PADRAO, ...filtrosParciais };
+  const unidadeFilter = filtros.unidade;
   const { selectedCompanyId } = useCompanyContext();
   const mes = mesIso(competencia);
   const cols = COLUNAS[tipo];
