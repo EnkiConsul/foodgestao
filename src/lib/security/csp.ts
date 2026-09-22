@@ -34,6 +34,8 @@ export const CSP_ORIGENS = {
   imagens: ["https://img.logo.dev"],
   /** APIs públicas consultadas pelo navegador (CEP e CNPJ). */
   apisPublicas: ["https://viacep.com.br", "https://brasilapi.com.br"],
+  /** Selo verificado do Reclame Aqui (bundle e imagens servidos pelo S3). */
+  reclameAqui: ["https://s3.amazonaws.com"],
 } as const;
 
 /**
