@@ -32,6 +32,7 @@ import {
   type OcorrenciaImpacto,
 } from "@/lib/dp/ocorrencias";
 import type { Ocorrencia, OcorrenciaCobertura } from "@/hooks/useDpOcorrencias";
+import { ESTADO_ASSIDUIDADE_LABEL, estadoAssiduidade } from "@/lib/dp/assiduidade-risco";
 
 
 interface Props {
@@ -59,7 +60,9 @@ export function OcorrenciaCard({
   onCobrir,
   onHistorico,
   onImpacto,
+  onDecidirAssiduidade,
 }: Props) {
+  const estadoPremio = estadoAssiduidade(o);
   const validas = coberturas.filter((c) => c.status !== "recusada");
   const cobrivel = TIPOS_COBRIVEIS.includes(o.tipo) && o.estado !== "cancelada";
 
