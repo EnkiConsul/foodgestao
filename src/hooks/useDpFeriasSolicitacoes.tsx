@@ -43,11 +43,11 @@ export function useDpFeriasSolicitacoes(status: SolicitacaoStatus[] = ["pendente
       const { data, error } = await supabase
         .from("dp_solicitacoes")
         .select(
-        .is("removido_em", null)
           "id, colaborador_id, status, created_at, respondido_em, resposta_admin, motivo, " +
             "dp_colaboradores(nome), " +
             "dp_ferias_solicitacao_detalhes(periodo_id, data_inicio, data_fim, dias, dias_abono, adiantar_13, observacao)",
         )
+        .is("removido_em", null)
         .eq("company_id", selectedCompanyId!)
         .eq("tipo", "ferias")
         .in("status", status)
