@@ -2,9 +2,13 @@ import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ajustarColaboradoresEmLote } from "@/lib/dp/colaborador-oficial";
+import {
+  salvarCargo,
+  definirPisoCargo,
+  excluirCadastroRemuneracao,
+} from "@/lib/dp/remuneracao-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
-import { diaAnterior } from "@/lib/dp/cargoSalarios";
 
 export type DpUnidade = Database["public"]["Tables"]["dp_unidades"]["Row"];
 export type DpUnidadeInsert = Database["public"]["Tables"]["dp_unidades"]["Insert"];
@@ -151,6 +155,7 @@ export function useDpCargos() {
         .from("dp_cargos")
         .select(DP_CARGO_COLUNAS)
         .eq("company_id", selectedCompanyId!)
+        .is("removido_em", null)
         .order("nome");
       if (error) throw error;
       const cargos = (data ?? []) as DpCargo[];
@@ -176,21 +181,16 @@ export function useUpsertDpCargo() {
   return useMutation({
     mutationFn: async (input: Partial<DpCargoInsert> & { id?: string; nome: string }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const payload = { ...input, nome: toUpperCadastro(input.nome), company_id: selectedCompanyId } as DpCargoInsert;
-      if (input.id) {
-        const { data, error } = await supabase
-          .from("dp_cargos")
-          .update(payload)
-          .eq("id", input.id)
-          .select(DP_CARGO_COLUNAS)
-          .single();
-        if (error) throw error;
-        return data as DpCargo;
-      }
+      const { id, company_id: _company, ...dados } = input as Record<string, unknown> & { id?: string };
+      const cargoId = await salvarCargo({
+        id: id ?? null,
+        companyId: selectedCompanyId,
+        dados: { ...dados, nome: toUpperCadastro(input.nome) },
+      });
       const { data, error } = await supabase
         .from("dp_cargos")
-        .insert(payload)
         .select(DP_CARGO_COLUNAS)
+        .eq("id", cargoId)
         .single();
       if (error) throw error;
       return data as DpCargo;
@@ -203,8 +203,7 @@ export function useDeleteDpCargo() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_cargos").delete().eq("id", id);
-      if (error) throw error;
+      await excluirCadastroRemuneracao("dp_cargos", id);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_cargos"] }),
   });
