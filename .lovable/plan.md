@@ -34,9 +34,9 @@ Limpar a marcação de vale-alimentação na ficha da Tamires é alteração de 
 ## Detalhes técnicos
 
 - `src/pages/dp/DpBeneficios.tsx`: substituir o card de filtro único por `DpFilters` + `DpFilterField` (mesmo padrão de `DpColaboradores.tsx`), com estados `search`, `unidadeFilter`, `cargoFilter`, `situacaoFilter`, `colabFilter`; repassar o conjunto para calculadora, cadastro e histórico.
-- `useDpValeCalculadora`: receber filtros (unidade, cargo, situação, busca, colaborador) em vez de só `unidadeFilter`; incluir `vinculo_label` no select e excluir `isSocio(vinculo_label)` das linhas; `useDpBeneficios`/`useDpBeneficiosCadastro`/`useDpValeHistorico` passam a aceitar os mesmos filtros.
+- `useDpValeCalculadora`: receber filtros (unidade, cargo, situação, busca, colaborador) em vez de só `unidadeFilter`; sem exclusão por vínculo — a flag da ficha segue sendo a única fonte; linhas com flag e sem valor por dia ganham aviso próprio.
 - `ValeCalculadora.tsx`: remover o Select de unidade interno e consumir os filtros por props; KPIs e CSV seguem as linhas filtradas.
 - `ValeHistorico.tsx`: aplicar filtros de unidade/cargo nas apurações.
-- `RemuneracaoFields.tsx` / `ColaboradorFormDialog.tsx`: quando `isSocio(vinculo_label)`, desmarcar e bloquear vale-alimentação e vale-transporte com texto explicativo.
-- Testes novos em `src/lib/dp/__tests__`: sócio fora das linhas de vale e filtros combinados (unidade + cargo + situação).
+- Investigar `apply_default_*` / `dp_beneficios_padroes` e o fluxo de criação de colaborador para achar onde `vale_alimentacao` é marcado sem cadastro explícito; corrigir a origem e mostrar a procedência na ficha (`RemuneracaoFields.tsx`).
+- Testes novos em `src/lib/dp/__tests__`: filtros combinados (unidade + cargo + situação) e linha com benefício marcado sem valor por dia.
 - Nenhuma migration; nenhum dado alterado; nada publicado.
