@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { labelAfastamento } from "@/lib/dp/licencas";
+import { registrarRetornoLicenca } from "@/lib/dp/solicitacoes-admin";
 import { porIds, resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { notifyError } from "@/lib/notifyError";
