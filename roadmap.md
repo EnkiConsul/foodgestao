@@ -150,3 +150,9 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - Ficha, condições, histórico, folgas, disciplinares e aceites: gravação direta fechada; colaborador mantém a escolha da própria folga.
 - Função de sorteio de folgas passou a usar a rotina oficial.
 - Pendente: publicar o frontend das fases 1 a 6 (aguarda decisão do proprietário).
+
+## Fase 7 Pessoas 360 — Documentos e arquivos do colaborador (concluída 2026-09-22)
+
+- 12 rotinas oficiais no servidor para registrar, revisar, substituir, excluir, comprovante de pagamento, checklist, exigências e log de documentos.
+- Gravação direta fechada em dp_documentos, dp_colaborador_documentos, dp_documento_requisitos e dp_documento_eventos (leitura mantida).
+- Telas e histórico migrados para as rotinas; nenhuma gravação direta restante no aplicativo.
