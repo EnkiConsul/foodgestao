@@ -430,7 +430,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
               ];
 
           // 13º dentro do prazo legal: aviso informativo, não pendência.
-          if (assalariado && prazoDecimo && decimoNoPrazo) {
+          if (assalariadoComp && prazoDecimo && decimoNoPrazo) {
             const key = `${comp}::contracheque_13`;
             const atual = avisosMap.get(key);
             if (atual) atual.total += 1;
