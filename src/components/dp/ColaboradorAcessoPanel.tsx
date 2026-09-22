@@ -66,6 +66,7 @@ export function ColaboradorAcessoPanel({
 }) {
   const [busy, setBusy] = useState<null | "liberar" | "redefinir" | "bloquear">(null);
   const [situacao, setSituacao] = useState<Situacao | null>(null);
+  const [vinculo, setVinculo] = useState<SituacaoVinculo | null>(null);
   const [prazo, setPrazo] = useState<string | null>(null);
   const [link, setLink] = useState<{ url: string; kind: "activation" | "reset"; expires: string | null } | null>(null);
   const [copiado, setCopiado] = useState(false);
@@ -87,6 +88,11 @@ export function ColaboradorAcessoPanel({
     const linha = (data as any[] | null)?.[0];
     setSituacao((linha?.status as Situacao) ?? "sem_acesso");
     setPrazo(linha?.expires_at ?? null);
+
+    const { data: sit } = await supabase.rpc("dp_portal_acesso_situacao", {
+      p_colaborador_id: colaboradorId,
+    });
+    setVinculo((sit as SituacaoVinculo | null) ?? null);
   }, [colaboradorId]);
 
   useEffect(() => {
