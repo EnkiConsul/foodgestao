@@ -18133,6 +18133,8 @@ export type Database = {
         | "outros_fiscais"
         | "pro_labore"
         | "desligamento"
+        | "aso_admissional"
+        | "aso_demissional"
       dp_elegibilidade_recontratacao: "sim" | "nao" | "com_ressalvas"
       dp_escala_item_origem: "gerado" | "manual" | "troca" | "convocacao"
       dp_escala_item_tipo:
@@ -18599,6 +18601,8 @@ export const Constants = {
         "outros_fiscais",
         "pro_labore",
         "desligamento",
+        "aso_admissional",
+        "aso_demissional",
       ],
       dp_elegibilidade_recontratacao: ["sim", "nao", "com_ressalvas"],
       dp_escala_item_origem: ["gerado", "manual", "troca", "convocacao"],
