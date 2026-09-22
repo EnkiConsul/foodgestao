@@ -29,8 +29,11 @@ import {
   limiteMesSeguinte,
   limiteNoMes,
   somarMeses,
+  vinculosEncerrados,
   type ColabElegibilidade,
   type DocTipoColaborador,
+  type VinculoEncerrado,
+  type VinculoHistorico,
 } from "@/lib/dp/pendencias-documentos";
 import { ativoNaCompetencia } from "@/lib/dp/bulk-coverage";
 import {
