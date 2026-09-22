@@ -4,6 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { domingosFolgaNoPeriodo } from "@/lib/dp/dsr-rules";
 import {
+  FILTROS_BENEFICIOS_PADRAO,
+  pessoaAtendeFiltros,
+  type BeneficiosFiltros,
+} from "@/lib/dp/beneficios-filtros";
+import {
   DIA_PAGAMENTO_PADRAO,
   DIAS_CORTE_PADRAO,
   REGRAS_DESCONTO_PADRAO,
@@ -104,8 +109,10 @@ const COLUNAS: Record<ValeTipo, { config: string; colaborador: string; flag: str
 export function useDpValeCalculadora(
   tipo: ValeTipo,
   competencia: string,
-  unidadeFilter = "todas",
+  filtrosParciais: Partial<BeneficiosFiltros> = {},
 ) {
+  const filtros: BeneficiosFiltros = { ...FILTROS_BENEFICIOS_PADRAO, ...filtrosParciais };
+  const unidadeFilter = filtros.unidade;
   const { selectedCompanyId } = useCompanyContext();
   const mes = mesIso(competencia);
   const cols = COLUNAS[tipo];
@@ -160,7 +167,7 @@ export function useDpValeCalculadora(
     queryFn: async () => {
       // Colunas montadas em runtime (VA/VT): tipagem genérica do client não ajuda aqui.
       let q: any = (supabase.from("dp_colaboradores") as any)
-        .select(`id, nome, regime, sexo, ativo, data_desligamento, unidade_id, ${cols.colaborador}, dp_unidades(nome)`)
+        .select(`id, nome, regime, sexo, ativo, data_desligamento, unidade_id, cargo_id, ${cols.colaborador}, dp_unidades(nome)`)
         .eq("company_id", selectedCompanyId!)
         .eq(cols.flag, true)
         .order("nome");
@@ -171,7 +178,22 @@ export function useDpValeCalculadora(
     },
   });
 
-  const colabIds = (colabQ.data ?? []).map((c) => c.id);
+  /** Filtros da tela aplicados às pessoas que têm o benefício marcado na ficha. */
+  const colaboradoresFiltrados = useMemo(
+    () => (colabQ.data ?? []).filter((c) => pessoaAtendeFiltros(c, filtros, { janelaInicio })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      colabQ.data,
+      janelaInicio,
+      filtros.busca,
+      filtros.cargo,
+      filtros.colaborador,
+      filtros.situacao,
+      filtros.unidade,
+    ],
+  );
+
+  const colabIds = colaboradoresFiltrados.map((c) => c.id);
 
   const eventosQ = useQuery({
     queryKey: [
@@ -240,9 +262,7 @@ export function useDpValeCalculadora(
   });
 
   const resumo = useMemo<ResumoVale>(() => {
-    const colaboradores = (colabQ.data ?? []).filter(
-      (c) => c.ativo !== false && (!c.data_desligamento || c.data_desligamento >= janelaInicio),
-    );
+    const colaboradores = colaboradoresFiltrados;
     const ev = eventosQ.data;
 
     const dowPorConfig = new Map<string, number[]>();
@@ -440,7 +460,7 @@ export function useDpValeCalculadora(
       porMotivo,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [colabQ.data, eventosQ.data, mes, janelaInicio, configQ.data, tipo]);
+  }, [colaboradoresFiltrados, eventosQ.data, mes, janelaInicio, configQ.data, tipo]);
 
   return {
     ...resumo,

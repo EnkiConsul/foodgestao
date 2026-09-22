@@ -430,6 +430,358 @@ export function RemuneracaoFields({
     onChange({ base_salarial: paraBR(salarioCargo) });
   }, [usaBase, salarioCargo, value.base_salarial]);
 
+  /**
+   * Vale-transporte, vale-alimentação e benefícios do catálogo.
+   * Valem para qualquer vínculo, inclusive sócio: o que manda é o que estiver
+   * marcado na ficha da pessoa.
+   */
+  const blocosBeneficios = (
+    <>
+          {/* Vale-transporte */}
+          <div className="space-y-3 rounded-lg border border-border bg-background p-3">
+            <div className="flex items-center gap-3">
+              <Switch
+                id="vale_transporte"
+                checked={value.vale_transporte}
+                onCheckedChange={(v) => onChange({ vale_transporte: v })}
+              />
+              <Label htmlFor="vale_transporte" className="cursor-pointer">Opta pelo vale-transporte</Label>
+            </div>
+            {value.vale_transporte && (
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="valor-por-dia-11">Valor por dia</Label>
+                  <Input id="valor-por-dia-11"
+                    inputMode="decimal"
+                    value={value.vale_transporte_valor_dia}
+                    {...marca("vale_transporte_valor_dia")}
+
+                    onChange={(e) => onChange({ vale_transporte_valor_dia: e.target.value })}
+                    placeholder="Ex: 10,40"
+                  />
+                </div>
+                <div className="space-y-1 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground">
+                  <div>Concedido no mês (22 dias): <strong className="text-foreground">{formatarBRL(vt.bruto)}</strong></div>
+                  <div>Desconto legal (até 6%): <strong className="text-foreground">{formatarBRL(vt.desconto)}</strong></div>
+                </div>
+                <ValeCorteFields
+                  id="vt"
+                  valor={{
+                    diaPagamento: value.vale_transporte_dia_pagamento,
+                    diasCorte: value.vale_transporte_dias_corte,
+                    regras: {
+                      falta: value.vale_transporte_desconta_falta,
+                      folga_extra: value.vale_transporte_desconta_folga_extra,
+                      atestado: value.vale_transporte_desconta_atestado,
+                      ferias: value.vale_transporte_desconta_ferias,
+                    },
+                  }}
+                  onChange={(patch) =>
+                    onChange({
+                      ...(patch.diaPagamento !== undefined
+                        ? { vale_transporte_dia_pagamento: patch.diaPagamento }
+                        : {}),
+                      ...(patch.diasCorte !== undefined
+                        ? { vale_transporte_dias_corte: patch.diasCorte }
+                        : {}),
+                      ...(patch.regras
+                        ? {
+                            vale_transporte_desconta_falta: patch.regras.falta,
+                            vale_transporte_desconta_folga_extra: patch.regras.folga_extra,
+                            vale_transporte_desconta_atestado: patch.regras.atestado,
+                            vale_transporte_desconta_ferias: patch.regras.ferias,
+                          }
+                        : {}),
+                    })
+                  }
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Vale-alimentação / refeição */}
+          <div className="space-y-3 rounded-lg border border-border bg-background p-3">
+            <div className="flex items-center gap-3">
+              <Switch
+                id="vale_alimentacao"
+                checked={value.vale_alimentacao}
+                onCheckedChange={(v) => onChange({ vale_alimentacao: v })}
+              />
+              <Label htmlFor="vale_alimentacao" className="cursor-pointer">
+                Vale-alimentação / refeição
+              </Label>
+            </div>
+            {value.vale_alimentacao && (
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="periodicidade-12">Periodicidade</Label>
+                  <Select
+                    value={value.vale_alimentacao_periodicidade}
+                    onValueChange={(v: Periodicidade) => onChange({ vale_alimentacao_periodicidade: v })}
+                  >
+                    <SelectTrigger id="periodicidade-12"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(PERIODICIDADE_LABEL) as Periodicidade[]).map((t) => (
+                        <SelectItem key={t} value={t}>{PERIODICIDADE_LABEL[t]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>
+                    {value.vale_alimentacao_periodicidade === "diario" ? "Valor por dia" : "Valor por mês"}
+                  </Label>
+                  <Input
+                    inputMode="decimal"
+                    value={value.vale_alimentacao_valor}
+                    {...marca("vale_alimentacao_valor")}
+
+                    onChange={(e) => onChange({ vale_alimentacao_valor: e.target.value })}
+                    placeholder="Ex: 25,00"
+                  />
+                </div>
+                {value.vale_alimentacao_periodicidade === "diario" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="dias-considerados-no-mes-13">Dias considerados no mês</Label>
+                      <Select
+                        value={value.vale_alimentacao_dias_origem}
+                        onValueChange={(v: DiasOrigem) => onChange({ vale_alimentacao_dias_origem: v })}
+                      >
+                        <SelectTrigger id="dias-considerados-no-mes-13"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {(Object.keys(DIAS_ORIGEM_LABEL) as DiasOrigem[]).map((t) => (
+                            <SelectItem key={t} value={t}>{DIAS_ORIGEM_LABEL[t]}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>
+                        {value.vale_alimentacao_dias_origem === "fixo" ? "Quantidade de dias" : "Dias simulados no mês"}
+                      </Label>
+                      {value.vale_alimentacao_dias_origem === "fixo" ? (
+                        <Input
+                          inputMode="numeric"
+                          value={value.vale_alimentacao_dias_base}
+                          onChange={(e) => onChange({ vale_alimentacao_dias_base: e.target.value.replace(/\D/g, "") })}
+                          placeholder={String(DIAS_BASE_PADRAO)}
+                        />
+                      ) : (
+                        <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+                          {diasJornadaMes != null ? (
+                            <>
+                              <strong>{diasJornadaMes} dias</strong>
+                              <span className="text-muted-foreground"> — {baseSimulacao} · {resumoJornada}</span>
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground">
+                              Cadastre o Horário de Trabalho para calcular os dias (usando {DIAS_BASE_PADRAO} como referência).
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                  </>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="desconto-do-colaborador-14">Desconto do colaborador</Label>
+                  <Select
+                    value={value.vale_alimentacao_desconto_tipo}
+                    onValueChange={(v: DescontoTipo) => onChange({ vale_alimentacao_desconto_tipo: v })}
+                  >
+                    <SelectTrigger id="desconto-do-colaborador-14"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(DESCONTO_TIPO_LABEL) as DescontoTipo[]).map((t) => (
+                        <SelectItem key={t} value={t}>{DESCONTO_TIPO_LABEL[t]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {value.vale_alimentacao_desconto_tipo !== "nenhum" && (
+                  <div className="space-y-2">
+                    <Label>
+                      {value.vale_alimentacao_desconto_tipo === "percentual"
+                        ? "Percentual descontado (%)"
+                        : "Valor descontado (R$)"}
+                    </Label>
+                    <Input
+                      inputMode="decimal"
+                      value={value.vale_alimentacao_desconto_valor}
+                      onChange={(e) => onChange({ vale_alimentacao_desconto_valor: e.target.value })}
+                      placeholder={value.vale_alimentacao_desconto_tipo === "percentual" ? "1" : "20,00"}
+                    />
+                  </div>
+                )}
+                <ValeCorteFields
+                  id="va"
+                  valor={{
+                    diaPagamento: value.vale_alimentacao_dia_pagamento,
+                    diasCorte: value.vale_alimentacao_dias_corte,
+                    regras: {
+                      falta: value.vale_alimentacao_desconta_falta,
+                      folga_extra: value.vale_alimentacao_desconta_folga_extra,
+                      atestado: value.vale_alimentacao_desconta_atestado,
+                      ferias: value.vale_alimentacao_desconta_ferias,
+                    },
+                  }}
+                  onChange={(patch) =>
+                    onChange({
+                      ...(patch.diaPagamento !== undefined
+                        ? { vale_alimentacao_dia_pagamento: patch.diaPagamento }
+                        : {}),
+                      ...(patch.diasCorte !== undefined
+                        ? { vale_alimentacao_dias_corte: patch.diasCorte }
+                        : {}),
+                      ...(patch.regras
+                        ? {
+                            vale_alimentacao_desconta_falta: patch.regras.falta,
+                            vale_alimentacao_desconta_folga_extra: patch.regras.folga_extra,
+                            vale_alimentacao_desconta_atestado: patch.regras.atestado,
+                            vale_alimentacao_desconta_ferias: patch.regras.ferias,
+                          }
+                        : {}),
+                    })
+                  }
+                />
+
+                <div className="space-y-1 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground md:col-span-2">
+                  <div className="font-medium text-foreground">
+                    {value.vale_alimentacao_periodicidade === "diario" ? "Simulação do mês" : "Valor do mês"}
+                  </div>
+                  {value.vale_alimentacao_periodicidade === "diario" && (
+                    <div>
+                      Conta: {formatarBRL(numeroBR(value.vale_alimentacao_valor))} × {va.dias} dias{" "}
+                      ({va.diasOrigem === "jornada"
+                        ? baseSimulacao
+                        : va.diasOrigem === "fixo"
+                          ? "quantidade fixa"
+                          : "referência padrão"})
+                    </div>
+                  )}
+                  <div>Concedido no mês: <strong className="text-foreground">{formatarBRL(va.bruto)}</strong></div>
+                  <div>Desconto do colaborador: <strong className="text-foreground">{formatarBRL(va.desconto)}</strong></div>
+                  <div>Custo da empresa: <strong className="text-foreground">{formatarBRL(va.liquido)}</strong></div>
+                  {value.vale_alimentacao_periodicidade === "diario" && (
+                    <p>
+                      Este total é uma <strong className="text-foreground">simulação</strong>. O valor efetivo sai na
+                      folha, pelos dias realmente trabalhados no ponto.
+                    </p>
+                  )}
+                </div>
+
+
+                {alertasVa.map((a) => (
+                  <p
+                    key={a.codigo}
+                    className={`flex items-start gap-2 rounded-md border p-2 text-[11px] md:col-span-2 ${
+                      a.severidade === "aviso"
+                        ? "border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-400"
+                        : "bg-muted/30 text-muted-foreground"
+                    }`}
+                  >
+                    {a.severidade === "aviso"
+                      ? <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      : <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
+                    <span>
+                      <strong className="block text-foreground">{a.titulo}</strong>
+                      {a.mensagem}
+                      {a.recomendacao && <span className="mt-0.5 block">{a.recomendacao}</span>}
+                    </span>
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Benefícios da empresa */}
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Label>Benefícios</Label>
+              {onNovoBeneficio && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="min-h-9 w-full sm:w-auto"
+                  onClick={() => onNovoBeneficio()}
+                >
+                  <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" /> Novo benefício
+                </Button>
+              )}
+            </div>
+
+            {beneficios.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
+                Nenhum benefício no catálogo da empresa. Crie o primeiro para poder vinculá-lo a este
+                colaborador.
+              </p>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                  {beneficios.map((b) => {
+                    const alcanca = beneficioAlcanca(b as any, escopoAlvo ?? {});
+                    const escopoTexto = descreverEscopoBeneficio(b as any, {
+                      unidade: nomeUnidade?.((b as any).unidade_id) ?? null,
+                      cargo: nomeCargo?.((b as any).cargo_id) ?? null,
+                    });
+                    return (
+                      <div
+                        key={b.id}
+                        className={cn(
+                          "flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-sm",
+                          !alcanca && "opacity-60",
+                        )}
+                        title={alcanca ? undefined : `Disponível só para ${escopoTexto}`}
+                      >
+                        <label className="flex min-w-0 flex-1 items-center gap-2">
+                          <Checkbox
+                            disabled={!alcanca}
+                            checked={!!value.beneficios[b.id]}
+                            onCheckedChange={(v) =>
+                              onChange({ beneficios: { ...value.beneficios, [b.id]: v === true } })
+                            }
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate">{b.nome}</span>
+                            <span className="block truncate text-[11px] text-muted-foreground">
+                              {alcanca ? escopoTexto : `Só para ${escopoTexto}`}
+                            </span>
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatarBRL(Number(b.valor_padrao ?? 0))}
+                          </span>
+                        </label>
+                        {onEditarBeneficio && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-9 w-9 shrink-0"
+                            title="Editar benefício do catálogo"
+                            aria-label={`Editar benefício ${b.nome}`}
+                            onClick={() => onEditarBeneficio(b)}
+                          >
+                            <Pencil className="h-4 w-4" aria-hidden="true" />
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Os benefícios marcados passam a valer a partir de hoje.
+                  Benefícios de outra unidade ou cargo aparecem esmaecidos.
+                </p>
+              </>
+            )}
+
+          </div>
+    </>
+  );
+
   if (socio) {
     const proLabore = socioRemuneracao === "pro_labore";
     const detalheSocio = proLabore
@@ -493,6 +845,18 @@ export function RemuneracaoFields({
             ? "Retirada do sócio — fora das obrigações CLT."
             : "Somente distribuição de lucros — fora das obrigações CLT."}
         </p>
+
+        <div className="space-y-3 border-t border-border pt-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-sm font-semibold">Benefícios</div>
+            <Badge variant="outline" className="text-[10px]">Opcional</Badge>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            O sócio pode receber vale-alimentação, vale-transporte e os demais benefícios da empresa.
+            É opcional e não faz parte da folha CLT.
+          </p>
+          {blocosBeneficios}
+        </div>
       </div>
     );
   }
@@ -799,348 +1163,8 @@ export function RemuneracaoFields({
       {/* Isonomia: divergências contra o grupo sindical/cargo equivalente */}
       <BeneficioIsonomiaAviso divergencias={isonomia ?? []} onAplicarPadrao={onAplicarPadraoIsonomia} />
 
-      {/* Vale-transporte */}
-      <div className="space-y-3 rounded-lg border border-border bg-background p-3">
-        <div className="flex items-center gap-3">
-          <Switch
-            id="vale_transporte"
-            checked={value.vale_transporte}
-            onCheckedChange={(v) => onChange({ vale_transporte: v })}
-          />
-          <Label htmlFor="vale_transporte" className="cursor-pointer">Opta pelo vale-transporte</Label>
-        </div>
-        {value.vale_transporte && (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="valor-por-dia-11">Valor por dia</Label>
-              <Input id="valor-por-dia-11"
-                inputMode="decimal"
-                value={value.vale_transporte_valor_dia}
-                {...marca("vale_transporte_valor_dia")}
+      {blocosBeneficios}
 
-                onChange={(e) => onChange({ vale_transporte_valor_dia: e.target.value })}
-                placeholder="Ex: 10,40"
-              />
-            </div>
-            <div className="space-y-1 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground">
-              <div>Concedido no mês (22 dias): <strong className="text-foreground">{formatarBRL(vt.bruto)}</strong></div>
-              <div>Desconto legal (até 6%): <strong className="text-foreground">{formatarBRL(vt.desconto)}</strong></div>
-            </div>
-            <ValeCorteFields
-              id="vt"
-              valor={{
-                diaPagamento: value.vale_transporte_dia_pagamento,
-                diasCorte: value.vale_transporte_dias_corte,
-                regras: {
-                  falta: value.vale_transporte_desconta_falta,
-                  folga_extra: value.vale_transporte_desconta_folga_extra,
-                  atestado: value.vale_transporte_desconta_atestado,
-                  ferias: value.vale_transporte_desconta_ferias,
-                },
-              }}
-              onChange={(patch) =>
-                onChange({
-                  ...(patch.diaPagamento !== undefined
-                    ? { vale_transporte_dia_pagamento: patch.diaPagamento }
-                    : {}),
-                  ...(patch.diasCorte !== undefined
-                    ? { vale_transporte_dias_corte: patch.diasCorte }
-                    : {}),
-                  ...(patch.regras
-                    ? {
-                        vale_transporte_desconta_falta: patch.regras.falta,
-                        vale_transporte_desconta_folga_extra: patch.regras.folga_extra,
-                        vale_transporte_desconta_atestado: patch.regras.atestado,
-                        vale_transporte_desconta_ferias: patch.regras.ferias,
-                      }
-                    : {}),
-                })
-              }
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Vale-alimentação / refeição */}
-      <div className="space-y-3 rounded-lg border border-border bg-background p-3">
-        <div className="flex items-center gap-3">
-          <Switch
-            id="vale_alimentacao"
-            checked={value.vale_alimentacao}
-            onCheckedChange={(v) => onChange({ vale_alimentacao: v })}
-          />
-          <Label htmlFor="vale_alimentacao" className="cursor-pointer">
-            Vale-alimentação / refeição
-          </Label>
-        </div>
-        {value.vale_alimentacao && (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="periodicidade-12">Periodicidade</Label>
-              <Select
-                value={value.vale_alimentacao_periodicidade}
-                onValueChange={(v: Periodicidade) => onChange({ vale_alimentacao_periodicidade: v })}
-              >
-                <SelectTrigger id="periodicidade-12"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(PERIODICIDADE_LABEL) as Periodicidade[]).map((t) => (
-                    <SelectItem key={t} value={t}>{PERIODICIDADE_LABEL[t]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>
-                {value.vale_alimentacao_periodicidade === "diario" ? "Valor por dia" : "Valor por mês"}
-              </Label>
-              <Input
-                inputMode="decimal"
-                value={value.vale_alimentacao_valor}
-                {...marca("vale_alimentacao_valor")}
-
-                onChange={(e) => onChange({ vale_alimentacao_valor: e.target.value })}
-                placeholder="Ex: 25,00"
-              />
-            </div>
-            {value.vale_alimentacao_periodicidade === "diario" && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="dias-considerados-no-mes-13">Dias considerados no mês</Label>
-                  <Select
-                    value={value.vale_alimentacao_dias_origem}
-                    onValueChange={(v: DiasOrigem) => onChange({ vale_alimentacao_dias_origem: v })}
-                  >
-                    <SelectTrigger id="dias-considerados-no-mes-13"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(DIAS_ORIGEM_LABEL) as DiasOrigem[]).map((t) => (
-                        <SelectItem key={t} value={t}>{DIAS_ORIGEM_LABEL[t]}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>
-                    {value.vale_alimentacao_dias_origem === "fixo" ? "Quantidade de dias" : "Dias simulados no mês"}
-                  </Label>
-                  {value.vale_alimentacao_dias_origem === "fixo" ? (
-                    <Input
-                      inputMode="numeric"
-                      value={value.vale_alimentacao_dias_base}
-                      onChange={(e) => onChange({ vale_alimentacao_dias_base: e.target.value.replace(/\D/g, "") })}
-                      placeholder={String(DIAS_BASE_PADRAO)}
-                    />
-                  ) : (
-                    <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
-                      {diasJornadaMes != null ? (
-                        <>
-                          <strong>{diasJornadaMes} dias</strong>
-                          <span className="text-muted-foreground"> — {baseSimulacao} · {resumoJornada}</span>
-                        </>
-                      ) : (
-                        <span className="text-muted-foreground">
-                          Cadastre o Horário de Trabalho para calcular os dias (usando {DIAS_BASE_PADRAO} como referência).
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-              </>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="desconto-do-colaborador-14">Desconto do colaborador</Label>
-              <Select
-                value={value.vale_alimentacao_desconto_tipo}
-                onValueChange={(v: DescontoTipo) => onChange({ vale_alimentacao_desconto_tipo: v })}
-              >
-                <SelectTrigger id="desconto-do-colaborador-14"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(DESCONTO_TIPO_LABEL) as DescontoTipo[]).map((t) => (
-                    <SelectItem key={t} value={t}>{DESCONTO_TIPO_LABEL[t]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {value.vale_alimentacao_desconto_tipo !== "nenhum" && (
-              <div className="space-y-2">
-                <Label>
-                  {value.vale_alimentacao_desconto_tipo === "percentual"
-                    ? "Percentual descontado (%)"
-                    : "Valor descontado (R$)"}
-                </Label>
-                <Input
-                  inputMode="decimal"
-                  value={value.vale_alimentacao_desconto_valor}
-                  onChange={(e) => onChange({ vale_alimentacao_desconto_valor: e.target.value })}
-                  placeholder={value.vale_alimentacao_desconto_tipo === "percentual" ? "1" : "20,00"}
-                />
-              </div>
-            )}
-            <ValeCorteFields
-              id="va"
-              valor={{
-                diaPagamento: value.vale_alimentacao_dia_pagamento,
-                diasCorte: value.vale_alimentacao_dias_corte,
-                regras: {
-                  falta: value.vale_alimentacao_desconta_falta,
-                  folga_extra: value.vale_alimentacao_desconta_folga_extra,
-                  atestado: value.vale_alimentacao_desconta_atestado,
-                  ferias: value.vale_alimentacao_desconta_ferias,
-                },
-              }}
-              onChange={(patch) =>
-                onChange({
-                  ...(patch.diaPagamento !== undefined
-                    ? { vale_alimentacao_dia_pagamento: patch.diaPagamento }
-                    : {}),
-                  ...(patch.diasCorte !== undefined
-                    ? { vale_alimentacao_dias_corte: patch.diasCorte }
-                    : {}),
-                  ...(patch.regras
-                    ? {
-                        vale_alimentacao_desconta_falta: patch.regras.falta,
-                        vale_alimentacao_desconta_folga_extra: patch.regras.folga_extra,
-                        vale_alimentacao_desconta_atestado: patch.regras.atestado,
-                        vale_alimentacao_desconta_ferias: patch.regras.ferias,
-                      }
-                    : {}),
-                })
-              }
-            />
-
-            <div className="space-y-1 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground md:col-span-2">
-              <div className="font-medium text-foreground">
-                {value.vale_alimentacao_periodicidade === "diario" ? "Simulação do mês" : "Valor do mês"}
-              </div>
-              {value.vale_alimentacao_periodicidade === "diario" && (
-                <div>
-                  Conta: {formatarBRL(numeroBR(value.vale_alimentacao_valor))} × {va.dias} dias{" "}
-                  ({va.diasOrigem === "jornada"
-                    ? baseSimulacao
-                    : va.diasOrigem === "fixo"
-                      ? "quantidade fixa"
-                      : "referência padrão"})
-                </div>
-              )}
-              <div>Concedido no mês: <strong className="text-foreground">{formatarBRL(va.bruto)}</strong></div>
-              <div>Desconto do colaborador: <strong className="text-foreground">{formatarBRL(va.desconto)}</strong></div>
-              <div>Custo da empresa: <strong className="text-foreground">{formatarBRL(va.liquido)}</strong></div>
-              {value.vale_alimentacao_periodicidade === "diario" && (
-                <p>
-                  Este total é uma <strong className="text-foreground">simulação</strong>. O valor efetivo sai na
-                  folha, pelos dias realmente trabalhados no ponto.
-                </p>
-              )}
-            </div>
-
-
-            {alertasVa.map((a) => (
-              <p
-                key={a.codigo}
-                className={`flex items-start gap-2 rounded-md border p-2 text-[11px] md:col-span-2 ${
-                  a.severidade === "aviso"
-                    ? "border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-400"
-                    : "bg-muted/30 text-muted-foreground"
-                }`}
-              >
-                {a.severidade === "aviso"
-                  ? <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  : <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
-                <span>
-                  <strong className="block text-foreground">{a.titulo}</strong>
-                  {a.mensagem}
-                  {a.recomendacao && <span className="mt-0.5 block">{a.recomendacao}</span>}
-                </span>
-              </p>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Benefícios da empresa */}
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Label>Benefícios</Label>
-          {onNovoBeneficio && (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="min-h-9 w-full sm:w-auto"
-              onClick={() => onNovoBeneficio()}
-            >
-              <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" /> Novo benefício
-            </Button>
-          )}
-        </div>
-
-        {beneficios.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
-            Nenhum benefício no catálogo da empresa. Crie o primeiro para poder vinculá-lo a este
-            colaborador.
-          </p>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              {beneficios.map((b) => {
-                const alcanca = beneficioAlcanca(b as any, escopoAlvo ?? {});
-                const escopoTexto = descreverEscopoBeneficio(b as any, {
-                  unidade: nomeUnidade?.((b as any).unidade_id) ?? null,
-                  cargo: nomeCargo?.((b as any).cargo_id) ?? null,
-                });
-                return (
-                  <div
-                    key={b.id}
-                    className={cn(
-                      "flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-sm",
-                      !alcanca && "opacity-60",
-                    )}
-                    title={alcanca ? undefined : `Disponível só para ${escopoTexto}`}
-                  >
-                    <label className="flex min-w-0 flex-1 items-center gap-2">
-                      <Checkbox
-                        disabled={!alcanca}
-                        checked={!!value.beneficios[b.id]}
-                        onCheckedChange={(v) =>
-                          onChange({ beneficios: { ...value.beneficios, [b.id]: v === true } })
-                        }
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate">{b.nome}</span>
-                        <span className="block truncate text-[11px] text-muted-foreground">
-                          {alcanca ? escopoTexto : `Só para ${escopoTexto}`}
-                        </span>
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatarBRL(Number(b.valor_padrao ?? 0))}
-                      </span>
-                    </label>
-                    {onEditarBeneficio && (
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="h-9 w-9 shrink-0"
-                        title="Editar benefício do catálogo"
-                        aria-label={`Editar benefício ${b.nome}`}
-                        onClick={() => onEditarBeneficio(b)}
-                      >
-                        <Pencil className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              Os benefícios marcados passam a valer a partir de hoje.
-              Benefícios de outra unidade ou cargo aparecem esmaecidos.
-            </p>
-          </>
-        )}
-
-      </div>
 
     </div>
   );

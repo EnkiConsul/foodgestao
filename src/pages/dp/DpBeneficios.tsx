@@ -32,6 +32,15 @@ import type { ValeTipo } from "@/hooks/useDpValeCalculadora";
 
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
 import { descreverEscopoBeneficio } from "@/lib/dp/beneficioEscopo";
+import { DpFilters, DpFilterField, type DpFilterChip } from "@/components/dp/DpFilters";
+import {
+  FILTROS_BENEFICIOS_PADRAO,
+  SITUACAO_BENEFICIOS_LABEL,
+  contarFiltrosBeneficios,
+  pessoaAtendeFiltros,
+  type BeneficiosFiltros,
+  type SituacaoBeneficios,
+} from "@/lib/dp/beneficios-filtros";
 
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -42,7 +51,10 @@ export default function DpBeneficios() {
   const cargos = useDpCargos();
 
   const [aba, setAba] = useState("calculo");
-  const [colabFilter, setColabFilter] = useState("todos");
+  const [filtros, setFiltros] = useState<BeneficiosFiltros>(FILTROS_BENEFICIOS_PADRAO);
+  const colabFilter = filtros.colaborador;
+  const setFiltro = <K extends keyof BeneficiosFiltros>(campo: K, valor: BeneficiosFiltros[K]) =>
+    setFiltros((f) => ({ ...f, [campo]: valor }));
   const b = useDpBeneficios(colabFilter);
   const cadastro = useDpBeneficiosCadastro(colabFilter);
 
@@ -58,6 +70,51 @@ export default function DpBeneficios() {
     () => colaboradores.find((c: any) => c.id === fichaId) ?? null,
     [colaboradores, fichaId],
   );
+
+  /** Ids das pessoas que passam pelos filtros — null quando nada foi filtrado. */
+  const idsFiltrados = useMemo<string[] | null>(() => {
+    if (contarFiltrosBeneficios(filtros) === 0 && !filtros.busca.trim()) return null;
+    return colaboradores
+      .filter((c: any) => pessoaAtendeFiltros(c, filtros))
+      .map((c: any) => String(c.id));
+  }, [filtros, colaboradores]);
+
+  /** Chips dos filtros aplicados (mobile). */
+  const chipsFiltros = useMemo<DpFilterChip[]>(() => {
+    const lista: DpFilterChip[] = [];
+    if (filtros.unidade !== "todas") {
+      const nome = (unidades.data ?? []).find((u: any) => u.id === filtros.unidade)?.nome;
+      lista.push({
+        key: "unidade",
+        label: `Unidade: ${nome ?? filtros.unidade}`,
+        onRemove: () => setFiltro("unidade", "todas"),
+      });
+    }
+    if (filtros.cargo !== "todos") {
+      const nome = (cargos.data ?? []).find((c: any) => c.id === filtros.cargo)?.nome;
+      lista.push({
+        key: "cargo",
+        label: `Cargo: ${nome ?? filtros.cargo}`,
+        onRemove: () => setFiltro("cargo", "todos"),
+      });
+    }
+    if (filtros.situacao !== FILTROS_BENEFICIOS_PADRAO.situacao) {
+      lista.push({
+        key: "situacao",
+        label: `Situação: ${SITUACAO_BENEFICIOS_LABEL[filtros.situacao]}`,
+        onRemove: () => setFiltro("situacao", FILTROS_BENEFICIOS_PADRAO.situacao),
+      });
+    }
+    if (filtros.colaborador !== "todos") {
+      const nome = colaboradores.find((c: any) => c.id === filtros.colaborador)?.nome;
+      lista.push({
+        key: "colaborador",
+        label: `Colaborador: ${nome ?? filtros.colaborador}`,
+        onRemove: () => setFiltro("colaborador", "todos"),
+      });
+    }
+    return lista;
+  }, [filtros, unidades.data, cargos.data, colaboradores]);
 
 
   const kpis = useMemo(() => {
@@ -132,10 +189,54 @@ export default function DpBeneficios() {
         />
       </DpStatGrid>
 
-      <DpContentCard contentClassName="p-3 sm:p-4 md:p-5">
-        <div className="max-w-sm space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Colaborador</Label>
-          <Select value={colabFilter} onValueChange={setColabFilter}>
+      <DpFilters
+        search={{
+          value: filtros.busca,
+          onChange: (v) => setFiltro("busca", v),
+          placeholder: "Buscar por nome...",
+        }}
+        activeCount={contarFiltrosBeneficios(filtros)}
+        chips={chipsFiltros}
+        onClear={() => setFiltros(FILTROS_BENEFICIOS_PADRAO)}
+        className="mb-3"
+      >
+        <DpFilterField label="Unidade">
+          <Select value={filtros.unidade} onValueChange={(v) => setFiltro("unidade", v)}>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value="todas">Todas</SelectItem>
+              {(unidades.data ?? []).map((u: any) => (
+                <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+        <DpFilterField label="Cargo">
+          <Select value={filtros.cargo} onValueChange={(v) => setFiltro("cargo", v)}>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value="todos">Todos</SelectItem>
+              {(cargos.data ?? []).map((c: any) => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+        <DpFilterField label="Situação">
+          <Select
+            value={filtros.situacao}
+            onValueChange={(v) => setFiltro("situacao", v as SituacaoBeneficios)}
+          >
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {(Object.keys(SITUACAO_BENEFICIOS_LABEL) as SituacaoBeneficios[]).map((s) => (
+                <SelectItem key={s} value={s}>{SITUACAO_BENEFICIOS_LABEL[s]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+        <DpFilterField label="Colaborador">
+          <Select value={filtros.colaborador} onValueChange={(v) => setFiltro("colaborador", v)}>
             <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent className="max-h-72">
               <SelectItem value="todos">Todos</SelectItem>
@@ -144,8 +245,8 @@ export default function DpBeneficios() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </DpContentCard>
+        </DpFilterField>
+      </DpFilters>
 
 
       {(b.isError || cadastro.isError) && (
@@ -185,11 +286,11 @@ export default function DpBeneficios() {
               </Button>
             ))}
           </div>
-          <ValeCalculadora tipo={valeTipo} />
+          <ValeCalculadora tipo={valeTipo} filtros={filtros} />
         </TabsContent>
 
         <TabsContent value="historico" className="space-y-3">
-          <ValeHistorico />
+          <ValeHistorico colaboradorIds={idsFiltrados} />
         </TabsContent>
 
 

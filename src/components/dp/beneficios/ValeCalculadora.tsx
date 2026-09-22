@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/select";
 import { DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
-import { useDpUnidades } from "@/hooks/useDpCadastros";
+import type { BeneficiosFiltros } from "@/lib/dp/beneficios-filtros";
 import { useDpValeCalculadora, VALE_LABEL, type LinhaVale, type ValeTipo } from "@/hooks/useDpValeCalculadora";
 import { useDpValeApuracoes, type FecharLinha } from "@/hooks/useDpValeApuracoes";
 import { ValeMemoriaDialog } from "@/components/dp/beneficios/ValeMemoriaDialog";
@@ -41,6 +41,8 @@ const baixarCsv = (nome: string, conteudo: string) => {
 interface Props {
   /** `va` = vale-alimentação, `vt` = vale-transporte. */
   tipo: ValeTipo;
+  /** Filtros da tela (unidade, cargo, situação, busca e colaborador). */
+  filtros: BeneficiosFiltros;
 }
 
 interface LinhaCalculo {
@@ -63,12 +65,10 @@ interface LinhaCalculo {
  * jornada ou convocações; os dias do ciclo anterior são informados pelo gestor
  * (o ponto ainda não está implantado) e a diferença entra no total a depositar.
  */
-export function ValeCalculadora({ tipo }: Props) {
+export function ValeCalculadora({ tipo, filtros }: Props) {
   const [competencia, setCompetencia] = useState(mesAtual());
-  const [unidade, setUnidade] = useState("todas");
   const [memoria, setMemoria] = useState<{ linha: LinhaVale; diasInformados: number | null } | null>(null);
-  const { data: unidades = [] } = useDpUnidades();
-  const vale = useDpValeCalculadora(tipo, competencia, unidade);
+  const vale = useDpValeCalculadora(tipo, competencia, filtros);
   const apuracoes = useDpValeApuracoes(tipo, competencia);
   const label = VALE_LABEL[tipo];
 
@@ -78,7 +78,7 @@ export function ValeCalculadora({ tipo }: Props) {
   >({});
   useEffect(() => {
     setEdits({});
-  }, [competencia, tipo, unidade]);
+  }, [competencia, tipo, filtros]);
 
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -239,22 +239,10 @@ export function ValeCalculadora({ tipo }: Props) {
   return (
     <div className="space-y-3">
       <DpContentCard contentClassName="p-4 md:p-5">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">Mês do pagamento</Label>
             <Input type="month" value={competencia} onChange={(e) => setCompetencia(e.target.value || mesAtual())} />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Unidade</Label>
-            <Select value={unidade} onValueChange={setUnidade}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent className="max-h-72">
-                <SelectItem value="todas">Todas</SelectItem>
-                {unidades.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
           <div className="flex flex-col justify-end gap-2 sm:flex-row">
             <Button variant="secondary" className="w-full" onClick={exportar} disabled={linhas.length === 0}>

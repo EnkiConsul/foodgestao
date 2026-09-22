@@ -204,9 +204,17 @@ export interface HistoricoVale {
   fechado_em: string | null;
 }
 
-/** Ciclos já fechados, agrupados por mês e tipo de vale. */
-export function useDpValeHistorico() {
+/**
+ * Ciclos já fechados, agrupados por mês e tipo de vale.
+ * `colaboradorIds` limita o histórico às pessoas que passam pelos filtros da tela
+ * (null = sem restrição).
+ */
+export function useDpValeHistorico(colaboradorIds: string[] | null = null) {
   const { selectedCompanyId } = useCompanyContext();
+  const permitidos = useMemo(
+    () => (colaboradorIds ? new Set(colaboradorIds) : null),
+    [colaboradorIds],
+  );
 
   const q = useQuery({
     queryKey: ["dp_vale_historico", selectedCompanyId],
@@ -225,6 +233,7 @@ export function useDpValeHistorico() {
   const grupos = useMemo<HistoricoVale[]>(() => {
     const m = new Map<string, HistoricoVale>();
     for (const r of q.data ?? []) {
+      if (permitidos && !permitidos.has(r.colaborador_id)) continue;
       const k = `${r.competencia}|${r.tipo}`;
       const g =
         m.get(k) ??
@@ -249,7 +258,7 @@ export function useDpValeHistorico() {
     return [...m.values()].sort(
       (a, b) => b.competencia.localeCompare(a.competencia) || a.tipo.localeCompare(b.tipo),
     );
-  }, [q.data]);
+  }, [q.data, permitidos]);
 
   return {
     grupos,
