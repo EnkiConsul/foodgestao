@@ -72,7 +72,8 @@ export function NovoColaboradorInlineDialog({
     enabled: !!selectedCompanyId && formOpen,
     queryFn: async () => {
       if (!selectedCompanyId) return [];
-      const { data } = await supabase.from("dp_cargos").select("id, nome").eq("company_id", selectedCompanyId).is("removido_em", null).order("nome");
+      const { data, error } = await supabase.from("dp_cargos").select("id, nome").eq("company_id", selectedCompanyId).is("removido_em", null).order("nome");
+      if (error) throw error;
       return data ?? [];
     },
   });
