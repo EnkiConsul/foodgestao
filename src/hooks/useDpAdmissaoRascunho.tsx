@@ -65,7 +65,7 @@ export function useDpAdmissaoRascunho(chave: string | null) {
         const { data, error } = await supabase.rpc("dp_admissao_rascunho_salvar", {
           p_company_id: selectedCompanyId,
           p_chave: chave,
-          p_dados: dados as unknown as Record<string, unknown>,
+          p_dados: JSON.parse(JSON.stringify(dados)),
           p_versao: versaoRef.current,
         });
         if (error) throw error;
