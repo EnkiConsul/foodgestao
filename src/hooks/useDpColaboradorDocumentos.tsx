@@ -217,22 +217,11 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
     }: { item: ItemChecklist; anexo?: DpColaboradorDocumento | null; validade?: string | null }) => {
       const alvo = anexo ?? item.vinculo;
       if (!alvo) throw new Error("Nenhum documento enviado");
-      const { error } = await supabase
-        .from("dp_colaborador_documentos")
-        .update({ status: "aprovado", validade: validade ?? alvo.validade })
-        .eq("id", alvo.id);
-      if (error) throw error;
-      if (alvo.documento_id) {
-        await supabase
-          .from("dp_documentos")
-          .update({
-            aprovacao_status: "aprovado",
-            revisado_por: user?.id,
-            revisado_em: new Date().toISOString(),
-            motivo_recusao: null,
-          })
-          .eq("id", alvo.documento_id);
-      }
+      // O servidor grava a decisão e reflete no documento do acervo.
+      await salvarChecklistDocumento(alvo.id, {
+        status: "aprovado",
+        validade: validade ?? alvo.validade ?? null,
+      });
     },
     onSuccess: () => {
       toast.success("Documento aprovado");
@@ -249,22 +238,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
     }: { item: ItemChecklist; anexo?: DpColaboradorDocumento | null; motivo: string }) => {
       const alvo = anexo ?? item.vinculo;
       if (!alvo) throw new Error("Nenhum documento enviado");
-      const { error } = await supabase
-        .from("dp_colaborador_documentos")
-        .update({ status: "recusado" })
-        .eq("id", alvo.id);
-      if (error) throw error;
-      if (alvo.documento_id) {
-        await supabase
-          .from("dp_documentos")
-          .update({
-            aprovacao_status: "recusado",
-            motivo_recusao: motivo,
-            revisado_por: user?.id,
-            revisado_em: new Date().toISOString(),
-          })
-          .eq("id", alvo.documento_id);
-      }
+      await salvarChecklistDocumento(alvo.id, { status: "recusado", motivo_dispensa: motivo });
     },
     onSuccess: () => {
       toast.success("Documento recusado — o colaborador foi notificado na lista de pendências");
@@ -277,25 +251,14 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
     mutationFn: async ({ item, motivo }: { item: ItemChecklist; motivo: string }) => {
       const ctx = base.data;
       if (!ctx) throw new Error("Checklist não carregado");
-      const payload = {
-        company_id: ctx.colaborador.company_id,
+      await salvarChecklistDocumento(item.vinculo?.id ?? null, {
         colaborador_id: ctx.colaborador.id,
         dependente_id: item.dependente?.id ?? null,
         requisito_id: item.requisito.id,
-        status: "dispensado" as const,
+        status: "dispensado",
         dispensado: true,
         motivo_dispensa: motivo,
-      };
-      if (item.vinculo) {
-        const { error } = await supabase
-          .from("dp_colaborador_documentos")
-          .update(payload)
-          .eq("id", item.vinculo.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("dp_colaborador_documentos").insert(payload);
-        if (error) throw error;
-      }
+      });
     },
     onSuccess: () => {
       toast.success("Documento dispensado com justificativa");
@@ -312,11 +275,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
     }: { item: ItemChecklist; anexo?: DpColaboradorDocumento | null; validade: string | null }) => {
       const alvo = anexo ?? item.vinculo;
       if (!alvo) throw new Error("Nenhum documento enviado");
-      const { error } = await supabase
-        .from("dp_colaborador_documentos")
-        .update({ validade })
-        .eq("id", alvo.id);
-      if (error) throw error;
+      await salvarChecklistDocumento(alvo.id, { validade });
     },
     onSuccess: invalidar,
     onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao salvar a validade" }),
