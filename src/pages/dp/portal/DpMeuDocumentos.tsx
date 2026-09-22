@@ -38,6 +38,7 @@ import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import type { Database } from "@/integrations/supabase/types";
 import { notifyError } from "@/lib/notifyError";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
+import { registrarDocumento, excluirDocumento } from "@/lib/dp/documentos-oficial";
 
 type Tipo = Database["public"]["Enums"]["dp_documento_tipo"];
 
