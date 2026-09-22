@@ -12,6 +12,7 @@ import {
   ignorarFichaRpc,
 } from "@/lib/dp/ficha-registro/aplicarFichaRpc";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
+import { registrarDocumento as registrarDocumentoOficial } from "@/lib/dp/documentos-oficial";
 import {
   anexarFichaRecorte,
   type AnexoFichaStatus,
