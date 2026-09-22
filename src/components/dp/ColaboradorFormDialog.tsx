@@ -112,7 +112,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EnderecoFields, type EnderecoValor } from "@/components/shared/EnderecoFields";
 import {
-  CONTA_TIPOS, PAGAMENTO_BLANK, PIX_TIPOS, erroPagamento,
+  CONTA_TIPOS, PAGAMENTO_BLANK, PIX_TIPOS, erroPagamento, pixTipoRecomendado,
   pagamentoDoRegistro, pagamentoParaBanco, type DadosPagamento,
 } from "@/lib/dp/dadosPagamento";
 
