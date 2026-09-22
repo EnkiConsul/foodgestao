@@ -130,9 +130,11 @@ export function CostCenterFormDialog({ open, onOpenChange, onSaved, editItem }: 
       await (supabase.from("cost_center_companies" as any) as any)
         .delete()
         .eq("cost_center_id", costCenterId);
-      // A empresa em uso é sempre vinculada: sem vínculo o centro de custo
-      // existiria no banco sem aparecer em nenhuma lista.
-      const idsFinais = selectedCompanyId && !selectedCompanyIds.includes(selectedCompanyId)
+      // Ao criar, a empresa em uso é sempre vinculada: sem vínculo o centro de
+      // custo existiria no banco sem aparecer em nenhuma lista. Na edição vale
+      // exatamente o que o usuário marcou — desmarcar a empresa em uso remove
+      // o centro de custo das listas dela, como ele pediu.
+      const idsFinais = !editItem && selectedCompanyId && !selectedCompanyIds.includes(selectedCompanyId)
         ? [...selectedCompanyIds, selectedCompanyId]
         : selectedCompanyIds;
       if (idsFinais.length > 0) {

@@ -158,6 +158,16 @@ async function triggerSync(itemId: string, windowDays?: number) {
   let body: SyncBody | null = null;
   try { body = raw ? JSON.parse(raw) as SyncBody : null; } catch { body = null; }
 
+  if (res.status === 409 && raw.includes('duplicate_account_other_company')) {
+    // Contas já ligadas em outra empresa: só uma pessoa pode decidir se a
+    // duplicidade é aceitável. O worker não confirma nada — retentar cinco
+    // vezes gera o mesmo 409 e esconde a pendência.
+    throw new FatalEventError(
+      `pending_manual_link: contas do item ${itemId} já ligadas em outra empresa`,
+      'pending_manual_link',
+    );
+  }
+
   if (raw.includes('company_id_required') || raw.includes('company_conflict')) {
     // Empresa não resolvida ou conflito entre empresas: aguarda revisão humana
     // em /admin/pluggy-status — retentar cinco vezes não decide nada.
