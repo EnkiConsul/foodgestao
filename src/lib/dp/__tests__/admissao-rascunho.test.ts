@@ -1,10 +1,33 @@
 import { describe, it, expect } from "vitest";
 import {
+  camposDoRascunhoConvite,
   chaveRascunhoAdmissao,
+  chaveRascunhoConvite,
+  conteudoRascunhoConvite,
+  rascunhoConviteTemConteudo,
   rascunhoTemConteudo,
   rotuloRascunho,
   rotuloSalvoEm,
 } from "../admissao-rascunho";
+
+describe("rascunho do convite de pré-admissão", () => {
+  it("separa o convite comum da promoção de folguista", () => {
+    expect(chaveRascunhoConvite({})).toBe("convite");
+    expect(chaveRascunhoConvite({ pessoaApoioId: "p1" })).toBe("convite:apoio:p1");
+  });
+
+  it("só guarda quando já há identificação ou lotação", () => {
+    expect(rascunhoConviteTemConteudo({ dias: "7" })).toBe(false);
+    expect(rascunhoConviteTemConteudo({ nome: "ANA" })).toBe(true);
+    expect(rascunhoConviteTemConteudo({ unidade_id: "u1" })).toBe(true);
+  });
+
+  it("guarda e lê de volta os campos do convite", () => {
+    const campos = { nome: "ANA", cpf: "044.", whatsapp: "62999", regime: "clt", apos22h: "nao", dias: "7" };
+    expect(camposDoRascunhoConvite(conteudoRascunhoConvite(campos))).toMatchObject(campos);
+    expect(camposDoRascunhoConvite(null).nome).toBe("");
+  });
+});
 
 describe("chaveRascunhoAdmissao", () => {
   it("separa novo cadastro, promoção de folguista e edição", () => {

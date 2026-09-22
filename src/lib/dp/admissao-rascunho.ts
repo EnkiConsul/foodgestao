@@ -41,6 +41,52 @@ export function rascunhoTemConteudo(c: ConteudoRascunhoAdmissao | null | undefin
   );
 }
 
+/** Campos do convite de pré-admissão guardados como rascunho. */
+export interface CamposRascunhoConvite {
+  nome?: string;
+  cpf?: string;
+  whatsapp?: string;
+  unidade_id?: string;
+  cargo_id?: string;
+  regime?: string;
+  apos22h?: string;
+  dias?: string;
+}
+
+/**
+ * Chave do rascunho do convite. A promoção de folguista tem chave própria para
+ * não misturar os dados de candidatos diferentes.
+ */
+export function chaveRascunhoConvite(opts: { pessoaApoioId?: string | null }): string {
+  return opts.pessoaApoioId ? `convite:apoio:${opts.pessoaApoioId}` : "convite";
+}
+
+/** Converte os campos do convite no formato guardado (mesma gaveta da ficha). */
+export function conteudoRascunhoConvite(campos: CamposRascunhoConvite): ConteudoRascunhoAdmissao {
+  return { form: { ...campos } };
+}
+
+/** Lê de volta os campos do convite a partir do rascunho guardado. */
+export function camposDoRascunhoConvite(c: ConteudoRascunhoAdmissao | null | undefined): CamposRascunhoConvite {
+  const f = (c?.form ?? {}) as Record<string, unknown>;
+  const texto = (k: string) => String(f[k] ?? "");
+  return {
+    nome: texto("nome"),
+    cpf: texto("cpf"),
+    whatsapp: texto("whatsapp"),
+    unidade_id: texto("unidade_id"),
+    cargo_id: texto("cargo_id"),
+    regime: texto("regime"),
+    apos22h: texto("apos22h"),
+    dias: texto("dias"),
+  };
+}
+
+/** Só vale guardar o convite quando já há identificação ou lotação escolhida. */
+export function rascunhoConviteTemConteudo(campos: CamposRascunhoConvite): boolean {
+  return rascunhoTemConteudo(conteudoRascunhoConvite(campos));
+}
+
 /** "Salvo às 17:42" — retorno vazio quando nunca houve gravação. */
 export function rotuloSalvoEm(iso: string | null | undefined): string {
   if (!iso) return "";

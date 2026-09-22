@@ -26,6 +26,15 @@ import { notifyError } from "@/lib/notifyError";
 import { reportError } from "@/lib/errorLog";
 import { listaCargosDaUnidade } from "@/lib/dp/cargos-unidade";
 import { mensagemOrigemApoio, vincularOrigemApoio } from "@/lib/dp/apoio-origem";
+import { useDpAdmissaoRascunho } from "@/hooks/useDpAdmissaoRascunho";
+import {
+  camposDoRascunhoConvite,
+  chaveRascunhoConvite,
+  conteudoRascunhoConvite,
+  rotuloRascunho,
+  rotuloSalvoEm,
+  type CamposRascunhoConvite,
+} from "@/lib/dp/admissao-rascunho";
 
 /** Dados já conhecidos da pessoa (promoção de folguista / pessoa em teste). */
 export interface ConviteInicial {
@@ -49,6 +58,12 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
   const { data: cargos = [], isLoading: carregandoCargos, isError: erroCargos, refetch: recarregarCargos } = useDpCargos();
   const { data: unidades = [] } = useDpUnidades();
   const { criar } = useDpPreadmissaoConvite();
+  // Rascunho do convite: guardado por empresa e por usuário, para o gestor
+  // fechar a janela e retomar depois sem perder o que digitou.
+  const chaveRascunho = chaveRascunhoConvite({ pessoaApoioId: inicial?.pessoaApoioId ?? null });
+  const rascunho = useDpAdmissaoRascunho(chaveRascunho);
+  const [rascunhoGuardado, setRascunhoGuardado] = useState<{ campos: CamposRascunhoConvite; em: string } | null>(null);
+
 
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -76,6 +91,50 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
     if (inicial.unidadeId) setUnidadeId((v) => v || inicial.unidadeId!);
     if (inicial.cargoId) setCargoId((v) => v || inicial.cargoId!);
   }, [open, inicial]);
+
+  /** Ao abrir, oferece o rascunho guardado — nada é preenchido sem a escolha. */
+  useEffect(() => {
+    if (!open) return;
+    let ativo = true;
+    void (async () => {
+      const guardado = await rascunho.carregar();
+      if (!ativo || !guardado) return;
+      setRascunhoGuardado({ campos: camposDoRascunhoConvite(guardado.dados), em: guardado.atualizadoEm });
+    })();
+    return () => {
+      ativo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, chaveRascunho]);
+
+  /** Gravação automática após a pausa na digitação. */
+  useEffect(() => {
+    if (!open || link) return;
+    rascunho.agendar(
+      conteudoRascunhoConvite({ nome, cpf, whatsapp, unidade_id: unidadeId, cargo_id: cargoId, regime, apos22h, dias }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, link, nome, cpf, whatsapp, unidadeId, cargoId, regime, apos22h, dias]);
+
+  const retomarRascunho = () => {
+    const c = rascunhoGuardado?.campos;
+    if (!c) return;
+    if (c.nome) setNome(c.nome);
+    if (c.cpf) setCpf(c.cpf);
+    if (c.whatsapp) setWhatsapp(c.whatsapp);
+    if (c.unidade_id) setUnidadeId(c.unidade_id);
+    if (c.cargo_id) setCargoId(c.cargo_id);
+    if (c.regime) setRegime(c.regime);
+    if (c.apos22h === "sim" || c.apos22h === "nao") setApos22h(c.apos22h);
+    if (c.dias) setDias(c.dias);
+    setRascunhoGuardado(null);
+  };
+
+  const comecarDoZero = () => {
+    setRascunhoGuardado(null);
+    void rascunho.descartar();
+  };
+
 
   const unidadesDaEmpresa = unidades.filter((u) => u.company_id === selectedCompanyId);
   const cargosDaEmpresa = cargos; // o hook já traz apenas os cargos da empresa selecionada
@@ -150,6 +209,9 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
       setLink(r.link);
       setValidade(r.expires_at);
       setNumeroEnvio(r.whatsapp ?? null);
+      // Convite criado: o rascunho já cumpriu o papel.
+      setRascunhoGuardado(null);
+      void rascunho.descartar();
       toast.success("Convite criado. Copie o link e envie ao candidato.");
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "criar o convite" });
@@ -172,6 +234,20 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
             revisão e da ficha oficial da contabilidade.
           </DialogDescription>
         </DialogHeader>
+
+        {!link && rascunhoGuardado && (
+          <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+            <p className="font-medium">{rotuloRascunho(rascunhoGuardado.em)}</p>
+            <p className="text-xs text-muted-foreground">
+              Você começou este convite e não terminou. Quer continuar de onde parou?
+            </p>
+            <div className="mt-2 flex gap-2">
+              <Button type="button" size="sm" onClick={retomarRascunho}>Retomar Preenchimento</Button>
+              <Button type="button" size="sm" variant="outline" onClick={comecarDoZero}>Começar Do Zero</Button>
+            </div>
+          </div>
+        )}
+
 
         {link ? (
           <div className="space-y-3">
@@ -322,6 +398,11 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
             {!completo && (
               <p className="text-xs text-muted-foreground">
                 Informe nome, CPF, WhatsApp, unidade, cargo, tipo de vínculo e a decisão sobre o trabalho após as 22h.
+              </p>
+            )}
+            {rotuloSalvoEm(rascunho.salvoEm) && (
+              <p className="text-xs text-muted-foreground">
+                {`Rascunho ${rotuloSalvoEm(rascunho.salvoEm).toLowerCase()} — você pode fechar e continuar depois.`}
               </p>
             )}
           </div>

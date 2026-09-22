@@ -318,6 +318,8 @@ export default function PreAdmissao() {
   const [avisoTopo, setAvisoTopo] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const alvo = useRef<(ChecklistItem & { parte: number }) | null>(null);
+  /** Assinatura do que já foi guardado, para o rascunho automático. */
+  const assinaturaRef = useRef<string | null>(null);
 
   const aplicar = useCallback((e: Estado) => {
     setEstado(e);
@@ -382,7 +384,7 @@ export default function PreAdmissao() {
     toast.error((e as Error).message);
   };
 
-  const salvar = async (avancar: boolean) => {
+  const salvar = async (avancar: boolean, silencioso = false) => {
     setSalvando(true);
     try {
       const novo = await chamar<Estado>("dp-preadmissao-publica", {
@@ -390,17 +392,40 @@ export default function PreAdmissao() {
       });
       aplicar(novo);
       setSalvoEm(new Date().toISOString());
-      setErros({}); setFaltando([]); setAvisoTopo(null);
+      // O rascunho automático não apaga avisos que a pessoa precisa ver.
+      if (!silencioso) { setErros({}); setFaltando([]); setAvisoTopo(null); }
+      assinaturaRef.current = null;
       if (avancar) setEtapa((n) => Math.min(n + 1, totalEtapas - 1));
-      else toast.success("Dados guardados");
+      else if (!silencioso) toast.success("Dados guardados");
       return true;
     } catch (e) {
-      await tratarFalha(e);
+      // Falha do rascunho automático não interrompe o preenchimento.
+      if (!silencioso) await tratarFalha(e);
       return false;
     } finally {
       setSalvando(false);
     }
   };
+
+  /**
+   * Rascunho automático: depois da pausa na digitação o que já foi preenchido
+   * vai para o servidor, sem tirar o candidato do lugar e sem aviso na tela.
+   */
+  useEffect(() => {
+    if (!estado || enviado || salvando) return;
+    const assinatura = JSON.stringify({ form, pessoas });
+    if (assinaturaRef.current === null) {
+      assinaturaRef.current = assinatura;
+      return;
+    }
+    if (assinaturaRef.current === assinatura) return;
+    const id = window.setTimeout(() => {
+      assinaturaRef.current = assinatura;
+      void salvar(false, true);
+    }, 2000);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, pessoas, estado, enviado, salvando]);
 
   const enviar = async () => {
     setSalvando(true);
@@ -1042,11 +1067,11 @@ export default function PreAdmissao() {
       </main>
 
       <footer className="fixed bottom-0 left-0 right-0 border-t bg-background p-3">
-      {rotuloSalvoEm(salvoEm) && (
-        <p className="mb-2 text-center text-[11px] text-muted-foreground">
-          {`Rascunho ${rotuloSalvoEm(salvoEm).toLowerCase()} — você pode sair e continuar depois.`}
-        </p>
-      )}
+      <p className="mb-2 text-center text-[11px] text-muted-foreground">
+        {rotuloSalvoEm(salvoEm)
+          ? `Rascunho ${rotuloSalvoEm(salvoEm).toLowerCase()} — você pode sair e continuar depois.`
+          : "O que você preencher fica guardado. Pode sair e voltar por este mesmo link."}
+      </p>
       <div className="flex gap-2">
         <Button variant="outline" className="h-12" disabled={etapa === 0 || salvando}
           aria-label="Voltar uma etapa"
@@ -1054,7 +1079,7 @@ export default function PreAdmissao() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <Button variant="outline" className="h-12 flex-1" disabled={salvando} onClick={() => salvar(false)}>
-          Guardar
+          Guardar E Continuar Depois
         </Button>
         {ehRevisao ? (
           <Button className="h-12 flex-1" disabled={salvando} onClick={enviar}>
