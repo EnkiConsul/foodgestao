@@ -92,6 +92,50 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
     if (inicial.cargoId) setCargoId((v) => v || inicial.cargoId!);
   }, [open, inicial]);
 
+  /** Ao abrir, oferece o rascunho guardado — nada é preenchido sem a escolha. */
+  useEffect(() => {
+    if (!open) return;
+    let ativo = true;
+    void (async () => {
+      const guardado = await rascunho.carregar();
+      if (!ativo || !guardado) return;
+      setRascunhoGuardado({ campos: camposDoRascunhoConvite(guardado.dados), em: guardado.atualizadoEm });
+    })();
+    return () => {
+      ativo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, chaveRascunho]);
+
+  /** Gravação automática após a pausa na digitação. */
+  useEffect(() => {
+    if (!open || link) return;
+    rascunho.agendar(
+      conteudoRascunhoConvite({ nome, cpf, whatsapp, unidade_id: unidadeId, cargo_id: cargoId, regime, apos22h, dias }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, link, nome, cpf, whatsapp, unidadeId, cargoId, regime, apos22h, dias]);
+
+  const retomarRascunho = () => {
+    const c = rascunhoGuardado?.campos;
+    if (!c) return;
+    if (c.nome) setNome(c.nome);
+    if (c.cpf) setCpf(c.cpf);
+    if (c.whatsapp) setWhatsapp(c.whatsapp);
+    if (c.unidade_id) setUnidadeId(c.unidade_id);
+    if (c.cargo_id) setCargoId(c.cargo_id);
+    if (c.regime) setRegime(c.regime);
+    if (c.apos22h === "sim" || c.apos22h === "nao") setApos22h(c.apos22h);
+    if (c.dias) setDias(c.dias);
+    setRascunhoGuardado(null);
+  };
+
+  const comecarDoZero = () => {
+    setRascunhoGuardado(null);
+    void rascunho.descartar();
+  };
+
+
   const unidadesDaEmpresa = unidades.filter((u) => u.company_id === selectedCompanyId);
   const cargosDaEmpresa = cargos; // o hook já traz apenas os cargos da empresa selecionada
   // Cargos da unidade escolhida. A lista nunca fica vazia em silêncio: falha,
