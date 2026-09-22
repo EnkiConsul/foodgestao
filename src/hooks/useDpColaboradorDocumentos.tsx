@@ -148,55 +148,35 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
         ? `${item.requisito.nome} — ${item.dependente.nome}`
         : item.requisito.nome;
 
-      const { data: doc, error: eDoc } = await supabase
-        .from("dp_documentos")
-        .insert({
-          company_id: ctx.colaborador.company_id,
-          colaborador_id: ctx.colaborador.id,
-          tipo: item.requisito.tipo_documento,
-          titulo,
-          descricao: item.requisito.descricao,
-          file_path: path,
-          file_name: file.name,
-          file_size: file.size,
-          mime_type: file.type,
-          uploaded_by: user?.id,
-          submetido_por_colaborador: comoColaborador,
-          aprovacao_status: comoColaborador ? "pendente" : "aprovado",
-          ...(comoColaborador ? {} : { revisado_por: user?.id, revisado_em: new Date().toISOString() }),
-        })
-        .select("id")
-        .single();
-      if (eDoc) throw eDoc;
-
-      const payload = {
+      // O documento e o vínculo com o requisito são gravados pelo servidor.
+      const documentoId = await registrarDocumento({
         company_id: ctx.colaborador.company_id,
+        colaborador_id: ctx.colaborador.id,
+        tipo: item.requisito.tipo_documento,
+        titulo,
+        descricao: item.requisito.descricao,
+        file_path: path,
+        file_name: file.name,
+        file_size: file.size,
+        mime_type: file.type,
+      });
+
+      const dados = {
         colaborador_id: ctx.colaborador.id,
         dependente_id: item.dependente?.id ?? null,
         requisito_id: item.requisito.id,
-        documento_id: doc.id,
-        status: comoColaborador ? "enviado" : "aprovado",
+        documento_id: documentoId,
+        status: (comoColaborador ? "enviado" : "aprovado") as "enviado" | "aprovado",
         validade: validade ?? null,
         conteudo_hash: hash,
         dispensado: false,
         motivo_dispensa: null,
-        aceite_solicitado_em: null,
-        aceito_em: null,
       };
 
       // Substitui a linha existente apenas quando o item aceita um único
       // arquivo e não é uma foto adicional (frente/verso).
       const substituir = !item.multiplos && !novaParte && item.vinculo;
-      if (substituir) {
-        const { error } = await supabase
-          .from("dp_colaborador_documentos")
-          .update(payload)
-          .eq("id", item.vinculo!.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("dp_colaborador_documentos").insert(payload);
-        if (error) throw error;
-      }
+      await salvarChecklistDocumento(substituir ? item.vinculo!.id : null, dados);
     },
     onSuccess: () => {
       toast.success(comoColaborador ? "Documento enviado para aprovação" : "Documento anexado");
