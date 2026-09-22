@@ -26,6 +26,15 @@ import { notifyError } from "@/lib/notifyError";
 import { reportError } from "@/lib/errorLog";
 import { listaCargosDaUnidade } from "@/lib/dp/cargos-unidade";
 import { mensagemOrigemApoio, vincularOrigemApoio } from "@/lib/dp/apoio-origem";
+import { useDpAdmissaoRascunho } from "@/hooks/useDpAdmissaoRascunho";
+import {
+  camposDoRascunhoConvite,
+  chaveRascunhoConvite,
+  conteudoRascunhoConvite,
+  rotuloRascunho,
+  rotuloSalvoEm,
+  type CamposRascunhoConvite,
+} from "@/lib/dp/admissao-rascunho";
 
 /** Dados já conhecidos da pessoa (promoção de folguista / pessoa em teste). */
 export interface ConviteInicial {
