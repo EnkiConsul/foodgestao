@@ -182,31 +182,32 @@ export function useDpPendenciasColaborador() {
 
       // 4. Férias disponíveis com limite concessivo se aproximando.
       try {
-        if (!regimeTemFeriasLegais(regimeAtual)) return results.sort((a, b) => b.atrasoDias - a.atrasoDias);
-        const { data: periodos } = await supabase
-          .from("dp_ferias_periodos")
-          .select("id, dias_saldo, limite_concessivo, status")
-          .eq("colaborador_id", colabId as string)
-          .eq("controle_externo", false)
-          .in("status", ["disponivel", "parcial", "vencido"])
-          .order("limite_concessivo", { ascending: true })
-          .limit(5);
-        (periodos ?? []).forEach((p: any) => {
-          if ((p.dias_saldo ?? 0) <= 0) return;
-          const limite = new Date(p.limite_concessivo + "T00:00:00");
-          const dias = differenceInCalendarDays(today, limite);
-          if (dias < -90) return; // ainda distante — não polui o painel
-          results.push({
-            id: `ferias-${p.id}`,
-            icon: Palmtree,
-            titulo: "Programar suas férias",
-            subtitulo: `${p.dias_saldo} dias disponíveis — limite em ${limite.toLocaleDateString("pt-BR")}`,
-            tipo: "Férias",
-            vencimento: ymd(limite),
-            atrasoDias: dias,
-            url: "/dp/meu/solicitacoes",
+        if (regimeTemFeriasLegais(regimeAtual)) {
+          const { data: periodos } = await supabase
+            .from("dp_ferias_periodos")
+            .select("id, dias_saldo, limite_concessivo, status")
+            .eq("colaborador_id", colabId as string)
+            .eq("controle_externo", false)
+            .in("status", ["disponivel", "parcial", "vencido"])
+            .order("limite_concessivo", { ascending: true })
+            .limit(5);
+          (periodos ?? []).forEach((p: any) => {
+            if ((p.dias_saldo ?? 0) <= 0) return;
+            const limite = new Date(p.limite_concessivo + "T00:00:00");
+            const dias = differenceInCalendarDays(today, limite);
+            if (dias < -90) return; // ainda distante — não polui o painel
+            results.push({
+              id: `ferias-${p.id}`,
+              icon: Palmtree,
+              titulo: "Programar suas férias",
+              subtitulo: `${p.dias_saldo} dias disponíveis — limite em ${limite.toLocaleDateString("pt-BR")}`,
+              tipo: "Férias",
+              vencimento: ymd(limite),
+              atrasoDias: dias,
+              url: "/dp/meu/solicitacoes",
+            });
           });
-        });
+        }
       } catch (e) {
         console.warn("pendencias-colab/ferias:", e);
       }
