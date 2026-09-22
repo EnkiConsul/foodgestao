@@ -267,6 +267,12 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           .from("dp_adiantamento_solicitacoes" as any)
           .select("colaborador_id, tipo, competencia_efeito, created_at")
           .eq("company_id", selectedCompanyId!),
+        // Histórico de vínculos: recontratar no mesmo cadastro não reescreve as
+        // competências do vínculo anterior.
+        supabase
+          .from("dp_colaborador_historico_condicoes")
+          .select("colaborador_id, vigencia_inicio, vigencia_fim, regime, unidade_id, modo_continuidade")
+          .eq("company_id", selectedCompanyId!),
       ]);
       if (colabsRes.error) throw colabsRes.error;
       if (docsRes.error) throw docsRes.error;
