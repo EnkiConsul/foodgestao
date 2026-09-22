@@ -1,4 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  excluirDocumento,
+  substituirDocumento,
+  registrarEventoDocumento,
+  type SubstituirDocumentoResultado,
+} from "@/lib/dp/documentos-oficial";
+import { excluirSolicitacao } from "@/lib/dp/solicitacoes-admin";
+import { excluirDisciplinar } from "@/lib/dp/colaborador-oficial";
 
 /**
  * Ações de manutenção dos documentos listados no Histórico.
