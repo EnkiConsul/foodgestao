@@ -304,30 +304,16 @@ export default function DpFolgas() {
         ? `Cancelada pelo gestor: ${motivo}`
         : "Cancelada pelo gestor.";
 
-      if (id.startsWith("folga:")) {
-        const { error } = await supabase
-          .from("dp_folgas")
-          .update({ status: "cancelada", observacao: resposta })
-          .eq("id", id.slice("folga:".length));
-        if (error) throw error;
-      }
-
-      const solicitacao = supabase
-        .from("dp_solicitacoes")
-        .update({
-          status: "cancelada",
-          resposta_admin: resposta,
-          respondido_por: user?.id ?? null,
-          respondido_em: new Date().toISOString(),
-        })
-        .eq("company_id", selectedCompanyId ?? "")
-        .eq("colaborador_id", colaboradorId)
-        .eq("tipo", "folga")
-        .eq("status", "aprovada")
-        .eq("data_alvo", data);
-      if (!id.startsWith("folga:")) solicitacao.eq("id", id);
-      const { error: solicitacaoError } = await solicitacao;
-      if (solicitacaoError) throw solicitacaoError;
+      const ehFolga = id.startsWith("folga:");
+      const { error } = await supabase.rpc("dp_folga_admin_cancelar", {
+        p_folga_id: ehFolga ? id.slice("folga:".length) : null,
+        p_solicitacao_id: ehFolga ? null : id,
+        p_colaborador: colaboradorId,
+        p_data: data,
+        p_motivo: motivo || null,
+      });
+      if (error) throw error;
+      void resposta;
     },
     onSuccess: () => {
       toast.success("Folga cancelada", {
