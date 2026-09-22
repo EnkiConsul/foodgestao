@@ -1,5 +1,54 @@
 import { describe, expect, it } from "vitest";
-import { destinoMenuVertical, indiceMenuAtual } from "@/lib/nav/menuSwipe";
+import { destinoMenuVertical, gestoVerticalBloqueado, indiceMenuAtual } from "@/lib/nav/menuSwipe";
+
+describe("gestoVerticalBloqueado", () => {
+  it("bloqueia arrasto iniciado em área com rolagem própria", () => {
+    expect(
+      gestoVerticalBloqueado({
+        scrollerInterno: true,
+        comecouNaBorda: false,
+        documentoComRolagemRestante: false,
+      }),
+    ).toBe(true);
+  });
+
+  it("bloqueia mesmo com a lista no fim ou curta (sem rolagem restante)", () => {
+    expect(
+      gestoVerticalBloqueado({
+        scrollerInterno: true,
+        comecouNaBorda: false,
+        documentoComRolagemRestante: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("libera quando o arrasto começa na borda da tela", () => {
+    expect(
+      gestoVerticalBloqueado({
+        scrollerInterno: true,
+        comecouNaBorda: true,
+        documentoComRolagemRestante: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("fora de área com rolagem própria, segue a rolagem do documento", () => {
+    expect(
+      gestoVerticalBloqueado({
+        scrollerInterno: false,
+        comecouNaBorda: false,
+        documentoComRolagemRestante: true,
+      }),
+    ).toBe(true);
+    expect(
+      gestoVerticalBloqueado({
+        scrollerInterno: false,
+        comecouNaBorda: false,
+        documentoComRolagemRestante: false,
+      }),
+    ).toBe(false);
+  });
+});
 
 const rotas = ["/dp/cadastros", "/dp/documentos/inicio", "/dp/rotina", "/dp/comunicacao", "/dp/geral"];
 const homeTo = "/dp";

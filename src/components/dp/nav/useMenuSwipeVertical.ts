@@ -5,7 +5,7 @@ import { applyMenuLayout } from "@/lib/dp/menuLayout";
 import { useDpMenuLayout } from "@/hooks/useDpMenuLayout";
 import { useHiddenScreens } from "@/hooks/useHiddenScreens";
 import { filterSurface } from "@/lib/nav/hiddenScreens";
-import { destinoMenuVertical } from "@/lib/nav/menuSwipe";
+import { destinoMenuVertical, gestoVerticalBloqueado } from "@/lib/nav/menuSwipe";
 import { haptic } from "@/lib/haptics";
 import { isMobileLayoutViewport } from "@/lib/responsive";
 
@@ -15,26 +15,19 @@ const MAX_DURATION_MS = 800;
 const MAX_DELTA_X = 70;
 const HOME_TO = "/dp";
 
-/** Primeiro ancestral com rolagem vertical, se houver. */
+/** Primeiro ancestral com rolagem vertical própria, se houver. */
 function verticalScrollerDoToque(target: EventTarget | null): HTMLElement | null {
   let el = target instanceof Element ? target : null;
-  while (el) {
-    if (el.scrollHeight > el.clientHeight + 8) {
-      const overflowY = window.getComputedStyle(el).overflowY;
-      if (overflowY === "auto" || overflowY === "scroll") return el as HTMLElement;
-    }
+  while (el && el !== document.body && el !== document.documentElement) {
+    const overflowY = window.getComputedStyle(el).overflowY;
+    if (overflowY === "auto" || overflowY === "scroll") return el as HTMLElement;
     el = el.parentElement;
   }
   return null;
 }
 
-/** O gesto só arma quando não há mais rolagem na direção do arrasto. */
-function rolagemBloqueiaGesto(scroller: HTMLElement | null, direcao: "cima" | "baixo"): boolean {
-  if (scroller) {
-    const max = scroller.scrollHeight - scroller.clientHeight;
-    if (direcao === "cima") return scroller.scrollTop < max - 4;
-    return scroller.scrollTop > 4;
-  }
+/** Rolagem restante do documento na direção do arrasto. */
+function rolagemDoDocumento(direcao: "cima" | "baixo"): boolean {
   const doc = document.documentElement;
   const max = doc.scrollHeight - window.innerHeight;
   if (direcao === "cima") return window.scrollY < max - 4;
@@ -92,7 +85,14 @@ export function useMenuSwipeVertical() {
       const dy = clientY - startY;
       if (Math.abs(dy) < MIN_DELTA_Y) return;
       const direcao = dy < 0 ? "cima" : "baixo";
-      if (!comecouNaBordaVertical(direcao) && rolagemBloqueiaGesto(scroller, direcao)) return;
+      if (
+        gestoVerticalBloqueado({
+          scrollerInterno: !!scroller,
+          comecouNaBorda: comecouNaBordaVertical(direcao),
+          documentoComRolagemRestante: rolagemDoDocumento(direcao),
+        })
+      )
+        return;
 
       const destino = destinoMenuVertical({
         rotas: ref.current.rotas,
