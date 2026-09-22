@@ -97,7 +97,17 @@ Deno.serve(async (req) => {
       return jsonResponse(req, 400, { error: "Link inválido, expirado ou já utilizado." });
     }
 
-    // 3) Troca a senha; se falhar, o link volta a valer.
+    // 3) Situação atual manda: acesso bloqueado, cadastro removido, empresa
+    // inativa ou prazo de consulta vencido derrubam o link, mesmo que ele tenha
+    // sido criado antes. Criar senha nunca desfaz um bloqueio.
+    const situacao = await situacaoAcesso(admin, token.colaborador_id);
+    const impedimento = mensagemSituacao(situacao);
+    if (impedimento) {
+      await confirmarToken(admin, token.id);
+      return jsonResponse(req, 403, { code: situacao, error: impedimento });
+    }
+
+    // 4) Troca a senha; se falhar, o link volta a valer.
     const { error: updErr } = await admin.auth.admin.updateUserById(token.user_id, {
       password: novaSenha,
     });
@@ -108,14 +118,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 4) Só agora o link é definitivamente queimado.
+    // 5) Só agora o link é definitivamente queimado.
     await confirmarToken(admin, token.id);
 
+    // O bloqueio nunca é removido aqui: só o DP reativa, de forma explícita.
     const { error: secErr } = await admin.from("auth_user_security_state").upsert(
       {
         user_id: token.user_id,
         must_change_password: false,
-        access_blocked: false,
         password_changed_at: new Date().toISOString(),
         password_changed_by: token.user_id,
       },
