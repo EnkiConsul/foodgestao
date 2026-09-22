@@ -2664,6 +2664,16 @@ export function ColaboradorFormDialog({
             >
               Fechar
             </Button>
+            {!isEdit && !criadoId && (
+              <Button
+                variant="outline"
+                className="h-11 sm:h-10"
+                onClick={() => void salvarRascunhoAgora()}
+                disabled={rascunho.salvando}
+              >
+                {rascunho.salvando ? "Guardando..." : "Salvar Rascunho"}
+              </Button>
+            )}
             <Button
               variant="secondary"
               className="h-11 flex-1 sm:h-10 sm:flex-none"
