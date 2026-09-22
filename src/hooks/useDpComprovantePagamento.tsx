@@ -36,10 +36,13 @@ export function useDpComprovantePagamento() {
       alvo,
       file,
       pagoEm,
+      confirmarCompetencia,
     }: {
       alvo: ComprovanteAlvo;
       file: File;
       pagoEm?: string | null;
+      /** Pagamento em mês diferente da competência, já confirmado na tela. */
+      confirmarCompetencia?: boolean;
     }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
       // A primeira pasta precisa ser a empresa: as regras de acesso do
@@ -64,6 +67,7 @@ export function useDpComprovantePagamento() {
             mime_type: file.type,
           },
           pagoEm || null,
+          confirmarCompetencia === true,
         );
       } catch (e) {
         await supabase.storage.from(DP_DOCUMENTOS_BUCKET).remove([path]);

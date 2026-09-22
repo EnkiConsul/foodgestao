@@ -167,7 +167,14 @@ function paginaCertificado(pdf: PDFDocument, fonte: PDFFont, negrito: PDFFont, d
 }
 
 /** Página separadora do anexo (comprovante sem validação digital própria). */
-function paginaAnexo(pdf: PDFDocument, fonte: PDFFont, negrito: PDFFont, arquivo: string, pagoEm: string): void {
+function paginaAnexo(
+  pdf: PDFDocument,
+  fonte: PDFFont,
+  negrito: PDFFont,
+  arquivo: string,
+  pagoEm: string,
+  competencia: string,
+): void {
   const page = pdf.addPage(A4);
   const { width, height } = page.getSize();
   const margem = 48;
@@ -178,7 +185,7 @@ function paginaAnexo(pdf: PDFDocument, fonte: PDFFont, negrito: PDFFont, arquivo
   y -= 24;
   for (
     const linha of linhas(
-      `Arquivo: ${arquivo || "—"}. ${
+      `Competência do documento: ${competencia || "—"}. Arquivo: ${arquivo || "—"}. ${
         pagoEm === "—" ? "Sem data de pagamento informada." : `Pagamento registrado em ${pagoEm}.`
       } Este comprovante acompanha o documento ` +
         "aprovado como anexo e não possui validação digital própria.",
@@ -404,6 +411,7 @@ Deno.serve(async (req) => {
         registro.comprovante_pago_em
           ? new Date(`${String(registro.comprovante_pago_em).slice(0, 10)}T12:00:00Z`).toLocaleDateString("pt-BR")
           : "—",
+        dados.competencia,
       );
       const aviso = await anexarArquivo(
         pdf,
