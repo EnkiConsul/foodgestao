@@ -67,7 +67,9 @@ const TIPO_LABEL: Record<UnifiedTipo, string> = {
   atestado: "Atestado",
   disciplinar: "Disciplinar",
   act_cct: "ACT/CCT",
-  contrato: "Contrato",
+  contrato: "Contrato (Admissão)",
+  admissao: "Admissão",
+  desligamento: "Desligamento",
   ferias: "Férias",
   outros: "Outros",
 };
