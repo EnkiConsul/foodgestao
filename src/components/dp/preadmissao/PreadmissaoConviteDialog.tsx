@@ -77,15 +77,34 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
 
   const unidadesDaEmpresa = unidades.filter((u) => u.company_id === selectedCompanyId);
   const cargosDaEmpresa = cargos; // o hook já traz apenas os cargos da empresa selecionada
-  // Cargos da unidade escolhida. Sem vínculo cadastrado, mostramos todos com
-  // aviso: assim o convite não trava por falta de configuração.
-  const { data: cargosVinculados = [], isLoading: carregandoVinculos } = useDpCargosDaUnidade(unidadeId || null);
-  const semVinculo = !!unidadeId && !carregandoVinculos && cargosVinculados.length === 0;
-  const cargosDaUnidade = !unidadeId
-    ? []
-    : semVinculo
-    ? cargosDaEmpresa
-    : cargosDaEmpresa.filter((c) => cargosVinculados.includes(c.id));
+  // Cargos da unidade escolhida. A lista nunca fica vazia em silêncio: falha,
+  // carregamento e ausência de vínculo têm aviso próprio (ver cargos-unidade.ts).
+  const {
+    data: cargosVinculados = [],
+    isLoading: carregandoVinculos,
+    isError: erroVinculos,
+    refetch: recarregarVinculos,
+  } = useDpCargosDaUnidade(unidadeId || null);
+  const listaCargos = listaCargosDaUnidade({
+    cargosEmpresa: cargosDaEmpresa,
+    vinculados: cargosVinculados,
+    unidadeId: unidadeId || null,
+    carregandoVinculos,
+    carregandoCargos,
+    erro: erroCargos || erroVinculos,
+  });
+  const cargosDaUnidade = listaCargos.cargos;
+
+  /** Registra a falha de leitura para conseguirmos rastrear a causa depois. */
+  useEffect(() => {
+    if (!erroCargos && !erroVinculos) return;
+    notifyError(new Error("Não foi possível carregar os cargos do convite de pré-admissão"), {
+      surface: "Pessoas 360°",
+      action: "carregar os cargos da unidade",
+      silent: true,
+      extra: { unidadeId, companyId: selectedCompanyId, erroCargos, erroVinculos },
+    });
+  }, [erroCargos, erroVinculos, unidadeId, selectedCompanyId]);
   const cpfDigitos = cpf.replace(/\D/g, "");
   const cpfOk = isValidCpf(cpfDigitos);
 
