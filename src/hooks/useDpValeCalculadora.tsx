@@ -460,7 +460,7 @@ export function useDpValeCalculadora(
       porMotivo,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [colabQ.data, eventosQ.data, mes, janelaInicio, configQ.data, tipo]);
+  }, [colaboradoresFiltrados, eventosQ.data, mes, janelaInicio, configQ.data, tipo]);
 
   return {
     ...resumo,
