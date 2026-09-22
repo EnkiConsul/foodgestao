@@ -77,6 +77,7 @@ export function BulkImportPanel({
   const { selectedCompanyId } = useCompanyContext();
   const { data: colaboradores = [] } = useDpColaboradores();
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [tipo, setTipo] = useState<string>(tipoFixed ?? tipoInicial ?? AUTO_TIPO);
@@ -215,6 +216,12 @@ export function BulkImportPanel({
       const chaves = new Set(prev.map((f) => `${f.name}:${f.size}`));
       return [...prev, ...validos.filter((f) => !chaves.has(`${f.name}:${f.size}`))];
     });
+  };
+
+  const abrirSeletorArquivos = () => fileInputRef.current?.click();
+
+  const removerArquivo = (chave: string) => {
+    setFiles((prev) => prev.filter((f) => `${f.name}:${f.size}` !== chave));
   };
 
   const upload = useMutation({
@@ -394,7 +401,17 @@ export function BulkImportPanel({
         <div className="space-y-3">
           <h2 className="text-base font-semibold">{title}</h2>
 
-          <label
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="Anexar arquivos PDF para importação"
+            onClick={abrirSeletorArquivos}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                abrirSeletorArquivos();
+              }
+            }}
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             onDrop={(e) => {
@@ -411,6 +428,7 @@ export function BulkImportPanel({
             )}
           >
             <input
+              ref={fileInputRef}
               type="file"
               accept="application/pdf"
               multiple
@@ -424,36 +442,64 @@ export function BulkImportPanel({
             )}
             <div className="mt-3 space-y-1 text-sm">
               {files.length > 0 ? (
-                files.map((f) => (
-                  <div key={`${f.name}:${f.size}`} className="font-medium break-words">
-                    {f.name}
-                  </div>
-                ))
+                files.map((f) => {
+                  const chave = `${f.name}:${f.size}`;
+                  return (
+                    <div key={chave} className="flex items-center justify-center gap-2">
+                      <span className="font-medium break-words">{f.name}</span>
+                      <button
+                        type="button"
+                        aria-label={`Remover ${f.name}`}
+                        title={`Remover ${f.name}`}
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); removerArquivo(chave); }}
+                      >
+                        <X className="size-4" />
+                      </button>
+                    </div>
+                  );
+                })
               ) : (
                 "Arraste um ou vários PDFs ou clique para selecionar"
               )}
             </div>
             {files.length > 0 ? (
-              <div className="mt-1 flex flex-wrap items-center justify-center gap-2 text-xs">
-                <span className="text-green-700 dark:text-green-400 font-medium">
-                  {files.length === 1
-                    ? "Arquivo pronto para processar"
-                    : `${files.length} arquivos prontos para processar`}
-                </span>
-                <button
-                  type="button"
-                  className="underline text-muted-foreground hover:text-foreground"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFiles([]); }}
-                >
-                  Limpar seleção
-                </button>
+              <div className="mt-2 space-y-2">
+                <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+                  <span className="text-green-700 dark:text-green-400 font-medium">
+                    {files.length === 1
+                      ? "Arquivo pronto para processar"
+                      : `${files.length} arquivos prontos para processar`}
+                  </span>
+                  <button
+                    type="button"
+                    className="underline text-muted-foreground hover:text-foreground"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFiles([]); }}
+                  >
+                    Limpar seleção
+                  </button>
+                </div>
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); abrirSeletorArquivos(); }}
+                  >
+                    <Upload className="size-4 mr-2" />
+                    Anexar Mais Arquivos
+                  </Button>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  PDF até {MAX_SIZE_MB}MB · máx. 60 páginas por lote · OCR via IA
+                </div>
               </div>
             ) : (
               <div className="text-xs text-muted-foreground mt-1">
                 PDF até {MAX_SIZE_MB}MB · máx. 60 páginas por lote · OCR via IA
               </div>
             )}
-          </label>
+          </div>
 
           <div className={cn(
             "grid gap-3",
