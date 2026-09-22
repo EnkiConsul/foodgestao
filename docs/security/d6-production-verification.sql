@@ -1,0 +1,7 @@
+SELECT
+(SELECT count(*) FROM pg_policies WHERE schemaname='public' AND policyname IN ('ocorrencias_select_empresa','ocorrencia_eventos_select','ocorrencia_coberturas_select','dp_sol_member_read','dp_sol_member_insert') AND COALESCE(qual,with_check) LIKE '%is_company_member(%') AS remaining_broad_policies,
+(SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p') AND left(c.relname,3)='dp_' AND (has_table_privilege('authenticated',c.oid,'TRUNCATE') OR has_table_privilege('anon',c.oid,'TRUNCATE'))) AS excess_truncate_grants,
+(SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname IN('dp_ocorrencia_complementar','dp_ocorrencia_confirmar','dp_ocorrencia_analisar','dp_ocorrencia_classificar','dp_ocorrencia_tratar','dp_ocorrencia_cancelar','dp_ocorrencias_indicadores') AND (p.prosrc LIKE '%private.is_company_member(%' OR has_function_privilege('anon',p.oid,'EXECUTE'))) AS broad_or_anonymous_rpcs,
+has_function_privilege('authenticated','public.dp_notificar_criador_ocorrencia(uuid,text,text)','EXECUTE') AS client_can_notify,
+has_function_privilege('authenticated','public.dp_ocorrencia_atestado_aplicar(uuid)','EXECUTE') AS client_can_apply_attestation,
+(SELECT count(*) FROM storage.buckets WHERE id IN ('dp-documentos','dp-disciplinar','dp-bulk-import') AND public=false) AS private_hr_buckets;

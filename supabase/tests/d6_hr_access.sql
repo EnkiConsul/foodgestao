@@ -1,0 +1,62 @@
+-- Homologation-only synthetic fixtures, always rolled back. Never run in production.
+BEGIN;
+INSERT INTO public.company_members(company_id,user_id,role) VALUES ('ce1d7f80-fa1c-4388-a964-19c5f4eabd38','62938721-78fa-4dc7-9031-654a7e876513','viewer');
+UPDATE public.dp_colaboradores SET user_id='4dac8943-d12d-4aef-be02-e6a58a541f79', ativo=true WHERE id='985ec66c-282f-4d93-b4cf-783e2d6c0bf6';
+UPDATE public.companies SET is_active=true,status_tenant='ativa' WHERE id='ce1d7f80-fa1c-4388-a964-19c5f4eabd38';
+INSERT INTO public.dp_ocorrencias(id,company_id,colaborador_id,data_operacional,tipo,justificativa_inicial)
+VALUES ('d6000000-0000-4000-8000-000000000001','ce1d7f80-fa1c-4388-a964-19c5f4eabd38','985ec66c-282f-4d93-b4cf-783e2d6c0bf6',CURRENT_DATE,'atestado','D6 SINTETICO SEM PESSOA REAL');
+INSERT INTO public.dp_ocorrencia_eventos(company_id,ocorrencia_id,tipo_evento,valor_novo)
+VALUES ('ce1d7f80-fa1c-4388-a964-19c5f4eabd38','d6000000-0000-4000-8000-000000000001','ocorrencia_criada','D6 SINTETICO');
+INSERT INTO public.dp_solicitacoes(id,company_id,colaborador_id,tipo,motivo)
+VALUES ('d6000000-0000-4000-8000-000000000002','ce1d7f80-fa1c-4388-a964-19c5f4eabd38','985ec66c-282f-4d93-b4cf-783e2d6c0bf6','atestado','D6 SINTETICO');
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','62938721-78fa-4dc7-9031-654a7e876513',true);
+DO $$ BEGIN IF NOT (NOT EXISTS(SELECT 1 FROM public.dp_ocorrencias WHERE id='d6000000-0000-4000-8000-000000000001')) THEN RAISE EXCEPTION 'DENIAL FAILED dp_ocorrencias'; END IF; END $$;
+DO $$ BEGIN IF NOT (NOT EXISTS(SELECT 1 FROM public.dp_ocorrencia_eventos WHERE ocorrencia_id='d6000000-0000-4000-8000-000000000001')) THEN RAISE EXCEPTION 'DENIAL FAILED dp_ocorrencia_eventos'; END IF; END $$;
+DO $$ BEGIN IF NOT (NOT EXISTS(SELECT 1 FROM public.dp_solicitacoes WHERE id='d6000000-0000-4000-8000-000000000002')) THEN RAISE EXCEPTION 'DENIAL FAILED dp_solicitacoes'; END IF; END $$;
+DO $$ BEGIN BEGIN PERFORM public.dp_ocorrencia_complementar('d6000000-0000-4000-8000-000000000001','D6'); RAISE EXCEPTION 'UNAUTHORIZED RPC SUCCEEDED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM <> 'OCORRENCIA_SEM_PERMISSAO' THEN RAISE; END IF; END; END $$;
+DO $$ BEGIN BEGIN PERFORM public.dp_ocorrencia_confirmar('d6000000-0000-4000-8000-000000000001',NULL,'D6',true); RAISE EXCEPTION 'UNAUTHORIZED RPC SUCCEEDED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM <> 'OCORRENCIA_SEM_PERMISSAO' THEN RAISE; END IF; END; END $$;
+DO $$ BEGIN BEGIN PERFORM public.dp_ocorrencia_analisar('d6000000-0000-4000-8000-000000000001','pendente','D6'); RAISE EXCEPTION 'UNAUTHORIZED RPC SUCCEEDED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM <> 'OCORRENCIA_SEM_PERMISSAO' THEN RAISE; END IF; END; END $$;
+DO $$ BEGIN BEGIN PERFORM public.dp_ocorrencia_classificar('d6000000-0000-4000-8000-000000000001','nao','nao'); RAISE EXCEPTION 'UNAUTHORIZED RPC SUCCEEDED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM <> 'OCORRENCIA_SEM_PERMISSAO' THEN RAISE; END IF; END; END $$;
+DO $$ BEGIN BEGIN PERFORM public.dp_ocorrencia_tratar('d6000000-0000-4000-8000-000000000001','confirmada','D6'); RAISE EXCEPTION 'UNAUTHORIZED RPC SUCCEEDED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM <> 'OCORRENCIA_SEM_PERMISSAO' THEN RAISE; END IF; END; END $$;
+DO $$ BEGIN BEGIN PERFORM public.dp_ocorrencia_cancelar('d6000000-0000-4000-8000-000000000001','D6'); RAISE EXCEPTION 'UNAUTHORIZED RPC SUCCEEDED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM <> 'OCORRENCIA_SEM_PERMISSAO' THEN RAISE; END IF; END; END $$;
+DO $$ BEGIN BEGIN PERFORM public.dp_ocorrencias_indicadores('ce1d7f80-fa1c-4388-a964-19c5f4eabd38',CURRENT_DATE,CURRENT_DATE,NULL); RAISE EXCEPTION 'UNAUTHORIZED RPC SUCCEEDED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM <> 'OCORRENCIA_SEM_PERMISSAO' THEN RAISE; END IF; END; END $$;
+SELECT set_config('request.jwt.claim.sub','08ac0d25-6018-491f-8ca0-8c08f5e525a8',true);
+DO $$ BEGIN IF NOT (NOT EXISTS(SELECT 1 FROM public.dp_ocorrencias WHERE id='d6000000-0000-4000-8000-000000000001')) THEN RAISE EXCEPTION 'DENIAL FAILED dp_ocorrencias'; END IF; END $$;
+DO $$ BEGIN IF NOT (NOT EXISTS(SELECT 1 FROM public.dp_ocorrencia_eventos WHERE ocorrencia_id='d6000000-0000-4000-8000-000000000001')) THEN RAISE EXCEPTION 'DENIAL FAILED dp_ocorrencia_eventos'; END IF; END $$;
+DO $$ BEGIN IF NOT (NOT EXISTS(SELECT 1 FROM public.dp_solicitacoes WHERE id='d6000000-0000-4000-8000-000000000002')) THEN RAISE EXCEPTION 'DENIAL FAILED dp_solicitacoes'; END IF; END $$;
+DO $$ BEGIN BEGIN PERFORM public.dp_ocorrencia_complementar('d6000000-0000-4000-8000-000000000001','D6'); RAISE EXCEPTION 'UNAUTHORIZED RPC SUCCEEDED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM <> 'OCORRENCIA_SEM_PERMISSAO' THEN RAISE; END IF; END; END $$;
+DO $$ BEGIN BEGIN PERFORM public.dp_ocorrencia_confirmar('d6000000-0000-4000-8000-000000000001',NULL,'D6',true); RAISE EXCEPTION 'UNAUTHORIZED RPC SUCCEEDED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM <> 'OCORRENCIA_SEM_PERMISSAO' THEN RAISE; END IF; END; END $$;
+DO $$ BEGIN BEGIN PERFORM public.dp_ocorrencia_analisar('d6000000-0000-4000-8000-000000000001','pendente','D6'); RAISE EXCEPTION 'UNAUTHORIZED RPC SUCCEEDED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM <> 'OCORRENCIA_SEM_PERMISSAO' THEN RAISE; END IF; END; END $$;
+DO $$ BEGIN BEGIN PERFORM public.dp_ocorrencia_classificar('d6000000-0000-4000-8000-000000000001','nao','nao'); RAISE EXCEPTION 'UNAUTHORIZED RPC SUCCEEDED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM <> 'OCORRENCIA_SEM_PERMISSAO' THEN RAISE; END IF; END; END $$;
+DO $$ BEGIN BEGIN PERFORM public.dp_ocorrencia_tratar('d6000000-0000-4000-8000-000000000001','confirmada','D6'); RAISE EXCEPTION 'UNAUTHORIZED RPC SUCCEEDED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM <> 'OCORRENCIA_SEM_PERMISSAO' THEN RAISE; END IF; END; END $$;
+DO $$ BEGIN BEGIN PERFORM public.dp_ocorrencia_cancelar('d6000000-0000-4000-8000-000000000001','D6'); RAISE EXCEPTION 'UNAUTHORIZED RPC SUCCEEDED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM <> 'OCORRENCIA_SEM_PERMISSAO' THEN RAISE; END IF; END; END $$;
+DO $$ BEGIN BEGIN PERFORM public.dp_ocorrencias_indicadores('ce1d7f80-fa1c-4388-a964-19c5f4eabd38',CURRENT_DATE,CURRENT_DATE,NULL); RAISE EXCEPTION 'UNAUTHORIZED RPC SUCCEEDED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM <> 'OCORRENCIA_SEM_PERMISSAO' THEN RAISE; END IF; END; END $$;
+SELECT set_config('request.jwt.claim.sub','ed3a1657-f96b-4e51-bc20-a3708edd5415',true);
+DO $$ BEGIN IF NOT (EXISTS(SELECT 1 FROM public.dp_ocorrencias WHERE id='d6000000-0000-4000-8000-000000000001')) THEN RAISE EXCEPTION 'ADMIN READ FAILED dp_ocorrencias'; END IF; END $$;
+DO $$ BEGIN IF NOT (EXISTS(SELECT 1 FROM public.dp_ocorrencia_eventos WHERE ocorrencia_id='d6000000-0000-4000-8000-000000000001')) THEN RAISE EXCEPTION 'ADMIN READ FAILED dp_ocorrencia_eventos'; END IF; END $$;
+DO $$ BEGIN IF NOT (EXISTS(SELECT 1 FROM public.dp_solicitacoes WHERE id='d6000000-0000-4000-8000-000000000002')) THEN RAISE EXCEPTION 'ADMIN READ FAILED dp_solicitacoes'; END IF; END $$;
+SELECT public.dp_ocorrencia_complementar('d6000000-0000-4000-8000-000000000001','D6 ADMIN');
+SELECT public.dp_ocorrencia_analisar('d6000000-0000-4000-8000-000000000001','pendente','D6 ADMIN');
+UPDATE public.dp_solicitacoes SET status='aprovada',data_alvo=CURRENT_DATE,data_fim=CURRENT_DATE WHERE id='d6000000-0000-4000-8000-000000000002';
+UPDATE public.dp_solicitacoes SET status='recusada' WHERE id='d6000000-0000-4000-8000-000000000002';
+UPDATE public.dp_solicitacoes SET status='cancelada' WHERE id='d6000000-0000-4000-8000-000000000002';
+SELECT set_config('request.jwt.claim.sub','4dac8943-d12d-4aef-be02-e6a58a541f79',true);
+DO $$ BEGIN IF NOT (public.dp_colaborador_ativo_of(auth.uid())='985ec66c-282f-4d93-b4cf-783e2d6c0bf6'::uuid) THEN RAISE EXCEPTION 'SELF FIXTURE NOT ACTIVE'; END IF; END $$;
+DO $$ BEGIN IF NOT (EXISTS(SELECT 1 FROM public.dp_ocorrencias WHERE id='d6000000-0000-4000-8000-000000000001')) THEN RAISE EXCEPTION 'SELF READ FAILED'; END IF; END $$;
+SELECT public.dp_ocorrencia_complementar('d6000000-0000-4000-8000-000000000001','D6 SELF');
+RESET ROLE;
+INSERT INTO public.auth_user_security_state(user_id,access_blocked) VALUES('ed3a1657-f96b-4e51-bc20-a3708edd5415',true)
+ON CONFLICT(user_id) DO UPDATE SET access_blocked=true;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','ed3a1657-f96b-4e51-bc20-a3708edd5415',true);
+DO $$ BEGIN IF NOT (NOT EXISTS(SELECT 1 FROM public.dp_ocorrencias WHERE id='d6000000-0000-4000-8000-000000000001')) THEN RAISE EXCEPTION 'BLOCKED ADMIN READ FAILED'; END IF; END $$;
+RESET ROLE;
+DO $$ BEGIN IF NOT (NOT EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN('r','p') AND left(c.relname,3)='dp_' AND has_table_privilege('anon',c.oid,'TRUNCATE'))) THEN RAISE EXCEPTION 'TRUNCATE GRANT anon'; END IF; END $$;
+DO $$ BEGIN IF NOT (NOT has_function_privilege('anon','public.dp_notificar_criador_ocorrencia(uuid,text,text)','EXECUTE')) THEN RAISE EXCEPTION 'INTERNAL HELPER anon'; END IF; END $$;
+DO $$ BEGIN IF NOT (NOT has_function_privilege('anon','public.dp_ocorrencia_atestado_aplicar(uuid)','EXECUTE')) THEN RAISE EXCEPTION 'INTERNAL HELPER anon'; END IF; END $$;
+DO $$ BEGIN IF NOT (NOT EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN('r','p') AND left(c.relname,3)='dp_' AND has_table_privilege('authenticated',c.oid,'TRUNCATE'))) THEN RAISE EXCEPTION 'TRUNCATE GRANT authenticated'; END IF; END $$;
+DO $$ BEGIN IF NOT (NOT has_function_privilege('authenticated','public.dp_notificar_criador_ocorrencia(uuid,text,text)','EXECUTE')) THEN RAISE EXCEPTION 'INTERNAL HELPER authenticated'; END IF; END $$;
+DO $$ BEGIN IF NOT (NOT has_function_privilege('authenticated','public.dp_ocorrencia_atestado_aplicar(uuid)','EXECUTE')) THEN RAISE EXCEPTION 'INTERNAL HELPER authenticated'; END IF; END $$;
+ROLLBACK;
+SELECT 'PASS: viewer/cross-company SELECT and seven RPC denials; administrator/self allowed; blocked administrator denied; internal helper and TRUNCATE grants removed; fixtures rolled back' result;
