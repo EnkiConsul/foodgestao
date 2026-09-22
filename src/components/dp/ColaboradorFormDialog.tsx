@@ -2654,6 +2654,9 @@ export function ColaboradorFormDialog({
           <p className="order-2 text-center text-[11px] text-muted-foreground sm:order-1 sm:text-left sm:text-xs">
             {`Etapa ${ABAS.indexOf(tab as AbaCadastro) + 1} de ${ABAS.length}`}
             {dirty ? " · alterações não salvas" : ""}
+            {!isEdit && !criadoId && rotuloSalvoEm(rascunho.salvoEm)
+              ? ` · rascunho ${rotuloSalvoEm(rascunho.salvoEm).toLowerCase()}`
+              : ""}
           </p>
           <div className="order-1 flex w-full items-center gap-2 sm:order-2 sm:w-auto">
             <Button
