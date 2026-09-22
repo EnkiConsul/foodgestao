@@ -17,7 +17,9 @@ import {
 } from "@/components/ui/table";
 import { AdmissaoRegrasPanel } from "@/components/dp/preadmissao/AdmissaoRegrasPanel";
 import { REGIMES_ADMISSAO } from "@/lib/dp/regimesAdmissao";
-import { PreadmissaoConviteDialog } from "@/components/dp/preadmissao/PreadmissaoConviteDialog";
+import {
+  PreadmissaoConviteDialog, type ConviteInicial,
+} from "@/components/dp/preadmissao/PreadmissaoConviteDialog";
 import { PreadmissaoExcluirDialog } from "@/components/dp/preadmissao/PreadmissaoExcluirDialog";
 import { PreadmissaoRevisaoDialog } from "@/components/dp/preadmissao/PreadmissaoRevisaoDialog";
 import { notifyError } from "@/lib/notifyError";
@@ -42,10 +44,12 @@ interface Props {
   onConvidarChange?: (aberto: boolean) => void;
   /** Mostra o botão de convidar dentro do painel (a tela própria usa o cabeçalho). */
   mostrarBotaoConvidar?: boolean;
+  /** Dados já conhecidos da pessoa (promoção de folguista). */
+  conviteInicial?: ConviteInicial | null;
 }
 
 export function PreadmissoesPanel({
-  convidarAberto, onConvidarChange, mostrarBotaoConvidar = false,
+  convidarAberto, onConvidarChange, mostrarBotaoConvidar = false, conviteInicial = null,
 }: Props) {
   const { data: lista = [], isLoading } = useDpPreadmissoes();
   const { data: cargos = [] } = useDpCargos();
@@ -242,7 +246,11 @@ export function PreadmissoesPanel({
       </Card>
       )}
 
-      <PreadmissaoConviteDialog open={convidando} onOpenChange={setConvidando} />
+      <PreadmissaoConviteDialog
+        open={convidando}
+        onOpenChange={setConvidando}
+        inicial={conviteInicial}
+      />
       <PreadmissaoRevisaoDialog
         preadmissaoId={revisando}
         onOpenChange={() => setRevisando(null)}

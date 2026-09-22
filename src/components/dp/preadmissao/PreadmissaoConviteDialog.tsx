@@ -7,7 +7,7 @@
  * está cadastrada ou já tem uma ficha em andamento. A duplicidade é conferida
  * outra vez antes da efetivação.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Copy, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,13 +23,26 @@ import { isValidCpf, maskCpf } from "@/lib/cpf";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPreadmissaoConvite } from "@/hooks/dp/useDpPreadmissoes";
 import { notifyError } from "@/lib/notifyError";
+import { mensagemOrigemApoio, vincularOrigemApoio } from "@/lib/dp/apoio-origem";
+
+/** Dados já conhecidos da pessoa (promoção de folguista / pessoa em teste). */
+export interface ConviteInicial {
+  nome?: string | null;
+  whatsapp?: string | null;
+  cpf?: string | null;
+  cargoId?: string | null;
+  unidadeId?: string | null;
+  /** Quando o convite nasce de alguém do banco de folguistas. */
+  pessoaApoioId?: string | null;
+}
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  inicial?: ConviteInicial | null;
 }
 
-export function PreadmissaoConviteDialog({ open, onOpenChange }: Props) {
+export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props) {
   const { selectedCompanyId } = useCompanyContext();
   const { data: cargos = [] } = useDpCargos();
   const { data: unidades = [] } = useDpUnidades();
@@ -48,6 +61,19 @@ export function PreadmissaoConviteDialog({ open, onOpenChange }: Props) {
   const [validade, setValidade] = useState<string | null>(null);
   /** Número normalizado pelo servidor (com DDI) — é o que vai para o wa.me. */
   const [numeroEnvio, setNumeroEnvio] = useState<string | null>(null);
+
+  /**
+   * Promoção de folguista: o que já está cadastrado dela entra preenchido, e o
+   * gestor só confirma vínculo, trabalho após 22h e prazo.
+   */
+  useEffect(() => {
+    if (!open || !inicial) return;
+    setNome((v) => v || (inicial.nome ?? "").toLocaleUpperCase("pt-BR"));
+    setWhatsapp((v) => v || (inicial.whatsapp ?? ""));
+    setCpf((v) => v || maskCpf(String(inicial.cpf ?? "").replace(/\D/g, "")));
+    if (inicial.unidadeId) setUnidadeId((v) => v || inicial.unidadeId!);
+    if (inicial.cargoId) setCargoId((v) => v || inicial.cargoId!);
+  }, [open, inicial]);
 
   const unidadesDaEmpresa = unidades.filter((u) => u.company_id === selectedCompanyId);
   const cargosDaEmpresa = cargos; // o hook já traz apenas os cargos da empresa selecionada
@@ -91,6 +117,15 @@ export function PreadmissaoConviteDialog({ open, onOpenChange }: Props) {
         trabalho_apos_22h: apos22h === "sim",
         dias_validade: Number(dias) || 7,
       });
+      // Promoção de folguista: a admissão fica amarrada à pessoa no servidor,
+      // para que ela não seja promovida duas vezes por caminhos diferentes.
+      if (inicial?.pessoaApoioId) {
+        try {
+          await vincularOrigemApoio(inicial.pessoaApoioId, { preadmissaoId: r.preadmissao_id });
+        } catch (e) {
+          toast.error(mensagemOrigemApoio(e));
+        }
+      }
       setLink(r.link);
       setValidade(r.expires_at);
       setNumeroEnvio(r.whatsapp ?? null);

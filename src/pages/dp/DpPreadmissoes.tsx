@@ -5,17 +5,21 @@
  * "Pré-Admissão" da tela de Colaboradores.
  */
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { UserPlus, UserSquare2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { PreadmissoesPanel } from "@/components/dp/preadmissao/PreadmissoesPanel";
+import type { ConviteInicial } from "@/components/dp/preadmissao/PreadmissaoConviteDialog";
 
 export default function DpPreadmissoes() {
   // Chegando por "Enviar Link De Pré-Admissão" na tela de Colaboradores, o
   // convite já abre na frente (não existe entrada própria no menu).
   const [params, setParams] = useSearchParams();
   const [convidando, setConvidando] = useState(params.get("novo") === "1");
+  // Promoção de folguista: os dados já cadastrados chegam junto da navegação.
+  const { state } = useLocation() as { state?: { conviteInicial?: ConviteInicial } | null };
+  const conviteInicial = state?.conviteInicial ?? null;
 
   return (
     <DpPage>
@@ -31,6 +35,7 @@ export default function DpPreadmissoes() {
       />
 
       <PreadmissoesPanel
+        conviteInicial={conviteInicial}
         convidarAberto={convidando}
         onConvidarChange={(v) => {
           setConvidando(v);

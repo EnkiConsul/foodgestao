@@ -25,6 +25,7 @@ import {
   jornadaDaFicha, useAplicarFicha, useIgnorarFicha, type FichaItem,
 } from "@/hooks/useDpFichaImportacao";
 import { notifyError } from "@/lib/notifyError";
+import { mensagemOrigemApoio, vincularOrigemApoio } from "@/lib/dp/apoio-origem";
 import { EnderecoFields } from "@/components/shared/EnderecoFields";
 import { anexarSomenteFicha, useDpPreadmissao } from "@/hooks/dp/useDpPreadmissoes";
 import {
@@ -90,11 +91,14 @@ interface Props {
    * pré-admissão acontecem na mesma operação.
    */
   preadmissaoId?: string | null;
+  /** Promoção de folguista: pessoa que passa a constar como já promovida. */
+  pessoaApoioId?: string | null;
 }
 
 export function FichaRevisaoCard({
   item, cargos, unidades, setores = [], turnos = [], unidadePadraoId, empresaCnpj,
   setorPadraoId = null, regimePadrao = null, onAbrirCadastro, preadmissaoId = null,
+  pessoaApoioId = null,
 }: Props) {
   const extraidos = (item.dados_extraidos ?? {}) as Record<string, unknown>;
   const confianca = (item.confianca_campos ?? {}) as Record<string, string>;
@@ -273,8 +277,17 @@ export function FichaRevisaoCard({
         preadmissaoId,
       },
       {
-        onSuccess: () => {
+        onSuccess: async () => {
           setComparacao(false);
+          // Promoção de folguista: o servidor liga a ficha à pessoa e conclui a
+          // promoção. Repetir a chamada não promove duas vezes.
+          if (pessoaApoioId) {
+            try {
+              await vincularOrigemApoio(pessoaApoioId, { fichaItemId: item.id });
+            } catch (e) {
+              toast.error(mensagemOrigemApoio(e));
+            }
+          }
           toast.success(
             preadmissaoId
               ? "Pré-admissão concluída e cadastro criado"
