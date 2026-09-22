@@ -143,10 +143,54 @@ export default function DpBeneficios() {
         />
       </DpStatGrid>
 
-      <DpContentCard contentClassName="p-3 sm:p-4 md:p-5">
-        <div className="max-w-sm space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Colaborador</Label>
-          <Select value={colabFilter} onValueChange={setColabFilter}>
+      <DpFilters
+        search={{
+          value: filtros.busca,
+          onChange: (v) => setFiltro("busca", v),
+          placeholder: "Buscar por nome...",
+        }}
+        activeCount={contarFiltrosBeneficios(filtros)}
+        chips={chipsFiltros}
+        onClear={() => setFiltros(FILTROS_BENEFICIOS_PADRAO)}
+        className="mb-3"
+      >
+        <DpFilterField label="Unidade">
+          <Select value={filtros.unidade} onValueChange={(v) => setFiltro("unidade", v)}>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value="todas">Todas</SelectItem>
+              {(unidades.data ?? []).map((u: any) => (
+                <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+        <DpFilterField label="Cargo">
+          <Select value={filtros.cargo} onValueChange={(v) => setFiltro("cargo", v)}>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value="todos">Todos</SelectItem>
+              {(cargos.data ?? []).map((c: any) => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+        <DpFilterField label="Situação">
+          <Select
+            value={filtros.situacao}
+            onValueChange={(v) => setFiltro("situacao", v as SituacaoBeneficios)}
+          >
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {(Object.keys(SITUACAO_BENEFICIOS_LABEL) as SituacaoBeneficios[]).map((s) => (
+                <SelectItem key={s} value={s}>{SITUACAO_BENEFICIOS_LABEL[s]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+        <DpFilterField label="Colaborador">
+          <Select value={filtros.colaborador} onValueChange={(v) => setFiltro("colaborador", v)}>
             <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent className="max-h-72">
               <SelectItem value="todos">Todos</SelectItem>
@@ -155,8 +199,8 @@ export default function DpBeneficios() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </DpContentCard>
+        </DpFilterField>
+      </DpFilters>
 
 
       {(b.isError || cadastro.isError) && (
