@@ -1,13 +1,22 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { BadgeCheck, Download, Eye, Loader2, Receipt, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { abrirDocumento, linkDocumentoAssinado } from "@/lib/documentoArquivo";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { aceitaComprovante } from "@/lib/dp/documentoTipos";
+import { hojeISO, validarDataPagamento } from "@/lib/dp/comprovante-data";
 import { useDpComprovantePagamento, type ComprovanteAlvo } from "@/hooks/useDpComprovantePagamento";
 
 const MAX_MB = 15;
