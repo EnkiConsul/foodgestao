@@ -1,0 +1,309 @@
+{
+  "at": "2026-09-22T02:54:07.229Z",
+  "mode": "post",
+  "projectRef": "utjhzpdbqzajrhnzcher",
+  "method": "HTTP REST with real synthetic logins; no production traffic",
+  "tests": 40,
+  "passed": 39,
+  "failed": 1,
+  "results": [
+    {
+      "name": "viewer_can_read_company_B_account",
+      "expected": "read",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "own_company_account",
+      "expected": "allowed",
+      "status": 201,
+      "sqlstate": null,
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "cross_company_source",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "viewer_cannot_write_company_B",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "owner_D_company_B",
+      "expected": "allowed",
+      "status": 201,
+      "sqlstate": null,
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "non_member_company_A",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "anonymous_cannot_write",
+      "expected": "denied",
+      "status": 401,
+      "sqlstate": "42501",
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "own_personal_account",
+      "expected": "allowed",
+      "status": 201,
+      "sqlstate": null,
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "other_personal_account",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "personal_context_corporate_account",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "corporate_context_personal_account",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "personal_context_with_company",
+      "expected": "denied",
+      "status": 400,
+      "sqlstate": "23514",
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "corporate_context_without_company",
+      "expected": "denied",
+      "status": 400,
+      "sqlstate": "23514",
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "missing_account",
+      "expected": "denied",
+      "status": 409,
+      "sqlstate": "23503",
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "own_card",
+      "expected": "allowed",
+      "status": 201,
+      "sqlstate": null,
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "cross_company_card",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "own_personal_card",
+      "expected": "allowed",
+      "status": 201,
+      "sqlstate": null,
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "other_personal_card",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "corporate_context_personal_card",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "same_company_transfer",
+      "expected": "allowed",
+      "status": 201,
+      "sqlstate": null,
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "cross_company_transfer",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "cross_company_transfer_source",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "edit_description",
+      "expected": "allowed",
+      "status": 200,
+      "sqlstate": null,
+      "passed": true
+    },
+    {
+      "name": "change_same_company_account",
+      "expected": "allowed",
+      "status": 200,
+      "sqlstate": null,
+      "passed": true
+    },
+    {
+      "name": "update_cross_company_account",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true
+    },
+    {
+      "name": "update_cross_company_card",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true
+    },
+    {
+      "name": "update_context_only",
+      "expected": "denied",
+      "status": 400,
+      "sqlstate": "23514",
+      "passed": true
+    },
+    {
+      "name": "update_null_company",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true
+    },
+    {
+      "name": "failed_updates_preserve_balance",
+      "expected": "A=0,A2=7,B=0",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "batch_atomic_cross_company",
+      "expected": "all denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true
+    },
+    {
+      "name": "account_tenant_immutable",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true
+    },
+    {
+      "name": "account_context_immutable",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true
+    },
+    {
+      "name": "personal_account_owner_immutable",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true
+    },
+    {
+      "name": "card_tenant_immutable",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true
+    },
+    {
+      "name": "card_context_immutable",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true
+    },
+    {
+      "name": "personal_card_owner_immutable",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true
+    },
+    {
+      "name": "account_name_edit",
+      "expected": "allowed",
+      "status": 403,
+      "sqlstate": "42501",
+      "message": "permission denied for table accounts",
+      "passed": false
+    },
+    {
+      "name": "card_limit_edit",
+      "expected": "allowed",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "balance_engine_not_public",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true
+    },
+    {
+      "name": "fixture_balances_zero",
+      "expected": "zero",
+      "status": 200,
+      "passed": true
+    }
+  ]
+}

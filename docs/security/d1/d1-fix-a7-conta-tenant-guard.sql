@@ -1,4 +1,6 @@
 -- ============================================================================
+-- SUPERADO: não aplicar este rascunho. Usar a migração
+-- 20260922024535_f01_transaction_source_scope.sql e docs/security/f01/README.md.
 -- Correção PREPARADA do achado A7 — NÃO APLICADA.
 -- Exige que a conta (account_id) e o cartão (credit_card_id) do lançamento
 -- pertençam à mesma empresa do lançamento. Mesmo padrão e mesmo código de erro

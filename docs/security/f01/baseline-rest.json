@@ -1,0 +1,41 @@
+{
+  "at": "2026-09-22T02:49:44.308Z",
+  "mode": "baseline",
+  "projectRef": "utjhzpdbqzajrhnzcher",
+  "method": "HTTP REST with real synthetic logins; no production traffic",
+  "tests": 4,
+  "passed": 3,
+  "failed": 1,
+  "results": [
+    {
+      "name": "viewer_can_read_company_B_account",
+      "expected": "read",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "own_company_account",
+      "expected": "allowed",
+      "status": 201,
+      "sqlstate": null,
+      "passed": true,
+      "cleanup": true
+    },
+    {
+      "name": "cross_company_source",
+      "expected": "denied",
+      "status": 201,
+      "sqlstate": null,
+      "passed": false,
+      "cleanup": true
+    },
+    {
+      "name": "viewer_cannot_write_company_B",
+      "expected": "denied",
+      "status": 403,
+      "sqlstate": "42501",
+      "passed": true,
+      "cleanup": true
+    }
+  ]
+}
