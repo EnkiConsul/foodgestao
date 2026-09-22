@@ -3,6 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
 import type { DiaConfig } from "@/lib/dp/config-trabalho";
+import {
+  salvarConfigTrabalho,
+  encerrarConfigTrabalho,
+  excluirConfigTrabalho,
+} from "@/lib/dp/colaborador-oficial";
 
 type ConfigRow = Database["public"]["Tables"]["dp_colaborador_config_trabalho"]["Row"];
 type DiaRow = Database["public"]["Tables"]["dp_colaborador_config_dias"]["Row"];
@@ -22,13 +27,6 @@ export interface ConfigTrabalhoForm {
 }
 
 const hoje = () => new Date().toISOString().slice(0, 10);
-
-/** Dia anterior a uma data ISO — usado para encerrar a vigência anterior sem sobreposição. */
-function diaAnterior(iso: string): string {
-  const d = new Date(`${iso}T12:00:00`);
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
-}
 
 /** Configurações de trabalho do colaborador, com histórico por vigência. */
 export function useDpColaboradorConfigTrabalho(colaboradorId?: string | null) {
@@ -58,114 +56,50 @@ export function useDpColaboradorConfigTrabalho(colaboradorId?: string | null) {
   };
 
   /**
-   * Cria uma nova configuração vigente. A configuração anterior em aberto é
-   * encerrada no dia anterior ao novo início, preservando o histórico.
+   * Salva a configuração vigente pela rotina oficial: o servidor encerra a
+   * configuração anterior e grava os dias na mesma operação.
    */
   const salvar = useMutation({
     mutationFn: async (form: ConfigTrabalhoForm) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
       if (!colaboradorId) throw new Error("Colaborador não informado.");
 
-      const aberta = (query.data ?? []).find((c) => !c.vigencia_fim);
-
-      // Mesma vigência da configuração em aberto: corrige a versão atual em vez
-      // de criar uma nova (evita histórico duplicado ao ajustar dias/turnos).
-      if (aberta && aberta.vigencia_inicio === form.vigencia_inicio) {
-        const { error } = await supabase
-          .from("dp_colaborador_config_trabalho")
-          .update({
-            unidade_id: form.unidade_id,
-            turno_padrao_id: form.turno_padrao_id,
-            folga_variavel: form.folga_variavel,
-            folga_fixa_dow: form.folga_variavel ? null : form.folga_fixa_dow,
-            observacoes: form.observacoes,
-          })
-          .eq("id", aberta.id);
-        if (error) throw error;
-
-        const { error: errDel } = await supabase
-          .from("dp_colaborador_config_dias")
-          .delete()
-          .eq("config_id", aberta.id);
-        if (errDel) throw errDel;
-
-        const { error: errDias } = await supabase.from("dp_colaborador_config_dias").insert(
-          form.dias.map((d) => ({
-            company_id: selectedCompanyId,
-            config_id: aberta.id,
-            dow: d.dow,
-            trabalha: d.trabalha,
-            turno_id: d.turno_id,
-            entrada: d.trabalha && d.entrada && d.saida ? d.entrada : null,
-            saida: d.trabalha && d.entrada && d.saida ? d.saida : null,
-            intervalo_minutos: d.trabalha && d.entrada && d.saida ? d.intervalo_minutos ?? 0 : null,
-            setor_id: d.trabalha ? (d.setor_id ?? null) : null,
-          })),
-        );
-        if (errDias) throw errDias;
-        return { id: aberta.id };
-      }
-
-      if (aberta) {
-        const fim = diaAnterior(form.vigencia_inicio);
-        const { error } = await supabase
-          .from("dp_colaborador_config_trabalho")
-          .update({ vigencia_fim: fim < aberta.vigencia_inicio ? aberta.vigencia_inicio : fim })
-          .eq("id", aberta.id);
-        if (error) throw error;
-      }
-
-
-      const { data, error } = await supabase
-        .from("dp_colaborador_config_trabalho")
-        .insert({
-          company_id: selectedCompanyId,
-          colaborador_id: colaboradorId,
+      const id = await salvarConfigTrabalho({
+        colaboradorId,
+        config: {
+          vigencia_inicio: form.vigencia_inicio,
           unidade_id: form.unidade_id,
           turno_padrao_id: form.turno_padrao_id,
           folga_variavel: form.folga_variavel,
           folga_fixa_dow: form.folga_variavel ? null : form.folga_fixa_dow,
           observacoes: form.observacoes,
-          vigencia_inicio: form.vigencia_inicio,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-
-      const { error: errDias } = await supabase.from("dp_colaborador_config_dias").insert(
-        form.dias.map((d) => ({
-          company_id: selectedCompanyId,
-          config_id: data.id,
-          dow: d.dow,
-          trabalha: d.trabalha,
-          turno_id: d.turno_id,
-          entrada: d.trabalha && d.entrada && d.saida ? d.entrada : null,
-          saida: d.trabalha && d.entrada && d.saida ? d.saida : null,
-          intervalo_minutos: d.trabalha && d.entrada && d.saida ? d.intervalo_minutos ?? 0 : null,
-          setor_id: d.trabalha ? (d.setor_id ?? null) : null,
-        })),
-      );
-      if (errDias) throw errDias;
-      return data;
+          dias: form.dias.map((d) => ({
+            dow: d.dow,
+            trabalha: d.trabalha,
+            turno_id: d.turno_id ?? null,
+            entrada: d.trabalha && d.entrada && d.saida ? d.entrada : null,
+            saida: d.trabalha && d.entrada && d.saida ? d.saida : null,
+            intervalo_minutos:
+              d.trabalha && d.entrada && d.saida ? (d.intervalo_minutos ?? 0) : null,
+            setor_id: d.trabalha ? (d.setor_id ?? null) : null,
+          })),
+        },
+      });
+      return { id };
     },
     onSuccess: invalidate,
   });
 
   const encerrar = useMutation({
     mutationFn: async ({ id, fim }: { id: string; fim?: string }) => {
-      const { error } = await supabase
-        .from("dp_colaborador_config_trabalho")
-        .update({ vigencia_fim: fim ?? hoje() })
-        .eq("id", id);
-      if (error) throw error;
+      await encerrarConfigTrabalho(id, fim ?? hoje());
     },
     onSuccess: invalidate,
   });
 
   const remover = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_colaborador_config_trabalho").delete().eq("id", id);
-      if (error) throw error;
+      await excluirConfigTrabalho(id);
     },
     onSuccess: invalidate,
   });

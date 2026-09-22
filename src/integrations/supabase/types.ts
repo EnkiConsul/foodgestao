@@ -10753,6 +10753,9 @@ export type Database = {
           id: string
           motivo: string
           pdf_storage_path: string | null
+          removido_em: string | null
+          removido_motivo: string | null
+          removido_por: string | null
           suspensao_dias: number | null
           tipo: Database["public"]["Enums"]["dp_disciplinar_tipo"]
           updated_at: string
@@ -10767,6 +10770,9 @@ export type Database = {
           id?: string
           motivo: string
           pdf_storage_path?: string | null
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           suspensao_dias?: number | null
           tipo: Database["public"]["Enums"]["dp_disciplinar_tipo"]
           updated_at?: string
@@ -10781,6 +10787,9 @@ export type Database = {
           id?: string
           motivo?: string
           pdf_storage_path?: string | null
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           suspensao_dias?: number | null
           tipo?: Database["public"]["Enums"]["dp_disciplinar_tipo"]
           updated_at?: string
@@ -15161,6 +15170,18 @@ export type Database = {
         Returns: string
       }
       dp_colaborador_ativo_of: { Args: { _user_id: string }; Returns: string }
+      dp_colaborador_config_encerrar: {
+        Args: { p_config_id: string; p_fim?: string }
+        Returns: undefined
+      }
+      dp_colaborador_config_excluir: {
+        Args: { p_config_id: string }
+        Returns: undefined
+      }
+      dp_colaborador_config_salvar: {
+        Args: { p_colaborador_id: string; p_config: Json }
+        Returns: string
+      }
       dp_colaborador_horario_ocupado: {
         Args: {
           _colaborador_id: string
@@ -15174,6 +15195,14 @@ export type Database = {
         Returns: boolean
       }
       dp_colaborador_of: { Args: { _user_id: string }; Returns: string }
+      dp_colaborador_perfil_atualizar: {
+        Args: { p_dados: Json }
+        Returns: string
+      }
+      dp_colaborador_salvar: {
+        Args: { p_company_id?: string; p_dados: Json; p_id?: string }
+        Returns: string
+      }
       dp_colaboradores_lixeira: {
         Args: { p_company_id: string }
         Returns: {
@@ -15685,6 +15714,10 @@ export type Database = {
         Args: { _documento_id: string; _ip?: string; _user_agent?: string }
         Returns: string
       }
+      dp_documento_anexo_aceitar: {
+        Args: { p_ip?: string; p_user_agent?: string; p_vinculo_id: string }
+        Returns: string
+      }
       dp_documento_arquivar: {
         Args: { _documento_id: string; _motivo?: string }
         Returns: boolean
@@ -15968,6 +16001,16 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_folga_admin_criar: {
+        Args: {
+          p_colaborador_id: string
+          p_data: string
+          p_observacao?: string
+          p_origem?: string
+          p_tipo?: string
+        }
+        Returns: string
+      }
       dp_folga_admin_remarcar: {
         Args: {
           p_colaborador: string
@@ -16101,6 +16144,7 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_folgas_admin_criar_lote: { Args: { p_itens: Json }; Returns: number }
       dp_folgas_janela_efetiva: {
         Args: { _company: string; _data_ref?: string; _unidade?: string }
         Returns: Json
@@ -16622,6 +16666,37 @@ export type Database = {
       dp_regime_formalizado: {
         Args: { p_regime: Database["public"]["Enums"]["dp_regime_trabalho"] }
         Returns: boolean
+      }
+      dp_registro_disciplinar_anexar: {
+        Args: { p_pdf_storage_path: string; p_registro_id: string }
+        Returns: undefined
+      }
+      dp_registro_disciplinar_corrigir: {
+        Args: {
+          p_colaborador_id?: string
+          p_data?: string
+          p_descricao?: string
+          p_motivo?: string
+          p_registro_id: string
+          p_suspensao_dias?: number
+          p_tipo?: string
+        }
+        Returns: undefined
+      }
+      dp_registro_disciplinar_excluir: {
+        Args: { p_motivo: string; p_registro_id: string }
+        Returns: undefined
+      }
+      dp_registro_disciplinar_registrar: {
+        Args: {
+          p_colaborador_id: string
+          p_data: string
+          p_descricao?: string
+          p_motivo: string
+          p_suspensao_dias?: number
+          p_tipo: string
+        }
+        Returns: string
       }
       dp_regra_bloqueia_data: {
         Args: { _company_id: string; _data: string; _unidade_id: string }

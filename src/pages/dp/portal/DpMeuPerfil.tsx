@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 import { notifyError } from "@/lib/notifyError";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
+import { atualizarMeuCadastro } from "@/lib/dp/colaborador-oficial";
 
 export default function DpMeuPerfil() {
   const { user } = useAuth();
@@ -111,7 +112,7 @@ export default function DpMeuPerfil() {
       if (!p) throw new Error("Perfil não encontrado");
       const problema = erroPagamento(pagamento);
       if (problema) throw new Error(problema);
-      const { error } = await supabase.from("dp_colaboradores").update({
+      await atualizarMeuCadastro({
         telefone: form.telefone || null,
         whatsapp: form.whatsapp || null,
         email_contato: form.email_contato || null,
@@ -121,8 +122,7 @@ export default function DpMeuPerfil() {
           const { recebe_em_especie: _ignorado, ...resto } = pagamentoParaBanco(pagamento);
           return p.recebe_em_especie === true ? {} : resto;
         })(),
-      }).eq("id", p.id);
-      if (error) throw error;
+      });
     },
     onSuccess: () => {
       toast.success("Perfil atualizado");

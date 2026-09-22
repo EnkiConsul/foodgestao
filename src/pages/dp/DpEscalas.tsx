@@ -7,6 +7,7 @@ import { CalendarRange, Wand2, Download, AlertTriangle, CheckCircle2, Upload } f
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { criarFolgasLote } from "@/lib/dp/colaborador-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpConfigDp } from "@/hooks/useDpConfigDp";
 import { semanasEfetivas, semanasEfetivasMulher } from "@/lib/dp/dsr-rules";
@@ -246,18 +247,14 @@ export default function DpEscalas() {
       const rows = resultado.propostas
         .filter((p) => selecionadas.has(`${p.colaboradorId}|${p.data}`))
         .map((p) => ({
-          company_id: selectedCompanyId,
           colaborador_id: p.colaboradorId,
           data: p.data,
-          tipo: "normal" as const,
-          origem: "admin_manual" as const,
-          status: "agendada" as const,
+          tipo: "normal",
+          origem: "admin_manual",
           observacao: `Escala gerada — ${p.motivo}`,
         }));
       if (rows.length === 0) throw new Error("Selecione ao menos uma folga");
-      const { error } = await supabase.from("dp_folgas").insert(rows);
-      if (error) throw error;
-      return rows.length;
+      return await criarFolgasLote(rows);
     },
     onSuccess: (n) => {
       toast.success(`${n} folga(s) publicada(s) na escala`);

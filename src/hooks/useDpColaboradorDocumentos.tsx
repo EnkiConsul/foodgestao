@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { aceitarDocumentoAnexo } from "@/lib/dp/colaborador-oficial";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { useAuth } from "@/hooks/useAuth";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
@@ -403,24 +404,9 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
       const alvo = anexo ?? item.vinculo;
       if (!ctx || !alvo) throw new Error("Documento não disponível para aceite");
 
-      const { error: eAceite } = await supabase.from("dp_documento_aceites").insert({
-        company_id: ctx.colaborador.company_id,
-        colaborador_id: ctx.colaborador.id,
-        requisito_id: item.requisito.id,
-        documento_id: alvo.documento_id,
-        modelo: item.requisito.tipo_documento,
-        modelo_versao: "anexo",
-        conteudo_hash: (alvo as any).conteudo_hash ?? "",
-        aceito_por: user?.id ?? null,
-        user_agent: navigator.userAgent.slice(0, 500),
-      });
-      if (eAceite) throw eAceite;
-
-      const { error } = await supabase
-        .from("dp_colaborador_documentos")
-        .update({ aceito_em: new Date().toISOString() })
-        .eq("id", alvo.id);
-      if (error) throw error;
+      // O aceite é gravado pelo servidor: confere o vínculo, guarda a versão e o
+      // conteúdo do arquivo e marca o anexo como aceito na mesma operação.
+      await aceitarDocumentoAnexo(alvo.id);
     },
     onSuccess: () => {
       toast.success("Aceite registrado com data, hora e dispositivo");
