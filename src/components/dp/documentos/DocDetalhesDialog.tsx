@@ -100,6 +100,10 @@ export function DocDetalhesDialog(props: {
           .order("created_at", { ascending: false }),
       ]);
 
+      // Sem isso um campo errado no select derrubava a tela em silêncio e o
+// comprovante já anexado aparecia como inexistente.
+      if ((docRes as any)?.error) throw (docRes as any).error;
+      if ((eventosRes as any)?.error) throw (eventosRes as any).error;
       const doc = (docRes as any)?.data ?? null;
       const aceite = (aceiteRes as any)?.data ?? null;
       const eventos = (eventosRes as any)?.data ?? [];
