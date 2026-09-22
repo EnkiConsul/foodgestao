@@ -92,6 +92,7 @@ type Dados = {
   ip: string;
   dispositivo: string;
   conteudoHash: string;
+  versao: string;
   registroId: string;
   avisos: string[];
 };
@@ -127,6 +128,7 @@ function paginaCertificado(pdf: PDFDocument, fonte: PDFFont, negrito: PDFFont, d
     ["Endereço IP", d.ip],
     ["Arquivo", d.arquivo],
     ["Dispositivo / navegador", d.dispositivo],
+    ["Versão aprovada do documento", d.versao],
     ["Código do registro", d.registroId],
     ["Impressão digital do conteúdo", d.conteudoHash],
   ];
@@ -294,14 +296,16 @@ Deno.serve(async (req) => {
     const admin = serviceClient();
     const { data: registro } = await admin
       .from("dp_documentos")
-      .select("id, company_id, colaborador_id, titulo, tipo, referencia_data, comprovante_pago_em, comprovante_file_name")
+      .select(
+        "id, company_id, colaborador_id, titulo, tipo, referencia_data, versao, arquivo_sha256, comprovante_pago_em, comprovante_file_name",
+      )
       .eq("id", documentoId)
       .maybeSingle();
     if (!registro) return erro(404, "Documento não encontrado.");
 
     const { data: aceite } = await admin
       .from("dp_documento_aceites")
-      .select("id, aceito_em, aceito_por, ip, user_agent, conteudo_hash")
+      .select("id, aceito_em, aceito_por, ip, user_agent, conteudo_hash, documento_versao, hash_origem")
       .eq("documento_id", documentoId)
       .order("aceito_em", { ascending: false })
       .limit(1)
@@ -334,9 +338,34 @@ Deno.serve(async (req) => {
       ip: String(aceite.ip ?? "—"),
       dispositivo: String(aceite.user_agent ?? "—"),
       conteudoHash: String(aceite.conteudo_hash ?? ""),
+      versao: `Versão ${String(aceite.documento_versao ?? registro.versao ?? 1)}`,
       registroId: String(aceite.id ?? ""),
       avisos,
     };
+
+    // O certificado sempre descreve a VERSÃO que foi aprovada. Se o conteúdo
+    // atual do documento não corresponder ao conteúdo aprovado, isso é dito em
+    // linguagem de negócio, e nunca substituído silenciosamente.
+    if (aceite.hash_origem === "legado_caminho") {
+      avisos.push(
+        "Esta aprovação foi registrada antes da conferência automática do conteúdo, por isso a impressão digital acima identifica o arquivo aprovado, e não o seu conteúdo.",
+      );
+    } else if (
+      registro.arquivo_sha256 && aceite.conteudo_hash &&
+      String(registro.arquivo_sha256) !== String(aceite.conteudo_hash)
+    ) {
+      avisos.push(
+        "Uma nova versão deste documento foi enviada depois desta aprovação e precisa ser aprovada novamente. Este certificado se refere à versão aprovada pelo colaborador.",
+      );
+    }
+    if (
+      aceite.documento_versao && registro.versao &&
+      Number(aceite.documento_versao) !== Number(registro.versao)
+    ) {
+      avisos.push(
+        "Existe uma versão mais recente deste documento. A aprovação comprovada aqui é da versão indicada acima.",
+      );
+    }
 
     // Documento assinado
     const baixarDoc = await admin.storage.from(BUCKET).download(doc.file_path);
