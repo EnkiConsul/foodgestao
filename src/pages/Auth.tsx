@@ -844,6 +844,7 @@ export default function Auth() {
           </form>
         )}
         </Card>
+        <ReclameAquiSeal className="mt-4 flex justify-center" />
           </div>
         </section>
       </div>
