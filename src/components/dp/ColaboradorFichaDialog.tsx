@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { TIPOS_LICENCA, labelAfastamento, licencaCobre } from "@/lib/dp/licencas";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpDependentes } from "@/hooks/useDpDependentes";
+import { useDpSetores } from "@/hooks/useDpSetores";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
