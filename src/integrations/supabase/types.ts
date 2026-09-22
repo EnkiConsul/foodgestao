@@ -15913,6 +15913,13 @@ export type Database = {
         Args: { _company_id: string; _unidade_id?: string }
         Returns: string
       }
+      dp_convocacoes_remuneracao_atual: {
+        Args: { p_ids: string[] }
+        Returns: {
+          convocacao_id: string
+          snapshot: Json
+        }[]
+      }
       dp_cpf_valido: { Args: { p: string }; Returns: boolean }
       dp_data_bloqueada_excluir: { Args: { p_id: string }; Returns: undefined }
       dp_data_bloqueada_rebloquear: {

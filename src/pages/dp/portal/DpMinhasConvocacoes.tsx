@@ -19,6 +19,7 @@ import { AceiteAtrasadoDialog } from "@/components/dp/convocacoes/AceiteAtrasado
 import { useMinhasConvocacoes, type MinhaOferta } from "@/hooks/useDpConvocacoes";
 import { RemuneracaoDiaDetalhe } from "@/components/dp/convocacoes/RemuneracaoDiaDetalhe";
 import { remuneracaoDoSnapshot } from "@/lib/dp/convocacao-remuneracao";
+import { useConvocacaoRemuneracaoAtual } from "@/hooks/useDpConvocacaoRemuneracaoAtual";
 import {
   STATUS_META, janelaEmAndamento, minutosDeAtraso, podeResponder, rotuloAtraso, statusEfetivo,
 } from "@/lib/dp/convocacoes";
@@ -39,13 +40,21 @@ const rotuloPrazo = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : null;
 
 
-/** Valor previsto vem do snapshot gravado na publicação — nunca recalculado aqui. */
-const remuneracaoPrevista = (c: MinhaOferta) =>
-  remuneracaoDoSnapshot(c.remuneracao_snapshot, {
-    entrada: c.entrada,
-    saida: c.saida,
-    termina_no_dia_seguinte: c.termina_no_dia_seguinte,
-  });
+/**
+ * Valor previsto vem do resumo gravado na publicação. Resumos antigos, de
+ * convocações ainda em aberto, são recalculados no servidor e sinalizados
+ * como estimativa pelo cadastro atual.
+ */
+const remuneracaoPrevista = (c: MinhaOferta, atual?: any) =>
+  remuneracaoDoSnapshot(
+    c.remuneracao_snapshot,
+    {
+      entrada: c.entrada,
+      saida: c.saida,
+      termina_no_dia_seguinte: c.termina_no_dia_seguinte,
+    },
+    atual,
+  );
 
 export default function DpMinhasConvocacoes() {
   const { user } = useAuth();
@@ -65,6 +74,8 @@ export default function DpMinhasConvocacoes() {
 
   const { rows, isLoading, isError, refetch, responder, proporParcial, registrarVisualizacao } =
     useMinhasConvocacoes(me.data ?? null);
+
+  const atuais = useConvocacaoRemuneracaoAtual(rows);
 
 
   // Visualização registrada uma única vez por oferta pendente ainda não vista.
@@ -141,7 +152,7 @@ export default function DpMinhasConvocacoes() {
     const emAndamento = c.status === "pendente" && janelaEmAndamento(c);
     const atraso = c.minutos_de_atraso ?? minutosDeAtraso(c.inicio_previsto);
     const prazo = rotuloPrazo(c.prazo_resposta);
-    const rem = remuneracaoPrevista(c);
+    const rem = remuneracaoPrevista(c, atuais[c.id]);
 
 
     return (

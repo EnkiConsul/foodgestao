@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { remuneracaoDoSnapshot, type ConvocacaoRemuneracao } from "@/lib/dp/convocacao-remuneracao";
+import { useConvocacaoRemuneracaoAtual } from "@/hooks/useDpConvocacaoRemuneracaoAtual";
 import { RemuneracaoDiaDetalhe } from "./RemuneracaoDiaDetalhe";
 
 const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -47,16 +48,21 @@ const STATUS_LABEL: Record<string, string> = {
  */
 export function CustoGrupoPanel({ convocacoes }: { convocacoes: ConvocacaoComValor[] }) {
   const [open, setOpen] = useState(false);
+  const atuais = useConvocacaoRemuneracaoAtual(convocacoes);
 
   const itens = useMemo<Item[]>(() => {
     return convocacoes
       .filter((c) => c.status === "aceita" || c.status === "pendente")
       .map((c) => {
-        const remuneracao = remuneracaoDoSnapshot(c.remuneracao_snapshot, {
-          entrada: c.entrada,
-          saida: c.saida,
-          termina_no_dia_seguinte: c.termina_no_dia_seguinte,
-        });
+        const remuneracao = remuneracaoDoSnapshot(
+          c.remuneracao_snapshot,
+          {
+            entrada: c.entrada,
+            saida: c.saida,
+            termina_no_dia_seguinte: c.termina_no_dia_seguinte,
+          },
+          atuais[c.id],
+        );
         if (!remuneracao) return null;
         return {
           id: c.id,
@@ -68,7 +74,7 @@ export function CustoGrupoPanel({ convocacoes }: { convocacoes: ConvocacaoComVal
       })
       .filter((i): i is Item => !!i)
       .sort((a, b) => a.data.localeCompare(b.data) || a.nome.localeCompare(b.nome));
-  }, [convocacoes]);
+  }, [convocacoes, atuais]);
 
   const totais = useMemo(() => {
     return itens.reduce(

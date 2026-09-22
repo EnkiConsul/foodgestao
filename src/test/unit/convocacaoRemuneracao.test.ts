@@ -3,6 +3,7 @@ import {
   calcularRemuneracaoConvocacao,
   minutosNoturnos,
   remuneracaoDoSnapshot,
+  snapshotDesatualizado,
 } from "@/lib/dp/convocacao-remuneracao";
 
 describe("minutosNoturnos", () => {
@@ -24,7 +25,7 @@ describe("minutosNoturnos", () => {
 });
 
 describe("calcularRemuneracaoConvocacao", () => {
-  it("abre as verbas proporcionais do intermitente", () => {
+  it("abre as verbas proporcionais do intermitente com DSR", () => {
     const r = calcularRemuneracaoConvocacao({
       valorUnitario: 10,
       unidade: "hora",
@@ -33,12 +34,57 @@ describe("calcularRemuneracaoConvocacao", () => {
       saida: "17:00",
     });
     expect(r.valorHoras).toBe(80);
-    expect(r.decimoTerceiro).toBeCloseTo(6.67, 2);
-    expect(r.ferias).toBeCloseTo(6.67, 2);
-    expect(r.tercoFerias).toBeCloseTo(2.22, 2);
+    expect(r.baseDsr).toBe(80);
+    expect(r.dsr).toBeCloseTo(13.33, 2);
+    expect(r.decimoTerceiro).toBeCloseTo(7.78, 2);
+    expect(r.ferias).toBeCloseTo(7.78, 2);
+    expect(r.tercoFerias).toBeCloseTo(2.59, 2);
     expect(r.inss).toBeGreaterThan(0);
+    expect(r.baseInss).toBeCloseTo(93.33, 2);
     expect(r.fgts).toBeCloseTo(Number((r.baseTributavel * 0.08).toFixed(2)), 2);
-    expect(r.liquido).toBeCloseTo(Number((r.bruto - r.inss).toFixed(2)), 2);
+    expect(r.liquido).toBeCloseTo(
+      Number((r.bruto - r.inss - r.inssDecimoTerceiro).toFixed(2)),
+      2,
+    );
+  });
+
+  it("reflete o adicional noturno na base do DSR", () => {
+    const r = calcularRemuneracaoConvocacao({
+      valorUnitario: 10,
+      unidade: "hora",
+      quantidade: 6,
+      entrada: "20:00",
+      saida: "02:00",
+      terminaNoDiaSeguinte: true,
+    });
+    expect(r.adicionalNoturno).toBeCloseTo(8, 2);
+    expect(r.baseDsr).toBeCloseTo(68, 2);
+    expect(r.dsr).toBeCloseTo(11.33, 2);
+  });
+
+  it("tributa o 13º separadamente e deixa férias fora da base do INSS", () => {
+    const r = calcularRemuneracaoConvocacao({
+      valorUnitario: 40,
+      unidade: "hora",
+      quantidade: 8,
+    });
+    expect(r.baseInss).toBeCloseTo(r.valorHoras + r.dsr, 2);
+    expect(r.inssDecimoTerceiro).toBeGreaterThan(0);
+    expect(r.descontosLista.some((d) => d.chave === "inss_13")).toBe(true);
+  });
+
+  it("soma o prêmio de assiduidade informado no dia", () => {
+    const r = calcularRemuneracaoConvocacao({
+      valorUnitario: 7.95,
+      unidade: "hora",
+      quantidade: 7.33,
+      premioAssiduidadeDia: 6.99,
+      valeAlimentacaoDia: 24,
+    });
+    expect(r.premioAssiduidade).toBe(6.99);
+    expect(r.valeAlimentacao).toBe(24);
+    expect(r.proventos.some((p) => p.chave === "premio")).toBe(true);
+    expect(r.proventos.some((p) => p.chave === "dsr")).toBe(true);
   });
 
   it("soma adicional noturno e vale-alimentação", () => {
@@ -55,16 +101,18 @@ describe("calcularRemuneracaoConvocacao", () => {
     expect(r.horasNoturnas).toBe(4);
     expect(r.adicionalNoturno).toBeCloseTo(8, 2);
     expect(r.valeAlimentacao).toBe(22);
-    expect(r.descontos).toBeCloseTo(Number((r.inss + 2).toFixed(2)), 2);
+    expect(r.descontos).toBeCloseTo(Number((r.inss + r.inssDecimoTerceiro + 2).toFixed(2)), 2);
   });
 
-  it("freelancer não gera verbas CLT nem INSS", () => {
+  it("freelancer não gera verbas CLT, DSR nem INSS", () => {
     const r = calcularRemuneracaoConvocacao({
       valorUnitario: 150,
       unidade: "diaria",
       quantidade: 1,
       comVerbasProporcionais: false,
     });
+    expect(r.dsr).toBe(0);
+    expect(r.inssDecimoTerceiro).toBe(0);
     expect(r.decimoTerceiro).toBe(0);
     expect(r.inss).toBe(0);
     expect(r.fgts).toBe(0);
@@ -85,5 +133,51 @@ describe("remuneracaoDoSnapshot", () => {
     );
     expect(r?.horasNoturnas).toBe(5);
     expect(r?.valeAlimentacao).toBe(15);
+  });
+
+  it("recalcula pelo cadastro atual quando o resumo é de versão anterior", () => {
+    const antigo = {
+      valor_unitario: 7.95,
+      quantidade_prevista: 7.33,
+      unidade_remuneracao: "hora",
+      fonte: "cadastro_colaborador",
+    };
+    const atual = {
+      versao: 2,
+      elegivel: true,
+      valor_unitario: 7.95,
+      quantidade_prevista: 7.33,
+      unidade_remuneracao: "hora",
+      vale_alimentacao_dia: 24,
+      premio_assiduidade_dia: 6.99,
+      dsr_divisor: 6,
+    };
+    const semAtual = remuneracaoDoSnapshot(antigo, undefined);
+    expect(semAtual?.valeAlimentacao).toBe(0);
+    expect(semAtual?.estimada).toBeUndefined();
+
+    const comAtual = remuneracaoDoSnapshot(antigo, undefined, atual);
+    expect(comAtual?.estimada).toBe(true);
+    expect(comAtual?.valeAlimentacao).toBe(24);
+    expect(comAtual?.premioAssiduidade).toBe(6.99);
+    expect(comAtual?.dsr).toBeGreaterThan(0);
+  });
+
+  it("não substitui resumo já na versão atual", () => {
+    const r = remuneracaoDoSnapshot(
+      { versao: 2, valor_unitario: 10, quantidade_prevista: 4, unidade_remuneracao: "hora" },
+      undefined,
+      { versao: 2, elegivel: true, valor_unitario: 99, quantidade_prevista: 4 },
+    );
+    expect(r?.valorHoras).toBe(40);
+    expect(r?.estimada).toBeUndefined();
+  });
+});
+
+describe("snapshotDesatualizado", () => {
+  it("reconhece resumos antigos e atuais", () => {
+    expect(snapshotDesatualizado({ valor_unitario: 10 })).toBe(true);
+    expect(snapshotDesatualizado({ versao: 2 })).toBe(false);
+    expect(snapshotDesatualizado(null)).toBe(false);
   });
 });
