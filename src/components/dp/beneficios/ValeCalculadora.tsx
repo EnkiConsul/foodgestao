@@ -66,7 +66,7 @@ interface LinhaCalculo {
 export function ValeCalculadora({ tipo }: Props) {
   const [competencia, setCompetencia] = useState(mesAtual());
   const [unidade, setUnidade] = useState("todas");
-  const [memoria, setMemoria] = useState<LinhaVale | null>(null);
+  const [memoria, setMemoria] = useState<{ linha: LinhaVale; diasInformados: number | null } | null>(null);
   const { data: unidades = [] } = useDpUnidades();
   const vale = useDpValeCalculadora(tipo, competencia, unidade);
   const apuracoes = useDpValeApuracoes(tipo, competencia);
@@ -278,7 +278,9 @@ export function ValeCalculadora({ tipo }: Props) {
             {dataCurta(vale.periodo.cobertura.inicio)} a {dataCurta(vale.periodo.cobertura.fim)}. Ao total de dias
             do ciclo atual soma-se a diferença do ciclo anterior (dias trabalhados − dias pagos), que pode ser
             positiva ou negativa. Informe os dias trabalhados do ciclo anterior; os dias pagos vêm do ciclo já
-            fechado, quando existir.
+            fechado, quando existir. Os dias a trabalhar vêm da escala, das convocações ou da jornada
+            habitual e podem ser ajustados por colaborador quando as folgas e férias ainda não foram
+            lançadas.
             {tipo === "vt" && " O desconto exibido é o limite legal de 6% do salário."}
           </span>
         </div>
@@ -331,6 +333,9 @@ export function ValeCalculadora({ tipo }: Props) {
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1">
                       {l.fechada && <Badge variant="secondary" className="text-[11px]">Ciclo fechado</Badge>}
+                      {l.previstosManual && (
+                        <Badge variant="outline" className="text-[11px]">Dias informados pelo gestor</Badge>
+                      )}
                       {l.base.semValorDia && (
                         <Badge variant="destructive" className="text-[11px]">Sem valor por dia cadastrado</Badge>
                       )}
@@ -347,14 +352,43 @@ export function ValeCalculadora({ tipo }: Props) {
                     <button
                       type="button"
                       className="text-[11px] text-primary underline-offset-2 hover:underline"
-                      onClick={() => setMemoria(l.base)}
+                      onClick={() =>
+                        setMemoria({
+                          linha: l.base,
+                          diasInformados: l.previstosManual ? diasNumero(l.previstos) : null,
+                        })
+                      }
                     >
                       Ver memória de cálculo
                     </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      Dias a trabalhar (ciclo atual)
+                    </Label>
+                    <Input
+                      inputMode="numeric"
+                      value={l.previstos}
+                      placeholder="0"
+                      disabled={l.fechada}
+                      onChange={(e) => editar(l, "previstos", e.target.value)}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Calculado pelo sistema: {l.base.diasPrevistos} dia(s).{" "}
+                      {l.previstosManual && !l.fechada && (
+                        <button
+                          type="button"
+                          className="text-primary underline-offset-2 hover:underline"
+                          onClick={() => usarCalculado(l)}
+                        >
+                          Usar o calculado
+                        </button>
+                      )}
+                    </p>
+                  </div>
                   <div className="space-y-1">
                     <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
                       Dias pagos (ciclo anterior)
@@ -363,6 +397,7 @@ export function ValeCalculadora({ tipo }: Props) {
                       inputMode="numeric"
                       value={l.pagos}
                       placeholder="0"
+                      disabled={l.fechada}
                       onChange={(e) => editar(l, "pagos", e.target.value)}
                     />
                     <p className="text-[11px] text-muted-foreground">
@@ -377,6 +412,7 @@ export function ValeCalculadora({ tipo }: Props) {
                       inputMode="numeric"
                       value={l.trabalhados}
                       placeholder="Informe os dias"
+                      disabled={l.fechada}
                       onChange={(e) => editar(l, "trabalhados", e.target.value)}
                     />
                     <p className="text-[11px] text-muted-foreground">
@@ -397,7 +433,7 @@ export function ValeCalculadora({ tipo }: Props) {
                       )}
                     </div>
                     <p className="text-[11px] text-muted-foreground">
-                      {l.base.diasPrevistos} + ({l.trabalhados === "" ? 0 : l.trabalhados} − {l.pagos === "" ? 0 : l.pagos}) = {l.totalDias} dia(s)
+                      {diasNumero(l.previstos)} + ({l.trabalhados === "" ? 0 : l.trabalhados} − {l.pagos === "" ? 0 : l.pagos}) = {l.totalDias} dia(s)
                     </p>
                   </div>
                 </div>
@@ -410,7 +446,8 @@ export function ValeCalculadora({ tipo }: Props) {
       <ValeMemoriaDialog
         open={!!memoria}
         onOpenChange={(o) => !o && setMemoria(null)}
-        linha={memoria}
+        linha={memoria?.linha ?? null}
+        diasInformados={memoria?.diasInformados ?? null}
         valeLabel={label}
       />
     </div>
