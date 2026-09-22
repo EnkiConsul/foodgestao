@@ -122,12 +122,16 @@ export function extrairDataDoTexto(
 
 /** Texto legível de um arquivo (PDF com camada de texto, imagem sem OCR). */
 async function textoDoArquivo(file: File): Promise<string> {
+  const limite = 2 * 1024 * 1024;
   try {
-    const buf = await file.arrayBuffer();
-    const bytes = new Uint8Array(buf.slice(0, 2 * 1024 * 1024));
-    return new TextDecoder("latin1").decode(bytes);
+    const buf = await file.slice(0, limite).arrayBuffer();
+    return new TextDecoder("utf-8", { fatal: false }).decode(new Uint8Array(buf));
   } catch {
-    return "";
+    try {
+      return await file.text();
+    } catch {
+      return "";
+    }
   }
 }
 
