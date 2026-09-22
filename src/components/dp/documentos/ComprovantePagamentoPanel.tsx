@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { abrirDocumento, linkDocumentoAssinado } from "@/lib/documentoArquivo";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
-import { aceitaComprovante } from "@/lib/dp/documentoTipos";
+import { aceitaComprovante, docTipoLabel } from "@/lib/dp/documentoTipos";
 import { hojeISO, validarDataPagamento } from "@/lib/dp/comprovante-data";
 import { useDpComprovantePagamento, type ComprovanteAlvo } from "@/hooks/useDpComprovantePagamento";
 
@@ -72,6 +72,7 @@ export function ComprovanteAnexarDialog(props: {
   substituir?: boolean;
   documentoTitulo?: string | null;
   colaboradorNome?: string | null;
+  competencia?: string | null;
   pagoEmAtual?: string | null;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -108,10 +109,24 @@ export function ComprovanteAnexarDialog(props: {
             {props.substituir ? "Substituir comprovante de pagamento" : "Anexar comprovante de pagamento"}
           </DialogTitle>
           <DialogDescription>
-            {[props.colaboradorNome, props.documentoTitulo].filter(Boolean).join(" · ") ||
-              "Informe a data do pagamento e escolha o arquivo (PDF ou imagem, até 15 MB)."}
+            Confira o documento antes de escolher o arquivo.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="grid gap-3 rounded-md border bg-muted/30 p-3 sm:grid-cols-3">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Colaborador</p>
+            <p className="break-words text-sm font-medium">{props.colaboradorNome ?? "Não informado"}</p>
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Tipo</p>
+            <p className="break-words text-sm font-medium">{docTipoLabel(props.alvo.tipo)}</p>
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Competência</p>
+            <p className="text-sm font-medium">{props.competencia ?? "Não informada"}</p>
+          </div>
+        </div>
 
         <input
           ref={inputRef}
@@ -188,6 +203,7 @@ export function ComprovanteAcaoBotao(props: {
   rotulo?: string;
   documentoTitulo?: string | null;
   colaboradorNome?: string | null;
+  competencia?: string | null;
   className?: string;
 }) {
   const [anexarOpen, setAnexarOpen] = useState(false);
@@ -243,6 +259,7 @@ export function ComprovanteAcaoBotao(props: {
         substituir={props.temComprovante}
         documentoTitulo={props.documentoTitulo}
         colaboradorNome={props.colaboradorNome}
+        competencia={props.competencia}
       />
       {visualizador}
     </>
@@ -266,6 +283,7 @@ export function ComprovantePagamentoPanel(props: {
   somenteLeitura?: boolean;
   documentoTitulo?: string | null;
   colaboradorNome?: string | null;
+  competencia?: string | null;
 }) {
   const [anexarOpen, setAnexarOpen] = useState(false);
   const { remover, ocupado } = useDpComprovantePagamento();
@@ -348,6 +366,7 @@ export function ComprovantePagamentoPanel(props: {
         substituir={comprovante.tem}
         documentoTitulo={props.documentoTitulo}
         colaboradorNome={props.colaboradorNome}
+        competencia={props.competencia}
         pagoEmAtual={comprovante.pago_em}
       />
       {visualizador}
