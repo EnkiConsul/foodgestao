@@ -236,6 +236,14 @@ export function ComprovanteAcaoBotao(props: {
         )}
         {props.rotulo ? <span className="ml-1">{props.rotulo}</span> : null}
       </Button>
+      <ComprovanteAnexarDialog
+        open={anexarOpen}
+        onOpenChange={setAnexarOpen}
+        alvo={props.alvo}
+        substituir={props.temComprovante}
+        documentoTitulo={props.documentoTitulo}
+        colaboradorNome={props.colaboradorNome}
+      />
       {visualizador}
     </>
   );
