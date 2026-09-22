@@ -233,3 +233,25 @@ export async function aceitarDocumentoAnexo(vinculoId: string): Promise<string> 
   if (error) lancar(error, "Não foi possível registrar o aceite.");
   return data as string;
 }
+
+/**
+ * Ajuste em lote de benefícios, adicionais e folga fixa. Só alcança
+ * colaboradores da empresa informada e recusa qualquer outro campo.
+ */
+export async function ajustarColaboradoresEmLote(input: {
+  companyId: string;
+  dados: Json;
+  ids?: string[] | null;
+  cargoId?: string | null;
+  somenteAtivos?: boolean;
+}): Promise<number> {
+  const { data, error } = await (supabase.rpc as any)("dp_colaboradores_ajustar_lote", {
+    p_company_id: input.companyId,
+    p_dados: input.dados,
+    p_ids: input.ids ?? null,
+    p_cargo_id: input.cargoId ?? null,
+    p_somente_ativos: input.somenteAtivos ?? false,
+  });
+  if (error) lancar(error, "Não foi possível aplicar o ajuste.");
+  return Number(data ?? 0);
+}
