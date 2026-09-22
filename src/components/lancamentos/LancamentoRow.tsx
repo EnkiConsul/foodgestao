@@ -248,13 +248,13 @@ export function LancamentoRow({
       {/* Ações */}
       <TableCell className="py-2">
         <div className="flex items-center gap-0.5">
-          {hasDue && r.billStatus !== "pago" && (
+          {(r.original.payment_ledger_enabled || (hasDue && r.billStatus !== "pago")) && (
             <Button
               variant="ghost"
               size="icon"
               className="h-7 w-7 text-success hover:text-success"
               onClick={() => callbacks.onRegisterPayment(r.original)}
-              title="Registrar pagamento"
+              title="Pagamentos e estornos"
             >
               <DollarSign className="h-3 w-3" />
             </Button>

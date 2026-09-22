@@ -73,6 +73,7 @@ type Transaction = {
   payment_method_id: string | null;
   due_date: string | null;
   amount_paid: number;
+  payment_ledger_enabled?: boolean;
   bill_status: string | null;
   payment_date: string | null;
   contact_id: string | null;
@@ -276,7 +277,7 @@ export default function Lancamentos() {
     const query = applyFinancialScope(
       supabase
         .from("transactions")
-        .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total, credit_card_id, credit_card_invoice_id, is_invoice_payment")
+        .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, payment_ledger_enabled, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total, credit_card_id, credit_card_invoice_id, is_invoice_payment")
         .eq("id", transactionId),
       scope,
     );
@@ -428,7 +429,7 @@ export default function Lancamentos() {
     const q = applyFinancialScope(
       supabase
         .from("transactions")
-        .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total, credit_card_id, credit_card_invoice_id, is_invoice_payment, categories!fk_transactions_category(name), accounts!fk_transactions_account(name), payment_methods!fk_transactions_payment_method(name)"),
+        .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, payment_ledger_enabled, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total, credit_card_id, credit_card_invoice_id, is_invoice_payment, categories!fk_transactions_category(name), accounts!fk_transactions_account(name), payment_methods!fk_transactions_payment_method(name)"),
       scope,
     )
       .or(`and(due_date.is.null,transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(due_date.gte.${monthStart},due_date.lte.${monthEnd})`)
@@ -671,6 +672,11 @@ export default function Lancamentos() {
   const updateTransactionStatus = async (txId: string, newStatus: string) => {
     const updateData: any = { status: newStatus };
     const tx = transactions.find(t => t.id === txId);
+    if (tx?.payment_ledger_enabled) {
+      setPaymentTx(tx);
+      toast.info("Use o histórico para registrar pagamentos, estornar ou cancelar o título.");
+      return;
+    }
     if (newStatus === "confirmado") {
       if (tx && !tx.payment_date) {
         updateData.payment_date = format(new Date(), "yyyy-MM-dd");

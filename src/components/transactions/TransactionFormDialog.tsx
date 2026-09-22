@@ -79,6 +79,7 @@ interface EditableTransaction {
   attachment_url?: string | null;
   status?: string;
   amount_paid?: number;
+  payment_ledger_enabled?: boolean;
   payment_method_id?: string | null;
   payment_date?: string | null;
   cost_center_id?: string | null;
@@ -835,8 +836,12 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       recurrence_end_date: isRecurring && recurrenceEndDate ? recurrenceEndDate : null,
     };
 
-    // Handle payment fields based on status
-    if (status === "confirmado") {
+    // A cadastral save must not send stale payment state over a concurrent receipt.
+    if (isEditing && transaction?.payment_ledger_enabled) {
+      delete payload.status;
+    } else if (isEditing && status === transaction?.status) {
+      delete payload.status;
+    } else if (status === "confirmado") {
       payload.amount_paid = numAmount;
       payload.payment_date = paymentDate || date;
       payload.bill_status = hasDueDate ? "pago" : null;
@@ -1173,6 +1178,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                   type="date"
                   value={paymentDate}
                   onChange={(e) => setPaymentDate(e.target.value)}
+                  disabled={isEditing && transaction?.payment_ledger_enabled}
                   className="pl-10"
                   placeholder="Data do efetivo pagamento"
                 />
@@ -1659,7 +1665,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
             <Select
               value={status}
               onValueChange={(v) => setStatus(v as "confirmado" | "pendente" | "cancelado")}
-              disabled={isCreditCardAccount}
+              disabled={isCreditCardAccount || (isEditing && transaction?.payment_ledger_enabled)}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -1689,6 +1695,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
               <p className="text-[11px] text-muted-foreground">
                 Compras no cartão ficam pendentes até o pagamento da fatura.
               </p>
+            )}
+            {isEditing && transaction?.payment_ledger_enabled && (
+              <p className="text-[11px] text-muted-foreground">Registre pagamentos e estornos pelo histórico de pagamentos do lançamento.</p>
             )}
             {status === "cancelado" && (
               <p className="text-[11px] text-destructive">

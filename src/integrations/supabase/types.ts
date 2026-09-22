@@ -14071,11 +14071,18 @@ export type Database = {
           },
         ]
       }
+      transaction_payments: {
+        Row: { id: string; transaction_id: string; account_id: string; amount: number; paid_on: string; payment_method_id: string | null; idempotency_key: string; reversal_of: string | null; reason: string | null; created_by: string; created_at: string }
+        Insert: { transaction_id: string; account_id: string; amount: number; paid_on: string; idempotency_key: string; created_by: string; id?: string; payment_method_id?: string | null; reversal_of?: string | null; reason?: string | null; created_at?: string }
+        Update: never
+        Relationships: []
+      }
       transactions: {
         Row: {
           account_id: string | null
           adjustment_idempotency_key: string | null
           amount: number
+          payment_ledger_enabled: boolean
           amount_paid: number
           attachment_url: string | null
           bill_status: Database["public"]["Enums"]["bill_status"] | null
@@ -14566,6 +14573,14 @@ export type Database = {
       }
     }
     Functions: {
+      record_transaction_payment: {
+        Args: { _transaction_id: string; _amount: number; _paid_on: string; _account_id: string; _idempotency_key: string; _payment_method_id?: string | null }
+        Returns: Json
+      }
+      reverse_transaction_payment: {
+        Args: { _transaction_id: string; _payment_id: string; _paid_on: string; _idempotency_key: string; _reason: string }
+        Returns: Json
+      }
       adjust_account_balance: {
         Args: {
           _account_id: string

@@ -1,0 +1,138 @@
+{
+  "at": "2026-09-22T16:47:54.532Z",
+  "projectRef": "utjhzpdbqzajrhnzcher",
+  "tests": 31,
+  "passed": 31,
+  "results": [
+    {
+      "name": "partial_40_debits_40",
+      "passed": true
+    },
+    {
+      "name": "idempotent_retry",
+      "passed": true
+    },
+    {
+      "name": "idempotency_payload_conflict",
+      "passed": true
+    },
+    {
+      "name": "description_edit_preserves_payment",
+      "passed": true
+    },
+    {
+      "name": "direct_payment_reset_denied",
+      "passed": true
+    },
+    {
+      "name": "direct_status_confirmation_denied",
+      "passed": true
+    },
+    {
+      "name": "amount_below_paid_denied",
+      "passed": true
+    },
+    {
+      "name": "cancel_paid_denied",
+      "passed": true
+    },
+    {
+      "name": "cross_company_cash_account_denied",
+      "passed": true
+    },
+    {
+      "name": "unauthorized_actor_denied",
+      "passed": true
+    },
+    {
+      "name": "anonymous_denied",
+      "passed": true
+    },
+    {
+      "name": "concurrent_30_plus_30",
+      "passed": true
+    },
+    {
+      "name": "overpayment_denied",
+      "passed": true
+    },
+    {
+      "name": "client_cannot_invoke_privileged_recompute",
+      "passed": true
+    },
+    {
+      "name": "reverse_partial_restores_40",
+      "passed": true
+    },
+    {
+      "name": "reverse_retry_no_double_credit",
+      "passed": true
+    },
+    {
+      "name": "second_reversal_denied",
+      "passed": true
+    },
+    {
+      "name": "payment_replay_after_reversal_no_repayment",
+      "passed": true
+    },
+    {
+      "name": "history_cannot_be_deleted",
+      "passed": true
+    },
+    {
+      "name": "title_history_cannot_be_deleted",
+      "passed": true
+    },
+    {
+      "name": "concurrent_overpayment_only_one_commits",
+      "passed": true
+    },
+    {
+      "name": "concurrent_same_key_one_payment",
+      "passed": true
+    },
+    {
+      "name": "different_same_company_cash_account",
+      "passed": true
+    },
+    {
+      "name": "viewer_cannot_pay_company_B",
+      "passed": true
+    },
+    {
+      "name": "client_cannot_invoke_privileged_drift_report",
+      "passed": true
+    },
+    {
+      "name": "outsider_cannot_read_payment_history",
+      "passed": true
+    },
+    {
+      "name": "direct_ledger_insert_denied",
+      "passed": true
+    },
+    {
+      "name": "nonpositive_and_fractional_cent_denied",
+      "passed": true
+    },
+    {
+      "name": "income_personal_partial_and_reversal",
+      "passed": true
+    },
+    {
+      "name": "legacy_confirmed_cannot_become_untracked_partial",
+      "passed": true
+    },
+    {
+      "name": "cleanup_reverses_all_cash_and_preserves_history",
+      "passed": true
+    }
+  ],
+  "titles": [
+    "6c0a5dc5-6d55-41eb-aefa-aa5386d73f99",
+    "923fadc3-9901-4c90-9c60-0ee4dcd176aa",
+    "b9a91a17-3fb7-4787-aac4-bab680329d4d",
+    "a8331865-2f9b-448e-a0fc-ca073b5d2647"
+  ]
+}

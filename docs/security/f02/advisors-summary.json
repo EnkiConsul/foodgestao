@@ -1,0 +1,104 @@
+{
+  "at": "2026-09-22T16:50:49.946Z",
+  "project": "utjhzpdbqzajrhnzcher",
+  "security": [
+    {
+      "name": "rls_enabled_no_policy",
+      "level": "INFO",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy",
+      "f02Findings": []
+    },
+    {
+      "name": "extension_in_public",
+      "level": "WARN",
+      "count": 2,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public",
+      "f02Findings": []
+    },
+    {
+      "name": "anon_security_definer_function_executable",
+      "level": "WARN",
+      "count": 4,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable",
+      "f02Findings": []
+    },
+    {
+      "name": "authenticated_security_definer_function_executable",
+      "level": "WARN",
+      "count": 224,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+      "f02Findings": []
+    },
+    {
+      "name": "auth_leaked_password_protection",
+      "level": "WARN",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection",
+      "f02Findings": []
+    }
+  ],
+  "performance": [
+    {
+      "name": "unindexed_foreign_keys",
+      "level": "INFO",
+      "count": 80,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys",
+      "f02Findings": []
+    },
+    {
+      "name": "auth_rls_initplan",
+      "level": "WARN",
+      "count": 96,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan",
+      "f02Findings": []
+    },
+    {
+      "name": "no_primary_key",
+      "level": "INFO",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0004_no_primary_key",
+      "f02Findings": []
+    },
+    {
+      "name": "unused_index",
+      "level": "INFO",
+      "count": 372,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index",
+      "f02Findings": [
+        {
+          "detail": "Index \\`transaction_payments_method_idx\\` on table \\`public.transaction_payments\\` has not been used",
+          "metadata": {
+            "name": "transaction_payments",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-09-22T16:50:51.362Z"
+        },
+        {
+          "detail": "Index \\`transaction_payments_actor_idx\\` on table \\`public.transaction_payments\\` has not been used",
+          "metadata": {
+            "name": "transaction_payments",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-09-22T16:50:51.362Z"
+        }
+      ]
+    },
+    {
+      "name": "multiple_permissive_policies",
+      "level": "WARN",
+      "count": 121,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0006_multiple_permissive_policies",
+      "f02Findings": []
+    },
+    {
+      "name": "duplicate_index",
+      "level": "WARN",
+      "count": 12,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0009_duplicate_index",
+      "f02Findings": []
+    }
+  ]
+}

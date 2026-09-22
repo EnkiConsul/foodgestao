@@ -12,6 +12,7 @@ export type LancamentoTransaction = {
   payment_method_id: string | null;
   due_date: string | null;
   amount_paid: number;
+  payment_ledger_enabled?: boolean;
   bill_status: string | null;
   payment_date: string | null;
   contact_id: string | null;

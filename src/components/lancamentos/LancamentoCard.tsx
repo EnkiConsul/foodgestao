@@ -137,13 +137,13 @@ export function LancamentoCard({ row: r, isSelected, formatBRL, callbacks }: Lan
           </Popover>
         </div>
         <div className="flex items-center gap-0.5">
-          {hasDue && r.billStatus !== "pago" && (
+          {(r.original.payment_ledger_enabled || (hasDue && r.billStatus !== "pago")) && (
             <Button
               variant="ghost"
               size="icon"
               className="h-11 w-11 text-success hover:text-success"
               onClick={() => callbacks.onRegisterPayment(r.original)}
-              aria-label="Registrar pagamento"
+              aria-label="Pagamentos e estornos"
             >
               <DollarSign className="h-4 w-4" />
             </Button>
