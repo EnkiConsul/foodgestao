@@ -235,6 +235,20 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
           </DialogDescription>
         </DialogHeader>
 
+        {!link && rascunhoGuardado && (
+          <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+            <p className="font-medium">{rotuloRascunho(rascunhoGuardado.em)}</p>
+            <p className="text-xs text-muted-foreground">
+              Você começou este convite e não terminou. Quer continuar de onde parou?
+            </p>
+            <div className="mt-2 flex gap-2">
+              <Button type="button" size="sm" onClick={retomarRascunho}>Retomar Preenchimento</Button>
+              <Button type="button" size="sm" variant="outline" onClick={comecarDoZero}>Começar Do Zero</Button>
+            </div>
+          </div>
+        )}
+
+
         {link ? (
           <div className="space-y-3">
             <div className="space-y-1">
