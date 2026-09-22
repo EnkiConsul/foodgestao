@@ -185,7 +185,7 @@ function paginaAnexo(
   y -= 24;
   for (
     const linha of linhas(
-      `Arquivo: ${arquivo || "—"}. ${
+      `Competência do documento: ${competencia || "—"}. Arquivo: ${arquivo || "—"}. ${
         pagoEm === "—" ? "Sem data de pagamento informada." : `Pagamento registrado em ${pagoEm}.`
       } Este comprovante acompanha o documento ` +
         "aprovado como anexo e não possui validação digital própria.",
