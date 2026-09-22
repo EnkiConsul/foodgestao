@@ -9,6 +9,27 @@
 
 export type DirecaoMenuVertical = "cima" | "baixo";
 
+/**
+ * Decide se o arrasto deve ser ignorado pela navegação.
+ *
+ * Toque iniciado dentro de uma área com rolagem própria (ex.: a lista de
+ * Pendências no Início) nunca troca de menu, mesmo que a lista já esteja no
+ * fim ou seja curta demais para rolar. A exceção é começar numa das bordas
+ * verticais da tela, onde não há rolagem a roubar.
+ */
+export function gestoVerticalBloqueado(args: {
+  /** O toque começou dentro de um contêiner com rolagem própria. */
+  scrollerInterno: boolean;
+  /** O toque começou na borda superior/inferior da tela. */
+  comecouNaBorda: boolean;
+  /** Ainda há rolagem restante do documento na direção do arrasto. */
+  documentoComRolagemRestante: boolean;
+}): boolean {
+  if (args.comecouNaBorda) return false;
+  if (args.scrollerInterno) return true;
+  return args.documentoComRolagemRestante;
+}
+
 /** Índice da rota de menu que corresponde ao pathname atual, ou -1. */
 export function indiceMenuAtual(rotas: string[], pathname: string): number {
   let melhor = -1;
