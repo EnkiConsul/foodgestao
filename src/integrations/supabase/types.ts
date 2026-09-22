@@ -15182,6 +15182,14 @@ export type Database = {
         Args: { p_colaborador_id: string; p_config: Json }
         Returns: string
       }
+      dp_colaborador_documento_excluir: {
+        Args: { p_id: string; p_motivo?: string }
+        Returns: Json
+      }
+      dp_colaborador_documento_salvar: {
+        Args: { p_dados: Json; p_id: string }
+        Returns: string
+      }
       dp_colaborador_horario_ocupado: {
         Args: {
           _colaborador_id: string
@@ -15226,6 +15234,18 @@ export type Database = {
           nome: string
           unidade_nome: string
         }[]
+      }
+      dp_comprovante_anexar: {
+        Args: { p_arquivo: Json; p_documento_id: string; p_pago_em?: string }
+        Returns: string
+      }
+      dp_comprovante_reassociar: {
+        Args: { p_destino_id: string; p_motivo?: string; p_origem_id: string }
+        Returns: boolean
+      }
+      dp_comprovante_remover: {
+        Args: { p_documento_id: string }
+        Returns: string
       }
       dp_config_resolvida: {
         Args: { _company_id: string; _unidade_id?: string }
@@ -15740,13 +15760,43 @@ export type Database = {
           mime_type: string
         }[]
       }
+      dp_documento_evento_registrar: {
+        Args: { p_dados: Json }
+        Returns: string
+      }
+      dp_documento_excluir: {
+        Args: { p_documento_id: string; p_motivo?: string }
+        Returns: Json
+      }
       dp_documento_excluir_definitivo: {
         Args: { _documento_id: string; _motivo: string }
+        Returns: string
+      }
+      dp_documento_registrar: { Args: { p_dados: Json }; Returns: string }
+      dp_documento_requisito_excluir: {
+        Args: { p_id: string }
+        Returns: boolean
+      }
+      dp_documento_requisito_salvar: {
+        Args: { p_company_id?: string; p_dados: Json; p_id: string }
         Returns: string
       }
       dp_documento_requisitos_seed: {
         Args: { _company_id: string }
         Returns: number
+      }
+      dp_documento_revisar: {
+        Args: { p_documento_id: string; p_motivo?: string; p_status: string }
+        Returns: boolean
+      }
+      dp_documento_substituir: {
+        Args: {
+          p_arquivo: Json
+          p_documento_id: string
+          p_motivo?: string
+          p_patch?: Json
+        }
+        Returns: Json
       }
       dp_documento_versao_publicar: {
         Args: { _anterior_id?: string; _motivo?: string; _novo_id: string }
