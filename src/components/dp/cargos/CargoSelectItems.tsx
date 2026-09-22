@@ -8,7 +8,7 @@
  */
 import { useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { reportError } from "@/lib/errorReporting";
+import { reportError } from "@/lib/errorLog";
 
 interface EstadoBase {
   carregando?: boolean;
@@ -58,9 +58,10 @@ export function CargoSelectAviso({
     if (!erro) return;
     void reportError({
       error: new Error(`Lista de cargos não carregou (${origem})`),
-      context: "dp",
+      surface: origem,
       action: "carregar a lista de cargos",
-      details: { origem, companyId, ...(detalhes ?? {}) },
+      companyId: companyId ?? null,
+      details: { origem, ...(detalhes ?? {}) },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [erro, origem, companyId]);
