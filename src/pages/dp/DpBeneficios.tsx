@@ -37,6 +37,7 @@ import {
   FILTROS_BENEFICIOS_PADRAO,
   SITUACAO_BENEFICIOS_LABEL,
   contarFiltrosBeneficios,
+  pessoaAtendeFiltros,
   type BeneficiosFiltros,
   type SituacaoBeneficios,
 } from "@/lib/dp/beneficios-filtros";
@@ -69,6 +70,14 @@ export default function DpBeneficios() {
     () => colaboradores.find((c: any) => c.id === fichaId) ?? null,
     [colaboradores, fichaId],
   );
+
+  /** Ids das pessoas que passam pelos filtros — null quando nada foi filtrado. */
+  const idsFiltrados = useMemo<string[] | null>(() => {
+    if (contarFiltrosBeneficios(filtros) === 0 && !filtros.busca.trim()) return null;
+    return colaboradores
+      .filter((c: any) => pessoaAtendeFiltros(c, filtros))
+      .map((c: any) => String(c.id));
+  }, [filtros, colaboradores]);
 
   /** Chips dos filtros aplicados (mobile). */
   const chipsFiltros = useMemo<DpFilterChip[]>(() => {
@@ -282,7 +291,7 @@ export default function DpBeneficios() {
         </TabsContent>
 
         <TabsContent value="historico" className="space-y-3">
-          <ValeHistorico />
+          <ValeHistorico colaboradorIds={idsFiltrados} />
         </TabsContent>
 
 

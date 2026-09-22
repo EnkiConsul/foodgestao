@@ -11,9 +11,14 @@ const competenciaLabel = (iso: string) => {
   return `${mes}/${ano}`;
 };
 
+interface Props {
+  /** Pessoas que passam pelos filtros da tela (null = todas). */
+  colaboradorIds?: string[] | null;
+}
+
 /** Ciclos de vales já fechados, para conferência e auditoria. */
-export function ValeHistorico() {
-  const { grupos, isLoading, isError, refetch } = useDpValeHistorico();
+export function ValeHistorico({ colaboradorIds = null }: Props = {}) {
+  const { grupos, isLoading, isError, refetch } = useDpValeHistorico(colaboradorIds);
 
   if (isError) return <DpErrorState onRetry={refetch} />;
 
