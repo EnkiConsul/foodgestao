@@ -133,4 +133,50 @@ describe("remuneracaoDoSnapshot", () => {
     expect(r?.horasNoturnas).toBe(5);
     expect(r?.valeAlimentacao).toBe(15);
   });
+
+  it("recalcula pelo cadastro atual quando o resumo é de versão anterior", () => {
+    const antigo = {
+      valor_unitario: 7.95,
+      quantidade_prevista: 7.33,
+      unidade_remuneracao: "hora",
+      fonte: "cadastro_colaborador",
+    };
+    const atual = {
+      versao: 2,
+      elegivel: true,
+      valor_unitario: 7.95,
+      quantidade_prevista: 7.33,
+      unidade_remuneracao: "hora",
+      vale_alimentacao_dia: 24,
+      premio_assiduidade_dia: 6.99,
+      dsr_divisor: 6,
+    };
+    const semAtual = remuneracaoDoSnapshot(antigo, undefined);
+    expect(semAtual?.valeAlimentacao).toBe(0);
+    expect(semAtual?.estimada).toBeUndefined();
+
+    const comAtual = remuneracaoDoSnapshot(antigo, undefined, atual);
+    expect(comAtual?.estimada).toBe(true);
+    expect(comAtual?.valeAlimentacao).toBe(24);
+    expect(comAtual?.premioAssiduidade).toBe(6.99);
+    expect(comAtual?.dsr).toBeGreaterThan(0);
+  });
+
+  it("não substitui resumo já na versão atual", () => {
+    const r = remuneracaoDoSnapshot(
+      { versao: 2, valor_unitario: 10, quantidade_prevista: 4, unidade_remuneracao: "hora" },
+      undefined,
+      { versao: 2, elegivel: true, valor_unitario: 99, quantidade_prevista: 4 },
+    );
+    expect(r?.valorHoras).toBe(40);
+    expect(r?.estimada).toBeUndefined();
+  });
+});
+
+describe("snapshotDesatualizado", () => {
+  it("reconhece resumos antigos e atuais", () => {
+    expect(snapshotDesatualizado({ valor_unitario: 10 })).toBe(true);
+    expect(snapshotDesatualizado({ versao: 2 })).toBe(false);
+    expect(snapshotDesatualizado(null)).toBe(false);
+  });
 });
