@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
 import { porDocumento, resolverPendencias, type PendenciaMatch } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
