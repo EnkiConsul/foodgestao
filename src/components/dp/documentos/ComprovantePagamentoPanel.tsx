@@ -256,10 +256,11 @@ export function ComprovantePagamentoPanel(props: {
   /** Versão anterior do documento: o comprovante é da versão substituída. */
   versaoAnterior?: boolean;
   somenteLeitura?: boolean;
+  documentoTitulo?: string | null;
+  colaboradorNome?: string | null;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [pagoEm, setPagoEm] = useState("");
-  const { anexar, remover, ocupado } = useDpComprovantePagamento();
+  const [anexarOpen, setAnexarOpen] = useState(false);
+  const { remover, ocupado } = useDpComprovantePagamento();
   const { ver, visualizador } = useVerComprovante();
   if (!aceitaComprovante(props.alvo.tipo)) return null;
 
@@ -269,17 +270,6 @@ export function ComprovantePagamentoPanel(props: {
 
   return (
     <div className="rounded-lg border p-3">
-      <input
-        ref={inputRef}
-        type="file"
-        className="hidden"
-        accept="application/pdf,image/*"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          e.target.value = "";
-          if (file && validar(file)) anexar.mutate({ alvo: props.alvo, file, pagoEm });
-        }}
-      />
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
           <Receipt className="size-3.5" /> Comprovante de Pagamento
