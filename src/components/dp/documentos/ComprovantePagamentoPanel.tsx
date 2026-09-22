@@ -216,17 +216,6 @@ export function ComprovanteAcaoBotao(props: {
 
   return (
     <>
-      <input
-        ref={inputRef}
-        type="file"
-        className="hidden"
-        accept="application/pdf,image/*"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          e.target.value = "";
-          if (file && validar(file)) anexar.mutate({ alvo: props.alvo, file });
-        }}
-      />
       <Button
         size="sm"
         variant="ghost"
