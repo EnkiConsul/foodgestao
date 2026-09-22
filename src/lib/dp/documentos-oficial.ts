@@ -120,6 +120,8 @@ const MENSAGENS: Record<string, string> = {
   DOC_COMPROVANTE_DATA_FUTURA: "A data do pagamento não pode ser futura.",
   DOC_COMPROVANTE_DATA_ANTES_DA_COMPETENCIA:
     "A data do pagamento é anterior à competência do documento.",
+  DOC_COMPROVANTE_COMPETENCIA_DIVERGENTE:
+    "A data do pagamento está em um mês diferente da competência do documento. Confirme antes de anexar.",
   DOC_COMPROVANTE_INEXISTENTE: "O documento de origem não tem comprovante anexado.",
   DOC_COMPROVANTE_MESMO_DOCUMENTO: "Escolha um documento diferente para receber o comprovante.",
   DOC_ACAO_OBRIGATORIA: "Ação do histórico não informada.",
@@ -207,11 +209,14 @@ export async function anexarComprovante(
   documentoId: string,
   arquivo: ArquivoDoc,
   pagoEm?: string | null,
+  /** Pagamento em mês diferente da competência, já confirmado na tela. */
+  confirmarCompetencia = false,
 ): Promise<string | null> {
   return await chamar<string | null>("dp_comprovante_anexar", {
     p_documento_id: documentoId,
     p_arquivo: arquivo,
     p_pago_em: pagoEm || null,
+    p_confirmar_competencia: confirmarCompetencia,
   });
 }
 
