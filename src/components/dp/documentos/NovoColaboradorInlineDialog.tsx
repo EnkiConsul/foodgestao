@@ -15,6 +15,7 @@ import { salvarColaborador } from "@/lib/dp/colaborador-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { cargoSugereVinculoSocio } from "@/lib/dp/cargos";
+import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
 
 export interface NovoColaboradorInlineDialogProps {
   defaultNome?: string;
@@ -180,11 +181,24 @@ export function NovoColaboradorInlineDialog({
               <Select value={cargo} onValueChange={escolherCargo}>
                 <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                 <SelectContent>
-                  {(cargos.data ?? []).map((c: any) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
+                  <CargoSelectItems
+                    carregando={cargos.isLoading}
+                    erro={cargos.isError}
+                    total={(cargos.data ?? []).length}
+                  >
+                    {(cargos.data ?? []).map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </CargoSelectItems>
                 </SelectContent>
               </Select>
+              <CargoSelectAviso
+                carregando={cargos.isLoading}
+                erro={cargos.isError}
+                total={(cargos.data ?? []).length}
+                onRecarregar={() => void cargos.refetch()}
+                origem="Novo colaborador pelos documentos"
+              />
             </div>
             <div className="space-y-1">
               <Label>Unidade</Label>
