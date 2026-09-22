@@ -70,6 +70,44 @@ export default function DpBeneficios() {
     [colaboradores, fichaId],
   );
 
+  /** Chips dos filtros aplicados (mobile). */
+  const chipsFiltros = useMemo<DpFilterChip[]>(() => {
+    const lista: DpFilterChip[] = [];
+    if (filtros.unidade !== "todas") {
+      const nome = (unidades.data ?? []).find((u: any) => u.id === filtros.unidade)?.nome;
+      lista.push({
+        key: "unidade",
+        label: `Unidade: ${nome ?? filtros.unidade}`,
+        onRemove: () => setFiltro("unidade", "todas"),
+      });
+    }
+    if (filtros.cargo !== "todos") {
+      const nome = (cargos.data ?? []).find((c: any) => c.id === filtros.cargo)?.nome;
+      lista.push({
+        key: "cargo",
+        label: `Cargo: ${nome ?? filtros.cargo}`,
+        onRemove: () => setFiltro("cargo", "todos"),
+      });
+    }
+    if (filtros.situacao !== FILTROS_BENEFICIOS_PADRAO.situacao) {
+      lista.push({
+        key: "situacao",
+        label: `Situação: ${SITUACAO_BENEFICIOS_LABEL[filtros.situacao]}`,
+        onRemove: () => setFiltro("situacao", FILTROS_BENEFICIOS_PADRAO.situacao),
+      });
+    }
+    if (filtros.colaborador !== "todos") {
+      const nome = colaboradores.find((c: any) => c.id === filtros.colaborador)?.nome;
+      lista.push({
+        key: "colaborador",
+        label: `Colaborador: ${nome ?? filtros.colaborador}`,
+        onRemove: () => setFiltro("colaborador", "todos"),
+      });
+    }
+    return lista;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtros, unidades.data, cargos.data, colaboradores]);
+
 
   const kpis = useMemo(() => {
     const ativos = b.atribuicoes.filter((a) => a.ativo);
