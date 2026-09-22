@@ -77,6 +77,7 @@ export function BulkImportPanel({
   const { selectedCompanyId } = useCompanyContext();
   const { data: colaboradores = [] } = useDpColaboradores();
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [tipo, setTipo] = useState<string>(tipoFixed ?? tipoInicial ?? AUTO_TIPO);
@@ -215,6 +216,12 @@ export function BulkImportPanel({
       const chaves = new Set(prev.map((f) => `${f.name}:${f.size}`));
       return [...prev, ...validos.filter((f) => !chaves.has(`${f.name}:${f.size}`))];
     });
+  };
+
+  const abrirSeletorArquivos = () => fileInputRef.current?.click();
+
+  const removerArquivo = (chave: string) => {
+    setFiles((prev) => prev.filter((f) => `${f.name}:${f.size}` !== chave));
   };
 
   const upload = useMutation({
