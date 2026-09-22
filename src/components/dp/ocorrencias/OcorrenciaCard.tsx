@@ -44,6 +44,7 @@ interface Props {
   onCobrir?: () => void;
   onHistorico?: () => void;
   onImpacto: (campo: "assiduidade" | "ferias", valor: OcorrenciaImpacto) => void;
+  onDecidirAssiduidade?: () => void;
 }
 
 const IMPACTOS: OcorrenciaImpacto[] = ["sim", "nao", "aguardando", "nao_se_aplica"];
