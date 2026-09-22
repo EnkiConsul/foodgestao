@@ -49,7 +49,8 @@ export const CSP_INLINE_SCRIPT_HASHES: string[] = [];
 type Diretivas = Record<string, string[]>;
 
 function diretivasBase(frameAncestors: string[]): Diretivas {
-  const { supabase, google, meta, cloudflare, pluggy, fontes, imagens, apisPublicas } = CSP_ORIGENS;
+  const { supabase, google, meta, cloudflare, pluggy, fontes, imagens, apisPublicas, reclameAqui } =
+    CSP_ORIGENS;
   return {
     "default-src": ["'self'"],
     "base-uri": ["'self'"],
