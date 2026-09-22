@@ -178,13 +178,7 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
 
   const recusar = useMutation({
     mutationFn: async ({ row, motivo }: { row: DpDocumentoRow; motivo: string }) => {
-      const { error } = await supabase.from("dp_documentos").update({
-        aprovacao_status: "recusado",
-        revisado_por: user?.id,
-        revisado_em: new Date().toISOString(),
-        motivo_recusao: motivo,
-      } as any).eq("id", row.id);
-      if (error) throw error;
+      await revisarDocumento(row.id, "recusado", motivo);
     },
     onSuccess: () => {
       toast.success("Documento recusado");
