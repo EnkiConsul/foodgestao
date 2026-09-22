@@ -22,7 +22,7 @@ Regras que seguem valendo:
 
 1. **Banco (migration reversível)**
    - Acrescentar o valor `desligamento` ao enum `dp_documento_tipo` (o valor `admissao` já existe).
-   - Reclassificar `public.dp_documentos`: `contrato`, `ficha_registro`, `termos`, `outros_admissao` → `admissao`; `aviso_previo`, `trct`, `demonstrativo_rescisorio`, `outros_desligamento` → `desligamento`. Contagem atual nesses tipos: 0 — a migration roda idempotente e registra o antes/depois.
+   - Reclassificar `public.dp_documentos`: `contrato`, `ficha_registro`, `termos`, `outros_admissao` → `admissao`; `trct`, `demonstrativo_rescisorio`, `outros_desligamento` → `desligamento`. `aviso_previo` permanece intocado. Contagem atual nesses tipos: 0 — a migration roda idempotente e registra o antes/depois.
    - Atualizar `public.dp_documento_aceita_comprovante` para incluir `desligamento` (mantendo os tipos antigos aceitos, para não quebrar histórico).
    - Valores antigos do enum permanecem declarados (Postgres não remove valor de enum), apenas deixam de ser oferecidos.
 
