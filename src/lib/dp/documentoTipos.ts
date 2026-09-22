@@ -374,8 +374,11 @@ export function docTipoGrupo(tipo?: string | null): DpDocGrupo {
   return DP_DOC_TIPO_MAP[tipo ?? ""]?.grupo ?? "outros";
 }
 
+/** Inclui as naturezas antigas do grupo, para os filtros alcançarem o histórico. */
 export function tiposDoGrupo(grupo: DpDocGrupo): string[] {
-  return DP_DOC_TIPOS.filter((t) => t.grupo === grupo).map((t) => t.value);
+  return [...DP_DOC_TIPOS, ...DP_DOC_TIPOS_LEGADOS]
+    .filter((t) => t.grupo === grupo)
+    .map((t) => t.value);
 }
 
 function normalizar(texto: string): string {
