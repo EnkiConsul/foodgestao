@@ -80,7 +80,7 @@ export function DocDetalhesDialog(props: {
         source === "doc"
           ? supabase
               .from("dp_documentos")
-              .select("id, file_name, file_size, uploaded_by, created_at, exige_aceite, assinatura_detectada, submetido_por_colaborador, colaborador_id, tipo, comprovante_file_path, comprovante_file_name, comprovante_pago_em, comprovante_uploaded_at, replaces_by_documento_id")
+              .select("id, file_name, file_size, uploaded_by, created_at, exige_aceite, assinatura_detectada, submetido_por_colaborador, colaborador_id, tipo, comprovante_file_path, comprovante_file_name, comprovante_pago_em, comprovante_uploaded_at, replaced_by_documento_id")
               .eq("id", docId!)
               .maybeSingle()
           : Promise.resolve({ data: null } as any),
@@ -100,6 +100,10 @@ export function DocDetalhesDialog(props: {
           .order("created_at", { ascending: false }),
       ]);
 
+      // Sem isso um campo errado no select derrubava a tela em silêncio e o
+// comprovante já anexado aparecia como inexistente.
+      if ((docRes as any)?.error) throw (docRes as any).error;
+      if ((eventosRes as any)?.error) throw (eventosRes as any).error;
       const doc = (docRes as any)?.data ?? null;
       const aceite = (aceiteRes as any)?.data ?? null;
       const eventos = (eventosRes as any)?.data ?? [];
@@ -218,7 +222,14 @@ export function DocDetalhesDialog(props: {
               )}
             </div>
 
-            {source === "doc" && docId && (
+            {detalhes.isError && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+                Não foi possível carregar os dados deste documento agora. Feche e abra novamente; se continuar,
+                avise o suporte.
+              </div>
+            )}
+
+            {source === "doc" && docId && !detalhes.isError && (
               <ComprovantePagamentoPanel
                 alvo={{
                   documentoId: docId,
@@ -231,7 +242,9 @@ export function DocDetalhesDialog(props: {
                   pago_em: detalhes.data?.doc?.comprovante_pago_em ?? null,
                   uploaded_at: detalhes.data?.doc?.comprovante_uploaded_at ?? null,
                 }}
-                versaoAnterior={!!detalhes.data?.doc?.replaces_by_documento_id}
+                versaoAnterior={!!detalhes.data?.doc?.replaced_by_documento_id}
+                documentoTitulo={target.titulo}
+                colaboradorNome={target.colaborador_nome}
               />
             )}
 
