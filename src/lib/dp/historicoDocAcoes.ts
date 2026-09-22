@@ -54,8 +54,8 @@ export type DocEventoMeta = {
 };
 
 /**
- * Grava o log da ação em `dp_documento_eventos`.
- * Falhas de log não impedem a operação principal, mas são reportadas no console.
+ * Grava o log da ação. O servidor confere a empresa e guarda quem fez.
+ * Falhas de log não impedem a operação principal, mas ficam no console.
  */
 async function registrarEvento(params: {
   rowId: string;
@@ -67,25 +67,26 @@ async function registrarEvento(params: {
   const { meta } = params;
   if (!meta?.companyId) return;
   const { source, id } = parseDocRowId(params.rowId);
-  const { data: auth } = await supabase.auth.getUser();
-  const { error } = await supabase.from("dp_documento_eventos").insert({
-    company_id: meta.companyId,
-    documento_id: id,
-    origem: source,
-    acao: params.acao,
-    titulo: meta.titulo ?? null,
-    tipo: meta.tipo ?? null,
-    competencia: meta.competencia ?? null,
-    colaborador_id: meta.colaborador_id ?? null,
-    colaborador_nome: meta.colaborador_nome ?? null,
-    unidade_id: meta.unidade_id ?? null,
-    unidade_nome: meta.unidade_nome ?? null,
-    arquivo_anterior: params.arquivo_anterior ?? null,
-    arquivo_novo: params.arquivo_novo ?? null,
-    motivo: meta.motivo ?? null,
-    autor_id: auth?.user?.id ?? null,
-  } as any);
-  if (error) console.error("Falha ao registrar log do documento", error);
+  try {
+    await registrarEventoDocumento({
+      company_id: meta.companyId,
+      documento_id: id,
+      origem: source,
+      acao: params.acao,
+      titulo: meta.titulo ?? null,
+      tipo: meta.tipo ?? null,
+      competencia: meta.competencia ?? null,
+      colaborador_id: meta.colaborador_id ?? null,
+      colaborador_nome: meta.colaborador_nome ?? null,
+      unidade_id: meta.unidade_id ?? null,
+      unidade_nome: meta.unidade_nome ?? null,
+      arquivo_anterior: params.arquivo_anterior ?? null,
+      arquivo_novo: params.arquivo_novo ?? null,
+      motivo: meta.motivo ?? null,
+    });
+  } catch (e) {
+    console.error("Falha ao registrar log do documento", e);
+  }
 }
 
 /** Remove o arquivo do armazenamento, ignorando falhas de arquivo inexistente. */
@@ -95,9 +96,10 @@ async function removerArquivo(bucket: string, path?: string | null) {
 }
 
 /**
- * Exclui definitivamente o documento e seu arquivo.
- * Assinaturas eletrônicas já registradas NÃO são apagadas: elas são evidência
- * histórica e ficam preservadas com uma cópia dos dados do documento.
+ * Tira o documento da lista guardando o histórico.
+ *
+ * O arquivo e as assinaturas eletrônicas já registradas são preservados: são
+ * evidência histórica. Cada origem usa a rotina oficial do servidor.
  */
 export async function excluirDocumentoHistorico(
   rowId: string,
@@ -106,12 +108,29 @@ export async function excluirDocumentoHistorico(
 ) {
   const { source, id } = parseDocRowId(rowId);
   const cfg = CFG[source];
+  const motivo = meta?.motivo ?? "Excluído no Histórico de documentos";
+
+  if (source === "doc") {
+    await excluirDocumento(id, motivo);
+    await registrarEvento({ rowId, acao: "excluido", meta, arquivo_anterior: filePath });
+    return;
+  }
+
+  if (source === "sol") {
+    await excluirSolicitacao({ solicitacaoId: id, motivo });
+    await registrarEvento({ rowId, acao: "excluido", meta, arquivo_anterior: filePath });
+    return;
+  }
+
+  if (source === "disc") {
+    await excluirDisciplinar(id, motivo);
+    await registrarEvento({ rowId, acao: "excluido", meta, arquivo_anterior: filePath });
+    return;
+  }
 
   await registrarEvento({ rowId, acao: "excluido", meta, arquivo_anterior: filePath });
-
   const { error } = await supabase.from(cfg.table as any).delete().eq("id", id);
   if (error) throw error;
-
   await removerArquivo(cfg.bucket, filePath);
 }
 
@@ -124,22 +143,12 @@ export type SubstituirPatch = {
   competencia?: string | null;
 };
 
-/** Quantas assinaturas eletrônicas já existem para o documento. */
-async function contarAceites(documentoId: string): Promise<number> {
-  const { count, error } = await supabase
-    .from("dp_documento_aceites")
-    .select("id", { count: "exact", head: true })
-    .eq("documento_id", documentoId);
-  if (error) throw error;
-  return count ?? 0;
-}
-
 /**
  * Substitui o arquivo de um documento já registrado.
  *
- * Se o documento já foi assinado pelo colaborador, o conteúdo anterior é
- * intocável: uma NOVA VERSÃO é publicada, preservando o arquivo, a versão e a
- * assinatura antigos, e a nova versão volta a pedir assinatura.
+ * No acervo do DP quem decide é o servidor: se o documento já foi assinado, ele
+ * publica uma NOVA VERSÃO e preserva o arquivo, a versão e a assinatura antigos;
+ * caso contrário, troca o arquivo do mesmo documento.
  */
 export async function substituirDocumentoHistorico(params: {
   rowId: string;
@@ -154,8 +163,6 @@ export async function substituirDocumentoHistorico(params: {
   const { source, id } = parseDocRowId(rowId);
   const cfg = CFG[source];
 
-  const assinado = source === "doc" ? (await contarAceites(id)) > 0 : false;
-
   const ext = (file.name.split(".").pop() || "pdf").toLowerCase();
   const novoPath = `${companyId}/${id}/${Date.now()}.${ext}`;
 
@@ -165,81 +172,49 @@ export async function substituirDocumentoHistorico(params: {
   });
   if (up.error) throw up.error;
 
-  // Documento já assinado: publica nova versão, sem tocar na versão aceita.
-  if (assinado) {
-    const atual = await supabase
-      .from("dp_documentos")
-      .select(
-        "company_id, colaborador_id, tipo, titulo, descricao, referencia_data, versao, exige_aceite, aprovacao_status, categoria, requisito_id, unidade_id",
-      )
-      .eq("id", id)
-      .maybeSingle();
-    if (atual.error) {
+  if (source === "doc") {
+    let resultado: SubstituirDocumentoResultado;
+    try {
+      resultado = await substituirDocumento(
+        id,
+        {
+          file_path: novoPath,
+          file_name: file.name,
+          file_size: file.size,
+          mime_type: file.type || "application/pdf",
+        },
+        {
+          ...(patch?.colaborador_id !== undefined ? { colaborador_id: patch.colaborador_id } : {}),
+          ...(patch?.tipo ? { tipo: patch.tipo } : {}),
+          ...(patch?.competencia !== undefined ? { competencia: patch.competencia } : {}),
+        },
+        meta?.motivo ?? "Novo arquivo enviado pelo Histórico",
+      );
+    } catch (e) {
       await removerArquivo(cfg.bucket, novoPath);
-      throw atual.error;
+      throw e;
     }
-    const base = (atual.data ?? {}) as Record<string, any>;
-
-    const novo: Record<string, unknown> = {
-      ...base,
-      colaborador_id:
-        patch?.colaborador_id !== undefined ? patch.colaborador_id : base.colaborador_id,
-      tipo: patch?.tipo ?? base.tipo,
-      referencia_data:
-        patch?.competencia !== undefined
-          ? (patch.competencia ? `${patch.competencia}-01` : null)
-          : base.referencia_data,
-      versao: Number(base.versao ?? 1) + 1,
-      file_path: novoPath,
-      file_name: file.name,
-      file_size: file.size,
-      mime_type: file.type || "application/pdf",
-      replaces_documento_id: id,
-    };
-
-    const criado = await supabase
-      .from("dp_documentos")
-      .insert(novo as any)
-      .select("id")
-      .single();
-    if (criado.error) {
-      await removerArquivo(cfg.bucket, novoPath);
-      throw criado.error;
-    }
-
-    const pub = await supabase.rpc("dp_documento_versao_publicar" as any, {
-      _novo_id: criado.data.id,
-      _anterior_id: id,
-      _motivo: meta?.motivo ?? "Novo arquivo enviado pelo Histórico",
-    });
-    if (pub.error) throw pub.error;
 
     await registrarEvento({
       rowId,
-      acao: "nova_versao",
+      acao: resultado.modo === "nova_versao" ? "nova_versao" : "substituido",
       meta: { ...(meta ?? {}), companyId },
       arquivo_anterior: filePathAtual,
       arquivo_novo: novoPath,
     });
 
-    // O arquivo anterior permanece no acervo: é o conteúdo que foi assinado.
-    return { novaVersaoId: criado.data.id as string };
+    // O arquivo assinado permanece no acervo; só o substituído sem assinatura sai.
+    if (resultado.modo === "substituido" && filePathAtual && filePathAtual !== novoPath) {
+      await removerArquivo(cfg.bucket, filePathAtual);
+    }
+
+    return resultado.modo === "nova_versao"
+      ? { novaVersaoId: resultado.documento_id }
+      : {};
   }
 
   const update: Record<string, unknown> = { [cfg.pathCol]: novoPath };
-
-  if (source === "doc") {
-    update.file_name = file.name;
-    update.file_size = file.size;
-    update.mime_type = file.type || "application/pdf";
-    if (patch?.colaborador_id !== undefined) update.colaborador_id = patch.colaborador_id;
-    if (patch?.tipo) update.tipo = patch.tipo;
-    if (patch?.competencia !== undefined) {
-      update.referencia_data = patch.competencia ? `${patch.competencia}-01` : null;
-    }
-  } else if (source === "sind") {
-    update.arquivo_nome = file.name;
-  }
+  if (source === "sind") update.arquivo_nome = file.name;
 
   const { error } = await supabase.from(cfg.table as any).update(update).eq("id", id);
   if (error) {
