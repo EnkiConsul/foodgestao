@@ -386,6 +386,11 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
                 Informe nome, CPF, WhatsApp, unidade, cargo, tipo de vínculo e a decisão sobre o trabalho após as 22h.
               </p>
             )}
+            {rotuloSalvoEm(rascunho.salvoEm) && (
+              <p className="text-xs text-muted-foreground">
+                {`Rascunho ${rotuloSalvoEm(rascunho.salvoEm).toLowerCase()} — você pode fechar e continuar depois.`}
+              </p>
+            )}
           </div>
         )}
 
