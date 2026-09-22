@@ -339,6 +339,11 @@ export function corteFeriasPadrao(admissaoISO: string, hojeISO: string): string 
 
 export function textoErroFerias(mensagem?: string | null): string {
   if (!mensagem) return "Não foi possível concluir a operação.";
+  // A cobertura mínima devolve o primeiro dia descoberto junto do código.
+  const cobertura = mensagem.match(/FERIAS_COBERTURA_MINIMA:(\d{2}\/\d{2}\/\d{4})/);
+  if (cobertura) {
+    return `Em ${cobertura[1]} o turno ficaria abaixo da cobertura mínima. Registre uma justificativa para seguir.`;
+  }
   for (const [codigo, texto] of Object.entries(FERIAS_ERRO_TEXTO)) {
     if (mensagem.includes(codigo)) return texto;
   }
