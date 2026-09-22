@@ -230,8 +230,47 @@ export function vinculosEncerrados(
   return encerrados.sort((a, b) => a.dataFim.localeCompare(b.dataFim));
 }
 
+/**
+ * Limites do vínculo que cobre a competência, segundo o histórico.
+ *
+ * Recontratar no mesmo cadastro reescreve a admissão da ficha; sem olhar o
+ * histórico, competências antigas passariam a ser lidas com a data do vínculo
+ * novo (e um documento correto do vínculo anterior viraria "inconsistência").
+ *
+ * Retorna null quando não há histórico cobrindo a competência — nesse caso
+ * valem as datas da própria ficha.
+ */
+export function limitesVinculoNaCompetencia(
+  historico: VinculoHistorico[] | undefined | null,
+  colaboradorId: string,
+  comp: Competencia,
+): { admissao: string; desligamento: string | null; regime: string | null } | null {
+  const { inicio, fim } = intervaloCompetencia(comp);
+  const cobrem = (historico ?? [])
+    .filter((h) => h.colaborador_id === colaboradorId)
+    .map((h) => ({
+      ini: String(h.vigencia_inicio ?? "").slice(0, 10),
+      fim: String(h.vigencia_fim ?? "").slice(0, 10),
+      regime: h.regime ?? null,
+    }))
+    .filter((h) => h.ini && h.ini <= fim && (!h.fim || h.fim >= inicio))
+    .sort((a, b) => a.ini.localeCompare(b.ini));
+  const v = cobrem[0];
+  if (!v) return null;
+  return { admissao: v.ini, desligamento: v.fim || null, regime: v.regime };
+}
+
 export type ElegibilidadeOpts = {
   unidadeTemRelogio?: boolean;
+  /**
+   * Vínculo vigente na competência (histórico). Quando informado, substitui
+   * admissão/desligamento da ficha na conferência daquela competência.
+   */
+  vinculoNaCompetencia?: {
+    admissao: string;
+    desligamento: string | null;
+    regime?: string | null;
+  } | null;
   /** Dia do adiantamento da unidade (quando ela paga adiantamento). */
   diaAdiantamento?: number | null;
   /** Empresa que emite contracheque separado também no mês do desligamento. */
@@ -283,8 +322,20 @@ export function elegivelDocumento(
   opts: ElegibilidadeOpts & { competencia?: Competencia | null } = {},
 ): boolean {
   const comp = opts.competencia ?? null;
-  const desligadoNoMes = comp ? desligadoNaCompetencia(c, comp) : false;
-  const assalariado = REGIMES_ASSALARIADOS.has(String(c.regime ?? "").toLowerCase()) && !isSocio(c);
+  // Vínculo da competência (histórico) tem prioridade sobre as datas da ficha:
+  // recontratar no mesmo cadastro não reescreve o passado.
+  const vinculo = opts.vinculoNaCompetencia ?? null;
+  const admissaoEfetiva = vinculo
+    ? vinculo.admissao
+    : String(c.data_admissao ?? "").slice(0, 10);
+  const desligamentoEfetivo = vinculo
+    ? vinculo.desligamento
+    : String(c.data_desligamento ?? "").slice(0, 10) || null;
+  const desligadoNoMes = comp
+    ? !!desligamentoEfetivo && competenciaDe(desligamentoEfetivo) === comp
+    : false;
+  const regimeEfetivo = String(vinculo?.regime ?? c.regime ?? "").toLowerCase();
+  const assalariado = REGIMES_ASSALARIADOS.has(regimeEfetivo) && !isSocio(c);
 
   if (tipo === "rescisao") {
     return assalariado && desligadoNoMes;
@@ -304,12 +355,12 @@ export function elegivelDocumento(
     const dia = opts.diaAdiantamento ?? null;
     // Admitido no mês depois do dia do pagamento: não há adiantamento nesta
     // competência (a primeira competência com adiantamento é a seguinte).
-    const admissao = String(c.data_admissao ?? "").slice(0, 10);
+    const admissao = admissaoEfetiva;
     if (comp && dia && admissao && admissao.slice(0, 7) === comp) {
       if (Number(admissao.slice(8, 10)) > dia) return false;
     }
     // Desligado antes do dia do adiantamento não recebe adiantamento no mês.
-    const desligamento = String(c.data_desligamento ?? "").slice(0, 10);
+    const desligamento = desligamentoEfetivo ?? "";
     if (desligadoNoMes && dia && desligamento) {
       return Number(desligamento.slice(8, 10)) >= dia;
     }

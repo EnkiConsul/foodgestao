@@ -16,7 +16,11 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { ativoNaCompetencia, tipoColetivoDoc } from "@/lib/dp/bulk-coverage";
-import { elegivelDocumento } from "@/lib/dp/pendencias-documentos";
+import {
+  elegivelDocumento,
+  limitesVinculoNaCompetencia,
+  type VinculoHistorico,
+} from "@/lib/dp/pendencias-documentos";
 import {
   optanteNaCompetencia,
   type AdiantamentoSolicitacao,
@@ -144,7 +148,14 @@ const MAX_NOMES = 6;
  * exibidos, para que Início, Pendências e Importar mostrem exatamente a
  * mesma lista — incluindo o que foi ignorado ou adiado pelo gestor.
  */
-const TIPOS_DA_FONTE_UNICA = new Set<Tipo>(["contracheque", "adiantamento", "ponto"]);
+const TIPOS_DA_FONTE_UNICA = new Set<Tipo>([
+  "contracheque",
+  "adiantamento",
+  "ponto",
+  // A rescisão também vem das Pendências: calcular aqui de novo duplicava a
+  // mesma cobrança na lista de "Falta Importar".
+  "rescisao",
+]);
 
 type Pessoa = { nome: string; desligamento: string | null };
 
@@ -225,7 +236,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
       const competencias: string[] = [];
       for (let c = inicio; c <= fim; c = addMeses(c, 1)) competencias.push(c);
 
-      const [colabsRes, docsRes, unidadesRes, gozosRes, solsRes] = await Promise.all([
+      const [colabsRes, docsRes, unidadesRes, gozosRes, solsRes, histRes] = await Promise.all([
         // Inclui desligados: quem saiu no meio do mês continua devendo o
         // documento daquela competência (a elegibilidade é por competência).
         supabase
@@ -255,6 +266,12 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
         supabase
           .from("dp_adiantamento_solicitacoes" as any)
           .select("colaborador_id, tipo, competencia_efeito, created_at")
+          .eq("company_id", selectedCompanyId!),
+        // Histórico de vínculos: recontratar no mesmo cadastro não reescreve as
+        // competências do vínculo anterior.
+        supabase
+          .from("dp_colaborador_historico_condicoes")
+          .select("colaborador_id, vigencia_inicio, vigencia_fim, regime, unidade_id, modo_continuidade")
           .eq("company_id", selectedCompanyId!),
       ]);
       if (colabsRes.error) throw colabsRes.error;
@@ -304,6 +321,9 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
         solsPorColab.get(s.colaborador_id)!.push(s as AdiantamentoSolicitacao);
       }
 
+      // Vínculos: cada competência é lida pelo vínculo que existia nela.
+      const historicoVinculos = (histRes.data ?? []) as unknown as VinculoHistorico[];
+
       // Intermitente sem nenhuma marcação na competência: não se cobra
       // contracheque nem folha de ponto (o alerta fica nas Pendências).
       const pontoNaComp = new Set<string>();
@@ -323,7 +343,6 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
         // Com pró-labore, espera-se apenas o recibo mensal da retirada.
         const socio = isSocio(c.vinculo_label);
         const socioProLabore = socio && c.socio_remuneracao === "pro_labore";
-        const assalariado = REGIMES_ASSALARIADOS.has(regime) && !socio;
         const temRelogio = c.unidade_id ? relogioMap.get(c.unidade_id) === true : false;
         const gozos = gozosPorColab.get(c.id as string);
 
@@ -353,15 +372,23 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           const prazoDecimo = prazo13(comp);
           const decimoNoPrazo = !!prazoDecimo && hoje <= prazoDecimo;
 
+          // Vínculo que existia nesta competência. Recontratar no mesmo cadastro
+          // reescreve a admissão da ficha; sem isso, o documento correto do
+          // vínculo anterior apareceria como inconsistência.
+          const vinculoComp = limitesVinculoNaCompetencia(historicoVinculos, c.id, comp);
+          const desligamentoComp = vinculoComp ? vinculoComp.desligamento : desligamento;
+          const regimeComp = String(vinculoComp?.regime ?? regime).toLowerCase();
+          const assalariadoComp = REGIMES_ASSALARIADOS.has(regimeComp) && !socio;
+
           // Mês do desligamento: por padrão o pagamento vem no acerto da
           // rescisão, então cobra-se TRCT/demonstrativo e não o contracheque.
-          const desligadoNoMes = !!desligamento && desligamento.slice(0, 7) === comp;
+          const desligadoNoMes = !!desligamentoComp && desligamentoComp.slice(0, 7) === comp;
           // Intermitente sem marcação de ponto no mês: pode simplesmente não
           // ter sido convocado — nada de cobrança, só o alerta em Pendências.
           const intermitenteSemTrabalho =
-            regime === "intermitente" && !pontoNaComp.has(`${c.id}::${comp}`);
+            regimeComp === "intermitente" && !pontoNaComp.has(`${c.id}::${comp}`);
           const cobraContracheque =
-            assalariado &&
+            assalariadoComp &&
             !intermitenteSemTrabalho &&
             (!desligadoNoMes || exigirContrachequeMesDesligamento);
           const optanteAdiantamento = optanteNaCompetencia(
@@ -381,16 +408,17 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
               competencia: comp,
               diaAdiantamento,
               optanteNaCompetencia: optanteAdiantamento,
+              vinculoNaCompetencia: vinculoComp,
             });
 
           const checks: Array<[Tipo, boolean]> = socio
             ? [["pro_labore", socioProLabore]]
             : [
                 ["contracheque", cobraContracheque],
-                ["rescisao", assalariado && desligadoNoMes],
+                ["rescisao", assalariadoComp && desligadoNoMes],
                 [
                   "contracheque_13",
-                  assalariado && !intermitenteSemTrabalho && !!prazoDecimo && !decimoNoPrazo,
+                  assalariadoComp && !intermitenteSemTrabalho && !!prazoDecimo && !decimoNoPrazo,
                 ],
                 ["contracheque_ferias", !!gozos?.has(comp)],
                 [
@@ -401,7 +429,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
               ];
 
           // 13º dentro do prazo legal: aviso informativo, não pendência.
-          if (assalariado && prazoDecimo && decimoNoPrazo) {
+          if (assalariadoComp && prazoDecimo && decimoNoPrazo) {
             const key = `${comp}::contracheque_13`;
             const atual = avisosMap.get(key);
             if (atual) atual.total += 1;
@@ -446,7 +474,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
                 (tipo === "ponto" ||
                   tipo === "adiantamento" ||
                   ((tipo === "contracheque" || tipo === "contracheque_13") &&
-                    !assalariado &&
+                    !assalariadoComp &&
                     !socioProLabore));
               if (inconsistente) {
                 alertas.push({
