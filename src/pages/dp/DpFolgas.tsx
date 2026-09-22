@@ -300,10 +300,6 @@ export default function DpFolgas() {
   /** Cancela a folga (mantém o histórico); o dia volta a ficar livre. */
   const cancelarFolga = useMutation({
     mutationFn: async ({ id, colaboradorId, data, motivo }: { id: string; colaboradorId: string; data: string; motivo: string }) => {
-      const resposta = motivo
-        ? `Cancelada pelo gestor: ${motivo}`
-        : "Cancelada pelo gestor.";
-
       const ehFolga = id.startsWith("folga:");
       const { error } = await supabase.rpc("dp_folga_admin_cancelar", {
         p_folga_id: ehFolga ? id.slice("folga:".length) : null,
