@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.dp_ferias_validar_programacao(uuid, uuid, date, date, integer, text, uuid, text) FROM authenticated;
