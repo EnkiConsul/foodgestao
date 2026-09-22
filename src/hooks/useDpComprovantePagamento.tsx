@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeStorageFilename } from "@/lib/storage";
-import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { notifyError } from "@/lib/notifyError";
 import { DP_DOCUMENTOS_BUCKET } from "@/lib/documentoArquivo";
@@ -22,7 +21,6 @@ export type ComprovanteAlvo = {
  */
 export function useDpComprovantePagamento() {
   const { selectedCompanyId } = useCompanyContext();
-  const { user } = useAuth();
   const qc = useQueryClient();
 
   const invalidar = () => {

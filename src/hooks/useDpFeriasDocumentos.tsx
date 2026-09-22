@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { useAuth } from "@/hooks/useAuth";
 import { textoErroFerias } from "@/lib/dp/ferias-direito";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
@@ -53,7 +52,6 @@ export type RegistrarAvisoInput = {
  */
 export function useDpFeriasDocumentos() {
   const { selectedCompanyId } = useCompanyContext();
-  const { user } = useAuth();
   const qc = useQueryClient();
 
   const invalidate = () => {
