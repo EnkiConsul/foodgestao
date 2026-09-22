@@ -222,7 +222,14 @@ export function DocDetalhesDialog(props: {
               )}
             </div>
 
-            {source === "doc" && docId && (
+            {detalhes.isError && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+                Não foi possível carregar os dados deste documento agora. Feche e abra novamente; se continuar,
+                avise o suporte.
+              </div>
+            )}
+
+            {source === "doc" && docId && !detalhes.isError && (
               <ComprovantePagamentoPanel
                 alvo={{
                   documentoId: docId,
