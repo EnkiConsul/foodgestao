@@ -17,6 +17,8 @@ export type UnifiedTipo =
   | "disciplinar"
   | "act_cct"
   | "contrato"
+  | "admissao"
+  | "desligamento"
   | "ferias"
   | "outros";
 
