@@ -386,6 +386,7 @@ export default function PreAdmissao() {
         t, c, action: "salvar", dados: form, pessoas: pessoasParaEnviar(), versao: estado?.versao,
       });
       aplicar(novo);
+      setSalvoEm(new Date().toISOString());
       setErros({}); setFaltando([]); setAvisoTopo(null);
       if (avancar) setEtapa((n) => Math.min(n + 1, totalEtapas - 1));
       else toast.success("Dados guardados");
