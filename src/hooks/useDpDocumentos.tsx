@@ -9,6 +9,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { porDocumento, resolverPendencias, type PendenciaMatch } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
 import { abrirDocumento } from "@/lib/documentoArquivo";
+import { registrarDocumento, revisarDocumento } from "@/lib/dp/documentos-oficial";
 
 export type DpDocumentoTipo = Database["public"]["Enums"]["dp_documento_tipo"];
 export type DpDocumentoAprov = "pendente" | "aprovado" | "recusado";
@@ -166,13 +167,7 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
 
   const aprovar = useMutation({
     mutationFn: async (row: DpDocumentoRow) => {
-      const { error } = await supabase.from("dp_documentos").update({
-        aprovacao_status: "aprovado",
-        revisado_por: user?.id,
-        revisado_em: new Date().toISOString(),
-        motivo_recusao: null,
-      } as any).eq("id", row.id);
-      if (error) throw error;
+      await revisarDocumento(row.id, "aprovado");
     },
     onSuccess: () => {
       toast.success("Documento aprovado");
