@@ -321,6 +321,9 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
         solsPorColab.get(s.colaborador_id)!.push(s as AdiantamentoSolicitacao);
       }
 
+      // Vínculos: cada competência é lida pelo vínculo que existia nela.
+      const historicoVinculos = (histRes.data ?? []) as unknown as VinculoHistorico[];
+
       // Intermitente sem nenhuma marcação na competência: não se cobra
       // contracheque nem folha de ponto (o alerta fica nas Pendências).
       const pontoNaComp = new Set<string>();
