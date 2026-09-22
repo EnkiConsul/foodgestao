@@ -6,6 +6,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { regimeRisco } from "@/lib/dp/regime-riscos";
 import { RegimeRiscoDialog } from "@/components/dp/RegimeRiscoDialog";
 import { toUpperCadastro } from "@/lib/text/upperCadastro";
+import { useDpAdmissaoRascunho } from "@/hooks/useDpAdmissaoRascunho";
+import {
+  chaveRascunhoAdmissao, rotuloRascunho, rotuloSalvoEm, type ConteudoRascunhoAdmissao,
+} from "@/lib/dp/admissao-rascunho";
 
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
