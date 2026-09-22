@@ -241,7 +241,7 @@ export default function DpMeuDocumentos() {
       const path = `${colaborador.company_id}/${colaborador.id}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
       const up = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
       if (up.error) throw up.error;
-      const { error } = await supabase.from("dp_documentos").insert({
+      await registrarDocumento({
         company_id: colaborador.company_id,
         colaborador_id: colaborador.id,
         tipo: form.tipo,
@@ -252,11 +252,7 @@ export default function DpMeuDocumentos() {
         file_size: file.size,
         mime_type: file.type,
         referencia_data: form.referencia_data || null,
-        uploaded_by: user?.id,
-        submetido_por_colaborador: true,
-        aprovacao_status: "pendente",
       });
-      if (error) throw error;
       toast.success("Documento enviado para aprovação");
       qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
       setOpenSubmit(false);
