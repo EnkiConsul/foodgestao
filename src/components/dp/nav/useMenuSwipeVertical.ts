@@ -15,26 +15,19 @@ const MAX_DURATION_MS = 800;
 const MAX_DELTA_X = 70;
 const HOME_TO = "/dp";
 
-/** Primeiro ancestral com rolagem vertical, se houver. */
+/** Primeiro ancestral com rolagem vertical própria, se houver. */
 function verticalScrollerDoToque(target: EventTarget | null): HTMLElement | null {
   let el = target instanceof Element ? target : null;
   while (el) {
-    if (el.scrollHeight > el.clientHeight + 8) {
-      const overflowY = window.getComputedStyle(el).overflowY;
-      if (overflowY === "auto" || overflowY === "scroll") return el as HTMLElement;
-    }
+    const overflowY = window.getComputedStyle(el).overflowY;
+    if (overflowY === "auto" || overflowY === "scroll") return el as HTMLElement;
     el = el.parentElement;
   }
   return null;
 }
 
-/** O gesto só arma quando não há mais rolagem na direção do arrasto. */
-function rolagemBloqueiaGesto(scroller: HTMLElement | null, direcao: "cima" | "baixo"): boolean {
-  if (scroller) {
-    const max = scroller.scrollHeight - scroller.clientHeight;
-    if (direcao === "cima") return scroller.scrollTop < max - 4;
-    return scroller.scrollTop > 4;
-  }
+/** Rolagem restante do documento na direção do arrasto. */
+function rolagemDoDocumento(direcao: "cima" | "baixo"): boolean {
   const doc = document.documentElement;
   const max = doc.scrollHeight - window.innerHeight;
   if (direcao === "cima") return window.scrollY < max - 4;
