@@ -42,7 +42,10 @@ export default function DpBeneficios() {
   const cargos = useDpCargos();
 
   const [aba, setAba] = useState("calculo");
-  const [colabFilter, setColabFilter] = useState("todos");
+  const [filtros, setFiltros] = useState<BeneficiosFiltros>(FILTROS_BENEFICIOS_PADRAO);
+  const colabFilter = filtros.colaborador;
+  const setFiltro = <K extends keyof BeneficiosFiltros>(campo: K, valor: BeneficiosFiltros[K]) =>
+    setFiltros((f) => ({ ...f, [campo]: valor }));
   const b = useDpBeneficios(colabFilter);
   const cadastro = useDpBeneficiosCadastro(colabFilter);
 
