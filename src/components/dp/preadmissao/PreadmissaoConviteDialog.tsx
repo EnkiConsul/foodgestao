@@ -209,6 +209,9 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
       setLink(r.link);
       setValidade(r.expires_at);
       setNumeroEnvio(r.whatsapp ?? null);
+      // Convite criado: o rascunho já cumpriu o papel.
+      setRascunhoGuardado(null);
+      void rascunho.descartar();
       toast.success("Convite criado. Copie o link e envie ao candidato.");
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "criar o convite" });
