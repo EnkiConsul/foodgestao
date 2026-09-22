@@ -60,7 +60,124 @@ function useVerComprovante() {
 }
 
 /**
- * Atalho no card/linha do documento: importa o comprovante sem abrir os detalhes.
+ * Formulário de anexo: primeiro a data do pagamento, depois a escolha do
+ * arquivo. Antes o clique abria direto o seletor e ninguém sabia que podia
+ * informar a data.
+ */
+export function ComprovanteAnexarDialog(props: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  alvo: ComprovanteAlvo;
+  /** Já existe comprovante: o envio substitui o anterior. */
+  substituir?: boolean;
+  documentoTitulo?: string | null;
+  colaboradorNome?: string | null;
+  pagoEmAtual?: string | null;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const campoId = useId();
+  const [pagoEm, setPagoEm] = useState(props.pagoEmAtual ?? "");
+  const [erro, setErro] = useState<string | null>(null);
+  const { anexar, ocupado } = useDpComprovantePagamento();
+  const hoje = hojeISO();
+
+  const escolherArquivo = () => {
+    const check = validarDataPagamento(pagoEm, hoje);
+    if (!check.ok) {
+      setErro(check.motivo);
+      return;
+    }
+    setErro(null);
+    inputRef.current?.click();
+  };
+
+  return (
+    <Dialog
+      open={props.open}
+      onOpenChange={(v) => {
+        if (!v) {
+          setErro(null);
+          setPagoEm(props.pagoEmAtual ?? "");
+        }
+        props.onOpenChange(v);
+      }}
+    >
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {props.substituir ? "Substituir comprovante de pagamento" : "Anexar comprovante de pagamento"}
+          </DialogTitle>
+          <DialogDescription>
+            {[props.colaboradorNome, props.documentoTitulo].filter(Boolean).join(" · ") ||
+              "Informe a data do pagamento e escolha o arquivo (PDF ou imagem, até 15 MB)."}
+          </DialogDescription>
+        </DialogHeader>
+
+        <input
+          ref={inputRef}
+          type="file"
+          className="hidden"
+          accept="application/pdf,image/*"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (!file || !validar(file)) return;
+            const check = validarDataPagamento(pagoEm, hoje);
+            if (!check.ok) {
+              setErro(check.motivo);
+              return;
+            }
+            anexar.mutate(
+              { alvo: props.alvo, file, pagoEm: check.valor },
+              { onSuccess: () => props.onOpenChange(false) },
+            );
+          }}
+        />
+
+        <div className="grid gap-1.5">
+          <Label htmlFor={campoId} className="text-xs">Data do pagamento (opcional)</Label>
+          <Input
+            id={campoId}
+            type="date"
+            max={hoje}
+            value={pagoEm}
+            aria-invalid={!!erro}
+            aria-describedby={erro ? `${campoId}-erro` : undefined}
+            onChange={(e) => {
+              setPagoEm(e.target.value);
+              setErro(null);
+            }}
+          />
+          {erro ? (
+            <p id={`${campoId}-erro`} role="alert" className="text-xs text-destructive">{erro}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Arquivo em PDF ou imagem, até {MAX_MB} MB.
+            </p>
+          )}
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button variant="outline" onClick={() => props.onOpenChange(false)} disabled={ocupado}>
+            Cancelar
+          </Button>
+          <Button onClick={escolherArquivo} disabled={ocupado}>
+            {anexar.isPending ? (
+              <Loader2 className="mr-1 size-4 animate-spin" />
+            ) : (
+              <Upload className="mr-1 size-4" />
+            )}
+            Importar comprovante
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Atalho no card/linha do documento: abre o formulário de anexo sem precisar
+ * entrar nos detalhes.
  */
 export function ComprovanteAcaoBotao(props: {
   alvo: ComprovanteAlvo;
@@ -69,9 +186,11 @@ export function ComprovanteAcaoBotao(props: {
   somenteLeitura?: boolean;
   /** Rótulo curto exibido ao lado do ícone (usado no card mobile). */
   rotulo?: string;
+  documentoTitulo?: string | null;
+  colaboradorNome?: string | null;
   className?: string;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [anexarOpen, setAnexarOpen] = useState(false);
   const { anexar, ocupado } = useDpComprovantePagamento();
   const { ver, visualizador } = useVerComprovante();
   if (!aceitaComprovante(props.alvo.tipo)) return null;
