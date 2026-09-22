@@ -3028,6 +3028,9 @@ export type Database = {
           nome: string
           observacao: string | null
           percentual_por_ciclo: number
+          removido_em: string | null
+          removido_motivo: string | null
+          removido_por: string | null
           sindicato_id: string | null
           unidade_id: string | null
           updated_at: string
@@ -3048,6 +3051,9 @@ export type Database = {
           nome?: string
           observacao?: string | null
           percentual_por_ciclo?: number
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           sindicato_id?: string | null
           unidade_id?: string | null
           updated_at?: string
@@ -3068,6 +3074,9 @@ export type Database = {
           nome?: string
           observacao?: string | null
           percentual_por_ciclo?: number
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           sindicato_id?: string | null
           unidade_id?: string | null
           updated_at?: string
@@ -3721,6 +3730,9 @@ export type Database = {
           id: string
           nome: string
           periodicidade: string
+          removido_em: string | null
+          removido_motivo: string | null
+          removido_por: string | null
           tipo: Database["public"]["Enums"]["dp_beneficio_tipo"]
           unidade_id: string | null
           updated_at: string
@@ -3746,6 +3758,9 @@ export type Database = {
           id?: string
           nome: string
           periodicidade?: string
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           tipo?: Database["public"]["Enums"]["dp_beneficio_tipo"]
           unidade_id?: string | null
           updated_at?: string
@@ -3771,6 +3786,9 @@ export type Database = {
           id?: string
           nome?: string
           periodicidade?: string
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           tipo?: Database["public"]["Enums"]["dp_beneficio_tipo"]
           unidade_id?: string | null
           updated_at?: string
@@ -3808,6 +3826,9 @@ export type Database = {
           created_by: string | null
           id: string
           payload: Json
+          removido_em: string | null
+          removido_motivo: string | null
+          removido_por: string | null
           unidade_id: string | null
           updated_at: string
         }
@@ -3818,6 +3839,9 @@ export type Database = {
           created_by?: string | null
           id?: string
           payload?: Json
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           unidade_id?: string | null
           updated_at?: string
         }
@@ -3828,6 +3852,9 @@ export type Database = {
           created_by?: string | null
           id?: string
           payload?: Json
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           unidade_id?: string | null
           updated_at?: string
         }
@@ -4346,6 +4373,9 @@ export type Database = {
           created_at: string
           id: string
           observacao: string | null
+          removido_em: string | null
+          removido_motivo: string | null
+          removido_por: string | null
           salario_base: number
           sindicato_patronal_id: string | null
           unidade_id: string | null
@@ -4359,6 +4389,9 @@ export type Database = {
           created_at?: string
           id?: string
           observacao?: string | null
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           salario_base: number
           sindicato_patronal_id?: string | null
           unidade_id?: string | null
@@ -4372,6 +4405,9 @@ export type Database = {
           created_at?: string
           id?: string
           observacao?: string | null
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           salario_base?: number
           sindicato_patronal_id?: string | null
           unidade_id?: string | null
@@ -4429,6 +4465,9 @@ export type Database = {
           nome: string
           periculosidade_percentual: number
           perigoso: boolean
+          removido_em: string | null
+          removido_motivo: string | null
+          removido_por: string | null
           salario_base: number | null
           updated_at: string
         }
@@ -4450,6 +4489,9 @@ export type Database = {
           nome: string
           periculosidade_percentual?: number
           perigoso?: boolean
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           salario_base?: number | null
           updated_at?: string
         }
@@ -4471,6 +4513,9 @@ export type Database = {
           nome?: string
           periculosidade_percentual?: number
           perigoso?: boolean
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           salario_base?: number | null
           updated_at?: string
         }
@@ -4577,6 +4622,9 @@ export type Database = {
           dispensado_pelo_colaborador: boolean
           id: string
           observacao: string | null
+          removido_em: string | null
+          removido_motivo: string | null
+          removido_por: string | null
           termo_gerado_em: string | null
           updated_at: string
           valor: number
@@ -4596,6 +4644,9 @@ export type Database = {
           dispensado_pelo_colaborador?: boolean
           id?: string
           observacao?: string | null
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           termo_gerado_em?: string | null
           updated_at?: string
           valor?: number
@@ -4615,6 +4666,9 @@ export type Database = {
           dispensado_pelo_colaborador?: boolean
           id?: string
           observacao?: string | null
+          removido_em?: string | null
+          removido_motivo?: string | null
+          removido_por?: string | null
           termo_gerado_em?: string | null
           updated_at?: string
           valor?: number
@@ -15008,6 +15062,10 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_adicional_tempo_servico_salvar: {
+        Args: { p_company_id: string; p_dados: Json; p_id?: string }
+        Returns: string
+      }
       dp_adicionar_dias_uteis: {
         Args: { _base: string; _dias: number; _timezone: string }
         Returns: string
@@ -15042,6 +15100,20 @@ export type Database = {
               tipo: string
             }[]
           }
+      dp_beneficio_padrao_salvar: {
+        Args: {
+          p_cargo_id?: string
+          p_company_id: string
+          p_limpar_especificos?: boolean
+          p_payload: Json
+          p_unidade_id?: string
+        }
+        Returns: string
+      }
+      dp_beneficio_salvar: {
+        Args: { p_company_id: string; p_dados: Json; p_id?: string }
+        Returns: string
+      }
       dp_bulk_batch_finalize: { Args: { _batch_id: string }; Returns: string }
       dp_bulk_claim_batches: {
         Args: { _lease_seconds?: number; _limit?: number; _worker: string }
@@ -15107,6 +15179,10 @@ export type Database = {
       }
       dp_bulk_reclaim_expired: { Args: { _limit?: number }; Returns: Json }
       dp_bulk_worker_secret: { Args: never; Returns: string }
+      dp_cadastro_remuneracao_excluir: {
+        Args: { p_id: string; p_motivo?: string; p_tabela: string }
+        Returns: undefined
+      }
       dp_calc_carga_dia: {
         Args: {
           _entrada: string
@@ -15134,6 +15210,14 @@ export type Database = {
           p_unidade: string
         }
         Returns: Json
+      }
+      dp_cargo_piso_definir: {
+        Args: { p_dados: Json; p_id?: string; p_justificativa?: string }
+        Returns: string
+      }
+      dp_cargo_salvar: {
+        Args: { p_company_id: string; p_dados: Json; p_id?: string }
+        Returns: string
       }
       dp_cargos_salario_base: {
         Args: { p_company_id: string }
@@ -15170,6 +15254,14 @@ export type Database = {
         Returns: string
       }
       dp_colaborador_ativo_of: { Args: { _user_id: string }; Returns: string }
+      dp_colaborador_beneficio_definir: {
+        Args: { p_dados: Json; p_id?: string }
+        Returns: string
+      }
+      dp_colaborador_beneficios_definir_lote: {
+        Args: { p_itens: Json }
+        Returns: number
+      }
       dp_colaborador_config_encerrar: {
         Args: { p_config_id: string; p_fim?: string }
         Returns: undefined
