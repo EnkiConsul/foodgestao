@@ -23,6 +23,25 @@ const fmtPrazo = (iso?: string | null) =>
 
 type Situacao = "sem_acesso" | "pendente_ativacao" | "ativo" | "reset_solicitado" | "bloqueado";
 
+/** Situação do vínculo para liberar acesso — decidida pelo servidor. */
+type SituacaoVinculo =
+  | "ok"
+  | "prazo_documentos"
+  | "bloqueado"
+  | "vinculo_encerrado"
+  | "cadastro_removido"
+  | "cadastro_nao_encontrado"
+  | "empresa_inativa";
+
+const IMPEDIMENTO: Record<string, string> = {
+  bloqueado: "O acesso está bloqueado. Use 'Reativar acesso' para liberar novamente.",
+  vinculo_encerrado:
+    "O prazo de consulta deste colaborador desligado já terminou — não é possível liberar acesso.",
+  cadastro_removido: "Este cadastro foi removido.",
+  cadastro_nao_encontrado: "Cadastro não encontrado.",
+  empresa_inativa: "A empresa está inativa. Regularize a situação antes de liberar o acesso.",
+};
+
 const ROTULO: Record<Situacao, string> = {
   sem_acesso: "Sem acesso",
   pendente_ativacao: "Acesso pendente de ativação",
