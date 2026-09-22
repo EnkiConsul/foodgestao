@@ -136,10 +136,14 @@ Deno.serve(async (req) => {
         const k = `${data}|${u ?? "null"}`;
         if ((contagemPorDiaUnidade.get(k) ?? 0) >= limite) continue;
 
-        const { error } = await supabase.from("dp_folgas").insert({
-          company_id, colaborador_id: colab_id, data,
-          tipo: "normal", origem: "sorteio", status: "agendada", extra: false,
-          observacao: "Sorteio automático",
+        // A folga é criada pela rotina oficial: ela confere data, bloqueios,
+        // limite do dia e repetição na mesma transação.
+        const { error } = await supabase.rpc("dp_folga_admin_criar", {
+          p_colaborador_id: colab_id,
+          p_data: data,
+          p_tipo: "normal",
+          p_origem: "sorteio",
+          p_observacao: "Sorteio automático",
         });
         if (error) {
           console.error("[dp-sorteio-folgas] insert:", error.message);

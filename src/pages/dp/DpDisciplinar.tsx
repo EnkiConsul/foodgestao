@@ -3,6 +3,12 @@ import { Helmet } from "react-helmet-async";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Upload, History, FileText, FileImage, Download, Trash2, Pencil, FileSignature } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  registrarDisciplinar,
+  anexarArquivoDisciplinar,
+  corrigirDisciplinar,
+  excluirDisciplinar,
+} from "@/lib/dp/colaborador-oficial";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -116,6 +122,7 @@ export default function DpDisciplinar() {
         .from("dp_registros_disciplinares")
         .select("*, dp_colaboradores(nome, unidade_id)")
         .eq("company_id", selectedCompanyId!)
+        .is("removido_em", null)
         .order("data", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Registro[];
@@ -295,34 +302,23 @@ export default function DpDisciplinar() {
         throw new Error("Informe os dias de afastamento para suspensão");
       }
 
-      const { data: inserted, error: insErr } = await supabase
-        .from("dp_registros_disciplinares")
-        .insert({
-          company_id: selectedCompanyId,
-          colaborador_id: colaboradorId,
-          tipo: tipo as any,
-          data: dataDoc,
-          motivo: observacao || TIPO_LABEL[tipo] || tipo,
-          descricao: observacao || null,
-          suspensao_dias: diasN > 0 ? diasN : null,
-          aplicado_por: user?.id ?? null,
-        })
-        .select("id")
-        .single();
-      if (insErr) throw insErr;
+      const registroId = await registrarDisciplinar({
+        colaboradorId,
+        tipo,
+        data: dataDoc,
+        motivo: observacao || TIPO_LABEL[tipo] || tipo,
+        descricao: observacao || null,
+        suspensaoDias: diasN > 0 ? diasN : null,
+      });
 
       const safeName = sanitizeStorageFilename(pendingFile.name);
-      const path = `${selectedCompanyId}/${inserted.id}/${Date.now()}-${safeName}`;
+      const path = `${selectedCompanyId}/${registroId}/${Date.now()}-${safeName}`;
       const up = await supabase.storage.from(BUCKET).upload(path, pendingFile, {
         upsert: true,
         contentType: pendingFile.type || "application/pdf",
       });
       if (up.error) throw up.error;
-      const { error: updErr } = await supabase
-        .from("dp_registros_disciplinares")
-        .update({ pdf_storage_path: path })
-        .eq("id", inserted.id);
-      if (updErr) throw updErr;
+      await anexarArquivoDisciplinar(registroId, path);
     },
     onSuccess: () => {
       toast.success("Registro importado com sucesso");
@@ -336,9 +332,9 @@ export default function DpDisciplinar() {
 
   const doDelete = useMutation({
     mutationFn: async (r: Registro) => {
-      if (r.pdf_storage_path) await supabase.storage.from(BUCKET).remove([r.pdf_storage_path]);
-      const { error } = await supabase.from("dp_registros_disciplinares").delete().eq("id", r.id);
-      if (error) throw error;
+      // Exclusão com histórico: o registro sai da lista, mas fica guardado com
+      // quem excluiu, quando e por quê (o arquivo é preservado).
+      await excluirDisciplinar(r.id, "Excluído pelo DP na tela de medidas disciplinares");
     },
     onSuccess: () => {
       toast.success("Registro excluído");
@@ -355,15 +351,15 @@ export default function DpDisciplinar() {
       if (!editData) throw new Error("Informe a data");
       if (!editTipo) throw new Error("Selecione o tipo");
       const diasN = parseInt(editDias || "0", 10);
-      const { error } = await supabase.from("dp_registros_disciplinares").update({
-        colaborador_id: editColaboradorId,
+      await corrigirDisciplinar({
+        id: editing.id,
+        colaboradorId: editColaboradorId,
         data: editData,
-        tipo: editTipo as any,
-        suspensao_dias: diasN > 0 ? diasN : null,
+        tipo: editTipo,
+        suspensaoDias: diasN > 0 ? diasN : null,
         descricao: editObs || null,
         motivo: editObs || TIPO_LABEL[editTipo] || editTipo,
-      }).eq("id", editing.id);
-      if (error) throw error;
+      });
     },
     onSuccess: () => {
       toast.success("Registro atualizado");
@@ -769,7 +765,7 @@ export default function DpDisciplinar() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir registro?</AlertDialogTitle>
             <AlertDialogDescription>
-              O registro e o arquivo anexado (se houver) serão removidos. Esta ação não pode ser desfeita.
+              O registro sai da lista e fica guardado no histórico, com quem excluiu e quando. O arquivo anexado é preservado.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

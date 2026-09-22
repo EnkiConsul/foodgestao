@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ajustarColaboradoresEmLote } from "@/lib/dp/colaborador-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -124,18 +125,23 @@ export function useDpColaboradorCondicoes(colaboradorId?: string | null) {
       // VA/VT/assiduidade ficam no cadastro, não no catálogo de benefícios.
       if (input.beneficios_fixos) {
         const f = input.beneficios_fixos;
-        const { error: errFixos } = await supabase
-          .from("dp_colaboradores")
-          .update({
+        if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
+        await ajustarColaboradoresEmLote({
+          companyId: selectedCompanyId,
+          ids: [colaboradorId],
+          dados: {
             vale_alimentacao: f.vale_alimentacao,
-            vale_alimentacao_valor: f.vale_alimentacao ? f.vale_alimentacao_valor ?? null : null,
+            vale_alimentacao_valor: f.vale_alimentacao ? (f.vale_alimentacao_valor ?? null) : null,
             vale_transporte: f.vale_transporte,
-            vale_transporte_valor_dia: f.vale_transporte ? f.vale_transporte_valor_dia ?? null : null,
+            vale_transporte_valor_dia: f.vale_transporte
+              ? (f.vale_transporte_valor_dia ?? null)
+              : null,
             premio_assiduidade: f.premio_assiduidade,
-            premio_assiduidade_valor: f.premio_assiduidade ? f.premio_assiduidade_valor ?? null : null,
-          })
-          .eq("id", colaboradorId);
-        if (errFixos) throw errFixos;
+            premio_assiduidade_valor: f.premio_assiduidade
+              ? (f.premio_assiduidade_valor ?? null)
+              : null,
+          },
+        });
       }
       return data as string;
     },

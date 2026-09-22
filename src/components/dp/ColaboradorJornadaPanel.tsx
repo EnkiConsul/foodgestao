@@ -669,11 +669,14 @@ export function ColaboradorJornadaPanel({
     // o campo do cadastro, que é lido pela escala e pelo portal.
     if (colaborador?.id) {
       try {
-        const { supabase } = await import("@/integrations/supabase/client");
-        await supabase
-          .from("dp_colaboradores")
-          .update({ folga_fixa_semana: folgaVariavel || folgas.length !== 1 ? null : folgas[0] })
-          .eq("id", colaborador.id);
+        const { ajustarColaboradoresEmLote } = await import("@/lib/dp/colaborador-oficial");
+        await ajustarColaboradoresEmLote({
+          companyId: selectedCompanyId,
+          ids: [colaborador.id],
+          dados: {
+            folga_fixa_semana: folgaVariavel || folgas.length !== 1 ? null : folgas[0],
+          },
+        });
       } catch { /* o horário já foi gravado; o campo espelho não deve travar */ }
     }
     setAlterado(false);

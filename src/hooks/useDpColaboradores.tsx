@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { salvarColaborador } from "@/lib/dp/colaborador-oficial";
 
 export type DpColaborador = Database["public"]["Tables"]["dp_colaboradores"]["Row"] & {
   cargo_nome?: string | null;
@@ -50,18 +51,14 @@ export function useUpsertDpColaborador() {
         ...(input.nome_pai !== undefined ? { nome_pai: toUpperCadastro(input.nome_pai) } : {}),
         company_id: selectedCompanyId,
       } as DpColaboradorInsert;
-      if (input.id) {
-        const { error } = await supabase.from("dp_colaboradores").update(payload).eq("id", input.id);
-        if (error) throw error;
-        return input.id;
-      }
-      const { data, error } = await supabase
-        .from("dp_colaboradores")
-        .insert(payload)
-        .select("id")
-        .single();
-      if (error) throw error;
-      return data.id as string;
+      // Gravação pela rotina oficial: o servidor confere empresa, cargo, unidade,
+      // setor, CPF repetido e dados de pagamento antes de salvar.
+      const { company_id: _empresa, ...dados } = payload as Record<string, unknown>;
+      return await salvarColaborador({
+        id: input.id ?? null,
+        companyId: selectedCompanyId,
+        dados: dados as Record<string, unknown>,
+      });
     },
 
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_colaboradores"] }),

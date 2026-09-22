@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { salvarColaborador } from "@/lib/dp/colaborador-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { cargoSugereVinculoSocio } from "@/lib/dp/cargos";
@@ -112,11 +113,11 @@ export function NovoColaboradorInlineDialog({
         socio_remuneracao: vinculo === "Socio" ? socioRemuneracao : null,
         ativo: true,
       };
-      const { data, error } = await (supabase.from("dp_colaboradores") as any)
-        .insert({ ...payload, company_id: selectedCompanyId })
-        .select("id, nome")
-        .single();
-      if (error) throw error;
+      const novoId = await salvarColaborador({
+        companyId: selectedCompanyId,
+        dados: payload as Record<string, unknown>,
+      });
+      const data = { id: novoId, nome: payload.nome as string };
       // A lista da tela precisa conter o novo cadastro antes de vincular a página.
       await qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
       toast.success("Colaborador cadastrado");
