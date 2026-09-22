@@ -18,7 +18,7 @@ const HOME_TO = "/dp";
 /** Primeiro ancestral com rolagem vertical própria, se houver. */
 function verticalScrollerDoToque(target: EventTarget | null): HTMLElement | null {
   let el = target instanceof Element ? target : null;
-  while (el) {
+  while (el && el !== document.body && el !== document.documentElement) {
     const overflowY = window.getComputedStyle(el).overflowY;
     if (overflowY === "auto" || overflowY === "scroll") return el as HTMLElement;
     el = el.parentElement;
