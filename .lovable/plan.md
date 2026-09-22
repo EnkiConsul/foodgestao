@@ -4,7 +4,9 @@
 
 Ao enviar um documento, no lugar de escolher entre Contrato, Ficha de Registro, Termos e "Outros (Admissão)", existe um único tipo **Admissão** — nele cabem contrato, ficha de registro, ASO admissional, termos e o que mais vier da admissão.
 
-Do mesmo lado, no lugar de Aviso Prévio, TRCT, Demonstrativo Rescisório e "Outros (Desligamento)", passa a existir um único tipo **Desligamento** — com TRCT, ASO demissional, ficha, aviso prévio e demais.
+Do mesmo lado, no lugar de TRCT, Demonstrativo Rescisório e "Outros (Desligamento)", passa a existir um único tipo **Desligamento** — com TRCT, ASO demissional, ficha e demais.
+
+O **Aviso Prévio** continua como tipo próprio, porque é comunicado antes do desligamento e precisa ser localizado e cobrado sozinho.
 
 Os outros tipos continuam como estão: contracheque, adiantamento, pró-labore, 13º, férias, ponto, banco de horas, atestado, disciplinar, informe de rendimentos, sindical e outros.
 
