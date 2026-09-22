@@ -55,6 +55,7 @@ export function useDpFeriasProgramacao(filtro: FiltroProgramacao) {
         supabase
           .from("dp_solicitacoes")
           .select("colaborador_id, data_alvo, data_fim, tipo, status")
+          .is("removido_em", null)
           .eq("company_id", selectedCompanyId!)
           .in("tipo", [...TIPOS_AFASTAMENTO])
           .eq("status", "aprovada"),

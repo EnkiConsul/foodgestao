@@ -47,6 +47,7 @@ export function useDpFeriasSolicitacoes(status: SolicitacaoStatus[] = ["pendente
             "dp_colaboradores(nome), " +
             "dp_ferias_solicitacao_detalhes(periodo_id, data_inicio, data_fim, dias, dias_abono, adiantar_13, observacao)",
         )
+        .is("removido_em", null)
         .eq("company_id", selectedCompanyId!)
         .eq("tipo", "ferias")
         .in("status", status)

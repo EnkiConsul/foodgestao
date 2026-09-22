@@ -64,6 +64,7 @@ export function useAnalyticsFerias({
         supabase
           .from("dp_solicitacoes")
           .select("colaborador_id")
+          .is("removido_em", null)
           .eq("company_id", selectedCompanyId!)
           .eq("tipo", "ferias")
           .eq("status", "pendente"),

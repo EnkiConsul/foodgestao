@@ -9,13 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  competenciaEfeito,
   efeitoHint,
   situacaoAtual,
   validarSolicitacaoPortal,
   type AdiantamentoSolicitacao,
   type AdiantamentoTipoSolicitacao,
 } from "@/lib/dp/adiantamento-opcao";
+import { registrarAdiantamento } from "@/lib/dp/solicitacoes-admin";
 import { notifyError } from "@/lib/notifyError";
 
 function hojeISO() {
@@ -77,24 +77,15 @@ export function AdiantamentoSolicitacoesPanel({
       } else if (!data) {
         throw new Error("Informe a data da solicitação.");
       }
-      const { data: auth } = await supabase.auth.getUser();
-      const { error } = await supabase.from("dp_adiantamento_solicitacoes" as any).insert({
-        company_id: companyId,
-        colaborador_id: colaboradorId,
-        tipo,
-        data_solicitacao: data,
-        competencia_efeito: competenciaEfeito(data, diaPagamento, origem),
-        origem,
-        criado_por: auth.user?.id ?? null,
-      } as any);
-      if (error) throw error;
+      return await registrarAdiantamento({ colaboradorId, tipo, data });
     },
-    onSuccess: () => {
+    onSuccess: (resultado) => {
       qc.invalidateQueries({ queryKey: ["dp_adiantamento_solicitacoes"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_consistencia_janela"] });
+      const competencia = resultado?.competencia_efeito;
       toast.success(
-        `${tipo === "ativar" ? "Adiantamento ativado" : "Adiantamento cancelado"} — ${efeitoHint(data, diaPagamento, origem)}`,
+        `${tipo === "ativar" ? "Adiantamento ativado" : "Adiantamento cancelado"}${competencia ? ` — vale desde ${competencia}` : ""}`,
       );
     },
     onError: (e: any) => notifyError(e, { surface: "Adiantamento", action: "concluir a ação", fallback: "Não foi possível registrar a solicitação." }),

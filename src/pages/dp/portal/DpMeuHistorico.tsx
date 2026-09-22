@@ -53,6 +53,7 @@ export default function DpMeuHistorico() {
       const [sols, trocas, docs, disc] = await Promise.all([
         supabase.from("dp_solicitacoes")
           .select("id, tipo, status, created_at")
+          .is("removido_em", null)
           .eq("colaborador_id", colabId!).order("created_at", { ascending: false }).limit(50),
         supabase.from("dp_trocas")
           .select("id, status, created_at").or(`solicitante_id.eq.${colabId},destino_id.eq.${colabId}`)

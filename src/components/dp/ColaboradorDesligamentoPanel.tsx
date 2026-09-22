@@ -81,6 +81,7 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
         supabase
           .from("dp_solicitacoes")
           .select("id", { count: "exact", head: true })
+          .is("removido_em", null)
           .eq("colaborador_id", colaborador!.id)
           .eq("status", "pendente"),
       ]);

@@ -120,6 +120,7 @@ export function useDpPendencias() {
         const { data: sols } = await supabase
           .from("dp_solicitacoes")
           .select("id, tipo, created_at, dp_colaboradores(nome)")
+          .is("removido_em", null)
           .eq("company_id", selectedCompanyId!)
           .eq("status", "pendente")
           .order("created_at", { ascending: true })
@@ -352,6 +353,7 @@ export function useDpPendencias() {
         const { data: afast } = await supabase
           .from("dp_solicitacoes")
           .select("colaborador_id, data_alvo, data_fim")
+          .is("removido_em", null)
           .eq("company_id", selectedCompanyId!)
           .in("tipo", [...TIPOS_AFASTAMENTO] as any)
           .eq("status", "aprovada")
@@ -918,6 +920,7 @@ export function useDpPendencias() {
         const { data: licencas } = await supabase
           .from("dp_solicitacoes")
           .select("id, colaborador_id, tipo, data_alvo, data_fim, retorno_confirmado_em, dp_colaboradores(nome, ativo)")
+          .is("removido_em", null)
           .eq("company_id", selectedCompanyId!)
           .in("tipo", [...TIPOS_LICENCA])
           .eq("status", "aprovada")

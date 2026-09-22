@@ -12,6 +12,7 @@ export function useDpAtestadosPendentes() {
       const { data, error } = await supabase
         .from("dp_solicitacoes")
         .select("id, tipo, created_at, motivo, colaborador_id, dp_colaboradores(nome)")
+        .is("removido_em", null)
         .eq("company_id", selectedCompanyId!)
         .eq("status", "pendente")
         .eq("tipo", "atestado")

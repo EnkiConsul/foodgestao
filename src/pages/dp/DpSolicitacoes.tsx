@@ -70,6 +70,7 @@ export default function DpSolicitacoes() {
       const { data, error } = await supabase
         .from("dp_solicitacoes")
         .select("*, dp_colaboradores(nome)")
+        .is("removido_em", null)
         .eq("company_id", selectedCompanyId!)
         .order("created_at", { ascending: false });
       if (error) throw error;

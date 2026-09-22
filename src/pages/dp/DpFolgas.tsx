@@ -300,34 +300,15 @@ export default function DpFolgas() {
   /** Cancela a folga (mantém o histórico); o dia volta a ficar livre. */
   const cancelarFolga = useMutation({
     mutationFn: async ({ id, colaboradorId, data, motivo }: { id: string; colaboradorId: string; data: string; motivo: string }) => {
-      const resposta = motivo
-        ? `Cancelada pelo gestor: ${motivo}`
-        : "Cancelada pelo gestor.";
-
-      if (id.startsWith("folga:")) {
-        const { error } = await supabase
-          .from("dp_folgas")
-          .update({ status: "cancelada", observacao: resposta })
-          .eq("id", id.slice("folga:".length));
-        if (error) throw error;
-      }
-
-      const solicitacao = supabase
-        .from("dp_solicitacoes")
-        .update({
-          status: "cancelada",
-          resposta_admin: resposta,
-          respondido_por: user?.id ?? null,
-          respondido_em: new Date().toISOString(),
-        })
-        .eq("company_id", selectedCompanyId ?? "")
-        .eq("colaborador_id", colaboradorId)
-        .eq("tipo", "folga")
-        .eq("status", "aprovada")
-        .eq("data_alvo", data);
-      if (!id.startsWith("folga:")) solicitacao.eq("id", id);
-      const { error: solicitacaoError } = await solicitacao;
-      if (solicitacaoError) throw solicitacaoError;
+      const ehFolga = id.startsWith("folga:");
+      const { error } = await supabase.rpc("dp_folga_admin_cancelar", {
+        p_folga_id: ehFolga ? id.slice("folga:".length) : null,
+        p_solicitacao_id: ehFolga ? null : id,
+        p_colaborador: colaboradorId,
+        p_data: data,
+        p_motivo: motivo || null,
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Folga cancelada", {
@@ -347,25 +328,15 @@ export default function DpFolgas() {
     mutationFn: async ({ id, colaboradorId, dataAtual, novaData }: { id: string; colaboradorId: string; dataAtual: string; novaData: string }) => {
       if (!novaData) throw new Error("Escolha a nova data");
 
-      if (id.startsWith("folga:")) {
-        const { error } = await supabase
-          .from("dp_folgas")
-          .update({ data: novaData })
-          .eq("id", id.slice("folga:".length));
-        if (error) throw error;
-      }
-
-      const solicitacao = supabase
-        .from("dp_solicitacoes")
-        .update({ data_alvo: novaData })
-        .eq("company_id", selectedCompanyId ?? "")
-        .eq("colaborador_id", colaboradorId)
-        .eq("tipo", "folga")
-        .eq("status", "aprovada")
-        .eq("data_alvo", dataAtual);
-      if (!id.startsWith("folga:")) solicitacao.eq("id", id);
-      const { error: solicitacaoError } = await solicitacao;
-      if (solicitacaoError) throw solicitacaoError;
+      const ehFolga = id.startsWith("folga:");
+      const { error } = await supabase.rpc("dp_folga_admin_remarcar", {
+        p_folga_id: ehFolga ? id.slice("folga:".length) : null,
+        p_solicitacao_id: ehFolga ? null : id,
+        p_colaborador: colaboradorId,
+        p_data_atual: dataAtual,
+        p_data_nova: novaData,
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Folga remarcada");
