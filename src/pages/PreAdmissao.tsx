@@ -1079,7 +1079,7 @@ export default function PreAdmissao() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <Button variant="outline" className="h-12 flex-1" disabled={salvando} onClick={() => salvar(false)}>
-          Guardar
+          Guardar E Continuar Depois
         </Button>
         {ehRevisao ? (
           <Button className="h-12 flex-1" disabled={salvando} onClick={enviar}>
