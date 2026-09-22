@@ -184,43 +184,26 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
     qc.invalidateQueries({ queryKey: ["dp_escala_itens"] });
   };
 
-  async function garantirEscala(): Promise<string> {
-    if (escalaId) return escalaId;
-    if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
-    const { data: userData } = await supabase.auth.getUser();
-    const { data, error } = await supabase
-      .from("dp_escalas")
-      .insert({
-        company_id: selectedCompanyId,
-        unidade_id: unidadeId,
-        competencia,
-        created_by: userData.user?.id ?? null,
-      })
-      .select("id")
-      .single();
-    if (error) throw error;
-    return data.id;
-  }
-
-  /** Regenera a escala do mês a partir das configurações, preservando ajustes manuais. */
+  /**
+   * Regenera a escala do mês a partir das configurações, preservando ajustes
+   * manuais. A gravação acontece de uma só vez no servidor: a rotina oficial
+   * atende um pedido por vez na unidade/mês, confere cada dia (pessoa, turno,
+   * setor, jornada) e substitui o mês inteiro na mesma transação.
+   */
   const gerar = useMutation({
     mutationFn: async (opts?: { preservarManuais?: boolean }) => {
-      const id = await garantirEscala();
+      if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
       const preservar =
         opts?.preservarManuais === false ? [] : (itens.data ?? []).map(linhaParaItem);
 
       const propostos = gerarEscalaMes({ competencia, colaboradores, turnos, ausencias, preservar });
 
-      const { error: errDel } = await supabase.from("dp_escala_itens").delete().eq("escala_id", id);
-      if (errDel) throw errDel;
-
-      if (propostos.length) {
-        const linhas = propostos.map((i) => itemParaLinha(i, selectedCompanyId!, id));
-        for (let i = 0; i < linhas.length; i += 500) {
-          const { error } = await supabase.from("dp_escala_itens").insert(linhas.slice(i, i + 500));
-          if (error) throw error;
-        }
-      }
+      const { error } = await supabase.rpc("dp_escala_gerar_mes", {
+        p_competencia: competencia,
+        p_unidade_id: unidadeId,
+        p_itens: propostos.map(itemParaPayload) as unknown as Json,
+      });
+      if (error) throw new Error(mensagemErroEscala(error.message));
       return propostos.length;
     },
     onSuccess: invalidate,
@@ -229,12 +212,12 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
   /** Ajuste manual de um dia: troca de turno ou marcação de folga. */
   const ajustarDia = useMutation({
     mutationFn: async (item: EscalaItem) => {
-      const id = await garantirEscala();
-      const { error } = await supabase.from("dp_escala_itens").upsert(
-        itemParaLinha(item, selectedCompanyId!, id, "manual"),
-        { onConflict: "escala_id,colaborador_id,data" },
-      );
-      if (error) throw error;
+      const { error } = await supabase.rpc("dp_escala_item_ajustar", {
+        p_competencia: competencia,
+        p_unidade_id: unidadeId,
+        p_item: itemParaPayload(item) as unknown as Json,
+      });
+      if (error) throw new Error(mensagemErroEscala(error.message));
     },
     onSuccess: invalidate,
   });
@@ -245,11 +228,10 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
    */
   const publicar = useMutation({
     mutationFn: async () => {
-      const id = await garantirEscala();
       const { error } = await supabase.rpc("dp_escala_publicar", {
         p_competencia: competencia,
         p_unidade_id: unidadeId,
-        p_escala_id: id,
+        p_escala_id: escalaId,
       });
       if (error) throw new Error(mensagemErroEscala(error.message));
     },
