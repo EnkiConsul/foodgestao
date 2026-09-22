@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { salvarColaborador } from "@/lib/dp/colaborador-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { cargoSugereVinculoSocio } from "@/lib/dp/cargos";

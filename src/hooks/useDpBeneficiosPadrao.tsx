@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ajustarColaboradoresEmLote } from "@/lib/dp/colaborador-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
   GRUPOS_PADRAO,
