@@ -63,6 +63,7 @@ import { PadraoDivergenciaAviso } from "@/components/dp/PadraoDivergenciaAviso";
 import { ColaboradorJornadaPanel, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
 import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
+import { useDpSetores } from "@/hooks/useDpSetores";
 import { UnidadeFormDialog } from "@/components/dp/UnidadeFormDialog";
 import { MotivoDialog } from "@/components/dp/MotivoDialog";
 
@@ -112,7 +113,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EnderecoFields, type EnderecoValor } from "@/components/shared/EnderecoFields";
 import {
-  CONTA_TIPOS, PAGAMENTO_BLANK, PIX_TIPOS, erroPagamento,
+  CONTA_TIPOS, PAGAMENTO_BLANK, PIX_TIPOS, erroPagamento, pixTipoRecomendado,
   pagamentoDoRegistro, pagamentoParaBanco, type DadosPagamento,
 } from "@/lib/dp/dadosPagamento";
 
@@ -1063,6 +1064,10 @@ export function ColaboradorFormDialog({
     salario_cargo: salarioCargo,
   });
 
+  /** Setor só é cobrado quando a empresa já usa setores (igual à lista). */
+  const { todos: setoresDaEmpresa } = useDpSetores();
+  const mostrarSetor = setoresDaEmpresa.some((s) => s.ativo !== false);
+
   /**
    * Campos essenciais ainda em branco (o mesmo critério do selo "cadastro
    * incompleto" da lista). Aqui eles ganham destaque âmbar e um resumo no topo:
@@ -1083,17 +1088,20 @@ export function ColaboradorFormDialog({
           valor_diaria: numeroBR((rem as any).valor_diaria) || null,
           base_salarial: numeroBR(rem.base_salarial) || null,
           socio_remuneracao: socioSelecionado ? socioRem : null,
-          // O endereço agora é editado aqui; estado civil e PIS seguem na ficha.
+          // O endereço e os dados de pagamento são editados aqui; estado civil
+          // e PIS vêm do registro e continuam sendo mostrados como pendência.
           endereco: endereco,
-          estado_civil: "-",
-          pis_nit: "-",
+          estado_civil: (colaborador as any)?.estado_civil ?? null,
+          pis_nit: (colaborador as any)?.pis_nit ?? null,
+          ...pagamentoParaBanco(pagamento),
         },
-        { salarioCargo },
+        { salarioCargo, exigirSetor: mostrarSetor },
       ),
     [
       form.setor_id, form.whatsapp, form.email, form.data_nascimento, form.tipo_vinculo,
       rem.salario_base, rem.valor_hora, rem.base_salarial, (rem as any).valor_diaria,
-      socioSelecionado, socioRem, salarioCargo, endereco,
+      socioSelecionado, socioRem, salarioCargo, endereco, pagamento, mostrarSetor,
+      colaborador,
     ],
   );
 
@@ -1102,7 +1110,9 @@ export function ColaboradorFormDialog({
     setor_id: { campo: "setor_id", aba: "dados" as AbaVisivel },
     contato: { campo: "whatsapp", aba: "dados" as AbaVisivel },
     email_contato: { campo: "email", aba: "dados" as AbaVisivel },
+    endereco: { campo: "endereco", aba: "dados" as AbaVisivel },
     data_nascimento: { campo: "data_nascimento", aba: "dados" as AbaVisivel },
+    dados_pagamento: { campo: "dados_pagamento", aba: "dados" as AbaVisivel },
     salario_base: { campo: "salario_base", aba: "remuneracao" as AbaVisivel },
   };
   const faltantesNaTela = faltantesEssenciais.filter((c) => CAMPO_DA_CHAVE[c.chave]);
@@ -1960,7 +1970,7 @@ export function ColaboradorFormDialog({
           </div>
 
           {/* Endereço no mesmo bloco padrão do restante do sistema */}
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2 md:col-span-2" data-field="endereco" tabIndex={-1}>
             <Label>Endereço</Label>
             <EnderecoFields
               idPrefix="colab"
@@ -1971,7 +1981,11 @@ export function ColaboradorFormDialog({
           </div>
 
           {/* Dados de pagamento: conta para depósito, chave Pix ou espécie */}
-          <div className="space-y-3 md:col-span-2 rounded-lg border p-3">
+          <div
+            className="space-y-3 md:col-span-2 rounded-lg border p-3"
+            data-field="dados_pagamento"
+            tabIndex={-1}
+          >
             <div className="flex items-center justify-between gap-3">
               <Label className="font-medium">Dados de pagamento</Label>
               <label className="flex items-center gap-2 text-sm">
@@ -2058,37 +2072,17 @@ export function ColaboradorFormDialog({
                       value={pagamento.pix_chave}
                       onChange={(e) => setPagamento((p) => ({ ...p, pix_chave: e.target.value }))}
                     />
+                    {pagamento.pix_tipo && !pixTipoRecomendado(pagamento.pix_tipo) && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        O recomendado é a chave de CPF ou de celular do próprio colaborador.
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <label className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={pagamento.titular_proprio}
-                        onCheckedChange={(v) =>
-                          setPagamento((p) => ({ ...p, titular_proprio: v === true }))
-                        }
-                      />
-                      A conta é do próprio colaborador
-                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      A conta ou a chave Pix precisa ser de titularidade do próprio colaborador.
+                    </p>
                   </div>
-                  {!pagamento.titular_proprio && (
-                    <>
-                      <div className="space-y-2">
-                        <Label>Nome do titular *</Label>
-                        <Input
-                          value={pagamento.titular_nome}
-                          onChange={(e) => setPagamento((p) => ({ ...p, titular_nome: e.target.value.toUpperCase() }))}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>CPF do titular *</Label>
-                        <Input
-                          value={pagamento.titular_cpf}
-                          onChange={(e) => setPagamento((p) => ({ ...p, titular_cpf: e.target.value }))}
-                          placeholder="000.000.000-00"
-                        />
-                      </div>
-                    </>
-                  )}
                 </div>
                 {erroPagamento(pagamento) && (
                   <p className="text-xs text-destructive">{erroPagamento(pagamento)}</p>

@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { TIPOS_LICENCA, labelAfastamento, licencaCobre } from "@/lib/dp/licencas";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpDependentes } from "@/hooks/useDpDependentes";
+import { useDpSetores } from "@/hooks/useDpSetores";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -139,15 +140,19 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
     (colaborador as any)?.unidade_id ?? null,
   );
 
+  /** Setor só é cobrado quando a empresa já usa setores (igual à lista). */
+  const { todos: setoresDaEmpresa } = useDpSetores();
+  const exigirSetor = setoresDaEmpresa.some((s) => s.ativo !== false);
+
   /** Campos essenciais em branco — aviso no topo da ficha (obrigatórios primeiro). */
   const faltandoFicha = useMemo(
     () =>
       colaborador && colaborador.ativo
-        ? [...camposFaltando(colaborador as never, { salarioCargo })].sort(
+        ? [...camposFaltando(colaborador as never, { salarioCargo, exigirSetor })].sort(
             (a, b) => Number(b.obrigatorio) - Number(a.obrigatorio),
           )
         : [],
-    [colaborador, salarioCargo],
+    [colaborador, salarioCargo, exigirSetor],
   );
   const faltandoObrig = faltandoFicha.filter((c) => c.obrigatorio);
   const faltandoOpc = faltandoFicha.filter((c) => !c.obrigatorio);
@@ -412,7 +417,9 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
           {faltandoFicha.length > 0 && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
               <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
-                {faltandoObrig.length > 0 ? "Cadastro incompleto" : "Cadastro quase completo"}
+                {faltandoObrig.length > 0
+                  ? `Cadastro incompleto (${faltandoObrig.length})`
+                  : "Cadastro quase completo"}
               </p>
               {faltandoObrig.length > 0 && (
                 <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">

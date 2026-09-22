@@ -191,7 +191,7 @@ export const CAMPOS_CANDIDATO = [
   "reservista", "reservista_categoria", "pis",
   // Dados de pagamento: conta para depósito ou chave Pix.
   "banco_codigo", "banco_nome", "agencia", "conta", "conta_digito", "conta_tipo",
-  "titular_proprio", "titular_nome", "titular_cpf", "pix_tipo", "pix_chave",
+  "pix_tipo", "pix_chave",
 ] as const;
 
 export function filtrarCamposCandidato(entrada: unknown): Record<string, unknown> {
@@ -311,15 +311,29 @@ export function validarDadosCandidato(
     erros.pix_tipo = "Selecione um tipo de chave Pix da lista.";
   }
   if (txt("pix_tipo") && !txt("pix_chave")) erros.pix_chave = "Informe a chave Pix.";
-  if (txt("pix_tipo") === "cpf" && txt("pix_chave") && !cpfValido(txt("pix_chave"))) {
+  const chave = txt("pix_chave");
+  const chaveDigitos = chave.replace(/\D/g, "");
+  if (txt("pix_tipo") === "cpf" && chave && !cpfValido(chave)) {
     erros.pix_chave = "Informe um CPF válido na chave Pix.";
   }
-  if (txt("titular_cpf") && !cpfValido(txt("titular_cpf"))) {
-    erros.titular_cpf = "Informe um CPF válido para o titular da conta.";
+  if (txt("pix_tipo") === "cnpj" && chave && chaveDigitos.length !== 14) {
+    erros.pix_chave = "Informe o CNPJ da chave Pix com 14 dígitos.";
   }
+  if (
+    txt("pix_tipo") === "telefone" && chave
+    && (chaveDigitos.length < 10 || chaveDigitos.length > 13)
+  ) {
+    erros.pix_chave = "Informe o celular da chave Pix com DDD.";
+  }
+  if (txt("pix_tipo") === "email" && chave && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(chave)) {
+    erros.pix_chave = "Informe um e-mail válido na chave Pix.";
+  }
+  if (txt("pix_tipo") === "aleatoria" && chave && !/^[0-9a-fA-F-]{32,36}$/.test(chave)) {
+    erros.pix_chave = "A chave aleatória tem 32 caracteres (com ou sem os traços).";
+  }
+  // Conta de terceiro não é mais aceita: só titularidade do próprio candidato.
   if (dados.titular_proprio === false) {
-    if (!txt("titular_nome")) erros.titular_nome = "Informe o nome do titular da conta.";
-    if (!txt("titular_cpf")) erros.titular_cpf = "Informe o CPF do titular da conta.";
+    erros.titular_proprio = "A conta precisa ser de titularidade do próprio colaborador.";
   }
   return erros;
 }

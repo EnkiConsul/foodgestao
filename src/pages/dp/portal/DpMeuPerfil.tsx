@@ -15,10 +15,9 @@ import { CardListSkeleton } from "@/components/dp/DpSkeletons";
 import { EnderecoFields } from "@/components/shared/EnderecoFields";
 import {
   CONTA_TIPOS, PIX_TIPOS, PAGAMENTO_BLANK, erroPagamento, pagamentoDoRegistro,
-  pagamentoParaBanco, type DadosPagamento,
+  pagamentoParaBanco, pixTipoRecomendado, type DadosPagamento,
 } from "@/lib/dp/dadosPagamento";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 
 import { notifyError } from "@/lib/notifyError";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
@@ -267,27 +266,16 @@ export default function DpMeuPerfil() {
                       <Label htmlFor="perfil-pix-chave">Chave Pix</Label>
                       <Input id="perfil-pix-chave" value={pagamento.pix_chave}
                         onChange={(e) => setPagamento({ ...pagamento, pix_chave: e.target.value })} />
+                      {pagamento.pix_tipo && !pixTipoRecomendado(pagamento.pix_tipo) && (
+                        <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                          O recomendado é a chave de CPF ou de celular.
+                        </p>
+                      )}
                     </div>
                   </div>
-                  <label className="flex items-center gap-2 text-sm">
-                    <Checkbox checked={!pagamento.titular_proprio}
-                      onCheckedChange={(v) => setPagamento({ ...pagamento, titular_proprio: !v })} />
-                    A conta é de outra pessoa
-                  </label>
-                  {!pagamento.titular_proprio && (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div>
-                        <Label htmlFor="perfil-titular-nome">Nome do titular</Label>
-                        <Input id="perfil-titular-nome" value={pagamento.titular_nome}
-                          onChange={(e) => setPagamento({ ...pagamento, titular_nome: e.target.value })} />
-                      </div>
-                      <div>
-                        <Label htmlFor="perfil-titular-cpf">CPF do titular</Label>
-                        <Input id="perfil-titular-cpf" value={pagamento.titular_cpf}
-                          onChange={(e) => setPagamento({ ...pagamento, titular_cpf: e.target.value })} />
-                      </div>
-                    </div>
-                  )}
+                  <p className="text-xs text-muted-foreground">
+                    A conta ou a chave Pix precisa estar no seu nome.
+                  </p>
                 </>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 text-sm">

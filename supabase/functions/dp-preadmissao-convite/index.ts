@@ -105,11 +105,15 @@ Deno.serve(async (req) => {
           error: `Este CPF já é de um colaborador ativo (${jaColaborador.nome}). Use a recontratação se for o caso.`,
         });
       }
+      // Ficha excluída nunca bloqueia um convite novo: `removido_em` é a
+      // exclusão lógica feita por `dp_preadmissao_excluir` (o status antigo
+      // permanece guardado para o histórico).
       const { data: jaFicha } = await admin
         .from("dp_preadmissoes")
         .select("id, candidato_nome")
         .eq("company_id", companyId)
         .eq("cpf", cpf)
+        .is("removido_em", null)
         .in("status", FASES_ABERTAS)
         .limit(1)
         .maybeSingle();

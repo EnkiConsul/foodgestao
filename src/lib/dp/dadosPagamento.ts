@@ -6,6 +6,8 @@
  * também valida o titular de terceiro, então a tela nunca é a única barreira.
  */
 
+import { isValidCpf } from "@/lib/cpf";
+
 export interface DadosPagamento {
   banco_codigo: string;
   banco_nome: string;
@@ -28,13 +30,23 @@ export const CONTA_TIPOS: { value: string; label: string }[] = [
   { value: "salario", label: "Conta salário" },
 ];
 
-export const PIX_TIPOS: { value: string; label: string }[] = [
-  { value: "cpf", label: "CPF" },
-  { value: "cnpj", label: "CNPJ" },
+/**
+ * Tipos de chave Pix, na ordem da tela. CPF e celular são os recomendados —
+ * são os que comprovam que a chave é do próprio colaborador; os demais ficam
+ * disponíveis com aviso.
+ */
+export const PIX_TIPOS: { value: string; label: string; recomendado?: boolean }[] = [
+  { value: "cpf", label: "CPF (recomendado)", recomendado: true },
+  { value: "telefone", label: "Celular (recomendado)", recomendado: true },
   { value: "email", label: "E-mail" },
-  { value: "telefone", label: "Telefone" },
   { value: "aleatoria", label: "Chave aleatória" },
+  { value: "cnpj", label: "CNPJ" },
 ];
+
+export const PIX_TIPOS_RECOMENDADOS = ["cpf", "telefone"] as const;
+
+export const pixTipoRecomendado = (tipo: string): boolean =>
+  (PIX_TIPOS_RECOMENDADOS as readonly string[]).includes(String(tipo ?? "").trim());
 
 export const CAMPOS_PAGAMENTO = [
   "banco_codigo", "banco_nome", "agencia", "conta", "conta_digito", "conta_tipo",
@@ -80,9 +92,11 @@ export function pagamentoParaBanco(p: DadosPagamento) {
     conta: emEspecie ? null : nulo(p.conta),
     conta_digito: emEspecie ? null : nulo(p.conta_digito),
     conta_tipo: emEspecie ? null : nulo(p.conta_tipo),
-    titular_proprio: emEspecie ? true : p.titular_proprio !== false,
-    titular_nome: emEspecie || p.titular_proprio ? null : nulo(p.titular_nome),
-    titular_cpf: emEspecie || p.titular_proprio ? null : nulo(p.titular_cpf),
+    // Só conta de titularidade do próprio colaborador: o titular de terceiro
+    // saiu do sistema e o banco de dados recusa qualquer gravação assim.
+    titular_proprio: true,
+    titular_nome: null,
+    titular_cpf: null,
     pix_tipo: emEspecie ? null : nulo(p.pix_tipo),
     pix_chave: emEspecie ? null : nulo(p.pix_chave),
     recebe_em_especie: emEspecie,
@@ -104,14 +118,46 @@ export function pagamentoFaltando(c: Record<string, unknown> | null | undefined)
   return !contaPreenchida(c) && !pixPreenchido(c);
 }
 
+/**
+ * A chave combina com o tipo escolhido? CPF confere os dígitos, celular exige
+ * DDD, e-mail precisa de arroba e a aleatória tem o formato do banco central.
+ */
+export function erroChavePix(tipo: string, chave: string): string | null {
+  const t = texto(tipo);
+  const v = texto(chave);
+  if (!t || !v) return null;
+  const digitos = v.replace(/\D/g, "");
+  if (t === "cpf") {
+    return isValidCpf(digitos) ? null : "Confira o CPF da chave Pix: os números não fecham.";
+  }
+  if (t === "cnpj") {
+    return digitos.length === 14 ? null : "Informe o CNPJ da chave Pix com 14 dígitos.";
+  }
+  if (t === "telefone") {
+    return digitos.length >= 10 && digitos.length <= 13
+      ? null
+      : "Informe o celular da chave Pix com DDD.";
+  }
+  if (t === "email") {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? null : "Informe um e-mail válido na chave Pix.";
+  }
+  if (t === "aleatoria") {
+    return /^[0-9a-fA-F-]{32,36}$/.test(v)
+      ? null
+      : "A chave aleatória tem 32 caracteres (com ou sem os traços).";
+  }
+  return null;
+}
+
 /** Mensagem curta de erro para a tela; null quando está tudo certo. */
 export function erroPagamento(p: DadosPagamento): string | null {
   if (p.recebe_em_especie) return null;
   if (!contaPreenchida(p) && !pixPreenchido(p)) {
     return "Informe os dados da conta (banco, agência e conta) ou a chave Pix.";
   }
-  if (!p.titular_proprio && (!texto(p.titular_nome) || !texto(p.titular_cpf))) {
-    return "Quando a conta é de outra pessoa, informe o nome e o CPF do titular.";
+  if (p.titular_proprio === false) {
+    return "A conta precisa ser de titularidade do próprio colaborador.";
   }
-  return null;
+  if (texto(p.pix_tipo) && !texto(p.pix_chave)) return "Informe a chave Pix.";
+  return erroChavePix(p.pix_tipo, p.pix_chave);
 }
