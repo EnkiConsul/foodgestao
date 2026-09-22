@@ -5,6 +5,11 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { DpDocumentoRequisito } from "@/lib/dp/documentos-requisitos";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
+import {
+  salvarRequisitoDocumento,
+  excluirRequisitoDocumento,
+  type RequisitoDocumentoDados,
+} from "@/lib/dp/documentos-oficial";
 
 type RequisitoUpdate = Partial<
   Pick<
