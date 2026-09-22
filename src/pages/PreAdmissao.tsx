@@ -25,6 +25,7 @@ import { UFS } from "@/lib/endereco";
 import { maskCpf } from "@/lib/cpf";
 import { maskPhone } from "@/lib/phone";
 import { CONTA_TIPOS, PIX_TIPOS } from "@/lib/dp/dadosPagamento";
+import { rotuloSalvoEm } from "@/lib/dp/admissao-rascunho";
 
 type Opcao = { value: string; label: string };
 
@@ -304,6 +305,8 @@ export default function PreAdmissao() {
   const [erroLink, setErroLink] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  /** Momento do último rascunho guardado, mostrado ao candidato. */
+  const [salvoEm, setSalvoEm] = useState<string | null>(null);
   const [etapa, setEtapa] = useState(0);
   const [form, setForm] = useState<Record<string, string>>({});
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
@@ -386,6 +389,7 @@ export default function PreAdmissao() {
         t, c, action: "salvar", dados: form, pessoas: pessoasParaEnviar(), versao: estado?.versao,
       });
       aplicar(novo);
+      setSalvoEm(new Date().toISOString());
       setErros({}); setFaltando([]); setAvisoTopo(null);
       if (avancar) setEtapa((n) => Math.min(n + 1, totalEtapas - 1));
       else toast.success("Dados guardados");
@@ -1037,7 +1041,13 @@ export default function PreAdmissao() {
         )}
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 border-t bg-background p-3 flex gap-2">
+      <footer className="fixed bottom-0 left-0 right-0 border-t bg-background p-3">
+      {rotuloSalvoEm(salvoEm) && (
+        <p className="mb-2 text-center text-[11px] text-muted-foreground">
+          {`Rascunho ${rotuloSalvoEm(salvoEm).toLowerCase()} — você pode sair e continuar depois.`}
+        </p>
+      )}
+      <div className="flex gap-2">
         <Button variant="outline" className="h-12" disabled={etapa === 0 || salvando}
           aria-label="Voltar uma etapa"
           onClick={() => setEtapa((n) => Math.max(0, n - 1))}>
@@ -1056,6 +1066,7 @@ export default function PreAdmissao() {
             {ehDocumentos ? "Revisar" : "Continuar"} <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         )}
+      </div>
       </footer>
     </div>
   );

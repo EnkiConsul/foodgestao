@@ -6,6 +6,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { regimeRisco } from "@/lib/dp/regime-riscos";
 import { RegimeRiscoDialog } from "@/components/dp/RegimeRiscoDialog";
 import { toUpperCadastro } from "@/lib/text/upperCadastro";
+import { useDpAdmissaoRascunho } from "@/hooks/useDpAdmissaoRascunho";
+import {
+  chaveRascunhoAdmissao, rotuloRascunho, rotuloSalvoEm, type ConteudoRascunhoAdmissao,
+} from "@/lib/dp/admissao-rascunho";
 
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -340,6 +344,16 @@ export function ColaboradorFormDialog({
 
 
   const isEdit = !!colaborador?.id;
+
+  /** Rascunho guardado no sistema: vale só para cadastro novo. */
+  const chaveRascunho = useMemo(
+    () => chaveRascunhoAdmissao({ colaboradorId: colaborador?.id, pessoaApoioId: pessoaApoioInicial?.id }),
+    [colaborador?.id, pessoaApoioInicial?.id],
+  );
+  const rascunho = useDpAdmissaoRascunho(open && !colaborador?.id ? chaveRascunho : null);
+  const [rascunhoOferta, setRascunhoOferta] = useState<{ dados: ConteudoRascunhoAdmissao; atualizadoEm: string } | null>(null);
+  /** Enquanto false, o autosave aguarda a decisão de retomar ou começar em branco. */
+  const rascunhoDecidido = useRef(false);
   // Inativo sem data de demissão também conta como desligado: o banco exige a data.
   const isDesligado = isEdit && (!!colaborador?.data_desligamento || colaborador?.ativo === false);
   // Comportamento da jornada/folga é derivado do contrato, nunca testado inline.
@@ -732,6 +746,74 @@ export function ColaboradorFormDialog({
   useEffect(() => {
     if (!open) { setDispensas([]); isonomiaConfirmada.current = false; }
   }, [open]);
+
+  /**
+   * Rascunho da ficha de admissão (só cadastro novo): ao abrir, oferecemos
+   * retomar o que já estava preenchido; nada entra no cadastro antes disso.
+   */
+  useEffect(() => {
+    if (!open) {
+      rascunhoDecidido.current = false;
+      setRascunhoOferta(null);
+      rascunho.reiniciar();
+      return;
+    }
+    if (colaborador?.id) return;
+    let vivo = true;
+    void rascunho.carregar().then((r) => {
+      if (!vivo) return;
+      if (!r) { rascunhoDecidido.current = true; return; }
+      setRascunhoOferta({ dados: r.dados, atualizadoEm: r.atualizadoEm });
+    });
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, colaborador?.id, chaveRascunho]);
+
+  /** Conteúdo guardado no rascunho: o que o gestor já preencheu. */
+  const conteudoRascunho = useMemo<ConteudoRascunhoAdmissao>(
+    () => ({
+      form: form as unknown as Record<string, unknown>,
+      endereco: endereco as unknown as Record<string, unknown>,
+      pagamento: pagamento as unknown as Record<string, unknown>,
+      remuneracao: rem as unknown as Record<string, unknown>,
+      socio_remuneracao: socioRem,
+    }),
+    [form, endereco, pagamento, rem, socioRem],
+  );
+
+  /** Gravação automática a cada pausa na digitação. */
+  useEffect(() => {
+    if (!open || isEdit || criadoId) return;
+    if (rascunhoOferta || !rascunhoDecidido.current) return;
+    rascunho.agendar(conteudoRascunho);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isEdit, criadoId, rascunhoOferta, conteudoRascunho]);
+
+  const retomarRascunho = () => {
+    const r = rascunhoOferta;
+    if (!r) return;
+    if (r.dados.form) setForm((f) => ({ ...f, ...(r.dados.form as typeof f) }));
+    if (r.dados.endereco) setEndereco(r.dados.endereco as EnderecoValor);
+    if (r.dados.pagamento) setPagamento(r.dados.pagamento as unknown as DadosPagamento);
+    if (r.dados.remuneracao) setRem((x) => ({ ...x, ...(r.dados.remuneracao as unknown as RemuneracaoFormState) }));
+    if (r.dados.socio_remuneracao) setSocioRem(r.dados.socio_remuneracao as SocioRemuneracao);
+    vinculoTocado.current = true;
+    setRascunhoOferta(null);
+    rascunhoDecidido.current = true;
+    toast.success("Rascunho retomado. Confira os dados antes de concluir.");
+  };
+
+  const descartarRascunho = async () => {
+    setRascunhoOferta(null);
+    rascunhoDecidido.current = true;
+    await rascunho.descartar();
+  };
+
+  const salvarRascunhoAgora = async () => {
+    const ok = await rascunho.salvarAgora(conteudoRascunho);
+    if (ok) toast.success("Rascunho salvo. Você pode continuar depois, em qualquer aparelho.");
+    else toast.warning("Preencha ao menos o nome ou o CPF para guardar o rascunho.");
+  };
 
   // Ressalvas do desligamento ficam em tabela restrita ao RH/dono.
   const ressalvasQuery = useDpDesligamentoRessalvas(open ? colaborador?.id : null);
@@ -1751,6 +1833,8 @@ export function ColaboradorFormDialog({
       // próxima aba para completar turno e jornada.
       setCriadoId(colaboradorId);
       setBaseline(snapshot);
+      // Cadastro concluído: o rascunho guardado deixa de existir.
+      void rascunho.descartar();
       toast.success("Colaborador cadastrado");
 
       if (intencaoRef.current !== "close" && tab === "dados") {
@@ -2654,6 +2738,9 @@ export function ColaboradorFormDialog({
           <p className="order-2 text-center text-[11px] text-muted-foreground sm:order-1 sm:text-left sm:text-xs">
             {`Etapa ${ABAS.indexOf(tab as AbaCadastro) + 1} de ${ABAS.length}`}
             {dirty ? " · alterações não salvas" : ""}
+            {!isEdit && !criadoId && rotuloSalvoEm(rascunho.salvoEm)
+              ? ` · rascunho ${rotuloSalvoEm(rascunho.salvoEm).toLowerCase()}`
+              : ""}
           </p>
           <div className="order-1 flex w-full items-center gap-2 sm:order-2 sm:w-auto">
             <Button
@@ -2664,6 +2751,16 @@ export function ColaboradorFormDialog({
             >
               Fechar
             </Button>
+            {!isEdit && !criadoId && (
+              <Button
+                variant="outline"
+                className="h-11 sm:h-10"
+                onClick={() => void salvarRascunhoAgora()}
+                disabled={rascunho.salvando}
+              >
+                {rascunho.salvando ? "Guardando..." : "Salvar Rascunho"}
+              </Button>
+            )}
             <Button
               variant="secondary"
               className="h-11 flex-1 sm:h-10 sm:flex-none"
@@ -2688,6 +2785,28 @@ export function ColaboradorFormDialog({
 
 
       </DialogContent>
+
+      {/* Rascunho guardado: retomar o preenchimento ou começar em branco. */}
+      <AlertDialog open={!!rascunhoOferta}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Continuar o cadastro que você começou?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {rotuloRascunho(rascunhoOferta?.atualizadoEm)}
+              {rascunhoOferta?.dados?.form && typeof rascunhoOferta.dados.form.nome === "string"
+                && String(rascunhoOferta.dados.form.nome).trim()
+                ? ` · ${toUpperCadastro(String(rascunhoOferta.dados.form.nome))}`
+                : ""}
+              . Nada foi cadastrado ainda: você pode retomar de onde parou ou começar em branco.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => void descartarRascunho()}>Começar Em Branco</AlertDialogCancel>
+            <AlertDialogAction onClick={retomarRascunho}>Continuar O Rascunho</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       <CienciaLegalDialog
         open={cienciaAberta}
