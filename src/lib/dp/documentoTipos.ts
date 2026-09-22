@@ -328,8 +328,23 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
   },
 ];
 
+/**
+ * Naturezas antigas de Admissão e Desligamento, hoje unificadas.
+ * Não são oferecidas em novos envios, mas continuam com rótulo e cor para
+ * qualquer registro histórico que ainda as tenha.
+ */
+export const DP_DOC_TIPOS_LEGADOS: DpDocTipoDef[] = [
+  { value: "contrato", label: "Contrato (Admissão)", grupo: "admissao", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-slate-300 text-slate-700" },
+  { value: "ficha_registro", label: "Ficha de Registro (Admissão)", grupo: "admissao", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-slate-300 text-slate-600" },
+  { value: "termos", label: "Termos (Admissão)", grupo: "admissao", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-zinc-300 text-zinc-600" },
+  { value: "outros_admissao", label: "Outros (Admissão)", grupo: "admissao", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-zinc-200 text-zinc-600" },
+  { value: "trct", label: "TRCT (Desligamento)", grupo: "desligamento", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-red-300 text-red-700" },
+  { value: "demonstrativo_rescisorio", label: "Demonstrativo Rescisório (Desligamento)", grupo: "desligamento", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-red-200 text-red-600" },
+  { value: "outros_desligamento", label: "Outros (Desligamento)", grupo: "desligamento", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-rose-200 text-rose-600" },
+];
+
 export const DP_DOC_TIPO_MAP: Record<string, DpDocTipoDef> = Object.fromEntries(
-  DP_DOC_TIPOS.map((t) => [t.value, t]),
+  [...DP_DOC_TIPOS, ...DP_DOC_TIPOS_LEGADOS].map((t) => [t.value, t]),
 ) as Record<string, DpDocTipoDef>;
 
 export const DP_DOC_TIPOS_IMPORTAVEIS = DP_DOC_TIPOS.filter((t) => t.importavel);
