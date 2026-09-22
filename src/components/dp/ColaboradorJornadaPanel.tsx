@@ -671,7 +671,7 @@ export function ColaboradorJornadaPanel({
       try {
         const { ajustarColaboradoresEmLote } = await import("@/lib/dp/colaborador-oficial");
         await ajustarColaboradoresEmLote({
-          companyId: colaborador.company_id as string,
+          companyId: selectedCompanyId,
           ids: [colaborador.id],
           dados: {
             folga_fixa_semana: folgaVariavel || folgas.length !== 1 ? null : folgas[0],
