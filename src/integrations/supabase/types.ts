@@ -15735,6 +15735,14 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_escala_gerar_mes: {
+        Args: { p_competencia: string; p_itens: Json; p_unidade_id: string }
+        Returns: Json
+      }
+      dp_escala_item_ajustar: {
+        Args: { p_competencia: string; p_item: Json; p_unidade_id: string }
+        Returns: Json
+      }
       dp_escala_publicar: {
         Args: {
           p_competencia?: string

@@ -121,6 +121,20 @@ const rotinas: Array<[string, string, Record<string, unknown>]> = [
     { p_competencia: "2099-03", p_unidade_id: ID, p_escala_id: null },
   ],
   ["reabrir escala", "dp_escala_reabrir", { p_escala_id: ID }],
+  [
+    "gerar a escala do mês",
+    "dp_escala_gerar_mes",
+    { p_competencia: "2099-03", p_unidade_id: ID, p_itens: [] },
+  ],
+  [
+    "ajustar um dia da escala",
+    "dp_escala_item_ajustar",
+    {
+      p_competencia: "2099-03",
+      p_unidade_id: ID,
+      p_item: { colaborador_id: ID, data: DATA, tipo: "folga" },
+    },
+  ],
 ];
 
 describe("Operações críticas: visitante negado nas rotinas", () => {
@@ -134,7 +148,17 @@ describe("Operações críticas: visitante negado nas rotinas", () => {
 });
 
 describe("Operações críticas: visitante negado nas tabelas", () => {
-  const tabelas = ["dp_trocas", "dp_ferias_gozos", "dp_convocacoes", "dp_escalas", "dp_escala_itens"];
+  const tabelas = [
+    "dp_trocas",
+    "dp_ferias_gozos",
+    "dp_convocacoes",
+    "dp_convocacao_destinatarios",
+    "dp_escalas",
+    "dp_escala_itens",
+    "dp_ocorrencias",
+    "dp_ocorrencia_coberturas",
+  ];
+
 
   for (const t of tabelas) {
     it(`não lê ${t}`, async () => {

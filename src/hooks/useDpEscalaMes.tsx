@@ -2,10 +2,9 @@ import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 import type { TurnoResolvido } from "@/lib/dp/config-trabalho";
 import {
-  itemParaLinha,
   montarColaboradoresEscala,
   type ColaboradorRow,
   type ConfigTrabalhoRow,
@@ -27,13 +26,47 @@ const limites = (competencia: string) => {
 };
 
 /** Traduz os códigos do servidor para o texto que o gestor lê na tela. */
-function mensagemErroEscala(raw: string | null | undefined): string {
+export function mensagemErroEscala(raw: string | null | undefined): string {
   const msg = raw ?? "";
   if (msg.includes("ESCALA_VAZIA")) return "Gere os dias da escala antes de publicar.";
   if (msg.includes("ESCALA_NAO_ENCONTRADA")) return "Gere a escala do mês antes de publicar.";
-  if (msg.includes("FORBIDDEN")) return "Você não tem permissão para publicar esta escala.";
+  if (msg.includes("ESCALA_PUBLICADA"))
+    return "A escala do mês está publicada. Reabra a escala para alterar os dias.";
+  if (msg.includes("ESCALA_DATA_FORA_DO_MES"))
+    return "Há dia lançado fora do mês da escala. Gere a escala novamente.";
+  if (msg.includes("ESCALA_DIA_REPETIDO"))
+    return "Há mais de um registro para a mesma pessoa no mesmo dia.";
+  if (msg.includes("ESCALA_COLABORADOR_INVALIDO"))
+    return "Há dia lançado para pessoa de outra empresa ou de outra unidade.";
+  if (msg.includes("ESCALA_TURNO_INVALIDO"))
+    return "Há dia com turno que não pertence a esta unidade.";
+  if (msg.includes("ESCALA_SETOR_INVALIDO")) return "Há dia com setor de outra empresa.";
+  if (msg.includes("ESCALA_JORNADA_INVALIDA"))
+    return "Há dia com intervalo ou carga de horas fora do aceitável.";
+  if (msg.includes("UNAUTHENTICATED")) return "Entre novamente para continuar.";
+  if (msg.includes("NOT_FOUND")) return "Colaborador não encontrado.";
+  if (msg.includes("FORBIDDEN")) return "Você não tem permissão para alterar esta escala.";
   if (msg.includes("INVALID_INPUT")) return "Selecione a unidade e o mês da escala.";
   return "Não foi possível concluir a ação. Tente novamente.";
+}
+
+/** Formato enviado às rotinas oficiais da escala. */
+export function itemParaPayload(item: EscalaItem): Record<string, unknown> {
+  return {
+    colaborador_id: item.colaborador_id,
+    data: item.data,
+    tipo: item.tipo,
+    turno_id: item.turno_id ?? null,
+    entrada: item.entrada ?? null,
+    saida: item.saida ?? null,
+    intervalo_minutos: item.intervalo_minutos ?? 0,
+    termina_no_dia_seguinte: item.termina_no_dia_seguinte ?? false,
+    carga_prevista_horas: item.carga_prevista_horas ?? 0,
+    origem: item.origem ?? "gerado",
+    observacao: item.observacao ?? null,
+    setor_id: item.setor_id ?? null,
+    setor_motivo: item.setor_motivo ?? null,
+  };
 }
 
 /** Converte a linha do banco no item de domínio. */
@@ -184,43 +217,26 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
     qc.invalidateQueries({ queryKey: ["dp_escala_itens"] });
   };
 
-  async function garantirEscala(): Promise<string> {
-    if (escalaId) return escalaId;
-    if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
-    const { data: userData } = await supabase.auth.getUser();
-    const { data, error } = await supabase
-      .from("dp_escalas")
-      .insert({
-        company_id: selectedCompanyId,
-        unidade_id: unidadeId,
-        competencia,
-        created_by: userData.user?.id ?? null,
-      })
-      .select("id")
-      .single();
-    if (error) throw error;
-    return data.id;
-  }
-
-  /** Regenera a escala do mês a partir das configurações, preservando ajustes manuais. */
+  /**
+   * Regenera a escala do mês a partir das configurações, preservando ajustes
+   * manuais. A gravação acontece de uma só vez no servidor: a rotina oficial
+   * atende um pedido por vez na unidade/mês, confere cada dia (pessoa, turno,
+   * setor, jornada) e substitui o mês inteiro na mesma transação.
+   */
   const gerar = useMutation({
     mutationFn: async (opts?: { preservarManuais?: boolean }) => {
-      const id = await garantirEscala();
+      if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
       const preservar =
         opts?.preservarManuais === false ? [] : (itens.data ?? []).map(linhaParaItem);
 
       const propostos = gerarEscalaMes({ competencia, colaboradores, turnos, ausencias, preservar });
 
-      const { error: errDel } = await supabase.from("dp_escala_itens").delete().eq("escala_id", id);
-      if (errDel) throw errDel;
-
-      if (propostos.length) {
-        const linhas = propostos.map((i) => itemParaLinha(i, selectedCompanyId!, id));
-        for (let i = 0; i < linhas.length; i += 500) {
-          const { error } = await supabase.from("dp_escala_itens").insert(linhas.slice(i, i + 500));
-          if (error) throw error;
-        }
-      }
+      const { error } = await supabase.rpc("dp_escala_gerar_mes", {
+        p_competencia: competencia,
+        p_unidade_id: unidadeId,
+        p_itens: propostos.map(itemParaPayload) as unknown as Json,
+      });
+      if (error) throw new Error(mensagemErroEscala(error.message));
       return propostos.length;
     },
     onSuccess: invalidate,
@@ -229,12 +245,12 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
   /** Ajuste manual de um dia: troca de turno ou marcação de folga. */
   const ajustarDia = useMutation({
     mutationFn: async (item: EscalaItem) => {
-      const id = await garantirEscala();
-      const { error } = await supabase.from("dp_escala_itens").upsert(
-        itemParaLinha(item, selectedCompanyId!, id, "manual"),
-        { onConflict: "escala_id,colaborador_id,data" },
-      );
-      if (error) throw error;
+      const { error } = await supabase.rpc("dp_escala_item_ajustar", {
+        p_competencia: competencia,
+        p_unidade_id: unidadeId,
+        p_item: itemParaPayload(item) as unknown as Json,
+      });
+      if (error) throw new Error(mensagemErroEscala(error.message));
     },
     onSuccess: invalidate,
   });
@@ -245,11 +261,10 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
    */
   const publicar = useMutation({
     mutationFn: async () => {
-      const id = await garantirEscala();
       const { error } = await supabase.rpc("dp_escala_publicar", {
         p_competencia: competencia,
         p_unidade_id: unidadeId,
-        p_escala_id: id,
+        p_escala_id: escalaId,
       });
       if (error) throw new Error(mensagemErroEscala(error.message));
     },
