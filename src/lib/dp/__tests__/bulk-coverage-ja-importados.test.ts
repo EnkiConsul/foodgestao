@@ -57,7 +57,7 @@ describe("cobertura do lote considerando documentos já salvos", () => {
     expect(tipoColetivoDoc("ponto")).toBe(true);
     expect(tipoColetivoDoc("pro_labore")).toBe(true);
     expect(tipoColetivoDoc("trct")).toBe(false);
-    expect(tiposEquivalentes("rescisao")).toEqual(["trct", "demonstrativo_rescisorio"]);
+    expect(tiposEquivalentes("rescisao")).toEqual(["desligamento", "trct", "demonstrativo_rescisorio"]);
     expect(tiposEquivalentes("ponto")).toEqual(["ponto"]);
   });
 

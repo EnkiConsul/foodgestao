@@ -13,7 +13,7 @@ import { tipoCanonicoPorVinculo } from "../_shared/doc-tipo-vinculo.ts";
 
 const SRC_BUCKET = "dp-bulk-import";
 const DST_BUCKET = "dp-documentos";
-const TIPOS_RESCISAO = new Set(["aviso_previo", "trct", "demonstrativo_rescisorio", "outros_desligamento"]);
+const TIPOS_RESCISAO = new Set(["aviso_previo", "desligamento", "trct", "demonstrativo_rescisorio", "outros_desligamento"]);
 
 const BodySchema = z.object({
   item_ids: z.array(z.string().uuid()).min(1).max(200),

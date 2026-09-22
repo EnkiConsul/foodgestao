@@ -371,7 +371,7 @@ export function useAplicarFicha() {
                 file_path: destino,
                 file_name: "ficha-registro.pdf",
                 mime_type: "application/pdf",
-                tipo: "ficha_registro",
+                tipo: "admissao",
                 titulo: "Ficha de registro importada",
                 descricao,
               });
