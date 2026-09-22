@@ -90,9 +90,11 @@ export function pagamentoParaBanco(p: DadosPagamento) {
     conta: emEspecie ? null : nulo(p.conta),
     conta_digito: emEspecie ? null : nulo(p.conta_digito),
     conta_tipo: emEspecie ? null : nulo(p.conta_tipo),
-    titular_proprio: emEspecie ? true : p.titular_proprio !== false,
-    titular_nome: emEspecie || p.titular_proprio ? null : nulo(p.titular_nome),
-    titular_cpf: emEspecie || p.titular_proprio ? null : nulo(p.titular_cpf),
+    // Só conta de titularidade do próprio colaborador: o titular de terceiro
+    // saiu do sistema e o banco de dados recusa qualquer gravação assim.
+    titular_proprio: true,
+    titular_nome: null,
+    titular_cpf: null,
     pix_tipo: emEspecie ? null : nulo(p.pix_tipo),
     pix_chave: emEspecie ? null : nulo(p.pix_chave),
     recebe_em_especie: emEspecie,
