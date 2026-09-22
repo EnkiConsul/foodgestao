@@ -343,7 +343,6 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
         // Com pró-labore, espera-se apenas o recibo mensal da retirada.
         const socio = isSocio(c.vinculo_label);
         const socioProLabore = socio && c.socio_remuneracao === "pro_labore";
-        const assalariado = REGIMES_ASSALARIADOS.has(regime) && !socio;
         const temRelogio = c.unidade_id ? relogioMap.get(c.unidade_id) === true : false;
         const gozos = gozosPorColab.get(c.id as string);
 
