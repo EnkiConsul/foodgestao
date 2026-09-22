@@ -676,11 +676,20 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                 <Select value={cargoId} onValueChange={setCargoId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {cargos.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
+                    <CargoSelectItems carregando={carregandoCargos} erro={erroCargos} total={cargos.length}>
+                      {cargos.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                      ))}
+                    </CargoSelectItems>
                   </SelectContent>
                 </Select>
+                <CargoSelectAviso
+                  carregando={carregandoCargos}
+                  erro={erroCargos}
+                  total={cargos.length}
+                  onRecarregar={() => void recarregarCargos()}
+                  origem="Alteração de condições do colaborador"
+                />
                 {cargoId && (cargoPadrao.data?.base ?? 0) > 0 ? (
                   <p className="text-xs text-muted-foreground">
                     Campos preenchidos pelo padrão de {cargoPadrao.data?.base} colaborador(es) neste cargo

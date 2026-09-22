@@ -166,11 +166,20 @@ export function ColaboradorRecontratacaoDialog({ colaborador, open, onOpenChange
               <Select value={cargoId} onValueChange={setCargoId}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {cargos.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
+                  <CargoSelectItems carregando={carregandoCargos} erro={erroCargos} total={cargos.length}>
+                    {cargos.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </CargoSelectItems>
                 </SelectContent>
               </Select>
+              <CargoSelectAviso
+                carregando={carregandoCargos}
+                erro={erroCargos}
+                total={cargos.length}
+                onRecarregar={() => void recarregarCargos()}
+                origem="Recontratação do colaborador"
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Unidade</Label>
