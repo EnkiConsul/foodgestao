@@ -4,12 +4,12 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { useAuth } from "@/hooks/useAuth";
 import { textoErroFerias } from "@/lib/dp/ferias-direito";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
 import { linkDocumentoAssinado } from "@/lib/documentoArquivo";
+import { registrarDocumento, excluirDocumento } from "@/lib/dp/documentos-oficial";
 
 export type FeriasDocTipo = "aviso_ferias" | "recibo_ferias";
 
@@ -52,7 +52,6 @@ export type RegistrarAvisoInput = {
  */
 export function useDpFeriasDocumentos() {
   const { selectedCompanyId } = useCompanyContext();
-  const { user } = useAuth();
   const qc = useQueryClient();
 
   const invalidate = () => {
@@ -103,25 +102,18 @@ export function useDpFeriasDocumentos() {
         upsert: false,
       });
       if (up.error) throw up.error;
-      const { data, error } = await supabase
-        .from("dp_documentos")
-        .insert({
-          company_id: selectedCompanyId,
-          colaborador_id: colaboradorId || null,
-          ferias_gozo_id: gozoId,
-          tipo,
-          titulo: FERIAS_DOC_LABEL[tipo],
-          file_path: path,
-          file_name: file.name,
-          file_size: file.size,
-          mime_type: file.type,
-          referencia_data: referenciaData || null,
-          uploaded_by: user?.id ?? null,
-        } as any)
-        .select("id")
-        .single();
-      if (error) throw error;
-      return data!.id as string;
+      return await registrarDocumento({
+        company_id: selectedCompanyId,
+        colaborador_id: colaboradorId || null,
+        ferias_gozo_id: gozoId,
+        tipo,
+        titulo: FERIAS_DOC_LABEL[tipo],
+        file_path: path,
+        file_name: file.name,
+        file_size: file.size,
+        mime_type: file.type,
+        referencia_data: referenciaData || null,
+      });
     },
     onSuccess: () => {
       toast.success("Documento anexado às férias");
@@ -132,9 +124,8 @@ export function useDpFeriasDocumentos() {
 
   const excluir = useMutation({
     mutationFn: async (doc: FeriasDocumento) => {
-      await supabase.storage.from(DP_DOCUMENTOS_BUCKET).remove([doc.file_path]);
-      const { error } = await supabase.from("dp_documentos").delete().eq("id", doc.id);
-      if (error) throw error;
+      // O documento sai da lista pelo servidor; o arquivo fica preservado.
+      await excluirDocumento(doc.id, "Documento de férias removido pelo DP");
     },
     onSuccess: () => {
       toast.success("Documento removido");

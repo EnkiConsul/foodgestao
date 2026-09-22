@@ -4,11 +4,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
 import { porDocumento, resolverPendencias, type PendenciaMatch } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
 import { abrirDocumento } from "@/lib/documentoArquivo";
+import { registrarDocumento, revisarDocumento } from "@/lib/dp/documentos-oficial";
 
 export type DpDocumentoTipo = Database["public"]["Enums"]["dp_documento_tipo"];
 export type DpDocumentoAprov = "pendente" | "aprovado" | "recusado";
@@ -39,7 +39,6 @@ export type EnviarDocumentosInput = {
  */
 export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters: DpDocumentosFilters) {
   const { selectedCompanyId } = useCompanyContext();
-  const { user } = useAuth();
   const qc = useQueryClient();
 
   const list = useQuery({
@@ -107,7 +106,8 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
       });
       if (up.error) throw up.error;
       const tituloFinal = files.length > 1 ? file.name.replace(/\.[^.]+$/, "") : titulo.trim();
-      const { error } = await supabase.from("dp_documentos").insert({
+      // O servidor confere empresa, colaborador e arquivo antes de gravar.
+      await registrarDocumento({
         company_id: selectedCompanyId,
         colaborador_id: colaborador_id || null,
         tipo,
@@ -118,9 +118,7 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
         file_size: file.size,
         mime_type: file.type,
         referencia_data: referencia_data || null,
-        uploaded_by: user?.id,
       });
-      if (error) throw error;
       ok++;
     }
     // Baixa imediata da pendência que este envio resolve.
@@ -167,13 +165,7 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
 
   const aprovar = useMutation({
     mutationFn: async (row: DpDocumentoRow) => {
-      const { error } = await supabase.from("dp_documentos").update({
-        aprovacao_status: "aprovado",
-        revisado_por: user?.id,
-        revisado_em: new Date().toISOString(),
-        motivo_recusao: null,
-      } as any).eq("id", row.id);
-      if (error) throw error;
+      await revisarDocumento(row.id, "aprovado");
     },
     onSuccess: () => {
       toast.success("Documento aprovado");
@@ -184,13 +176,7 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
 
   const recusar = useMutation({
     mutationFn: async ({ row, motivo }: { row: DpDocumentoRow; motivo: string }) => {
-      const { error } = await supabase.from("dp_documentos").update({
-        aprovacao_status: "recusado",
-        revisado_por: user?.id,
-        revisado_em: new Date().toISOString(),
-        motivo_recusao: motivo,
-      } as any).eq("id", row.id);
-      if (error) throw error;
+      await revisarDocumento(row.id, "recusado", motivo);
     },
     onSuccess: () => {
       toast.success("Documento recusado");

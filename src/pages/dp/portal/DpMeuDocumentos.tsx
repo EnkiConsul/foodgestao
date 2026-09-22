@@ -38,6 +38,7 @@ import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import type { Database } from "@/integrations/supabase/types";
 import { notifyError } from "@/lib/notifyError";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
+import { registrarDocumento, excluirDocumento } from "@/lib/dp/documentos-oficial";
 
 type Tipo = Database["public"]["Enums"]["dp_documento_tipo"];
 
@@ -241,7 +242,7 @@ export default function DpMeuDocumentos() {
       const path = `${colaborador.company_id}/${colaborador.id}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
       const up = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
       if (up.error) throw up.error;
-      const { error } = await supabase.from("dp_documentos").insert({
+      await registrarDocumento({
         company_id: colaborador.company_id,
         colaborador_id: colaborador.id,
         tipo: form.tipo,
@@ -252,11 +253,7 @@ export default function DpMeuDocumentos() {
         file_size: file.size,
         mime_type: file.type,
         referencia_data: form.referencia_data || null,
-        uploaded_by: user?.id,
-        submetido_por_colaborador: true,
-        aprovacao_status: "pendente",
       });
-      if (error) throw error;
       toast.success("Documento enviado para aprovação");
       qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
       setOpenSubmit(false);
@@ -326,9 +323,9 @@ export default function DpMeuDocumentos() {
         const { error } = await supabase.rpc("dp_solicitacao_cancelar", { p_id: d.meta.originalId });
         if (error) throw error;
       } else {
+        // O servidor só permite cancelar o próprio envio ainda pendente.
+        await excluirDocumento(String(d.meta?.originalId), "Envio cancelado pelo colaborador");
         if (d.file_path) await supabase.storage.from(d.bucket).remove([d.file_path]);
-        const { error } = await supabase.from("dp_documentos").delete().eq("id", d.meta?.originalId);
-        if (error) throw error;
       }
     },
     onSuccess: () => {

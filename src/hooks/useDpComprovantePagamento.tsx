@@ -2,11 +2,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeStorageFilename } from "@/lib/storage";
-import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { notifyError } from "@/lib/notifyError";
 import { DP_DOCUMENTOS_BUCKET } from "@/lib/documentoArquivo";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { anexarComprovante, removerComprovante } from "@/lib/dp/documentos-oficial";
 
 export type ComprovanteAlvo = {
   /** Id do documento em dp_documentos. */
@@ -21,7 +21,6 @@ export type ComprovanteAlvo = {
  */
 export function useDpComprovantePagamento() {
   const { selectedCompanyId } = useCompanyContext();
-  const { user } = useAuth();
   const qc = useQueryClient();
 
   const invalidar = () => {
@@ -52,30 +51,25 @@ export function useDpComprovantePagamento() {
       });
       if (up.error) throw up.error;
 
-      // Guarda o caminho anterior para apagar somente depois de gravar o novo.
-      const { data: atual } = await supabase
-        .from("dp_documentos")
-        .select("comprovante_file_path")
-        .eq("id", alvo.documentoId)
-        .maybeSingle();
-
-      const { error } = await supabase
-        .from("dp_documentos")
-        .update({
-          comprovante_file_path: path,
-          comprovante_file_name: file.name,
-          comprovante_file_size: file.size,
-          comprovante_mime_type: file.type,
-          comprovante_pago_em: pagoEm || null,
-          comprovante_uploaded_by: user?.id ?? null,
-        } as never)
-        .eq("id", alvo.documentoId);
-      if (error) {
+      // O servidor confere a empresa do arquivo e a data do pagamento, e
+      // devolve o caminho do comprovante anterior para ser apagado depois.
+      let anterior: string | null = null;
+      try {
+        anterior = await anexarComprovante(
+          alvo.documentoId,
+          {
+            file_path: path,
+            file_name: file.name,
+            file_size: file.size,
+            mime_type: file.type,
+          },
+          pagoEm || null,
+        );
+      } catch (e) {
         await supabase.storage.from(DP_DOCUMENTOS_BUCKET).remove([path]);
-        throw error;
+        throw e;
       }
 
-      const anterior = (atual as { comprovante_file_path?: string | null } | null)?.comprovante_file_path;
       if (anterior && anterior !== path) {
         await supabase.storage.from(DP_DOCUMENTOS_BUCKET).remove([anterior]);
       }
@@ -90,17 +84,7 @@ export function useDpComprovantePagamento() {
 
   const remover = useMutation({
     mutationFn: async (alvo: ComprovanteAlvo) => {
-      const { data: atual } = await supabase
-        .from("dp_documentos")
-        .select("comprovante_file_path")
-        .eq("id", alvo.documentoId)
-        .maybeSingle();
-      const { error } = await supabase
-        .from("dp_documentos")
-        .update({ comprovante_file_path: null } as never)
-        .eq("id", alvo.documentoId);
-      if (error) throw error;
-      const anterior = (atual as { comprovante_file_path?: string | null } | null)?.comprovante_file_path;
+      const anterior = await removerComprovante(alvo.documentoId);
       if (anterior) await supabase.storage.from(DP_DOCUMENTOS_BUCKET).remove([anterior]);
     },
     onSuccess: () => {

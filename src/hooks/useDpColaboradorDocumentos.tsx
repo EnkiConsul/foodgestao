@@ -3,8 +3,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { aceitarDocumentoAnexo } from "@/lib/dp/colaborador-oficial";
+import {
+  registrarDocumento,
+  salvarChecklistDocumento,
+  excluirChecklistDocumento,
+} from "@/lib/dp/documentos-oficial";
 import { sanitizeStorageFilename } from "@/lib/storage";
-import { useAuth } from "@/hooks/useAuth";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
 import {
   resolverChecklist,
@@ -41,7 +45,6 @@ async function hashArquivo(file: File): Promise<string> {
  */
 export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes: Opcoes = {}) {
   const { comoColaborador = false } = opcoes;
-  const { user } = useAuth();
   const qc = useQueryClient();
 
   const base = useQuery({
@@ -148,55 +151,35 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
         ? `${item.requisito.nome} — ${item.dependente.nome}`
         : item.requisito.nome;
 
-      const { data: doc, error: eDoc } = await supabase
-        .from("dp_documentos")
-        .insert({
-          company_id: ctx.colaborador.company_id,
-          colaborador_id: ctx.colaborador.id,
-          tipo: item.requisito.tipo_documento,
-          titulo,
-          descricao: item.requisito.descricao,
-          file_path: path,
-          file_name: file.name,
-          file_size: file.size,
-          mime_type: file.type,
-          uploaded_by: user?.id,
-          submetido_por_colaborador: comoColaborador,
-          aprovacao_status: comoColaborador ? "pendente" : "aprovado",
-          ...(comoColaborador ? {} : { revisado_por: user?.id, revisado_em: new Date().toISOString() }),
-        })
-        .select("id")
-        .single();
-      if (eDoc) throw eDoc;
-
-      const payload = {
+      // O documento e o vínculo com o requisito são gravados pelo servidor.
+      const documentoId = await registrarDocumento({
         company_id: ctx.colaborador.company_id,
+        colaborador_id: ctx.colaborador.id,
+        tipo: item.requisito.tipo_documento,
+        titulo,
+        descricao: item.requisito.descricao,
+        file_path: path,
+        file_name: file.name,
+        file_size: file.size,
+        mime_type: file.type,
+      });
+
+      const dados = {
         colaborador_id: ctx.colaborador.id,
         dependente_id: item.dependente?.id ?? null,
         requisito_id: item.requisito.id,
-        documento_id: doc.id,
-        status: comoColaborador ? "enviado" : "aprovado",
+        documento_id: documentoId,
+        status: (comoColaborador ? "enviado" : "aprovado") as "enviado" | "aprovado",
         validade: validade ?? null,
         conteudo_hash: hash,
         dispensado: false,
         motivo_dispensa: null,
-        aceite_solicitado_em: null,
-        aceito_em: null,
       };
 
       // Substitui a linha existente apenas quando o item aceita um único
       // arquivo e não é uma foto adicional (frente/verso).
       const substituir = !item.multiplos && !novaParte && item.vinculo;
-      if (substituir) {
-        const { error } = await supabase
-          .from("dp_colaborador_documentos")
-          .update(payload)
-          .eq("id", item.vinculo!.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("dp_colaborador_documentos").insert(payload);
-        if (error) throw error;
-      }
+      await salvarChecklistDocumento(substituir ? item.vinculo!.id : null, dados);
     },
     onSuccess: () => {
       toast.success(comoColaborador ? "Documento enviado para aprovação" : "Documento anexado");
@@ -232,22 +215,11 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
     }: { item: ItemChecklist; anexo?: DpColaboradorDocumento | null; validade?: string | null }) => {
       const alvo = anexo ?? item.vinculo;
       if (!alvo) throw new Error("Nenhum documento enviado");
-      const { error } = await supabase
-        .from("dp_colaborador_documentos")
-        .update({ status: "aprovado", validade: validade ?? alvo.validade })
-        .eq("id", alvo.id);
-      if (error) throw error;
-      if (alvo.documento_id) {
-        await supabase
-          .from("dp_documentos")
-          .update({
-            aprovacao_status: "aprovado",
-            revisado_por: user?.id,
-            revisado_em: new Date().toISOString(),
-            motivo_recusao: null,
-          })
-          .eq("id", alvo.documento_id);
-      }
+      // O servidor grava a decisão e reflete no documento do acervo.
+      await salvarChecklistDocumento(alvo.id, {
+        status: "aprovado",
+        validade: validade ?? alvo.validade ?? null,
+      });
     },
     onSuccess: () => {
       toast.success("Documento aprovado");
@@ -264,22 +236,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
     }: { item: ItemChecklist; anexo?: DpColaboradorDocumento | null; motivo: string }) => {
       const alvo = anexo ?? item.vinculo;
       if (!alvo) throw new Error("Nenhum documento enviado");
-      const { error } = await supabase
-        .from("dp_colaborador_documentos")
-        .update({ status: "recusado" })
-        .eq("id", alvo.id);
-      if (error) throw error;
-      if (alvo.documento_id) {
-        await supabase
-          .from("dp_documentos")
-          .update({
-            aprovacao_status: "recusado",
-            motivo_recusao: motivo,
-            revisado_por: user?.id,
-            revisado_em: new Date().toISOString(),
-          })
-          .eq("id", alvo.documento_id);
-      }
+      await salvarChecklistDocumento(alvo.id, { status: "recusado", motivo_dispensa: motivo });
     },
     onSuccess: () => {
       toast.success("Documento recusado — o colaborador foi notificado na lista de pendências");
@@ -292,25 +249,14 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
     mutationFn: async ({ item, motivo }: { item: ItemChecklist; motivo: string }) => {
       const ctx = base.data;
       if (!ctx) throw new Error("Checklist não carregado");
-      const payload = {
-        company_id: ctx.colaborador.company_id,
+      await salvarChecklistDocumento(item.vinculo?.id ?? null, {
         colaborador_id: ctx.colaborador.id,
         dependente_id: item.dependente?.id ?? null,
         requisito_id: item.requisito.id,
-        status: "dispensado" as const,
+        status: "dispensado",
         dispensado: true,
         motivo_dispensa: motivo,
-      };
-      if (item.vinculo) {
-        const { error } = await supabase
-          .from("dp_colaborador_documentos")
-          .update(payload)
-          .eq("id", item.vinculo.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("dp_colaborador_documentos").insert(payload);
-        if (error) throw error;
-      }
+      });
     },
     onSuccess: () => {
       toast.success("Documento dispensado com justificativa");
@@ -327,11 +273,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
     }: { item: ItemChecklist; anexo?: DpColaboradorDocumento | null; validade: string | null }) => {
       const alvo = anexo ?? item.vinculo;
       if (!alvo) throw new Error("Nenhum documento enviado");
-      const { error } = await supabase
-        .from("dp_colaborador_documentos")
-        .update({ validade })
-        .eq("id", alvo.id);
-      if (error) throw error;
+      await salvarChecklistDocumento(alvo.id, { validade });
     },
     onSuccess: invalidar,
     onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao salvar a validade" }),
@@ -340,20 +282,9 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
   /** Remove um anexo (arquivo) do requisito. */
   const excluirAnexo = useMutation({
     mutationFn: async ({ anexo, motivo }: { anexo: DpColaboradorDocumento; motivo?: string }) => {
-      // O documento em si é arquivado (histórico preservado); apenas o
-      // vínculo com o requisito deixa de existir.
-      if (anexo.documento_id) {
-        const { error: aErr } = await supabase.rpc("dp_documento_arquivar", {
-          _documento_id: anexo.documento_id,
-          _motivo: motivo ?? "anexo_removido_do_requisito",
-        });
-        if (aErr) throw aErr;
-      }
-      const { error } = await supabase
-        .from("dp_colaborador_documentos")
-        .delete()
-        .eq("id", anexo.id);
-      if (error) throw error;
+      // O documento em si fica guardado no histórico; apenas o vínculo com o
+      // requisito deixa de existir. Tudo na mesma rotina do servidor.
+      await excluirChecklistDocumento(anexo.id, motivo ?? "Anexo removido do requisito");
     },
     onSuccess: () => {
       toast.success("Anexo removido");
@@ -365,11 +296,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
   /** Envia um anexo já existente para o aceite eletrônico do colaborador (opcional). */
   const pedirAceite = useMutation({
     mutationFn: async ({ anexo }: { anexo: DpColaboradorDocumento }) => {
-      const { error } = await supabase
-        .from("dp_colaborador_documentos")
-        .update({ aceite_solicitado_em: new Date().toISOString(), aceito_em: null })
-        .eq("id", anexo.id);
-      if (error) throw error;
+      await salvarChecklistDocumento(anexo.id, { aceite_solicitado: true });
     },
     onSuccess: () => {
       toast.success("Enviado para o aceite do colaborador no portal");
@@ -381,11 +308,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
   /** Cancela a solicitação de aceite ainda não assinada. */
   const cancelarAceite = useMutation({
     mutationFn: async ({ anexo }: { anexo: DpColaboradorDocumento }) => {
-      const { error } = await supabase
-        .from("dp_colaborador_documentos")
-        .update({ aceite_solicitado_em: null })
-        .eq("id", anexo.id);
-      if (error) throw error;
+      await salvarChecklistDocumento(anexo.id, { aceite_solicitado: false });
     },
     onSuccess: () => {
       toast.success("Solicitação de aceite cancelada");
