@@ -7,6 +7,7 @@ import {
   AlertCircle,
   ArrowLeftRight,
   CalendarDays,
+  CalendarClock,
   Send,
   User as UserIcon,
 } from "lucide-react";
@@ -47,6 +48,11 @@ import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { resumoEscolhaFolgas, folgaDominicalAutomatica, podeTrocarFolga, domingosFolgaNoPeriodo } from "@/lib/dp/dsr-rules";
 import { folgasOfertaveis } from "@/lib/dp/troca-oferta";
 import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
+import {
+  diasParaRemarcar,
+  mensagemErroRemarcacao,
+  pedirAoDp,
+} from "@/lib/dp/folga-remarcacao";
 
 
 import {
@@ -123,6 +129,11 @@ export default function DpMeuCalendario() {
   const [tradeOpen, setTradeOpen] = useState<{ occupantId: string; occupantName: string; iso: string } | null>(null);
   const [tradeMyDate, setTradeMyDate] = useState<string>("");
   const [tradeMotivo, setTradeMotivo] = useState("");
+  /** Mudança do dia da própria folga: dia atual, novo dia e motivo. */
+  const [remarcarOpen, setRemarcarOpen] = useState<string | null>(null);
+  const [remarcarNova, setRemarcarNova] = useState("");
+  const [remarcarMotivo, setRemarcarMotivo] = useState("");
+  const [remarcarAviso, setRemarcarAviso] = useState<string | null>(null);
   const [socioBloqueio, setSocioBloqueio] = useState<{ nome: string; datas: string[]; unidadeId: string | null } | null>(
     null,
   );
@@ -804,6 +815,113 @@ export default function DpMeuCalendario() {
     onError: (e: any) => notifyError(e, { surface: "Meu calendário", action: "concluir a ação", fallback: "Erro ao solicitar troca" }),
   });
 
+  /** Dias do mês para onde a folga aberta no diálogo pode ser movida. */
+  const diasRemarcacao = useMemo(() => {
+    if (!remarcarOpen) return [];
+    const lotadas: string[] = [];
+    dayLimits.forEach((limite, iso) => {
+      const ocupantes = (occupantsByDate.get(iso) ?? []).filter(
+        (o) => o.colaboradorId !== meRef.data?.id,
+      ).length;
+      if (limite != null && ocupantes >= limite) lotadas.push(iso);
+    });
+    const bloqueadas: string[] = [];
+    manualBlocked.forEach((b, iso) => {
+      if (!b.liberada) bloqueadas.push(iso);
+    });
+    return diasParaRemarcar({
+      dataAtualIso: remarcarOpen,
+      hojeIso,
+      diasElegiveis: diasElegiveis.length ? diasElegiveis : [0, 6],
+      bloqueadas,
+      lotadas,
+      minhasFolgas: folgas
+        .filter((f) => f.colaborador_id === meRef.data?.id && f.status !== "cancelada")
+        .map((f) => f.data as string),
+    });
+  }, [
+    remarcarOpen,
+    hojeIso,
+    diasElegiveis,
+    dayLimits,
+    manualBlocked,
+    occupantsByDate,
+    folgas,
+    meRef.data?.id,
+  ]);
+
+  const diaRemarcacaoEscolhido = diasRemarcacao.find((d) => d.iso === remarcarNova) ?? null;
+
+  const remarcarFolga = useMutation({
+    mutationFn: async () => {
+      if (!remarcarOpen) throw new Error("Sem contexto");
+      if (!remarcarNova) negarRegra("Escolha o novo dia da sua folga.");
+      const { error } = await supabase.rpc("dp_folga_remarcar", {
+        p_data_atual: remarcarOpen,
+        p_data_nova: remarcarNova,
+        p_motivo: remarcarMotivo.trim() || null,
+      });
+      if (error) {
+        const raw = error.message ?? "";
+        if (pedirAoDp(raw)) {
+          setRemarcarAviso(mensagemErroRemarcacao(raw));
+          throw new Error(mensagemErroRemarcacao(raw));
+        }
+        throw new Error(mensagemErroRemarcacao(raw));
+      }
+    },
+    onSuccess: () => {
+      toast.success("Folga mudada de dia. O setor de pessoal foi avisado.");
+      setRemarcarOpen(null);
+      setRemarcarNova("");
+      setRemarcarMotivo("");
+      setRemarcarAviso(null);
+      setSelectedDay(null);
+      qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+    },
+    onError: (e: any) =>
+      notifyError(e, {
+        surface: "Meu calendário",
+        action: "mudar o dia da folga",
+        fallback: "Não foi possível mudar o dia da folga",
+      }),
+  });
+
+  const pedirRemarcacao = useMutation({
+    mutationFn: async () => {
+      if (!remarcarOpen) throw new Error("Sem contexto");
+      if (!remarcarNova) negarRegra("Escolha o dia que você quer folgar.");
+      const { error } = await supabase.rpc("dp_folga_remarcar_solicitar", {
+        p_data_atual: remarcarOpen,
+        p_data_nova: remarcarNova,
+        p_motivo: remarcarMotivo.trim() || null,
+      });
+      if (error) {
+        const raw = error.message ?? "";
+        if (raw.includes("DUPLICATE_REQUEST"))
+          negarRegra("Você já tem um pedido pendente para este dia.");
+        throw new Error("Não foi possível enviar o pedido. Tente novamente.");
+      }
+    },
+    onSuccess: () => {
+      toast.success("Pedido de mudança enviado ao setor de pessoal.");
+      setRemarcarOpen(null);
+      setRemarcarNova("");
+      setRemarcarMotivo("");
+      setRemarcarAviso(null);
+      setSelectedDay(null);
+      qc.invalidateQueries({ queryKey: ["dp_solic_meu_cal"] });
+    },
+    onError: (e: any) =>
+      notifyError(e, {
+        surface: "Meu calendário",
+        action: "pedir a mudança da folga",
+        fallback: "Não foi possível enviar o pedido",
+      }),
+  });
+
+
+
   // -------- Dados do dia selecionado --------
   const dayInfo = useMemo(() => {
     if (!selectedDay) return null;
@@ -1038,6 +1156,19 @@ export default function DpMeuCalendario() {
                   </p>
                 )}
                 {selectedDay.status === "mine" && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setRemarcarOpen(selectedDay.iso);
+                      setRemarcarNova("");
+                      setRemarcarMotivo("");
+                      setRemarcarAviso(null);
+                    }}
+                  >
+                    <CalendarClock className="mr-2 h-4 w-4" /> Mudar o dia da minha folga
+                  </Button>
+                )}
+                {selectedDay.status === "mine" && (
                   <ConfirmarAcaoDialog
                     titulo="Remover esta folga?"
                     descricao="O dia volta a ficar livre e pode ser escolhido por outra pessoa da equipe."
@@ -1224,6 +1355,106 @@ export default function DpMeuCalendario() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog mudança do dia da minha folga */}
+      <Dialog open={!!remarcarOpen} onOpenChange={(o) => !o && setRemarcarOpen(null)}>
+        <DialogContent className="max-w-md max-h-[90svh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black flex items-center gap-3">
+              <CalendarClock className="size-6 text-primary" />
+              Mudar o dia da folga
+            </DialogTitle>
+            <DialogDescription>
+              Sua folga de <b>{remarcarOpen && formatBR(parseYMD(remarcarOpen))}</b> passa para outro
+              dia de descanso do mesmo mês. O setor de pessoal é avisado da mudança.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Novo dia</Label>
+              <Select
+                value={remarcarNova}
+                onValueChange={(v) => {
+                  setRemarcarNova(v);
+                  setRemarcarAviso(null);
+                }}
+              >
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="Escolha o novo dia" />
+                </SelectTrigger>
+                <SelectContent>
+                  {diasRemarcacao.map((d) => (
+                    <SelectItem key={d.iso} value={d.iso}>
+                      {formatBR(parseYMD(d.iso))}
+                      {d.disponivel ? "" : ` — ${d.motivo}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {diasRemarcacao.length === 0 && (
+                <p className="text-xs text-destructive mt-1">
+                  Não há outro dia de descanso disponível neste mês. Fale com o setor de pessoal.
+                </p>
+              )}
+              {diaRemarcacaoEscolhido && !diaRemarcacaoEscolhido.disponivel && (
+                <p className="text-xs text-amber-700 mt-1">
+                  {diaRemarcacaoEscolhido.motivo}. Você pode pedir a mudança ao setor de pessoal.
+                </p>
+              )}
+              {remarcarAviso && <p className="text-xs text-amber-700 mt-1">{remarcarAviso}</p>}
+            </div>
+            <div>
+              <Label className="flex items-center gap-2">
+                Motivo
+                <span className="text-muted-foreground text-xs font-normal">(opcional)</span>
+              </Label>
+              <Textarea
+                rows={3}
+                className="rounded-xl"
+                placeholder="Conte o motivo da mudança"
+                value={remarcarMotivo}
+                onChange={(e) => setRemarcarMotivo(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setRemarcarOpen(null)}
+              className="min-h-10 w-full sm:w-auto"
+            >
+              Cancelar
+            </Button>
+            {diaRemarcacaoEscolhido && !diaRemarcacaoEscolhido.disponivel ? (
+              <Button
+                onClick={() => pedirRemarcacao.mutate()}
+                disabled={pedirRemarcacao.isPending || !remarcarNova}
+                className="min-h-10 w-full sm:w-auto"
+              >
+                {pedirRemarcacao.isPending ? "Enviando..." : "Pedir mudança ao DP"}
+              </Button>
+            ) : remarcarAviso ? (
+              <Button
+                onClick={() => pedirRemarcacao.mutate()}
+                disabled={pedirRemarcacao.isPending || !remarcarNova}
+                className="min-h-10 w-full sm:w-auto"
+              >
+                {pedirRemarcacao.isPending ? "Enviando..." : "Pedir mudança ao DP"}
+              </Button>
+            ) : (
+              <Button
+                onClick={() => remarcarFolga.mutate()}
+                disabled={remarcarFolga.isPending || !remarcarNova}
+                className="min-h-10 w-full sm:w-auto"
+              >
+                {remarcarFolga.isPending ? "Mudando..." : "Mudar a folga"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
 
       {socioBloqueio && companyId && (
         <SocioBloqueioDialog
