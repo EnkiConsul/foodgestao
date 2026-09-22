@@ -103,13 +103,15 @@ describe("calcularRemuneracaoConvocacao", () => {
     expect(r.descontos).toBeCloseTo(Number((r.inss + 2).toFixed(2)), 2);
   });
 
-  it("freelancer não gera verbas CLT nem INSS", () => {
+  it("freelancer não gera verbas CLT, DSR nem INSS", () => {
     const r = calcularRemuneracaoConvocacao({
       valorUnitario: 150,
       unidade: "diaria",
       quantidade: 1,
       comVerbasProporcionais: false,
     });
+    expect(r.dsr).toBe(0);
+    expect(r.inssDecimoTerceiro).toBe(0);
     expect(r.decimoTerceiro).toBe(0);
     expect(r.inss).toBe(0);
     expect(r.fgts).toBe(0);
