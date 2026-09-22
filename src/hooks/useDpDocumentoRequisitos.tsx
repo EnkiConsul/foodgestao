@@ -71,8 +71,7 @@ export function useDpDocumentoRequisitos() {
 
   const salvar = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: RequisitoUpdate }) => {
-      const { error } = await supabase.from("dp_documento_requisitos").update(patch).eq("id", id);
-      if (error) throw error;
+      await salvarRequisitoDocumento(id, patch as RequisitoDocumentoDados);
     },
     onSuccess: invalidar,
     onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao salvar" }),
@@ -90,22 +89,22 @@ export function useDpDocumentoRequisitos() {
       dias_aviso?: number;
     }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const codigo = `custom_${Date.now()}`;
-      const { error } = await supabase.from("dp_documento_requisitos").insert({
-        company_id: selectedCompanyId,
-        codigo,
-        nome: input.nome,
-        descricao: input.descricao ?? null,
-        categoria: input.categoria ?? "admissao",
-        aplica_a: input.aplica_a ?? "todos",
-        obrigatoriedade: input.obrigatoriedade ?? "obrigatorio",
-        periodicidade: input.periodicidade ?? "unica",
-        meses_validade: input.meses_validade ?? null,
-        dias_aviso: input.dias_aviso ?? 30,
-        tipo_documento: "admissao",
-        ordem: 900,
-      });
-      if (error) throw error;
+      await salvarRequisitoDocumento(
+        null,
+        {
+          nome: input.nome,
+          descricao: input.descricao ?? null,
+          categoria: input.categoria ?? "admissao",
+          aplica_a: input.aplica_a ?? "todos",
+          obrigatoriedade: input.obrigatoriedade ?? "obrigatorio",
+          periodicidade: input.periodicidade ?? "unica",
+          meses_validade: input.meses_validade ?? null,
+          dias_aviso: input.dias_aviso ?? 30,
+          tipo_documento: "admissao",
+          ordem: 900,
+        },
+        selectedCompanyId,
+      );
     },
     onSuccess: () => {
       toast.success("Documento adicionado à lista da empresa");
@@ -116,8 +115,7 @@ export function useDpDocumentoRequisitos() {
 
   const remover = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_documento_requisitos").delete().eq("id", id);
-      if (error) throw error;
+      await excluirRequisitoDocumento(id);
     },
     onSuccess: () => {
       toast.success("Documento removido da lista");

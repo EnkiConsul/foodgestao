@@ -9,7 +9,6 @@ import {
   excluirChecklistDocumento,
 } from "@/lib/dp/documentos-oficial";
 import { sanitizeStorageFilename } from "@/lib/storage";
-import { useAuth } from "@/hooks/useAuth";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
 import {
   resolverChecklist,
@@ -46,7 +45,6 @@ async function hashArquivo(file: File): Promise<string> {
  */
 export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes: Opcoes = {}) {
   const { comoColaborador = false } = opcoes;
-  const { user } = useAuth();
   const qc = useQueryClient();
 
   const base = useQuery({
