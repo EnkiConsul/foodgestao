@@ -212,23 +212,27 @@ export default function DpCargos() {
                     onClick={() => setViewCargo(c)}
                     className={cn("hover:bg-muted/20 transition-colors cursor-pointer")}
                   >
-                    <td className="p-4 font-bold uppercase truncate" title={c.nome}>{c.nome}</td>
-                    <td className="p-4 hidden md:table-cell text-muted-foreground truncate" title={descricao ?? ""}>{descricao || "—"}</td>
-                    <td className="p-4 text-right tabular-nums whitespace-nowrap" title={salarioResumo(c).dica}>
-                      {salarioResumo(c).texto}
-                      {selosRiscoCargo(c as any).map((selo) => (
-                        <span
-                          key={selo.tipo}
-                          className={cn(
-                            "ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                            selo.tipo === "insalubridade" && "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-                            selo.tipo === "periculosidade" && "bg-destructive/10 text-destructive",
-                            selo.tipo === "indefinido" && "bg-muted text-muted-foreground",
-                          )}
-                        >
-                          {selo.label}
-                        </span>
-                      ))}
+                    <td className="p-4 font-bold uppercase break-words leading-snug" title={c.nome}>{c.nome}</td>
+                    <td className="p-4 hidden lg:table-cell text-muted-foreground truncate" title={descricao ?? ""}>{descricao || "—"}</td>
+                    <td className="p-4 text-right align-middle" title={salarioResumo(c).dica}>
+                      <div className="tabular-nums whitespace-nowrap">{salarioResumo(c).texto}</div>
+                      {selosRiscoCargo(c as any).length > 0 && (
+                        <div className="mt-1 flex flex-wrap justify-end gap-1">
+                          {selosRiscoCargo(c as any).map((selo) => (
+                            <span
+                              key={selo.tipo}
+                              className={cn(
+                                "rounded-full px-2 py-0.5 text-[10px] font-medium whitespace-nowrap",
+                                selo.tipo === "insalubridade" && "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+                                selo.tipo === "periculosidade" && "bg-destructive/10 text-destructive",
+                                selo.tipo === "indefinido" && "bg-muted text-muted-foreground",
+                              )}
+                            >
+                              {selo.label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </td>
 
 
