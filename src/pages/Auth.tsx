@@ -845,7 +845,10 @@ export default function Auth() {
           </form>
         )}
         </Card>
-        <ReclameAquiSeal className="mt-4 flex justify-center" />
+        {/* No desktop, o selo sai do fluxo do cartão e fica ao lado direito da
+            logo da Aveto (que vive na imagem de fundo, canto superior esquerdo).
+            No celular permanece centralizado abaixo do cartão. */}
+        <ReclameAquiSeal className="mt-4 flex justify-center md:absolute md:left-[21%] md:top-[19%] md:z-20 md:mt-0 md:-translate-y-1/2 md:justify-start" />
           </div>
         </section>
       </div>
