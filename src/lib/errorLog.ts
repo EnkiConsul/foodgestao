@@ -85,11 +85,30 @@ export function fingerprintOf(input: {
 let lastSent = new Map<string, number>();
 
 /**
+ * Ruído de ambiente de desenvolvimento (recarga a quente do Vite): módulos
+ * recompilados enquanto a página segue com a versão antiga em memória geram
+ * "X is not defined" e falhas de import dinâmico que não representam defeito
+ * do sistema. Fora do desenvolvimento nada é descartado.
+ */
+const PADROES_RUIDO_DEV = [
+  /\bis not defined\b/i,
+  /Failed to fetch dynamically imported module/i,
+  /does not provide an export named/i,
+  /error loading dynamically imported module/i,
+];
+
+function ehRuidoDeDesenvolvimento(message: string): boolean {
+  if (!import.meta.env.DEV) return false;
+  return PADROES_RUIDO_DEV.some((padrao) => padrao.test(message));
+}
+
+/**
  * Grava o erro. Nunca lança: falhar ao registrar não pode quebrar a tela.
  * Repetições da mesma assinatura em menos de 15s são descartadas no cliente
  * para não inflar o contador em loops de render.
  */
 export async function reportError(input: ReportErrorInput): Promise<string | null> {
+
   try {
     const message = messageOf(input.error);
     const code = codeOf(input.error);
