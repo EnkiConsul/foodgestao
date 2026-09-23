@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } fro
 import { useSearchParams } from "react-router-dom";
 import { resolveAttachments } from "@/lib/attachments";
 import { amountColorClass } from "@/lib/transaction-sign";
+import { addMoney, fromCents, subtractMoney, sumMoney, toCents } from "@/lib/money";
 import { resolveLancamentoOrigin, sumDespesas, sumReceitas, type LancamentoOrigin } from "@/lib/transactions/lancamentoOrigin";
 import { creditCardLabel } from "@/lib/conciliacao/cardRouting";
 import { useAuth } from "@/hooks/useAuth";
@@ -806,14 +807,15 @@ export default function Lancamentos() {
     else if (sortBy === "description") rows.sort((a, b) => a.description.localeCompare(b.description));
 
     // Running balance: count confirmed transactions OR paid bills (amount_paid >= amount)
-    let running = previousBalance;
+    // Acumulado em centavos inteiros para não acumular desvio de ponto flutuante.
+    let runningCents = toCents(previousBalance);
     rows.forEach((r) => {
       const isPaid = r.hasDueDate && r.amountPaid >= r.amount;
       if (r.origin !== "cartao" && (r.txStatus === "confirmado" || isPaid)) {
-        if (r.transactionType === "entrada") running += r.amount;
-        else if (r.transactionType === "saida") running -= r.amount;
+        if (r.transactionType === "entrada") runningCents += toCents(r.amount);
+        else if (r.transactionType === "saida") runningCents -= toCents(r.amount);
       }
-      r.runningBalance = running;
+      r.runningBalance = fromCents(runningCents);
     });
 
     return rows;
@@ -826,14 +828,18 @@ export default function Lancamentos() {
     const despesas = sumDespesas(effectiveRows);
 
     const pending = displayRows.filter((r) => r.billStatus !== "pago");
-    const aPagar = pending.filter((r) => r.transactionType === "saida").reduce((s, r) => s + r.amount - r.amountPaid, 0);
-    const aReceber = pending.filter((r) => r.transactionType === "entrada").reduce((s, r) => s + r.amount - r.amountPaid, 0);
+    const aPagar = sumMoney(
+      pending.filter((r) => r.transactionType === "saida").map((r) => subtractMoney(r.amount, r.amountPaid))
+    );
+    const aReceber = sumMoney(
+      pending.filter((r) => r.transactionType === "entrada").map((r) => subtractMoney(r.amount, r.amountPaid))
+    );
     const atrasadas = displayRows.filter((r) => r.billStatus === "atrasado").length;
 
     const allReceitas = sumReceitas(displayRows);
     const allDespesas = sumDespesas(displayRows);
-    const saldoPeriodo = allReceitas - allDespesas;
-    const saldoAcumulado = previousBalance + saldoPeriodo;
+    const saldoPeriodo = subtractMoney(allReceitas, allDespesas);
+    const saldoAcumulado = addMoney(previousBalance, saldoPeriodo);
 
     return { receitas, despesas, aPagar, aReceber, atrasadas, allReceitas, allDespesas, saldoPeriodo, saldoAcumulado };
   }, [displayRows, previousBalance]);

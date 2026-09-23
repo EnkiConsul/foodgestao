@@ -9,6 +9,8 @@
  * é a despesa (competência); o pagamento da fatura é apenas o movimento de caixa
  * e por isso não entra no total de despesas.
  */
+import { sumMoney } from "@/lib/money";
+
 export type LancamentoOrigin = "conta" | "cartao";
 
 export type OriginInput = {
@@ -28,14 +30,18 @@ export type DespesaRow = {
 
 /** Soma as despesas evitando dupla contagem com o pagamento da fatura. */
 export function sumDespesas(rows: DespesaRow[]): number {
-  return rows
-    .filter((r) => r.transactionType === "saida" && !r.isInvoicePayment)
-    .reduce((sum, r) => sum + r.amount, 0);
+  return sumMoney(
+    rows
+      .filter((r) => r.transactionType === "saida" && !r.isInvoicePayment)
+      .map((r) => r.amount)
+  );
 }
 
 /** Soma das receitas (pagamento de fatura nunca é receita). */
 export function sumReceitas(rows: DespesaRow[]): number {
-  return rows
-    .filter((r) => r.transactionType === "entrada" && !r.isInvoicePayment)
-    .reduce((sum, r) => sum + r.amount, 0);
+  return sumMoney(
+    rows
+      .filter((r) => r.transactionType === "entrada" && !r.isInvoicePayment)
+      .map((r) => r.amount)
+  );
 }

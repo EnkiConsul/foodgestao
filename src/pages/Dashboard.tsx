@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Wallet, Landmark, CalendarIcon } from "lucide-react";
+import { fromCents, subtractMoney, sumMoney, toCents } from "@/lib/money";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -136,7 +137,7 @@ export default function Dashboard() {
 
 
   const totalBankBalance = useMemo(
-    () => accounts.reduce((sum, a) => sum + Number(a.current_balance), 0),
+    () => sumMoney(accounts.map((a) => Number(a.current_balance))),
     [accounts]
   );
 
@@ -146,12 +147,13 @@ export default function Dashboard() {
   );
 
   const { monthlyData, balanceEvolution, dailyEvolution, topCategories, totalReceitas, totalDespesas } = useMemo(() => {
+    // Acumuladores em centavos inteiros (evita desvio de ponto flutuante).
     const months: Record<string, { receitas: number; despesas: number }> = {};
     const confirmedMonths: Record<string, { receitas: number; despesas: number }> = {};
     const days: Record<string, { receitas: number; despesas: number }> = {};
     const catTotals: Record<string, number> = {};
-    let totalR = 0;
-    let totalD = 0;
+    let totalRCents = 0;
+    let totalDCents = 0;
 
     const isEffective = (t: typeof transactions[0]) =>
       t.status === "confirmado" || (t.due_date && Number(t.amount_paid) >= Number(t.amount));
@@ -170,19 +172,21 @@ export default function Dashboard() {
           ? t.transaction_type
           : null;
 
+      const cents = toCents(t.amount);
+
       if (effType === "entrada") {
-        months[month].receitas += Number(t.amount);
-        days[day].receitas += Number(t.amount);
-        totalR += Number(t.amount);
-        if (isEffective(t)) confirmedMonths[month].receitas += Number(t.amount);
+        months[month].receitas += cents;
+        days[day].receitas += cents;
+        totalRCents += cents;
+        if (isEffective(t)) confirmedMonths[month].receitas += cents;
       } else if (effType === "saida") {
-        months[month].despesas += Number(t.amount);
-        days[day].despesas += Number(t.amount);
-        totalD += Number(t.amount);
+        months[month].despesas += cents;
+        days[day].despesas += cents;
+        totalDCents += cents;
         if (t.category_id) {
-          catTotals[t.category_id] = (catTotals[t.category_id] ?? 0) + Number(t.amount);
+          catTotals[t.category_id] = (catTotals[t.category_id] ?? 0) + cents;
         }
-        if (isEffective(t)) confirmedMonths[month].despesas += Number(t.amount);
+        if (isEffective(t)) confirmedMonths[month].despesas += cents;
       }
     }
 
@@ -190,20 +194,20 @@ export default function Dashboard() {
     const sortedKeys = Object.keys(months).sort();
     const sorted = sortedKeys.map((key) => ({
       month: monthNames[parseInt(key.split("-")[1]) - 1],
-      receitas: months[key].receitas,
-      despesas: months[key].despesas,
+      receitas: fromCents(months[key].receitas),
+      despesas: fromCents(months[key].despesas),
     }));
 
     // Balance evolution: cumulative only from confirmed/effective transactions
-    let cumulative = 0;
+    let cumulativeCents = 0;
     const allKeys = [...new Set([...Object.keys(months), ...Object.keys(confirmedMonths)])].sort();
     const balEvo = allKeys.map((key) => {
       const cm = confirmedMonths[key] || { receitas: 0, despesas: 0 };
-      cumulative += cm.receitas - cm.despesas;
+      cumulativeCents += cm.receitas - cm.despesas;
       const [year, monthNum] = key.split("-");
       return {
         month: `${monthNames[parseInt(monthNum) - 1]}/${year.slice(2)}`,
-        saldo: cumulative,
+        saldo: fromCents(cumulativeCents),
       };
     });
 
@@ -211,8 +215,8 @@ export default function Dashboard() {
       const [, m, d] = key.split("-");
       return {
         day: `${d}/${m}`,
-        receitas: days[key].receitas,
-        despesas: days[key].despesas,
+        receitas: fromCents(days[key].receitas),
+        despesas: fromCents(days[key].despesas),
       };
     });
 
@@ -221,14 +225,14 @@ export default function Dashboard() {
       .slice(0, 5)
       .map(([catId, total], i) => ({
         name: catMap[catId]?.name ?? "Sem categoria",
-        value: total,
+        value: fromCents(total),
         fill: DONUT_COLORS[i % DONUT_COLORS.length],
       }));
 
-    return { monthlyData: sorted, balanceEvolution: balEvo, dailyEvolution: dailyEvo, topCategories: top5, totalReceitas: totalR, totalDespesas: totalD };
+    return { monthlyData: sorted, balanceEvolution: balEvo, dailyEvolution: dailyEvo, topCategories: top5, totalReceitas: fromCents(totalRCents), totalDespesas: fromCents(totalDCents) };
   }, [transactions, catMap]);
 
-  const saldo = totalReceitas - totalDespesas;
+  const saldo = subtractMoney(totalReceitas, totalDespesas);
   const changeR = totalReceitas > 0 ? `+${((totalReceitas / (totalReceitas + totalDespesas || 1)) * 100).toFixed(0)}%` : "0%";
   const changeD = totalDespesas > 0 ? `-${((totalDespesas / (totalReceitas + totalDespesas || 1)) * 100).toFixed(0)}%` : "0%";
 
@@ -278,7 +282,7 @@ export default function Dashboard() {
     topCategories.map((c) => [c.name, { label: c.name, color: c.fill }])
   );
 
-  const totalCategoryValue = topCategories.reduce((sum, c) => sum + c.value, 0);
+  const totalCategoryValue = sumMoney(topCategories.map((c) => c.value));
 
   return (
     <div className="space-y-6 font-sans">
