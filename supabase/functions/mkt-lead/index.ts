@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("cf-connecting-ip") ||
     null;
-  const captcha = await verifyTurnstileToken({ token: turnstileToken, ip: callerIp });
+  const captcha = await verifyTurnstileToken({ token: turnstileToken, ip: callerIp, contexto: "mkt-lead" });
   if (!captcha.ok) {
     return json({ error: "Não foi possível validar o envio. Recarregue a página e tente novamente." }, 403);
   }
