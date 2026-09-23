@@ -100,15 +100,15 @@ export function AdminBackofficeUsuarios() {
                             </span>
                             <span className="text-xs text-muted-foreground">{u.email}</span>
                             <span className="text-xs text-muted-foreground md:hidden">
-                              Desde {formatDate(u.concedido_em)}
+                              Desde {formatDate(u.concedido_em, "dd/MM/yyyy")}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell className="hidden whitespace-nowrap md:table-cell">
-                          {formatDate(u.concedido_em)}
+                          {formatDate(u.concedido_em, "dd/MM/yyyy")}
                         </TableCell>
                         <TableCell className="hidden whitespace-nowrap md:table-cell">
-                          {u.ultimo_acesso ? formatDate(u.ultimo_acesso) : "—"}
+                          {u.ultimo_acesso ? formatDate(u.ultimo_acesso, "dd/MM/yyyy HH:mm") : "—"}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
