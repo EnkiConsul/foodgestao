@@ -509,7 +509,7 @@ const AppRoutes = () => (
         <Route path="conformidade" element={<Navigate to="/dp" replace />} />
         <Route path="beneficios" element={<Navigate to="/dp/cadastros/beneficios" replace />} />
         <Route path="analytics" element={<DpAnalytics />} />
-        <Route path="erros" element={<Navigate to="/admin/erros" replace />} />
+        <Route path="erros" element={<DpErrosRedirect />} />
 
         <Route path="calendario" element={<DpAdminCalendario />} />
         <Route path="documentos" element={<DpDocumentosImportar />} />
