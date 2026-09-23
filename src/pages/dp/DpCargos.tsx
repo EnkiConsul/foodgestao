@@ -191,7 +191,15 @@ export default function DpCargos() {
               {list.isLoading && (
                 <tr><td colSpan={5} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
               )}
-              {!list.isLoading && rows.length === 0 && (
+              {!list.isLoading && list.isError && (
+                <tr><td colSpan={5} className="p-12 text-center">
+                  <p className="text-sm text-destructive">Não conseguimos carregar os cargos agora.</p>
+                  <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => list.refetch()}>
+                    Tentar De Novo
+                  </Button>
+                </td></tr>
+              )}
+              {!list.isLoading && !list.isError && rows.length === 0 && (
                 <tr><td colSpan={5} className="p-12 text-center text-muted-foreground">
                   {(list.data ?? []).length === 0 ? "Nenhum cargo cadastrado." : "Nenhum cargo encontrado."}
                 </td></tr>
