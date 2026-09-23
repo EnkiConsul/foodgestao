@@ -806,14 +806,15 @@ export default function Lancamentos() {
     else if (sortBy === "description") rows.sort((a, b) => a.description.localeCompare(b.description));
 
     // Running balance: count confirmed transactions OR paid bills (amount_paid >= amount)
-    let running = previousBalance;
+    // Acumulado em centavos inteiros para não acumular desvio de ponto flutuante.
+    let runningCents = toCents(previousBalance);
     rows.forEach((r) => {
       const isPaid = r.hasDueDate && r.amountPaid >= r.amount;
       if (r.origin !== "cartao" && (r.txStatus === "confirmado" || isPaid)) {
-        if (r.transactionType === "entrada") running += r.amount;
-        else if (r.transactionType === "saida") running -= r.amount;
+        if (r.transactionType === "entrada") runningCents += toCents(r.amount);
+        else if (r.transactionType === "saida") runningCents -= toCents(r.amount);
       }
-      r.runningBalance = running;
+      r.runningBalance = fromCents(runningCents);
     });
 
     return rows;
