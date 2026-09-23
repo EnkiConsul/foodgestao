@@ -86,6 +86,15 @@ Deno.serve(async (req) => {
     const backfillFrom = typeof body?.from_date === 'string' ? body.from_date.slice(0, 10) : null;
     const backfillTo = typeof body?.to_date === 'string' ? body.to_date.slice(0, 10) : null;
 
+    // Coleta incremental: o próprio evento do provedor informa a conta afetada e
+    // a data mínima das transações novas. Sem isso, cada rajada relia 30 dias de
+    // histórico de todas as contas sem nenhum ganho.
+    const requestedAccountIds: string[] = Array.isArray(body?.account_ids)
+      ? body.account_ids.filter((v: unknown): v is string => typeof v === 'string' && v.length > 0)
+      : (typeof body?.account_id === 'string' && body.account_id ? [body.account_id] : []);
+    const eventMinDate = typeof body?.min_date === 'string' ? body.min_date.slice(0, 10) : null;
+
+
     // Verificação manual após consentimento no app do banco. Alguns fluxos de
     // Open Finance não retornam ao Connect e o webhook pode chegar sem ter sido
     // correlacionado à solicitação. Nesse caso, localizamos entre os eventos
@@ -883,7 +892,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 3) Transactions — janela configurável (padrão 30 dias)
+    // 3) Transactions — janela incremental por conta (padrão 30 dias)
     const fmt = (d: Date) => d.toISOString().slice(0, 10);
     const to = backfillTo ? new Date(`${backfillTo}T12:00:00Z`) : new Date();
     let from: Date;
@@ -893,6 +902,51 @@ Deno.serve(async (req) => {
       from = new Date(to.getTime());
       from.setDate(from.getDate() - windowDays);
     }
+    // Janela ampla é reservada ao primeiro vínculo, backfill manual e eventos de
+    // atualização retroativa (que chegam com `days` explícito).
+    const janelaAmplaObrigatoria = isFirstConnect || !!backfillFrom || (Number(body?.days ?? 0) > 0);
+
+    /**
+     * Ponto de partida real da conta: a transação mais recente já importada,
+     * recuada 3 dias (liquidações retroativas do banco). Se a conta ainda não
+     * tem histórico, mantém a janela padrão.
+     */
+    async function inicioIncremental(pluggyAccountId: string): Promise<Date> {
+      if (janelaAmplaObrigatoria) return from;
+
+      const candidatos: Date[] = [];
+      if (eventMinDate) {
+        const d = new Date(`${eventMinDate}T12:00:00Z`);
+        if (!Number.isNaN(d.getTime())) {
+          d.setDate(d.getDate() - 2);
+          candidatos.push(d);
+        }
+      }
+
+      const { data: ultima } = await admin
+        .from('pluggy_staging_transactions')
+        .select('date')
+        .eq('company_id', effectiveCompanyId)
+        .eq('pluggy_account_id', pluggyAccountId)
+        .order('date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (ultima?.date) {
+        const d = new Date(`${String(ultima.date).slice(0, 10)}T12:00:00Z`);
+        if (!Number.isNaN(d.getTime())) {
+          d.setDate(d.getDate() - 3);
+          candidatos.push(d);
+        }
+      }
+
+      if (candidatos.length === 0) return from;
+      // Entre as pistas disponíveis, a mais antiga garante que nada se perca.
+      const escolhida = candidatos.reduce((a, b) => (a.getTime() <= b.getTime() ? a : b));
+      // Nunca busca mais do que a janela padrão permitiria.
+      return escolhida.getTime() > from.getTime() ? escolhida : from;
+    }
+
 
     let staged = 0;
     // Erros de gravação essencial NÃO podem ser silenciados: viram resultado
@@ -922,9 +976,13 @@ Deno.serve(async (req) => {
 
     for (const acc of accounts) {
       if (pausedIds.has(acc.id)) continue;
+      // Evento do provedor aponta a conta afetada: as demais não mudaram.
+      if (requestedAccountIds.length > 0 && !requestedAccountIds.includes(acc.id)) continue;
 
-      const txs = await listTransactions(acc.id, fmt(from), fmt(to));
+      const accFrom = await inicioIncremental(acc.id);
+      const txs = await listTransactions(acc.id, fmt(accFrom), fmt(to));
       if (txs.length === 0) continue;
+
       const rows = txs.map((t: any): any => {
         const amt = Number(t.amount ?? 0);
         const counterparty = counterpartyName(t, enrichOptions);

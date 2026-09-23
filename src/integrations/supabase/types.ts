@@ -17835,6 +17835,10 @@ export type Database = {
               transaction_id: string
             }[]
           }
+      pluggy_connection_in_cooldown: {
+        Args: { _cooldown_minutes?: number; _item_id: string }
+        Returns: boolean
+      }
       pluggy_ignore_staging: {
         Args: { p_staging_ids: string[] }
         Returns: number
@@ -17845,6 +17849,20 @@ export type Database = {
       }
       pluggy_mark_duplicate_staging: {
         Args: { p_staging_ids: string[] }
+        Returns: number
+      }
+      pluggy_pending_manual_links: {
+        Args: { _dias?: number }
+        Returns: {
+          connector_name: string
+          motivo: string
+          ocorrencias: number
+          pluggy_item_id: string
+          ultima_em: string
+        }[]
+      }
+      pluggy_reap_stale_sync_runs: {
+        Args: { _timeout_minutes?: number }
         Returns: number
       }
       pluggy_register_origin_change: {

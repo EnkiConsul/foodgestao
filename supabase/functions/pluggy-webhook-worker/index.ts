@@ -41,6 +41,12 @@ const BATCH_SIZE = Number(Deno.env.get('PLUGGY_WEBHOOK_BATCH_SIZE') ?? '10');
 const LEASE_SECONDS = 180;
 const UPDATE_WINDOW_DAYS = Number(Deno.env.get('PLUGGY_UPDATE_WINDOW_DAYS') ?? '90');
 const MAX_RUN_MS = 50_000;
+/** Espera mínima entre duas coletas da mesma conexão (rajadas do provedor). */
+const SYNC_COOLDOWN_MIN = Number(Deno.env.get('PLUGGY_SYNC_COOLDOWN_MIN') ?? '15');
+/** Janela em que um item pendente de vínculo manual não é reprocessado. */
+const PENDING_LINK_SUPPRESS_HOURS = Number(
+  Deno.env.get('PLUGGY_PENDING_LINK_SUPPRESS_HOURS') ?? '24',
+);
 
 const SYNC_EVENTS = new Set([
   'item/created',
@@ -50,6 +56,7 @@ const SYNC_EVENTS = new Set([
   'transactions/created',
   'transactions/updated',
 ]);
+
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -144,15 +151,30 @@ async function handleItemError(admin: Admin, itemId: string | null, payload: any
   throw new FatalEventError(`item_error: ${detail}`, 'item_error');
 }
 
-async function triggerSync(itemId: string, windowDays?: number) {
+type SyncHints = {
+  /** Janela ampla (dias) — só para eventos de atualização retroativa. */
+  windowDays?: number;
+  /** Conta específica informada pelo evento (evita varrer todas). */
+  accountId?: string | null;
+  /** Data mínima das transações novas informada pelo evento. */
+  minDate?: string | null;
+};
+
+async function triggerSync(itemId: string, hints: SyncHints = {}) {
+  const payload: Record<string, unknown> = { item_id: itemId };
+  if (hints.windowDays) payload.days = hints.windowDays;
+  if (hints.accountId) payload.account_ids = [hints.accountId];
+  if (hints.minDate) payload.min_date = hints.minDate;
+
   const res = await fetch(`${SUPABASE_URL}/functions/v1/pluggy-sync-item`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${SERVICE_ROLE}`,
     },
-    body: JSON.stringify(windowDays ? { item_id: itemId, days: windowDays } : { item_id: itemId }),
+    body: JSON.stringify(payload),
   });
+
 
   const raw = await res.text().catch(() => '');
   let body: SyncBody | null = null;
@@ -208,6 +230,53 @@ async function itemIsKnown(admin: Admin, itemId: string): Promise<boolean> {
   return (v1.count ?? 0) > 0 || (v2.count ?? 0) > 0;
 }
 
+
+/** Conexão sincronizada há pouco: rajada do provedor não vira nova coleta. */
+async function inCooldown(admin: Admin, itemId: string): Promise<boolean> {
+  if (!(SYNC_COOLDOWN_MIN > 0)) return false;
+  const { data, error } = await admin.rpc('pluggy_connection_in_cooldown', {
+    _item_id: itemId,
+    _cooldown_minutes: SYNC_COOLDOWN_MIN,
+  });
+  if (error) {
+    console.warn('pluggy-webhook-worker: cooldown check falhou', error.message);
+    return false;
+  }
+  return data === true;
+}
+
+/**
+ * Item já aguardando vínculo manual: novos eventos não repetem a tentativa
+ * (isso gerava dezenas de descartes silenciosos para a mesma conexão).
+ */
+async function awaitingManualLink(admin: Admin, itemId: string): Promise<boolean> {
+  const since = new Date(Date.now() - PENDING_LINK_SUPPRESS_HOURS * 3600_000).toISOString();
+  const { count } = await admin
+    .from('pluggy_webhook_events')
+    .select('id', { count: 'exact', head: true })
+    .eq('pluggy_item_id', itemId)
+    .eq('error_code', 'pending_manual_link')
+    .gte('created_at', since);
+  return (count ?? 0) > 0;
+}
+
+/** Abre ocorrência na Auditoria de Erros do Backoffice (dedup por item). */
+async function registrarPendenciaVinculo(admin: Admin, itemId: string, detalhe: string) {
+  const { error } = await admin.rpc('app_error_log_record', {
+    _fingerprint: `open_finance:pending_manual_link:${itemId}`,
+    _message: `Conexão bancária aguardando vínculo manual (item ${itemId})`,
+    _surface: 'open_finance',
+    _route: '/admin/pluggy-status',
+    _action: 'pluggy_webhook_worker',
+    _severity: 'warning',
+    _source: 'edge',
+    _code: 'pending_manual_link',
+    _user_message: 'Uma conexão bancária parou de atualizar e precisa ser vinculada a uma empresa no Backoffice.',
+    _details: { pluggy_item_id: itemId, detalhe },
+  });
+  if (error) console.warn('pluggy-webhook-worker: falha ao registrar pendência', error.message);
+}
+
 async function processEvent(
   admin: Admin,
   ev: { event_type: string; pluggy_item_id: string | null; payload: any },
@@ -238,13 +307,34 @@ async function processEvent(
   }
   if (SYNC_EVENTS.has(type)) {
     if (!itemId) throw new FatalEventError('missing_item_id', 'missing_item_id');
-    // Alterações na origem podem atingir lançamentos antigos: a janela padrão de
-    // 30 dias nunca os reprocessaria.
-    await triggerSync(itemId, type === 'transactions/updated' ? UPDATE_WINDOW_DAYS : undefined);
+
+    if (await awaitingManualLink(admin, itemId)) {
+      console.log(`pluggy-webhook-worker: item ${itemId} aguardando vínculo manual — evento suspenso`);
+      return;
+    }
+
+    // Atualizações retroativas precisam de janela ampla; coletas rotineiras não.
+    const isRetroactive = type === 'transactions/updated';
+    if (!isRetroactive && await inCooldown(admin, itemId)) {
+      console.log(`pluggy-webhook-worker: item ${itemId} sincronizado há menos de ${SYNC_COOLDOWN_MIN} min — coleta dispensada`);
+      return;
+    }
+
+    const accountId = typeof ev.payload?.accountId === 'string' ? ev.payload.accountId : null;
+    const minDate = typeof ev.payload?.transactionsMinDate === 'string'
+      ? ev.payload.transactionsMinDate.slice(0, 10)
+      : null;
+
+    await triggerSync(itemId, {
+      windowDays: isRetroactive ? UPDATE_WINDOW_DAYS : undefined,
+      accountId: type === 'transactions/created' ? accountId : null,
+      minDate: type === 'transactions/created' ? minDate : null,
+    });
     return;
   }
   // Evento sem tratamento: registrado e concluído (nada a fazer).
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -260,6 +350,16 @@ Deno.serve(async (req) => {
   const workerId = `pluggy-worker-${crypto.randomUUID().slice(0, 8)}`;
   const startedAt = Date.now();
 
+  // Coletas presas (timeout da function) não fecham sozinhas: encerra antes de
+  // trabalhar, para que o histórico de execuções reflita a realidade.
+  const { data: reaped, error: reapErr } = await admin.rpc('pluggy_reap_stale_sync_runs', {
+    _timeout_minutes: 15,
+  });
+  if (reapErr) console.warn('pluggy-webhook-worker: reaper falhou', reapErr.message);
+  else if ((reaped as number | null) && Number(reaped) > 0) {
+    console.warn(`pluggy-webhook-worker: ${reaped} execução(ões) travada(s) encerrada(s)`);
+  }
+
   const { data: claimed, error: claimErr } = await admin.rpc('pluggy_webhook_claim', {
     _worker: workerId, _batch: BATCH_SIZE, _lease_seconds: LEASE_SECONDS,
   });
@@ -274,10 +374,26 @@ Deno.serve(async (req) => {
     attempt_count: number; max_attempts: number;
   }>;
 
-  let processed = 0, retried = 0, dead = 0, skipped = 0;
+  let processed = 0, retried = 0, dead = 0, skipped = 0, consolidated = 0;
+
+  // Rajada do provedor: login_succeeded + item/updated + transactions/created
+  // chegam juntos para o mesmo item. Apenas o primeiro dispara a coleta; os
+  // demais são concluídos como consolidados no lote.
+  const itemJaProcessadoNoLote = new Set<string>();
 
   for (const ev of events) {
     if (Date.now() - startedAt > MAX_RUN_MS) { skipped++; continue; }
+
+    const evItemId = ev.pluggy_item_id ?? ev.payload?.itemId ?? ev.payload?.item?.id ?? null;
+    if (evItemId && SYNC_EVENTS.has(ev.event_type) && ev.event_type !== 'transactions/updated') {
+      if (itemJaProcessadoNoLote.has(evItemId)) {
+        await admin.rpc('pluggy_webhook_finalize_success', { _event_id: ev.id, _worker: workerId });
+        consolidated++;
+        continue;
+      }
+      itemJaProcessadoNoLote.add(evItemId);
+    }
+
     try {
       await processEvent(admin, ev);
       await admin.rpc('pluggy_webhook_finalize_success', { _event_id: ev.id, _worker: workerId });
@@ -286,14 +402,22 @@ Deno.serve(async (req) => {
       const fatal = e instanceof FatalEventError;
       const msg = e instanceof Error ? e.message : String(e);
       console.error(`pluggy-webhook-worker: event ${ev.event_id} failed`, msg);
+      const code = fatal ? (e as FatalEventError).code : 'processing_error';
+      if (code === 'pending_manual_link' && evItemId) {
+        await registrarPendenciaVinculo(admin, evItemId, msg);
+      }
       const { data: status } = await admin.rpc('pluggy_webhook_finalize_failure', {
         _event_id: ev.id, _worker: workerId, _error: msg,
-        _error_code: fatal ? (e as FatalEventError).code : 'processing_error',
+        _error_code: code,
         _fatal: fatal,
       });
       if (status === 'dead_letter') dead++; else retried++;
     }
   }
 
-  return json({ ok: true, worker: workerId, claimed: events.length, processed, retried, dead, skipped });
+  return json({
+    ok: true, worker: workerId, claimed: events.length,
+    processed, retried, dead, skipped, consolidated, reaped: reaped ?? 0,
+  });
+
 });
