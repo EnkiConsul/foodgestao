@@ -84,9 +84,9 @@ describe("modo do Turnstile", () => {
   });
 
   it("hostnames autorizados têm padrão seguro", () => {
-    expect(allowedHostnames()).toEqual(["aveto360.com", "www.aveto360.com"]);
+    expect(allowedHostnames()).toEqual(["aveto360.com", "www.aveto360.com", "*.lovable.app"]);
     setEnv({ TURNSTILE_SECRET: "s", TURNSTILE_ALLOWED_HOSTNAMES: " App.Exemplo.com , outro.com " });
-    expect(allowedHostnames()).toEqual(["app.exemplo.com", "outro.com"]);
+    expect(allowedHostnames()).toEqual(["app.exemplo.com", "outro.com", "*.lovable.app"]);
   });
 });
 
@@ -102,13 +102,47 @@ describe("verifyTurnstileToken", () => {
   });
 
   it("origem forjada de preview não ativa o modo de teste", async () => {
-    // O segredo de teste jamais é usado: mesmo alegando origem lovable.app,
+    // O segredo de teste jamais é usado: mesmo alegando origem de preview,
     // a verificação segue com o segredo real e a validação completa.
-    const spy = mockFetch(async () => respostaOk({ hostname: "evil.lovable.app" }));
+    const spy = mockFetch(async () => respostaOk({ hostname: "atacante.com" }));
     const r = await verifyTurnstileToken({ token: VALID_TOKEN });
     expect(r.ok).toBe(false);
     expect(r.ok === false && r.reason).toBe("hostname_not_allowed");
     expect(corpoEnviado(spy).get("secret")).not.toBe(TEST_SECRET_KEY);
+  });
+
+  it("aceita subdomínios de visualização do Lovable", async () => {
+    for (const hostname of [
+      "id-preview--ceeb4a17-6191-46b0-a351-c97a8211c03e.lovable.app",
+      "preview--aveto360.lovable.app",
+      "aveto360.lovable.app",
+    ]) {
+      mockFetch(async () => respostaOk({ hostname }));
+      const r = await verifyTurnstileToken({ token: VALID_TOKEN });
+      expect(r.ok).toBe(true);
+    }
+  });
+
+  it("recusa domínios parecidos com o de visualização", async () => {
+    for (const hostname of [
+      "lovable.app",
+      "falso-lovable.app",
+      "lovable.app.atacante.com",
+      "preview.lovable.app.atacante.com",
+      "*.lovable.app",
+    ]) {
+      mockFetch(async () => respostaOk({ hostname }));
+      const r = await verifyTurnstileToken({ token: VALID_TOKEN });
+      expect(r.ok === false && r.reason).toBe("hostname_not_allowed");
+    }
+  });
+
+  it("lista configurada continua valendo junto com os subdomínios de visualização", async () => {
+    setEnv({ TURNSTILE_SECRET: "segredo-de-producao", TURNSTILE_ALLOWED_HOSTNAMES: "aveto360.com" });
+    expect(allowedHostnames()).toEqual(["aveto360.com", "*.lovable.app"]);
+    mockFetch(async () => respostaOk({ hostname: "www.aveto360.com" }));
+    const r = await verifyTurnstileToken({ token: VALID_TOKEN });
+    expect(r.ok === false && r.reason).toBe("hostname_not_allowed");
   });
 
   it("recusa token inválido, ausente ou curto", async () => {
