@@ -769,7 +769,7 @@ export default function Auth() {
               </p>
             )}
 
-            {isLogin && turnstileSiteKey && (
+            {isLogin && turnstileSiteKey && sessaoResolvida && (
               <div className="space-y-1 pt-0 md:space-y-2 md:pt-1">
                 <TurnstileWidget
                   key={turnstileNonce}
