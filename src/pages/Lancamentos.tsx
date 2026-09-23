@@ -828,14 +828,18 @@ export default function Lancamentos() {
     const despesas = sumDespesas(effectiveRows);
 
     const pending = displayRows.filter((r) => r.billStatus !== "pago");
-    const aPagar = pending.filter((r) => r.transactionType === "saida").reduce((s, r) => s + r.amount - r.amountPaid, 0);
-    const aReceber = pending.filter((r) => r.transactionType === "entrada").reduce((s, r) => s + r.amount - r.amountPaid, 0);
+    const aPagar = sumMoney(
+      pending.filter((r) => r.transactionType === "saida").map((r) => subtractMoney(r.amount, r.amountPaid))
+    );
+    const aReceber = sumMoney(
+      pending.filter((r) => r.transactionType === "entrada").map((r) => subtractMoney(r.amount, r.amountPaid))
+    );
     const atrasadas = displayRows.filter((r) => r.billStatus === "atrasado").length;
 
     const allReceitas = sumReceitas(displayRows);
     const allDespesas = sumDespesas(displayRows);
-    const saldoPeriodo = allReceitas - allDespesas;
-    const saldoAcumulado = previousBalance + saldoPeriodo;
+    const saldoPeriodo = subtractMoney(allReceitas, allDespesas);
+    const saldoAcumulado = addMoney(previousBalance, saldoPeriodo);
 
     return { receitas, despesas, aPagar, aReceber, atrasadas, allReceitas, allDespesas, saldoPeriodo, saldoAcumulado };
   }, [displayRows, previousBalance]);
