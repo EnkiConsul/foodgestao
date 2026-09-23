@@ -108,6 +108,9 @@ type Props = {
   onSuccess?: () => void;
 };
 
+/** Opção "não copiar": o seletor não aceita valor vazio. */
+const SEM_COPIA = "sem-copia";
+
 /**
  * Diálogo único de cadastro/edição das regras de folgas de uma unidade.
  * Reúne DSR, dias de descanso, frequência, particularidades, troca e janela mensal.
