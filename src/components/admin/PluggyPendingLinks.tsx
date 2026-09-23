@@ -33,49 +33,20 @@ export function PluggyPendingLinks() {
     queryKey: ["pluggy-pending-manual-link"],
     refetchInterval: 60_000,
     queryFn: async (): Promise<PendingItem[]> => {
-      const desde = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
-      const { data, error } = await supabase
-        .from("pluggy_webhook_events")
-        .select("pluggy_item_id, error, created_at")
-        .eq("error_code", "pending_manual_link")
-        .gte("created_at", desde)
-        .order("created_at", { ascending: false })
-        .limit(500);
+      const { data, error } = await supabase.rpc("pluggy_pending_manual_links", {
+        _dias: 30,
+      });
       if (error) throw error;
-
-      const porItem = new Map<string, PendingItem>();
-      for (const ev of data ?? []) {
-        const itemId = ev.pluggy_item_id;
-        if (!itemId) continue;
-        const atual = porItem.get(itemId);
-        if (atual) {
-          atual.ocorrencias += 1;
-          continue;
-        }
-        porItem.set(itemId, {
-          itemId,
-          ocorrencias: 1,
-          ultimaEm: ev.created_at,
-          motivo: ev.error ?? null,
-          instituicao: null,
-        });
-      }
-
-      const itemIds = [...porItem.keys()];
-      if (itemIds.length > 0) {
-        const { data: conns } = await supabase
-          .from("pluggy_connections")
-          .select("pluggy_item_id, connector_name")
-          .in("pluggy_item_id", itemIds);
-        for (const c of conns ?? []) {
-          const alvo = porItem.get(c.pluggy_item_id);
-          if (alvo) alvo.instituicao = c.connector_name ?? null;
-        }
-      }
-
-      return [...porItem.values()].sort((a, b) => b.ocorrencias - a.ocorrencias);
+      return (data ?? []).map((r) => ({
+        itemId: r.pluggy_item_id,
+        ocorrencias: r.ocorrencias,
+        ultimaEm: r.ultima_em,
+        motivo: r.motivo,
+        instituicao: r.connector_name,
+      }));
     },
   });
+
 
   const itens = pendentes.data ?? [];
 
