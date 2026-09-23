@@ -1097,7 +1097,7 @@ export default function Lancamentos() {
                   Nenhum registro neste mês
                 </div>
               ) : (
-                displayRows.map((r) => (
+                pageRows.map((r) => (
                   <LancamentoCard
                     key={r.id}
                     row={r}
@@ -1161,9 +1161,9 @@ export default function Lancamentos() {
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-[36px] px-2">
                       <Checkbox
-                        checked={displayRows.length > 0 && displayRows.every((r) => selectedIds.has(r.id))}
+                        checked={pageRows.length > 0 && pageRows.every((r) => selectedIds.has(r.id))}
                         onCheckedChange={(v) => {
-                          if (v) setSelectedIds(new Set(displayRows.map((r) => r.id)));
+                          if (v) setSelectedIds(new Set(pageRows.map((r) => r.id)));
                           else clearSelection();
                         }}
                         aria-label="Selecionar todos"
@@ -1204,7 +1204,7 @@ export default function Lancamentos() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    displayRows.map((r) => (
+                    pageRows.map((r) => (
                       <LancamentoRow
                         key={r.id}
                         row={r}
