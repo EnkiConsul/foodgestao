@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { NavLink, useLocation, Link, useNavigate } from "react-router-dom";
-import { ChevronDown, LogOut, ArrowLeft, ListOrdered, EyeOff, Eye } from "lucide-react";
+import { ChevronDown, LogOut, ArrowLeft, ListOrdered, EyeOff, Eye, LayoutGrid } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import assinatura360 from "@/assets/aveto360-assinatura.png.asset.json";
 import symbol360 from "@/assets/aveto360-symbol.png.asset.json";
@@ -30,6 +30,7 @@ import { filterSurface } from "@/lib/nav/hiddenScreens";
 import { OrganizarMenuDialog } from "@/components/dp/OrganizarMenuDialog";
 import { TelasDesenvolvimentoDialog } from "@/components/dp/TelasDesenvolvimentoDialog";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { AccountMenu } from "@/components/layout/sidebar-menus/AccountMenu";
 
 
 
