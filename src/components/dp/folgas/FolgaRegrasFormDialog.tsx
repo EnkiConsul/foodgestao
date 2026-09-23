@@ -403,8 +403,8 @@ export function FolgaRegrasFormDialog({
             <div className="space-y-1.5">
               <Label htmlFor="copiar-de">Copiar regras de (opcional)</Label>
               <Select
-                value={copiarDeSelecionado ?? ""}
-                onValueChange={(v) => setCopiarDeSelecionado(v || null)}
+                value={copiarDeSelecionado ?? SEM_COPIA}
+                onValueChange={(v) => setCopiarDeSelecionado(v === SEM_COPIA ? null : v)}
                 disabled={unidadesDisponiveis.length === 0}
               >
                 <SelectTrigger id="copiar-de">
@@ -417,7 +417,7 @@ export function FolgaRegrasFormDialog({
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Não copiar</SelectItem>
+                  <SelectItem value={SEM_COPIA}>Não copiar</SelectItem>
                   {unidadesDisponiveis.map((u) => (
                     <SelectItem key={u.id} value={u.id}>
                       {u.nome}
