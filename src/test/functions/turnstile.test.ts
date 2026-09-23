@@ -84,9 +84,9 @@ describe("modo do Turnstile", () => {
   });
 
   it("hostnames autorizados têm padrão seguro", () => {
-    expect(allowedHostnames()).toEqual(["aveto360.com", "www.aveto360.com"]);
+    expect(allowedHostnames()).toEqual(["aveto360.com", "www.aveto360.com", "*.lovable.app"]);
     setEnv({ TURNSTILE_SECRET: "s", TURNSTILE_ALLOWED_HOSTNAMES: " App.Exemplo.com , outro.com " });
-    expect(allowedHostnames()).toEqual(["app.exemplo.com", "outro.com"]);
+    expect(allowedHostnames()).toEqual(["app.exemplo.com", "outro.com", "*.lovable.app"]);
   });
 });
 
