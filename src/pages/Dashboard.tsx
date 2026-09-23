@@ -232,7 +232,7 @@ export default function Dashboard() {
     return { monthlyData: sorted, balanceEvolution: balEvo, dailyEvolution: dailyEvo, topCategories: top5, totalReceitas: fromCents(totalRCents), totalDespesas: fromCents(totalDCents) };
   }, [transactions, catMap]);
 
-  const saldo = totalReceitas - totalDespesas;
+  const saldo = subtractMoney(totalReceitas, totalDespesas);
   const changeR = totalReceitas > 0 ? `+${((totalReceitas / (totalReceitas + totalDespesas || 1)) * 100).toFixed(0)}%` : "0%";
   const changeD = totalDespesas > 0 ? `-${((totalDespesas / (totalReceitas + totalDespesas || 1)) * 100).toFixed(0)}%` : "0%";
 
