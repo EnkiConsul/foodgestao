@@ -476,9 +476,9 @@ export default function Auth() {
         </section>
 
 
-        <section className="relative z-10 flex h-full items-end justify-center px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[46svh] md:min-h-screen md:h-auto md:items-start md:justify-end md:px-[4vw] md:py-[clamp(2rem,8vw,8rem)] lg:px-[5vw] lg:py-[clamp(2.5rem,9vh,6rem)]">
-          <div className="w-full max-w-[340px] md:max-w-[320px] lg:max-w-[340px]">
-        <Card className="max-h-[60svh] w-full overflow-y-auto border-border/70 bg-card/90 shadow-site-float backdrop-blur-xl supports-[backdrop-filter]:bg-card/84 md:max-h-[calc(100svh-2rem)]">
+        <section className="relative z-10 flex h-full items-end justify-center px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[clamp(4rem,28svh,42svh)] md:min-h-screen md:h-auto md:items-start md:justify-end md:px-[4vw] md:py-[clamp(2rem,8vw,8rem)] lg:px-[5vw] lg:py-[clamp(2.5rem,9vh,6rem)]">
+          <div className="flex w-full max-w-[340px] flex-col md:max-w-[320px] lg:max-w-[340px]">
+        <Card className="max-h-[62svh] w-full overflow-y-auto border-border/70 bg-card/90 shadow-site-float backdrop-blur-xl supports-[backdrop-filter]:bg-card/84 md:max-h-[calc(100svh-2rem)]">
 
         <CardHeader className="space-y-0 px-4 pb-1 pt-2 text-center md:pb-2 md:pt-4">
           <CardTitle className="sr-only">Aveto 360</CardTitle>
@@ -849,7 +849,7 @@ export default function Auth() {
 
             {/* Selo do Reclame Aqui: âncora de confiança logo abaixo do cartão
                 de acesso, com escala reduzida em telas estreitas. */}
-            <ReclameAquiSeal className="mt-2 flex origin-top scale-[0.82] justify-center sm:mt-3 sm:scale-90 md:mt-4 md:scale-100" />
+            <ReclameAquiSeal className="mt-1 flex origin-top scale-[0.7] justify-center sm:mt-2 sm:scale-[0.85] md:mt-3 md:scale-100" />
           </div>
         </section>
       </div>
