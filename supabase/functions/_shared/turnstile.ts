@@ -84,6 +84,7 @@ async function siteverify(
   secret: string,
   token: string,
   ip: string | null,
+  ctx: string,
 ): Promise<Record<string, unknown> | null> {
   const form = new URLSearchParams();
   form.set("secret", secret);
@@ -99,17 +100,17 @@ async function siteverify(
       signal: controller.signal,
     });
     if (!resp.ok) {
-      console.warn(`[turnstile] siteverify HTTP ${resp.status}`);
+      console.warn(`[turnstile:${ctx}] siteverify HTTP ${resp.status}`);
       return null;
     }
     const data = await resp.json();
     if (!data || typeof data !== "object") {
-      console.warn("[turnstile] siteverify devolveu corpo inesperado");
+      console.warn(`[turnstile:${ctx}] siteverify devolveu corpo inesperado`);
       return null;
     }
     return data as Record<string, unknown>;
   } catch (e) {
-    console.warn(`[turnstile] siteverify indisponível: ${e instanceof Error ? e.name : "erro"}`);
+    console.warn(`[turnstile:${ctx}] siteverify indisponível: ${e instanceof Error ? e.name : "erro"}`);
     return null;
   } finally {
     clearTimeout(timer);
@@ -147,12 +148,12 @@ export async function verifyTurnstileToken(params: {
   let reachedCloudflare = false;
 
   for (const secret of secrets) {
-    const data = await siteverify(secret, token, params.ip ?? null);
+    const data = await siteverify(secret, token, params.ip ?? null, ctx);
     if (!data) continue;
     reachedCloudflare = true;
 
     if (data.success !== true) {
-      console.warn(`[turnstile] recusado: ${JSON.stringify(data["error-codes"] ?? [])}`);
+      console.warn(`[turnstile:${ctx}] recusado: ${JSON.stringify(data["error-codes"] ?? [])}`);
       reason = "invalid_token";
       continue;
     }
@@ -160,11 +161,11 @@ export async function verifyTurnstileToken(params: {
     // Em modo de teste o Cloudflare não devolve hostname/action reais do produto.
     if (mode === "live") {
       if (!hostnameAllowed(data.hostname)) {
-        console.warn("[turnstile] hostname fora da lista autorizada");
+        console.warn(`[turnstile:${ctx}] hostname fora da lista autorizada: ${String(data.hostname ?? "")}`);
         return { ok: false, mode, reason: "hostname_not_allowed" };
       }
       if (expectedAction && data.action !== expectedAction) {
-        console.warn("[turnstile] action divergente do esperado");
+        console.warn(`[turnstile:${ctx}] action divergente do esperado`);
         return { ok: false, mode, reason: "action_mismatch" };
       }
     }
