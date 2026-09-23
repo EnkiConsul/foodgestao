@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } fro
 import { useSearchParams } from "react-router-dom";
 import { resolveAttachments } from "@/lib/attachments";
 import { amountColorClass } from "@/lib/transaction-sign";
+import { addMoney, fromCents, subtractMoney, sumMoney, toCents } from "@/lib/money";
 import { resolveLancamentoOrigin, sumDespesas, sumReceitas, type LancamentoOrigin } from "@/lib/transactions/lancamentoOrigin";
 import { creditCardLabel } from "@/lib/conciliacao/cardRouting";
 import { useAuth } from "@/hooks/useAuth";
