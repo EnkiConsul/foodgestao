@@ -838,6 +838,33 @@ export default function Lancamentos() {
     return { receitas, despesas, aPagar, aReceber, atrasadas, allReceitas, allDespesas, saldoPeriodo, saldoAcumulado };
   }, [displayRows, previousBalance]);
 
+  // Paginação clássica — os totais acima usam a lista completa do mês.
+  const totalPaginas = Math.max(1, Math.ceil(displayRows.length / porPagina));
+
+  useEffect(() => {
+    setPagina(1);
+  }, [displayRows.length, porPagina, search, sortBy]);
+
+  useEffect(() => {
+    if (pagina > totalPaginas) setPagina(totalPaginas);
+  }, [pagina, totalPaginas]);
+
+  const pageRows = useMemo(() => {
+    const inicio = (pagina - 1) * porPagina;
+    return displayRows.slice(inicio, inicio + porPagina);
+  }, [displayRows, pagina, porPagina]);
+
+  const faixaInicio = displayRows.length === 0 ? 0 : (pagina - 1) * porPagina + 1;
+  const faixaFim = Math.min(pagina * porPagina, displayRows.length);
+
+  // Saldo exibido na linha "SALDO ANTERIOR": saldo corrido até o fim da página anterior.
+  const saldoBasePagina = useMemo(() => {
+    const anterior = (pagina - 1) * porPagina;
+    if (anterior <= 0) return previousBalance;
+    return displayRows[anterior - 1]?.runningBalance ?? previousBalance;
+  }, [displayRows, pagina, porPagina, previousBalance]);
+
+
   const formatBRL = maskBRL;
 
   const exportCSV = () => {
