@@ -164,6 +164,12 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - Funções de gatilho fora do alcance de qualquer papel de cliente; rotinas do esquema reservado e de Pessoas só para usuário logado e serviços internos.
 - Avisos do linter caíram de 309 para 280 (zerou o grupo "visitante executa rotina interna").
 
+## Turnstile — novo widget (2026-09-23)
+- [x] Chave pública padrão trocada para o widget novo (`0x4AAAAAAFAmAXx7U_e8ThI8`)
+- [x] Segredos atualizados: chave pública, chave secreta e lista de domínios (inclui o domínio de preview `...lovableproject.com`)
+- [x] Testes da verificação anti-robô (17) passando
+- [ ] Publicar para valer no site (aguarda decisão do proprietário)
+
 ## Fase 9 Pessoas 360 — Cadastros de remuneração e benefícios (concluída 2026-09-22)
 
 - 8 rotinas oficiais no servidor: cargo, piso salarial por unidade/sindicato, benefício, padrão de benefícios, adicional por tempo de serviço, benefício do colaborador (individual e em lote) e exclusão de cadastro.
