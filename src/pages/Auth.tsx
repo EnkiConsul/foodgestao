@@ -116,7 +116,11 @@ export default function Auth() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resending, setResending] = useState(false);
   const { siteKey: turnstileSiteKey, mode: turnstileMode } = useTurnstileConfig();
-  const { signUp, user } = useAuth();
+  const { signUp, user, loading: sessaoCarregando } = useAuth();
+  // Enquanto a sessão salva no navegador está sendo recuperada, a verificação de
+  // segurança não é montada: evita o piscar do formulário e do aviso do desafio
+  // quando o usuário já está conectado e será redirecionado.
+  const sessaoResolvida = !sessaoCarregando && !user;
   const navigate = useNavigate();
 
   const checkMfaState = async () => {
