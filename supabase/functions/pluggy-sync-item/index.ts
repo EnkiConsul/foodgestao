@@ -1205,7 +1205,9 @@ Deno.serve(async (req) => {
       accounts: accounts.length,
       transactions: staged,
       write_failures: falhasGravacao,
+      v2_enabled: v2Habilitado,
       v2_materialized: v2Materializado,
+
       v2_accounts: v2Contas,
       v2_transactions: v2Lancamentos,
       v2_error: v2Erro,
