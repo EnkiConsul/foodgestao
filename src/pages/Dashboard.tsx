@@ -137,7 +137,7 @@ export default function Dashboard() {
 
 
   const totalBankBalance = useMemo(
-    () => accounts.reduce((sum, a) => sum + Number(a.current_balance), 0),
+    () => sumMoney(accounts.map((a) => Number(a.current_balance))),
     [accounts]
   );
 
