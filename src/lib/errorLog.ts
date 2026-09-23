@@ -111,7 +111,9 @@ export async function reportError(input: ReportErrorInput): Promise<string | nul
 
   try {
     const message = messageOf(input.error);
+    if (ehRuidoDeDesenvolvimento(message)) return null;
     const code = codeOf(input.error);
+
     const fingerprint = fingerprintOf({
       surface: input.surface,
       action: input.action,
