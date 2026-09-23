@@ -34,14 +34,14 @@ export async function linkDocumentoAssinado(
   documentoId: string,
   segundos = 60,
   variante: VarianteArquivo = "documento",
-): Promise<{ url: string; fileName: string | null } | null> {
+): Promise<{ url: string; fileName: string | null; mimeType: string | null } | null> {
   const arquivo = await arquivoAutorizado(documentoId, variante);
   if (!arquivo) return null;
   const { data, error } = await supabase.storage
     .from(DP_DOCUMENTOS_BUCKET)
     .createSignedUrl(arquivo.file_path, segundos);
   if (error || !data) return null;
-  return { url: data.signedUrl, fileName: arquivo.file_name };
+  return { url: data.signedUrl, fileName: arquivo.file_name, mimeType: arquivo.mime_type ?? null };
 }
 
 /** Abre (ou baixa) o documento em nova aba usando link temporário. */
