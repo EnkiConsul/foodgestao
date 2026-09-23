@@ -282,7 +282,7 @@ export default function Dashboard() {
     topCategories.map((c) => [c.name, { label: c.name, color: c.fill }])
   );
 
-  const totalCategoryValue = topCategories.reduce((sum, c) => sum + c.value, 0);
+  const totalCategoryValue = sumMoney(topCategories.map((c) => c.value));
 
   return (
     <div className="space-y-6 font-sans">
