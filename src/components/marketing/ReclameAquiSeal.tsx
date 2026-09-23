@@ -35,7 +35,7 @@ export function ReclameAquiSeal({ className }: { className?: string }) {
     script.async = true;
     script.setAttribute("data-id", DATA_ID);
     script.setAttribute("data-target", TARGET);
-    script.setAttribute("data-model", "compact_1");
+    script.setAttribute("data-model", "horizontal_1");
     alvo.appendChild(script);
 
     return () => {
@@ -46,5 +46,18 @@ export function ReclameAquiSeal({ className }: { className?: string }) {
 
   if (isHomologacao()) return null;
 
-  return <div id={TARGET} ref={container} className={className} />;
+  return (
+    <div
+      id={TARGET}
+      ref={container}
+      className={[
+        // Contenção responsiva: o widget nunca estoura a largura disponível
+        // nem provoca rolagem horizontal em telas pequenas.
+        "max-w-full overflow-hidden [&_*]:max-w-full [&_iframe]:max-w-full [&_img]:h-auto [&_img]:max-w-full",
+        className ?? "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    />
+  );
 }
