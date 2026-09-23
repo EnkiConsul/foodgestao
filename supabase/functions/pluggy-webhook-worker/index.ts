@@ -181,6 +181,19 @@ async function triggerSync(itemId: string, windowDays?: number) {
   // pelo backoff da fila, em vez de virar "processado".
   const outcome = classifySyncResult({ httpStatus: res.status, body });
   if (outcome.status === 'success' || outcome.status === 'skipped') return;
+  // PARTIAL_SUCCESS do próprio banco (sem falha de gravação nossa): o que veio
+  // já foi importado e o status parcial fica registrado na conexão. Retentar
+  // o mesmo evento não faz o banco devolver as contas faltantes — a próxima
+  // coleta do banco gera um evento novo.
+  if (
+    outcome.status === 'partial_success' &&
+    String(body?.execution_status ?? '').toUpperCase() === 'PARTIAL_SUCCESS' &&
+    (body?.write_failures ?? 0) === 0 &&
+    body?.v2_materialized !== false
+  ) {
+    console.warn(`pluggy-webhook-worker: item ${itemId} coleta parcial do banco — registrada sem retentativa`);
+    return;
+  }
   throw new Error(`sync_${outcome.status}: ${outcome.detail ?? `HTTP ${res.status}`}`);
 }
 
