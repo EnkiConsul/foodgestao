@@ -70,28 +70,21 @@ export default function PrimeiroAcesso() {
     }
     setSubmitting(true);
     try {
-      const { error: updErr } = await supabase.auth.updateUser({ password });
-      if (updErr) {
-        const texto = mensagemDoServidorDeContas(updErr.message ?? "");
+      // Troca da senha + baixa da marca de primeiro acesso no servidor (o
+      // navegador não pode escrever no estado de segurança).
+      const { data: res, error: fnErr } = await supabase.functions.invoke("auth-primeiro-acesso", {
+        body: { nova_senha: password },
+      });
+      if (fnErr || !res?.success) {
+        let bruto = (res as { error?: string } | null)?.error ?? "";
+        const ctx = (fnErr as { context?: Response } | null)?.context;
+        if (!bruto && ctx && typeof ctx.json === "function") {
+          bruto = (await ctx.json().catch(() => ({})))?.error ?? "";
+        }
+        const texto = mensagemDoServidorDeContas(bruto || fnErr?.message || "");
         setErrors({ password: texto });
         toast.error("Não foi possível salvar a senha", { description: texto });
         return;
-      }
-      const { data: userRes } = await supabase.auth.getUser();
-      if (userRes.user) {
-        // Marca a troca; se falhar, o acesso continua — não trava a pessoa aqui.
-        const { error: estadoErr } = await supabase
-          .from("auth_user_security_state")
-          .upsert(
-            {
-              user_id: userRes.user.id,
-              must_change_password: false,
-              password_changed_at: new Date().toISOString(),
-              password_changed_by: userRes.user.id,
-            },
-            { onConflict: "user_id" },
-          );
-        if (estadoErr) console.warn("[primeiro-acesso] estado de senha:", estadoErr.message);
       }
       toast.success("Senha atualizada!", { description: "Você já pode continuar." });
       navigate("/", { replace: true });
