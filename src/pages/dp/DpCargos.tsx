@@ -180,9 +180,9 @@ export default function DpCargos() {
           <table className="w-full table-fixed text-sm">
             <thead className="bg-muted/50 text-muted-foreground border-b border-border">
               <tr>
-                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] w-[30%]">Nome</th>
-                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden md:table-cell w-[27%]">Descrição</th>
-                <th className="text-right p-4 font-bold uppercase tracking-wider text-[10px] w-[17%]">Salário base</th>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] w-[34%]">Nome</th>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden lg:table-cell w-[20%]">Descrição</th>
+                <th className="text-right p-4 font-bold uppercase tracking-wider text-[10px] w-[20%]">Salário base</th>
                 <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[14%]">Colaboradores</th>
                 <th className="text-right p-4 font-bold uppercase tracking-wider text-[10px] w-[12%]">Ações</th>
               </tr>
