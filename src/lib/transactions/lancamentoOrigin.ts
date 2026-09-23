@@ -9,6 +9,8 @@
  * é a despesa (competência); o pagamento da fatura é apenas o movimento de caixa
  * e por isso não entra no total de despesas.
  */
+import { sumMoney } from "@/lib/money";
+
 export type LancamentoOrigin = "conta" | "cartao";
 
 export type OriginInput = {
