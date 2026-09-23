@@ -186,7 +186,7 @@ export default function AdminAuditoriaErros() {
   return (
     <DpPage>
       <Helmet>
-        <title>Auditoria de erros | Pessoas 360°</title>
+        <title>Auditoria de erros | Backoffice</title>
         <meta name="description" content="Erros registrados no uso do sistema, agrupados por repetição, para priorizar correções." />
       </Helmet>
 

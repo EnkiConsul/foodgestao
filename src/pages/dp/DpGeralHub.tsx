@@ -10,7 +10,7 @@ export default function DpGeralHub() {
       <DpPageHeader
         icon={Settings}
         title="Geral"
-        description="Indicadores, configurações do módulo e auditoria de erros."
+        description="Indicadores e configurações do módulo."
       />
       <DpGroupCards groupId="geral" />
     </DpPage>

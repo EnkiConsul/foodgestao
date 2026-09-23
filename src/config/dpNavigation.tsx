@@ -174,11 +174,10 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     label: "Geral",
     icon: Settings,
     hubTo: "/dp/geral",
-    matchPrefixes: ["/dp/geral", "/dp/analytics", "/dp/configuracoes", "/dp/erros"],
+    matchPrefixes: ["/dp/geral", "/dp/analytics", "/dp/configuracoes"],
     items: [
       { label: "Analytics", to: "/dp/analytics", icon: BarChart3, shortcut: true, shortLabel: "Analytics" },
       { label: "Configurações", to: "/dp/configuracoes", icon: Settings },
-      { label: "Auditoria de erros", to: "/dp/erros", icon: Bug },
     ],
   },
 ];
