@@ -71,7 +71,8 @@ function diretivasBase(frameAncestors: string[]): Diretivas {
       ...CSP_INLINE_SCRIPT_HASHES.map((h) => `'${h}'`),
     ],
     // Tailwind e bibliotecas de UI aplicam estilos inline em tempo de execução.
-    "style-src": ["'self'", "'unsafe-inline'", ...fontes],
+    // O selo do Reclame Aqui injeta um <link> de CSS servido pelo S3.
+    "style-src": ["'self'", "'unsafe-inline'", ...fontes, "https://s3.amazonaws.com"],
     "font-src": ["'self'", "data:", ...fontes],
     // blob:/data: cobrem pré-visualização de documentos, PDF e exportações.
     // cdn.pluggy.ai serve os logotipos das instituições no widget de conexão.
