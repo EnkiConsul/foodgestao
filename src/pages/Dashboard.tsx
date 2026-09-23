@@ -146,12 +146,13 @@ export default function Dashboard() {
   );
 
   const { monthlyData, balanceEvolution, dailyEvolution, topCategories, totalReceitas, totalDespesas } = useMemo(() => {
+    // Acumuladores em centavos inteiros (evita desvio de ponto flutuante).
     const months: Record<string, { receitas: number; despesas: number }> = {};
     const confirmedMonths: Record<string, { receitas: number; despesas: number }> = {};
     const days: Record<string, { receitas: number; despesas: number }> = {};
     const catTotals: Record<string, number> = {};
-    let totalR = 0;
-    let totalD = 0;
+    let totalRCents = 0;
+    let totalDCents = 0;
 
     const isEffective = (t: typeof transactions[0]) =>
       t.status === "confirmado" || (t.due_date && Number(t.amount_paid) >= Number(t.amount));
