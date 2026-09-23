@@ -35,7 +35,7 @@ export function ReclameAquiSeal({ className }: { className?: string }) {
     script.async = true;
     script.setAttribute("data-id", DATA_ID);
     script.setAttribute("data-target", TARGET);
-    script.setAttribute("data-model", "compact_1");
+    script.setAttribute("data-model", "horizontal_1");
     alvo.appendChild(script);
 
     return () => {

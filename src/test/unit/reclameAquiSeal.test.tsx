@@ -29,7 +29,7 @@ describe("Selo do Reclame Aqui", () => {
     const script = scripts[0] as HTMLScriptElement;
     expect(script.src).toBe("https://s3.amazonaws.com/raichu-beta/ra-verified/bundle.js");
     expect(script.getAttribute("data-target")).toBe("ra-verified-seal");
-    expect(script.getAttribute("data-model")).toBe("compact_1");
+    expect(script.getAttribute("data-model")).toBe("horizontal_1");
     expect(script.getAttribute("data-id")).toBe("S3VsSmgwLTk3X1Jkalc3VDpyYXB0b3Itc3lzdGVt");
   });
 
