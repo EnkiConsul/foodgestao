@@ -317,7 +317,11 @@ export default function DpMeuDocumentos() {
       toast.error("Não foi possível abrir o comprovante agora.");
       return;
     }
-    setArquivoAberto({ url: link.url, titulo: `Comprovante de pagamento — ${d.titulo}` });
+    setArquivoAberto({
+      url: link.url,
+      titulo: `Comprovante de pagamento — ${link.fileName ?? d.titulo}`,
+      mime: link.mimeType ?? undefined,
+    });
   };
 
   const cancelar = useMutation({
