@@ -73,18 +73,32 @@ export function turnstileSecrets(): string[] {
   return [...new Set(secrets)];
 }
 
-/** Hostnames aceitos na resposta do siteverify. */
+/** Hostnames aceitos na resposta do siteverify (aceita padrão `*.dominio`). */
 export function allowedHostnames(): string[] {
   const raw = env("TURNSTILE_ALLOWED_HOSTNAMES");
   const list = (raw ? raw.split(",") : DEFAULT_ALLOWED_HOSTNAMES)
     .map((h) => h.trim().toLowerCase())
     .filter(Boolean);
-  return list.length > 0 ? list : DEFAULT_ALLOWED_HOSTNAMES;
+  const base = list.length > 0 ? list : DEFAULT_ALLOWED_HOSTNAMES;
+  return [...new Set([...base, ...ALWAYS_ALLOWED_HOSTNAMES])];
+}
+
+/** Compara o hostname com uma entrada da lista (exata ou curinga de subdomínio). */
+function matchesPattern(hostname: string, pattern: string): boolean {
+  if (pattern.startsWith("*.")) {
+    const base = pattern.slice(2);
+    if (!base || base.includes("*")) return false;
+    // Exige pelo menos um rótulo antes do domínio base.
+    return hostname.length > base.length + 1 && hostname.endsWith(`.${base}`);
+  }
+  return hostname === pattern;
 }
 
 function hostnameAllowed(hostname: unknown): boolean {
   if (typeof hostname !== "string" || !hostname.trim()) return false;
-  return allowedHostnames().includes(hostname.trim().toLowerCase());
+  const host = hostname.trim().toLowerCase().replace(/\.$/, "");
+  if (!host || host.includes("/") || host.includes("*")) return false;
+  return allowedHostnames().some((pattern) => matchesPattern(host, pattern));
 }
 
 async function siteverify(
