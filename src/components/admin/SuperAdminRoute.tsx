@@ -1,10 +1,23 @@
+import { useEffect } from "react";
 import { Navigate } from "react-router-dom";
+import { toast } from "sonner";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { useAuth } from "@/hooks/useAuth";
 
 export function SuperAdminRoute({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const { isSuperAdmin, loading: roleLoading } = useSuperAdmin();
+
+  const negado = !authLoading && !roleLoading && !!user && !isSuperAdmin;
+
+  // Aviso explícito: sem permissão o usuário entende o motivo do desvio,
+  // em vez de ser levado a outra tela sem explicação.
+  useEffect(() => {
+    if (!negado) return;
+    toast.info("Acesso restrito ao Backoffice da plataforma", {
+      description: "Esta área é de uso exclusivo da administração do sistema.",
+    });
+  }, [negado]);
 
   if (authLoading || roleLoading) {
     return (
