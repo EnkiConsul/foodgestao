@@ -45,6 +45,14 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
 
+  // Coletas presas por timeout da function não fecham sozinhas.
+  const { error: reapErr } = await admin.rpc('pluggy_reap_stale_sync_runs', {
+    _timeout_minutes: 15,
+  });
+  if (reapErr) console.warn('pluggy-cron-sync: reaper falhou', { requestId, error: reapErr.message });
+
+
+
   // 1) Lote de conexões vencidas, mais antigas primeiro (fair queueing)
   const { data: conns, error: connErr } = await admin
     .from('pluggy_connections')
