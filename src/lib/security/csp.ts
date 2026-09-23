@@ -34,8 +34,12 @@ export const CSP_ORIGENS = {
   imagens: ["https://img.logo.dev"],
   /** APIs públicas consultadas pelo navegador (CEP e CNPJ). */
   apisPublicas: ["https://viacep.com.br", "https://brasilapi.com.br"],
-  /** Selo verificado do Reclame Aqui (bundle e imagens servidos pelo S3). */
-  reclameAqui: ["https://s3.amazonaws.com"],
+  /**
+   * Selo verificado do Reclame Aqui: bundle/imagens no S3 e a API
+   * api.reclameaqui.com.br/embed-raverified, que confirma a empresa e
+   * libera o cartão "Verificada por ReclameAQUI" (sem ela, cai no selo genérico).
+   */
+  reclameAqui: ["https://s3.amazonaws.com", "https://api.reclameaqui.com.br"],
 } as const;
 
 /**
