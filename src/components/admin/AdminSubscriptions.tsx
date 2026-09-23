@@ -30,7 +30,8 @@ function isNoiseAccount(userId?: string | null, name?: string | null) {
   const n = (name ?? "").toLowerCase();
   if (!n) return false;
   return (
-    n.includes("@portal.360food.local") ||
+    // qualquer domínio interno do portal do colaborador, independente da marca
+    /@portal\.[a-z0-9.-]+\.local$/.test(n) ||
     n.startsWith("e2e-") ||
     n.includes("@example.com") ||
     n.includes("teste analytics")
