@@ -1187,11 +1187,11 @@ export default function Lancamentos() {
                   <TableRow className="bg-muted/30 font-semibold">
                     <TableCell className="py-2 px-2" />
                     <TableCell colSpan={totalColumns - (visibleColumns.saldo ? 3 : 2)} className="text-xs py-2">
-                      SALDO ANTERIOR
+                      {pagina > 1 ? "SALDO ACUMULADO ATÉ A PÁGINA ANTERIOR" : "SALDO ANTERIOR"}
                     </TableCell>
                     {visibleColumns.saldo && (
-                      <TableCell className={`text-xs text-right py-2 ${previousBalance >= 0 ? "text-success" : "text-destructive"}`}>
-                        {formatBRL(previousBalance)}
+                      <TableCell className={`text-xs text-right py-2 ${saldoBasePagina >= 0 ? "text-success" : "text-destructive"}`}>
+                        {formatBRL(saldoBasePagina)}
                       </TableCell>
                     )}
                     <TableCell className="py-2" />
