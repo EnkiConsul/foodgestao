@@ -1130,36 +1130,43 @@ Deno.serve(async (req) => {
 
     }
 
-    // Materialização V2: mantém cópia persistente e imutável de contas + lançamentos
-    // em pluggy_v2_*. Falhas aqui não quebram a sincronização V1, mas viram
-    // resultado parcial — nunca "materializado" quando não materializou.
-    let v2Materializado = false;
+    // Materialização V2: DESATIVADA por padrão. O pipeline de produção é o V1
+    // (pluggy_staging_transactions), única fonte lida pela Conciliação e pelas
+    // RPCs. A cópia em pluggy_v2_* duplicava armazenamento e lógica sem consumo.
+    // Reativação controlada: PLUGGY_V2_MATERIALIZE=on (reversível, sem deploy de código).
+    const v2Habilitado = String(Deno.env.get('PLUGGY_V2_MATERIALIZE') ?? 'off')
+      .trim().toLowerCase() === 'on';
+    let v2Materializado = true; // desativado não é falha
     let v2Erro: string | null = null;
     let v2Contas = 0;
     let v2Lancamentos = 0;
-    try {
-      const v2Result = await materializePluggyItemV2({
-        supabase: admin,
-        pluggyItemId: itemId,
-        companyId: effectiveCompanyId,
-        createdBy: userId,
-        triggerSource: userId ? 'manual' : 'webhook',
-        sourceWebhookEventId: null,
-        fullSync: isFirstConnect,
-      });
-      v2Materializado = true;
-      v2Contas = v2Result.accountsSynced ?? 0;
-      v2Lancamentos = v2Result.transactionsIngested ?? 0;
-      console.log('pluggy-v2 materialized', {
-        itemId,
-        companyId: effectiveCompanyId,
-        accounts: v2Contas,
-        transactions: v2Lancamentos,
-      });
-    } catch (v2Err) {
-      v2Erro = v2Err instanceof Error ? v2Err.message : String(v2Err);
-      console.error('pluggy-v2 materialization failed (non-fatal)', { itemId, error: v2Erro });
+    if (v2Habilitado) {
+      v2Materializado = false;
+      try {
+        const v2Result = await materializePluggyItemV2({
+          supabase: admin,
+          pluggyItemId: itemId,
+          companyId: effectiveCompanyId,
+          createdBy: userId,
+          triggerSource: userId ? 'manual' : 'webhook',
+          sourceWebhookEventId: null,
+          fullSync: isFirstConnect,
+        });
+        v2Materializado = true;
+        v2Contas = v2Result.accountsSynced ?? 0;
+        v2Lancamentos = v2Result.transactionsIngested ?? 0;
+        console.log('pluggy-v2 materialized', {
+          itemId,
+          companyId: effectiveCompanyId,
+          accounts: v2Contas,
+          transactions: v2Lancamentos,
+        });
+      } catch (v2Err) {
+        v2Erro = v2Err instanceof Error ? v2Err.message : String(v2Err);
+        console.error('pluggy-v2 materialization failed (non-fatal)', { itemId, error: v2Erro });
+      }
     }
+
 
     // Fecha o ciclo: sem isso a "próxima sincronização" continuava com data
     // vencida depois de sincronizar pelo botão, e o resultado parcial (parte das
