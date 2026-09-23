@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
   }
 
   // 1) Turnstile
-  const captcha = await verifyTurnstileToken({ token: body.turnstile_token, ip });
+  const captcha = await verifyTurnstileToken({ token: body.turnstile_token, ip, contexto: "auth-recovery" });
   const ok = captcha.ok;
   if (!ok) return json(400, { error: "Verificação de segurança falhou.", code: "captcha_failed" });
 

@@ -15,7 +15,6 @@ Deno.serve((req) => {
         ...corsHeaders,
         "Content-Type": "application/json",
         "Cache-Control": "public, max-age=300",
-        Vary: "Origin",
       },
     },
   );
