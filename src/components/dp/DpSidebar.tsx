@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { NavLink, useLocation, Link, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, LogOut, ListOrdered, EyeOff, Eye, LayoutGrid } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import assinatura360 from "@/assets/aveto360-assinatura.png.asset.json";
