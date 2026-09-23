@@ -2,7 +2,7 @@
 // Validates + rate limits by IP hash, then inserts with the service role.
 // Leads are never readable by anon/authenticated (only super admins via RLS).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
-import { turnstileSecretsFor } from "../_shared/turnstile-env.ts";
+import { verifyTurnstileToken } from "../_shared/turnstile.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,34 +49,6 @@ async function sha256(text: string) {
     .join("");
 }
 
-/** Desafio anti-robô (mesmo mecanismo do login). */
-async function verifyTurnstile(req: Request, token: string, ip: string | null): Promise<boolean> {
-  const secrets = turnstileSecretsFor(req);
-  if (secrets.length === 0) {
-    console.error("mkt-lead: TURNSTILE_SECRET não configurado");
-    return false;
-  }
-  for (const secret of new Set(secrets)) {
-    try {
-      const form = new URLSearchParams();
-      form.set("secret", secret);
-      form.set("response", token);
-      if (ip) form.set("remoteip", ip);
-      const resp = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: form.toString(),
-      });
-      const data = await resp.json();
-      if (data.success) return true;
-      console.warn("mkt-lead: turnstile falhou", data["error-codes"]);
-    } catch (e) {
-      console.error("mkt-lead: turnstile exceção", e);
-    }
-  }
-  return false;
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Método não permitido" }, 405);
@@ -119,7 +91,8 @@ Deno.serve(async (req) => {
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("cf-connecting-ip") ||
     null;
-  if (turnstileToken.length < 10 || !(await verifyTurnstile(req, turnstileToken, callerIp))) {
+  const captcha = await verifyTurnstileToken({ token: turnstileToken, ip: callerIp });
+  if (!captcha.ok) {
     return json({ error: "Não foi possível validar o envio. Recarregue a página e tente novamente." }, 403);
   }
 
