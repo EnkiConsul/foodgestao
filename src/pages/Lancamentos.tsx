@@ -360,6 +360,12 @@ export default function Lancamentos() {
   const [bulkDeleteScope, setBulkDeleteScope] = useState<"single" | "forward" | "all">("single");
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
 
+  // Paginação clássica da lista
+  const [pagina, setPagina] = useState(1);
+  const [porPagina, setPorPagina] = useState(50);
+
+
+
   // Clear selection when context/month/filters change
   useEffect(() => {
     setSelectedIds(new Set());
