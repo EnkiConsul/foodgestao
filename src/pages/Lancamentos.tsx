@@ -360,6 +360,12 @@ export default function Lancamentos() {
   const [bulkDeleteScope, setBulkDeleteScope] = useState<"single" | "forward" | "all">("single");
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
 
+  // Paginação clássica da lista
+  const [pagina, setPagina] = useState(1);
+  const [porPagina, setPorPagina] = useState(50);
+
+
+
   // Clear selection when context/month/filters change
   useEffect(() => {
     setSelectedIds(new Set());
@@ -424,38 +430,65 @@ export default function Lancamentos() {
 
     const scope = assertFinancialScope({ context: contextType, userId: user.id, companyId: selectedCompanyId });
 
-    // We need transactions that fall in the month by transaction_date OR by due_date
-    const q = applyFinancialScope(
-      supabase
-        .from("transactions")
-        .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total, credit_card_id, credit_card_invoice_id, is_invoice_payment, categories!fk_transactions_category(name), accounts!fk_transactions_account(name), payment_methods!fk_transactions_payment_method(name)"),
-      scope,
-    )
-      .or(`and(due_date.is.null,transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(due_date.gte.${monthStart},due_date.lte.${monthEnd})`)
-      .order("transaction_date", { ascending: true });
+    // O PostgREST devolve no máximo 1.000 linhas por requisição. Buscamos em
+    // lotes até trazer o mês inteiro — totais e saldos precisam da base completa.
+    const LOTE = 1000;
+    const todos: Transaction[] = [];
+    let erro: unknown = null;
 
-    const { data, error } = await q;
+    for (let inicio = 0; ; inicio += LOTE) {
+      // We need transactions that fall in the month by transaction_date OR by due_date
+      const q = applyFinancialScope(
+        supabase
+          .from("transactions")
+          .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total, credit_card_id, credit_card_invoice_id, is_invoice_payment, categories!fk_transactions_category(name), accounts!fk_transactions_account(name), payment_methods!fk_transactions_payment_method(name)"),
+        scope,
+      )
+        .or(`and(due_date.is.null,transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(due_date.gte.${monthStart},due_date.lte.${monthEnd})`)
+        .order("transaction_date", { ascending: true })
+        .order("id", { ascending: true })
+        .range(inicio, inicio + LOTE - 1);
 
-    if (error) {
+      const { data, error } = await q;
+      if (error) { erro = error; break; }
+      const lote = (data as unknown as Transaction[]) ?? [];
+      todos.push(...lote);
+      if (lote.length < LOTE) break;
+    }
+
+    if (erro) {
       toast.error("Erro ao carregar lançamentos");
-    } else {
-      const txs = (data as unknown as Transaction[]) ?? [];
-      setTransactions(txs);
-      // Fetch attachment counts for these transactions
-      if (txs.length > 0) {
-        const txIds = txs.map(t => t.id);
-        const { data: attData } = await supabase
+      setLoading(false);
+      return;
+    }
+
+    setTransactions(todos);
+
+    // Contagem de anexos em blocos — evita URL longa demais (HTTP 414),
+    // que antes zerava os anexos silenciosamente.
+    if (todos.length > 0) {
+      const countMap = new Map<string, number>();
+      const ids = todos.map((t) => t.id);
+      const BLOCO = 100;
+      let falhou = false;
+      for (let i = 0; i < ids.length; i += BLOCO) {
+        const { data: attData, error: attErr } = await supabase
           .from("transaction_attachments")
           .select("transaction_id")
-          .in("transaction_id", txIds);
-        const countMap = new Map<string, number>();
-        (attData ?? []).forEach(a => {
+          .in("transaction_id", ids.slice(i, i + BLOCO));
+        if (attErr) { falhou = true; break; }
+        (attData ?? []).forEach((a) => {
           countMap.set(a.transaction_id, (countMap.get(a.transaction_id) || 0) + 1);
         });
-        setAttachmentCounts(countMap);
-      } else {
-        setAttachmentCounts(new Map());
       }
+      if (falhou) {
+        toast.error("Não foi possível conferir os anexos", {
+          description: "A contagem de anexos pode estar incompleta nesta lista.",
+        });
+      }
+      setAttachmentCounts(countMap);
+    } else {
+      setAttachmentCounts(new Map());
     }
     setLoading(false);
   }, [user, monthStart, monthEnd, contextType, selectedCompanyId]);
@@ -805,6 +838,33 @@ export default function Lancamentos() {
     return { receitas, despesas, aPagar, aReceber, atrasadas, allReceitas, allDespesas, saldoPeriodo, saldoAcumulado };
   }, [displayRows, previousBalance]);
 
+  // Paginação clássica — os totais acima usam a lista completa do mês.
+  const totalPaginas = Math.max(1, Math.ceil(displayRows.length / porPagina));
+
+  useEffect(() => {
+    setPagina(1);
+  }, [displayRows.length, porPagina, search, sortBy]);
+
+  useEffect(() => {
+    if (pagina > totalPaginas) setPagina(totalPaginas);
+  }, [pagina, totalPaginas]);
+
+  const pageRows = useMemo(() => {
+    const inicio = (pagina - 1) * porPagina;
+    return displayRows.slice(inicio, inicio + porPagina);
+  }, [displayRows, pagina, porPagina]);
+
+  const faixaInicio = displayRows.length === 0 ? 0 : (pagina - 1) * porPagina + 1;
+  const faixaFim = Math.min(pagina * porPagina, displayRows.length);
+
+  // Saldo exibido na linha "SALDO ANTERIOR": saldo corrido até o fim da página anterior.
+  const saldoBasePagina = useMemo(() => {
+    const anterior = (pagina - 1) * porPagina;
+    if (anterior <= 0) return previousBalance;
+    return displayRows[anterior - 1]?.runningBalance ?? previousBalance;
+  }, [displayRows, pagina, porPagina, previousBalance]);
+
+
   const formatBRL = maskBRL;
 
   const exportCSV = () => {
@@ -1037,7 +1097,7 @@ export default function Lancamentos() {
                   Nenhum registro neste mês
                 </div>
               ) : (
-                displayRows.map((r) => (
+                pageRows.map((r) => (
                   <LancamentoCard
                     key={r.id}
                     row={r}
@@ -1101,9 +1161,9 @@ export default function Lancamentos() {
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-[36px] px-2">
                       <Checkbox
-                        checked={displayRows.length > 0 && displayRows.every((r) => selectedIds.has(r.id))}
+                        checked={pageRows.length > 0 && pageRows.every((r) => selectedIds.has(r.id))}
                         onCheckedChange={(v) => {
-                          if (v) setSelectedIds(new Set(displayRows.map((r) => r.id)));
+                          if (v) setSelectedIds(new Set(pageRows.map((r) => r.id)));
                           else clearSelection();
                         }}
                         aria-label="Selecionar todos"
@@ -1127,11 +1187,11 @@ export default function Lancamentos() {
                   <TableRow className="bg-muted/30 font-semibold">
                     <TableCell className="py-2 px-2" />
                     <TableCell colSpan={totalColumns - (visibleColumns.saldo ? 3 : 2)} className="text-xs py-2">
-                      SALDO ANTERIOR
+                      {pagina > 1 ? "SALDO ACUMULADO ATÉ A PÁGINA ANTERIOR" : "SALDO ANTERIOR"}
                     </TableCell>
                     {visibleColumns.saldo && (
-                      <TableCell className={`text-xs text-right py-2 ${previousBalance >= 0 ? "text-success" : "text-destructive"}`}>
-                        {formatBRL(previousBalance)}
+                      <TableCell className={`text-xs text-right py-2 ${saldoBasePagina >= 0 ? "text-success" : "text-destructive"}`}>
+                        {formatBRL(saldoBasePagina)}
                       </TableCell>
                     )}
                     <TableCell className="py-2" />
@@ -1144,7 +1204,7 @@ export default function Lancamentos() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    displayRows.map((r) => (
+                    pageRows.map((r) => (
                       <LancamentoRow
                         key={r.id}
                         row={r}
@@ -1213,6 +1273,47 @@ export default function Lancamentos() {
                   )}
                 </TableBody>
               </Table>
+            </div>
+          )}
+
+          {!loading && displayRows.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2">
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                <span>
+                  Exibindo {faixaInicio}–{faixaFim} de {displayRows.length} lançamento(s)
+                </span>
+                <span className="hidden sm:inline">•</span>
+                <span className="hidden sm:flex items-center gap-1">
+                  Por página:
+                  {[25, 50, 100].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setPorPagina(n)}
+                      className={`rounded px-1.5 py-0.5 ${n === porPagina ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" className="h-7 px-2 text-[11px]" disabled={pagina === 1} onClick={() => setPagina(1)}>
+                  Primeira
+                </Button>
+                <Button variant="outline" size="sm" className="h-7 px-2 text-[11px]" disabled={pagina === 1} onClick={() => setPagina((p) => Math.max(1, p - 1))}>
+                  Anterior
+                </Button>
+                <span className="px-1 text-[11px] font-medium">
+                  Página {pagina} de {totalPaginas}
+                </span>
+                <Button variant="outline" size="sm" className="h-7 px-2 text-[11px]" disabled={pagina >= totalPaginas} onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}>
+                  Próxima
+                </Button>
+                <Button variant="outline" size="sm" className="h-7 px-2 text-[11px]" disabled={pagina >= totalPaginas} onClick={() => setPagina(totalPaginas)}>
+                  Última
+                </Button>
+              </div>
             </div>
           )}
         </Card>
