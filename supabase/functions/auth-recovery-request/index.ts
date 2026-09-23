@@ -10,7 +10,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { checkZapiStatus, sendZapiText, normalizeBRPhone } from "../_shared/zapi.ts";
-import { turnstileSecretsFor } from "../_shared/turnstile-env.ts";
+import { verifyTurnstileToken } from "../_shared/turnstile.ts";
 
 const BodySchema = z.object({
   identifier: z.string().trim().min(3).max(255),
@@ -47,34 +47,6 @@ function randomOTP6(): string {
   crypto.getRandomValues(arr);
   return (arr[0] % 1_000_000).toString().padStart(6, "0");
 }
-
-async function verifyTurnstile(req: Request, token: string, ip: string | null): Promise<boolean> {
-  const secrets = turnstileSecretsFor(req);
-
-  const seen = new Set<string>();
-  for (const secret of secrets) {
-    if (seen.has(secret)) continue;
-    seen.add(secret);
-    try {
-      const form = new URLSearchParams();
-      form.set("secret", secret);
-      form.set("response", token);
-      if (ip) form.set("remoteip", ip);
-      const resp = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: form.toString(),
-      });
-      const data = await resp.json();
-      if (data.success) return true;
-      console.warn("[auth-recovery-request] Turnstile verify failed:", data["error-codes"]);
-    } catch (e) {
-      console.error("[auth-recovery-request] Turnstile verify exception:", e);
-    }
-  }
-  return false;
-}
-
 
 /**
  * Increment-and-check rate limit using auth_rate_limits.
@@ -154,7 +126,8 @@ Deno.serve(async (req) => {
   }
 
   // 1) Turnstile
-  const ok = await verifyTurnstile(req, body.turnstile_token, ip);
+  const captcha = await verifyTurnstileToken({ token: body.turnstile_token, ip });
+  const ok = captcha.ok;
   if (!ok) return json(400, { error: "Verificação de segurança falhou.", code: "captcha_failed" });
 
   // 2) Rate limit — check IP first so unknown identifiers still count against a single attacker.
