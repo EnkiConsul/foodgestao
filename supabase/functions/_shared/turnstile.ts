@@ -25,7 +25,7 @@ export const TURNSTILE_ACTION = "turnstile-spin-v2";
 const DEFAULT_ALLOWED_HOSTNAMES = ["aveto360.com", "www.aveto360.com"];
 
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-const SITEVERIFY_TIMEOUT_MS = 5000;
+const SITEVERIFY_TIMEOUT_MS = 8000;
 
 export type TurnstileMode = "test" | "live";
 
@@ -124,16 +124,19 @@ export async function verifyTurnstileToken(params: {
   token: string | null | undefined;
   ip?: string | null;
   expectedAction?: string | null;
+  contexto?: string;
 }): Promise<TurnstileResult> {
   const mode = turnstileMode();
+  const ctx = params.contexto ?? "geral";
   const token = typeof params.token === "string" ? params.token.trim() : "";
-  if (token.length < 10 || token.length > 4096) {
+  if (token.length < 10 || token.length > 2048) {
+    console.warn(`[turnstile:${ctx}] token ausente ou fora do tamanho permitido`);
     return { ok: false, mode, reason: "missing_token" };
   }
 
   const secrets = turnstileSecrets();
   if (secrets.length === 0) {
-    console.error("[turnstile] TURNSTILE_SECRET não configurado");
+    console.error(`[turnstile:${ctx}] TURNSTILE_SECRET não configurado`);
     return { ok: false, mode, reason: "missing_secret" };
   }
 
