@@ -17,7 +17,7 @@ export const TEST_SITE_KEY = "1x00000000000000000000AA";
 export const TEST_SECRET_KEY = "1x0000000000000000000000000000000AA";
 
 /** Site key de produção do widget ativo (valor publicável). */
-export const DEFAULT_SITE_KEY = "0x4AAAAAAD8NercrKUKyuZHo";
+export const DEFAULT_SITE_KEY = "0x4AAAAAAFAmAXx7U_e8ThI8";
 
 /** Action declarada pelo widget no front-end. */
 export const TURNSTILE_ACTION = "turnstile-spin-v2";
