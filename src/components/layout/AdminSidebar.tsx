@@ -51,6 +51,7 @@ const overviewItems = [
   { title: "Auditoria de Erros", url: "/admin/erros", icon: Bug },
   { title: "Usuários Conectados", url: "/admin/conectados", icon: Wifi },
   { title: "Últimos Acessos", url: "/admin/acessos", icon: Clock },
+  { title: "Usuários do Backoffice", url: "/admin/usuarios-backoffice", icon: ShieldCheck },
 
   { title: "Indexação SEO", url: "/admin/seo-indexacao", icon: Search },
 ];

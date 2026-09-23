@@ -14787,6 +14787,33 @@ export type Database = {
         }
         Returns: string
       }
+      admin_backoffice_candidatos: {
+        Args: { _busca?: string }
+        Returns: {
+          criado_em: string
+          email: string
+          nome: string
+          user_id: string
+        }[]
+      }
+      admin_backoffice_conceder: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
+      admin_backoffice_revogar: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
+      admin_backoffice_usuarios: {
+        Args: never
+        Returns: {
+          concedido_em: string
+          email: string
+          nome: string
+          ultimo_acesso: string
+          user_id: string
+        }[]
+      }
       app_error_log_record: {
         Args: {
           _action?: string
