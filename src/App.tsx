@@ -219,6 +219,27 @@ function SubscriptionGuard({ children }: { children: React.ReactNode }) {
 
 
 
+/**
+ * /dp/erros: a Auditoria de Erros migrou para o Backoffice.
+ *
+ * Super Administrador segue para a tela nova. Gestor de empresa volta ao
+ * início do Pessoas 360° com aviso claro, nunca para uma tela vazia.
+ */
+function DpErrosRedirect() {
+  const { isSuperAdmin, loading } = useSuperAdmin();
+
+  useEffect(() => {
+    if (loading || isSuperAdmin) return;
+    toast.info("A Auditoria de Erros mudou de lugar", {
+      description:
+        "Ela agora fica no Backoffice e é de uso exclusivo da administração da plataforma.",
+    });
+  }, [loading, isSuperAdmin]);
+
+  if (loading) return <PageSpinner />;
+  return <Navigate to={isSuperAdmin ? "/admin/erros" : "/dp"} replace />;
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
