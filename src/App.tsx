@@ -84,7 +84,6 @@ const DpDocumentosImportar = lazyWithRetry(() => import("./pages/dp/DpDocumentos
 const DpFerias = lazyWithRetry(() => import("./pages/dp/DpFeriasHub"));
 const DpBeneficios = lazyWithRetry(() => import("./pages/dp/DpBeneficios"));
 const DpAnalytics = lazyWithRetry(() => import("./pages/dp/DpAnalytics"));
-const DpErros = lazyWithRetry(() => import("./pages/dp/DpErros"));
 
 const DpFolgasHub = lazyWithRetry(() => import("./pages/dp/DpFolgasHub"));
 const DpCadastrosHub = lazyWithRetry(() => import("./pages/dp/DpCadastrosHub"));
@@ -144,7 +143,7 @@ const AdminPluggyStatus = lazyWithRetry(() => import("./pages/admin/PluggyStatus
 const AdminPerfisAcesso = lazyWithRetry(() => import("./pages/admin/PerfisAcesso"));
 const AdminDonosEmpresas = lazyWithRetry(() => import("./pages/admin/DonosEmpresas"));
 const AdminAuditoria = lazyWithRetry(() => import("./pages/admin/Auditoria"));
-const AdminErros = lazyWithRetry(() => import("./pages/admin/Erros"));
+const AdminErros = lazyWithRetry(() => import("./pages/admin/AuditoriaErros"));
 const AdminConectados = lazyWithRetry(() => import("./pages/admin/Conectados"));
 const AdminAcessos = lazyWithRetry(() => import("./pages/admin/Acessos"));
 const AdminUsuariosBackoffice = lazyWithRetry(() => import("./pages/admin/UsuariosBackoffice"));
@@ -488,7 +487,7 @@ const AppRoutes = () => (
         <Route path="conformidade" element={<Navigate to="/dp" replace />} />
         <Route path="beneficios" element={<Navigate to="/dp/cadastros/beneficios" replace />} />
         <Route path="analytics" element={<DpAnalytics />} />
-        <Route path="erros" element={<DpErros />} />
+        <Route path="erros" element={<Navigate to="/admin/erros" replace />} />
 
         <Route path="calendario" element={<DpAdminCalendario />} />
         <Route path="documentos" element={<DpDocumentosImportar />} />

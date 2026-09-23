@@ -150,13 +150,9 @@ function DetalhesTecnicos({ log }: { log: AppErrorLog }) {
   );
 }
 
-type DpErrosProps = {
-  /** No backoffice mostramos os erros de todas as empresas. */
-  todasEmpresas?: boolean;
-};
-
-export default function DpErros({ todasEmpresas = false }: DpErrosProps) {
-  const [filtros, setFiltros] = useState<AppErrorFiltros>({ ...FILTROS_ERRO_PADRAO, todasEmpresas });
+/** Tela do Backoffice: erros de todas as empresas da plataforma. */
+export default function AdminAuditoriaErros() {
+  const [filtros, setFiltros] = useState<AppErrorFiltros>({ ...FILTROS_ERRO_PADRAO, todasEmpresas: true });
   const { data, isLoading, error, refetch, isFetching, dataUpdatedAt } = useAppErrorLogs(filtros);
   const atualizar = useAppErrorStatus();
   const atualizarChamado = useAppErrorReportStatus();
@@ -190,7 +186,7 @@ export default function DpErros({ todasEmpresas = false }: DpErrosProps) {
   return (
     <DpPage>
       <Helmet>
-        <title>Auditoria de erros | Pessoas 360°</title>
+        <title>Auditoria de erros | Backoffice</title>
         <meta name="description" content="Erros registrados no uso do sistema, agrupados por repetição, para priorizar correções." />
       </Helmet>
 

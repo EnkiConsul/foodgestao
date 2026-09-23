@@ -32,5 +32,4 @@ export const DP_SCREEN_DESCRIPTIONS: Record<string, string> = {
   // Geral
   "/dp/analytics": "Indicadores de equipe, operação, férias e cadastro.",
   "/dp/configuracoes": "Limites de folga, bloqueios e regras gerais.",
-  "/dp/erros": "Erros do sistema e chamados abertos.",
 };
