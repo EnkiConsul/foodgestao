@@ -142,6 +142,30 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
 
 
       <SidebarContent className={cn("py-3", collapsed ? "px-0" : "px-2")}>
+        {variant === "admin" && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Hub de Módulos">
+                    <NavLink
+                      to="/hub"
+                      end
+                      className={({ isActive }) => cn(
+                        "flex items-center gap-2 text-primary hover:bg-sidebar-accent rounded-md transition-all duration-200 hover:translate-x-1 group-data-[collapsible=icon]:hover:translate-x-0 font-medium",
+                        isActive && "bg-sidebar-accent translate-x-1 group-data-[collapsible=icon]:translate-x-0",
+                      )}
+                    >
+                      <LayoutGrid className="h-4 w-4 shrink-0" />
+                      <span>Hub de Módulos</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
@@ -162,6 +186,8 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <AccountMenu variant={variant === "portal" ? "portal" : "full"} />
       </SidebarContent>
 
       <SidebarFooter className={cn("border-t border-sidebar-border space-y-2", collapsed ? "p-1" : "p-3")}>
