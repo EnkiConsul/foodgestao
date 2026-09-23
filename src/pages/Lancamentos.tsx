@@ -424,38 +424,65 @@ export default function Lancamentos() {
 
     const scope = assertFinancialScope({ context: contextType, userId: user.id, companyId: selectedCompanyId });
 
-    // We need transactions that fall in the month by transaction_date OR by due_date
-    const q = applyFinancialScope(
-      supabase
-        .from("transactions")
-        .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total, credit_card_id, credit_card_invoice_id, is_invoice_payment, categories!fk_transactions_category(name), accounts!fk_transactions_account(name), payment_methods!fk_transactions_payment_method(name)"),
-      scope,
-    )
-      .or(`and(due_date.is.null,transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(due_date.gte.${monthStart},due_date.lte.${monthEnd})`)
-      .order("transaction_date", { ascending: true });
+    // O PostgREST devolve no máximo 1.000 linhas por requisição. Buscamos em
+    // lotes até trazer o mês inteiro — totais e saldos precisam da base completa.
+    const LOTE = 1000;
+    const todos: Transaction[] = [];
+    let erro: unknown = null;
 
-    const { data, error } = await q;
+    for (let inicio = 0; ; inicio += LOTE) {
+      // We need transactions that fall in the month by transaction_date OR by due_date
+      const q = applyFinancialScope(
+        supabase
+          .from("transactions")
+          .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total, credit_card_id, credit_card_invoice_id, is_invoice_payment, categories!fk_transactions_category(name), accounts!fk_transactions_account(name), payment_methods!fk_transactions_payment_method(name)"),
+        scope,
+      )
+        .or(`and(due_date.is.null,transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(due_date.gte.${monthStart},due_date.lte.${monthEnd})`)
+        .order("transaction_date", { ascending: true })
+        .order("id", { ascending: true })
+        .range(inicio, inicio + LOTE - 1);
 
-    if (error) {
+      const { data, error } = await q;
+      if (error) { erro = error; break; }
+      const lote = (data as unknown as Transaction[]) ?? [];
+      todos.push(...lote);
+      if (lote.length < LOTE) break;
+    }
+
+    if (erro) {
       toast.error("Erro ao carregar lançamentos");
-    } else {
-      const txs = (data as unknown as Transaction[]) ?? [];
-      setTransactions(txs);
-      // Fetch attachment counts for these transactions
-      if (txs.length > 0) {
-        const txIds = txs.map(t => t.id);
-        const { data: attData } = await supabase
+      setLoading(false);
+      return;
+    }
+
+    setTransactions(todos);
+
+    // Contagem de anexos em blocos — evita URL longa demais (HTTP 414),
+    // que antes zerava os anexos silenciosamente.
+    if (todos.length > 0) {
+      const countMap = new Map<string, number>();
+      const ids = todos.map((t) => t.id);
+      const BLOCO = 100;
+      let falhou = false;
+      for (let i = 0; i < ids.length; i += BLOCO) {
+        const { data: attData, error: attErr } = await supabase
           .from("transaction_attachments")
           .select("transaction_id")
-          .in("transaction_id", txIds);
-        const countMap = new Map<string, number>();
-        (attData ?? []).forEach(a => {
+          .in("transaction_id", ids.slice(i, i + BLOCO));
+        if (attErr) { falhou = true; break; }
+        (attData ?? []).forEach((a) => {
           countMap.set(a.transaction_id, (countMap.get(a.transaction_id) || 0) + 1);
         });
-        setAttachmentCounts(countMap);
-      } else {
-        setAttachmentCounts(new Map());
       }
+      if (falhou) {
+        toast.error("Não foi possível conferir os anexos", {
+          description: "A contagem de anexos pode estar incompleta nesta lista.",
+        });
+      }
+      setAttachmentCounts(countMap);
+    } else {
+      setAttachmentCounts(new Map());
     }
     setLoading(false);
   }, [user, monthStart, monthEnd, contextType, selectedCompanyId]);
