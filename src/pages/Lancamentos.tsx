@@ -1275,6 +1275,47 @@ export default function Lancamentos() {
               </Table>
             </div>
           )}
+
+          {!loading && displayRows.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2">
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                <span>
+                  Exibindo {faixaInicio}–{faixaFim} de {displayRows.length} lançamento(s)
+                </span>
+                <span className="hidden sm:inline">•</span>
+                <span className="hidden sm:flex items-center gap-1">
+                  Por página:
+                  {[25, 50, 100].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setPorPagina(n)}
+                      className={`rounded px-1.5 py-0.5 ${n === porPagina ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" className="h-7 px-2 text-[11px]" disabled={pagina === 1} onClick={() => setPagina(1)}>
+                  Primeira
+                </Button>
+                <Button variant="outline" size="sm" className="h-7 px-2 text-[11px]" disabled={pagina === 1} onClick={() => setPagina((p) => Math.max(1, p - 1))}>
+                  Anterior
+                </Button>
+                <span className="px-1 text-[11px] font-medium">
+                  Página {pagina} de {totalPaginas}
+                </span>
+                <Button variant="outline" size="sm" className="h-7 px-2 text-[11px]" disabled={pagina >= totalPaginas} onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}>
+                  Próxima
+                </Button>
+                <Button variant="outline" size="sm" className="h-7 px-2 text-[11px]" disabled={pagina >= totalPaginas} onClick={() => setPagina(totalPaginas)}>
+                  Última
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
 
         {!isMobile && (
