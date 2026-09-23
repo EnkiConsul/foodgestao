@@ -849,7 +849,7 @@ export default function Auth() {
 
             {/* Selo do Reclame Aqui: âncora de confiança logo abaixo do cartão
                 de acesso, com escala reduzida em telas estreitas. */}
-            <ReclameAquiSeal className="mt-1.5 flex h-[3.2rem] origin-top scale-[0.7] justify-center sm:mt-2 sm:h-auto sm:scale-[0.85] md:mt-3 md:scale-100" />
+            <ReclameAquiSeal className="mt-1 flex origin-top scale-[0.7] justify-center sm:mt-2 sm:scale-[0.85] md:mt-3 md:scale-100" />
           </div>
         </section>
       </div>
