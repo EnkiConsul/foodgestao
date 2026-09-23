@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllPages } from "@/lib/supabase/fetchAllPages";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
@@ -354,29 +355,45 @@ export default function DpHistoricoCompleto() {
     enabled: !!selectedCompanyId && !!colabs.data,
     queryFn: async (): Promise<UnifiedDoc[]> => {
       const cId = selectedCompanyId!;
-      const [docsRes, solRes, discRes, aceitesRes] = await Promise.all([
-        supabase
-          .from("dp_documentos")
-          .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id, comprovante_file_path")
-          .eq("company_id", cId),
-        supabase
-          .from("dp_solicitacoes")
-          .select("id, tipo, status, data_alvo, arquivo_path, created_at, colaborador_id")
-          .is("removido_em", null)
-          .eq("company_id", cId)
-          .eq("tipo", "atestado" as any),
-        supabase
-          .from("dp_registros_disciplinares")
-          .select("id, motivo, tipo, data, pdf_storage_path, created_at, colaborador_id")
-          .eq("company_id", cId),
-        supabase
-          .from("dp_documento_aceites")
-          .select("documento_id")
-          .eq("company_id", cId)
-          .not("documento_id", "is", null),
+      // Leitura em lotes com ordem estável: nenhum documento some acima de 1.000.
+      const [docs, sols, discs, aceites] = await Promise.all([
+        fetchAllPages<any>((from, to) =>
+          supabase
+            .from("dp_documentos")
+            .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id, comprovante_file_path")
+            .eq("company_id", cId)
+            .order("id", { ascending: true })
+            .range(from, to)),
+        fetchAllPages<any>((from, to) =>
+          supabase
+            .from("dp_solicitacoes")
+            .select("id, tipo, status, data_alvo, arquivo_path, created_at, colaborador_id")
+            .is("removido_em", null)
+            .eq("company_id", cId)
+            .eq("tipo", "atestado" as any)
+            .order("id", { ascending: true })
+            .range(from, to)),
+        fetchAllPages<any>((from, to) =>
+          supabase
+            .from("dp_registros_disciplinares")
+            .select("id, motivo, tipo, data, pdf_storage_path, created_at, colaborador_id")
+            .eq("company_id", cId)
+            .order("id", { ascending: true })
+            .range(from, to)),
+        fetchAllPages<any>((from, to) =>
+          supabase
+            .from("dp_documento_aceites")
+            .select("id, documento_id")
+            .eq("company_id", cId)
+            .not("documento_id", "is", null)
+            .order("id", { ascending: true })
+            .range(from, to)),
       ]);
+      const docsRes = { data: docs };
+      const solRes = { data: sols };
+      const discRes = { data: discs };
 
-      const aceitos = new Set((aceitesRes.data ?? []).map((a: any) => a.documento_id as string));
+      const aceitos = new Set(aceites.map((a: any) => a.documento_id as string));
 
       const rows: UnifiedDoc[] = [];
 

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllPages } from "@/lib/supabase/fetchAllPages";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
@@ -45,17 +46,20 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
     queryKey: ["dp_documentos", selectedCompanyId, filterTipo ?? "all"],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
-      let q = supabase
-        .from("dp_documentos")
-        .select("*, dp_colaboradores(nome)")
-        .eq("company_id", selectedCompanyId!)
-        // Cronológico pela competência do documento; empate pela data de envio.
-        .order("referencia_data", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false });
-      if (filterTipo) q = q.eq("tipo", filterTipo);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []) as DpDocumentoRow[];
+      // Em lotes, para não perder documentos acima de 1.000 linhas.
+      const data = await fetchAllPages<DpDocumentoRow>((from, to) => {
+        let q = supabase
+          .from("dp_documentos")
+          .select("*, dp_colaboradores(nome)")
+          .eq("company_id", selectedCompanyId!)
+          // Cronológico pela competência do documento; empate pela data de envio e id.
+          .order("referencia_data", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true });
+        if (filterTipo) q = q.eq("tipo", filterTipo);
+        return q.range(from, to) as any;
+      });
+      return data;
     },
   });
 
