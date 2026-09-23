@@ -45,14 +45,14 @@ async function baixarComprovante(documentoId: string) {
  * instalado) abrir outra aba é bloqueado, então nada aparecia.
  */
 function useVerComprovante() {
-  const [aberto, setAberto] = useState<{ url: string; nome: string | null } | null>(null);
+  const [aberto, setAberto] = useState<{ url: string; nome: string | null; mime: string | null } | null>(null);
   const ver = async (documentoId: string) => {
     const link = await linkDocumentoAssinado(documentoId, 300, "comprovante");
     if (!link) {
       toast.error("Sem permissão para abrir este comprovante");
       return;
     }
-    setAberto({ url: link.url, nome: link.fileName });
+    setAberto({ url: link.url, nome: link.fileName, mime: link.mimeType });
   };
   const visualizador = (
     <DocumentPreview
@@ -60,6 +60,7 @@ function useVerComprovante() {
       onOpenChange={(v) => { if (!v) setAberto(null); }}
       title={aberto?.nome ?? "Comprovante de pagamento"}
       url={aberto?.url}
+      mime={aberto?.mime ?? undefined}
     />
   );
   return { ver, visualizador };
