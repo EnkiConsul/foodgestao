@@ -6,7 +6,7 @@ const DATA_ID = "S3VsSmgwLTk3X1Jkalc3VDpyYXB0b3Itc3lzdGVt";
 const TARGET = "ra-verified-seal";
 
 /**
- * Selo verificado do Reclame Aqui (modelo horizontal_2).
+ * Selo verificado do Reclame Aqui (modelo compact_2, cartão "Verificada por").
  *
  * O bundle oficial só funciona injetado como <script> em um contêiner com o id
  * esperado. Falha de rede ou bloqueador de anúncios não gera erro: o contêiner
@@ -32,7 +32,7 @@ export function ReclameAquiSeal({ className }: { className?: string }) {
     script.async = true;
     script.setAttribute("data-id", DATA_ID);
     script.setAttribute("data-target", TARGET);
-    script.setAttribute("data-model", "horizontal_2");
+    script.setAttribute("data-model", "compact_2");
     alvo.appendChild(script);
 
     return () => {
