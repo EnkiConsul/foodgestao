@@ -24,6 +24,13 @@ export const TURNSTILE_ACTION = "turnstile-spin-v2";
 
 const DEFAULT_ALLOWED_HOSTNAMES = ["aveto360.com", "www.aveto360.com"];
 
+/**
+ * Ambientes de visualização do Lovable, sempre aceitos além da lista configurada.
+ * Só subdomínios (`algo.lovable.app`) entram — nunca um domínio parecido
+ * registrado por terceiros (ex.: `lovable.app.exemplo.com`).
+ */
+const ALWAYS_ALLOWED_HOSTNAMES = ["*.lovable.app"];
+
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const SITEVERIFY_TIMEOUT_MS = 8000;
 
