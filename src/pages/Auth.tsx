@@ -475,9 +475,6 @@ export default function Auth() {
           </picture>
         </section>
 
-        {/* Selo do Reclame Aqui à direita da logo da Aveto (que vive na imagem
-            de fundo, canto superior esquerdo) — vale no celular e no desktop. */}
-        <ReclameAquiSeal className="absolute left-[38%] top-[4.5svh] z-20 md:left-[21%] md:top-[19%] md:-translate-y-1/2" />
 
         <section className="relative z-10 flex h-full items-end justify-center px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[46svh] md:min-h-screen md:h-auto md:items-start md:justify-end md:px-[4vw] md:py-[clamp(2rem,8vw,8rem)] lg:px-[5vw] lg:py-[clamp(2.5rem,9vh,6rem)]">
           <div className="w-full max-w-[340px] md:max-w-[320px] lg:max-w-[340px]">
