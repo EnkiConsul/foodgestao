@@ -60,8 +60,20 @@ export function DocumentPreview({
     };
   }, [open, url, bucket, path, expiresIn]);
 
-  const isImage = (mime ?? "").startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(path ?? url ?? "");
-  const isPdf = (mime ?? "") === "application/pdf" || /\.pdf$/i.test(path ?? url ?? "");
+  /**
+   * O link temporário do Storage vem com token na query, então a extensão
+   * nunca fica no fim da URL. Limpamos query/hash e também olhamos o nome do
+   * arquivo mostrado no título antes de dizer que o formato não é suportado.
+   */
+  const semParametros = (valor: string) => valor.split("?")[0].split("#")[0];
+  const candidatos = [path, url, title]
+    .filter((v): v is string => typeof v === "string" && v.length > 0)
+    .map(semParametros);
+  const casa = (re: RegExp) => candidatos.some((c) => re.test(c));
+
+  const isImage =
+    (mime ?? "").startsWith("image/") || casa(/\.(png|jpe?g|webp|gif|bmp|svg|avif|heic|heif)$/i);
+  const isPdf = (mime ?? "") === "application/pdf" || casa(/\.pdf$/i);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
