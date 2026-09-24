@@ -6,7 +6,6 @@ import { ContextSelector } from "@/components/layout/ContextSelector";
 import { NotificationsBell } from "@/components/layout/NotificationsBell";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { useActiveModule } from "@/hooks/useActiveModule";
-import { ModuleSwitcherChip } from "@/components/mobile/ModuleSwitcherChip";
 
 export function AppHeader() {
   const { privacyMode, togglePrivacy } = usePrivacy();
