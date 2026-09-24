@@ -160,6 +160,67 @@ export default function GestaoUsuarios() {
     },
   });
 
+  // Empresas que o usuário logado administra (para mostrar o acesso de cada membro).
+  const adminCompanyIds = companies
+    .filter((c: any) => c.role === "owner" || c.role === "admin")
+    .map((c: any) => c.id);
+  const nomeEmpresaPorId = new Map(companies.map((c: any) => [c.id, c.name]));
+
+  // Unidades do Pessoas 360° da empresa aberta, para exibir os nomes liberados.
+  const { data: unidadesEmpresa = [] } = useQuery({
+    queryKey: ["gestao-unidades", activeCompanyId],
+    enabled: !!activeCompanyId,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("dp_unidades")
+        .select("id, nome")
+        .eq("company_id", activeCompanyId)
+        .order("nome");
+      return (data ?? []) as Array<{ id: string; nome: string }>;
+    },
+  });
+  const nomeUnidadePorId = new Map(unidadesEmpresa.map((u) => [u.id, u.nome]));
+
+  // Vínculos dos membros nas demais empresas administradas.
+  const { data: vinculos = [] } = useQuery({
+    queryKey: ["gestao-vinculos", activeCompanyId, adminCompanyIds.join(","), members.map((m: any) => m.user_id).join(",")],
+    enabled: adminCompanyIds.length > 0 && members.length > 0,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("company_members")
+        .select("user_id, company_id")
+        .in("company_id", adminCompanyIds)
+        .in("user_id", members.map((m: any) => m.user_id));
+      return (data ?? []) as Array<{ user_id: string; company_id: string }>;
+    },
+  });
+
+  const empresasDoMembro = (userId: string) =>
+    vinculos
+      .filter((v) => v.user_id === userId)
+      .map((v) => nomeEmpresaPorId.get(v.company_id))
+      .filter(Boolean) as string[];
+
+  const unidadesDoMembro = (member: any): string[] | null => {
+    if (member.role === "owner" || member.role === "admin") return null;
+    const ids: string[] = member.unidades_permitidas ?? [];
+    if (!ids.length) return null;
+    return ids.map((id) => nomeUnidadePorId.get(id) ?? "Unidade").sort((a, b) => a.localeCompare(b, "pt-BR"));
+  };
+
+  const ListaBadges = ({ itens, vazio }: { itens: string[] | null; vazio: string }) =>
+    itens === null ? (
+      <span className="text-xs text-muted-foreground">{vazio}</span>
+    ) : itens.length === 0 ? (
+      <span className="text-xs text-muted-foreground">—</span>
+    ) : (
+      <div className="flex flex-wrap gap-1">
+        {itens.map((n) => (
+          <Badge key={n} variant="outline" className="text-[11px] font-normal">{n}</Badge>
+        ))}
+      </div>
+    );
+
   // Fetch invites
   const { data: invites = [] } = useQuery({
     queryKey: ["company-invites", activeCompanyId],
