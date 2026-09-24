@@ -16499,7 +16499,10 @@ export type Database = {
         Args: { _company: string; _competencia: string; _unidade: string }
         Returns: Json
       }
-      dp_folga_autoatribuir_todas: { Args: never; Returns: Json }
+      dp_folga_autoatribuir_todas: {
+        Args: { p_limite_alvos?: number }
+        Returns: Json
+      }
       dp_folga_cancelar_admin: {
         Args: { p_folga_id: string; p_motivo?: string }
         Returns: Json
