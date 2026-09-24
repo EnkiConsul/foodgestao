@@ -118,6 +118,12 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
       });
       return;
     }
+    if (!acessoTotal && unidades !== null && unidades.length === 0) {
+      toast.error("Escolha as unidades", {
+        description: "Marque ao menos uma unidade ou volte para Todas as unidades.",
+      });
+      return;
+    }
     setSaving(true);
 
     const payload = {
@@ -125,10 +131,12 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
       ver_saldos: flags.ver_saldos, ver_salarios: flags.ver_salarios,
       situacao: ativo ? "ativo" : "bloqueado",
     };
-    // A lista de contas é própria de cada empresa; só gravamos na empresa aberta.
+    // As listas de contas e unidades são próprias de cada empresa;
+    // só gravamos na empresa aberta na tela.
     const payloadAtual = {
       ...payload,
       contas_permitidas: acessoTotal || contas === null ? null : contas,
+      unidades_permitidas: acessoTotal || unidades === null ? null : unidades,
     };
 
 
