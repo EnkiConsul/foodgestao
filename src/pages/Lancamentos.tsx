@@ -50,6 +50,7 @@ import {
   Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2, Repeat, Paperclip, Check, Upload, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { mensagemErroLancamento } from "@/lib/transactions/errorMessages";
 import { format, endOfMonth, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatDate, parseFlexibleDate } from "@/lib/date-utils";
@@ -1523,7 +1524,8 @@ export default function Lancamentos() {
           if (ids.length === 0) return;
           const { error } = await supabase.from("transactions").update(updates as any).in("id", ids);
           if (error) {
-            toast.error("Erro ao atualizar lançamentos", { description: error.message });
+            const m = mensagemErroLancamento(error, "Erro ao atualizar lançamentos");
+            toast.error(m.titulo, { description: m.descricao, duration: 12000 });
           } else {
             await supabase.rpc("insert_audit_log", {
               _action: "transactions_bulk_updated",

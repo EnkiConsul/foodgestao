@@ -58,6 +58,7 @@ import {
   buildOccurrencePreview,
 } from "@/lib/transactions/formHelpers";
 import { assignPurchaseToInvoice, toYmd } from "@/lib/credit-card/cycle";
+import { mensagemErroLancamento } from "@/lib/transactions/errorMessages";
 
 type TransactionType = "entrada" | "saida" | "transferencia";
 
@@ -930,7 +931,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       }
 
       if (error) {
-        toast.error("Erro ao salvar", { description: error.message });
+        {
+          const m = mensagemErroLancamento(error);
+          toast.error(m.titulo, { description: m.descricao, duration: 12000 });
+        }
       } else {
         await supabase.rpc("insert_audit_log", {
           _action: "transaction_updated",
@@ -955,7 +959,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         .single();
 
       if (error || !inserted) {
-        toast.error("Erro ao salvar", { description: error?.message });
+        {
+          const m = mensagemErroLancamento(error);
+          toast.error(m.titulo, { description: m.descricao, duration: 12000 });
+        }
       } else {
         // Upload attachments to new table
         await uploadAttachments(inserted.id);
