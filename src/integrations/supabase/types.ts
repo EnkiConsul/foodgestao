@@ -18064,6 +18064,7 @@ export type Database = {
         Returns: undefined
       }
       system_health_snapshot: { Args: never; Returns: Json }
+      try_cast_uuid: { Args: { p_val: string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
       webhook_discard_admin: {
         Args: { _event_id: string; _provider: string; _reason?: string }
