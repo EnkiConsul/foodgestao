@@ -39,9 +39,12 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
   const [modulos, setModulos] = useState<ModulosMap>(preset.modulos);
   const [flags, setFlags] = useState({ ver_saldos: preset.ver_saldos, ver_salarios: preset.ver_salarios });
   const [empresas, setEmpresas] = useState<string[]>([companyId]);
+  const [contas, setContas] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
 
   const { data: adminCompanies = [] } = useAdminCompanies(open);
+  const { data: contasEmpresa = [] } = useCompanyAccounts(companyId, open);
+  const acessoTotal = preset.role === "owner" || preset.role === "admin";
 
   // Só dono pode convidar outro dono.
   const perfisDisponiveis = useMemo(() => {
@@ -50,7 +53,7 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
   }, [adminCompanies, companyId]);
 
   useEffect(() => {
-    if (open) setEmpresas([companyId]);
+    if (open) { setEmpresas([companyId]); setContas(null); }
   }, [open, companyId]);
 
   const applyPerfil = (k: PerfilKey) => {
@@ -86,6 +89,9 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
       modulos: modulos as any,
       ver_saldos: flags.ver_saldos,
       ver_salarios: flags.ver_salarios,
+      // A lista de contas vale só para a empresa aberta na tela (os códigos das
+      // contas são de cada empresa). Nas outras, o acesso começa com todas.
+      contas_permitidas: cid === companyId && !acessoTotal && contas?.length ? contas : null,
       invited_by: user.id,
       grupo_id: grupoId,
     }));
