@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { PermissionsEditor } from "@/components/users/PermissionsEditor";
 import { CompanyAccessPicker } from "@/components/users/CompanyAccessPicker";
+import { AccountAccessPicker } from "@/components/users/AccountAccessPicker";
 import { useAdminCompanies } from "@/hooks/useAdminCompanies";
+import { useCompanyAccounts } from "@/hooks/useCompanyAccounts";
 import {
   CompanyRole, ModulosMap, MODULOS_TODOS, PERFIS, PerfilKey, PermissionsMap, getPerfil, perfilPadraoDoRole,
 } from "@/lib/permissions";
@@ -25,6 +27,7 @@ export interface EditableMember {
   ver_saldos?: boolean;
   ver_salarios?: boolean;
   situacao?: string;
+  contas_permitidas?: string[] | null;
 }
 
 interface Props {
@@ -44,9 +47,13 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
   const [flags, setFlags] = useState({ ver_saldos: true, ver_salarios: true });
   const [ativo, setAtivo] = useState(true);
   const [empresas, setEmpresas] = useState<string[]>([]);
+  const [contas, setContas] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
 
   const { data: adminCompanies = [] } = useAdminCompanies(open);
+  const { data: contasEmpresa = [] } = useCompanyAccounts(companyId, open);
+  const acessoTotal = role === "owner" || role === "admin";
+  const nomeEmpresa = adminCompanies.find((c) => c.id === companyId)?.name;
 
   // Vínculos atuais do membro nas empresas que o usuário logado administra.
   const { data: vinculos = [], refetch: refetchVinculos } = useQuery({
@@ -76,6 +83,7 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
     setModulos({ ...MODULOS_TODOS, ...(member.modulos ?? {}) });
     setFlags({ ver_saldos: member.ver_saldos !== false, ver_salarios: member.ver_salarios !== false });
     setAtivo((member.situacao ?? "ativo") === "ativo");
+    setContas(member.contas_permitidas?.length ? member.contas_permitidas : null);
   }, [member]);
 
   // Marca as empresas onde o membro já tem acesso, sempre incluindo a atual.
@@ -98,6 +106,12 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
       });
       return;
     }
+    if (!acessoTotal && contas !== null && contas.length === 0) {
+      toast.error("Escolha as contas financeiras", {
+        description: "Marque ao menos uma conta ou volte para Todas as contas.",
+      });
+      return;
+    }
     setSaving(true);
 
     const payload = {
@@ -105,6 +119,12 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
       ver_saldos: flags.ver_saldos, ver_salarios: flags.ver_salarios,
       situacao: ativo ? "ativo" : "bloqueado",
     };
+    // A lista de contas é própria de cada empresa; só gravamos na empresa aberta.
+    const payloadAtual = {
+      ...payload,
+      contas_permitidas: acessoTotal || contas === null ? null : contas,
+    };
+
 
     const selecionadas = new Set(empresas);
     const falhas: string[] = [];
@@ -114,7 +134,7 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
     if (selecionadas.has(companyId)) {
       const { error } = await (supabase as any)
         .from("company_members")
-        .update(payload)
+        .update(payloadAtual)
         .eq("id", member.id);
 
       if (error) {
@@ -213,6 +233,14 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
             selected={empresas}
             onChange={setEmpresas}
             ajuda="Marque para liberar o acesso e desmarque para retirar. As permissões abaixo valem para todas as empresas marcadas."
+          />
+
+          <AccountAccessPicker
+            accounts={contasEmpresa}
+            value={contas}
+            onChange={setContas}
+            bloqueado={acessoTotal}
+            nomeEmpresa={nomeEmpresa}
           />
 
           <PermissionsEditor

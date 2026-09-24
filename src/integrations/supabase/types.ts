@@ -2272,6 +2272,7 @@ export type Database = {
       company_invites: {
         Row: {
           company_id: string
+          contas_permitidas: string[] | null
           created_at: string
           email_sent_at: string | null
           expires_at: string
@@ -2293,6 +2294,7 @@ export type Database = {
         }
         Insert: {
           company_id: string
+          contas_permitidas?: string[] | null
           created_at?: string
           email_sent_at?: string | null
           expires_at?: string
@@ -2314,6 +2316,7 @@ export type Database = {
         }
         Update: {
           company_id?: string
+          contas_permitidas?: string[] | null
           created_at?: string
           email_sent_at?: string | null
           expires_at?: string
@@ -2346,6 +2349,7 @@ export type Database = {
       company_members: {
         Row: {
           company_id: string
+          contas_permitidas: string[] | null
           created_at: string
           id: string
           modulos: Json
@@ -2360,6 +2364,7 @@ export type Database = {
         }
         Insert: {
           company_id: string
+          contas_permitidas?: string[] | null
           created_at?: string
           id?: string
           modulos?: Json
@@ -2374,6 +2379,7 @@ export type Database = {
         }
         Update: {
           company_id?: string
+          contas_permitidas?: string[] | null
           created_at?: string
           id?: string
           modulos?: Json
@@ -14763,6 +14769,10 @@ export type Database = {
         Args: { p_challenge_id: string; p_reset_token_hash: string }
         Returns: string
       }
+      conta_liberada: {
+        Args: { _account_id: string; _company_id: string }
+        Returns: boolean
+      }
       contact_document_key: { Args: { _document: string }; Returns: string }
       create_and_link_open_finance_account: {
         Args: {
@@ -17221,6 +17231,10 @@ export type Database = {
           _of_account_id: string
         }
         Returns: string
+      }
+      minhas_contas_permitidas: {
+        Args: { _company_id: string }
+        Returns: string[]
       }
       my_pending_invites: {
         Args: never

@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { PermissionsEditor } from "@/components/users/PermissionsEditor";
 import { CompanyAccessPicker } from "@/components/users/CompanyAccessPicker";
+import { AccountAccessPicker } from "@/components/users/AccountAccessPicker";
 import { useAdminCompanies } from "@/hooks/useAdminCompanies";
+import { useCompanyAccounts } from "@/hooks/useCompanyAccounts";
 import { CompanyRole, ModulosMap, PERFIS, PerfilKey, PermissionsMap, getPerfil, perfilPadraoDoRole } from "@/lib/permissions";
 import { isValidPhone, maskPhone } from "@/lib/phone";
 
@@ -37,9 +39,12 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
   const [modulos, setModulos] = useState<ModulosMap>(preset.modulos);
   const [flags, setFlags] = useState({ ver_saldos: preset.ver_saldos, ver_salarios: preset.ver_salarios });
   const [empresas, setEmpresas] = useState<string[]>([companyId]);
+  const [contas, setContas] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
 
   const { data: adminCompanies = [] } = useAdminCompanies(open);
+  const { data: contasEmpresa = [] } = useCompanyAccounts(companyId, open);
+  const acessoTotal = preset.role === "owner" || preset.role === "admin";
 
   // Só dono pode convidar outro dono.
   const perfisDisponiveis = useMemo(() => {
@@ -48,7 +53,7 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
   }, [adminCompanies, companyId]);
 
   useEffect(() => {
-    if (open) setEmpresas([companyId]);
+    if (open) { setEmpresas([companyId]); setContas(null); }
   }, [open, companyId]);
 
   const applyPerfil = (k: PerfilKey) => {
@@ -66,7 +71,8 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
 
   const waDigits = whatsapp.replace(/\D/g, "");
   const emailOk = !email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const valid = nome.trim().length >= 3 && isValidPhone(whatsapp) && emailOk && empresas.length > 0;
+  const contasOk = acessoTotal || contas === null || contas.length > 0;
+  const valid = nome.trim().length >= 3 && isValidPhone(whatsapp) && emailOk && empresas.length > 0 && contasOk;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,6 +90,9 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
       modulos: modulos as any,
       ver_saldos: flags.ver_saldos,
       ver_salarios: flags.ver_salarios,
+      // A lista de contas vale só para a empresa aberta na tela (os códigos das
+      // contas são de cada empresa). Nas outras, o acesso começa com todas.
+      contas_permitidas: cid === companyId && !acessoTotal && contas?.length ? contas : null,
       invited_by: user.id,
       grupo_id: grupoId,
     }));
@@ -172,6 +181,13 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
               companies={adminCompanies}
               selected={empresas}
               onChange={setEmpresas}
+            />
+
+            <AccountAccessPicker
+              accounts={contasEmpresa}
+              value={contas}
+              onChange={setContas}
+              bloqueado={acessoTotal}
             />
 
             <PermissionsEditor
