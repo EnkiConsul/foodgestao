@@ -512,8 +512,10 @@ export default function GestaoUsuarios() {
                   {invites.map((invite: any) => (
                     <TableRow key={invite.id}>
                       <TableCell>
-                        <p className="font-medium">{invite.full_name ?? invite.invited_email}</p>
-                        <p className="text-xs text-muted-foreground">{contatoConvite(invite)}</p>
+                        <p className="font-medium">{nomeConvite(invite)}</p>
+                        {contatoConvite(invite) && (
+                          <p className="text-xs text-muted-foreground">{contatoConvite(invite)}</p>
+                        )}
                       </TableCell>
                       <TableCell>{perfilBadge(invite.perfil, invite.role)}</TableCell>
                       <TableCell>{statusBadge(invite.status)}</TableCell>
@@ -525,20 +527,47 @@ export default function GestaoUsuarios() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8"
+                                disabled={resendingId === invite.id}
+                                onClick={() => handleResendInvite(invite)}
+                                title="Reenviar convite"
+                              >
+                                <Send className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
                                 onClick={() => handleCopyLink(invite.token)}
                                 title="Copiar link"
                               >
                                 <Copy className="h-4 w-4" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive"
-                                onClick={() => handleCancelInvite(invite.id)}
-                                title="Cancelar convite"
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                    title="Cancelar convite"
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Cancelar convite</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      O link enviado para <strong>{nomeConvite(invite)}</strong> deixará de funcionar. Deseja continuar?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleCancelInvite(invite.id)}>
+                                      Cancelar convite
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </>
                           )}
                         </div>
