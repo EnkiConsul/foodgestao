@@ -440,14 +440,16 @@ export default function GestaoUsuarios() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Papel</TableHead>
-                  <TableHead className="hidden sm:table-cell">Desde</TableHead>
+                  <TableHead>Empresas</TableHead>
+                  <TableHead>Unidades</TableHead>
+                  <TableHead className="hidden lg:table-cell">Desde</TableHead>
                   {isAdminOrOwner && <TableHead className="text-right">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loadingMembers ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">Carregando...</TableCell>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">Carregando...</TableCell>
                   </TableRow>
                 ) : members.map((member: any) => (
                   <TableRow key={member.id}>
@@ -458,7 +460,13 @@ export default function GestaoUsuarios() {
                         {member.situacao === "bloqueado" && <Badge variant="destructive">Bloqueado</Badge>}
                       </div>
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
+                    <TableCell className="max-w-[220px]">
+                      <ListaBadges itens={empresasDoMembro(member.user_id)} vazio="—" />
+                    </TableCell>
+                    <TableCell className="max-w-[220px]">
+                      <ListaBadges itens={unidadesDoMembro(member)} vazio="Todas as unidades" />
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
                       {formatDate(member.created_at, "dd/MM/yyyy")}
                     </TableCell>
                     {isAdminOrOwner && (
