@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Users, UserPlus, Crown, Shield, User, Eye, Trash2, Clock, Copy, XCircle, Settings2, Calculator } from "lucide-react";
+import { Users, UserPlus, Crown, Shield, User, Eye, Trash2, Clock, Copy, XCircle, Settings2, Calculator, Send } from "lucide-react";
 import { formatDate } from "@/lib/date-utils";
 import { InviteUserDialog } from "@/components/users/InviteUserDialog";
 import { EditMemberPermissionsDialog, EditableMember } from "@/components/users/EditMemberPermissionsDialog";
@@ -42,8 +42,15 @@ const perfilBadge = (perfil: string | null | undefined, role: string) => {
   return <Badge variant="secondary"><User className="h-3 w-3 mr-1" />{PERFIL_LABELS[perfil as PerfilKey] ?? "Membro"}</Badge>;
 };
 
-const contatoConvite = (i: any) =>
-  [i.whatsapp ? maskPhone(i.whatsapp) : null, i.invited_email].filter(Boolean).join(" · ");
+const nomeConvite = (i: any) =>
+  (i.full_name && String(i.full_name).trim()) || i.invited_email || (i.whatsapp ? maskPhone(i.whatsapp) : "Convidado");
+
+const contatoConvite = (i: any) => {
+  const nome = nomeConvite(i);
+  return [i.whatsapp ? maskPhone(i.whatsapp) : null, i.invited_email]
+    .filter((v) => Boolean(v) && v !== nome)
+    .join(" · ");
+};
 
 const statusBadge = (status: string) => {
   switch (status) {
@@ -69,6 +76,7 @@ export default function GestaoUsuarios() {
   const [inviteOpen, setInviteOpen] = useState(location.state?.openInvite ?? false);
   const [inviteDefaultRole] = useState<CompanyRole>(location.state?.defaultRole ?? "member");
   const [editingMember, setEditingMember] = useState<EditableMember | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (location.state?.openInvite) {
@@ -213,6 +221,26 @@ export default function GestaoUsuarios() {
     const url = `${window.location.origin}/convite/${token}`;
     navigator.clipboard.writeText(url);
     toast.success("Link copiado para a área de transferência!");
+  };
+
+  const handleResendInvite = async (invite: any) => {
+    setResendingId(invite.id);
+    const { data, error } = await supabase.functions.invoke("send-company-invite", {
+      body: { inviteId: invite.id },
+    });
+    setResendingId(null);
+    const res = data as { whatsapp?: boolean; email?: boolean } | null;
+    if (error || (!res?.whatsapp && !res?.email)) {
+      const link = `${window.location.origin}/convite/${invite.token}`;
+      navigator.clipboard.writeText(link);
+      toast.error("Não foi possível reenviar o convite automaticamente", {
+        description: "O link de acesso foi copiado para você enviar manualmente.",
+      });
+      return;
+    }
+    const canais = [res?.whatsapp ? "WhatsApp" : null, res?.email ? "e-mail" : null].filter(Boolean).join(" e ");
+    toast.success(`Convite reenviado por ${canais}`);
+    queryClient.invalidateQueries({ queryKey: ["company-invites", activeCompanyId] });
   };
 
   if (loadingCompanies) {
@@ -484,8 +512,10 @@ export default function GestaoUsuarios() {
                   {invites.map((invite: any) => (
                     <TableRow key={invite.id}>
                       <TableCell>
-                        <p className="font-medium">{invite.full_name ?? invite.invited_email}</p>
-                        <p className="text-xs text-muted-foreground">{contatoConvite(invite)}</p>
+                        <p className="font-medium">{nomeConvite(invite)}</p>
+                        {contatoConvite(invite) && (
+                          <p className="text-xs text-muted-foreground">{contatoConvite(invite)}</p>
+                        )}
                       </TableCell>
                       <TableCell>{perfilBadge(invite.perfil, invite.role)}</TableCell>
                       <TableCell>{statusBadge(invite.status)}</TableCell>
@@ -497,20 +527,47 @@ export default function GestaoUsuarios() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8"
+                                disabled={resendingId === invite.id}
+                                onClick={() => handleResendInvite(invite)}
+                                title="Reenviar convite"
+                              >
+                                <Send className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
                                 onClick={() => handleCopyLink(invite.token)}
                                 title="Copiar link"
                               >
                                 <Copy className="h-4 w-4" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive"
-                                onClick={() => handleCancelInvite(invite.id)}
-                                title="Cancelar convite"
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                    title="Cancelar convite"
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Cancelar convite</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      O link enviado para <strong>{nomeConvite(invite)}</strong> deixará de funcionar. Deseja continuar?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleCancelInvite(invite.id)}>
+                                      Cancelar convite
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </>
                           )}
                         </div>
@@ -527,20 +584,48 @@ export default function GestaoUsuarios() {
                 <div key={invite.id} className="rounded-md border p-3 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{invite.full_name ?? invite.invited_email}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{contatoConvite(invite)}</p>
+                      <p className="text-sm font-medium truncate">{nomeConvite(invite)}</p>
+                      {contatoConvite(invite) && (
+                        <p className="text-[11px] text-muted-foreground truncate">{contatoConvite(invite)}</p>
+                      )}
                     </div>
                     {statusBadge(invite.status)}
                   </div>
                   <div>{perfilBadge(invite.perfil, invite.role)}</div>
                   {invite.status === "pending" && (
-                    <div className="flex gap-2 pt-1 border-t">
+                    <div className="flex flex-wrap gap-2 pt-1 border-t">
+                      <Button
+                        size="sm"
+                        className="flex-1 min-h-9"
+                        disabled={resendingId === invite.id}
+                        onClick={() => handleResendInvite(invite)}
+                      >
+                        <Send className="h-4 w-4 mr-1" /> Reenviar
+                      </Button>
                       <Button variant="outline" size="sm" className="flex-1 min-h-9" onClick={() => handleCopyLink(invite.token)}>
                         <Copy className="h-4 w-4 mr-1" /> Copiar link
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1 min-h-9 text-destructive hover:text-destructive" onClick={() => handleCancelInvite(invite.id)}>
-                        <XCircle className="h-4 w-4 mr-1" /> Cancelar
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="flex-1 min-h-9 text-destructive hover:text-destructive">
+                            <XCircle className="h-4 w-4 mr-1" /> Cancelar
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Cancelar convite</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              O link enviado para <strong>{nomeConvite(invite)}</strong> deixará de funcionar. Deseja continuar?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Voltar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleCancelInvite(invite.id)}>
+                              Cancelar convite
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   )}
                 </div>
