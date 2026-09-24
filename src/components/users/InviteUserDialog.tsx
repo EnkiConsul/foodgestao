@@ -145,72 +145,74 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Novo Usuário</DialogTitle>
-          <DialogDescription>O convite vai por WhatsApp e e-mail, com o link para criar a senha.</DialogDescription>
+      <DialogContent className="flex w-screen max-w-none h-[100dvh] max-h-[100dvh] flex-col gap-0 rounded-none p-0 sm:w-full sm:max-w-3xl sm:h-auto sm:max-h-[90vh] sm:rounded-lg">
+        <DialogHeader className="shrink-0 border-b px-4 py-3 text-left sm:px-6 sm:py-4">
+          <DialogTitle className="text-base sm:text-lg">Novo Usuário</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">O convite vai por WhatsApp e e-mail, com o link para criar a senha.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="inv-nome">Nome completo *</Label>
-              <Input id="inv-nome" value={nome} onChange={(e) => setNome(e.target.value.toUpperCase())} maxLength={120} required />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="inv-wa">WhatsApp *</Label>
-              <Input id="inv-wa" inputMode="tel" value={whatsapp} onChange={(e) => setWhatsapp(maskPhone(e.target.value))} placeholder="(99) 99999-9999" required />
-              {whatsapp && !isValidPhone(whatsapp) && <p className="text-[11px] text-destructive">WhatsApp inválido</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="inv-email">E-mail (opcional)</Label>
-              <Input id="inv-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="usuario@exemplo.com" />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>Tipo de perfil *</Label>
-              <Select value={perfil} onValueChange={(v) => applyPerfil(v as PerfilKey)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {perfisDisponiveis.map((p) => (
-                    <SelectItem key={p.key} value={p.key}>{p.label} — {p.descricao}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {adminCompanies.length > 1 && (
-            <div className="space-y-2">
-              <Label>Empresas com acesso *</Label>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {adminCompanies.map((c) => (
-                  <label key={c.id} className="flex items-center gap-2 rounded-md border p-2 text-sm cursor-pointer">
-                    <Checkbox
-                      checked={empresas.includes(c.id)}
-                      onCheckedChange={(ch) =>
-                        setEmpresas((prev) => (ch ? [...new Set([...prev, c.id])] : prev.filter((x) => x !== c.id)))
-                      }
-                    />
-                    {c.name}
-                  </label>
-                ))}
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="inv-nome">Nome completo *</Label>
+                <Input id="inv-nome" className="min-h-11" value={nome} onChange={(e) => setNome(e.target.value.toUpperCase())} maxLength={120} required />
               </div>
-              <p className="text-[11px] text-muted-foreground">As mesmas permissões valem para as empresas marcadas. Depois você pode ajustar por empresa.</p>
+              <div className="space-y-1.5">
+                <Label htmlFor="inv-wa">WhatsApp *</Label>
+                <Input id="inv-wa" className="min-h-11" inputMode="tel" value={whatsapp} onChange={(e) => setWhatsapp(maskPhone(e.target.value))} placeholder="(99) 99999-9999" required />
+                {whatsapp && !isValidPhone(whatsapp) && <p className="text-[11px] text-destructive">WhatsApp inválido</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="inv-email">E-mail (opcional)</Label>
+                <Input id="inv-email" className="min-h-11" type="email" inputMode="email" autoCapitalize="none" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="usuario@exemplo.com" />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label>Tipo de perfil *</Label>
+                <Select value={perfil} onValueChange={(v) => applyPerfil(v as PerfilKey)}>
+                  <SelectTrigger className="min-h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {perfisDisponiveis.map((p) => (
+                      <SelectItem key={p.key} value={p.key}>{p.label} — {p.descricao}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          )}
 
-          <PermissionsEditor
-            role={preset.role}
-            value={permissions}
-            onChange={(p) => { setPermissions(p); if (perfil !== "dono" && perfil !== "administrador") setPerfil("personalizado"); }}
-            modulos={modulos}
-            onModulosChange={setModulos}
-            verSaldos={flags.ver_saldos}
-            verSalarios={flags.ver_salarios}
-            onFlagsChange={setFlags}
-          />
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={saving || !valid}>{saving ? "Enviando..." : "Enviar convite"}</Button>
+            {adminCompanies.length > 1 && (
+              <div className="space-y-2">
+                <Label>Empresas com acesso *</Label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {adminCompanies.map((c) => (
+                    <label key={c.id} className="flex items-center gap-3 rounded-lg border bg-card p-3 min-h-12 text-sm cursor-pointer active:bg-accent/40">
+                      <Checkbox
+                        checked={empresas.includes(c.id)}
+                        onCheckedChange={(ch) =>
+                          setEmpresas((prev) => (ch ? [...new Set([...prev, c.id])] : prev.filter((x) => x !== c.id)))
+                        }
+                      />
+                      {c.name}
+                    </label>
+                  ))}
+                </div>
+                <p className="text-[11px] text-muted-foreground">As mesmas permissões valem para as empresas marcadas. Depois você pode ajustar por empresa.</p>
+              </div>
+            )}
+
+            <PermissionsEditor
+              role={preset.role}
+              value={permissions}
+              onChange={(p) => { setPermissions(p); if (perfil !== "dono" && perfil !== "administrador") setPerfil("personalizado"); }}
+              modulos={modulos}
+              onModulosChange={setModulos}
+              verSaldos={flags.ver_saldos}
+              verSalarios={flags.ver_salarios}
+              onFlagsChange={setFlags}
+            />
+          </div>
+          <DialogFooter className="shrink-0 flex-row gap-2 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
+            <Button type="button" variant="outline" className="flex-1 min-h-11 sm:flex-none" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button type="submit" className="flex-1 min-h-11 sm:flex-none" disabled={saving || !valid}>{saving ? "Enviando..." : "Enviar convite"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

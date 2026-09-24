@@ -30,8 +30,9 @@ export function PermissionsEditor({
   role, value, onChange, modulos, onModulosChange, verSaldos = true, verSalarios = true, onFlagsChange,
 }: Props) {
   const fixed = roleTemMatrizFixa(role);
+  const acessoTotal = role === "owner" || role === "admin";
   const note =
-    role === "owner" || role === "admin"
+    acessoTotal
       ? "Donos e administradores têm acesso total a todos os módulos."
       : role === "contabilidade" || role === "viewer"
         ? "Este perfil tem somente leitura no Financeiro."
@@ -41,6 +42,9 @@ export function PermissionsEditor({
   const setSection = (items: readonly ModuleKey[], level: PermissionLevel) =>
     onChange({ ...value, ...Object.fromEntries(items.map((i) => [i, level])) });
 
+  const nivelDe = (m: ModuleKey, off: boolean, disabled: boolean): PermissionLevel =>
+    acessoTotal ? "total" : off ? "none" : (normalizeLevel(value[m] as string) ?? "none");
+
   return (
     <div className="space-y-4">
       {modulos && onModulosChange && (
@@ -48,15 +52,19 @@ export function PermissionsEditor({
           <Label className="text-sm">Módulos liberados</Label>
           <div className="grid gap-2 sm:grid-cols-3">
             {MODULOS.map((m) => (
-              <label key={m.key} className="flex items-start gap-2 rounded-md border p-3 cursor-pointer">
+              <label
+                key={m.key}
+                className="flex items-start gap-3 rounded-lg border bg-card p-3 cursor-pointer active:bg-accent/40"
+              >
                 <Switch
-                  checked={fixed && (role === "owner" || role === "admin") ? true : modulos[m.key]}
-                  disabled={role === "owner" || role === "admin"}
+                  className="mt-0.5 shrink-0"
+                  checked={fixed && acessoTotal ? true : modulos[m.key]}
+                  disabled={acessoTotal}
                   onCheckedChange={(c) => onModulosChange({ ...modulos, [m.key]: c })}
                 />
                 <span className="min-w-0">
                   <span className="block text-sm font-medium">{m.label}</span>
-                  <span className="block text-[11px] text-muted-foreground">{m.descricao}</span>
+                  <span className="block text-xs leading-snug text-muted-foreground">{m.descricao}</span>
                 </span>
               </label>
             ))}
@@ -64,13 +72,13 @@ export function PermissionsEditor({
         </div>
       )}
 
-      {onFlagsChange && !(role === "owner" || role === "admin") && (
+      {onFlagsChange && !acessoTotal && (
         <div className="grid gap-2 sm:grid-cols-2">
-          <label className="flex items-center justify-between gap-2 rounded-md border p-3">
+          <label className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3 min-h-12">
             <span className="text-sm">Ver saldos e valores financeiros</span>
             <Switch checked={verSaldos} onCheckedChange={(c) => onFlagsChange({ ver_saldos: c, ver_salarios: verSalarios })} />
           </label>
-          <label className="flex items-center justify-between gap-2 rounded-md border p-3">
+          <label className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3 min-h-12">
             <span className="text-sm">Ver salários e remuneração</span>
             <Switch checked={verSalarios} onCheckedChange={(c) => onFlagsChange({ ver_saldos: verSaldos, ver_salarios: c })} />
           </label>
@@ -80,7 +88,85 @@ export function PermissionsEditor({
       <div className="space-y-2">
         <Label className="text-sm">Permissões por item</Label>
         {note && <p className="text-xs text-muted-foreground">{note}</p>}
-        <div className="rounded-md border overflow-x-auto">
+
+        {/* Mobile: cartões com seletor tátil por item */}
+        <div className="md:hidden space-y-3">
+          {SECTIONS.map((s) => {
+            const off = !!modulos && modulos[s.modulo] === false && !acessoTotal;
+            const disabled = fixed || off;
+            return (
+              <div key={s.modulo} className="rounded-lg border bg-card overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-muted/50 px-3 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide">
+                    {s.title}
+                    {off && <span className="ml-1 font-normal normal-case text-muted-foreground">— módulo desligado</span>}
+                  </p>
+                  {!disabled && (
+                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                      <span>Todos:</span>
+                      <button
+                        type="button"
+                        className="rounded border px-2 py-1 text-[11px] font-medium text-foreground active:bg-accent"
+                        onClick={() => setSection(s.items, "consulta")}
+                      >
+                        Consulta
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded border px-2 py-1 text-[11px] font-medium text-foreground active:bg-accent"
+                        onClick={() => setSection(s.items, "total")}
+                      >
+                        Total
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded border px-2 py-1 text-[11px] font-medium text-foreground active:bg-accent"
+                        onClick={() => setSection(s.items, "none")}
+                      >
+                        Sem
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="divide-y">
+                  {s.items.map((m) => {
+                    const current = nivelDe(m, off, disabled);
+                    return (
+                      <div key={m} className="px-3 py-2.5 space-y-2">
+                        <p className="text-sm font-medium leading-tight">{MODULE_LABELS[m]}</p>
+                        <div className="grid grid-cols-5 gap-1" role="radiogroup" aria-label={MODULE_LABELS[m]}>
+                          {LEVELS.map((l) => (
+                            <button
+                              key={l.value}
+                              type="button"
+                              role="radio"
+                              aria-checked={current === l.value}
+                              aria-label={`${MODULE_LABELS[m]}: ${l.label}`}
+                              disabled={disabled}
+                              onClick={() => onSetSafe(disabled, () => set(m, l.value))}
+                              className={cn(
+                                "min-h-9 rounded-md border px-1 text-[11px] font-medium leading-none transition-colors",
+                                current === l.value
+                                  ? "border-primary bg-primary text-primary-foreground"
+                                  : "bg-background text-muted-foreground active:bg-accent",
+                                disabled && "opacity-50",
+                              )}
+                            >
+                              {l.short}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop: matriz */}
+        <div className="hidden md:block rounded-md border overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/50 text-[11px] uppercase tracking-wide text-muted-foreground">
@@ -92,7 +178,7 @@ export function PermissionsEditor({
             </thead>
             <tbody>
               {SECTIONS.map((s) => {
-                const off = !!modulos && modulos[s.modulo] === false && !(role === "owner" || role === "admin");
+                const off = !!modulos && modulos[s.modulo] === false && !acessoTotal;
                 return (
                   <SectionRows
                     key={s.modulo}
@@ -116,6 +202,10 @@ export function PermissionsEditor({
       </div>
     </div>
   );
+}
+
+function onSetSafe(disabled: boolean, fn: () => void) {
+  if (!disabled) fn();
 }
 
 function SectionRows({
