@@ -195,8 +195,9 @@ export function resolvePermission(
   if (modulos && modulos[mod] === false) return "none";
   if (role === "viewer" || role === "contabilidade") return mod === "financeiro" ? "consulta" : "none";
   const v = normalizeLevel(permissions?.[module] as string | undefined);
-  // Membros antigos sem matriz mantêm o acesso do Financeiro que tinham.
-  if (v == null) return mod === "financeiro" && (!permissions || Object.keys(permissions).length === 0) ? "total" : "none";
+  // Membros antigos (matriz sem itens do Pessoas 360°) mantêm o acesso do Financeiro que tinham.
+  const legado = !permissions || !Object.keys(permissions).some((k) => k.startsWith("dp.") || k.startsWith("conta."));
+  if (v == null) return mod === "financeiro" && legado ? "total" : "none";
   return v;
 }
 
