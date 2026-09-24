@@ -42,7 +42,6 @@ const ROTINAS_INTERNAS: Array<[string, Record<string, unknown>]> = [
   ["guard_transaction_category_active", {}],
   ["learn_categorization_rule", {}],
   ["chart_account_autofill_code", {}],
-  ["audit_pluggy_v2_raw_delete", {}],
   ["pluggy_sync_pause_on_account_toggle", {}],
   ["seed_default_account_on_company", {}],
   ["tg_transactions_assign_cc_invoice", {}],

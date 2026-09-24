@@ -84,10 +84,7 @@ const TABELAS_FINANCEIRAS = [
   "credit_card_invoices",
   "pluggy_connections",
   "pluggy_accounts",
-  "pluggy_v2_connections",
-  "pluggy_v2_accounts",
-  "pluggy_v2_sync_runs",
-  "pluggy_v2_transactions_raw",
+  "pluggy_staging_transactions",
   "invoices",
   "subscriptions",
 ];
