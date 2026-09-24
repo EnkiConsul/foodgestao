@@ -98,7 +98,7 @@ const QUERIES = [
   {
     name: "extrato_bruto_pluggy",
     sql: `select r.id, r.connection_id, r.created_at
-          from public.pluggy_v2_transactions_raw r
+          from public.pluggy_staging_transactions r
           order by r.created_at desc limit 500`,
   },
   {

@@ -306,16 +306,16 @@ cross join generate_series(1, 28) d
 where e.competencia = to_char(now(), 'YYYY-MM');
 
 -- extrato bruto de Open Finance ------------------------------------------
-insert into public.pluggy_v2_connections(id, company_id, pluggy_item_id)
+insert into public.pluggy_connections(id, company_id, pluggy_item_id)
 select md5(c.id::text||':conn')::uuid, c.id, 'synth-item-'||c.id
 from public.companies c where c.name like 'Empresa Sintética %';
 
-insert into public.pluggy_v2_accounts(id, connection_id, company_id, pluggy_account_id, pluggy_item_id)
+insert into public.pluggy_accounts(id, connection_id, company_id, pluggy_account_id)
 select md5(c.id::text||':ofacc')::uuid, md5(c.id::text||':conn')::uuid, c.id,
-       'synth-acc-'||c.id, 'synth-item-'||c.id
+       'synth-acc-'||c.id
 from public.companies c where c.name like 'Empresa Sintética %';
 
-insert into public.pluggy_v2_transactions_raw(
+insert into public.pluggy_staging_transactions(
   id, account_id, connection_id, company_id, pluggy_account_id, pluggy_transaction_id,
   amount, type, date, description, raw, created_at)
 select gen_random_uuid(), md5(c.id::text||':ofacc')::uuid, md5(c.id::text||':conn')::uuid, c.id,
@@ -360,7 +360,7 @@ if (CMD === "down") {
         ||' invoices='||(select count(*) from public.credit_card_invoices)
         ||' colaboradores='||(select count(*) from public.dp_colaboradores)
         ||' escala_itens='||(select count(*) from public.dp_escala_itens)
-        ||' pluggy_raw='||(select count(*) from public.pluggy_v2_transactions_raw)`).trim();
+        ||' pluggy_raw='||(select count(*) from public.pluggy_staging_transactions)`).trim();
   console.log(`✔ pronto em ${Math.round((Date.now() - t0) / 1000)}s — ${counts}`);
   console.log(`Banco: ${URL}`);
 }
