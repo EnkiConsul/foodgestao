@@ -42,8 +42,9 @@ const perfilBadge = (perfil: string | null | undefined, role: string) => {
   return <Badge variant="secondary"><User className="h-3 w-3 mr-1" />{PERFIL_LABELS[perfil as PerfilKey] ?? "Membro"}</Badge>;
 };
 
+// O título é sempre o Nome Completo; e-mail e WhatsApp ficam na linha de contato.
 const nomeConvite = (i: any) =>
-  (i.full_name && String(i.full_name).trim()) || i.invited_email || (i.whatsapp ? maskPhone(i.whatsapp) : "Convidado");
+  (i.full_name && String(i.full_name).trim()) || (i.whatsapp ? maskPhone(i.whatsapp) : "Convidado");
 
 const contatoConvite = (i: any) => {
   const nome = nomeConvite(i);
