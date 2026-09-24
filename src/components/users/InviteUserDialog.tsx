@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { PermissionsEditor } from "@/components/users/PermissionsEditor";
+import { CompanyAccessPicker } from "@/components/users/CompanyAccessPicker";
+import { useAdminCompanies } from "@/hooks/useAdminCompanies";
 import { CompanyRole, ModulosMap, PERFIS, PerfilKey, PermissionsMap, getPerfil, perfilPadraoDoRole } from "@/lib/permissions";
 import { isValidPhone, maskPhone } from "@/lib/phone";
 
@@ -39,18 +39,7 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
   const [empresas, setEmpresas] = useState<string[]>([companyId]);
   const [saving, setSaving] = useState(false);
 
-  const { data: adminCompanies = [] } = useQuery({
-    queryKey: ["invite-admin-companies", user?.id],
-    enabled: !!user && open,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("company_members")
-        .select("company_id, role, companies(name)")
-        .eq("user_id", user!.id)
-        .in("role", ["owner", "admin"]);
-      return (data ?? []).map((d: any) => ({ id: d.company_id as string, name: d.companies?.name as string, role: d.role as string }));
-    },
-  });
+  const { data: adminCompanies = [] } = useAdminCompanies(open);
 
   // Só dono pode convidar outro dono.
   const perfisDisponiveis = useMemo(() => {
@@ -179,25 +168,12 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
               </div>
             </div>
 
-            {adminCompanies.length > 1 && (
-              <div className="space-y-2">
-                <Label>Empresas com acesso *</Label>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {adminCompanies.map((c) => (
-                    <label key={c.id} className="flex items-center gap-3 rounded-lg border bg-card p-3 min-h-12 text-sm cursor-pointer active:bg-accent/40">
-                      <Checkbox
-                        checked={empresas.includes(c.id)}
-                        onCheckedChange={(ch) =>
-                          setEmpresas((prev) => (ch ? [...new Set([...prev, c.id])] : prev.filter((x) => x !== c.id)))
-                        }
-                      />
-                      {c.name}
-                    </label>
-                  ))}
-                </div>
-                <p className="text-[11px] text-muted-foreground">As mesmas permissões valem para as empresas marcadas. Depois você pode ajustar por empresa.</p>
-              </div>
-            )}
+            <CompanyAccessPicker
+              companies={adminCompanies}
+              selected={empresas}
+              onChange={setEmpresas}
+              lockedId={companyId}
+            />
 
             <PermissionsEditor
               role={preset.role}

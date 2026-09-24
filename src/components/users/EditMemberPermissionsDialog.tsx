@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,12 +8,15 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { PermissionsEditor } from "@/components/users/PermissionsEditor";
+import { CompanyAccessPicker } from "@/components/users/CompanyAccessPicker";
+import { useAdminCompanies } from "@/hooks/useAdminCompanies";
 import {
   CompanyRole, ModulosMap, MODULOS_TODOS, PERFIS, PerfilKey, PermissionsMap, getPerfil, perfilPadraoDoRole,
 } from "@/lib/permissions";
 
 export interface EditableMember {
   id: string;
+  user_id: string;
   full_name: string;
   role: CompanyRole;
   permissions: PermissionsMap;
@@ -27,18 +31,41 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   member: EditableMember | null;
+  companyId: string;
   canAssignOwner?: boolean;
   onSaved: () => void;
 }
 
-export function EditMemberPermissionsDialog({ open, onOpenChange, member, canAssignOwner, onSaved }: Props) {
+export function EditMemberPermissionsDialog({ open, onOpenChange, member, companyId, canAssignOwner, onSaved }: Props) {
   const [perfil, setPerfil] = useState<PerfilKey>("personalizado");
   const [role, setRole] = useState<CompanyRole>("member");
   const [permissions, setPermissions] = useState<PermissionsMap>({});
   const [modulos, setModulos] = useState<ModulosMap>(MODULOS_TODOS);
   const [flags, setFlags] = useState({ ver_saldos: true, ver_salarios: true });
   const [ativo, setAtivo] = useState(true);
+  const [empresas, setEmpresas] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+
+  const { data: adminCompanies = [] } = useAdminCompanies(open);
+
+  // Vínculos atuais do membro nas empresas que o usuário logado administra.
+  const { data: vinculos = [], refetch: refetchVinculos } = useQuery({
+    queryKey: ["member-company-links", member?.user_id, adminCompanies.map((c) => c.id).join(",")],
+    enabled: open && !!member?.user_id && adminCompanies.length > 0,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("company_members")
+        .select("id, company_id, role")
+        .eq("user_id", member!.user_id)
+        .in("company_id", adminCompanies.map((c) => c.id));
+      return (data ?? []) as Array<{ id: string; company_id: string; role: string }>;
+    },
+  });
+
+  const vinculoPorEmpresa = useMemo(
+    () => new Map(vinculos.map((v) => [v.company_id, v])),
+    [vinculos],
+  );
 
   useEffect(() => {
     if (!member) return;
@@ -51,6 +78,12 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, canAss
     setAtivo((member.situacao ?? "ativo") === "ativo");
   }, [member]);
 
+  // Marca as empresas onde o membro já tem acesso, sempre incluindo a atual.
+  useEffect(() => {
+    if (!open) return;
+    setEmpresas([...new Set([companyId, ...vinculos.map((v) => v.company_id)])]);
+  }, [open, companyId, vinculos]);
+
   const applyPerfil = (k: PerfilKey) => {
     const p = getPerfil(k);
     setPerfil(k); setRole(p.role); setPermissions(p.permissions); setModulos(p.modulos);
@@ -60,21 +93,72 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, canAss
   const handleSave = async () => {
     if (!member) return;
     setSaving(true);
+
+    const payload = {
+      role, perfil, permissions, modulos,
+      ver_saldos: flags.ver_saldos, ver_salarios: flags.ver_salarios,
+      situacao: ativo ? "ativo" : "bloqueado",
+    };
+
     const { error } = await (supabase as any)
       .from("company_members")
-      .update({
-        role, perfil, permissions, modulos,
-        ver_saldos: flags.ver_saldos, ver_salarios: flags.ver_salarios,
-        situacao: ativo ? "ativo" : "bloqueado",
-      })
+      .update(payload)
       .eq("id", member.id);
+
     if (error) {
       toast.error("Erro ao salvar permissões", { description: error.message });
-    } else {
-      toast.success("Permissões atualizadas");
-      onSaved();
-      onOpenChange(false);
+      setSaving(false);
+      return;
     }
+
+    // Sincroniza o acesso nas outras empresas administradas.
+    const selecionadas = new Set([...empresas, companyId]);
+    const falhas: string[] = [];
+    let adicionadas = 0;
+    let removidas = 0;
+
+    for (const c of adminCompanies) {
+      if (c.id === companyId) continue;
+      const vinculo = vinculoPorEmpresa.get(c.id);
+      const quer = selecionadas.has(c.id);
+
+      if (quer && !vinculo) {
+        const { error: e } = await (supabase as any)
+          .from("company_members")
+          .insert({ company_id: c.id, user_id: member.user_id, ...payload });
+        if (e) falhas.push(c.name); else adicionadas++;
+      } else if (quer && vinculo) {
+        const { error: e } = await (supabase as any)
+          .from("company_members")
+          .update(payload)
+          .eq("id", vinculo.id);
+        if (e) falhas.push(c.name);
+      } else if (!quer && vinculo) {
+        const { error: e } = await (supabase as any)
+          .from("company_members")
+          .delete()
+          .eq("id", vinculo.id);
+        if (e) falhas.push(c.name); else removidas++;
+      }
+    }
+
+    const detalhes = [
+      adicionadas ? `${adicionadas} empresa(s) liberada(s)` : null,
+      removidas ? `${removidas} empresa(s) removida(s)` : null,
+    ].filter(Boolean).join(" · ");
+
+    if (falhas.length) {
+      toast.warning("Permissões salvas, mas algumas empresas não foram atualizadas", {
+        description: falhas.join(", "),
+        duration: 12000,
+      });
+    } else {
+      toast.success("Permissões atualizadas", { description: detalhes || undefined });
+    }
+
+    await refetchVinculos();
+    onSaved();
+    onOpenChange(false);
     setSaving(false);
   };
 
@@ -83,7 +167,7 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, canAss
       <DialogContent className="flex w-screen max-w-none h-[100dvh] max-h-[100dvh] flex-col gap-0 rounded-none p-0 sm:w-full sm:max-w-3xl sm:h-auto sm:max-h-[90vh] sm:rounded-lg">
         <DialogHeader className="shrink-0 border-b px-4 py-3 text-left sm:px-6 sm:py-4">
           <DialogTitle className="text-base sm:text-lg">Permissões de {member?.full_name}</DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm">Perfil, módulos e nível de acesso nesta empresa.</DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">Perfil, empresas com acesso e nível de permissão.</DialogDescription>
         </DialogHeader>
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
           <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
@@ -103,6 +187,15 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, canAss
               {ativo ? "Acesso ativo" : "Acesso bloqueado"}
             </label>
           </div>
+
+          <CompanyAccessPicker
+            companies={adminCompanies}
+            selected={empresas}
+            onChange={setEmpresas}
+            lockedId={companyId}
+            ajuda="Marque para liberar o acesso e desmarque para retirar. A empresa aberta na tela não pode ser desmarcada aqui — use Remover membro. As permissões abaixo valem para todas as empresas marcadas."
+          />
+
           <PermissionsEditor
             role={role}
             value={permissions}
