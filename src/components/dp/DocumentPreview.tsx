@@ -74,6 +74,36 @@ export function DocumentPreview({
   const isImage =
     (mime ?? "").startsWith("image/") || casa(/\.(png|jpe?g|webp|gif|bmp|svg|avif|heic|heif)$/i);
   const isPdf = (mime ?? "") === "application/pdf" || casa(/\.pdf$/i);
+  const ehHeicLegado =
+    /^image\/hei[cf]/i.test(mime ?? "") || casa(/\.(heic|heif)$/i);
+
+  // Fotos antigas em HEIC (iPhone) não abrem no navegador: convertemos para
+  // JPEG aqui, só na hora de visualizar, sem mexer no arquivo guardado.
+  const [heicUrl, setHeicUrl] = useState<string | null>(null);
+  const [heicErro, setHeicErro] = useState(false);
+  useEffect(() => {
+    if (!open || !resolvedUrl || !ehHeicLegado) return;
+    let cancelado = false;
+    let criada: string | null = null;
+    (async () => {
+      try {
+        const resp = await fetch(resolvedUrl);
+        const blob = await resp.blob();
+        const { default: heic2any } = await import("heic2any");
+        const saida = await heic2any({ blob, toType: "image/jpeg", quality: 0.9 });
+        const jpeg = Array.isArray(saida) ? saida[0] : saida;
+        if (cancelado) return;
+        criada = URL.createObjectURL(jpeg as Blob);
+        setHeicUrl(criada);
+      } catch {
+        if (!cancelado) setHeicErro(true);
+      }
+    })();
+    return () => {
+      cancelado = true;
+      if (criada) URL.revokeObjectURL(criada);
+    };
+  }, [open, resolvedUrl, ehHeicLegado]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
