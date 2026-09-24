@@ -317,12 +317,12 @@ export default function DpDisciplinar() {
         suspensaoDias: diasN > 0 ? diasN : null,
       });
 
-      const safeName = sanitizeStorageFilename(pendingFile.name);
+      const envio = await prepararUpload(BUCKET, pendingFile);
+      const safeName = sanitizeStorageFilename(envio.name);
       const path = `${selectedCompanyId}/${registroId}/${Date.now()}-${safeName}`;
-      validarUpload(BUCKET, pendingFile);
-      const up = await supabase.storage.from(BUCKET).upload(path, pendingFile, {
+      const up = await supabase.storage.from(BUCKET).upload(path, envio, {
         upsert: true,
-        contentType: pendingFile.type || "application/pdf",
+        contentType: envio.type || "application/pdf",
       });
       if (up.error) throw up.error;
       await anexarArquivoDisciplinar(registroId, path);
