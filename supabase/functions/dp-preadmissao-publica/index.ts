@@ -71,6 +71,19 @@ const CAMPOS_DO_FORMULARIO: ReadonlySet<string> = new Set([
   "pix_tipo", "pix_chave",
 ]);
 
+/**
+ * Dados que nunca podem impedir o envio da ficha, mesmo se a empresa marcar
+ * como obrigatórios: a carteira de trabalho hoje é digital e vinculada ao CPF,
+ * e muita gente não tem os números da carteira em papel. A equipe de Pessoas
+ * confere e completa esses dados depois, na conferência da ficha.
+ */
+const NUNCA_BLOQUEIAM: ReadonlySet<string> = new Set([
+  "ctps_numero", "ctps_serie", "ctps_uf", "ctps_expedicao",
+  "titulo_eleitor", "titulo_zona", "titulo_secao",
+  "reservista", "reservista_categoria",
+  "nome_social", "nome_pai", "complemento",
+]);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: strictCorsHeaders(req) });
   if (req.method !== "POST") return jsonError(req, "invalid_input", "método inválido");
@@ -332,7 +345,7 @@ Deno.serve(async (req) => {
       }
       // Nada que o formulário do candidato não pergunte pode impedir o envio.
       const faltando = [...exigidos].filter((campo) => {
-        if (!CAMPOS_DO_FORMULARIO.has(campo)) return false;
+        if (!CAMPOS_DO_FORMULARIO.has(campo) || NUNCA_BLOQUEIAM.has(campo)) return false;
         const v = dados[campo];
         return !(typeof v === "string" ? v.trim() : v);
       });
