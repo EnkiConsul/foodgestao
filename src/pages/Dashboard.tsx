@@ -620,7 +620,7 @@ export default function Dashboard() {
         <UpcomingCardInvoicesWidget className="col-span-12 lg:col-span-6" />
 
         {/* Projeção de Caixa configurável */}
-        <CashFlowProjectionWidget className="col-span-12" />
+        {verSaldos && <CashFlowProjectionWidget className="col-span-12" />}
 
         {/* Balance Evolution (kept, full-width) */}
         {balanceEvolution.length > 1 && (
