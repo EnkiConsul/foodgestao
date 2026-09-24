@@ -1,3 +1,4 @@
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -232,7 +233,20 @@ interface Props {
  * Bloco "Remuneração e benefícios" do cadastro do colaborador —
  * dados obrigatórios para a folha nascer com valor correto.
  */
-export function RemuneracaoFields({
+/** Esconde a remuneração de quem não tem a opção "ver salários". */
+export function RemuneracaoFields(props: Props) {
+  const { verSalarios } = useCompanyPermissions();
+  if (!verSalarios) {
+    return (
+      <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+        Você não tem permissão para ver salários e remunerações.
+      </div>
+    );
+  }
+  return <RemuneracaoFieldsConteudo {...props} />;
+}
+
+function RemuneracaoFieldsConteudo({
   value,
   onChange,
   salarioCargo,
