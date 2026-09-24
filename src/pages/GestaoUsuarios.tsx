@@ -289,9 +289,9 @@ export default function GestaoUsuarios() {
             </Select>
           )}
           {isAdminOrOwner && (
-            <Button onClick={() => setInviteOpen(true)} className="min-h-10">
+            <Button onClick={() => setInviteOpen(true)} className="w-full min-h-11 sm:w-auto">
               <UserPlus className="h-4 w-4 mr-2" />
-              Convidar
+              Convidar usuário
             </Button>
           )}
         </div>
