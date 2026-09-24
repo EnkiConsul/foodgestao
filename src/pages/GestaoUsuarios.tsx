@@ -222,6 +222,26 @@ export default function GestaoUsuarios() {
     toast.success("Link copiado para a área de transferência!");
   };
 
+  const handleResendInvite = async (invite: any) => {
+    setResendingId(invite.id);
+    const { data, error } = await supabase.functions.invoke("send-company-invite", {
+      body: { inviteId: invite.id },
+    });
+    setResendingId(null);
+    const res = data as { whatsapp?: boolean; email?: boolean } | null;
+    if (error || (!res?.whatsapp && !res?.email)) {
+      const link = `${window.location.origin}/convite/${invite.token}`;
+      navigator.clipboard.writeText(link);
+      toast.error("Não foi possível reenviar o convite automaticamente", {
+        description: "O link de acesso foi copiado para você enviar manualmente.",
+      });
+      return;
+    }
+    const canais = [res?.whatsapp ? "WhatsApp" : null, res?.email ? "e-mail" : null].filter(Boolean).join(" e ");
+    toast.success(`Convite reenviado por ${canais}`);
+    queryClient.invalidateQueries({ queryKey: ["company-invites", activeCompanyId] });
+  };
+
   if (loadingCompanies) {
     return (
       <div className="space-y-6">
