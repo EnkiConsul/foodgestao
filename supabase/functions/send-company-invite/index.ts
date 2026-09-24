@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
+import { normalizeBRPhone, sendZapiText } from '../_shared/zapi.ts'
 
 const TEMPLATE_NAME = 'company-invite'
 const APP_URL = 'https://aveto360.com'
@@ -82,7 +83,7 @@ Deno.serve(async (req) => {
   // never taken from the request body.
   const { data: invite, error: inviteErr } = await supabase
     .from('company_invites')
-    .select('id, invited_email, role, token, company_id')
+    .select('id, invited_email, role, token, company_id, full_name, whatsapp, grupo_id')
     .eq('id', inviteId)
     .eq('invited_by', callerUserId)
     .eq('status', 'pending')
@@ -96,39 +97,56 @@ Deno.serve(async (req) => {
     return json({ error: 'No pending invite found for your account.' }, 403)
   }
 
-  const recipient = String(invite.invited_email).toLowerCase()
+  const recipient = invite.invited_email ? String(invite.invited_email).toLowerCase() : null
 
-  const [{ data: company }, { data: profile }] = await Promise.all([
-    supabase.from('companies').select('name').eq('id', invite.company_id).maybeSingle(),
+  const [{ data: grupo }, { data: profile }] = await Promise.all([
+    supabase.from('company_invites').select('companies(name)').eq('grupo_id', invite.grupo_id).eq('status', 'pending'),
     supabase.from('profiles').select('full_name').eq('user_id', callerUserId).maybeSingle(),
   ])
+  const nomes = ((grupo ?? []) as Array<{ companies: { name: string } | null }>)
+    .map((g) => g.companies?.name).filter(Boolean) as string[]
+  const companyName = nomes.length ? nomes.join(', ') : 'uma empresa'
+  const inviterName = profile?.full_name ?? 'Um administrador'
+  const inviteUrl = `${APP_URL}/convite/${invite.token}`
 
-  try {
-    const result = await sendTemplateEmail(TEMPLATE_NAME, recipient, {
-      idempotencyKey: `company-invite-${invite.id}`,
-      templateData: {
-        companyName: company?.name ?? 'uma empresa',
-        inviterName: profile?.full_name ?? 'Um administrador',
-        role: invite.role,
-        inviteUrl: `${APP_URL}/convite/${invite.token}`,
-      },
-    })
-
-    if (!result.sent) {
-      await logSend(supabase, recipient, 'suppressed')
-      return json({ success: false, reason: result.reason })
+  let whatsappOk = false
+  const phone = normalizeBRPhone(invite.whatsapp)
+  if (phone) {
+    const primeiroNome = String(invite.full_name ?? '').split(' ')[0] ?? ''
+    const nomeFmt = primeiroNome ? primeiroNome.charAt(0) + primeiroNome.slice(1).toLowerCase() : ''
+    const msg = `Olá${nomeFmt ? `, ${nomeFmt}` : ''}! ${inviterName} convidou você para acessar ${companyName} no Aveto 360.\n\nCrie sua senha pelo link (válido por 7 dias):\n${inviteUrl}`
+    const r = await sendZapiText(phone, msg)
+    whatsappOk = r.ok
+    if (r.ok) {
+      await supabase.from('company_invites').update({ whatsapp_sent_at: new Date().toISOString() }).eq('grupo_id', invite.grupo_id)
+    } else {
+      console.warn('WhatsApp invite not sent', { error: r.error, status: r.httpStatus })
     }
+  }
 
-    await logSend(supabase, recipient, 'sent')
-    await supabase
-      .from('company_invites')
-      .update({ email_sent_at: new Date().toISOString() })
-      .eq('id', invite.id)
+  let emailOk = false
+  if (recipient) {
+    try {
+      const result = await sendTemplateEmail(TEMPLATE_NAME, recipient, {
+        idempotencyKey: `company-invite-${invite.id}`,
+        templateData: { companyName, inviterName, role: invite.role, inviteUrl },
+      })
+      if (!result.sent) {
+        await logSend(supabase, recipient, 'suppressed')
+      } else {
+        emailOk = true
+        await logSend(supabase, recipient, 'sent')
+        await supabase.from('company_invites').update({ email_sent_at: new Date().toISOString() }).eq('grupo_id', invite.grupo_id)
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.error('Failed to send company invite email', { message })
+      await logSend(supabase, recipient, 'failed', message.slice(0, 1000))
+    }
+  }
 
-    return json({ success: true })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    console.error('Failed to send company invite email', { message })
+  return json({ success: whatsappOk || emailOk, whatsapp: whatsappOk, email: emailOk })
+})
     await logSend(supabase, recipient, 'failed', message.slice(0, 1000))
     return json({ error: 'Failed to send invite email' }, 500)
   }
