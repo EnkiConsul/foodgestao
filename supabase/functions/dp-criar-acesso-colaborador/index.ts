@@ -130,6 +130,12 @@ Deno.serve(async (req) => {
         { user_id: targetUserId, role: "dp_colaborador" },
         { onConflict: "user_id,role" },
       );
+
+      // Garante o Nome Completo no perfil (nunca o login sintético).
+      const nomeOficial = (colab.nome ?? "").trim().toUpperCase();
+      if (nomeOficial) {
+        await admin.from("profiles").update({ full_name: nomeOficial }).eq("user_id", targetUserId);
+      }
     }
 
     const { error: secErr } = await admin.from("auth_user_security_state").upsert(
