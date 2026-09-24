@@ -32,7 +32,7 @@ export function useCompanyPermissions() {
   const activeCompanyId = selectedCompanyId;
   const isPersonal = contextType === "pf" || !activeCompanyId;
 
-  const { data: member } = useQuery<MemberInfo | null>({
+  const { data: member, isFetched } = useQuery<MemberInfo | null>({
     queryKey: ["company-member-self", user?.id, activeCompanyId],
     enabled: !!user && !!activeCompanyId,
     queryFn: async () => {
@@ -69,8 +69,16 @@ export function useCompanyPermissions() {
     return member.modulos?.[m] !== false;
   };
 
+  /** Rota liberada para o item? Sem vínculo de membro, as regras do banco decidem. */
+  const podeRota = (item: ModuleKey | null) => {
+    if (!item || isPersonal || !member) return true;
+    return atLeast(level(item), "consulta");
+  };
+
   return {
     isPersonal,
+    carregado: isPersonal || !activeCompanyId || isFetched,
+    podeRota,
     role: member?.role,
     perfil: member?.perfil,
     permissions: member?.permissions ?? {},
