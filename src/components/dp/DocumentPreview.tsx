@@ -124,9 +124,27 @@ export function DocumentPreview({
             <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
               Documento indisponível.
             </div>
+          ) : ehHeicLegado && !heicUrl ? (
+            <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center text-sm text-muted-foreground">
+              {heicErro ? (
+                <>
+                  <p>Foto de iPhone que o navegador não abre. Baixe para ver no seu aparelho.</p>
+                  <Button asChild size="sm">
+                    <a href={resolvedUrl} download>
+                      <Download className="h-4 w-4 mr-2" /> Baixar foto
+                    </a>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <p>Preparando a foto para exibir...</p>
+                </>
+              )}
+            </div>
           ) : isImage ? (
             <div className="flex items-center justify-center h-full overflow-auto p-4">
-              <img src={resolvedUrl} alt={title} className="max-h-full max-w-full object-contain" />
+              <img src={heicUrl ?? resolvedUrl} alt={title} className="max-h-full max-w-full object-contain" />
             </div>
           ) : isPdf ? (
             <iframe src={resolvedUrl} title={title} className="w-full h-full border-0" />
