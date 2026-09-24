@@ -109,11 +109,11 @@ export default function GestaoUsuarios() {
     queryKey: ["company-members", activeCompanyId],
     enabled: !!activeCompanyId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = (await (supabase as any)
         .from("company_members")
-        .select("id, user_id, role, permissions, perfil, modulos, ver_saldos, ver_salarios, situacao, created_at" as any)
+        .select("id, user_id, role, permissions, perfil, modulos, ver_saldos, ver_salarios, situacao, created_at")
         .eq("company_id", activeCompanyId)
-        .order("created_at");
+        .order("created_at")) as { data: any[] | null };
 
       if (!data) return [];
 
