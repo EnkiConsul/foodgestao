@@ -15,7 +15,21 @@ export type UploadPolicy = {
   formatos: string;
 };
 
-const PDF_E_IMAGENS = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+// Inclui formatos de câmera de celular (HEIC/HEIF do iPhone) e digitalizações
+// (GIF/BMP/TIFF), que os seletores de arquivo "image/*" oferecem.
+const PDF_E_IMAGENS = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  "image/heic-sequence",
+  "image/heif-sequence",
+  "image/gif",
+  "image/bmp",
+  "image/tiff",
+];
 const SOMENTE_IMAGENS = ["image/jpeg", "image/png", "image/webp"];
 
 export const UPLOAD_POLICIES: Record<string, UploadPolicy> = {
