@@ -97,7 +97,7 @@ export function MinhaJornadaAcoesCard() {
   const fechar = () => setAberta(null);
 
   const enviarAtestado = async () => {
-    const arquivo = arquivoRef.current?.files?.[0];
+    const escolhido = arquivoRef.current?.files?.[0];
     if (!vinculo) return toast.error("Não encontramos seu cadastro. Fale com o DP.");
     if (!arquivo) return toast.error("Anexe a foto ou o PDF do atestado.");
     setEnviandoAtestado(true);
