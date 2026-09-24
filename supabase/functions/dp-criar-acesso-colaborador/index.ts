@@ -93,7 +93,14 @@ Deno.serve(async (req) => {
         // Senha aleatória descartada: nunca sai daqui, nunca é usada para entrar.
         password: `${gerarCodigo(20)}aA1!`,
         email_confirm: true,
-        user_metadata: { colaborador_id: colab.id, kind: "dp_colaborador", cpf, nome: colab.nome },
+        // full_name alimenta o perfil: o login sintético nunca deve virar nome de exibição.
+        user_metadata: {
+          colaborador_id: colab.id,
+          kind: "dp_colaborador",
+          cpf,
+          nome: colab.nome,
+          full_name: (colab.nome ?? "").trim().toUpperCase() || null,
+        },
       });
 
       if (created.error && jaRegistrado(created.error.message)) {
