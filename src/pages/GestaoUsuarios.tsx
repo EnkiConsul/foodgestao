@@ -425,7 +425,7 @@ export default function GestaoUsuarios() {
           </div>
 
           {/* Mobile */}
-          <div className="md:hidden space-y-2">
+          <div className="md:hidden space-y-2.5">
             {loadingMembers ? (
               <p className="text-sm text-muted-foreground text-center py-4">Carregando...</p>
             ) : members.length === 0 ? (
@@ -434,33 +434,31 @@ export default function GestaoUsuarios() {
               members.map((member: any) => {
                 const canManage = isAdminOrOwner && canManageMember(member);
                 return (
-                  <div key={member.id} className="rounded-md border p-3 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">{member.full_name}</p>
-                        <p className="text-[11px] text-muted-foreground">Desde {formatDate(member.created_at, "dd/MM/yyyy")}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
+                  <div key={member.id} className="rounded-lg border bg-card p-3 space-y-2.5">
+                    <div className="min-w-0 space-y-1.5">
+                      <p className="font-medium leading-tight break-words">{member.full_name}</p>
+                      <div className="flex flex-wrap items-center gap-1.5">
                         {perfilBadge(member.perfil, member.role)}
                         {member.situacao === "bloqueado" && <Badge variant="destructive">Bloqueado</Badge>}
                       </div>
+                      <p className="text-[11px] text-muted-foreground">Desde {formatDate(member.created_at, "dd/MM/yyyy")}</p>
                     </div>
                     {canManage && (
-                      <div className="flex gap-2 pt-1 border-t">
+                      <div className="flex gap-2 border-t pt-2.5">
                         <Button
-                          variant="outline"
+                          variant="secondary"
                           size="sm"
-                          className="flex-1 min-h-9"
+                          className="flex-1 min-h-10"
                           onClick={() =>
                             setEditingMember({ ...member, permissions: member.permissions ?? {} })
                           }
                         >
-                          <Settings2 className="h-4 w-4 mr-1" /> Permissões
+                          <Settings2 className="h-4 w-4 mr-1.5" /> Permissões
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="flex-1 min-h-9 text-destructive hover:text-destructive">
-                              <Trash2 className="h-4 w-4 mr-1" /> Remover
+                            <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" aria-label="Remover membro">
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
