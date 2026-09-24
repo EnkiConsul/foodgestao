@@ -73,3 +73,13 @@ export function validarUpload(bucket: string, file: File): void {
   const erro = checarUpload(bucket, file);
   if (erro) throw new Error(erro);
 }
+
+/**
+ * Prepara o arquivo para envio: converte foto de iPhone (HEIC/HEIF) em JPEG e
+ * só então valida tamanho e formato. Use no lugar de `validarUpload`.
+ */
+export async function prepararUpload(bucket: string, file: File): Promise<File> {
+  const pronto = await converterHeicParaJpeg(file);
+  validarUpload(bucket, pronto);
+  return pronto;
+}
