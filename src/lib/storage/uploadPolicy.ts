@@ -6,6 +6,9 @@
  * aceitos, para recusar antes de consumir rede e devolver mensagem clara.
  */
 
+import { converterHeicParaJpeg } from "@/lib/storage/heic";
+
+
 export type UploadPolicy = {
   /** Limite em megabytes, igual ao configurado no bucket. */
   maxMB: number;
