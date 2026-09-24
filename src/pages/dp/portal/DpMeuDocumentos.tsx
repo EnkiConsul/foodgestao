@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { validarUpload } from "@/lib/storage/uploadPolicy";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -243,6 +244,7 @@ export default function DpMeuDocumentos() {
     try {
       const file = files[0];
       const path = `${colaborador.company_id}/${colaborador.id}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
+      validarUpload(BUCKET, file);
       const up = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
       if (up.error) throw up.error;
       await registrarDocumento({

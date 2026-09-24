@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { validarUpload } from "@/lib/storage/uploadPolicy";
 
 import { useQuery } from "@tanstack/react-query";
 
@@ -643,6 +644,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       const filePath = `${user.id}/${transactionId}/${Date.now()}_${safeName}`;
       const { error } = await supabase.storage
         .from("transaction-attachments")
+        validarUpload("transaction-attachments", file);
         .upload(filePath, file, { upsert: false });
       if (error) {
         toast.error(`Erro ao enviar ${file.name}`, { description: error.message });

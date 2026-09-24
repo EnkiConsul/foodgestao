@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { validarUpload } from "@/lib/storage/uploadPolicy";
 import {
   excluirDocumento,
   substituirDocumento,
@@ -174,6 +175,7 @@ export async function substituirDocumentoHistorico(params: {
   const ext = (file.name.split(".").pop() || "pdf").toLowerCase();
   const novoPath = `${companyId}/${id}/${Date.now()}.${ext}`;
 
+  validarUpload(cfg.bucket, file);
   const up = await supabase.storage.from(cfg.bucket).upload(novoPath, file, {
     contentType: file.type || "application/pdf",
     upsert: true,

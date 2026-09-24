@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { validarUpload } from "@/lib/storage/uploadPolicy";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeStorageFilename } from "@/lib/storage";
@@ -48,6 +49,7 @@ export function useDpComprovantePagamento() {
       // A primeira pasta precisa ser a empresa: as regras de acesso do
       // repositório leem esse trecho como identificador da empresa.
       const path = `${selectedCompanyId}/${alvo.colaboradorId ?? "geral"}/comprovantes/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
+      validarUpload(DP_DOCUMENTOS_BUCKET, file);
       const up = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(path, file, {
         contentType: file.type,
         upsert: false,

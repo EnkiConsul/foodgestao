@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { validarUpload } from "@/lib/storage/uploadPolicy";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -76,6 +77,7 @@ export function AvisoDialog({
     try {
       const safeName = sanitizeStorageFilename(file.name);
       const path = `${companyId}/avisos/${Date.now()}-${safeName}`;
+      validarUpload("dp-documentos", file);
       const up = await supabase.storage.from("dp-documentos").upload(path, file, { contentType: file.type });
       if (up.error) throw up.error;
       setArquivoPath(path);

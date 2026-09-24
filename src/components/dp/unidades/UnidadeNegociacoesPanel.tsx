@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { validarUpload } from "@/lib/storage/uploadPolicy";
 import { toast } from "sonner";
 import { Calendar, Download, Eye, FileText, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -177,6 +178,7 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
         const path = `${selectedCompanyId}/sindicato-negociacoes/${unidadeId}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
         const { error: upErr } = await supabase.storage
           .from("dp-documentos")
+          validarUpload("dp-documentos", file);
           .upload(path, file, { upsert: true, contentType: file.type || "application/pdf" });
         if (upErr) throw upErr;
         pdf_path = path;
