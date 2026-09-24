@@ -584,20 +584,48 @@ export default function GestaoUsuarios() {
                 <div key={invite.id} className="rounded-md border p-3 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{invite.full_name ?? invite.invited_email}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{contatoConvite(invite)}</p>
+                      <p className="text-sm font-medium truncate">{nomeConvite(invite)}</p>
+                      {contatoConvite(invite) && (
+                        <p className="text-[11px] text-muted-foreground truncate">{contatoConvite(invite)}</p>
+                      )}
                     </div>
                     {statusBadge(invite.status)}
                   </div>
                   <div>{perfilBadge(invite.perfil, invite.role)}</div>
                   {invite.status === "pending" && (
-                    <div className="flex gap-2 pt-1 border-t">
+                    <div className="flex flex-wrap gap-2 pt-1 border-t">
+                      <Button
+                        size="sm"
+                        className="flex-1 min-h-9"
+                        disabled={resendingId === invite.id}
+                        onClick={() => handleResendInvite(invite)}
+                      >
+                        <Send className="h-4 w-4 mr-1" /> Reenviar
+                      </Button>
                       <Button variant="outline" size="sm" className="flex-1 min-h-9" onClick={() => handleCopyLink(invite.token)}>
                         <Copy className="h-4 w-4 mr-1" /> Copiar link
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1 min-h-9 text-destructive hover:text-destructive" onClick={() => handleCancelInvite(invite.id)}>
-                        <XCircle className="h-4 w-4 mr-1" /> Cancelar
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="flex-1 min-h-9 text-destructive hover:text-destructive">
+                            <XCircle className="h-4 w-4 mr-1" /> Cancelar
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Cancelar convite</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              O link enviado para <strong>{nomeConvite(invite)}</strong> deixará de funcionar. Deseja continuar?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Voltar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleCancelInvite(invite.id)}>
+                              Cancelar convite
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   )}
                 </div>
