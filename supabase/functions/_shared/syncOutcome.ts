@@ -15,7 +15,6 @@ export type SyncBody = {
   error?: string | null;
   message?: string | null;
   write_failures?: number | null;
-  v2_materialized?: boolean | null;
   item_status?: string | null;
   execution_status?: string | null;
 };
