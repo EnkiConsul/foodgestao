@@ -42,8 +42,15 @@ const perfilBadge = (perfil: string | null | undefined, role: string) => {
   return <Badge variant="secondary"><User className="h-3 w-3 mr-1" />{PERFIL_LABELS[perfil as PerfilKey] ?? "Membro"}</Badge>;
 };
 
-const contatoConvite = (i: any) =>
-  [i.whatsapp ? maskPhone(i.whatsapp) : null, i.invited_email].filter(Boolean).join(" · ");
+const nomeConvite = (i: any) =>
+  (i.full_name && String(i.full_name).trim()) || i.invited_email || (i.whatsapp ? maskPhone(i.whatsapp) : "Convidado");
+
+const contatoConvite = (i: any) => {
+  const nome = nomeConvite(i);
+  return [i.whatsapp ? maskPhone(i.whatsapp) : null, i.invited_email]
+    .filter((v) => Boolean(v) && v !== nome)
+    .join(" · ");
+};
 
 const statusBadge = (status: string) => {
   switch (status) {
