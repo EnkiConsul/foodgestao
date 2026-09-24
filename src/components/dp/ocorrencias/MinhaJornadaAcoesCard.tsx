@@ -99,11 +99,11 @@ export function MinhaJornadaAcoesCard() {
   const enviarAtestado = async () => {
     const escolhido = arquivoRef.current?.files?.[0];
     if (!vinculo) return toast.error("Não encontramos seu cadastro. Fale com o DP.");
-    if (!arquivo) return toast.error("Anexe a foto ou o PDF do atestado.");
+    if (!escolhido) return toast.error("Anexe a foto ou o PDF do atestado.");
     setEnviandoAtestado(true);
     try {
+      const arquivo = await prepararUpload(BUCKET, escolhido);
       const path = `${vinculo.companyId}/${vinculo.colaboradorId}/${Date.now()}-${sanitizeStorageFilename(arquivo.name)}`;
-      validarUpload(BUCKET, arquivo);
       const up = await supabase.storage.from(BUCKET).upload(path, arquivo, {
         contentType: arquivo.type,
         upsert: false,
