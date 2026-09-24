@@ -47,9 +47,13 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
   const [flags, setFlags] = useState({ ver_saldos: true, ver_salarios: true });
   const [ativo, setAtivo] = useState(true);
   const [empresas, setEmpresas] = useState<string[]>([]);
+  const [contas, setContas] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
 
   const { data: adminCompanies = [] } = useAdminCompanies(open);
+  const { data: contasEmpresa = [] } = useCompanyAccounts(companyId, open);
+  const acessoTotal = role === "owner" || role === "admin";
+  const nomeEmpresa = adminCompanies.find((c) => c.id === companyId)?.name;
 
   // Vínculos atuais do membro nas empresas que o usuário logado administra.
   const { data: vinculos = [], refetch: refetchVinculos } = useQuery({
