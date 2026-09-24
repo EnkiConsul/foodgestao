@@ -5,6 +5,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { salvarColaborador } from "@/lib/dp/colaborador-oficial";
+import { COLUNAS_COLABORADOR_PUBLICAS, mesclarConfidencial } from "@/lib/dp/confidencial";
 
 export type DpColaborador = Database["public"]["Tables"]["dp_colaboradores"]["Row"] & {
   cargo_nome?: string | null;
@@ -22,17 +23,18 @@ export function useDpColaboradores() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_colaboradores")
-        .select("*, dp_cargos(nome), dp_unidades(nome), dp_setores(nome, ativo)")
+        .select(`${COLUNAS_COLABORADOR_PUBLICAS}, dp_cargos(nome), dp_unidades(nome), dp_setores(nome, ativo)`)
         .eq("company_id", selectedCompanyId!)
         .order("nome");
       if (error) throw error;
-      return (data ?? []).map((r: any) => ({
+      const linhas = ((data ?? []) as any[]).map((r: any) => ({
         ...r,
         cargo_nome: r.dp_cargos?.nome ?? r.cargo ?? null,
         unidade_nome: r.dp_unidades?.nome ?? null,
         setor_nome: r.dp_setores?.nome ?? null,
         setor_ativo: r.dp_setores?.ativo ?? null,
-      })) as DpColaborador[];
+      }));
+      return (await mesclarConfidencial(selectedCompanyId!, linhas)) as DpColaborador[];
     },
   });
 }
