@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { LayoutGrid, MoreHorizontal, Sliders } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useActiveModule, type ActiveModule } from "@/hooks/useActiveModule";
@@ -194,6 +194,7 @@ function SlotRenderer({
   }
 
   if (slot.kind === "more") {
+    if (mod === "hub") return <HubMoreSheet />;
     return <MoreSlot to={config.moreTo} />;
   }
 
@@ -229,6 +230,81 @@ function HomeSlot({ leaf }: { leaf: NavLeaf }) {
   );
 }
 
+
+function HubMoreSheet() {
+  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const groups = MODULE_NAV.hub.moreGroups;
+  const go = (to: string) => {
+    haptic(8);
+    setOpen(false);
+    navigate(to);
+  };
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => { haptic(6); setOpen(true); }}
+        className={cn(
+          "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] pb-3 pt-1",
+          "active:scale-95 transition-all",
+          open ? "text-primary" : "text-muted-foreground",
+        )}
+        aria-label="Mais opções"
+        aria-haspopup="dialog"
+      >
+        <MoreHorizontal className="h-5 w-5" />
+        <span className="text-[10px] font-medium leading-none">Mais</span>
+      </button>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl p-0 md:hidden">
+          <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-muted" aria-hidden />
+          <SheetHeader className="px-5 pt-3 pb-2">
+            <SheetTitle className="text-left">Mais opções</SheetTitle>
+          </SheetHeader>
+          <div
+            className="px-4 pb-4 max-h-[70vh] overflow-y-auto space-y-4"
+            style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+          >
+            {groups.map((g) => {
+              const items = [
+                ...(g.items ?? []),
+                ...((g.subgroups ?? []).flatMap((s) => s.items ?? [])),
+              ];
+              if (items.length === 0) return null;
+              return (
+                <section key={g.label}>
+                  <p className="px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {g.label}
+                  </p>
+                  <div className="rounded-xl border bg-card overflow-hidden">
+                    {items.map((it, i) => {
+                      const Icon = it.icon;
+                      return (
+                        <button
+                          key={it.to}
+                          type="button"
+                          onClick={() => go(it.to)}
+                          className={cn(
+                            "w-full min-h-12 flex items-center gap-3 px-4 py-3 text-left active:bg-muted/60",
+                            i > 0 && "border-t",
+                          )}
+                        >
+                          <Icon className="h-5 w-5 shrink-0 text-primary" />
+                          <span className="text-sm font-medium flex-1 truncate">{it.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
+  );
+}
 
 function MoreSlot({ to }: { to: string }) {
   return (
