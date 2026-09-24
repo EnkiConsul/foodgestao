@@ -3,7 +3,6 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { getItem, listAccounts, listItems, listTransactions, refreshItem, waitForItem } from '../_shared/pluggy.ts';
 import { buildDescription, counterpartyName } from '../_shared/tx-description.ts';
 import { extractCounterpartyDocument } from '../_shared/counterparty-doc.ts';
-import { materializePluggyItemV2 } from '../_shared/pluggy-v2-materialize.ts';
 import { resolveOpenFinanceBalance } from '../_shared/of-balance.ts';
 
 function normalizeLabel(value: string | null | undefined): string {
@@ -344,23 +343,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fallback: a conexão pode existir apenas no cadastro V2 (item criado pelo
-    // fluxo novo/QR Code). Sem isso, itens que JÁ têm empresa definida caíam em
-    // "empresa não resolvida" e nunca sincronizavam.
-    if (!existing && !companyId) {
-      const { data: v2conn } = await admin
-        .from('pluggy_v2_connections')
-        .select('company_id')
-        .eq('pluggy_item_id', itemId)
-        .not('company_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (v2conn?.company_id) {
-        companyId = v2conn.company_id as string;
-        console.log(`resolved company via pluggy_v2_connections -> ${companyId}`);
-      }
-    }
 
     // Último fallback: resolver a empresa pelo clientUserId gravado no item da
     // Pluggy. Cobre o caso em que nenhuma solicitação foi registrada (ex.: o
@@ -1130,56 +1112,17 @@ Deno.serve(async (req) => {
 
     }
 
-    // Materialização V2: DESATIVADA por padrão. O pipeline de produção é o V1
-    // (pluggy_staging_transactions), única fonte lida pela Conciliação e pelas
-    // RPCs. A cópia em pluggy_v2_* duplicava armazenamento e lógica sem consumo.
-    // Reativação controlada: PLUGGY_V2_MATERIALIZE=on (reversível, sem deploy de código).
-    const v2Habilitado = String(Deno.env.get('PLUGGY_V2_MATERIALIZE') ?? 'off')
-      .trim().toLowerCase() === 'on';
-    let v2Materializado = true; // desativado não é falha
-    let v2Erro: string | null = null;
-    let v2Contas = 0;
-    let v2Lancamentos = 0;
-    if (v2Habilitado) {
-      v2Materializado = false;
-      try {
-        const v2Result = await materializePluggyItemV2({
-          supabase: admin,
-          pluggyItemId: itemId,
-          companyId: effectiveCompanyId,
-          createdBy: userId,
-          triggerSource: userId ? 'manual' : 'webhook',
-          sourceWebhookEventId: null,
-          fullSync: isFirstConnect,
-        });
-        v2Materializado = true;
-        v2Contas = v2Result.accountsSynced ?? 0;
-        v2Lancamentos = v2Result.transactionsIngested ?? 0;
-        console.log('pluggy-v2 materialized', {
-          itemId,
-          companyId: effectiveCompanyId,
-          accounts: v2Contas,
-          transactions: v2Lancamentos,
-        });
-      } catch (v2Err) {
-        v2Erro = v2Err instanceof Error ? v2Err.message : String(v2Err);
-        console.error('pluggy-v2 materialization failed (non-fatal)', { itemId, error: v2Erro });
-      }
-    }
-
-
     // Fecha o ciclo: sem isso a "próxima sincronização" continuava com data
     // vencida depois de sincronizar pelo botão, e o resultado parcial (parte das
     // contas não veio do banco) não ficava registrado para a tela mostrar.
     const execUpper = String(item?.executionStatus ?? '').toUpperCase();
     const parcialBanco = execUpper === 'PARTIAL_SUCCESS';
-    const parcial = parcialBanco || falhasGravacao > 0 || !v2Materializado;
+    const parcial = parcialBanco || falhasGravacao > 0;
     const motivos: string[] = [];
     if (parcialBanco) motivos.push('O banco não devolveu todas as contas nesta coleta.');
     if (falhasGravacao > 0) {
       motivos.push(`${falhasGravacao} lote(s) de lançamentos não foram gravados.`);
     }
-    if (!v2Materializado) motivos.push('A cópia persistente do extrato não foi atualizada.');
     const intervaloMin = Number(Deno.env.get('PLUGGY_CRON_INTERVAL_MIN') ?? '60');
     // Timestamp de conclusão só agora, depois de tudo persistido.
     const concluidoEm = new Date().toISOString();
@@ -1192,7 +1135,7 @@ Deno.serve(async (req) => {
         // Coleta parcial do banco ainda gravou extrato: marcar como sincronizado
         // agora evita a tela mostrar sincronização vencida indefinidamente.
         // Só falha de gravação nossa mantém a data anterior.
-        last_synced_at: (falhasGravacao > 0 || !v2Materializado) ? undefined : concluidoEm,
+        last_synced_at: falhasGravacao > 0 ? undefined : concluidoEm,
         next_sync_at: new Date(Date.now() + intervaloMin * 60_000).toISOString(),
       })
       .eq('id', conn.id);
@@ -1205,12 +1148,6 @@ Deno.serve(async (req) => {
       accounts: accounts.length,
       transactions: staged,
       write_failures: falhasGravacao,
-      v2_enabled: v2Habilitado,
-      v2_materialized: v2Materializado,
-
-      v2_accounts: v2Contas,
-      v2_transactions: v2Lancamentos,
-      v2_error: v2Erro,
       message: parcial ? motivos.join(' ') : null,
       first_connect: !!isFirstConnect,
       item_status: item?.status ?? null,

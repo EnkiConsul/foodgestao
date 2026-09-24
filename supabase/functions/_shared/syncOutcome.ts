@@ -15,7 +15,6 @@ export type SyncBody = {
   error?: string | null;
   message?: string | null;
   write_failures?: number | null;
-  v2_materialized?: boolean | null;
   item_status?: string | null;
   execution_status?: string | null;
 };
@@ -131,8 +130,7 @@ export function classifySyncResult(input: {
   const parcial =
     body.partial === true ||
     exec === 'PARTIAL_SUCCESS' ||
-    (body.write_failures ?? 0) > 0 ||
-    body.v2_materialized === false;
+    (body.write_failures ?? 0) > 0;
 
   if (parcial) {
     return {

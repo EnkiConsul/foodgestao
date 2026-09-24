@@ -210,8 +210,7 @@ async function triggerSync(itemId: string, hints: SyncHints = {}) {
   if (
     outcome.status === 'partial_success' &&
     String(body?.execution_status ?? '').toUpperCase() === 'PARTIAL_SUCCESS' &&
-    (body?.write_failures ?? 0) === 0 &&
-    body?.v2_materialized !== false
+    (body?.write_failures ?? 0) === 0
   ) {
     console.warn(`pluggy-webhook-worker: item ${itemId} coleta parcial do banco — registrada sem retentativa`);
     return;
@@ -219,15 +218,12 @@ async function triggerSync(itemId: string, hints: SyncHints = {}) {
   throw new Error(`sync_${outcome.status}: ${outcome.detail ?? `HTTP ${res.status}`}`);
 }
 
-/** O item existe em alguma conexão do sistema (v1 ou v2)? */
+/** O item existe em alguma conexão do sistema? */
 async function itemIsKnown(admin: Admin, itemId: string): Promise<boolean> {
-  const [v1, v2] = await Promise.all([
-    admin.from('pluggy_connections').select('id', { count: 'exact', head: true })
-      .eq('pluggy_item_id', itemId),
-    admin.from('pluggy_v2_connections').select('id', { count: 'exact', head: true })
-      .eq('pluggy_item_id', itemId),
-  ]);
-  return (v1.count ?? 0) > 0 || (v2.count ?? 0) > 0;
+  const { count } = await admin
+    .from('pluggy_connections').select('id', { count: 'exact', head: true })
+    .eq('pluggy_item_id', itemId);
+  return (count ?? 0) > 0;
 }
 
 
