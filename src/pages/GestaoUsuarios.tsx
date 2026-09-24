@@ -126,16 +126,35 @@ export default function GestaoUsuarios() {
       if (!data) return [];
 
       const userIds = data.map((m) => m.user_id);
-      const { data: profiles } = await (supabase as any)
-        .from("company_member_profiles")
-        .select("user_id, full_name")
-        .in("user_id", userIds);
+      const [{ data: profiles }, { data: colaboradores }] = await Promise.all([
+        (supabase as any).from("company_member_profiles").select("user_id, full_name").in("user_id", userIds),
+        (supabase as any)
+          .from("dp_colaboradores")
+          .select("user_id, nome")
+          .eq("company_id", activeCompanyId)
+          .in("user_id", userIds),
+      ]);
 
-      const profileMap = new Map(((profiles ?? []) as Array<{ user_id: string; full_name: string | null }>).map((p) => [p.user_id, p]));
+      const profileMap = new Map(
+        ((profiles ?? []) as Array<{ user_id: string; full_name: string | null }>).map((p) => [p.user_id, p.full_name]),
+      );
+      const colabMap = new Map(
+        ((colaboradores ?? []) as Array<{ user_id: string; nome: string | null }>).map((c) => [c.user_id, c.nome]),
+      );
+
+      // O Nome Completo sempre prevalece: nomes salvos como e-mail de login
+      // (contas do portal) são descartados em favor do cadastro de Pessoas.
+      const nomeValido = (v: unknown) => {
+        const s = String(v ?? "").trim();
+        return s && !s.includes("@") ? s : "";
+      };
 
       return data.map((m: any) => ({
         ...m,
-        full_name: profileMap.get(m.user_id)?.full_name ?? "Usuário",
+        full_name:
+          nomeValido(colabMap.get(m.user_id)) ||
+          nomeValido(profileMap.get(m.user_id)) ||
+          "Usuário",
       }));
     },
   });
