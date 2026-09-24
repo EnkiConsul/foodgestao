@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { validarUpload } from "@/lib/storage/uploadPolicy";
+import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -133,14 +133,14 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
   const enviar = useMutation({
     mutationFn: async ({
       item,
-      file,
+      file: escolhido,
       validade,
       novaParte,
     }: { item: ItemChecklist; file: File; validade?: string | null; novaParte?: boolean }) => {
       const ctx = base.data;
       if (!ctx) throw new Error("Checklist não carregado");
+      const file = await prepararUpload(DP_DOCUMENTOS_BUCKET, escolhido);
       const path = `${ctx.colaborador.company_id}/${ctx.colaborador.id}/requisitos/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
-      validarUpload(DP_DOCUMENTOS_BUCKET, file);
       const up = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(path, file, {
         contentType: file.type,
         upsert: false,

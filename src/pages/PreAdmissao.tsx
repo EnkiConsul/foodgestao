@@ -7,6 +7,7 @@
  * que ele responde — inclusive os erros campo a campo.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { converterHeicParaJpeg } from "@/lib/storage/heic";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
@@ -466,12 +467,14 @@ export default function PreAdmissao() {
     fileRef.current?.click();
   };
 
-  const enviarArquivo = async (arquivo: File) => {
+  const enviarArquivo = async (escolhido: File) => {
     const item = alvo.current;
     if (!item) return;
     const parte = Math.min(Math.max(item.parte ?? 1, 1), 10);
     setSubindo(`${item.key}:${parte}`);
     try {
+      // Foto de iPhone (HEIC) é convertida em JPEG antes do envio.
+      const arquivo = await converterHeicParaJpeg(escolhido);
       const base64 = await lerBase64(arquivo);
       await chamar<{ success: boolean }>("dp-preadmissao-arquivo", {
         action: "upload",

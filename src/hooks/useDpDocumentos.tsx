@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { validarUpload } from "@/lib/storage/uploadPolicy";
+import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -103,9 +103,9 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
   const enviar = async ({ files, colaborador_id, tipo, titulo, descricao, referencia_data }: EnviarDocumentosInput) => {
     if (!selectedCompanyId) throw new Error("Sem empresa selecionada");
     let ok = 0;
-    for (const file of files) {
+    for (const escolhido of files) {
+      const file = await prepararUpload(DP_DOCUMENTOS_BUCKET, escolhido);
       const path = `${selectedCompanyId}/${colaborador_id || "geral"}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
-      validarUpload(DP_DOCUMENTOS_BUCKET, file);
       const up = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(path, file, {
         contentType: file.type,
         upsert: false,

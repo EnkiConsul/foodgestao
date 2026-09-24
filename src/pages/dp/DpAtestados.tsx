@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { validarUpload } from "@/lib/storage/uploadPolicy";
+import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FileWarning, Download, Upload, History, FileText, Trash2, Pencil, FileImage, FileUp } from "lucide-react";
@@ -333,9 +333,9 @@ export default function DpAtestados() {
 
       let path: string | null = null;
       if (pendingFile) {
-        path = `${selectedCompanyId}/${licenca ? "licenca" : "atestado"}/${colaboradorId}/${Date.now()}-${sanitizeStorageFilename(pendingFile.name)}`;
-        validarUpload(BUCKET, pendingFile);
-        const up = await supabase.storage.from(BUCKET).upload(path, pendingFile, { upsert: false });
+        const envio = await prepararUpload(BUCKET, pendingFile);
+        path = `${selectedCompanyId}/${licenca ? "licenca" : "atestado"}/${colaboradorId}/${Date.now()}-${sanitizeStorageFilename(envio.name)}`;
+        const up = await supabase.storage.from(BUCKET).upload(path, envio, { upsert: false });
         if (up.error) throw up.error;
       }
 

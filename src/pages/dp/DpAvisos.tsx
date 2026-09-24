@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { validarUpload } from "@/lib/storage/uploadPolicy";
+import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -65,19 +65,20 @@ export function AvisoDialog({
   const unidades = useDpUnidades();
   const colaboradores = useDpColaboradores();
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (escolhido: File) => {
     if (!companyId) return toast.error("Selecione uma empresa");
-    if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
-      return toast.error(`Arquivo maior que ${MAX_UPLOAD_MB}MB`);
-    }
-    if (file.type && !ALLOWED_MIMES.includes(file.type)) {
-      return toast.error("Tipo de arquivo não permitido (PDF ou imagem)");
-    }
     setUploading(true);
     try {
+      // Foto de iPhone (HEIC) vira JPEG antes de subir.
+      const file = await prepararUpload("dp-documentos", escolhido);
+      if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
+        return toast.error(`Arquivo maior que ${MAX_UPLOAD_MB}MB`);
+      }
+      if (file.type && !ALLOWED_MIMES.includes(file.type)) {
+        return toast.error("Tipo de arquivo não permitido (PDF ou imagem)");
+      }
       const safeName = sanitizeStorageFilename(file.name);
       const path = `${companyId}/avisos/${Date.now()}-${safeName}`;
-      validarUpload("dp-documentos", file);
       const up = await supabase.storage.from("dp-documentos").upload(path, file, { contentType: file.type });
       if (up.error) throw up.error;
       setArquivoPath(path);

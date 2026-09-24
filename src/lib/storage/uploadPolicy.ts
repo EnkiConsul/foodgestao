@@ -6,6 +6,9 @@
  * aceitos, para recusar antes de consumir rede e devolver mensagem clara.
  */
 
+import { converterHeicParaJpeg } from "@/lib/storage/heic";
+
+
 export type UploadPolicy = {
   /** Limite em megabytes, igual ao configurado no bucket. */
   maxMB: number;
@@ -72,4 +75,14 @@ export function checarUpload(bucket: string, file: File): string | null {
 export function validarUpload(bucket: string, file: File): void {
   const erro = checarUpload(bucket, file);
   if (erro) throw new Error(erro);
+}
+
+/**
+ * Prepara o arquivo para envio: converte foto de iPhone (HEIC/HEIF) em JPEG e
+ * só então valida tamanho e formato. Use no lugar de `validarUpload`.
+ */
+export async function prepararUpload(bucket: string, file: File): Promise<File> {
+  const pronto = await converterHeicParaJpeg(file);
+  validarUpload(bucket, pronto);
+  return pronto;
 }
