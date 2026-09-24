@@ -55,6 +55,17 @@ const RACA_COR: Opcao[] = [
   { value: "nao_informado", label: "Prefiro não informar" },
 ];
 
+/** Deficiência declarada pelo candidato (a empresa decide se pergunta). */
+const DEFICIENCIA: Opcao[] = [
+  { value: "nenhuma", label: "Não tenho deficiência" },
+  { value: "fisica", label: "Física" },
+  { value: "auditiva", label: "Auditiva" },
+  { value: "visual", label: "Visual" },
+  { value: "intelectual", label: "Intelectual" },
+  { value: "multipla", label: "Múltipla" },
+  { value: "reabilitado", label: "Reabilitado(a) pelo INSS" },
+];
+
 const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?: boolean }> = [
   {
     titulo: "Seus Dados",
@@ -75,6 +86,7 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?:
       { nome: "naturalidade", rotulo: "Cidade onde nasceu", upper: true },
       { nome: "naturalidade_uf", rotulo: "Estado onde nasceu", opcoes: UFS.map((uf) => ({ value: uf, label: uf })) },
       { nome: "raca_cor", rotulo: "Raça / cor", opcoes: RACA_COR },
+      { nome: "deficiencia", rotulo: "Deficiência", opcoes: DEFICIENCIA, ajuda: "Se não tiver, escolha a primeira opção." },
     ],
   },
   {
@@ -88,6 +100,14 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?:
         inputMode: "tel",
         autoComplete: "tel",
         mask: "telefone",
+      },
+      {
+        nome: "whatsapp_contato",
+        rotulo: "WhatsApp de recado",
+        tipo: "tel",
+        inputMode: "tel",
+        mask: "telefone",
+        ajuda: "Número de alguém que possa avisar você, se precisar.",
       },
       { nome: "email", rotulo: "E-mail", tipo: "email", inputMode: "email", autoComplete: "email" },
     ],
@@ -118,14 +138,57 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?:
       { nome: "rg_numero", rotulo: "RG", inputMode: "numeric" },
       { nome: "rg_orgao", rotulo: "Órgão emissor do RG", upper: true },
       { nome: "rg_uf", rotulo: "UF do RG", opcoes: UFS.map((uf) => ({ value: uf, label: uf })) },
+      { nome: "rg_emissao", rotulo: "Data de emissão do RG", mask: "data", inputMode: "numeric", ajuda: "dd/mm/aaaa" },
       { nome: "pis", rotulo: "PIS / NIS", inputMode: "numeric" },
       { nome: "ctps_numero", rotulo: "Carteira de trabalho", inputMode: "numeric" },
       { nome: "ctps_serie", rotulo: "Série da carteira", inputMode: "numeric" },
+      { nome: "ctps_uf", rotulo: "UF da carteira", opcoes: UFS.map((uf) => ({ value: uf, label: uf })) },
+      { nome: "ctps_expedicao", rotulo: "Data da carteira", mask: "data", inputMode: "numeric", ajuda: "dd/mm/aaaa" },
       { nome: "titulo_eleitor", rotulo: "Título de eleitor", inputMode: "numeric" },
+      { nome: "titulo_zona", rotulo: "Zona do título", inputMode: "numeric" },
+      { nome: "titulo_secao", rotulo: "Seção do título", inputMode: "numeric" },
       { nome: "reservista", rotulo: "Certificado de reservista", inputMode: "numeric" },
+      { nome: "reservista_categoria", rotulo: "Categoria da reservista", upper: true },
     ],
   },
 ];
+
+/**
+ * Nome amigável de cada dado da ficha e a etapa onde ele é preenchido: o
+ * servidor devolve o código do campo e aqui traduzimos para o candidato.
+ */
+const ROTULOS_EXTRA: Record<string, { rotulo: string; etapa: string }> = {
+  sexo: { rotulo: "Sexo", etapa: "Seus Dados" },
+  estado_civil: { rotulo: "Estado civil", etapa: "Seus Dados" },
+  grau_instrucao: { rotulo: "Grau de instrução", etapa: "Seus Dados" },
+  cep: { rotulo: "CEP", etapa: "Endereço" },
+  endereco: { rotulo: "Rua", etapa: "Endereço" },
+  numero: { rotulo: "Número", etapa: "Endereço" },
+  complemento: { rotulo: "Complemento", etapa: "Endereço" },
+  bairro: { rotulo: "Bairro", etapa: "Endereço" },
+  cidade: { rotulo: "Cidade", etapa: "Endereço" },
+  uf: { rotulo: "Estado", etapa: "Endereço" },
+  banco_codigo: { rotulo: "Banco", etapa: "Dados De Pagamento" },
+};
+
+const MAPA_CAMPOS: Record<string, { rotulo: string; etapa: string }> = (() => {
+  const mapa = { ...ROTULOS_EXTRA };
+  for (const passo of ETAPAS) {
+    for (const campo of passo.campos) {
+      mapa[campo.nome] = { rotulo: campo.rotulo, etapa: passo.titulo };
+    }
+  }
+  return mapa;
+})();
+
+/** Ex.: "rg_emissao" → "Data de emissão do RG (em Documentos E Registros)". */
+function descreverCampo(nome: string): string {
+  const achado = MAPA_CAMPOS[nome];
+  if (!achado) return nome.replace(/_/g, " ");
+  return `${achado.rotulo} (em ${achado.etapa})`;
+}
+
+
 
 /** Data digitada (dd/mm/aaaa) ↔ data guardada (AAAA-MM-DD). */
 function isoParaBr(iso: string): string {
@@ -362,6 +425,15 @@ export default function PreAdmissao() {
   const pessoasParaEnviar = () =>
     pessoas.filter((p) => p.id || p.nome.trim() || p.parentesco.trim() || p.data_nascimento.trim());
 
+  /** O aviso fica no alto da página: sem isso, no celular ele passa batido. */
+  const irParaOAviso = () => {
+    try {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (_) {
+      window.scrollTo(0, 0);
+    }
+  };
+
   const tratarFalha = async (e: unknown) => {
     if (e instanceof ErroServidor) {
       // Ficha alterada em outro dispositivo: nada do que está na tela é
@@ -376,13 +448,17 @@ export default function PreAdmissao() {
         }
       }
       setErros(e.erros);
-      setFaltando(e.camposFaltando);
+      // Códigos do servidor traduzidos: a pessoa precisa saber o que falta e
+      // em qual etapa voltar.
+      setFaltando(e.camposFaltando.map(descreverCampo));
       setAvisoTopo(e.message);
       toast.error(e.message);
+      irParaOAviso();
       return;
     }
     setAvisoTopo((e as Error).message);
     toast.error((e as Error).message);
+    irParaOAviso();
   };
 
   const salvar = async (avancar: boolean, silencioso = false) => {
@@ -1069,6 +1145,27 @@ export default function PreAdmissao() {
       </main>
 
       <footer className="fixed bottom-0 left-0 right-0 border-t bg-background p-3">
+      {avisoTopo && (
+        <div
+          className="mb-2 max-h-40 overflow-y-auto rounded-lg border border-destructive/40 bg-destructive/10 p-2 text-xs"
+          role="alert"
+          aria-live="assertive"
+        >
+          <p className="font-semibold">{avisoTopo}</p>
+          {!!faltando.length && (
+            <ul className="mt-1 list-disc pl-4 text-muted-foreground">
+              {faltando.map((f) => <li key={`rodape-${f}`}>{f}</li>)}
+            </ul>
+          )}
+          <button
+            type="button"
+            className="mt-1 underline"
+            onClick={irParaOAviso}
+          >
+            Ver detalhes no início da página
+          </button>
+        </div>
+      )}
       <p className="mb-2 text-center text-[11px] text-muted-foreground">
         {rotuloSalvoEm(salvoEm)
           ? `Rascunho ${rotuloSalvoEm(salvoEm).toLowerCase()} — você pode sair e continuar depois.`

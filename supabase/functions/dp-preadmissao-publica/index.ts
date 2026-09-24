@@ -52,6 +52,25 @@ const OBRIGATORIOS = [
   "grau_instrucao", "telefone", "cep", "endereco", "cidade", "uf",
 ];
 
+/**
+ * Dados que o formulário público do candidato realmente pede. Uma regra da
+ * empresa só pode travar o envio se o candidato tiver onde preencher: campos de
+ * uso interno do DP são conferidos depois, pela equipe de Pessoas.
+ */
+const CAMPOS_DO_FORMULARIO: ReadonlySet<string> = new Set([
+  "nome", "nome_social", "cpf", "email", "data_nascimento", "estado_civil", "sexo",
+  "nacionalidade", "naturalidade", "naturalidade_uf",
+  "nome_mae", "nome_pai", "grau_instrucao", "raca_cor", "deficiencia",
+  "telefone", "whatsapp_contato",
+  "cep", "endereco", "numero", "complemento", "bairro", "cidade", "uf",
+  "rg_numero", "rg_orgao", "rg_uf", "rg_emissao",
+  "ctps_numero", "ctps_serie", "ctps_uf", "ctps_expedicao",
+  "titulo_eleitor", "titulo_zona", "titulo_secao",
+  "reservista", "reservista_categoria", "pis",
+  "banco_nome", "agencia", "conta", "conta_digito", "conta_tipo",
+  "pix_tipo", "pix_chave",
+]);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: strictCorsHeaders(req) });
   if (req.method !== "POST") return jsonError(req, "invalid_input", "método inválido");
@@ -311,7 +330,9 @@ Deno.serve(async (req) => {
           exigidos.add(campo);
         }
       }
+      // Nada que o formulário do candidato não pergunte pode impedir o envio.
       const faltando = [...exigidos].filter((campo) => {
+        if (!CAMPOS_DO_FORMULARIO.has(campo)) return false;
         const v = dados[campo];
         return !(typeof v === "string" ? v.trim() : v);
       });
