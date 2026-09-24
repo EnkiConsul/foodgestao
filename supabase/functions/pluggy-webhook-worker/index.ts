@@ -51,7 +51,8 @@ const PENDING_LINK_SUPPRESS_HOURS = Number(
 const SYNC_EVENTS = new Set([
   'item/created',
   'item/updated',
-  'item/login_succeeded',
+  // 'item/login_succeeded' ignorado: login não traz dados novos; a coleta vem
+  // em seguida por item/updated ou transactions/created.
   'item/waiting_user_input',
   'transactions/created',
   'transactions/updated',
@@ -209,8 +210,7 @@ async function triggerSync(itemId: string, hints: SyncHints = {}) {
   // coleta do banco gera um evento novo.
   if (
     outcome.status === 'partial_success' &&
-    String(body?.execution_status ?? '').toUpperCase() === 'PARTIAL_SUCCESS' &&
-    (body?.write_failures ?? 0) === 0
+    Number(body?.write_failures ?? 0) === 0
   ) {
     console.warn(`pluggy-webhook-worker: item ${itemId} coleta parcial do banco — registrada sem retentativa`);
     return;
