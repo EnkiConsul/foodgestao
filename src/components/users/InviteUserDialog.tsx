@@ -179,25 +179,12 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
               </div>
             </div>
 
-            {adminCompanies.length > 1 && (
-              <div className="space-y-2">
-                <Label>Empresas com acesso *</Label>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {adminCompanies.map((c) => (
-                    <label key={c.id} className="flex items-center gap-3 rounded-lg border bg-card p-3 min-h-12 text-sm cursor-pointer active:bg-accent/40">
-                      <Checkbox
-                        checked={empresas.includes(c.id)}
-                        onCheckedChange={(ch) =>
-                          setEmpresas((prev) => (ch ? [...new Set([...prev, c.id])] : prev.filter((x) => x !== c.id)))
-                        }
-                      />
-                      {c.name}
-                    </label>
-                  ))}
-                </div>
-                <p className="text-[11px] text-muted-foreground">As mesmas permissões valem para as empresas marcadas. Depois você pode ajustar por empresa.</p>
-              </div>
-            )}
+            <CompanyAccessPicker
+              companies={adminCompanies}
+              selected={empresas}
+              onChange={setEmpresas}
+              lockedId={companyId}
+            />
 
             <PermissionsEditor
               role={preset.role}
