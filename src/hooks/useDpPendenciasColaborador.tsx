@@ -11,6 +11,7 @@ import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/docume
 import { folgaDominicalAutomatica } from "@/lib/dp/dsr-rules";
 import { atrasoAprovacao, vencimentoAprovacao } from "@/lib/dp/documento-aprovacao";
 import { regimeTemFeriasLegais } from "@/lib/dp/ferias-direito";
+import { mesclarConfidencial } from "@/lib/dp/confidencial";
 
 export type PendenciaColaborador = {
   id: string;
@@ -252,13 +253,14 @@ export function useDpPendenciasColaborador() {
 
       // 6. Cadastro incompleto.
       try {
-        const { data: colab } = await supabase
+        const { data: colabBase } = await supabase
           .from("dp_colaboradores")
-          .select(
-            "telefone, endereco, data_nascimento, banco_codigo, banco_nome, agencia, conta, pix_tipo, pix_chave, recebe_em_especie",
-          )
+          .select("id, company_id, telefone, endereco, data_nascimento, recebe_em_especie")
           .eq("id", colabId as string)
           .maybeSingle();
+        const colab = colabBase
+          ? ((await mesclarConfidencial(colabBase.company_id, [colabBase], [colabBase.id]))[0] as any)
+          : null;
         if (colab) {
           const faltando: string[] = [];
           if (!colab.telefone) faltando.push("telefone");

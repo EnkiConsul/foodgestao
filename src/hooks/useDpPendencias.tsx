@@ -14,6 +14,7 @@ import { agruparPisosPorCargo, salarioCargoNaUnidade } from "@/lib/dp/cargoSalar
 import { alertaPendenciaFerias, periodosComAcumulo, regimeTemFeriasLegais } from "@/lib/dp/ferias-direito";
 import { AVISO_FERIAS_PRAZO_DIAS } from "@/lib/dp/ferias-aviso";
 import { compararUrgencia } from "@/lib/dp/pendencias";
+import { mesclarConfidencial } from "@/lib/dp/confidencial";
 import { TIPOS_COM_COMPROVANTE } from "@/lib/dp/documentoTipos";
 
 import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
