@@ -7,6 +7,7 @@
  * que ele responde — inclusive os erros campo a campo.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { converterHeicParaJpeg } from "@/lib/storage/heic";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
