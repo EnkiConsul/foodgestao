@@ -22,11 +22,6 @@ export function AppHeader() {
     <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b bg-card px-3 md:px-4">
       <SidebarTrigger className="h-10 w-10 shrink-0 md:h-9 md:w-9" />
 
-      {/* Module switcher (mobile only) — quick jump between modules */}
-      <div className="min-w-0 shrink md:hidden">
-        <ModuleSwitcherChip />
-      </div>
-
       {showHubShortcut && (
         <Button
           asChild
