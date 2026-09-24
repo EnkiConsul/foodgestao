@@ -242,9 +242,8 @@ export default function DpMeuDocumentos() {
     if (!form.titulo.trim()) return toast.error("Título obrigatório");
     setUploading(true);
     try {
-      const file = files[0];
+      const file = await prepararUpload(BUCKET, files[0]);
       const path = `${colaborador.company_id}/${colaborador.id}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
-      validarUpload(BUCKET, file);
       const up = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
       if (up.error) throw up.error;
       await registrarDocumento({
