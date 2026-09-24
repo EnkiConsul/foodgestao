@@ -16,6 +16,7 @@ import {
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { PluggyConnectRequests } from "@/components/admin/PluggyConnectRequests";
 import { PluggyPendingLinks } from "@/components/admin/PluggyPendingLinks";
+import { PluggyStaleConnections } from "@/components/admin/PluggyStaleConnections";
 
 
 import { format } from "date-fns";
@@ -448,6 +449,7 @@ export default function AdminPluggyStatus() {
         </CardContent>
       </Card>
 
+      <PluggyStaleConnections />
       <PluggyPendingLinks />
 
       <PluggyConnectRequests />
