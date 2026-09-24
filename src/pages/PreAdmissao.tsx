@@ -153,6 +153,43 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?:
   },
 ];
 
+/**
+ * Nome amigável de cada dado da ficha e a etapa onde ele é preenchido: o
+ * servidor devolve o código do campo e aqui traduzimos para o candidato.
+ */
+const ROTULOS_EXTRA: Record<string, { rotulo: string; etapa: string }> = {
+  sexo: { rotulo: "Sexo", etapa: "Seus Dados" },
+  estado_civil: { rotulo: "Estado civil", etapa: "Seus Dados" },
+  grau_instrucao: { rotulo: "Grau de instrução", etapa: "Seus Dados" },
+  cep: { rotulo: "CEP", etapa: "Endereço" },
+  endereco: { rotulo: "Rua", etapa: "Endereço" },
+  numero: { rotulo: "Número", etapa: "Endereço" },
+  complemento: { rotulo: "Complemento", etapa: "Endereço" },
+  bairro: { rotulo: "Bairro", etapa: "Endereço" },
+  cidade: { rotulo: "Cidade", etapa: "Endereço" },
+  uf: { rotulo: "Estado", etapa: "Endereço" },
+  banco_codigo: { rotulo: "Banco", etapa: "Dados De Pagamento" },
+};
+
+const MAPA_CAMPOS: Record<string, { rotulo: string; etapa: string }> = (() => {
+  const mapa = { ...ROTULOS_EXTRA };
+  for (const passo of ETAPAS) {
+    for (const campo of passo.campos) {
+      mapa[campo.nome] = { rotulo: campo.rotulo, etapa: passo.titulo };
+    }
+  }
+  return mapa;
+})();
+
+/** Ex.: "rg_emissao" → "Data de emissão do RG (em Documentos E Registros)". */
+function descreverCampo(nome: string): string {
+  const achado = MAPA_CAMPOS[nome];
+  if (!achado) return nome.replace(/_/g, " ");
+  return `${achado.rotulo} (em ${achado.etapa})`;
+}
+
+
+
 /** Data digitada (dd/mm/aaaa) ↔ data guardada (AAAA-MM-DD). */
 function isoParaBr(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
