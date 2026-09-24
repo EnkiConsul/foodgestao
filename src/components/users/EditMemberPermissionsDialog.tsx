@@ -106,6 +106,12 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
       });
       return;
     }
+    if (!acessoTotal && contas !== null && contas.length === 0) {
+      toast.error("Escolha as contas financeiras", {
+        description: "Marque ao menos uma conta ou volte para Todas as contas.",
+      });
+      return;
+    }
     setSaving(true);
 
     const payload = {
@@ -113,6 +119,12 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
       ver_saldos: flags.ver_saldos, ver_salarios: flags.ver_salarios,
       situacao: ativo ? "ativo" : "bloqueado",
     };
+    // A lista de contas é própria de cada empresa; só gravamos na empresa aberta.
+    const payloadAtual = {
+      ...payload,
+      contas_permitidas: acessoTotal || contas === null ? null : contas,
+    };
+
 
     const selecionadas = new Set(empresas);
     const falhas: string[] = [];
