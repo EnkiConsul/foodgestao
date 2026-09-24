@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { PermissionsEditor } from "@/components/users/PermissionsEditor";
 import { CompanyAccessPicker } from "@/components/users/CompanyAccessPicker";
 import { AccountAccessPicker } from "@/components/users/AccountAccessPicker";
+import { UnitAccessPicker } from "@/components/users/UnitAccessPicker";
 import { useAdminCompanies } from "@/hooks/useAdminCompanies";
 import { useCompanyAccounts } from "@/hooks/useCompanyAccounts";
 import { CompanyRole, ModulosMap, PERFIS, PerfilKey, PermissionsMap, getPerfil, perfilPadraoDoRole } from "@/lib/permissions";
@@ -187,6 +188,13 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
               accounts={contasEmpresa}
               value={contas}
               onChange={setContas}
+              bloqueado={acessoTotal}
+            />
+
+            <UnitAccessPicker
+              unidades={unidadesEmpresa}
+              value={unidades}
+              onChange={setUnidades}
               bloqueado={acessoTotal}
             />
 
