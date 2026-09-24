@@ -1,3 +1,4 @@
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -38,6 +39,9 @@ const statusLabels: Record<InvoiceStatus, { label: string; className: string }> 
 };
 
 export default function CartoesCredito() {
+  const { can: podePerm } = useCompanyPermissions();
+  const podeIncluir = podePerm("credit_cards", "inclusao");
+  const podeExcluir = podePerm("credit_cards", "total");
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
@@ -204,7 +208,7 @@ export default function CartoesCredito() {
           <h1 className="flex items-center gap-1 text-xl md:text-2xl font-bold tracking-tight text-foreground">Cartões de Crédito<HelpHint helpKey="financeiro.cartoes" size="md" side="bottom" align="start" /></h1>
           <p className="text-xs md:text-sm text-muted-foreground">Gerencie limites, faturas e pagamentos.</p>
         </div>
-        <Button onClick={() => { setEditing(null); setFormOpen(true); }} className="gap-2 min-h-[40px]">
+        <Button disabled={!podeIncluir} onClick={() => { setEditing(null); setFormOpen(true); }} className="gap-2 min-h-[40px]">
           <Plus className="h-4 w-4" /> Novo Cartão
         </Button>
       </div>
@@ -297,7 +301,7 @@ export default function CartoesCredito() {
           <CardContent className="flex flex-col items-center py-12 text-muted-foreground">
             <CreditCard className="h-10 w-10 mb-3 opacity-40" />
             <p className="text-sm">Nenhum cartão cadastrado</p>
-            <Button variant="link" onClick={() => { setEditing(null); setFormOpen(true); }} className="mt-2">
+            <Button disabled={!podeIncluir} variant="link" onClick={() => { setEditing(null); setFormOpen(true); }} className="mt-2">
               Cadastrar primeiro cartão
             </Button>
           </CardContent>
@@ -350,7 +354,7 @@ export default function CartoesCredito() {
                       <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => { setEditing(card); setFormOpen(true); }} aria-label="Editar cartão">
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-10 w-10 hover:text-destructive" onClick={() => setDeleteCard(card)} aria-label="Excluir cartão">
+                      <Button disabled={!podeExcluir} size="icon" variant="ghost" className="h-10 w-10 hover:text-destructive" onClick={() => setDeleteCard(card)} aria-label="Excluir cartão">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

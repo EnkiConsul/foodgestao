@@ -1,3 +1,4 @@
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -20,6 +21,9 @@ import { traduzErroExclusao } from "@/lib/finance/exclusaoHistorico";
 import { verificarExclusaoSimples } from "@/lib/finance/verificarHistorico";
 
 export default function FormasPagamento() {
+  const { can: podePerm } = useCompanyPermissions();
+  const podeIncluir = podePerm("payment_methods", "inclusao");
+  const podeExcluir = podePerm("payment_methods", "total");
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -144,10 +148,10 @@ export default function FormasPagamento() {
           <p className="text-xs md:text-sm text-muted-foreground">Gerencie as formas de pagamento disponíveis</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={importDefaults} disabled={importing}>
+          <Button variant="outline" onClick={importDefaults} disabled={importing || !podeIncluir}>
             <Download className="h-4 w-4 mr-2" /> Importar padrão
           </Button>
-          <Button onClick={openNew} className="hidden md:flex">
+          <Button disabled={!podeIncluir} onClick={openNew} className="hidden md:flex">
             <Plus className="h-4 w-4 mr-2" /> Nova Forma
           </Button>
         </div>
@@ -164,7 +168,7 @@ export default function FormasPagamento() {
           <CardContent className="flex flex-col items-center py-12 text-muted-foreground">
             <CreditCard className="h-10 w-10 mb-3 opacity-40" />
             <p className="text-sm">Nenhuma forma de pagamento criada</p>
-            <Button variant="link" onClick={openNew} className="mt-2">
+            <Button disabled={!podeIncluir} variant="link" onClick={openNew} className="mt-2">
               Criar primeira forma de pagamento
             </Button>
           </CardContent>
@@ -192,7 +196,7 @@ export default function FormasPagamento() {
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openEdit(item)}>
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(item.id)}>
+                  <Button disabled={!podeExcluir} variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(item.id)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>

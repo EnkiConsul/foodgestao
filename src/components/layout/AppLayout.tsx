@@ -1,3 +1,4 @@
+import { PermissionRouteGuard } from "@/components/users/PermissionRouteGuard";
 import { useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { EdgeGestures } from "@/components/mobile/EdgeGestures";
@@ -28,7 +29,7 @@ export function AppLayout() {
           <AppHeader />
           <main className="flex-1 p-3 md:p-6 pb-22 md:pb-6">
             <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
-              <Outlet />
+              <PermissionRouteGuard><Outlet /></PermissionRouteGuard>
             </PullToRefresh>
           </main>
         </div>

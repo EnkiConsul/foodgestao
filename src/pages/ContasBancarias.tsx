@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { compareBankLedger, isBankReferenceDiscarded } from "@/lib/transactions/balance";
@@ -48,9 +49,14 @@ const accountTypeLabels: Record<AccountType, string> = {
 };
 
 export default function ContasBancarias() {
+  const { can: podePerm } = useCompanyPermissions();
+  const podeIncluir = podePerm("accounts", "inclusao");
+  const podeExcluir = podePerm("accounts", "total");
   const { user } = useAuth();
   const { contextType, selectedCompanyId, companies } = useCompanyContext();
-  const { maskBRL } = usePrivacy();
+  const { maskBRL: maskPriv } = usePrivacy();
+  const { verSaldos } = useCompanyPermissions();
+  const maskBRL = (v: number) => (verSaldos ? maskPriv(v) : "R$ ••••");
   const navigate = useNavigate();
 
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -448,7 +454,7 @@ export default function ContasBancarias() {
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${resyncing ? "animate-spin" : ""}`} /> Recalcular saldos
           </Button>
-          <Button onClick={openMethodDialog} className="hidden md:flex">
+          <Button disabled={!podeIncluir} onClick={openMethodDialog} className="hidden md:flex">
             <Plus className="h-4 w-4 mr-2" /> Nova Conta
           </Button>
         </div>
@@ -554,7 +560,7 @@ export default function ContasBancarias() {
             <CardContent className="flex flex-col items-center py-12 text-muted-foreground">
               <Landmark className="h-10 w-10 mb-3 opacity-40" />
               <p className="text-sm">Nenhuma conta financeira encontrada</p>
-              <Button variant="link" onClick={openMethodDialog} className="mt-2">
+              <Button disabled={!podeIncluir} variant="link" onClick={openMethodDialog} className="mt-2">
                 Criar primeira conta
               </Button>
             </CardContent>

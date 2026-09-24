@@ -1,3 +1,4 @@
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { resolveAttachments } from "@/lib/attachments";
@@ -155,6 +156,9 @@ function computeDisplayStatus(tx: Transaction): TransactionDisplayStatus {
 }
 
 export default function Lancamentos() {
+  const { can: podePerm } = useCompanyPermissions();
+  const podeIncluir = podePerm("transactions", "inclusao");
+  const podeExcluir = podePerm("transactions", "total");
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
@@ -956,16 +960,16 @@ export default function Lancamentos() {
       {/* Top action bar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2 flex-wrap">
-          <Button onClick={() => { setEditTransaction(null); setDuplicateSource(null); setDialogInitialType(undefined); setDialogOpen(true); }} size="sm">
+          <Button disabled={!podeIncluir} onClick={() => { setEditTransaction(null); setDuplicateSource(null); setDialogInitialType(undefined); setDialogOpen(true); }} size="sm">
             <Plus className="h-4 w-4 mr-1" /> Lançamento
           </Button>
-          <Button variant="outline" size="sm" onClick={() => { setEditTransaction(null); setDuplicateSource(null); setDialogInitialType("transferencia"); setDialogOpen(true); }}>
+          <Button disabled={!podeIncluir} variant="outline" size="sm" onClick={() => { setEditTransaction(null); setDuplicateSource(null); setDialogInitialType("transferencia"); setDialogOpen(true); }}>
             <ArrowLeftRight className="h-4 w-4 mr-1" /> Transferência
           </Button>
           <Button variant="outline" size="sm" onClick={exportCSV} disabled={displayRows.length === 0}>
             <Download className="h-4 w-4 mr-1" /> CSV
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+          <Button disabled={!podeIncluir} variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload className="h-4 w-4 mr-1" /> Importar Extrato
           </Button>
           <Button
