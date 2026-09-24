@@ -1265,13 +1265,15 @@ export function useDpPendencias() {
 
       // 14. Cadastro de colaborador incompleto (campos essenciais em branco)
       try {
-        const { data: colabs } = await supabase
+        const { data: colabsBase } = await supabase
           .from("dp_colaboradores")
           .select(
-            "id, nome, setor_id, telefone, whatsapp, email_contato, endereco, data_nascimento, estado_civil, regime, pis_nit, salario_base, forma_pagamento, valor_hora, valor_diaria, base_salarial, socio_remuneracao, cargo_id, unidade_id, banco_codigo, banco_nome, agencia, conta, conta_tipo, pix_tipo, pix_chave, recebe_em_especie",
+            "id, nome, setor_id, telefone, whatsapp, email_contato, endereco, data_nascimento, estado_civil, regime, forma_pagamento, valor_hora, valor_diaria, socio_remuneracao, cargo_id, unidade_id, recebe_em_especie",
           )
           .eq("company_id", selectedCompanyId!)
           .eq("ativo", true);
+        // Campos confidenciais pela consulta segura (mascarados preservam "preenchido").
+        const colabs = await mesclarConfidencial(selectedCompanyId!, (colabsBase ?? []) as any[]);
 
         // Salário pode vir do cargo (piso do patronal / ajuste da unidade) —
         // intermitente/horista sem valor próprio não está incompleto por isso.

@@ -8,6 +8,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { compararComCadastro } from "@/lib/dp/ficha-registro/payload";
+import { COLUNAS_COLABORADOR_PUBLICAS, mesclarConfidencial } from "@/lib/dp/confidencial";
 
 interface Props {
   open: boolean;
