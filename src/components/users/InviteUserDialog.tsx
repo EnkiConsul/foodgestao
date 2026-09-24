@@ -40,18 +40,7 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
   const [empresas, setEmpresas] = useState<string[]>([companyId]);
   const [saving, setSaving] = useState(false);
 
-  const { data: adminCompanies = [] } = useQuery({
-    queryKey: ["invite-admin-companies", user?.id],
-    enabled: !!user && open,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("company_members")
-        .select("company_id, role, companies(name)")
-        .eq("user_id", user!.id)
-        .in("role", ["owner", "admin"]);
-      return (data ?? []).map((d: any) => ({ id: d.company_id as string, name: d.companies?.name as string, role: d.role as string }));
-    },
-  });
+  const { data: adminCompanies = [] } = useAdminCompanies(open);
 
   // Só dono pode convidar outro dono.
   const perfisDisponiveis = useMemo(() => {
