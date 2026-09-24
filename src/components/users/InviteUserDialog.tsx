@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { PermissionsEditor } from "@/components/users/PermissionsEditor";
 import { CompanyAccessPicker } from "@/components/users/CompanyAccessPicker";
+import { AccountAccessPicker } from "@/components/users/AccountAccessPicker";
 import { useAdminCompanies } from "@/hooks/useAdminCompanies";
+import { useCompanyAccounts } from "@/hooks/useCompanyAccounts";
 import { CompanyRole, ModulosMap, PERFIS, PerfilKey, PermissionsMap, getPerfil, perfilPadraoDoRole } from "@/lib/permissions";
 import { isValidPhone, maskPhone } from "@/lib/phone";
 
