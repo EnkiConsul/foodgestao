@@ -316,9 +316,9 @@ select md5(c.id::text||':ofacc')::uuid, md5(c.id::text||':conn')::uuid, c.id,
 from public.companies c where c.name like 'Empresa Sintética %';
 
 insert into public.pluggy_staging_transactions(
-  id, account_id, connection_id, company_id, pluggy_account_id, pluggy_transaction_id,
+  id, connection_id, company_id, pluggy_account_id, pluggy_transaction_id,
   amount, type, date, description, raw, created_at)
-select gen_random_uuid(), md5(c.id::text||':ofacc')::uuid, md5(c.id::text||':conn')::uuid, c.id,
+select gen_random_uuid(), md5(c.id::text||':conn')::uuid, c.id,
        'synth-acc-'||c.id, 'synth-tx-'||c.id||'-'||n,
        round((random()*5000)::numeric, 2),
        case when n % 4 = 0 then 'CREDIT' else 'DEBIT' end,
