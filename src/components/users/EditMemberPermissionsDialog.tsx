@@ -134,7 +134,7 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
     if (selecionadas.has(companyId)) {
       const { error } = await (supabase as any)
         .from("company_members")
-        .update(payload)
+        .update(payloadAtual)
         .eq("id", member.id);
 
       if (error) {
