@@ -257,6 +257,14 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
             nomeEmpresa={nomeEmpresa}
           />
 
+          <UnitAccessPicker
+            unidades={unidadesEmpresa}
+            value={unidades}
+            onChange={setUnidades}
+            bloqueado={acessoTotal}
+            nomeEmpresa={nomeEmpresa}
+          />
+
           <PermissionsEditor
             role={role}
             value={permissions}
