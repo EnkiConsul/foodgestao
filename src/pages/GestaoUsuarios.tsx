@@ -645,6 +645,7 @@ export default function GestaoUsuarios() {
         open={!!editingMember}
         onOpenChange={(o) => { if (!o) setEditingMember(null); }}
         member={editingMember}
+        companyId={activeCompanyId}
         canAssignOwner={isOwner}
         onSaved={() => queryClient.invalidateQueries({ queryKey: ["company-members", activeCompanyId] })}
       />
