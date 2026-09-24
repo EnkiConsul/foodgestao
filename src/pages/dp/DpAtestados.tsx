@@ -333,9 +333,9 @@ export default function DpAtestados() {
 
       let path: string | null = null;
       if (pendingFile) {
-        path = `${selectedCompanyId}/${licenca ? "licenca" : "atestado"}/${colaboradorId}/${Date.now()}-${sanitizeStorageFilename(pendingFile.name)}`;
-        validarUpload(BUCKET, pendingFile);
-        const up = await supabase.storage.from(BUCKET).upload(path, pendingFile, { upsert: false });
+        const envio = await prepararUpload(BUCKET, pendingFile);
+        path = `${selectedCompanyId}/${licenca ? "licenca" : "atestado"}/${colaboradorId}/${Date.now()}-${sanitizeStorageFilename(envio.name)}`;
+        const up = await supabase.storage.from(BUCKET).upload(path, envio, { upsert: false });
         if (up.error) throw up.error;
       }
 
