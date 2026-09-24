@@ -80,17 +80,17 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, canAss
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Permissões de {member?.full_name}</DialogTitle>
-          <DialogDescription>Perfil, módulos e nível de acesso nesta empresa.</DialogDescription>
+      <DialogContent className="flex w-screen max-w-none h-[100dvh] max-h-[100dvh] flex-col gap-0 rounded-none p-0 sm:w-full sm:max-w-3xl sm:h-auto sm:max-h-[90vh] sm:rounded-lg">
+        <DialogHeader className="shrink-0 border-b px-4 py-3 text-left sm:px-6 sm:py-4">
+          <DialogTitle className="text-base sm:text-lg">Permissões de {member?.full_name}</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">Perfil, módulos e nível de acesso nesta empresa.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
           <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
             <div className="space-y-1.5">
               <Label>Tipo de perfil</Label>
               <Select value={perfil} onValueChange={(v) => applyPerfil(v as PerfilKey)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="min-h-11"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {PERFIS.filter((p) => p.key !== "dono" || canAssignOwner || member?.role === "owner").map((p) => (
                     <SelectItem key={p.key} value={p.key}>{p.label} — {p.descricao}</SelectItem>
@@ -98,7 +98,7 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, canAss
                 </SelectContent>
               </Select>
             </div>
-            <label className="flex items-center gap-2 rounded-md border px-3 h-10 text-sm">
+            <label className="flex items-center justify-between gap-2 rounded-md border px-3 min-h-11 text-sm">
               <Switch checked={ativo} onCheckedChange={setAtivo} />
               {ativo ? "Acesso ativo" : "Acesso bloqueado"}
             </label>
@@ -114,9 +114,9 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, canAss
             onFlagsChange={setFlags}
           />
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+        <DialogFooter className="shrink-0 flex-row gap-2 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
+          <Button variant="outline" className="flex-1 min-h-11 sm:flex-none" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button className="flex-1 min-h-11 sm:flex-none" onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
