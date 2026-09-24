@@ -618,7 +618,6 @@ export default function PreAdmissao() {
         ref={fileRef}
         type="file"
         accept="image/*,application/pdf"
-        capture="environment"
         className="hidden"
         aria-hidden="true"
         tabIndex={-1}
