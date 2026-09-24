@@ -27,8 +27,8 @@ type SourceConfig = {
 
 const CFG: Record<DocSource, SourceConfig> = {
   doc: { table: "dp_documentos", pathCol: "file_path", bucket: "dp-documentos", label: "Documento", editavel: true },
-  sol: { table: "dp_solicitacoes", pathCol: "arquivo_path", bucket: "dp-atestados", label: "Atestado", editavel: false },
-  sind: { table: "dp_sindicato_negociacoes", pathCol: "pdf_path", bucket: "dp-sindicato", label: "Negociação sindical", editavel: false },
+  sol: { table: "dp_solicitacoes", pathCol: "arquivo_path", bucket: "dp-documentos", label: "Atestado", editavel: false },
+  sind: { table: "dp_sindicato_negociacoes", pathCol: "pdf_path", bucket: "dp-documentos", label: "Negociação sindical", editavel: false },
   disc: { table: "dp_registros_disciplinares", pathCol: "pdf_storage_path", bucket: "dp-disciplinar", label: "Registro disciplinar", editavel: false },
 };
 
