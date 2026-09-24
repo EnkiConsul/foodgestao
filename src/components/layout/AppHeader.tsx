@@ -6,7 +6,6 @@ import { ContextSelector } from "@/components/layout/ContextSelector";
 import { NotificationsBell } from "@/components/layout/NotificationsBell";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { useActiveModule } from "@/hooks/useActiveModule";
-import { ModuleSwitcherChip } from "@/components/mobile/ModuleSwitcherChip";
 
 export function AppHeader() {
   const { privacyMode, togglePrivacy } = usePrivacy();
@@ -21,11 +20,6 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b bg-card px-3 md:px-4">
       <SidebarTrigger className="h-10 w-10 shrink-0 md:h-9 md:w-9" />
-
-      {/* Module switcher (mobile only) — quick jump between modules */}
-      <div className="min-w-0 shrink md:hidden">
-        <ModuleSwitcherChip />
-      </div>
 
       {showHubShortcut && (
         <Button
