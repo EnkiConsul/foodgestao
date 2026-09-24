@@ -55,6 +55,17 @@ const RACA_COR: Opcao[] = [
   { value: "nao_informado", label: "Prefiro não informar" },
 ];
 
+/** Deficiência declarada pelo candidato (a empresa decide se pergunta). */
+const DEFICIENCIA: Opcao[] = [
+  { value: "nenhuma", label: "Não tenho deficiência" },
+  { value: "fisica", label: "Física" },
+  { value: "auditiva", label: "Auditiva" },
+  { value: "visual", label: "Visual" },
+  { value: "intelectual", label: "Intelectual" },
+  { value: "multipla", label: "Múltipla" },
+  { value: "reabilitado", label: "Reabilitado(a) pelo INSS" },
+];
+
 const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?: boolean }> = [
   {
     titulo: "Seus Dados",
