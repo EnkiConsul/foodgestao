@@ -147,7 +147,3 @@ Deno.serve(async (req) => {
 
   return json({ success: whatsappOk || emailOk, whatsapp: whatsappOk, email: emailOk })
 })
-    await logSend(supabase, recipient, 'failed', message.slice(0, 1000))
-    return json({ error: 'Failed to send invite email' }, 500)
-  }
-})
