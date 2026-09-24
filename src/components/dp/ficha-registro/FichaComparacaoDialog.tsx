@@ -8,6 +8,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { compararComCadastro } from "@/lib/dp/ficha-registro/payload";
+import { COLUNAS_COLABORADOR_PUBLICAS, mesclarConfidencial } from "@/lib/dp/confidencial";
 
 interface Props {
   open: boolean;
@@ -25,9 +26,16 @@ export function FichaComparacaoDialog({ open, onOpenChange, colaboradorId, dados
     queryKey: ["dp_colaborador_comparacao", colaboradorId],
     enabled: open && !!colaboradorId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("dp_colaboradores").select("*").eq("id", colaboradorId).maybeSingle();
+      const { data, error } = await supabase
+        .from("dp_colaboradores")
+        .select(COLUNAS_COLABORADOR_PUBLICAS)
+        .eq("id", colaboradorId)
+        .maybeSingle();
       if (error) throw error;
-      return (data ?? null) as Record<string, unknown> | null;
+      if (!data) return null;
+      const row = data as unknown as { id: string; company_id: string };
+      const [completo] = await mesclarConfidencial(row.company_id, [row], [row.id]);
+      return completo as unknown as Record<string, unknown>;
     },
   });
 

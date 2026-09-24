@@ -100,10 +100,17 @@ var list_accounts_default = defineTool2({
   handler: async ({ company_id, context }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
-    let query = supabase.from("accounts").select("id, name, account_type, context, company_id, current_balance, is_active, bank_slug").is("soft_deleted_at", null).order("name");
-    if (company_id) query = query.eq("company_id", company_id);
-    if (context) query = query.eq("context", context);
-    const { data, error } = await query;
+    if (!company_id) {
+      return {
+        content: [{ type: "text", text: "Informe a empresa (company_id) para listar as contas." }],
+        isError: true
+      };
+    }
+    const { data, error } = await supabase.rpc("get_accessible_accounts", {
+      _context: context ?? "pj",
+      _company_id: company_id,
+      _include_inactive: false
+    });
     if (error) {
       console.error("[mcp] query error:", error.message);
       return {
@@ -111,7 +118,16 @@ var list_accounts_default = defineTool2({
         isError: true
       };
     }
-    const rows = data ?? [];
+    const rows = (data ?? []).filter((r) => !r.soft_deleted_at).map((r) => ({
+      id: r.id,
+      name: r.name,
+      account_type: r.account_type,
+      context: r.context,
+      company_id: r.company_id,
+      current_balance: r.current_balance,
+      is_active: r.is_active,
+      bank_slug: r.bank_slug
+    }));
     const total = rows.reduce((sum, r) => sum + Number(r.current_balance ?? 0), 0);
     return {
       content: [{ type: "text", text: JSON.stringify({ total_balance: total, accounts: rows }, null, 2) }],
