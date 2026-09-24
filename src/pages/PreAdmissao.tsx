@@ -466,12 +466,14 @@ export default function PreAdmissao() {
     fileRef.current?.click();
   };
 
-  const enviarArquivo = async (arquivo: File) => {
+  const enviarArquivo = async (escolhido: File) => {
     const item = alvo.current;
     if (!item) return;
     const parte = Math.min(Math.max(item.parte ?? 1, 1), 10);
     setSubindo(`${item.key}:${parte}`);
     try {
+      // Foto de iPhone (HEIC) é convertida em JPEG antes do envio.
+      const arquivo = await converterHeicParaJpeg(escolhido);
       const base64 = await lerBase64(arquivo);
       await chamar<{ success: boolean }>("dp-preadmissao-arquivo", {
         action: "upload",
