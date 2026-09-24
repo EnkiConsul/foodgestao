@@ -17496,14 +17496,6 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
-      pluggy_v2_webhook_finalize_failure: {
-        Args: { p_error: string; p_event_id: string; p_worker_id: string }
-        Returns: boolean
-      }
-      pluggy_v2_webhook_finalize_success: {
-        Args: { p_event_id: string; p_worker_id: string }
-        Returns: boolean
-      }
       pluggy_webhook_claim: {
         Args: { _batch?: number; _lease_seconds?: number; _worker: string }
         Returns: {
