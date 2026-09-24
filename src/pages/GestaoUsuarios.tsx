@@ -120,7 +120,7 @@ export default function GestaoUsuarios() {
     queryFn: async () => {
       const { data } = (await (supabase as any)
         .from("company_members")
-        .select("id, user_id, role, permissions, perfil, modulos, ver_saldos, ver_salarios, situacao, contas_permitidas, created_at")
+        .select("id, user_id, role, permissions, perfil, modulos, ver_saldos, ver_salarios, situacao, contas_permitidas, unidades_permitidas, created_at")
         .eq("company_id", activeCompanyId)
         .order("created_at")) as { data: any[] | null };
 
