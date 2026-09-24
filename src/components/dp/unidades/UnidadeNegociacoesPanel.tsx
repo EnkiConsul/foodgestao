@@ -174,9 +174,8 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
       let pdf_path: string | null = null;
       let arquivo_nome: string | null = form.arquivo_nome ?? null;
       if (form.arquivo) {
-        const file = form.arquivo;
+        const file = await prepararUpload("dp-documentos", form.arquivo);
         const path = `${selectedCompanyId}/sindicato-negociacoes/${unidadeId}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
-        validarUpload("dp-documentos", file);
         const { error: upErr } = await supabase.storage
           .from("dp-documentos")
           .upload(path, file, { upsert: true, contentType: file.type || "application/pdf" });
