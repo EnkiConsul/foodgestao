@@ -114,7 +114,6 @@ const FINANCE_INTERNAL_FUNCTIONS = [
   "ignore_open_finance_raw",
   "promote_open_finance_transactions",
   "open_finance_sync_health",
-  "audit_pluggy_v2_raw_delete",
   "chart_account_autofill_code",
   "guard_of_current_balance",
   "guard_transaction_category_active",
