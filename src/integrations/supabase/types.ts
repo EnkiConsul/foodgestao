@@ -2276,6 +2276,7 @@ export type Database = {
           email_sent_at: string | null
           expires_at: string
           full_name: string | null
+          grupo_id: string
           id: string
           invited_by: string
           invited_email: string | null
@@ -2296,6 +2297,7 @@ export type Database = {
           email_sent_at?: string | null
           expires_at?: string
           full_name?: string | null
+          grupo_id?: string
           id?: string
           invited_by: string
           invited_email?: string | null
@@ -2316,6 +2318,7 @@ export type Database = {
           email_sent_at?: string | null
           expires_at?: string
           full_name?: string | null
+          grupo_id?: string
           id?: string
           invited_by?: string
           invited_email?: string | null
