@@ -130,8 +130,7 @@ export function classifySyncResult(input: {
   const parcial =
     body.partial === true ||
     exec === 'PARTIAL_SUCCESS' ||
-    (body.write_failures ?? 0) > 0 ||
-    body.v2_materialized === false;
+    (body.write_failures ?? 0) > 0;
 
   if (parcial) {
     return {
