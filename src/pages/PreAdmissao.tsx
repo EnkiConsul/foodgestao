@@ -1145,6 +1145,27 @@ export default function PreAdmissao() {
       </main>
 
       <footer className="fixed bottom-0 left-0 right-0 border-t bg-background p-3">
+      {avisoTopo && (
+        <div
+          className="mb-2 max-h-40 overflow-y-auto rounded-lg border border-destructive/40 bg-destructive/10 p-2 text-xs"
+          role="alert"
+          aria-live="assertive"
+        >
+          <p className="font-semibold">{avisoTopo}</p>
+          {!!faltando.length && (
+            <ul className="mt-1 list-disc pl-4 text-muted-foreground">
+              {faltando.map((f) => <li key={`rodape-${f}`}>{f}</li>)}
+            </ul>
+          )}
+          <button
+            type="button"
+            className="mt-1 underline"
+            onClick={irParaOAviso}
+          >
+            Ver detalhes no início da página
+          </button>
+        </div>
+      )}
       <p className="mb-2 text-center text-[11px] text-muted-foreground">
         {rotuloSalvoEm(salvoEm)
           ? `Rascunho ${rotuloSalvoEm(salvoEm).toLowerCase()} — você pode sair e continuar depois.`
