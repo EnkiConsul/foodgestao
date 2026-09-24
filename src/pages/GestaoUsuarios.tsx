@@ -14,8 +14,9 @@ import { toast } from "sonner";
 import { Users, UserPlus, Crown, Shield, User, Eye, Trash2, Clock, Copy, XCircle, Settings2, Calculator } from "lucide-react";
 import { formatDate } from "@/lib/date-utils";
 import { InviteUserDialog } from "@/components/users/InviteUserDialog";
-import { EditMemberPermissionsDialog } from "@/components/users/EditMemberPermissionsDialog";
-import { CompanyRole, PermissionsMap } from "@/lib/permissions";
+import { EditMemberPermissionsDialog, EditableMember } from "@/components/users/EditMemberPermissionsDialog";
+import { CompanyRole, PERFIL_LABELS, PerfilKey } from "@/lib/permissions";
+import { maskPhone } from "@/lib/phone";
 
 const roleBadge = (role: string) => {
   switch (role) {
@@ -31,6 +32,18 @@ const roleBadge = (role: string) => {
       return <Badge variant="secondary"><User className="h-3 w-3 mr-1" />Membro</Badge>;
   }
 };
+
+const perfilBadge = (perfil: string | null | undefined, role: string) => {
+  if (!perfil || perfil === "personalizado" || ["dono", "administrador", "contabilidade", "visualizador"].includes(perfil)) {
+    return perfil === "personalizado" && role === "member"
+      ? <Badge variant="secondary"><User className="h-3 w-3 mr-1" />Personalizado</Badge>
+      : roleBadge(role);
+  }
+  return <Badge variant="secondary"><User className="h-3 w-3 mr-1" />{PERFIL_LABELS[perfil as PerfilKey] ?? "Membro"}</Badge>;
+};
+
+const contatoConvite = (i: any) =>
+  [i.whatsapp ? maskPhone(i.whatsapp) : null, i.invited_email].filter(Boolean).join(" · ");
 
 const statusBadge = (status: string) => {
   switch (status) {
@@ -55,7 +68,7 @@ export default function GestaoUsuarios() {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [inviteOpen, setInviteOpen] = useState(location.state?.openInvite ?? false);
   const [inviteDefaultRole] = useState<CompanyRole>(location.state?.defaultRole ?? "member");
-  const [editingMember, setEditingMember] = useState<{ id: string; full_name: string; role: CompanyRole; permissions: PermissionsMap } | null>(null);
+  const [editingMember, setEditingMember] = useState<EditableMember | null>(null);
 
   useEffect(() => {
     if (location.state?.openInvite) {
@@ -96,11 +109,11 @@ export default function GestaoUsuarios() {
     queryKey: ["company-members", activeCompanyId],
     enabled: !!activeCompanyId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = (await (supabase as any)
         .from("company_members")
-        .select("id, user_id, role, permissions, created_at")
+        .select("id, user_id, role, permissions, perfil, modulos, ver_saldos, ver_salarios, situacao, created_at")
         .eq("company_id", activeCompanyId)
-        .order("created_at");
+        .order("created_at")) as { data: any[] | null };
 
       if (!data) return [];
 
@@ -330,7 +343,12 @@ export default function GestaoUsuarios() {
                 ) : members.map((member: any) => (
                   <TableRow key={member.id}>
                     <TableCell className="font-medium">{member.full_name}</TableCell>
-                    <TableCell>{roleBadge(member.role)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        {perfilBadge(member.perfil, member.role)}
+                        {member.situacao === "bloqueado" && <Badge variant="destructive">Bloqueado</Badge>}
+                      </div>
+                    </TableCell>
                     <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
                       {formatDate(member.created_at, "dd/MM/yyyy")}
                     </TableCell>
@@ -344,12 +362,7 @@ export default function GestaoUsuarios() {
                               className="h-8 w-8"
                               title="Editar permissões"
                               onClick={() =>
-                                setEditingMember({
-                                  id: member.id,
-                                  full_name: member.full_name,
-                                  role: member.role,
-                                  permissions: member.permissions ?? {},
-                                })
+                                setEditingMember({ ...member, permissions: member.permissions ?? {} })
                               }
                             >
                               <Settings2 className="h-4 w-4" />
@@ -399,7 +412,10 @@ export default function GestaoUsuarios() {
                         <p className="font-medium truncate">{member.full_name}</p>
                         <p className="text-[11px] text-muted-foreground">Desde {formatDate(member.created_at, "dd/MM/yyyy")}</p>
                       </div>
-                      {roleBadge(member.role)}
+                      <div className="flex flex-col items-end gap-1">
+                        {perfilBadge(member.perfil, member.role)}
+                        {member.situacao === "bloqueado" && <Badge variant="destructive">Bloqueado</Badge>}
+                      </div>
                     </div>
                     {canManage && (
                       <div className="flex gap-2 pt-1 border-t">
@@ -408,12 +424,7 @@ export default function GestaoUsuarios() {
                           size="sm"
                           className="flex-1 min-h-9"
                           onClick={() =>
-                            setEditingMember({
-                              id: member.id,
-                              full_name: member.full_name,
-                              role: member.role,
-                              permissions: member.permissions ?? {},
-                            })
+                            setEditingMember({ ...member, permissions: member.permissions ?? {} })
                           }
                         >
                           <Settings2 className="h-4 w-4 mr-1" /> Permissões
@@ -463,8 +474,8 @@ export default function GestaoUsuarios() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>E-mail</TableHead>
-                    <TableHead>Papel</TableHead>
+                    <TableHead>Convidado</TableHead>
+                    <TableHead>Perfil</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -472,8 +483,11 @@ export default function GestaoUsuarios() {
                 <TableBody>
                   {invites.map((invite: any) => (
                     <TableRow key={invite.id}>
-                      <TableCell className="font-medium">{invite.invited_email}</TableCell>
-                      <TableCell>{roleBadge(invite.role)}</TableCell>
+                      <TableCell>
+                        <p className="font-medium">{invite.full_name ?? invite.invited_email}</p>
+                        <p className="text-xs text-muted-foreground">{contatoConvite(invite)}</p>
+                      </TableCell>
+                      <TableCell>{perfilBadge(invite.perfil, invite.role)}</TableCell>
                       <TableCell>{statusBadge(invite.status)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -512,10 +526,13 @@ export default function GestaoUsuarios() {
               {invites.map((invite: any) => (
                 <div key={invite.id} className="rounded-md border p-3 space-y-2">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium truncate min-w-0">{invite.invited_email}</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{invite.full_name ?? invite.invited_email}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{contatoConvite(invite)}</p>
+                    </div>
                     {statusBadge(invite.status)}
                   </div>
-                  <div>{roleBadge(invite.role)}</div>
+                  <div>{perfilBadge(invite.perfil, invite.role)}</div>
                   {invite.status === "pending" && (
                     <div className="flex gap-2 pt-1 border-t">
                       <Button variant="outline" size="sm" className="flex-1 min-h-9" onClick={() => handleCopyLink(invite.token)}>
@@ -545,6 +562,7 @@ export default function GestaoUsuarios() {
         open={!!editingMember}
         onOpenChange={(o) => { if (!o) setEditingMember(null); }}
         member={editingMember}
+        canAssignOwner={isOwner}
         onSaved={() => queryClient.invalidateQueries({ queryKey: ["company-members", activeCompanyId] })}
       />
     </div>

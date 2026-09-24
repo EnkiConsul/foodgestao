@@ -2275,39 +2275,63 @@ export type Database = {
           created_at: string
           email_sent_at: string | null
           expires_at: string
+          full_name: string | null
+          grupo_id: string
           id: string
           invited_by: string
-          invited_email: string
+          invited_email: string | null
+          modulos: Json
+          perfil: string
           permissions: Json
           role: Database["public"]["Enums"]["company_role"]
           status: Database["public"]["Enums"]["invite_status"]
           token: string
+          ver_salarios: boolean
+          ver_saldos: boolean
+          whatsapp: string | null
+          whatsapp_sent_at: string | null
         }
         Insert: {
           company_id: string
           created_at?: string
           email_sent_at?: string | null
           expires_at?: string
+          full_name?: string | null
+          grupo_id?: string
           id?: string
           invited_by: string
-          invited_email: string
+          invited_email?: string | null
+          modulos?: Json
+          perfil?: string
           permissions?: Json
           role?: Database["public"]["Enums"]["company_role"]
           status?: Database["public"]["Enums"]["invite_status"]
           token?: string
+          ver_salarios?: boolean
+          ver_saldos?: boolean
+          whatsapp?: string | null
+          whatsapp_sent_at?: string | null
         }
         Update: {
           company_id?: string
           created_at?: string
           email_sent_at?: string | null
           expires_at?: string
+          full_name?: string | null
+          grupo_id?: string
           id?: string
           invited_by?: string
-          invited_email?: string
+          invited_email?: string | null
+          modulos?: Json
+          perfil?: string
           permissions?: Json
           role?: Database["public"]["Enums"]["company_role"]
           status?: Database["public"]["Enums"]["invite_status"]
           token?: string
+          ver_salarios?: boolean
+          ver_saldos?: boolean
+          whatsapp?: string | null
+          whatsapp_sent_at?: string | null
         }
         Relationships: [
           {
@@ -2324,28 +2348,43 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
+          modulos: Json
+          perfil: string
           permissions: Json
           role: Database["public"]["Enums"]["company_role"]
+          situacao: string
           updated_at: string
           user_id: string
+          ver_salarios: boolean
+          ver_saldos: boolean
         }
         Insert: {
           company_id: string
           created_at?: string
           id?: string
+          modulos?: Json
+          perfil?: string
           permissions?: Json
           role?: Database["public"]["Enums"]["company_role"]
+          situacao?: string
           updated_at?: string
           user_id: string
+          ver_salarios?: boolean
+          ver_saldos?: boolean
         }
         Update: {
           company_id?: string
           created_at?: string
           id?: string
+          modulos?: Json
+          perfil?: string
           permissions?: Json
           role?: Database["public"]["Enums"]["company_role"]
+          situacao?: string
           updated_at?: string
           user_id?: string
+          ver_salarios?: boolean
+          ver_saldos?: boolean
         }
         Relationships: [
           {
@@ -17194,6 +17233,7 @@ export type Database = {
           role: string
         }[]
       }
+      nivel_permissao_valor: { Args: { _v: string }; Returns: number }
       open_finance_sync_health: { Args: { _company_id: string }; Returns: Json }
       pay_credit_card_invoice: {
         Args: {
@@ -17646,6 +17686,10 @@ export type Database = {
         Returns: undefined
       }
       system_health_snapshot: { Args: never; Returns: Json }
+      tem_permissao: {
+        Args: { _company_id: string; _item: string; _nivel?: string }
+        Returns: boolean
+      }
       try_cast_uuid: { Args: { p_val: string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
       webhook_discard_admin: {

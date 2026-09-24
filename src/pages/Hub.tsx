@@ -11,6 +11,7 @@ import { useModulosCatalogo } from "@/hooks/useModulosCatalogo";
 import { MODULES, isModuleUsable, statusLabel, type ModuleDefinition, type ModuleStatus } from "@/lib/modules";
 import { cn } from "@/lib/utils";
 import { PendingInvitesAlert } from "@/components/invites/PendingInvitesAlert";
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 
 function statusBadge(status: ModuleStatus, available: boolean) {
   if (!available) {
@@ -84,6 +85,7 @@ export default function Hub() {
   const { contextType, companies, selectedCompanyId } = useCompanyContext();
   const { getStatus, isLoading } = useCompanyModules();
   const { data: catalogo } = useModulosCatalogo();
+  const { hasModulo } = useCompanyPermissions();
 
   // Somente módulos ativos e marcados para aparecer no Hub (backoffice).
   // Enquanto o catálogo não carrega, mantém a lista padrão.
@@ -94,6 +96,9 @@ export default function Hub() {
         return entry ? entry.show_on_hub : false;
       })
     : hubCandidates;
+  const permittedModules = visibleModules.filter((def) =>
+    def.slug === "financeiro" ? hasModulo("financeiro") : def.slug === "dp" ? hasModulo("pessoas") : true,
+  );
 
 
   const contextLabel = companies.find((c) => c.id === selectedCompanyId)?.name ?? "Empresa";
@@ -117,7 +122,7 @@ export default function Hub() {
 
 
       <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-3">
-        {visibleModules.map((def) => (
+        {permittedModules.map((def) => (
           <ModuleCard
             key={def.slug}
             def={def}
@@ -125,7 +130,7 @@ export default function Hub() {
           />
         ))}
       </div>
-      {visibleModules.length === 0 && (
+      {permittedModules.length === 0 && (
         <p className="text-sm text-muted-foreground">Nenhum módulo disponível no momento.</p>
       )}
     </div>
