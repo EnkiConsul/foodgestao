@@ -128,15 +128,18 @@ export default function DpAtestados() {
     queryKey: ["dp_atestados_admin", selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_solicitacoes")
-        .select("*, dp_colaboradores(nome, unidade_id)")
-        .eq("company_id", selectedCompanyId!)
-        .is("removido_em", null)
-        .in("tipo", [...TIPOS_AFASTAMENTO])
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as Row[];
+      // Leitura em lotes com ordem estável: nenhum atestado some acima de 1.000.
+      return await fetchAllPages<Row>((from, to) =>
+        supabase
+          .from("dp_solicitacoes")
+          .select("*, dp_colaboradores(nome, unidade_id)")
+          .eq("company_id", selectedCompanyId!)
+          .is("removido_em", null)
+          .in("tipo", [...TIPOS_AFASTAMENTO])
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, to) as any,
+      );
     },
   });
 
