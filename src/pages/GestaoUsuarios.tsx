@@ -362,12 +362,7 @@ export default function GestaoUsuarios() {
                               className="h-8 w-8"
                               title="Editar permissões"
                               onClick={() =>
-                                setEditingMember({
-                                  id: member.id,
-                                  full_name: member.full_name,
-                                  role: member.role,
-                                  permissions: member.permissions ?? {},
-                                })
+                                setEditingMember({ ...member, permissions: member.permissions ?? {} })
                               }
                             >
                               <Settings2 className="h-4 w-4" />
@@ -429,12 +424,7 @@ export default function GestaoUsuarios() {
                           size="sm"
                           className="flex-1 min-h-9"
                           onClick={() =>
-                            setEditingMember({
-                              id: member.id,
-                              full_name: member.full_name,
-                              role: member.role,
-                              permissions: member.permissions ?? {},
-                            })
+                            setEditingMember({ ...member, permissions: member.permissions ?? {} })
                           }
                         >
                           <Settings2 className="h-4 w-4 mr-1" /> Permissões
