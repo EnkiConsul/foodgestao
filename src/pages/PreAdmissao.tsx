@@ -425,6 +425,15 @@ export default function PreAdmissao() {
   const pessoasParaEnviar = () =>
     pessoas.filter((p) => p.id || p.nome.trim() || p.parentesco.trim() || p.data_nascimento.trim());
 
+  /** O aviso fica no alto da página: sem isso, no celular ele passa batido. */
+  const irParaOAviso = () => {
+    try {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (_) {
+      window.scrollTo(0, 0);
+    }
+  };
+
   const tratarFalha = async (e: unknown) => {
     if (e instanceof ErroServidor) {
       // Ficha alterada em outro dispositivo: nada do que está na tela é
@@ -439,13 +448,17 @@ export default function PreAdmissao() {
         }
       }
       setErros(e.erros);
-      setFaltando(e.camposFaltando);
+      // Códigos do servidor traduzidos: a pessoa precisa saber o que falta e
+      // em qual etapa voltar.
+      setFaltando(e.camposFaltando.map(descreverCampo));
       setAvisoTopo(e.message);
       toast.error(e.message);
+      irParaOAviso();
       return;
     }
     setAvisoTopo((e as Error).message);
     toast.error((e as Error).message);
+    irParaOAviso();
   };
 
   const salvar = async (avancar: boolean, silencioso = false) => {
