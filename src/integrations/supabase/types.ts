@@ -2287,6 +2287,7 @@ export type Database = {
           role: Database["public"]["Enums"]["company_role"]
           status: Database["public"]["Enums"]["invite_status"]
           token: string
+          unidades_permitidas: string[] | null
           ver_salarios: boolean
           ver_saldos: boolean
           whatsapp: string | null
@@ -2309,6 +2310,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["company_role"]
           status?: Database["public"]["Enums"]["invite_status"]
           token?: string
+          unidades_permitidas?: string[] | null
           ver_salarios?: boolean
           ver_saldos?: boolean
           whatsapp?: string | null
@@ -2331,6 +2333,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["company_role"]
           status?: Database["public"]["Enums"]["invite_status"]
           token?: string
+          unidades_permitidas?: string[] | null
           ver_salarios?: boolean
           ver_saldos?: boolean
           whatsapp?: string | null
@@ -2357,6 +2360,7 @@ export type Database = {
           permissions: Json
           role: Database["public"]["Enums"]["company_role"]
           situacao: string
+          unidades_permitidas: string[] | null
           updated_at: string
           user_id: string
           ver_salarios: boolean
@@ -2372,6 +2376,7 @@ export type Database = {
           permissions?: Json
           role?: Database["public"]["Enums"]["company_role"]
           situacao?: string
+          unidades_permitidas?: string[] | null
           updated_at?: string
           user_id: string
           ver_salarios?: boolean
@@ -2387,6 +2392,7 @@ export type Database = {
           permissions?: Json
           role?: Database["public"]["Enums"]["company_role"]
           situacao?: string
+          unidades_permitidas?: string[] | null
           updated_at?: string
           user_id?: string
           ver_salarios?: boolean
@@ -17236,6 +17242,10 @@ export type Database = {
         Args: { _company_id: string }
         Returns: string[]
       }
+      minhas_unidades_permitidas: {
+        Args: { _company_id: string }
+        Returns: string[]
+      }
       my_pending_invites: {
         Args: never
         Returns: {
@@ -17706,6 +17716,10 @@ export type Database = {
       }
       try_cast_uuid: { Args: { p_val: string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
+      unidade_liberada: {
+        Args: { _company_id: string; _unidade_id: string }
+        Returns: boolean
+      }
       webhook_discard_admin: {
         Args: { _event_id: string; _provider: string; _reason?: string }
         Returns: boolean
