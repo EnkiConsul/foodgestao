@@ -15,10 +15,6 @@ project_id = "grtxmbffgmgnkawlvqhm"
   # em cabeçalho (x-worker-secret), acionado por agendamento no banco.
   [functions.dp-doc-bulk-worker]
     verify_jwt = false
-  # Rotina administrativa de uso único: higienização de caminhos legados no
-  # Storage. Autorizada por segredo interno em cabeçalho (x-admin-secret).
-  [functions.admin-storage-migrar-legado]
-    verify_jwt = false
 
 
   [functions.close-credit-card-invoices]
