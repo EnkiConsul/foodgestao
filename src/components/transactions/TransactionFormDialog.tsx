@@ -638,11 +638,12 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       await supabase.from("transaction_attachments").delete().in("id", removedAttachmentIds);
     }
     // Upload new files
-    for (const file of attachmentFiles) {
+    for (const escolhido of attachmentFiles) {
+      // Foto de iPhone (HEIC) vira JPEG antes de subir, para abrir em qualquer navegador.
+      const file = await prepararUpload("transaction-attachments", escolhido);
       const ext = file.name.split(".").pop();
       const safeName = file.name.replace(/[^\w.\-]+/g, "_");
       const filePath = `${user.id}/${transactionId}/${Date.now()}_${safeName}`;
-      validarUpload("transaction-attachments", file);
       const { error } = await supabase.storage
         .from("transaction-attachments")
         .upload(filePath, file, { upsert: false });
