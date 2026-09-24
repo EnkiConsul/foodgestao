@@ -71,7 +71,8 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
 
   const waDigits = whatsapp.replace(/\D/g, "");
   const emailOk = !email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const valid = nome.trim().length >= 3 && isValidPhone(whatsapp) && emailOk && empresas.length > 0;
+  const contasOk = acessoTotal || contas === null || contas.length > 0;
+  const valid = nome.trim().length >= 3 && isValidPhone(whatsapp) && emailOk && empresas.length > 0 && contasOk;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,6 +181,13 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
               companies={adminCompanies}
               selected={empresas}
               onChange={setEmpresas}
+            />
+
+            <AccountAccessPicker
+              accounts={contasEmpresa}
+              value={contas}
+              onChange={setContas}
+              bloqueado={acessoTotal}
             />
 
             <PermissionsEditor
