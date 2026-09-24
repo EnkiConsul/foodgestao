@@ -212,8 +212,7 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
             companies={adminCompanies}
             selected={empresas}
             onChange={setEmpresas}
-            lockedId={companyId}
-            ajuda="Marque para liberar o acesso e desmarque para retirar. A empresa aberta na tela não pode ser desmarcada aqui — use Remover membro. As permissões abaixo valem para todas as empresas marcadas."
+            ajuda="Marque para liberar o acesso e desmarque para retirar. As permissões abaixo valem para todas as empresas marcadas."
           />
 
           <PermissionsEditor
