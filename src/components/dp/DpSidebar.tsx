@@ -30,6 +30,8 @@ import { filterSurface } from "@/lib/nav/hiddenScreens";
 import { OrganizarMenuDialog } from "@/components/dp/OrganizarMenuDialog";
 import { TelasDesenvolvimentoDialog } from "@/components/dp/TelasDesenvolvimentoDialog";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
+import { itemDaRota } from "@/lib/permissionRoutes";
 import { AccountMenu } from "@/components/layout/sidebar-menus/AccountMenu";
 
 
@@ -106,12 +108,19 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
   const { layout } = useDpMenuLayout(surfaceKey);
   const { hidden, enabled: hiddenEnabled } = useHiddenScreens();
   const { isSuperAdmin } = useSuperAdmin();
+  const { podeRota, permissions, role } = useCompanyPermissions();
+  const permsKey = `${role}:${JSON.stringify(permissions)}`;
   const [organizarOpen, setOrganizarOpen] = useState(false);
   const [telasOpen, setTelasOpen] = useState(false);
   const items = useMemo(() => {
     const base = filterSurface(variant === "portal" ? DP_PORTAL_NAV : DP_ADMIN_NAV, hidden);
-    return buildItems(layout ? applyMenuLayout(base, layout) : base);
-  }, [variant, layout, hidden]);
+    const built = buildItems(layout ? applyMenuLayout(base, layout) : base);
+    if (variant === "portal") return built;
+    return built
+      .map((it) => (it.kind === "link" ? it : { ...it, items: it.items.filter((s) => podeRota(itemDaRota(s.url))) }))
+      .filter((it) => (it.kind === "link" ? podeRota(itemDaRota(it.url)) : it.items.length > 0));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variant, layout, hidden, permsKey]);
 
   const subtitle = variant === "portal" ? "Portal do Colaborador" : "Pessoas 360°";
 

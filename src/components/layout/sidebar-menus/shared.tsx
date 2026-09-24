@@ -18,10 +18,14 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { NavLink } from "@/components/NavLink";
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
+import { itemDaRota } from "@/lib/permissionRoutes";
 
 export type MenuItem = { title: string; url: string; icon: LucideIcon; end?: boolean; badge?: string };
 
 export function SidebarNavItem({ item }: { item: MenuItem }) {
+  const { podeRota } = useCompanyPermissions();
+  if (!podeRota(itemDaRota(item.url))) return null;
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild tooltip={item.title}>

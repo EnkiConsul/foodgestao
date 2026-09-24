@@ -1,3 +1,4 @@
+import { PermissionRouteGuard } from "@/components/users/PermissionRouteGuard";
 import { Outlet, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { permitePullToRefresh } from "@/lib/nav/pullToRefreshRoutes";
@@ -19,7 +20,7 @@ export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" })
 
   const conteudo = (
     <HiddenScreenGuard surface={variant}>
-      <Outlet />
+      <PermissionRouteGuard><Outlet /></PermissionRouteGuard>
     </HiddenScreenGuard>
   );
 
