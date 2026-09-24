@@ -1,3 +1,4 @@
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { toProperName } from "@/lib/text/properName";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,6 +34,9 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function Contatos() {
+  const { can: podePerm } = useCompanyPermissions();
+  const podeIncluir = podePerm("contacts", "inclusao");
+  const podeExcluir = podePerm("contacts", "total");
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -149,10 +153,10 @@ export default function Contatos() {
           <p className="text-xs md:text-sm text-muted-foreground">Gerencie clientes e fornecedores</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={() => setImportOpen(true)}>
+          <Button disabled={!podeIncluir} variant="outline" onClick={() => setImportOpen(true)}>
             <FileSpreadsheet className="h-4 w-4 mr-2" /> <span className="hidden sm:inline">Importar planilha</span>
           </Button>
-          <Button onClick={openNew} className="hidden md:flex">
+          <Button disabled={!podeIncluir} onClick={openNew} className="hidden md:flex">
             <Plus className="h-4 w-4 mr-2" /> Novo Contato
           </Button>
         </div>
@@ -186,7 +190,7 @@ export default function Contatos() {
           <CardContent className="flex flex-col items-center py-12 text-muted-foreground">
             <Users className="h-10 w-10 mb-3 opacity-40" />
             <p className="text-sm">Nenhum contato cadastrado</p>
-            <Button variant="link" onClick={openNew} className="mt-2">
+            <Button disabled={!podeIncluir} variant="link" onClick={openNew} className="mt-2">
               Cadastrar primeiro contato
             </Button>
           </CardContent>
@@ -231,7 +235,7 @@ export default function Contatos() {
                   <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-primary" onClick={() => openEdit(contact)} aria-label="Editar contato">
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(contact.id)} aria-label="Excluir contato">
+                  <Button disabled={!podeExcluir} variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(contact.id)} aria-label="Excluir contato">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>

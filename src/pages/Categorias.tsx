@@ -1,3 +1,4 @@
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -39,6 +40,9 @@ const CATEGORIA_HELP = {
 
 
 export default function Categorias() {
+  const { can: podePerm } = useCompanyPermissions();
+  const podeIncluir = podePerm("categories", "inclusao");
+  const podeExcluir = podePerm("categories", "total");
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
 
@@ -584,7 +588,7 @@ export default function Categorias() {
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1">
-            <Button onClick={openNew} size="sm" className="gap-1.5">
+            <Button disabled={!podeIncluir} onClick={openNew} size="sm" className="gap-1.5">
               <Plus className="h-4 w-4" />
               Nova categoria
             </Button>
@@ -748,7 +752,7 @@ export default function Categorias() {
         <div className="flex flex-col items-center py-16 text-muted-foreground border rounded-lg">
           <Tag className="h-10 w-10 mb-3 opacity-40" aria-hidden />
           <p className="text-sm">Nenhuma categoria criada</p>
-          <Button variant="link" onClick={openNew} className="mt-2">
+          <Button disabled={!podeIncluir} variant="link" onClick={openNew} className="mt-2">
             Criar primeira categoria
           </Button>
         </div>
