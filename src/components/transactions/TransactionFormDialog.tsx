@@ -642,9 +642,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       const ext = file.name.split(".").pop();
       const safeName = file.name.replace(/[^\w.\-]+/g, "_");
       const filePath = `${user.id}/${transactionId}/${Date.now()}_${safeName}`;
+      validarUpload("transaction-attachments", file);
       const { error } = await supabase.storage
         .from("transaction-attachments")
-        validarUpload("transaction-attachments", file);
         .upload(filePath, file, { upsert: false });
       if (error) {
         toast.error(`Erro ao enviar ${file.name}`, { description: error.message });
