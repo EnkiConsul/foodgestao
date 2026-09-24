@@ -13,6 +13,7 @@ import { AccountAccessPicker } from "@/components/users/AccountAccessPicker";
 import { UnitAccessPicker } from "@/components/users/UnitAccessPicker";
 import { useAdminCompanies } from "@/hooks/useAdminCompanies";
 import { useCompanyAccounts } from "@/hooks/useCompanyAccounts";
+import { useCompanyUnidades } from "@/hooks/useCompanyUnidades";
 import { CompanyRole, ModulosMap, PERFIS, PerfilKey, PermissionsMap, getPerfil, perfilPadraoDoRole } from "@/lib/permissions";
 import { isValidPhone, maskPhone } from "@/lib/phone";
 
