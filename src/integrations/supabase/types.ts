@@ -15168,6 +15168,29 @@ export type Database = {
         }
         Returns: number
       }
+      dp_colaboradores_confidencial: {
+        Args: { _company_id: string; _ids?: string[] }
+        Returns: {
+          agencia: string
+          banco_codigo: string
+          banco_nome: string
+          base_salarial: number
+          conta: string
+          conta_digito: string
+          conta_tipo: string
+          cpf: string
+          id: string
+          liberado: boolean
+          pis_nit: string
+          pix_chave: string
+          pix_tipo: string
+          rg_emissao: string
+          rg_numero: string
+          rg_orgao: string
+          rg_uf: string
+          salario_base: number
+        }[]
+      }
       dp_colaboradores_lixeira: {
         Args: { p_company_id: string }
         Returns: {
