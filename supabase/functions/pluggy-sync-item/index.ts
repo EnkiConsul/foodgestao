@@ -3,7 +3,6 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { getItem, listAccounts, listItems, listTransactions, refreshItem, waitForItem } from '../_shared/pluggy.ts';
 import { buildDescription, counterpartyName } from '../_shared/tx-description.ts';
 import { extractCounterpartyDocument } from '../_shared/counterparty-doc.ts';
-import { materializePluggyItemV2 } from '../_shared/pluggy-v2-materialize.ts';
 import { resolveOpenFinanceBalance } from '../_shared/of-balance.ts';
 
 function normalizeLabel(value: string | null | undefined): string {
@@ -344,23 +343,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fallback: a conexão pode existir apenas no cadastro V2 (item criado pelo
-    // fluxo novo/QR Code). Sem isso, itens que JÁ têm empresa definida caíam em
-    // "empresa não resolvida" e nunca sincronizavam.
-    if (!existing && !companyId) {
-      const { data: v2conn } = await admin
-        .from('pluggy_v2_connections')
-        .select('company_id')
-        .eq('pluggy_item_id', itemId)
-        .not('company_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (v2conn?.company_id) {
-        companyId = v2conn.company_id as string;
-        console.log(`resolved company via pluggy_v2_connections -> ${companyId}`);
-      }
-    }
 
     // Último fallback: resolver a empresa pelo clientUserId gravado no item da
     // Pluggy. Cobre o caso em que nenhuma solicitação foi registrada (ex.: o
