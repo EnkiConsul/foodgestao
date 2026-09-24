@@ -71,6 +71,9 @@ async function findDuplicateByName(
 ): Promise<DuplicateHit> {
   const prefixo = prefixoBuscaNome(nome);
   if (prefixo.length < 3) return null;
+  // company-scope-lint: safe — `contacts` não tem coluna de empresa; o escopo vem da
+  // RLS (via contact_companies), então a busca de duplicidade só alcança contatos que
+  // o usuário já pode ver nas empresas dele.
   const { data } = await supabase
     .from("contacts")
     .select("id, name, is_active")

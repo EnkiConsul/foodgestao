@@ -28,6 +28,9 @@ async function contarLancamentos(coluna: Coluna, ids: string[]): Promise<Set<str
   const comHistorico = new Set<string>();
   if (ids.length === 0) return comHistorico;
   // Busca as próprias linhas (não só a contagem) para saber QUAIS ids estão em uso.
+  // company-scope-lint: safe — a consulta é restrita por `.in(coluna, ids)`, onde os
+  // ids são cadastros já carregados no escopo da empresa em contexto (e a RLS de
+  // `transactions` só devolve lançamentos das empresas às quais o usuário pertence).
   const { data, error } = await (supabase as any)
     .from("transactions")
     .select(coluna)
@@ -80,6 +83,8 @@ export async function verificarExclusaoContaContabil(
   nome?: string | null,
 ): Promise<Bloqueio | null> {
   if (contaIds.length === 0) return null;
+  // company-scope-lint: safe — filtrada por `chart_account_id` das contas já
+  // carregadas no escopo da empresa em contexto; a RLS de `categories` limita o resto.
   const { data: cats, error } = await (supabase as any)
     .from("categories")
     .select("id")
@@ -95,6 +100,8 @@ export async function verificarExclusaoContaContabil(
 export async function contasContabeisComHistorico(contaIds: string[]): Promise<Set<string>> {
   const bloqueadas = new Set<string>();
   if (contaIds.length === 0) return bloqueadas;
+  // company-scope-lint: safe — mesma restrição por `chart_account_id` das contas
+  // já carregadas no escopo da empresa em contexto, somada à RLS de `categories`.
   const { data: cats, error } = await (supabase as any)
     .from("categories")
     .select("id, chart_account_id")
