@@ -76,6 +76,7 @@ export default function GestaoUsuarios() {
   const [inviteOpen, setInviteOpen] = useState(location.state?.openInvite ?? false);
   const [inviteDefaultRole] = useState<CompanyRole>(location.state?.defaultRole ?? "member");
   const [editingMember, setEditingMember] = useState<EditableMember | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (location.state?.openInvite) {
