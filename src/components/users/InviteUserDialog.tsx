@@ -172,7 +172,6 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
               companies={adminCompanies}
               selected={empresas}
               onChange={setEmpresas}
-              lockedId={companyId}
             />
 
             <PermissionsEditor

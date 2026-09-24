@@ -92,6 +92,12 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
 
   const handleSave = async () => {
     if (!member) return;
+    if (empresas.length === 0) {
+      toast.error("Selecione ao menos uma empresa", {
+        description: "Para retirar o acesso de todas, use Remover membro.",
+      });
+      return;
+    }
     setSaving(true);
 
     const payload = {
@@ -100,22 +106,36 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
       situacao: ativo ? "ativo" : "bloqueado",
     };
 
-    const { error } = await (supabase as any)
-      .from("company_members")
-      .update(payload)
-      .eq("id", member.id);
-
-    if (error) {
-      toast.error("Erro ao salvar permissões", { description: error.message });
-      setSaving(false);
-      return;
-    }
-
-    // Sincroniza o acesso nas outras empresas administradas.
-    const selecionadas = new Set([...empresas, companyId]);
+    const selecionadas = new Set(empresas);
     const falhas: string[] = [];
     let adicionadas = 0;
     let removidas = 0;
+
+    if (selecionadas.has(companyId)) {
+      const { error } = await (supabase as any)
+        .from("company_members")
+        .update(payload)
+        .eq("id", member.id);
+
+      if (error) {
+        toast.error("Erro ao salvar permissões", { description: error.message });
+        setSaving(false);
+        return;
+      }
+    } else {
+      const { error } = await (supabase as any)
+        .from("company_members")
+        .delete()
+        .eq("id", member.id);
+
+      if (error) {
+        toast.error("Erro ao retirar o acesso desta empresa", { description: error.message });
+        setSaving(false);
+        return;
+      }
+      removidas++;
+    }
+
 
     for (const c of adminCompanies) {
       if (c.id === companyId) continue;
@@ -192,8 +212,7 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
             companies={adminCompanies}
             selected={empresas}
             onChange={setEmpresas}
-            lockedId={companyId}
-            ajuda="Marque para liberar o acesso e desmarque para retirar. A empresa aberta na tela não pode ser desmarcada aqui — use Remover membro. As permissões abaixo valem para todas as empresas marcadas."
+            ajuda="Marque para liberar o acesso e desmarque para retirar. As permissões abaixo valem para todas as empresas marcadas."
           />
 
           <PermissionsEditor
