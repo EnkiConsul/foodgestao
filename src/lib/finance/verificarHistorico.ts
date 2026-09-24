@@ -28,6 +28,9 @@ async function contarLancamentos(coluna: Coluna, ids: string[]): Promise<Set<str
   const comHistorico = new Set<string>();
   if (ids.length === 0) return comHistorico;
   // Busca as próprias linhas (não só a contagem) para saber QUAIS ids estão em uso.
+  // company-scope-lint: safe — a consulta é restrita por `.in(coluna, ids)`, onde os
+  // ids são cadastros já carregados no escopo da empresa em contexto (e a RLS de
+  // `transactions` só devolve lançamentos das empresas às quais o usuário pertence).
   const { data, error } = await (supabase as any)
     .from("transactions")
     .select(coluna)
