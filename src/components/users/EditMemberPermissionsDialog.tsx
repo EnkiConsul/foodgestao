@@ -10,8 +10,10 @@ import { toast } from "sonner";
 import { PermissionsEditor } from "@/components/users/PermissionsEditor";
 import { CompanyAccessPicker } from "@/components/users/CompanyAccessPicker";
 import { AccountAccessPicker } from "@/components/users/AccountAccessPicker";
+import { UnitAccessPicker } from "@/components/users/UnitAccessPicker";
 import { useAdminCompanies } from "@/hooks/useAdminCompanies";
 import { useCompanyAccounts } from "@/hooks/useCompanyAccounts";
+import { useCompanyUnidades } from "@/hooks/useCompanyUnidades";
 import {
   CompanyRole, ModulosMap, MODULOS_TODOS, PERFIS, PerfilKey, PermissionsMap, getPerfil, perfilPadraoDoRole,
 } from "@/lib/permissions";
@@ -28,6 +30,7 @@ export interface EditableMember {
   ver_salarios?: boolean;
   situacao?: string;
   contas_permitidas?: string[] | null;
+  unidades_permitidas?: string[] | null;
 }
 
 interface Props {
@@ -48,10 +51,12 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
   const [ativo, setAtivo] = useState(true);
   const [empresas, setEmpresas] = useState<string[]>([]);
   const [contas, setContas] = useState<string[] | null>(null);
+  const [unidades, setUnidades] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
 
   const { data: adminCompanies = [] } = useAdminCompanies(open);
   const { data: contasEmpresa = [] } = useCompanyAccounts(companyId, open);
+  const { data: unidadesEmpresa = [] } = useCompanyUnidades(companyId, open);
   const acessoTotal = role === "owner" || role === "admin";
   const nomeEmpresa = adminCompanies.find((c) => c.id === companyId)?.name;
 
@@ -84,6 +89,7 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
     setFlags({ ver_saldos: member.ver_saldos !== false, ver_salarios: member.ver_salarios !== false });
     setAtivo((member.situacao ?? "ativo") === "ativo");
     setContas(member.contas_permitidas?.length ? member.contas_permitidas : null);
+    setUnidades(member.unidades_permitidas?.length ? member.unidades_permitidas : null);
   }, [member]);
 
   // Marca as empresas onde o membro já tem acesso, sempre incluindo a atual.
@@ -112,6 +118,12 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
       });
       return;
     }
+    if (!acessoTotal && unidades !== null && unidades.length === 0) {
+      toast.error("Escolha as unidades", {
+        description: "Marque ao menos uma unidade ou volte para Todas as unidades.",
+      });
+      return;
+    }
     setSaving(true);
 
     const payload = {
@@ -119,10 +131,12 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
       ver_saldos: flags.ver_saldos, ver_salarios: flags.ver_salarios,
       situacao: ativo ? "ativo" : "bloqueado",
     };
-    // A lista de contas é própria de cada empresa; só gravamos na empresa aberta.
+    // As listas de contas e unidades são próprias de cada empresa;
+    // só gravamos na empresa aberta na tela.
     const payloadAtual = {
       ...payload,
       contas_permitidas: acessoTotal || contas === null ? null : contas,
+      unidades_permitidas: acessoTotal || unidades === null ? null : unidades,
     };
 
 
@@ -239,6 +253,14 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
             accounts={contasEmpresa}
             value={contas}
             onChange={setContas}
+            bloqueado={acessoTotal}
+            nomeEmpresa={nomeEmpresa}
+          />
+
+          <UnitAccessPicker
+            unidades={unidadesEmpresa}
+            value={unidades}
+            onChange={setUnidades}
             bloqueado={acessoTotal}
             nomeEmpresa={nomeEmpresa}
           />

@@ -3,7 +3,7 @@
 export async function aplicarGrupoConvite(admin: any, grupoId: string, userId: string) {
   const { data: convites } = await admin
     .from("company_invites")
-    .select("id, company_id, role, perfil, permissions, modulos, ver_saldos, ver_salarios, contas_permitidas, expires_at, companies(name)")
+    .select("id, company_id, role, perfil, permissions, modulos, ver_saldos, ver_salarios, contas_permitidas, unidades_permitidas, expires_at, companies(name)")
     .eq("grupo_id", grupoId)
     .eq("status", "pending");
 
@@ -26,6 +26,7 @@ export async function aplicarGrupoConvite(admin: any, grupoId: string, userId: s
         ver_saldos: c.ver_saldos ?? true,
         ver_salarios: c.ver_salarios ?? true,
         contas_permitidas: c.contas_permitidas ?? null,
+        unidades_permitidas: c.unidades_permitidas ?? null,
       });
       if (error) throw new Error(error.message);
     }

@@ -120,7 +120,7 @@ export default function GestaoUsuarios() {
     queryFn: async () => {
       const { data } = (await (supabase as any)
         .from("company_members")
-        .select("id, user_id, role, permissions, perfil, modulos, ver_saldos, ver_salarios, situacao, contas_permitidas, created_at")
+        .select("id, user_id, role, permissions, perfil, modulos, ver_saldos, ver_salarios, situacao, contas_permitidas, unidades_permitidas, created_at")
         .eq("company_id", activeCompanyId)
         .order("created_at")) as { data: any[] | null };
 
@@ -159,6 +159,67 @@ export default function GestaoUsuarios() {
       }));
     },
   });
+
+  // Empresas que o usuário logado administra (para mostrar o acesso de cada membro).
+  const adminCompanyIds = companies
+    .filter((c: any) => c.role === "owner" || c.role === "admin")
+    .map((c: any) => c.id);
+  const nomeEmpresaPorId = new Map(companies.map((c: any) => [c.id, c.name]));
+
+  // Unidades do Pessoas 360° da empresa aberta, para exibir os nomes liberados.
+  const { data: unidadesEmpresa = [] } = useQuery({
+    queryKey: ["gestao-unidades", activeCompanyId],
+    enabled: !!activeCompanyId,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("dp_unidades")
+        .select("id, nome")
+        .eq("company_id", activeCompanyId)
+        .order("nome");
+      return (data ?? []) as Array<{ id: string; nome: string }>;
+    },
+  });
+  const nomeUnidadePorId = new Map(unidadesEmpresa.map((u) => [u.id, u.nome]));
+
+  // Vínculos dos membros nas demais empresas administradas.
+  const { data: vinculos = [] } = useQuery({
+    queryKey: ["gestao-vinculos", activeCompanyId, adminCompanyIds.join(","), members.map((m: any) => m.user_id).join(",")],
+    enabled: adminCompanyIds.length > 0 && members.length > 0,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("company_members")
+        .select("user_id, company_id")
+        .in("company_id", adminCompanyIds)
+        .in("user_id", members.map((m: any) => m.user_id));
+      return (data ?? []) as Array<{ user_id: string; company_id: string }>;
+    },
+  });
+
+  const empresasDoMembro = (userId: string) =>
+    vinculos
+      .filter((v) => v.user_id === userId)
+      .map((v) => nomeEmpresaPorId.get(v.company_id))
+      .filter(Boolean) as string[];
+
+  const unidadesDoMembro = (member: any): string[] | null => {
+    if (member.role === "owner" || member.role === "admin") return null;
+    const ids: string[] = member.unidades_permitidas ?? [];
+    if (!ids.length) return null;
+    return ids.map((id) => nomeUnidadePorId.get(id) ?? "Unidade").sort((a, b) => a.localeCompare(b, "pt-BR"));
+  };
+
+  const ListaBadges = ({ itens, vazio }: { itens: string[] | null; vazio: string }) =>
+    itens === null ? (
+      <span className="text-xs text-muted-foreground">{vazio}</span>
+    ) : itens.length === 0 ? (
+      <span className="text-xs text-muted-foreground">—</span>
+    ) : (
+      <div className="flex flex-wrap gap-1">
+        {itens.map((n) => (
+          <Badge key={n} variant="outline" className="text-[11px] font-normal">{n}</Badge>
+        ))}
+      </div>
+    );
 
   // Fetch invites
   const { data: invites = [] } = useQuery({
@@ -379,14 +440,16 @@ export default function GestaoUsuarios() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Papel</TableHead>
-                  <TableHead className="hidden sm:table-cell">Desde</TableHead>
+                  <TableHead>Empresas</TableHead>
+                  <TableHead>Unidades</TableHead>
+                  <TableHead className="hidden lg:table-cell">Desde</TableHead>
                   {isAdminOrOwner && <TableHead className="text-right">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loadingMembers ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">Carregando...</TableCell>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">Carregando...</TableCell>
                   </TableRow>
                 ) : members.map((member: any) => (
                   <TableRow key={member.id}>
@@ -397,7 +460,13 @@ export default function GestaoUsuarios() {
                         {member.situacao === "bloqueado" && <Badge variant="destructive">Bloqueado</Badge>}
                       </div>
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
+                    <TableCell className="max-w-[220px]">
+                      <ListaBadges itens={empresasDoMembro(member.user_id)} vazio="—" />
+                    </TableCell>
+                    <TableCell className="max-w-[220px]">
+                      <ListaBadges itens={unidadesDoMembro(member)} vazio="Todas as unidades" />
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
                       {formatDate(member.created_at, "dd/MM/yyyy")}
                     </TableCell>
                     {isAdminOrOwner && (
@@ -460,6 +529,14 @@ export default function GestaoUsuarios() {
                       <div className="flex flex-wrap items-center gap-1.5">
                         {perfilBadge(member.perfil, member.role)}
                         {member.situacao === "bloqueado" && <Badge variant="destructive">Bloqueado</Badge>}
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-medium text-muted-foreground">Empresas</p>
+                        <ListaBadges itens={empresasDoMembro(member.user_id)} vazio="—" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-medium text-muted-foreground">Unidades</p>
+                        <ListaBadges itens={unidadesDoMembro(member)} vazio="Todas as unidades" />
                       </div>
                       <p className="text-[11px] text-muted-foreground">Desde {formatDate(member.created_at, "dd/MM/yyyy")}</p>
                     </div>
