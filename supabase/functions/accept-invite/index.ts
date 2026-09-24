@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { strictCorsHeaders } from "../_shared/http.ts";
+import { aplicarGrupoConvite, waEmail } from "../_shared/company-invite-accept.ts";
 
 function getCorsHeaders(req: Request) {
   return {
@@ -71,8 +72,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    if ((user.email ?? "").toLowerCase() !== (invite.invited_email ?? "").toLowerCase()) {
-      return new Response(JSON.stringify({ error: "Este convite foi enviado para outro e-mail. Faça login com o e-mail convidado." }), {
+    const userEmail = (user.email ?? "").toLowerCase();
+    const emailMatch = !!invite.invited_email && userEmail === String(invite.invited_email).toLowerCase();
+    const waMatch = !!invite.whatsapp && userEmail === waEmail(String(invite.whatsapp));
+    if (!emailMatch && !waMatch) {
+      return new Response(JSON.stringify({ error: "Este convite foi enviado para outra pessoa. Entre com o e-mail ou WhatsApp convidado." }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -90,52 +94,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: existing } = await adminClient
-      .from("company_members")
-      .select("id")
-      .eq("company_id", invite.company_id)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (existing) {
-      await adminClient
-        .from("company_invites")
-        .update({ status: "accepted" })
-        .eq("id", invite.id);
-
-      return new Response(JSON.stringify({ 
-        success: true, 
-        company_name: invite.companies?.name,
-        message: "Você já é membro desta empresa" 
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const { error: memberError } = await adminClient
-      .from("company_members")
-      .insert({
-        company_id: invite.company_id,
-        user_id: user.id,
-        role: invite.role,
-        permissions: invite.permissions ?? {},
-      });
-
-    if (memberError) {
+    let empresas: string[] = [];
+    try {
+      empresas = await aplicarGrupoConvite(adminClient, invite.grupo_id, user.id);
+    } catch {
       return new Response(JSON.stringify({ error: "Erro ao processar convite" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    await adminClient
-      .from("company_invites")
-      .update({ status: "accepted" })
-      .eq("id", invite.id);
-
-    return new Response(JSON.stringify({ 
-      success: true, 
-      company_name: invite.companies?.name 
+    return new Response(JSON.stringify({
+      success: true,
+      company_name: empresas.join(", ") || invite.companies?.name,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
