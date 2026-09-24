@@ -530,6 +530,14 @@ export default function GestaoUsuarios() {
                         {perfilBadge(member.perfil, member.role)}
                         {member.situacao === "bloqueado" && <Badge variant="destructive">Bloqueado</Badge>}
                       </div>
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-medium text-muted-foreground">Empresas</p>
+                        <ListaBadges itens={empresasDoMembro(member.user_id)} vazio="—" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-medium text-muted-foreground">Unidades</p>
+                        <ListaBadges itens={unidadesDoMembro(member)} vazio="Todas as unidades" />
+                      </div>
                       <p className="text-[11px] text-muted-foreground">Desde {formatDate(member.created_at, "dd/MM/yyyy")}</p>
                     </div>
                     {canManage && (
