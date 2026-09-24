@@ -445,7 +445,7 @@ export default function DpHistoricoCompleto() {
           status_key: statusKey,
           status_label: statusKey === "aprovado" ? "Aprovado" : statusKey === "recusado" ? "Recusado" : "Pendente",
           data: s.created_at,
-          bucket: "dp-atestados",
+          bucket: "dp-documentos",
           file_path: s.arquivo_path,
           titulo: `Atestado — ${c?.nome ?? ""}`.trim(),
           aceite: null,
