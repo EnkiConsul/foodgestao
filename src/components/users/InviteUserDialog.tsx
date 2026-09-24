@@ -173,7 +173,9 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Tipo de perfil *</Label>
                 <Select value={perfil} onValueChange={(v) => applyPerfil(v as PerfilKey)}>
-                  <SelectTrigger className="min-h-11 [&>span]:truncate"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="min-h-11 [&>span]:truncate">
+                    <SelectValue>{perfisDisponiveis.find((p) => p.key === perfil)?.label ?? "Selecionar"}</SelectValue>
+                  </SelectTrigger>
                   <SelectContent className="max-w-[min(92vw,26rem)]">
                     {perfisDisponiveis.map((p) => (
                       <SelectItem key={p.key} value={p.key} className="items-start py-2.5">
