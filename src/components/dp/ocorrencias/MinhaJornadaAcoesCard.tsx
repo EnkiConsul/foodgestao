@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { validarUpload } from "@/lib/storage/uploadPolicy";
 import { AlertTriangle, Clock, HeartPulse, HelpCircle, LogOut, Timer, UserX, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -102,6 +103,7 @@ export function MinhaJornadaAcoesCard() {
     setEnviandoAtestado(true);
     try {
       const path = `${vinculo.companyId}/${vinculo.colaboradorId}/${Date.now()}-${sanitizeStorageFilename(arquivo.name)}`;
+      validarUpload(BUCKET, arquivo);
       const up = await supabase.storage.from(BUCKET).upload(path, arquivo, {
         contentType: arquivo.type,
         upsert: false,

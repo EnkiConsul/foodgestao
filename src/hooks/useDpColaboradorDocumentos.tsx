@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { validarUpload } from "@/lib/storage/uploadPolicy";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -139,6 +140,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
       const ctx = base.data;
       if (!ctx) throw new Error("Checklist não carregado");
       const path = `${ctx.colaborador.company_id}/${ctx.colaborador.id}/requisitos/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
+      validarUpload(DP_DOCUMENTOS_BUCKET, file);
       const up = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(path, file, {
         contentType: file.type,
         upsert: false,

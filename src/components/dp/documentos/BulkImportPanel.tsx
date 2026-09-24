@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { validarUpload } from "@/lib/storage/uploadPolicy";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Upload, Loader2, Check, X, ChevronDown, ChevronRight, RefreshCw, ExternalLink, AlertTriangle, Eye, Trash2, Info,
@@ -260,6 +261,7 @@ export function BulkImportPanel({
       const batch = insertRes.data as { id: string };
 
       const finalPath = `${selectedCompanyId}/${batch.id}/source.pdf`;
+      validarUpload("dp-bulk-import", file);
       const up = await supabase.storage.from("dp-bulk-import").upload(finalPath, file, {
         contentType: "application/pdf", upsert: true,
       });

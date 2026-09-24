@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { validarUpload } from "@/lib/storage/uploadPolicy";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Upload, History, FileText, FileImage, Download, Trash2, Pencil, FileSignature } from "lucide-react";
@@ -318,6 +319,7 @@ export default function DpDisciplinar() {
 
       const safeName = sanitizeStorageFilename(pendingFile.name);
       const path = `${selectedCompanyId}/${registroId}/${Date.now()}-${safeName}`;
+      validarUpload(BUCKET, pendingFile);
       const up = await supabase.storage.from(BUCKET).upload(path, pendingFile, {
         upsert: true,
         contentType: pendingFile.type || "application/pdf",
