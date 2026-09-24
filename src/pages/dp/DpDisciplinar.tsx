@@ -33,6 +33,7 @@ import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
 import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { notifyError } from "@/lib/notifyError";
+import { fetchAllPages } from "@/lib/supabase/fetchAllPages";
 
 const BUCKET = "dp-disciplinar";
 
@@ -118,14 +119,18 @@ export default function DpDisciplinar() {
     queryKey: ["dp_disciplinar", selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_registros_disciplinares")
-        .select("*, dp_colaboradores(nome, unidade_id)")
-        .eq("company_id", selectedCompanyId!)
-        .is("removido_em", null)
-        .order("data", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as Registro[];
+      // Leitura em lotes com ordem estável: nada some acima de 1.000 registros.
+      const data = await fetchAllPages<Registro>((from, to) =>
+        supabase
+          .from("dp_registros_disciplinares")
+          .select("*, dp_colaboradores(nome, unidade_id)")
+          .eq("company_id", selectedCompanyId!)
+          .is("removido_em", null)
+          .order("data", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, to) as any,
+      );
+      return data;
     },
   });
 
