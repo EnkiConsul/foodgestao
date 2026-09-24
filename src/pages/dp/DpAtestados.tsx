@@ -38,6 +38,7 @@ import {
 } from "@/lib/dp/licencas";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { corrigirAtestado, excluirSolicitacao } from "@/lib/dp/solicitacoes-admin";
+import { fetchAllPages } from "@/lib/supabase/fetchAllPages";
 import { notifyError } from "@/lib/notifyError";
 
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
