@@ -93,7 +93,14 @@ Deno.serve(async (req) => {
         // Senha aleatória descartada: nunca sai daqui, nunca é usada para entrar.
         password: `${gerarCodigo(20)}aA1!`,
         email_confirm: true,
-        user_metadata: { colaborador_id: colab.id, kind: "dp_colaborador", cpf, nome: colab.nome },
+        // full_name alimenta o perfil: o login sintético nunca deve virar nome de exibição.
+        user_metadata: {
+          colaborador_id: colab.id,
+          kind: "dp_colaborador",
+          cpf,
+          nome: colab.nome,
+          full_name: (colab.nome ?? "").trim().toUpperCase() || null,
+        },
       });
 
       if (created.error && jaRegistrado(created.error.message)) {
@@ -123,6 +130,12 @@ Deno.serve(async (req) => {
         { user_id: targetUserId, role: "dp_colaborador" },
         { onConflict: "user_id,role" },
       );
+
+      // Garante o Nome Completo no perfil (nunca o login sintético).
+      const nomeOficial = (colab.nome ?? "").trim().toUpperCase();
+      if (nomeOficial) {
+        await admin.from("profiles").update({ full_name: nomeOficial }).eq("user_id", targetUserId);
+      }
     }
 
     const { error: secErr } = await admin.from("auth_user_security_state").upsert(
