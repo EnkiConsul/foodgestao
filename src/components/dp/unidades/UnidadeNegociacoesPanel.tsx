@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { validarUpload } from "@/lib/storage/uploadPolicy";
+import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { toast } from "sonner";
 import { Calendar, Download, Eye, FileText, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

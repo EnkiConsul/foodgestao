@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { validarUpload } from "@/lib/storage/uploadPolicy";
+import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import {
   excluirDocumento,
   substituirDocumento,
