@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { compareBankLedger, isBankReferenceDiscarded } from "@/lib/transactions/balance";
@@ -50,7 +51,9 @@ const accountTypeLabels: Record<AccountType, string> = {
 export default function ContasBancarias() {
   const { user } = useAuth();
   const { contextType, selectedCompanyId, companies } = useCompanyContext();
-  const { maskBRL } = usePrivacy();
+  const { maskBRL: maskPriv } = usePrivacy();
+  const { verSaldos } = useCompanyPermissions();
+  const maskBRL = (v: number) => (verSaldos ? maskPriv(v) : "R$ ••••");
   const navigate = useNavigate();
 
   const [accounts, setAccounts] = useState<Account[]>([]);

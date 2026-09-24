@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { usePrivacy } from "@/hooks/usePrivacy";
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { isFinancialScopeReady } from "@/lib/financialScope";
@@ -77,6 +78,8 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
+  const { verSaldos } = useCompanyPermissions();
+  const maskSaldo = (v: number) => (verSaldos ? maskBRL(v) : "R$ ••••");
 
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("month");
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>(getPeriodRange("month"));
@@ -239,7 +242,7 @@ export default function Dashboard() {
   const kpis = [
     {
       label: "Saldo",
-      value: maskBRL(saldo),
+      value: maskSaldo(saldo),
       hint: totalReceitas > 0 ? `${((saldo / totalReceitas) * 100).toFixed(0)}% das Receitas` : "Do período",
       icon: Wallet,
       positive: saldo >= 0,
@@ -247,7 +250,7 @@ export default function Dashboard() {
     },
     {
       label: "Contas Financeiras",
-      value: maskBRL(totalBankBalance),
+      value: maskSaldo(totalBankBalance),
       hint: `${accounts.length} ${accounts.length === 1 ? "conta ativa" : "contas ativas"}`,
       icon: Landmark,
       positive: totalBankBalance >= 0,
@@ -604,7 +607,7 @@ export default function Dashboard() {
                       "font-display text-sm font-bold shrink-0 ml-2 tracking-tight",
                       balance >= 0 ? "text-foreground" : "text-destructive"
                     )}>
-                      {maskBRL(balance)}
+                      {maskSaldo(balance)}
                     </span>
                   </div>
                 );
