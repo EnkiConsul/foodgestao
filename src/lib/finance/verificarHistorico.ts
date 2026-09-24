@@ -83,6 +83,8 @@ export async function verificarExclusaoContaContabil(
   nome?: string | null,
 ): Promise<Bloqueio | null> {
   if (contaIds.length === 0) return null;
+  // company-scope-lint: safe — filtrada por `chart_account_id` das contas já
+  // carregadas no escopo da empresa em contexto; a RLS de `categories` limita o resto.
   const { data: cats, error } = await (supabase as any)
     .from("categories")
     .select("id")
