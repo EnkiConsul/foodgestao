@@ -228,10 +228,15 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
             <div className="space-y-1.5">
               <Label>Tipo de perfil</Label>
               <Select value={perfil} onValueChange={(v) => applyPerfil(v as PerfilKey)}>
-                <SelectTrigger className="min-h-11"><SelectValue /></SelectTrigger>
-                <SelectContent>
+              <SelectTrigger className="min-h-11 [&>span]:truncate"><SelectValue /></SelectTrigger>
+                <SelectContent className="max-w-[min(92vw,26rem)]">
                   {PERFIS.filter((p) => p.key !== "dono" || canAssignOwner || member?.role === "owner").map((p) => (
-                    <SelectItem key={p.key} value={p.key}>{p.label} — {p.descricao}</SelectItem>
+                    <SelectItem key={p.key} value={p.key} className="items-start py-2.5">
+                      <span className="block whitespace-normal">
+                        <span className="block font-medium leading-snug">{p.label}</span>
+                        <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{p.descricao}</span>
+                      </span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
