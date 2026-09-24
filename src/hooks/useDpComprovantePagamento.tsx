@@ -35,7 +35,7 @@ export function useDpComprovantePagamento() {
   const anexar = useMutation({
     mutationFn: async ({
       alvo,
-      file,
+      file: escolhido,
       pagoEm,
       confirmarCompetencia,
     }: {
