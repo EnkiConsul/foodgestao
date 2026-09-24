@@ -235,6 +235,14 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
             ajuda="Marque para liberar o acesso e desmarque para retirar. As permissões abaixo valem para todas as empresas marcadas."
           />
 
+          <AccountAccessPicker
+            accounts={contasEmpresa}
+            value={contas}
+            onChange={setContas}
+            bloqueado={acessoTotal}
+            nomeEmpresa={nomeEmpresa}
+          />
+
           <PermissionsEditor
             role={role}
             value={permissions}
