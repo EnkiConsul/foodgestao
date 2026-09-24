@@ -96,9 +96,9 @@ export function useDpFeriasDocumentos() {
   const anexar = useMutation({
     mutationFn: async (input: AnexarFeriasDocInput): Promise<string> => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const { gozoId, colaboradorId, tipo, referenciaData, file } = input;
+      const { gozoId, colaboradorId, tipo, referenciaData, file: escolhido } = input;
+      const file = await prepararUpload(DP_DOCUMENTOS_BUCKET, escolhido);
       const path = `${selectedCompanyId}/${colaboradorId || "geral"}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
-      validarUpload(DP_DOCUMENTOS_BUCKET, file);
       const up = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(path, file, {
         contentType: file.type,
         upsert: false,
