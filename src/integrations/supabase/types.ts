@@ -17575,6 +17575,20 @@ export type Database = {
         Args: { _company_id: string; _description: string; _id: string }
         Returns: number
       }
+      pluggy_stale_connections: {
+        Args: { _horas?: number }
+        Returns: {
+          company_name: string
+          connector_name: string
+          horas_parada: number
+          id: string
+          last_sync_error: string
+          last_sync_status: string
+          last_synced_at: string
+          pluggy_item_id: string
+          status: string
+        }[]
+      }
       pluggy_user_can_edit: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
