@@ -345,7 +345,7 @@ Deno.serve(async (req) => {
       }
       // Nada que o formulário do candidato não pergunte pode impedir o envio.
       const faltando = [...exigidos].filter((campo) => {
-        if (!CAMPOS_DO_FORMULARIO.has(campo)) return false;
+        if (!CAMPOS_DO_FORMULARIO.has(campo) || NUNCA_BLOQUEIAM.has(campo)) return false;
         const v = dados[campo];
         return !(typeof v === "string" ? v.trim() : v);
       });
