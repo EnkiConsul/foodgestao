@@ -83,6 +83,7 @@ export function EditMemberPermissionsDialog({ open, onOpenChange, member, compan
     setModulos({ ...MODULOS_TODOS, ...(member.modulos ?? {}) });
     setFlags({ ver_saldos: member.ver_saldos !== false, ver_salarios: member.ver_salarios !== false });
     setAtivo((member.situacao ?? "ativo") === "ativo");
+    setContas(member.contas_permitidas?.length ? member.contas_permitidas : null);
   }, [member]);
 
   // Marca as empresas onde o membro já tem acesso, sempre incluindo a atual.
