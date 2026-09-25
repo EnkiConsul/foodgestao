@@ -1,32 +1,21 @@
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { ArrowRight, MessageCircle, Sparkles, Lock, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HelpHint } from "@/components/ui/help-hint";
 import { Badge } from "@/components/ui/badge";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { useCompanyModules } from "@/hooks/useCompanyModules";
 import { useModulosCatalogo } from "@/hooks/useModulosCatalogo";
-import { MODULES, isModuleUsable, statusLabel, type ModuleDefinition, type ModuleStatus } from "@/lib/modules";
+import { MODULES, type ModuleDefinition } from "@/lib/modules";
 import { cn } from "@/lib/utils";
 import { PendingInvitesAlert } from "@/components/invites/PendingInvitesAlert";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 
-function statusBadge(status: ModuleStatus, available: boolean) {
-  if (!available) {
-    return <Badge variant="secondary" className="gap-1"><Sparkles className="h-3 w-3" /> Em breve</Badge>;
-  }
-  if (status === "active") return <Badge className="gap-1 bg-primary"><CheckCircle2 className="h-3 w-3" /> Ativo</Badge>;
-  if (status === "trial") return <Badge className="gap-1 bg-primary/80"><CheckCircle2 className="h-3 w-3" /> Trial</Badge>;
-  if (status === "suspended") return <Badge variant="destructive" className="gap-1"><Lock className="h-3 w-3" /> Suspenso</Badge>;
-  return <Badge variant="outline" className="gap-1"><Lock className="h-3 w-3" /> Não contratado</Badge>;
-}
-
-function ModuleCard({ def, status }: { def: ModuleDefinition; status: ModuleStatus }) {
+function ModuleCard({ def }: { def: ModuleDefinition }) {
   const Icon = def.icon;
-  const usable = def.available && isModuleUsable(status);
-  const waMsg = encodeURIComponent(`Olá! Tenho interesse em contratar o módulo ${def.name} no Aveto 360.`);
+  const usable = def.available;
+
 
   return (
     <Card
