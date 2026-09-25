@@ -296,6 +296,13 @@ export function AdminSubscriptions() {
                   <div><div className="text-[10px] opacity-70">Vence</div>{formatDate(s.current_period_end, "dd/MM/yy")}</div>
                   <div><div className="text-[10px] opacity-70">Trial</div>{formatDate(s.trial_ends_at, "dd/MM/yy")}</div>
                 </div>
+                <p className="text-xs">
+                  <span className="text-muted-foreground">Valor/mês: </span>
+                  {exempt ? "Isento" : brl(planCents(s) + addonsCents(s))}
+                  {!exempt && addonsCents(s) > 0 && (
+                    <span className="text-muted-foreground"> ({brl(addonsCents(s))} em adicionais)</span>
+                  )}
+                </p>
                 {exempt && <Badge variant="secondary" className="text-[10px]">{exemptionLabel(s)}</Badge>}
                 <div className="flex flex-wrap gap-1 pt-1 border-t">
                   <Button size="sm" variant="outline" className="flex-1 min-h-9" onClick={() => openAddons(s)}>
