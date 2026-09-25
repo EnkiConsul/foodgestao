@@ -8,7 +8,7 @@ export type ActiveModule =
   | "admin"
   | "conta";
 
-const CONTA_PREFIXES = ["/empresas", "/gestao-usuarios", "/planos", "/faturas", "/configuracoes"];
+const CONTA_PREFIXES = ["/empresas", "/gestao-usuarios", "/faturas", "/configuracoes"];
 
 export function useActiveModule(): ActiveModule {
   const { pathname } = useLocation();

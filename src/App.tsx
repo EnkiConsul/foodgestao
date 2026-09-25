@@ -133,7 +133,6 @@ const AdminModulos = lazyWithRetry(() => import("./pages/admin/Modulos"));
 const AdminTelasDesenvolvimento = lazyWithRetry(() => import("./pages/admin/TelasDesenvolvimento"));
 const AdminEstatisticas = lazyWithRetry(() => import("./pages/admin/Estatisticas"));
 const AdminClientes = lazyWithRetry(() => import("./pages/admin/Clientes"));
-const AdminPlanosPage = lazyWithRetry(() => import("./pages/admin/Planos"));
 const AdminAssinaturas = lazyWithRetry(() => import("./pages/admin/Assinaturas"));
 const AdminFaturamento = lazyWithRetry(() => import("./pages/admin/Faturamento"));
 const AdminCuponsPage = lazyWithRetry(() => import("./pages/admin/Cupons"));
@@ -165,7 +164,6 @@ const AdminDocumentosLegais = lazyWithRetry(() => import("./pages/admin/Document
 // Público / auth-adjacente
 const AcceptInvite = lazyWithRetry(() => import("./pages/AcceptInvite"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
-const Planos = lazyWithRetry(() => import("./pages/Planos"));
 const Checkout = lazyWithRetry(() => import("./pages/Checkout"));
 const CheckoutPagamento = lazyWithRetry(() => import("./pages/CheckoutPagamento"));
 const Faturas = lazyWithRetry(() => import("./pages/Faturas"));
@@ -186,7 +184,6 @@ const BemVindo = lazyWithRetry(() => import("./pages/BemVindo"));
 // Rotas acessíveis mesmo com trial/assinatura expirada
 const TRIAL_EXPIRED_WHITELIST = [
   "/trial-expirado",
-  "/planos",
   "/checkout",
   "/faturas",
   "/admin",
@@ -282,18 +279,6 @@ function RootGate() {
   return <Auth />;
 }
 
-/** /planos: visitante vai para o login; usuário logado vê os planos da conta. */
-function PlanosGate() {
-  const { user, loading } = useAuth();
-  if (loading) return <PageSpinner />;
-  if (!user) return <Navigate to="/" replace />;
-
-  return (
-    <ProtectedRoute>
-      <Planos />
-    </ProtectedRoute>
-  );
-}
 
 /**
  * Portão do portal do colaborador — nega por padrão.
@@ -592,7 +577,7 @@ const AppRoutes = () => (
         <Route path="/admin/categorias-padrao" element={<AdminCategoriasPadrao />} />
         <Route path="/admin/contas-contabeis-padrao" element={<AdminContasContabeisPadrao />} />
         <Route path="/admin/formas-pagamento-padrao" element={<AdminFormasPagamentoPadrao />} />
-        <Route path="/admin/planos" element={<AdminPlanosPage />} />
+        <Route path="/admin/planos" element={<Navigate to="/admin/assinaturas" replace />} />
         <Route path="/admin/assinaturas" element={<AdminAssinaturas />} />
         <Route path="/admin/faturamento" element={<AdminFaturamento />} />
         <Route path="/admin/cupons" element={<AdminCuponsPage />} />
@@ -632,7 +617,7 @@ const AppRoutes = () => (
       <Route path="/guias/das-mei" element={<DasMei />} />
       <Route path="/buscar" element={<Buscar />} />
       <Route path="/dpo" element={<Navigate to="/encarregado-dados" replace />} />
-      <Route path="/planos" element={<PlanosGate />} />
+      <Route path="/planos" element={<Navigate to="/faturas" replace />} />
       <Route path="/financeiro" element={<Navigate to="/" replace />} />
       <Route path="/departamento-pessoal" element={<Navigate to="/" replace />} />
       <Route path="/contato" element={<Navigate to="/" replace />} />

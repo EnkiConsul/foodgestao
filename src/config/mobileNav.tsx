@@ -128,7 +128,6 @@ const contaGroup: MoreGroup = {
   items: [
     { icon: Building2, label: "Minhas Empresas", to: "/empresas" },
     { icon: UserCog, label: "Usuários", to: "/gestao-usuarios" },
-    { icon: Sparkles, label: "Meu Plano", to: "/planos" },
     { icon: Receipt, label: "Minhas Faturas", to: "/faturas" },
     { icon: Settings, label: "Configurações", to: "/configuracoes" },
   ],
@@ -211,7 +210,6 @@ const contaHome: NavLeaf = { icon: Settings, label: "Início", to: "/configuraco
 const contaShortcuts: NavLeaf[] = [
   { icon: Building2, label: "Empresas", to: "/empresas" },
   { icon: Users, label: "Usuários", to: "/gestao-usuarios" },
-  { icon: Package, label: "Planos", to: "/planos" },
   { icon: FileText, label: "Faturas", to: "/faturas" },
 ];
 
@@ -371,7 +369,6 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
         label: "Cobrança",
         accent: "amber",
         items: [
-          { icon: Sparkles, label: "Planos", to: "/admin/planos" },
           { icon: CreditCard, label: "Assinaturas", to: "/admin/assinaturas" },
           { icon: Receipt, label: "Faturamento", to: "/admin/faturamento" },
           { icon: Tag, label: "Cupons", to: "/admin/cupons" },

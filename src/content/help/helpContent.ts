@@ -158,10 +158,6 @@ export const HELP_CONTENT = {
     titulo: "Faturas",
     texto: "Histórico de cobranças da assinatura, com situação e link de pagamento quando houver.",
   },
-  "conta.planos": {
-    titulo: "Planos e Módulos",
-    texto: "Mostra o que já está contratado e o que pode ser adicionado. Módulos não contratados ficam apenas visíveis.",
-  },
 
   // ───────────────────────────── Pessoas 360° (DP) ─────────────────────────────
   "dp.inicio": {
@@ -452,10 +448,6 @@ export const HELP_CONTENT = {
   "admin.cadastrosPadrao": {
     titulo: "Cadastros Padrão",
     texto: "Listas iniciais copiadas para novas empresas (categorias, contas contábeis, formas de pagamento).",
-  },
-  "admin.planos": {
-    titulo: "Planos",
-    texto: "Planos e módulos oferecidos, com preços e limites usados na contratação.",
   },
   "admin.assinaturas": {
     titulo: "Assinaturas",

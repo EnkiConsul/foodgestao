@@ -117,7 +117,7 @@ export default function Checkout() {
   if (!plan) {
     return <div className="min-h-screen flex flex-col items-center justify-center gap-3">
       <p>Plano não encontrado</p>
-      <Button onClick={() => navigate("/planos")}>Ver planos</Button>
+      <Button onClick={() => navigate("/faturas")}>Ver minhas faturas</Button>
     </div>;
   }
 
@@ -137,7 +137,7 @@ export default function Checkout() {
       <header className="border-b">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
           <Logo size="sm" linkTo="/" />
-          <Button variant="ghost" onClick={() => navigate("/planos")}>Voltar</Button>
+          <Button variant="ghost" onClick={() => navigate("/faturas")}>Voltar</Button>
         </div>
       </header>
 

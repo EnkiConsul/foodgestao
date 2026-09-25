@@ -230,11 +230,6 @@ export default function Faturas() {
               <FreshnessIndicator freshnessKey="invoices" label="Faturas" />
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="min-h-[40px]" onClick={() => navigate("/planos")}>
-              Ver Planos
-            </Button>
-          </div>
         </div>
 
         {/* Summary cards */}
@@ -287,11 +282,6 @@ export default function Faturas() {
                 ? "Nenhuma fatura nesta categoria."
                 : "Você ainda não possui faturas."}
             </p>
-            {(!invoices || invoices.length === 0) && (
-              <Button className="min-h-[44px]" onClick={() => navigate("/planos")}>
-                Conhecer Planos
-              </Button>
-            )}
           </div>
         ) : (
           <ResponsiveDataTable
