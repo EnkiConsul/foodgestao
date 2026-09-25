@@ -13,7 +13,7 @@ export function SubscriptionBanner() {
           <AlertTriangle className="h-4 w-4" />
           <span>Seu período de teste expirou. Escolha um plano para reativar o acesso.</span>
         </div>
-        <Link to="/planos" className="font-semibold hover:underline">Escolher plano</Link>
+        <Link to="/faturas" className="font-semibold hover:underline">Ver faturas</Link>
       </div>
     );
   }
@@ -25,7 +25,7 @@ export function SubscriptionBanner() {
           <AlertTriangle className="h-4 w-4" />
           <span>Sua assinatura está com pagamento atrasado.</span>
         </div>
-        <Link to="/planos" className="font-semibold hover:underline">Regularizar</Link>
+        <Link to="/faturas" className="font-semibold hover:underline">Regularizar</Link>
       </div>
     );
   }
@@ -41,7 +41,7 @@ export function SubscriptionBanner() {
               : "Seu trial expira hoje."}
           </span>
         </div>
-        <Link to="/planos" className="font-semibold hover:underline">Fazer upgrade</Link>
+        <Link to="/faturas" className="font-semibold hover:underline">Ver faturas</Link>
       </div>
     );
   }

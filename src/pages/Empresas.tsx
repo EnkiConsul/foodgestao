@@ -89,8 +89,7 @@ export default function Empresas() {
     if (!quota) { setDialogOpen(true); return; }
     if (quota.blocked) {
       toast.error("Limite de perfis do plano atingido", {
-        description: "Faça upgrade do plano para adicionar mais perfis.",
-        action: { label: "Ver planos", onClick: () => navigate("/planos") },
+        description: "Fale com o suporte para ampliar o limite de perfis.",
       });
       return;
     }
