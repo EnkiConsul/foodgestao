@@ -147,7 +147,7 @@ export function DocumentPreview({
               <img src={heicUrl ?? resolvedUrl} alt={title} className="max-h-full max-w-full object-contain" />
             </div>
           ) : isPdf ? (
-            <iframe src={resolvedUrl} title={title} className="w-full h-full border-0" />
+            <PdfCanvasViewer url={resolvedUrl} title={title} />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-sm text-muted-foreground">
               <p>Preview não suportado para este formato.</p>
