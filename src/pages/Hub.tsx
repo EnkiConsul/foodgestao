@@ -64,8 +64,7 @@ function ModuleCard({ def }: { def: ModuleDefinition }) {
 }
 
 export default function Hub() {
-  const { contextType, companies, selectedCompanyId } = useCompanyContext();
-  const { getStatus, isLoading } = useCompanyModules();
+  const { companies, selectedCompanyId } = useCompanyContext();
   const { data: catalogo } = useModulosCatalogo();
   const { hasModulo } = useCompanyPermissions();
 
