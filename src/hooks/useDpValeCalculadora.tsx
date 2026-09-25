@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { domingosFolgaNoPeriodo } from "@/lib/dp/dsr-rules";
+import { mesclarConfidencial } from "@/lib/dp/confidencial";
 import {
   FILTROS_BENEFICIOS_PADRAO,
   pessoaAtendeFiltros,
