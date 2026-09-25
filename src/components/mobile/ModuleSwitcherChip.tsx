@@ -68,7 +68,7 @@ export function ModuleSwitcherChip() {
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold truncate">{mod.name}</div>
                   <div className="text-xs text-muted-foreground truncate">
-                    {usable ? mod.description : "Não contratado"}
+                    {usable ? mod.description : "Em breve"}
                   </div>
                 </div>
                 {isActive && <Check className="h-4 w-4 text-primary shrink-0" />}

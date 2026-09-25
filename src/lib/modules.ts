@@ -114,6 +114,10 @@ export function statusLabel(status: ModuleStatus): string {
   }
 }
 
-export function isModuleUsable(status: ModuleStatus | undefined): boolean {
-  return status === "active" || status === "trial";
+/**
+ * Planos e período de teste foram descontinuados: o acesso aos módulos é
+ * definido apenas pelas permissões do usuário, não por contratação.
+ */
+export function isModuleUsable(_status?: ModuleStatus): boolean {
+  return true;
 }

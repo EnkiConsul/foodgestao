@@ -1,32 +1,21 @@
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { ArrowRight, MessageCircle, Sparkles, Lock, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HelpHint } from "@/components/ui/help-hint";
 import { Badge } from "@/components/ui/badge";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { useCompanyModules } from "@/hooks/useCompanyModules";
 import { useModulosCatalogo } from "@/hooks/useModulosCatalogo";
-import { MODULES, isModuleUsable, statusLabel, type ModuleDefinition, type ModuleStatus } from "@/lib/modules";
+import { MODULES, type ModuleDefinition } from "@/lib/modules";
 import { cn } from "@/lib/utils";
 import { PendingInvitesAlert } from "@/components/invites/PendingInvitesAlert";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 
-function statusBadge(status: ModuleStatus, available: boolean) {
-  if (!available) {
-    return <Badge variant="secondary" className="gap-1"><Sparkles className="h-3 w-3" /> Em breve</Badge>;
-  }
-  if (status === "active") return <Badge className="gap-1 bg-primary"><CheckCircle2 className="h-3 w-3" /> Ativo</Badge>;
-  if (status === "trial") return <Badge className="gap-1 bg-primary/80"><CheckCircle2 className="h-3 w-3" /> Trial</Badge>;
-  if (status === "suspended") return <Badge variant="destructive" className="gap-1"><Lock className="h-3 w-3" /> Suspenso</Badge>;
-  return <Badge variant="outline" className="gap-1"><Lock className="h-3 w-3" /> Não contratado</Badge>;
-}
-
-function ModuleCard({ def, status }: { def: ModuleDefinition; status: ModuleStatus }) {
+function ModuleCard({ def }: { def: ModuleDefinition }) {
   const Icon = def.icon;
-  const usable = def.available && isModuleUsable(status);
-  const waMsg = encodeURIComponent(`Olá! Tenho interesse em contratar o módulo ${def.name} no Aveto 360.`);
+  const usable = def.available;
+
 
   return (
     <Card
@@ -47,9 +36,12 @@ function ModuleCard({ def, status }: { def: ModuleDefinition; status: ModuleStat
           >
             <Icon className="h-4 w-4 md:h-6 md:w-6" />
           </div>
-          <div className="scale-[0.85] origin-top-right md:scale-100">
-            {statusBadge(status, def.available)}
-          </div>
+          {!def.available && (
+            <div className="scale-[0.85] origin-top-right md:scale-100">
+              <Badge variant="secondary" className="gap-1"><Sparkles className="h-3 w-3" /> Em breve</Badge>
+            </div>
+          )}
+
         </div>
         <h3 className="text-sm md:text-lg font-semibold mb-1 leading-tight">{def.name}</h3>
         <p className="text-[11px] md:text-sm text-muted-foreground flex-1 line-clamp-3 md:line-clamp-none leading-snug">{def.description}</p>
@@ -59,16 +51,6 @@ function ModuleCard({ def, status }: { def: ModuleDefinition; status: ModuleStat
               <Link to={def.entryRoute}>
                 Entrar <ArrowRight className="h-3 w-3 md:h-4 md:w-4 ml-1.5 md:ml-2" />
               </Link>
-            </Button>
-          ) : def.available ? (
-            <Button asChild variant="outline" size="sm" className="w-full h-8 md:h-10 text-xs md:text-sm">
-              <a
-                href={`https://wa.me/5562992365959?text=${waMsg}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <MessageCircle className="h-3 w-3 md:h-4 md:w-4 mr-1.5 md:mr-2" /> Contratar
-              </a>
             </Button>
           ) : (
             <Button variant="outline" size="sm" className="w-full h-8 md:h-10 text-xs md:text-sm" disabled>
@@ -82,8 +64,7 @@ function ModuleCard({ def, status }: { def: ModuleDefinition; status: ModuleStat
 }
 
 export default function Hub() {
-  const { contextType, companies, selectedCompanyId } = useCompanyContext();
-  const { getStatus, isLoading } = useCompanyModules();
+  const { companies, selectedCompanyId } = useCompanyContext();
   const { data: catalogo } = useModulosCatalogo();
   const { hasModulo } = useCompanyPermissions();
 
@@ -107,7 +88,7 @@ export default function Hub() {
     <div className="mx-auto max-w-6xl">
       <Helmet>
         <title>Hub de Módulos — Aveto 360</title>
-        <meta name="description" content="Acesse os módulos contratados: Financeiro e Pessoas." />
+        <meta name="description" content="Acesse os módulos do sistema: Financeiro e Pessoas." />
       </Helmet>
 
       <PendingInvitesAlert />
@@ -116,18 +97,14 @@ export default function Hub() {
         <p className="text-xs md:text-sm text-muted-foreground mb-1">{contextLabel}</p>
         <h1 className="flex items-center gap-1 text-xl md:text-3xl font-bold">Hub de Módulos<HelpHint helpKey="hub.modulos" size="md" side="bottom" align="start" /></h1>
         <p className="text-xs md:text-base text-muted-foreground mt-1 md:mt-2">
-          Selecione um módulo para começar. Cada módulo é uma contratação independente.
+          Selecione um módulo para começar.
         </p>
       </div>
 
 
       <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-3">
         {permittedModules.map((def) => (
-          <ModuleCard
-            key={def.slug}
-            def={def}
-            status={isLoading ? "not_contracted" : getStatus(def.slug)}
-          />
+          <ModuleCard key={def.slug} def={def} />
         ))}
       </div>
       {permittedModules.length === 0 && (
