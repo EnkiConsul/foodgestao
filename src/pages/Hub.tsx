@@ -52,16 +52,6 @@ function ModuleCard({ def }: { def: ModuleDefinition }) {
                 Entrar <ArrowRight className="h-3 w-3 md:h-4 md:w-4 ml-1.5 md:ml-2" />
               </Link>
             </Button>
-          ) : def.available ? (
-            <Button asChild variant="outline" size="sm" className="w-full h-8 md:h-10 text-xs md:text-sm">
-              <a
-                href={`https://wa.me/5562992365959?text=${waMsg}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <MessageCircle className="h-3 w-3 md:h-4 md:w-4 mr-1.5 md:mr-2" /> Contratar
-              </a>
-            </Button>
           ) : (
             <Button variant="outline" size="sm" className="w-full h-8 md:h-10 text-xs md:text-sm" disabled>
               Em breve
