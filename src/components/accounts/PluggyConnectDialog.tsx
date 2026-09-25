@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { parseEdgeFunctionError } from "@/lib/edgeFunctionError";
 import { describeConnectError, type ConnectErrorDescription } from "@/lib/pluggy/connectErrors";
+import { garantirLimite } from "@/lib/billing/limites";
 
 
 
@@ -430,6 +431,10 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
           if (await checkConnectRequest()) { setLoading(false); return; }
           accessToken = resume.accessToken;
           connectorIds = resume.connectorIds ?? undefined;
+        }
+
+        if (!itemIdToUpdate) {
+          await garantirLimite(companyId, "financeiro", "open_finance");
         }
 
         if (!accessToken) {

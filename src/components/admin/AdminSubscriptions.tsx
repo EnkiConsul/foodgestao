@@ -24,6 +24,13 @@ import { SubscriptionAddonsDialog } from "./SubscriptionAddonsDialog";
 
 const companyLabel = (s: any) => s.company?.trade_name || s.company?.name || "Sem empresa vinculada";
 const activeAddons = (s: any) => (s.addons ?? []).filter((a: any) => a.status === "active").length;
+const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+/** Valor mensal cobrado: plano base + adicionais ativos que não são cortesia. */
+const addonsCents = (s: any) =>
+  (s.addons ?? [])
+    .filter((a: any) => a.status === "active" && !a.is_exempt)
+    .reduce((t: number, a: any) => t + Number(a.price_cents ?? 0) * Number(a.quantity ?? 1), 0);
+const planCents = (s: any) => Number(s.plan?.price_cents ?? 0);
 const moduleLabel = (m?: string | null) => (m === "pessoas" ? "Pessoas 360°" : "Financeiro 360°");
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
@@ -126,6 +133,7 @@ export function AdminSubscriptions() {
               <TableHead>Plano</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Isenção</TableHead>
+              <TableHead>Valor/mês</TableHead>
               <TableHead>Início</TableHead>
               <TableHead>Vence em</TableHead>
               <TableHead>Trial até</TableHead>
@@ -135,10 +143,10 @@ export function AdminSubscriptions() {
           <TableBody>
             {isLoading ? (
               Array.from({ length: 4 }).map((_, i) => (
-                <TableRow key={i}>{Array.from({ length: 9 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>)}</TableRow>
+                <TableRow key={i}>{Array.from({ length: 10 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>)}</TableRow>
               ))
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Nenhuma assinatura</TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">Nenhuma assinatura</TableCell></TableRow>
             ) : (
               sortedFiltered.map((s: any) => {
                 const exempt = isExempt(s);
@@ -174,6 +182,20 @@ export function AdminSubscriptions() {
                       <Badge variant="secondary">{exemptionLabel(s)}</Badge>
                     ) : (
                       <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {exempt ? (
+                      <span className="text-xs text-muted-foreground">Isento</span>
+                    ) : (
+                      <>
+                        <p className="font-medium">{brl(planCents(s) + addonsCents(s))}</p>
+                        {addonsCents(s) > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {brl(planCents(s))} + {brl(addonsCents(s))} adicionais
+                          </p>
+                        )}
+                      </>
                     )}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
@@ -274,6 +296,13 @@ export function AdminSubscriptions() {
                   <div><div className="text-[10px] opacity-70">Vence</div>{formatDate(s.current_period_end, "dd/MM/yy")}</div>
                   <div><div className="text-[10px] opacity-70">Trial</div>{formatDate(s.trial_ends_at, "dd/MM/yy")}</div>
                 </div>
+                <p className="text-xs">
+                  <span className="text-muted-foreground">Valor/mês: </span>
+                  {exempt ? "Isento" : brl(planCents(s) + addonsCents(s))}
+                  {!exempt && addonsCents(s) > 0 && (
+                    <span className="text-muted-foreground"> ({brl(addonsCents(s))} em adicionais)</span>
+                  )}
+                </p>
                 {exempt && <Badge variant="secondary" className="text-[10px]">{exemptionLabel(s)}</Badge>}
                 <div className="flex flex-wrap gap-1 pt-1 border-t">
                   <Button size="sm" variant="outline" className="flex-1 min-h-9" onClick={() => openAddons(s)}>

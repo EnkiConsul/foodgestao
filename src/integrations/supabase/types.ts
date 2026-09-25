@@ -14675,6 +14675,10 @@ export type Database = {
         Args: { _transaction_id: string }
         Returns: string
       }
+      assinatura_limites: {
+        Args: { _company_id: string; _modulo: string }
+        Returns: Json
+      }
       auth_access_enabled: { Args: never; Returns: boolean }
       auth_sessao_assumir: {
         Args: { _device?: string; _session_id: string }
@@ -17888,6 +17892,14 @@ export type Database = {
           addon_code: string
           addon_name: string
           extra_quantity: number
+        }[]
+      }
+      subscription_total_cents: {
+        Args: { _subscription_id: string }
+        Returns: {
+          addons_cents: number
+          plan_cents: number
+          total_cents: number
         }[]
       }
       sync_of_account_balance: {

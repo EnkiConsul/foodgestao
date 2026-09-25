@@ -9,7 +9,7 @@ export function useAdminSubscriptions() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("subscriptions")
-        .select("*, plan:plans(name, slug, price_cents, billing_period), company:companies(id, name, trade_name, cnpj), addons:subscription_addons(id, quantity, status)")
+        .select("*, plan:plans(name, slug, price_cents, billing_period), company:companies(id, name, trade_name, cnpj), addons:subscription_addons(id, quantity, status, price_cents, is_exempt)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;

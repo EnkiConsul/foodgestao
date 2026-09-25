@@ -16,6 +16,7 @@ import { useCompanyAccounts } from "@/hooks/useCompanyAccounts";
 import { useCompanyUnidades } from "@/hooks/useCompanyUnidades";
 import { CompanyRole, ModulosMap, PERFIS, PerfilKey, PermissionsMap, getPerfil, perfilPadraoDoRole } from "@/lib/permissions";
 import { isValidPhone, maskPhone } from "@/lib/phone";
+import { garantirLimite } from "@/lib/billing/limites";
 
 interface InviteUserDialogProps {
   open: boolean;
@@ -83,6 +84,17 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
     e.preventDefault();
     if (!user || !valid) return;
     setSaving(true);
+    try {
+      await garantirLimite(
+        companyId,
+        "financeiro",
+        preset.role === "contabilidade" ? "contadores" : "usuarios",
+      );
+    } catch (err: any) {
+      toast.error("Limite do plano atingido", { description: err?.message });
+      setSaving(false);
+      return;
+    }
     const grupoId = crypto.randomUUID();
     const rows = empresas.map((cid) => ({
       company_id: cid,

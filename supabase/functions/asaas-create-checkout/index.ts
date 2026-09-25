@@ -71,7 +71,32 @@ Deno.serve(async (req) => {
       }
     }
 
-    const amountCents = Math.max(0, plan.price_cents - discountCents);
+    // Contratações adicionais já ativas do cliente neste módulo entram na
+    // mensalidade recorrente (cortesias não são cobradas).
+    let addonsCents = 0;
+    {
+      const { data: subAtual } = await admin
+        .from("subscriptions")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("module", plan.module ?? "financeiro")
+        .in("status", ["trialing", "active", "past_due", "pending"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (subAtual?.id) {
+        const { data: addons } = await admin
+          .from("subscription_addons")
+          .select("quantity, price_cents, is_exempt, status")
+          .eq("subscription_id", subAtual.id)
+          .eq("status", "active");
+        addonsCents = (addons ?? [])
+          .filter((a: any) => !a.is_exempt)
+          .reduce((t: number, a: any) => t + Number(a.price_cents ?? 0) * Number(a.quantity ?? 1), 0);
+      }
+    }
+
+    const amountCents = Math.max(0, plan.price_cents + addonsCents - discountCents);
 
     if (amountCents === 0) {
       // Free / fully discounted — activate directly

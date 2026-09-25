@@ -6,6 +6,7 @@
  * servidor, que confere empresa, vínculo e regras antes de salvar.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { garantirLimite } from "@/lib/billing/limites";
 
 type Json = Record<string, unknown>;
 
@@ -73,6 +74,9 @@ export async function salvarColaborador(input: {
   companyId: string;
   dados: Json;
 }): Promise<string> {
+  if (!input.id) {
+    await garantirLimite(input.companyId, "pessoas", "colaboradores");
+  }
   const { data, error } = await (supabase.rpc as any)("dp_colaborador_salvar", {
     p_dados: input.dados,
     p_id: input.id ?? null,
