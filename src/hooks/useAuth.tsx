@@ -2,9 +2,11 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { Session, User } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { isAlreadyRegisteredSignup } from "@/lib/authSignupSignals";
 import { logAudit } from "@/lib/audit";
+import { descreverAparelho, obterSessionIdLocal } from "@/lib/auth/deviceSession";
 
 interface AuthContextType {
   session: Session | null;
