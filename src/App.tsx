@@ -174,7 +174,6 @@ const CookiesPage = lazyWithRetry(() => import("./pages/legal/Cookies"));
 const EncarregadoDados = lazyWithRetry(() => import("./pages/legal/EncarregadoDados"));
 const DasMei = lazyWithRetry(() => import("./pages/guias/DasMei"));
 const Buscar = lazyWithRetry(() => import("./pages/Buscar"));
-const TrialExpired = lazyWithRetry(() => import("./pages/TrialExpired"));
 const BemVindo = lazyWithRetry(() => import("./pages/BemVindo"));
 
 
@@ -210,7 +209,8 @@ function SubscriptionGuard({ children }: { children: React.ReactNode }) {
   // tela de boas-vindas, com convites pendentes e a opção de criar empresa.
   if (!hasCompanies) return <Navigate to="/bem-vindo" replace />;
 
-  return <Navigate to="/trial-expirado" replace />;
+  // Sem bloqueio por assinatura/trial: quem tem empresa sempre acessa.
+  return <>{children}</>;
 }
 
 
@@ -628,7 +628,7 @@ const AppRoutes = () => (
       <Route path="/checkout/:planSlug" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
       <Route path="/checkout/pagamento/:invoiceId" element={<ProtectedRoute><CheckoutPagamento /></ProtectedRoute>} />
       <Route path="/faturas" element={<Navigate to="/configuracoes" replace />} />
-      <Route path="/trial-expirado" element={<ProtectedRoute><TrialExpired /></ProtectedRoute>} />
+      <Route path="/trial-expirado" element={<Navigate to="/" replace />} />
       <Route path="/bem-vindo" element={<ProtectedRoute><BemVindo /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
       </Routes>
