@@ -7,7 +7,7 @@ export type SearchDoc = {
   title: string;
   description: string;
   keywords: string[];
-  section: "Início" | "Guias" | "Planos" | "Conta" | "Legal";
+  section: "Início" | "Guias" | "Conta" | "Legal";
 };
 
 export const SEARCH_INDEX: SearchDoc[] = [
@@ -28,13 +28,6 @@ export const SEARCH_INDEX: SearchDoc[] = [
     description: "Acesse sua conta Aveto 360 ou crie um cadastro gratuito.",
     keywords: ["login", "entrar", "cadastro", "criar conta", "acessar", "senha"],
     section: "Conta",
-  },
-  {
-    path: "/planos",
-    title: "Planos e preços",
-    description: "Escolha o plano ideal para sua operação. Teste grátis por 7 dias.",
-    keywords: ["planos", "preço", "assinatura", "mensalidade", "trial", "gratuito"],
-    section: "Planos",
   },
   {
     path: "/guias/das-mei",

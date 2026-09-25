@@ -28,7 +28,6 @@ export const HELP_BY_ROUTE: Record<string, HelpKey> = {
   "/gestao-usuarios": "empresas.usuarios",
   "/configuracoes": "conta.configuracoes",
   "/faturas": "conta.faturas",
-  "/planos": "conta.planos",
 
   // Pessoas 360°
   "/dp": "dp.inicio",
