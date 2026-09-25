@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { MfaEnrollRequired } from "@/components/auth/MfaEnrollRequired";
+import { MfaIntroDialog } from "@/components/auth/MfaIntroDialog";
 
 type MfaState = "checking" | "ok" | "challenge" | "enroll";
 
@@ -13,6 +14,7 @@ export function SuperAdminRoute({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const { isSuperAdmin, loading: roleLoading } = useSuperAdmin();
   const [mfa, setMfa] = useState<MfaState>("checking");
+  const [introAberto, setIntroAberto] = useState(true);
 
   const negado = !authLoading && !roleLoading && !!user && !isSuperAdmin;
 
