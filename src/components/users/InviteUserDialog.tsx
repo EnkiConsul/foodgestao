@@ -16,6 +16,7 @@ import { useCompanyAccounts } from "@/hooks/useCompanyAccounts";
 import { useCompanyUnidades } from "@/hooks/useCompanyUnidades";
 import { CompanyRole, ModulosMap, PERFIS, PerfilKey, PermissionsMap, getPerfil, perfilPadraoDoRole } from "@/lib/permissions";
 import { isValidPhone, maskPhone } from "@/lib/phone";
+import { garantirLimite } from "@/lib/billing/limites";
 
 interface InviteUserDialogProps {
   open: boolean;

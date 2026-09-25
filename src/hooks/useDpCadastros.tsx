@@ -8,6 +8,7 @@ import {
   excluirCadastroRemuneracao,
 } from "@/lib/dp/remuneracao-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { garantirLimite } from "@/lib/billing/limites";
 import type { Database } from "@/integrations/supabase/types";
 
 export type DpUnidade = Database["public"]["Tables"]["dp_unidades"]["Row"];
