@@ -58,6 +58,7 @@ const overviewItems = [
 
 
 const billingItems = [
+  { title: "Planos e Preços", url: "/admin/planos", icon: CreditCard },
   { title: "Assinaturas", url: "/admin/assinaturas", icon: CreditCard },
   { title: "Faturamento", url: "/admin/faturamento", icon: Receipt },
   { title: "Cupons", url: "/admin/cupons", icon: Tag },
