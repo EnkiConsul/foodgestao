@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { notifyError } from "@/lib/notifyError";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 import { atualizarMeuCadastro } from "@/lib/dp/colaborador-oficial";
+import { COLUNAS_COLABORADOR_PUBLICAS, mesclarConfidencial } from "@/lib/dp/confidencial";
 
 export default function DpMeuPerfil() {
   const { user } = useAuth();
