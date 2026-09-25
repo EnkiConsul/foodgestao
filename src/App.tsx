@@ -174,7 +174,6 @@ const CookiesPage = lazyWithRetry(() => import("./pages/legal/Cookies"));
 const EncarregadoDados = lazyWithRetry(() => import("./pages/legal/EncarregadoDados"));
 const DasMei = lazyWithRetry(() => import("./pages/guias/DasMei"));
 const Buscar = lazyWithRetry(() => import("./pages/Buscar"));
-const TrialExpired = lazyWithRetry(() => import("./pages/TrialExpired"));
 const BemVindo = lazyWithRetry(() => import("./pages/BemVindo"));
 
 
