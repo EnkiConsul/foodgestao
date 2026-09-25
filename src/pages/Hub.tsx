@@ -88,7 +88,7 @@ export default function Hub() {
     <div className="mx-auto max-w-6xl">
       <Helmet>
         <title>Hub de Módulos — Aveto 360</title>
-        <meta name="description" content="Acesse os módulos contratados: Financeiro e Pessoas." />
+        <meta name="description" content="Acesse os módulos do sistema: Financeiro e Pessoas." />
       </Helmet>
 
       <PendingInvitesAlert />
