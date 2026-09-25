@@ -184,6 +184,20 @@ export function AdminSubscriptions() {
                       <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {exempt ? (
+                      <span className="text-xs text-muted-foreground">Isento</span>
+                    ) : (
+                      <>
+                        <p className="font-medium">{brl(planCents(s) + addonsCents(s))}</p>
+                        {addonsCents(s) > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {brl(planCents(s))} + {brl(addonsCents(s))} adicionais
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {formatDate(s.started_at, "dd/MM/yy")}
                   </TableCell>
