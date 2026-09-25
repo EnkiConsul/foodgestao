@@ -36,9 +36,12 @@ function ModuleCard({ def }: { def: ModuleDefinition }) {
           >
             <Icon className="h-4 w-4 md:h-6 md:w-6" />
           </div>
-          <div className="scale-[0.85] origin-top-right md:scale-100">
-            {statusBadge(status, def.available)}
-          </div>
+          {!def.available && (
+            <div className="scale-[0.85] origin-top-right md:scale-100">
+              <Badge variant="secondary" className="gap-1"><Sparkles className="h-3 w-3" /> Em breve</Badge>
+            </div>
+          )}
+
         </div>
         <h3 className="text-sm md:text-lg font-semibold mb-1 leading-tight">{def.name}</h3>
         <p className="text-[11px] md:text-sm text-muted-foreground flex-1 line-clamp-3 md:line-clamp-none leading-snug">{def.description}</p>
