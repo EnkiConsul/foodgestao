@@ -617,7 +617,7 @@ const AppRoutes = () => (
       <Route path="/guias/das-mei" element={<DasMei />} />
       <Route path="/buscar" element={<Buscar />} />
       <Route path="/dpo" element={<Navigate to="/encarregado-dados" replace />} />
-      <Route path="/planos" element={<PlanosGate />} />
+      <Route path="/planos" element={<Navigate to="/faturas" replace />} />
       <Route path="/financeiro" element={<Navigate to="/" replace />} />
       <Route path="/departamento-pessoal" element={<Navigate to="/" replace />} />
       <Route path="/contato" element={<Navigate to="/" replace />} />
