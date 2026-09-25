@@ -27,6 +27,7 @@ export function PdfCanvasViewer({ url, title }: Props) {
   const [erro, setErro] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const docRef = useRef<pdfjsLib.PDFDocumentProxy | null>(null);
+  const taskRef = useRef<pdfjsLib.PDFDocumentLoadingTask | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -37,9 +38,11 @@ export function PdfCanvasViewer({ url, title }: Props) {
         const resp = await fetch(url);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const buf = await resp.arrayBuffer();
-        const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+        const task = pdfjsLib.getDocument({ data: buf });
+        taskRef.current = task;
+        const doc = await task.promise;
         if (cancelado) {
-          doc.destroy();
+          task.destroy();
           return;
         }
         docRef.current = doc;
@@ -52,7 +55,8 @@ export function PdfCanvasViewer({ url, title }: Props) {
     })();
     return () => {
       cancelado = true;
-      docRef.current?.destroy();
+      taskRef.current?.destroy();
+      taskRef.current = null;
       docRef.current = null;
     };
   }, [url]);
@@ -84,8 +88,9 @@ export function PdfCanvasViewer({ url, title }: Props) {
         await page.render({
           canvasContext: ctx,
           viewport,
+          canvas,
           transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
-        }).promise;
+        } as Parameters<typeof page.render>[0]).promise;
       }
     })();
     return () => {
