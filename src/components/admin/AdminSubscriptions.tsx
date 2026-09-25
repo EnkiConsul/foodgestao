@@ -144,9 +144,9 @@ export function AdminSubscriptions() {
                       value={s.plan_id}
                       onValueChange={(plan_id) => update.mutate({ id: s.id, plan_id })}
                     >
-                      <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-8 w-56"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {plans.map((p: any) => (
+                        {plans.filter((p: any) => p.module === (s.module ?? "financeiro")).map((p: any) => (
                           <SelectItem key={p.id} value={p.id}>{planLabel(p)}</SelectItem>
                         ))}
                       </SelectContent>
@@ -248,7 +248,7 @@ export function AdminSubscriptions() {
                 >
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {plans.map((p: any) => (
+                    {plans.filter((p: any) => p.module === (s.module ?? "financeiro")).map((p: any) => (
                       <SelectItem key={p.id} value={p.id}>{planLabel(p)}</SelectItem>
                     ))}
                   </SelectContent>
