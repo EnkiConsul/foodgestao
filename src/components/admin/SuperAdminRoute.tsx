@@ -66,7 +66,10 @@ export function SuperAdminRoute({ children }: { children: React.ReactNode }) {
             O Backoffice exige verificação em duas etapas para administradores da plataforma.
           </p>
           {mfa === "enroll" ? (
-            <MfaEnrollRequired onSuccess={onDone} />
+            <>
+              <MfaEnrollRequired onSuccess={onDone} />
+              <MfaIntroDialog open={introAberto} onProceed={() => setIntroAberto(false)} />
+            </>
           ) : (
             <MfaChallenge onSuccess={onDone} onCancel={onCancel} />
           )}
