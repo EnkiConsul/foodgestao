@@ -133,7 +133,6 @@ const AdminModulos = lazyWithRetry(() => import("./pages/admin/Modulos"));
 const AdminTelasDesenvolvimento = lazyWithRetry(() => import("./pages/admin/TelasDesenvolvimento"));
 const AdminEstatisticas = lazyWithRetry(() => import("./pages/admin/Estatisticas"));
 const AdminClientes = lazyWithRetry(() => import("./pages/admin/Clientes"));
-const AdminPlanosPage = lazyWithRetry(() => import("./pages/admin/Planos"));
 const AdminAssinaturas = lazyWithRetry(() => import("./pages/admin/Assinaturas"));
 const AdminFaturamento = lazyWithRetry(() => import("./pages/admin/Faturamento"));
 const AdminCuponsPage = lazyWithRetry(() => import("./pages/admin/Cupons"));
@@ -165,7 +164,6 @@ const AdminDocumentosLegais = lazyWithRetry(() => import("./pages/admin/Document
 // Público / auth-adjacente
 const AcceptInvite = lazyWithRetry(() => import("./pages/AcceptInvite"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
-const Planos = lazyWithRetry(() => import("./pages/Planos"));
 const Checkout = lazyWithRetry(() => import("./pages/Checkout"));
 const CheckoutPagamento = lazyWithRetry(() => import("./pages/CheckoutPagamento"));
 const Faturas = lazyWithRetry(() => import("./pages/Faturas"));
@@ -282,18 +280,6 @@ function RootGate() {
   return <Auth />;
 }
 
-/** /planos: visitante vai para o login; usuário logado vê os planos da conta. */
-function PlanosGate() {
-  const { user, loading } = useAuth();
-  if (loading) return <PageSpinner />;
-  if (!user) return <Navigate to="/" replace />;
-
-  return (
-    <ProtectedRoute>
-      <Planos />
-    </ProtectedRoute>
-  );
-}
 
 /**
  * Portão do portal do colaborador — nega por padrão.
