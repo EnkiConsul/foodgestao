@@ -98,6 +98,7 @@ export function useUpsertDpUnidade() {
   return useMutation({
     mutationFn: async (input: Partial<DpUnidadeInsert> & { id?: string; nome: string; company_id: string }): Promise<DpUnidade> => {
       if (!input.company_id) throw new Error("Empresa é obrigatória");
+      if (!input.id) await garantirLimite(input.company_id, "pessoas", "unidades");
       const payload = { ...input, nome: toUpperCadastro(input.nome) } as DpUnidadeInsert;
       if (input.id) {
         const { data, error } = await supabase

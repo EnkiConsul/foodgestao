@@ -6,6 +6,7 @@
  * servidor, que confere empresa, vínculo e regras antes de salvar.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { garantirLimite } from "@/lib/billing/limites";
 
 type Json = Record<string, unknown>;
 
