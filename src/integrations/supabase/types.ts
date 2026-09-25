@@ -1301,6 +1301,9 @@ export type Database = {
       auth_user_security_state: {
         Row: {
           access_blocked: boolean
+          active_session_at: string | null
+          active_session_device: string | null
+          active_session_id: string | null
           block_reason: string | null
           blocked_at: string | null
           blocked_by: string | null
@@ -1319,6 +1322,9 @@ export type Database = {
         }
         Insert: {
           access_blocked?: boolean
+          active_session_at?: string | null
+          active_session_device?: string | null
+          active_session_id?: string | null
           block_reason?: string | null
           blocked_at?: string | null
           blocked_by?: string | null
@@ -1337,6 +1343,9 @@ export type Database = {
         }
         Update: {
           access_blocked?: boolean
+          active_session_at?: string | null
+          active_session_device?: string | null
+          active_session_id?: string | null
           block_reason?: string | null
           blocked_at?: string | null
           blocked_by?: string | null
@@ -14540,6 +14549,10 @@ export type Database = {
         Returns: string
       }
       auth_access_enabled: { Args: never; Returns: boolean }
+      auth_sessao_assumir: {
+        Args: { _device?: string; _session_id: string }
+        Returns: string
+      }
       auto_promote_open_finance_raw: {
         Args: { _connection_id: string }
         Returns: Json
