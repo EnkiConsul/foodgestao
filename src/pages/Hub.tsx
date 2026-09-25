@@ -104,11 +104,7 @@ export default function Hub() {
 
       <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-3">
         {permittedModules.map((def) => (
-          <ModuleCard
-            key={def.slug}
-            def={def}
-            status={isLoading ? "not_contracted" : getStatus(def.slug)}
-          />
+          <ModuleCard key={def.slug} def={def} />
         ))}
       </div>
       {permittedModules.length === 0 && (
