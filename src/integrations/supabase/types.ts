@@ -12959,8 +12959,54 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_addons: {
+        Row: {
+          allowed_plan_slugs: string[] | null
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          max_quantity: number | null
+          module: string
+          name: string
+          price_cents: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          allowed_plan_slugs?: string[] | null
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_quantity?: number | null
+          module: string
+          name: string
+          price_cents?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          allowed_plan_slugs?: string[] | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_quantity?: number | null
+          module?: string
+          name?: string
+          price_cents?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
+          annual_discount_pct: number
           billing_period: Database["public"]["Enums"]["billing_period"]
           created_at: string
           description: string | null
@@ -12968,8 +13014,10 @@ export type Database = {
           features: Json
           id: string
           is_active: boolean
+          is_enterprise: boolean
           is_featured: boolean
           is_public: boolean
+          module: string
           name: string
           price_cents: number
           slug: string
@@ -12978,6 +13026,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          annual_discount_pct?: number
           billing_period?: Database["public"]["Enums"]["billing_period"]
           created_at?: string
           description?: string | null
@@ -12985,8 +13034,10 @@ export type Database = {
           features?: Json
           id?: string
           is_active?: boolean
+          is_enterprise?: boolean
           is_featured?: boolean
           is_public?: boolean
+          module?: string
           name: string
           price_cents?: number
           slug: string
@@ -12995,6 +13046,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          annual_discount_pct?: number
           billing_period?: Database["public"]["Enums"]["billing_period"]
           created_at?: string
           description?: string | null
@@ -13002,8 +13054,10 @@ export type Database = {
           features?: Json
           id?: string
           is_active?: boolean
+          is_enterprise?: boolean
           is_featured?: boolean
           is_public?: boolean
+          module?: string
           name?: string
           price_cents?: number
           slug?: string
@@ -13509,6 +13563,48 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_addons: {
+        Row: {
+          addon_id: string
+          created_at: string
+          id: string
+          quantity: number
+          subscription_id: string
+          updated_at: string
+        }
+        Insert: {
+          addon_id: string
+          created_at?: string
+          id?: string
+          quantity?: number
+          subscription_id: string
+          updated_at?: string
+        }
+        Update: {
+          addon_id?: string
+          created_at?: string
+          id?: string
+          quantity?: number
+          subscription_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "plan_addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_addons_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_cards: {
         Row: {
           card_brand: string | null
@@ -13632,6 +13728,7 @@ export type Database = {
           is_exempt: boolean
           last_payment_status: string | null
           loyalty_started_at: string | null
+          module: string
           monthly_price_cents: number | null
           next_charge_date: string | null
           next_free_month: number | null
@@ -13666,6 +13763,7 @@ export type Database = {
           is_exempt?: boolean
           last_payment_status?: string | null
           loyalty_started_at?: string | null
+          module?: string
           monthly_price_cents?: number | null
           next_charge_date?: string | null
           next_free_month?: number | null
@@ -13700,6 +13798,7 @@ export type Database = {
           is_exempt?: boolean
           last_payment_status?: string | null
           loyalty_started_at?: string | null
+          module?: string
           monthly_price_cents?: number | null
           next_charge_date?: string | null
           next_free_month?: number | null
