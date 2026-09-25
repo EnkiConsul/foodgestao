@@ -3,6 +3,7 @@ import { Loader2, Download, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { PdfCanvasViewer } from "./PdfCanvasViewer";
 
 interface DocumentPreviewProps {
   open: boolean;
