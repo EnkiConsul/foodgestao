@@ -16,7 +16,7 @@ export const HELP_CONTENT = {
   // ───────────────────────────── Hub e visão geral ─────────────────────────────
   "hub.modulos": {
     titulo: "Hub de Módulos",
-    texto: "Ponto de entrada dos módulos liberados para a sua empresa. Módulos não contratados aparecem apenas como apresentação.",
+    texto: "Ponto de entrada dos módulos liberados para a sua empresa, conforme as permissões do seu acesso.",
   },
   "dashboard.visao": {
     titulo: "Dashboard",
