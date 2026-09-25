@@ -154,10 +154,6 @@ export const HELP_CONTENT = {
     titulo: "Configurações",
     texto: "Preferências da conta e da empresa, como dados de exibição e opções do sistema.",
   },
-  "conta.faturas": {
-    titulo: "Faturas",
-    texto: "Histórico de cobranças da assinatura, com situação e link de pagamento quando houver.",
-  },
 
   // ───────────────────────────── Pessoas 360° (DP) ─────────────────────────────
   "dp.inicio": {

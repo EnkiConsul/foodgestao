@@ -76,7 +76,7 @@ export default function TrialExpired() {
                 </Button>
               ) : (
                 <Button asChild size="lg" className="flex-1">
-                  <Link to="/faturas">Ver minhas faturas</Link>
+                  <Link to="/configuracoes">Ir para Configurações</Link>
                 </Button>
               )}
               <Button variant="outline" size="lg" onClick={handleLogout} className="sm:w-auto">
