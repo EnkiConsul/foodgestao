@@ -97,7 +97,7 @@ export default function Hub() {
         <p className="text-xs md:text-sm text-muted-foreground mb-1">{contextLabel}</p>
         <h1 className="flex items-center gap-1 text-xl md:text-3xl font-bold">Hub de Módulos<HelpHint helpKey="hub.modulos" size="md" side="bottom" align="start" /></h1>
         <p className="text-xs md:text-base text-muted-foreground mt-1 md:mt-2">
-          Selecione um módulo para começar. Cada módulo é uma contratação independente.
+          Selecione um módulo para começar.
         </p>
       </div>
 
