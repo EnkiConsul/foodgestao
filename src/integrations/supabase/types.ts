@@ -13566,25 +13566,43 @@ export type Database = {
       subscription_addons: {
         Row: {
           addon_id: string
+          canceled_at: string | null
           created_at: string
+          created_by: string | null
           id: string
+          is_exempt: boolean
+          notes: string | null
+          price_cents: number
           quantity: number
+          status: string
           subscription_id: string
           updated_at: string
         }
         Insert: {
           addon_id: string
+          canceled_at?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
+          is_exempt?: boolean
+          notes?: string | null
+          price_cents?: number
           quantity?: number
+          status?: string
           subscription_id: string
           updated_at?: string
         }
         Update: {
           addon_id?: string
+          canceled_at?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
+          is_exempt?: boolean
+          notes?: string | null
+          price_cents?: number
           quantity?: number
+          status?: string
           subscription_id?: string
           updated_at?: string
         }
@@ -13712,6 +13730,7 @@ export type Database = {
           canceled_at: string | null
           card_brand: string | null
           card_last4: string | null
+          company_id: string | null
           created_at: string
           current_period_end: string | null
           current_period_start: string
@@ -13747,6 +13766,7 @@ export type Database = {
           canceled_at?: string | null
           card_brand?: string | null
           card_last4?: string | null
+          company_id?: string | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string
@@ -13782,6 +13802,7 @@ export type Database = {
           canceled_at?: string | null
           card_brand?: string | null
           card_last4?: string | null
+          company_id?: string | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string
@@ -13812,6 +13833,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "subscriptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "subscriptions_plan_id_fkey"
             columns: ["plan_id"]
@@ -17853,6 +17881,14 @@ export type Database = {
           p_module: Database["public"]["Enums"]["app_module"]
         }
         Returns: Json
+      }
+      subscription_capacity: {
+        Args: { _subscription_id: string }
+        Returns: {
+          addon_code: string
+          addon_name: string
+          extra_quantity: number
+        }[]
       }
       sync_of_account_balance: {
         Args: { _account_id: string; _new_balance: number }
