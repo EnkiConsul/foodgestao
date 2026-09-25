@@ -95,7 +95,7 @@ const COLUNAS: Record<ValeTipo, { config: string; colaborador: string; flag: str
     config:
       "vt_dia_pagamento, vt_dias_corte, vt_desconta_falta, vt_desconta_folga_extra, vt_desconta_atestado, vt_desconta_ferias",
     colaborador:
-      "vale_transporte, vale_transporte_valor_dia, vale_transporte_dia_pagamento, vale_transporte_dias_corte, vale_transporte_desconta_falta, vale_transporte_desconta_folga_extra, vale_transporte_desconta_atestado, vale_transporte_desconta_ferias, salario_base, valor_hora, base_salarial, forma_pagamento",
+      "vale_transporte, vale_transporte_valor_dia, vale_transporte_dia_pagamento, vale_transporte_dias_corte, vale_transporte_desconta_falta, vale_transporte_desconta_folga_extra, vale_transporte_desconta_atestado, vale_transporte_desconta_ferias, valor_hora, forma_pagamento",
     flag: "vale_transporte",
   },
 };
@@ -174,7 +174,13 @@ export function useDpValeCalculadora(
       if (unidadeFilter !== "todas") q = q.eq("unidade_id", unidadeFilter);
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as any[];
+      const linhas = (data ?? []) as any[];
+      // VT precisa do salário (teto legal de 6%): vem pela consulta segura,
+      // pois salario_base/base_salarial não são liberados na leitura direta.
+      if (tipo === "vt" && linhas.length > 0) {
+        return mesclarConfidencial(selectedCompanyId!, linhas, linhas.map((l) => l.id));
+      }
+      return linhas;
     },
   });
 
