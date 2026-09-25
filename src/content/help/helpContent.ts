@@ -449,10 +449,6 @@ export const HELP_CONTENT = {
     titulo: "Cadastros Padrão",
     texto: "Listas iniciais copiadas para novas empresas (categorias, contas contábeis, formas de pagamento).",
   },
-  "admin.planos": {
-    titulo: "Planos",
-    texto: "Planos e módulos oferecidos, com preços e limites usados na contratação.",
-  },
   "admin.assinaturas": {
     titulo: "Assinaturas",
     texto: "Situação da assinatura de cada cliente, incluindo período de teste e vencimentos.",

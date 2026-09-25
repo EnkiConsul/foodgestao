@@ -85,7 +85,6 @@ export const HELP_BY_ROUTE: Record<string, HelpKey> = {
   "/admin/categorias-padrao": "admin.cadastrosPadrao",
   "/admin/contas-contabeis-padrao": "admin.cadastrosPadrao",
   "/admin/formas-pagamento-padrao": "admin.cadastrosPadrao",
-  "/admin/planos": "admin.planos",
   "/admin/assinaturas": "admin.assinaturas",
   "/admin/faturamento": "admin.faturamento",
   "/admin/cupons": "admin.cupons",
