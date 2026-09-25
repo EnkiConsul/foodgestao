@@ -2,9 +2,11 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { Session, User } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { isAlreadyRegisteredSignup } from "@/lib/authSignupSignals";
 import { logAudit } from "@/lib/audit";
+import { descreverAparelho, obterSessionIdLocal } from "@/lib/auth/deviceSession";
 
 interface AuthContextType {
   session: Session | null;
@@ -51,10 +53,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void logAudit("user_session_resumed", "auth");
     };
 
+    // Sessão única: o aparelho que acabou de entrar assume a conta e derruba os outros.
+    const assumirSessao = async () => {
+      try {
+        await supabase.rpc("auth_sessao_assumir", {
+          _session_id: obterSessionIdLocal(),
+          _device: descreverAparelho(),
+        });
+        await supabase.auth.signOut({ scope: "others" });
+      } catch {
+        /* não bloqueia a entrada se o registro do aparelho falhar */
+      }
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       applySession(session);
       if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
         setTimeout(() => logResumeOnce(session), 0);
+      }
+      if (event === "SIGNED_IN") {
+        setTimeout(() => void assumirSessao(), 0);
       }
     });
 
@@ -65,6 +83,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Monitora, em tempo real, se outro aparelho assumiu esta conta.
+  useEffect(() => {
+    if (!user?.id) return;
+    const local = obterSessionIdLocal();
+
+    const derrubar = async () => {
+      try {
+        sessionStorage.removeItem(`audit_resume_${user.id}`);
+      } catch {
+        /* ignora */
+      }
+      await supabase.auth.signOut();
+      queryClient.clear();
+      toast.error("Sua conta foi desconectada porque foi feito login em outro aparelho.", {
+        duration: 10000,
+      });
+      navigate("/auth", { replace: true });
+    };
+
+    const canal = supabase
+      .channel(`sessao-unica-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "auth_user_security_state",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const ativa = (payload.new as { active_session_id?: string | null } | null)?.active_session_id;
+          if (ativa && ativa !== local) void derrubar();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(canal);
+    };
+  }, [user?.id, navigate, queryClient]);
 
   const signUp = async (email: string, password: string, fullName: string) => {
     const { data, error } = await supabase.auth.signUp({
