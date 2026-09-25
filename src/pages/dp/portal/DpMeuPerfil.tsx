@@ -30,53 +30,23 @@ export default function DpMeuPerfil() {
   // Identidade resolvida no servidor a partir da sessão (fonte única).
   const vinculo = useMeuVinculoPortal();
   const colaboradorId = vinculo.data?.colaboradorId ?? null;
+  const companyId = vinculo.data?.companyId ?? null;
   const perfil = useQuery({
-    queryKey: ["dp_meu_perfil", user?.id, colaboradorId],
-    enabled: !!user?.id && !!colaboradorId,
+    queryKey: ["dp_meu_perfil", user?.id, colaboradorId, companyId],
+    enabled: !!user?.id && !!colaboradorId && !!companyId,
     queryFn: async () => {
+      // Colunas sensíveis (CPF, conta bancária, Pix) não são mais legíveis na
+      // tabela: chegam pela consulta segura, que libera por inteiro os dados
+      // do próprio colaborador autenticado.
       const { data, error } = await supabase
         .from("dp_colaboradores")
-        // Colunas explícitas de propósito: o portal nunca deve trazer campos
-        // internos do RH (ex.: notas/ressalvas do desligamento).
-        .select(
-          [
-            "id",
-            "nome",
-            "nome_social",
-            "matricula",
-            "cpf",
-            "cargo",
-            "regime",
-            "perfil_acesso",
-            "data_admissao",
-            "data_nascimento",
-            "email",
-            "email_portal",
-            "email_contato",
-            "telefone",
-            "whatsapp",
-            "endereco",
-            "banco_codigo",
-            "banco_nome",
-            "agencia",
-            "conta",
-            "conta_digito",
-            "conta_tipo",
-            "titular_proprio",
-            "titular_nome",
-            "titular_cpf",
-            "pix_tipo",
-            "pix_chave",
-            "recebe_em_especie",
-            "dp_unidades(nome)",
-            "dp_cargos(nome)",
-            "dp_sindicatos(nome)",
-          ].join(", "),
-        )
+        .select(`${COLUNAS_COLABORADOR_PUBLICAS}, dp_unidades(nome), dp_cargos(nome), dp_sindicatos(nome)`)
         .eq("id", colaboradorId!)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      if (!data) return null;
+      const [completo] = await mesclarConfidencial(companyId!, [data], [data.id]);
+      return completo as unknown as typeof data;
     },
   });
 
