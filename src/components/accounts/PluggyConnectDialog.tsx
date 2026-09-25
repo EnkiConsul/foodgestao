@@ -432,6 +432,10 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
           connectorIds = resume.connectorIds ?? undefined;
         }
 
+        if (!itemIdToUpdate) {
+          await garantirLimite(companyId, "financeiro", "open_finance");
+        }
+
         if (!accessToken) {
           const { data, error: e } = await supabase.functions.invoke("pluggy-connect-token", {
             body: {
