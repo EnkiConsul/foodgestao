@@ -20,6 +20,11 @@ import {
 import { useUserNames } from "@/hooks/useUserNames";
 import { ExemptSubscriptionDialog } from "./ExemptSubscriptionDialog";
 import { ClientCell } from "./ClientCell";
+import { SubscriptionAddonsDialog } from "./SubscriptionAddonsDialog";
+
+const companyLabel = (s: any) => s.company?.trade_name || s.company?.name || "Sem empresa vinculada";
+const activeAddons = (s: any) => (s.addons ?? []).filter((a: any) => a.status === "active").length;
+const moduleLabel = (m?: string | null) => (m === "pessoas" ? "Pessoas 360°" : "Financeiro 360°");
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 /** Test/seed accounts and collaborator portal logins pollute the list. */
@@ -49,6 +54,8 @@ export function AdminSubscriptions() {
   const [hideTest, setHideTest] = useState(true);
   const [clientSortDir, setClientSortDir] = useState<"asc" | "desc" | null>(null);
   const [exemptTarget, setExemptTarget] = useState<{ id: string; planId: string } | null>(null);
+  const [addonsTarget, setAddonsTarget] = useState<any>(null);
+  const openAddons = (s: any) => setAddonsTarget({ id: s.id, module: s.module, planSlug: s.plan?.slug, companyName: companyLabel(s) });
 
   const byStatus = filter === "all" ? subs : subs.filter((s: any) => s.status === filter);
   const noiseCount = useMemo(
@@ -109,9 +116,10 @@ export function AdminSubscriptions() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Empresa Contratante</TableHead>
               <TableHead className="cursor-pointer select-none" onClick={toggleClientSort}>
                 <span className="inline-flex items-center gap-1">
-                  Cliente
+                  Dono Titular
                   {clientSortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : clientSortDir === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 text-muted-foreground" />}
                 </span>
               </TableHead>
@@ -127,15 +135,19 @@ export function AdminSubscriptions() {
           <TableBody>
             {isLoading ? (
               Array.from({ length: 4 }).map((_, i) => (
-                <TableRow key={i}>{Array.from({ length: 8 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>)}</TableRow>
+                <TableRow key={i}>{Array.from({ length: 9 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>)}</TableRow>
               ))
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma assinatura</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Nenhuma assinatura</TableCell></TableRow>
             ) : (
               sortedFiltered.map((s: any) => {
                 const exempt = isExempt(s);
                 return (
                 <TableRow key={s.id}>
+                  <TableCell>
+                    <p className="font-medium">{companyLabel(s)}</p>
+                    <p className="text-xs text-muted-foreground">{s.company?.cnpj || moduleLabel(s.module)}</p>
+                  </TableCell>
                   <TableCell className="font-medium">
                     <ClientCell userId={s.user_id} />
                   </TableCell>
@@ -175,6 +187,9 @@ export function AdminSubscriptions() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
+                      <Button size="sm" variant="ghost" onClick={() => openAddons(s)}>
+                        Adicionais{activeAddons(s) ? ` (${activeAddons(s)})` : ""}
+                      </Button>
                       {s.status !== "canceled" && !exempt && (
                         <Button size="sm" variant="ghost"
                           onClick={() => update.mutate({ id: s.id, status: "canceled", canceled_at: new Date().toISOString() })}>
@@ -235,8 +250,9 @@ export function AdminSubscriptions() {
             return (
               <div key={s.id} className="rounded-md border p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 text-sm font-medium truncate">
-                    <ClientCell userId={s.user_id} />
+                  <div className="min-w-0 text-sm">
+                    <p className="font-medium truncate">{companyLabel(s)}</p>
+                    <div className="text-xs text-muted-foreground truncate"><ClientCell userId={s.user_id} /></div>
                   </div>
                   <Badge variant={SUBSCRIPTION_STATUS_VARIANT[s.status]} className="shrink-0 text-[10px]">
                     {SUBSCRIPTION_STATUS_LABELS[s.status]}
@@ -260,6 +276,9 @@ export function AdminSubscriptions() {
                 </div>
                 {exempt && <Badge variant="secondary" className="text-[10px]">{exemptionLabel(s)}</Badge>}
                 <div className="flex flex-wrap gap-1 pt-1 border-t">
+                  <Button size="sm" variant="outline" className="flex-1 min-h-9" onClick={() => openAddons(s)}>
+                    Adicionais{activeAddons(s) ? ` (${activeAddons(s)})` : ""}
+                  </Button>
                   {s.status !== "canceled" && !exempt && (
                     <Button size="sm" variant="outline" className="flex-1 min-h-9"
                       onClick={() => update.mutate({ id: s.id, status: "canceled", canceled_at: new Date().toISOString() })}>
@@ -305,6 +324,11 @@ export function AdminSubscriptions() {
         onOpenChange={(o) => !o && setExemptTarget(null)}
         subscriptionId={exemptTarget?.id ?? null}
         defaultPlanId={exemptTarget?.planId ?? null}
+      />
+      <SubscriptionAddonsDialog
+        open={!!addonsTarget}
+        onOpenChange={(o) => !o && setAddonsTarget(null)}
+        subscription={addonsTarget}
       />
     </div>
   );
