@@ -184,7 +184,6 @@ const BemVindo = lazyWithRetry(() => import("./pages/BemVindo"));
 // Rotas acessíveis mesmo com trial/assinatura expirada
 const TRIAL_EXPIRED_WHITELIST = [
   "/trial-expirado",
-  "/planos",
   "/checkout",
   "/faturas",
   "/admin",
@@ -578,7 +577,7 @@ const AppRoutes = () => (
         <Route path="/admin/categorias-padrao" element={<AdminCategoriasPadrao />} />
         <Route path="/admin/contas-contabeis-padrao" element={<AdminContasContabeisPadrao />} />
         <Route path="/admin/formas-pagamento-padrao" element={<AdminFormasPagamentoPadrao />} />
-        <Route path="/admin/planos" element={<AdminPlanosPage />} />
+        <Route path="/admin/planos" element={<Navigate to="/admin/assinaturas" replace />} />
         <Route path="/admin/assinaturas" element={<AdminAssinaturas />} />
         <Route path="/admin/faturamento" element={<AdminFaturamento />} />
         <Route path="/admin/cupons" element={<AdminCuponsPage />} />
