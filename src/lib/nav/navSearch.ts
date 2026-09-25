@@ -57,7 +57,6 @@ const SYNONYMS: Record<string, string[]> = {
   "/contas-contabeis": ["contabilidade", "plano contabil"],
   "/empresas": ["cnpj", "matriz", "tenant"],
   "/gestao-usuarios": ["permissao", "acesso", "convite", "perfil de acesso"],
-  "/faturas": ["cobranca", "boleto", "nota"],
   "/configuracoes": ["ajustes", "preferencias", "tema"],
 };
 

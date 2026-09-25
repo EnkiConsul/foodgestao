@@ -43,7 +43,6 @@ const ROUTES: [string, ModuleKey][] = [
   ["/dp/relatorios", "dp.relatorios"],
   ["/empresas", "conta.empresa"],
   ["/gestao-usuarios", "conta.usuarios"],
-  ["/faturas", "conta.assinatura"],
   ["/auditoria", "conta.auditoria"],
 ].sort((a, b) => b[0].length - a[0].length) as [string, ModuleKey][];
 

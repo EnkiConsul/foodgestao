@@ -128,7 +128,6 @@ const contaGroup: MoreGroup = {
   items: [
     { icon: Building2, label: "Minhas Empresas", to: "/empresas" },
     { icon: UserCog, label: "Usuários", to: "/gestao-usuarios" },
-    { icon: Receipt, label: "Minhas Faturas", to: "/faturas" },
     { icon: Settings, label: "Configurações", to: "/configuracoes" },
   ],
 };
@@ -210,7 +209,6 @@ const contaHome: NavLeaf = { icon: Settings, label: "Início", to: "/configuraco
 const contaShortcuts: NavLeaf[] = [
   { icon: Building2, label: "Empresas", to: "/empresas" },
   { icon: Users, label: "Usuários", to: "/gestao-usuarios" },
-  { icon: FileText, label: "Faturas", to: "/faturas" },
 ];
 
 

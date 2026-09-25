@@ -166,7 +166,6 @@ const AcceptInvite = lazyWithRetry(() => import("./pages/AcceptInvite"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
 const Checkout = lazyWithRetry(() => import("./pages/Checkout"));
 const CheckoutPagamento = lazyWithRetry(() => import("./pages/CheckoutPagamento"));
-const Faturas = lazyWithRetry(() => import("./pages/Faturas"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 
 const Privacidade = lazyWithRetry(() => import("./pages/legal/Privacidade"));
@@ -185,7 +184,6 @@ const BemVindo = lazyWithRetry(() => import("./pages/BemVindo"));
 const TRIAL_EXPIRED_WHITELIST = [
   "/trial-expirado",
   "/checkout",
-  "/faturas",
   "/admin",
   "/bem-vindo",
   "/convite",
@@ -617,7 +615,7 @@ const AppRoutes = () => (
       <Route path="/guias/das-mei" element={<DasMei />} />
       <Route path="/buscar" element={<Buscar />} />
       <Route path="/dpo" element={<Navigate to="/encarregado-dados" replace />} />
-      <Route path="/planos" element={<Navigate to="/faturas" replace />} />
+      <Route path="/planos" element={<Navigate to="/configuracoes" replace />} />
       <Route path="/financeiro" element={<Navigate to="/" replace />} />
       <Route path="/departamento-pessoal" element={<Navigate to="/" replace />} />
       <Route path="/contato" element={<Navigate to="/" replace />} />
@@ -629,7 +627,7 @@ const AppRoutes = () => (
 
       <Route path="/checkout/:planSlug" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
       <Route path="/checkout/pagamento/:invoiceId" element={<ProtectedRoute><CheckoutPagamento /></ProtectedRoute>} />
-      <Route path="/faturas" element={<ProtectedRoute><Faturas /></ProtectedRoute>} />
+      <Route path="/faturas" element={<Navigate to="/configuracoes" replace />} />
       <Route path="/trial-expirado" element={<ProtectedRoute><TrialExpired /></ProtectedRoute>} />
       <Route path="/bem-vindo" element={<ProtectedRoute><BemVindo /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
