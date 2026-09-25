@@ -73,6 +73,9 @@ export async function salvarColaborador(input: {
   companyId: string;
   dados: Json;
 }): Promise<string> {
+  if (!input.id) {
+    await garantirLimite(input.companyId, "pessoas", "colaboradores");
+  }
   const { data, error } = await (supabase.rpc as any)("dp_colaborador_salvar", {
     p_dados: input.dados,
     p_id: input.id ?? null,
