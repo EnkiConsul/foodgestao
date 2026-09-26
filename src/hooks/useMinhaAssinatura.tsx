@@ -71,7 +71,7 @@ export function useMinhasAssinaturas() {
         .order("created_at", { ascending: false });
       if (error) throw error;
 
-      return (data ?? []).map((s: any) => {
+      const todas = (data ?? []).map((s: any) => {
         const isento =
           !!s.is_exempt && (!s.exempt_until || new Date(s.exempt_until).getTime() > Date.now());
         const addons = (s.addons ?? []) as any[];
@@ -96,6 +96,8 @@ export function useMinhasAssinaturas() {
           totalCents: planCents + addonsCents,
         } as MinhaAssinatura;
       });
+
+      return vigentesPorModulo(todas);
     },
   });
 }
