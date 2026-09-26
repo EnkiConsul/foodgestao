@@ -1,7 +1,8 @@
 /**
- * Revisão da Pré-Admissão pelo gestor, no MESMO formato da ficha do
- * colaborador: abas Dados, Horário de Trabalho, Remuneração, Dependentes,
- * Documentos e Admissão, com todos os campos editáveis.
+ * Revisão da Pré-Admissão pelo gestor na FICHA ÚNICA: é a mesma tela do
+ * cadastro manual do colaborador (sindicato, espelho de jornada, piso do
+ * cargo, benefícios), aberta em modo "Em Admissão". Nada entra no cadastro
+ * oficial antes da efetivação.
  *
  * O gestor corrige o que o candidato preencheu, gera a ficha para a
  * contabilidade, aguarda o retorno e só então conclui a admissão. Toda
@@ -26,6 +27,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { notifyError } from "@/lib/notifyError";
 import { PreadmissaoExcluirDialog } from "@/components/dp/preadmissao/PreadmissaoExcluirDialog";
+import {
+  ColaboradorFormDialog, type ModoAdmissao, type SalvarAdmissaoEntrada,
+} from "@/components/dp/ColaboradorFormDialog";
+import type { JornadaRascunho } from "@/components/dp/ColaboradorJornadaPanel";
+import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
 import { useDpSetores } from "@/hooks/useDpSetores";
@@ -558,273 +564,122 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
     </div>
   );
 
-  const abas = [
-    ["dados", "Dados"],
-    ["jornada", "Horário de Trabalho"],
-    ["remuneracao", "Remuneração"],
-    ["dependentes", "Dependentes"],
-    ["documentos", "Documentos"],
-    ["admissao", "Admissão"],
-  ];
+  /* ── Ficha única: a mesma tela do cadastro do colaborador ─────────────── */
+  const { data: colaboradores = [] } = useDpColaboradores();
+  const colaboradorEfetivado = useMemo(
+    () => (pa?.colaborador_id ? colaboradores.find((c) => c.id === pa.colaborador_id) ?? null : null),
+    [colaboradores, pa?.colaborador_id],
+  );
+  const adminBruto = (pa?.admin_dados ?? {}) as Record<string, unknown>;
+  const jornadaAdmissao = (adminBruto.jornada ?? null) as JornadaRascunho | null;
 
-  return (
-    <Dialog open={!!preadmissaoId} onOpenChange={(v) => !v && onOpenChange(false)}>
-      <DialogContent className="max-w-4xl p-0 gap-0 max-h-[92vh] flex flex-col">
-        <DialogHeader className="px-6 pt-6 pb-3">
-          <DialogTitle>Pré-Admissão: {pa?.candidato_nome ?? ""}</DialogTitle>
-          <DialogDescription>
-            {PREADMISSAO_STATUS_LABEL[status]}{pa?.whatsapp ? ` · ${pa.whatsapp}` : ""}
-          </DialogDescription>
-        </DialogHeader>
+  const modo = useMemo<ModoAdmissao["form"] | null>(() => {
+    if (!pa) return null;
+    const f = ficha;
+    const sexo = f.sexo === "feminino" ? "F" : f.sexo === "masculino" ? "M" : "none";
+    return {
+      nome: f.nome ?? "",
+      nome_social: f.nome_social ?? "",
+      cpf: f.cpf ?? "",
+      email: f.email ?? "",
+      whatsapp: f.telefone ?? "",
+      data_nascimento: f.data_nascimento ?? "",
+      sexo,
+      rg_numero: f.rg_numero ?? "", rg_orgao: f.rg_orgao ?? "", rg_uf: f.rg_uf ?? "", rg_emissao: f.rg_emissao ?? "",
+      ctps_numero: f.ctps_numero ?? "", ctps_serie: f.ctps_serie ?? "", ctps_uf: f.ctps_uf ?? "",
+      ctps_expedicao: f.ctps_expedicao ?? "",
+      titulo_eleitor: f.titulo_eleitor ?? "", titulo_zona: f.titulo_zona ?? "", titulo_secao: f.titulo_secao ?? "",
+      reservista: f.reservista ?? "", reservista_categoria: f.reservista_categoria ?? "",
+      nome_pai: f.nome_pai ?? "", nome_mae: f.nome_mae ?? "",
+      nacionalidade: f.nacionalidade ?? "", naturalidade: f.naturalidade ?? "",
+      raca_cor: f.raca_cor ?? "", deficiencia: f.deficiencia ?? "",
+      grau_instrucao: valorFicha("grau_instrucao", f.grau_instrucao),
+      cargo_id: admin.cargo_id ?? "",
+      unidade_id: admin.unidade_id ?? "",
+      setor_id: admin.setor_id ?? "",
+      data_admissao: admin.data_admissao || new Date().toISOString().slice(0, 10),
+      tipo_vinculo: REGIME_PARA_VINCULO[admin.regime_trabalho] ?? "CLT",
+    };
+  }, [pa, ficha, admin]);
 
-        {isLoading || !pa ? (
-          <div className="py-16 text-center text-sm text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" /> Carregando a ficha…
-          </div>
-        ) : (
-          <Tabs value={aba} onValueChange={setAba} className="flex-1 min-h-0 flex flex-col">
-            <div className="px-6">
-              <TabsList className="flex-wrap h-auto">
-                {abas.map(([v, rotulo]) => (
-                  <TabsTrigger key={v} value={v}>{rotulo}</TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
+  /** Grava a ficha única: dados pessoais + dependentes, depois dados da empresa. */
+  const salvarUnificado = async (e: SalvarAdmissaoEntrada) => {
+    if (encerrada) return;
+    setSalvando(true);
+    try {
+      const f = e.form as Record<string, string>;
+      const g = String(f.grau_instrucao ?? "").trim();
+      const grau = INSTRUCOES.find((o) => o.label === g || o.value === g)?.value ?? ficha.grau_instrucao ?? "";
+      const dadosFicha: Record<string, string> = {
+        ...Object.fromEntries(CAMPOS_FICHA_EDITAVEIS.map((c) => [c, ficha[c] ?? ""])),
+        nome: String(f.nome ?? "").toUpperCase(),
+        nome_social: String(f.nome_social ?? "").toUpperCase(),
+        cpf: String(f.cpf ?? ""),
+        email: String(f.email ?? ""),
+        telefone: String(f.whatsapp ?? ""),
+        data_nascimento: String(f.data_nascimento ?? ""),
+        sexo: f.sexo === "F" ? "feminino" : f.sexo === "M" ? "masculino" : (ficha.sexo ?? ""),
+        grau_instrucao: grau,
+        cep: e.endereco.cep ?? "", endereco: (e.endereco.logradouro ?? "").toUpperCase(),
+        numero: e.endereco.numero ?? "", complemento: (e.endereco.complemento ?? "").toUpperCase(),
+        bairro: (e.endereco.bairro ?? "").toUpperCase(), cidade: (e.endereco.cidade ?? "").toUpperCase(),
+        uf: (e.endereco.uf ?? "").toUpperCase(),
+        banco_nome: e.pagamento.banco_nome ?? "", agencia: e.pagamento.agencia ?? "",
+        conta: e.pagamento.conta ?? "", conta_digito: e.pagamento.conta_digito ?? "",
+        conta_tipo: e.pagamento.conta_tipo || ficha.conta_tipo || "",
+        pix_tipo: e.pagamento.pix_tipo || ficha.pix_tipo || "", pix_chave: e.pagamento.pix_chave ?? "",
+      };
+      for (const c of [
+        "rg_numero", "rg_orgao", "rg_uf", "rg_emissao", "ctps_numero", "ctps_serie", "ctps_uf", "ctps_expedicao",
+        "titulo_eleitor", "titulo_zona", "titulo_secao", "reservista", "reservista_categoria",
+        "nome_pai", "nome_mae", "nacionalidade", "naturalidade", "raca_cor", "deficiencia",
+      ]) dadosFicha[c] = String(f[c] ?? "");
 
-            <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
-              {data.cpf_existente && (
-                <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm mb-4">
-                  <p className="font-semibold text-amber-700">CPF já cadastrado nesta empresa</p>
-                  <p className="text-muted-foreground">
-                    {data.cpf_existente.situacao === "ativo"
-                      ? `${data.cpf_existente.nome} está com cadastro ativo. Confira antes de seguir: não é possível admitir o mesmo CPF duas vezes.`
-                      : `${data.cpf_existente.nome} já trabalhou aqui. A conclusão será registrada como recontratação.`}
-                  </p>
-                </div>
-              )}
+      await acoes.salvarFicha.mutateAsync({
+        dados: dadosFicha,
+        pessoas: pessoas
+          .filter((p) => p.nome.trim())
+          .map((p) => ({
+            ...(p.id ? { id: p.id } : {}),
+            nome: p.nome.trim(),
+            parentesco: p.parentesco,
+            data_nascimento: p.data_nascimento || "",
+            cpf: p.cpf.replace(/\D/g, ""),
+            rg: p.rg.trim(),
+            finalidade_dependente: p.finalidade_dependente,
+            finalidade_sesc: p.finalidade_sesc,
+          })),
+      });
 
-              {data.bloqueio.situacao !== "ok" && (
-                <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm mb-4">
-                  <p className="font-semibold flex items-center gap-2 text-destructive">
-                    <AlertTriangle className="h-4 w-4" /> Atenção
-                  </p>
-                  <p className="text-muted-foreground">{data.bloqueio.mensagem}</p>
-                </div>
-              )}
+      const num = (v: string | undefined) => Number(String(v ?? "0").replace(/\./g, "").replace(",", ".")) || 0;
+      const regime = VINCULO_PARA_REGIME[String(f.tipo_vinculo ?? "")] ?? admin.regime_trabalho ?? "";
+      const carga = cargaSemanal(e.jornada);
+      await acoes.salvarAdmin.mutateAsync({
+        data_admissao: String(f.data_admissao ?? ""),
+        regime_trabalho: regime,
+        cargo_id: String(f.cargo_id ?? ""),
+        unidade_id: String(f.unidade_id ?? ""),
+        setor_id: String(f.setor_id ?? ""),
+        forma_pagamento: e.rem.forma_pagamento ?? "",
+        salario: e.rem.salario_base ?? "",
+        vale_transporte: !!e.rem.vale_transporte,
+        adicional_insalubridade: num(e.rem.insalubridade_percentual) > 0,
+        adicional_periculosidade: num(e.rem.periculosidade_percentual) > 0,
+        observacoes: admin.observacoes ?? "",
+        experiencia_dias: admin.experiencia_dias ?? "",
+        jornada: e.jornada && e.jornada.horario?.entrada ? e.jornada : null,
+        jornada_descricao: descricaoJornada(e.jornada) || admin.jornada_descricao || "",
+        carga_horaria_semanal: carga ? String(carga) : (admin.carga_horaria_semanal ?? ""),
+      });
+      toast.success("Ficha salva.");
+      await refetch();
+    } finally {
+      setSalvando(false);
+    }
+  };
 
-              {pa.correcao_motivo && status === "correcao_solicitada" && (
-                <div className="rounded-lg border p-3 text-sm mb-4">
-                  <p className="font-semibold">Correção pedida ao candidato</p>
-                  <p className="text-muted-foreground">{pa.correcao_motivo}</p>
-                </div>
-              )}
-
-              {/* ── Dados ─────────────────────────────────────────────── */}
-              <TabsContent value="dados" className="mt-0 space-y-5">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="sm:col-span-2">{campoTexto("nome", "Nome completo")}</div>
-                  <div className="sm:col-span-2">
-                    {campoTexto("nome_social", "Nome social / Como prefere ser chamado", {
-                      placeholder: "Ex: Júnior",
-                      dica: "Usado no dia a dia. Os documentos oficiais continuam com o nome completo.",
-                    })}
-                  </div>
-                  {campoTexto("cpf", "CPF")}
-                  {campoTexto("data_nascimento", "Data de nascimento", { tipo: "date" })}
-                  {campoTexto("email", "E-mail")}
-                  {campoTexto("telefone", "WhatsApp")}
-                  {campoTexto("whatsapp_contato", "WhatsApp de recado")}
-                  {campoLista("sexo", "Sexo", SEXOS)}
-                  {campoLista("estado_civil", "Estado civil", ESTADOS_CIVIS)}
-                  {campoLista("grau_instrucao", "Escolaridade", INSTRUCOES)}
-                  {campoTexto("nome_mae", "Nome da mãe")}
-                  {campoTexto("nome_pai", "Nome do pai")}
-                  {campoTexto("nacionalidade", "Nacionalidade")}
-                  {campoTexto("naturalidade", "Cidade de nascimento")}
-                  {campoTexto("naturalidade_uf", "UF de nascimento")}
-                  {campoTexto("raca_cor", "Cor / raça")}
-                  {campoTexto("deficiencia", "Deficiência")}
-                </div>
-
-                <Separator />
-                <h3 className="text-sm font-semibold">Endereço</h3>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {campoTexto("cep", "CEP")}
-                  {campoTexto("endereco", "Rua / Avenida")}
-                  {campoTexto("numero", "Número")}
-                  {campoTexto("complemento", "Complemento")}
-                  {campoTexto("bairro", "Bairro")}
-                  {campoTexto("cidade", "Cidade")}
-                  {campoTexto("uf", "UF")}
-                </div>
-
-                <Separator />
-                <h3 className="text-sm font-semibold">Documentos Pessoais</h3>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {campoTexto("rg_numero", "RG")}
-                  {campoTexto("rg_orgao", "Órgão emissor")}
-                  {campoTexto("rg_uf", "UF do RG")}
-                  {campoTexto("rg_emissao", "Emissão do RG", { tipo: "date" })}
-                  {campoTexto("pis", "PIS")}
-                  {campoTexto("ctps_numero", "Carteira de trabalho")}
-                  {campoTexto("ctps_serie", "Série")}
-                  {campoTexto("ctps_uf", "UF da carteira")}
-                  {campoTexto("ctps_expedicao", "Expedição da carteira", { tipo: "date" })}
-                  {campoTexto("titulo_eleitor", "Título de eleitor")}
-                  {campoTexto("titulo_zona", "Zona")}
-                  {campoTexto("titulo_secao", "Seção")}
-                  {campoTexto("reservista", "Reservista")}
-                  {campoTexto("reservista_categoria", "Categoria da reservista")}
-                </div>
-
-                <Separator />
-                <h3 className="text-sm font-semibold">Dados Bancários E Pix</h3>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {campoTexto("banco_nome", "Banco")}
-                  {campoLista("conta_tipo", "Tipo de conta", CONTA_TIPOS)}
-                  {campoTexto("agencia", "Agência")}
-                  {campoTexto("conta", "Conta")}
-                  {campoTexto("conta_digito", "Dígito")}
-                  {campoLista("pix_tipo", "Tipo de chave Pix", PIX_TIPOS)}
-                  <div className="sm:col-span-2">{campoTexto("pix_chave", "Chave Pix")}</div>
-                </div>
-              </TabsContent>
-
-              {/* ── Horário de trabalho ───────────────────────────────── */}
-              <TabsContent value="jornada" className="mt-0 space-y-5">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs" htmlFor="pa-adm-data">Data de admissão</Label>
-                    <Input id="pa-adm-data" type="date" className="h-10" value={admin.data_admissao}
-                      disabled={encerrada}
-                      onChange={(e) => setAdmin({ ...admin, data_admissao: e.target.value })} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs" htmlFor="pa-adm-vinculo">Vínculo</Label>
-                    <Select value={admin.regime_trabalho} disabled={encerrada}
-                      onValueChange={(v) => setAdmin({ ...admin, regime_trabalho: v })}>
-                      <SelectTrigger id="pa-adm-vinculo" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
-                      <SelectContent>
-                        {REGIMES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs" htmlFor="pa-adm-unidade">Unidade</Label>
-                    <Select value={admin.unidade_id} disabled={encerrada}
-                      onValueChange={(v) => setAdmin({ ...admin, unidade_id: v, setor_id: "" })}>
-                      <SelectTrigger id="pa-adm-unidade" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
-                      <SelectContent>
-                        {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs" htmlFor="pa-adm-setor">Setor</Label>
-                    <Select value={admin.setor_id} disabled={encerrada || !admin.unidade_id}
-                      onValueChange={(v) => setAdmin({ ...admin, setor_id: v })}>
-                      <SelectTrigger id="pa-adm-setor" className="h-10">
-                        <SelectValue placeholder={admin.unidade_id ? "Escolher" : "Escolha a unidade"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {setores.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs" htmlFor="pa-adm-carga">Carga semanal (horas)</Label>
-                    <Input id="pa-adm-carga" className="h-10" inputMode="numeric" value={admin.carga_horaria_semanal}
-                      disabled={encerrada} placeholder="Ex.: 44"
-                      onChange={(e) => setAdmin({ ...admin, carga_horaria_semanal: e.target.value.replace(/[^\d]/g, "") })} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs" htmlFor="pa-adm-exp">Experiência (dias)</Label>
-                    <Input id="pa-adm-exp" className="h-10" inputMode="numeric" value={admin.experiencia_dias}
-                      disabled={encerrada} placeholder="Ex.: 45"
-                      onChange={(e) => setAdmin({ ...admin, experiencia_dias: e.target.value.replace(/[^\d]/g, "") })} />
-                  </div>
-                  <div className="space-y-1 sm:col-span-2">
-                    <Label className="text-xs" htmlFor="pa-adm-jornada">Jornada prevista</Label>
-                    <Input id="pa-adm-jornada" className="h-10" placeholder="Ex.: 44h semanais, 12x36, escala 6x1"
-                      value={admin.jornada_descricao} disabled={encerrada}
-                      onChange={(e) => setAdmin({ ...admin, jornada_descricao: e.target.value })} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs" htmlFor="pa-22h">Trabalha após as 22h</Label>
-                    <Select
-                      value={pa.trabalho_apos_22h ? "sim" : "nao"}
-                      disabled={encerrada || acoes.alterarPrevisto.isPending}
-                      onValueChange={(v) =>
-                        executar(
-                          () => acoes.alterarPrevisto.mutateAsync({ trabalho_apos_22h: v === "sim" }),
-                          "Informação de horário alterada",
-                        )}
-                    >
-                      <SelectTrigger id="pa-22h" className="h-10"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="nao">Não</SelectItem>
-                        <SelectItem value="sim">Sim</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Trabalho após as 22h vale na hora e muda os documentos exigidos. Nada que o candidato já
-                  enviou é apagado.
-                </p>
-              </TabsContent>
-
-              {/* ── Remuneração ──────────────────────────────────────── */}
-              <TabsContent value="remuneracao" className="mt-0 space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs" htmlFor="pa-adm-cargo">Cargo</Label>
-                    <Select value={admin.cargo_id} disabled={encerrada}
-                      onValueChange={(v) => setAdmin({ ...admin, cargo_id: v })}>
-                      <SelectTrigger id="pa-adm-cargo" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
-                      <SelectContent>
-                        <CargoSelectItems carregando={carregandoCargos} erro={erroCargos} total={cargos.length}>
-                          {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-                        </CargoSelectItems>
-                      </SelectContent>
-                    </Select>
-                    <CargoSelectAviso
-                      carregando={carregandoCargos}
-                      erro={erroCargos}
-                      total={cargos.length}
-                      onRecarregar={() => void recarregarCargos()}
-                      origem="Revisão da pré-admissão"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs" htmlFor="pa-adm-salario">Salário</Label>
-                    <Input id="pa-adm-salario" className="h-10" value={admin.salario} inputMode="decimal"
-                      disabled={encerrada}
-                      onChange={(e) => setAdmin({ ...admin, salario: e.target.value.replace(/[^\d.,]/g, "") })} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs" htmlFor="pa-adm-forma">Forma de pagamento</Label>
-                    <Select value={admin.forma_pagamento} disabled={encerrada}
-                      onValueChange={(v) => setAdmin({ ...admin, forma_pagamento: v })}>
-                      <SelectTrigger id="pa-adm-forma" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
-                      <SelectContent>
-                        {FORMAS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {simNao("vale_transporte", "Vale-transporte")}
-                  {simNao("adicional_insalubridade", "Adicional de insalubridade")}
-                  {simNao("adicional_periculosidade", "Adicional de periculosidade")}
-                  <div className="space-y-1 sm:col-span-2">
-                    <Label className="text-xs" htmlFor="pa-adm-obs">Observações para a contabilidade</Label>
-                    <Textarea id="pa-adm-obs" rows={3} value={admin.observacoes} disabled={encerrada}
-                      onChange={(e) => setAdmin({ ...admin, observacoes: e.target.value })} />
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* ── Dependentes ──────────────────────────────────────── */}
-              <TabsContent value="dependentes" className="mt-0 space-y-3">
+  const dependentesNode = (
+    <>
                 {!pessoas.length && (
                   <p className="text-sm text-muted-foreground">Nenhum dependente ou familiar informado.</p>
                 )}
@@ -904,10 +759,127 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                   Cada familiar precisa de nome, parentesco e ao menos uma finalidade. As mudanças valem depois
                   de salvar.
                 </p>
-              </TabsContent>
+    </>
+  );
 
-              {/* ── Documentos ───────────────────────────────────────── */}
-              <TabsContent value="documentos" className="mt-0 space-y-3">
+  const ETAPAS: Array<{ rotulo: string; status: PreadmissaoStatus[] }> = [
+    { rotulo: "Preenchimento", status: ["aguardando_preenchimento", "em_preenchimento", "correcao_solicitada", "aguardando_nova_versao"] as PreadmissaoStatus[] },
+    { rotulo: "Revisão", status: ["aguardando_revisao"] as PreadmissaoStatus[] },
+    { rotulo: "Contabilidade", status: ["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade"] as PreadmissaoStatus[] },
+    { rotulo: "Retorno", status: ["registro_recebido"] as PreadmissaoStatus[] },
+    { rotulo: "Efetivado", status: ["concluido"] as PreadmissaoStatus[] },
+  ];
+  const etapaAtual = Math.max(0, ETAPAS.findIndex((e) => e.status.includes(status)));
+
+  // Admissão efetivada: a mesma ficha passa a ser o cadastro do colaborador.
+  if (status === "concluido" && colaboradorEfetivado) {
+    return (
+      <ColaboradorFormDialog
+        open={!!preadmissaoId}
+        onOpenChange={(v) => !v && onOpenChange(false)}
+        colaborador={colaboradorEfetivado}
+        abaInicial={jornadaAdmissao ? "jornada" : "dados"}
+        jornadaInicial={jornadaAdmissao}
+      />
+    );
+  }
+
+  if (isLoading || !pa || !data || !modo) {
+    return (
+      <Dialog open={!!preadmissaoId} onOpenChange={(v) => !v && onOpenChange(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Pré-Admissão</DialogTitle>
+            <DialogDescription>Carregando a ficha…</DialogDescription>
+          </DialogHeader>
+          <div className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto" /></div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  const etapa = (
+    <div className="space-y-2">
+      <ol className="flex flex-wrap items-center gap-1 text-[11px] sm:text-xs" aria-label="Etapas da admissão">
+        {ETAPAS.map((e, i) => (
+          <li key={e.rotulo} className="flex items-center gap-1">
+            <span
+              className={
+                i < etapaAtual
+                  ? "rounded-full bg-primary/10 px-2 py-0.5 text-primary"
+                  : i === etapaAtual
+                    ? "rounded-full bg-primary px-2 py-0.5 font-medium text-primary-foreground"
+                    : "rounded-full bg-muted px-2 py-0.5 text-muted-foreground"
+              }
+              aria-current={i === etapaAtual ? "step" : undefined}
+            >
+              {e.rotulo}
+            </span>
+            {i < ETAPAS.length - 1 && <span className="text-muted-foreground">›</span>}
+          </li>
+        ))}
+        <li className="ml-auto text-muted-foreground">{PREADMISSAO_STATUS_LABEL[status]}</li>
+      </ol>
+              {data.cpf_existente && (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm ">
+                  <p className="font-semibold text-amber-700">CPF já cadastrado nesta empresa</p>
+                  <p className="text-muted-foreground">
+                    {data.cpf_existente.situacao === "ativo"
+                      ? `${data.cpf_existente.nome} está com cadastro ativo. Confira antes de seguir: não é possível admitir o mesmo CPF duas vezes.`
+                      : `${data.cpf_existente.nome} já trabalhou aqui. A conclusão será registrada como recontratação.`}
+                  </p>
+                </div>
+              )}
+
+              {data.bloqueio.situacao !== "ok" && (
+                <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm ">
+                  <p className="font-semibold flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="h-4 w-4" /> Atenção
+                  </p>
+                  <p className="text-muted-foreground">{data.bloqueio.mensagem}</p>
+                </div>
+              )}
+
+              {pa.correcao_motivo && status === "correcao_solicitada" && (
+                <div className="rounded-lg border p-3 text-sm ">
+                  <p className="font-semibold">Correção pedida ao candidato</p>
+                  <p className="text-muted-foreground">{pa.correcao_motivo}</p>
+                </div>
+              )}
+
+    </div>
+  );
+
+  const acoesRodape = (
+    <>
+      <Button variant="outline" className="h-11 sm:h-10" onClick={imprimirPacote}>
+        <Printer className="h-4 w-4 mr-2" /> Gerar Ficha Para A Contabilidade
+      </Button>
+      {status === "aguardando_revisao" && (
+        <Button
+          variant="secondary"
+          className="h-11 sm:h-10"
+          disabled={acoes.prepararContabilidade.isPending}
+          onClick={() => executar(() => acoes.prepararContabilidade.mutateAsync(), "Ficha pronta para a contabilidade")}
+        >
+          Enviar Para A Contabilidade
+        </Button>
+      )}
+      {status === "registro_recebido" && pa.ficha_oficial_conferida_em && (
+        <Button
+          variant="secondary"
+          className="h-11 sm:h-10"
+          onClick={() => navigate(`/dp/colaboradores/importar-ficha?preadmissao=${pa.id}`)}
+        >
+          Efetivar Admissão
+        </Button>
+      )}
+    </>
+  );
+
+  const documentosNode = (
+    <div className="space-y-6">
+      <div className="space-y-3">
                 {!vigentes.length && <p className="text-sm text-muted-foreground">Nenhum documento enviado ainda.</p>}
                 {vigentes.map((d) => (
                   <div key={d.id} className="rounded-lg border p-2 text-sm">
@@ -971,10 +943,10 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                   {baixando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
                   Baixar Documentos
                 </Button>
-              </TabsContent>
-
-              {/* ── Admissão ─────────────────────────────────────────── */}
-              <TabsContent value="admissao" className="mt-0 space-y-4">
+      </div>
+      <Separator />
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold">Admissão E Contabilidade</h3>
                 {["aguardando_revisao", "aguardando_nova_versao", "em_preenchimento"].includes(status) && (
                   <div className="space-y-2">
                     <Label className="text-xs">Pedir correção ao candidato</Label>
@@ -1132,30 +1104,85 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                     </ul>
                   </div>
                 )}
-              </TabsContent>
-            </div>
+      </div>
+    </div>
+  );
 
-            <div className="flex flex-wrap items-center gap-2 border-t px-6 py-3">
-              <Button variant="outline" onClick={imprimirPacote}>
-                <Printer className="h-4 w-4 mr-2" /> Gerar Ficha Para A Contabilidade
-              </Button>
-              <div className="ml-auto flex items-center gap-2">
-                <Button variant="ghost" onClick={() => onOpenChange(false)}>Fechar</Button>
-                <Button disabled={encerrada || salvando} onClick={salvarTudo}>
-                  {salvando && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Salvar Ficha
-                </Button>
-              </div>
-            </div>
-          </Tabs>
-        )}
-      </DialogContent>
+  return (
+    <>
+      <ColaboradorFormDialog
+        open={!!preadmissaoId}
+        onOpenChange={(v) => !v && onOpenChange(false)}
+        admissao={{
+          chave: `${pa.id}:${(pa as { versao?: number }).versao ?? ""}:${pa.admin_dados ? JSON.stringify(pa.admin_dados).length : 0}`,
+          form: modo,
+          endereco: {
+            cep: ficha.cep ?? "", logradouro: ficha.endereco ?? "", numero: ficha.numero ?? "",
+            complemento: ficha.complemento ?? "", bairro: ficha.bairro ?? "", cidade: ficha.cidade ?? "", uf: ficha.uf ?? "",
+          },
+          pagamento: {
+            banco_nome: ficha.banco_nome ?? "", agencia: ficha.agencia ?? "", conta: ficha.conta ?? "",
+            conta_digito: ficha.conta_digito ?? "", conta_tipo: ficha.conta_tipo ?? "",
+            pix_tipo: ficha.pix_tipo ?? "", pix_chave: ficha.pix_chave ?? "",
+          },
+          rem: {
+            ...(admin.forma_pagamento ? { forma_pagamento: admin.forma_pagamento as never } : {}),
+            ...(admin.salario ? { salario_base: String(admin.salario).replace(".", ",") } : {}),
+            ...(admin.vale_transporte ? { vale_transporte: admin.vale_transporte === "sim" } : {}),
+          },
+          jornada: jornadaAdmissao,
+          etapa,
+          acoes: acoesRodape,
+          dependentes: <div className="space-y-3">{dependentesNode}</div>,
+          documentos: documentosNode,
+          somenteLeitura: encerrada,
+          salvando,
+          onSalvar: salvarUnificado,
+        }}
+      />
       <PreadmissaoExcluirDialog
         preadmissaoId={excluir ? preadmissaoId : null}
-        candidatoNome={data?.preadmissao.candidato_nome ?? ""}
+        candidatoNome={data.preadmissao.candidato_nome ?? ""}
         onOpenChange={setExcluir}
         onExcluida={() => onOpenChange(false)}
       />
-    </Dialog>
+    </>
   );
+}
+
+const REGIME_PARA_VINCULO: Record<string, string> = {
+  clt: "CLT", intermitente: "Intermitente", estagio: "Estagiario", temporario: "Temporario",
+  pj: "PJ", mei: "PJ", freelancer: "Freelancer",
+};
+const VINCULO_PARA_REGIME: Record<string, string> = {
+  CLT: "clt", Intermitente: "intermitente", Socio: "pj", Estagiario: "estagio",
+  PJ: "pj", Temporario: "temporario", Freelancer: "freelancer",
+};
+
+const minutosDe = (h?: string | null) => {
+  const m = /^(\d{2}):(\d{2})/.exec(h ?? "");
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+};
+
+/** Horas semanais a partir do horário escolhido (para a contabilidade). */
+function cargaSemanal(j: JornadaRascunho | null): number | null {
+  if (!j) return null;
+  let total = 0;
+  for (const d of j.dias ?? []) {
+    if (!d.trabalha) continue;
+    const ent = minutosDe(d.entrada ?? j.horario.entrada);
+    const sai = minutosDe(d.saida ?? j.horario.saida);
+    if (ent === null || sai === null) continue;
+    const dur = (sai > ent ? sai - ent : sai + 1440 - ent) - (d.intervalo_minutos ?? j.horario.intervalo_minutos ?? 0);
+    if (dur > 0) total += dur;
+  }
+  const horas = Math.round(total / 60);
+  return horas >= 1 && horas <= 60 ? horas : null;
+}
+
+function descricaoJornada(j: JornadaRascunho | null): string {
+  if (!j?.horario?.entrada || !j.horario.saida) return "";
+  const dias = (j.dias ?? []).filter((d) => d.trabalha).length;
+  const intervalo = j.horario.intervalo_minutos ? `, intervalo de ${j.horario.intervalo_minutos} min` : "";
+  return `${j.horario.entrada} às ${j.horario.saida}${intervalo}, ${dias} dia(s) por semana${j.folga_variavel ? ", folga variável" : ""}`;
 }
