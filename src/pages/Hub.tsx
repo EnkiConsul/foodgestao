@@ -93,12 +93,19 @@ export default function Hub() {
 
       <PendingInvitesAlert />
 
-      <div className="mb-6 md:mb-8">
-        <p className="text-xs md:text-sm text-muted-foreground mb-1">{contextLabel}</p>
-        <h1 className="flex items-center gap-1 text-xl md:text-3xl font-bold">Hub de Módulos<HelpHint helpKey="hub.modulos" size="md" side="bottom" align="start" /></h1>
-        <p className="text-xs md:text-base text-muted-foreground mt-1 md:mt-2">
-          Selecione um módulo para começar.
-        </p>
+      <div className="mb-6 md:mb-8 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs md:text-sm text-muted-foreground mb-1">{contextLabel}</p>
+          <h1 className="flex items-center gap-1 text-xl md:text-3xl font-bold">Hub de Módulos<HelpHint helpKey="hub.modulos" size="md" side="bottom" align="start" /></h1>
+          <p className="text-xs md:text-base text-muted-foreground mt-1 md:mt-2">
+            Selecione um módulo para começar.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/planos">
+            <Sparkles className="h-4 w-4 mr-1.5" /> Planos e Preços
+          </Link>
+        </Button>
       </div>
 
 
