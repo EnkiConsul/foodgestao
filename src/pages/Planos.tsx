@@ -111,14 +111,17 @@ function CartaoPlano({
 
       <CardContent className="flex flex-1 flex-col gap-4">
         <ul className="flex-1 space-y-2 text-sm">
-          {RECURSOS[modulo].map(({ campo, rotulo }) => (
-            <li key={campo} className="flex gap-2">
-              <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              <span>
-                {formatLimit(f[campo] ?? -1)} {rotulo}
-              </span>
-            </li>
-          ))}
+          {RECURSOS[modulo].map(({ campo, um, muitos }) => {
+            const valor = Number(f[campo] ?? -1);
+            return (
+              <li key={campo} className="flex gap-2">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span>
+                  {formatLimit(valor)} {valor === 1 ? um : muitos}
+                </span>
+              </li>
+            );
+          })}
           <li className="flex gap-2">
             <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <span>Suporte por WhatsApp</span>
