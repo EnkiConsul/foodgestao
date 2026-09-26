@@ -133,6 +133,11 @@ export function SubscriptionAddonsDialog({ open, onOpenChange, subscription }: P
                     {it.is_exempt ? "Cortesia" : `${brl(it.price_cents)} × ${it.quantity} = ${brl(it.price_cents * it.quantity)}/mês`}
                     {it.notes ? ` · ${it.notes}` : ""}
                   </p>
+                  {!it.is_exempt && !it.prorata_billed_at && Number(it.prorata_cents ?? 0) > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {brl(it.prorata_cents)} proporcional aos dias restantes, cobrado na próxima fatura
+                    </p>
+                  )}
                 </div>
                 <Badge variant={it.status === "active" ? "default" : "secondary"}>{it.status === "active" ? "Ativo" : "Cancelado"}</Badge>
                 {it.status === "active" && (
