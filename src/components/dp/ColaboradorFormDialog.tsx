@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Info } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -65,7 +65,7 @@ import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { PadraoDivergenciaAviso } from "@/components/dp/PadraoDivergenciaAviso";
-import { ColaboradorJornadaPanel, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
+import { ColaboradorJornadaPanel, type JornadaRascunho, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
 import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
 import { useDpSetores } from "@/hooks/useDpSetores";
@@ -194,6 +194,41 @@ interface Props {
   abaInicial?: AbaVisivel;
   /** Folguista ou pessoa em teste que está sendo promovida a colaborador. */
   pessoaApoioInicial?: PessoaApoio | null;
+  /**
+   * Ficha em admissão: a MESMA tela do cadastro, preenchida com o que o
+   * candidato enviou. Nada é gravado no cadastro oficial — o salvar vai para a
+   * pré-admissão até a contabilidade devolver o registro e a admissão ser efetivada.
+   */
+  admissao?: ModoAdmissao | null;
+  /** Horário escolhido na admissão, aplicado ao abrir o cadastro recém-efetivado. */
+  jornadaInicial?: JornadaRascunho | null;
+}
+
+export interface SalvarAdmissaoEntrada {
+  form: Record<string, unknown>;
+  endereco: EnderecoValor;
+  pagamento: DadosPagamento;
+  rem: RemuneracaoFormState;
+  jornada: JornadaRascunho | null;
+}
+
+export interface ModoAdmissao {
+  /** Muda quando a ficha é recarregada do servidor. */
+  chave: string;
+  form: Record<string, string>;
+  endereco?: EnderecoValor;
+  pagamento?: Partial<DadosPagamento>;
+  rem?: Partial<RemuneracaoFormState>;
+  jornada?: JornadaRascunho | null;
+  /** Barra de etapas exibida abaixo do título. */
+  etapa?: ReactNode;
+  /** Botões do fluxo da contabilidade, no rodapé. */
+  acoes?: ReactNode;
+  dependentes?: ReactNode;
+  documentos?: ReactNode;
+  somenteLeitura?: boolean;
+  salvando?: boolean;
+  onSalvar: (e: SalvarAdmissaoEntrada) => Promise<void>;
 }
 
 const NONE_DESLIG = "__none__";
@@ -249,6 +284,8 @@ export function ColaboradorFormDialog({
   colaborador,
   abaInicial = "dados",
   pessoaApoioInicial,
+  admissao = null,
+  jornadaInicial = null,
 }: Props) {
   const upsert = useUpsertDpColaborador();
   const unidades = useDpUnidades();
@@ -351,7 +388,9 @@ export function ColaboradorFormDialog({
     () => chaveRascunhoAdmissao({ colaboradorId: colaborador?.id, pessoaApoioId: pessoaApoioInicial?.id }),
     [colaborador?.id, pessoaApoioInicial?.id],
   );
-  const rascunho = useDpAdmissaoRascunho(open && !colaborador?.id ? chaveRascunho : null);
+  const rascunho = useDpAdmissaoRascunho(open && !colaborador?.id && !admissao ? chaveRascunho : null);
+  /** Horário escolhido na aba de jornada durante a admissão. */
+  const jornadaAdmissaoRef = useRef<JornadaRascunho | null>(null);
   const [rascunhoOferta, setRascunhoOferta] = useState<{ dados: ConteudoRascunhoAdmissao; atualizadoEm: string } | null>(null);
   /** Enquanto false, o autosave aguarda a decisão de retomar ou começar em branco. */
   const rascunhoDecidido = useRef(false);
@@ -744,6 +783,20 @@ export function ColaboradorFormDialog({
     setResetKey((k) => k + 1);
   }, [open, colaborador, atribuicoes]);
 
+  /** Ficha em admissão: carrega o que o candidato e o gestor já preencheram. */
+  useEffect(() => {
+    if (!open || !admissao || colaborador?.id) return;
+    setForm((f) => ({ ...blank, ...f, ...(admissao.form as Partial<typeof blank>) }));
+    if (admissao.endereco) setEndereco(admissao.endereco);
+    if (admissao.pagamento) setPagamento((p) => ({ ...PAGAMENTO_BLANK, ...p, ...admissao.pagamento }));
+    if (admissao.rem) setRem((r) => ({ ...remuneracaoBlank, ...r, ...admissao.rem }));
+    jornadaAdmissaoRef.current = admissao.jornada ?? null;
+    vinculoTocado.current = true;
+    setCriadoId(null);
+    setResetKey((k) => k + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, admissao?.chave, colaborador?.id]);
+
   useEffect(() => {
     if (!open) { setDispensas([]); isonomiaConfirmada.current = false; }
   }, [open]);
@@ -759,7 +812,7 @@ export function ColaboradorFormDialog({
       rascunho.reiniciar();
       return;
     }
-    if (colaborador?.id) return;
+    if (colaborador?.id || admissao) { rascunhoDecidido.current = true; return; }
     let vivo = true;
     void rascunho.carregar().then((r) => {
       if (!vivo) return;
@@ -784,7 +837,7 @@ export function ColaboradorFormDialog({
 
   /** Gravação automática a cada pausa na digitação. */
   useEffect(() => {
-    if (!open || isEdit || criadoId) return;
+    if (!open || isEdit || criadoId || admissao) return;
     if (rascunhoOferta || !rascunhoDecidido.current) return;
     rascunho.agendar(conteudoRascunho);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1438,6 +1491,28 @@ export function ColaboradorFormDialog({
     const alvo = intencaoRef.current;
     setCampoErro(null);
 
+    // Admissão: grava na ficha da pré-admissão; o servidor revalida tudo e o
+    // cadastro oficial só nasce na efetivação, depois do retorno da contabilidade.
+    if (admissao) {
+      if (admissao.somenteLeitura) return;
+      try {
+        await admissao.onSalvar({
+          form: form as unknown as Record<string, unknown>,
+          endereco, pagamento, rem,
+          jornada: jornadaAdmissaoRef.current,
+        });
+        setBaseline(null);
+        setResetKey((k) => k + 1);
+        if (alvo === "stay") {
+          const prox = abaSeguinte(tab);
+          if (prox) setTab(prox);
+        }
+      } catch (e) {
+        toast.error("Erro ao salvar", { description: mensagemErro(e) });
+      }
+      return;
+    }
+
     // "Salvar e continuar" é um checkpoint: valida somente a aba aberta.
     // "Concluir" fecha o cadastro: valida todas as abas.
     const validaDados = alvo === "close" || tab === "dados";
@@ -1867,11 +1942,18 @@ export function ColaboradorFormDialog({
             <DialogHeader className="space-y-0 text-left">
               <div className="flex items-start justify-between gap-2">
                 <DialogTitle className="min-w-0 truncate pr-6 text-base sm:text-lg">
-                  {isEdit
+                  {admissao && (
+                    <span className="mr-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 align-middle text-xs font-medium text-primary">
+                      Em Admissão
+                    </span>
+                  )}
+                  {admissao
+                    ? `Admissão: ${toUpperCadastro(form.nome) || "Candidato"}`
+                    : isEdit
                     ? `Editar: ${toUpperCadastro(form.nome) || "Colaborador"}`
                     : `Cadastrar: ${toUpperCadastro(form.nome) || "Novo Colaborador"}`}
                 </DialogTitle>
-                {(isEdit || criadoId) && (
+                {(isEdit || criadoId) && !admissao && (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -1886,6 +1968,7 @@ export function ColaboradorFormDialog({
 
               </div>
             </DialogHeader>
+            {admissao?.etapa}
             <div className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0 sm:pb-0">
             <TabsList className="w-max justify-start sm:w-full">
               <TabsTrigger value="dados" className="gap-2">
@@ -2546,6 +2629,11 @@ export function ColaboradorFormDialog({
               active={tab === "jornada"}
               showSaveButton={false}
               onRegistrarSalvar={(fn) => { jornadaSalvarRef.current = fn; }}
+              rascunhoInicial={admissao ? (admissao.jornada ?? null) : jornadaInicial}
+              onRascunho={admissao ? (r) => { jornadaAdmissaoRef.current = r; } : undefined}
+              avisoSemCadastro={admissao
+                ? "Defina o horário agora: ele segue na ficha para a contabilidade e é gravado no cadastro ao efetivar a admissão."
+                : undefined}
             />
           </TabsContent>
 
@@ -2732,15 +2820,19 @@ export function ColaboradorFormDialog({
           </TabsContent>
 
           <TabsContent value="dependentes" className="mt-4">
+            {admissao ? admissao.dependentes : (
             <DependentesPanel
               colaboradorId={colaborador?.id ?? criadoId ?? null}
               remuneracaoMensal={baseSalarialInformada()}
               socio={socioSelecionado}
             />
+            )}
           </TabsContent>
 
           <TabsContent value="documentos" className="mt-4">
-            <ColaboradorDocumentosPanel colaboradorId={colaborador?.id ?? criadoId ?? null} />
+            {admissao ? admissao.documentos : (
+              <ColaboradorDocumentosPanel colaboradorId={colaborador?.id ?? criadoId ?? null} />
+            )}
           </TabsContent>
 
 
@@ -2765,6 +2857,20 @@ export function ColaboradorFormDialog({
             >
               Fechar
             </Button>
+            {admissao ? (
+              <>
+                {admissao.acoes}
+                {!admissao.somenteLeitura && (
+                  <Button
+                    className="h-11 flex-1 sm:h-10 sm:flex-none"
+                    onClick={() => void submit("stay")}
+                    disabled={admissao.salvando}
+                  >
+                    {admissao.salvando ? "Salvando..." : "Salvar Ficha"}
+                  </Button>
+                )}
+              </>
+            ) : (<>
             {!isEdit && !criadoId && (
               <Button
                 variant="outline"
@@ -2794,6 +2900,7 @@ export function ColaboradorFormDialog({
             >
               Concluir
             </Button>
+            </>)}
           </div>
         </DialogFooter>
 
