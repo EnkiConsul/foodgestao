@@ -24,6 +24,9 @@ import { FichaComparacaoDialog } from "./FichaComparacaoDialog";
 import {
   jornadaDaFicha, useAplicarFicha, useIgnorarFicha, type FichaItem,
 } from "@/hooks/useDpFichaImportacao";
+import {
+  normalizeHora, type JornadaDia, type JornadaSugerida,
+} from "@/lib/dp/ficha-registro/jornada-parse";
 import { notifyError } from "@/lib/notifyError";
 import { mensagemOrigemApoio, vincularOrigemApoio } from "@/lib/dp/apoio-origem";
 import { EnderecoFields } from "@/components/shared/EnderecoFields";
@@ -138,7 +141,22 @@ export function FichaRevisaoCard({
     [setores, unidadeId],
   );
 
-  const jornada = useMemo(() => jornadaDaFicha(dados), [dados]);
+  /**
+   * Horário da admissão: o que o gestor definiu na ficha em admissão tem
+   * prioridade sobre o horário lido do PDF, e é ele que vai para o cadastro na
+   * efetivação (a mesma consulta usada abaixo; o cache evita ida extra).
+   */
+  const preadmissaoJornada = useDpPreadmissao(preadmissaoId ?? null);
+  const jornadaDaAdmissao = useMemo(
+    () => rascunhoParaJornada(
+      (preadmissaoJornada.data?.preadmissao.admin_dados as Record<string, unknown> | null)?.jornada,
+    ),
+    [preadmissaoJornada.data],
+  );
+  const jornada = useMemo(
+    () => jornadaDaAdmissao ?? jornadaDaFicha(dados),
+    [jornadaDaAdmissao, dados],
+  );
   const turnoSugerido = useMemo(() => matchTurno(jornada, turnos, unidadeId), [jornada, turnos, unidadeId]);
   const [turnoId, setTurnoId] = useState<string | null>(null);
   const turnoEscolhido = turnoId ?? turnoSugerido.turno_id;
@@ -907,3 +925,34 @@ export function FichaRevisaoCard({
   );
 }
 
+
+/**
+ * Converte o horário escolhido na ficha em admissão (rascunho por dia) no
+ * formato de jornada sugerida usado na efetivação. Devolve null quando não há
+ * horário definido — aí vale o que foi lido do PDF.
+ */
+function rascunhoParaJornada(valor: unknown): JornadaSugerida | null {
+  const r = valor as {
+    horario?: { entrada?: string | null; saida?: string | null; intervalo_minutos?: number | null };
+    dias?: Array<{ dow: number; trabalha?: boolean; entrada?: string | null; saida?: string | null; intervalo_minutos?: number | null }>;
+  } | null | undefined;
+  const entrada = normalizeHora(r?.horario?.entrada ?? null);
+  const saida = normalizeHora(r?.horario?.saida ?? null);
+  if (!entrada || !saida) return null;
+  const intervalo = r?.horario?.intervalo_minutos ?? null;
+  const dias: JornadaDia[] = (r?.dias ?? []).map((d) => ({
+    dow: Number(d.dow),
+    trabalha: d.trabalha === true,
+    entrada: normalizeHora(d.entrada ?? null) ?? entrada,
+    saida: normalizeHora(d.saida ?? null) ?? saida,
+    intervalo_minutos: d.intervalo_minutos ?? intervalo,
+  }));
+  return {
+    entrada,
+    saida,
+    intervalo_minutos: intervalo,
+    vira_meia_noite: saida <= entrada,
+    dias,
+    vazia: false,
+  };
+}
