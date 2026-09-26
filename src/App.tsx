@@ -66,6 +66,7 @@ const Configuracoes = lazyWithRetry(() => import("./pages/Configuracoes"));
 const GestaoUsuarios = lazyWithRetry(() => import("./pages/GestaoUsuarios"));
 const Empresas = lazyWithRetry(() => import("./pages/Empresas"));
 const Assinatura = lazyWithRetry(() => import("./pages/Assinatura"));
+const Planos = lazyWithRetry(() => import("./pages/Planos"));
 const FormasPagamento = lazyWithRetry(() => import("./pages/FormasPagamento"));
 const CentrosCusto = lazyWithRetry(() => import("./pages/CentrosCusto"));
 const CartoesCredito = lazyWithRetry(() => import("./pages/CartoesCredito"));
@@ -466,6 +467,7 @@ const AppRoutes = () => (
         <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
         <Route path="/empresas" element={<Empresas />} />
         <Route path="/assinatura" element={<Assinatura />} />
+        <Route path="/planos" element={<Planos />} />
         <Route path="/formas-pagamento" element={<FormasPagamento />} />
         <Route path="/centros-custo" element={<CentrosCusto />} />
 
@@ -618,7 +620,6 @@ const AppRoutes = () => (
       <Route path="/guias/das-mei" element={<DasMei />} />
       <Route path="/buscar" element={<Buscar />} />
       <Route path="/dpo" element={<Navigate to="/encarregado-dados" replace />} />
-      <Route path="/planos" element={<Navigate to="/configuracoes" replace />} />
       <Route path="/financeiro" element={<Navigate to="/" replace />} />
       <Route path="/departamento-pessoal" element={<Navigate to="/" replace />} />
       <Route path="/contato" element={<Navigate to="/" replace />} />
