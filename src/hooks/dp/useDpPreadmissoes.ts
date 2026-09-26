@@ -89,6 +89,28 @@ export interface PreadmissaoDocumento {
   parte_rotulo?: string | null;
 }
 
+/** Condições do vínculo anterior do mesmo CPF (sugestão para a recontratação). */
+export interface PreadmissaoHistorico {
+  cargo_id: string | null;
+  unidade_id: string | null;
+  setor_id: string | null;
+  regime_trabalho: string | null;
+  salario: number | string | null;
+  forma_pagamento: string | null;
+  vale_transporte: boolean;
+  insalubridade_percentual: number | string | null;
+  periculosidade_percentual: number | string | null;
+  jornada: {
+    horario: { entrada: string | null; saida: string | null; intervalo_minutos: number | null };
+    dias: Array<{
+      dow: number; trabalha: boolean; turno_id: string | null;
+      entrada: string | null; saida: string | null; intervalo_minutos: number | null; setor_id: string | null;
+    }>;
+    folga_variavel: boolean;
+  } | null;
+}
+
+
 export interface PreadmissaoDetalhe {
   preadmissao: PreadmissaoResumo & {
     dados: Record<string, unknown> | null;
@@ -101,7 +123,12 @@ export interface PreadmissaoDetalhe {
   pendencias: Array<{ key: string; titulo: string; pessoa_nome?: string | null }>;
   bloqueio: { situacao: "ok" | "bloqueado" | "pendente"; mensagem: string };
   /** Aviso: CPF informado já existe na empresa (não bloqueia a revisão). */
-  cpf_existente: { situacao: "ativo" | "desligado"; nome: string } | null;
+  cpf_existente: {
+    situacao: "ativo" | "desligado";
+    nome: string;
+    /** Condições do vínculo anterior, oferecidas como sugestão na recontratação. */
+    historico?: PreadmissaoHistorico | null;
+  } | null;
   eventos: Array<{ evento: string; detalhe: unknown; created_at: string }>;
 }
 

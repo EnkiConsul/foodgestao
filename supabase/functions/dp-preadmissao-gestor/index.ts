@@ -166,20 +166,75 @@ Deno.serve(async (req) => {
       );
       const pendencias = pendenciasDocumentais(checklist, vigentes as never);
       // Aviso (não bloqueio): o CPF informado já existe na empresa?
-      let cpfExistente: { situacao: "ativo" | "desligado"; nome: string } | null = null;
+      // Quando existe, devolvemos também as condições do vínculo anterior para
+      // a recontratação: é SUGESTÃO para a tela, nada é gravado aqui.
+      let cpfExistente: {
+        situacao: "ativo" | "desligado";
+        nome: string;
+        historico?: Record<string, unknown> | null;
+      } | null = null;
       const cpfLimpo = String(ficha.cpf ?? "").replace(/\D/g, "");
       if (cpfLimpo.length === 11) {
         const { data: colab } = await admin
           .from("dp_colaboradores")
-          .select("nome, desligado_em")
+          .select(
+            "id, nome, desligado_em, cargo_id, unidade_id, setor_id, regime, salario_base, forma_pagamento, vale_transporte, insalubridade_percentual, periculosidade_percentual",
+          )
           .eq("company_id", pa.company_id)
           .eq("cpf", cpfLimpo)
           .limit(1)
           .maybeSingle();
         if (colab) {
+          const anterior = colab as Record<string, unknown>;
+          let jornadaAnterior: Record<string, unknown> | null = null;
+          const { data: cfg } = await admin
+            .from("dp_colaborador_config_trabalho")
+            .select("id, folga_variavel, dias:dp_colaborador_config_dias(dow, trabalha, turno_id, entrada, saida, intervalo_minutos, setor_id)")
+            .eq("company_id", pa.company_id)
+            .eq("colaborador_id", String(anterior.id))
+            .order("vigencia_inicio", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const dias = ((cfg as { dias?: Array<Record<string, unknown>> } | null)?.dias ?? [])
+            .map((d) => ({
+              dow: Number(d.dow),
+              trabalha: d.trabalha === true,
+              turno_id: (d.turno_id as string | null) ?? null,
+              entrada: d.entrada ? String(d.entrada).slice(0, 5) : null,
+              saida: d.saida ? String(d.saida).slice(0, 5) : null,
+              intervalo_minutos: d.intervalo_minutos === null || d.intervalo_minutos === undefined
+                ? null
+                : Number(d.intervalo_minutos),
+              setor_id: (d.setor_id as string | null) ?? null,
+            }))
+            .sort((a, b) => a.dow - b.dow);
+          const base = dias.find((d) => d.trabalha && d.entrada && d.saida) ?? null;
+          if (base) {
+            jornadaAnterior = {
+              horario: {
+                entrada: base.entrada,
+                saida: base.saida,
+                intervalo_minutos: base.intervalo_minutos ?? 0,
+              },
+              dias,
+              folga_variavel: (cfg as { folga_variavel?: boolean } | null)?.folga_variavel === true,
+            };
+          }
           cpfExistente = {
             situacao: colab.desligado_em ? "desligado" : "ativo",
             nome: String(colab.nome ?? ""),
+            historico: {
+              cargo_id: anterior.cargo_id ?? null,
+              unidade_id: anterior.unidade_id ?? null,
+              setor_id: anterior.setor_id ?? null,
+              regime_trabalho: anterior.regime ?? null,
+              salario: anterior.salario_base ?? null,
+              forma_pagamento: anterior.forma_pagamento ?? null,
+              vale_transporte: anterior.vale_transporte === true,
+              insalubridade_percentual: anterior.insalubridade_percentual ?? null,
+              periculosidade_percentual: anterior.periculosidade_percentual ?? null,
+              jornada: jornadaAnterior,
+            },
           };
         }
       }

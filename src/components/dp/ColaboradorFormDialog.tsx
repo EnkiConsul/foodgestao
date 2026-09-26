@@ -226,6 +226,11 @@ export interface ModoAdmissao {
   acoes?: ReactNode;
   dependentes?: ReactNode;
   documentos?: ReactNode;
+  /**
+   * Campos que só existem na ficha de admissão (estado civil, PIS, cidade e UF
+   * de nascimento, contato de recado). Aparecem na aba "Dados".
+   */
+  complementares?: ReactNode;
   somenteLeitura?: boolean;
   salvando?: boolean;
   onSalvar: (e: SalvarAdmissaoEntrada) => Promise<void>;
@@ -2131,6 +2136,13 @@ export function ColaboradorFormDialog({
               placeholder="(62) 99999-9999"
             />
           </div>
+
+          {/* Ficha em admissão: campos pedidos pela contabilidade */}
+          {admissao?.complementares && (
+            <div className="md:col-span-2">{admissao.complementares}</div>
+          )}
+
+
 
           {/* Endereço no mesmo bloco padrão do restante do sistema */}
           <div className="space-y-2 md:col-span-2" data-field="endereco" tabIndex={-1}>

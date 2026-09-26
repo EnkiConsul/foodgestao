@@ -317,18 +317,24 @@ export function ColaboradorJornadaPanel({
    */
   const horarioAplicadoRef = useRef<string | null>(null);
 
-  /** Aplica, uma vez, o horário escolhido na ficha de admissão. */
-  const rascunhoAplicadoRef = useRef(false);
+  /**
+   * Aplica o horário escolhido fora do cadastro (ficha de admissão) uma vez por
+   * conteúdo: um horário NOVO — por exemplo o histórico de uma recontratação —
+   * volta a ser aplicado, mas o mesmo horário nunca desfaz edições na tela.
+   */
+  const rascunhoAplicadoRef = useRef<string | null>(null);
+  const assinaturaRascunho = rascunhoInicial ? JSON.stringify(rascunhoInicial) : null;
   useEffect(() => {
-    if (!active || !rascunhoInicial || rascunhoAplicadoRef.current || isLoading) return;
+    if (!active || !rascunhoInicial || !assinaturaRascunho || isLoading) return;
+    if (rascunhoAplicadoRef.current === assinaturaRascunho) return;
     if (colaborador?.id && vigente) return;
-    rascunhoAplicadoRef.current = true;
+    rascunhoAplicadoRef.current = assinaturaRascunho;
     horarioAplicadoRef.current = "rascunho";
     setHorarioReferencia(rascunhoInicial.horario);
     setDias(normalizarDias(rascunhoInicial.dias));
     setFolgaVariavel(!!rascunhoInicial.folga_variavel);
     setAlterado(true);
-  }, [active, rascunhoInicial, colaborador?.id, vigente, isLoading]);
+  }, [active, rascunhoInicial, assinaturaRascunho, colaborador?.id, vigente, isLoading]);
 
   useEffect(() => {
     onRascunho?.({ horario: horarioReferencia, dias, folga_variavel: folgaVariavel });
