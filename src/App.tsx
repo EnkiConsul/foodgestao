@@ -464,6 +464,7 @@ const AppRoutes = () => (
         <Route path="/configuracoes" element={<Configuracoes />} />
         <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
         <Route path="/empresas" element={<Empresas />} />
+        <Route path="/assinatura" element={<Assinatura />} />
         <Route path="/formas-pagamento" element={<FormasPagamento />} />
         <Route path="/centros-custo" element={<CentrosCusto />} />
 
