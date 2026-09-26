@@ -714,6 +714,8 @@ export const CAMPOS_ADMIN = [
   // Completam o que a contabilidade precisa para registrar a admissão.
   "carga_horaria_semanal", "experiencia_dias", "vale_transporte",
   "adicional_insalubridade", "adicional_periculosidade",
+  // Horário de trabalho escolhido na ficha única (aplicado ao efetivar).
+  "jornada",
 ] as const;
 
 /** Campos administrativos que valem Sim/Não. */
@@ -773,6 +775,12 @@ export function validarAdminDados(entrada: unknown): AdminValidado {
 
   for (const campo of CAMPOS_ADMIN) {
     if (!(campo in src)) continue;
+    if (campo === "jornada") {
+      const j = validarJornadaAdmin(src.jornada);
+      if (j === undefined) out.erros.jornada = "Horário de trabalho inválido.";
+      else out.campos.jornada = j;
+      continue;
+    }
     // Sim/Não: só booleano é aceito (texto "true" não passa).
     if ((CAMPOS_ADMIN_BOOLEANOS as readonly string[]).includes(campo)) {
       const b = src[campo];
@@ -837,6 +845,61 @@ export function validarAdminDados(entrada: unknown): AdminValidado {
     out.campos[campo] = v.replace(/[<>]/g, "");
   }
   return out;
+}
+
+const HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+
+/**
+ * Horário da ficha única: só entram chaves conhecidas, horários HH:MM,
+ * intervalos limitados e referências em formato de id. `undefined` = inválido.
+ */
+export function validarJornadaAdmin(v: unknown): Record<string, unknown> | null | undefined {
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v !== "object" || Array.isArray(v)) return undefined;
+  const j = v as Record<string, unknown>;
+  const hora = (x: unknown): string | null | undefined => {
+    if (x === null || x === undefined || x === "") return null;
+    return typeof x === "string" && HHMM_RE.test(x) ? x.slice(0, 5) : undefined;
+  };
+  const minutos = (x: unknown): number | null | undefined => {
+    if (x === null || x === undefined || x === "") return null;
+    const n = Number(x);
+    return Number.isInteger(n) && n >= 0 && n <= 720 ? n : undefined;
+  };
+  const id = (x: unknown): string | null | undefined => {
+    if (x === null || x === undefined || x === "") return null;
+    return typeof x === "string" && UUID_RE.test(x) ? x : undefined;
+  };
+  const h = (j.horario ?? {}) as Record<string, unknown>;
+  if (typeof h !== "object" || Array.isArray(h)) return undefined;
+  const horario = { entrada: hora(h.entrada), saida: hora(h.saida), intervalo_minutos: minutos(h.intervalo_minutos) };
+  if (Object.values(horario).some((x) => x === undefined)) return undefined;
+  if (!Array.isArray(j.dias) || j.dias.length > 7) return undefined;
+  const dias: Record<string, unknown>[] = [];
+  const vistos = new Set<number>();
+  for (const d of j.dias) {
+    if (!d || typeof d !== "object") return undefined;
+    const r = d as Record<string, unknown>;
+    const dow = Number(r.dow);
+    if (!Number.isInteger(dow) || dow < 0 || dow > 6 || vistos.has(dow)) return undefined;
+    vistos.add(dow);
+    const dia = {
+      dow,
+      trabalha: r.trabalha === true,
+      turno_id: id(r.turno_id),
+      entrada: hora(r.entrada),
+      saida: hora(r.saida),
+      intervalo_minutos: minutos(r.intervalo_minutos),
+      setor_id: id(r.setor_id),
+    };
+    if (Object.values(dia).some((x) => x === undefined)) return undefined;
+    dias.push(dia);
+  }
+  return {
+    horario: { ...horario, entrada: horario.entrada ?? "", saida: horario.saida ?? "", intervalo_minutos: horario.intervalo_minutos ?? 0 },
+    dias,
+    folga_variavel: j.folga_variavel === true,
+  };
 }
 
 /** Confere no banco que cada referência pertence à empresa da ficha. */
