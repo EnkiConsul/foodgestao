@@ -130,6 +130,7 @@ const contaGroup: MoreGroup = {
     { icon: UserCog, label: "Usuários", to: "/gestao-usuarios" },
     { icon: Settings, label: "Configurações", to: "/configuracoes" },
     { icon: CreditCard, label: "Plano e Assinatura", to: "/assinatura" },
+    { icon: Sparkles, label: "Planos e Preços", to: "/planos" },
   ],
 };
 
