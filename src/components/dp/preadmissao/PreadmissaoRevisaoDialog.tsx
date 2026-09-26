@@ -214,10 +214,6 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const [enviandoFicha, setEnviandoFicha] = useState(false);
   const [excluir, setExcluir] = useState(false);
   const [salvando, setSalvando] = useState(false);
-  /** Recontratação: horário do vínculo anterior carregado como sugestão. */
-  const [jornadaHistorico, setJornadaHistorico] = useState<JornadaRascunho | null>(null);
-  /** Muda a cada carregamento do histórico, para a ficha recarregar os campos. */
-  const [historicoVersao, setHistoricoVersao] = useState(0);
 
   const pa = data?.preadmissao;
   const status = (pa?.status ?? "aguardando_preenchimento") as PreadmissaoStatus;
@@ -277,54 +273,6 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
 
   const mudarFicha = (campo: CampoFicha, valor: string) =>
     setFicha((f) => ({ ...f, [campo]: CAIXA_ALTA.has(campo) ? valor.toUpperCase() : valor }));
-
-  /**
-   * Recontratação: traz cargo, unidade, setor, vínculo, remuneração e horário do
-   * vínculo anterior deste mesmo CPF. É apenas SUGESTÃO na tela — nada é gravado
-   * antes de salvar a ficha, e o que o candidato preencheu não é apagado.
-   */
-  const carregarHistorico = () => {
-    const h = data?.cpf_existente?.historico;
-    if (!h || encerrada) return;
-    const txt = (v: unknown) => (v === null || v === undefined ? "" : String(v));
-    setAdmin((a) => ({
-      ...a,
-      cargo_id: txt(h.cargo_id) || a.cargo_id,
-      unidade_id: txt(h.unidade_id) || a.unidade_id,
-      setor_id: txt(h.setor_id) || a.setor_id,
-      regime_trabalho: txt(h.regime_trabalho) || a.regime_trabalho,
-      salario: txt(h.salario) || a.salario,
-      forma_pagamento: txt(h.forma_pagamento) || a.forma_pagamento,
-      vale_transporte: h.vale_transporte ? "sim" : a.vale_transporte,
-    }));
-    if (h.jornada?.horario?.entrada) {
-      setJornadaHistorico({
-        horario: {
-          entrada: h.jornada.horario.entrada ?? "",
-          saida: h.jornada.horario.saida ?? "",
-          intervalo_minutos: h.jornada.horario.intervalo_minutos ?? 0,
-        },
-        dias: h.jornada.dias.map((d) => ({
-          dow: d.dow,
-          trabalha: d.trabalha,
-          turno_id: d.turno_id,
-          entrada: d.entrada,
-          saida: d.saida,
-          intervalo_minutos: d.intervalo_minutos,
-          setor_id: d.setor_id,
-        })),
-        folga_variavel: h.jornada.folga_variavel,
-      });
-    }
-    setHistoricoVersao((v) => v + 1);
-    toast.success(
-      h.jornada?.horario?.entrada
-        ? "Histórico carregado: confira a remuneração e o horário antes de salvar."
-        : "Histórico carregado: confira a remuneração antes de salvar. O vínculo anterior não tinha horário gravado.",
-    );
-  };
-
-
 
   /** Converte a tela em payload aceito pelo servidor (números e Sim/Não). */
   const adminParaEnvio = () => {
@@ -878,24 +826,8 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                   <p className="text-muted-foreground">
                     {data.cpf_existente.situacao === "ativo"
                       ? `${data.cpf_existente.nome} está com cadastro ativo. Confira antes de seguir: não é possível admitir o mesmo CPF duas vezes.`
-                      : `${data.cpf_existente.nome} já trabalhou aqui. A conclusão será registrada como recontratação.`}
+                      : `${data.cpf_existente.nome} já trabalhou aqui. A conclusão será registrada como recontratação. Cargo, salário, benefícios e jornada devem seguir as condições atuais da nova admissão.`}
                   </p>
-                  {data.cpf_existente.historico && !encerrada && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                      onClick={carregarHistorico}
-                    >
-                      Carregar Histórico Do Colaborador
-                    </Button>
-                  )}
-                  {data.cpf_existente.historico && !encerrada && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Traz cargo, unidade, vínculo, remuneração e horário do vínculo anterior como sugestão.
-                    </p>
-                  )}
                 </div>
               )}
 
@@ -1245,7 +1177,7 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
         open={!!preadmissaoId}
         onOpenChange={(v) => !v && onOpenChange(false)}
         admissao={{
-          chave: `${pa.id}:${(pa as { versao?: number }).versao ?? ""}:${pa.admin_dados ? JSON.stringify(pa.admin_dados).length : 0}:h${historicoVersao}`,
+          chave: `${pa.id}:${(pa as { versao?: number }).versao ?? ""}:${pa.admin_dados ? JSON.stringify(pa.admin_dados).length : 0}`,
           form: modo,
           endereco: {
             cep: ficha.cep ?? "", logradouro: ficha.endereco ?? "", numero: ficha.numero ?? "",
@@ -1261,7 +1193,7 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
             ...(admin.salario ? { salario_base: String(admin.salario).replace(".", ",") } : {}),
             ...(admin.vale_transporte ? { vale_transporte: admin.vale_transporte === "sim" } : {}),
           },
-          jornada: jornadaHistorico ?? jornadaAdmissao,
+          jornada: jornadaAdmissao,
           complementares: complementaresNode,
           etapa,
           acoes: acoesRodape,
