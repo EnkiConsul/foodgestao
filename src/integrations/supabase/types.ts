@@ -13573,6 +13573,8 @@ export type Database = {
           is_exempt: boolean
           notes: string | null
           price_cents: number
+          prorata_billed_at: string | null
+          prorata_cents: number
           quantity: number
           status: string
           subscription_id: string
@@ -13587,6 +13589,8 @@ export type Database = {
           is_exempt?: boolean
           notes?: string | null
           price_cents?: number
+          prorata_billed_at?: string | null
+          prorata_cents?: number
           quantity?: number
           status?: string
           subscription_id: string
@@ -13601,6 +13605,8 @@ export type Database = {
           is_exempt?: boolean
           notes?: string | null
           price_cents?: number
+          prorata_billed_at?: string | null
+          prorata_cents?: number
           quantity?: number
           status?: string
           subscription_id?: string
@@ -14674,6 +14680,10 @@ export type Database = {
       assign_transaction_to_invoice: {
         Args: { _transaction_id: string }
         Returns: string
+      }
+      assinatura_limite_excedido: {
+        Args: { _company_id: string; _modulo: string; _recurso: string }
+        Returns: boolean
       }
       assinatura_limites: {
         Args: { _company_id: string; _modulo: string }
@@ -17899,6 +17909,7 @@ export type Database = {
         Returns: {
           addons_cents: number
           plan_cents: number
+          prorata_pending_cents: number
           total_cents: number
         }[]
       }

@@ -74,6 +74,10 @@ Deno.serve(async (req) => {
     // Contratações adicionais já ativas do cliente neste módulo entram na
     // mensalidade recorrente (cortesias não são cobradas).
     let addonsCents = 0;
+    // Pró-rata pendente (dias usados no ciclo em que o adicional foi contratado)
+    // entra uma única vez na próxima fatura.
+    let prorataCents = 0;
+    const prorataAddonIds: string[] = [];
     {
       const { data: subAtual } = await admin
         .from("subscriptions")
@@ -87,15 +91,24 @@ Deno.serve(async (req) => {
       if (subAtual?.id) {
         const { data: addons } = await admin
           .from("subscription_addons")
-          .select("quantity, price_cents, is_exempt, status")
+          .select("id, quantity, price_cents, is_exempt, status, prorata_cents, prorata_billed_at")
           .eq("subscription_id", subAtual.id)
           .eq("status", "active");
-        addonsCents = (addons ?? [])
-          .filter((a: any) => !a.is_exempt)
-          .reduce((t: number, a: any) => t + Number(a.price_cents ?? 0) * Number(a.quantity ?? 1), 0);
+        const cobraveis = (addons ?? []).filter((a: any) => !a.is_exempt);
+        addonsCents = cobraveis.reduce(
+          (t: number, a: any) => t + Number(a.price_cents ?? 0) * Number(a.quantity ?? 1),
+          0,
+        );
+        for (const a of cobraveis) {
+          if (!a.prorata_billed_at && Number(a.prorata_cents ?? 0) > 0) {
+            prorataCents += Number(a.prorata_cents);
+            prorataAddonIds.push(a.id);
+          }
+        }
       }
     }
 
+    // Valor recorrente do ciclo (o pró-rata é cobrado uma única vez, à parte).
     const amountCents = Math.max(0, plan.price_cents + addonsCents - discountCents);
 
     if (amountCents === 0) {
@@ -256,6 +269,46 @@ Deno.serve(async (req) => {
     }).select().single();
     if (invErr) throw invErr;
 
+    // Pró-rata dos adicionais: cobrança única junto da primeira fatura do ciclo.
+    let prorataInvoiceId: string | null = null;
+    if (prorataCents > 0) {
+      const prorataPayment = await asaasFetch("/payments", {
+        method: "POST",
+        body: JSON.stringify({
+          customer: asaasCustomerId,
+          billingType: billingType === "CREDIT_CARD" && !body.creditCard ? "UNDEFINED" : billingType,
+          value: centsToBrl(prorataCents),
+          dueDate: nextDueStr,
+          description: "Contratações adicionais — valor proporcional aos dias restantes do ciclo",
+          externalReference: user.id,
+        }),
+      }).catch((e) => { console.error("prorata payment error:", e); return null; });
+
+      if (prorataPayment?.id) {
+        const { data: prorataInvoice } = await admin.from("invoices").insert({
+          subscription_id: sub.id,
+          user_id: user.id,
+          amount_cents: prorataCents,
+          discount_cents: 0,
+          status: "open",
+          due_date: nextDueStr,
+          period_start: today.toISOString().slice(0, 10),
+          period_end: today.toISOString().slice(0, 10),
+          payment_method: paymentMethodLocal,
+          external_invoice_id: prorataPayment.id,
+          external_payment_url: prorataPayment.invoiceUrl ?? null,
+          boleto_url: prorataPayment.bankSlipUrl ?? null,
+        }).select("id").maybeSingle();
+        prorataInvoiceId = prorataInvoice?.id ?? null;
+
+        if (prorataAddonIds.length) {
+          await admin.from("subscription_addons")
+            .update({ prorata_billed_at: new Date().toISOString() })
+            .in("id", prorataAddonIds);
+        }
+      }
+    }
+
     if (coupon) {
       await admin.from("coupon_redemptions").insert({
         coupon_id: coupon.id, user_id: user.id,
@@ -270,6 +323,8 @@ Deno.serve(async (req) => {
       subscriptionId: sub.id,
       invoiceId: invoice.id,
       amountCents,
+      prorataCents,
+      prorataInvoiceId,
       dueDate: nextDueStr,
       paymentMethod: paymentMethodLocal,
       paymentUrl: invoiceUrl,

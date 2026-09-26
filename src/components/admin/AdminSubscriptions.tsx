@@ -31,6 +31,11 @@ const addonsCents = (s: any) =>
     .filter((a: any) => a.status === "active" && !a.is_exempt)
     .reduce((t: number, a: any) => t + Number(a.price_cents ?? 0) * Number(a.quantity ?? 1), 0);
 const planCents = (s: any) => Number(s.plan?.price_cents ?? 0);
+/** Valor proporcional de adicionais ainda não cobrado, que entra na próxima fatura. */
+const prorataCents = (s: any) =>
+  (s.addons ?? [])
+    .filter((a: any) => a.status === "active" && !a.is_exempt && !a.prorata_billed_at)
+    .reduce((t: number, a: any) => t + Number(a.prorata_cents ?? 0), 0);
 const moduleLabel = (m?: string | null) => (m === "pessoas" ? "Pessoas 360°" : "Financeiro 360°");
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
@@ -195,6 +200,11 @@ export function AdminSubscriptions() {
                             {brl(planCents(s))} + {brl(addonsCents(s))} adicionais
                           </p>
                         )}
+                        {prorataCents(s) > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            + {brl(prorataCents(s))} proporcional na próxima fatura
+                          </p>
+                        )}
                       </>
                     )}
                   </TableCell>
@@ -303,6 +313,11 @@ export function AdminSubscriptions() {
                     <span className="text-muted-foreground"> ({brl(addonsCents(s))} em adicionais)</span>
                   )}
                 </p>
+                {!exempt && prorataCents(s) > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    + {brl(prorataCents(s))} proporcional na próxima fatura
+                  </p>
+                )}
                 {exempt && <Badge variant="secondary" className="text-[10px]">{exemptionLabel(s)}</Badge>}
                 <div className="flex flex-wrap gap-1 pt-1 border-t">
                   <Button size="sm" variant="outline" className="flex-1 min-h-9" onClick={() => openAddons(s)}>
