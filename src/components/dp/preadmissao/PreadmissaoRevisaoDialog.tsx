@@ -1,15 +1,18 @@
 /**
- * Revisão da Pré-Admissão pelo gestor.
+ * Revisão da Pré-Admissão pelo gestor, no MESMO formato da ficha do
+ * colaborador: abas Dados, Horário de Trabalho, Remuneração, Dependentes,
+ * Documentos e Admissão, com todos os campos editáveis.
  *
- * Mostra o que o candidato preencheu e enviou, o que ainda falta, o bloqueio de
- * menor de 18 com trabalho após as 22h e conduz o caminho: pedir correção,
- * preparar para a contabilidade, marcar o envio, anexar a ficha oficial
- * devolvida e, só então, concluir a admissão pela conferência da ficha.
+ * O gestor corrige o que o candidato preencheu, gera a ficha para a
+ * contabilidade, aguarda o retorno e só então conclui a admissão. Toda
+ * gravação passa pelo servidor, que revalida campos e permissões.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, Clock, Download, Eye, FileUp, Loader2, Trash2, XCircle } from "lucide-react";
+import {
+  AlertTriangle, CheckCircle2, Clock, Download, Eye, FileUp, Loader2, Plus, Printer, Trash2, XCircle,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { notifyError } from "@/lib/notifyError";
@@ -50,40 +54,133 @@ const FORMAS = [
   { value: "servico_acordo", label: "Por serviço / acordo" },
 ];
 
-/**
- * Opções canônicas informadas pelo candidato. A conferência e o pacote da
- * contabilidade mostram o rótulo lido pela pessoa, nunca o código interno.
- */
+const SEXOS = [
+  { value: "feminino", label: "Feminino" },
+  { value: "masculino", label: "Masculino" },
+  { value: "nao_informado", label: "Prefiro não informar" },
+];
+
+const ESTADOS_CIVIS = [
+  { value: "solteiro", label: "Solteiro(a)" },
+  { value: "casado", label: "Casado(a)" },
+  { value: "uniao_estavel", label: "União estável" },
+  { value: "divorciado", label: "Divorciado(a)" },
+  { value: "separado", label: "Separado(a)" },
+  { value: "viuvo", label: "Viúvo(a)" },
+];
+
+const INSTRUCOES = [
+  { value: "fundamental_incompleto", label: "Fundamental incompleto" },
+  { value: "fundamental_completo", label: "Fundamental completo" },
+  { value: "medio_incompleto", label: "Médio incompleto" },
+  { value: "medio_completo", label: "Médio completo" },
+  { value: "superior_incompleto", label: "Superior incompleto" },
+  { value: "superior_completo", label: "Superior completo" },
+];
+
+const CONTA_TIPOS = [
+  { value: "corrente", label: "Conta corrente" },
+  { value: "poupanca", label: "Conta poupança" },
+  { value: "pagamento", label: "Conta de pagamento" },
+  { value: "salario", label: "Conta salário" },
+];
+
+const PIX_TIPOS = [
+  { value: "cpf", label: "CPF" },
+  { value: "cnpj", label: "CNPJ" },
+  { value: "email", label: "E-mail" },
+  { value: "telefone", label: "Celular" },
+  { value: "aleatoria", label: "Chave aleatória" },
+];
+
+const PARENTESCOS = [
+  { value: "filho", label: "Filho(a)" },
+  { value: "enteado", label: "Enteado(a)" },
+  { value: "tutelado", label: "Tutelado(a)" },
+  { value: "menor guarda", label: "Menor sob guarda" },
+  { value: "conjuge", label: "Cônjuge" },
+  { value: "companheiro", label: "Companheiro(a)" },
+  { value: "pai", label: "Pai" },
+  { value: "mae", label: "Mãe" },
+  { value: "avo", label: "Avô" },
+  { value: "ava", label: "Avó" },
+  { value: "irmao", label: "Irmão(ã)" },
+];
+
+/** Campos da ficha do candidato aceitos pelo servidor (mesma allowlist). */
+const CAMPOS_FICHA_EDITAVEIS = [
+  "nome", "nome_social", "cpf", "email", "data_nascimento", "estado_civil", "sexo",
+  "nacionalidade", "naturalidade", "naturalidade_uf",
+  "nome_mae", "nome_pai", "grau_instrucao", "raca_cor", "deficiencia",
+  "telefone", "whatsapp_contato",
+  "cep", "endereco", "numero", "complemento", "bairro", "cidade", "uf",
+  "rg_numero", "rg_orgao", "rg_uf", "rg_emissao",
+  "ctps_numero", "ctps_serie", "ctps_uf", "ctps_expedicao",
+  "titulo_eleitor", "titulo_zona", "titulo_secao",
+  "reservista", "reservista_categoria", "pis",
+  "banco_nome", "agencia", "conta", "conta_digito", "conta_tipo",
+  "pix_tipo", "pix_chave",
+] as const;
+
+type CampoFicha = (typeof CAMPOS_FICHA_EDITAVEIS)[number];
+
+/** Nomes próprios e endereços ficam em CAIXA ALTA, como no cadastro. */
+const CAIXA_ALTA: ReadonlySet<string> = new Set([
+  "nome", "nome_social", "nome_mae", "nome_pai", "naturalidade", "naturalidade_uf",
+  "endereco", "complemento", "bairro", "cidade", "uf", "banco_nome",
+  "rg_orgao", "rg_uf", "ctps_uf", "reservista_categoria", "nacionalidade",
+]);
+
+/** Rótulos das informações administrativas, em linguagem de tela. */
+const ROTULOS_ADMIN: Array<[string, string]> = [
+  ["data_admissao", "Data de admissão"], ["cargo_id", "Cargo"], ["unidade_id", "Unidade"],
+  ["setor_id", "Setor"], ["regime_trabalho", "Vínculo"], ["salario", "Salário"],
+  ["forma_pagamento", "Forma de pagamento"], ["jornada_descricao", "Jornada prevista"],
+  ["carga_horaria_semanal", "Carga horária semanal"], ["experiencia_dias", "Experiência (dias)"],
+  ["vale_transporte", "Vale-transporte"], ["adicional_insalubridade", "Adicional de insalubridade"],
+  ["adicional_periculosidade", "Adicional de periculosidade"], ["observacoes", "Observações"],
+];
+
+/** Campos da ficha na folha imprimível da contabilidade. */
+const CAMPOS_IMPRESSAO: Array<[string, string]> = [
+  ["nome", "Nome"], ["cpf", "CPF"], ["data_nascimento", "Nascimento"], ["sexo", "Sexo"],
+  ["estado_civil", "Estado civil"], ["nome_mae", "Nome da mãe"], ["nome_pai", "Nome do pai"],
+  ["grau_instrucao", "Escolaridade"], ["telefone", "Telefone"], ["email", "E-mail"],
+  ["cep", "CEP"], ["endereco", "Endereço"], ["numero", "Número"], ["bairro", "Bairro"],
+  ["cidade", "Cidade"], ["uf", "UF"], ["rg_numero", "RG"], ["pis", "PIS"],
+  ["ctps_numero", "CTPS"], ["titulo_eleitor", "Título de eleitor"], ["reservista", "Reservista"],
+  ["banco_nome", "Banco"], ["agencia", "Agência"], ["conta", "Conta"],
+  ["pix_tipo", "Tipo de chave Pix"], ["pix_chave", "Chave Pix"],
+];
+
 const ROTULOS_OPCOES: Record<string, Record<string, string>> = {
-  sexo: { feminino: "Feminino", masculino: "Masculino", nao_informado: "Prefiro não informar" },
-  estado_civil: {
-    solteiro: "Solteiro(a)", casado: "Casado(a)", divorciado: "Divorciado(a)",
-    viuvo: "Viúvo(a)", uniao_estavel: "União estável",
-  },
-  grau_instrucao: {
-    fundamental_incompleto: "Fundamental incompleto", fundamental_completo: "Fundamental completo",
-    medio_incompleto: "Médio incompleto", medio_completo: "Médio completo",
-    superior_incompleto: "Superior incompleto", superior_completo: "Superior completo",
-  },
+  sexo: Object.fromEntries(SEXOS.map((s) => [s.value, s.label])),
+  estado_civil: Object.fromEntries(ESTADOS_CIVIS.map((s) => [s.value, s.label])),
+  grau_instrucao: Object.fromEntries(INSTRUCOES.map((s) => [s.value, s.label])),
+  conta_tipo: Object.fromEntries(CONTA_TIPOS.map((s) => [s.value, s.label])),
+  pix_tipo: Object.fromEntries(PIX_TIPOS.map((s) => [s.value, s.label])),
 };
 
-/** Valor de um campo da ficha em linguagem de tela. */
 const valorFicha = (campo: string, valor: unknown): string => {
   if (valor === null || valor === undefined || String(valor).trim() === "") return "";
   const bruto = String(valor);
   return ROTULOS_OPCOES[campo]?.[bruto] ?? bruto;
 };
 
-/** Campos da ficha mostrados na conferência, em linguagem de tela. */
-const CAMPOS_FICHA: Array<[string, string]> = [
-  ["nome", "Nome"], ["cpf", "CPF"], ["data_nascimento", "Nascimento"], ["sexo", "Sexo"],
-  ["estado_civil", "Estado civil"], ["nome_mae", "Nome da mãe"], ["nome_pai", "Nome do pai"],
-  ["grau_instrucao", "Escolaridade"], ["telefone", "Telefone"], ["email", "E-mail"],
-  ["cep", "CEP"], ["endereco", "Endereço"], ["numero", "Número"], ["bairro", "Bairro"],
-  ["cidade", "Cidade"], ["uf", "UF"], ["rg_numero", "RG"], ["pis", "PIS"],
-  ["ctps_numero", "CTPS"], ["titulo_eleitor", "Título de eleitor"],
-  ["reservista", "Reservista"],
-];
+const mascaraCpf = (v: string) =>
+  v.replace(/\D/g, "").slice(0, 11)
+    .replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+
+interface PessoaEditavel {
+  id: string | null;
+  nome: string;
+  parentesco: string;
+  data_nascimento: string;
+  cpf: string;
+  rg: string;
+  finalidade_dependente: boolean;
+  finalidade_sesc: boolean;
+}
 
 interface Props {
   preadmissaoId: string | null;
@@ -94,8 +191,11 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const navigate = useNavigate();
   const { data, isLoading, refetch } = useDpPreadmissao(preadmissaoId);
   const acoes = useDpPreadmissaoGestor(preadmissaoId);
+  const [aba, setAba] = useState("dados");
   const [motivo, setMotivo] = useState("");
   const [admin, setAdmin] = useState<Record<string, string>>({});
+  const [ficha, setFicha] = useState<Record<string, string>>({});
+  const [pessoas, setPessoas] = useState<PessoaEditavel[]>([]);
   const {
     data: cargos = [],
     isLoading: carregandoCargos,
@@ -107,6 +207,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const fichaRef = useRef<HTMLInputElement>(null);
   const [enviandoFicha, setEnviandoFicha] = useState(false);
   const [excluir, setExcluir] = useState(false);
+  const [salvando, setSalvando] = useState(false);
 
   const pa = data?.preadmissao;
   const status = (pa?.status ?? "aguardando_preenchimento") as PreadmissaoStatus;
@@ -136,6 +237,37 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     });
   }, [pa?.id, pa?.admin_dados, pa?.cargo_previsto_id, pa?.unidade_prevista_id, pa?.regime_previsto]);
 
+  /** Preenche os campos da ficha com o que o candidato enviou. */
+  useEffect(() => {
+    const d = (pa?.dados ?? {}) as Record<string, unknown>;
+    const out: Record<string, string> = {};
+    for (const campo of CAMPOS_FICHA_EDITAVEIS) {
+      const v = d[campo];
+      out[campo] = v === null || v === undefined ? "" : String(v);
+    }
+    if (!out.nome) out.nome = pa?.candidato_nome ?? "";
+    if (!out.cpf && pa?.cpf) out.cpf = mascaraCpf(String(pa.cpf));
+    setFicha(out);
+  }, [pa?.id, pa?.dados, pa?.candidato_nome, pa?.cpf]);
+
+  useEffect(() => {
+    setPessoas(
+      (data?.pessoas ?? []).map((p) => ({
+        id: p.id,
+        nome: p.nome ?? "",
+        parentesco: (p.parentesco ?? "").toLowerCase(),
+        data_nascimento: p.data_nascimento ?? "",
+        cpf: p.cpf ? mascaraCpf(p.cpf) : "",
+        rg: p.rg ?? "",
+        finalidade_dependente: !!p.finalidade_dependente,
+        finalidade_sesc: !!p.finalidade_sesc,
+      })),
+    );
+  }, [data?.pessoas]);
+
+  const mudarFicha = (campo: CampoFicha, valor: string) =>
+    setFicha((f) => ({ ...f, [campo]: CAIXA_ALTA.has(campo) ? valor.toUpperCase() : valor }));
+
   /** Converte a tela em payload aceito pelo servidor (números e Sim/Não). */
   const adminParaEnvio = () => {
     const out: Record<string, unknown> = {};
@@ -151,27 +283,45 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     return out;
   };
 
+  /** Salva, na mesma ação, as correções da ficha e as informações da empresa. */
+  const salvarTudo = async () => {
+    if (encerrada) return;
+    setSalvando(true);
+    try {
+      await acoes.salvarFicha.mutateAsync({
+        dados: Object.fromEntries(CAMPOS_FICHA_EDITAVEIS.map((c) => [c, ficha[c] ?? ""])),
+        pessoas: pessoas
+          .filter((p) => p.nome.trim())
+          .map((p) => ({
+            ...(p.id ? { id: p.id } : {}),
+            nome: p.nome.trim(),
+            parentesco: p.parentesco,
+            data_nascimento: p.data_nascimento || "",
+            cpf: p.cpf.replace(/\D/g, ""),
+            rg: p.rg.trim(),
+            finalidade_dependente: p.finalidade_dependente,
+            finalidade_sesc: p.finalidade_sesc,
+          })),
+      });
+      await acoes.salvarAdmin.mutateAsync(adminParaEnvio());
+      toast.success("Ficha salva.");
+      refetch();
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "salvar a ficha" });
+    } finally {
+      setSalvando(false);
+    }
+  };
+
   const fichaOficial = useMemo(
     () =>
       (data?.documentos ?? []).find((d) => d.requisito_codigo === "ficha_oficial" && !d.substituido_em) ?? null,
     [data?.documentos],
   );
 
-  /** Rótulos das informações administrativas, em linguagem de tela. */
-  const ROTULOS_ADMIN: Array<[string, string]> = [
-    ["data_admissao", "Data de admissão"], ["cargo_id", "Cargo"], ["unidade_id", "Unidade"],
-    ["setor_id", "Setor"], ["regime_trabalho", "Vínculo"], ["salario", "Salário"],
-    ["forma_pagamento", "Forma de pagamento"], ["jornada_descricao", "Jornada prevista"],
-    ["carga_horaria_semanal", "Carga horária semanal"], ["experiencia_dias", "Experiência (dias)"],
-    ["vale_transporte", "Vale-transporte"], ["adicional_insalubridade", "Adicional de insalubridade"],
-    ["adicional_periculosidade", "Adicional de periculosidade"], ["observacoes", "Observações"],
-  ];
-
-  const PARENTESCO_LABEL: Record<string, string> = {
-    filho: "Filho(a)", enteado: "Enteado(a)", tutelado: "Tutelado(a)",
-    menor_guarda: "Menor sob guarda", conjuge: "Cônjuge", companheiro: "Companheiro(a)",
-    pai: "Pai", mae: "Mãe", avo: "Avô", ava: "Avó", irmao: "Irmão(ã)",
-  };
+  const PARENTESCO_LABEL: Record<string, string> = Object.fromEntries(
+    PARENTESCOS.map((p) => [p.value, p.label]),
+  );
   const STATUS_DOC_LABEL: Record<string, string> = {
     pendente: "Aguardando conferência", aprovado: "Aprovado", recusado: "Recusado",
   };
@@ -201,7 +351,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       .filter(([, v]) => v.trim() !== "")
       .map(([rotulo, v]) => `<tr><th>${esc(rotulo)}</th><td>${esc(v)}</td></tr>`)
       .join("");
-    const linhaPessoal = CAMPOS_FICHA
+    const linhaPessoal = CAMPOS_IMPRESSAO
       .map(([campo, rotulo]) => [rotulo, valorFicha(campo, dados[campo])] as const)
       .filter(([, v]) => v.trim() !== "")
       .map(([rotulo, v]) => `<tr><th>${esc(rotulo)}</th><td>${esc(v)}</td></tr>`)
@@ -210,14 +360,14 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       cargos.find((c) => c.id === (admDados.cargo_id ?? data.preadmissao.cargo_previsto_id))?.nome,
       unidades.find((u) => u.id === (admDados.unidade_id ?? data.preadmissao.unidade_prevista_id))?.nome,
     ].filter(Boolean).join(" — ");
-    const pessoas = (data.pessoas ?? [])
+    const listaPessoas = (data.pessoas ?? [])
       .map((pe) => {
         const finalidades = [
           pe.finalidade_dependente ? "Dependente" : null,
           pe.finalidade_sesc ? "Sesc" : null,
         ].filter(Boolean).join(" e ");
         const partes = [
-          PARENTESCO_LABEL[pe.parentesco ?? ""] ?? pe.parentesco ?? "",
+          PARENTESCO_LABEL[(pe.parentesco ?? "").toLowerCase()] ?? pe.parentesco ?? "",
           pe.data_nascimento ? `Nascimento: ${pe.data_nascimento}` : null,
           pe.cpf ? `CPF: ${pe.cpf}` : null,
           pe.rg ? `RG: ${pe.rg}` : null,
@@ -235,20 +385,20 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           ? (data.pessoas ?? []).find((p) => p.id === d.pessoa_id)?.nome ?? "Familiar"
           : data.preadmissao.candidato_nome;
         const st = STATUS_DOC_LABEL[d.status] ?? d.status;
-        const motivo = d.status === "recusado" && d.motivo_recusa ? ` — Motivo: ${d.motivo_recusa}` : "";
-        return `<li>${esc(tituloDoc(d.requisito_codigo))} — Titular: ${esc(titular)} — ${esc(st)}${esc(motivo)}</li>`;
+        const recusa = d.status === "recusado" && d.motivo_recusa ? ` — Motivo: ${d.motivo_recusa}` : "";
+        return `<li>${esc(tituloDoc(d.requisito_codigo))} — Titular: ${esc(titular)} — ${esc(st)}${esc(recusa)}</li>`;
       })
       .join("");
     const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
-<title>Pacote da contabilidade — ${esc(data.preadmissao.candidato_nome)}</title>
+<title>Ficha de admissão — ${esc(data.preadmissao.candidato_nome)}</title>
 <style>body{font-family:system-ui,sans-serif;padding:24px;color:#111}h1{font-size:18px}h2{font-size:14px;margin-top:20px}
 table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #ddd;padding:4px 6px;text-align:left}
 th{width:220px;background:#f6f6f6}ul{font-size:12px}p{font-size:12px}</style></head><body>
-<h1>Pacote da contabilidade — ${esc(data.preadmissao.candidato_nome)}</h1>
+<h1>Ficha de admissão para a contabilidade — ${esc(data.preadmissao.candidato_nome)}</h1>
 ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
 <h2>Dados do candidato</h2><table>${linhaPessoal || "<tr><td>Sem dados preenchidos</td></tr>"}</table>
 <h2>Informações administrativas</h2><table>${linhaAdmin || "<tr><td>Sem informações preenchidas</td></tr>"}</table>
-<h2>Familiares</h2><ul>${pessoas || "<li>Nenhum</li>"}</ul>
+<h2>Dependentes e familiares</h2><ul>${listaPessoas || "<li>Nenhum</li>"}</ul>
 <h2>Documentos recebidos</h2><ul>${docs || "<li>Nenhum</li>"}</ul>
 </body></html>`;
     // Impressão por quadro interno: não depende de liberar pop-up nem de
@@ -356,84 +506,409 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
     }
   };
 
+  /** Campo de texto da ficha, no mesmo formato do cadastro do colaborador. */
+  const campoTexto = (
+    campo: CampoFicha,
+    rotulo: string,
+    extra?: { placeholder?: string; tipo?: string; dica?: string },
+  ) => (
+    <div className="space-y-1">
+      <Label className="text-xs" htmlFor={`pa-f-${campo}`}>{rotulo}</Label>
+      <Input
+        id={`pa-f-${campo}`}
+        className="h-10"
+        type={extra?.tipo ?? "text"}
+        placeholder={extra?.placeholder}
+        value={ficha[campo] ?? ""}
+        disabled={encerrada}
+        onChange={(e) => mudarFicha(campo, campo === "cpf" ? mascaraCpf(e.target.value) : e.target.value)}
+      />
+      {extra?.dica && <p className="text-xs text-muted-foreground">{extra.dica}</p>}
+    </div>
+  );
+
+  const campoLista = (
+    campo: CampoFicha,
+    rotulo: string,
+    opcoes: Array<{ value: string; label: string }>,
+  ) => (
+    <div className="space-y-1">
+      <Label className="text-xs" htmlFor={`pa-f-${campo}`}>{rotulo}</Label>
+      <Select value={ficha[campo] ?? ""} disabled={encerrada}
+        onValueChange={(v) => setFicha((f) => ({ ...f, [campo]: v }))}>
+        <SelectTrigger id={`pa-f-${campo}`} className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+        <SelectContent>
+          {opcoes.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
+  const simNao = (campo: string, rotulo: string) => (
+    <div className="space-y-1">
+      <Label className="text-xs" htmlFor={`pa-adm-${campo}`}>{rotulo}</Label>
+      <Select value={admin[campo] ?? ""} disabled={encerrada}
+        onValueChange={(v) => setAdmin({ ...admin, [campo]: v })}>
+        <SelectTrigger id={`pa-adm-${campo}`} className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="nao">Não</SelectItem>
+          <SelectItem value="sim">Sim</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
+  const abas = [
+    ["dados", "Dados"],
+    ["jornada", "Horário de Trabalho"],
+    ["remuneracao", "Remuneração"],
+    ["dependentes", "Dependentes"],
+    ["documentos", "Documentos"],
+    ["admissao", "Admissão"],
+  ];
+
   return (
     <Dialog open={!!preadmissaoId} onOpenChange={(v) => !v && onOpenChange(false)}>
-      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{pa?.candidato_nome ?? "Pré-Admissão"}</DialogTitle>
+      <DialogContent className="max-w-4xl p-0 gap-0 max-h-[92vh] flex flex-col">
+        <DialogHeader className="px-6 pt-6 pb-3">
+          <DialogTitle>Pré-Admissão: {pa?.candidato_nome ?? ""}</DialogTitle>
           <DialogDescription>
-            {PREADMISSAO_STATUS_LABEL[status]} · {pa?.whatsapp ?? ""}
+            {PREADMISSAO_STATUS_LABEL[status]}{pa?.whatsapp ? ` · ${pa.whatsapp}` : ""}
           </DialogDescription>
         </DialogHeader>
 
         {isLoading || !pa ? (
-          <div className="py-10 text-center text-sm text-muted-foreground">
+          <div className="py-16 text-center text-sm text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" /> Carregando a ficha…
           </div>
         ) : (
-          <div className="space-y-5">
-            {data.cpf_existente && (
-              <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
-                <p className="font-semibold text-amber-700">CPF já cadastrado nesta empresa</p>
-                <p className="text-muted-foreground">
-                  {data.cpf_existente.situacao === "ativo"
-                    ? `${data.cpf_existente.nome} está com cadastro ativo. Confira antes de seguir: não é possível admitir o mesmo CPF duas vezes.`
-                    : `${data.cpf_existente.nome} já trabalhou aqui. A conclusão será registrada como recontratação.`}
+          <Tabs value={aba} onValueChange={setAba} className="flex-1 min-h-0 flex flex-col">
+            <div className="px-6">
+              <TabsList className="flex-wrap h-auto">
+                {abas.map(([v, rotulo]) => (
+                  <TabsTrigger key={v} value={v}>{rotulo}</TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+              {data.cpf_existente && (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm mb-4">
+                  <p className="font-semibold text-amber-700">CPF já cadastrado nesta empresa</p>
+                  <p className="text-muted-foreground">
+                    {data.cpf_existente.situacao === "ativo"
+                      ? `${data.cpf_existente.nome} está com cadastro ativo. Confira antes de seguir: não é possível admitir o mesmo CPF duas vezes.`
+                      : `${data.cpf_existente.nome} já trabalhou aqui. A conclusão será registrada como recontratação.`}
+                  </p>
+                </div>
+              )}
+
+              {data.bloqueio.situacao !== "ok" && (
+                <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm mb-4">
+                  <p className="font-semibold flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="h-4 w-4" /> Atenção
+                  </p>
+                  <p className="text-muted-foreground">{data.bloqueio.mensagem}</p>
+                </div>
+              )}
+
+              {pa.correcao_motivo && status === "correcao_solicitada" && (
+                <div className="rounded-lg border p-3 text-sm mb-4">
+                  <p className="font-semibold">Correção pedida ao candidato</p>
+                  <p className="text-muted-foreground">{pa.correcao_motivo}</p>
+                </div>
+              )}
+
+              {/* ── Dados ─────────────────────────────────────────────── */}
+              <TabsContent value="dados" className="mt-0 space-y-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="sm:col-span-2">{campoTexto("nome", "Nome completo")}</div>
+                  <div className="sm:col-span-2">
+                    {campoTexto("nome_social", "Nome social / Como prefere ser chamado", {
+                      placeholder: "Ex: Júnior",
+                      dica: "Usado no dia a dia. Os documentos oficiais continuam com o nome completo.",
+                    })}
+                  </div>
+                  {campoTexto("cpf", "CPF")}
+                  {campoTexto("data_nascimento", "Data de nascimento", { tipo: "date" })}
+                  {campoTexto("email", "E-mail")}
+                  {campoTexto("telefone", "WhatsApp")}
+                  {campoTexto("whatsapp_contato", "WhatsApp de recado")}
+                  {campoLista("sexo", "Sexo", SEXOS)}
+                  {campoLista("estado_civil", "Estado civil", ESTADOS_CIVIS)}
+                  {campoLista("grau_instrucao", "Escolaridade", INSTRUCOES)}
+                  {campoTexto("nome_mae", "Nome da mãe")}
+                  {campoTexto("nome_pai", "Nome do pai")}
+                  {campoTexto("nacionalidade", "Nacionalidade")}
+                  {campoTexto("naturalidade", "Cidade de nascimento")}
+                  {campoTexto("naturalidade_uf", "UF de nascimento")}
+                  {campoTexto("raca_cor", "Cor / raça")}
+                  {campoTexto("deficiencia", "Deficiência")}
+                </div>
+
+                <Separator />
+                <h3 className="text-sm font-semibold">Endereço</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {campoTexto("cep", "CEP")}
+                  {campoTexto("endereco", "Rua / Avenida")}
+                  {campoTexto("numero", "Número")}
+                  {campoTexto("complemento", "Complemento")}
+                  {campoTexto("bairro", "Bairro")}
+                  {campoTexto("cidade", "Cidade")}
+                  {campoTexto("uf", "UF")}
+                </div>
+
+                <Separator />
+                <h3 className="text-sm font-semibold">Documentos Pessoais</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {campoTexto("rg_numero", "RG")}
+                  {campoTexto("rg_orgao", "Órgão emissor")}
+                  {campoTexto("rg_uf", "UF do RG")}
+                  {campoTexto("rg_emissao", "Emissão do RG", { tipo: "date" })}
+                  {campoTexto("pis", "PIS")}
+                  {campoTexto("ctps_numero", "Carteira de trabalho")}
+                  {campoTexto("ctps_serie", "Série")}
+                  {campoTexto("ctps_uf", "UF da carteira")}
+                  {campoTexto("ctps_expedicao", "Expedição da carteira", { tipo: "date" })}
+                  {campoTexto("titulo_eleitor", "Título de eleitor")}
+                  {campoTexto("titulo_zona", "Zona")}
+                  {campoTexto("titulo_secao", "Seção")}
+                  {campoTexto("reservista", "Reservista")}
+                  {campoTexto("reservista_categoria", "Categoria da reservista")}
+                </div>
+
+                <Separator />
+                <h3 className="text-sm font-semibold">Dados Bancários E Pix</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {campoTexto("banco_nome", "Banco")}
+                  {campoLista("conta_tipo", "Tipo de conta", CONTA_TIPOS)}
+                  {campoTexto("agencia", "Agência")}
+                  {campoTexto("conta", "Conta")}
+                  {campoTexto("conta_digito", "Dígito")}
+                  {campoLista("pix_tipo", "Tipo de chave Pix", PIX_TIPOS)}
+                  <div className="sm:col-span-2">{campoTexto("pix_chave", "Chave Pix")}</div>
+                </div>
+              </TabsContent>
+
+              {/* ── Horário de trabalho ───────────────────────────────── */}
+              <TabsContent value="jornada" className="mt-0 space-y-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs" htmlFor="pa-adm-data">Data de admissão</Label>
+                    <Input id="pa-adm-data" type="date" className="h-10" value={admin.data_admissao}
+                      disabled={encerrada}
+                      onChange={(e) => setAdmin({ ...admin, data_admissao: e.target.value })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs" htmlFor="pa-adm-vinculo">Vínculo</Label>
+                    <Select value={admin.regime_trabalho} disabled={encerrada}
+                      onValueChange={(v) => setAdmin({ ...admin, regime_trabalho: v })}>
+                      <SelectTrigger id="pa-adm-vinculo" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                      <SelectContent>
+                        {REGIMES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs" htmlFor="pa-adm-unidade">Unidade</Label>
+                    <Select value={admin.unidade_id} disabled={encerrada}
+                      onValueChange={(v) => setAdmin({ ...admin, unidade_id: v, setor_id: "" })}>
+                      <SelectTrigger id="pa-adm-unidade" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                      <SelectContent>
+                        {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs" htmlFor="pa-adm-setor">Setor</Label>
+                    <Select value={admin.setor_id} disabled={encerrada || !admin.unidade_id}
+                      onValueChange={(v) => setAdmin({ ...admin, setor_id: v })}>
+                      <SelectTrigger id="pa-adm-setor" className="h-10">
+                        <SelectValue placeholder={admin.unidade_id ? "Escolher" : "Escolha a unidade"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {setores.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs" htmlFor="pa-adm-carga">Carga semanal (horas)</Label>
+                    <Input id="pa-adm-carga" className="h-10" inputMode="numeric" value={admin.carga_horaria_semanal}
+                      disabled={encerrada} placeholder="Ex.: 44"
+                      onChange={(e) => setAdmin({ ...admin, carga_horaria_semanal: e.target.value.replace(/[^\d]/g, "") })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs" htmlFor="pa-adm-exp">Experiência (dias)</Label>
+                    <Input id="pa-adm-exp" className="h-10" inputMode="numeric" value={admin.experiencia_dias}
+                      disabled={encerrada} placeholder="Ex.: 45"
+                      onChange={(e) => setAdmin({ ...admin, experiencia_dias: e.target.value.replace(/[^\d]/g, "") })} />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label className="text-xs" htmlFor="pa-adm-jornada">Jornada prevista</Label>
+                    <Input id="pa-adm-jornada" className="h-10" placeholder="Ex.: 44h semanais, 12x36, escala 6x1"
+                      value={admin.jornada_descricao} disabled={encerrada}
+                      onChange={(e) => setAdmin({ ...admin, jornada_descricao: e.target.value })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs" htmlFor="pa-22h">Trabalha após as 22h</Label>
+                    <Select
+                      value={pa.trabalho_apos_22h ? "sim" : "nao"}
+                      disabled={encerrada || acoes.alterarPrevisto.isPending}
+                      onValueChange={(v) =>
+                        executar(
+                          () => acoes.alterarPrevisto.mutateAsync({ trabalho_apos_22h: v === "sim" }),
+                          "Informação de horário alterada",
+                        )}
+                    >
+                      <SelectTrigger id="pa-22h" className="h-10"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nao">Não</SelectItem>
+                        <SelectItem value="sim">Sim</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Trabalho após as 22h vale na hora e muda os documentos exigidos. Nada que o candidato já
+                  enviou é apagado.
                 </p>
-              </div>
-            )}
+              </TabsContent>
 
-            {data.bloqueio.situacao !== "ok" && (
-              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
-                <p className="font-semibold flex items-center gap-2 text-destructive">
-                  <AlertTriangle className="h-4 w-4" /> Atenção
-                </p>
-                <p className="text-muted-foreground">{data.bloqueio.mensagem}</p>
-              </div>
-            )}
+              {/* ── Remuneração ──────────────────────────────────────── */}
+              <TabsContent value="remuneracao" className="mt-0 space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs" htmlFor="pa-adm-cargo">Cargo</Label>
+                    <Select value={admin.cargo_id} disabled={encerrada}
+                      onValueChange={(v) => setAdmin({ ...admin, cargo_id: v })}>
+                      <SelectTrigger id="pa-adm-cargo" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                      <SelectContent>
+                        <CargoSelectItems carregando={carregandoCargos} erro={erroCargos} total={cargos.length}>
+                          {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                        </CargoSelectItems>
+                      </SelectContent>
+                    </Select>
+                    <CargoSelectAviso
+                      carregando={carregandoCargos}
+                      erro={erroCargos}
+                      total={cargos.length}
+                      onRecarregar={() => void recarregarCargos()}
+                      origem="Revisão da pré-admissão"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs" htmlFor="pa-adm-salario">Salário</Label>
+                    <Input id="pa-adm-salario" className="h-10" value={admin.salario} inputMode="decimal"
+                      disabled={encerrada}
+                      onChange={(e) => setAdmin({ ...admin, salario: e.target.value.replace(/[^\d.,]/g, "") })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs" htmlFor="pa-adm-forma">Forma de pagamento</Label>
+                    <Select value={admin.forma_pagamento} disabled={encerrada}
+                      onValueChange={(v) => setAdmin({ ...admin, forma_pagamento: v })}>
+                      <SelectTrigger id="pa-adm-forma" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                      <SelectContent>
+                        {FORMAS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {simNao("vale_transporte", "Vale-transporte")}
+                  {simNao("adicional_insalubridade", "Adicional de insalubridade")}
+                  {simNao("adicional_periculosidade", "Adicional de periculosidade")}
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label className="text-xs" htmlFor="pa-adm-obs">Observações para a contabilidade</Label>
+                    <Textarea id="pa-adm-obs" rows={3} value={admin.observacoes} disabled={encerrada}
+                      onChange={(e) => setAdmin({ ...admin, observacoes: e.target.value })} />
+                  </div>
+                </div>
+              </TabsContent>
 
-            {pa.correcao_motivo && status === "correcao_solicitada" && (
-              <div className="rounded-lg border p-3 text-sm">
-                <p className="font-semibold">Correção pedida ao candidato</p>
-                <p className="text-muted-foreground">{pa.correcao_motivo}</p>
-              </div>
-            )}
-
-            <section>
-              <h3 className="text-sm font-semibold mb-2">Dados Informados Pelo Candidato</h3>
-              <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2 text-sm">
-                {CAMPOS_FICHA.map(([k, rotulo]) => (
-                  <div key={k} className="flex justify-between gap-2 border-b border-dashed py-1">
-                    <span className="text-muted-foreground">{rotulo}</span>
-                    <span className="text-right">{valorFicha(k, dados[k]) || "—"}</span>
+              {/* ── Dependentes ──────────────────────────────────────── */}
+              <TabsContent value="dependentes" className="mt-0 space-y-3">
+                {!pessoas.length && (
+                  <p className="text-sm text-muted-foreground">Nenhum dependente ou familiar informado.</p>
+                )}
+                {pessoas.map((p, i) => (
+                  <div key={p.id ?? `novo-${i}`} className="rounded-lg border p-3 space-y-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Nome completo</Label>
+                        <Input className="h-10" value={p.nome} disabled={encerrada}
+                          onChange={(e) =>
+                            setPessoas((l) => l.map((x, j) => (j === i ? { ...x, nome: e.target.value.toUpperCase() } : x)))} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Parentesco</Label>
+                        <Select value={p.parentesco} disabled={encerrada}
+                          onValueChange={(v) => setPessoas((l) => l.map((x, j) => (j === i ? { ...x, parentesco: v } : x)))}>
+                          <SelectTrigger className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                          <SelectContent>
+                            {PARENTESCOS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Data de nascimento</Label>
+                        <Input className="h-10" type="date" value={p.data_nascimento} disabled={encerrada}
+                          onChange={(e) =>
+                            setPessoas((l) => l.map((x, j) => (j === i ? { ...x, data_nascimento: e.target.value } : x)))} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">CPF</Label>
+                        <Input className="h-10" value={p.cpf} disabled={encerrada}
+                          onChange={(e) =>
+                            setPessoas((l) => l.map((x, j) => (j === i ? { ...x, cpf: mascaraCpf(e.target.value) } : x)))} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">RG</Label>
+                        <Input className="h-10" value={p.rg} disabled={encerrada}
+                          onChange={(e) => setPessoas((l) => l.map((x, j) => (j === i ? { ...x, rg: e.target.value } : x)))} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Finalidade</Label>
+                        <div className="flex gap-2">
+                          <Button type="button" size="sm" disabled={encerrada}
+                            variant={p.finalidade_dependente ? "default" : "outline"}
+                            onClick={() =>
+                              setPessoas((l) =>
+                                l.map((x, j) => (j === i ? { ...x, finalidade_dependente: !x.finalidade_dependente } : x)))}>
+                            Dependente
+                          </Button>
+                          <Button type="button" size="sm" disabled={encerrada}
+                            variant={p.finalidade_sesc ? "default" : "outline"}
+                            onClick={() =>
+                              setPessoas((l) => l.map((x, j) => (j === i ? { ...x, finalidade_sesc: !x.finalidade_sesc } : x)))}>
+                            Sesc
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" className="text-destructive" disabled={encerrada}
+                      onClick={() => setPessoas((l) => l.filter((_, j) => j !== i))}>
+                      <Trash2 className="h-4 w-4 mr-2" /> Remover
+                    </Button>
                   </div>
                 ))}
-              </div>
-            </section>
+                <Button type="button" variant="outline" disabled={encerrada}
+                  onClick={() =>
+                    setPessoas((l) => [
+                      ...l,
+                      {
+                        id: null, nome: "", parentesco: "", data_nascimento: "", cpf: "", rg: "",
+                        finalidade_dependente: true, finalidade_sesc: false,
+                      },
+                    ])}>
+                  <Plus className="h-4 w-4 mr-2" /> Adicionar Dependente
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Cada familiar precisa de nome, parentesco e ao menos uma finalidade. As mudanças valem depois
+                  de salvar.
+                </p>
+              </TabsContent>
 
-            {!!data.pessoas.length && (
-              <section>
-                <h3 className="text-sm font-semibold mb-2">Familiares Informados</h3>
-                <div className="space-y-2">
-                  {data.pessoas.map((p) => (
-                    <div key={p.id} className="rounded-lg border p-2 text-sm flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{p.nome}</span>
-                      <span className="text-muted-foreground text-xs">
-                        {p.parentesco ?? "Parentesco não informado"}
-                        {p.data_nascimento ? ` · ${new Date(p.data_nascimento).toLocaleDateString("pt-BR")}` : ""}
-                      </span>
-                      {p.finalidade_dependente && <Badge variant="outline">Dependente</Badge>}
-                      {p.finalidade_sesc && <Badge variant="outline">Sesc</Badge>}
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            <section>
-              <h3 className="text-sm font-semibold mb-2">Documentos Enviados</h3>
-              {!vigentes.length && <p className="text-sm text-muted-foreground">Nenhum documento enviado ainda.</p>}
-              <div className="space-y-2">
+              {/* ── Documentos ───────────────────────────────────────── */}
+              <TabsContent value="documentos" className="mt-0 space-y-3">
+                {!vigentes.length && <p className="text-sm text-muted-foreground">Nenhum documento enviado ainda.</p>}
                 {vigentes.map((d) => (
                   <div key={d.id} className="rounded-lg border p-2 text-sm">
                     <div className="flex flex-wrap items-center gap-2">
@@ -480,393 +955,199 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                     {d.motivo_recusa && <p className="text-xs text-destructive mt-1">{d.motivo_recusa}</p>}
                   </div>
                 ))}
-              </div>
-              {!!data.pendencias.length && (
-                <div className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
-                  <p className="font-semibold flex items-center gap-2">
-                    <Clock className="h-4 w-4" /> Ainda faltam
-                  </p>
-                  <ul className="list-disc pl-5 text-muted-foreground">
-                    {data.pendencias.map((p) => (
-                      <li key={p.key}>{p.titulo}{p.pessoa_nome ? ` — ${p.pessoa_nome}` : ""}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </section>
-
-            <Separator />
-
-            {/* Previsão do convite: muda o que o candidato precisa enviar. */}
-            <section>
-              <h3 className="text-sm font-semibold mb-2">Vaga Prevista</h3>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="space-y-1">
-                  <Label className="text-xs" htmlFor="pa-cargo-previsto">Cargo previsto</Label>
-                  <Select
-                    value={pa.cargo_previsto_id ?? ""}
-                    disabled={encerrada || acoes.alterarPrevisto.isPending}
-                    onValueChange={(v) =>
-                      executar(() => acoes.alterarPrevisto.mutateAsync({ cargo_previsto_id: v }), "Cargo previsto alterado")}
-                  >
-                    <SelectTrigger id="pa-cargo-previsto" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
-                    <SelectContent>
-                      <CargoSelectItems carregando={carregandoCargos} erro={erroCargos} total={cargos.length}>
-                        {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-                      </CargoSelectItems>
-                    </SelectContent>
-                  </Select>
-                  <CargoSelectAviso
-                    carregando={carregandoCargos}
-                    erro={erroCargos}
-                    total={cargos.length}
-                    onRecarregar={() => void recarregarCargos()}
-                    origem="Revisão da pré-admissão"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs" htmlFor="pa-unidade-prevista">Unidade prevista</Label>
-                  <Select
-                    value={pa.unidade_prevista_id ?? ""}
-                    disabled={encerrada || acoes.alterarPrevisto.isPending}
-                    onValueChange={(v) =>
-                      executar(() => acoes.alterarPrevisto.mutateAsync({ unidade_prevista_id: v }), "Unidade prevista alterada")}
-                  >
-                    <SelectTrigger id="pa-unidade-prevista" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
-                    <SelectContent>
-                      {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs" htmlFor="pa-22h">Trabalha após as 22h</Label>
-                  <Select
-                    value={pa.trabalho_apos_22h ? "sim" : "nao"}
-                    disabled={encerrada || acoes.alterarPrevisto.isPending}
-                    onValueChange={(v) =>
-                      executar(
-                        () => acoes.alterarPrevisto.mutateAsync({ trabalho_apos_22h: v === "sim" }),
-                        "Informação de horário alterada",
-                      )}
-                  >
-                    <SelectTrigger id="pa-22h" className="h-10"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="nao">Não</SelectItem>
-                      <SelectItem value="sim">Sim</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Mudar a vaga recalcula os documentos exigidos. Nada que o candidato já enviou é apagado.
-              </p>
-            </section>
-
-            <Separator />
-
-            <section>
-              <h3 className="text-sm font-semibold mb-2">Informações Da Empresa (Para A Contabilidade)</h3>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <Label className="text-xs" htmlFor="pa-adm-data">Data de admissão</Label>
-                  <Input id="pa-adm-data" type="date" className="h-10" value={admin.data_admissao}
-                    disabled={encerrada}
-                    onChange={(e) => setAdmin({ ...admin, data_admissao: e.target.value })} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs" htmlFor="pa-adm-vinculo">Vínculo</Label>
-                  <Select value={admin.regime_trabalho} disabled={encerrada}
-                    onValueChange={(v) => setAdmin({ ...admin, regime_trabalho: v })}>
-                    <SelectTrigger id="pa-adm-vinculo" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
-                    <SelectContent>
-                      {REGIMES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs" htmlFor="pa-adm-cargo">Cargo</Label>
-                  <Select value={admin.cargo_id} disabled={encerrada}
-                    onValueChange={(v) => setAdmin({ ...admin, cargo_id: v })}>
-                    <SelectTrigger id="pa-adm-cargo" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
-                    <SelectContent>
-                      <CargoSelectItems carregando={carregandoCargos} erro={erroCargos} total={cargos.length}>
-                        {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-                      </CargoSelectItems>
-                    </SelectContent>
-                  </Select>
-                  <CargoSelectAviso
-                    carregando={carregandoCargos}
-                    erro={erroCargos}
-                    total={cargos.length}
-                    onRecarregar={() => void recarregarCargos()}
-                    origem="Revisão da pré-admissão"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs" htmlFor="pa-adm-unidade">Unidade</Label>
-                  <Select value={admin.unidade_id} disabled={encerrada}
-                    onValueChange={(v) => setAdmin({ ...admin, unidade_id: v, setor_id: "" })}>
-                    <SelectTrigger id="pa-adm-unidade" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
-                    <SelectContent>
-                      {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs" htmlFor="pa-adm-setor">Setor</Label>
-                  <Select value={admin.setor_id} disabled={encerrada || !admin.unidade_id}
-                    onValueChange={(v) => setAdmin({ ...admin, setor_id: v })}>
-                    <SelectTrigger id="pa-adm-setor" className="h-10">
-                      <SelectValue placeholder={admin.unidade_id ? "Escolher" : "Escolha a unidade"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {setores.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs" htmlFor="pa-adm-salario">Salário</Label>
-                  <Input id="pa-adm-salario" className="h-10" value={admin.salario} inputMode="decimal"
-                    disabled={encerrada}
-                    onChange={(e) => setAdmin({ ...admin, salario: e.target.value.replace(/[^\d.,]/g, "") })} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs" htmlFor="pa-adm-forma">Forma de pagamento</Label>
-                  <Select value={admin.forma_pagamento} disabled={encerrada}
-                    onValueChange={(v) => setAdmin({ ...admin, forma_pagamento: v })}>
-                    <SelectTrigger id="pa-adm-forma" className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
-                    <SelectContent>
-                      {FORMAS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs" htmlFor="pa-adm-carga">Carga semanal (horas)</Label>
-                  <Input id="pa-adm-carga" className="h-10" inputMode="numeric" value={admin.carga_horaria_semanal}
-                    disabled={encerrada} placeholder="Ex.: 44"
-                    onChange={(e) => setAdmin({ ...admin, carga_horaria_semanal: e.target.value.replace(/[^\d]/g, "") })} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs" htmlFor="pa-adm-exp">Experiência (dias)</Label>
-                  <Input id="pa-adm-exp" className="h-10" inputMode="numeric" value={admin.experiencia_dias}
-                    disabled={encerrada} placeholder="Ex.: 45"
-                    onChange={(e) => setAdmin({ ...admin, experiencia_dias: e.target.value.replace(/[^\d]/g, "") })} />
-                </div>
-                <div className="space-y-1 sm:col-span-2">
-                  <Label className="text-xs" htmlFor="pa-adm-jornada">Jornada prevista</Label>
-                  <Input id="pa-adm-jornada" className="h-10" placeholder="Ex.: 44h semanais, 12x36, escala 6x1"
-                    value={admin.jornada_descricao} disabled={encerrada}
-                    onChange={(e) => setAdmin({ ...admin, jornada_descricao: e.target.value })} />
-                </div>
-                {[
-                  ["vale_transporte", "Vale-transporte"],
-                  ["adicional_insalubridade", "Adicional de insalubridade"],
-                  ["adicional_periculosidade", "Adicional de periculosidade"],
-                ].map(([campo, rotulo]) => (
-                  <div key={campo} className="space-y-1">
-                    <Label className="text-xs" htmlFor={`pa-adm-${campo}`}>{rotulo}</Label>
-                    <Select value={admin[campo] ?? ""} disabled={encerrada}
-                      onValueChange={(v) => setAdmin({ ...admin, [campo]: v })}>
-                      <SelectTrigger id={`pa-adm-${campo}`} className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="nao">Não</SelectItem>
-                        <SelectItem value="sim">Sim</SelectItem>
-                      </SelectContent>
-                    </Select>
+                {!!data.pendencias.length && (
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+                    <p className="font-semibold flex items-center gap-2">
+                      <Clock className="h-4 w-4" /> Ainda faltam
+                    </p>
+                    <ul className="list-disc pl-5 text-muted-foreground">
+                      {data.pendencias.map((p) => (
+                        <li key={p.key}>{p.titulo}{p.pessoa_nome ? ` — ${p.pessoa_nome}` : ""}</li>
+                      ))}
+                    </ul>
                   </div>
-                ))}
-                <div className="space-y-1 sm:col-span-2">
-                  <Label className="text-xs" htmlFor="pa-adm-obs">Observações para a contabilidade</Label>
-                  <Textarea id="pa-adm-obs" rows={2} value={admin.observacoes} disabled={encerrada}
-                    onChange={(e) => setAdmin({ ...admin, observacoes: e.target.value })} />
-                </div>
-              </div>
-              <Button
-                className="mt-3"
-                variant="outline"
-                disabled={encerrada || acoes.salvarAdmin.isPending}
-                onClick={() => executar(() => acoes.salvarAdmin.mutateAsync(adminParaEnvio()), "Informações salvas")}
-              >
-                Salvar Informações
-              </Button>
-            </section>
+                )}
+                <Button variant="outline" disabled={baixando || !vigentes.length} onClick={baixarDocumentos}>
+                  {baixando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                  Baixar Documentos
+                </Button>
+              </TabsContent>
 
-            <Separator />
+              {/* ── Admissão ─────────────────────────────────────────── */}
+              <TabsContent value="admissao" className="mt-0 space-y-4">
+                {["aguardando_revisao", "aguardando_nova_versao", "em_preenchimento"].includes(status) && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Pedir correção ao candidato</Label>
+                    <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={2}
+                      placeholder="Descreva o que precisa ser corrigido." />
+                    <Button
+                      variant="outline"
+                      disabled={motivo.trim().length < 5 || acoes.solicitarCorrecao.isPending}
+                      onClick={() =>
+                        executar(() => acoes.solicitarCorrecao.mutateAsync(motivo.trim()), "Correção pedida ao candidato")}
+                    >
+                      Pedir Correção
+                    </Button>
+                  </div>
+                )}
 
-            <section className="space-y-3">
-              <h3 className="text-sm font-semibold">Próximos Passos</h3>
+                {status === "aguardando_revisao" && (
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <p className="text-sm font-semibold">Preparar para a contabilidade</p>
+                    <p className="text-xs text-muted-foreground">
+                      A ficha é conferida e fica pronta para envio. O cadastro do colaborador só é criado no
+                      final, depois do retorno da contabilidade.
+                    </p>
+                    <Button
+                      disabled={acoes.prepararContabilidade.isPending}
+                      onClick={() =>
+                        executar(() => acoes.prepararContabilidade.mutateAsync(), "Ficha pronta para a contabilidade")}
+                    >
+                      Preparar Para A Contabilidade
+                    </Button>
+                  </div>
+                )}
 
-              {["aguardando_revisao", "aguardando_nova_versao", "em_preenchimento"].includes(status) && (
-                <div className="space-y-2">
-                  <Label className="text-xs">Pedir correção ao candidato</Label>
-                  <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={2}
-                    placeholder="Descreva o que precisa ser corrigido." />
+                {status === "pronto_contabilidade" && (
+                  <Button
+                    onClick={() =>
+                      executar(() => acoes.marcarStatus.mutateAsync("enviado_contabilidade"), "Envio registrado")}
+                  >
+                    Marcar Como Enviada À Contabilidade
+                  </Button>
+                )}
+
+                {status === "enviado_contabilidade" && (
                   <Button
                     variant="outline"
-                    disabled={motivo.trim().length < 5 || acoes.solicitarCorrecao.isPending}
                     onClick={() =>
-                      executar(() => acoes.solicitarCorrecao.mutateAsync(motivo.trim()), "Correção pedida ao candidato")}
+                      executar(
+                        () => acoes.marcarStatus.mutateAsync("aguardando_retorno_contabilidade"),
+                        "Aguardando o retorno da contabilidade",
+                      )}
                   >
-                    Pedir Correção
+                    Aguardando Retorno Da Contabilidade
                   </Button>
-                </div>
-              )}
+                )}
 
-              {status === "aguardando_revisao" && (
-                <Button
-                  disabled={acoes.prepararContabilidade.isPending}
-                  onClick={() =>
-                    executar(() => acoes.prepararContabilidade.mutateAsync(), "Ficha pronta para a contabilidade")}
-                >
-                  Preparar Para A Contabilidade
-                </Button>
-              )}
-
-              {["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade"].includes(status) && (
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={imprimirPacote}>
-                    <FileUp className="h-4 w-4 mr-2" />
-                    Imprimir Pacote Da Contabilidade
-                  </Button>
-                  <Button variant="outline" disabled={baixando || !vigentes.length} onClick={baixarDocumentos}>
-                    {baixando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-                    Baixar Documentos
-                  </Button>
-                </div>
-              )}
-
-              {status === "pronto_contabilidade" && (
-                <Button
-                  onClick={() =>
-                    executar(() => acoes.marcarStatus.mutateAsync("enviado_contabilidade"), "Envio registrado")}
-                >
-                  Marcar Como Enviada À Contabilidade
-                </Button>
-              )}
-
-              {status === "enviado_contabilidade" && (
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    executar(
-                      () => acoes.marcarStatus.mutateAsync("aguardando_retorno_contabilidade"),
-                      "Aguardando o retorno da contabilidade",
-                    )}
-                >
-                  Aguardando Retorno Da Contabilidade
-                </Button>
-              )}
-
-              {/* "Registro recebido" também entra aqui: quando a contabilidade
-                  envia uma versão nova, a conferência anterior deixa de valer e
-                  o gestor precisa poder anexar e conferir novamente. */}
-              {["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(status) && (
-                <div className="rounded-lg border p-3 space-y-2">
-                  <p className="text-sm font-semibold">Ficha oficial devolvida pela contabilidade</p>
-                  <p className="text-xs text-muted-foreground">
-                    Primeiro anexe o arquivo recebido. Depois abra, confira e registre a conferência: são
-                    dois atos distintos, e o cadastro só é criado após a conferência.
-                  </p>
-                  <input
-                    ref={fichaRef}
-                    type="file"
-                    accept="application/pdf,image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      e.target.value = "";
-                      if (f) enviarFichaOficial(f);
-                    }}
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" disabled={enviandoFicha} onClick={() => fichaRef.current?.click()}>
-                      {enviandoFicha ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileUp className="h-4 w-4 mr-2" />}
-                      {fichaOficial ? "Anexar Nova Versão" : "Anexar Ficha Oficial"}
-                    </Button>
-                    {fichaOficial && (
-                      <>
-                        <Button variant="outline" onClick={() => ver(fichaOficial.id)}>
-                          Abrir Ficha Oficial
-                        </Button>
-                        <Button
-                          onClick={() =>
-                            executar(
-                              () => acoes.conferirFichaOficial.mutateAsync(fichaOficial.id),
-                              "Conferência registrada",
-                            )}
-                        >
-                          Registrar Conferência
-                        </Button>
-                      </>
+                {/* "Registro recebido" também entra aqui: quando a contabilidade
+                    envia uma versão nova, a conferência anterior deixa de valer e
+                    o gestor precisa poder anexar e conferir novamente. */}
+                {["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(status) && (
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <p className="text-sm font-semibold">Ficha oficial devolvida pela contabilidade</p>
+                    <p className="text-xs text-muted-foreground">
+                      Primeiro anexe o arquivo recebido. Depois abra, confira e registre a conferência: são
+                      dois atos distintos, e o cadastro só é criado após a conferência.
+                    </p>
+                    <input
+                      ref={fichaRef}
+                      type="file"
+                      accept="application/pdf,image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        e.target.value = "";
+                        if (f) enviarFichaOficial(f);
+                      }}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" disabled={enviandoFicha} onClick={() => fichaRef.current?.click()}>
+                        {enviandoFicha ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileUp className="h-4 w-4 mr-2" />}
+                        {fichaOficial ? "Anexar Nova Versão" : "Anexar Ficha Oficial"}
+                      </Button>
+                      {fichaOficial && (
+                        <>
+                          <Button variant="outline" onClick={() => ver(fichaOficial.id)}>
+                            Abrir Ficha Oficial
+                          </Button>
+                          <Button
+                            onClick={() =>
+                              executar(
+                                () => acoes.conferirFichaOficial.mutateAsync(fichaOficial.id),
+                                "Conferência registrada",
+                              )}
+                          >
+                            Registrar Conferência
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                    {!fichaOficial && (
+                      <p className="text-xs text-muted-foreground">Nenhuma ficha oficial anexada ainda.</p>
                     )}
                   </div>
-                  {!fichaOficial && (
-                    <p className="text-xs text-muted-foreground">Nenhuma ficha oficial anexada ainda.</p>
-                  )}
-                </div>
-              )}
+                )}
 
-              {status === "registro_recebido" && (
-                <div className="rounded-lg border border-primary/40 p-3 space-y-2">
-                  <p className="text-sm font-semibold">Concluir a admissão</p>
-                  {pa.ficha_oficial_conferida_em ? (
-                    <>
-                      <p className="text-xs text-muted-foreground">
-                        Confira os dados da ficha oficial na importação. Ao criar o cadastro, esta pré-admissão é
-                        concluída na mesma operação, com os familiares e documentos já enviados.
+                {status === "registro_recebido" && (
+                  <div className="rounded-lg border border-primary/40 p-3 space-y-2">
+                    <p className="text-sm font-semibold">Concluir a admissão</p>
+                    {pa.ficha_oficial_conferida_em ? (
+                      <>
+                        <p className="text-xs text-muted-foreground">
+                          Confira os dados da ficha oficial e crie o cadastro. Esta pré-admissão é concluída na
+                          mesma operação, com os dependentes e documentos já enviados.
+                        </p>
+                        <Button onClick={() => navigate(`/dp/colaboradores/importar-ficha?preadmissao=${pa.id}`)}>
+                          Concluir Como Colaborador
+                        </Button>
+                      </>
+                    ) : (
+                      /* Versão nova recebida: a conferência anterior não vale mais
+                         e a conclusão fica bloqueada até a nova conferência. */
+                      <p className="text-xs text-amber-600">
+                        A ficha oficial foi substituída. Abra a versão mais recente e registre a conferência acima
+                        para liberar a criação do cadastro.
                       </p>
-                      <Button
-                        onClick={() => navigate(`/dp/colaboradores/importar-ficha?preadmissao=${pa.id}`)}
-                      >
-                        Conferir Dados E Criar Cadastro
-                      </Button>
-                    </>
-                  ) : (
-                    /* Versão nova recebida: a conferência anterior não vale mais
-                       e a conclusão fica bloqueada até a nova conferência. */
-                    <p className="text-xs text-amber-600">
-                      A ficha oficial foi substituída. Abra a versão mais recente e registre a conferência acima
-                      para liberar a criação do cadastro.
+                    )}
+                  </div>
+                )}
+
+                {status === "concluido" && (
+                  <p className="text-sm text-emerald-600 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" /> Admissão concluída e cadastro criado.
+                  </p>
+                )}
+
+                {status !== "concluido" && !pa.colaborador_id && (
+                  <div className="pt-2 border-t">
+                    <Button variant="outline" className="text-destructive" onClick={() => setExcluir(true)}>
+                      <Trash2 className="h-4 w-4 mr-2" /> Excluir Ficha
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      A ficha sai da lista e o link deixa de valer. Os documentos e o histórico continuam guardados.
                     </p>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
 
-              {status === "concluido" && (
-                <p className="text-sm text-emerald-600 flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4" /> Admissão concluída e cadastro criado.
-                </p>
-              )}
-            </section>
+                {!!data.eventos.length && (
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">Histórico</h3>
+                    <ul className="space-y-1 text-xs text-muted-foreground">
+                      {data.eventos.map((e, i) => (
+                        <li key={`${e.created_at}-${i}`}>
+                          {new Date(e.created_at).toLocaleString("pt-BR")} — {e.evento.replace(/_/g, " ")}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </TabsContent>
+            </div>
 
-            {status !== "concluido" && !pa.colaborador_id && (
-              <section className="pt-2 border-t">
-                <Button
-                  variant="outline"
-                  className="text-destructive"
-                  onClick={() => setExcluir(true)}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" /> Excluir Ficha
+            <div className="flex flex-wrap items-center gap-2 border-t px-6 py-3">
+              <Button variant="outline" onClick={imprimirPacote}>
+                <Printer className="h-4 w-4 mr-2" /> Gerar Ficha Para A Contabilidade
+              </Button>
+              <div className="ml-auto flex items-center gap-2">
+                <Button variant="ghost" onClick={() => onOpenChange(false)}>Fechar</Button>
+                <Button disabled={encerrada || salvando} onClick={salvarTudo}>
+                  {salvando && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Salvar Ficha
                 </Button>
-                <p className="text-xs text-muted-foreground mt-1">
-                  A ficha sai da lista e o link deixa de valer. Os documentos e o histórico continuam guardados.
-                </p>
-              </section>
-            )}
-
-            {!!data.eventos.length && (
-              <section>
-                <h3 className="text-sm font-semibold mb-2">Histórico</h3>
-                <ul className="space-y-1 text-xs text-muted-foreground">
-                  {data.eventos.map((e, i) => (
-                    <li key={`${e.created_at}-${i}`}>
-                      {new Date(e.created_at).toLocaleString("pt-BR")} — {e.evento.replace(/_/g, " ")}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-          </div>
+              </div>
+            </div>
+          </Tabs>
         )}
       </DialogContent>
       <PreadmissaoExcluirDialog

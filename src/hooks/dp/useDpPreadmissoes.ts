@@ -226,6 +226,22 @@ export function useDpPreadmissaoGestor(id: string | null) {
         await acao({ action: "salvar_admin", admin_dados }),
       onSuccess: invalidar,
     }),
+    /**
+     * Correção da ficha do candidato pelo gestor: mesmos campos e mesmas
+     * validações do formulário público, conferidos de novo no servidor.
+     */
+    salvarFicha: useMutation({
+      mutationFn: async (entrada: {
+        dados: Record<string, unknown>;
+        pessoas?: Array<Record<string, unknown>> | null;
+      }) =>
+        await acao({
+          action: "salvar_ficha",
+          dados: entrada.dados,
+          ...(entrada.pessoas ? { pessoas: entrada.pessoas } : {}),
+        }),
+      onSuccess: invalidar,
+    }),
     alterarPrevisto: useMutation({
       mutationFn: async (patch: Record<string, unknown>) => await acao({ action: "alterar_previsto", ...patch }),
       onSuccess: invalidar,

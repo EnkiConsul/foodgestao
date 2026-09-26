@@ -9,11 +9,17 @@ import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
 import { canAdminister, requireCompanyAccess, requireUser, serviceClient } from "../_shared/authz.ts";
 import {
   anexarSomente,
+  camposNaoPermitidos,
+  camposNaoPermitidosPessoas,
   conferirFichaOficial,
+  filtrarCamposCandidato,
+  filtrarPessoasCandidato,
+  MOTIVOS_GRAVACAO,
   registrarEvento,
   regrasAdmissao,
   requisitosEmpresa,
   requisitosPrevistos,
+  salvarCandidato,
   ESTADOS_ABERTOS_GESTOR,
   gestorPodeAlterar,
   referenciasDaEmpresa,
@@ -21,6 +27,7 @@ import {
   avaliarDocumento,
   transicionarComVersao,
   validarAdminDados,
+  validarDadosCandidato,
   type Preadmissao,
 } from "../_shared/preadmissao.ts";
 import {
@@ -263,6 +270,68 @@ Deno.serve(async (req) => {
       );
       return jsonResponse(req, 200, { success: true, ...(await montar()) });
     }
+
+    /**
+     * Correção da ficha do candidato pelo próprio gestor: mesma allowlist, mesma
+     * validação de conteúdo e a MESMA rotina atômica usada pelo candidato.
+     * Campo fora da lista derruba o pedido; ficha encerrada não aceita nada.
+     */
+    if (acao === "salvar_ficha") {
+      if (!gestorPodeAlterar(pa.status)) {
+        return jsonResponse(req, 409, { error: "Esta pré-admissão já foi encerrada.", status: pa.status });
+      }
+      const fora = camposNaoPermitidos(body?.dados ?? {});
+      if (fora.length) {
+        return jsonResponse(req, 400, { error: "Pedido inválido: campos não permitidos.", campos: fora });
+      }
+      const foraPessoas = Array.isArray(body?.pessoas) ? camposNaoPermitidosPessoas(body.pessoas) : [];
+      if (foraPessoas.length) {
+        return jsonResponse(req, 400, { error: "Pedido inválido: campos não permitidos.", campos: foraPessoas });
+      }
+
+      // Relê a ficha: a edição do gestor é mesclada sobre o estado atual.
+      const { data: fresca } = await admin.from("dp_preadmissoes")
+        .select("status, dados, cpf").eq("id", pa.id).maybeSingle();
+      if (!fresca || !gestorPodeAlterar(String(fresca.status))) {
+        return jsonResponse(req, 409, { error: "Esta pré-admissão já foi encerrada.", status: fresca?.status });
+      }
+      const dados = {
+        ...((fresca.dados ?? {}) as Record<string, unknown>),
+        ...filtrarCamposCandidato(body?.dados ?? {}),
+      };
+      const erros = validarDadosCandidato(dados);
+      if (Object.keys(erros).length) {
+        return jsonResponse(req, 400, { error: "Confira os dados da ficha.", erros });
+      }
+      const texto = (k: string) => (typeof dados[k] === "string" ? (dados[k] as string).trim() : "");
+      const gravado = await salvarCandidato(admin, {
+        preadmissaoId: pa.id,
+        estados: ESTADOS_ABERTOS_GESTOR,
+        statusNovo: null,
+        dados,
+        campos: {
+          cpf: texto("cpf").replace(/\D/g, ""),
+          email: texto("email"),
+          data_nascimento: texto("data_nascimento"),
+          estado_civil: texto("estado_civil"),
+        },
+        pessoas: Array.isArray(body?.pessoas) ? filtrarPessoasCandidato(body.pessoas) : null,
+      });
+      if (!gravado.ok) {
+        return jsonResponse(req, 409, {
+          error: MOTIVOS_GRAVACAO[gravado.motivo ?? ""] ?? "Não foi possível salvar a ficha agora.",
+          motivo: gravado.motivo,
+          indice: gravado.indice,
+        });
+      }
+      await registrarEvento(
+        admin, pa.id, pa.company_id, "ficha_corrigida_pelo_gestor",
+        { campos: Object.keys(filtrarCamposCandidato(body?.dados ?? {})) }, caller.id,
+      );
+      return jsonResponse(req, 200, { success: true, ...(await montar()) });
+    }
+
+
 
     if (acao === "alterar_previsto") {
       if (!gestorPodeAlterar(pa.status)) {
