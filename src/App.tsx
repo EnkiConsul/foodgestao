@@ -65,6 +65,7 @@ const ExtratoConciliacao = lazyWithRetry(() => import("./pages/ExtratoConciliaca
 const Configuracoes = lazyWithRetry(() => import("./pages/Configuracoes"));
 const GestaoUsuarios = lazyWithRetry(() => import("./pages/GestaoUsuarios"));
 const Empresas = lazyWithRetry(() => import("./pages/Empresas"));
+const Assinatura = lazyWithRetry(() => import("./pages/Assinatura"));
 const FormasPagamento = lazyWithRetry(() => import("./pages/FormasPagamento"));
 const CentrosCusto = lazyWithRetry(() => import("./pages/CentrosCusto"));
 const CartoesCredito = lazyWithRetry(() => import("./pages/CartoesCredito"));
