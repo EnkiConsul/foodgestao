@@ -50,8 +50,14 @@ function SituacaoBadge({ a }: { a: MinhaAssinatura }) {
 /** Barra de consumo de um recurso do plano. */
 function Consumo({ recurso, usado, limite }: { recurso: RecursoLimitado; usado: number; limite: number }) {
   const ilimitado = limite < 0;
-  const pct = ilimitado ? 0 : Math.min(100, Math.round((usado / Math.max(1, limite)) * 100));
-  const cor = pct >= 100 ? "bg-destructive" : pct >= 80 ? "bg-amber-500" : "bg-primary";
+  const pct = ilimitado ? 8 : Math.min(100, Math.round((usado / Math.max(1, limite)) * 100));
+  const cor = ilimitado
+    ? "bg-muted-foreground/40"
+    : pct >= 100
+      ? "bg-destructive"
+      : pct >= 80
+        ? "bg-amber-500"
+        : "bg-primary";
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between gap-2 text-sm">
@@ -60,7 +66,9 @@ function Consumo({ recurso, usado, limite }: { recurso: RecursoLimitado; usado: 
           {ilimitado ? `${usado} · sem limite` : `${usado} de ${limite}`}
         </span>
       </div>
-      <Progress value={ilimitado ? 8 : pct} indicatorClassName={ilimitado ? "bg-muted-foreground/40" : cor} />
+      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div className={cn("h-full rounded-full transition-all", cor)} style={{ width: `${pct}%` }} />
+      </div>
     </div>
   );
 }
