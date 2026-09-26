@@ -99,7 +99,22 @@ interface Props {
   onRegistrarSalvar?: (
     fn: (() => Promise<SalvarJornadaResultado>) | null,
   ) => void;
+  /**
+   * Horário já escolhido fora do cadastro oficial (ficha de admissão). É
+   * aplicado uma única vez e nunca sobrescreve uma jornada já gravada.
+   */
+  rascunhoInicial?: JornadaRascunho | null;
+  /** Recebe o horário atual a cada mudança (ficha de admissão guarda). */
+  onRascunho?: (r: JornadaRascunho) => void;
+  /** Texto do aviso exibido quando ainda não existe cadastro gravado. */
+  avisoSemCadastro?: string;
+}
 
+/** Horário escolhido antes de existir o cadastro oficial do colaborador. */
+export interface JornadaRascunho {
+  horario: HorarioSimples;
+  dias: DiaConfig[];
+  folga_variavel: boolean;
 }
 
 
@@ -114,6 +129,7 @@ interface Props {
  */
 export function ColaboradorJornadaPanel({
   colaborador, active = true, showSaveButton = true, onRegistrarSalvar,
+  rascunhoInicial, onRascunho, avisoSemCadastro,
 }: Props) {
   const policy = contratoPolicy(colaborador?.regime, colaborador?.vinculo_label);
   const { selectedCompanyId } = useCompanyContext();
@@ -243,7 +259,7 @@ export function ColaboradorJornadaPanel({
   );
 
   useEffect(() => {
-    if (!active || vigente || colaborador?.id || alterado) return;
+    if (!active || vigente || colaborador?.id || alterado || rascunhoInicial) return;
     if (horarioAplicadoRef.current) return;
     if (modelosDoCargo.length === 0) return;
     const base = horarioBaseMaisComum(modelosDoCargo, colaborador?.cargo_id ?? null);
@@ -253,7 +269,7 @@ export function ColaboradorJornadaPanel({
   }, [active, vigente, colaborador?.id, colaborador?.cargo_id, alterado, modelosDoCargo]);
 
   useEffect(() => {
-    if (!active || vigente || colaborador?.id || !colaborador?.cargo_id || alterado) return;
+    if (!active || vigente || colaborador?.id || !colaborador?.cargo_id || alterado || rascunhoInicial) return;
     const chave = `${colaborador?.nome ?? "novo"}:${colaborador?.cargo_id}:${colaborador?.unidade_id ?? "sem-unidade"}:${admissao ?? "sem-admissao"}`;
     if (sugestaoAplicadaRef.current === chave) return;
     const modelo = sugerirModeloHorario(modelosDoCargo, colaborador?.cargo_id);
@@ -300,6 +316,24 @@ export function ColaboradorJornadaPanel({
    * outro colaborador ou vindo da grade da unidade.
    */
   const horarioAplicadoRef = useRef<string | null>(null);
+
+  /** Aplica, uma vez, o horário escolhido na ficha de admissão. */
+  const rascunhoAplicadoRef = useRef(false);
+  useEffect(() => {
+    if (!active || !rascunhoInicial || rascunhoAplicadoRef.current || isLoading) return;
+    if (colaborador?.id && vigente) return;
+    rascunhoAplicadoRef.current = true;
+    horarioAplicadoRef.current = "rascunho";
+    setHorarioReferencia(rascunhoInicial.horario);
+    setDias(normalizarDias(rascunhoInicial.dias));
+    setFolgaVariavel(!!rascunhoInicial.folga_variavel);
+    setAlterado(true);
+  }, [active, rascunhoInicial, colaborador?.id, vigente, isLoading]);
+
+  useEffect(() => {
+    onRascunho?.({ horario: horarioReferencia, dias, folga_variavel: folgaVariavel });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [horarioReferencia, dias, folgaVariavel]);
   useEffect(() => {
     if (!active) return;
     const id = vigente?.turno_padrao_id ?? null;
@@ -786,7 +820,7 @@ export function ColaboradorJornadaPanel({
       {!colaborador?.id && (
         <p className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-400">
           <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-          Defina o horário agora: ele será gravado automaticamente logo após o colaborador ser criado.
+          {avisoSemCadastro ?? "Defina o horário agora: ele será gravado automaticamente logo após o colaborador ser criado."}
         </p>
       )}
 
