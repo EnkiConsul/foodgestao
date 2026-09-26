@@ -361,7 +361,7 @@ export default function Assinatura() {
           <TabsList>
             {lista.map((a) => (
               <TabsTrigger key={a.id} value={a.id}>
-                {MODULO_ROTULO[(a.module ?? a.plan?.module ?? "financeiro") as Modulo]}
+                {a.plan?.name ?? MODULO_ROTULO[(a.module ?? a.plan?.module ?? "financeiro") as Modulo]}
               </TabsTrigger>
             ))}
           </TabsList>
