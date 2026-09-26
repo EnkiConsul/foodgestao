@@ -27,7 +27,7 @@ const MODULO_ROTULO: Record<Modulo, string> = {
 
 const RECURSOS_POR_MODULO: Record<Modulo, RecursoLimitado[]> = {
   financeiro: ["empresas", "usuarios", "open_finance", "contadores"],
-  pessoas: ["colaboradores", "unidades", "usuarios", "contadores"],
+  pessoas: ["colaboradores", "unidades", "empresas", "usuarios", "contadores"],
 };
 
 const dataBR = (v?: string | null) =>
@@ -149,7 +149,9 @@ function PainelAssinatura({ assinatura }: { assinatura: MinhaAssinatura }) {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">O que você está usando</CardTitle>
-          <CardDescription>Consumo atual da empresa selecionada, já somando os adicionais.</CardDescription>
+          <CardDescription>
+            Consumo atual da empresa selecionada, já somando os adicionais. Empresas conta todas as empresas do titular.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {limites.isLoading ? (
