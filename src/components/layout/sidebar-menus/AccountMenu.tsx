@@ -1,4 +1,4 @@
-import { Building2, UserCog, Settings, Shield, CreditCard } from "lucide-react";
+import { Building2, UserCog, Settings, Shield, CreditCard, Sparkles } from "lucide-react";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { SidebarSection, SidebarNavItem, type MenuItem } from "./shared";
 
@@ -7,6 +7,7 @@ const full: MenuItem[] = [
   { title: "Usuários", url: "/gestao-usuarios", icon: UserCog },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
   { title: "Plano e Assinatura", url: "/assinatura", icon: CreditCard },
+  { title: "Planos e Preços", url: "/planos", icon: Sparkles },
 ];
 
 const portal: MenuItem[] = [

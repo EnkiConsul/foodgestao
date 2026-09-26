@@ -58,6 +58,8 @@ const SYNONYMS: Record<string, string[]> = {
   "/empresas": ["cnpj", "matriz", "tenant"],
   "/gestao-usuarios": ["permissao", "acesso", "convite", "perfil de acesso"],
   "/configuracoes": ["ajustes", "preferencias", "tema"],
+  "/assinatura": ["plano", "mensalidade", "adicionais", "faturas", "limites"],
+  "/planos": ["planos", "precos", "contratar", "upgrade", "assinar", "teste gratis"],
 };
 
 export type NavSearchResult = NavLeaf & {

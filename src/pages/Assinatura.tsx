@@ -335,11 +335,18 @@ export default function Assinatura() {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight md:text-2xl">Plano e Assinatura</h1>
-        <p className="text-xs text-muted-foreground md:text-sm">
-          Acompanhe o seu plano, o consumo dos limites e contrate adicionais.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight md:text-2xl">Plano e Assinatura</h1>
+          <p className="text-xs text-muted-foreground md:text-sm">
+            Acompanhe o seu plano, o consumo dos limites e contrate adicionais.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/planos">
+            <Sparkles className="mr-1.5 h-4 w-4" /> Ver todos os planos
+          </Link>
+        </Button>
       </div>
 
       {isLoading ? (
