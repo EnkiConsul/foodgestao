@@ -27,6 +27,33 @@ export interface MinhaAssinatura {
 
 const ativo = (a: any) => a.status === "active";
 
+/** Situações que não devem aparecer no painel do cliente. */
+const STATUS_ENCERRADO = new Set(["canceled", "expired", "incomplete_expired"]);
+
+/** Prioridade quando há mais de uma assinatura vigente no mesmo módulo. */
+const PRIORIDADE: Record<string, number> = { active: 0, trialing: 1, past_due: 2 };
+
+/** Mantém uma única assinatura vigente por módulo, descartando as encerradas. */
+function vigentesPorModulo(lista: MinhaAssinatura[]): MinhaAssinatura[] {
+  const melhor = new Map<string, MinhaAssinatura>();
+  lista
+    .filter((s) => !STATUS_ENCERRADO.has(s.status))
+    .forEach((s) => {
+      const chave = (s.module ?? (s.plan as any)?.module ?? "financeiro") as string;
+      const atual = melhor.get(chave);
+      if (!atual) {
+        melhor.set(chave, s);
+        return;
+      }
+      const a = PRIORIDADE[s.status] ?? 9;
+      const b = PRIORIDADE[atual.status] ?? 9;
+      if (a < b) melhor.set(chave, s);
+    });
+  return [...melhor.values()].sort((x, y) =>
+    (x.module ?? "") < (y.module ?? "") ? -1 : 1,
+  );
+}
+
 /** Assinaturas do titular conectado, com plano, adicionais e valores. */
 export function useMinhasAssinaturas() {
   const { user } = useAuth();
@@ -44,7 +71,7 @@ export function useMinhasAssinaturas() {
         .order("created_at", { ascending: false });
       if (error) throw error;
 
-      return (data ?? []).map((s: any) => {
+      const todas = (data ?? []).map((s: any) => {
         const isento =
           !!s.is_exempt && (!s.exempt_until || new Date(s.exempt_until).getTime() > Date.now());
         const addons = (s.addons ?? []) as any[];
@@ -69,6 +96,8 @@ export function useMinhasAssinaturas() {
           totalCents: planCents + addonsCents,
         } as MinhaAssinatura;
       });
+
+      return vigentesPorModulo(todas);
     },
   });
 }
