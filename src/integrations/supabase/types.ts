@@ -17885,8 +17885,6 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: number
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
       soft_delete_account: { Args: { _account_id: string }; Returns: undefined }
       sou_dp_colaborador: { Args: never; Returns: boolean }
       start_module_trial: {
@@ -17923,7 +17921,6 @@ export type Database = {
         Returns: boolean
       }
       try_cast_uuid: { Args: { p_val: string }; Returns: string }
-      unaccent: { Args: { "": string }; Returns: string }
       unidade_liberada: {
         Args: { _company_id: string; _unidade_id: string }
         Returns: boolean
