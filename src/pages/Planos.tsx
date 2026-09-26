@@ -21,18 +21,20 @@ const MODULO_ROTULO: Record<Modulo, string> = {
 const WHATSAPP = "5562992365959";
 
 /** Recursos exibidos no cartão, por módulo, na ordem de leitura. */
-const RECURSOS: Record<Modulo, Array<{ campo: string; rotulo: string }>> = {
+type Recurso = { campo: string; um: string; muitos: string };
+
+const RECURSOS: Record<Modulo, Recurso[]> = {
   financeiro: [
-    { campo: "max_companies", rotulo: "empresas" },
-    { campo: "max_users", rotulo: "usuários" },
-    { campo: "max_open_finance", rotulo: "conexões bancárias" },
-    { campo: "accountant_seats", rotulo: "acessos para a contabilidade" },
+    { campo: "max_companies", um: "empresa", muitos: "empresas" },
+    { campo: "max_users", um: "usuário", muitos: "usuários" },
+    { campo: "max_open_finance", um: "conexão bancária", muitos: "conexões bancárias" },
+    { campo: "accountant_seats", um: "acesso para a contabilidade", muitos: "acessos para a contabilidade" },
   ],
   pessoas: [
-    { campo: "max_collaborators", rotulo: "colaboradores" },
-    { campo: "max_units", rotulo: "unidades" },
-    { campo: "max_users", rotulo: "usuários" },
-    { campo: "accountant_seats", rotulo: "acessos para a contabilidade" },
+    { campo: "max_collaborators", um: "colaborador", muitos: "colaboradores" },
+    { campo: "max_units", um: "unidade", muitos: "unidades" },
+    { campo: "max_users", um: "usuário", muitos: "usuários" },
+    { campo: "accountant_seats", um: "acesso para a contabilidade", muitos: "acessos para a contabilidade" },
   ],
 };
 
