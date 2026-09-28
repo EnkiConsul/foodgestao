@@ -396,6 +396,7 @@ export function ColaboradorFormDialog({
   const rascunho = useDpAdmissaoRascunho(open && !colaborador?.id && !admissao ? chaveRascunho : null);
   /** Horário escolhido na aba de jornada durante a admissão. */
   const jornadaAdmissaoRef = useRef<JornadaRascunho | null>(null);
+  const admissaoResetRef = useRef<string | null>(null);
   const [rascunhoOferta, setRascunhoOferta] = useState<{ dados: ConteudoRascunhoAdmissao; atualizadoEm: string } | null>(null);
   /** Enquanto false, o autosave aguarda a decisão de retomar ou começar em branco. */
   const rascunhoDecidido = useRef(false);
@@ -634,7 +635,7 @@ export function ColaboradorFormDialog({
   }, [open, pessoaApoioInicial, colaborador?.id]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) { admissaoResetRef.current = null; return; }
     cienciaConfirmada.current = null;
     // Acesso e desligamento agora vivem na aba Dados: o atalho abre Dados e
     // rola até a âncora do bloco correspondente.
@@ -648,6 +649,15 @@ export function ColaboradorFormDialog({
       }, 250);
     }
     setCriadoId(null);
+
+    // Ficha em admissão: limpa só uma vez por candidato. Recarregar a lista de
+    // benefícios depois não pode apagar o que o candidato já preencheu.
+    if (!colaborador && admissao) {
+      if (admissaoResetRef.current === admissao.chave) return;
+      admissaoResetRef.current = admissao.chave;
+    } else {
+      admissaoResetRef.current = null;
+    }
 
     const c = (colaborador ?? {}) as any;
     const end = (c.endereco ?? {}) as Record<string, unknown>;
