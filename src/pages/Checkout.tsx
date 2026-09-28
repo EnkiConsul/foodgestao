@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,8 @@ import { Logo } from "@/components/Logo";
 import { formatCents } from "@/lib/billing";
 import { toast } from "sonner";
 import { notifyError } from "@/lib/notifyError";
+import { EnderecoFields, type EnderecoValor } from "@/components/shared/EnderecoFields";
+import { maskCnpj, isValidCnpj } from "@/lib/cnpj";
 
 type Method = "PIX" | "BOLETO" | "CREDIT_CARD";
 
@@ -24,8 +26,12 @@ export default function Checkout() {
   const { user } = useAuth();
   const [coupon, setCoupon] = useState("");
   const [method, setMethod] = useState<Method>("PIX");
-  const [cpfCnpj, setCpfCnpj] = useState("");
   const [phone, setPhone] = useState("");
+  const [companyId, setCompanyId] = useState<string>("");
+  const [razao, setRazao] = useState("");
+  const [cnpj, setCnpj] = useState("");
+  const [email, setEmail] = useState("");
+  const [endereco, setEndereco] = useState<EnderecoValor>({});
   const [validatedCoupon, setValidatedCoupon] = useState<any | null>(null);
 
   const { data: plan, isLoading } = useQuery({
@@ -45,11 +51,42 @@ export default function Checkout() {
     queryFn: async () => {
       const { data } = await supabase.from("profiles")
         .select("document, phone, full_name").eq("user_id", user!.id).maybeSingle();
-      if (data?.document) setCpfCnpj(data.document);
-      if (data?.phone) setPhone(data.phone);
+      if (data?.phone) setPhone((p) => p || data.phone);
       return data;
     },
   });
+
+  const { data: empresas = [] } = useQuery({
+    queryKey: ["checkout-empresas", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("companies")
+        .select("id, name, trade_name, cnpj, email, phone, cep, logradouro, numero, complemento, bairro, cidade, uf")
+        .eq("user_id", user!.id).eq("is_active", true).order("created_at");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    if (!companyId && empresas.length === 1) setCompanyId(empresas[0].id);
+  }, [empresas, companyId]);
+
+  useEffect(() => {
+    const e = empresas.find((x) => x.id === companyId);
+    if (!e) return;
+    setRazao((e.name ?? "").toLocaleUpperCase("pt-BR"));
+    setCnpj(e.cnpj ? maskCnpj(e.cnpj) : "");
+    setEmail(e.email ?? user?.email ?? "");
+    if (e.phone) setPhone(e.phone);
+    setEndereco({
+      cep: e.cep, logradouro: e.logradouro, numero: e.numero, complemento: e.complemento,
+      bairro: e.bairro, cidade: e.cidade, uf: e.uf,
+    });
+  }, [companyId, empresas, user?.email]);
+
+  const empresaSel = empresas.find((x) => x.id === companyId);
+  const cnpjTravado = !!empresaSel?.cnpj;
 
   const validate = async () => {
     if (!coupon.trim()) return setValidatedCoupon(null);
@@ -79,17 +116,27 @@ export default function Checkout() {
   const subscribe = useMutation({
     mutationFn: async () => {
       if (!user || !plan) throw new Error("Não autenticado");
-      const cleaned = cpfCnpj.replace(/\D/g, "");
-      if (cleaned.length !== 11 && cleaned.length !== 14) {
-        throw new Error("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido");
-      }
+      if (!companyId) throw new Error("Escolha a empresa para emissão da nota fiscal");
+      const cleaned = cnpj.replace(/\D/g, "");
+      if (!isValidCnpj(cleaned)) throw new Error("Informe um CNPJ válido");
+      if (!razao.trim()) throw new Error("Informe a Razão Social");
+      if (!/^\S+@\S+\.\S+$/.test(email.trim())) throw new Error("Informe um e-mail válido para a nota fiscal");
+      const faltam = (["cep", "logradouro", "numero", "bairro", "cidade", "uf"] as const)
+        .filter((k) => !String(endereco[k] ?? "").trim());
+      if (faltam.length) throw new Error("Complete o endereço fiscal da empresa");
 
       const { data, error } = await supabase.functions.invoke("asaas-create-checkout", {
         body: {
           planId: plan.id,
           paymentMethod: method,
           couponCode: validatedCoupon?.code,
-          holder: { cpfCnpj: cleaned, phone },
+          companyId,
+          fiscal: {
+            razaoSocial: razao, cnpj: cleaned, email: email.trim(), phone,
+            cep: endereco.cep, logradouro: endereco.logradouro, numero: endereco.numero,
+            complemento: endereco.complemento, bairro: endereco.bairro,
+            cidade: endereco.cidade, uf: endereco.uf,
+          },
         },
       });
       if (error) throw new Error(error.message);
@@ -145,6 +192,78 @@ export default function Checkout() {
         <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Finalizar Assinatura</h1>
 
         <div className="grid md:grid-cols-2 gap-3 md:gap-4">
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>Dados Para Emissão Da Nota Fiscal</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                A nota fiscal de cada mensalidade será emitida em nome desta empresa.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {empresas.length === 0 ? (
+                <p className="text-sm text-destructive">
+                  Cadastre uma empresa antes de assinar.
+                </p>
+              ) : (
+                <div className="space-y-1">
+                  <Label htmlFor="ck-empresa">Empresa tomadora *</Label>
+                  <Select value={companyId} onValueChange={setCompanyId}>
+                    <SelectTrigger id="ck-empresa" className="h-11">
+                      <SelectValue placeholder={empresas.length > 1 ? "Escolha por qual empresa emitir a nota" : "Escolher"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {empresas.map((e) => (
+                        <SelectItem key={e.id} value={e.id}>
+                          {e.trade_name || e.name}{e.cnpj ? ` — ${maskCnpj(e.cnpj)}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {empresas.length > 1 && (
+                    <p className="text-xs text-muted-foreground">
+                      Você tem {empresas.length} empresas. Escolha em nome de qual a nota fiscal será emitida.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {companyId && (
+                <>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="ck-razao" className="text-xs">Razão Social *</Label>
+                      <Input id="ck-razao" className="h-11" value={razao}
+                        onChange={(e) => setRazao(e.target.value.toLocaleUpperCase("pt-BR"))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="ck-cnpj" className="text-xs">CNPJ *</Label>
+                      <Input id="ck-cnpj" className="h-11" inputMode="numeric" value={cnpj}
+                        disabled={cnpjTravado} maxLength={18}
+                        onChange={(e) => setCnpj(maskCnpj(e.target.value))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="ck-email" className="text-xs">E-mail para receber a nota *</Label>
+                      <Input id="ck-email" type="email" className="h-11" value={email}
+                        onChange={(e) => setEmail(e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="ck-fone" className="text-xs">Telefone</Label>
+                      <Input id="ck-fone" className="h-11" value={phone}
+                        onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" />
+                    </div>
+                  </div>
+                  <EnderecoFields
+                    idPrefix="ck-end"
+                    upper
+                    valor={endereco}
+                    onChange={(p) => setEndereco((v) => ({ ...v, ...p }))}
+                    obrigatorios={["cep", "logradouro", "numero", "bairro", "cidade", "uf"]}
+                  />
+                </>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader><CardTitle>Pagamento</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -158,25 +277,6 @@ export default function Checkout() {
                     <SelectItem value="CREDIT_CARD">Cartão de crédito</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div>
-                <Label>CPF ou CNPJ *</Label>
-                <Input
-                  value={cpfCnpj}
-                  onChange={(e) => setCpfCnpj(e.target.value)}
-                  placeholder="Somente números"
-                  inputMode="numeric"
-                />
-              </div>
-
-              <div>
-                <Label>Telefone</Label>
-                <Input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="(11) 99999-9999"
-                />
               </div>
 
               <div>
@@ -209,7 +309,7 @@ export default function Checkout() {
               )}
               <Button
                 className="w-full"
-                disabled={subscribe.isPending}
+                disabled={subscribe.isPending || !companyId}
                 onClick={() => subscribe.mutate()}
               >
                 {subscribe.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Gerar cobrança"}
