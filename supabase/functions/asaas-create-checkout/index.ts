@@ -301,6 +301,7 @@ Deno.serve(async (req) => {
       user_id: user.id,
       plan_id: plan.id,
       status: "pending",
+      company_id: company.id,
       current_period_start: nowIso,
       current_period_end: periodEnd.toISOString(),
       external_customer_id: asaasCustomerId,
