@@ -45,10 +45,43 @@ const json = (body: unknown, status = 200) =>
 
 type Admin = SupabaseClient;
 
+/** Situação da NFS-e derivada do evento/payload do Asaas. */
+function fiscalStatus(eventType: string, invoice: any): string {
+  const raw = String(invoice?.status ?? "").toUpperCase();
+  if (raw) return raw.toLowerCase();
+  if (eventType === "INVOICE_AUTHORIZED") return "authorized";
+  if (eventType === "INVOICE_CANCELED") return "canceled";
+  if (eventType === "INVOICE_ERROR") return "error";
+  return "processing";
+}
+
 /** Lógica de negócio de um evento do Asaas. Deve ser idempotente. */
 async function processEvent(admin: Admin, eventType: string, payload: any) {
   const payment = payload?.payment ?? null;
   const subscription = payload?.subscription ?? null;
+  const fiscal = payload?.invoice ?? null;
+
+  // ---- Nota fiscal de serviço (NFS-e) emitida pelo Asaas ----
+  if (eventType.startsWith("INVOICE_") && fiscal?.id) {
+    const paymentId = fiscal.payment ?? fiscal.paymentId ?? null;
+    if (paymentId) {
+      const patch = {
+        fiscal_invoice_id: String(fiscal.id),
+        fiscal_invoice_number: fiscal.number ? String(fiscal.number) : null,
+        fiscal_invoice_status: fiscalStatus(eventType, fiscal),
+        fiscal_invoice_pdf_url: fiscal.pdfUrl ?? null,
+        fiscal_invoice_xml_url: fiscal.xmlUrl ?? null,
+        fiscal_issued_at: fiscal.effectiveDate ?? fiscal.issueDate ?? null,
+      };
+      const { error: fiscalErr } = await admin
+        .from("invoices")
+        .update(patch)
+        .eq("external_invoice_id", String(paymentId));
+      if (fiscalErr) throw new Error(`fiscal_update: ${fiscalErr.message}`);
+    }
+    return;
+  }
+
 
   if (payment?.id) {
     let { data: inv } = await admin
