@@ -5,3 +5,4 @@
 - Adicional contratado no meio do ciclo gera `prorata_cents` (trigger em `subscription_addons`) cobrado uma única vez na próxima fatura; `prorata_billed_at` marca o que já foi cobrado, evitando cobrança repetida.
 - Limites de colaboradores e unidades também são barrados no banco por constraint triggers (`dp_guard_limite_*`) usando `assinatura_limite_excedido` — o app não é a única defesa.
 - Recontratação reaproveita apenas identidade, dados pessoais/documentos atuais e histórico do vínculo; cargo, salário, benefícios e jornada são definidos para a nova admissão e nunca copiados do vínculo anterior — evita condições contratuais defasadas.
+- Rotina de banco só recebe `GRANT EXECUTE ... TO authenticated` quando o frontend a chama via `supabase.rpc`, quando uma RLS policy a referencia ou quando um gatilho `SECURITY INVOKER` a usa (ex.: `dp_regra_bloqueia_data` no gatilho de `dp_solicitacoes`); as demais ficam só com `service_role` — menor privilégio sem quebrar tela.
