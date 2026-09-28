@@ -315,6 +315,20 @@ function Faturas() {
           <Badge variant={f.status === "paid" ? "default" : f.status === "overdue" ? "destructive" : "secondary"}>
             {INVOICE_STATUS_LABELS[f.status] ?? f.status}
           </Badge>
+          {f.fiscal_invoice_pdf_url && (
+            <Button size="sm" variant="outline" asChild>
+              <a href={f.fiscal_invoice_pdf_url} target="_blank" rel="noopener noreferrer">
+                <Receipt className="mr-1 h-3.5 w-3.5" /> Nota fiscal
+              </a>
+            </Button>
+          )}
+          {f.status === "paid" && !f.fiscal_invoice_pdf_url && (
+            <span className="text-xs text-muted-foreground">
+              {f.fiscal_invoice_status === "error"
+                ? "Nota fiscal com erro na emissão"
+                : "Nota fiscal em emissão"}
+            </span>
+          )}
           {f.status !== "paid" && (
             <Button size="sm" variant="outline" asChild>
               <Link to={`/checkout/pagamento/${f.id}`}>
@@ -322,6 +336,7 @@ function Faturas() {
               </Link>
             </Button>
           )}
+
         </div>
       ))}
     </div>
