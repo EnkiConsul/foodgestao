@@ -133,35 +133,97 @@ Deno.serve(async (req) => {
       return json({ free: true, subscriptionId: sub.id });
     }
 
-    // ---- Customer in Asaas ----
-    const customerName = profile?.full_name || user.email || "Cliente";
-    const cpfCnpj = (holder.cpfCnpj || profile?.document || "").replace(/\D/g, "");
-    if (!cpfCnpj || (cpfCnpj.length !== 11 && cpfCnpj.length !== 14)) {
-      return json({ error: "CPF ou CNPJ é obrigatório" }, 400);
+    // ---- Empresa tomadora da nota fiscal ----
+    const companyId: string | undefined = typeof body.companyId === "string" ? body.companyId : undefined;
+    const fiscal = body.fiscal ?? {};
+    const limpa = (v: unknown, max = 120) =>
+      typeof v === "string" ? v.trim().slice(0, max) : "";
+    if (!companyId) return json({ error: "Escolha a empresa para emissão da nota fiscal" }, 400);
+    const { data: company } = await admin
+      .from("companies")
+      .select("id, user_id, name, cnpj, email, phone, cep, logradouro, numero, complemento, bairro, cidade, uf")
+      .eq("id", companyId)
+      .maybeSingle();
+    if (!company || company.user_id !== user.id) {
+      return json({ error: "Empresa não encontrada ou sem permissão" }, 403);
+    }
+    const f = {
+      razao: limpa(fiscal.razaoSocial, 150).toLocaleUpperCase("pt-BR"),
+      cnpj: limpa(fiscal.cnpj, 20).replace(/\D/g, ""),
+      email: limpa(fiscal.email, 150).toLowerCase(),
+      phone: limpa(fiscal.phone, 20).replace(/\D/g, ""),
+      cep: limpa(fiscal.cep, 10).replace(/\D/g, ""),
+      logradouro: limpa(fiscal.logradouro, 150).toLocaleUpperCase("pt-BR"),
+      numero: limpa(fiscal.numero, 10).toLocaleUpperCase("pt-BR"),
+      complemento: limpa(fiscal.complemento, 80).toLocaleUpperCase("pt-BR"),
+      bairro: limpa(fiscal.bairro, 80).toLocaleUpperCase("pt-BR"),
+      cidade: limpa(fiscal.cidade, 80).toLocaleUpperCase("pt-BR"),
+      uf: limpa(fiscal.uf, 2).toUpperCase(),
+    };
+    const faltando: string[] = [];
+    if (!f.razao) faltando.push("Razão Social");
+    if (f.cnpj.length !== 14) faltando.push("CNPJ");
+    if (!/^\S+@\S+\.\S+$/.test(f.email)) faltando.push("E-mail");
+    if (f.cep.length !== 8) faltando.push("CEP");
+    if (!f.logradouro) faltando.push("Logradouro");
+    if (!f.numero) faltando.push("Número");
+    if (!f.bairro) faltando.push("Bairro");
+    if (!f.cidade) faltando.push("Cidade");
+    if (!/^[A-Z]{2}$/.test(f.uf)) faltando.push("UF");
+    if (faltando.length) {
+      return json({ error: `Dados fiscais incompletos: ${faltando.join(", ")}` }, 400);
+    }
+    if (company.cnpj && company.cnpj.replace(/\D/g, "") !== f.cnpj) {
+      return json({ error: "O CNPJ informado não corresponde ao da empresa escolhida" }, 400);
     }
 
-    let asaasCustomerId = profile?.asaas_customer_id as string | null;
-    if (!asaasCustomerId) {
-      // Try find by cpfCnpj first (avoids duplicates if previous attempts)
-      const search = await asaasFetch(`/customers?cpfCnpj=${cpfCnpj}`).catch(() => null);
-      if (search?.data?.length) {
-        asaasCustomerId = search.data[0].id;
-      } else {
-        const created = await asaasFetch("/customers", {
-          method: "POST",
-          body: JSON.stringify({
-            name: customerName,
-            email: user.email,
-            cpfCnpj,
-            mobilePhone: holder.phone || profile?.phone || undefined,
-            postalCode: holder.postalCode || undefined,
-            addressNumber: holder.addressNumber || undefined,
-            notificationDisabled: false,
-            externalReference: user.id,
-          }),
-        });
-        asaasCustomerId = created.id;
-      }
+    // Completa apenas campos vazios do cadastro da empresa (nunca sobrescreve).
+    const patch: Record<string, string> = {};
+    const campos: [string, string][] = [
+      ["cnpj", f.cnpj], ["email", f.email], ["phone", f.phone], ["cep", f.cep],
+      ["logradouro", f.logradouro], ["numero", f.numero], ["complemento", f.complemento],
+      ["bairro", f.bairro], ["cidade", f.cidade], ["uf", f.uf],
+    ];
+    for (const [k, v] of campos) {
+      if (v && !(company as any)[k]) patch[k] = v;
+    }
+    if (Object.keys(patch).length) {
+      await admin.from("companies").update(patch).eq("id", company.id);
+    }
+
+    // ---- Customer in Asaas (um cliente por CNPJ tomador) ----
+    const cpfCnpj = f.cnpj;
+    const customerPayload = {
+      name: f.razao,
+      company: f.razao,
+      email: f.email,
+      cpfCnpj,
+      mobilePhone: f.phone || undefined,
+      postalCode: f.cep,
+      address: f.logradouro,
+      addressNumber: f.numero,
+      complement: f.complemento || undefined,
+      province: f.bairro,
+      notificationDisabled: false,
+      externalReference: company.id,
+    };
+
+    let asaasCustomerId: string | null = null;
+    const search = await asaasFetch(`/customers?cpfCnpj=${cpfCnpj}`).catch(() => null);
+    if (search?.data?.length) {
+      asaasCustomerId = search.data[0].id;
+      await asaasFetch(`/customers/${asaasCustomerId}`, {
+        method: "POST",
+        body: JSON.stringify(customerPayload),
+      }).catch((e) => console.warn("update asaas customer failed:", e.message));
+    } else {
+      const created = await asaasFetch("/customers", {
+        method: "POST",
+        body: JSON.stringify(customerPayload),
+      });
+      asaasCustomerId = created.id;
+    }
+    if (!profile?.asaas_customer_id) {
       await admin.from("profiles").update({ asaas_customer_id: asaasCustomerId }).eq("user_id", user.id);
     }
 
