@@ -635,7 +635,7 @@ export function ColaboradorFormDialog({
   }, [open, pessoaApoioInicial, colaborador?.id]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) { admissaoResetRef.current = null; return; }
     cienciaConfirmada.current = null;
     // Acesso e desligamento agora vivem na aba Dados: o atalho abre Dados e
     // rola até a âncora do bloco correspondente.
