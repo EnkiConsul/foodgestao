@@ -12328,6 +12328,12 @@ export type Database = {
           due_date: string
           external_invoice_id: string | null
           external_payment_url: string | null
+          fiscal_invoice_id: string | null
+          fiscal_invoice_number: string | null
+          fiscal_invoice_pdf_url: string | null
+          fiscal_invoice_status: string | null
+          fiscal_invoice_xml_url: string | null
+          fiscal_issued_at: string | null
           id: string
           notes: string | null
           paid_at: string | null
@@ -12352,6 +12358,12 @@ export type Database = {
           due_date: string
           external_invoice_id?: string | null
           external_payment_url?: string | null
+          fiscal_invoice_id?: string | null
+          fiscal_invoice_number?: string | null
+          fiscal_invoice_pdf_url?: string | null
+          fiscal_invoice_status?: string | null
+          fiscal_invoice_xml_url?: string | null
+          fiscal_issued_at?: string | null
           id?: string
           notes?: string | null
           paid_at?: string | null
@@ -12376,6 +12388,12 @@ export type Database = {
           due_date?: string
           external_invoice_id?: string | null
           external_payment_url?: string | null
+          fiscal_invoice_id?: string | null
+          fiscal_invoice_number?: string | null
+          fiscal_invoice_pdf_url?: string | null
+          fiscal_invoice_status?: string | null
+          fiscal_invoice_xml_url?: string | null
+          fiscal_issued_at?: string | null
           id?: string
           notes?: string | null
           paid_at?: string | null
