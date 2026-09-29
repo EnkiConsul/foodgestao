@@ -827,11 +827,15 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
     const hasDueDate = !!dueDate && type !== "transferencia";
 
+    // Recorrente novo: a 1ª ocorrência nasce na data de vencimento informada,
+    // não na data de hoje (mês vigente).
+    const baseDate = !isEditing && isRecurring && hasDueDate ? dueDate : date;
+
     const payload: any = {
       transaction_type: type,
       description: description.trim(),
       amount: numAmount,
-      transaction_date: date,
+      transaction_date: baseDate,
       account_id: effectiveAccountId || null,
       credit_card_id: effectiveCardId || null,
       destination_account_id: type === "transferencia" ? destinationAccountId : null,
