@@ -41,8 +41,15 @@ describe("cardDescription", () => {
     );
     expect(hasMerchantName("PONTO DA CARNE           GOIANIA      BR")).toBe(true);
     expect(formatProviderDescription("Pix recebido de ACME", {})).toBe("Pix recebido de ACME");
+    // A descrição editada pelo usuário tem prioridade sobre o texto bruto do banco.
     expect(
       formatProviderDescription("Descrição reescrita", {
+        descriptionRaw: "PONTO DA CARNE           GOIANIA      BR",
+      }),
+    ).toBe("Descrição reescrita");
+    // Sem descrição editada, cai no texto bruto do banco.
+    expect(
+      formatProviderDescription(null, {
         descriptionRaw: "PONTO DA CARNE           GOIANIA      BR",
       }),
     ).toBe("PONTO DA CARNE GOIANIA BR");
