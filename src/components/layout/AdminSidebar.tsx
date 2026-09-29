@@ -63,6 +63,7 @@ const billingItems = [
   { title: "Faturamento", url: "/admin/faturamento", icon: Receipt },
   { title: "Cupons", url: "/admin/cupons", icon: Tag },
   { title: "Faturas", url: "/admin/faturas", icon: Receipt },
+  { title: "Régua de Cobrança", url: "/admin/regua-cobranca", icon: Mail },
   { title: "Webhooks Asaas", url: "/admin/webhooks-asaas", icon: Webhook },
   { title: "Webhook Pluggy", url: "/admin/pluggy-webhook", icon: Webhook },
   { title: "Status Pluggy", url: "/admin/pluggy-status", icon: Webhook },
