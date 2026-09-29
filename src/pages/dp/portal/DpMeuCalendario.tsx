@@ -1421,7 +1421,7 @@ export default function DpMeuCalendario() {
                   {diasRemarcacao.map((d) => (
                     <SelectItem key={d.iso} value={d.iso}>
                       {formatBR(parseYMD(d.iso))}
-                      {d.disponivel ? "" : ` — ${d.motivo}`}
+                      {d.disponivel ? "" : ` — ${d.motivo} (depende de aprovação do gestor)`}
                     </SelectItem>
                   ))}
                 </SelectContent>
