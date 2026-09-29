@@ -13,6 +13,7 @@ import {
   ArrowLeft,
   LogOut,
   Webhook,
+  Mail,
   FileText,
   Landmark,
   Search,
