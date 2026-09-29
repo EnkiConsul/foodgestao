@@ -54,20 +54,28 @@ function vigentesPorModulo(lista: MinhaAssinatura[]): MinhaAssinatura[] {
   );
 }
 
-/** Assinaturas do titular conectado, com plano, adicionais e valores. */
+/**
+ * Assinaturas visíveis para o usuário conectado: as suas como titular e as das
+ * empresas em que o dono liberou a permissão "Assinatura e Faturas".
+ */
 export function useMinhasAssinaturas() {
   const { user } = useAuth();
+  const { idsVisiveis } = useAssinaturaAcesso();
+  const ids = idsVisiveis.join(",");
 
   return useQuery({
-    queryKey: ["minhas-assinaturas", user?.id],
+    queryKey: ["minhas-assinaturas", user?.id, ids],
     enabled: !!user,
     queryFn: async (): Promise<MinhaAssinatura[]> => {
+      const filtro = ids
+        ? `user_id.eq.${user!.id},company_id.in.(${ids})`
+        : `user_id.eq.${user!.id}`;
       const { data, error } = await supabase
         .from("subscriptions")
         .select(
           "*, plan:plans(*), addons:subscription_addons(id, quantity, status, price_cents, is_exempt, prorata_cents, prorata_billed_at, addon:plan_addons(id, code, name, description, price_cents, max_quantity))",
         )
-        .eq("user_id", user!.id)
+        .or(filtro)
         .order("created_at", { ascending: false });
       if (error) throw error;
 
