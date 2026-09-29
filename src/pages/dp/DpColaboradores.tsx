@@ -682,6 +682,27 @@ export default function DpColaboradores() {
         ]}
       />
 
+      {totalFichasPendentes > 0 && (
+        <button
+          type="button"
+          onClick={() => navigate("/dp/colaboradores/importar-ficha")}
+          className="flex w-full items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-left transition-colors hover:bg-primary/15"
+        >
+          <FileText className="h-5 w-5 shrink-0 text-primary" />
+          <span className="min-w-0 flex-1 text-sm">
+            <span className="font-semibold text-primary">
+              {totalFichasPendentes} {totalFichasPendentes === 1 ? "ficha de registro" : "fichas de registro"}
+            </span>{" "}
+            <span className="text-foreground/80">
+              {totalFichasPendentes === 1 ? "importada aguarda" : "importadas aguardam"} conferência e cadastro.
+            </span>
+          </span>
+          <span className="shrink-0 text-sm font-medium text-primary underline-offset-2 hover:underline">
+            Conferir agora
+          </span>
+        </button>
+      )}
+
       <Tabs value={origem} onValueChange={(v) => setOrigem(v as Origem)}>
         <DpTabsBar>
           {ORIGENS.map((o) => (
