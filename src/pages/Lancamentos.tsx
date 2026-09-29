@@ -740,6 +740,11 @@ export default function Lancamentos() {
     const rows: DisplayRow[] = [];
 
     transactions.forEach((t) => {
+      // Âncora de parcelamento: registro pai que guarda o valor TOTAL do
+      // parcelamento (installment_total preenchido, sem installment_number).
+      // Ele existe apenas para amarrar a série — nunca é uma conta a pagar e
+      // não pode aparecer na lista nem somar nos totais do mês.
+      if (!t.parent_transaction_id && (t.installment_total ?? 0) > 0 && t.installment_number == null) return;
       const matchSearch = !search || t.description.toLowerCase().includes(search.toLowerCase());
       if (!matchSearch) return;
       const eff = t.transaction_type;
