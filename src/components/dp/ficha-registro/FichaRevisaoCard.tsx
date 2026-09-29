@@ -680,30 +680,109 @@ export function FichaRevisaoCard({
 
 
 
-        {!jornada.vazia && (
+        {(!jornada.vazia || !aplicado) && (
           <div className="rounded-lg border bg-muted/30 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium">Horário da ficha</p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-medium">
+                {jornadaEditada ? "Horário ajustado nesta conferência" : "Horário da ficha"}
+              </p>
               {!aplicado && (
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground">Cadastrar</Label>
-                  <Switch checked={usarJornada} onCheckedChange={setUsarJornada} />
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-[11px]"
+                    onClick={() => {
+                      setJornadaEditada((j) => j ?? jornadaEditavel(jornadaLida));
+                      setEditandoJornada((v) => !v);
+                      setUsarJornada(true);
+                    }}
+                  >
+                    {editandoJornada ? "Fechar edição" : jornada.vazia ? "Definir horários" : "Editar horários"}
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground">Cadastrar</Label>
+                    <Switch checked={usarJornada} onCheckedChange={setUsarJornada} />
+                  </div>
                 </div>
               )}
             </div>
-            <div className="mt-2 grid grid-cols-2 gap-1 text-xs sm:grid-cols-4 lg:grid-cols-7">
-              {jornada.dias.map((d) => (
-                <div key={d.dow} className="rounded border bg-background px-2 py-1">
-                  <span className="font-medium">{DOW_LABEL[d.dow]}</span>
-                  <span className="ml-1 text-muted-foreground">
-                    {d.trabalha && d.entrada && d.saida ? `${d.entrada}–${d.saida}` : "folga"}
-                  </span>
-                </div>
-              ))}
-            </div>
+            {jornada.vazia ? (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Nenhum horário foi lido nesta ficha. Você pode informar os horários à mão.
+              </p>
+            ) : (
+              <div className="mt-2 grid grid-cols-2 gap-1 text-xs sm:grid-cols-4 lg:grid-cols-7">
+                {jornada.dias.map((d) => (
+                  <div key={d.dow} className="rounded border bg-background px-2 py-1">
+                    <span className="font-medium">{DOW_LABEL[d.dow]}</span>
+                    <span className="ml-1 text-muted-foreground">
+                      {d.trabalha && d.entrada && d.saida ? `${d.entrada}–${d.saida}` : "folga"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {editandoJornada && !aplicado && (
+              <div className="mt-3 space-y-2 rounded-md border bg-background p-2">
+                {(jornadaEditada ?? jornadaEditavel(jornadaLida)).dias.map((d) => (
+                  <div key={d.dow} className="flex flex-wrap items-center gap-2">
+                    <span className="w-9 text-xs font-medium">{DOW_LABEL[d.dow]}</span>
+                    <Switch
+                      checked={d.trabalha}
+                      onCheckedChange={(v) => alterarDiaJornada(d.dow, { trabalha: v })}
+                      aria-label={`Trabalha ${DOW_LABEL[d.dow]}`}
+                    />
+                    <Input
+                      type="time"
+                      className="h-8 w-[104px]"
+                      value={d.entrada ?? ""}
+                      disabled={!d.trabalha}
+                      onChange={(e) => alterarDiaJornada(d.dow, { entrada: e.target.value || null })}
+                    />
+                    <span className="text-xs text-muted-foreground">até</span>
+                    <Input
+                      type="time"
+                      className="h-8 w-[104px]"
+                      value={d.saida ?? ""}
+                      disabled={!d.trabalha}
+                      onChange={(e) => alterarDiaJornada(d.dow, { saida: e.target.value || null })}
+                    />
+                    <Input
+                      type="number"
+                      min={0}
+                      className="h-8 w-[92px]"
+                      placeholder="Interv."
+                      value={d.intervalo_minutos ?? ""}
+                      disabled={!d.trabalha}
+                      onChange={(e) =>
+                        alterarDiaJornada(d.dow, {
+                          intervalo_minutos: e.target.value === "" ? null : Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                ))}
+                <p className="text-[11px] text-muted-foreground">
+                  Intervalo em minutos. Desligue o dia para marcar folga. Saída menor que a entrada indica virada de
+                  meia-noite.
+                </p>
+                {jornadaEditada && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-[11px]"
+                    onClick={() => { setJornadaEditada(null); setEditandoJornada(false); }}
+                  >
+                    Voltar ao horário lido na ficha
+                  </Button>
+                )}
+              </div>
+            )}
             {jornada.vira_meia_noite && (
               <p className="mt-2 text-[11px] text-muted-foreground">A saída acontece no dia seguinte.</p>
             )}
+
             {!aplicado && usarJornada && (
               <div className="mt-3 space-y-1">
                 <Label className="text-xs">Turno correspondente</Label>
