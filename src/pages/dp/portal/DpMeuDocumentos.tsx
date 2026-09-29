@@ -1,33 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Download, FileText, Eye, DownloadCloud, Upload, Ban,
+  Download, FileText, Eye, Ban, ChevronDown, SlidersHorizontal,
   CheckCircle2, Clock, XCircle, HeartPulse, ShieldAlert, Scale, Coins, FileClock, Files, PenLine, Printer,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { sanitizeStorageFilename } from "@/lib/storage";
 import { useMeusDocumentos, type UnifiedDoc, type UnifiedTipo } from "@/hooks/portal/useMeusDocumentos";
 import { Button } from "@/components/ui/button";
 import { usePortalAcesso } from "@/hooks/usePortalAcesso";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import { certificadoValidacaoPdf } from "@/lib/dp/documento-certificado";
 import { abrirArquivoDp } from "@/lib/dp/abrirDocumento";
 import { linkDocumentoAssinado } from "@/lib/documentoArquivo";
 import { Receipt } from "lucide-react";
-import { baixarCsv } from "@/lib/dp/portal-csv";
 import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/ColaboradorDocumentosPanel";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { cn } from "@/lib/utils";
@@ -39,7 +34,7 @@ import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import type { Database } from "@/integrations/supabase/types";
 import { notifyError } from "@/lib/notifyError";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
-import { registrarDocumento, excluirDocumento } from "@/lib/dp/documentos-oficial";
+import { excluirDocumento } from "@/lib/dp/documentos-oficial";
 
 type Tipo = Database["public"]["Enums"]["dp_documento_tipo"];
 
@@ -85,12 +80,6 @@ const ALL_TABS: { key: "all" | UnifiedTipo; label: string; requiresPonto?: boole
 
 const BUCKET = "dp-documentos";
 
-// Tipos que o colaborador pode enviar (subset — o resto é gerado pelo DP).
-const TIPOS_SUBMETIVEIS: { value: Tipo; label: string }[] = [
-  { value: "atestado", label: "Atestado" },
-  { value: "outros", label: "Outros" },
-];
-
 export default function DpMeuDocumentos() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -109,12 +98,8 @@ export default function DpMeuDocumentos() {
   const [search, setSearch] = useState("");
 
   const [preview, setPreview] = useState<UnifiedDoc | null>(null);
-  const [openSubmit, setOpenSubmit] = useState(false);
-  const [form, setForm] = useState<{ tipo: Tipo; titulo: string; descricao: string; referencia_data: string }>({
-    tipo: "atestado", titulo: "", descricao: "", referencia_data: "",
-  });
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  /** Filtros recolhidos por padrão no celular — a lista aparece primeiro. */
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const { somenteDocumentos } = usePortalAcesso();
 
   const visibleTabs = useMemo(
@@ -192,22 +177,17 @@ export default function DpMeuDocumentos() {
     return Array.from(m.entries());
   }, [filtered]);
 
-  /** Planilha com os documentos que estão na tela (respeita busca e filtros). */
-  const baixarLista = () => {
-    baixarCsv(
-      `meus-documentos-${new Date().toISOString().slice(0, 10)}`,
-      ["Data", "Competência", "Tipo", "Documento", "Situação", "Origem", "Arquivo"],
-      filtered.map((d) => [
-        new Date(d.created_at).toLocaleDateString("pt-BR"),
-        d.competencia_label,
-        d.tipo_label,
-        d.titulo,
-        d.status_label,
-        d.origem === "meu_envio" ? "Meu envio" : "Recebido do DP",
-        d.arquivo_nome ?? "",
-      ]),
-    );
-  };
+  /** Quantos filtros estão em uso — mostrado no botão "Filtrar" do celular. */
+  const filtrosAtivos = useMemo(
+    () =>
+      [search.trim() !== "", filtroMes !== "todos", filtroAno !== "todos", filtroStatus !== "todos"].filter(
+        Boolean,
+      ).length,
+    [search, filtroMes, filtroAno, filtroStatus],
+  );
+
+
+
 
   const download = async (d: UnifiedDoc) => {
     if (!d.file_path) return toast.warning("Sem arquivo anexado.");
@@ -224,51 +204,6 @@ export default function DpMeuDocumentos() {
     toast.error("Não foi possível abrir o documento agora. Tente novamente.");
   };
 
-  const downloadAll = async () => {
-    const withFile = filtered.filter((d) => d.file_path);
-    if (withFile.length === 0) return;
-    toast.info(`Abrindo ${withFile.length} download(s)…`);
-    for (const d of withFile) {
-      const { data } = await supabase.storage.from(d.bucket).createSignedUrl(d.file_path!, 120);
-      if (data?.signedUrl) window.open(data.signedUrl, "_blank");
-      await new Promise((r) => setTimeout(r, 250));
-    }
-  };
-
-  const submit = async () => {
-    const files = fileRef.current?.files;
-    if (!colaborador) return toast.error("Colaborador não encontrado");
-    if (!files || files.length === 0) return toast.error("Selecione o arquivo");
-    if (!form.titulo.trim()) return toast.error("Título obrigatório");
-    setUploading(true);
-    try {
-      const file = await prepararUpload(BUCKET, files[0]);
-      const path = `${colaborador.company_id}/${colaborador.id}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
-      const up = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
-      if (up.error) throw up.error;
-      await registrarDocumento({
-        company_id: colaborador.company_id,
-        colaborador_id: colaborador.id,
-        tipo: form.tipo,
-        titulo: form.titulo.trim(),
-        descricao: form.descricao.trim() || null,
-        file_path: path,
-        file_name: file.name,
-        file_size: file.size,
-        mime_type: file.type,
-        referencia_data: form.referencia_data || null,
-      });
-      toast.success("Documento enviado para aprovação");
-      qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
-      setOpenSubmit(false);
-      setForm({ tipo: "atestado", titulo: "", descricao: "", referencia_data: "" });
-      if (fileRef.current) fileRef.current.value = "";
-    } catch (e: any) {
-      toast.error("Erro ao enviar", { description: e.message ?? String(e) });
-    } finally {
-      setUploading(false);
-    }
-  };
 
   /** Aceite digital do documento — registra data, hora e dispositivo. */
   const aceitar = useMutation({
@@ -346,67 +281,15 @@ export default function DpMeuDocumentos() {
   return (
     <DpPage>
       <Helmet><title>Meus documentos — Portal</title></Helmet>
+      {/*
+        O colaborador não envia documento avulso por aqui: atestado vai pela tela
+        de Atestados e os demais pelo checklist de pendências. Downloads em lote
+        também saíram — cada documento tem o próprio botão de baixar.
+      */}
       <DpPageHeader
         icon={FileText}
         title="Meus documentos"
         description="Todos os seus documentos em um único lugar."
-        actions={
-          <div className="flex gap-2 flex-wrap">
-            <Button size="sm" variant="outline" onClick={downloadAll} disabled={filtered.filter((d) => d.file_path).length === 0}>
-              <DownloadCloud className="h-4 w-4 mr-1" /> Baixar todos ({filtered.filter((d) => d.file_path).length})
-            </Button>
-            <Button size="sm" variant="outline" onClick={baixarLista} disabled={filtered.length === 0}>
-              <DownloadCloud className="h-4 w-4 mr-1" /> Baixar meus dados
-            </Button>
-            {/* Desligado no prazo de 30 dias: só consulta e download. */}
-            <Dialog open={openSubmit && !somenteDocumentos} onOpenChange={setOpenSubmit}>
-              {!somenteDocumentos && (
-                <DialogTrigger asChild>
-                  <Button size="sm"><Upload className="h-4 w-4 mr-1" /> Enviar documento</Button>
-                </DialogTrigger>
-              )}
-              <DialogContent className="sm:max-w-md max-h-[90svh] overflow-y-auto">
-                <DialogHeader><DialogTitle>Enviar documento para aprovação</DialogTitle></DialogHeader>
-                <div className="grid gap-3 py-2">
-                  <div className="grid gap-1.5">
-                    <Label>Título *</Label>
-                    <Input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} placeholder="Ex.: Atestado médico 16/07/2026" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="grid gap-1.5">
-                      <Label>Tipo</Label>
-                      <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Tipo })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {TIPOS_SUBMETIVEIS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-1.5">
-                      <Label>Data referência</Label>
-                      <Input type="date" value={form.referencia_data} onChange={(e) => setForm({ ...form, referencia_data: e.target.value })} />
-                    </div>
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label>Observações</Label>
-                    <Textarea rows={2} value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label>Arquivo *</Label>
-                    <Input ref={fileRef} type="file" accept=".pdf,image/*" />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Seu envio ficará em análise até que o DP aprove ou recuse.
-                  </p>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setOpenSubmit(false)}>Cancelar</Button>
-                  <Button onClick={submit} disabled={uploading}>{uploading ? "Enviando…" : "Enviar"}</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        }
       />
 
       {/* Tabs por tipo */}
@@ -434,9 +317,24 @@ export default function DpMeuDocumentos() {
         </Tabs>
       )}
 
-      {/* Filtros */}
+      {/* Filtros — recolhidos no celular, sempre visíveis no desktop */}
       <DpFilterCard>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex w-full items-center justify-between md:hidden"
+          onClick={() => setFiltrosAbertos((v) => !v)}
+          aria-expanded={filtrosAbertos}
+        >
+          <span className="flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4" /> Filtrar
+            {filtrosAtivos > 0 && (
+              <Badge variant="secondary" className="ml-1">{filtrosAtivos}</Badge>
+            )}
+          </span>
+          <ChevronDown className={cn("h-4 w-4 transition-transform", filtrosAbertos && "rotate-180")} />
+        </Button>
+        <div className={cn("grid grid-cols-2 gap-3 md:grid-cols-4", filtrosAbertos ? "mt-3" : "hidden md:grid")}>
           <div>
             <Label className="text-xs">Buscar</Label>
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Título ou tipo…" />
@@ -475,6 +373,7 @@ export default function DpMeuDocumentos() {
           </div>
         </div>
       </DpFilterCard>
+
 
       {/* Lista */}
       {isError ? (

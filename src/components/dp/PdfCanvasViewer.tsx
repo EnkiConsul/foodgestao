@@ -72,7 +72,9 @@ export function PdfCanvasViewer({ url, title }: Props) {
         if (cancelado) return;
         const page = await doc.getPage(n);
         const base = page.getViewport({ scale: 1 });
-        const larguraDisponivel = Math.max(container.clientWidth - 32, 320);
+        // No celular a página precisa caber na largura real do container:
+        // forçar um mínimo maior que a tela obrigava o usuário a pinçar.
+        const larguraDisponivel = Math.max(container.clientWidth - 24, 240);
         const escala = (larguraDisponivel / base.width) * zoom;
         const viewport = page.getViewport({ scale: escala });
         const canvas = document.createElement("canvas");
@@ -81,7 +83,7 @@ export function PdfCanvasViewer({ url, title }: Props) {
         canvas.height = Math.floor(viewport.height * dpr);
         canvas.style.width = `${Math.floor(viewport.width)}px`;
         canvas.style.height = `${Math.floor(viewport.height)}px`;
-        canvas.className = "mx-auto mb-4 shadow-md bg-white rounded";
+        canvas.className = "mx-auto mb-4 shadow-md bg-white rounded max-w-full";
         const ctx = canvas.getContext("2d");
         if (!ctx) continue;
         container.appendChild(canvas);
@@ -136,7 +138,7 @@ export function PdfCanvasViewer({ url, title }: Props) {
           <ZoomIn className="size-4" />
         </Button>
       </div>
-      <div ref={containerRef} className="flex-1 min-h-0 overflow-auto p-4" aria-label={title}>
+      <div ref={containerRef} className="flex-1 min-h-0 overflow-auto p-2 sm:p-4" aria-label={title}>
         {carregando && (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

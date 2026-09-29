@@ -201,16 +201,24 @@ export default function DpMeuCalendario() {
 
 
 
+  /**
+   * Colegas da minha loja. A leitura direta de `dp_colaboradores` é restrita ao
+   * próprio registro, então o portal usa a consulta segura da equipe, que
+   * devolve apenas nome, nome social, função e dia de folga fixa.
+   */
   const colaboradoresQuery = useQuery({
-    queryKey: ["dp_colabs_meu_cal", companyId],
+    queryKey: ["dp_equipe_meu_cal", companyId, myUnidade],
     enabled: !!companyId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_colaboradores")
-        .select("id, nome, folga_fixa_semana, ativo, unidade_id")
-        .eq("company_id", companyId!);
+      const { data, error } = await supabase.rpc("dp_portal_equipe_unidade");
       if (error) throw error;
-      return (data ?? []) as ColaboradorRecord[];
+      return ((data ?? []) as any[]).map((c) => ({
+        id: c.id,
+        nome: c.nome_social || c.nome,
+        folga_fixa_semana: c.folga_fixa_semana ?? null,
+        ativo: c.ativo,
+        unidade_id: c.unidade_id,
+      })) as ColaboradorRecord[];
     },
   });
 
@@ -432,13 +440,11 @@ export default function DpMeuCalendario() {
 
   const occupantsByDate = useMemo(() => {
     const days = eachDayOfInterval({ start: range.startDate, end: range.endDate });
-    // Também filtra folgas/pendentes pela unidade
-    const filteredFolgas = myUnidade
-      ? folgas.filter((f) => f.dp_colaboradores?.unidade_id === myUnidade)
-      : folgas;
-    const filteredPend = myUnidade
-      ? pendentes.filter((p) => p.dp_colaboradores?.unidade_id === myUnidade)
-      : pendentes;
+    // A unidade vem da lista de colegas: o portal não lê o cadastro dos outros,
+    // então filtrar pelo vínculo aninhado deixava o calendário vazio.
+    const idsUnidade = new Set(colaboradores.map((c) => c.id));
+    const filteredFolgas = myUnidade ? folgas.filter((f) => idsUnidade.has(f.colaborador_id)) : folgas;
+    const filteredPend = myUnidade ? pendentes.filter((p) => idsUnidade.has(p.colaborador_id)) : pendentes;
     return buildOccupantsByDate({
       days,
       colaboradores,
@@ -951,6 +957,20 @@ export default function DpMeuCalendario() {
   }, [selectedDay, folgas, meRef.data?.id]);
 
   /**
+   * Minha folga do mês visto que pode ser movida para o dia selecionado. Assim o
+   * colaborador clica no dia que quer e já muda a folga, sem precisar abrir
+   * primeiro o dia em que a folga está marcada.
+   */
+  const folgaParaMover = useMemo(() => {
+    if (!selectedDay || !meRef.data?.id) return null;
+    if (selectedDay.status === "past" || selectedDay.status === "mine") return null;
+    const candidata = minhasFolgasFuturas.find(
+      (f) => f.data !== selectedDay.iso && f.data.slice(0, 7) === selectedDay.iso.slice(0, 7),
+    );
+    return candidata ?? null;
+  }, [selectedDay, meRef.data?.id, minhasFolgasFuturas]);
+
+  /**
    * Exceção também vale em dia de meio de semana: é justamente nele que o
    * colaborador precisa pedir uma folga fora da regra.
    */
@@ -1150,6 +1170,20 @@ export default function DpMeuCalendario() {
                   <p className="text-xs text-muted-foreground">
                     Somente fins de semana podem ser marcados diretamente. Use "Solicitar exceção" para outros dias.
                   </p>
+                )}
+                {folgaParaMover && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setRemarcarOpen(folgaParaMover.data);
+                      setRemarcarNova(selectedDay.iso);
+                      setRemarcarMotivo("");
+                      setRemarcarAviso(null);
+                    }}
+                  >
+                    <CalendarClock className="mr-2 h-4 w-4" />
+                    Mudar minha folga de {formatBR(parseYMD(folgaParaMover.data))} para este dia
+                  </Button>
                 )}
                 {selectedDay.status === "mine" && minhaFolgaAutomatica && (
                   <p className="rounded-xl border border-sky-200 bg-sky-500/10 px-3 py-2 text-xs font-medium text-sky-700">
@@ -1387,7 +1421,7 @@ export default function DpMeuCalendario() {
                   {diasRemarcacao.map((d) => (
                     <SelectItem key={d.iso} value={d.iso}>
                       {formatBR(parseYMD(d.iso))}
-                      {d.disponivel ? "" : ` — ${d.motivo}`}
+                      {d.disponivel ? "" : ` — ${d.motivo} (depende de aprovação do gestor)`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1397,12 +1431,17 @@ export default function DpMeuCalendario() {
                   Não há outro dia de descanso disponível neste mês. Fale com o setor de pessoal.
                 </p>
               )}
-              {diaRemarcacaoEscolhido && !diaRemarcacaoEscolhido.disponivel && (
-                <p className="text-xs text-amber-700 mt-1">
-                  {diaRemarcacaoEscolhido.motivo}. Você pode pedir a mudança ao setor de pessoal.
-                </p>
+              {((diaRemarcacaoEscolhido && !diaRemarcacaoEscolhido.disponivel) || remarcarAviso) && (
+                <div className="mt-2 rounded-xl border border-amber-200 bg-amber-500/10 p-3 text-xs text-amber-800">
+                  <p className="font-semibold">
+                    {remarcarAviso ?? `${diaRemarcacaoEscolhido?.motivo}.`}
+                  </p>
+                  <p className="mt-1">
+                    A mudança para este dia depende da aprovação do gestor. Até a decisão, sua folga de{" "}
+                    <b>{remarcarOpen && formatBR(parseYMD(remarcarOpen))}</b> continua marcada.
+                  </p>
+                </div>
               )}
-              {remarcarAviso && <p className="text-xs text-amber-700 mt-1">{remarcarAviso}</p>}
             </div>
             <div>
               <Label className="flex items-center gap-2">
