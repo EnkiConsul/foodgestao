@@ -132,6 +132,12 @@ export function FichaRevisaoCard({
   const [formaPagamento, setFormaPagamento] = useState<string | null>(null);
   const [possuiFolhaPonto, setPossuiFolhaPonto] = useState<boolean | null>(null);
   const [optanteAdiantamento, setOptanteAdiantamento] = useState<boolean | null>(null);
+  const escolhasPendentes = escolhasObrigatoriasFaltando({
+    regime,
+    formaPagamento,
+    possuiFolhaPonto,
+    optanteAdiantamento,
+  });
   const [trechos, setTrechos] = useState<Record<string, boolean>>({});
   const [verTexto, setVerTexto] = useState(false);
   const [cargoDialog, setCargoDialog] = useState(false);
@@ -271,15 +277,9 @@ export function FichaRevisaoCard({
   };
 
   const executar = (camposPermitidos: string[] | null) => {
-    const escolhasFaltando = escolhasObrigatoriasFaltando({
-      regime,
-      formaPagamento,
-      possuiFolhaPonto,
-      optanteAdiantamento,
-    });
-    if (escolhasFaltando.length > 0) {
+    if (escolhasPendentes.length > 0) {
       setCompletarAberto(true);
-      toast.error(mensagemEscolhasObrigatorias(escolhasFaltando));
+      toast.error(mensagemEscolhasObrigatorias(escolhasPendentes));
       return;
     }
     if (preadmissaoId && faltaDecidir > 0) {
@@ -537,9 +537,9 @@ export function FichaRevisaoCard({
             >
               <span className="text-sm font-medium">Completar cadastro</span>
               <span className="flex items-center gap-2">
-                {faltando.length > 0 ? (
+                {faltando.length + escolhasPendentes.length > 0 ? (
                   <Badge variant="outline" className="border-amber-500/50 text-[11px] text-amber-600 dark:text-amber-400">
-                    {faltando.length} campo(s) em branco
+                    {faltando.length + escolhasPendentes.length} campo(s) em branco
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="border-emerald-500/50 text-[11px] text-emerald-600 dark:text-emerald-400">
@@ -572,14 +572,13 @@ export function FichaRevisaoCard({
                   )}
 
                   <div className="space-y-1">
-                    <Label className="text-xs">Vínculo</Label>
+                      <Label className="text-xs">Vínculo *</Label>
                     <Select
-                      value={regime ?? "__none"}
-                      onValueChange={(v) => setRegimeEscolhido(v === "__none" ? null : v)}
+                        value={regime ?? undefined}
+                        onValueChange={setRegimeEscolhido}
                     >
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__none">Não informado</SelectItem>
                         {REGIMES.map((r) => (
                           <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                         ))}
@@ -793,6 +792,12 @@ export function FichaRevisaoCard({
             </div>
           );
         })()}
+
+        {!aplicado && escolhasPendentes.length > 0 && (
+          <p className="text-[11px] text-amber-600 dark:text-amber-400">
+            Selecione antes de criar: {escolhasPendentes.join(", ")}.
+          </p>
+        )}
 
         {aplicado && item.colaborador_id && onAbrirCadastro && (
           <div className="flex justify-end">
