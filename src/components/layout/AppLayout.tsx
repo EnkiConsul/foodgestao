@@ -13,6 +13,7 @@ import { Outlet } from "react-router-dom";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { MfaNudgeDialog } from "@/components/security/MfaNudgeDialog";
 import { TrialCountdownBanner } from "@/components/billing/TrialCountdownBanner";
+import { AtrasoPagamentoBanner } from "@/components/billing/AtrasoPagamentoBanner";
 
 export function AppLayout() {
   useBillingRealtime();
