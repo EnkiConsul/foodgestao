@@ -202,22 +202,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       return;
     }
 
-    if (activePeriod === "semanal") {
-      const targetWd = parseLocalDate(date).getDay();
-      if (parseLocalDate(dueDate).getDay() !== targetWd) {
-        setDueDate(shiftToWeekday(dueDate, targetWd));
-      }
-      return;
-    }
-
-    if (activePeriod === "mensal" || activePeriod === "quinzenal") {
-      const targetDay = parseLocalDate(date).getDate();
-      const dueParsed = parseLocalDate(dueDate);
-      const clamped = Math.min(targetDay, lastDayOfMonth(dueParsed.getFullYear(), dueParsed.getMonth()));
-      if (dueParsed.getDate() !== clamped) {
-        setDueDate(shiftToMonthDay(dueDate, targetDay));
-      }
-    }
+    // A data de vencimento é a fonte da verdade: não reescrevemos o dia/semana
+    // dela a partir da data de lançamento. O seletor de dia/dia da semana e a
+    // digitação manual já atualizam `dueDate` diretamente, e o efeito abaixo
+    // sincroniza `date` a partir dela (1ª ocorrência nasce no vencimento).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, isRecurring, recurrenceType, isInstallment, installmentPeriod]);
 
