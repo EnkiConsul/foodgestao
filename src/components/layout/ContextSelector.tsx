@@ -75,8 +75,11 @@ export function ContextSelector() {
         ) : (
           <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         )}
-        <span className="min-w-0 flex-1 truncate text-left">
-          {currentLabel || "Selecione a empresa"}
+        <span className="flex min-w-0 flex-1 flex-col text-left leading-tight">
+          <span className="truncate">{currentLabel || "Selecione a empresa"}</span>
+          {currentCnpj && (
+            <span className="truncate text-[10px] font-normal text-muted-foreground">{currentCnpj}</span>
+          )}
         </span>
       </SelectTrigger>
 
@@ -84,11 +87,19 @@ export function ContextSelector() {
         {companies.map((c) => (
           <SelectItem key={c.id} value={`pj|${c.id}`}>
             <span className="flex items-center gap-2">
-              <Building2 aria-hidden className="h-3.5 w-3.5" />
-              <span className="truncate max-w-[220px]">{c.trade_name || c.name}</span>
+              <Building2 aria-hidden className="h-3.5 w-3.5 shrink-0" />
+              <span className="flex min-w-0 flex-col leading-tight">
+                <span className="truncate max-w-[220px]">{c.trade_name || c.name}</span>
+                {formatCnpj(c.cnpj ?? null) && (
+                  <span className="truncate max-w-[220px] text-[10px] text-muted-foreground">
+                    {formatCnpj(c.cnpj ?? null)}
+                  </span>
+                )}
+              </span>
             </span>
           </SelectItem>
         ))}
+
       </SelectContent>
     </Select>
   );
