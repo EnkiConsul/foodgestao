@@ -189,6 +189,57 @@ export function ContactFormDialog({
   // Bloqueio de duplicidade: procura outro contato com o mesmo CPF/CNPJ comparando a
   // chave normalizada (sem máscara, sem zeros perdidos), para evitar falsos negativos.
   const [duplicate, setDuplicate] = useState<{ id: string; name: string } | null>(null);
+  // Empresas às quais o cadastro já existente está vinculado. Serve para oferecer o
+  // vínculo com a empresa em uso em vez de apenas bloquear a criação.
+  const [dupCompanyIds, setDupCompanyIds] = useState<string[] | null>(null);
+  const [vinculando, setVinculando] = useState(false);
+
+  useEffect(() => {
+    if (!duplicate) { setDupCompanyIds(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase.from("contact_companies" as any) as any)
+        .select("company_id")
+        .eq("contact_id", duplicate.id);
+      if (!cancelled) setDupCompanyIds((data ?? []).map((r: any) => r.company_id));
+    })();
+    return () => { cancelled = true; };
+  }, [duplicate]);
+
+  const empresaAtual = companies.find((c) => c.id === selectedCompanyId);
+  const dupEmpresasNomes = (dupCompanyIds ?? [])
+    .map((id) => companies.find((c) => c.id === id))
+    .map((c) => (c ? c.trade_name || c.name : "outra empresa"));
+  const dupFaltaVinculo =
+    !!duplicate && !!selectedCompanyId && !!dupCompanyIds && !dupCompanyIds.includes(selectedCompanyId);
+
+  /**
+   * Vincula o cadastro já existente à empresa em uso e devolve o id para o
+   * formulário que abriu o diálogo (ex.: lançamento) já selecionar o contato.
+   */
+  const vincularExistente = async () => {
+    if (!duplicate || !selectedCompanyId) return;
+    setVinculando(true);
+    const { error } = await supabase
+      .from("contact_companies" as any)
+      .insert({ contact_id: duplicate.id, company_id: selectedCompanyId } as any);
+    setVinculando(false);
+    if (error) {
+      toast.error("Não foi possível vincular o cadastro a esta empresa", { description: error.message });
+      return;
+    }
+    await supabase.rpc("insert_audit_log", {
+      _action: "contact_company_linked",
+      _entity_type: "contact",
+      _entity_id: duplicate.id,
+      _details: { target_name: duplicate.name, company_id: selectedCompanyId },
+    });
+    invalidateDuplicateCache();
+    toast.success(`${duplicate.name} agora está disponível nesta empresa`);
+    onOpenChange(false);
+    onSaved(duplicate.id);
+  };
+
   const docDigitsLive = normalizeDocumento(document);
   useEffect(() => {
     if (docDigitsLive.length !== 11 && docDigitsLive.length !== 14) {
@@ -331,7 +382,7 @@ export function ContactFormDialog({
       if (dup) {
         setDuplicate(dup);
         toast.error("CPF/CNPJ já cadastrado", {
-          description: `Já existe o contato "${dup.name}" com este documento. Selecione-o na lista em vez de criar outro.`,
+          description: `Já existe o contato "${dup.name}" com este documento. Use o aviso acima para vinculá-lo a esta empresa em vez de criar outro.`,
         });
         return;
       }
@@ -342,7 +393,7 @@ export function ContactFormDialog({
     if (dupNome) {
       setDuplicate(dupNome);
       toast.error("Nome já cadastrado", {
-        description: `Já existe o contato "${dupNome.name}". Selecione-o na lista em vez de criar outro.`,
+        description: `Já existe o contato "${dupNome.name}". Use o aviso acima para vinculá-lo a esta empresa em vez de criar outro.`,
       });
       return;
     }
@@ -423,6 +474,26 @@ export function ContactFormDialog({
           <DialogTitle>{editContact ? "Editar Contato" : "Novo Contato"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {!editContact && dupFaltaVinculo && duplicate && (
+            <div className="rounded-md border border-warning/50 bg-warning/10 p-3 space-y-2">
+              <p className="text-sm font-medium">Este cadastro já existe</p>
+              <p className="text-xs text-muted-foreground">
+                {dupEmpresasNomes.length > 0
+                  ? `"${duplicate.name}" já está cadastrado em ${dupEmpresasNomes.join(", ")}, mas ainda não está vinculado a ${empresaAtual?.trade_name || empresaAtual?.name || "esta empresa"}.`
+                  : `"${duplicate.name}" já está cadastrado, mas ainda não está vinculado a ${empresaAtual?.trade_name || empresaAtual?.name || "esta empresa"}.`}
+              </p>
+              <Button type="button" size="sm" onClick={() => { void vincularExistente(); }} disabled={vinculando}>
+                {vinculando ? "Vinculando..." : "Vincular a esta empresa e usar"}
+              </Button>
+            </div>
+          )}
+          {!editContact && duplicate && dupCompanyIds && !dupFaltaVinculo && (
+            <div className="rounded-md border border-warning/50 bg-warning/10 p-3">
+              <p className="text-xs text-muted-foreground">
+                "{duplicate.name}" já está cadastrado nesta empresa — selecione-o na lista em vez de criar outro.
+              </p>
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
               <Label>Nome *</Label>
