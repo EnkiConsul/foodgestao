@@ -20,6 +20,7 @@ import { montarPayloadFicha } from "@/lib/dp/ficha-registro/payload";
 import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
 import { CargoCorrespondenciaDialog } from "./CargoCorrespondenciaDialog";
+import { UnidadeCorrespondenciaDialog } from "./UnidadeCorrespondenciaDialog";
 import { FichaComparacaoDialog } from "./FichaComparacaoDialog";
 import {
   jornadaDaFicha, useAplicarFicha, useIgnorarFicha, type FichaItem,
@@ -130,6 +131,7 @@ export function FichaRevisaoCard({
   const [trechos, setTrechos] = useState<Record<string, boolean>>({});
   const [verTexto, setVerTexto] = useState(false);
   const [cargoDialog, setCargoDialog] = useState(false);
+  const [unidadeDialog, setUnidadeDialog] = useState(false);
   const [comparacao, setComparacao] = useState(false);
   const [confirmouEmpresa, setConfirmouEmpresa] = useState(false);
   const [whatsappEditado, setWhatsappEditado] = useState(false);
@@ -505,6 +507,11 @@ export function FichaRevisaoCard({
                 <p className="text-[11px] text-muted-foreground">
                   Não conseguimos ler o CNPJ do empregador nesta ficha — confira a unidade.
                 </p>
+              )}
+              {!unidadeSugerida.unidade_id && (!!unidadeSugerida.cnpj_lido || !!unidadeSugerida.empregador_lido) && (
+                <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setUnidadeDialog(true)}>
+                  <Plus className="mr-1 h-3 w-3" /> Criar unidade com os dados da ficha
+                </Button>
               )}
             </div>
 
@@ -898,6 +905,16 @@ export function FichaRevisaoCard({
                   : "Criar cadastro"}
             </Button>
           </div>
+        )}
+
+        {unidadeDialog && (
+          <UnidadeCorrespondenciaDialog
+            open={unidadeDialog}
+            onOpenChange={setUnidadeDialog}
+            nome={unidadeSugerida.empregador_lido ?? ""}
+            cnpj={unidadeSugerida.cnpj_lido}
+            onCriada={(id) => setUnidadeId(id)}
+          />
         )}
 
         {cargoDialog && (
