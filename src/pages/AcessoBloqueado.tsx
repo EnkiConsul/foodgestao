@@ -95,6 +95,12 @@ export default function AcessoBloqueado() {
               </div>
             )}
 
+            {access?.isOwner === false ? (
+              <p className="rounded-lg border bg-muted/40 p-4 text-sm">
+                A regularização do plano é feita pelo responsável pela empresa. Fale com ele para
+                liberar o acesso novamente.
+              </p>
+            ) : (
             <div className="flex flex-wrap gap-2">
               {access?.faturaPendenteId && (
                 <Button asChild>
@@ -112,6 +118,7 @@ export default function AcessoBloqueado() {
                 <Link to="/assinatura">Plano e faturas</Link>
               </Button>
             </div>
+            )}
 
             <p className="text-xs text-muted-foreground">
               Após a confirmação do pagamento integral, o acesso é restabelecido — em até dois dias
