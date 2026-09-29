@@ -308,9 +308,11 @@ export function FichaRevisaoCard({
   const executar = (camposPermitidos: string[] | null) => {
     if (escolhasPendentes.length > 0) {
       setCompletarAberto(true);
+      setTentouCriar(true);
       toast.error(mensagemEscolhasObrigatorias(escolhasPendentes));
       return;
     }
+
     if (preadmissaoId && faltaDecidir > 0) {
       toast.error("Escolha, em cada divergência, qual valor vale antes de concluir.");
       return;
