@@ -151,7 +151,14 @@ export function useEnviarFichaPdf() {
         })
         .select("id")
         .single();
-      if (ins.error) throw ins.error;
+      if (ins.error) {
+        const negado = /row-level security|permission|42501/i.test(ins.error.message ?? "") || ins.error.code === "42501";
+        throw new Error(
+          negado
+            ? "Você não tem permissão para incluir colaboradores nesta empresa. Peça ao administrador para liberar \"Colaboradores\" com nível Inclusão."
+            : "Não foi possível registrar a importação. Tente novamente.",
+        );
+      }
       const importacaoId = (ins.data as { id: string }).id;
 
       const path = `${selectedCompanyId}/fichas/${importacaoId}/source.pdf`;
@@ -159,7 +166,22 @@ export function useEnviarFichaPdf() {
         contentType: "application/pdf",
         upsert: true,
       });
-      if (up.error) throw up.error;
+      if (up.error) {
+        const msg = up.error.message ?? "";
+        await supabase
+          .from("dp_ficha_importacoes")
+          .update({ status: "failed", erro_mensagem: `Falha no envio do PDF: ${msg}` })
+          .eq("id", importacaoId);
+        const negado = /row-level security|unauthorized|permission|403/i.test(msg);
+        const grande = /size|too large|413/i.test(msg);
+        throw new Error(
+          negado
+            ? "O envio do PDF foi recusado por falta de permissão. Peça ao administrador para liberar \"Colaboradores\" com nível Inclusão no seu acesso."
+            : grande
+              ? `O arquivo passa do limite permitido. Divida o PDF em partes menores.`
+              : "Não foi possível enviar o PDF. Verifique sua conexão e tente novamente.",
+        );
+      }
 
       await supabase.from("dp_ficha_importacoes").update({ arquivo_path: path }).eq("id", importacaoId);
 
