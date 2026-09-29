@@ -371,9 +371,68 @@ export default function DpFichaRegistroImportar() {
         </Card>
       )}
 
-      {pendentes.length > 0 && (
+      {divergencia.divergente && (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="space-y-3 p-4">
+            <p className="text-sm font-semibold text-destructive">
+              Este arquivo é de outro CNPJ
+            </p>
+            <p className="text-sm text-muted-foreground">
+              As fichas trazem o CNPJ {divergencia.cnpjs.map((c) => formatCnpj(c)).join(", ")}
+              {divergencia.empregadores.length > 0 ? ` (${divergencia.empregadores.join(", ")})` : ""}, mas você está
+              trabalhando na empresa {empresaAtual ? (empresaAtual.trade_name || empresaAtual.name) : "selecionada"}
+              {empresaAtual?.cnpj ? ` — ${formatCnpj(empresaAtual.cnpj)}` : ""}. Troque de empresa antes de conferir,
+              para os cadastros não nascerem no lugar errado.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {empresaDoArquivo && (
+                <Button
+                  size="sm"
+                  className="h-9"
+                  onClick={() => {
+                    setContext("pj", empresaDoArquivo.id);
+                    setImportacaoId(null);
+                    setConferirMesmoAssim(false);
+                    toast.success(
+                      `Empresa alterada para ${empresaDoArquivo.trade_name || empresaDoArquivo.name}. Envie o PDF novamente aqui.`,
+                    );
+                  }}
+                >
+                  Trocar para {empresaDoArquivo.trade_name || empresaDoArquivo.name}
+                </Button>
+              )}
+              {processando && (
+                <ConfirmarAcaoDialog
+                  titulo="Cancelar a leitura?"
+                  descricao="A leitura deste arquivo será interrompida e nenhuma ficha será cadastrada."
+                  confirmar="Cancelar leitura"
+                  onConfirm={() =>
+                    cancelar.mutate(atual!.id, {
+                      onSuccess: () => toast.success("Leitura cancelada."),
+                      onError: (e) => toast.error((e as Error).message),
+                    })
+                  }
+                  disabled={cancelar.isPending}
+                >
+                  <Button variant="outline" size="sm" className="h-9" disabled={cancelar.isPending}>
+                    Cancelar leitura
+                  </Button>
+                </ConfirmarAcaoDialog>
+              )}
+              {bloqueadoPorEmpresa && (
+                <Button variant="ghost" size="sm" className="h-9" onClick={() => setConferirMesmoAssim(true)}>
+                  Conferir mesmo assim
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {pendentes.length > 0 && !bloqueadoPorEmpresa && (
         <div className="space-y-3">
           <h2 className="text-sm font-semibold">Conferir e cadastrar ({pendentes.length})</h2>
+
 
           <Card className="bg-muted/20">
             <CardContent className="grid gap-3 p-4 sm:grid-cols-2">
