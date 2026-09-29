@@ -211,7 +211,10 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
     );
     setJustificativa("");
     setModo("continuidade");
+    setConfirmarSaidaFormal(null);
+    cienciaSaidaFormal.current = false;
     tocados.current = new Set();
+
   }, [open, colaborador]);
 
 
