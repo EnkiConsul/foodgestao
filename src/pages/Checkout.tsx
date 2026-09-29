@@ -56,13 +56,15 @@ export default function Checkout() {
     },
   });
 
+  const { idsContratacao } = useAssinaturaAcesso();
+
   const { data: empresas = [] } = useQuery({
-    queryKey: ["checkout-empresas", user?.id],
-    enabled: !!user?.id,
+    queryKey: ["checkout-empresas", user?.id, idsContratacao.join(",")],
+    enabled: !!user?.id && idsContratacao.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase.from("companies")
         .select("id, name, trade_name, cnpj, email, phone, cep, logradouro, numero, complemento, bairro, cidade, uf")
-        .eq("user_id", user!.id).eq("is_active", true).order("created_at");
+        .in("id", idsContratacao).eq("is_active", true).order("created_at");
       if (error) throw error;
       return data ?? [];
     },
