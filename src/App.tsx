@@ -178,6 +178,7 @@ const EncarregadoDados = lazyWithRetry(() => import("./pages/legal/EncarregadoDa
 const DasMei = lazyWithRetry(() => import("./pages/guias/DasMei"));
 const Buscar = lazyWithRetry(() => import("./pages/Buscar"));
 const BemVindo = lazyWithRetry(() => import("./pages/BemVindo"));
+const AcessoBloqueado = lazyWithRetry(() => import("./pages/AcessoBloqueado"));
 
 
 
