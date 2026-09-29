@@ -660,13 +660,15 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                     ))}
                   </SelectContent>
                 </Select>
-                {bloqueiaInformal ? (
-                  <p className="text-xs text-muted-foreground">
-                    Só é possível mudar entre vínculos com registro. Para passar a um vínculo sem
-                    registro (freelancer, PJ, MEI), faça o desligamento e cadastre a pessoa de novo
-                    aproveitando os dados do colaborador inativo.
+                {saidaDaFormalidade ? (
+                  <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-400">
+                    Atenção: sair de um vínculo com registro em carteira não extingue o contrato
+                    anterior. O correto é registrar o desligamento na data do término e apurar as
+                    verbas rescisórias. Use esta mudança apenas para corrigir um cadastro errado — o
+                    sistema vai pedir sua confirmação antes de salvar.
                   </p>
                 ) : exigeNovoContrato(regimeAtual, regime) ? (
+
                   <p className="text-xs text-muted-foreground">
                     Efetivação de vínculo sem registro: entra como novo contrato, com a contagem de
                     férias, 13º e tempo de casa começando na data informada.
