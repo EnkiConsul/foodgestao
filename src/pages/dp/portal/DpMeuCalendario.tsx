@@ -957,6 +957,20 @@ export default function DpMeuCalendario() {
   }, [selectedDay, folgas, meRef.data?.id]);
 
   /**
+   * Minha folga do mês visto que pode ser movida para o dia selecionado. Assim o
+   * colaborador clica no dia que quer e já muda a folga, sem precisar abrir
+   * primeiro o dia em que a folga está marcada.
+   */
+  const folgaParaMover = useMemo(() => {
+    if (!selectedDay || !meRef.data?.id) return null;
+    if (selectedDay.status === "past" || selectedDay.status === "mine") return null;
+    const candidata = minhasFolgasFuturas.find(
+      (f) => f.data !== selectedDay.iso && f.data.slice(0, 7) === selectedDay.iso.slice(0, 7),
+    );
+    return candidata ?? null;
+  }, [selectedDay, meRef.data?.id, minhasFolgasFuturas]);
+
+  /**
    * Exceção também vale em dia de meio de semana: é justamente nele que o
    * colaborador precisa pedir uma folga fora da regra.
    */
