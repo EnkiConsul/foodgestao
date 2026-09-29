@@ -208,51 +208,6 @@ export default function DpMeuDocumentos() {
     toast.error("Não foi possível abrir o documento agora. Tente novamente.");
   };
 
-  const downloadAll = async () => {
-    const withFile = filtered.filter((d) => d.file_path);
-    if (withFile.length === 0) return;
-    toast.info(`Abrindo ${withFile.length} download(s)…`);
-    for (const d of withFile) {
-      const { data } = await supabase.storage.from(d.bucket).createSignedUrl(d.file_path!, 120);
-      if (data?.signedUrl) window.open(data.signedUrl, "_blank");
-      await new Promise((r) => setTimeout(r, 250));
-    }
-  };
-
-  const submit = async () => {
-    const files = fileRef.current?.files;
-    if (!colaborador) return toast.error("Colaborador não encontrado");
-    if (!files || files.length === 0) return toast.error("Selecione o arquivo");
-    if (!form.titulo.trim()) return toast.error("Título obrigatório");
-    setUploading(true);
-    try {
-      const file = await prepararUpload(BUCKET, files[0]);
-      const path = `${colaborador.company_id}/${colaborador.id}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
-      const up = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
-      if (up.error) throw up.error;
-      await registrarDocumento({
-        company_id: colaborador.company_id,
-        colaborador_id: colaborador.id,
-        tipo: form.tipo,
-        titulo: form.titulo.trim(),
-        descricao: form.descricao.trim() || null,
-        file_path: path,
-        file_name: file.name,
-        file_size: file.size,
-        mime_type: file.type,
-        referencia_data: form.referencia_data || null,
-      });
-      toast.success("Documento enviado para aprovação");
-      qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
-      setOpenSubmit(false);
-      setForm({ tipo: "atestado", titulo: "", descricao: "", referencia_data: "" });
-      if (fileRef.current) fileRef.current.value = "";
-    } catch (e: any) {
-      toast.error("Erro ao enviar", { description: e.message ?? String(e) });
-    } finally {
-      setUploading(false);
-    }
-  };
 
   /** Aceite digital do documento — registra data, hora e dispositivo. */
   const aceitar = useMutation({
