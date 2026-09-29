@@ -25,6 +25,9 @@ import {
   useCancelarLeituraFicha, useTentarNovamenteFicha, MOTIVO_CANCELADA,
 } from "@/hooks/useDpFichaImportacao";
 import { notifyError } from "@/lib/notifyError";
+import { divergenciaLote } from "@/lib/dp/ficha-registro/lote-empresa";
+import { leituraTravada } from "@/lib/dp/ficha-registro/leituraTravada";
+import { digitsCnpj, formatCnpj } from "@/lib/dp/ficha-registro/unidade-match";
 import { cn } from "@/lib/utils";
 
 /** Situação de cada envio, em linguagem de tela. */
