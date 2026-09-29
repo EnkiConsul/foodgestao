@@ -57,8 +57,12 @@ describe("contratoPolicy", () => {
     expect(contratoPolicy("temporario").permiteAdiantamento).toBe(true);
     expect(contratoPolicy("intermitente").permiteAdiantamento).toBe(false);
     expect(contratoPolicy("intermitente").adiantamentoHint).toContain("convocação");
-    expect(contratoPolicy("pj").permiteAdiantamento).toBe(false);
-    expect(contratoPolicy("mei").permiteAdiantamento).toBe(false);
+    // Prestador/freelancer com valor mensal fixo pode ter adiantamento; a forma
+    // de pagamento é filtrada em permiteAdiantamento (remuneracao.ts).
+    expect(contratoPolicy("pj").permiteAdiantamento).toBe(true);
+    expect(contratoPolicy("mei").permiteAdiantamento).toBe(true);
+    expect(contratoPolicy("freelancer").permiteAdiantamento).toBe(true);
+    expect(contratoPolicy("pj", "Socio").permiteAdiantamento).toBe(false);
   });
 
   it("isIntermitente reflete a política", () => {
@@ -94,7 +98,7 @@ describe("formas de pagamento por regime", () => {
     expect(p.entraEmFolha).toBe(false);
     expect(p.exigeCienciaLegal).toBe(true);
     expect(p.cienciaLegalMensagem).toBeTruthy();
-    expect(p.permiteAdiantamento).toBe(false);
+    expect(p.permiteAdiantamento).toBe(true);
   });
 
   it("CLT mantém mensalista como padrão e entra em folha", () => {
@@ -113,14 +117,17 @@ describe("transição de vínculo", () => {
     }
   });
 
-  it("contrato formal só oferece outros vínculos formais", () => {
+  it("todas as transições são oferecidas: sair da formalidade é sinalizado, não bloqueado", () => {
     expect(regimesPermitidosNaMudanca("clt")).toEqual([
       "clt",
       "intermitente",
       "estagio",
       "temporario",
+      "freelancer",
+      "pj",
+      "mei",
     ]);
-    expect(regimesPermitidosNaMudanca("intermitente")).not.toContain("freelancer");
+    expect(regimesPermitidosNaMudanca("intermitente")).toContain("freelancer");
   });
 
   it("contrato informal pode ser efetivado e também trocar de informal", () => {
@@ -130,9 +137,11 @@ describe("transição de vínculo", () => {
     expect(opts).toContain("pj");
   });
 
-  it("recusa formal → informal e aceita as demais", () => {
-    expect(mudancaRegimePermitida("clt", "freelancer").ok).toBe(false);
+  it("formal → informal exige ciência; as demais seguem sem aviso", () => {
+    expect(mudancaRegimePermitida("clt", "freelancer").ok).toBe(true);
+    expect(mudancaRegimePermitida("clt", "freelancer").exigeCiencia).toBe(true);
     expect(mudancaRegimePermitida("clt", "freelancer").motivo).toContain("desligamento");
+    expect(mudancaRegimePermitida("freelancer", "clt").exigeCiencia).toBe(false);
     expect(mudancaRegimePermitida("intermitente", "clt").ok).toBe(true);
     expect(mudancaRegimePermitida("freelancer", "clt").ok).toBe(true);
     expect(mudancaRegimePermitida("freelancer", "pj").ok).toBe(true);
