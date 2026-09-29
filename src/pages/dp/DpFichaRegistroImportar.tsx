@@ -137,7 +137,12 @@ export default function DpFichaRegistroImportar() {
         if (inputRef.current) inputRef.current.value = "";
         toast.success("Ficha enviada — estamos lendo os dados");
       },
-      onError: (e: Error) => notifyError(e, { surface: "Pessoas 360°", action: "concluir a ação" }),
+      onError: (e: Error) =>
+        notifyError(e, {
+          surface: "Importar ficha de registro",
+          action: "importar a ficha de registro",
+          fallback: e?.message && !/row-level|violates|pg_|relation "/i.test(e.message) ? e.message : undefined,
+        }),
     });
   };
 
