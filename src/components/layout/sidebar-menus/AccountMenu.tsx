@@ -20,7 +20,9 @@ const portal: MenuItem[] = [
 
 export function AccountMenu({ variant = "full" }: { variant?: "full" | "portal" }) {
   const { isSuperAdmin } = useSuperAdmin();
-  const items = variant === "portal" ? portal : full;
+  const { podeVer } = useAssinaturaAcesso();
+  const items =
+    variant === "portal" ? portal : podeVer ? [...full, ...assinaturaItens] : full;
   const withAdmin = variant === "full" && isSuperAdmin
     ? [...items, { title: "Backoffice", url: "/admin", icon: Shield } as MenuItem]
     : items;
