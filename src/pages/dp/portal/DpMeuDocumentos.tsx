@@ -346,67 +346,15 @@ export default function DpMeuDocumentos() {
   return (
     <DpPage>
       <Helmet><title>Meus documentos — Portal</title></Helmet>
+      {/*
+        O colaborador não envia documento avulso por aqui: atestado vai pela tela
+        de Atestados e os demais pelo checklist de pendências. Downloads em lote
+        também saíram — cada documento tem o próprio botão de baixar.
+      */}
       <DpPageHeader
         icon={FileText}
         title="Meus documentos"
         description="Todos os seus documentos em um único lugar."
-        actions={
-          <div className="flex gap-2 flex-wrap">
-            <Button size="sm" variant="outline" onClick={downloadAll} disabled={filtered.filter((d) => d.file_path).length === 0}>
-              <DownloadCloud className="h-4 w-4 mr-1" /> Baixar todos ({filtered.filter((d) => d.file_path).length})
-            </Button>
-            <Button size="sm" variant="outline" onClick={baixarLista} disabled={filtered.length === 0}>
-              <DownloadCloud className="h-4 w-4 mr-1" /> Baixar meus dados
-            </Button>
-            {/* Desligado no prazo de 30 dias: só consulta e download. */}
-            <Dialog open={openSubmit && !somenteDocumentos} onOpenChange={setOpenSubmit}>
-              {!somenteDocumentos && (
-                <DialogTrigger asChild>
-                  <Button size="sm"><Upload className="h-4 w-4 mr-1" /> Enviar documento</Button>
-                </DialogTrigger>
-              )}
-              <DialogContent className="sm:max-w-md max-h-[90svh] overflow-y-auto">
-                <DialogHeader><DialogTitle>Enviar documento para aprovação</DialogTitle></DialogHeader>
-                <div className="grid gap-3 py-2">
-                  <div className="grid gap-1.5">
-                    <Label>Título *</Label>
-                    <Input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} placeholder="Ex.: Atestado médico 16/07/2026" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="grid gap-1.5">
-                      <Label>Tipo</Label>
-                      <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Tipo })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {TIPOS_SUBMETIVEIS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-1.5">
-                      <Label>Data referência</Label>
-                      <Input type="date" value={form.referencia_data} onChange={(e) => setForm({ ...form, referencia_data: e.target.value })} />
-                    </div>
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label>Observações</Label>
-                    <Textarea rows={2} value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label>Arquivo *</Label>
-                    <Input ref={fileRef} type="file" accept=".pdf,image/*" />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Seu envio ficará em análise até que o DP aprove ou recuse.
-                  </p>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setOpenSubmit(false)}>Cancelar</Button>
-                  <Button onClick={submit} disabled={uploading}>{uploading ? "Enviando…" : "Enviar"}</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        }
       />
 
       {/* Tabs por tipo */}
