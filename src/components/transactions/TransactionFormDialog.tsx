@@ -224,7 +224,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   // Em recorrência/parcelamento a 1ª ocorrência deve nascer na data de vencimento
   // informada pelo usuário — nunca no mês vigente (data de hoje).
   useEffect(() => {
-    if (isEditing) return;
+    if (transaction) return;
     if (!(isRecurring || isInstallment)) return;
     if (!dueDate) return;
     if (date !== dueDate) setDate(dueDate);
