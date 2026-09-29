@@ -188,6 +188,17 @@ export default function DpMeuDocumentos() {
     return Array.from(m.entries());
   }, [filtered]);
 
+  /** Quantos filtros estão em uso — mostrado no botão "Filtrar" do celular. */
+  const filtrosAtivos = useMemo(
+    () =>
+      [search.trim() !== "", filtroMes !== "todos", filtroAno !== "todos", filtroStatus !== "todos"].filter(
+        Boolean,
+      ).length,
+    [search, filtroMes, filtroAno, filtroStatus],
+  );
+
+
+
 
   const download = async (d: UnifiedDoc) => {
     if (!d.file_path) return toast.warning("Sem arquivo anexado.");
