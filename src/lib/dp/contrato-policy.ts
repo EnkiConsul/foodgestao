@@ -167,9 +167,13 @@ const FREELANCER: ContratoPolicy = {
   jornadaLabel: "Jornada (disponibilidade habitual)",
   jornadaHint:
     "Freelancer não tem jornada contratual. O que for cadastrado aqui serve apenas como disponibilidade para escala e ponto.",
-  permiteAdiantamento: false,
-  adiantamentoHint:
-    "Freelancer é pago por acerto avulso, fora da remuneração CLT — não há adiantamento salarial.",
+  // Freelancer com valor mensal fixo acordado ("freelancer mensalista") recebe
+  // como um mensalista e pode participar do adiantamento. Nas demais formas
+  // (diária, hora, turno, serviço) o pagamento é por acerto, sem adiantamento —
+  // a regra da forma de pagamento é aplicada em `permiteAdiantamento`.
+  permiteAdiantamento: true,
+  adiantamentoHint: null,
+
   // Freelancer: remuneração acordada com formas flexíveis — por dia, por hora,
   // por turno, por serviço/acordo, por semana ou valor fixo mensal. Por turno e
   // por serviço registram apenas o acordo, sem cálculo automático. Sempre fora
@@ -200,8 +204,11 @@ const PJ_LIKE: ContratoPolicy = {
   horasPorConvocacao: false,
   jornadaLabel: "Jornada",
   jornadaHint: null,
-  permiteAdiantamento: false,
-  adiantamentoHint: "Contratos PJ/MEI não têm adiantamento salarial.",
+  // Prestador com valor mensal fixo pode receber parte no meio do mês. Nas
+  // formas por hora/dia o pagamento é por medição, sem adiantamento.
+  permiteAdiantamento: true,
+  adiantamentoHint: null,
+
   formasPagamento: ["mensalista", "diarista", "horista"],
   entraEmFolha: false,
   exigeCienciaLegal: false,
