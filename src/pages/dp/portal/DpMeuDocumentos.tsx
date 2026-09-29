@@ -108,13 +108,11 @@ export default function DpMeuDocumentos() {
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [search, setSearch] = useState("");
 
-  const [preview, setPreview] = useState<UnifiedDoc | null>(null);
-  const [openSubmit, setOpenSubmit] = useState(false);
-  const [form, setForm] = useState<{ tipo: Tipo; titulo: string; descricao: string; referencia_data: string }>({
-    tipo: "atestado", titulo: "", descricao: "", referencia_data: "",
-  });
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const preview_state = useState<UnifiedDoc | null>(null);
+  const preview = preview_state[0];
+  const setPreview = preview_state[1];
+  /** Filtros recolhidos por padrão no celular — a lista aparece primeiro. */
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const { somenteDocumentos } = usePortalAcesso();
 
   const visibleTabs = useMemo(
