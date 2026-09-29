@@ -138,7 +138,7 @@ export function PdfCanvasViewer({ url, title }: Props) {
           <ZoomIn className="size-4" />
         </Button>
       </div>
-      <div ref={containerRef} className="flex-1 min-h-0 overflow-auto p-4" aria-label={title}>
+      <div ref={containerRef} className="flex-1 min-h-0 overflow-auto p-2 sm:p-4" aria-label={title}>
         {carregando && (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
