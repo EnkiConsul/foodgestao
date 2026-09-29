@@ -1,15 +1,11 @@
 import { Building2, UserCog, Settings, Shield, CreditCard, Sparkles } from "lucide-react";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
-import { useAssinaturaAcesso } from "@/hooks/useAssinaturaAcesso";
 import { SidebarSection, SidebarNavItem, type MenuItem } from "./shared";
 
 const full: MenuItem[] = [
   { title: "Minhas Empresas", url: "/empresas", icon: Building2 },
   { title: "Usuários", url: "/gestao-usuarios", icon: UserCog },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
-];
-
-const assinaturaItens: MenuItem[] = [
   { title: "Plano e Assinatura", url: "/assinatura", icon: CreditCard },
   { title: "Planos e Preços", url: "/planos", icon: Sparkles },
 ];
@@ -20,9 +16,7 @@ const portal: MenuItem[] = [
 
 export function AccountMenu({ variant = "full" }: { variant?: "full" | "portal" }) {
   const { isSuperAdmin } = useSuperAdmin();
-  const { podeVer } = useAssinaturaAcesso();
-  const items =
-    variant === "portal" ? portal : podeVer ? [...full, ...assinaturaItens] : full;
+  const items = variant === "portal" ? portal : full;
   const withAdmin = variant === "full" && isSuperAdmin
     ? [...items, { title: "Backoffice", url: "/admin", icon: Shield } as MenuItem]
     : items;
