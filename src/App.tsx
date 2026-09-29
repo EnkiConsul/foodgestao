@@ -182,10 +182,14 @@ const BemVindo = lazyWithRetry(() => import("./pages/BemVindo"));
 
 
 
-// Rotas acessíveis mesmo com trial/assinatura expirada
+// Rotas acessíveis mesmo com trial/assinatura expirada: regularização,
+// contratação de plano, 2ª via de fatura e exportação dos dados guardados.
 const TRIAL_EXPIRED_WHITELIST = [
+  "/acesso-bloqueado",
   "/trial-expirado",
   "/checkout",
+  "/planos",
+  "/assinatura",
   "/admin",
   "/bem-vindo",
   "/convite",
