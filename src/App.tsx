@@ -592,6 +592,7 @@ const AppRoutes = () => (
         <Route path="/admin/faturamento" element={<AdminFaturamento />} />
         <Route path="/admin/cupons" element={<AdminCuponsPage />} />
         <Route path="/admin/faturas" element={<AdminFaturasPage />} />
+        <Route path="/admin/regua-cobranca" element={<AdminReguaCobranca />} />
         <Route path="/admin/webhooks-asaas" element={<AdminWebhooksAsaasPage />} />
         <Route path="/admin/pluggy-webhook" element={<AdminPluggyWebhook />} />
         <Route path="/admin/pluggy-status" element={<AdminPluggyStatus />} />
