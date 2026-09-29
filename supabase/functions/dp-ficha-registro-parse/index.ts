@@ -106,7 +106,11 @@ async function processarAsync({ svc, aiKey, imp }: { svc: any; aiKey: string; im
       for (let i = start; i < end; i++) lote.push(lerPagina({ aiKey, pdf, pageIndex: i }));
       const res = await Promise.all(lote);
       paginas.push(...res);
-      await svc.from("dp_ficha_importacoes").update({ paginas_processadas: end }).eq("id", id);
+      // Cancelada pelo usuário: para aqui sem gravar mais nada.
+      const { data: vivo } = await svc.from("dp_ficha_importacoes")
+        .update({ paginas_processadas: end }).eq("id", id).eq("status", "processing")
+        .select("id").maybeSingle();
+      if (!vivo) return;
     }
 
     // Agrupa páginas em fichas: página que abre uma nova pessoa inicia um item,
@@ -120,6 +124,14 @@ async function processarAsync({ svc, aiKey, imp }: { svc: any; aiKey: string; im
     for (const c of (colabs ?? []) as Array<{ id: string; nome: string; cpf: string | null }>) {
       if (c.cpf) porCpf.set(onlyDigits(c.cpf), { id: c.id, nome: c.nome });
     }
+
+    const { data: aindaAtiva } = await svc.from("dp_ficha_importacoes")
+      .select("status").eq("id", id).maybeSingle();
+    if (aindaAtiva?.status !== "processing") return;
+
+    // Nova tentativa: remove fichas de leituras anteriores que não foram usadas.
+    await svc.from("dp_ficha_importacao_itens").delete()
+      .eq("importacao_id", id).in("status", ["pendente", "revisar", "duplicado"]);
 
     if (fichas.length > 0) {
       const rows = fichas.map((f) => {
@@ -149,12 +161,12 @@ async function processarAsync({ svc, aiKey, imp }: { svc: any; aiKey: string; im
       fichas_identificadas: fichas.length,
       paginas_processadas: total,
       concluido_em: new Date().toISOString(),
-    }).eq("id", id);
+    }).eq("id", id).eq("status", "processing");
   } catch (e) {
     console.error("[dp-ficha-registro-parse] erro", e);
     await svc.from("dp_ficha_importacoes")
       .update({ status: "failed", erro_mensagem: (e as Error).message })
-      .eq("id", id);
+      .eq("id", id).eq("status", "processing");
   }
 }
 

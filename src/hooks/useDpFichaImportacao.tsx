@@ -203,6 +203,41 @@ export function useEnviarFichaPdf() {
   });
 }
 
+export const MOTIVO_CANCELADA = "Leitura cancelada pelo usuário.";
+
+/** Interrompe uma leitura em andamento (o leitor para no próximo bloco de páginas). */
+export function useCancelarLeituraFicha() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("dp_ficha_importacoes")
+        .update({ status: "failed", erro_mensagem: MOTIVO_CANCELADA })
+        .eq("id", id)
+        .eq("status", "processing");
+      if (error) throw new Error("Não foi possível cancelar a leitura. Tente novamente.");
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] }),
+  });
+}
+
+/** Lê de novo um envio que falhou, travou ou foi cancelado, sem reenviar o PDF. */
+export function useTentarNovamenteFicha() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (imp: FichaImportacao) => {
+      if (!imp.arquivo_path || imp.arquivo_path === "pendente") {
+        throw new Error("O PDF deste envio não chegou a ser salvo. Envie o arquivo novamente.");
+      }
+      const { error } = await supabase.functions.invoke("dp-ficha-registro-parse", {
+        body: { importacao_id: imp.id },
+      });
+      if (error) throw new Error("Não foi possível reiniciar a leitura. Tente novamente em instantes.");
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] }),
+  });
+}
+
 export interface AplicarFichaInput {
   item: FichaItem;
   /** Valores revisados pelo usuário (sobrepõem o que a leitura trouxe). */

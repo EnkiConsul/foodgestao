@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { FichaRevisaoCard } from "@/components/dp/ficha-registro/FichaRevisaoCard";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
@@ -21,6 +22,7 @@ import { useDpTurnos } from "@/hooks/useDpTurnos";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
   useDpFichaImportacoes, useDpFichaItens, useEnviarFichaPdf,
+  useCancelarLeituraFicha, useTentarNovamenteFicha, MOTIVO_CANCELADA,
 } from "@/hooks/useDpFichaImportacao";
 import { notifyError } from "@/lib/notifyError";
 import { cn } from "@/lib/utils";
@@ -58,6 +60,8 @@ export default function DpFichaRegistroImportar() {
 
   const { data: importacoes = [] } = useDpFichaImportacoes();
   const enviar = useEnviarFichaPdf();
+  const cancelar = useCancelarLeituraFicha();
+  const repetir = useTentarNovamenteFicha();
 
   const atual = useMemo(
     () => importacoes.find((i) => i.id === importacaoId) ?? importacoes[0] ?? null,
@@ -266,13 +270,49 @@ export default function DpFichaRegistroImportar() {
                 <p className="text-xs text-muted-foreground">
                   Lendo página {atual.paginas_processadas} de {atual.total_paginas || "…"} — pode deixar a tela aberta.
                 </p>
+                <div className="flex justify-end">
+                  <ConfirmarAcaoDialog
+                    titulo="Cancelar a leitura?"
+                    descricao="A leitura deste arquivo será interrompida. Depois você pode tentar novamente sem reenviar o PDF."
+                    confirmar="Cancelar leitura"
+                    onConfirm={() =>
+                      cancelar.mutate(atual.id, {
+                        onSuccess: () => toast.success("Leitura cancelada."),
+                        onError: (e) => toast.error((e as Error).message),
+                      })
+                    }
+                    disabled={cancelar.isPending}
+                  >
+                    <Button variant="outline" size="sm" className="h-8" disabled={cancelar.isPending}>
+                      Cancelar leitura
+                    </Button>
+                  </ConfirmarAcaoDialog>
+                </div>
               </div>
             )}
 
             {atual.status === "failed" && (
-              <p className="text-sm text-destructive">
-                Não conseguimos ler este arquivo{atual.erro_mensagem ? `: ${atual.erro_mensagem}` : "."}
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className={cn("text-sm", atual.erro_mensagem === MOTIVO_CANCELADA ? "text-muted-foreground" : "text-destructive")}>
+                  {atual.erro_mensagem === MOTIVO_CANCELADA
+                    ? MOTIVO_CANCELADA
+                    : `Não conseguimos ler este arquivo${atual.erro_mensagem ? `: ${atual.erro_mensagem}` : "."}`}
+                </p>
+                <Button
+                  size="sm"
+                  className="h-8"
+                  disabled={repetir.isPending}
+                  onClick={() =>
+                    repetir.mutate(atual, {
+                      onSuccess: () => toast.success("Leitura reiniciada."),
+                      onError: (e) => toast.error((e as Error).message),
+                    })
+                  }
+                >
+                  {repetir.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+                  Tentar novamente
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>
