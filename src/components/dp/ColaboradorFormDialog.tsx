@@ -1130,6 +1130,38 @@ export function ColaboradorFormDialog({
   };
 
   /**
+   * Registra no histórico do vínculo a alteração de condição de trabalho: o que
+   * mudou, a partir de quando vale e por quê. O cadastro não falha se o log
+   * falhar, mas a ciência do gestor fica gravada sempre que possível.
+   */
+  const registrarAlteracaoContratual = async (
+    c: AlteracaoContratualConfirmacao,
+    resumo: string,
+  ) => {
+    if (!selectedCompanyId) return;
+    try {
+      const { registrarCienciaRegra } = await import("@/lib/dp/regras-oficial");
+      await registrarCienciaRegra({
+        companyId: selectedCompanyId,
+        tabela: "dp_colaboradores",
+        registroId: colaborador?.id ?? null,
+        valorNovo: {
+          tipo: "alteracao_condicao_trabalho",
+          efeito: c.efeito,
+          vigencia: c.vigencia,
+          alteracoes: resumo,
+          vinculo: form.tipo_vinculo,
+          regime: regimeSelecionado,
+          nome: form.nome.trim(),
+        },
+        justificativa: c.justificativa || null,
+      });
+    } catch { /* o cadastro não deve falhar por causa do log */ }
+  };
+
+
+
+  /**
    * Divergências de benefício deste cadastro contra o grupo equivalente.
    *
    * O grupo forte é o sindical (laboral + patronal da unidade); sem sindicato,
