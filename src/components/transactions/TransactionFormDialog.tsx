@@ -50,7 +50,6 @@ import {
   parseLocalDate,
   shiftToWeekday,
   currentWeekday,
-  lastDayOfMonth,
   shiftToMonthDay,
   currentMonthDay,
   MONTH_DAYS,
