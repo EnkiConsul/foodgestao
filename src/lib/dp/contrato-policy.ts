@@ -310,35 +310,38 @@ export function regimeFormalizado(regime?: string | null): boolean {
 
 /**
  * Vínculos que a tela de condições de trabalho pode oferecer a partir do vínculo
- * atual. Contrato formal só muda para outro formal; contrato informal pode ser
- * efetivado (formal) ou trocado por outro informal.
+ * atual. Todas as transições são possíveis — inclusive sair de um vínculo formal
+ * para um sem registro, porque o gestor pode estar corrigindo um cadastro errado.
+ * O que muda é a sinalização: ver `mudancaRegimePermitida`.
  */
-export function regimesPermitidosNaMudanca(regimeAtual?: string | null): RegimeTrabalho[] {
-  return regimeFormalizado(regimeAtual)
-    ? [...REGIMES_FORMAIS]
-    : [...REGIMES_FORMAIS, ...REGIMES_INFORMAIS];
+export function regimesPermitidosNaMudanca(_regimeAtual?: string | null): RegimeTrabalho[] {
+  return [...REGIMES_FORMAIS, ...REGIMES_INFORMAIS];
 }
 
 /**
- * Valida a troca de vínculo pela tela de condições. Sair da formalidade
- * (CLT/intermitente/estágio/temporário → freelancer/PJ/MEI) exige desligamento.
+ * Avalia a troca de vínculo. Nenhuma transição é bloqueada: sair da formalidade
+ * (CLT/intermitente/estágio/temporário → freelancer/PJ/MEI) exige ciência
+ * expressa do gestor, porque o correto é registrar o desligamento e apurar as
+ * verbas — mas a correção de um cadastro errado precisa ser possível.
  */
 export function mudancaRegimePermitida(
   de?: string | null,
   para?: string | null,
-): { ok: boolean; motivo: string | null } {
-  if (!para || de === para) return { ok: true, motivo: null };
+): { ok: boolean; motivo: string | null; exigeCiencia: boolean } {
+  if (!para || de === para) return { ok: true, motivo: null, exigeCiencia: false };
   if (regimeFormalizado(de) && !regimeFormalizado(para)) {
     return {
-      ok: false,
+      ok: true,
+      exigeCiencia: true,
       motivo:
-        "Não é possível mudar de um vínculo formal para um vínculo sem registro nesta tela. Faça o desligamento do contrato atual e, depois, cadastre a pessoa no novo vínculo aproveitando os dados do colaborador inativo.",
+        "Sair de um vínculo com registro em carteira para um vínculo sem registro não extingue o contrato anterior. O caminho correto é registrar o desligamento na data do término, apurar as verbas rescisórias e cadastrar a nova relação. Prossiga desta forma apenas se estiver corrigindo um cadastro que já estava errado.",
     };
   }
-  return { ok: true, motivo: null };
+  return { ok: true, motivo: null, exigeCiencia: false };
 }
 
 /** Efetivação (informal → formal) sempre inicia um novo contrato. */
 export function exigeNovoContrato(de?: string | null, para?: string | null): boolean {
   return !!de && !!para && !regimeFormalizado(de) && regimeFormalizado(para);
 }
+
