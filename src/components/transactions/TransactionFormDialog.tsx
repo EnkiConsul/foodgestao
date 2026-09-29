@@ -50,7 +50,6 @@ import {
   parseLocalDate,
   shiftToWeekday,
   currentWeekday,
-  lastDayOfMonth,
   shiftToMonthDay,
   currentMonthDay,
   MONTH_DAYS,
@@ -202,22 +201,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
       return;
     }
 
-    if (activePeriod === "semanal") {
-      const targetWd = parseLocalDate(date).getDay();
-      if (parseLocalDate(dueDate).getDay() !== targetWd) {
-        setDueDate(shiftToWeekday(dueDate, targetWd));
-      }
-      return;
-    }
-
-    if (activePeriod === "mensal" || activePeriod === "quinzenal") {
-      const targetDay = parseLocalDate(date).getDate();
-      const dueParsed = parseLocalDate(dueDate);
-      const clamped = Math.min(targetDay, lastDayOfMonth(dueParsed.getFullYear(), dueParsed.getMonth()));
-      if (dueParsed.getDate() !== clamped) {
-        setDueDate(shiftToMonthDay(dueDate, targetDay));
-      }
-    }
+    // A data de vencimento é a fonte da verdade: não reescrevemos o dia/semana
+    // dela a partir da data de lançamento. O seletor de dia/dia da semana e a
+    // digitação manual já atualizam `dueDate` diretamente, e o efeito abaixo
+    // sincroniza `date` a partir dela (1ª ocorrência nasce no vencimento).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, isRecurring, recurrenceType, isInstallment, installmentPeriod]);
 
@@ -1250,8 +1237,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                         value={date ? String(parseLocalDate(date).getDay()) : "1"}
                         onValueChange={(v) => {
                           const w = Number(v);
-                          setDate(shiftToWeekday(date, w));
-                          if (dueDate) setDueDate(shiftToWeekday(dueDate, w));
+                          setDueDate(shiftToWeekday(dueDate || date, w));
                         }}
                       >
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1270,8 +1256,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                         value={String(currentMonthDay(dueDate || date))}
                         onValueChange={(v) => {
                           const d = Number(v);
-                          if (dueDate) setDueDate(shiftToMonthDay(dueDate, d));
-                          setDate(shiftToMonthDay(dueDate || date, d));
+                          // Atualiza só o vencimento; o efeito de sincronia
+                          // alinha a data de lançamento sem recalcular o preview.
+                          setDueDate(shiftToMonthDay(dueDate || date, d));
                         }}
                       >
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1389,8 +1376,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                         value={date ? String(parseLocalDate(date).getDay()) : "1"}
                         onValueChange={(v) => {
                           const w = Number(v);
-                          setDate(shiftToWeekday(date, w));
-                          if (dueDate) setDueDate(shiftToWeekday(dueDate, w));
+                          setDueDate(shiftToWeekday(dueDate || date, w));
                         }}
                       >
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1410,8 +1396,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                         value={String(currentMonthDay(dueDate || date))}
                         onValueChange={(v) => {
                           const d = Number(v);
-                          if (dueDate) setDueDate(shiftToMonthDay(dueDate, d));
-                          setDate(shiftToMonthDay(dueDate || date, d));
+                          // Atualiza só o vencimento; o efeito de sincronia
+                          // alinha a data de lançamento sem recalcular o preview.
+                          setDueDate(shiftToMonthDay(dueDate || date, d));
                         }}
                       >
                         <SelectTrigger><SelectValue /></SelectTrigger>
