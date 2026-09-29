@@ -1258,8 +1258,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                         value={String(currentMonthDay(dueDate || date))}
                         onValueChange={(v) => {
                           const d = Number(v);
-                          if (dueDate) setDueDate(shiftToMonthDay(dueDate, d));
-                          setDate(shiftToMonthDay(dueDate || date, d));
+                          // Atualiza só o vencimento; o efeito de sincronia
+                          // alinha a data de lançamento sem recalcular o preview.
+                          setDueDate(shiftToMonthDay(dueDate || date, d));
                         }}
                       >
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1398,8 +1399,9 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                         value={String(currentMonthDay(dueDate || date))}
                         onValueChange={(v) => {
                           const d = Number(v);
-                          if (dueDate) setDueDate(shiftToMonthDay(dueDate, d));
-                          setDate(shiftToMonthDay(dueDate || date, d));
+                          // Atualiza só o vencimento; o efeito de sincronia
+                          // alinha a data de lançamento sem recalcular o preview.
+                          setDueDate(shiftToMonthDay(dueDate || date, d));
                         }}
                       >
                         <SelectTrigger><SelectValue /></SelectTrigger>
