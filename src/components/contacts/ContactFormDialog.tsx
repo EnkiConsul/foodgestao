@@ -189,6 +189,57 @@ export function ContactFormDialog({
   // Bloqueio de duplicidade: procura outro contato com o mesmo CPF/CNPJ comparando a
   // chave normalizada (sem máscara, sem zeros perdidos), para evitar falsos negativos.
   const [duplicate, setDuplicate] = useState<{ id: string; name: string } | null>(null);
+  // Empresas às quais o cadastro já existente está vinculado. Serve para oferecer o
+  // vínculo com a empresa em uso em vez de apenas bloquear a criação.
+  const [dupCompanyIds, setDupCompanyIds] = useState<string[] | null>(null);
+  const [vinculando, setVinculando] = useState(false);
+
+  useEffect(() => {
+    if (!duplicate) { setDupCompanyIds(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase.from("contact_companies" as any) as any)
+        .select("company_id")
+        .eq("contact_id", duplicate.id);
+      if (!cancelled) setDupCompanyIds((data ?? []).map((r: any) => r.company_id));
+    })();
+    return () => { cancelled = true; };
+  }, [duplicate]);
+
+  const empresaAtual = companies.find((c) => c.id === selectedCompanyId);
+  const dupEmpresasNomes = (dupCompanyIds ?? [])
+    .map((id) => companies.find((c) => c.id === id))
+    .map((c) => (c ? c.trade_name || c.name : "outra empresa"));
+  const dupFaltaVinculo =
+    !!duplicate && !!selectedCompanyId && !!dupCompanyIds && !dupCompanyIds.includes(selectedCompanyId);
+
+  /**
+   * Vincula o cadastro já existente à empresa em uso e devolve o id para o
+   * formulário que abriu o diálogo (ex.: lançamento) já selecionar o contato.
+   */
+  const vincularExistente = async () => {
+    if (!duplicate || !selectedCompanyId) return;
+    setVinculando(true);
+    const { error } = await supabase
+      .from("contact_companies" as any)
+      .insert({ contact_id: duplicate.id, company_id: selectedCompanyId } as any);
+    setVinculando(false);
+    if (error) {
+      toast.error("Não foi possível vincular o cadastro a esta empresa", { description: error.message });
+      return;
+    }
+    await supabase.rpc("insert_audit_log", {
+      _action: "contact_company_linked",
+      _entity_type: "contact",
+      _entity_id: duplicate.id,
+      _details: { target_name: duplicate.name, company_id: selectedCompanyId },
+    });
+    invalidateDuplicateCache();
+    toast.success(`${duplicate.name} agora está disponível nesta empresa`);
+    onOpenChange(false);
+    onSaved(duplicate.id);
+  };
+
   const docDigitsLive = normalizeDocumento(document);
   useEffect(() => {
     if (docDigitsLive.length !== 11 && docDigitsLive.length !== 14) {
