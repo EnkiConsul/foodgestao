@@ -572,15 +572,16 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
       setAba("contrato");
       return;
     }
-    const transicao = mudancaRegimePermitida(regimeAtual, regime);
-    if (!transicao.ok) {
-      toast.error(transicao.motivo ?? "Mudança de vínculo não permitida.");
-      setAba("contrato");
-      return;
-    }
     if (justificativa.trim().length < 5) {
       toast.error("Explique brevemente o motivo da mudança.");
       setAba("contrato");
+      return;
+    }
+    // Sair de um vínculo com registro exige ciência expressa: não é bloqueado,
+    // porque o gestor pode estar corrigindo um cadastro errado.
+    const transicao = mudancaRegimePermitida(regimeAtual, regime);
+    if (transicao.exigeCiencia && !cienciaSaidaFormal.current) {
+      setConfirmarSaidaFormal(transicao.motivo);
       return;
     }
     if (modo === "novo_contrato") {
@@ -589,6 +590,7 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
     }
     await executar();
   };
+
 
 
   return (
