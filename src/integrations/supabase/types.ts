@@ -14805,6 +14805,31 @@ export type Database = {
         Args: { _connection_id: string }
         Returns: Json
       }
+      billing_dunning_historico: {
+        Args: { _busca?: string; _limite?: number; _status?: string }
+        Returns: {
+          attempts: number
+          company_id: string
+          created_at: string
+          empresa: string
+          id: string
+          invoice_id: string
+          last_error: string
+          pausa_motivo: string
+          pausada_ate: string
+          provider_message_id: string
+          recipient: string
+          scheduled_at: string
+          sent_at: string
+          stage: string
+          status: string
+          subscription_id: string
+        }[]
+      }
+      billing_dunning_pausar: {
+        Args: { _motivo?: string; _subscription_id: string; _until: string }
+        Returns: undefined
+      }
       billing_dunning_scan: {
         Args: never
         Returns: {
