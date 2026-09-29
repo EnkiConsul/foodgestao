@@ -138,7 +138,12 @@ export function FichaRevisaoCard({
     possuiFolhaPonto,
     optanteAdiantamento,
   });
+  /** Só destacamos campos em vermelho depois de uma tentativa de criar. */
+  const [tentouCriar, setTentouCriar] = useState(false);
+  const realce = (pendente: boolean) =>
+    tentouCriar && pendente ? "border-destructive ring-1 ring-destructive/40" : "";
   const [trechos, setTrechos] = useState<Record<string, boolean>>({});
+
   const [verTexto, setVerTexto] = useState(false);
   const [cargoDialog, setCargoDialog] = useState(false);
   const [unidadeDialog, setUnidadeDialog] = useState(false);
