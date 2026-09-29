@@ -373,6 +373,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
           { icon: Receipt, label: "Faturamento", to: "/admin/faturamento" },
           { icon: Tag, label: "Cupons", to: "/admin/cupons" },
           { icon: Receipt, label: "Faturas", to: "/admin/faturas" },
+          { icon: Mail, label: "Régua de Cobrança", to: "/admin/regua-cobranca" },
           { icon: Webhook, label: "Webhooks Asaas", to: "/admin/webhooks-asaas" },
         ],
       },
