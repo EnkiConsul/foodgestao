@@ -16913,6 +16913,18 @@ export type Database = {
           status: string
         }[]
       }
+      dp_portal_equipe_unidade: {
+        Args: never
+        Returns: {
+          ativo: boolean
+          cargo: string
+          folga_fixa_semana: number
+          id: string
+          nome: string
+          nome_social: string
+          unidade_id: string
+        }[]
+      }
       dp_portal_rotina_dia: {
         Args: { p_data: string }
         Returns: {
