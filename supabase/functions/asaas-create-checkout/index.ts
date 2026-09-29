@@ -220,7 +220,9 @@ Deno.serve(async (req) => {
       addressNumber: f.numero,
       complement: f.complemento || undefined,
       province: f.bairro,
-      notificationDisabled: false,
+      // Régua de cobrança centralizada no AVETO 360° (marca e tom próprios):
+      // silencia e-mail/SMS/WhatsApp automáticos do provedor para evitar duplicidade.
+      notificationDisabled: true,
       externalReference: company.id,
     };
 
