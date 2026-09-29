@@ -177,6 +177,25 @@ export function FichaRevisaoCard({
   const [turnoId, setTurnoId] = useState<string | null>(null);
   const turnoEscolhido = turnoId ?? turnoSugerido.turno_id;
 
+  /** Corrige um dia do horário desta ficha, mantendo o resumo coerente. */
+  const alterarDiaJornada = (dow: number, patch: Partial<JornadaDia>) =>
+    setJornadaEditada((atual) => {
+      const base = atual ?? jornadaEditavel(jornadaLida);
+      const dias = base.dias.map((d) => (d.dow === dow ? { ...d, ...patch } : d));
+      const primeiro = dias.find((d) => d.trabalha && d.entrada && d.saida) ?? null;
+      return {
+        ...base,
+        dias,
+        entrada: primeiro?.entrada ?? null,
+        saida: primeiro?.saida ?? null,
+        intervalo_minutos: primeiro?.intervalo_minutos ?? base.intervalo_minutos,
+        vira_meia_noite: !!primeiro?.entrada && !!primeiro?.saida && primeiro.saida <= primeiro.entrada,
+        vazia: !primeiro,
+      };
+    });
+
+
+
   const aplicar = useAplicarFicha();
   const ignorar = useIgnorarFicha();
 
