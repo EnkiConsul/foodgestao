@@ -76,6 +76,22 @@ export default function AcessoBloqueado() {
               </div>
             )}
 
+            {diasRestantesGuarda != null && (
+              <div className="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm">
+                <p className="flex items-center gap-2 font-semibold text-destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  {diasRestantesGuarda === 0
+                    ? "Último dia para exportar seus dados"
+                    : `Faltam ${diasRestantesGuarda} ${diasRestantesGuarda === 1 ? "dia" : "dias"} para a exclusão definitiva dos seus dados`}
+                </p>
+                <p className="mt-1 text-muted-foreground">
+                  O prazo de guarda de 90 dias está terminando. Depois dele, a exportação deixa de
+                  estar disponível e as informações são excluídas de forma definitiva. Quite a
+                  pendência para manter o acesso ou exporte seus dados agora.
+                </p>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-2">
               {access?.faturaPendenteId && (
                 <Button asChild>
