@@ -16307,6 +16307,23 @@ export type Database = {
         Args: { _company_id: string }
         Returns: number
       }
+      dp_ferias_meus_pedidos: {
+        Args: never
+        Returns: {
+          adiantar_13: boolean
+          criado_em: string
+          data_fim: string
+          data_inicio: string
+          dias: number
+          dias_abono: number
+          observacao: string
+          periodo_id: string
+          respondido_em: string
+          resposta_admin: string
+          solicitacao_id: string
+          status: string
+        }[]
+      }
       dp_ferias_minhas: {
         Args: never
         Returns: {
@@ -16322,6 +16339,17 @@ export type Database = {
           periodo_id: string
           periodo_status: string
         }[]
+      }
+      dp_ferias_pedido_editar: {
+        Args: {
+          _adiantar_13?: boolean
+          _data_fim: string
+          _data_inicio: string
+          _dias_abono?: number
+          _observacao?: string
+          _solicitacao_id: string
+        }
+        Returns: string
       }
       dp_ferias_periodo_conflitos: {
         Args: { _colaborador_id: string; _fim: string; _inicio: string }
@@ -16373,6 +16401,15 @@ export type Database = {
       }
       dp_ferias_regra_salvar: {
         Args: { p_company_id: string; p_regra: Json }
+        Returns: string
+      }
+      dp_ferias_remarcacao_solicitar: {
+        Args: {
+          _data_fim: string
+          _data_inicio: string
+          _gozo_id: string
+          _motivo?: string
+        }
         Returns: string
       }
       dp_ferias_solicitar: {
@@ -16518,6 +16555,10 @@ export type Database = {
           _dias: number[]
         }
         Returns: boolean
+      }
+      dp_folga_ferias_no_mes: {
+        Args: { _colab: string; _company: string; _competencia: string }
+        Returns: Json
       }
       dp_folga_limite_dia: {
         Args: {
