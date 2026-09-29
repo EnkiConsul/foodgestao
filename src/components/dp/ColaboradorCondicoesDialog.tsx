@@ -259,9 +259,10 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
   }, [open, atribuicoes]);
 
   const regimeAtual = colaborador?.regime ?? null;
-  /** Só é possível mudar dentro da formalidade; sair dela exige desligamento. */
+  /** Todas as transições são possíveis; sair da formalidade exige ciência. */
   const regimesDisponiveis = useMemo(() => regimesPermitidosNaMudanca(regimeAtual), [regimeAtual]);
-  const bloqueiaInformal = regimeFormalizado(regimeAtual);
+  const saidaDaFormalidade = regimeFormalizado(regimeAtual) && !regimeFormalizado(regime);
+
   const policy = useMemo(() => contratoPolicy(regime), [regime]);
   const formasPermitidas = useMemo(() => formasPagamentoDoRegime(regime), [regime]);
 
