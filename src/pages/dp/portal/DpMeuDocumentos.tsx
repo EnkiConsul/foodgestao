@@ -317,9 +317,24 @@ export default function DpMeuDocumentos() {
         </Tabs>
       )}
 
-      {/* Filtros */}
+      {/* Filtros — recolhidos no celular, sempre visíveis no desktop */}
       <DpFilterCard>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex w-full items-center justify-between md:hidden"
+          onClick={() => setFiltrosAbertos((v) => !v)}
+          aria-expanded={filtrosAbertos}
+        >
+          <span className="flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4" /> Filtrar
+            {filtrosAtivos > 0 && (
+              <Badge variant="secondary" className="ml-1">{filtrosAtivos}</Badge>
+            )}
+          </span>
+          <ChevronDown className={cn("h-4 w-4 transition-transform", filtrosAbertos && "rotate-180")} />
+        </Button>
+        <div className={cn("grid grid-cols-2 gap-3 md:grid-cols-4", filtrosAbertos ? "mt-3" : "hidden md:grid")}>
           <div>
             <Label className="text-xs">Buscar</Label>
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Título ou tipo…" />
@@ -358,6 +373,7 @@ export default function DpMeuDocumentos() {
           </div>
         </div>
       </DpFilterCard>
+
 
       {/* Lista */}
       {isError ? (
