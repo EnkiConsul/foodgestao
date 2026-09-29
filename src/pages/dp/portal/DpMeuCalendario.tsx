@@ -440,13 +440,11 @@ export default function DpMeuCalendario() {
 
   const occupantsByDate = useMemo(() => {
     const days = eachDayOfInterval({ start: range.startDate, end: range.endDate });
-    // Também filtra folgas/pendentes pela unidade
-    const filteredFolgas = myUnidade
-      ? folgas.filter((f) => f.dp_colaboradores?.unidade_id === myUnidade)
-      : folgas;
-    const filteredPend = myUnidade
-      ? pendentes.filter((p) => p.dp_colaboradores?.unidade_id === myUnidade)
-      : pendentes;
+    // A unidade vem da lista de colegas: o portal não lê o cadastro dos outros,
+    // então filtrar pelo vínculo aninhado deixava o calendário vazio.
+    const idsUnidade = new Set(colaboradores.map((c) => c.id));
+    const filteredFolgas = myUnidade ? folgas.filter((f) => idsUnidade.has(f.colaborador_id)) : folgas;
+    const filteredPend = myUnidade ? pendentes.filter((p) => idsUnidade.has(p.colaborador_id)) : pendentes;
     return buildOccupantsByDate({
       days,
       colaboradores,
