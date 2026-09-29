@@ -159,7 +159,11 @@ export function cardProviderDescription(
   raw?: unknown,
 ): string {
   const providerRaw = raw as CardRawShape | null;
-  return collapse(String(providerRaw?.descriptionRaw ?? providerRaw?.description ?? description ?? ""));
+  // A descrição editada pelo usuário (coluna `description`) tem prioridade sobre
+  // o texto bruto do banco (`descriptionRaw`), que nunca é atualizado.
+  const edited = collapse(String(description ?? ""));
+  if (edited) return edited;
+  return collapse(String(providerRaw?.descriptionRaw ?? providerRaw?.description ?? ""));
 }
 
 /** Final do cartão informado pelo banco (descarta placeholders como `0000`). */
