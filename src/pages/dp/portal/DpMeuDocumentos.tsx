@@ -108,9 +108,7 @@ export default function DpMeuDocumentos() {
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [search, setSearch] = useState("");
 
-  const preview_state = useState<UnifiedDoc | null>(null);
-  const preview = preview_state[0];
-  const setPreview = preview_state[1];
+  const [preview, setPreview] = useState<UnifiedDoc | null>(null);
   /** Filtros recolhidos por padrão no celular — a lista aparece primeiro. */
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const { somenteDocumentos } = usePortalAcesso();
