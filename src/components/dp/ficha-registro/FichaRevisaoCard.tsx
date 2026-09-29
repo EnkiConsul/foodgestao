@@ -1088,3 +1088,22 @@ function rascunhoParaJornada(valor: unknown): JornadaSugerida | null {
     vazia: false,
   };
 }
+
+/**
+ * Horário pronto para edição à mão: sempre com os sete dias da semana, para o
+ * operador corrigir o que a leitura do PDF errou ou informar horários de fichas
+ * sem jornada legível.
+ */
+function jornadaEditavel(base: JornadaSugerida): JornadaSugerida {
+  const porDow = new Map(base.dias.map((d) => [d.dow, d]));
+  const dias: JornadaDia[] = Array.from({ length: 7 }, (_, dow) =>
+    porDow.get(dow) ?? {
+      dow,
+      trabalha: !base.vazia && dow >= 1 && dow <= 5,
+      entrada: base.entrada,
+      saida: base.saida,
+      intervalo_minutos: base.intervalo_minutos,
+    },
+  );
+  return { ...base, dias };
+}
