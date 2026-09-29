@@ -221,6 +221,16 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, isRecurring, recurrenceType, isInstallment, installmentPeriod]);
 
+  // Em recorrência/parcelamento a 1ª ocorrência deve nascer na data de vencimento
+  // informada pelo usuário — nunca no mês vigente (data de hoje).
+  useEffect(() => {
+    if (transaction) return;
+    if (!(isRecurring || isInstallment)) return;
+    if (!dueDate) return;
+    if (date !== dueDate) setDate(dueDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dueDate, isRecurring, isInstallment]);
+
 
 
 
@@ -817,11 +827,15 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
     const hasDueDate = !!dueDate && type !== "transferencia";
 
+    // Recorrente novo: a 1ª ocorrência nasce na data de vencimento informada,
+    // não na data de hoje (mês vigente).
+    const baseDate = !isEditing && isRecurring && hasDueDate ? dueDate : date;
+
     const payload: any = {
       transaction_type: type,
       description: description.trim(),
       amount: numAmount,
-      transaction_date: date,
+      transaction_date: baseDate,
       account_id: effectiveAccountId || null,
       credit_card_id: effectiveCardId || null,
       destination_account_id: type === "transferencia" ? destinationAccountId : null,
@@ -968,7 +982,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         await uploadAttachments(inserted.id);
         // Generate future recurring transactions
         if (isRecurring) {
-          const futureDates = generateRecurrenceDates(date, recurrenceType, recurrenceEndDate || undefined);
+          const futureDates = generateRecurrenceDates(baseDate, recurrenceType, recurrenceEndDate || undefined);
           if (futureDates.length > 0) {
             const futurePayloads = futureDates.map((futureDate) => {
               const futureDueDate = hasDueDate && dueDate
@@ -977,7 +991,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                     // que jogaria o vencimento para o mês anterior/seguinte).
                     const MS_DAY = 86_400_000;
                     const baseDue = parseLocalDate(dueDate).getTime();
-                    const baseTx = parseLocalDate(date).getTime();
+                    const baseTx = parseLocalDate(baseDate).getTime();
                     const fdBase = parseLocalDate(futureDate).getTime();
                     const diffDays = Math.round((baseDue - baseTx) / MS_DAY);
                     const fd = new Date(fdBase + diffDays * MS_DAY);
