@@ -982,7 +982,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         await uploadAttachments(inserted.id);
         // Generate future recurring transactions
         if (isRecurring) {
-          const futureDates = generateRecurrenceDates(date, recurrenceType, recurrenceEndDate || undefined);
+          const futureDates = generateRecurrenceDates(baseDate, recurrenceType, recurrenceEndDate || undefined);
           if (futureDates.length > 0) {
             const futurePayloads = futureDates.map((futureDate) => {
               const futureDueDate = hasDueDate && dueDate
@@ -991,7 +991,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                     // que jogaria o vencimento para o mês anterior/seguinte).
                     const MS_DAY = 86_400_000;
                     const baseDue = parseLocalDate(dueDate).getTime();
-                    const baseTx = parseLocalDate(date).getTime();
+                    const baseTx = parseLocalDate(baseDate).getTime();
                     const fdBase = parseLocalDate(futureDate).getTime();
                     const diffDays = Math.round((baseDue - baseTx) / MS_DAY);
                     const fd = new Date(fdBase + diffDays * MS_DAY);
