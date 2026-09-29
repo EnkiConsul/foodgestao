@@ -474,6 +474,26 @@ export function ContactFormDialog({
           <DialogTitle>{editContact ? "Editar Contato" : "Novo Contato"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {!editContact && dupFaltaVinculo && duplicate && (
+            <div className="rounded-md border border-warning/50 bg-warning/10 p-3 space-y-2">
+              <p className="text-sm font-medium">Este cadastro já existe</p>
+              <p className="text-xs text-muted-foreground">
+                {dupEmpresasNomes.length > 0
+                  ? `"${duplicate.name}" já está cadastrado em ${dupEmpresasNomes.join(", ")}, mas ainda não está vinculado a ${empresaAtual?.trade_name || empresaAtual?.name || "esta empresa"}.`
+                  : `"${duplicate.name}" já está cadastrado, mas ainda não está vinculado a ${empresaAtual?.trade_name || empresaAtual?.name || "esta empresa"}.`}
+              </p>
+              <Button type="button" size="sm" onClick={() => { void vincularExistente(); }} disabled={vinculando}>
+                {vinculando ? "Vinculando..." : "Vincular a esta empresa e usar"}
+              </Button>
+            </div>
+          )}
+          {!editContact && duplicate && dupCompanyIds && !dupFaltaVinculo && (
+            <div className="rounded-md border border-warning/50 bg-warning/10 p-3">
+              <p className="text-xs text-muted-foreground">
+                "{duplicate.name}" já está cadastrado nesta empresa — selecione-o na lista em vez de criar outro.
+              </p>
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
               <Label>Nome *</Label>
