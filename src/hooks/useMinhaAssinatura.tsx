@@ -140,17 +140,22 @@ export function useAdicionaisDisponiveis(modulo: Modulo, planSlug?: string | nul
   });
 }
 
-/** Minhas faturas (titular). */
+/** Faturas do titular e das empresas cujo acesso foi liberado pelo dono. */
 export function useMinhasFaturas() {
   const { user } = useAuth();
+  const { data: assinaturas = [] } = useMinhasAssinaturas();
+  const idsAssinaturas = assinaturas.map((s) => s.id).sort().join(",");
   return useQuery({
-    queryKey: ["minhas-faturas", user?.id],
+    queryKey: ["minhas-faturas", user?.id, idsAssinaturas],
     enabled: !!user,
     queryFn: async () => {
+      const filtro = idsAssinaturas
+        ? `user_id.eq.${user!.id},subscription_id.in.(${idsAssinaturas})`
+        : `user_id.eq.${user!.id}`;
       const { data, error } = await supabase
         .from("invoices")
         .select("*")
-        .eq("user_id", user!.id)
+        .or(filtro)
         .order("created_at", { ascending: false })
         .limit(24);
       if (error) throw error;
