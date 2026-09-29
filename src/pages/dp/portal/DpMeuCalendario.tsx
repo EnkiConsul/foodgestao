@@ -1431,12 +1431,17 @@ export default function DpMeuCalendario() {
                   Não há outro dia de descanso disponível neste mês. Fale com o setor de pessoal.
                 </p>
               )}
-              {diaRemarcacaoEscolhido && !diaRemarcacaoEscolhido.disponivel && (
-                <p className="text-xs text-amber-700 mt-1">
-                  {diaRemarcacaoEscolhido.motivo}. Você pode pedir a mudança ao setor de pessoal.
-                </p>
+              {((diaRemarcacaoEscolhido && !diaRemarcacaoEscolhido.disponivel) || remarcarAviso) && (
+                <div className="mt-2 rounded-xl border border-amber-200 bg-amber-500/10 p-3 text-xs text-amber-800">
+                  <p className="font-semibold">
+                    {remarcarAviso ?? `${diaRemarcacaoEscolhido?.motivo}.`}
+                  </p>
+                  <p className="mt-1">
+                    A mudança para este dia depende da aprovação do gestor. Até a decisão, sua folga de{" "}
+                    <b>{remarcarOpen && formatBR(parseYMD(remarcarOpen))}</b> continua marcada.
+                  </p>
+                </div>
               )}
-              {remarcarAviso && <p className="text-xs text-amber-700 mt-1">{remarcarAviso}</p>}
             </div>
             <div>
               <Label className="flex items-center gap-2">
