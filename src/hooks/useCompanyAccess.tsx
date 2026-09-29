@@ -4,6 +4,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useCurrentSubscription } from "@/hooks/useCurrentSubscription";
 
+/**
+ * Motivo do bloqueio, conforme a política comercial:
+ * - sem_assinatura: nenhuma assinatura válida
+ * - trial_expirado: fim do teste sem plano contratado (bloqueio imediato)
+ * - inadimplente_suspenso: 11 a 30 dias de atraso
+ * - rescindido: 31 a 90 dias de atraso
+ * - expirado_definitivo: acima de 90 dias (sem exportação)
+ */
+export type MotivoBloqueio =
+  | "sem_assinatura"
+  | "trial_expirado"
+  | "inadimplente_suspenso"
+  | "rescindido"
+  | "expirado_definitivo";
+
 export interface CompanyAccess {
   companyId: string | null;
   /** true quando o usuário é o dono da empresa selecionada */
@@ -12,6 +27,12 @@ export interface CompanyAccess {
   status: string | null;
   trialEndsAt: string | null;
   blocked: boolean;
+  motivo: MotivoBloqueio | null;
+  diasAtraso: number | null;
+  /** exportação de dados liberada durante a guarda de 90 dias */
+  canExport: boolean;
+  valorPendenteCents: number | null;
+  faturaPendenteId: string | null;
 }
 
 /**
@@ -44,6 +65,11 @@ export function useCompanyAccess() {
         status: row.status ?? null,
         trialEndsAt: row.trial_ends_at ?? null,
         blocked: !!row.blocked,
+        motivo: (row.motivo ?? null) as MotivoBloqueio | null,
+        diasAtraso: row.dias_atraso ?? null,
+        canExport: row.can_export !== false,
+        valorPendenteCents: row.valor_pendente_cents ?? null,
+        faturaPendenteId: row.fatura_pendente_id ?? null,
       };
     },
   });

@@ -178,14 +178,19 @@ const EncarregadoDados = lazyWithRetry(() => import("./pages/legal/EncarregadoDa
 const DasMei = lazyWithRetry(() => import("./pages/guias/DasMei"));
 const Buscar = lazyWithRetry(() => import("./pages/Buscar"));
 const BemVindo = lazyWithRetry(() => import("./pages/BemVindo"));
+const AcessoBloqueado = lazyWithRetry(() => import("./pages/AcessoBloqueado"));
 
 
 
 
-// Rotas acessíveis mesmo com trial/assinatura expirada
+// Rotas acessíveis mesmo com trial/assinatura expirada: regularização,
+// contratação de plano, 2ª via de fatura e exportação dos dados guardados.
 const TRIAL_EXPIRED_WHITELIST = [
+  "/acesso-bloqueado",
   "/trial-expirado",
   "/checkout",
+  "/planos",
+  "/assinatura",
   "/admin",
   "/bem-vindo",
   "/convite",
@@ -212,8 +217,9 @@ function SubscriptionGuard({ children }: { children: React.ReactNode }) {
   // tela de boas-vindas, com convites pendentes e a opção de criar empresa.
   if (!hasCompanies) return <Navigate to="/bem-vindo" replace />;
 
-  // Sem bloqueio por assinatura/trial: quem tem empresa sempre acessa.
-  return <>{children}</>;
+  // Fim do teste, falta de contrato ou atraso acima da tolerância de 10 dias:
+  // acesso operacional suspenso, com regularização e exportação liberadas.
+  return <Navigate to="/acesso-bloqueado" replace />;
 }
 
 
@@ -632,7 +638,8 @@ const AppRoutes = () => (
       <Route path="/checkout/:planSlug" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
       <Route path="/checkout/pagamento/:invoiceId" element={<ProtectedRoute><CheckoutPagamento /></ProtectedRoute>} />
       <Route path="/faturas" element={<Navigate to="/configuracoes" replace />} />
-      <Route path="/trial-expirado" element={<Navigate to="/" replace />} />
+      <Route path="/acesso-bloqueado" element={<ProtectedRoute><AcessoBloqueado /></ProtectedRoute>} />
+      <Route path="/trial-expirado" element={<Navigate to="/acesso-bloqueado" replace />} />
       <Route path="/bem-vindo" element={<ProtectedRoute><BemVindo /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
       </Routes>
