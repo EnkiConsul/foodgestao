@@ -309,7 +309,6 @@ export default function AdminReguaCobranca() {
               Pausar régua
             </Button>
           </DialogFooter>
-        </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
