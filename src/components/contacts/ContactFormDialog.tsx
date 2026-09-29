@@ -382,7 +382,7 @@ export function ContactFormDialog({
       if (dup) {
         setDuplicate(dup);
         toast.error("CPF/CNPJ já cadastrado", {
-          description: `Já existe o contato "${dup.name}" com este documento. Selecione-o na lista em vez de criar outro.`,
+          description: `Já existe o contato "${dup.name}" com este documento. Use o aviso acima para vinculá-lo a esta empresa em vez de criar outro.`,
         });
         return;
       }
@@ -393,7 +393,7 @@ export function ContactFormDialog({
     if (dupNome) {
       setDuplicate(dupNome);
       toast.error("Nome já cadastrado", {
-        description: `Já existe o contato "${dupNome.name}". Selecione-o na lista em vez de criar outro.`,
+        description: `Já existe o contato "${dupNome.name}". Use o aviso acima para vinculá-lo a esta empresa em vez de criar outro.`,
       });
       return;
     }
