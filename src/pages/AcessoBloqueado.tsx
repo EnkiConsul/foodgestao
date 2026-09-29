@@ -50,6 +50,9 @@ export default function AcessoBloqueado() {
   const valor = formatarValor(access?.valorPendenteCents ?? null);
   const dias = access?.diasAtraso ?? null;
   const podeExportar = access?.canExport !== false;
+  // Aviso urgente a partir de D+80: contagem regressiva para o fim da guarda de 90 dias.
+  const diasRestantesGuarda =
+    podeExportar && dias != null && dias >= 80 && dias <= 90 ? 90 - dias : null;
 
   return (
     <div className="min-h-screen bg-background px-4 py-10">
