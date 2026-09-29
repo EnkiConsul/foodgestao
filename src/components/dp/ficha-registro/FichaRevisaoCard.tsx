@@ -36,6 +36,10 @@ import {
   dadosParaCadastro, divergenciasAdmin, divergenciasAdminSemEscolha, divergenciasFicha,
   divergenciasSemEscolha, resolverPorNome, type EscolhaDivergencia,
 } from "@/lib/dp/preadmissao/comparacaoFicha";
+import {
+  escolhasObrigatoriasFaltando,
+  mensagemEscolhasObrigatorias,
+} from "@/lib/dp/ficha-registro/validacao";
 
 
 
@@ -128,6 +132,12 @@ export function FichaRevisaoCard({
   const [formaPagamento, setFormaPagamento] = useState<string | null>(null);
   const [possuiFolhaPonto, setPossuiFolhaPonto] = useState<boolean | null>(null);
   const [optanteAdiantamento, setOptanteAdiantamento] = useState<boolean | null>(null);
+  const escolhasPendentes = escolhasObrigatoriasFaltando({
+    regime,
+    formaPagamento,
+    possuiFolhaPonto,
+    optanteAdiantamento,
+  });
   const [trechos, setTrechos] = useState<Record<string, boolean>>({});
   const [verTexto, setVerTexto] = useState(false);
   const [cargoDialog, setCargoDialog] = useState(false);
@@ -178,7 +188,7 @@ export function FichaRevisaoCard({
     return camposFaltando(
       { ...base, setor_id: setorId, regime },
       { exigirSetor: setores.length > 0, salarioCargo },
-    );
+    ).filter((campo) => campo.chave !== "dados_pagamento");
   }, [dados, setorId, regime, setores.length, salarioCargo]);
 
   /**
@@ -267,9 +277,9 @@ export function FichaRevisaoCard({
   };
 
   const executar = (camposPermitidos: string[] | null) => {
-    if (!regime || !formaPagamento || possuiFolhaPonto === null || optanteAdiantamento === null) {
+    if (escolhasPendentes.length > 0) {
       setCompletarAberto(true);
-      toast.error("Confirme vínculo, pagamento, ponto e adiantamento antes de criar o cadastro.");
+      toast.error(mensagemEscolhasObrigatorias(escolhasPendentes));
       return;
     }
     if (preadmissaoId && faltaDecidir > 0) {
@@ -527,9 +537,9 @@ export function FichaRevisaoCard({
             >
               <span className="text-sm font-medium">Completar cadastro</span>
               <span className="flex items-center gap-2">
-                {faltando.length > 0 ? (
+                {faltando.length + escolhasPendentes.length > 0 ? (
                   <Badge variant="outline" className="border-amber-500/50 text-[11px] text-amber-600 dark:text-amber-400">
-                    {faltando.length} campo(s) em branco
+                    {faltando.length + escolhasPendentes.length} campo(s) em branco
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="border-emerald-500/50 text-[11px] text-emerald-600 dark:text-emerald-400">
@@ -562,14 +572,13 @@ export function FichaRevisaoCard({
                   )}
 
                   <div className="space-y-1">
-                    <Label className="text-xs">Vínculo</Label>
+                      <Label className="text-xs">Vínculo *</Label>
                     <Select
-                      value={regime ?? "__none"}
-                      onValueChange={(v) => setRegimeEscolhido(v === "__none" ? null : v)}
+                        value={regime ?? undefined}
+                        onValueChange={setRegimeEscolhido}
                     >
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__none">Não informado</SelectItem>
                         {REGIMES.map((r) => (
                           <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                         ))}
@@ -579,10 +588,9 @@ export function FichaRevisaoCard({
 
                   <div className="space-y-1">
                     <Label className="text-xs">Forma de pagamento *</Label>
-                    <Select value={formaPagamento ?? "__none"} onValueChange={(v) => setFormaPagamento(v === "__none" ? null : v)}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Confirmar" /></SelectTrigger>
+                    <Select value={formaPagamento ?? undefined} onValueChange={setFormaPagamento}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__none">Confirmar forma</SelectItem>
                         <SelectItem value="mensalista">Mensalista</SelectItem>
                         <SelectItem value="horista">Horista</SelectItem>
                         <SelectItem value="diarista">Diarista</SelectItem>
@@ -592,10 +600,9 @@ export function FichaRevisaoCard({
 
                   <div className="space-y-1">
                     <Label className="text-xs">Folha de ponto *</Label>
-                    <Select value={possuiFolhaPonto === null ? "__none" : String(possuiFolhaPonto)} onValueChange={(v) => setPossuiFolhaPonto(v === "__none" ? null : v === "true")}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Confirmar" /></SelectTrigger>
+                    <Select value={possuiFolhaPonto === null ? undefined : String(possuiFolhaPonto)} onValueChange={(v) => setPossuiFolhaPonto(v === "true")}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__none">Confirmar opção</SelectItem>
                         <SelectItem value="true">Ativa</SelectItem>
                         <SelectItem value="false">Não utiliza</SelectItem>
                       </SelectContent>
@@ -607,10 +614,9 @@ export function FichaRevisaoCard({
 
                   <div className="space-y-1">
                     <Label className="text-xs">Adiantamento salarial *</Label>
-                    <Select value={optanteAdiantamento === null ? "__none" : String(optanteAdiantamento)} onValueChange={(v) => setOptanteAdiantamento(v === "__none" ? null : v === "true")}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Confirmar" /></SelectTrigger>
+                    <Select value={optanteAdiantamento === null ? undefined : String(optanteAdiantamento)} onValueChange={(v) => setOptanteAdiantamento(v === "true")}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__none">Confirmar opção</SelectItem>
                         <SelectItem value="true">Optante</SelectItem>
                         <SelectItem value="false">Não optante</SelectItem>
                       </SelectContent>
@@ -660,7 +666,7 @@ export function FichaRevisaoCard({
                 />
 
                 <p className="text-[11px] text-muted-foreground">
-                  Benefícios, dados bancários e jornada detalhada continuam no cadastro completo do colaborador.
+                  Benefícios e jornada detalhada continuam no cadastro completo do colaborador.
                 </p>
               </div>
             )}
@@ -787,9 +793,15 @@ export function FichaRevisaoCard({
           );
         })()}
 
+        {!aplicado && escolhasPendentes.length > 0 && (
+          <p className="text-[11px] text-amber-600 dark:text-amber-400">
+            Selecione antes de criar: {escolhasPendentes.join(", ")}.
+          </p>
+        )}
+
         {aplicado && item.colaborador_id && onAbrirCadastro && (
           <div className="flex justify-end">
-            <Button variant="outline" size="sm" onClick={() => onAbrirCadastro(item.colaborador_id!)}>
+            <Button variant="outline" size="sm" onClick={() => item.colaborador_id && onAbrirCadastro(item.colaborador_id)}>
               <UserCog className="mr-1 h-4 w-4" /> Abrir cadastro completo
             </Button>
           </div>

@@ -8,6 +8,7 @@
  * próprio, sem `any`, para que erro de forma continue aparecendo no build.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { erroAplicacaoFicha } from "@/lib/dp/ficha-registro/erroAplicacao";
 
 export interface AplicarFichaRpcArgs {
   p_item_id: string;
@@ -70,7 +71,7 @@ function clienteTipado(): RpcTipada {
 
 export async function aplicarFichaRpc(args: AplicarFichaRpcArgs): Promise<AplicarFichaRpcResultado> {
   const { data, error } = await clienteTipado().rpc("dp_ficha_aplicar", args);
-  if (error) throw new Error(error.message);
+  if (error) throw erroAplicacaoFicha(error.message);
   if (!data?.colaborador_id) throw new Error("A ficha não pôde ser aplicada.");
   return data;
 }
