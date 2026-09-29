@@ -13,7 +13,12 @@ import { avaliarSenha } from "@/lib/security/passwordPolicy";
 import { INVITE_TOKEN_KEY } from "@/lib/auth/invite";
 
 type Info = { nome: string | null; empresas: string[]; login: "email" | "whatsapp"; login_hint: string; conta_existe: boolean };
-type Status = "loading" | "ready" | "criar" | "accepted" | "error" | "expired";
+type Status = "loading" | "ready" | "criar" | "accepted" | "ja_ativo" | "error" | "expired";
+
+/** Convite consumido pela própria pessoa: o acesso já está valendo. */
+function jaUtilizado(msg: string): boolean {
+  return /não encontrado|nao encontrado|já utilizad|ja utilizad|inválido|invalido|já faz parte|ja faz parte/i.test(msg);
+}
 
 export default function AcceptInvite() {
   const { token } = useParams<{ token: string }>();
@@ -28,6 +33,9 @@ export default function AcceptInvite() {
 
   useEffect(() => {
     if (authLoading) return;
+    // Convite já concluído nesta tela: o login que acabou de acontecer NÃO
+    // reabre a conferência do link (ele é de uso único e já foi consumido).
+    if (status === "accepted" || status === "ja_ativo") return;
     if (!token) { setStatus("error"); return; }
     if (user) { setStatus("ready"); return; }
     (async () => {
@@ -41,7 +49,7 @@ export default function AcceptInvite() {
       setInfo(d as Info);
       setStatus("criar");
     })();
-  }, [user, authLoading, token]);
+  }, [user, authLoading, token, status]);
 
   const irParaLogin = () => {
     try { sessionStorage.setItem(INVITE_TOKEN_KEY, token ?? ""); } catch { /* noop */ }
@@ -55,6 +63,7 @@ export default function AcceptInvite() {
     const msg = (data as any)?.error || error?.message;
     if (msg) {
       if (/expirad|expired/i.test(msg)) setStatus("expired");
+      else if (jaUtilizado(msg)) setStatus("ja_ativo");
       else { setStatus("error"); toast.error("Erro ao aceitar convite", { description: msg }); }
     } else {
       setStatus("accepted");
@@ -62,6 +71,7 @@ export default function AcceptInvite() {
     }
     setBusy(false);
   };
+
 
   const aval = avaliarSenha(senha, { nome: info?.nome });
   const podeCriar = aval.valida && senha === confirma;
