@@ -78,7 +78,7 @@ export function DocumentoAssinaturaGate() {
     <>
       <Dialog open={open} onOpenChange={(v) => { if (!v) adiar(); }}>
         <DialogContent
-          className="max-w-md"
+          className="w-[calc(100%-1rem)] max-w-md"
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
