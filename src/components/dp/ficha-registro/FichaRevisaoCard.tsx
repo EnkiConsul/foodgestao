@@ -603,41 +603,53 @@ export function FichaRevisaoCard({
                   )}
 
                   <div className="space-y-1">
-                      <Label className="text-xs">Vínculo *</Label>
-                    <Select
-                        value={regime ?? undefined}
-                        onValueChange={setRegimeEscolhido}
-                    >
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <Label className="text-xs">Vínculo *</Label>
+                    <Select value={regime ?? undefined} onValueChange={setRegimeEscolhido}>
+                      <SelectTrigger className={cn("h-9", realce(!regime))}>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
                       <SelectContent>
                         {REGIMES.map((r) => (
                           <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    {tentouCriar && !regime && (
+                      <p className="text-[11px] text-destructive">Escolha o vínculo.</p>
+                    )}
                   </div>
 
                   <div className="space-y-1">
                     <Label className="text-xs">Forma de pagamento *</Label>
                     <Select value={formaPagamento ?? undefined} onValueChange={setFormaPagamento}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectTrigger className={cn("h-9", realce(!formaPagamento))}>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="mensalista">Mensalista</SelectItem>
                         <SelectItem value="horista">Horista</SelectItem>
                         <SelectItem value="diarista">Diarista</SelectItem>
                       </SelectContent>
                     </Select>
+                    {tentouCriar && !formaPagamento && (
+                      <p className="text-[11px] text-destructive">Escolha a forma de pagamento.</p>
+                    )}
                   </div>
 
                   <div className="space-y-1">
                     <Label className="text-xs">Folha de ponto *</Label>
                     <Select value={possuiFolhaPonto === null ? undefined : String(possuiFolhaPonto)} onValueChange={(v) => setPossuiFolhaPonto(v === "true")}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectTrigger className={cn("h-9", realce(possuiFolhaPonto === null))}>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="true">Ativa</SelectItem>
                         <SelectItem value="false">Não utiliza</SelectItem>
                       </SelectContent>
                     </Select>
+                    {tentouCriar && possuiFolhaPonto === null && (
+                      <p className="text-[11px] text-destructive">Informe se usa folha de ponto.</p>
+                    )}
                     {unidades.find((u) => u.id === unidadeId)?.possui_relogio_ponto && possuiFolhaPonto === null && (
                       <p className="text-[11px] text-muted-foreground">Sugestão: ativa, pois a unidade possui relógio de ponto.</p>
                     )}
@@ -646,13 +658,19 @@ export function FichaRevisaoCard({
                   <div className="space-y-1">
                     <Label className="text-xs">Adiantamento salarial *</Label>
                     <Select value={optanteAdiantamento === null ? undefined : String(optanteAdiantamento)} onValueChange={(v) => setOptanteAdiantamento(v === "true")}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectTrigger className={cn("h-9", realce(optanteAdiantamento === null))}>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="true">Optante</SelectItem>
                         <SelectItem value="false">Não optante</SelectItem>
                       </SelectContent>
                     </Select>
+                    {tentouCriar && optanteAdiantamento === null && (
+                      <p className="text-[11px] text-destructive">Informe se recebe adiantamento.</p>
+                    )}
                   </div>
+
 
                   <div className="space-y-1">
                     <Label className="text-xs">Estado civil</Label>
