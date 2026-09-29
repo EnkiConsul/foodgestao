@@ -72,7 +72,9 @@ export function PdfCanvasViewer({ url, title }: Props) {
         if (cancelado) return;
         const page = await doc.getPage(n);
         const base = page.getViewport({ scale: 1 });
-        const larguraDisponivel = Math.max(container.clientWidth - 32, 320);
+        // No celular a página precisa caber na largura real do container:
+        // forçar um mínimo maior que a tela obrigava o usuário a pinçar.
+        const larguraDisponivel = Math.max(container.clientWidth - 24, 240);
         const escala = (larguraDisponivel / base.width) * zoom;
         const viewport = page.getViewport({ scale: escala });
         const canvas = document.createElement("canvas");
