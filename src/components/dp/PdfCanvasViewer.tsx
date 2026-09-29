@@ -83,7 +83,7 @@ export function PdfCanvasViewer({ url, title }: Props) {
         canvas.height = Math.floor(viewport.height * dpr);
         canvas.style.width = `${Math.floor(viewport.width)}px`;
         canvas.style.height = `${Math.floor(viewport.height)}px`;
-        canvas.className = "mx-auto mb-4 shadow-md bg-white rounded";
+        canvas.className = "mx-auto mb-4 shadow-md bg-white rounded max-w-full";
         const ctx = canvas.getContext("2d");
         if (!ctx) continue;
         container.appendChild(canvas);
