@@ -124,6 +124,31 @@ export default function DpFichaRegistroImportar() {
   const pendentes = itens.filter((i) => ["pendente", "revisar", "duplicado"].includes(i.status));
   const prontos = itens.filter((i) => ["criado", "atualizado"].includes(i.status));
 
+  /** Relógio de tela: usado só para perceber leitura que parou de responder. */
+  const [agora, setAgora] = useState(() => Date.now());
+  useEffect(() => {
+    if (!processando) return;
+    const t = window.setInterval(() => setAgora(Date.now()), 10000);
+    return () => window.clearInterval(t);
+  }, [processando]);
+  const travada = !!atual && leituraTravada(atual, agora);
+
+  /** O arquivo é de outro CNPJ? Avisamos antes de conferir ficha por ficha. */
+  const divergencia = useMemo(
+    () => divergenciaLote(itens, unidadesDaEmpresa, empresaCnpj),
+    [itens, unidadesDaEmpresa, empresaCnpj],
+  );
+  const empresaAtual = companies.find((c) => c.id === selectedCompanyId) ?? null;
+  const empresaDoArquivo = useMemo(() => {
+    const alvo = divergencia.cnpjs[0];
+    if (!alvo) return null;
+    return companies.find((c) => digitsCnpj(c.cnpj) === alvo) ?? null;
+  }, [companies, divergencia.cnpjs]);
+  const [conferirMesmoAssim, setConferirMesmoAssim] = useState(false);
+  const bloqueadoPorEmpresa = divergencia.divergente && !conferirMesmoAssim;
+
+
+
 
   /** Abre o PDF original de um envio anterior por link temporário. */
   const abrirArquivo = async (path: string) => {
