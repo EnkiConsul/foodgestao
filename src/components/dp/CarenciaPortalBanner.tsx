@@ -1,11 +1,36 @@
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Info } from "lucide-react";
 import { usePortalAcesso } from "@/hooks/usePortalAcesso";
 import { diasRestantesCarencia } from "@/lib/dp/desligamento";
 
-/** Banner exibido a colaboradores desligados durante o período de carência do portal. */
+/**
+ * Banner exibido a colaboradores em modo de consulta.
+ *
+ * Dois motivos distintos, com mensagens diferentes:
+ * - desligado dentro do prazo de carência (mostra a data-limite);
+ * - empresa em situação comercial suspensa (aviso neutro, sem expor a
+ *   pendência financeira do empregador ao colaborador).
+ */
 export function CarenciaPortalBanner() {
-  const { somenteDocumentos, acessoAte } = usePortalAcesso();
+  const { somenteDocumentos, acessoAte, estado } = usePortalAcesso();
   if (!somenteDocumentos) return null;
+
+  if (estado === "empresa_suspensa_leitura") {
+    return (
+      <div className="mx-3 mt-3 rounded-xl border border-border bg-muted/50 p-3 text-xs">
+        <div className="flex items-start gap-2">
+          <Info className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <div className="font-semibold">Portal em modo de consulta</div>
+            <p className="text-muted-foreground mt-0.5">
+              Você continua podendo ver e baixar seus contracheques, documentos e sua ficha. Novas
+              solicitações estão indisponíveis no momento. Em caso de dúvidas, procure o setor de
+              pessoal.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const dias = diasRestantesCarencia(acessoAte) ?? 0;
 
@@ -30,7 +55,7 @@ export function CarenciaPortalBanner() {
   );
 }
 
-/** Indica se o colaborador logado está em período de carência (somente documentos). */
+/** Indica se o colaborador logado está em modo de consulta (somente documentos). */
 export function useCarenciaPortal() {
   const { somenteDocumentos, isLoading } = usePortalAcesso();
   return { somenteLeitura: somenteDocumentos, isLoading };
