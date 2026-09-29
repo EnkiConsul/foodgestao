@@ -1171,6 +1171,20 @@ export default function DpMeuCalendario() {
                     Somente fins de semana podem ser marcados diretamente. Use "Solicitar exceção" para outros dias.
                   </p>
                 )}
+                {folgaParaMover && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setRemarcarOpen(folgaParaMover.data);
+                      setRemarcarNova(selectedDay.iso);
+                      setRemarcarMotivo("");
+                      setRemarcarAviso(null);
+                    }}
+                  >
+                    <CalendarClock className="mr-2 h-4 w-4" />
+                    Mudar minha folga de {formatBR(parseYMD(folgaParaMover.data))} para este dia
+                  </Button>
+                )}
                 {selectedDay.status === "mine" && minhaFolgaAutomatica && (
                   <p className="rounded-xl border border-sky-200 bg-sky-500/10 px-3 py-2 text-xs font-medium text-sky-700">
                     Folga definida automaticamente porque você não escolheu no período de marcação.
