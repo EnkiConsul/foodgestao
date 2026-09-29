@@ -1460,6 +1460,85 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_notifications: {
+        Row: {
+          attempts: number
+          channel: string
+          company_id: string
+          created_at: string
+          id: string
+          invoice_id: string | null
+          last_error: string | null
+          payload: Json
+          provider_message_id: string | null
+          recipient: string
+          scheduled_at: string
+          sent_at: string | null
+          stage: string
+          status: string
+          subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          channel?: string
+          company_id: string
+          created_at?: string
+          id?: string
+          invoice_id?: string | null
+          last_error?: string | null
+          payload?: Json
+          provider_message_id?: string | null
+          recipient: string
+          scheduled_at?: string
+          sent_at?: string | null
+          stage: string
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          channel?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          invoice_id?: string | null
+          last_error?: string | null
+          payload?: Json
+          provider_message_id?: string | null
+          recipient?: string
+          scheduled_at?: string
+          sent_at?: string | null
+          stage?: string
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_notifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_notifications_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_notifications_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           accounting_behavior: string | null
@@ -13759,6 +13838,8 @@ export type Database = {
           current_period_end: string | null
           current_period_start: string
           cycle_month: number
+          dunning_pause_reason: string | null
+          dunning_paused_until: string | null
           dunning_stage: number
           exempt_reason: string | null
           exempt_until: string | null
@@ -13795,6 +13876,8 @@ export type Database = {
           current_period_end?: string | null
           current_period_start?: string
           cycle_month?: number
+          dunning_pause_reason?: string | null
+          dunning_paused_until?: string | null
           dunning_stage?: number
           exempt_reason?: string | null
           exempt_until?: string | null
@@ -13831,6 +13914,8 @@ export type Database = {
           current_period_end?: string | null
           current_period_start?: string
           cycle_month?: number
+          dunning_pause_reason?: string | null
+          dunning_paused_until?: string | null
           dunning_stage?: number
           exempt_reason?: string | null
           exempt_until?: string | null
@@ -14719,6 +14804,29 @@ export type Database = {
       auto_promote_open_finance_raw: {
         Args: { _connection_id: string }
         Returns: Json
+      }
+      billing_dunning_scan: {
+        Args: never
+        Returns: {
+          amount_cents: number
+          company_cnpj: string
+          company_email: string
+          company_id: string
+          company_name: string
+          dias: number
+          due_date: string
+          expira_em: string
+          invoice_id: string
+          modulo: string
+          owner_user_id: string
+          payment_url: string
+          stage: string
+          subscription_id: string
+        }[]
+      }
+      billing_set_dunning_stage: {
+        Args: { _stage: number; _subscription_id: string }
+        Returns: undefined
       }
       can_use_module: {
         Args: {
