@@ -1280,6 +1280,32 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Saída de vínculo com registro: ciência expressa do risco trabalhista. */}
+      <AlertDialog
+        open={!!confirmarSaidaFormal}
+        onOpenChange={(o) => { if (!o) setConfirmarSaidaFormal(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair de um vínculo com registro em carteira?</AlertDialogTitle>
+            <AlertDialogDescription>{confirmarSaidaFormal}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar e revisar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                cienciaSaidaFormal.current = true;
+                setConfirmarSaidaFormal(null);
+                void salvar(intencao.current);
+              }}
+            >
+              Estou ciente, continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </Dialog>
 
   );
