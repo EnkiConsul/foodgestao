@@ -2720,15 +2720,25 @@ export function ColaboradorFormDialog({
 
           {/* Folha de ponto (condicional) */}
           {unidadeSelecionada?.possui_relogio_ponto && (
-            <div className="md:col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
-              <Switch
-                id="possui_folha_ponto"
-                checked={form.possui_folha_ponto}
-                onCheckedChange={(v) => setForm({ ...form, possui_folha_ponto: v })}
-              />
-              <Label htmlFor="possui_folha_ponto" className="cursor-pointer">Possui Folha de Ponto</Label>
+            <div className="md:col-span-2 space-y-2 rounded-xl border border-border p-3">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="possui_folha_ponto"
+                  checked={form.possui_folha_ponto}
+                  onCheckedChange={(v) => setForm({ ...form, possui_folha_ponto: v })}
+                />
+                <Label htmlFor="possui_folha_ponto" className="cursor-pointer">Possui Folha de Ponto</Label>
+              </div>
+              {vinculoSemRegistro && (
+                <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
+                  {form.possui_folha_ponto
+                    ? "Atenção: exigir marcação de entrada e saída de quem não tem registro em carteira é prova de subordinação e habitualidade (arts. 2º e 3º da CLT) e favorece o reconhecimento de vínculo empregatício. O recomendado é manter desligado."
+                    : "Vínculo sem registro em carteira não bate ponto: o controle de horário é indício de subordinação. Deixe desligado."}
+                </p>
+              )}
             </div>
           )}
+
 
 
           {/* Senha Inicial */}
