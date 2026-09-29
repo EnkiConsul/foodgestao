@@ -28,6 +28,7 @@ export function AppLayout() {
         <div className="flex flex-1 flex-col min-w-0">
           <AppHeader />
           <TrialCountdownBanner />
+          <AtrasoPagamentoBanner />
           <main className="flex-1 p-3 md:p-6 pb-22 md:pb-6">
             <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
               <PermissionRouteGuard><Outlet /></PermissionRouteGuard>
