@@ -44,6 +44,9 @@ const ROUTES: [string, ModuleKey][] = [
   ["/empresas", "conta.empresa"],
   ["/gestao-usuarios", "conta.usuarios"],
   ["/auditoria", "conta.auditoria"],
+  ["/assinatura", "conta.assinatura"],
+  ["/planos", "conta.assinatura"],
+  ["/checkout", "conta.assinatura"],
 ].sort((a, b) => b[0].length - a[0].length) as [string, ModuleKey][];
 
 export function itemDaRota(pathname: string): ModuleKey | null {
