@@ -165,13 +165,18 @@ export function FichaRevisaoCard({
     ),
     [preadmissaoJornada.data],
   );
-  const jornada = useMemo(
+  const jornadaLida = useMemo(
     () => jornadaDaAdmissao ?? jornadaDaFicha(dados),
     [jornadaDaAdmissao, dados],
   );
+  /** Horário corrigido à mão nesta revisão: manda em tudo o que for gravado. */
+  const [jornadaEditada, setJornadaEditada] = useState<JornadaSugerida | null>(null);
+  const [editandoJornada, setEditandoJornada] = useState(false);
+  const jornada = jornadaEditada ?? jornadaLida;
   const turnoSugerido = useMemo(() => matchTurno(jornada, turnos, unidadeId), [jornada, turnos, unidadeId]);
   const [turnoId, setTurnoId] = useState<string | null>(null);
   const turnoEscolhido = turnoId ?? turnoSugerido.turno_id;
+
   const aplicar = useAplicarFicha();
   const ignorar = useIgnorarFicha();
 
