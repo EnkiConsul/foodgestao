@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { notifyError } from "@/lib/notifyError";
 import { EnderecoFields, type EnderecoValor } from "@/components/shared/EnderecoFields";
 import { maskCnpj, isValidCnpj } from "@/lib/cnpj";
+import { useAssinaturaAcesso } from "@/hooks/useAssinaturaAcesso";
 
 type Method = "PIX" | "BOLETO" | "CREDIT_CARD";
 
