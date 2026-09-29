@@ -1267,11 +1267,11 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                     <div className="space-y-2">
                       <Label>Dia do mês do vencimento</Label>
                       <Select
-                        value={date ? String(parseLocalDate(date).getDate()) : "1"}
+                        value={String(currentMonthDay(dueDate || date))}
                         onValueChange={(v) => {
                           const d = Number(v);
-                          setDate(shiftToMonthDay(date, d));
                           if (dueDate) setDueDate(shiftToMonthDay(dueDate, d));
+                          setDate(shiftToMonthDay(dueDate || date, d));
                         }}
                       >
                         <SelectTrigger><SelectValue /></SelectTrigger>
