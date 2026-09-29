@@ -175,6 +175,24 @@ export default function AcceptInvite() {
           </>
         )}
 
+        {status === "ja_ativo" && (
+          <>
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-2"><CheckCircle className="h-12 w-12 text-primary" /></div>
+              <CardTitle>Seu acesso já está ativo</CardTitle>
+              <CardDescription>
+                Este convite já foi usado por você. Entre com seu e-mail e a senha que você criou.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => navigate(user ? "/hub" : "/auth")} className="w-full">
+                {user ? "Acessar o sistema" : "Entrar"}
+              </Button>
+            </CardContent>
+          </>
+        )}
+
+
         {(status === "expired" || status === "error") && (
           <>
             <CardHeader className="text-center">
