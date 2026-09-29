@@ -3087,6 +3087,28 @@ export function ColaboradorFormDialog({
         }}
       />
 
+      {/* Alteração de condição de trabalho: ciência, vigência e justificativa. */}
+      <AlteracaoContratualDialog
+        open={!!alteracaoPendente}
+        nome={form.nome.trim()}
+        admissao={form.data_admissao || null}
+        alteracoes={alteracaoPendente?.alteracoes ?? []}
+        alertas={alteracaoPendente?.alertas ?? []}
+        salvando={upsert.isPending}
+        onCancel={() => setAlteracaoPendente(null)}
+        onConfirm={async (c) => {
+          alteracaoConfirmada.current = c;
+          const resumo = (alteracaoPendente?.alteracoes ?? [])
+            .map((a) => `${a.label}: ${a.de} → ${a.para}`)
+            .join("; ");
+          setAlteracaoPendente(null);
+          await registrarAlteracaoContratual(c, resumo);
+          await submit();
+        }}
+      />
+
+
+
       <BeneficioDispensaDialog
         open={dispensas.length > 0}
         onOpenChange={(o) => {
