@@ -295,10 +295,35 @@ export default function DpFichaRegistroImportar() {
                 <Progress
                   value={atual.total_paginas ? (atual.paginas_processadas / atual.total_paginas) * 100 : 8}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Lendo página {atual.paginas_processadas} de {atual.total_paginas || "…"} — pode deixar a tela aberta.
-                </p>
-                <div className="flex justify-end">
+                {travada ? (
+                  <p className="text-xs text-destructive">
+                    A leitura parou de responder na página {atual.paginas_processadas} de{" "}
+                    {atual.total_paginas || "…"}. Tente novamente — não é preciso reenviar o PDF.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Lendo página {atual.paginas_processadas} de {atual.total_paginas || "…"}
+                    {" · "}
+                    {atual.fichas_identificadas ?? 0} ficha(s) encontrada(s) até aqui — pode deixar a tela aberta.
+                  </p>
+                )}
+                <div className="flex flex-wrap justify-end gap-2">
+                  {travada && (
+                    <Button
+                      size="sm"
+                      className="h-8"
+                      disabled={repetir.isPending}
+                      onClick={() =>
+                        repetir.mutate(atual, {
+                          onSuccess: () => toast.success("Leitura reiniciada."),
+                          onError: (e) => toast.error((e as Error).message),
+                        })
+                      }
+                    >
+                      {repetir.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+                      Tentar novamente
+                    </Button>
+                  )}
                   <ConfirmarAcaoDialog
                     titulo="Cancelar a leitura?"
                     descricao="A leitura deste arquivo será interrompida. Depois você pode tentar novamente sem reenviar o PDF."
