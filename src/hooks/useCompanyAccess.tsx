@@ -65,6 +65,11 @@ export function useCompanyAccess() {
         status: row.status ?? null,
         trialEndsAt: row.trial_ends_at ?? null,
         blocked: !!row.blocked,
+        motivo: (row.motivo ?? null) as MotivoBloqueio | null,
+        diasAtraso: row.dias_atraso ?? null,
+        canExport: row.can_export !== false,
+        valorPendenteCents: row.valor_pendente_cents ?? null,
+        faturaPendenteId: row.fatura_pendente_id ?? null,
       };
     },
   });
