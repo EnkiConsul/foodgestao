@@ -171,6 +171,11 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
   const [justificativa, setJustificativa] = useState("");
   const [modo, setModo] = useState<ModoContinuidade>("continuidade");
   const [confirmarNovoContrato, setConfirmarNovoContrato] = useState(false);
+  /** Aviso de saída de vínculo formal aguardando ciência do gestor. */
+  const [confirmarSaidaFormal, setConfirmarSaidaFormal] = useState<string | null>(null);
+  /** Ciência da saída da formalidade já dada neste salvamento. */
+  const cienciaSaidaFormal = useRef(false);
+
   /** Campos que o gestor já mexeu à mão: o padrão do cargo não os sobrescreve. */
   const tocados = useRef<Set<string>>(new Set());
   const intencao = useRef<"stay" | "close">("close");
@@ -206,7 +211,10 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
     );
     setJustificativa("");
     setModo("continuidade");
+    setConfirmarSaidaFormal(null);
+    cienciaSaidaFormal.current = false;
     tocados.current = new Set();
+
   }, [open, colaborador]);
 
 
@@ -259,9 +267,10 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
   }, [open, atribuicoes]);
 
   const regimeAtual = colaborador?.regime ?? null;
-  /** Só é possível mudar dentro da formalidade; sair dela exige desligamento. */
+  /** Todas as transições são possíveis; sair da formalidade exige ciência. */
   const regimesDisponiveis = useMemo(() => regimesPermitidosNaMudanca(regimeAtual), [regimeAtual]);
-  const bloqueiaInformal = regimeFormalizado(regimeAtual);
+  const saidaDaFormalidade = regimeFormalizado(regimeAtual) && !regimeFormalizado(regime);
+
   const policy = useMemo(() => contratoPolicy(regime), [regime]);
   const formasPermitidas = useMemo(() => formasPagamentoDoRegime(regime), [regime]);
 
@@ -571,15 +580,16 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
       setAba("contrato");
       return;
     }
-    const transicao = mudancaRegimePermitida(regimeAtual, regime);
-    if (!transicao.ok) {
-      toast.error(transicao.motivo ?? "Mudança de vínculo não permitida.");
-      setAba("contrato");
-      return;
-    }
     if (justificativa.trim().length < 5) {
       toast.error("Explique brevemente o motivo da mudança.");
       setAba("contrato");
+      return;
+    }
+    // Sair de um vínculo com registro exige ciência expressa: não é bloqueado,
+    // porque o gestor pode estar corrigindo um cadastro errado.
+    const transicao = mudancaRegimePermitida(regimeAtual, regime);
+    if (transicao.exigeCiencia && !cienciaSaidaFormal.current) {
+      setConfirmarSaidaFormal(transicao.motivo);
       return;
     }
     if (modo === "novo_contrato") {
@@ -588,6 +598,7 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
     }
     await executar();
   };
+
 
 
   return (
@@ -659,13 +670,15 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                     ))}
                   </SelectContent>
                 </Select>
-                {bloqueiaInformal ? (
-                  <p className="text-xs text-muted-foreground">
-                    Só é possível mudar entre vínculos com registro. Para passar a um vínculo sem
-                    registro (freelancer, PJ, MEI), faça o desligamento e cadastre a pessoa de novo
-                    aproveitando os dados do colaborador inativo.
+                {saidaDaFormalidade ? (
+                  <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-400">
+                    Atenção: sair de um vínculo com registro em carteira não extingue o contrato
+                    anterior. O correto é registrar o desligamento na data do término e apurar as
+                    verbas rescisórias. Use esta mudança apenas para corrigir um cadastro errado — o
+                    sistema vai pedir sua confirmação antes de salvar.
                   </p>
                 ) : exigeNovoContrato(regimeAtual, regime) ? (
+
                   <p className="text-xs text-muted-foreground">
                     Efetivação de vínculo sem registro: entra como novo contrato, com a contagem de
                     férias, 13º e tempo de casa começando na data informada.
@@ -1267,6 +1280,32 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Saída de vínculo com registro: ciência expressa do risco trabalhista. */}
+      <AlertDialog
+        open={!!confirmarSaidaFormal}
+        onOpenChange={(o) => { if (!o) setConfirmarSaidaFormal(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair de um vínculo com registro em carteira?</AlertDialogTitle>
+            <AlertDialogDescription>{confirmarSaidaFormal}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar e revisar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                cienciaSaidaFormal.current = true;
+                setConfirmarSaidaFormal(null);
+                void salvar(intencao.current);
+              }}
+            >
+              Estou ciente, continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </Dialog>
 
   );

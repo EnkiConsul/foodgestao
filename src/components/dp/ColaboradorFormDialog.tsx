@@ -101,6 +101,18 @@ import {
   type AssiduidadeCriterio,
 } from "@/lib/dp/remuneracao";
 import {
+  AlteracaoContratualDialog,
+  type AlteracaoContratualConfirmacao,
+} from "@/components/dp/AlteracaoContratualDialog";
+import {
+  detectarAlteracoesContratuais,
+  alertasAlteracaoContratual,
+  type AlertaAlteracao,
+  type AlteracaoContratual,
+  type SnapshotContratual,
+} from "@/lib/dp/alteracao-contratual";
+
+import {
   useDpBeneficiosPadroes, useSalvarDpBeneficiosPadrao,
 } from "@/hooks/useDpBeneficiosPadrao";
 import {
@@ -384,6 +396,16 @@ export function ColaboradorFormDialog({
   const [sexoSugerido, setSexoSugerido] = useState(false);
   // Ciência do risco jurídico do vínculo sem registro, válida para este salvamento.
   const cienciaConfirmada = useRef<{ justificativa: string } | null>(null);
+  /**
+   * Alteração de condição de trabalho já confirmada (efeito, vigência e
+   * justificativa), válida para este salvamento.
+   */
+  const alteracaoConfirmada = useRef<AlteracaoContratualConfirmacao | null>(null);
+  /** Alterações contratuais aguardando confirmação do gestor. */
+  const [alteracaoPendente, setAlteracaoPendente] = useState<
+    { alteracoes: AlteracaoContratual[]; alertas: AlertaAlteracao[] } | null
+  >(null);
+
 
 
   const isEdit = !!colaborador?.id;
@@ -637,6 +659,9 @@ export function ColaboradorFormDialog({
   useEffect(() => {
     if (!open) { admissaoResetRef.current = null; return; }
     cienciaConfirmada.current = null;
+    alteracaoConfirmada.current = null;
+    setAlteracaoPendente(null);
+
     // Acesso e desligamento agora vivem na aba Dados: o atalho abre Dados e
     // rola até a âncora do bloco correspondente.
     const ancora = abaInicial === "acesso" ? "acesso-portal" : abaInicial === "desligamento" ? "desligamento" : null;
@@ -933,15 +958,30 @@ export function ColaboradorFormDialog({
   const [riscoOpen, setRiscoOpen] = useState(false);
 
 
+  /**
+   * Vínculo sem registro em carteira (freelancer, PJ, MEI, sócio): controlar
+   * entrada e saída é prova de subordinação, então a folha de ponto é desligada
+   * ao trocar o vínculo. O gestor pode religar à mão, com o alerta ao lado.
+   */
+  const vinculoSemRegistro = !policy.formalizado;
+
   // Mudar o vínculo pode invalidar a forma de pagamento (ex.: intermitente não
   // é mensalista): reconciliamos sempre pela política do contrato.
   useEffect(() => {
     cienciaConfirmada.current = null;
+    alteracaoConfirmada.current = null;
     setRem((r) => {
       const ajustada = ajustarFormaPagamento(regimeSelecionado, r.forma_pagamento) as FormaPagamento;
       return ajustada === r.forma_pagamento ? r : { ...r, forma_pagamento: ajustada };
     });
   }, [regimeSelecionado]);
+
+  // Troca de vínculo para um sem registro desliga o controle de ponto.
+  useEffect(() => {
+    if (!vinculoSemRegistro || !vinculoTocado.current) return;
+    setForm((f) => (f.possui_folha_ponto ? { ...f, possui_folha_ponto: false } : f));
+  }, [vinculoSemRegistro]);
+
 
   /**
    * Sócio administra o negócio: o acesso mínimo é de gestor. É apenas sugestão —
@@ -1088,6 +1128,38 @@ export function ColaboradorFormDialog({
       });
     } catch { /* o cadastro não deve falhar por causa do log */ }
   };
+
+  /**
+   * Registra no histórico do vínculo a alteração de condição de trabalho: o que
+   * mudou, a partir de quando vale e por quê. O cadastro não falha se o log
+   * falhar, mas a ciência do gestor fica gravada sempre que possível.
+   */
+  const registrarAlteracaoContratual = async (
+    c: AlteracaoContratualConfirmacao,
+    resumo: string,
+  ) => {
+    if (!selectedCompanyId) return;
+    try {
+      const { registrarCienciaRegra } = await import("@/lib/dp/regras-oficial");
+      await registrarCienciaRegra({
+        companyId: selectedCompanyId,
+        tabela: "dp_colaboradores",
+        registroId: colaborador?.id ?? null,
+        valorNovo: {
+          tipo: "alteracao_condicao_trabalho",
+          efeito: c.efeito,
+          vigencia: c.vigencia,
+          alteracoes: resumo,
+          vinculo: form.tipo_vinculo,
+          regime: regimeSelecionado,
+          nome: form.nome.trim(),
+        },
+        justificativa: c.justificativa || null,
+      });
+    } catch { /* o cadastro não deve falhar por causa do log */ }
+  };
+
+
 
   /**
    * Divergências de benefício deste cadastro contra o grupo equivalente.
@@ -1715,6 +1787,85 @@ export function ColaboradorFormDialog({
         return;
       }
     }
+
+    /*
+     * Alteração de condição de trabalho em cadastro já existente.
+     *
+     * Qualquer mudança contratual — vínculo, cargo, unidade, setor, sindicato,
+     * remuneração, adicionais, benefícios de valor fixo, folga semanal, folha de
+     * ponto e adiantamento — precisa de ciência do gestor, data de vigência
+     * (podendo ser retroativa, quando é correção de cadastro) e justificativa.
+     */
+    if (validaDados && isEdit && colaborador && !alteracaoConfirmada.current) {
+      const antes: SnapshotContratual = {
+        regime: colaborador.regime ?? null,
+        vinculo_label: (colaborador as { vinculo_label?: string | null }).vinculo_label ?? null,
+        cargo_id: colaborador.cargo_id ?? null,
+        unidade_id: colaborador.unidade_id ?? null,
+        setor_id: colaborador.setor_id ?? null,
+        sindicato_id: (colaborador as { sindicato_id?: string | null }).sindicato_id ?? null,
+        forma_pagamento: colaborador.forma_pagamento ?? null,
+        salario_base: colaborador.salario_base ?? null,
+        valor_hora: colaborador.valor_hora ?? null,
+        valor_diaria: (colaborador as { valor_diaria?: number | null }).valor_diaria ?? null,
+        adicional_percentual: colaborador.adicional_percentual ?? null,
+        insalubridade_percentual:
+          (colaborador as { insalubridade_percentual?: number | null }).insalubridade_percentual ?? null,
+        periculosidade_percentual:
+          (colaborador as { periculosidade_percentual?: number | null }).periculosidade_percentual ?? null,
+        vale_transporte: colaborador.vale_transporte ?? null,
+        vale_transporte_valor_dia: colaborador.vale_transporte_valor_dia ?? null,
+        premio_assiduidade:
+          (colaborador as { premio_assiduidade?: boolean | null }).premio_assiduidade ?? null,
+        folga_fixa_semana: (colaborador as { folga_fixa_semana?: number | null }).folga_fixa_semana ?? null,
+        possui_folha_ponto: colaborador.possui_folha_ponto ?? null,
+        optante_adiantamento:
+          (colaborador as { optante_adiantamento?: boolean | null }).optante_adiantamento ?? null,
+      };
+      const depois: SnapshotContratual = {
+        regime: regimeSelecionado,
+        vinculo_label: form.tipo_vinculo,
+        cargo_id: form.cargo_id || null,
+        unidade_id: form.unidade_id || null,
+        setor_id: form.setor_id || null,
+        sindicato_id: form.sindicato_id || null,
+        forma_pagamento: rem.forma_pagamento,
+        salario_base:
+          socioSemRemuneracao || rem.forma_pagamento === "horista" ? null : salarioNum || null,
+        valor_hora: rem.forma_pagamento === "horista" ? valorHoraNum || null : null,
+        valor_diaria: rem.forma_pagamento === "diarista" ? numeroBR(rem.valor_diaria) || null : null,
+        adicional_percentual: adicionalNum,
+        insalubridade_percentual: insalubridadeNum,
+        periculosidade_percentual: periculosidadeNum,
+        vale_transporte: rem.vale_transporte,
+        vale_transporte_valor_dia: rem.vale_transporte ? vtDiaNum : null,
+        premio_assiduidade: rem.premio_assiduidade,
+        folga_fixa_semana:
+          policy.exigeFolgaSemanal && form.folga_fixa_semana !== "none"
+            ? Number(form.folga_fixa_semana)
+            : null,
+        possui_folha_ponto: form.possui_folha_ponto,
+        optante_adiantamento: permiteAdiantamento ? form.optante_adiantamento : false,
+      };
+      const nomeDe = <T extends { id: string; nome?: string | null }>(
+        lista: readonly T[] | undefined,
+        id?: string | null,
+      ) => (id ? lista?.find((x) => x.id === id)?.nome ?? null : null);
+      const alteracoes = detectarAlteracoesContratuais(antes, depois, {
+        cargo: (id) => nomeDe(cargos.data as any[], id),
+        unidade: (id) => nomeDe(unidades.data as any[], id),
+        setor: (id) => nomeDe(setoresDaEmpresa as any[], id),
+        sindicato: (id) => nomeDe(sindicatos.data as any[], id),
+      });
+      if (alteracoes.length > 0) {
+        setAlteracaoPendente({
+          alteracoes,
+          alertas: alertasAlteracaoContratual(antes, depois),
+        });
+        return;
+      }
+    }
+
 
 
 
@@ -2569,15 +2720,25 @@ export function ColaboradorFormDialog({
 
           {/* Folha de ponto (condicional) */}
           {unidadeSelecionada?.possui_relogio_ponto && (
-            <div className="md:col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
-              <Switch
-                id="possui_folha_ponto"
-                checked={form.possui_folha_ponto}
-                onCheckedChange={(v) => setForm({ ...form, possui_folha_ponto: v })}
-              />
-              <Label htmlFor="possui_folha_ponto" className="cursor-pointer">Possui Folha de Ponto</Label>
+            <div className="md:col-span-2 space-y-2 rounded-xl border border-border p-3">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="possui_folha_ponto"
+                  checked={form.possui_folha_ponto}
+                  onCheckedChange={(v) => setForm({ ...form, possui_folha_ponto: v })}
+                />
+                <Label htmlFor="possui_folha_ponto" className="cursor-pointer">Possui Folha de Ponto</Label>
+              </div>
+              {vinculoSemRegistro && (
+                <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
+                  {form.possui_folha_ponto
+                    ? "Atenção: exigir marcação de entrada e saída de quem não tem registro em carteira é prova de subordinação e habitualidade (arts. 2º e 3º da CLT) e favorece o reconhecimento de vínculo empregatício. O recomendado é manter desligado."
+                    : "Vínculo sem registro em carteira não bate ponto: o controle de horário é indício de subordinação. Deixe desligado."}
+                </p>
+              )}
             </div>
           )}
+
 
 
           {/* Senha Inicial */}
@@ -2827,7 +2988,14 @@ export function ColaboradorFormDialog({
                   {unidadeSelecionada && <Button type="button" size="sm" variant="outline" onClick={() => setAdiantamentoOpen(true)}>
                     Editar regra da unidade
                   </Button>}
+                  {vinculoSemRegistro && (
+                    <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
+                      Valor mensal fixo com adiantamento em data certa reforça os indícios de habitualidade
+                      e dependência econômica em vínculo sem registro. É possível manter, com ciência do risco.
+                    </p>
+                  )}
                 </div>
+
               ) : (
                 <p className="md:col-span-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
                   <strong className="text-foreground">Adiantamento salarial não se aplica.</strong>{" "}
@@ -2967,6 +3135,28 @@ export function ColaboradorFormDialog({
           await submit();
         }}
       />
+
+      {/* Alteração de condição de trabalho: ciência, vigência e justificativa. */}
+      <AlteracaoContratualDialog
+        open={!!alteracaoPendente}
+        nome={form.nome.trim()}
+        admissao={form.data_admissao || null}
+        alteracoes={alteracaoPendente?.alteracoes ?? []}
+        alertas={alteracaoPendente?.alertas ?? []}
+        salvando={upsert.isPending}
+        onCancel={() => setAlteracaoPendente(null)}
+        onConfirm={async (c) => {
+          alteracaoConfirmada.current = c;
+          const resumo = (alteracaoPendente?.alteracoes ?? [])
+            .map((a) => `${a.label}: ${a.de} → ${a.para}`)
+            .join("; ");
+          setAlteracaoPendente(null);
+          await registrarAlteracaoContratual(c, resumo);
+          await submit();
+        }}
+      />
+
+
 
       <BeneficioDispensaDialog
         open={dispensas.length > 0}

@@ -16,12 +16,16 @@ describe("forma de pagamento", () => {
     expect(formaPagamentoPadrao("clt")).toBe("mensalista");
   });
 
-  it("libera adiantamento apenas para CLT mensalista", () => {
+  it("libera adiantamento para quem tem valor mensal fixo, em qualquer vínculo", () => {
     expect(permiteAdiantamento("clt", "mensalista")).toBe(true);
     expect(permiteAdiantamento("clt", "horista")).toBe(false);
     expect(permiteAdiantamento("intermitente", "horista")).toBe(false);
-    expect(permiteAdiantamento("pj", "mensalista")).toBe(false);
+    // Prestador/freelancer mensalista recebe valor fixo por mês: pode adiantar.
+    expect(permiteAdiantamento("pj", "mensalista")).toBe(true);
+    expect(permiteAdiantamento("freelancer", "mensalista")).toBe(true);
+    expect(permiteAdiantamento("freelancer", "diarista")).toBe(false);
   });
+
 
   it("explica o motivo pela forma de pagamento quando o vínculo permite", () => {
     expect(adiantamentoMotivo("clt", "mensalista")).toBeNull();
