@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -9,25 +8,21 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { sanitizeStorageFilename } from "@/lib/storage";
 import { useMeusDocumentos, type UnifiedDoc, type UnifiedTipo } from "@/hooks/portal/useMeusDocumentos";
 import { Button } from "@/components/ui/button";
 import { usePortalAcesso } from "@/hooks/usePortalAcesso";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import { certificadoValidacaoPdf } from "@/lib/dp/documento-certificado";
 import { abrirArquivoDp } from "@/lib/dp/abrirDocumento";
 import { linkDocumentoAssinado } from "@/lib/documentoArquivo";
 import { Receipt } from "lucide-react";
-import { baixarCsv } from "@/lib/dp/portal-csv";
 import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/ColaboradorDocumentosPanel";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { cn } from "@/lib/utils";
@@ -39,7 +34,7 @@ import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import type { Database } from "@/integrations/supabase/types";
 import { notifyError } from "@/lib/notifyError";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
-import { registrarDocumento, excluirDocumento } from "@/lib/dp/documentos-oficial";
+import { excluirDocumento } from "@/lib/dp/documentos-oficial";
 
 type Tipo = Database["public"]["Enums"]["dp_documento_tipo"];
 
@@ -84,12 +79,6 @@ const ALL_TABS: { key: "all" | UnifiedTipo; label: string; requiresPonto?: boole
 ];
 
 const BUCKET = "dp-documentos";
-
-// Tipos que o colaborador pode enviar (subset — o resto é gerado pelo DP).
-const TIPOS_SUBMETIVEIS: { value: Tipo; label: string }[] = [
-  { value: "atestado", label: "Atestado" },
-  { value: "outros", label: "Outros" },
-];
 
 export default function DpMeuDocumentos() {
   const { user } = useAuth();
