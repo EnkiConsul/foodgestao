@@ -2988,7 +2988,14 @@ export function ColaboradorFormDialog({
                   {unidadeSelecionada && <Button type="button" size="sm" variant="outline" onClick={() => setAdiantamentoOpen(true)}>
                     Editar regra da unidade
                   </Button>}
+                  {vinculoSemRegistro && (
+                    <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
+                      Valor mensal fixo com adiantamento em data certa reforça os indícios de habitualidade
+                      e dependência econômica em vínculo sem registro. É possível manter, com ciência do risco.
+                    </p>
+                  )}
                 </div>
+
               ) : (
                 <p className="md:col-span-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
                   <strong className="text-foreground">Adiantamento salarial não se aplica.</strong>{" "}
