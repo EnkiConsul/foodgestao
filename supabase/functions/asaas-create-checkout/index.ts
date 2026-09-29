@@ -144,8 +144,24 @@ Deno.serve(async (req) => {
       .select("id, user_id, name, cnpj, email, phone, cep, logradouro, numero, complemento, bairro, cidade, uf")
       .eq("id", companyId)
       .maybeSingle();
-    if (!company || company.user_id !== user.id) {
-      return json({ error: "Empresa não encontrada ou sem permissão" }, 403);
+    if (!company) return json({ error: "Empresa não encontrada" }, 404);
+    if (company.user_id !== user.id) {
+      // Usuário delegado pelo dono: exige permissão de contratação em conta.assinatura.
+      const { data: membro } = await admin
+        .from("company_members")
+        .select("role, permissions, modulos, situacao")
+        .eq("company_id", companyId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const niveis: Record<string, number> = {
+        none: 0, consulta: 1, view: 1, inclusao: 2, alteracao: 3, total: 4, edit: 4,
+      };
+      const role = String(membro?.role ?? "");
+      const ativo = membro?.situacao === "ativo";
+      const moduloOk = (membro?.modulos as Record<string, boolean> | null)?.conta === true;
+      const nivel = niveis[String((membro?.permissions as Record<string, string> | null)?.["conta.assinatura"] ?? "none")] ?? 0;
+      const autorizado = ativo && (["owner", "admin"].includes(role) || (moduloOk && nivel >= 2));
+      if (!autorizado) return json({ error: "Sem permissão para contratar por esta empresa" }, 403);
     }
     const f = {
       razao: limpa(fiscal.razaoSocial, 150).toLocaleUpperCase("pt-BR"),
