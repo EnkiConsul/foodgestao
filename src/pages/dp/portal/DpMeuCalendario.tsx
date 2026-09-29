@@ -201,16 +201,24 @@ export default function DpMeuCalendario() {
 
 
 
+  /**
+   * Colegas da minha loja. A leitura direta de `dp_colaboradores` é restrita ao
+   * próprio registro, então o portal usa a consulta segura da equipe, que
+   * devolve apenas nome, nome social, função e dia de folga fixa.
+   */
   const colaboradoresQuery = useQuery({
-    queryKey: ["dp_colabs_meu_cal", companyId],
+    queryKey: ["dp_equipe_meu_cal", companyId, myUnidade],
     enabled: !!companyId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_colaboradores")
-        .select("id, nome, folga_fixa_semana, ativo, unidade_id")
-        .eq("company_id", companyId!);
+      const { data, error } = await supabase.rpc("dp_portal_equipe_unidade");
       if (error) throw error;
-      return (data ?? []) as ColaboradorRecord[];
+      return ((data ?? []) as any[]).map((c) => ({
+        id: c.id,
+        nome: c.nome_social || c.nome,
+        folga_fixa_semana: c.folga_fixa_semana ?? null,
+        ativo: c.ativo,
+        unidade_id: c.unidade_id,
+      })) as ColaboradorRecord[];
     },
   });
 
