@@ -11,17 +11,23 @@ import { usePortalAcesso } from "@/hooks/usePortalAcesso";
  * A restrição também vale no banco — aqui é apenas a explicação para a pessoa.
  */
 export function PortalSomenteDocumentos({ children }: { children: React.ReactNode }) {
-  const { somenteDocumentos, isLoading } = usePortalAcesso();
+  const { somenteDocumentos, estado, isLoading } = usePortalAcesso();
 
   if (isLoading) return <div className="p-6 text-sm text-muted-foreground">Carregando…</div>;
   if (!somenteDocumentos) return <>{children}</>;
 
+  const suspensa = estado === "empresa_suspensa_leitura";
+
   return (
     <div className="mx-auto max-w-md space-y-3 p-6 text-center">
       <FileText className="mx-auto h-8 w-8 text-muted-foreground" />
-      <h1 className="text-lg font-semibold">Esta tela não está mais disponível</h1>
+      <h1 className="text-lg font-semibold">
+        {suspensa ? "Esta tela está indisponível no momento" : "Esta tela não está mais disponível"}
+      </h1>
       <p className="text-sm text-muted-foreground">
-        Com o vínculo encerrado, seu acesso fica apenas para consultar e baixar seus documentos.
+        {suspensa
+          ? "Seu acesso está em modo de consulta. Você pode ver e baixar seus contracheques e documentos. Em caso de dúvidas, procure o setor de pessoal."
+          : "Com o vínculo encerrado, seu acesso fica apenas para consultar e baixar seus documentos."}
       </p>
       <Button asChild>
         <Link to="/dp/meu/documentos">Ver meus documentos</Link>

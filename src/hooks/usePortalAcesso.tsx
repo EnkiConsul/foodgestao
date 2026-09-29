@@ -9,6 +9,7 @@ export type PortalEstado =
   | "desligado_expirado"
   | "bloqueado"
   | "empresa_inativa"
+  | "empresa_suspensa_leitura"
   | "sem_plano"
   | "sem_modulo"
   | "sem_vinculo";
