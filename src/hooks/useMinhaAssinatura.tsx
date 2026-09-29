@@ -5,6 +5,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { buscarLimites, type LimitesAssinatura } from "@/lib/billing/limites";
 import { toast } from "sonner";
 import { notifyError } from "@/lib/notifyError";
+import { useAssinaturaAcesso } from "@/hooks/useAssinaturaAcesso";
 
 export type Modulo = "financeiro" | "pessoas";
 
