@@ -1238,8 +1238,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                         value={date ? String(parseLocalDate(date).getDay()) : "1"}
                         onValueChange={(v) => {
                           const w = Number(v);
-                          setDate(shiftToWeekday(date, w));
-                          if (dueDate) setDueDate(shiftToWeekday(dueDate, w));
+                          setDueDate(shiftToWeekday(dueDate || date, w));
                         }}
                       >
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1378,8 +1377,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                         value={date ? String(parseLocalDate(date).getDay()) : "1"}
                         onValueChange={(v) => {
                           const w = Number(v);
-                          setDate(shiftToWeekday(date, w));
-                          if (dueDate) setDueDate(shiftToWeekday(dueDate, w));
+                          setDueDate(shiftToWeekday(dueDate || date, w));
                         }}
                       >
                         <SelectTrigger><SelectValue /></SelectTrigger>
