@@ -160,11 +160,11 @@ export function DocumentPreview({
             </div>
           )}
         </div>
-        <DialogFooter className="p-3 border-t flex-row sm:justify-between gap-2">
+        <DialogFooter className="p-2 sm:p-3 border-t flex-row flex-wrap sm:justify-between gap-2">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>
           {resolvedUrl && (
-            <div className="flex gap-2">
-              <Button asChild size="sm" variant="outline">
+            <div className="flex flex-wrap gap-2">
+              <Button asChild size="sm" variant="outline" className="hidden sm:inline-flex">
                 <a href={resolvedUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4 mr-2" /> Nova aba
                 </a>
