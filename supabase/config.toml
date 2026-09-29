@@ -46,3 +46,5 @@ project_id = "grtxmbffgmgnkawlvqhm"
     verify_jwt = true
   [functions.handle-email-events]
     verify_jwt = false
+  [functions.billing-dunning]
+    verify_jwt = false

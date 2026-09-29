@@ -141,6 +141,7 @@ const AdminFaturamento = lazyWithRetry(() => import("./pages/admin/Faturamento")
 const AdminCuponsPage = lazyWithRetry(() => import("./pages/admin/Cupons"));
 const AdminFaturasPage = lazyWithRetry(() => import("./pages/admin/Faturas"));
 const AdminWebhooksAsaasPage = lazyWithRetry(() => import("./pages/admin/WebhooksAsaas"));
+const AdminReguaCobranca = lazyWithRetry(() => import("./pages/admin/ReguaCobranca"));
 const AdminPluggyWebhook = lazyWithRetry(() => import("./pages/admin/PluggyWebhook"));
 const AdminPluggyStatus = lazyWithRetry(() => import("./pages/admin/PluggyStatus"));
 const AdminPerfisAcesso = lazyWithRetry(() => import("./pages/admin/PerfisAcesso"));
@@ -591,6 +592,7 @@ const AppRoutes = () => (
         <Route path="/admin/faturamento" element={<AdminFaturamento />} />
         <Route path="/admin/cupons" element={<AdminCuponsPage />} />
         <Route path="/admin/faturas" element={<AdminFaturasPage />} />
+        <Route path="/admin/regua-cobranca" element={<AdminReguaCobranca />} />
         <Route path="/admin/webhooks-asaas" element={<AdminWebhooksAsaasPage />} />
         <Route path="/admin/pluggy-webhook" element={<AdminPluggyWebhook />} />
         <Route path="/admin/pluggy-status" element={<AdminPluggyStatus />} />

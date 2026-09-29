@@ -177,3 +177,12 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - Redução de piso exige justificativa e fica registrada no histórico de regras; repetir o mesmo cadastro devolve o registro existente (sem duplicar por duplo clique).
 - Exclusão é lógica: o registro fica preservado como excluído e cargo ou benefício em uso não pode ser excluído.
 - Gravação direta fechada em dp_cargos, dp_cargo_salarios, dp_beneficios, dp_beneficios_padroes, dp_adicionais_tempo_servico e dp_colaborador_beneficios (leitura mantida).
+
+## Régua de cobrança e trial por e-mail (concluída 2026-09-29)
+- [x] Calendário de assinatura D-3, D0, D+1, D+5, D+8, D+10, D+11, D+20, D+28, D+31, D+60, D+80, D+90 e de teste grátis D5, D7, D+3, D+10 — só por e-mail, a partir das 08:00 de Brasília.
+- [x] Envio único por fatura/etapa/destinatário (nunca repete, mesmo se a rotina rodar duas vezes) e conferência da fatura antes de cada disparo.
+- [x] Destinatários: dono, membros com permissão de assinatura e e-mail financeiro da empresa.
+- [x] Pagamento confirmado interrompe a régua na hora e manda só o aviso de acesso liberado.
+- [x] Isentos e assinaturas em negociação (pausa por dias com motivo) ficam fora da régua.
+- [x] Tela Régua de Cobrança no painel administrativo: histórico com prova de envio, busca, filtro e pausa/retomada.
+- [ ] Publicar o frontend (aguarda decisão do proprietário).

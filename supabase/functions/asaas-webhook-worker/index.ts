@@ -36,6 +36,75 @@ const WORKER_SECRET = Deno.env.get("WEBHOOK_WORKER_SECRET") ?? Deno.env.get("PLU
 const BATCH_SIZE = 25;
 const LEASE_SECONDS = 120;
 const MAX_RUN_MS = 50_000;
+const SITE_URL = "https://www.aveto360.com";
+
+const brl = (cents: number) =>
+  (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/**
+ * Pagamento confirmado: cancela as mensagens pendentes da fatura e enfileira a
+ * mensagem de reativação. Em seguida acorda a régua para o envio imediato.
+ */
+async function pararReguaEAvisar(admin: SupabaseClient, invoice: any): Promise<void> {
+  try {
+    await admin.from("billing_notifications")
+      .update({ status: "cancelled", last_error: "pagamento confirmado" })
+      .eq("invoice_id", invoice.id).eq("status", "pending");
+
+    const { data: sub } = await admin.from("subscriptions")
+      .select("id, user_id, company_id").eq("id", invoice.subscription_id).maybeSingle();
+    if (!sub) return;
+
+    const { data: comp } = await admin.from("companies")
+      .select("id, name, email, user_id")
+      .or(`id.eq.${(sub as any).company_id ?? invoice.id},user_id.eq.${(sub as any).user_id}`)
+      .order("created_at", { ascending: true }).limit(1).maybeSingle();
+    if (!comp) return;
+
+    const { data: dono } = await admin.auth.admin.getUserById(String((comp as any).user_id));
+    const { data: perfil } = await admin.from("profiles").select("full_name")
+      .eq("user_id", String((comp as any).user_id)).maybeSingle();
+
+    const destinos = new Set<string>();
+    const donoEmail = dono?.user?.email?.toLowerCase();
+    if (donoEmail) destinos.add(donoEmail);
+    const fin = (comp as any).email?.toLowerCase?.().trim();
+    if (fin && fin.includes("@")) destinos.add(fin);
+
+    const payload = {
+      stage: "reativacao",
+      nome: ((perfil?.full_name as string | null) ?? "").split(" ")[0] || null,
+      empresa: (comp as any).name ?? undefined,
+      valor: brl(Number(invoice.amount_cents ?? 0)),
+      link: `${SITE_URL}/assinatura`,
+      linkPlanos: `${SITE_URL}/planos`,
+    };
+
+    for (const email of destinos) {
+      const { error } = await admin.from("billing_notifications").insert({
+        company_id: (comp as any).id,
+        subscription_id: (sub as any).id,
+        invoice_id: invoice.id,
+        stage: "reativacao",
+        channel: "email",
+        recipient: email,
+        payload,
+      });
+      if (error && error.code !== "23505") {
+        console.error("asaas-webhook-worker: reativacao enqueue", error.code, error.message);
+      }
+    }
+
+    // acorda a régua para enviar a confirmação sem esperar a rotina diária
+    await fetch(`${SUPABASE_URL}/functions/v1/billing-dunning`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_ROLE}` },
+      body: JSON.stringify({ trigger: "payment_confirmed" }),
+    }).catch(() => {});
+  } catch (e) {
+    console.error("asaas-webhook-worker: pararReguaEAvisar", e instanceof Error ? e.message : e);
+  }
+}
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -149,6 +218,8 @@ async function processEvent(admin: Admin, eventType: string, payload: any) {
             cancel_at_period_end: false,
           }).eq("id", invoice.subscription_id);
         }
+        // Régua de cobrança: o pagamento interrompe tudo e dispara a reativação.
+        await pararReguaEAvisar(admin, invoice);
       } else if (eventType === "PAYMENT_OVERDUE") {
         await admin.from("invoices").update({ status: "overdue" }).eq("id", invoice.id);
         if (invoice.subscription_id) {
