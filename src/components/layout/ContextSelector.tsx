@@ -2,6 +2,8 @@ import { Building2, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { formatCnpj } from "@/lib/dp/ficha-registro/unidade-match";
+
 
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -20,10 +22,10 @@ export function ContextSelector() {
   const queryClient = useQueryClient();
 
   const currentValue = `pj|${selectedCompanyId}`;
-  const currentLabel =
-    companies.find((c) => c.id === selectedCompanyId)?.trade_name ||
-    companies.find((c) => c.id === selectedCompanyId)?.name ||
-    "";
+  const empresaAtual = companies.find((c) => c.id === selectedCompanyId);
+  const currentLabel = empresaAtual?.trade_name || empresaAtual?.name || "";
+  const currentCnpj = formatCnpj(empresaAtual?.cnpj ?? null);
+
 
   /**
    * Pré-carrega as consultas do Dashboard da empresa escolhida em paralelo com
