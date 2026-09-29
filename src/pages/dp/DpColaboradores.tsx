@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -135,6 +137,33 @@ export default function DpColaboradores() {
     setDialogOpen(true);
   };
   const navigate = useNavigate();
+  const { selectedCompanyId } = useCompanyContext();
+  // Fichas de registro importadas aguardando conferência: aviso em destaque
+  // no topo da tela para o usuário voltar ao lote sem procurar no menu.
+  const fichasImportacoes = useDpFichaImportacoes();
+  const importacoesProntas = useMemo(
+    () => (fichasImportacoes.data ?? []).filter((i) => i.status === "ready"),
+    [fichasImportacoes.data],
+  );
+  const fichasPendentes = useQuery({
+    queryKey: [
+      "dp_ficha_itens_pendentes",
+      selectedCompanyId,
+      importacoesProntas.map((i) => i.id).join(","),
+    ],
+    enabled: !!selectedCompanyId && importacoesProntas.length > 0,
+    queryFn: async (): Promise<number> => {
+      const { count, error } = await supabase
+        .from("dp_ficha_importacao_itens")
+        .select("id", { count: "exact", head: true })
+        .eq("company_id", selectedCompanyId!)
+        .in("importacao_id", importacoesProntas.map((i) => i.id))
+        .in("status", ["pendente", "revisar", "duplicado"]);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+  const totalFichasPendentes = fichasPendentes.data ?? 0;
   const [metodoOpen, setMetodoOpen] = useState(false);
   const [apoioOpen, setApoioOpen] = useState(false);
   const [apoioTipo, setApoioTipo] = useState<PessoaApoioTipo>("folguista");
