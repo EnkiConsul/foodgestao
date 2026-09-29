@@ -149,6 +149,8 @@ async function processEvent(admin: Admin, eventType: string, payload: any) {
             cancel_at_period_end: false,
           }).eq("id", invoice.subscription_id);
         }
+        // Régua de cobrança: o pagamento interrompe tudo e dispara a reativação.
+        await pararReguaEAvisar(admin, invoice);
       } else if (eventType === "PAYMENT_OVERDUE") {
         await admin.from("invoices").update({ status: "overdue" }).eq("id", invoice.id);
         if (invoice.subscription_id) {
