@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -30,6 +32,7 @@ import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
+import { useDpFichaImportacoes } from "@/hooks/useDpFichaImportacao";
 import { NovoCadastroMetodoDialog, type NovoCadastroMetodo } from "@/components/dp/NovoCadastroMetodoDialog";
 import {
   PromoverApoioMetodoDialog, type PromoverApoioMetodo,
@@ -135,6 +138,33 @@ export default function DpColaboradores() {
     setDialogOpen(true);
   };
   const navigate = useNavigate();
+  const { selectedCompanyId } = useCompanyContext();
+  // Fichas de registro importadas aguardando conferência: aviso em destaque
+  // no topo da tela para o usuário voltar ao lote sem procurar no menu.
+  const fichasImportacoes = useDpFichaImportacoes();
+  const importacoesProntas = useMemo(
+    () => (fichasImportacoes.data ?? []).filter((i) => i.status === "ready"),
+    [fichasImportacoes.data],
+  );
+  const fichasPendentes = useQuery({
+    queryKey: [
+      "dp_ficha_itens_pendentes",
+      selectedCompanyId,
+      importacoesProntas.map((i) => i.id).join(","),
+    ],
+    enabled: !!selectedCompanyId && importacoesProntas.length > 0,
+    queryFn: async (): Promise<number> => {
+      const { count, error } = await supabase
+        .from("dp_ficha_importacao_itens")
+        .select("id", { count: "exact", head: true })
+        .eq("company_id", selectedCompanyId!)
+        .in("importacao_id", importacoesProntas.map((i) => i.id))
+        .in("status", ["pendente", "revisar", "duplicado"]);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+  const totalFichasPendentes = fichasPendentes.data ?? 0;
   const [metodoOpen, setMetodoOpen] = useState(false);
   const [apoioOpen, setApoioOpen] = useState(false);
   const [apoioTipo, setApoioTipo] = useState<PessoaApoioTipo>("folguista");
@@ -652,6 +682,27 @@ export default function DpColaboradores() {
           { key: "lixeira", label: "Lixeira", icon: Trash, to: "/dp/colaboradores/lixeira", keepVisible: true },
         ]}
       />
+
+      {totalFichasPendentes > 0 && (
+        <button
+          type="button"
+          onClick={() => navigate("/dp/colaboradores/importar-ficha")}
+          className="flex w-full items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-left transition-colors hover:bg-primary/15"
+        >
+          <FileText className="h-5 w-5 shrink-0 text-primary" />
+          <span className="min-w-0 flex-1 text-sm">
+            <span className="font-semibold text-primary">
+              {totalFichasPendentes} {totalFichasPendentes === 1 ? "ficha de registro" : "fichas de registro"}
+            </span>{" "}
+            <span className="text-foreground/80">
+              {totalFichasPendentes === 1 ? "importada aguarda" : "importadas aguardam"} conferência e cadastro.
+            </span>
+          </span>
+          <span className="shrink-0 text-sm font-medium text-primary underline-offset-2 hover:underline">
+            Conferir agora
+          </span>
+        </button>
+      )}
 
       <Tabs value={origem} onValueChange={(v) => setOrigem(v as Origem)}>
         <DpTabsBar>
