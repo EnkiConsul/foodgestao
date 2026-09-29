@@ -171,6 +171,11 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
   const [justificativa, setJustificativa] = useState("");
   const [modo, setModo] = useState<ModoContinuidade>("continuidade");
   const [confirmarNovoContrato, setConfirmarNovoContrato] = useState(false);
+  /** Aviso de saída de vínculo formal aguardando ciência do gestor. */
+  const [confirmarSaidaFormal, setConfirmarSaidaFormal] = useState<string | null>(null);
+  /** Ciência da saída da formalidade já dada neste salvamento. */
+  const cienciaSaidaFormal = useRef(false);
+
   /** Campos que o gestor já mexeu à mão: o padrão do cargo não os sobrescreve. */
   const tocados = useRef<Set<string>>(new Set());
   const intencao = useRef<"stay" | "close">("close");
