@@ -216,8 +216,9 @@ function SubscriptionGuard({ children }: { children: React.ReactNode }) {
   // tela de boas-vindas, com convites pendentes e a opção de criar empresa.
   if (!hasCompanies) return <Navigate to="/bem-vindo" replace />;
 
-  // Sem bloqueio por assinatura/trial: quem tem empresa sempre acessa.
-  return <>{children}</>;
+  // Fim do teste, falta de contrato ou atraso acima da tolerância de 10 dias:
+  // acesso operacional suspenso, com regularização e exportação liberadas.
+  return <Navigate to="/acesso-bloqueado" replace />;
 }
 
 
