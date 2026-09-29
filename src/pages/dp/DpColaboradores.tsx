@@ -32,6 +32,7 @@ import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
+import { useDpFichaImportacoes } from "@/hooks/useDpFichaImportacao";
 import { NovoCadastroMetodoDialog, type NovoCadastroMetodo } from "@/components/dp/NovoCadastroMetodoDialog";
 import {
   PromoverApoioMetodoDialog, type PromoverApoioMetodo,
