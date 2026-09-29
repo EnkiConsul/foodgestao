@@ -47,6 +47,7 @@ import {
   Sparkles,
   Receipt,
   Webhook,
+  Mail,
   Database,
   Brain,
   Tag,
