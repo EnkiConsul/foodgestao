@@ -14707,6 +14707,10 @@ export type Database = {
         Args: { _company_id: string; _modulo: string }
         Returns: Json
       }
+      assinatura_pode_gerir: {
+        Args: { _company_id: string; _nivel?: string }
+        Returns: boolean
+      }
       auth_access_enabled: { Args: never; Returns: boolean }
       auth_sessao_assumir: {
         Args: { _device?: string; _session_id: string }
