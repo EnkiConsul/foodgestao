@@ -51,7 +51,7 @@ const REGIMES: Array<{ value: string; label: string }> = [
 
 
 export default function DpFichaRegistroImportar() {
-  const { selectedCompanyId } = useCompanyContext();
+  const { selectedCompanyId, companies, setContext } = useCompanyContext();
   /** Quando a conferência é a da ficha oficial de uma Pré-Admissão. */
   const [params] = useSearchParams();
   const preadmissaoId = params.get("preadmissao");
