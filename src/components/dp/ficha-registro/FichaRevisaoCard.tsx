@@ -138,7 +138,12 @@ export function FichaRevisaoCard({
     possuiFolhaPonto,
     optanteAdiantamento,
   });
+  /** Só destacamos campos em vermelho depois de uma tentativa de criar. */
+  const [tentouCriar, setTentouCriar] = useState(false);
+  const realce = (pendente: boolean) =>
+    tentouCriar && pendente ? "border-destructive ring-1 ring-destructive/40" : "";
   const [trechos, setTrechos] = useState<Record<string, boolean>>({});
+
   const [verTexto, setVerTexto] = useState(false);
   const [cargoDialog, setCargoDialog] = useState(false);
   const [unidadeDialog, setUnidadeDialog] = useState(false);
@@ -165,13 +170,37 @@ export function FichaRevisaoCard({
     ),
     [preadmissaoJornada.data],
   );
-  const jornada = useMemo(
+  const jornadaLida = useMemo(
     () => jornadaDaAdmissao ?? jornadaDaFicha(dados),
     [jornadaDaAdmissao, dados],
   );
+  /** Horário corrigido à mão nesta revisão: manda em tudo o que for gravado. */
+  const [jornadaEditada, setJornadaEditada] = useState<JornadaSugerida | null>(null);
+  const [editandoJornada, setEditandoJornada] = useState(false);
+  const jornada = jornadaEditada ?? jornadaLida;
   const turnoSugerido = useMemo(() => matchTurno(jornada, turnos, unidadeId), [jornada, turnos, unidadeId]);
   const [turnoId, setTurnoId] = useState<string | null>(null);
   const turnoEscolhido = turnoId ?? turnoSugerido.turno_id;
+
+  /** Corrige um dia do horário desta ficha, mantendo o resumo coerente. */
+  const alterarDiaJornada = (dow: number, patch: Partial<JornadaDia>) =>
+    setJornadaEditada((atual) => {
+      const base = atual ?? jornadaEditavel(jornadaLida);
+      const dias = base.dias.map((d) => (d.dow === dow ? { ...d, ...patch } : d));
+      const primeiro = dias.find((d) => d.trabalha && d.entrada && d.saida) ?? null;
+      return {
+        ...base,
+        dias,
+        entrada: primeiro?.entrada ?? null,
+        saida: primeiro?.saida ?? null,
+        intervalo_minutos: primeiro?.intervalo_minutos ?? base.intervalo_minutos,
+        vira_meia_noite: !!primeiro?.entrada && !!primeiro?.saida && primeiro.saida <= primeiro.entrada,
+        vazia: !primeiro,
+      };
+    });
+
+
+
   const aplicar = useAplicarFicha();
   const ignorar = useIgnorarFicha();
 
@@ -279,9 +308,11 @@ export function FichaRevisaoCard({
   const executar = (camposPermitidos: string[] | null) => {
     if (escolhasPendentes.length > 0) {
       setCompletarAberto(true);
+      setTentouCriar(true);
       toast.error(mensagemEscolhasObrigatorias(escolhasPendentes));
       return;
     }
+
     if (preadmissaoId && faltaDecidir > 0) {
       toast.error("Escolha, em cada divergência, qual valor vale antes de concluir.");
       return;
@@ -572,41 +603,53 @@ export function FichaRevisaoCard({
                   )}
 
                   <div className="space-y-1">
-                      <Label className="text-xs">Vínculo *</Label>
-                    <Select
-                        value={regime ?? undefined}
-                        onValueChange={setRegimeEscolhido}
-                    >
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <Label className="text-xs">Vínculo *</Label>
+                    <Select value={regime ?? undefined} onValueChange={setRegimeEscolhido}>
+                      <SelectTrigger className={cn("h-9", realce(!regime))}>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
                       <SelectContent>
                         {REGIMES.map((r) => (
                           <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    {tentouCriar && !regime && (
+                      <p className="text-[11px] text-destructive">Escolha o vínculo.</p>
+                    )}
                   </div>
 
                   <div className="space-y-1">
                     <Label className="text-xs">Forma de pagamento *</Label>
                     <Select value={formaPagamento ?? undefined} onValueChange={setFormaPagamento}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectTrigger className={cn("h-9", realce(!formaPagamento))}>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="mensalista">Mensalista</SelectItem>
                         <SelectItem value="horista">Horista</SelectItem>
                         <SelectItem value="diarista">Diarista</SelectItem>
                       </SelectContent>
                     </Select>
+                    {tentouCriar && !formaPagamento && (
+                      <p className="text-[11px] text-destructive">Escolha a forma de pagamento.</p>
+                    )}
                   </div>
 
                   <div className="space-y-1">
                     <Label className="text-xs">Folha de ponto *</Label>
                     <Select value={possuiFolhaPonto === null ? undefined : String(possuiFolhaPonto)} onValueChange={(v) => setPossuiFolhaPonto(v === "true")}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectTrigger className={cn("h-9", realce(possuiFolhaPonto === null))}>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="true">Ativa</SelectItem>
                         <SelectItem value="false">Não utiliza</SelectItem>
                       </SelectContent>
                     </Select>
+                    {tentouCriar && possuiFolhaPonto === null && (
+                      <p className="text-[11px] text-destructive">Informe se usa folha de ponto.</p>
+                    )}
                     {unidades.find((u) => u.id === unidadeId)?.possui_relogio_ponto && possuiFolhaPonto === null && (
                       <p className="text-[11px] text-muted-foreground">Sugestão: ativa, pois a unidade possui relógio de ponto.</p>
                     )}
@@ -615,13 +658,19 @@ export function FichaRevisaoCard({
                   <div className="space-y-1">
                     <Label className="text-xs">Adiantamento salarial *</Label>
                     <Select value={optanteAdiantamento === null ? undefined : String(optanteAdiantamento)} onValueChange={(v) => setOptanteAdiantamento(v === "true")}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectTrigger className={cn("h-9", realce(optanteAdiantamento === null))}>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="true">Optante</SelectItem>
                         <SelectItem value="false">Não optante</SelectItem>
                       </SelectContent>
                     </Select>
+                    {tentouCriar && optanteAdiantamento === null && (
+                      <p className="text-[11px] text-destructive">Informe se recebe adiantamento.</p>
+                    )}
                   </div>
+
 
                   <div className="space-y-1">
                     <Label className="text-xs">Estado civil</Label>
@@ -675,30 +724,109 @@ export function FichaRevisaoCard({
 
 
 
-        {!jornada.vazia && (
+        {(!jornada.vazia || !aplicado) && (
           <div className="rounded-lg border bg-muted/30 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium">Horário da ficha</p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-medium">
+                {jornadaEditada ? "Horário ajustado nesta conferência" : "Horário da ficha"}
+              </p>
               {!aplicado && (
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground">Cadastrar</Label>
-                  <Switch checked={usarJornada} onCheckedChange={setUsarJornada} />
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-[11px]"
+                    onClick={() => {
+                      setJornadaEditada((j) => j ?? jornadaEditavel(jornadaLida));
+                      setEditandoJornada((v) => !v);
+                      setUsarJornada(true);
+                    }}
+                  >
+                    {editandoJornada ? "Fechar edição" : jornada.vazia ? "Definir horários" : "Editar horários"}
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground">Cadastrar</Label>
+                    <Switch checked={usarJornada} onCheckedChange={setUsarJornada} />
+                  </div>
                 </div>
               )}
             </div>
-            <div className="mt-2 grid grid-cols-2 gap-1 text-xs sm:grid-cols-4 lg:grid-cols-7">
-              {jornada.dias.map((d) => (
-                <div key={d.dow} className="rounded border bg-background px-2 py-1">
-                  <span className="font-medium">{DOW_LABEL[d.dow]}</span>
-                  <span className="ml-1 text-muted-foreground">
-                    {d.trabalha && d.entrada && d.saida ? `${d.entrada}–${d.saida}` : "folga"}
-                  </span>
-                </div>
-              ))}
-            </div>
+            {jornada.vazia ? (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Nenhum horário foi lido nesta ficha. Você pode informar os horários à mão.
+              </p>
+            ) : (
+              <div className="mt-2 grid grid-cols-2 gap-1 text-xs sm:grid-cols-4 lg:grid-cols-7">
+                {jornada.dias.map((d) => (
+                  <div key={d.dow} className="rounded border bg-background px-2 py-1">
+                    <span className="font-medium">{DOW_LABEL[d.dow]}</span>
+                    <span className="ml-1 text-muted-foreground">
+                      {d.trabalha && d.entrada && d.saida ? `${d.entrada}–${d.saida}` : "folga"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {editandoJornada && !aplicado && (
+              <div className="mt-3 space-y-2 rounded-md border bg-background p-2">
+                {(jornadaEditada ?? jornadaEditavel(jornadaLida)).dias.map((d) => (
+                  <div key={d.dow} className="flex flex-wrap items-center gap-2">
+                    <span className="w-9 text-xs font-medium">{DOW_LABEL[d.dow]}</span>
+                    <Switch
+                      checked={d.trabalha}
+                      onCheckedChange={(v) => alterarDiaJornada(d.dow, { trabalha: v })}
+                      aria-label={`Trabalha ${DOW_LABEL[d.dow]}`}
+                    />
+                    <Input
+                      type="time"
+                      className="h-8 w-[104px]"
+                      value={d.entrada ?? ""}
+                      disabled={!d.trabalha}
+                      onChange={(e) => alterarDiaJornada(d.dow, { entrada: e.target.value || null })}
+                    />
+                    <span className="text-xs text-muted-foreground">até</span>
+                    <Input
+                      type="time"
+                      className="h-8 w-[104px]"
+                      value={d.saida ?? ""}
+                      disabled={!d.trabalha}
+                      onChange={(e) => alterarDiaJornada(d.dow, { saida: e.target.value || null })}
+                    />
+                    <Input
+                      type="number"
+                      min={0}
+                      className="h-8 w-[92px]"
+                      placeholder="Interv."
+                      value={d.intervalo_minutos ?? ""}
+                      disabled={!d.trabalha}
+                      onChange={(e) =>
+                        alterarDiaJornada(d.dow, {
+                          intervalo_minutos: e.target.value === "" ? null : Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                ))}
+                <p className="text-[11px] text-muted-foreground">
+                  Intervalo em minutos. Desligue o dia para marcar folga. Saída menor que a entrada indica virada de
+                  meia-noite.
+                </p>
+                {jornadaEditada && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-[11px]"
+                    onClick={() => { setJornadaEditada(null); setEditandoJornada(false); }}
+                  >
+                    Voltar ao horário lido na ficha
+                  </Button>
+                )}
+              </div>
+            )}
             {jornada.vira_meia_noite && (
               <p className="mt-2 text-[11px] text-muted-foreground">A saída acontece no dia seguinte.</p>
             )}
+
             {!aplicado && usarJornada && (
               <div className="mt-3 space-y-1">
                 <Label className="text-xs">Turno correspondente</Label>
@@ -984,4 +1112,23 @@ function rascunhoParaJornada(valor: unknown): JornadaSugerida | null {
     dias,
     vazia: false,
   };
+}
+
+/**
+ * Horário pronto para edição à mão: sempre com os sete dias da semana, para o
+ * operador corrigir o que a leitura do PDF errou ou informar horários de fichas
+ * sem jornada legível.
+ */
+function jornadaEditavel(base: JornadaSugerida): JornadaSugerida {
+  const porDow = new Map(base.dias.map((d) => [d.dow, d]));
+  const dias: JornadaDia[] = Array.from({ length: 7 }, (_, dow) =>
+    porDow.get(dow) ?? {
+      dow,
+      trabalha: !base.vazia && dow >= 1 && dow <= 5,
+      entrada: base.entrada,
+      saida: base.saida,
+      intervalo_minutos: base.intervalo_minutos,
+    },
+  );
+  return { ...base, dias };
 }

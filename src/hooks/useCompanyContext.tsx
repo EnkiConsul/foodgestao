@@ -11,7 +11,9 @@ interface Company {
   id: string;
   name: string;
   trade_name: string | null;
+  cnpj?: string | null;
 }
+
 
 interface RefreshResult {
   previous: Company[];
@@ -144,13 +146,13 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     const [ownedRes, memberRes] = await Promise.all([
       supabase
         .from("companies")
-        .select("id, name, trade_name")
+        .select("id, name, trade_name, cnpj")
         .eq("user_id", user.id)
         .eq("is_active", true)
         .order("name"),
       supabase
         .from("company_members")
-        .select("company_id, companies!inner(id, name, trade_name, is_active)")
+        .select("company_id, companies!inner(id, name, trade_name, cnpj, is_active)")
         .eq("user_id", user.id)
         .eq("companies.is_active", true),
     ]);
@@ -159,9 +161,10 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     (ownedRes.data ?? []).forEach((c) => byId.set(c.id, c));
     (memberRes.data ?? []).forEach((row: any) => {
       const c = row.companies;
-      if (c?.id) byId.set(c.id, { id: c.id, name: c.name, trade_name: c.trade_name });
+      if (c?.id) byId.set(c.id, { id: c.id, name: c.name, trade_name: c.trade_name, cnpj: c.cnpj });
     });
     const list = Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name));
+
     const previous = companiesRef.current;
     companiesRef.current = list;
     setCompanies(list);
