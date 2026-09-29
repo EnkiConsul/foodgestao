@@ -25,6 +25,9 @@ import {
   useCancelarLeituraFicha, useTentarNovamenteFicha, MOTIVO_CANCELADA,
 } from "@/hooks/useDpFichaImportacao";
 import { notifyError } from "@/lib/notifyError";
+import { divergenciaLote } from "@/lib/dp/ficha-registro/lote-empresa";
+import { leituraTravada } from "@/lib/dp/ficha-registro/leituraTravada";
+import { digitsCnpj, formatCnpj } from "@/lib/dp/ficha-registro/unidade-match";
 import { cn } from "@/lib/utils";
 
 /** Situação de cada envio, em linguagem de tela. */
@@ -48,7 +51,7 @@ const REGIMES: Array<{ value: string; label: string }> = [
 
 
 export default function DpFichaRegistroImportar() {
-  const { selectedCompanyId } = useCompanyContext();
+  const { selectedCompanyId, companies, setContext } = useCompanyContext();
   /** Quando a conferência é a da ficha oficial de uma Pré-Admissão. */
   const [params] = useSearchParams();
   const preadmissaoId = params.get("preadmissao");
@@ -120,6 +123,31 @@ export default function DpFichaRegistroImportar() {
 
   const pendentes = itens.filter((i) => ["pendente", "revisar", "duplicado"].includes(i.status));
   const prontos = itens.filter((i) => ["criado", "atualizado"].includes(i.status));
+
+  /** Relógio de tela: usado só para perceber leitura que parou de responder. */
+  const [agora, setAgora] = useState(() => Date.now());
+  useEffect(() => {
+    if (!processando) return;
+    const t = window.setInterval(() => setAgora(Date.now()), 10000);
+    return () => window.clearInterval(t);
+  }, [processando]);
+  const travada = !!atual && leituraTravada(atual, agora);
+
+  /** O arquivo é de outro CNPJ? Avisamos antes de conferir ficha por ficha. */
+  const divergencia = useMemo(
+    () => divergenciaLote(itens, unidadesDaEmpresa, empresaCnpj),
+    [itens, unidadesDaEmpresa, empresaCnpj],
+  );
+  const empresaAtual = companies.find((c) => c.id === selectedCompanyId) ?? null;
+  const empresaDoArquivo = useMemo(() => {
+    const alvo = divergencia.cnpjs[0];
+    if (!alvo) return null;
+    return companies.find((c) => digitsCnpj(c.cnpj) === alvo) ?? null;
+  }, [companies, divergencia.cnpjs]);
+  const [conferirMesmoAssim, setConferirMesmoAssim] = useState(false);
+  const bloqueadoPorEmpresa = divergencia.divergente && !conferirMesmoAssim;
+
+
 
 
   /** Abre o PDF original de um envio anterior por link temporário. */
@@ -267,10 +295,35 @@ export default function DpFichaRegistroImportar() {
                 <Progress
                   value={atual.total_paginas ? (atual.paginas_processadas / atual.total_paginas) * 100 : 8}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Lendo página {atual.paginas_processadas} de {atual.total_paginas || "…"} — pode deixar a tela aberta.
-                </p>
-                <div className="flex justify-end">
+                {travada ? (
+                  <p className="text-xs text-destructive">
+                    A leitura parou de responder na página {atual.paginas_processadas} de{" "}
+                    {atual.total_paginas || "…"}. Tente novamente — não é preciso reenviar o PDF.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Lendo página {atual.paginas_processadas} de {atual.total_paginas || "…"}
+                    {" · "}
+                    {atual.fichas_identificadas ?? 0} ficha(s) encontrada(s) até aqui — pode deixar a tela aberta.
+                  </p>
+                )}
+                <div className="flex flex-wrap justify-end gap-2">
+                  {travada && (
+                    <Button
+                      size="sm"
+                      className="h-8"
+                      disabled={repetir.isPending}
+                      onClick={() =>
+                        repetir.mutate(atual, {
+                          onSuccess: () => toast.success("Leitura reiniciada."),
+                          onError: (e) => toast.error((e as Error).message),
+                        })
+                      }
+                    >
+                      {repetir.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+                      Tentar novamente
+                    </Button>
+                  )}
                   <ConfirmarAcaoDialog
                     titulo="Cancelar a leitura?"
                     descricao="A leitura deste arquivo será interrompida. Depois você pode tentar novamente sem reenviar o PDF."
@@ -318,9 +371,68 @@ export default function DpFichaRegistroImportar() {
         </Card>
       )}
 
-      {pendentes.length > 0 && (
+      {divergencia.divergente && (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="space-y-3 p-4">
+            <p className="text-sm font-semibold text-destructive">
+              Este arquivo é de outro CNPJ
+            </p>
+            <p className="text-sm text-muted-foreground">
+              As fichas trazem o CNPJ {divergencia.cnpjs.map((c) => formatCnpj(c)).join(", ")}
+              {divergencia.empregadores.length > 0 ? ` (${divergencia.empregadores.join(", ")})` : ""}, mas você está
+              trabalhando na empresa {empresaAtual ? (empresaAtual.trade_name || empresaAtual.name) : "selecionada"}
+              {empresaAtual?.cnpj ? ` — ${formatCnpj(empresaAtual.cnpj)}` : ""}. Troque de empresa antes de conferir,
+              para os cadastros não nascerem no lugar errado.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {empresaDoArquivo && (
+                <Button
+                  size="sm"
+                  className="h-9"
+                  onClick={() => {
+                    setContext("pj", empresaDoArquivo.id);
+                    setImportacaoId(null);
+                    setConferirMesmoAssim(false);
+                    toast.success(
+                      `Empresa alterada para ${empresaDoArquivo.trade_name || empresaDoArquivo.name}. Envie o PDF novamente aqui.`,
+                    );
+                  }}
+                >
+                  Trocar para {empresaDoArquivo.trade_name || empresaDoArquivo.name}
+                </Button>
+              )}
+              {processando && (
+                <ConfirmarAcaoDialog
+                  titulo="Cancelar a leitura?"
+                  descricao="A leitura deste arquivo será interrompida e nenhuma ficha será cadastrada."
+                  confirmar="Cancelar leitura"
+                  onConfirm={() =>
+                    cancelar.mutate(atual!.id, {
+                      onSuccess: () => toast.success("Leitura cancelada."),
+                      onError: (e) => toast.error((e as Error).message),
+                    })
+                  }
+                  disabled={cancelar.isPending}
+                >
+                  <Button variant="outline" size="sm" className="h-9" disabled={cancelar.isPending}>
+                    Cancelar leitura
+                  </Button>
+                </ConfirmarAcaoDialog>
+              )}
+              {bloqueadoPorEmpresa && (
+                <Button variant="ghost" size="sm" className="h-9" onClick={() => setConferirMesmoAssim(true)}>
+                  Conferir mesmo assim
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {pendentes.length > 0 && !bloqueadoPorEmpresa && (
         <div className="space-y-3">
           <h2 className="text-sm font-semibold">Conferir e cadastrar ({pendentes.length})</h2>
+
 
           <Card className="bg-muted/20">
             <CardContent className="grid gap-3 p-4 sm:grid-cols-2">

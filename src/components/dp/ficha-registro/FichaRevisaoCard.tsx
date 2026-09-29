@@ -1063,6 +1063,8 @@ export function FichaRevisaoCard({
             onOpenChange={setCargoDialog}
             cargoNome={String(dados.cargo_nome ?? "")}
             cbo={(dados.cbo as string) ?? null}
+            unidadeId={unidadeId}
+            unidadeNome={unidades.find((u) => u.id === unidadeId)?.nome ?? null}
             onCriado={(id) => setCargoId(id)}
           />
         )}
