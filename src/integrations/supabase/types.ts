@@ -14941,10 +14941,15 @@ export type Database = {
         Args: { _company_id: string }
         Returns: {
           blocked: boolean
+          can_export: boolean
           company_id: string
+          dias_atraso: number
+          fatura_pendente_id: string
           is_owner: boolean
+          motivo: string
           status: string
           trial_ends_at: string
+          valor_pendente_cents: number
         }[]
       }
       consume_recovery_reset: {
