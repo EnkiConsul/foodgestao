@@ -221,6 +221,16 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, isRecurring, recurrenceType, isInstallment, installmentPeriod]);
 
+  // Em recorrência/parcelamento a 1ª ocorrência deve nascer na data de vencimento
+  // informada pelo usuário — nunca no mês vigente (data de hoje).
+  useEffect(() => {
+    if (isEditing) return;
+    if (!(isRecurring || isInstallment)) return;
+    if (!dueDate) return;
+    if (date !== dueDate) setDate(dueDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dueDate, isRecurring, isInstallment]);
+
 
 
 
