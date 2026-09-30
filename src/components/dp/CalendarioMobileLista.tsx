@@ -36,6 +36,12 @@ type Props = {
 
 const WEEKDAY_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
+/** Primeiro nome em Primeira Maiúscula (ex.: "SARA HELEN" → "Sara"). */
+function primeiroNome(nome: string): string {
+  const p = (nome ?? "").trim().split(/\s+/)[0] ?? "";
+  return p ? p.charAt(0).toLocaleUpperCase("pt-BR") + p.slice(1).toLocaleLowerCase("pt-BR") : "";
+}
+
 const CHIP_STYLE: Record<OccupantType, string> = {
   monthly: "bg-primary/15 text-primary border-primary/25",
   fixed: "bg-blue-500/10 text-blue-700 border-blue-200 dark:text-blue-300",
@@ -171,14 +177,15 @@ export function CalendarioMobileLista({
                       <span
                         key={o.key}
                         className={cn(
-                          "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium max-w-full",
-                          CHIP_STYLE[o.type],
-                          isMe && "ring-1 ring-primary/50",
+                          "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] max-w-full",
+                          isMe
+                            ? "bg-primary text-primary-foreground border-primary font-semibold shadow-sm"
+                            : cn("font-medium", CHIP_STYLE[o.type]),
                         )}
                         title={`${o.colaboradorNome} — ${o.origin}`}
                       >
                         <span className="break-words">
-                          {isMe ? "Minha folga" : o.colaboradorNome}
+                          {isMe ? "Minha folga" : primeiroNome(o.colaboradorNome)}
                           {o.extra ? " · Extra" : ""}
                         </span>
                       </span>

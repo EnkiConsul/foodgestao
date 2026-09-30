@@ -462,8 +462,9 @@ export default function DpMeuCalendario() {
     // A unidade vem da lista de colegas: o portal não lê o cadastro dos outros,
     // então filtrar pelo vínculo aninhado deixava o calendário vazio.
     const idsUnidade = new Set(colaboradores.map((c) => c.id));
-    const filteredFolgas = myUnidade ? folgas.filter((f) => idsUnidade.has(f.colaborador_id)) : folgas;
-    const filteredPend = myUnidade ? pendentes.filter((p) => idsUnidade.has(p.colaborador_id)) : pendentes;
+    // A equipe já vem sem sócios e só do meu período de turno: nada fora dela aparece.
+    const filteredFolgas = folgas.filter((f) => idsUnidade.has(f.colaborador_id));
+    const filteredPend = pendentes.filter((p) => idsUnidade.has(p.colaborador_id));
     return buildOccupantsByDate({
       days,
       colaboradores,
