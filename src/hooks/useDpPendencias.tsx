@@ -1524,6 +1524,9 @@ export function useDpPendencias() {
 
   const refetch = useCallback(async () => {
     if (selectedCompanyId) {
+      // Atualização manual: o retrato guardado no aparelho não pode segurar
+      // o quadro antigo — a próxima leitura do servidor passa a valer.
+      forcarRecargaPendencias(selectedCompanyId);
       setIsRefreshing(true);
       try {
         await supabase.functions.invoke("dp-refresh-pendencias", {

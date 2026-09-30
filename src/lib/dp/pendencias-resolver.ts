@@ -12,11 +12,29 @@
  */
 import type { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { lerPendenciasSnapshot, salvarPendenciasSnapshot } from "@/lib/dp/pendencias-cache";
+import { lerPendenciasSnapshot, limparPendenciasSnapshot, salvarPendenciasSnapshot } from "@/lib/dp/pendencias-cache";
 import type { Pendencia } from "@/hooks/useDpPendencias";
 
 /** Aviso interno para o card do Início aplicar a baixa sem esperar a apuração. */
 export const PENDENCIAS_BAIXA_EVENTO = "dp:pendencias-baixa";
+
+/** Aviso para o card descartar o retrato local e aceitar o próximo quadro. */
+export const PENDENCIAS_RECARREGAR_EVENTO = "dp:pendencias-recarregar";
+
+export type PendenciasRecarregarDetalhe = { companyId: string; desde: number };
+
+/** Descarta o retrato local e pede ao card que confie na próxima leitura. */
+export function forcarRecargaPendencias(companyId: string | null | undefined): void {
+  if (!companyId) return;
+  limparPendenciasSnapshot(companyId);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent<PendenciasRecarregarDetalhe>(PENDENCIAS_RECARREGAR_EVENTO, {
+        detail: { companyId, desde: Date.now() },
+      }),
+    );
+  }
+}
 
 export type PendenciasBaixaDetalhe = { companyId: string; ids: string[] };
 
