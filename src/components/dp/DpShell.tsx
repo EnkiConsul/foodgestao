@@ -31,7 +31,7 @@ export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" })
         <DpSidebar variant={variant} />
         <div className="flex flex-1 flex-col min-w-0">
           <DpHeader variant={variant} />
-          <main className="dp-main-pad flex-1 p-3 md:p-8">
+          <main className="dp-main-pad flex-1 p-3 pb-28 md:p-8 md:pb-8">
             {comRefresh ? (
               <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>{conteudo}</PullToRefresh>
             ) : (

@@ -162,7 +162,7 @@ export function CalendarioMobileLista({
                   {blocked && (
                     <span className="inline-flex items-center gap-1 rounded-full border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive max-w-full">
                       <Lock className="h-3 w-3 shrink-0" />
-                      <span className="truncate">{block!.reason || "Bloqueado"}</span>
+                      <span className="break-words">{block!.reason || "Bloqueado"}</span>
                     </span>
                   )}
                   {occupants.map((o) => {
@@ -177,7 +177,7 @@ export function CalendarioMobileLista({
                         )}
                         title={`${o.colaboradorNome} — ${o.origin}`}
                       >
-                        <span className="truncate">
+                        <span className="break-words">
                           {isMe ? "Minha folga" : o.colaboradorNome}
                           {o.extra ? " · Extra" : ""}
                         </span>
