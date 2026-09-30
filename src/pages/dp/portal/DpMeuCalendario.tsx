@@ -1590,8 +1590,8 @@ export default function DpMeuCalendario() {
               Mudar o dia da folga
             </DialogTitle>
             <DialogDescription>
-              Sua folga de <b>{remarcarOpen && formatBR(parseYMD(remarcarOpen))}</b> passa para outro
-              dia de descanso do mesmo mês. O setor de pessoal é avisado da mudança.
+              Sua folga de <b>{remarcarOpen && descreverDia(remarcarOpen)}</b> passa para outro dia de descanso do mesmo
+              mês. O setor de pessoal é avisado da mudança.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -1610,7 +1610,7 @@ export default function DpMeuCalendario() {
                 <SelectContent>
                   {diasRemarcacao.map((d) => (
                     <SelectItem key={d.iso} value={d.iso}>
-                      {formatBR(parseYMD(d.iso))}
+                      {descreverDia(d.iso)}
                       {d.disponivel ? "" : ` — ${d.motivo} (depende de aprovação do gestor)`}
                     </SelectItem>
                   ))}
@@ -1622,13 +1622,42 @@ export default function DpMeuCalendario() {
                 </p>
               )}
               {((diaRemarcacaoEscolhido && !diaRemarcacaoEscolhido.disponivel) || remarcarAviso) && (
-                <div className="mt-2 rounded-xl border border-amber-200 bg-amber-500/10 p-3 text-xs text-amber-800">
-                  <p className="font-semibold">
-                    {remarcarAviso ?? `${diaRemarcacaoEscolhido?.motivo}.`}
-                  </p>
-                  <p className="mt-1">
+                <div className="mt-2 space-y-2 rounded-xl border border-amber-200 bg-amber-500/10 p-3 text-xs text-amber-800">
+                  <p className="font-semibold">{remarcarAviso ?? `${diaRemarcacaoEscolhido?.motivo}.`}</p>
+                  {colegasNoDiaDesejado.length > 0 && trocaDiretaLiberada && (
+                    <div className="space-y-2">
+                      <p>
+                        Antes de pedir ao gestor, tente a troca direta com quem folga em{" "}
+                        <b>{descreverDia(remarcarNova)}</b>:
+                      </p>
+                      <div className="flex flex-col gap-2">
+                        {colegasNoDiaDesejado.map((c) => (
+                          <Button
+                            key={c.colaboradorId}
+                            variant="outline"
+                            size="sm"
+                            className="h-auto min-h-9 w-full whitespace-normal break-words bg-background px-3 py-2 text-center leading-snug"
+                            onClick={() => {
+                              setTradeOpen({
+                                occupantId: c.colaboradorId,
+                                occupantName: c.nome,
+                                iso: remarcarNova,
+                              });
+                              setTradeMyDate(remarcarOpen ?? "");
+                              setTradeMotivo("");
+                              setRemarcarOpen(null);
+                            }}
+                          >
+                            <ArrowLeftRight className="mr-2 h-4 w-4 shrink-0" />
+                            Trocar com {c.nome.split(/\s+/)[0]}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <p>
                     A mudança para este dia depende da aprovação do gestor. Até a decisão, sua folga de{" "}
-                    <b>{remarcarOpen && formatBR(parseYMD(remarcarOpen))}</b> continua marcada.
+                    <b>{remarcarOpen && descreverDia(remarcarOpen)}</b> continua marcada.
                   </p>
                 </div>
               )}
