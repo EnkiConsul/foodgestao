@@ -264,7 +264,7 @@ export function useMeusDocumentos() {
       // 3) dp_registros_disciplinares
       const { data: disc } = await supabase
         .from("dp_registros_disciplinares")
-        .select("id, tipo, motivo, descricao, data, storage_path, created_at")
+        .select("id, tipo, motivo, descricao, data, pdf_storage_path, created_at")
         .eq("colaborador_id", colab.id)
         .order("data", { ascending: false });
 
@@ -281,7 +281,7 @@ export function useMeusDocumentos() {
           status_key: r.tipo ?? "outro",
           status_label: r.tipo ?? "Registro",
           bucket: "dp-documentos",
-          file_path: r.storage_path ?? null,
+          file_path: r.pdf_storage_path ?? null,
           mime_type: null,
           created_at: r.created_at,
           observacao: r.descricao ?? null,
