@@ -40,6 +40,9 @@ import {
   Globe2,
   ChevronDown,
   Wand2,
+  Eye,
+  EyeOff,
+  CalendarClock,
 
 } from "lucide-react";
 
@@ -153,11 +156,33 @@ export default function DpFolgas() {
   
   const colabs = useDpColaboradores();
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
-  const { reservasByDay } = useDpFolgaReserva(cursor);
   const initialPrefs = loadPrefs(selectedCompanyId);
   const [unidadeFilter, setUnidadeFilter] = useState<string>(initialPrefs.unidade ?? "todas");
   const [colabFilter, setColabFilter] = useState<string>(initialPrefs.colaborador ?? "todos");
   const [tipoFilter, setTipoFilter] = useState<Tipo | "todos">(initialPrefs.tipo ?? "todos");
+  /** Cards sem número ficam ocultos até o gestor pedir para ver; a escolha é lembrada. */
+  const [mostrarZerados, setMostrarZerados] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("dp_folgas_cards_zerados") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const alternarZerados = () => {
+    setMostrarZerados((v) => {
+      try {
+        localStorage.setItem("dp_folgas_cards_zerados", v ? "0" : "1");
+      } catch {
+        /* ignore */
+      }
+      return !v;
+    });
+  };
+  /** Indisponibilidades de convocáveis: contagem e nomes, já na unidade filtrada. */
+  const { reservasByDay, pessoasByDay } = useDpFolgaReserva(
+    cursor,
+    unidadeFilter === "todas" ? null : unidadeFilter,
+  );
 
   // Reaplica preferências ao trocar de empresa
   useEffect(() => {
@@ -684,6 +709,7 @@ export default function DpFolgas() {
     { label: "DIAS LOTADOS", value: stats.lotados, icon: AlertTriangle, tone: "text-red-600" },
     { label: "CAPACIDADE TOTAL", value: stats.capacidade, icon: CalendarIcon, tone: "text-primary" },
   ];
+  const statsZerados = statCards.filter((s) => s.value === 0).length;
 
   return (
     <DpPage>
@@ -737,22 +763,43 @@ export default function DpFolgas() {
         </div>
       )}
 
-      {/* Stat cards */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
-        {statCards.map((s) => (
-          <div
-            key={s.label}
-            className="rounded-xl border border-[hsl(var(--dp-border))] bg-card p-4"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              {s.label}
-            </p>
-            <div className="mt-2 flex items-center gap-2">
-              <s.icon className={cn("h-5 w-5", s.tone)} />
-              <span className="text-3xl font-bold text-foreground">{s.value}</span>
-            </div>
+      {/* Stat cards — zerados ficam ocultos por padrão para não poluir o celular */}
+      <div className="space-y-2">
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
+          {statCards
+            .filter((s) => mostrarZerados || s.value !== 0)
+            .map((s) => (
+              <div
+                key={s.label}
+                className="rounded-xl border border-[hsl(var(--dp-border))] bg-card p-4"
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {s.label}
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <s.icon className={cn("h-5 w-5", s.tone)} />
+                  <span className="text-3xl font-bold text-foreground">{s.value}</span>
+                </div>
+              </div>
+            ))}
+        </div>
+        {statsZerados > 0 && (
+          <div className="flex justify-end">
+            <Button variant="ghost" size="sm" onClick={alternarZerados}>
+              {mostrarZerados ? (
+                <>
+                  <EyeOff className="mr-1.5 h-4 w-4" />
+                  Ocultar zerados
+                </>
+              ) : (
+                <>
+                  <Eye className="mr-1.5 h-4 w-4" />
+                  Mostrar zerados ({statsZerados})
+                </>
+              )}
+            </Button>
           </div>
-        ))}
+        )}
       </div>
 
       {/* Filters */}
@@ -1278,6 +1325,42 @@ export default function DpFolgas() {
                   )}
                 </div>
               </div>
+
+              {/* Reservas de convocação: mostra quem travou a vaga do dia. */}
+              {(() => {
+                const reservados = selectedIso ? pessoasByDay.get(selectedIso) ?? [] : [];
+                if (reservados.length === 0) return null;
+                return (
+                  <div className="space-y-3 border-t pt-5">
+                    <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                      <CalendarClock className="h-3.5 w-3.5" /> Indisponíveis para convocação
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground">
+                      Estas pessoas informaram que não podem ser convocadas neste dia, então cada
+                      uma ocupa uma vaga de folga.
+                    </p>
+                    <div className="space-y-2">
+                      {reservados.map((p) => (
+                        <div
+                          key={p.id}
+                          className="flex items-center justify-between rounded-2xl border bg-card p-4"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="h-3 w-3 rounded-full bg-amber-500" />
+                            <div>
+                              <div className="font-bold">{p.nome}</div>
+                              <div className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                {p.vinculo ?? "Convocável"}
+                              </div>
+                            </div>
+                          </div>
+                          <DpStatusBadge tone="warning">Reserva</DpStatusBadge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="space-y-3 border-t pt-5">
                 <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
