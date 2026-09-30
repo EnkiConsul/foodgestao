@@ -20,7 +20,6 @@ function validarForm(form: RegraFormState): Set<CampoErro> {
   if (!form.nome.trim()) erros.add("nome");
   if (form.aplicacao === "unica" && !form.ano_referencia) erros.add("ano");
   if (form.meses.length === 0) erros.add("meses");
-  if (!form.data_inicio) erros.add("inicio");
   if (form.tipo === "fixa_anual" && form.dias.length === 0) erros.add("dias");
   if (form.tipo === "dinamica" && (form.ordinal == null || form.dia_semana == null)) erros.add("dinamica");
   return erros;
@@ -119,7 +118,7 @@ export function RegraDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Válida a partir de *</Label>
+            <Label>Válida a partir de</Label>
             <Input
               type="date"
               value={form.data_inicio}
@@ -130,7 +129,7 @@ export function RegraDialog({
               <p className="text-xs text-destructive">Informe a partir de quando a regra vale.</p>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Datas anteriores não são bloqueadas. Pode ser retroativa ou futura.
+                Datas anteriores não são bloqueadas. Pode ser retroativa ou futura. Em branco vale para todas as datas.
               </p>
             )}
           </div>

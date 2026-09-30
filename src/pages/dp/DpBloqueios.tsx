@@ -63,7 +63,7 @@ export default function DpBloqueios() {
   // ---- Handlers de abertura ----
   const openNovaRegra = () => {
     setEditRegraId(null);
-    setRegraForm(emptyRegraForm);
+    setRegraForm({ ...emptyRegraForm, data_inicio: hojeIsoLocal() });
     setRegraOpen(true);
   };
   const openEditRegra = (r: Regra) => {
