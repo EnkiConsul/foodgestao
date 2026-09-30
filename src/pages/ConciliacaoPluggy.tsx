@@ -1931,7 +1931,7 @@ export default function ConciliacaoPluggy() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
         <div className="flex items-start gap-2">
           <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate("/contas-bancarias")} aria-label="Voltar">
             <ArrowLeft className="h-4 w-4" />
