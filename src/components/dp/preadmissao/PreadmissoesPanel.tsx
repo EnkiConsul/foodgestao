@@ -86,6 +86,17 @@ export function PreadmissoesPanel({
     }
   };
 
+  /** Mantém o link que o candidato já recebeu e só estica o prazo dele. */
+  const prorrogarValidade = async (id: string) => {
+    try {
+      const r = await prorrogar.mutateAsync({ preadmissao_id: id });
+      const ate = new Date(r.expires_at).toLocaleDateString("pt-BR");
+      toast.success(`Prazo prorrogado até ${ate}. O link que ele já recebeu voltou a abrir.`);
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "prorrogar a validade do link" });
+    }
+  };
+
   const cancelar = async (id: string) => {
     if (!window.confirm("Cancelar o link deste candidato? Ele não conseguirá mais preencher.")) return;
     try {
