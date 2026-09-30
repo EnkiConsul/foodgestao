@@ -177,7 +177,7 @@ export function RegraDialog({
             </div>
             {erros.has("meses") && (
               <p className="text-xs text-destructive">
-                Selecione ao menos um mês — ou toque em "Marcar todos" para vale o ano inteiro.
+                Selecione ao menos um mês — ou toque em "Marcar todos" para valer o ano inteiro.
               </p>
             )}
           </div>
