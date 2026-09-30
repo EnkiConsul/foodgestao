@@ -174,9 +174,20 @@ function displayDescription(row: { description: string | null; raw?: unknown }):
   return formatProviderDescription(row.description, row.raw) || "";
 }
 
-/** Aviso quando a descrição não traz estabelecimento (fornecedor precisa ser escolhido). */
-function descriptionNote(row: { description: string | null }): string | null {
-  return hasMerchantName(row.description) ? null : "banco não informou o estabelecimento";
+/**
+ * Aviso quando a descrição não traz estabelecimento (fornecedor precisa ser
+ * escolhido). Encargos, tarifas e pagamento da própria fatura não têm
+ * estabelecimento: são do próprio cartão e não recebem o aviso.
+ */
+function descriptionNote(row: { description: string | null; raw?: unknown; category_pluggy?: string | null }): string | null {
+  if (hasMerchantName(row.description)) return null;
+  const line = classifyCardLine({
+    description: row.description,
+    raw: row.raw,
+    category: row.category_pluggy ?? null,
+  });
+  if (line.kind === "encargo" || line.kind === "pagamento_fatura") return null;
+  return "banco não informou o estabelecimento";
 }
 
 interface Connection {
