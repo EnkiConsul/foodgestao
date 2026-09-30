@@ -2919,6 +2919,18 @@ export default function ConciliacaoPluggy() {
         </DialogContent>
       </Dialog>
 
+      <ImportStatementDialog
+        open={importarExtratoAberto}
+        onOpenChange={(aberto) => {
+          setImportarExtratoAberto(aberto);
+          if (!aberto) setImportarExtratoConta(null);
+        }}
+        onImported={() => { void load(); }}
+        defaultAccountId={importarExtratoConta}
+      />
+
+      
+
       
     </div>
 
