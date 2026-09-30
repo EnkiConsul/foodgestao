@@ -22,6 +22,8 @@ import { traduzErroExclusao, ehErroHistoricoVinculado, mensagemHistoricoVinculad
 import { verificarExclusaoSimples, idsComLancamentos } from "@/lib/finance/verificarHistorico";
 import { buildCategoryTree, type Category, type TreeNode } from "@/lib/categories/tree";
 import { syncCategoryCompanies, garantirEmpresaAtiva } from "@/lib/categories/visibility";
+import { lerVinculos } from "@/lib/companyLinks";
+
 import { CategoryRow } from "@/components/categorias/CategoryRow";
 import { CategoryMobileRow } from "@/components/categorias/CategoryMobileRow";
 import { BatchActionBar } from "@/components/categorias/BatchActionBar";
