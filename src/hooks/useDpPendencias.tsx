@@ -1015,12 +1015,13 @@ export function useDpPendencias() {
         if (diaHoje >= ultimoDia - 4) {
           const inicioProx = new Date(anoVigente, mesVigente, 1);
           const fimProx = new Date(anoVigente, mesVigente + 1, 0);
-          const [{ data: colabs }, { data: folgas }] = await Promise.all([
+          const [{ data: colabs }, { data: folgas }, { data: cfgs }] = await Promise.all([
             supabase
               .from("dp_colaboradores")
-              .select("id")
+              .select("id, regime, vinculo_label")
               .eq("company_id", selectedCompanyId!)
-              .eq("ativo", true),
+              .eq("ativo", true)
+              .is("deleted_at", null),
             supabase
               .from("dp_folgas")
               .select("colaborador_id")
@@ -1028,9 +1029,25 @@ export function useDpPendencias() {
               .neq("status", "cancelada")
               .gte("data", ymd(inicioProx))
               .lte("data", ymd(fimProx)),
+            supabase
+              .from("dp_colaborador_config_trabalho")
+              .select("colaborador_id, folga_fixa_dow")
+              .eq("company_id", selectedCompanyId!)
+              .is("vigencia_fim", null),
           ]);
           const comFolga = new Set((folgas ?? []).map((f: any) => f.colaborador_id));
-          const semEscala = (colabs ?? []).filter((c: any) => !comFolga.has(c.id)).length;
+          // Quem já não trabalha no domingo não precisa de folga mensal marcada.
+          const semDomingo = new Set(
+            (cfgs ?? []).filter((c: any) => c.folga_fixa_dow === 0).map((c: any) => c.colaborador_id),
+          );
+          // Mesmo critério do banco (dp_folga_exige_descanso_fds): só CLT, sem sócios.
+          const elegiveis = (colabs ?? []).filter((c: any) => {
+            if (c.regime && String(c.regime) !== "clt") return false;
+            const v = String(c.vinculo_label ?? "").toLowerCase();
+            if (v === "socio" || v === "sócio") return false;
+            return !semDomingo.has(c.id);
+          });
+          const semEscala = elegiveis.filter((c: any) => !comFolga.has(c.id)).length;
           if (semEscala > 0) {
             const prazo = new Date(anoVigente, mesVigente - 1, ultimoDia);
             results.push({
