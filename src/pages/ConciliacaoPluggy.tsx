@@ -2082,6 +2082,35 @@ export default function ConciliacaoPluggy() {
         </Card>
       )}
 
+      {extratosIncompletos.map((e) => (
+        <Card key={e.pluggyAccountId} className="border-warning/50 bg-warning/10">
+          <CardContent className="flex flex-col gap-2 p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
+            <span className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+              <span>
+                O banco atualizou o saldo de {e.nome} mas não enviou todos os lançamentos.
+                Faltam {formatBRL(Math.abs(e.diferenca))}
+                {e.de && e.ate
+                  ? ` entre ${e.de.split("-").reverse().join("/")} e ${e.ate.split("-").reverse().join("/")}`
+                  : ""}
+                . Importe o extrato do período para completar a conciliação.
+              </span>
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              onClick={() => {
+                setImportarExtratoConta(e.contaLocalId);
+                setImportarExtratoAberto(true);
+              }}
+            >
+              <Upload className="h-4 w-4 mr-2" /> Importar extrato
+            </Button>
+          </CardContent>
+        </Card>
+      ))}
+
       {creditReviewPending.length > 0 && (
         <Card className="border-warning/50 bg-warning/10">
           <CardContent className="flex flex-col gap-2 p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
