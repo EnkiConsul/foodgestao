@@ -8,7 +8,7 @@
  * provedor e final do cartão).
  */
 
-import { cardLineKindLabel, classifyCardLine } from "@/lib/conciliacao/cardLine";
+import { cardLineKindLabel, cardOperationInfo, classifyCardLine } from "@/lib/conciliacao/cardLine";
 
 /** Códigos de operação conhecidos → rótulo em português. */
 const OPERATION_LABELS: Record<string, string> = {
