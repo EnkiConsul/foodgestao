@@ -175,18 +175,90 @@ export function cardLast4FromRaw(raw: unknown): string | null {
 }
 
 
+/** Abreviações usadas pelos bancos no detalhe da operação. */
+const INFO_ABBR: Record<string, string> = {
+  ENCARG: "Encargos",
+  ENCARGS: "Encargos",
+  FINANC: "Financeiros",
+  FIN: "Financeiros",
+  PGTO: "Pagamento",
+  TRANSF: "Transferência",
+  ANUID: "Anuidade",
+  TARIF: "Tarifa",
+  PARC: "Parcela",
+  OPER: "Operação",
+  MENS: "Mensalidade",
+  COBRANCA: "Cobrança",
+  CARTAO: "Cartão",
+  CREDITO: "Crédito",
+  DEBITO: "Débito",
+  SERV: "Serviço",
+};
+
+/** Detalhes já conhecidos → rótulo final. */
+const INFO_LABELS: Record<string, string> = {
+  "ENCARG FINANC FATURADOS": "Encargos financeiros faturados",
+  "ENCARGOS FINANCEIROS FATURADOS": "Encargos financeiros faturados",
+  "IOF ROTATIVO": "IOF rotativo",
+  IOF: "IOF",
+  "DESPESA COM COBRANCA": "Despesa com cobrança",
+  "JUROS ROTATIVO": "Juros do rotativo",
+  "JUROS DE ATRASO": "Juros por atraso",
+  "MULTA DE ATRASO": "Multa por atraso",
+  ANUIDADE: "Anuidade do cartão",
+  "PAGAMENTO FATURA": "Pagamento da fatura",
+};
+
+function stripAccents(value: string): string {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function humanizeInfo(info: string): string {
+  const words = collapse(info.replace(/_/g, " ")).split(" ").filter(Boolean);
+  const expanded = words.map((word) => {
+    const key = stripAccents(word).toUpperCase();
+    if (INFO_ABBR[key]) return INFO_ABBR[key];
+    if (key === "IOF" || key === "IR") return key;
+    return word.toLowerCase();
+  });
+  const text = expanded.join(" ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 /**
- * Descrição exibida = texto do banco, sem reescrita.
- *
- * A única normalização é colapsar os blocos de espaço com que o banco alinha as
- * colunas (`PONTO DA CARNE      GOIANIA   BR` → `PONTO DA CARNE GOIANIA BR`),
- * para o texto bater com o extrato do cartão.
+ * Rótulo legível a partir do detalhe interno da operação
+ * (`operationTypeAdditionalInfo` / `operationType`), usado quando o banco
+ * mandou apenas o código genérico no lugar do estabelecimento.
+ */
+export function cardOperationInfoLabel(raw?: unknown): string | null {
+  const { type, info } = cardOperationInfo(raw);
+  if (info) {
+    const key = collapse(stripAccents(info)).toUpperCase();
+    return INFO_LABELS[key] ?? humanizeInfo(info);
+  }
+  if (type === "PAGAMENTO") return "Pagamento da fatura";
+  return null;
+}
+
+/**
+ * Descrição exibida. Quando o banco manda o estabelecimento, o texto é dele —
+ * só colapsamos os blocos de espaço de alinhamento (`PONTO DA CARNE      GOIANIA
+ * BR` → `PONTO DA CARNE GOIANIA BR`). Quando manda apenas o código da operação
+ * (`CREDITO_A_VISTA`), usamos o detalhe interno da operação e, na falta dele, a
+ * tradução do código.
  */
 export function formatProviderDescription(
   description: string | null | undefined,
   raw?: unknown,
 ): string {
-  return cardProviderDescription(description, raw);
+  const base = cardProviderDescription(description, raw);
+  if (!base || isCardOperationCode(base)) {
+    const detalhe = cardOperationInfoLabel(raw);
+    if (detalhe) return detalhe;
+    const traduzido = cardOperationLabel(base);
+    if (traduzido) return traduzido;
+  }
+  return base;
 }
 
 /**
