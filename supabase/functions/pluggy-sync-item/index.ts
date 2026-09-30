@@ -1301,7 +1301,7 @@ Deno.serve(async (req) => {
         minimumFractionDigits: 2, maximumFractionDigits: 2,
       });
       motivos.push(
-        `O banco atualizou o saldo de ${e.nome} mas não entregou todos os lançamentos: faltam R$ ${valor} entre ${e.de.split('-').reverse().join('/')} e ${e.ate.split('-').reverse().join('/')}. Importe o extrato do período para completar.`,
+        `O banco atualizou o saldo de ${e.nome} mas não entregou todos os lançamentos: faltam R$ ${valor} entre ${e.de.split('-').reverse().join('/')} e ${e.ate.split('-').reverse().join('/')}. Desconecte e conecte o banco de novo para liberar o envio do extrato.`,
       );
     }
     const intervaloMin = Number(Deno.env.get('PLUGGY_CRON_INTERVAL_MIN') ?? '60');
