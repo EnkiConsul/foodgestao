@@ -691,6 +691,7 @@ export default function DpFolgas() {
     { label: "DIAS LOTADOS", value: stats.lotados, icon: AlertTriangle, tone: "text-red-600" },
     { label: "CAPACIDADE TOTAL", value: stats.capacidade, icon: CalendarIcon, tone: "text-primary" },
   ];
+  const statsZerados = statCards.filter((s) => s.value === 0).length;
 
   return (
     <DpPage>
