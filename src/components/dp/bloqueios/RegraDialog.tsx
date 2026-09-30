@@ -329,8 +329,8 @@ export function RegraDialog({
           </label>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-          <Button disabled={saving} onClick={onSubmit}>Salvar</Button>
+          <Button variant="outline" onClick={handleCancel}>Cancelar</Button>
+          <Button disabled={saving} onClick={handleSubmit}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
