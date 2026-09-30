@@ -177,6 +177,18 @@ export default function DpMeuFerias() {
     setAberto(true);
   };
 
+  // Chegou de "Minhas solicitações" com ?editar=<id>: abre a edição do pedido.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const alvo = searchParams.get("editar");
+    if (!alvo || pedidos.length === 0) return;
+    const pd = pedidos.find((p) => p.solicitacao_id === alvo && p.status === "pendente");
+    if (pd) abrirEdicao(pd);
+    searchParams.delete("editar");
+    setSearchParams(searchParams, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, pedidos]);
+
   /** Pedir novas datas para férias já aprovadas: as atuais seguem valendo. */
   const abrirRemarcacao = (
     gozo: { id: string; data_inicio: string; data_fim: string; dias: number; dias_abono: number },
