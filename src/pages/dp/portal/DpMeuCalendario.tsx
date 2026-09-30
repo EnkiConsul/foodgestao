@@ -917,7 +917,11 @@ export default function DpMeuCalendario() {
       if (error) throw new Error(mensagemErroTroca(error.message));
     },
     onSuccess: () => {
-      toast.success("Solicitação de troca enviada ao colega.");
+      toast.success(
+        tradeMyDate && tradeOpen && trocaExigeAprovacaoGestor(tradeMyDate, tradeOpen.iso)
+          ? "Troca enviada ao colega. Depois do aceite, o gestor precisa aprovar."
+          : "Solicitação de troca enviada ao colega.",
+      );
       setTradeOpen(null);
       setTradeMyDate("");
       setTradeMotivo("");
