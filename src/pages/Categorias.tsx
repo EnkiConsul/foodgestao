@@ -889,11 +889,21 @@ export default function Categorias() {
 
       <CategoryFormDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          // Zera o rascunho ao fechar: sem isso, reabrir o "+" da mesma
+          // categoria pai não era reconhecido como nova seleção.
+          if (!open) {
+            setEditCat(null);
+            setDefaultParentId(null);
+            setDefaultType(undefined);
+          }
+        }}
         onSaved={() => refetchAll()}
         editCategory={editCat}
         defaultParentId={defaultParentId}
         defaultType={defaultType}
+        existingCategories={categories}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
