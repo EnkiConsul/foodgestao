@@ -175,6 +175,12 @@ export function ColaboradorJornadaPanel({
   const [alterado, setAlterado] = useState(false);
   /** "base" = admissão (ou vigência atual) · "nova_data" = mudança de horário. */
   const [vigenciaModo, setVigenciaModo] = useState<"base" | "nova_data">("base");
+  const [vigDecOpen, setVigDecOpen] = useState(false);
+  const [vigDecModo, setVigDecModo] = useState<"nova" | "correcao">("nova");
+  const [vigDecData, setVigDecData] = useState(hoje());
+  const [vigDecJust, setVigDecJust] = useState("");
+  const vigDecResolveRef = useRef<((ok: boolean) => void) | null>(null);
+  const decisaoRef = useRef<{ modo: "nova" | "correcao"; inicio: string; justificativa: string } | null>(null);
   const admissao = colaborador?.data_admissao ?? null;
   const [obs, setObs] = useState("");
   const [copiarOpen, setCopiarOpen] = useState(false);
@@ -690,15 +696,23 @@ export function ColaboradorJornadaPanel({
       };
     });
 
+    const decisao = decisaoRef.current;
+    const inicioEfetivo = decisao?.inicio ?? inicio;
     await salvar.mutateAsync({
       unidade_id: unidadeId === "none" ? null : unidadeId,
       turno_padrao_id: turnoPadraoId,
       folga_variavel: folgaVariavel,
       folga_fixa_dow: folgaVariavel || folgas.length !== 1 ? null : folgas[0],
       observacoes: obs.trim() || null,
-      vigencia_inicio: inicio,
+      vigencia_inicio: inicioEfetivo,
       dias: diasResolvidos,
     });
+    if (decisao) {
+      await registrarCiencia(
+        `${decisao.modo === "nova" ? `Nova condição a partir de ${fmt(decisao.inicio)}` : "Correção de cadastro"}: ${decisao.justificativa}`,
+      );
+      decisaoRef.current = null;
+    }
 
     // A folga fixa fica em um único lugar: a semana desta tela alimenta também
     // o campo do cadastro, que é lido pela escala e pelo portal.
@@ -720,6 +734,42 @@ export function ColaboradorJornadaPanel({
     topoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  /** Alterar a condição vigente exige decidir: nova vigência ou correção. */
+  const precisaDecidirVigencia = () => !!vigente && vigenciaModo === "base" && !decisaoRef.current;
+  const pedirDecisao = () =>
+    new Promise<boolean>((resolve) => {
+      vigDecResolveRef.current = resolve;
+      setVigDecModo("nova");
+      setVigDecData(hoje());
+      setVigDecJust("");
+      setVigDecOpen(true);
+    });
+  const fecharDecisao = (ok: boolean) => {
+    setVigDecOpen(false);
+    const r = vigDecResolveRef.current;
+    vigDecResolveRef.current = null;
+    r?.(ok);
+  };
+  const confirmarDecisao = () => {
+    if (vigDecJust.trim().length < 5) { toast.error("Informe a justificativa (mínimo 5 caracteres)."); return; }
+    if (vigDecModo === "nova") {
+      if (!vigDecData) { toast.error("Informe a data de início."); return; }
+      if (admissao && vigDecData < admissao) { toast.error("A data não pode ser anterior à admissão."); return; }
+      if (vigente?.vigencia_inicio && vigDecData <= vigente.vigencia_inicio) {
+        toast.error(`Para valer desde ${fmt(vigente.vigencia_inicio)} ou antes, use "Correção de cadastro".`);
+        return;
+      }
+      setInicio(vigDecData);
+      setVigenciaModo("nova_data");
+    }
+    decisaoRef.current = {
+      modo: vigDecModo,
+      inicio: vigDecModo === "nova" ? vigDecData : inicio,
+      justificativa: vigDecJust.trim(),
+    };
+    fecharDecisao(true);
+  };
+
   const onSalvar = async () => {
     if (!colaborador?.id) {
       toast.error("Salve os dados do colaborador antes de definir o horário.");
@@ -727,6 +777,7 @@ export function ColaboradorJornadaPanel({
     }
     if (!horario.entrada || !horario.saida) { toast.error("Informe a entrada e a saída."); return; }
     if (bloqueado) { toast.error("Corrija os pontos indicados antes de salvar."); return; }
+    if (precisaDecidirVigencia() && !(await pedirDecisao())) return;
     if (temAlertaClt(alertas)) { setCienciaOpen(true); return; }
     try {
       await persistir();
@@ -773,6 +824,7 @@ export function ColaboradorJornadaPanel({
       toast.error("Corrija os pontos indicados no horário de trabalho.");
       return "erro";
     }
+    if (precisaDecidirVigencia() && !(await pedirDecisao())) return "cancelado";
     if (temAlertaClt(alertas)) {
       cienciaPendenteRef.current?.("cancelado");
       setCienciaOpen(true);
@@ -1262,6 +1314,50 @@ export function ColaboradorJornadaPanel({
           )}
         </section>
       )}
+
+      <AlertDialog open={vigDecOpen} onOpenChange={(v) => { if (!v) fecharDecisao(false); }}>
+        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Como aplicar esta alteração?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O horário/folga atual vale desde {fmt(vigente?.vigencia_inicio) ?? "a admissão"}. Escolha se é uma
+              mudança a partir de uma data ou a correção de um cadastro errado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3">
+            <div className="grid gap-2">
+              <Button type="button" variant={vigDecModo === "nova" ? "default" : "outline"}
+                className="h-auto whitespace-normal py-2 text-left justify-start"
+                onClick={() => setVigDecModo("nova")}>
+                Nova condição a partir de uma data (o passado fica como estava)
+              </Button>
+              <Button type="button" variant={vigDecModo === "correcao" ? "default" : "outline"}
+                className="h-auto whitespace-normal py-2 text-left justify-start"
+                onClick={() => setVigDecModo("correcao")}>
+                Correção de cadastro (vale desde {fmt(vigente?.vigencia_inicio) ?? "a admissão"})
+              </Button>
+            </div>
+            {vigDecModo === "nova" && (
+              <div className="space-y-1">
+                <Label htmlFor="vig-dec-data">A partir de</Label>
+                <Input id="vig-dec-data" type="date" value={vigDecData}
+                  min={admissao ?? undefined}
+                  onChange={(e) => setVigDecData(e.target.value)} />
+                <p className="text-[11px] text-muted-foreground">Pode ser uma data passada (correção retroativa a partir dela).</p>
+              </div>
+            )}
+            <div className="space-y-1">
+              <Label htmlFor="vig-dec-just">Justificativa *</Label>
+              <Textarea id="vig-dec-just" rows={3} value={vigDecJust} onChange={(e) => setVigDecJust(e.target.value)} />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => fecharDecisao(false)}>Cancelar</AlertDialogCancel>
+            <Button type="button" onClick={confirmarDecisao}>Continuar</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       <CienciaLegalDialog
         open={cienciaOpen}
