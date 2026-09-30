@@ -6,7 +6,7 @@
  * antes de o pedido seguir para o colega ou para o gestor.
  */
 import { addDays } from "date-fns";
-import { parseYMD, ymd } from "./dataLocal";
+import { parseYMD, ymd } from "./folga-rules";
 
 /** Limite legal: a partir daqui a sequência é irregular. */
 export const DSR_LIMITE_DIAS = 7;
