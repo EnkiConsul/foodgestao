@@ -156,14 +156,15 @@ export default function DpFolgas() {
   
   const colabs = useDpColaboradores();
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
-  const { reservasByDay, pessoasByDay } = useDpFolgaReserva(
-    cursor,
-    unidadeFilter === "todas" ? null : unidadeFilter,
-  );
   const initialPrefs = loadPrefs(selectedCompanyId);
   const [unidadeFilter, setUnidadeFilter] = useState<string>(initialPrefs.unidade ?? "todas");
   const [colabFilter, setColabFilter] = useState<string>(initialPrefs.colaborador ?? "todos");
   const [tipoFilter, setTipoFilter] = useState<Tipo | "todos">(initialPrefs.tipo ?? "todos");
+  /** Indisponibilidades de convocáveis: contagem e nomes, já na unidade filtrada. */
+  const { reservasByDay, pessoasByDay } = useDpFolgaReserva(
+    cursor,
+    unidadeFilter === "todas" ? null : unidadeFilter,
+  );
 
   // Reaplica preferências ao trocar de empresa
   useEffect(() => {
