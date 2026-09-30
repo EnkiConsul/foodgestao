@@ -1016,10 +1016,10 @@ export function useDpPendencias() {
         if (diaHoje >= ultimoDia - 4) {
           const inicioProx = new Date(anoVigente, mesVigente, 1);
           const fimProx = new Date(anoVigente, mesVigente + 1, 0);
-          const [{ data: colabs }, { data: folgas }, { data: cfgs }] = await Promise.all([
+          const [{ data: colabs }, { data: folgas }, { data: cfgs }, { data: sols }] = await Promise.all([
             supabase
               .from("dp_colaboradores")
-              .select("id, regime, vinculo_label, forma_pagamento")
+              .select("id, nome, regime, vinculo_label, forma_pagamento")
               .eq("company_id", selectedCompanyId!)
               .eq("ativo", true)
               .is("deleted_at", null),
@@ -1032,14 +1032,30 @@ export function useDpPendencias() {
               .lte("data", ymd(fimProx)),
             supabase
               .from("dp_colaborador_config_trabalho")
-              .select("colaborador_id, folga_fixa_dow")
+              .select("colaborador_id, folga_fixa_dow, dias:dp_colaborador_config_dias(dow, trabalha)")
               .eq("company_id", selectedCompanyId!)
               .is("vigencia_fim", null),
+            supabase
+              .from("dp_solicitacoes")
+              .select("colaborador_id")
+              .eq("company_id", selectedCompanyId!)
+              .eq("tipo", "folga")
+              .eq("status", "aprovada")
+              .gte("data_alvo", ymd(inicioProx))
+              .lte("data_alvo", ymd(fimProx)),
           ]);
-          const comFolga = new Set((folgas ?? []).map((f: any) => f.colaborador_id));
-          // Quem já não trabalha no domingo não precisa de folga mensal marcada.
+          const comFolga = new Set([
+            ...(folgas ?? []).map((f: any) => f.colaborador_id),
+            ...(sols ?? []).map((s: any) => s.colaborador_id),
+          ]);
+          // Quem já não trabalha no domingo (folga fixa ou grade semanal) não precisa de folga mensal marcada.
           const semDomingo = new Set(
-            (cfgs ?? []).filter((c: any) => c.folga_fixa_dow === 0).map((c: any) => c.colaborador_id),
+            (cfgs ?? [])
+              .filter((c: any) =>
+                c.folga_fixa_dow === 0 ||
+                (Array.isArray(c.dias) && c.dias.some((d: any) => d.dow === 0 && d.trabalha === false)),
+              )
+              .map((c: any) => c.colaborador_id),
           );
           // Mesmo critério do banco (dp_folga_exige_descanso_fds): CLT e freelancer mensalista, sem sócios.
           const elegiveis = (colabs ?? []).filter((c: any) => {
@@ -1050,18 +1066,23 @@ export function useDpPendencias() {
             if (v === "socio" || v === "sócio") return false;
             return !semDomingo.has(c.id);
           });
-          const semEscala = elegiveis.filter((c: any) => !comFolga.has(c.id)).length;
+          const faltantes = elegiveis.filter((c: any) => !comFolga.has(c.id));
+          const semEscala = faltantes.length;
           if (semEscala > 0) {
             const prazo = new Date(anoVigente, mesVigente - 1, ultimoDia);
+            const nomes = faltantes
+              .map((c: any) => String(c.nome ?? "").trim().split(/\s+/).slice(0, 2).join(" "))
+              .filter(Boolean)
+              .join(", ");
             results.push({
               id: `escala-${anoVigente}-${mesVigente + 1}`,
               icon: Clock,
               titulo: "Definir Escala Do Próximo Mês",
-              subtitulo: `${semEscala} colaborador(es) sem folgas em ${MES_NOME[inicioProx.getMonth()]} — o sistema gera automaticamente às 23:59 do dia ${ultimoDia}`,
+              subtitulo: `Sem folga marcada em ${MES_NOME[inicioProx.getMonth()]}: ${nomes} — o sistema gera automaticamente às 23:59 do dia ${ultimoDia}`,
               tipo: "Escala",
               vencimento: ymd(prazo),
               atrasoDias: differenceInCalendarDays(today, prazo),
-              url: `/dp/escalas?mes=${inicioProx.getFullYear()}-${String(inicioProx.getMonth() + 1).padStart(2, "0")}`,
+              url: `/dp/folgas?aba=calendario&mes=${inicioProx.getFullYear()}-${String(inicioProx.getMonth() + 1).padStart(2, "0")}`,
             });
           }
         }
