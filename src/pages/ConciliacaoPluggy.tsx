@@ -454,6 +454,20 @@ export default function ConciliacaoPluggy() {
   const [counterpartyReprocessing, setCounterpartyReprocessing] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
+  /**
+   * Contas em que o banco atualizou o saldo mas não entregou todos os
+   * lançamentos (falha silenciosa do Open Finance). Apurado na sincronização.
+   */
+  const [extratosIncompletos, setExtratosIncompletos] = useState<Array<{
+    pluggyAccountId: string;
+    nome: string;
+    diferenca: number;
+    de: string | null;
+    ate: string | null;
+    contaLocalId: string | null;
+  }>>([]);
+  const [importarExtratoConta, setImportarExtratoConta] = useState<string | null>(null);
+  const [importarExtratoAberto, setImportarExtratoAberto] = useState(false);
 
   // Chave da requisição: empresa + escopo pedido. Resultado de uma chave antiga
   // nunca pode ser aplicado depois que o usuário trocou de empresa/conta.
