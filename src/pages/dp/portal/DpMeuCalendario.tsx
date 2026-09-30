@@ -48,6 +48,7 @@ import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { resumoEscolhaFolgas, folgaDominicalAutomatica, podeTrocarFolga, domingosFolgaNoPeriodo } from "@/lib/dp/dsr-rules";
 import { folgasOfertaveis } from "@/lib/dp/troca-oferta";
 import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
+import { avaliarRiscoDsrTroca, avisoDsr } from "@/lib/dp/dsr-consecutivo";
 import {
   diasParaRemarcar,
   mensagemErroRemarcacao,
@@ -349,6 +350,42 @@ export default function DpMeuCalendario() {
     },
   });
 
+  /**
+   * Dias em que alguém da equipe cedeu a folga semanal numa troca: nesse dia a
+   * pessoa trabalha, então o calendário não pode desenhar folga fixa ali.
+   */
+  const trabalhoExcepcionalQuery = useQuery({
+    queryKey: ["dp_trab_excep_meu_cal", companyId, ano, mes],
+    enabled: !!companyId,
+    queryFn: async (): Promise<Set<string>> => {
+      const { data, error } = await supabase.rpc("dp_portal_trabalho_excepcional" as any, {
+        _de: range.start,
+        _ate: range.end,
+      });
+      if (error) throw error;
+      const s = new Set<string>();
+      for (const r of (data ?? []) as { colaborador_id: string; data: string }[]) {
+        s.add(`${r.colaborador_id}|${r.data}`);
+      }
+      return s;
+    },
+  });
+
+  /** Trocas minhas que ainda aguardam o colega ou o gestor. */
+  const trocasPendentesQuery = useQuery({
+    queryKey: ["dp_trocas_pend_meu_cal", companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_trocas")
+        .select("id, solicitante_id, destino_id, data_original, data_proposta, status")
+        .eq("company_id", companyId!)
+        .in("status", ["pendente_colega", "pendente_gestor"]);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   // Realtime — invalida queries quando qualquer fonte muda
   useEffect(() => {
     if (!companyId) return;
@@ -504,8 +541,17 @@ export default function DpMeuCalendario() {
       colaboradores,
       folgas: filteredFolgas,
       pendentes: filteredPend,
+      trabalhoExcepcional: trabalhoExcepcionalQuery.data,
     });
-  }, [colaboradores, folgas, pendentes, myUnidade, range.startDate, range.endDate]);
+  }, [
+    colaboradores,
+    folgas,
+    pendentes,
+    myUnidade,
+    range.startDate,
+    range.endDate,
+    trabalhoExcepcionalQuery.data,
+  ]);
 
   const manualBlocked = useMemo(() => {
     const m = new Map<string, { reason: string; liberada: boolean }>();
@@ -987,6 +1033,80 @@ export default function DpMeuCalendario() {
     return podeTrocarFolga(regrasConfig, tipo).permitida;
   }, [remarcarOpen, regrasConfig]);
 
+  /** Meus dias de descanso no mês visto (folgas marcadas + folga semanal fixa). */
+  const meusDescansosIso = useMemo(() => {
+    const s = new Set<string>();
+    const meuId = meRef.data?.id;
+    if (!meuId) return s;
+    for (const f of folgas) {
+      if (f.colaborador_id === meuId && f.status !== "cancelada") s.add(f.data as string);
+    }
+    const fixos = diasFixosDeFolga({
+      folga_fixa_semana: meRef.data?.folga_fixa_semana ?? null,
+      folgas_fixas_dow: meusDiasFixosQuery.data ?? [],
+    });
+    if (fixos.length) {
+      for (const d of eachDayOfInterval({ start: range.startDate, end: range.endDate })) {
+        const iso = ymd(d);
+        if (!fixos.includes(d.getDay())) continue;
+        if (trabalhoExcepcionalQuery.data?.has(`${meuId}|${iso}`)) continue;
+        s.add(iso);
+      }
+    }
+    return s;
+  }, [
+    folgas,
+    meRef.data,
+    meusDiasFixosQuery.data,
+    range.startDate,
+    range.endDate,
+    trabalhoExcepcionalQuery.data,
+  ]);
+
+  /** Risco de descanso semanal (DSR) na troca aberta no diálogo. */
+  const riscoDsrTroca = useMemo(() => {
+    if (!tradeOpen || !tradeMyDate) return null;
+    const r = avaliarRiscoDsrTroca({
+      descansoIso: meusDescansosIso,
+      diaCedidoIso: tradeMyDate,
+      diaNovoIso: tradeOpen.iso,
+    });
+    return r.risco ? avisoDsr(r.sequencia) : null;
+  }, [tradeOpen, tradeMyDate, meusDescansosIso]);
+
+  /** Troca pendente que envolve o dia aberto no diálogo. */
+  const trocaPendenteDoDia = useMemo(() => {
+    const iso = selectedDay?.iso;
+    const meuId = meRef.data?.id;
+    if (!iso || !meuId) return null;
+    return (
+      ((trocasPendentesQuery.data ?? []) as any[]).find(
+        (t) =>
+          (t.solicitante_id === meuId || t.destino_id === meuId) &&
+          (t.data_original === iso || t.data_proposta === iso),
+      ) ?? null
+    );
+  }, [selectedDay?.iso, meRef.data?.id, trocasPendentesQuery.data]);
+
+  const cancelarTroca = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("dp_troca_cancelar_self", { p_id: id });
+      if (error) throw new Error(mensagemErroTroca(error.message));
+    },
+    onSuccess: () => {
+      toast.success("Pedido de troca cancelado.");
+      setSelectedDay(null);
+      qc.invalidateQueries({ queryKey: ["dp_trocas_pend_meu_cal"] });
+      qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+    },
+    onError: (e: any) =>
+      notifyError(e, {
+        surface: "Meu calendário",
+        action: "cancelar a troca",
+        fallback: "Erro ao cancelar a troca",
+      }),
+  });
+
 
 
   const remarcarFolga = useMutation({
@@ -1401,6 +1521,40 @@ export default function DpMeuCalendario() {
                   <p className="text-xs text-muted-foreground">Nenhum colega da sua loja está de folga neste dia.</p>
                 )}
 
+                {trocaPendenteDoDia && (
+                  <div className="space-y-2 rounded-xl border border-violet-200 bg-violet-500/10 p-3 text-xs text-violet-800">
+                    <p className="font-semibold">
+                      Troca em análise —{" "}
+                      {trocaPendenteDoDia.status === "pendente_colega"
+                        ? "aguardando a resposta do colega."
+                        : "aguardando a aprovação do gestor."}
+                    </p>
+                    <p>
+                      Sua folga de {descreverDia(trocaPendenteDoDia.data_original)} continua valendo
+                      até a decisão.
+                    </p>
+                    {trocaPendenteDoDia.solicitante_id === meRef.data?.id && (
+                      <ConfirmarAcaoDialog
+                        titulo="Cancelar o pedido de troca?"
+                        descricao="O pedido é encerrado e sua folga atual continua como está."
+                        confirmar="Cancelar pedido"
+                        cancelar="Manter pedido"
+                        onConfirm={() => cancelarTroca.mutate(trocaPendenteDoDia.id)}
+                        disabled={cancelarTroca.isPending}
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-auto min-h-9 w-full whitespace-normal break-words bg-background px-3 py-2 text-center leading-snug"
+                          disabled={cancelarTroca.isPending}
+                        >
+                          {cancelarTroca.isPending ? "Cancelando..." : "Cancelar pedido de troca"}
+                        </Button>
+                      </ConfirmarAcaoDialog>
+                    )}
+                  </div>
+                )}
+
 
                 {showExceptionBtn && (
                   <Button
@@ -1564,6 +1718,11 @@ export default function DpMeuCalendario() {
                 <p className="mt-2 rounded-xl border border-amber-200 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-800">
                   Esta troca envolve folga de fim de semana e dia de semana. Por mudar a escala de
                   descanso, depende da aprovação do gestor depois do aceite do colega.
+                </p>
+              )}
+              {riscoDsrTroca && (
+                <p className="mt-2 rounded-xl border border-red-200 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-700">
+                  {riscoDsrTroca}
                 </p>
               )}
               {folgasParaOferecer.length === 0 && (

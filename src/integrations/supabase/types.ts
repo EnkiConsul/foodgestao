@@ -16490,6 +16490,17 @@ export type Database = {
         Args: { p_colaborador: string; p_data: string; p_motivo?: string }
         Returns: Json
       }
+      dp_folga_atribuir_admin_v2: {
+        Args: {
+          p_colaborador: string
+          p_data: string
+          p_data_trabalho?: string
+          p_folga_substituir_id?: string
+          p_modo: string
+          p_motivo?: string
+        }
+        Returns: Json
+      }
       dp_folga_autoatribuicao_plano: {
         Args: { _company: string; _competencia: string; _unidade: string }
         Returns: Json
@@ -17000,6 +17011,13 @@ export type Database = {
       dp_portal_token_release: {
         Args: { p_token_id: string }
         Returns: boolean
+      }
+      dp_portal_trabalho_excepcional: {
+        Args: { _ate: string; _de: string }
+        Returns: {
+          colaborador_id: string
+          data: string
+        }[]
       }
       dp_preadmissao_anexar_somente: {
         Args: {
