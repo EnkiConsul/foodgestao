@@ -2535,7 +2535,7 @@ export default function ConciliacaoPluggy() {
                     <td className="p-2">
                       <Select
                         value={rowKind[r.id] ?? "auto"}
-                        onValueChange={(v) => setRowKind((p) => ({ ...p, [r.id]: v as "auto" | "transfer" }))}
+                        onValueChange={(v) => aplicarTipoLancamento(r.id, v as "auto" | "transfer")}
                         disabled={disabled}
                       >
                         <SelectTrigger className="h-8 min-w-[160px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left" aria-label="Tipo do lançamento">
