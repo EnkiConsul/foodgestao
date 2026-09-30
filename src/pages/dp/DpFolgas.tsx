@@ -148,7 +148,27 @@ function loadPrefs(companyId: string | null): SavedPrefs {
   }
 }
 
+/** Indicadores do topo do calendário, cada um com seu detalhamento por dia. */
+type StatKey = "marcadas" | "reservas" | "restantes" | "lotados" | "capacidade";
+
+const STAT_TITULO: Record<StatKey, string> = {
+  marcadas: "Folgas marcadas no mês",
+  reservas: "Reservas por indisponibilidade",
+  restantes: "Vagas restantes por dia",
+  lotados: "Dias lotados",
+  capacidade: "Capacidade cadastrada por dia",
+};
+
+const STAT_DESCRICAO: Record<StatKey, string> = {
+  marcadas: "Dias com folga aprovada e quem está de folga em cada um.",
+  reservas: "Dias em que um convocável informou indisponibilidade, com os nomes.",
+  restantes: "Dias que ainda têm vaga livre para marcar folga.",
+  lotados: "Dias que já atingiram o limite de pessoas em folga.",
+  capacidade: "Limite de folgas de cada dia do mês.",
+};
+
 export default function DpFolgas() {
+
   const embedded = useDpEmbedded();
   const { selectedCompanyId } = useCompanyContext();
   const { user } = useAuth();
@@ -178,8 +198,11 @@ export default function DpFolgas() {
       return !v;
     });
   };
+  /** Card de indicador aberto no detalhamento do mês. */
+  const [statDetalhe, setStatDetalhe] = useState<StatKey | null>(null);
   /** Indisponibilidades de convocáveis: contagem e nomes, já na unidade filtrada. */
   const { reservasByDay, pessoasByDay } = useDpFolgaReserva(
+
     cursor,
     unidadeFilter === "todas" ? null : unidadeFilter,
   );
