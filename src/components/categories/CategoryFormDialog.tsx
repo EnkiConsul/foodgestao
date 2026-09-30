@@ -251,7 +251,12 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
             | undefined)
         : undefined;
       setType(paiTipo ?? defaultType ?? "saida");
-      setColor("#3b82f6");
+      // Subcategoria nasce com a cor da categoria pai: mantém a leitura visual
+      // da hierarquia nas listas e nos relatórios.
+      const paiCor = defaultParentId
+        ? (allCategories.find((c: any) => c.id === defaultParentId)?.color as string | undefined)
+        : undefined;
+      setColor(paiCor ?? "#3b82f6");
       setParentId(defaultParentId || null);
       setChartAccountId(null);
       setVisiblePf(true);
@@ -273,6 +278,19 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       prev.has(selectedCompanyId) ? prev : new Set([...prev, selectedCompanyId]),
     );
   }, [open, editCategory, contextType, selectedCompanyId, contextCompanies.length]);
+
+  // Ao escolher a categoria pai numa nova categoria, a cor acompanha a do pai.
+  // A lista de categorias pode chegar depois, por isso o efeito também observa
+  // o tamanho dela. O usuário ainda pode trocar a cor manualmente depois.
+  useEffect(() => {
+    if (!open || editCategory || !parentId) return;
+    const paiCor = (allCategories.find((c: any) => c.id === parentId) as any)?.color as
+      | string
+      | undefined;
+    if (paiCor) setColor(paiCor);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editCategory, parentId, allCategories.length]);
+
 
   // Filter parent options: same type, exclude self (e descendentes, para evitar ciclos)
   const sameTypeCategories = allCategories.filter((c: any) => c.transaction_type === type);
