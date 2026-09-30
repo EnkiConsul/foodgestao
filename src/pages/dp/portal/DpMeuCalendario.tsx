@@ -1519,8 +1519,8 @@ export default function DpMeuCalendario() {
               Solicitar troca
             </DialogTitle>
             <DialogDescription>
-              Você pega o dia <b>{tradeOpen && formatBR(parseYMD(tradeOpen.iso))}</b> de{" "}
-              <b>{tradeOpen?.occupantName}</b> em troca de uma folga sua.
+              Você passa a folgar em <b>{tradeOpen && descreverDia(tradeOpen.iso)}</b>, que hoje é a folga de{" "}
+              <b>{tradeOpen?.occupantName}</b>, e cede uma folga sua em troca.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -1533,12 +1533,18 @@ export default function DpMeuCalendario() {
                 <SelectContent>
                   {folgasParaOferecer.map((f) => (
                     <SelectItem key={f.id} value={f.data}>
-                      {formatBR(parseYMD(f.data))}
-                      {f.fixa ? " (folga semanal)" : ""}
+                      {descreverDia(f.data)}
+                      {f.fixa ? " — sua folga semanal" : " — folga marcada"}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {tradeMyDate && tradeOpen && (
+                <p className="mt-2 rounded-xl border border-sky-200 bg-sky-500/10 px-3 py-2 text-xs font-medium text-sky-700">
+                  Você trabalha em {descreverDia(tradeMyDate)} (a folga que você cede) e folga em{" "}
+                  {descreverDia(tradeOpen.iso)} (a folga de {tradeOpen.occupantName}).
+                </p>
+              )}
               {folgasParaOferecer.length === 0 && (
                 <p className="text-xs text-destructive mt-1">
                   Você não tem folga em outro dia para oferecer nesta troca.
