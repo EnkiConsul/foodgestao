@@ -2297,6 +2297,12 @@ export default function ConciliacaoPluggy() {
                   ids.forEach((id) => { next[id] = v; });
                   return next;
                 });
+                // Transferência não usa fornecedor/cliente: limpa o vínculo herdado.
+                setRowContact((p) => {
+                  const next = { ...p };
+                  ids.forEach((id) => { delete next[id]; });
+                  return next;
+                });
                 toast.info(`${ids.length} lançamento(s) marcados como transferência`);
               }}
             >
