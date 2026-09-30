@@ -706,6 +706,29 @@ Deno.serve(async (req) => {
 
 
 
+      // Foto do saldo anterior ANTES de qualquer atualização deste ciclo.
+      if ((acc.type ?? '').toUpperCase() === 'BANK') {
+        let saldoAnterior: number | null = null;
+        let saldoAnteriorEm: string | null = null;
+        if (upserted?.linked_account_id) {
+          const { data: prevBal } = await admin
+            .from('accounts')
+            .select('bank_balance, bank_balance_at')
+            .eq('id', upserted.linked_account_id)
+            .maybeSingle();
+          if (prevBal?.bank_balance !== null && prevBal?.bank_balance !== undefined) {
+            saldoAnterior = Number(prevBal.bank_balance);
+          }
+          saldoAnteriorEm = prevBal?.bank_balance_at ?? null;
+        }
+        baseConferencia.set(acc.id, {
+          rowId: upserted?.id ?? null,
+          saldoAnterior,
+          saldoAnteriorEm,
+          saldoAtual: ofBalanceInfo.reported,
+        });
+      }
+
       if (upserted?.linked_account_id && (acc.type ?? '').toUpperCase() === 'BANK') {
         const { data: localAcc } = await admin
           .from('accounts')
