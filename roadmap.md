@@ -197,4 +197,4 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 
 ## Calendário de folgas — ajustes mobile (30/09/2026)
 - [x] Dias bloqueados: chip só "Bloqueado" no calendário mobile; motivo apenas no detalhe do dia.
-- [ ] Cards de indicadores clicáveis abrindo detalhamento das informações.
+- [x] Cards de indicadores clicáveis abrindo detalhamento das informações.
