@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from "sonner";
 import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, Pencil, FileText, Split, CreditCard, Trash2, Upload } from "lucide-react";
 import { ImportStatementDialog } from "@/components/transactions/ImportStatementDialog";
+import { ReconectarBancoDialog } from "@/components/conciliacao/ReconectarBancoDialog";
 import { formatBRL } from "@/lib/billing";
 import { DividirLancamentoDialog } from "@/components/conciliacao/DividirLancamentoDialog";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
@@ -470,6 +471,9 @@ export default function ConciliacaoPluggy() {
   }>>([]);
   const [importarExtratoConta, setImportarExtratoConta] = useState<string | null>(null);
   const [importarExtratoAberto, setImportarExtratoAberto] = useState(false);
+  /** Orientação de desconectar/reconectar o banco quando o extrato vem incompleto. */
+  const [reconectarBanco, setReconectarBanco] = useState<string | null>(null);
+  const [reconectarAberto, setReconectarAberto] = useState(false);
 
   // Chave da requisição: empresa + escopo pedido. Resultado de uma chave antiga
   // nunca pode ser aplicado depois que o usuário trocou de empresa/conta.
@@ -2112,16 +2116,28 @@ export default function ConciliacaoPluggy() {
             <span className="flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
               <span>
-                Aguardando o banco enviar lançamentos de {e.nome}: faltam {formatBRL(Math.abs(e.diferenca))}
+                {e.nome} atualizou o saldo mas não enviou todos os lançamentos: faltam {formatBRL(Math.abs(e.diferenca))}
                 {e.de && e.ate
                   ? ` entre ${e.de.split("-").reverse().join("/")} e ${e.ate.split("-").reverse().join("/")}`
                   : ""}
-                . O sistema busca de novo a cada sincronização automática até eles chegarem.
+                . Desconecte e conecte o banco de novo para liberar o envio do extrato.
               </span>
             </span>
-            <Button size="sm" variant="outline" className="shrink-0" onClick={syncNow}>
-              Buscar agora
-            </Button>
+            <span className="flex shrink-0 flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setReconectarBanco(e.nome);
+                  setReconectarAberto(true);
+                }}
+              >
+                Como fazer
+              </Button>
+              <Button size="sm" onClick={() => navigate("/contas-bancarias/conexoes")}>
+                Ir para Conexões
+              </Button>
+            </span>
           </CardContent>
         </Card>
       ))}
@@ -2946,6 +2962,15 @@ export default function ConciliacaoPluggy() {
         }}
         onImported={() => { void load(); }}
         defaultAccountId={importarExtratoConta}
+      />
+
+      <ReconectarBancoDialog
+        open={reconectarAberto}
+        onOpenChange={(aberto) => {
+          setReconectarAberto(aberto);
+          if (!aberto) setReconectarBanco(null);
+        }}
+        banco={reconectarBanco}
       />
 
       
