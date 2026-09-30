@@ -274,7 +274,16 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
       toast.success(vars.editId ? "Regra atualizada" : "Regra criada");
       await qc.invalidateQueries({ queryKey: ["dp_bloqueio_regras"] });
     },
-    onError: (e: any) => notifyError(e, { surface: "Bloqueios", action: "concluir a ação", fallback: "Erro" }),
+    onError: (e: any) => {
+      // Erros de validação do formulário: aviso simples, sem abrir o painel de erro.
+      const msg = String(e?.message ?? "");
+      const ehValidacao = /obrigatória|Selecione|Informe|Preencha/i.test(msg) && !e?.code;
+      if (ehValidacao) {
+        toast.warning(msg, { closeButton: true, duration: 8_000 });
+        return;
+      }
+      notifyError(e, { surface: "Bloqueios", action: "concluir a ação", fallback: "Erro" });
+    },
   });
 
   const delRegra = useMutation({

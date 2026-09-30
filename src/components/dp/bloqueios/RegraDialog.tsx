@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,18 @@ import {
   getMonthName, toggleArr,
   type RegraFormState, type Unidade,
 } from "@/lib/dp/bloqueios";
+
+type CampoErro = "nome" | "ano" | "meses" | "dias" | "dinamica";
+
+function validarForm(form: RegraFormState): Set<CampoErro> {
+  const erros = new Set<CampoErro>();
+  if (!form.nome.trim()) erros.add("nome");
+  if (form.aplicacao === "unica" && !form.ano_referencia) erros.add("ano");
+  if (form.meses.length === 0) erros.add("meses");
+  if (form.tipo === "fixa_anual" && form.dias.length === 0) erros.add("dias");
+  if (form.tipo === "dinamica" && (form.ordinal == null || form.dia_semana == null)) erros.add("dinamica");
+  return erros;
+}
 
 type Props = {
   open: boolean;
@@ -26,8 +39,25 @@ type Props = {
 export function RegraDialog({
   open, isEditing, form, unidades, saving, onChange, onCancel, onSubmit,
 }: Props) {
+  const [tentouSalvar, setTentouSalvar] = useState(false);
+  const erros = tentouSalvar ? validarForm(form) : new Set<CampoErro>();
+
+  const handleSubmit = () => {
+    const e = validarForm(form);
+    if (e.size > 0) {
+      setTentouSalvar(true);
+      return;
+    }
+    onSubmit();
+  };
+
+  const handleCancel = () => {
+    setTentouSalvar(false);
+    onCancel();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onCancel(); }}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) handleCancel(); }}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Editar Regra" : "Nova Regra"}</DialogTitle>
@@ -39,7 +69,11 @@ export function RegraDialog({
               value={form.nome}
               onChange={(e) => onChange((p) => ({ ...p, nome: e.target.value }))}
               placeholder="Ex: Natal, Black Friday..."
+              className={cn(erros.has("nome") && "border-destructive")}
             />
+            {erros.has("nome") && (
+              <p className="text-xs text-destructive">Informe uma descrição para a regra.</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -92,7 +126,11 @@ export function RegraDialog({
                 onChange={(e) =>
                   onChange((p) => ({ ...p, ano_referencia: parseInt(e.target.value) || null }))
                 }
+                className={cn(erros.has("ano") && "border-destructive")}
               />
+              {erros.has("ano") && (
+                <p className="text-xs text-destructive">Informe o ano em que a regra se aplica.</p>
+              )}
             </div>
           )}
 
@@ -111,7 +149,12 @@ export function RegraDialog({
                 {form.meses.length === MESES.length ? "Desmarcar todos" : "Marcar todos"}
               </Button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
+            <div
+              className={cn(
+                "grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto border rounded-lg p-3",
+                erros.has("meses") ? "border-destructive" : "border-border"
+              )}
+            >
               {MESES.map((m) => (
                 <button
                   key={m} type="button"
@@ -132,6 +175,11 @@ export function RegraDialog({
                 </button>
               ))}
             </div>
+            {erros.has("meses") && (
+              <p className="text-xs text-destructive">
+                Selecione ao menos um mês — ou toque em "Marcar todos" para valer o ano inteiro.
+              </p>
+            )}
           </div>
 
           {form.tipo === "fixa_anual" && (
@@ -150,7 +198,12 @@ export function RegraDialog({
                   {form.dias.length === DIAS.length ? "Desmarcar todos" : "Marcar todos"}
                 </Button>
               </div>
-              <div className="grid grid-cols-4 sm:grid-cols-7 gap-1 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
+              <div
+                className={cn(
+                  "grid grid-cols-4 sm:grid-cols-7 gap-1 max-h-40 overflow-y-auto border rounded-lg p-3",
+                  erros.has("dias") ? "border-destructive" : "border-border"
+                )}
+              >
                 {DIAS.map((d) => (
                   <button
                     key={d} type="button"
@@ -166,40 +219,58 @@ export function RegraDialog({
                   </button>
                 ))}
               </div>
+              {erros.has("dias") && (
+                <p className="text-xs text-destructive">
+                  Selecione ao menos um dia — ou toque em "Marcar todos".
+                </p>
+              )}
             </div>
           )}
 
           {form.tipo === "dinamica" && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Ordinal *</Label>
-                <select
-                  value={form.ordinal ?? ""}
-                  onChange={(e) =>
-                    onChange((p) => ({ ...p, ordinal: parseInt(e.target.value) }))
-                  }
-                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">Selecione</option>
-                  <option value={0}>Todas</option>
-                  {[1, 2, 3, 4, 5].map((o) => (
-                    <option key={o} value={o}>{NOMES_ORDINAIS[o - 1]}</option>
-                  ))}
-                </select>
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Ordinal *</Label>
+                  <select
+                    value={form.ordinal ?? ""}
+                    onChange={(e) =>
+                      onChange((p) => ({ ...p, ordinal: parseInt(e.target.value) }))
+                    }
+                    className={cn(
+                      "flex w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      erros.has("dinamica") && form.ordinal == null ? "border-destructive" : "border-input"
+                    )}
+                  >
+                    <option value="">Selecione</option>
+                    <option value={0}>Todas</option>
+                    {[1, 2, 3, 4, 5].map((o) => (
+                      <option key={o} value={o}>{NOMES_ORDINAIS[o - 1]}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Dia da Semana *</Label>
+                  <select
+                    value={form.dia_semana ?? ""}
+                    onChange={(e) =>
+                      onChange((p) => ({ ...p, dia_semana: parseInt(e.target.value) }))
+                    }
+                    className={cn(
+                      "flex w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      erros.has("dinamica") && form.dia_semana == null ? "border-destructive" : "border-input"
+                    )}
+                  >
+                    <option value="">Selecione</option>
+                    {NOMES_SEMANA.map((n, i) => <option key={i} value={i}>{n}</option>)}
+                  </select>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Dia da Semana *</Label>
-                <select
-                  value={form.dia_semana ?? ""}
-                  onChange={(e) =>
-                    onChange((p) => ({ ...p, dia_semana: parseInt(e.target.value) }))
-                  }
-                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">Selecione</option>
-                  {NOMES_SEMANA.map((n, i) => <option key={i} value={i}>{n}</option>)}
-                </select>
-              </div>
+              {erros.has("dinamica") && (
+                <p className="text-xs text-destructive">
+                  Escolha o ordinal (ex.: "Todas") e o dia da semana.
+                </p>
+              )}
             </div>
           )}
 
@@ -258,8 +329,8 @@ export function RegraDialog({
           </label>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-          <Button disabled={saving} onClick={onSubmit}>Salvar</Button>
+          <Button variant="outline" onClick={handleCancel}>Cancelar</Button>
+          <Button disabled={saving} onClick={handleSubmit}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
