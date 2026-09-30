@@ -216,6 +216,19 @@
     overflow: hidden;
   }
 
+  /* Nenhum cartão pode ficar cortado no celular: itens de grade e de linha
+     podem encolher em vez de esticar além da largura da tela. */
+  .dp-shell .dp-page,
+  .dp-shell .dp-page-embedded {
+    min-width: 0;
+  }
+
+  .dp-shell .dp-page .grid > *,
+  .dp-shell .dp-page-embedded .grid > * {
+    min-width: 0;
+  }
+
+
   .dp-shell table thead tr {
     background-color: hsl(var(--muted) / 0.35);
   }
