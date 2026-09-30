@@ -13181,6 +13181,10 @@ export type Database = {
           number_masked: string | null
           pluggy_account_id: string
           raw: Json | null
+          statement_gap_amount: number | null
+          statement_gap_checked_at: string | null
+          statement_gap_from: string | null
+          statement_gap_to: string | null
           subtype: string | null
           sync_paused_at: string | null
           sync_paused_reason: string | null
@@ -13203,6 +13207,10 @@ export type Database = {
           number_masked?: string | null
           pluggy_account_id: string
           raw?: Json | null
+          statement_gap_amount?: number | null
+          statement_gap_checked_at?: string | null
+          statement_gap_from?: string | null
+          statement_gap_to?: string | null
           subtype?: string | null
           sync_paused_at?: string | null
           sync_paused_reason?: string | null
@@ -13225,6 +13233,10 @@ export type Database = {
           number_masked?: string | null
           pluggy_account_id?: string
           raw?: Json | null
+          statement_gap_amount?: number | null
+          statement_gap_checked_at?: string | null
+          statement_gap_from?: string | null
+          statement_gap_to?: string | null
           subtype?: string | null
           sync_paused_at?: string | null
           sync_paused_reason?: string | null
