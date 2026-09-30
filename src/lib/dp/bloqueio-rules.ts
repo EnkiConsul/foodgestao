@@ -22,6 +22,7 @@ export type RegraRow = {
     dia_semana?: number | null;
     pos_pagamento_dia?: number | null;
     tipo_original?: string | null;
+    data_inicio?: string | null;
   } | null;
   ativo: boolean;
 };
@@ -70,8 +71,12 @@ export function expandRegraNoIntervalo(
   const yStart = from.getFullYear();
   const yEnd = to.getFullYear();
 
+  const inicio = cfg.data_inicio
+    ? (() => { const [y, m, dd] = String(cfg.data_inicio).split("-").map(Number); return y && m && dd ? new Date(y, m - 1, dd) : null; })()
+    : null;
   const addIfInRange = (d: Date) => {
     if (d < from || d > to) return;
+    if (inicio && d < inicio) return;
     out.add(toIso(d));
   };
 

@@ -13,6 +13,7 @@ export type RegraJson = {
   ordinal?: number | null;
   dia_semana?: number | null;
   pos_pagamento_dia?: number | null;
+  data_inicio?: string | null;
 };
 
 export type Regra = {
@@ -54,6 +55,7 @@ export type RegraFormState = {
   ordinal: number | null;
   dia_semana: number | null;
   pos_pagamento_dia: number | null;
+  data_inicio: string;
   ativo: boolean;
   unidades: string[];
 };
@@ -105,6 +107,7 @@ export function gerarDatasParaRegra(r: Regra, hoje: Date): string[] {
   const mesesConfig = cfg.meses && cfg.meses.length > 0 ? cfg.meses : r.mes ? [r.mes] : MESES;
   const diasConfig = cfg.dias && cfg.dias.length > 0 ? cfg.dias : r.dia ? [r.dia] : [];
 
+  const inicio = cfg.data_inicio ? parseYMD(cfg.data_inicio) : null;
   const start = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   const out = new Set<string>();
 
@@ -150,7 +153,8 @@ export function gerarDatasParaRegra(r: Regra, hoje: Date): string[] {
     }
   }
 
-  return Array.from(out);
+  const lista = Array.from(out);
+  return inicio ? lista.filter((iso) => parseYMD(iso) >= inicio) : lista;
 }
 
 export const emptyRegraForm: RegraFormState = {
@@ -163,6 +167,7 @@ export const emptyRegraForm: RegraFormState = {
   ordinal: null,
   dia_semana: null,
   pos_pagamento_dia: 5,
+  data_inicio: "",
   ativo: true,
   unidades: [],
 };
@@ -179,6 +184,7 @@ export const regraToFormState = (r: Regra): RegraFormState => {
     ordinal: cfg.ordinal ?? null,
     dia_semana: cfg.dia_semana ?? null,
     pos_pagamento_dia: cfg.pos_pagamento_dia ?? 5,
+    data_inicio: cfg.data_inicio ?? "",
     ativo: r.ativo,
     unidades: (r.unidades ?? []).map((u) => u.id),
   };

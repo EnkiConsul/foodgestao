@@ -1,3 +1,4 @@
+import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { Helmet } from "react-helmet-async";
 import { useState } from "react";
 import {
@@ -63,7 +64,7 @@ export default function DpBloqueios() {
   // ---- Handlers de abertura ----
   const openNovaRegra = () => {
     setEditRegraId(null);
-    setRegraForm(emptyRegraForm);
+    setRegraForm({ ...emptyRegraForm, data_inicio: hojeIsoLocal() });
     setRegraOpen(true);
   };
   const openEditRegra = (r: Regra) => {
