@@ -316,13 +316,17 @@ export default function Categorias() {
   const { data: categoryCompanies = [], refetch: refetchCatCompanies } = useQuery({
     queryKey: ["category-companies", user?.id],
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("category_companies")
-        .select("category_id, company_id");
-      return data ?? [];
-    },
+    // Paginado: o servidor devolve no máximo 1000 linhas por requisição e, sem
+    // paginar, os vínculos mais recentes ficavam de fora e as categorias
+    // apareciam como "Sem visibilidade".
+    queryFn: () =>
+      lerVinculos<{ category_id: string; company_id: string }>(
+        "category_companies",
+        "category_id",
+        null,
+      ),
   });
+
 
   const refetchAll = useCallback(() => {
     refetch();
