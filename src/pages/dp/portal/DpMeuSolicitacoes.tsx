@@ -1,10 +1,10 @@
 import { DpFormFooter } from "@/components/dp/DpFormFooter";
 import { Helmet } from "react-helmet-async";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, ClipboardList, Ban, AlertTriangle } from "lucide-react";
+import { Plus, ClipboardList, Ban, AlertTriangle, Pencil } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,6 +62,7 @@ export default function DpMeuSolicitacoes() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<StatusTab>("todas");
   const [form, setForm] = useState<{
@@ -560,7 +561,16 @@ export default function DpMeuSolicitacoes() {
                   <p className="text-xs text-muted-foreground">Resposta: {s.resposta_admin}</p>
                 )}
                 {s.status === "pendente" && (
-                  <div className="pt-1">
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {s.tipo === "ferias" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate(`/dp/meu/ferias?editar=${s.id}`)}
+                      >
+                        <Pencil className="h-4 w-4 mr-1" /> Editar
+                      </Button>
+                    )}
                     <ConfirmarAcaoDialog
                       titulo="Cancelar esta solicitação?"
                       descricao="Ela deixa de ir para o gestor. Se precisar, você poderá enviar outra depois."
