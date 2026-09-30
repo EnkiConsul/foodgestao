@@ -2,7 +2,7 @@ import { DpFormFooter } from "@/components/dp/DpFormFooter";
 import { Helmet } from "react-helmet-async";
 import { useEffect, useMemo, useState } from "react";
 import { addDays, differenceInCalendarDays, parseISO } from "date-fns";
-import { Palmtree, Plus, CheckCircle2, FileText } from "lucide-react";
+import { Palmtree, Plus, CheckCircle2, FileText, Pencil, CalendarClock } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { Badge } from "@/components/ui/badge";
