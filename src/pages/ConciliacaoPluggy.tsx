@@ -2090,24 +2090,15 @@ export default function ConciliacaoPluggy() {
             <span className="flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
               <span>
-                O banco atualizou o saldo de {e.nome} mas não enviou todos os lançamentos.
-                Faltam {formatBRL(Math.abs(e.diferenca))}
+                Aguardando o banco enviar lançamentos de {e.nome}: faltam {formatBRL(Math.abs(e.diferenca))}
                 {e.de && e.ate
                   ? ` entre ${e.de.split("-").reverse().join("/")} e ${e.ate.split("-").reverse().join("/")}`
                   : ""}
-                . Importe o extrato do período para completar a conciliação.
+                . O sistema busca de novo a cada sincronização automática até eles chegarem.
               </span>
             </span>
-            <Button
-              size="sm"
-              variant="outline"
-              className="shrink-0"
-              onClick={() => {
-                setImportarExtratoConta(e.contaLocalId);
-                setImportarExtratoAberto(true);
-              }}
-            >
-              <Upload className="h-4 w-4 mr-2" /> Importar extrato
+            <Button size="sm" variant="outline" className="shrink-0" onClick={syncNow}>
+              Buscar agora
             </Button>
           </CardContent>
         </Card>
