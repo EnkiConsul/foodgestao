@@ -245,10 +245,18 @@ export function useDpMinhasFerias() {
   return {
     abrirDocumento,
     periodos: query.data ?? [],
+    pedidos: pedidosQuery.data ?? [],
     isLoading: query.isLoading,
     isError: query.isError,
-    refetch: () => void query.refetch(),
+    refetch: () => {
+      void query.refetch();
+      void pedidosQuery.refetch();
+    },
     solicitar,
+    editarPedido,
+    cancelarPedido,
+    pedirRemarcacao,
     registrarCiencia,
+
   };
 }
