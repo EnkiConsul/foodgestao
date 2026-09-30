@@ -554,6 +554,37 @@ export default function ConciliacaoPluggy() {
     setScopeProblem(escopoBloqueado ? scopeProblem : null);
     setConnectionId(resolvedScope ? resolvedScope.connectionId : "all");
 
+    // Extrato incompleto apurado na última sincronização (saldo do banco não é
+    // explicado pelos lançamentos entregues).
+    {
+      let gapQuery = supabase
+        .from("pluggy_accounts")
+        .select("pluggy_account_id, name, linked_account_id, statement_gap_amount, statement_gap_from, statement_gap_to")
+        .eq("company_id", selectedCompanyId)
+        .not("statement_gap_amount", "is", null);
+      if (resolvedScope) gapQuery = gapQuery.eq("pluggy_account_id", resolvedScope.pluggyAccountId);
+      const { data: gapRows } = await gapQuery;
+      if (stale()) return;
+      setExtratosIncompletos(
+        ((gapRows ?? []) as Array<{
+          pluggy_account_id: string;
+          name: string | null;
+          linked_account_id: string | null;
+          statement_gap_amount: number | null;
+          statement_gap_from: string | null;
+          statement_gap_to: string | null;
+        }>).map((g) => ({
+          pluggyAccountId: g.pluggy_account_id,
+          nome: cleanProviderName(g.name) ?? "Conta conectada",
+          diferenca: Number(g.statement_gap_amount ?? 0),
+          de: g.statement_gap_from,
+          ate: g.statement_gap_to,
+          contaLocalId: g.linked_account_id,
+        })),
+      );
+    }
+
+
     // Fábrica de query: cada página precisa de um builder novo (os builders do
     // supabase-js não podem ser reexecutados).
     const stagingPageQuery = (fromIdx: number, toIdx: number) => {
