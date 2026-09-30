@@ -94,6 +94,14 @@ export function expandRegraNoIntervalo(
         const diaSemana = cfg.dia_semana ?? 0;
         const primeiroDoMes = new Date(ano, mes - 1, 1);
         const shift = (diaSemana - primeiroDoMes.getDay() + 7) % 7;
+        if (ordinal === 0) {
+          // Todas as ocorrências do dia da semana no mês
+          for (let dia = 1 + shift; dia <= 31; dia += 7) {
+            const d = new Date(ano, mes - 1, dia);
+            if (d.getMonth() === mes - 1) addIfInRange(d);
+          }
+          continue;
+        }
         const diaAlvo = 1 + shift + (ordinal - 1) * 7;
         const d = new Date(ano, mes - 1, diaAlvo);
         if (d.getMonth() === mes - 1) addIfInRange(d);

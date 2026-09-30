@@ -129,9 +129,16 @@ export function gerarDatasParaRegra(r: Regra, hoje: Date): string[] {
       const diaSemana = cfg.dia_semana ?? 0;
       const first = new Date(ano, mes - 1, 1);
       const shift = (diaSemana - first.getDay() + 7) % 7;
-      const diaAlvo = 1 + shift + (ordinal - 1) * 7;
-      const d = new Date(ano, mes - 1, diaAlvo);
-      if (d.getMonth() === mes - 1 && d >= hoje) out.add(toYMD(d));
+      if (ordinal === 0) {
+        for (let dia = 1 + shift; dia <= 31; dia += 7) {
+          const d = new Date(ano, mes - 1, dia);
+          if (d.getMonth() === mes - 1 && d >= hoje) out.add(toYMD(d));
+        }
+      } else {
+        const diaAlvo = 1 + shift + (ordinal - 1) * 7;
+        const d = new Date(ano, mes - 1, diaAlvo);
+        if (d.getMonth() === mes - 1 && d >= hoje) out.add(toYMD(d));
+      }
     } else if (r.tipo === "pos_pagamento") {
       const diaBase = cfg.pos_pagamento_dia ?? 5;
       const cursor2 = new Date(ano, mes - 1, diaBase + 1);

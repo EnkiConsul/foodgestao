@@ -71,6 +71,17 @@ describe("expandRegraNoIntervalo", () => {
     expect(Array.from(set)).toEqual(["2026-05-10"]);
   });
 
+  it("dinamica: ordinal 0 = todas as sextas do mês", () => {
+    const r = baseRegra({
+      tipo: "dinamica",
+      regra_json: { meses: [10], ordinal: 0, dia_semana: 5 },
+    });
+    const set = expandRegraNoIntervalo(r, new Date(2026, 0, 1), new Date(2026, 11, 31));
+    expect(Array.from(set).sort()).toEqual([
+      "2026-10-02", "2026-10-09", "2026-10-16", "2026-10-23", "2026-10-30",
+    ]);
+  });
+
   it("pos_pagamento: bloqueia 1º sábado após dia 5 e o domingo seguinte", () => {
     const r = baseRegra({
       tipo: "dinamica",
