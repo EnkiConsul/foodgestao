@@ -1556,6 +1556,12 @@ export default function DpMeuCalendario() {
                   {descreverDia(tradeOpen.iso)} (a folga de {tradeOpen.occupantName}).
                 </p>
               )}
+              {tradeMyDate && tradeOpen && trocaExigeAprovacaoGestor(tradeMyDate, tradeOpen.iso) && (
+                <p className="mt-2 rounded-xl border border-amber-200 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-800">
+                  Esta troca envolve folga de fim de semana e dia de semana. Por mudar a escala de
+                  descanso, depende da aprovação do gestor depois do aceite do colega.
+                </p>
+              )}
               {folgasParaOferecer.length === 0 && (
                 <p className="text-xs text-destructive mt-1">
                   Você não tem folga em outro dia para oferecer nesta troca.
