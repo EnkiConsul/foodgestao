@@ -198,7 +198,12 @@ export function RegraDialog({
                   {form.dias.length === DIAS.length ? "Desmarcar todos" : "Marcar todos"}
                 </Button>
               </div>
-              <div className="grid grid-cols-4 sm:grid-cols-7 gap-1 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
+              <div
+                className={cn(
+                  "grid grid-cols-4 sm:grid-cols-7 gap-1 max-h-40 overflow-y-auto border rounded-lg p-3",
+                  erros.has("dias") ? "border-destructive" : "border-border"
+                )}
+              >
                 {DIAS.map((d) => (
                   <button
                     key={d} type="button"
@@ -214,40 +219,58 @@ export function RegraDialog({
                   </button>
                 ))}
               </div>
+              {erros.has("dias") && (
+                <p className="text-xs text-destructive">
+                  Selecione ao menos um dia — ou toque em "Marcar todos".
+                </p>
+              )}
             </div>
           )}
 
           {form.tipo === "dinamica" && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Ordinal *</Label>
-                <select
-                  value={form.ordinal ?? ""}
-                  onChange={(e) =>
-                    onChange((p) => ({ ...p, ordinal: parseInt(e.target.value) }))
-                  }
-                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">Selecione</option>
-                  <option value={0}>Todas</option>
-                  {[1, 2, 3, 4, 5].map((o) => (
-                    <option key={o} value={o}>{NOMES_ORDINAIS[o - 1]}</option>
-                  ))}
-                </select>
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Ordinal *</Label>
+                  <select
+                    value={form.ordinal ?? ""}
+                    onChange={(e) =>
+                      onChange((p) => ({ ...p, ordinal: parseInt(e.target.value) }))
+                    }
+                    className={cn(
+                      "flex w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      erros.has("dinamica") && form.ordinal == null ? "border-destructive" : "border-input"
+                    )}
+                  >
+                    <option value="">Selecione</option>
+                    <option value={0}>Todas</option>
+                    {[1, 2, 3, 4, 5].map((o) => (
+                      <option key={o} value={o}>{NOMES_ORDINAIS[o - 1]}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Dia da Semana *</Label>
+                  <select
+                    value={form.dia_semana ?? ""}
+                    onChange={(e) =>
+                      onChange((p) => ({ ...p, dia_semana: parseInt(e.target.value) }))
+                    }
+                    className={cn(
+                      "flex w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      erros.has("dinamica") && form.dia_semana == null ? "border-destructive" : "border-input"
+                    )}
+                  >
+                    <option value="">Selecione</option>
+                    {NOMES_SEMANA.map((n, i) => <option key={i} value={i}>{n}</option>)}
+                  </select>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Dia da Semana *</Label>
-                <select
-                  value={form.dia_semana ?? ""}
-                  onChange={(e) =>
-                    onChange((p) => ({ ...p, dia_semana: parseInt(e.target.value) }))
-                  }
-                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">Selecione</option>
-                  {NOMES_SEMANA.map((n, i) => <option key={i} value={i}>{n}</option>)}
-                </select>
-              </div>
+              {erros.has("dinamica") && (
+                <p className="text-xs text-destructive">
+                  Escolha o ordinal (ex.: "Todas") e o dia da semana.
+                </p>
+              )}
             </div>
           )}
 
