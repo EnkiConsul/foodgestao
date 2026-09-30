@@ -744,22 +744,43 @@ export default function DpFolgas() {
         </div>
       )}
 
-      {/* Stat cards */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
-        {statCards.map((s) => (
-          <div
-            key={s.label}
-            className="rounded-xl border border-[hsl(var(--dp-border))] bg-card p-4"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              {s.label}
-            </p>
-            <div className="mt-2 flex items-center gap-2">
-              <s.icon className={cn("h-5 w-5", s.tone)} />
-              <span className="text-3xl font-bold text-foreground">{s.value}</span>
-            </div>
+      {/* Stat cards — zerados ficam ocultos por padrão para não poluir o celular */}
+      <div className="space-y-2">
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
+          {statCards
+            .filter((s) => mostrarZerados || s.value !== 0)
+            .map((s) => (
+              <div
+                key={s.label}
+                className="rounded-xl border border-[hsl(var(--dp-border))] bg-card p-4"
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {s.label}
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <s.icon className={cn("h-5 w-5", s.tone)} />
+                  <span className="text-3xl font-bold text-foreground">{s.value}</span>
+                </div>
+              </div>
+            ))}
+        </div>
+        {statsZerados > 0 && (
+          <div className="flex justify-end">
+            <Button variant="ghost" size="sm" onClick={alternarZerados}>
+              {mostrarZerados ? (
+                <>
+                  <EyeOff className="mr-1.5 h-4 w-4" />
+                  Ocultar zerados
+                </>
+              ) : (
+                <>
+                  <Eye className="mr-1.5 h-4 w-4" />
+                  Mostrar zerados ({statsZerados})
+                </>
+              )}
+            </Button>
           </div>
-        ))}
+        )}
       </div>
 
       {/* Filters */}
