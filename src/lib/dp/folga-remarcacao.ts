@@ -57,6 +57,20 @@ export function diasParaRemarcar(input: DiasParaRemarcarInput): DiaRemarcacao[] 
   return dias;
 }
 
+/**
+ * A troca mistura folga de fim de semana com dia de semana?
+ * Esse caso altera a escala de descanso e sempre depende do gestor,
+ * mesmo quando a loja permite troca direta entre colegas.
+ * O servidor revalida a mesma regra em `dp_troca_responder_colega`.
+ */
+export function trocaExigeAprovacaoGestor(isoA: string, isoB: string): boolean {
+  if (!isoA || !isoB) return false;
+  const fds = (iso: string) => [0, 6].includes(parseYMD(iso).getDay());
+  return fds(isoA) !== fds(isoB);
+}
+
+
+
 /** Mensagem amigável para os erros da remarcação vindos do banco. */
 export function mensagemErroRemarcacao(raw: string): string {
   const m = raw ?? "";
