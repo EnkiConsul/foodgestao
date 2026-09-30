@@ -105,6 +105,34 @@ function isOperationCode(text: string): boolean {
   return /^[A-Z0-9]+(?:[_ ][A-Z0-9]+)*$/.test(value);
 }
 
+/**
+ * Detalhe interno da operação enviado pelo Open Finance
+ * (`operationType` / `operationTypeAdditionalInfo`). É o único lugar onde
+ * alguns bancos dizem o que a linha realmente é quando a descrição vem só com
+ * o código genérico (`CREDITO_A_VISTA`).
+ */
+const INFO_NOISE = new Set(["", "NA", "N/A", "OUTROS", "NAO INFORMADO", "NAO SE APLICA", "-"]);
+
+export interface CardOperationInfo {
+  /** Tipo da operação (`PAGAMENTO`, `OUTROS`...), sem valores vazios. */
+  type: string | null;
+  /** Detalhe adicional ("ENCARG FINANC FATURADOS", "IOF Rotativo"). */
+  info: string | null;
+}
+
+export function cardOperationInfo(raw: unknown): CardOperationInfo {
+  const meta = raw as
+    | { operationType?: unknown; operationTypeAdditionalInfo?: unknown }
+    | null
+    | undefined;
+  const typeRaw = collapse(meta?.operationType).toUpperCase();
+  const infoRaw = collapse(meta?.operationTypeAdditionalInfo);
+  return {
+    type: INFO_NOISE.has(normalizeToken(typeRaw) || "") || !typeRaw ? null : typeRaw,
+    info: !infoRaw || INFO_NOISE.has(infoRaw.toUpperCase()) ? null : infoRaw,
+  };
+}
+
 /** true quando a linha é pagamento/crédito da própria fatura. */
 export function isCardBillMovement(text: string | null | undefined, category?: string | null): boolean {
   return BILL_MOVEMENT_RE.test(`${text ?? ""} ${category ?? ""}`);
