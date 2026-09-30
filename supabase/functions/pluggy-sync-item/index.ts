@@ -604,6 +604,22 @@ Deno.serve(async (req) => {
       .not('sync_paused_at', 'is', null);
     const pausedIds = new Set((pausedRows ?? []).map((r: any) => r.pluggy_account_id));
 
+    /**
+     * Base da conferência de completude do extrato.
+     *
+     * Alguns bancos (BMG, por exemplo) atualizam o SALDO no Open Finance mas
+     * devolvem o extrato vazio na mesma coleta — sem erro nenhum. Guardamos aqui
+     * a foto do saldo ANTES de qualquer atualização deste ciclo para, depois de
+     * importar os lançamentos, conferir se eles explicam a variação do saldo.
+     */
+    const baseConferencia = new Map<string, {
+      rowId: string | null;
+      saldoAnterior: number | null;
+      saldoAnteriorEm: string | null;
+      saldoAtual: number | null;
+    }>();
+
+
     for (const acc of accounts) {
       if (pausedIds.has(acc.id)) continue;
       const accNumber = acc.number ?? null;
