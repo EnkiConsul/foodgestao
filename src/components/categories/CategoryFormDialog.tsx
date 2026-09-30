@@ -147,6 +147,19 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     },
   });
 
+  // A tela que abriu o diálogo pode passar as categorias já carregadas: assim a
+  // categoria pai aparece selecionada na hora, sem esperar a consulta e sem
+  // depender do vínculo de empresa chegar no resultado.
+  const allCategories = (() => {
+    if (!existingCategories?.length) return fetchedCategories as any[];
+    const byId = new Map<string, any>();
+    (existingCategories as any[]).forEach((c) => byId.set(c.id, c));
+    (fetchedCategories as any[]).forEach((c) => {
+      if (!byId.has(c.id)) byId.set(c.id, c);
+    });
+    return Array.from(byId.values());
+  })();
+
 
   // Empresas que o usuário realmente acessa (dono OU membro), vindas do
   // contexto — a consulta antiga só trazia as empresas das quais ele é dono,
