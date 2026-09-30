@@ -17,7 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { DpPage, DpPageHeader, useDpEmbedded } from "@/components/dp/DpPage";
 import { MobileDetailsSheet } from "@/components/dp/MobileCardKit";
 import type { Database } from "@/integrations/supabase/types";
-import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { porIds, resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { mensagemErro } from "@/lib/dp/mensagemErro";
@@ -121,7 +121,7 @@ export default function DpSolicitacoes() {
       toast.success(vars.status === "aprovada" ? "Solicitação aprovada" : "Solicitação recusada");
       qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
       qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
-      void resolverPendencias(qc, { companyId: selectedCompanyId });
+      void resolverPendencias(qc, { companyId: selectedCompanyId, match: porIds([`sol-${vars.id}`]) });
       setRespostas((prev) => {
         const n = { ...prev };
         delete n[vars.id];

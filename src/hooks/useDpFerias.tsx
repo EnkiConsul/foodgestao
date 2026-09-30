@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
 import { notifyError } from "@/lib/notifyError";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 export type FeriasPeriodo = Database["public"]["Tables"]["dp_ferias_periodos"]["Row"] & {
   colaborador_nome?: string | null;
@@ -45,6 +46,9 @@ export function useDpFerias(colaboradorFilter: string) {
   const qc = useQueryClient();
 
   const invalidate = () => {
+    // Programar, alterar ou cancelar férias muda as pendências de férias:
+    // pede nova apuração para o quadro refletir a ação.
+    void resolverPendencias(qc, { companyId: selectedCompanyId });
     qc.invalidateQueries({ queryKey: ["dp_ferias_periodos"] });
     qc.invalidateQueries({ queryKey: ["dp_ferias_gozos"] });
   };
