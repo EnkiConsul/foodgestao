@@ -251,7 +251,12 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
             | undefined)
         : undefined;
       setType(paiTipo ?? defaultType ?? "saida");
-      setColor("#3b82f6");
+      // Subcategoria nasce com a cor da categoria pai: mantém a leitura visual
+      // da hierarquia nas listas e nos relatórios.
+      const paiCor = defaultParentId
+        ? (allCategories.find((c: any) => c.id === defaultParentId)?.color as string | undefined)
+        : undefined;
+      setColor(paiCor ?? "#3b82f6");
       setParentId(defaultParentId || null);
       setChartAccountId(null);
       setVisiblePf(true);
