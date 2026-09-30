@@ -1595,6 +1595,63 @@ export default function DpFolgas() {
         onLiberarGlobal={() => liberarData.mutate({ unidadeId: null })}
       />
 
+      {/* Detalhamento do indicador clicado */}
+      <Dialog open={!!statDetalhe} onOpenChange={(o) => !o && setStatDetalhe(null)}>
+        <DialogContent className="max-h-[85svh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{statDetalhe ? STAT_TITULO[statDetalhe] : ""}</DialogTitle>
+            <DialogDescription>
+              {statDetalhe ? STAT_DESCRICAO[statDetalhe] : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {format(cursor, "MMMM 'de' yyyy", { locale: ptBR })}
+            {unidadeFilter !== "todas" && " · unidade filtrada"}
+          </p>
+
+          {statDetalheDias.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Nada para mostrar neste mês.
+            </p>
+          ) : (
+            <ul className="divide-y rounded-xl border">
+              {statDetalheDias.map((d) => (
+                <li key={d.iso} className="space-y-1 p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-sm font-semibold capitalize">{d.label}</span>
+                    <Badge variant="outline" className="shrink-0 text-[10px] font-bold">
+                      {statDetalhe === "capacidade"
+                        ? `Limite ${d.cap}`
+                        : statDetalhe === "restantes"
+                          ? `${Math.max(0, (d.cap ?? 0) - d.aprov - d.reserva)} vaga(s)`
+                          : `${d.aprov + d.reserva}${d.cap != null ? `/${d.cap}` : ""}`}
+                    </Badge>
+                  </div>
+                  {statDetalhe !== "reservas" && d.nomes.length > 0 && (
+                    <p className="text-xs text-muted-foreground break-words">
+                      De folga: {d.nomes.join(", ")}
+                    </p>
+                  )}
+                  {d.reservados.length > 0 && (
+                    <p className="text-xs text-amber-700 break-words">
+                      Indisponíveis para convocação: {d.reservados.join(", ")}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStatDetalhe(null)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       <Dialog open={autoOpen} onOpenChange={setAutoOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
