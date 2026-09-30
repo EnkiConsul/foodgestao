@@ -108,7 +108,7 @@ export default function DpMeuHome() {
     <DpPage>
       <Helmet><title>Portal do Colaborador — Aveto 360</title></Helmet>
 
-      <header className="dp-content-card rounded-2xl bg-card border border-[hsl(var(--dp-border))] p-5 md:p-6">
+      <header className="dp-content-card rounded-2xl bg-card border border-[hsl(var(--dp-border))] p-4 sm:p-5 md:p-6 min-w-0">
         <div className="flex items-center gap-3">
           <div className="h-11 w-11 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
             <Bell className="h-5 w-5 text-primary" />
@@ -169,13 +169,13 @@ export default function DpMeuHome() {
 
       <MinhaJornadaAcoesCard />
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2 min-w-0">
 
-        <section className="rounded-2xl border-2 border-[hsl(var(--dp-pending-border))] bg-[hsl(var(--dp-pending-bg))] p-5 flex flex-col">
-          <div className="flex items-center gap-2 mb-4">
-            <ClipboardList className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Minhas Solicitações Abertas</h2>
-            <Badge className="bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2 ml-auto">
+        <section className="rounded-2xl border-2 border-[hsl(var(--dp-pending-border))] bg-[hsl(var(--dp-pending-bg))] p-4 sm:p-5 flex flex-col min-w-0">
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            <ClipboardList className="h-5 w-5 text-primary shrink-0" />
+            <h2 className="text-base sm:text-lg font-semibold min-w-0 break-words">Minhas Solicitações Abertas</h2>
+            <Badge className="bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2 ml-auto shrink-0">
               {pend.data?.length ?? 0}
             </Badge>
           </div>
@@ -188,17 +188,17 @@ export default function DpMeuHome() {
               <DpEmptyState icon={Inbox}>Nenhuma solicitação em aberto.</DpEmptyState>
 
             ) : pend.data!.map((s: any) => (
-                <div key={s.id} className="flex items-center gap-3 rounded-xl bg-card border border-[hsl(var(--dp-border))] p-3">
+                <div key={s.id} className="flex items-center gap-2 sm:gap-3 rounded-xl bg-card border border-[hsl(var(--dp-border))] p-3 min-w-0">
                 <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <ClipboardList className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium capitalize truncate">{s.tipo}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground truncate">
                     Enviada em {new Date(s.created_at).toLocaleDateString("pt-BR")}
                   </p>
                 </div>
-                <Badge variant="outline">Pendente</Badge>
+                <Badge variant="outline" className="shrink-0">Pendente</Badge>
               </div>
             ))}
           </div>
@@ -210,7 +210,7 @@ export default function DpMeuHome() {
         <AvisosNotificacoesCard />
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2 min-w-0">
         <AniversariantesCard variant="portal" />
       </div>
 

@@ -107,17 +107,17 @@ export function AvisosNotificacoesCard() {
   const naoLidos = list.filter((i) => !i.lido).length;
 
   return (
-    <section className="rounded-2xl border border-[hsl(var(--dp-border))] bg-card p-5 flex flex-col">
-      <div className="flex items-center gap-2 mb-4">
-        <Megaphone className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold">Avisos e Notificações</h2>
+    <section className="rounded-2xl border border-[hsl(var(--dp-border))] bg-card p-4 sm:p-5 flex flex-col min-w-0">
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <Megaphone className="h-5 w-5 text-primary shrink-0" />
+        <h2 className="text-base sm:text-lg font-semibold min-w-0 break-words">Avisos e Notificações</h2>
         {naoLidos > 0 && (
-          <Badge className="ml-auto bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2">
+          <Badge className="ml-auto bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2 shrink-0">
             {naoLidos}
           </Badge>
         )}
       </div>
-      <div className="space-y-2 max-h-[380px] overflow-y-auto flex-1">
+      <div className="space-y-2 max-h-[380px] overflow-y-auto flex-1 min-w-0">
         {list.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
             <Bell className="h-8 w-8 opacity-40" />
@@ -129,19 +129,19 @@ export function AvisosNotificacoesCard() {
               key={item.key}
               to={item.to}
               onClick={() => abrir(item)}
-              className={`block rounded-xl border p-3 hover:bg-muted/50 ${
+              className={`block rounded-xl border p-3 min-w-0 hover:bg-muted/50 ${
                 item.lido
                   ? "border-[hsl(var(--dp-border))] opacity-70"
                   : "border-primary/40 ring-1 ring-primary/20"
               }`}
             >
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <p className="text-sm font-medium truncate">{item.titulo}</p>
+              <div className="flex items-start justify-between gap-2 mb-1 min-w-0">
+                <p className="text-sm font-medium min-w-0 flex-1 break-words">{item.titulo}</p>
                 {!item.lido && (
                   <Badge className="bg-primary text-primary-foreground text-[10px] shrink-0">Novo</Badge>
                 )}
               </div>
-              {item.texto && <p className="text-xs text-muted-foreground line-clamp-2">{item.texto}</p>}
+              {item.texto && <p className="text-xs text-muted-foreground line-clamp-2 break-words">{item.texto}</p>}
               <div className="mt-1 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
                 <Badge variant="outline" className="text-[10px]">{item.origemLabel}</Badge>
                 <span>{new Date(item.data).toLocaleDateString("pt-BR")}</span>
