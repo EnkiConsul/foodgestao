@@ -1276,6 +1276,7 @@ Deno.serve(async (req) => {
       accounts: accounts.length,
       transactions: staged,
       write_failures: falhasGravacao,
+      incomplete_statements: extratosIncompletos,
       message: parcial ? motivos.join(' ') : null,
       first_connect: !!isFirstConnect,
       item_status: item?.status ?? null,
