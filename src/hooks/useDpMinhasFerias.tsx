@@ -115,7 +115,7 @@ export function useDpMinhasFerias() {
         periodo_status: r.periodo_status,
         faltas_informadas: !!r.faltas_informadas,
         adiantamento_13: r.adiantamento_13 ?? "legal",
-        aviso_antecedencia_dias: Number(r.aviso_antecedencia_dias ?? 60),
+        aviso_antecedencia_dias: Number(r.aviso_antecedencia_dias ?? 40),
         gozos: ((r.gozos ?? []) as MinhaFeriasGozo[]).map((g) => ({
           ...g,
           dias: Number(g.dias ?? 0),
