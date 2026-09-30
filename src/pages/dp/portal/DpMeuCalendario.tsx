@@ -1287,10 +1287,10 @@ export default function DpMeuCalendario() {
                   </ConfirmarAcaoDialog>
                 )}
 
-                {false && (
+                {selectedDay.status === "fixed" && (
                   <p className="text-xs text-muted-foreground">
-                    Esta é sua folga semanal fixa. Para trocar, selecione o dia desejado e use o botão "Trocar" ao
-                    lado do colega.
+                    Esta é sua folga semanal fixa. Para trocá-la, toque no dia em que deseja folgar: use "Trocar" ao
+                    lado de um colega que folga nesse dia ou "Solicitar exceção ao gestor".
                   </p>
                 )}
                 {selectedDay.status === "blocked" && (
