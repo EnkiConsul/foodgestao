@@ -2,7 +2,7 @@ import { DpFormFooter } from "@/components/dp/DpFormFooter";
 import { Helmet } from "react-helmet-async";
 import { useEffect, useMemo, useState } from "react";
 import { addDays, differenceInCalendarDays, parseISO } from "date-fns";
-import { Palmtree, Plus, CheckCircle2, FileText } from "lucide-react";
+import { Palmtree, Plus, CheckCircle2, FileText, Pencil, CalendarClock } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { Badge } from "@/components/ui/badge";
@@ -58,11 +58,32 @@ const STATUS_TONE: Record<string, string> = {
   cancelado: "bg-destructive/15 text-destructive",
 };
 
+const PEDIDO_STATUS_LABEL: Record<string, string> = {
+  pendente: "Em análise",
+  aprovada: "Aprovado",
+  recusada: "Recusado",
+  cancelada: "Cancelado",
+};
+
+const PEDIDO_STATUS_TONE: Record<string, string> = {
+  pendente: "bg-amber-500/15 text-amber-600",
+  aprovada: "bg-emerald-500/15 text-emerald-600",
+  recusada: "bg-destructive/15 text-destructive",
+  cancelada: "bg-muted text-muted-foreground",
+};
+
+type ModoPedido = "novo" | "editar" | "remarcar";
+
 /** Minhas Férias: saldo, pedidos e ciência das férias programadas. */
 export default function DpMeuFerias() {
-  const { periodos, isLoading, isError, refetch, solicitar, registrarCiencia, abrirDocumento } =
-    useDpMinhasFerias();
+  const {
+    periodos, pedidos, isLoading, isError, refetch, solicitar, editarPedido,
+    cancelarPedido, pedirRemarcacao, registrarCiencia, abrirDocumento,
+  } = useDpMinhasFerias();
   const [aberto, setAberto] = useState(false);
+  const [modo, setModo] = useState<ModoPedido>("novo");
+  const [alvoId, setAlvoId] = useState("");
+  const [diasDoAlvo, setDiasDoAlvo] = useState(0);
   const [periodoId, setPeriodoId] = useState("");
   const [inicio, setInicio] = useState("");
   const [diasTexto, setDiasTexto] = useState("");
@@ -71,8 +92,23 @@ export default function DpMeuFerias() {
   const [observacao, setObservacao] = useState("");
 
   const comSaldo = useMemo(() => periodos.filter((p) => p.dias_saldo > 0), [periodos]);
+  const pedidosPendentes = useMemo(
+    () => pedidos.filter((p) => p.status === "pendente"),
+    [pedidos],
+  );
+  const pedidosRespondidos = useMemo(
+    () => pedidos.filter((p) => p.status !== "pendente").slice(0, 3),
+    [pedidos],
+  );
+
+  // Na remarcação os dias das férias atuais voltam para o saldo disponível:
+  // eles só saem de verdade se o gestor aprovar a troca.
+  const periodoBase: MinhaFeriasPeriodo | null =
+    periodos.find((p) => p.periodo_id === periodoId) ?? null;
   const periodoSel: MinhaFeriasPeriodo | null =
-    comSaldo.find((p) => p.periodo_id === periodoId) ?? null;
+    periodoBase && modo === "remarcar"
+      ? { ...periodoBase, dias_saldo: periodoBase.dias_saldo + diasDoAlvo }
+      : periodoBase;
 
   const abono = Number(abonoTexto) || 0;
   const dias = Number(diasTexto) || 0;
@@ -96,15 +132,15 @@ export default function DpMeuFerias() {
   }, [periodoSel, dias, abono]);
   const fracionamentoInvalido = !!fracionamento && !fracionamento.ok;
 
-  // Ao abrir o pedido (ou trocar de período), já sugere data e dias de descanso.
+  // Ao abrir um pedido novo (ou trocar de período), já sugere data e dias.
   useEffect(() => {
-    if (!aberto || !periodoSel) return;
+    if (!aberto || !periodoSel || modo !== "novo") return;
     setInicio(
       inicioSugeridoPedido(periodoSel, hojeIsoLocal(), periodoSel.aviso_antecedencia_dias),
     );
     setAbonoTexto("");
     setDiasTexto(String(diasSugeridos(periodoSel.dias_saldo, 0)));
-  }, [aberto, periodoSel?.periodo_id]);
+  }, [aberto, modo, periodoSel?.periodo_id]);
 
   const alterarAbono = (valor: string) => {
     setAbonoTexto(valor);
@@ -114,6 +150,9 @@ export default function DpMeuFerias() {
   };
 
   const abrir = () => {
+    setModo("novo");
+    setAlvoId("");
+    setDiasDoAlvo(0);
     setPeriodoId(comSaldo[0]?.periodo_id ?? "");
     setInicio("");
     setDiasTexto("");
@@ -122,6 +161,74 @@ export default function DpMeuFerias() {
     setObservacao("");
     setAberto(true);
   };
+
+  /** Ajustar o próprio pedido enquanto o gestor ainda não respondeu. */
+  const abrirEdicao = (pedido: (typeof pedidos)[number]) => {
+    setModo("editar");
+    setAlvoId(pedido.solicitacao_id);
+    setDiasDoAlvo(0);
+    setPeriodoId(pedido.periodo_id);
+    setInicio(pedido.data_inicio);
+    setDiasTexto(String(pedido.dias));
+    setAbonoTexto(pedido.dias_abono ? String(pedido.dias_abono) : "");
+    setAdiantar13(pedido.adiantar_13);
+    setObservacao(pedido.observacao ?? "");
+    setAberto(true);
+  };
+
+  /** Pedir novas datas para férias já aprovadas: as atuais seguem valendo. */
+  const abrirRemarcacao = (
+    gozo: { id: string; data_inicio: string; data_fim: string; dias: number; dias_abono: number },
+    periodo: MinhaFeriasPeriodo,
+  ) => {
+    setModo("remarcar");
+    setAlvoId(gozo.id);
+    setDiasDoAlvo(gozo.dias + gozo.dias_abono);
+    setPeriodoId(periodo.periodo_id);
+    setInicio("");
+    setDiasTexto(String(gozo.dias));
+    setAbonoTexto(gozo.dias_abono ? String(gozo.dias_abono) : "");
+    setAdiantar13(false);
+    setObservacao("");
+    setAberto(true);
+  };
+
+  const enviando = solicitar.isPending || editarPedido.isPending || pedirRemarcacao.isPending;
+
+  const enviar = () => {
+    const fechar = { onSuccess: () => setAberto(false) };
+    if (modo === "editar") {
+      return editarPedido.mutate(
+        {
+          solicitacaoId: alvoId,
+          dataInicio: inicio,
+          dataFim: fim,
+          diasAbono: abono,
+          adiantar13,
+          observacao,
+        },
+        fechar,
+      );
+    }
+    if (modo === "remarcar") {
+      return pedirRemarcacao.mutate(
+        { gozoId: alvoId, dataInicio: inicio, dataFim: fim, motivo: observacao },
+        fechar,
+      );
+    }
+    return solicitar.mutate(
+      {
+        periodoId,
+        dataInicio: inicio,
+        dataFim: fim,
+        diasAbono: abono,
+        adiantar13: adiantar13 && !jaAdiantou13,
+        observacao,
+      },
+      fechar,
+    );
+  };
+
 
   return (
     <DpPage>
@@ -137,6 +244,64 @@ export default function DpMeuFerias() {
           </Button>
         }
       />
+
+      {(pedidosPendentes.length > 0 || pedidosRespondidos.length > 0) && (
+        <DpContentCard contentClassName="space-y-3 p-4">
+          <p className="font-semibold">Meus pedidos de férias</p>
+          {pedidosPendentes.map((pd) => (
+            <div
+              key={pd.solicitacao_id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted/40 p-3 text-sm"
+            >
+              <div>
+                <p>
+                  {fmt(pd.data_inicio)} a {fmt(pd.data_fim)} · {pd.dias} dias
+                  {pd.dias_abono > 0 && ` + ${pd.dias_abono} de abono`}
+                </p>
+                {pd.observacao && (
+                  <p className="text-xs text-muted-foreground">{pd.observacao}</p>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className={PEDIDO_STATUS_TONE.pendente}>
+                  {PEDIDO_STATUS_LABEL.pendente}
+                </Badge>
+                <Button size="sm" variant="outline" onClick={() => abrirEdicao(pd)}>
+                  <Pencil className="mr-1 size-3.5" /> Editar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={cancelarPedido.isPending}
+                  onClick={() => cancelarPedido.mutate(pd.solicitacao_id)}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          ))}
+          {pedidosRespondidos.map((pd) => (
+            <div
+              key={pd.solicitacao_id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-3 text-sm"
+            >
+              <div>
+                <p>
+                  {fmt(pd.data_inicio)} a {fmt(pd.data_fim)} · {pd.dias} dias
+                </p>
+                {pd.resposta_admin && (
+                  <p className="text-xs text-muted-foreground">{pd.resposta_admin}</p>
+                )}
+              </div>
+              <Badge className={PEDIDO_STATUS_TONE[pd.status] ?? "bg-muted text-muted-foreground"}>
+                {PEDIDO_STATUS_LABEL[pd.status] ?? pd.status}
+              </Badge>
+            </div>
+          ))}
+        </DpContentCard>
+      )}
+
+
 
       {isError ? (
         <DpContentCard contentClassName="p-4"><DpErrorState onRetry={refetch} /></DpContentCard>
@@ -197,7 +362,17 @@ export default function DpMeuFerias() {
                               </Button>
                             )
                           )}
+                          {(g.status === "planejado" || g.status === "aprovado") && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => abrirRemarcacao(g, p)}
+                            >
+                              <CalendarClock className="mr-1 size-3.5" /> Pedir remarcação
+                            </Button>
+                          )}
                         </span>
+
                       </div>
 
                       {g.aviso_em && (
@@ -235,26 +410,43 @@ export default function DpMeuFerias() {
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent className="max-w-lg max-h-[90svh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
-            <DialogTitle>Pedir férias</DialogTitle>
+            <DialogTitle>
+              {modo === "editar"
+                ? "Editar pedido de férias"
+                : modo === "remarcar"
+                  ? "Pedir remarcação das férias"
+                  : "Pedir férias"}
+            </DialogTitle>
             <DialogDescription>
-              Seu pedido vai para a aprovação do gestor antes de virar férias programadas.
+              {modo === "remarcar"
+                ? "As férias atuais continuam valendo até o gestor aprovar as novas datas."
+                : "Seu pedido vai para a aprovação do gestor antes de virar férias programadas."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Período</Label>
-              <Select value={periodoId} onValueChange={setPeriodoId}>
-                <SelectTrigger><SelectValue placeholder="Selecione o período" /></SelectTrigger>
-                <SelectContent>
-                  {comSaldo.map((p) => (
-                    <SelectItem key={p.periodo_id} value={p.periodo_id}>
-                      {fmt(p.inicio_aquisitivo)} a {fmt(p.fim_aquisitivo)} · saldo {p.dias_saldo} dias
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {modo === "novo" ? (
+                <Select value={periodoId} onValueChange={setPeriodoId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o período" /></SelectTrigger>
+                  <SelectContent>
+                    {comSaldo.map((p) => (
+                      <SelectItem key={p.periodo_id} value={p.periodo_id}>
+                        {fmt(p.inicio_aquisitivo)} a {fmt(p.fim_aquisitivo)} · saldo {p.dias_saldo} dias
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="rounded-xl bg-muted/40 p-3 text-sm">
+                  {periodoSel
+                    ? `${fmt(periodoSel.inicio_aquisitivo)} a ${fmt(periodoSel.fim_aquisitivo)}`
+                    : "—"}
+                </p>
+              )}
             </div>
+
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-2">
@@ -373,10 +565,10 @@ export default function DpMeuFerias() {
           </div>
 
           <DpFormFooter className="-mx-6 -mb-6 mt-2">
-            <Button variant="outline" onClick={() => setAberto(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setAberto(false)}>Fechar</Button>
             <Button
               disabled={
-                solicitar.isPending ||
+                enviando ||
                 excede ||
                 abonoAcimaDoLegal ||
                 inicioAntesDoPermitido ||
@@ -385,23 +577,18 @@ export default function DpMeuFerias() {
                 !inicio ||
                 !fim
               }
-              onClick={() =>
-                solicitar.mutate(
-                  {
-                    periodoId,
-                    dataInicio: inicio,
-                    dataFim: fim,
-                    diasAbono: abono,
-                    adiantar13: adiantar13 && !jaAdiantou13,
-                    observacao,
-                  },
-                  { onSuccess: () => setAberto(false) },
-                )
-              }
+              onClick={enviar}
             >
-              {solicitar.isPending ? "Enviando…" : "Enviar pedido"}
+              {enviando
+                ? "Enviando…"
+                : modo === "editar"
+                  ? "Salvar pedido"
+                  : modo === "remarcar"
+                    ? "Pedir remarcação"
+                    : "Enviar pedido"}
             </Button>
           </DpFormFooter>
+
         </DialogContent>
       </Dialog>
     </DpPage>

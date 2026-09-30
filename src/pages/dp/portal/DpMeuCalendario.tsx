@@ -407,7 +407,21 @@ export default function DpMeuCalendario() {
         (meRef.data as { domingos_folga_mes?: number | null } | undefined)?.domingos_folga_mes ??
         null,
     });
-    if (previstas <= 0) return "Neste mês a regra da sua loja não prevê folga em domingo.";
+    // Férias no mês: a folga continua valendo, mas só pode cair nos dias
+    // trabalhados — a pessoa precisa saber disso antes de escolher.
+    const temFerias = folgas.some(
+      (f) =>
+        f.colaborador_id === meRef.data?.id &&
+        f.status !== "cancelada" &&
+        (f.tipo === "ferias" || f.tipo === "licenca") &&
+        parseYMD(f.data) >= range.startDate &&
+        parseYMD(f.data) <= range.endDate,
+    );
+    const avisoFerias = temFerias
+      ? " Neste mês você tem férias: sua folga fica restrita aos dias em que você trabalha, com prioridade para os dias mais próximos da saída e do retorno."
+      : "";
+    if (previstas <= 0)
+      return "Neste mês a regra da sua loja não prevê folga em domingo." + avisoFerias;
     const minhas = folgas.filter(
       (f) =>
         f.colaborador_id === meRef.data?.id &&
@@ -420,14 +434,18 @@ export default function DpMeuCalendario() {
       folga_fixa_semana: meRef.data?.folga_fixa_semana ?? null,
       folgas_fixas_dow: meusDiasFixosQuery.data ?? [],
     }).includes(0);
-    if (fixaNoDomingo) return "Domingo é seu dia de folga fixa.";
+    if (fixaNoDomingo) return "Domingo é seu dia de folga fixa." + avisoFerias;
     const plural = previstas === 1 ? "folga em domingo" : "folgas em domingo";
-    if (minhas >= previstas) return `Sua folga de domingo deste mês já está marcada.`;
-    return `Você tem ${previstas} ${plural} neste mês e ${minhas} já marcada(s). ${
-      folgaCltAutomatica
-        ? "O domingo é definido pelo setor de pessoal."
-        : "Toque em um domingo livre para marcar."
-    }`;
+    if (minhas >= previstas)
+      return `Sua folga de domingo deste mês já está marcada.` + avisoFerias;
+    return (
+      `Você tem ${previstas} ${plural} neste mês e ${minhas} já marcada(s). ${
+        folgaCltAutomatica
+          ? "O domingo é definido pelo setor de pessoal."
+          : "Toque em um domingo livre para marcar."
+      }` + avisoFerias
+    );
+
   }, [
     folgas,
     folgaCltAutomatica,
