@@ -410,26 +410,43 @@ export default function DpMeuFerias() {
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent className="max-w-lg max-h-[90svh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
-            <DialogTitle>Pedir férias</DialogTitle>
+            <DialogTitle>
+              {modo === "editar"
+                ? "Editar pedido de férias"
+                : modo === "remarcar"
+                  ? "Pedir remarcação das férias"
+                  : "Pedir férias"}
+            </DialogTitle>
             <DialogDescription>
-              Seu pedido vai para a aprovação do gestor antes de virar férias programadas.
+              {modo === "remarcar"
+                ? "As férias atuais continuam valendo até o gestor aprovar as novas datas."
+                : "Seu pedido vai para a aprovação do gestor antes de virar férias programadas."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Período</Label>
-              <Select value={periodoId} onValueChange={setPeriodoId}>
-                <SelectTrigger><SelectValue placeholder="Selecione o período" /></SelectTrigger>
-                <SelectContent>
-                  {comSaldo.map((p) => (
-                    <SelectItem key={p.periodo_id} value={p.periodo_id}>
-                      {fmt(p.inicio_aquisitivo)} a {fmt(p.fim_aquisitivo)} · saldo {p.dias_saldo} dias
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {modo === "novo" ? (
+                <Select value={periodoId} onValueChange={setPeriodoId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o período" /></SelectTrigger>
+                  <SelectContent>
+                    {comSaldo.map((p) => (
+                      <SelectItem key={p.periodo_id} value={p.periodo_id}>
+                        {fmt(p.inicio_aquisitivo)} a {fmt(p.fim_aquisitivo)} · saldo {p.dias_saldo} dias
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="rounded-xl bg-muted/40 p-3 text-sm">
+                  {periodoSel
+                    ? `${fmt(periodoSel.inicio_aquisitivo)} a ${fmt(periodoSel.fim_aquisitivo)}`
+                    : "—"}
+                </p>
+              )}
             </div>
+
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-2">
