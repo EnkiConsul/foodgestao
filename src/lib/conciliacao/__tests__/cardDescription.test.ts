@@ -28,14 +28,7 @@ describe("cardDescription", () => {
     expect(cardLast4FromRaw(null)).toBeNull();
   });
 
-  it("mantém o texto do banco sem reescrever", () => {
-    expect(
-      formatProviderDescription("CREDITO_A_VISTA", {
-        category: "Digital services",
-        creditCardMetadata: { cardNumber: "0038" },
-      }),
-    ).toBe("CREDITO_A_VISTA");
-
+  it("mantém o texto do banco quando há estabelecimento", () => {
     expect(formatProviderDescription("PONTO DA CARNE           GOIANIA      BR", {})).toBe(
       "PONTO DA CARNE GOIANIA BR",
     );
@@ -55,18 +48,57 @@ describe("cardDescription", () => {
     ).toBe("PONTO DA CARNE GOIANIA BR");
   });
 
-  it("rótulo auxiliar traz operação, ramo e final do cartão", () => {
+  it("traduz o código genérico usando o detalhe da operação", () => {
+    expect(
+      formatProviderDescription("CREDITO_A_VISTA", {
+        operationType: "OUTROS",
+        operationTypeAdditionalInfo: "ENCARG FINANC FATURADOS",
+      }),
+    ).toBe("Encargos financeiros faturados");
+
+    expect(
+      formatProviderDescription("CREDITO_A_VISTA", {
+        operationType: "OUTROS",
+        operationTypeAdditionalInfo: "IOF Rotativo",
+      }),
+    ).toBe("IOF rotativo");
+
+    expect(
+      formatProviderDescription("CREDITO_A_VISTA", {
+        operationType: "OUTROS",
+        operationTypeAdditionalInfo: "Despesa com Cobranca",
+      }),
+    ).toBe("Despesa com cobrança");
+
+    expect(
+      formatProviderDescription("CREDITO_A_VISTA", {
+        operationType: "PAGAMENTO",
+        operationTypeAdditionalInfo: "NA",
+      }),
+    ).toBe("Pagamento da fatura");
+
+    // Sem detalhe: cai na tradução do próprio código.
+    expect(
+      formatProviderDescription("CREDITO_A_VISTA", {
+        operationType: "OPERACOES_CREDITO_CONTRATADAS_CARTAO",
+        operationTypeAdditionalInfo: "NA",
+        category: "Digital services",
+        creditCardMetadata: { cardNumber: "0038" },
+      }),
+    ).toBe("Compra no crédito à vista");
+  });
+
+  it("rótulo auxiliar traz ramo e final do cartão sem repetir a descrição", () => {
     expect(
       cardHintLabel("CREDITO_A_VISTA", {
         category: "Digital services",
         creditCardMetadata: { cardNumber: "0038" },
       }),
-    ).toBe("Compra no crédito à vista • Serviços digitais • cartão ••••0038");
+    ).toBe("Serviços digitais • cartão ••••0038");
 
     // Compra: o rótulo padronizado traz a cidade do estabelecimento.
     expect(cardHintLabel("PONTO DA CARNE GOIANIA BR", {})).toBe("GOIANIA");
     expect(cardHintLabel("Juros de atraso", {})).toBe("Encargo do cartão");
-    expect(cardHintLabel("Pagamento recebido", {})).toBe("Pagamento da fatura");
     expect(cardHintLabel("Ipremium Store 2/3", {})).toBe("Parcela 2/3");
 
   });
