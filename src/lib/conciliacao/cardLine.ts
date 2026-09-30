@@ -42,7 +42,7 @@ const BILL_MOVEMENT_RE =
 
 /** Encargos e tarifas do cartão: também não têm fornecedor. */
 const CHARGE_RE =
-  /(\bjuros?\b|\bmulta\b|\bmora\b|\biof\b|\btarifa\b|\banuidade\b|\bencargos?\b|\bsaldo\s+em\s+atraso\b|\brotativo\b|\bparcelamento\s+(?:da\s+)?fatura\b|\btaxa[s]?\b|\bseguro\b|\bavalia[cç][aã]o\s+emergencial\b)/i;
+  /(\bjuros?\b|\bmulta\b|\bmora\b|\biof\b|\btarifa\b|\banuidade\b|\bencarg\w*\b|\bsaldo\s+em\s+atraso\b|\brotativo\b|\bparcelamento\s+(?:da\s+)?fatura\b|\btaxa[s]?\b|\bseguro\b|\bavalia[cç][aã]o\s+emergencial\b|\bdespesa\s+com\s+cobran[cç]a\b)/i;
 
 /** Prefixos de adquirente/subadquirente colados ao nome da loja. */
 const AGGREGATOR_RE = /^\s*[A-Za-z0-9.]{2,12}\s*\*+\s*/;
