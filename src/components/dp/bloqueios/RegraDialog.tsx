@@ -39,6 +39,23 @@ type Props = {
 export function RegraDialog({
   open, isEditing, form, unidades, saving, onChange, onCancel, onSubmit,
 }: Props) {
+  const [tentouSalvar, setTentouSalvar] = useState(false);
+  const erros = tentouSalvar ? validarForm(form) : new Set<CampoErro>();
+
+  const handleSubmit = () => {
+    const e = validarForm(form);
+    if (e.size > 0) {
+      setTentouSalvar(true);
+      return;
+    }
+    onSubmit();
+  };
+
+  const handleCancel = () => {
+    setTentouSalvar(false);
+    onCancel();
+  };
+
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onCancel(); }}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
