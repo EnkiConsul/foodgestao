@@ -64,8 +64,8 @@ export function MinhasPendenciasCard() {
               <p.icon className="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-medium truncate">{p.titulo}</p>
+              <div className="flex items-start justify-between gap-2 flex-wrap">
+                <p className="text-sm font-medium min-w-0 flex-1 break-words">{p.titulo}</p>
                 {p.vencimento && (
                   isGrave(p) ? (
                     <Badge className="bg-destructive text-destructive-foreground text-[10px] shrink-0">
@@ -86,7 +86,7 @@ export function MinhasPendenciasCard() {
                   )
                 )}
               </div>
-              <p className="text-xs text-muted-foreground line-clamp-2">{p.subtitulo}</p>
+              <p className="text-xs text-muted-foreground line-clamp-2 break-words">{p.subtitulo}</p>
               <Button asChild size="sm" className="mt-2 h-9 sm:h-7 text-xs w-full sm:w-auto">
                 <Link to={p.url}>
                   Resolver <ArrowRight className="h-3 w-3 ml-1" />
