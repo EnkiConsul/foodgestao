@@ -149,7 +149,12 @@ export function RegraDialog({
                 {form.meses.length === MESES.length ? "Desmarcar todos" : "Marcar todos"}
               </Button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
+            <div
+              className={cn(
+                "grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto border rounded-lg p-3",
+                erros.has("meses") ? "border-destructive" : "border-border"
+              )}
+            >
               {MESES.map((m) => (
                 <button
                   key={m} type="button"
@@ -170,6 +175,11 @@ export function RegraDialog({
                 </button>
               ))}
             </div>
+            {erros.has("meses") && (
+              <p className="text-xs text-destructive">
+                Selecione ao menos um mês — ou toque em "Marcar todos" para vale o ano inteiro.
+              </p>
+            )}
           </div>
 
           {form.tipo === "fixa_anual" && (
