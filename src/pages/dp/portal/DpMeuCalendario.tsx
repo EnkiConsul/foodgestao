@@ -1165,7 +1165,8 @@ export default function DpMeuCalendario() {
 
       {/* Dialog do dia */}
       <Dialog open={!!selectedDay} onOpenChange={(o) => !o && setSelectedDay(null)}>
-        <DialogContent className="max-w-md max-h-[90svh] overflow-y-auto">
+        <DialogContent className="max-w-md max-h-[90svh] overflow-y-auto overflow-x-hidden [&_button]:whitespace-normal [&_button]:h-auto [&_button]:min-h-9 [&_button]:py-2 [&_button]:break-words">
+
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-3">
               <CalendarDays className="size-6 text-primary" />
@@ -1176,9 +1177,9 @@ export default function DpMeuCalendario() {
 
           {selectedDay && dayInfo && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-2xl border bg-muted/50 p-5 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border bg-muted/50 p-4 text-sm min-w-0">
                 <span className="font-bold">Status</span>
-                <Badge variant="outline" className={cn("text-xs", STATUS_BADGE[selectedDay.status])}>
+                <Badge variant="outline" className={cn("text-xs whitespace-normal text-right break-words max-w-full", STATUS_BADGE[selectedDay.status])}>
                   {STATUS_LABEL[selectedDay.status]}
                 </Badge>
               </div>
@@ -1195,9 +1196,9 @@ export default function DpMeuCalendario() {
                     return (
                       <div
                         key={occ.key}
-                        className="flex items-center justify-between rounded-xl border bg-background p-3 text-sm"
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-background p-3 text-sm min-w-0"
                       >
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1 break-words">
                           <UserIcon className="h-4 w-4 text-muted-foreground" />
                           <span className="font-medium">{occ.colaboradorNome}</span>
                           {isMe && (
