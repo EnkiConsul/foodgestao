@@ -231,6 +231,18 @@ export function PreadmissoesPanel({
                           {p.convite_expira_em ? new Date(p.convite_expira_em).toLocaleDateString("pt-BR") : "—"}
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          {podeProrrogar(p.status, p.colaborador_id) && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              title="Prorrogar validade do link atual"
+                              aria-label={`Prorrogar a validade do link de ${p.candidato_nome}`}
+                              disabled={prorrogar.isPending}
+                              onClick={() => prorrogarValidade(p.id)}
+                            >
+                              <CalendarClock className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
