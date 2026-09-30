@@ -126,7 +126,11 @@ export function RegraDialog({
                 onChange={(e) =>
                   onChange((p) => ({ ...p, ano_referencia: parseInt(e.target.value) || null }))
                 }
+                className={cn(erros.has("ano") && "border-destructive")}
               />
+              {erros.has("ano") && (
+                <p className="text-xs text-destructive">Informe o ano em que a regra se aplica.</p>
+              )}
             </div>
           )}
 
