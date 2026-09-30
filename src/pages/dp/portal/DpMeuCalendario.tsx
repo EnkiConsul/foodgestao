@@ -952,6 +952,26 @@ export default function DpMeuCalendario() {
 
   const diaRemarcacaoEscolhido = diasRemarcacao.find((d) => d.iso === remarcarNova) ?? null;
 
+  /**
+   * Colegas que folgam no dia desejado. Antes de pedir a exceção ao gestor,
+   * o colaborador pode propor a troca direta com um deles.
+   */
+  const colegasNoDiaDesejado = useMemo(() => {
+    if (!remarcarNova) return [] as { colaboradorId: string; nome: string }[];
+    return (occupantsByDate.get(remarcarNova) ?? [])
+      .filter((o) => o.colaboradorId !== meRef.data?.id)
+      .map((o) => ({ colaboradorId: o.colaboradorId as string, nome: (o.nome as string) ?? "Colega" }));
+  }, [remarcarNova, occupantsByDate, meRef.data?.id]);
+
+  /** A loja permite troca direta entre colegas para a folga que está sendo cedida? */
+  const trocaDiretaLiberada = useMemo(() => {
+    if (!remarcarOpen) return false;
+    const tipo = parseYMD(remarcarOpen).getDay() === 0 ? "dominical" : "semanal";
+    return podeTrocarFolga(regrasConfig, tipo).permitida;
+  }, [remarcarOpen, regrasConfig]);
+
+
+
   const remarcarFolga = useMutation({
     mutationFn: async () => {
       if (!remarcarOpen) throw new Error("Sem contexto");
