@@ -958,9 +958,11 @@ export default function DpMeuCalendario() {
    */
   const colegasNoDiaDesejado = useMemo(() => {
     if (!remarcarNova) return [] as { colaboradorId: string; nome: string }[];
+    const vistos = new Set<string>();
     return (occupantsByDate.get(remarcarNova) ?? [])
-      .filter((o) => o.colaboradorId !== meRef.data?.id)
-      .map((o) => ({ colaboradorId: o.colaboradorId as string, nome: (o.nome as string) ?? "Colega" }));
+      .filter((o) => o.colaboradorId !== meRef.data?.id && o.type !== "pending")
+      .filter((o) => (vistos.has(o.colaboradorId) ? false : (vistos.add(o.colaboradorId), true)))
+      .map((o) => ({ colaboradorId: o.colaboradorId, nome: o.colaboradorNome || "Colega" }));
   }, [remarcarNova, occupantsByDate, meRef.data?.id]);
 
   /** A loja permite troca direta entre colegas para a folga que está sendo cedida? */
