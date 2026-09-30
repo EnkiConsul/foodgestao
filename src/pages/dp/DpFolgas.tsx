@@ -160,6 +160,24 @@ export default function DpFolgas() {
   const [unidadeFilter, setUnidadeFilter] = useState<string>(initialPrefs.unidade ?? "todas");
   const [colabFilter, setColabFilter] = useState<string>(initialPrefs.colaborador ?? "todos");
   const [tipoFilter, setTipoFilter] = useState<Tipo | "todos">(initialPrefs.tipo ?? "todos");
+  /** Cards sem número ficam ocultos até o gestor pedir para ver; a escolha é lembrada. */
+  const [mostrarZerados, setMostrarZerados] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("dp_folgas_cards_zerados") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const alternarZerados = () => {
+    setMostrarZerados((v) => {
+      try {
+        localStorage.setItem("dp_folgas_cards_zerados", v ? "0" : "1");
+      } catch {
+        /* ignore */
+      }
+      return !v;
+    });
+  };
   /** Indisponibilidades de convocáveis: contagem e nomes, já na unidade filtrada. */
   const { reservasByDay, pessoasByDay } = useDpFolgaReserva(
     cursor,
