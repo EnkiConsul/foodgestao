@@ -62,6 +62,7 @@ import {
   type CardRoutingMaps,
 } from "@/lib/conciliacao/cardRouting";
 import { cardHintLabel, formatProviderDescription, hasMerchantName } from "@/lib/conciliacao/cardDescription";
+import { classifyCardLine } from "@/lib/conciliacao/cardLine";
 import {
   criarResultado,
   idsRemanescentes,
