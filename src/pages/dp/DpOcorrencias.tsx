@@ -512,7 +512,12 @@ export default function DpOcorrencias() {
         onSubmit={({ decisao, observacao }) =>
           tratativa &&
           acoes.tratar.mutate(
-            { id: tratativa.id, decisao, observacao },
+            {
+              id: tratativa.id,
+              decisao,
+              observacao,
+              marcarAnalisada: tratativa.analise_status === "pendente",
+            },
             { onSuccess: () => setTratativa(null) },
           )
         }
