@@ -120,7 +120,7 @@ export default function DpMeuHistorico() {
           disabled={filtrados.length === 0}
           onClick={() =>
             baixarCsv(
-              `meu-historico-${new Date().toISOString().slice(0, 10)}`,
+              `meu-historico-${hojeIsoLocal()}`,
               ["Data", "Tipo", "Item", "Situação"],
               filtrados.map((e) => [
                 new Date(e.data).toLocaleString("pt-BR"),
