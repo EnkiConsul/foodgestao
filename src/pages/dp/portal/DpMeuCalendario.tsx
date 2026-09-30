@@ -963,11 +963,14 @@ export default function DpMeuCalendario() {
       });
       if (error) {
         const raw = error.message ?? "";
+        const msg = mensagemErroRemarcacao(raw);
         if (pedirAoDp(raw)) {
-          setRemarcarAviso(mensagemErroRemarcacao(raw));
-          throw new Error(mensagemErroRemarcacao(raw));
+          setRemarcarAviso(msg);
+          const aviso = new Error(msg);
+          (aviso as any).avisoTratado = true;
+          throw aviso;
         }
-        throw new Error(mensagemErroRemarcacao(raw));
+        throw new Error(msg);
       }
     },
     onSuccess: () => {
@@ -979,12 +982,17 @@ export default function DpMeuCalendario() {
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
     },
-    onError: (e: any) =>
+    onError: (e: any) => {
+      // Dia lotado/bloqueado não é erro: o aviso no diálogo já orienta a troca
+      // com um colega ou o pedido ao gestor.
+      if (e?.avisoTratado) return;
       notifyError(e, {
         surface: "Meu calendário",
         action: "mudar o dia da folga",
         fallback: "Não foi possível mudar o dia da folga",
-      }),
+      });
+    },
+
   });
 
   const pedirRemarcacao = useMutation({
