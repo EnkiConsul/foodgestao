@@ -725,14 +725,53 @@ export default function DpFolgas() {
   const hasFilters =
     unidadeFilter !== "todas" || colabFilter !== "todos" || tipoFilter !== "todos";
 
-  const statCards = [
-    { label: "FOLGAS MARCADAS", value: stats.marcadas, icon: CheckCircle2, tone: "text-emerald-600" },
-    { label: "RESERVAS", value: stats.reservas, icon: Users, tone: "text-amber-600" },
-    { label: "VAGAS RESTANTES", value: stats.restantes, icon: Users, tone: "text-blue-600" },
-    { label: "DIAS LOTADOS", value: stats.lotados, icon: AlertTriangle, tone: "text-red-600" },
-    { label: "CAPACIDADE TOTAL", value: stats.capacidade, icon: CalendarIcon, tone: "text-primary" },
+  const statCards: Array<{ key: StatKey; label: string; value: number; icon: typeof Users; tone: string }> = [
+    { key: "marcadas", label: "FOLGAS MARCADAS", value: stats.marcadas, icon: CheckCircle2, tone: "text-emerald-600" },
+    { key: "reservas", label: "RESERVAS", value: stats.reservas, icon: Users, tone: "text-amber-600" },
+    { key: "restantes", label: "VAGAS RESTANTES", value: stats.restantes, icon: Users, tone: "text-blue-600" },
+    { key: "lotados", label: "DIAS LOTADOS", value: stats.lotados, icon: AlertTriangle, tone: "text-red-600" },
+    { key: "capacidade", label: "CAPACIDADE TOTAL", value: stats.capacidade, icon: CalendarIcon, tone: "text-primary" },
   ];
   const statsZerados = statCards.filter((s) => s.value === 0).length;
+
+  /** Detalhamento por dia do indicador aberto, respeitando mês e filtros da tela. */
+  const statDetalheDias = useMemo(() => {
+    if (!statDetalhe) return [];
+    const out: Array<{
+      iso: string;
+      label: string;
+      cap: number | null;
+      aprov: number;
+      reserva: number;
+      nomes: string[];
+      reservados: string[];
+    }> = [];
+    for (const d of eachDayOfInterval({ start: monthStart, end: monthEnd })) {
+      const key = format(d, "yyyy-MM-dd");
+      const evs = eventsByDay.get(key) ?? [];
+      const aprovEvs = evs.filter((e) => e.status === "aprovada" && e.tipo === "folga");
+      const reserva = reservasByDay.get(key) ?? 0;
+      const reservados = (pessoasByDay.get(key) ?? []).map((p) => p.nome);
+      const cap = capacityByDay.get(key) ?? null;
+      const item = {
+        iso: key,
+        label: format(d, "dd/MM — EEEE", { locale: ptBR }),
+        cap,
+        aprov: aprovEvs.length,
+        reserva,
+        nomes: aprovEvs.map((e) => (e as any).dp_colaboradores?.nome ?? "—"),
+        reservados,
+      };
+      if (statDetalhe === "marcadas" && item.aprov === 0) continue;
+      if (statDetalhe === "reservas" && reserva === 0) continue;
+      if (statDetalhe === "lotados" && !(cap != null && cap > 0 && item.aprov + reserva >= cap)) continue;
+      if (statDetalhe === "restantes" && !(cap != null && cap - item.aprov - reserva > 0)) continue;
+      if (statDetalhe === "capacidade" && cap == null) continue;
+      out.push(item);
+    }
+    return out;
+  }, [statDetalhe, monthStart, monthEnd, eventsByDay, reservasByDay, pessoasByDay, capacityByDay]);
+
 
   return (
     <DpPage>
