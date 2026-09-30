@@ -188,8 +188,9 @@ Plano aprovado: `.lovable/plan/remover-as-telas-em-desenvolvimento-sesmt-ponto-f
 - [ ] Publicar o frontend (aguarda decisão do proprietário).
 
 ## Portal da Hanna — Férias e folga no mês de férias (2026-09-29)
-- [ ] Liberar assinatura do adiantamento (permissão de execução de dp_documento_aceitar)
-- [ ] Antecedência de pedido de férias para 40 dias
-- [ ] Ver, editar e cancelar o pedido de férias na tela Minhas Férias; remarcação após aprovação
-- [ ] Prioridade de folga dominical no mês de férias, ignorando data bloqueada quando necessário
-- [ ] Aviso ao colaborador de que a folga fica restrita aos dias compatíveis por causa das férias
+- [x] Liberar assinatura do adiantamento (permissão de execução de dp_documento_aceitar)
+- [x] Antecedência de pedido de férias para 40 dias
+- [x] Ver, editar e cancelar o pedido de férias na tela Minhas Férias; remarcação após aprovação
+- [x] Prioridade de folga dominical no mês de férias, ignorando data bloqueada quando necessário
+- [x] Aviso ao colaborador de que a folga fica restrita aos dias compatíveis por causa das férias
+
