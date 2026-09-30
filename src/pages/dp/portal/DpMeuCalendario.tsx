@@ -115,6 +115,29 @@ const STATUS_BADGE: Record<DateStatusKind, string> = {
   weekday: "bg-muted text-muted-foreground border-transparent",
 };
 
+/** Nome do dia da semana em português, para deixar claro qual folga está em jogo. */
+const DIA_SEMANA_BR = [
+  "domingo",
+  "segunda-feira",
+  "terça-feira",
+  "quarta-feira",
+  "quinta-feira",
+  "sexta-feira",
+  "sábado",
+];
+const diaSemanaBR = (iso: string) => DIA_SEMANA_BR[parseYMD(iso).getDay()];
+/** Ex.: "domingo, 25/10/2026" */
+const descreverDia = (iso: string) => `${diaSemanaBR(iso)}, ${formatBR(parseYMD(iso))}`;
+
+/** Motivo, em linguagem simples, de o dia escolhido depender do gestor. */
+const MOTIVO_STATUS: Partial<Record<DateStatusKind, string>> = {
+  taken: "Neste dia já foi atingido o número de pessoas que podem folgar",
+  blocked: "Este dia está bloqueado pelo setor de pessoal",
+  pending: "Este dia já tem uma solicitação em análise",
+  birthday: "Este dia está reservado para aniversariante",
+};
+
+
 export default function DpMeuCalendario() {
   const { user } = useAuth();
   const qc = useQueryClient();
