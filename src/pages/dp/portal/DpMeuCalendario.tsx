@@ -1426,8 +1426,8 @@ export default function DpMeuCalendario() {
               Solicitar exceção ao gestor
             </DialogTitle>
             <DialogDescription>
-              Peça ao gestor para folgar em {selectedDay && formatBR(parseYMD(selectedDay.iso))}. O pedido só vale
-              depois da aprovação.
+              Peça ao gestor para folgar em {selectedDay && descreverDia(selectedDay.iso)}. O pedido só vale depois da
+              aprovação.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -1466,11 +1466,17 @@ export default function DpMeuCalendario() {
                   <SelectContent>
                     {fixasParaExcecao.map((f) => (
                       <SelectItem key={f.id} value={f.data}>
-                        {formatBR(parseYMD(f.data))}
+                        {descreverDia(f.data)} — sua folga semanal
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {excecaoDiaTrabalho && selectedDay && (
+                  <p className="mt-2 rounded-xl border border-sky-200 bg-sky-500/10 px-3 py-2 text-xs font-medium text-sky-700">
+                    Você pede para trabalhar em {descreverDia(excecaoDiaTrabalho)} (sua folga semanal) e folgar em{" "}
+                    {descreverDia(selectedDay.iso)} no lugar dele.
+                  </p>
+                )}
               </div>
             )}
             <div>
