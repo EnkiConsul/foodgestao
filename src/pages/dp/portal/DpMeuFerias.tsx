@@ -245,6 +245,64 @@ export default function DpMeuFerias() {
         }
       />
 
+      {(pedidosPendentes.length > 0 || pedidosRespondidos.length > 0) && (
+        <DpContentCard contentClassName="space-y-3 p-4">
+          <p className="font-semibold">Meus pedidos de férias</p>
+          {pedidosPendentes.map((pd) => (
+            <div
+              key={pd.solicitacao_id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted/40 p-3 text-sm"
+            >
+              <div>
+                <p>
+                  {fmt(pd.data_inicio)} a {fmt(pd.data_fim)} · {pd.dias} dias
+                  {pd.dias_abono > 0 && ` + ${pd.dias_abono} de abono`}
+                </p>
+                {pd.observacao && (
+                  <p className="text-xs text-muted-foreground">{pd.observacao}</p>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className={PEDIDO_STATUS_TONE.pendente}>
+                  {PEDIDO_STATUS_LABEL.pendente}
+                </Badge>
+                <Button size="sm" variant="outline" onClick={() => abrirEdicao(pd)}>
+                  <Pencil className="mr-1 size-3.5" /> Editar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={cancelarPedido.isPending}
+                  onClick={() => cancelarPedido.mutate(pd.solicitacao_id)}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          ))}
+          {pedidosRespondidos.map((pd) => (
+            <div
+              key={pd.solicitacao_id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-3 text-sm"
+            >
+              <div>
+                <p>
+                  {fmt(pd.data_inicio)} a {fmt(pd.data_fim)} · {pd.dias} dias
+                </p>
+                {pd.resposta_admin && (
+                  <p className="text-xs text-muted-foreground">{pd.resposta_admin}</p>
+                )}
+              </div>
+              <Badge className={PEDIDO_STATUS_TONE[pd.status] ?? "bg-muted text-muted-foreground"}>
+                {PEDIDO_STATUS_LABEL[pd.status] ?? pd.status}
+              </Badge>
+            </div>
+          ))}
+        </DpContentCard>
+      )}
+
+
+
       {isError ? (
         <DpContentCard contentClassName="p-4"><DpErrorState onRetry={refetch} /></DpContentCard>
       ) : isLoading ? (
