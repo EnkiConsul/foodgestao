@@ -362,7 +362,17 @@ export default function DpMeuFerias() {
                               </Button>
                             )
                           )}
+                          {(g.status === "planejado" || g.status === "aprovado") && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => abrirRemarcacao(g, p)}
+                            >
+                              <CalendarClock className="mr-1 size-3.5" /> Pedir remarcação
+                            </Button>
+                          )}
                         </span>
+
                       </div>
 
                       {g.aviso_em && (
