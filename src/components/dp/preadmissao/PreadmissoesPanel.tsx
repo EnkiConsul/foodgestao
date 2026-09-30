@@ -155,23 +155,40 @@ export function PreadmissoesPanel({
               {/* Celular */}
               <div className="space-y-2 md:hidden">
                 {filtradas.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => setRevisando(p.id)}
-                    className="w-full text-left rounded-lg border p-3 active:bg-accent/50"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-sm">{p.candidato_nome}</span>
-                      <Badge variant="outline" className={TOM[p.status]}>
-                        {PREADMISSAO_STATUS_LABEL[p.status]}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {nomeCargo(p.cargo_previsto_id)} · {nomeUnidade(p.unidade_prevista_id)}{p.regime_previsto ? ` · ${REGIMES_ADMISSAO.find((r) => r.value === p.regime_previsto)?.label ?? p.regime_previsto}` : ""}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{p.whatsapp}</p>
-                  </button>
+                  <div key={p.id} className="rounded-lg border">
+                    <button
+                      type="button"
+                      onClick={() => setRevisando(p.id)}
+                      className="w-full text-left p-3 active:bg-accent/50"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-sm">{p.candidato_nome}</span>
+                        <Badge variant="outline" className={TOM[p.status]}>
+                          {PREADMISSAO_STATUS_LABEL[p.status]}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {nomeCargo(p.cargo_previsto_id)} · {nomeUnidade(p.unidade_prevista_id)}{p.regime_previsto ? ` · ${REGIMES_ADMISSAO.find((r) => r.value === p.regime_previsto)?.label ?? p.regime_previsto}` : ""}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{p.whatsapp}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Link vale até {p.convite_expira_em ? new Date(p.convite_expira_em).toLocaleDateString("pt-BR") : "—"}
+                      </p>
+                    </button>
+                    {podeProrrogar(p.status, p.colaborador_id) && (
+                      <div className="border-t px-3 py-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full"
+                          disabled={prorrogar.isPending}
+                          onClick={() => prorrogarValidade(p.id)}
+                        >
+                          <CalendarClock className="h-4 w-4 mr-2" /> Prorrogar Validade
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
 
