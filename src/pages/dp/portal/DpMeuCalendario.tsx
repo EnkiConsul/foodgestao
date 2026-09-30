@@ -1497,10 +1497,21 @@ export default function DpMeuCalendario() {
                   </p>
                 )}
                 {selectedDay.status === "blocked" && (
-                  <p className="text-xs text-muted-foreground">
-                    Data bloqueada administrativamente. Você pode pedir uma exceção abaixo.
-                  </p>
+                  <div className="space-y-1 rounded-xl border border-destructive/25 bg-destructive/10 p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-destructive">
+                      Dia bloqueado
+                    </p>
+                    {manualBlocked.get(selectedDay.iso)?.reason && (
+                      <p className="text-xs font-semibold text-destructive break-words">
+                        {manualBlocked.get(selectedDay.iso)!.reason}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Data bloqueada pelo setor de pessoal. Você pode pedir uma exceção abaixo.
+                    </p>
+                  </div>
                 )}
+
                 {selectedDay.status === "taken" && (
                   <p className="text-xs text-muted-foreground">Limite de folgas atingido neste dia.</p>
                 )}

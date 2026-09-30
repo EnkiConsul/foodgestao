@@ -148,7 +148,27 @@ function loadPrefs(companyId: string | null): SavedPrefs {
   }
 }
 
+/** Indicadores do topo do calendário, cada um com seu detalhamento por dia. */
+type StatKey = "marcadas" | "reservas" | "restantes" | "lotados" | "capacidade";
+
+const STAT_TITULO: Record<StatKey, string> = {
+  marcadas: "Folgas marcadas no mês",
+  reservas: "Reservas por indisponibilidade",
+  restantes: "Vagas restantes por dia",
+  lotados: "Dias lotados",
+  capacidade: "Capacidade cadastrada por dia",
+};
+
+const STAT_DESCRICAO: Record<StatKey, string> = {
+  marcadas: "Dias com folga aprovada e quem está de folga em cada um.",
+  reservas: "Dias em que um convocável informou indisponibilidade, com os nomes.",
+  restantes: "Dias que ainda têm vaga livre para marcar folga.",
+  lotados: "Dias que já atingiram o limite de pessoas em folga.",
+  capacidade: "Limite de folgas de cada dia do mês.",
+};
+
 export default function DpFolgas() {
+
   const embedded = useDpEmbedded();
   const { selectedCompanyId } = useCompanyContext();
   const { user } = useAuth();
@@ -178,8 +198,11 @@ export default function DpFolgas() {
       return !v;
     });
   };
+  /** Card de indicador aberto no detalhamento do mês. */
+  const [statDetalhe, setStatDetalhe] = useState<StatKey | null>(null);
   /** Indisponibilidades de convocáveis: contagem e nomes, já na unidade filtrada. */
   const { reservasByDay, pessoasByDay } = useDpFolgaReserva(
+
     cursor,
     unidadeFilter === "todas" ? null : unidadeFilter,
   );
@@ -702,14 +725,53 @@ export default function DpFolgas() {
   const hasFilters =
     unidadeFilter !== "todas" || colabFilter !== "todos" || tipoFilter !== "todos";
 
-  const statCards = [
-    { label: "FOLGAS MARCADAS", value: stats.marcadas, icon: CheckCircle2, tone: "text-emerald-600" },
-    { label: "RESERVAS", value: stats.reservas, icon: Users, tone: "text-amber-600" },
-    { label: "VAGAS RESTANTES", value: stats.restantes, icon: Users, tone: "text-blue-600" },
-    { label: "DIAS LOTADOS", value: stats.lotados, icon: AlertTriangle, tone: "text-red-600" },
-    { label: "CAPACIDADE TOTAL", value: stats.capacidade, icon: CalendarIcon, tone: "text-primary" },
+  const statCards: Array<{ key: StatKey; label: string; value: number; icon: typeof Users; tone: string }> = [
+    { key: "marcadas", label: "FOLGAS MARCADAS", value: stats.marcadas, icon: CheckCircle2, tone: "text-emerald-600" },
+    { key: "reservas", label: "RESERVAS", value: stats.reservas, icon: Users, tone: "text-amber-600" },
+    { key: "restantes", label: "VAGAS RESTANTES", value: stats.restantes, icon: Users, tone: "text-blue-600" },
+    { key: "lotados", label: "DIAS LOTADOS", value: stats.lotados, icon: AlertTriangle, tone: "text-red-600" },
+    { key: "capacidade", label: "CAPACIDADE TOTAL", value: stats.capacidade, icon: CalendarIcon, tone: "text-primary" },
   ];
   const statsZerados = statCards.filter((s) => s.value === 0).length;
+
+  /** Detalhamento por dia do indicador aberto, respeitando mês e filtros da tela. */
+  const statDetalheDias = useMemo(() => {
+    if (!statDetalhe) return [];
+    const out: Array<{
+      iso: string;
+      label: string;
+      cap: number | null;
+      aprov: number;
+      reserva: number;
+      nomes: string[];
+      reservados: string[];
+    }> = [];
+    for (const d of eachDayOfInterval({ start: monthStart, end: monthEnd })) {
+      const key = format(d, "yyyy-MM-dd");
+      const evs = eventsByDay.get(key) ?? [];
+      const aprovEvs = evs.filter((e) => e.status === "aprovada" && e.tipo === "folga");
+      const reserva = reservasByDay.get(key) ?? 0;
+      const reservados = (pessoasByDay.get(key) ?? []).map((p) => p.nome);
+      const cap = capacityByDay.get(key) ?? null;
+      const item = {
+        iso: key,
+        label: format(d, "dd/MM — EEEE", { locale: ptBR }),
+        cap,
+        aprov: aprovEvs.length,
+        reserva,
+        nomes: aprovEvs.map((e) => (e as any).dp_colaboradores?.nome ?? "—"),
+        reservados,
+      };
+      if (statDetalhe === "marcadas" && item.aprov === 0) continue;
+      if (statDetalhe === "reservas" && reserva === 0) continue;
+      if (statDetalhe === "lotados" && !(cap != null && cap > 0 && item.aprov + reserva >= cap)) continue;
+      if (statDetalhe === "restantes" && !(cap != null && cap - item.aprov - reserva > 0)) continue;
+      if (statDetalhe === "capacidade" && cap == null) continue;
+      out.push(item);
+    }
+    return out;
+  }, [statDetalhe, monthStart, monthEnd, eventsByDay, reservasByDay, pessoasByDay, capacityByDay]);
+
 
   return (
     <DpPage>
@@ -769,9 +831,12 @@ export default function DpFolgas() {
           {statCards
             .filter((s) => mostrarZerados || s.value !== 0)
             .map((s) => (
-              <div
+              <button
                 key={s.label}
-                className="rounded-xl border border-[hsl(var(--dp-border))] bg-card p-4"
+                type="button"
+                onClick={() => setStatDetalhe(s.key)}
+                aria-label={`Ver detalhes de ${s.label}`}
+                className="rounded-xl border border-[hsl(var(--dp-border))] bg-card p-4 text-left transition-colors hover:bg-muted/40 active:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   {s.label}
@@ -780,8 +845,9 @@ export default function DpFolgas() {
                   <s.icon className={cn("h-5 w-5", s.tone)} />
                   <span className="text-3xl font-bold text-foreground">{s.value}</span>
                 </div>
-              </div>
+              </button>
             ))}
+
         </div>
         {statsZerados > 0 && (
           <div className="flex justify-end">
@@ -1042,9 +1108,11 @@ export default function DpFolgas() {
                         {blocked && (
                           <span className="inline-flex items-center gap-1 rounded-full border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive max-w-full">
                             <Lock className="h-3 w-3 shrink-0" />
-                            <span className="truncate">{blocked.reason || "Bloqueado"}</span>
+                            {/* Motivo do bloqueio aparece só no detalhe do dia */}
+                            <span>Bloqueado</span>
                           </span>
                         )}
+
                         {!blocked && (
                           <span className={cn(
                             "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
@@ -1526,6 +1594,63 @@ export default function DpFolgas() {
         }}
         onLiberarGlobal={() => liberarData.mutate({ unidadeId: null })}
       />
+
+      {/* Detalhamento do indicador clicado */}
+      <Dialog open={!!statDetalhe} onOpenChange={(o) => !o && setStatDetalhe(null)}>
+        <DialogContent className="max-h-[85svh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{statDetalhe ? STAT_TITULO[statDetalhe] : ""}</DialogTitle>
+            <DialogDescription>
+              {statDetalhe ? STAT_DESCRICAO[statDetalhe] : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {format(cursor, "MMMM 'de' yyyy", { locale: ptBR })}
+            {unidadeFilter !== "todas" && " · unidade filtrada"}
+          </p>
+
+          {statDetalheDias.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Nada para mostrar neste mês.
+            </p>
+          ) : (
+            <ul className="divide-y rounded-xl border">
+              {statDetalheDias.map((d) => (
+                <li key={d.iso} className="space-y-1 p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-sm font-semibold capitalize">{d.label}</span>
+                    <Badge variant="outline" className="shrink-0 text-[10px] font-bold">
+                      {statDetalhe === "capacidade"
+                        ? `Limite ${d.cap}`
+                        : statDetalhe === "restantes"
+                          ? `${Math.max(0, (d.cap ?? 0) - d.aprov - d.reserva)} vaga(s)`
+                          : `${d.aprov + d.reserva}${d.cap != null ? `/${d.cap}` : ""}`}
+                    </Badge>
+                  </div>
+                  {statDetalhe !== "reservas" && d.nomes.length > 0 && (
+                    <p className="text-xs text-muted-foreground break-words">
+                      De folga: {d.nomes.join(", ")}
+                    </p>
+                  )}
+                  {d.reservados.length > 0 && (
+                    <p className="text-xs text-amber-700 break-words">
+                      Indisponíveis para convocação: {d.reservados.join(", ")}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStatDetalhe(null)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={autoOpen} onOpenChange={setAutoOpen}>
         <DialogContent className="sm:max-w-2xl">

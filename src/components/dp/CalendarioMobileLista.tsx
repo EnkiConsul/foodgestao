@@ -168,9 +168,11 @@ export function CalendarioMobileLista({
                   {blocked && (
                     <span className="inline-flex items-center gap-1 rounded-full border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive max-w-full">
                       <Lock className="h-3 w-3 shrink-0" />
-                      <span className="break-words">{block!.reason || "Bloqueado"}</span>
+                      {/* No celular o motivo fica só no detalhe do dia, para não poluir a lista */}
+                      <span>Bloqueado</span>
                     </span>
                   )}
+
                   {occupants.map((o) => {
                     const isMe = myColaboradorId && o.colaboradorId === myColaboradorId;
                     return (
