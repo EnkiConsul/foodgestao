@@ -129,7 +129,7 @@ Deno.test("nunca retorna vazio", () => {
   assertEquals(buildDescription({ description: "?????", amount: 0 }), "Transferência recebido de contraparte não identificada");
 });
 
-Deno.test("cartão: texto do banco é preservado sem reescrita", () => {
+Deno.test("cartão: código genérico vira rótulo legível", () => {
   const tx = {
     description: "CREDITO_A_VISTA",
     descriptionRaw: "CREDITO_A_VISTA",
@@ -139,7 +139,33 @@ Deno.test("cartão: texto do banco é preservado sem reescrita", () => {
     category: "Digital services",
     creditCardMetadata: { cardNumber: "0038" },
   };
-  assertEquals(buildDescription(tx, OWN), "CREDITO_A_VISTA");
+  assertEquals(buildDescription(tx, OWN), "Compra no crédito à vista");
+});
+
+Deno.test("cartão: detalhe da operação identifica encargo e pagamento", () => {
+  const base = {
+    descriptionRaw: "CREDITO_A_VISTA",
+    amount: 12.59,
+    merchant: null,
+    paymentData: null,
+    creditCardMetadata: { cardNumber: "0038" },
+  };
+  assertEquals(
+    buildDescription({ ...base, operationType: "OUTROS", operationTypeAdditionalInfo: "ENCARG FINANC FATURADOS" }, OWN),
+    "Encargos financeiros faturados",
+  );
+  assertEquals(
+    buildDescription({ ...base, operationType: "OUTROS", operationTypeAdditionalInfo: "IOF Rotativo" }, OWN),
+    "IOF rotativo",
+  );
+  assertEquals(
+    buildDescription({ ...base, operationType: "OUTROS", operationTypeAdditionalInfo: "Despesa com Cobranca" }, OWN),
+    "Despesa com cobrança",
+  );
+  assertEquals(
+    buildDescription({ ...base, amount: -99.94, operationType: "PAGAMENTO", operationTypeAdditionalInfo: "NA" }, OWN),
+    "Pagamento da fatura",
+  );
 });
 
 
