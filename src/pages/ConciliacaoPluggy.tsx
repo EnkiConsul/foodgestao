@@ -1197,8 +1197,11 @@ export default function ConciliacaoPluggy() {
     // Rede de segurança: a lista só oferece fornecedores/clientes da empresa em
     // uso, mas se algum item ficou com um cadastro sem vínculo (lista antiga em
     // memória) ele não é enviado à RPC — nunca mais "contact_forbidden" cru.
+    // Transferência entre contas não leva fornecedor/cliente: a RPC de
+    // transferência nem recebe contato, então nunca bloqueamos por vínculo aqui.
     const idsDaEmpresa = new Set(contacts.map((c) => c.id));
     const semVinculo = ids.filter((id) => {
+      if ((rowKind[id] ?? "auto") === "transfer") return false;
       const cid = rowContact[id];
       return !!cid && !idsDaEmpresa.has(cid);
     });
