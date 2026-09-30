@@ -118,7 +118,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     }
   };
 
-  const { data: allCategories = [] } = useQuery({
+  const { data: fetchedCategories = [] } = useQuery({
     queryKey: ["categories-for-parent", user?.id, contextType, selectedCompanyId],
     enabled: !!user && open && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
