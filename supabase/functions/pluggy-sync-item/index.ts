@@ -995,14 +995,14 @@ Deno.serve(async (req) => {
 
     const enrichOptions = { ownDocuments, ownNames };
 
-    for (const acc of accounts) {
-      if (pausedIds.has(acc.id)) continue;
-      // Evento do provedor aponta a conta afetada: as demais não mudaram.
-      if (requestedAccountIds.length > 0 && !requestedAccountIds.includes(acc.id)) continue;
-
-      const accFrom = await inicioIncremental(acc.id);
-      const txs = await listTransactions(acc.id, fmt(accFrom), fmt(to));
-      if (txs.length === 0) continue;
+    /**
+     * Importa UMA janela de extrato de uma conta e devolve quantos lançamentos
+     * entraram. Isolada em função para permitir uma segunda passada com janela
+     * ampliada quando a conferência de saldo indica extrato faltando.
+     */
+    async function importarJanela(acc: any, fromStr: string, toStr: string): Promise<number> {
+      const txs = await listTransactions(acc.id, fromStr, toStr);
+      if (txs.length === 0) return 0;
 
       const rows = txs.map((t: any): any => {
         const amt = Number(t.amount ?? 0);
