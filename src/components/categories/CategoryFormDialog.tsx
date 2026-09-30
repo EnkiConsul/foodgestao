@@ -52,9 +52,11 @@ interface Props {
   defaultParentId?: string | null;
   defaultType?: "entrada" | "saida";
   defaultName?: string;
+  /** Categorias já carregadas pela tela, para o campo Categoria Pai não depender da consulta interna. */
+  existingCategories?: Tables<"categories">[];
 }
 
-export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, defaultParentId, defaultType, defaultName }: Props) {
+export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, defaultParentId, defaultType, defaultName, existingCategories }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId, companies: contextCompanies } = useCompanyContext();
   const [name, setName] = useState("");
@@ -118,7 +120,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
     }
   };
 
-  const { data: allCategories = [] } = useQuery({
+  const { data: fetchedCategories = [] } = useQuery({
     queryKey: ["categories-for-parent", user?.id, contextType, selectedCompanyId],
     enabled: !!user && open && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
@@ -146,6 +148,19 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       return data ?? [];
     },
   });
+
+  // A tela que abriu o diálogo pode passar as categorias já carregadas: assim a
+  // categoria pai aparece selecionada na hora, sem esperar a consulta e sem
+  // depender do vínculo de empresa chegar no resultado.
+  const allCategories = (() => {
+    if (!existingCategories?.length) return fetchedCategories as any[];
+    const byId = new Map<string, any>();
+    (existingCategories as any[]).forEach((c) => byId.set(c.id, c));
+    (fetchedCategories as any[]).forEach((c) => {
+      if (!byId.has(c.id)) byId.set(c.id, c);
+    });
+    return Array.from(byId.values());
+  })();
 
 
   // Empresas que o usuário realmente acessa (dono OU membro), vindas do
@@ -227,7 +242,15 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         });
     } else {
       setName(defaultName ?? "");
-      setType(defaultType ?? "saida");
+      // O tipo acompanha a categoria pai: se divergir, o filtro de opções
+      // esconderia o pai e o campo voltaria para "Nenhuma (raiz)".
+      const paiTipo = defaultParentId
+        ? (allCategories.find((c: any) => c.id === defaultParentId)?.transaction_type as
+            | "entrada"
+            | "saida"
+            | undefined)
+        : undefined;
+      setType(paiTipo ?? defaultType ?? "saida");
       setColor("#3b82f6");
       setParentId(defaultParentId || null);
       setChartAccountId(null);
