@@ -42,7 +42,7 @@ const BILL_MOVEMENT_RE =
 
 /** Encargos e tarifas do cartão: também não têm fornecedor. */
 const CHARGE_RE =
-  /(\bjuros?\b|\bmulta\b|\bmora\b|\biof\b|\btarifa\b|\banuidade\b|\bencargos?\b|\bsaldo\s+em\s+atraso\b|\brotativo\b|\bparcelamento\s+(?:da\s+)?fatura\b|\btaxa[s]?\b|\bseguro\b|\bavalia[cç][aã]o\s+emergencial\b)/i;
+  /(\bjuros?\b|\bmulta\b|\bmora\b|\biof\b|\btarifa\b|\banuidade\b|\bencarg\w*\b|\bsaldo\s+em\s+atraso\b|\brotativo\b|\bparcelamento\s+(?:da\s+)?fatura\b|\btaxa[s]?\b|\bseguro\b|\bavalia[cç][aã]o\s+emergencial\b|\bdespesa\s+com\s+cobran[cç]a\b)/i;
 
 /** Prefixos de adquirente/subadquirente colados ao nome da loja. */
 const AGGREGATOR_RE = /^\s*[A-Za-z0-9.]{2,12}\s*\*+\s*/;
@@ -103,6 +103,34 @@ function isOperationCode(text: string): boolean {
   if (!value) return false;
   if (!value.includes("_")) return false;
   return /^[A-Z0-9]+(?:[_ ][A-Z0-9]+)*$/.test(value);
+}
+
+/**
+ * Detalhe interno da operação enviado pelo Open Finance
+ * (`operationType` / `operationTypeAdditionalInfo`). É o único lugar onde
+ * alguns bancos dizem o que a linha realmente é quando a descrição vem só com
+ * o código genérico (`CREDITO_A_VISTA`).
+ */
+const INFO_NOISE = new Set(["", "NA", "N/A", "OUTROS", "NAO INFORMADO", "NAO SE APLICA", "-"]);
+
+export interface CardOperationInfo {
+  /** Tipo da operação (`PAGAMENTO`, `OUTROS`...), sem valores vazios. */
+  type: string | null;
+  /** Detalhe adicional ("ENCARG FINANC FATURADOS", "IOF Rotativo"). */
+  info: string | null;
+}
+
+export function cardOperationInfo(raw: unknown): CardOperationInfo {
+  const meta = raw as
+    | { operationType?: unknown; operationTypeAdditionalInfo?: unknown }
+    | null
+    | undefined;
+  const typeRaw = collapse(meta?.operationType).toUpperCase();
+  const infoRaw = collapse(meta?.operationTypeAdditionalInfo);
+  return {
+    type: !typeRaw || INFO_NOISE.has(typeRaw) ? null : typeRaw,
+    info: !infoRaw || INFO_NOISE.has(infoRaw.toUpperCase()) ? null : infoRaw,
+  };
 }
 
 /** true quando a linha é pagamento/crédito da própria fatura. */
@@ -197,20 +225,30 @@ export function classifyCardLine(input: CardLineInput): CardLine {
   const original = cardLineText(input);
   const text = collapse(original);
   const category = input.category ?? null;
+  const operation = cardOperationInfo(input.raw);
 
-  if (!text) {
+  // Quando a descrição vem só com o código genérico, o detalhe interno da
+  // operação é a única pista do que a linha é ("ENCARG FINANC FATURADOS").
+  const generic = !text || isOperationCode(text);
+  const detail = generic ? [operation.info ?? "", operation.type ?? ""].join(" ").trim() : "";
+
+  if (!text && !detail) {
     return { kind: "sem_identificacao", text, merchant: null, city: null, installment: null };
   }
 
-  if (isCardBillMovement(text, category)) {
+  if (isCardBillMovement(text, category) || (generic && operation.type === "PAGAMENTO")) {
     return { kind: "pagamento_fatura", text, merchant: null, city: null, installment: null };
   }
 
-  if (isCardChargeLine(text, category)) {
+  if (isCardChargeLine(text, category) || (detail && isCardChargeLine(detail, null))) {
     return { kind: "encargo", text, merchant: null, city: null, installment: null };
   }
 
-  if (isOperationCode(text)) {
+  if (detail && isCardBillMovement(detail, null)) {
+    return { kind: "pagamento_fatura", text, merchant: null, city: null, installment: null };
+  }
+
+  if (!text || isOperationCode(text)) {
     return { kind: "sem_identificacao", text, merchant: null, city: null, installment: null };
   }
 

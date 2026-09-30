@@ -90,3 +90,33 @@ describe("classifyCardLine — padronização entre bancos", () => {
     expect(classifyCardLine({ description: null }).kind).toBe("sem_identificacao");
   });
 });
+
+describe("classifyCardLine com detalhe da operação", () => {
+  const meta = { creditCardMetadata: { cardNumber: "0038" }, descriptionRaw: "CREDITO_A_VISTA" };
+
+  it("encargo identificado pelo detalhe interno", () => {
+    for (const info of ["ENCARG FINANC FATURADOS", "IOF Rotativo", "Despesa com Cobranca"]) {
+      const line = classifyCardLine({
+        description: "CREDITO_A_VISTA",
+        raw: { ...meta, operationType: "OUTROS", operationTypeAdditionalInfo: info },
+      });
+      expect(line.kind, info).toBe("encargo");
+    }
+  });
+
+  it("pagamento da fatura identificado pelo tipo da operação", () => {
+    const line = classifyCardLine({
+      description: "CREDITO_A_VISTA",
+      raw: { ...meta, operationType: "PAGAMENTO", operationTypeAdditionalInfo: "NA" },
+    });
+    expect(line.kind).toBe("pagamento_fatura");
+  });
+
+  it("sem detalhe útil segue sem identificação", () => {
+    const line = classifyCardLine({
+      description: "CREDITO_A_VISTA",
+      raw: { ...meta, operationType: "OPERACOES_CREDITO_CONTRATADAS_CARTAO", operationTypeAdditionalInfo: "NA" },
+    });
+    expect(line.kind).toBe("sem_identificacao");
+  });
+});
