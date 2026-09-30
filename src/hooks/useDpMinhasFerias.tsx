@@ -145,6 +145,80 @@ export function useDpMinhasFerias() {
     onError: (e: any) => toast.error(textoErroFerias(e?.message)),
   });
 
+  // Pedidos de férias do próprio colaborador, inclusive os que ainda estão
+  // em análise: sem isso a pessoa não via o que pediu.
+  const pedidosQuery = useQuery({
+    queryKey: ["dp_ferias_meus_pedidos", vinculo.data?.companyId ?? null],
+    enabled: !vinculo.isLoading,
+    queryFn: async (): Promise<MinhaFeriasPedido[]> => {
+      const { data, error } = await supabase.rpc("dp_ferias_meus_pedidos" as any);
+      if (error) throw error;
+      return ((data ?? []) as any[]).map((r) => ({
+        solicitacao_id: r.solicitacao_id,
+        periodo_id: r.periodo_id,
+        status: r.status,
+        data_inicio: r.data_inicio,
+        data_fim: r.data_fim,
+        dias: Number(r.dias ?? 0),
+        dias_abono: Number(r.dias_abono ?? 0),
+        adiantar_13: !!r.adiantar_13,
+        observacao: r.observacao ?? null,
+        resposta_admin: r.resposta_admin ?? null,
+        criado_em: r.criado_em,
+        respondido_em: r.respondido_em ?? null,
+      }));
+    },
+  });
+
+  const editarPedido = useMutation({
+    mutationFn: async (input: EditarPedidoFeriasInput) => {
+      const { error } = await supabase.rpc("dp_ferias_pedido_editar" as any, {
+        _solicitacao_id: input.solicitacaoId,
+        _data_inicio: input.dataInicio,
+        _data_fim: input.dataFim,
+        _dias_abono: input.diasAbono,
+        _adiantar_13: input.adiantar13,
+        _observacao: input.observacao?.trim() || null,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Pedido de férias atualizado");
+      invalidate();
+    },
+    onError: (e: any) => toast.error(textoErroFerias(e?.message)),
+  });
+
+  const cancelarPedido = useMutation({
+    mutationFn: async (solicitacaoId: string) => {
+      const { error } = await supabase.rpc("dp_solicitacao_cancelar", { p_id: solicitacaoId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Pedido de férias cancelado");
+      invalidate();
+    },
+    onError: (e: any) => toast.error(textoErroFerias(e?.message)),
+  });
+
+  const pedirRemarcacao = useMutation({
+    mutationFn: async (input: RemarcarFeriasInput) => {
+      const { error } = await supabase.rpc("dp_ferias_remarcacao_solicitar" as any, {
+        _gozo_id: input.gozoId,
+        _data_inicio: input.dataInicio,
+        _data_fim: input.dataFim,
+        _motivo: input.motivo?.trim() || null,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Pedido de remarcação enviado para o gestor");
+      invalidate();
+    },
+    onError: (e: any) => toast.error(textoErroFerias(e?.message)),
+  });
+
+
   const registrarCiencia = useMutation({
     mutationFn: async (gozoId: string) => {
       const { error } = await supabase.rpc("dp_ferias_registrar_ciencia", { _gozo_id: gozoId });
