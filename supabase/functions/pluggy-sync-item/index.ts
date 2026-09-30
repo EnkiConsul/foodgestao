@@ -1147,8 +1147,89 @@ Deno.serve(async (req) => {
         if (error) console.error('staging re-enrich error', error);
       }
       // Contador real: descontamos os lotes que o banco recusou.
-      staged += Math.max(rows.length - naoGravados, 0);
+      return Math.max(rows.length - naoGravados, 0);
+    }
 
+    /**
+     * Confere se o extrato importado explica a variação do saldo informado pelo
+     * banco. Diferença = lançamento que o banco não entregou.
+     */
+    async function conferirCompletude(
+      accId: string,
+    ): Promise<{ diferenca: number; de: string; ate: string } | null> {
+      const base = baseConferencia.get(accId);
+      if (!base) return null;
+      if (base.saldoAtual === null || base.saldoAnterior === null || !base.saldoAnteriorEm) return null;
+      const de = String(base.saldoAnteriorEm).slice(0, 10);
+
+      let soma = 0;
+      for (let pagina = 0; pagina < 20; pagina += 1) {
+        const inicio = pagina * 1000;
+        const { data: linhas, error } = await admin
+          .from('pluggy_staging_transactions')
+          .select('amount')
+          .eq('company_id', effectiveCompanyId)
+          .eq('pluggy_account_id', accId)
+          .neq('status', 'duplicate')
+          .gt('date', de)
+          .range(inicio, inicio + 999);
+        if (error) return null;
+        const lote = linhas ?? [];
+        for (const l of lote as Array<{ amount: number | null }>) soma += Number(l.amount ?? 0);
+        if (lote.length < 1000) break;
+      }
+
+      const diferenca = Math.round((base.saldoAtual - (base.saldoAnterior + soma)) * 100) / 100;
+      if (Math.abs(diferenca) < 0.01) return null;
+      return { diferenca, de, ate: fmt(to) };
+    }
+
+    // Contas em que o banco atualizou o saldo mas não entregou todo o extrato.
+    const extratosIncompletos: Array<{ nome: string; diferenca: number; de: string; ate: string }> = [];
+
+    for (const acc of accounts) {
+      if (pausedIds.has(acc.id)) continue;
+      // Evento do provedor aponta a conta afetada: as demais não mudaram.
+      if (requestedAccountIds.length > 0 && !requestedAccountIds.includes(acc.id)) continue;
+
+      const accFrom = await inicioIncremental(acc.id);
+      staged += await importarJanela(acc, fmt(accFrom), fmt(to));
+
+      // Conferência de completude + nova tentativa com janela ampliada. Muitos
+      // bancos entregam o lançamento faltante quando a consulta recua alguns
+      // dias além do ponto incremental.
+      const base = baseConferencia.get(acc.id);
+      if (!base) continue;
+      let falta = await conferirCompletude(acc.id);
+      if (falta) {
+        const ampliada = new Date(`${falta.de}T12:00:00Z`);
+        ampliada.setDate(ampliada.getDate() - 7);
+        if (ampliada.getTime() < accFrom.getTime()) {
+          staged += await importarJanela(acc, fmt(ampliada), fmt(to));
+          falta = await conferirCompletude(acc.id);
+        }
+      }
+
+      if (base.rowId) {
+        await admin.from('pluggy_accounts').update({
+          statement_gap_amount: falta ? falta.diferenca : null,
+          statement_gap_from: falta ? falta.de : null,
+          statement_gap_to: falta ? falta.ate : null,
+          statement_gap_checked_at: new Date().toISOString(),
+        }).eq('id', base.rowId);
+      }
+
+      if (falta) {
+        extratosIncompletos.push({
+          nome: acc.name ?? acc.marketingName ?? 'Conta',
+          diferenca: falta.diferenca,
+          de: falta.de,
+          ate: falta.ate,
+        });
+        console.warn('extrato incompleto do banco', {
+          pluggyAccountId: acc.id, ...falta,
+        });
+      }
     }
 
     // Fecha o ciclo: sem isso a "próxima sincronização" continuava com data
