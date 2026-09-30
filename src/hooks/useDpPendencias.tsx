@@ -37,6 +37,7 @@ import {
   type VinculoHistorico,
 } from "@/lib/dp/pendencias-documentos";
 import { ativoNaCompetencia } from "@/lib/dp/bulk-coverage";
+import { forcarRecargaPendencias } from "@/lib/dp/pendencias-resolver";
 import {
   optanteNaCompetencia,
   type AdiantamentoSolicitacao,
