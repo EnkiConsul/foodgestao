@@ -54,7 +54,7 @@ export function PreadmissoesPanel({
   const { data: lista = [], isLoading } = useDpPreadmissoes();
   const { data: cargos = [] } = useDpCargos();
   const { data: unidades = [] } = useDpUnidades();
-  const { reenviar, revogar } = useDpPreadmissaoConvite();
+  const { reenviar, prorrogar, revogar } = useDpPreadmissaoConvite();
   const [busca, setBusca] = useState("");
   const [convidandoLocal, setConvidandoLocal] = useState(false);
   const convidando = convidarAberto ?? convidandoLocal;
