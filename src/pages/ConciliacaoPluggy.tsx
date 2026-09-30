@@ -1955,60 +1955,62 @@ export default function ConciliacaoPluggy() {
             })()}
           </div>
         </div>
-        <Button
-          onClick={syncNow}
-          disabled={syncing || connections.length === 0 || !syncGuard.allowed}
-          variant="outline"
-          className="w-full sm:ml-auto sm:w-auto"
-        >
-          {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-          Sincronizar
-        </Button>
-        <Button
-          onClick={() => navigate(`/contas-bancarias/conciliacao/extrato${extratoQuery}`)}
-          variant="outline"
-          className="w-full sm:w-auto"
-        >
-          <FileText className="h-4 w-4 mr-2" />
-          Extrato de Conciliação
-        </Button>
-        <Button
-          onClick={() => void reprocessDestinations()}
-          disabled={reprocessing || rows.length === 0}
-          variant="outline"
-          className="w-full sm:w-auto"
-        >
-          {reprocessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-          Recalcular destinos
-        </Button>
-        <Button
-          onClick={() => void reprocessCounterparties()}
-          disabled={counterpartyReprocessing || rows.length === 0}
-          variant="outline"
-          className="w-full sm:w-auto"
-        >
-          {counterpartyReprocessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-          Atualizar fornecedores
-        </Button>
-        {bulkContactCandidates.length > 0 && (
+        <div className="flex flex-wrap gap-2 lg:ml-auto lg:max-w-[60%] lg:justify-end">
           <Button
-            onClick={() => setBulkContactsOpen(true)}
+            onClick={syncNow}
+            disabled={syncing || connections.length === 0 || !syncGuard.allowed}
             variant="outline"
-            className="w-full sm:w-auto"
+            size="sm"
           >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Cadastrar fornecedores/clientes ({bulkContactCandidates.length})
+            {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Sincronizar
           </Button>
-        )}
-        <Button
-          onClick={() => setClearOpen(true)}
-          disabled={clearing || rows.filter((r) => r.status === "pending").length === 0}
-          variant="outline"
-          className="w-full sm:w-auto"
-        >
-          {clearing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-          Limpar extrato pendente
-        </Button>
+          <Button
+            onClick={() => navigate(`/contas-bancarias/conciliacao/extrato${extratoQuery}`)}
+            variant="outline"
+            size="sm"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Extrato
+          </Button>
+          <Button
+            onClick={() => void reprocessDestinations()}
+            disabled={reprocessing || rows.length === 0}
+            variant="outline"
+            size="sm"
+          >
+            {reprocessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Recalcular destinos
+          </Button>
+          <Button
+            onClick={() => void reprocessCounterparties()}
+            disabled={counterpartyReprocessing || rows.length === 0}
+            variant="outline"
+            size="sm"
+          >
+            {counterpartyReprocessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Atualizar fornecedores
+          </Button>
+          {bulkContactCandidates.length > 0 && (
+            <Button
+              onClick={() => setBulkContactsOpen(true)}
+              variant="outline"
+              size="sm"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Cadastrar fornecedores/clientes ({bulkContactCandidates.length})
+            </Button>
+          )}
+          <Button
+            onClick={() => setClearOpen(true)}
+            disabled={clearing || rows.filter((r) => r.status === "pending").length === 0}
+            variant="outline"
+            size="sm"
+          >
+            {clearing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+            Limpar extrato pendente
+          </Button>
+        </div>
 
 
       </div>
