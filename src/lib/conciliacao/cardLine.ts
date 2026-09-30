@@ -128,7 +128,7 @@ export function cardOperationInfo(raw: unknown): CardOperationInfo {
   const typeRaw = collapse(meta?.operationType).toUpperCase();
   const infoRaw = collapse(meta?.operationTypeAdditionalInfo);
   return {
-    type: INFO_NOISE.has(normalizeToken(typeRaw) || "") || !typeRaw ? null : typeRaw,
+    type: !typeRaw || INFO_NOISE.has(typeRaw) ? null : typeRaw,
     info: !infoRaw || INFO_NOISE.has(infoRaw.toUpperCase()) ? null : infoRaw,
   };
 }
