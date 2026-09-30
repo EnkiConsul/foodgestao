@@ -156,7 +156,10 @@ export default function DpFolgas() {
   
   const colabs = useDpColaboradores();
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
-  const { reservasByDay } = useDpFolgaReserva(cursor);
+  const { reservasByDay, pessoasByDay } = useDpFolgaReserva(
+    cursor,
+    unidadeFilter === "todas" ? null : unidadeFilter,
+  );
   const initialPrefs = loadPrefs(selectedCompanyId);
   const [unidadeFilter, setUnidadeFilter] = useState<string>(initialPrefs.unidade ?? "todas");
   const [colabFilter, setColabFilter] = useState<string>(initialPrefs.colaborador ?? "todos");
