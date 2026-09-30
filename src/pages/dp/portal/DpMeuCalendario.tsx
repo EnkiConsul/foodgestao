@@ -1287,7 +1287,7 @@ export default function DpMeuCalendario() {
                   </ConfirmarAcaoDialog>
                 )}
 
-                {selectedDay.status === "fixed" && (
+                {false && (
                   <p className="text-xs text-muted-foreground">
                     Esta é sua folga semanal fixa. Para trocar, selecione o dia desejado e use o botão "Trocar" ao
                     lado do colega.
@@ -1330,10 +1330,12 @@ export default function DpMeuCalendario() {
                     className="border-amber-200 text-amber-700 hover:bg-amber-50"
                     onClick={() => {
                       setExceptionMotivo("");
+                      setExcecaoModo(fixasParaExcecao.length > 0 ? "troca_semanal" : "extra");
+                      setExcecaoDiaTrabalho("");
                       setExceptionOpen(true);
                     }}
                   >
-                    <AlertCircle className="h-4 w-4 mr-2" /> Solicitar exceção
+                    <AlertCircle className="h-4 w-4 mr-2" /> Solicitar exceção ao gestor
                   </Button>
                 )}
               </div>
@@ -1358,13 +1360,56 @@ export default function DpMeuCalendario() {
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-3">
               <AlertCircle className="size-6 text-amber-500" />
-              Solicitar exceção
+              Solicitar exceção ao gestor
             </DialogTitle>
             <DialogDescription>
-              Envie ao DP uma justificativa para folgar em {selectedDay && formatBR(parseYMD(selectedDay.iso))}.
+              Peça ao gestor para folgar em {selectedDay && formatBR(parseYMD(selectedDay.iso))}. O pedido só vale
+              depois da aprovação.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            <div>
+              <Label>Tipo de pedido</Label>
+              <Select
+                value={excecaoModo}
+                onValueChange={(v) => {
+                  setExcecaoModo(v as "extra" | "troca_semanal");
+                  setExcecaoDiaTrabalho("");
+                }}
+              >
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="troca_semanal" disabled={fixasParaExcecao.length === 0}>
+                    Troca da folga semanal
+                  </SelectItem>
+                  <SelectItem value="extra">Folga extra</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {excecaoModo === "troca_semanal"
+                  ? "Você trabalha em um dia da sua folga semanal e folga neste dia no lugar dele."
+                  : "Um dia de folga a mais, sem mudar sua folga semanal."}
+              </p>
+            </div>
+            {excecaoModo === "troca_semanal" && (
+              <div>
+                <Label>Dia da folga semanal que você vai trabalhar</Label>
+                <Select value={excecaoDiaTrabalho} onValueChange={setExcecaoDiaTrabalho}>
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="Escolha o dia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fixasParaExcecao.map((f) => (
+                      <SelectItem key={f.id} value={f.data}>
+                        {formatBR(parseYMD(f.data))}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label className="flex items-center gap-2">
                 Justificativa
@@ -1420,6 +1465,7 @@ export default function DpMeuCalendario() {
                   {folgasParaOferecer.map((f) => (
                     <SelectItem key={f.id} value={f.data}>
                       {formatBR(parseYMD(f.data))}
+                      {f.fixa ? " (folga semanal)" : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
