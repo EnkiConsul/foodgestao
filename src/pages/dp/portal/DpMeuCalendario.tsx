@@ -216,6 +216,7 @@ export default function DpMeuCalendario() {
         id: c.id,
         nome: c.nome_social || c.nome,
         folga_fixa_semana: c.folga_fixa_semana ?? null,
+        folgas_fixas_dow: Array.isArray(c.folgas_fixas_dow) ? c.folgas_fixas_dow.map(Number) : null,
         ativo: c.ativo,
         unidade_id: c.unidade_id,
       })) as ColaboradorRecord[];
@@ -577,11 +578,45 @@ export default function DpMeuCalendario() {
     [folgas, meRef.data?.id, hojeIso],
   );
 
+  /**
+   * Dias de folga semanal fixa do mês visto (de hoje em diante). Não existem
+   * como registro de folga, mas podem ser cedidos numa troca ou numa exceção.
+   */
+  const minhasFixasFuturas = useMemo(() => {
+    const fixos = diasFixosDeFolga({
+      folga_fixa_semana: meRef.data?.folga_fixa_semana ?? null,
+      folgas_fixas_dow: meusDiasFixosQuery.data ?? [],
+    });
+    if (!fixos.length || !meRef.data?.id) return [] as { id: string; data: string; fixa: true }[];
+    const comRegistro = new Set(
+      folgas.filter((f) => f.colaborador_id === meRef.data!.id && f.status !== "cancelada").map((f) => f.data as string),
+    );
+    return eachDayOfInterval({ start: range.startDate, end: range.endDate })
+      .filter((d) => fixos.includes(d.getDay()))
+      .map((d) => ymd(d))
+      .filter((iso) => iso >= hojeIso && !comRegistro.has(iso))
+      .map((iso) => ({ id: `fixa-${iso}`, data: iso, fixa: true as const }));
+  }, [meRef.data, meusDiasFixosQuery.data, folgas, range.startDate, range.endDate, hojeIso]);
+
   /** Folgas ofertáveis para o dia aberto no diálogo (sem o próprio dia pedido). */
-  const folgasParaOferecer = useMemo(
-    () => folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso, diaPedidoIso: tradeOpen?.iso }),
-    [folgas, meRef.data?.id, hojeIso, tradeOpen?.iso],
-  );
+  const folgasParaOferecer = useMemo(() => {
+    const avulsas = folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso, diaPedidoIso: tradeOpen?.iso }).map(
+      (f) => ({ id: f.id as string, data: f.data as string, fixa: false }),
+    );
+    const fixas = minhasFixasFuturas.filter((f) => f.data !== tradeOpen?.iso);
+    return [...avulsas, ...fixas].sort((a, b) => a.data.localeCompare(b.data));
+  }, [folgas, meRef.data?.id, hojeIso, tradeOpen?.iso, minhasFixasFuturas]);
+
+  /** Exceção ao gestor: folga extra ou troca de um dia da folga semanal. */
+  const [excecaoModo, setExcecaoModo] = useState<"extra" | "troca_semanal">("extra");
+  const [excecaoDiaTrabalho, setExcecaoDiaTrabalho] = useState("");
+  const fixasParaExcecao = useMemo(() => {
+    if (!selectedDay) return [];
+    const alvo = parseYMD(selectedDay.iso).getTime();
+    return minhasFixasFuturas
+      .filter((f) => f.data !== selectedDay.iso)
+      .sort((a, b) => Math.abs(parseYMD(a.data).getTime() - alvo) - Math.abs(parseYMD(b.data).getTime() - alvo));
+  }, [minhasFixasFuturas, selectedDay]);
 
 
   // -------- Mutations --------
@@ -770,13 +805,29 @@ export default function DpMeuCalendario() {
   const enviarExcecao = useMutation({
     mutationFn: async () => {
       if (!meRef.data || !selectedDay) throw new Error("Sem contexto");
-      const motivo = exceptionMotivo.trim() || "Solicitação de exceção (sem motivo informado)";
-      const { error } = await supabase.rpc("dp_folga_solicitar", {
-        p_data: selectedDay.iso,
-        p_motivo: motivo,
-        p_fora_da_janela: true,
-      });
+      const troca = excecaoModo === "troca_semanal";
+      if (troca && !excecaoDiaTrabalho) negarRegra("Escolha qual dia da sua folga semanal você vai trabalhar.");
+      const motivo =
+        exceptionMotivo.trim() ||
+        (troca ? "Troca da folga semanal solicitada ao gestor" : "Folga extra solicitada ao gestor");
+      const { error } = troca
+        ? await supabase.rpc("dp_folga_troca_fds_solicitar", {
+            p_data_folga: selectedDay.iso,
+            p_data_trabalho: excecaoDiaTrabalho,
+            p_motivo: motivo,
+          })
+        : await supabase.rpc("dp_folga_solicitar", {
+            p_data: selectedDay.iso,
+            p_motivo: motivo,
+            p_fora_da_janela: true,
+          });
       if (error) {
+        const raw0 = error.message ?? "";
+        if (raw0.includes("TROCA_DIA_TRABALHO_INVALIDO"))
+          negarRegra("O dia que você vai trabalhar precisa ser um dia da sua folga semanal.");
+        if (raw0.includes("TROCA_DIA_FOLGA_INVALIDO")) negarRegra("Esse dia já é sua folga semanal.");
+        if (raw0.includes("TROCA_JA_TEM_FOLGA")) negarRegra("Você já tem folga registrada nesse dia.");
+        if (raw0.includes("TROCA_SEM_FOLGA_FIXA")) negarRegra("Seu cadastro não tem folga semanal fixa.");
         const raw = error.message ?? "";
         if (raw.includes("FOLGA_LIMITE_DIA"))
           negarRegra(
@@ -955,12 +1006,12 @@ export default function DpMeuCalendario() {
     const occupants = occupantsByDate.get(selectedDay.iso) ?? [];
     const isMine = occupants.some((o) => o.colaboradorId === meRef.data?.id);
 
-    // canTrade — só se eu tenho folga em OUTRO dia para oferecer e o dia está em
-    // outra ocupação (não meu, não passado)
-    const ofertaveis = minhasFolgasFuturas.filter((f) => f.data !== selectedDay.iso);
+    // canTrade — tenho folga (agendada ou semanal fixa) em OUTRO dia para
+    // oferecer e o dia não é meu nem passado
+    const ofertaveis = [...minhasFolgasFuturas, ...minhasFixasFuturas].filter((f) => f.data !== selectedDay.iso);
     const canTrade = ofertaveis.length > 0 && !isMine && selectedDay.status !== "past";
     return { date, isWeekend, occupants, isMine, canTrade };
-  }, [selectedDay, occupantsByDate, meRef.data?.id, minhasFolgasFuturas]);
+  }, [selectedDay, occupantsByDate, meRef.data?.id, minhasFolgasFuturas, minhasFixasFuturas]);
 
   /** A folga do dia selecionado foi definida pelo sistema no fechamento do período? */
   const minhaFolgaAutomatica = useMemo(() => {
@@ -1238,8 +1289,8 @@ export default function DpMeuCalendario() {
 
                 {selectedDay.status === "fixed" && (
                   <p className="text-xs text-muted-foreground">
-                    Esta é sua folga semanal fixa. Para trocar, selecione o dia desejado e use o botão "Trocar" ao
-                    lado do colega.
+                    Esta é sua folga semanal fixa. Para trocá-la, toque no dia em que deseja folgar: use "Trocar" ao
+                    lado de um colega que folga nesse dia ou "Solicitar exceção ao gestor".
                   </p>
                 )}
                 {selectedDay.status === "blocked" && (
@@ -1279,10 +1330,12 @@ export default function DpMeuCalendario() {
                     className="border-amber-200 text-amber-700 hover:bg-amber-50"
                     onClick={() => {
                       setExceptionMotivo("");
+                      setExcecaoModo(fixasParaExcecao.length > 0 ? "troca_semanal" : "extra");
+                      setExcecaoDiaTrabalho("");
                       setExceptionOpen(true);
                     }}
                   >
-                    <AlertCircle className="h-4 w-4 mr-2" /> Solicitar exceção
+                    <AlertCircle className="h-4 w-4 mr-2" /> Solicitar exceção ao gestor
                   </Button>
                 )}
               </div>
@@ -1307,13 +1360,56 @@ export default function DpMeuCalendario() {
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-3">
               <AlertCircle className="size-6 text-amber-500" />
-              Solicitar exceção
+              Solicitar exceção ao gestor
             </DialogTitle>
             <DialogDescription>
-              Envie ao DP uma justificativa para folgar em {selectedDay && formatBR(parseYMD(selectedDay.iso))}.
+              Peça ao gestor para folgar em {selectedDay && formatBR(parseYMD(selectedDay.iso))}. O pedido só vale
+              depois da aprovação.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            <div>
+              <Label>Tipo de pedido</Label>
+              <Select
+                value={excecaoModo}
+                onValueChange={(v) => {
+                  setExcecaoModo(v as "extra" | "troca_semanal");
+                  setExcecaoDiaTrabalho("");
+                }}
+              >
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="troca_semanal" disabled={fixasParaExcecao.length === 0}>
+                    Troca da folga semanal
+                  </SelectItem>
+                  <SelectItem value="extra">Folga extra</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {excecaoModo === "troca_semanal"
+                  ? "Você trabalha em um dia da sua folga semanal e folga neste dia no lugar dele."
+                  : "Um dia de folga a mais, sem mudar sua folga semanal."}
+              </p>
+            </div>
+            {excecaoModo === "troca_semanal" && (
+              <div>
+                <Label>Dia da folga semanal que você vai trabalhar</Label>
+                <Select value={excecaoDiaTrabalho} onValueChange={setExcecaoDiaTrabalho}>
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="Escolha o dia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fixasParaExcecao.map((f) => (
+                      <SelectItem key={f.id} value={f.data}>
+                        {formatBR(parseYMD(f.data))}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label className="flex items-center gap-2">
                 Justificativa
@@ -1369,6 +1465,7 @@ export default function DpMeuCalendario() {
                   {folgasParaOferecer.map((f) => (
                     <SelectItem key={f.id} value={f.data}>
                       {formatBR(parseYMD(f.data))}
+                      {f.fixa ? " (folga semanal)" : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>

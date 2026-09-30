@@ -16960,6 +16960,7 @@ export type Database = {
           ativo: boolean
           cargo: string
           folga_fixa_semana: number
+          folgas_fixas_dow: number[]
           id: string
           nome: string
           nome_social: string

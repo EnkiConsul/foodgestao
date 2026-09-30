@@ -8,6 +8,10 @@ export function mensagemErroTroca(raw: string | null | undefined): string {
     return "Você não tem folga marcada na data que ofereceu.";
   if (msg.includes("TROCA_SEM_FOLGA_COLEGA"))
     return "O colega não tem mais folga na data pedida.";
+  if (msg.includes("TROCA_COLEGA_JA_TEM_FOLGA"))
+    return "O colega já está de folga no dia que você ofereceu.";
+  if (msg.includes("TROCA_JA_TEM_FOLGA"))
+    return "Você já está de folga no dia pedido.";
   if (msg.includes("DUPLICATE_REQUEST"))
     return "Você já enviou uma troca pendente igual a esta.";
   if (msg.includes("STATUS_INVALIDO"))
