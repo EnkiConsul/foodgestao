@@ -1690,7 +1690,7 @@ export default function DpMeuCalendario() {
                 disabled={pedirRemarcacao.isPending || !remarcarNova}
                 className="min-h-10 w-full sm:w-auto"
               >
-                {pedirRemarcacao.isPending ? "Enviando..." : "Pedir mudança ao DP"}
+                {pedirRemarcacao.isPending ? "Enviando..." : "Pedir a mudança ao gestor"}
               </Button>
             ) : remarcarAviso ? (
               <Button
@@ -1698,7 +1698,7 @@ export default function DpMeuCalendario() {
                 disabled={pedirRemarcacao.isPending || !remarcarNova}
                 className="min-h-10 w-full sm:w-auto"
               >
-                {pedirRemarcacao.isPending ? "Enviando..." : "Pedir mudança ao DP"}
+                {pedirRemarcacao.isPending ? "Enviando..." : "Pedir a mudança ao gestor"}
               </Button>
             ) : (
               <Button
