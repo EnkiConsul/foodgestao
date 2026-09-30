@@ -412,17 +412,31 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
   });
 
   const tratar = useMutation({
-    mutationFn: async (input: { id: string; decisao: string; observacao?: string }) => {
+    mutationFn: async (input: {
+      id: string;
+      decisao: string;
+      observacao?: string;
+      marcarAnalisada?: boolean;
+    }) => {
       const { error } = await supabase.rpc("dp_ocorrencia_tratar", {
         _ocorrencia_id: input.id,
         _decisao: input.decisao,
         _observacao: input.observacao ?? null,
       });
       if (error) throw error;
+      // Etapa única: decidir a tratativa já conta como conferida pelo gestor.
+      if (input.marcarAnalisada) {
+        const { error: e2 } = await supabase.rpc("dp_ocorrencia_analisar", {
+          _ocorrencia_id: input.id,
+          _status: "analisada",
+          _observacao: input.observacao ?? null,
+        });
+        if (e2) throw e2;
+      }
     },
     onSuccess: () => {
       invalidate();
-      toast.success("Tratativa registrada. Isso não altera o ponto.");
+      toast.success("Ponto tratado. A ocorrência saiu das pendências.");
     },
     onError: (e: Error) => toast.error(textoErroOcorrencia(e.message)),
   });
