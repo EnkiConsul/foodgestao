@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import {
   proximaFolga as calcularProximaFolga,
   type ConfigDia,
@@ -12,8 +13,8 @@ import {
  * folga lançada, folga da escala publicada e folga semanal fixa.
  */
 export function useMinhaProximaFolga(colaboradorId: string | null | undefined) {
-  const hoje = new Date().toISOString().slice(0, 10);
-  const limite = new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10);
+  const hoje = hojeIsoLocal();
+  const limite = hojeIsoLocal(new Date(Date.now() + 60 * 86400000));
 
   const query = useQuery({
     queryKey: ["dp_minha_proxima_folga", colaboradorId, hoje],

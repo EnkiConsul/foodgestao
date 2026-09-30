@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { History, ClipboardList, Repeat, HeartPulse, FileText, ShieldAlert, Search, X, Download } from "lucide-react";
 import { baixarCsv } from "@/lib/dp/portal-csv";
+import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { isTipoAfastamento, labelAfastamento } from "@/lib/dp/licencas";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -120,7 +121,7 @@ export default function DpMeuHistorico() {
           disabled={filtrados.length === 0}
           onClick={() =>
             baixarCsv(
-              `meu-historico-${new Date().toISOString().slice(0, 10)}`,
+              `meu-historico-${hojeIsoLocal()}`,
               ["Data", "Tipo", "Item", "Situação"],
               filtrados.map((e) => [
                 new Date(e.data).toLocaleString("pt-BR"),

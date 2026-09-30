@@ -20,6 +20,7 @@ export function InstalarAppCard() {
   const [oculto, setOculto] = useState(true);
 
   useEffect(() => {
+    let cancelado = false;
     let dispensado = false;
     try {
       dispensado = localStorage.getItem(DISPENSAR_KEY) === "1";
@@ -27,6 +28,20 @@ export function InstalarAppCard() {
       dispensado = false;
     }
     if (dispensado || isStandalone()) return;
+
+    // Se o app já está instalado no aparelho (atalho baixado pelo navegador),
+    // não mostra o convite em abas normais do navegador.
+    const nav = navigator as Navigator & {
+      getInstalledRelatedApps?: () => Promise<{ platform?: string }[]>;
+    };
+    nav
+      .getInstalledRelatedApps?.()
+      .then((apps) => {
+        if (!cancelado && apps && apps.length > 0) setOculto(true);
+      })
+      .catch(() => {
+        // API indisponível: segue o fluxo normal
+      });
 
     const plataforma = detectPlatform();
     if (plataforma.isIos) {
@@ -36,15 +51,19 @@ export function InstalarAppCard() {
       return;
     }
 
-    setOculto(false);
+    // Android/Chrome: só exibe o card quando o navegador liberar o
+    // instalador nativo (beforeinstallprompt); antes disso o clique seria
+    // inoperante.
     const onPrompt = (e: Event) => {
       e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);
+      setOculto(false);
     };
     const onInstalado = () => setOculto(true);
     window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("appinstalled", onInstalado);
     return () => {
+      cancelado = true;
       window.removeEventListener("beforeinstallprompt", onPrompt);
       window.removeEventListener("appinstalled", onInstalado);
     };

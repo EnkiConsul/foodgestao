@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import {
   textoErroOcorrencia,
   type OcorrenciaMarcacao,
@@ -13,7 +14,7 @@ import type { RegraAssiduidade } from "@/lib/dp/assiduidade-risco";
 export function useMinhasOcorrencias() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeIsoLocal();
 
   const colaborador = useQuery({
     queryKey: ["colab_of", user?.id],
