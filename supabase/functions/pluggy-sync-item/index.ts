@@ -1014,7 +1014,7 @@ Deno.serve(async (req) => {
 
         return {
           company_id: effectiveCompanyId,
-          connection_id: conn.id,
+          connection_id: connIdFixo,
           pluggy_account_id: acc.id,
           pluggy_transaction_id: t.id,
           provider_id: (t.providerId ?? null) || null,
