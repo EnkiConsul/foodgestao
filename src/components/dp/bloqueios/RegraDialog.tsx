@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,18 @@ import {
   getMonthName, toggleArr,
   type RegraFormState, type Unidade,
 } from "@/lib/dp/bloqueios";
+
+type CampoErro = "nome" | "ano" | "meses" | "dias" | "dinamica";
+
+function validarForm(form: RegraFormState): Set<CampoErro> {
+  const erros = new Set<CampoErro>();
+  if (!form.nome.trim()) erros.add("nome");
+  if (form.aplicacao === "unica" && !form.ano_referencia) erros.add("ano");
+  if (form.meses.length === 0) erros.add("meses");
+  if (form.tipo === "fixa_anual" && form.dias.length === 0) erros.add("dias");
+  if (form.tipo === "dinamica" && (form.ordinal == null || form.dia_semana == null)) erros.add("dinamica");
+  return erros;
+}
 
 type Props = {
   open: boolean;
