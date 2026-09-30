@@ -151,6 +151,11 @@ export function buildOccupantsByDate(params: {
   }>;
   filterUser?: string;
   filterType?: "all" | OccupantType;
+  /**
+   * Dias em que a folga semanal fixa foi cedida numa troca (`colaboradorId|ISO`).
+   * A pessoa trabalha nesse dia, então ele não pode aparecer como folga.
+   */
+  trabalhoExcepcional?: Set<string>;
 }): Map<string, DayOccupant[]> {
   const {
     days,
@@ -159,6 +164,7 @@ export function buildOccupantsByDate(params: {
     pendentes,
     filterUser = "all",
     filterType = "all",
+    trabalhoExcepcional,
   } = params;
 
   const m = new Map<string, DayOccupant[]>();
@@ -179,6 +185,8 @@ export function buildOccupantsByDate(params: {
         if (c.ativo === false) continue;
         if (!diasFixosDeFolga(c).includes(wd)) continue;
         if (filterUser !== "all" && c.id !== filterUser) continue;
+        // Folga semanal cedida numa troca: nesse dia a pessoa trabalha.
+        if (trabalhoExcepcional?.has(`${c.id}|${iso}`)) continue;
         push(iso, {
           key: `fixed:${c.id}:${iso}`,
           colaboradorId: c.id,
@@ -189,6 +197,7 @@ export function buildOccupantsByDate(params: {
       }
     }
   }
+
 
   // 2) folgas registradas
   if (filterType === "all" || filterType === "monthly") {
