@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bell, ArrowRight, Clock, Clock3, CalendarClock, AlarmClockOff, CalendarPlus, Settings, ChevronRight, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,12 @@ import {
 import { toast } from "sonner";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { lerPendenciasSnapshot, salvarPendenciasSnapshot } from "@/lib/dp/pendencias-cache";
-import { PENDENCIAS_BAIXA_EVENTO, type PendenciasBaixaDetalhe } from "@/lib/dp/pendencias-resolver";
+import {
+  PENDENCIAS_BAIXA_EVENTO,
+  PENDENCIAS_RECARREGAR_EVENTO,
+  type PendenciasBaixaDetalhe,
+  type PendenciasRecarregarDetalhe,
+} from "@/lib/dp/pendencias-resolver";
 
 type StablePendenciasState = {
   companyId: string | null;
@@ -92,8 +97,31 @@ export function useStablePendencias({
     };
   });
 
+  // Atualização manual: a próxima leitura concluída depois do pedido substitui
+  // o quadro, mesmo vazia ou sem nova apuração registrada.
+  const recargaDesde = useRef<number | null>(null);
+  const [recargaPedida, setRecargaPedida] = useState(0);
+
+  useEffect(() => {
+    const aoRecarregar = (evento: Event) => {
+      const detalhe = (evento as CustomEvent<PendenciasRecarregarDetalhe>).detail;
+      if (!detalhe || !companyId || detalhe.companyId !== companyId) return;
+      recargaDesde.current = detalhe.desde;
+      setRecargaPedida((n) => n + 1);
+    };
+    window.addEventListener(PENDENCIAS_RECARREGAR_EVENTO, aoRecarregar);
+    return () => window.removeEventListener(PENDENCIAS_RECARREGAR_EVENTO, aoRecarregar);
+  }, [companyId]);
+
   useEffect(() => {
     if (isLoading || isFetching || data === undefined) return;
+    const desde = recargaDesde.current;
+    if (desde !== null && dataUpdatedAt >= desde) {
+      recargaDesde.current = null;
+      salvarPendenciasSnapshot(companyId, { data, dataUpdatedAt, lastCalculatedAt });
+      setConfirmed({ companyId, data, dataUpdatedAt, lastCalculatedAt, ready: true });
+      return;
+    }
     const snapshotDaEmpresa = lerPendenciasSnapshot(companyId);
     const baseAtual = confirmed.companyId === companyId
       ? confirmed
@@ -131,7 +159,7 @@ export function useStablePendencias({
       const proximo = { companyId, data, dataUpdatedAt, lastCalculatedAt, ready: true };
       return proximo;
     });
-  }, [companyId, data, dataUpdatedAt, lastCalculatedAt, isLoading, isFetching, confirmed]);
+  }, [companyId, data, dataUpdatedAt, lastCalculatedAt, isLoading, isFetching, confirmed, recargaPedida]);
 
   // Baixa imediata: quando uma ação resolve pendências, o item sai da lista na
   // hora, sem esperar o fim da nova apuração no servidor.

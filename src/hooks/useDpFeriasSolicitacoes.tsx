@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { textoErroFerias } from "@/lib/dp/ferias-direito";
+import { porIds, resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import type { Database } from "@/integrations/supabase/types";
 
 type SolicitacaoStatus = Database["public"]["Enums"]["dp_solicitacao_status"];
@@ -30,7 +31,15 @@ export function useDpFeriasSolicitacoes(status: SolicitacaoStatus[] = ["pendente
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
 
-  const invalidate = () => {
+  const invalidate = (solicitacaoId?: string) => {
+    // A aprovação/recusa resolve a pendência da solicitação: baixa imediata
+    // no quadro e nova apuração (o período aquisitivo também pode sair).
+    void resolverPendencias(qc, {
+      companyId: selectedCompanyId,
+      match: solicitacaoId ? porIds([`sol-${solicitacaoId}`]) : undefined,
+    });
+    void qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
+    void qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
     void qc.invalidateQueries({ queryKey: ["dp_ferias_solicitacoes"] });
     void qc.invalidateQueries({ queryKey: ["dp_ferias_periodos"] });
     void qc.invalidateQueries({ queryKey: ["dp_ferias_gozos"] });
@@ -91,9 +100,9 @@ export function useDpFeriasSolicitacoes(status: SolicitacaoStatus[] = ["pendente
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       toast.success("Férias aprovadas e programadas");
-      invalidate();
+      invalidate(vars.id);
     },
     onError: (e: any) => toast.error(textoErroFerias(e?.message)),
   });
@@ -106,9 +115,9 @@ export function useDpFeriasSolicitacoes(status: SolicitacaoStatus[] = ["pendente
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       toast.success("Solicitação recusada");
-      invalidate();
+      invalidate(vars.id);
     },
     onError: (e: any) => toast.error(textoErroFerias(e?.message)),
   });

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import {
   eachDayOfInterval,
   endOfMonth,
@@ -437,6 +438,7 @@ export default function DpAdminCalendario() {
       toast.success(`Sorteio concluído: ${data?.inseridas ?? 0} folgas inseridas`);
       if (data?.ignoradas?.length) toast.info(`${data.ignoradas.length} ignoradas (limites/bloqueios)`);
       qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
+      void resolverPendencias(qc, { companyId: selectedCompanyId });
     },
     onError: (e: any) => notifyError(e, { surface: "Calendário", action: "concluir a ação", fallback: "Erro no sorteio" }),
   });
@@ -468,6 +470,7 @@ export default function DpAdminCalendario() {
     onSuccess: () => {
       toast.success("Folga cancelada");
       qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
+      void resolverPendencias(qc, { companyId: selectedCompanyId });
     },
     onError: (e: any) => notifyError(e, { surface: "Calendário", action: "concluir a ação", fallback: "Erro ao cancelar" }),
   });
@@ -600,6 +603,7 @@ export default function DpAdminCalendario() {
       qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
       setConfirmDialog(null);
       if (!aplicado) return; // limite de folgas do dia atingido
+      void resolverPendencias(qc, { companyId: selectedCompanyId });
       toast.success(input.modo === "extra" ? "Folga extra atribuída" : "Folga atribuída");
       const colab = colaboradores.find((c: any) => c.id === assignUser);
       if (colab && isSocio(colab.vinculo_label)) {
