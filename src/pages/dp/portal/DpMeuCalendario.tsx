@@ -52,6 +52,7 @@ import {
   diasParaRemarcar,
   mensagemErroRemarcacao,
   pedirAoDp,
+  trocaExigeAprovacaoGestor,
 } from "@/lib/dp/folga-remarcacao";
 
 
@@ -916,7 +917,11 @@ export default function DpMeuCalendario() {
       if (error) throw new Error(mensagemErroTroca(error.message));
     },
     onSuccess: () => {
-      toast.success("Solicitação de troca enviada ao colega.");
+      toast.success(
+        tradeMyDate && tradeOpen && trocaExigeAprovacaoGestor(tradeMyDate, tradeOpen.iso)
+          ? "Troca enviada ao colega. Depois do aceite, o gestor precisa aprovar."
+          : "Solicitação de troca enviada ao colega.",
+      );
       setTradeOpen(null);
       setTradeMyDate("");
       setTradeMotivo("");
@@ -1553,6 +1558,12 @@ export default function DpMeuCalendario() {
                 <p className="mt-2 rounded-xl border border-sky-200 bg-sky-500/10 px-3 py-2 text-xs font-medium text-sky-700">
                   Você trabalha em {descreverDia(tradeMyDate)} (a folga que você cede) e folga em{" "}
                   {descreverDia(tradeOpen.iso)} (a folga de {tradeOpen.occupantName}).
+                </p>
+              )}
+              {tradeMyDate && tradeOpen && trocaExigeAprovacaoGestor(tradeMyDate, tradeOpen.iso) && (
+                <p className="mt-2 rounded-xl border border-amber-200 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-800">
+                  Esta troca envolve folga de fim de semana e dia de semana. Por mudar a escala de
+                  descanso, depende da aprovação do gestor depois do aceite do colega.
                 </p>
               )}
               {folgasParaOferecer.length === 0 && (
