@@ -57,7 +57,7 @@ export function RegraDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onCancel(); }}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) handleCancel(); }}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Editar Regra" : "Nova Regra"}</DialogTitle>
@@ -69,7 +69,11 @@ export function RegraDialog({
               value={form.nome}
               onChange={(e) => onChange((p) => ({ ...p, nome: e.target.value }))}
               placeholder="Ex: Natal, Black Friday..."
+              className={cn(erros.has("nome") && "border-destructive")}
             />
+            {erros.has("nome") && (
+              <p className="text-xs text-destructive">Informe uma descrição para a regra.</p>
+            )}
           </div>
 
           <div className="space-y-2">
