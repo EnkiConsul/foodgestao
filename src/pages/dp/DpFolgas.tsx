@@ -1042,9 +1042,11 @@ export default function DpFolgas() {
                         {blocked && (
                           <span className="inline-flex items-center gap-1 rounded-full border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive max-w-full">
                             <Lock className="h-3 w-3 shrink-0" />
-                            <span className="truncate">{blocked.reason || "Bloqueado"}</span>
+                            {/* Motivo do bloqueio aparece só no detalhe do dia */}
+                            <span>Bloqueado</span>
                           </span>
                         )}
+
                         {!blocked && (
                           <span className={cn(
                             "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
