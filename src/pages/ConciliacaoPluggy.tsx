@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from "sonner";
 import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, Pencil, FileText, Split, CreditCard, Trash2, Upload } from "lucide-react";
 import { ImportStatementDialog } from "@/components/transactions/ImportStatementDialog";
+import { ReconectarBancoDialog } from "@/components/conciliacao/ReconectarBancoDialog";
 import { formatBRL } from "@/lib/billing";
 import { DividirLancamentoDialog } from "@/components/conciliacao/DividirLancamentoDialog";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
