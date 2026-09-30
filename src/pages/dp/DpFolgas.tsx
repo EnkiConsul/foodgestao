@@ -175,7 +175,16 @@ export default function DpFolgas() {
   const qc = useQueryClient();
   
   const colabs = useDpColaboradores();
-  const [cursor, setCursor] = useState(startOfMonth(new Date()));
+  const [cursor, setCursor] = useState(() => {
+    const m = typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("mes")
+      : null;
+    if (m && /^\d{4}-\d{2}$/.test(m)) {
+      const [a, mm] = m.split("-").map(Number);
+      return new Date(a, mm - 1, 1);
+    }
+    return startOfMonth(new Date());
+  });
   const initialPrefs = loadPrefs(selectedCompanyId);
   const [unidadeFilter, setUnidadeFilter] = useState<string>(initialPrefs.unidade ?? "todas");
   const [colabFilter, setColabFilter] = useState<string>(initialPrefs.colaborador ?? "todos");
