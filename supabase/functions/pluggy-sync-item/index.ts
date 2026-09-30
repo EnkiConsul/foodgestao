@@ -1193,15 +1193,49 @@ Deno.serve(async (req) => {
       // Evento do provedor aponta a conta afetada: as demais não mudaram.
       if (requestedAccountIds.length > 0 && !requestedAccountIds.includes(acc.id)) continue;
 
-      const accFrom = await inicioIncremental(acc.id);
+      // Lacuna pendente de sincronizações anteriores: toda sincronização volta a
+      // pedir esse período ao banco até os lançamentos chegarem.
+      const { data: gapAnterior } = await admin
+        .from('pluggy_accounts')
+        .select('id, statement_gap_amount, statement_gap_from, statement_gap_to')
+        .eq('pluggy_account_id', acc.id)
+        .eq('company_id', effectiveCompanyId)
+        .not('statement_gap_amount', 'is', null)
+        .maybeSingle();
+
+      async function somaPeriodo(de: string, ate: string): Promise<number | null> {
+        let soma = 0;
+        for (let pagina = 0; pagina < 20; pagina += 1) {
+          const inicio = pagina * 1000;
+          const { data: linhas, error } = await admin
+            .from('pluggy_staging_transactions')
+            .select('amount')
+            .eq('company_id', effectiveCompanyId)
+            .eq('pluggy_account_id', acc.id)
+            .neq('status', 'duplicate')
+            .gte('date', de)
+            .lte('date', ate)
+            .range(inicio, inicio + 999);
+          if (error) return null;
+          const lote = linhas ?? [];
+          for (const l of lote as Array<{ amount: number | null }>) soma += Number(l.amount ?? 0);
+          if (lote.length < 1000) break;
+        }
+        return soma;
+      }
+
+      let accFrom = await inicioIncremental(acc.id);
+      let somaAntes: number | null = null;
+      if (gapAnterior?.statement_gap_from) {
+        const recuo = new Date(`${gapAnterior.statement_gap_from}T12:00:00Z`);
+        recuo.setDate(recuo.getDate() - 7);
+        if (recuo.getTime() < accFrom.getTime()) accFrom = recuo;
+        somaAntes = await somaPeriodo(gapAnterior.statement_gap_from, fmt(to));
+      }
       staged += await importarJanela(acc, fmt(accFrom), fmt(to));
 
-      // Conferência de completude + nova tentativa com janela ampliada. Muitos
-      // bancos entregam o lançamento faltante quando a consulta recua alguns
-      // dias além do ponto incremental.
       const base = baseConferencia.get(acc.id);
-      if (!base) continue;
-      let falta = await conferirCompletude(acc.id);
+      let falta = base ? await conferirCompletude(acc.id) : null;
       if (falta) {
         const ampliada = new Date(`${falta.de}T12:00:00Z`);
         ampliada.setDate(ampliada.getDate() - 7);
@@ -1211,13 +1245,31 @@ Deno.serve(async (req) => {
         }
       }
 
-      if (base.rowId) {
+      // Lacuna antiga: abate o que o banco entregou agora no período faltante.
+      if (!falta && gapAnterior?.statement_gap_from && somaAntes !== null) {
+        const somaDepois = await somaPeriodo(gapAnterior.statement_gap_from, fmt(to));
+        if (somaDepois !== null) {
+          const restante = Math.round(
+            (Number(gapAnterior.statement_gap_amount) - (somaDepois - somaAntes)) * 100,
+          ) / 100;
+          if (Math.abs(restante) >= 0.01) {
+            falta = {
+              diferenca: restante,
+              de: gapAnterior.statement_gap_from,
+              ate: gapAnterior.statement_gap_to ?? fmt(to),
+            };
+          }
+        }
+      }
+
+      const rowId = base?.rowId ?? gapAnterior?.id ?? null;
+      if (rowId) {
         await admin.from('pluggy_accounts').update({
           statement_gap_amount: falta ? falta.diferenca : null,
           statement_gap_from: falta ? falta.de : null,
           statement_gap_to: falta ? falta.ate : null,
           statement_gap_checked_at: new Date().toISOString(),
-        }).eq('id', base.rowId);
+        }).eq('id', rowId);
       }
 
       if (falta) {
