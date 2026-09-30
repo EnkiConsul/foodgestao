@@ -1,14 +1,17 @@
+import { useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   ClipboardCheck,
   Clock,
   History as HistoryIcon,
   ShieldAlert,
-  User,
   UserPlus,
   XCircle,
 } from "lucide-react";
+import { resumoTratativa } from "@/lib/dp/ocorrencia-resumo";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,6 +66,7 @@ export function OcorrenciaCard({
   onImpacto,
   onDecidirAssiduidade,
 }: Props) {
+  const [detalhes, setDetalhes] = useState(false);
   const estadoPremio = estadoAssiduidade(o);
   const validas = coberturas.filter((c) => c.status !== "recusada");
   const cobrivel = TIPOS_COBRIVEIS.includes(o.tipo) && o.estado !== "cancelada";
@@ -74,68 +78,57 @@ export function OcorrenciaCard({
     month: "2-digit",
   });
 
+  const r = resumoTratativa(o);
+  const cancelada = o.estado === "cancelada";
+  const tratarPendente = o.tratativa_ponto && o.tratativa_status === "pendente" && !cancelada;
+  const conferirPendente = !tratarPendente && o.analise_status === "pendente" && !cancelada;
+
   return (
     <div className={cn("rounded-lg border p-3", COR_CLASSE[cor])}>
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-medium">{o.colaborador?.nome ?? "Colaborador"}</span>
             <Badge variant="outline" className="text-xs">
               {data}
             </Badge>
-            <Badge variant="outline" className={cn("text-xs", COR_BADGE[cor])}>
-              {previsao && <AlertTriangle className="mr-1 h-3 w-3" />}
-              {resumoOperacional(o)}
-            </Badge>
-            {o.estado === "cancelada" && (
+            {cancelada && (
               <Badge variant="outline" className="text-xs">
                 Cancelada
               </Badge>
             )}
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {TIPO_LABEL[o.tipo]}
-            {o.marcacao_alvo ? ` · ${MARCACAO_LABEL[o.marcacao_alvo]}` : ""} · {ESTADO_LABEL[o.estado]} ·{" "}
-            {ORIGEM_LABEL[o.origem]}
-            {o.unidade?.nome ? ` · ${o.unidade.nome}` : ""}
-            {o.setor?.nome ? ` · ${o.setor.nome}` : ""}
+
+          {/* Linha principal: o que houve, em qual batida e a que horas */}
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+            <Badge variant="outline" className={cn("text-xs", COR_BADGE[cor])}>
+              {previsao && <AlertTriangle className="mr-1 h-3 w-3" />}
+              {r.titulo}
+            </Badge>
+            {r.batida && <span className="font-medium">{r.batida}</span>}
+            {r.horario && (
+              <span className="flex items-center gap-1 text-base font-semibold tabular-nums">
+                <Clock className="h-3.5 w-3.5" />
+                {r.horario}
+              </span>
+            )}
+            {r.previsto && (
+              <span className="text-xs text-muted-foreground">(previsto {r.previsto})</span>
+            )}
+            {!r.batida && !r.horario && <span className="text-xs text-muted-foreground">{resumoOperacional(o)}</span>}
           </p>
+
+          {o.justificativa_inicial && (
+            <p className="mt-1 text-sm italic text-muted-foreground">“{o.justificativa_inicial}”</p>
+          )}
+
           {validas.length > 0 && (
-            <p className="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+            <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
               <UserPlus className="h-3 w-3" />
               Cobertura: {validas.map((c) => c.substituto?.nome ?? c.apoio?.nome ?? "sem nome").join(", ")}
               <Badge variant="outline" className="text-[10px]">
                 {COBERTURA_STATUS_LABEL[validas[0].status]}
               </Badge>
-              <Badge variant="outline" className="text-[10px]">
-                {COBERTURA_EXECUCAO_LABEL[validas[0].execucao_status]}
-              </Badge>
-            </p>
-          )}
-
-          {(o.previsto_entrada || o.previsto_saida) && (
-            <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              Jornada prevista {o.previsto_entrada?.slice(0, 5) ?? "--"} às{" "}
-              {o.previsto_saida?.slice(0, 5) ?? "--"}
-            </p>
-          )}
-          {o.justificativa_inicial && (
-            <p className="mt-1 text-xs">
-              <span className="text-muted-foreground">Informado: </span>
-              {o.justificativa_inicial}
-            </p>
-          )}
-          {o.justificativa_final && (
-            <p className="text-xs">
-              <span className="text-muted-foreground">Depois: </span>
-              {o.justificativa_final}
-            </p>
-          )}
-          {o.tratativa_observacao && (
-            <p className="text-xs">
-              <span className="text-muted-foreground">Tratativa: </span>
-              {o.tratativa_observacao}
             </p>
           )}
           {o.assiduidade_risco && (
@@ -143,7 +136,12 @@ export function OcorrenciaCard({
               <ShieldAlert className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
               <span className="font-medium">{ESTADO_ASSIDUIDADE_LABEL[estadoPremio]}</span>
               {o.assiduidade_risco_motivo ? ` · ${o.assiduidade_risco_motivo}` : ""}
-              {o.assiduidade_observacao ? ` · Motivo: ${o.assiduidade_observacao}` : ""}
+            </p>
+          )}
+          {!tratarPendente && o.tratativa_status !== "pendente" && o.tratativa_ponto && (
+            <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+              <CheckCircle2 className="h-3 w-3" /> {TRATATIVA_LABEL[o.tratativa_status]}
+              {o.tratativa_observacao ? ` · ${o.tratativa_observacao}` : ""}
             </p>
           )}
         </div>
@@ -154,19 +152,19 @@ export function OcorrenciaCard({
               <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Confirmar
             </Button>
           )}
-          {o.tratativa_ponto && o.tratativa_status === "pendente" && (
-            <Button size="sm" variant="outline" onClick={onTratativa}>
-              <ClipboardCheck className="mr-1 h-3.5 w-3.5" /> Tratativa
+          {tratarPendente && (
+            <Button size="sm" onClick={onTratativa}>
+              <ClipboardCheck className="mr-1 h-3.5 w-3.5" /> Tratar ponto
             </Button>
           )}
-          {estadoPremio === "aguardando" && o.estado !== "cancelada" && onDecidirAssiduidade && (
+          {conferirPendente && (
+            <Button size="sm" variant="outline" onClick={onAnalisar}>
+              <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Conferido
+            </Button>
+          )}
+          {estadoPremio === "aguardando" && !cancelada && onDecidirAssiduidade && (
             <Button size="sm" variant="outline" onClick={onDecidirAssiduidade}>
               <ShieldAlert className="mr-1 h-3.5 w-3.5" /> Decidir prêmio
-            </Button>
-          )}
-          {o.analise_status === "pendente" && o.estado !== "cancelada" && (
-            <Button size="sm" variant="outline" onClick={onAnalisar}>
-              <User className="mr-1 h-3.5 w-3.5" /> Marcar analisada
             </Button>
           )}
           {cobrivel && onCobrir && (
@@ -175,67 +173,73 @@ export function OcorrenciaCard({
               {validas.length ? "Ver cobertura" : "Cobrir"}
             </Button>
           )}
-
-          {o.estado !== "cancelada" && (
-            <Button size="sm" variant="ghost" onClick={onCancelar}>
-              <XCircle className="mr-1 h-3.5 w-3.5" /> Cancelar
-            </Button>
-          )}
-          {onHistorico && (
-            <Button size="sm" variant="ghost" onClick={onHistorico}>
-              <HistoryIcon className="mr-1 h-3.5 w-3.5" /> Histórico
-            </Button>
-          )}
+          <Button size="sm" variant="ghost" onClick={() => setDetalhes((v) => !v)}>
+            {detalhes ? <ChevronUp className="mr-1 h-3.5 w-3.5" /> : <ChevronDown className="mr-1 h-3.5 w-3.5" />}
+            Detalhes
+          </Button>
         </div>
       </div>
 
-
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Assiduidade</span>
-          <Select
-            value={o.impacta_assiduidade}
-            onValueChange={(v) => onImpacto("assiduidade", v as OcorrenciaImpacto)}
-            disabled={o.estado === "cancelada"}
-          >
-            <SelectTrigger className="h-7 w-[130px] text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {IMPACTOS.map((i) => (
-                <SelectItem key={i} value={i} className="text-xs">
-                  {IMPACTO_LABEL[i]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {detalhes && (
+        <div className="mt-3 space-y-2 border-t border-border pt-2 text-xs">
+          <p className="text-muted-foreground">
+            {TIPO_LABEL[o.tipo]} · {ESTADO_LABEL[o.estado]} · {ORIGEM_LABEL[o.origem]}
+            {o.unidade?.nome ? ` · ${o.unidade.nome}` : ""}
+            {o.setor?.nome ? ` · ${o.setor.nome}` : ""}
+            {(o.previsto_entrada || o.previsto_saida) &&
+              ` · Jornada ${o.previsto_entrada?.slice(0, 5) ?? "--"}–${o.previsto_saida?.slice(0, 5) ?? "--"}`}
+          </p>
+          {o.justificativa_final && (
+            <p>
+              <span className="text-muted-foreground">Depois: </span>
+              {o.justificativa_final}
+            </p>
+          )}
+          {validas.length > 0 && (
+            <p className="text-muted-foreground">
+              Execução da cobertura: {COBERTURA_EXECUCAO_LABEL[validas[0].execucao_status]}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-3">
+            {(["assiduidade", "ferias"] as const).map((campo) => (
+              <div key={campo} className="flex items-center gap-2">
+                <span className="text-muted-foreground">{campo === "assiduidade" ? "Assiduidade" : "Férias"}</span>
+                <Select
+                  value={campo === "assiduidade" ? o.impacta_assiduidade : o.impacta_ferias}
+                  onValueChange={(v) => onImpacto(campo, v as OcorrenciaImpacto)}
+                  disabled={cancelada}
+                >
+                  <SelectTrigger className="h-7 w-[130px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {IMPACTOS.map((i) => (
+                      <SelectItem key={i} value={i} className="text-xs">
+                        {IMPACTO_LABEL[i]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+            <Badge variant="outline" className="text-xs">
+              {ANALISE_LABEL[o.analise_status]}
+            </Badge>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {onHistorico && (
+              <Button size="sm" variant="ghost" onClick={onHistorico}>
+                <HistoryIcon className="mr-1 h-3.5 w-3.5" /> Histórico
+              </Button>
+            )}
+            {!cancelada && (
+              <Button size="sm" variant="ghost" onClick={onCancelar}>
+                <XCircle className="mr-1 h-3.5 w-3.5" /> Cancelar ocorrência
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Férias</span>
-          <Select
-            value={o.impacta_ferias}
-            onValueChange={(v) => onImpacto("ferias", v as OcorrenciaImpacto)}
-            disabled={o.estado === "cancelada"}
-          >
-            <SelectTrigger className="h-7 w-[130px] text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {IMPACTOS.map((i) => (
-                <SelectItem key={i} value={i} className="text-xs">
-                  {IMPACTO_LABEL[i]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <Badge variant="outline" className="text-xs">
-          {ANALISE_LABEL[o.analise_status]}
-        </Badge>
-        <Badge variant="outline" className="text-xs">
-          {TRATATIVA_LABEL[o.tratativa_status]}
-        </Badge>
-      </div>
+      )}
     </div>
   );
 }
