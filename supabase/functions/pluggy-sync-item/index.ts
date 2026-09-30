@@ -1237,11 +1237,19 @@ Deno.serve(async (req) => {
     // contas não veio do banco) não ficava registrado para a tela mostrar.
     const execUpper = String(item?.executionStatus ?? '').toUpperCase();
     const parcialBanco = execUpper === 'PARTIAL_SUCCESS';
-    const parcial = parcialBanco || falhasGravacao > 0;
+    const parcial = parcialBanco || falhasGravacao > 0 || extratosIncompletos.length > 0;
     const motivos: string[] = [];
     if (parcialBanco) motivos.push('O banco não devolveu todas as contas nesta coleta.');
     if (falhasGravacao > 0) {
       motivos.push(`${falhasGravacao} lote(s) de lançamentos não foram gravados.`);
+    }
+    for (const e of extratosIncompletos) {
+      const valor = Math.abs(e.diferenca).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2, maximumFractionDigits: 2,
+      });
+      motivos.push(
+        `O banco atualizou o saldo de ${e.nome} mas não entregou todos os lançamentos: faltam R$ ${valor} entre ${e.de.split('-').reverse().join('/')} e ${e.ate.split('-').reverse().join('/')}. Importe o extrato do período para completar.`,
+      );
     }
     const intervaloMin = Number(Deno.env.get('PLUGGY_CRON_INTERVAL_MIN') ?? '60');
     // Timestamp de conclusão só agora, depois de tudo persistido.
