@@ -52,6 +52,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CalendarSkeleton } from "@/components/dp/DpSkeletons";
+import { AtribuirFolgaTriagemDialog } from "@/components/dp/AtribuirFolgaTriagemDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { definirLimiteDoDia, salvarDataBloqueada, excluirDataBloqueada } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -1576,6 +1577,20 @@ export default function DpFolgas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {selectedCompanyId && selectedDay && quickColabId && (
+        <AtribuirFolgaTriagemDialog
+          open={triagemOpen}
+          onOpenChange={setTriagemOpen}
+          companyId={selectedCompanyId}
+          colaboradorId={quickColabId}
+          colaboradorNome={
+            (colabs.data ?? []).find((c) => c.id === quickColabId)?.nome ?? "Colaborador"
+          }
+          dataIso={format(selectedDay, "yyyy-MM-dd")}
+          onDone={() => setQuickColabId("")}
+        />
+      )}
     </DpPage>
 
   );
