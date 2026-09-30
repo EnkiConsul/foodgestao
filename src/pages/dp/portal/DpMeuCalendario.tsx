@@ -1298,15 +1298,23 @@ export default function DpMeuCalendario() {
                 {folgaParaMover && (
                   <Button
                     variant="outline"
+                    className="h-auto min-h-10 w-full whitespace-normal break-words px-3 py-2.5 text-center leading-snug"
                     onClick={() => {
                       setRemarcarOpen(folgaParaMover.data);
                       setRemarcarNova(selectedDay.iso);
                       setRemarcarMotivo("");
-                      setRemarcarAviso(null);
+                      // Dia lotado ou bloqueado já abre pelo caminho do gestor,
+                      // sem tentar uma mudança direta que seria recusada.
+                      setRemarcarAviso(
+                        MOTIVO_STATUS[selectedDay.status]
+                          ? `${MOTIVO_STATUS[selectedDay.status]}. Você pode trocar com um colega que folga neste dia ou pedir a mudança ao gestor.`
+                          : null,
+                      );
                     }}
                   >
-                    <CalendarClock className="mr-2 h-4 w-4" />
-                    Mudar minha folga de {formatBR(parseYMD(folgaParaMover.data))} para este dia
+                    <CalendarClock className="mr-2 h-4 w-4 shrink-0" />
+                    Trocar minha folga de {diaSemanaBR(folgaParaMover.data)} {formatBR(parseYMD(folgaParaMover.data))} por
+                    este dia
                   </Button>
                 )}
                 {selectedDay.status === "mine" && minhaFolgaAutomatica && (
