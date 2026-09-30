@@ -178,18 +178,86 @@ export function cardCategoryLabel(category: string | null | undefined): string |
     cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
 }
 
+/** Abreviações usadas pelos bancos no detalhe da operação. */
+const INFO_ABBR: Record<string, string> = {
+  ENCARG: 'Encargos',
+  ENCARGS: 'Encargos',
+  FINANC: 'Financeiros',
+  FIN: 'Financeiros',
+  PGTO: 'Pagamento',
+  TRANSF: 'Transferência',
+  ANUID: 'Anuidade',
+  TARIF: 'Tarifa',
+  PARC: 'Parcela',
+  OPER: 'Operação',
+  MENS: 'Mensalidade',
+  COBRANCA: 'Cobrança',
+  CARTAO: 'Cartão',
+  CREDITO: 'Crédito',
+  DEBITO: 'Débito',
+  SERV: 'Serviço',
+};
+
+const INFO_LABELS: Record<string, string> = {
+  'ENCARG FINANC FATURADOS': 'Encargos financeiros faturados',
+  'ENCARGOS FINANCEIROS FATURADOS': 'Encargos financeiros faturados',
+  'IOF ROTATIVO': 'IOF rotativo',
+  IOF: 'IOF',
+  'DESPESA COM COBRANCA': 'Despesa com cobrança',
+  'JUROS ROTATIVO': 'Juros do rotativo',
+  'JUROS DE ATRASO': 'Juros por atraso',
+  'MULTA DE ATRASO': 'Multa por atraso',
+  ANUIDADE: 'Anuidade do cartão',
+  'PAGAMENTO FATURA': 'Pagamento da fatura',
+};
+
+const INFO_NOISE = new Set(['', 'NA', 'N/A', 'OUTROS', 'NAO INFORMADO', 'NAO SE APLICA', '-']);
+
+function stripAccents(v: string): string {
+  return v.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 /**
- * Descrição de lançamento de cartão = texto do banco, sem reescrita.
+ * Detalhe interno da operação (`operationTypeAdditionalInfo`/`operationType`):
+ * é onde vários bancos dizem o que a linha realmente é quando a descrição vem
+ * apenas com o código genérico ("CREDITO_A_VISTA").
+ */
+export function cardOperationInfoLabel(t: EnrichInput): string | null {
+  const info = String(t.operationTypeAdditionalInfo ?? '').replace(/\s+/g, ' ').trim();
+  const type = String(t.operationType ?? '').replace(/\s+/g, ' ').trim().toUpperCase();
+
+  if (info && !INFO_NOISE.has(info.toUpperCase())) {
+    const key = stripAccents(info).toUpperCase();
+    if (INFO_LABELS[key]) return INFO_LABELS[key];
+    const words = info.replace(/_/g, ' ').split(/\s+/).filter(Boolean).map((w) => {
+      const k = stripAccents(w).toUpperCase();
+      if (INFO_ABBR[k]) return INFO_ABBR[k];
+      if (k === 'IOF' || k === 'IR') return k;
+      return w.toLowerCase();
+    });
+    const text = words.join(' ');
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
+
+  if (type === 'PAGAMENTO') return 'Pagamento da fatura';
+  return null;
+}
+
+/**
+ * Descrição de lançamento de cartão.
  *
- * O sistema já tentou traduzir código de operação, juntar categoria/MCC e casar
- * encargos da fatura por valor — isso divergia do extrato do banco e podia
- * rotular a linha errada. A regra agora é fidelidade: só devolvemos o texto do
- * provedor com os blocos de espaço de alinhamento colapsados.
+ * Quando o banco manda o estabelecimento, o texto é dele — só colapsamos os
+ * blocos de espaço de alinhamento. Quando manda apenas o código da operação
+ * ("CREDITO_A_VISTA"), usamos o detalhe interno da operação e, na falta dele, a
+ * tradução do próprio código, para a linha não ficar ilegível na conciliação.
  */
 export function buildCardDescription(t: EnrichInput): string | null {
   const raw = String(t.descriptionRaw ?? t.description ?? '').replace(/\s+/g, ' ').trim();
   if (!raw) return null;
   if (!isCardOperationCode(raw) && !t.creditCardMetadata) return null;
+  if (isCardOperationCode(raw)) {
+    return cardOperationInfoLabel(t) ?? cardOperationLabel(raw) ?? raw;
+  }
   return raw;
 }
 
