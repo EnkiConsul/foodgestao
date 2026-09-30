@@ -2361,7 +2361,7 @@ export default function ConciliacaoPluggy() {
                 cardLabel={rowCardId(r) ? creditCardLabel(cardById[rowCardId(r)!]) : null}
                 onAuthorizeCard={() => navigate("/cartoes-credito")}
                 kind={rowKind[r.id] ?? "auto"}
-                onKindChange={(v) => setRowKind((p) => ({ ...p, [r.id]: v }))}
+                onKindChange={(v) => aplicarTipoLancamento(r.id, v)}
                 counterpart={rowCounterpart[r.id] ?? ""}
                 onCounterpartChange={(v) => setRowCounterpart((p) => ({ ...p, [r.id]: v }))}
                 category={rowCategory[r.id] ?? ""}
