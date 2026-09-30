@@ -565,10 +565,10 @@ export default function DpMeuFerias() {
           </div>
 
           <DpFormFooter className="-mx-6 -mb-6 mt-2">
-            <Button variant="outline" onClick={() => setAberto(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setAberto(false)}>Fechar</Button>
             <Button
               disabled={
-                solicitar.isPending ||
+                enviando ||
                 excede ||
                 abonoAcimaDoLegal ||
                 inicioAntesDoPermitido ||
@@ -577,23 +577,18 @@ export default function DpMeuFerias() {
                 !inicio ||
                 !fim
               }
-              onClick={() =>
-                solicitar.mutate(
-                  {
-                    periodoId,
-                    dataInicio: inicio,
-                    dataFim: fim,
-                    diasAbono: abono,
-                    adiantar13: adiantar13 && !jaAdiantou13,
-                    observacao,
-                  },
-                  { onSuccess: () => setAberto(false) },
-                )
-              }
+              onClick={enviar}
             >
-              {solicitar.isPending ? "Enviando…" : "Enviar pedido"}
+              {enviando
+                ? "Enviando…"
+                : modo === "editar"
+                  ? "Salvar pedido"
+                  : modo === "remarcar"
+                    ? "Pedir remarcação"
+                    : "Enviar pedido"}
             </Button>
           </DpFormFooter>
+
         </DialogContent>
       </Dialog>
     </DpPage>
