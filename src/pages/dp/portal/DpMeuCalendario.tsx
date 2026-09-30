@@ -480,6 +480,7 @@ export default function DpMeuCalendario() {
     );
 
   }, [
+    diasElegiveis,
     folgas,
     folgaCltAutomatica,
     meRef.data,
