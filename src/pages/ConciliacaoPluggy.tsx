@@ -2964,6 +2964,15 @@ export default function ConciliacaoPluggy() {
         defaultAccountId={importarExtratoConta}
       />
 
+      <ReconectarBancoDialog
+        open={reconectarAberto}
+        onOpenChange={(aberto) => {
+          setReconectarAberto(aberto);
+          if (!aberto) setReconectarBanco(null);
+        }}
+        banco={reconectarBanco}
+      />
+
       
 
       
