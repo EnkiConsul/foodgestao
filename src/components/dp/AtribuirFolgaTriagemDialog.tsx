@@ -138,7 +138,7 @@ export function AtribuirFolgaTriagemDialog({
         throw new Error("Escolha a folga que será substituída.");
       if (modo === "troca_semanal" && !dataTrabalho)
         throw new Error("Escolha o dia em que o colaborador vai trabalhar.");
-      const { error } = await supabase.rpc("dp_folga_atribuir_admin_v2" as any, {
+      const { data, error } = await supabase.rpc("dp_folga_atribuir_admin_v2" as any, {
         p_colaborador: colaboradorId,
         p_data: dataIso,
         p_modo: modo,
@@ -152,12 +152,17 @@ export function AtribuirFolgaTriagemDialog({
           throw new Error("Este dia já atingiu o limite de pessoas em folga.");
         if (raw.includes("DUPLICATE_REQUEST"))
           throw new Error("Este colaborador já tem folga registrada neste dia.");
-        if (raw.includes("TRIAGEM_FOLGA_INVALIDA"))
+        if (raw.includes("NOT_FOUND"))
           throw new Error("A folga escolhida para substituição não está mais ativa.");
-        if (raw.includes("TRIAGEM_DIA_TRABALHO_INVALIDO"))
+        if (raw.includes("INVALID_INPUT"))
           throw new Error("O dia de trabalho precisa ser um dia de folga semanal do colaborador.");
+        if (raw.includes("FORBIDDEN"))
+          throw new Error("Só responsáveis da empresa podem lançar folgas.");
         throw new Error(raw || "Não foi possível atribuir a folga.");
       }
+      const res = (data ?? {}) as { ok?: boolean; mensagem?: string };
+      if (res.ok === false)
+        throw new Error(res.mensagem ?? "Não foi possível atribuir a folga neste dia.");
     },
     onSuccess: () => {
       toast.success("Folga atribuída", {
