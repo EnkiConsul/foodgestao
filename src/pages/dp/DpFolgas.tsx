@@ -196,34 +196,8 @@ export default function DpFolgas() {
   const [remarcarData, setRemarcarData] = useState("");
   const [cancelMotivo, setCancelMotivo] = useState("");
 
-  const quickAssign = useMutation({
-    mutationFn: async () => {
-      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      if (!selectedDay) throw new Error("Selecione um dia");
-      if (!quickColabId) throw new Error("Escolha um colaborador");
-      const { error } = await supabase.rpc("dp_folga_atribuir_admin", {
-        p_colaborador: quickColabId,
-        p_data: format(selectedDay, "yyyy-MM-dd"),
-        p_motivo: null as any,
-      });
-      if (error) {
-        const raw = error.message ?? "";
-        if (raw.includes("FOLGA_LIMITE_DIA"))
-          throw new Error("Este dia já atingiu o limite de pessoas em folga.");
-        if (raw.includes("DUPLICATE_REQUEST"))
-          throw new Error("Este colaborador já tem folga registrada neste dia.");
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      toast.success("Folga atribuída");
-      qc.invalidateQueries({ queryKey: ["dp_folgas"] });
-      qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
-      qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
-      setQuickColabId("");
-    },
-    onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
-  });
+  /** Triagem obrigatória da folga manual: troca de folga marcada, troca da semanal ou extra. */
+  const [triagemOpen, setTriagemOpen] = useState(false);
 
   const [liberarEscopoOpen, setLiberarEscopoOpen] = useState(false);
 
@@ -1327,12 +1301,12 @@ export default function DpFolgas() {
                     </SelectContent>
                   </Select>
                   <Button
-                    onClick={() => quickAssign.mutate()}
-                    disabled={!quickColabId || quickAssign.isPending}
+                    onClick={() => setTriagemOpen(true)}
+                    disabled={!quickColabId}
                     className="h-12 rounded-2xl px-6 font-bold"
                   >
                     <Plus className="mr-1 h-4 w-4" />
-                    {quickAssign.isPending ? "Atribuindo..." : "Atribuir"}
+                    Atribuir
                   </Button>
                 </div>
               </div>
