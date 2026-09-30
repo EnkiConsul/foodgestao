@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { eachDayOfInterval, endOfMonth, startOfMonth } from "date-fns";
+import { addDays, eachDayOfInterval, endOfMonth, startOfMonth } from "date-fns";
 import {
   AlertCircle,
   ArrowLeftRight,
@@ -1046,7 +1046,12 @@ export default function DpMeuCalendario() {
       folgas_fixas_dow: meusDiasFixosQuery.data ?? [],
     });
     if (fixos.length) {
-      for (const d of eachDayOfInterval({ start: range.startDate, end: range.endDate })) {
+      // A folga fixa vale em qualquer semana: cobre também as semanas vizinhas
+      // ao mês aberto, senão a contagem de dias seguidos "vaza" para fora do mês.
+      for (const d of eachDayOfInterval({
+        start: addDays(range.startDate, -21),
+        end: addDays(range.endDate, 21),
+      })) {
         const iso = ymd(d);
         if (!fixos.includes(d.getDay())) continue;
         if (trabalhoExcepcionalQuery.data?.has(`${meuId}|${iso}`)) continue;
