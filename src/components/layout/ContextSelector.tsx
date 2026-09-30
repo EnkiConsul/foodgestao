@@ -24,7 +24,6 @@ export function ContextSelector() {
   const currentValue = `pj|${selectedCompanyId}`;
   const empresaAtual = companies.find((c) => c.id === selectedCompanyId);
   const currentLabel = empresaAtual?.trade_name || empresaAtual?.name || "";
-  const currentCnpj = formatCnpj(empresaAtual?.cnpj ?? null);
 
 
   /**
@@ -77,9 +76,6 @@ export function ContextSelector() {
         )}
         <span className="flex min-w-0 flex-1 flex-col text-left leading-tight">
           <span className="truncate">{currentLabel || "Selecione a empresa"}</span>
-          {currentCnpj && (
-            <span className="truncate text-[10px] font-normal text-muted-foreground">{currentCnpj}</span>
-          )}
         </span>
       </SelectTrigger>
 
