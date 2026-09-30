@@ -994,6 +994,7 @@ Deno.serve(async (req) => {
     } catch (_e) { /* opcional */ }
 
     const enrichOptions = { ownDocuments, ownNames };
+    const connIdFixo: string = conn.id;
 
     /**
      * Importa UMA janela de extrato de uma conta e devolve quantos lançamentos
