@@ -13,13 +13,14 @@ import {
   type RegraFormState, type Unidade,
 } from "@/lib/dp/bloqueios";
 
-type CampoErro = "nome" | "ano" | "meses" | "dias" | "dinamica";
+type CampoErro = "nome" | "ano" | "meses" | "dias" | "dinamica" | "inicio";
 
 function validarForm(form: RegraFormState): Set<CampoErro> {
   const erros = new Set<CampoErro>();
   if (!form.nome.trim()) erros.add("nome");
   if (form.aplicacao === "unica" && !form.ano_referencia) erros.add("ano");
   if (form.meses.length === 0) erros.add("meses");
+  if (!form.data_inicio) erros.add("inicio");
   if (form.tipo === "fixa_anual" && form.dias.length === 0) erros.add("dias");
   if (form.tipo === "dinamica" && (form.ordinal == null || form.dia_semana == null)) erros.add("dinamica");
   return erros;
@@ -115,6 +116,23 @@ export function RegraDialog({
               <option value="anual">🔄 Anual (repetir todo ano)</option>
               <option value="unica">🔹 Única vez (aplicar apenas em um ano)</option>
             </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Válida a partir de *</Label>
+            <Input
+              type="date"
+              value={form.data_inicio}
+              onChange={(e) => onChange((p) => ({ ...p, data_inicio: e.target.value }))}
+              className={cn(erros.has("inicio") && "border-destructive")}
+            />
+            {erros.has("inicio") ? (
+              <p className="text-xs text-destructive">Informe a partir de quando a regra vale.</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Datas anteriores não são bloqueadas. Pode ser retroativa ou futura.
+              </p>
+            )}
           </div>
 
           {form.aplicacao === "unica" && (

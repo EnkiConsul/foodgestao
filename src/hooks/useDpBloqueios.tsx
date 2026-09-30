@@ -260,6 +260,7 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
           ordinal: form.tipo === "dinamica" ? form.ordinal : null,
           dia_semana: form.tipo === "dinamica" ? form.dia_semana : null,
           pos_pagamento_dia: form.tipo === "pos_pagamento" ? (form.pos_pagamento_dia ?? 5) : null,
+          data_inicio: form.data_inicio || null,
         } as RegraJson,
         ativo: form.ativo,
       };
