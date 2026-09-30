@@ -24,7 +24,6 @@ export function ContextSelector() {
   const currentValue = `pj|${selectedCompanyId}`;
   const empresaAtual = companies.find((c) => c.id === selectedCompanyId);
   const currentLabel = empresaAtual?.trade_name || empresaAtual?.name || "";
-  const currentCnpj = formatCnpj(empresaAtual?.cnpj ?? null);
 
 
   /**
