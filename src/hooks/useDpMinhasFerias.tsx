@@ -55,11 +55,47 @@ export type SolicitarFeriasInput = {
   observacao?: string | null;
 };
 
+export type MinhaFeriasPedido = {
+  solicitacao_id: string;
+  periodo_id: string;
+  status: string;
+  data_inicio: string;
+  data_fim: string;
+  dias: number;
+  dias_abono: number;
+  adiantar_13: boolean;
+  observacao: string | null;
+  resposta_admin: string | null;
+  criado_em: string;
+  respondido_em: string | null;
+};
+
+export type EditarPedidoFeriasInput = {
+  solicitacaoId: string;
+  dataInicio: string;
+  dataFim: string;
+  diasAbono: number;
+  adiantar13: boolean;
+  observacao?: string | null;
+};
+
+export type RemarcarFeriasInput = {
+  gozoId: string;
+  dataInicio: string;
+  dataFim: string;
+  motivo?: string | null;
+};
+
 /** Minhas férias no portal do colaborador: saldo, programações e pedidos. */
 export function useDpMinhasFerias() {
   const qc = useQueryClient();
   const vinculo = useMeuVinculoPortal();
-  const invalidate = () => void qc.invalidateQueries({ queryKey: ["dp_ferias_minhas"] });
+  const invalidate = () => {
+    void qc.invalidateQueries({ queryKey: ["dp_ferias_minhas"] });
+    void qc.invalidateQueries({ queryKey: ["dp_ferias_meus_pedidos"] });
+    void qc.invalidateQueries({ queryKey: ["dp_minhas_solicitacoes"] });
+  };
+
 
   // A empresa do vínculo entra na chave: ao trocar de contexto, os dados da
   // empresa anterior nunca continuam na tela.
