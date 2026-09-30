@@ -1286,6 +1286,42 @@ export default function DpFolgas() {
                 </div>
               </div>
 
+              {/* Reservas de convocação: mostra quem travou a vaga do dia. */}
+              {(() => {
+                const reservados = selectedIso ? pessoasByDay.get(selectedIso) ?? [] : [];
+                if (reservados.length === 0) return null;
+                return (
+                  <div className="space-y-3 border-t pt-5">
+                    <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                      <CalendarClock className="h-3.5 w-3.5" /> Indisponíveis para convocação
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground">
+                      Estas pessoas informaram que não podem ser convocadas neste dia, então cada
+                      uma ocupa uma vaga de folga.
+                    </p>
+                    <div className="space-y-2">
+                      {reservados.map((p) => (
+                        <div
+                          key={p.id}
+                          className="flex items-center justify-between rounded-2xl border bg-card p-4"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="h-3 w-3 rounded-full bg-amber-500" />
+                            <div>
+                              <div className="font-bold">{p.nome}</div>
+                              <div className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                {p.vinculo ?? "Convocável"}
+                              </div>
+                            </div>
+                          </div>
+                          <DpStatusBadge tone="warning">Reserva</DpStatusBadge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="space-y-3 border-t pt-5">
                 <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
                   Atribuir folga manual
