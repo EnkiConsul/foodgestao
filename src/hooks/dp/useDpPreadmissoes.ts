@@ -196,6 +196,19 @@ export function useDpPreadmissaoConvite() {
     onSuccess: invalidar,
   });
 
+  /**
+   * Prorrogar: mantém o mesmo link já enviado ao candidato e só estica o prazo,
+   * para não obrigar o gestor a mandar um endereço novo.
+   */
+  const prorrogar = useMutation({
+    mutationFn: async (entrada: { preadmissao_id: string; dias_validade?: number }) =>
+      await chamar<{ expires_at: string }>("dp-preadmissao-convite", {
+        action: "prorrogar",
+        ...entrada,
+      }),
+    onSuccess: invalidar,
+  });
+
   const revogar = useMutation({
     mutationFn: async (preadmissaoId: string) =>
       await chamar<{ status: string }>("dp-preadmissao-convite", {
@@ -205,7 +218,7 @@ export function useDpPreadmissaoConvite() {
     onSuccess: invalidar,
   });
 
-  return { criar, reenviar, revogar };
+  return { criar, reenviar, prorrogar, revogar };
 }
 
 /** Ações de revisão do gestor. */

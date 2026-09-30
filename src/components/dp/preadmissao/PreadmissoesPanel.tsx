@@ -7,7 +7,7 @@
  */
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Ban, Eye, Loader2, RefreshCw, Search, Trash2, UserPlus } from "lucide-react";
+import { Ban, CalendarClock, Eye, Loader2, RefreshCw, Search, Trash2, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,6 +38,14 @@ const TOM: Partial<Record<PreadmissaoStatus, string>> = {
   expirado: "bg-muted text-muted-foreground",
 };
 
+/**
+ * Prorrogar só faz sentido enquanto a ficha está viva: depois de cancelada ou
+ * já virada em cadastro de colaborador não há mais link para esticar.
+ */
+function podeProrrogar(status: PreadmissaoStatus, colaboradorId: string | null): boolean {
+  return !colaboradorId && !["cancelado", "concluido"].includes(status);
+}
+
 interface Props {
   /** Abre o convite já na frente (chegada por "Enviar Link De Pré-Admissão"). */
   convidarAberto?: boolean;
@@ -54,7 +62,7 @@ export function PreadmissoesPanel({
   const { data: lista = [], isLoading } = useDpPreadmissoes();
   const { data: cargos = [] } = useDpCargos();
   const { data: unidades = [] } = useDpUnidades();
-  const { reenviar, revogar } = useDpPreadmissaoConvite();
+  const { reenviar, prorrogar, revogar } = useDpPreadmissaoConvite();
   const [busca, setBusca] = useState("");
   const [convidandoLocal, setConvidandoLocal] = useState(false);
   const convidando = convidarAberto ?? convidandoLocal;
@@ -83,6 +91,17 @@ export function PreadmissoesPanel({
       toast.success("Novo link gerado e copiado. O link anterior deixou de valer.");
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "gerar um novo link" });
+    }
+  };
+
+  /** Mantém o link que o candidato já recebeu e só estica o prazo dele. */
+  const prorrogarValidade = async (id: string) => {
+    try {
+      const r = await prorrogar.mutateAsync({ preadmissao_id: id });
+      const ate = new Date(r.expires_at).toLocaleDateString("pt-BR");
+      toast.success(`Prazo prorrogado até ${ate}. O link que ele já recebeu voltou a abrir.`);
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "prorrogar a validade do link" });
     }
   };
 
@@ -144,23 +163,40 @@ export function PreadmissoesPanel({
               {/* Celular */}
               <div className="space-y-2 md:hidden">
                 {filtradas.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => setRevisando(p.id)}
-                    className="w-full text-left rounded-lg border p-3 active:bg-accent/50"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-sm">{p.candidato_nome}</span>
-                      <Badge variant="outline" className={TOM[p.status]}>
-                        {PREADMISSAO_STATUS_LABEL[p.status]}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {nomeCargo(p.cargo_previsto_id)} · {nomeUnidade(p.unidade_prevista_id)}{p.regime_previsto ? ` · ${REGIMES_ADMISSAO.find((r) => r.value === p.regime_previsto)?.label ?? p.regime_previsto}` : ""}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{p.whatsapp}</p>
-                  </button>
+                  <div key={p.id} className="rounded-lg border">
+                    <button
+                      type="button"
+                      onClick={() => setRevisando(p.id)}
+                      className="w-full text-left p-3 active:bg-accent/50"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-sm">{p.candidato_nome}</span>
+                        <Badge variant="outline" className={TOM[p.status]}>
+                          {PREADMISSAO_STATUS_LABEL[p.status]}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {nomeCargo(p.cargo_previsto_id)} · {nomeUnidade(p.unidade_prevista_id)}{p.regime_previsto ? ` · ${REGIMES_ADMISSAO.find((r) => r.value === p.regime_previsto)?.label ?? p.regime_previsto}` : ""}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{p.whatsapp}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Link vale até {p.convite_expira_em ? new Date(p.convite_expira_em).toLocaleDateString("pt-BR") : "—"}
+                      </p>
+                    </button>
+                    {podeProrrogar(p.status, p.colaborador_id) && (
+                      <div className="border-t px-3 py-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full"
+                          disabled={prorrogar.isPending}
+                          onClick={() => prorrogarValidade(p.id)}
+                        >
+                          <CalendarClock className="h-4 w-4 mr-2" /> Prorrogar Validade
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
 
@@ -195,6 +231,18 @@ export function PreadmissoesPanel({
                           {p.convite_expira_em ? new Date(p.convite_expira_em).toLocaleDateString("pt-BR") : "—"}
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          {podeProrrogar(p.status, p.colaborador_id) && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              title="Prorrogar validade do link atual"
+                              aria-label={`Prorrogar a validade do link de ${p.candidato_nome}`}
+                              disabled={prorrogar.isPending}
+                              onClick={() => prorrogarValidade(p.id)}
+                            >
+                              <CalendarClock className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
