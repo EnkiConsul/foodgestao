@@ -52,6 +52,7 @@ import {
   diasParaRemarcar,
   mensagemErroRemarcacao,
   pedirAoDp,
+  trocaExigeAprovacaoGestor,
 } from "@/lib/dp/folga-remarcacao";
 
 
