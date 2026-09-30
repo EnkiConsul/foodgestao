@@ -52,9 +52,11 @@ interface Props {
   defaultParentId?: string | null;
   defaultType?: "entrada" | "saida";
   defaultName?: string;
+  /** Categorias já carregadas pela tela, para o campo Categoria Pai não depender da consulta interna. */
+  existingCategories?: Tables<"categories">[];
 }
 
-export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, defaultParentId, defaultType, defaultName }: Props) {
+export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, defaultParentId, defaultType, defaultName, existingCategories }: Props) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId, companies: contextCompanies } = useCompanyContext();
   const [name, setName] = useState("");
