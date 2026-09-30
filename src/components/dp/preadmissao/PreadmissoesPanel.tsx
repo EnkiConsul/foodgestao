@@ -38,6 +38,14 @@ const TOM: Partial<Record<PreadmissaoStatus, string>> = {
   expirado: "bg-muted text-muted-foreground",
 };
 
+/**
+ * Prorrogar só faz sentido enquanto a ficha está viva: depois de cancelada ou
+ * já virada em cadastro de colaborador não há mais link para esticar.
+ */
+function podeProrrogar(status: PreadmissaoStatus, colaboradorId: string | null): boolean {
+  return !colaboradorId && !["cancelado", "concluido"].includes(status);
+}
+
 interface Props {
   /** Abre o convite já na frente (chegada por "Enviar Link De Pré-Admissão"). */
   convidarAberto?: boolean;
