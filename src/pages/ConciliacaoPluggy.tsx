@@ -1197,8 +1197,11 @@ export default function ConciliacaoPluggy() {
     // Rede de segurança: a lista só oferece fornecedores/clientes da empresa em
     // uso, mas se algum item ficou com um cadastro sem vínculo (lista antiga em
     // memória) ele não é enviado à RPC — nunca mais "contact_forbidden" cru.
+    // Transferência entre contas não leva fornecedor/cliente: a RPC de
+    // transferência nem recebe contato, então nunca bloqueamos por vínculo aqui.
     const idsDaEmpresa = new Set(contacts.map((c) => c.id));
     const semVinculo = ids.filter((id) => {
+      if ((rowKind[id] ?? "auto") === "transfer") return false;
       const cid = rowContact[id];
       return !!cid && !idsDaEmpresa.has(cid);
     });
@@ -1470,6 +1473,23 @@ export default function ConciliacaoPluggy() {
     : null;
   const openSplit = (id: string) => setSplitRowId(id);
 
+  /**
+   * Troca o tipo do lançamento. Em transferência entre contas o fornecedor/
+   * cliente não se aplica: limpamos o vínculo herdado da sugestão para que a
+   * confirmação não seja recusada por cadastro de outra empresa.
+   */
+  const aplicarTipoLancamento = (id: string, tipo: "auto" | "transfer") => {
+    setRowKind((p) => ({ ...p, [id]: tipo }));
+    if (tipo === "transfer") {
+      setRowContact((p) => {
+        if (!p[id]) return p;
+        const next = { ...p };
+        delete next[id];
+        return next;
+      });
+    }
+  };
+
   const handleRowAction = async (id: string, action: "confirm" | "ignore" | "split") => {
     if (action === "split") { openSplit(id); return; }
     setRowBusy(id);
@@ -1662,18 +1682,20 @@ export default function ConciliacaoPluggy() {
 
 
   // Pré-seleciona o fornecedor/cliente identificado pelo documento do extrato,
-  // sem sobrescrever escolhas manuais nem rascunhos salvos.
+  // sem sobrescrever escolhas manuais nem rascunhos salvos. Linhas marcadas
+  // como transferência ficam de fora: nelas não existe fornecedor/cliente.
   useEffect(() => {
     if (Object.keys(suggestedContact).length === 0) return;
     setRowContact((prev) => {
       const next = { ...prev };
       let changed = false;
       for (const [id, contactId] of Object.entries(suggestedContact)) {
+        if ((rowKind[id] ?? "auto") === "transfer") continue;
         if (!next[id]) { next[id] = contactId; changed = true; }
       }
       return changed ? next : prev;
     });
-  }, [suggestedContact]);
+  }, [suggestedContact, rowKind]);
 
 
   /**
@@ -2277,6 +2299,12 @@ export default function ConciliacaoPluggy() {
                   ids.forEach((id) => { next[id] = v; });
                   return next;
                 });
+                // Transferência não usa fornecedor/cliente: limpa o vínculo herdado.
+                setRowContact((p) => {
+                  const next = { ...p };
+                  ids.forEach((id) => { delete next[id]; });
+                  return next;
+                });
                 toast.info(`${ids.length} lançamento(s) marcados como transferência`);
               }}
             >
@@ -2358,7 +2386,7 @@ export default function ConciliacaoPluggy() {
                 cardLabel={rowCardId(r) ? creditCardLabel(cardById[rowCardId(r)!]) : null}
                 onAuthorizeCard={() => navigate("/cartoes-credito")}
                 kind={rowKind[r.id] ?? "auto"}
-                onKindChange={(v) => setRowKind((p) => ({ ...p, [r.id]: v }))}
+                onKindChange={(v) => aplicarTipoLancamento(r.id, v)}
                 counterpart={rowCounterpart[r.id] ?? ""}
                 onCounterpartChange={(v) => setRowCounterpart((p) => ({ ...p, [r.id]: v }))}
                 category={rowCategory[r.id] ?? ""}
@@ -2532,7 +2560,7 @@ export default function ConciliacaoPluggy() {
                     <td className="p-2">
                       <Select
                         value={rowKind[r.id] ?? "auto"}
-                        onValueChange={(v) => setRowKind((p) => ({ ...p, [r.id]: v as "auto" | "transfer" }))}
+                        onValueChange={(v) => aplicarTipoLancamento(r.id, v as "auto" | "transfer")}
                         disabled={disabled}
                       >
                         <SelectTrigger className="h-8 min-w-[160px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left" aria-label="Tipo do lançamento">
