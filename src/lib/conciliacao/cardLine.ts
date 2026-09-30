@@ -225,20 +225,30 @@ export function classifyCardLine(input: CardLineInput): CardLine {
   const original = cardLineText(input);
   const text = collapse(original);
   const category = input.category ?? null;
+  const operation = cardOperationInfo(input.raw);
 
-  if (!text) {
+  // Quando a descrição vem só com o código genérico, o detalhe interno da
+  // operação é a única pista do que a linha é ("ENCARG FINANC FATURADOS").
+  const generic = !text || isOperationCode(text);
+  const detail = generic ? [operation.info ?? "", operation.type ?? ""].join(" ").trim() : "";
+
+  if (!text && !detail) {
     return { kind: "sem_identificacao", text, merchant: null, city: null, installment: null };
   }
 
-  if (isCardBillMovement(text, category)) {
+  if (isCardBillMovement(text, category) || (generic && operation.type === "PAGAMENTO")) {
     return { kind: "pagamento_fatura", text, merchant: null, city: null, installment: null };
   }
 
-  if (isCardChargeLine(text, category)) {
+  if (isCardChargeLine(text, category) || (detail && isCardChargeLine(detail, null))) {
     return { kind: "encargo", text, merchant: null, city: null, installment: null };
   }
 
-  if (isOperationCode(text)) {
+  if (detail && isCardBillMovement(detail, null)) {
+    return { kind: "pagamento_fatura", text, merchant: null, city: null, installment: null };
+  }
+
+  if (!text || isOperationCode(text)) {
     return { kind: "sem_identificacao", text, merchant: null, city: null, installment: null };
   }
 
