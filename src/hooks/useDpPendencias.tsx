@@ -1018,7 +1018,7 @@ export function useDpPendencias() {
           const [{ data: colabs }, { data: folgas }, { data: cfgs }] = await Promise.all([
             supabase
               .from("dp_colaboradores")
-              .select("id, regime, vinculo_label")
+              .select("id, regime, vinculo_label, forma_pagamento")
               .eq("company_id", selectedCompanyId!)
               .eq("ativo", true)
               .is("deleted_at", null),
@@ -1040,9 +1040,11 @@ export function useDpPendencias() {
           const semDomingo = new Set(
             (cfgs ?? []).filter((c: any) => c.folga_fixa_dow === 0).map((c: any) => c.colaborador_id),
           );
-          // Mesmo critério do banco (dp_folga_exige_descanso_fds): só CLT, sem sócios.
+          // Mesmo critério do banco (dp_folga_exige_descanso_fds): CLT e freelancer mensalista, sem sócios.
           const elegiveis = (colabs ?? []).filter((c: any) => {
-            if (c.regime && String(c.regime) !== "clt") return false;
+            const r = String(c.regime ?? "clt");
+            const freelaMensal = r === "freelancer" && c.forma_pagamento === "mensalista";
+            if (r !== "clt" && !freelaMensal) return false;
             const v = String(c.vinculo_label ?? "").toLowerCase();
             if (v === "socio" || v === "sócio") return false;
             return !semDomingo.has(c.id);
