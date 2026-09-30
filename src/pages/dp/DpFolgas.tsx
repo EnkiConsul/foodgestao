@@ -831,9 +831,12 @@ export default function DpFolgas() {
           {statCards
             .filter((s) => mostrarZerados || s.value !== 0)
             .map((s) => (
-              <div
+              <button
                 key={s.label}
-                className="rounded-xl border border-[hsl(var(--dp-border))] bg-card p-4"
+                type="button"
+                onClick={() => setStatDetalhe(s.key)}
+                aria-label={`Ver detalhes de ${s.label}`}
+                className="rounded-xl border border-[hsl(var(--dp-border))] bg-card p-4 text-left transition-colors hover:bg-muted/40 active:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   {s.label}
@@ -842,8 +845,9 @@ export default function DpFolgas() {
                   <s.icon className={cn("h-5 w-5", s.tone)} />
                   <span className="text-3xl font-bold text-foreground">{s.value}</span>
                 </div>
-              </div>
+              </button>
             ))}
+
         </div>
         {statsZerados > 0 && (
           <div className="flex justify-end">
