@@ -1473,6 +1473,23 @@ export default function ConciliacaoPluggy() {
     : null;
   const openSplit = (id: string) => setSplitRowId(id);
 
+  /**
+   * Troca o tipo do lançamento. Em transferência entre contas o fornecedor/
+   * cliente não se aplica: limpamos o vínculo herdado da sugestão para que a
+   * confirmação não seja recusada por cadastro de outra empresa.
+   */
+  const aplicarTipoLancamento = (id: string, tipo: "auto" | "transfer") => {
+    setRowKind((p) => ({ ...p, [id]: tipo }));
+    if (tipo === "transfer") {
+      setRowContact((p) => {
+        if (!p[id]) return p;
+        const next = { ...p };
+        delete next[id];
+        return next;
+      });
+    }
+  };
+
   const handleRowAction = async (id: string, action: "confirm" | "ignore" | "split") => {
     if (action === "split") { openSplit(id); return; }
     setRowBusy(id);
