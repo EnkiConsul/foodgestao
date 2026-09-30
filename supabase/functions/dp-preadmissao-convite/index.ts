@@ -207,6 +207,45 @@ Deno.serve(async (req) => {
       });
     }
 
+    /**
+     * Prorrogar: estica a validade do MESMO convite que o candidato já recebeu.
+     * Nenhum token novo é gerado, então o link antigo volta a abrir e a ficha
+     * continua exatamente de onde parou.
+     */
+    if (acao === "prorrogar") {
+      if (["cancelado", "concluido"].includes(pa.status as string)) {
+        return jsonResponse(req, 409, { error: "Esta pré-admissão já foi encerrada." });
+      }
+      const { data: atual } = await admin
+        .from("dp_preadmissao_convites")
+        .select("id")
+        .eq("preadmissao_id", pa.id)
+        .is("revoked_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!atual) {
+        return jsonResponse(req, 409, {
+          error: "O link deste candidato foi cancelado. Gere um novo link para ele.",
+        });
+      }
+      const novoPrazo = new Date(Date.now() + dias * 86_400_000).toISOString();
+      const { error } = await admin
+        .from("dp_preadmissao_convites")
+        .update({ expires_at: novoPrazo })
+        .eq("id", atual.id as string);
+      if (error) return jsonError(req, "internal", error.message);
+      if (pa.status === "expirado") {
+        await admin.from("dp_preadmissoes").update({ status: "aguardando_preenchimento" }).eq("id", pa.id);
+      }
+      await registrarEvento(admin, pa.id, pa.company_id as string, "convite_prorrogado", { dias }, caller.id);
+      return jsonResponse(req, 200, {
+        success: true,
+        whatsapp: pa.whatsapp,
+        expires_at: novoPrazo,
+      });
+    }
+
     if (acao === "revogar") {
       await admin.from("dp_preadmissao_convites").update({ revoked_at: new Date().toISOString() })
         .eq("preadmissao_id", pa.id).is("revoked_at", null);
