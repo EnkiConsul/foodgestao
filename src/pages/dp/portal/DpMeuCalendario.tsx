@@ -419,10 +419,14 @@ export default function DpMeuCalendario() {
   const pendentes = (pendentesQuery.data ?? []) as any[];
 
   /**
-   * Folgas de domingo: quantas a regra prevê no mês visto e quantas já estão
-   * marcadas para mim, para o domingo não ficar invisível no calendário.
+   * Folgas de descanso semanal: quantas a regra prevê no mês visto e quantas
+   * já estão marcadas para mim. Conta todos os dias elegíveis da regra da
+   * unidade (ex.: CCT com sábado e domingo), não só domingos.
    */
   const resumoDomingos = useMemo(() => {
+    const elegiveis = diasElegiveis.length ? diasElegiveis : [0];
+    const soDomingo = elegiveis.length === 1 && elegiveis[0] === 0;
+    const rotulo = soDomingo ? "em domingo" : "de fim de semana";
     const dias = eachDayOfInterval({ start: range.startDate, end: range.endDate });
     const domingosNoMes = dias.filter((d) => d.getDay() === 0).length;
     const previstas = domingosFolgaNoPeriodo(regrasConfig, domingosNoMes, {
@@ -445,28 +449,33 @@ export default function DpMeuCalendario() {
       ? " Neste mês você tem férias: sua folga fica restrita aos dias em que você trabalha, com prioridade para os dias mais próximos da saída e do retorno."
       : "";
     if (previstas <= 0)
-      return "Neste mês a regra da sua loja não prevê folga em domingo." + avisoFerias;
+      return `Neste mês a regra da sua loja não prevê folga ${rotulo}.` + avisoFerias;
     const minhas = folgas.filter(
       (f) =>
         f.colaborador_id === meRef.data?.id &&
         f.status !== "cancelada" &&
-        parseYMD(f.data).getDay() === 0 &&
+        elegiveis.includes(parseYMD(f.data).getDay()) &&
         parseYMD(f.data) >= range.startDate &&
         parseYMD(f.data) <= range.endDate,
     ).length;
-    const fixaNoDomingo = diasFixosDeFolga({
+    const fixos = diasFixosDeFolga({
       folga_fixa_semana: meRef.data?.folga_fixa_semana ?? null,
       folgas_fixas_dow: meusDiasFixosQuery.data ?? [],
-    }).includes(0);
-    if (fixaNoDomingo) return "Domingo é seu dia de folga fixa." + avisoFerias;
-    const plural = previstas === 1 ? "folga em domingo" : "folgas em domingo";
+    });
+    if (elegiveis.some((dow) => fixos.includes(dow)))
+      return (soDomingo ? "Domingo é seu dia de folga fixa." : "Seu dia de folga fixa já cobre o descanso deste mês.") + avisoFerias;
     if (minhas >= previstas)
-      return `Sua folga de domingo deste mês já está marcada.` + avisoFerias;
+      return `Sua folga ${rotulo} deste mês já está marcada.` + avisoFerias;
+    const plural = previstas === 1 ? `folga ${rotulo}` : `folgas ${rotulo}`;
     return (
       `Você tem ${previstas} ${plural} neste mês e ${minhas} já marcada(s). ${
         folgaCltAutomatica
-          ? "O domingo é definido pelo setor de pessoal."
-          : "Toque em um domingo livre para marcar."
+          ? soDomingo
+            ? "O domingo é definido pelo setor de pessoal."
+            : "O dia é definido pelo setor de pessoal."
+          : soDomingo
+            ? "Toque em um domingo livre para marcar."
+            : "Toque em um dia livre de fim de semana para marcar."
       }` + avisoFerias
     );
 
