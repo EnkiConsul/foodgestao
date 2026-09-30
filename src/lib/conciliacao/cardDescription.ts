@@ -278,11 +278,16 @@ export function cardHintLabel(
     category: (raw as CardRawShape | null)?.category as string | null,
   });
 
+  // A descrição exibida já pode trazer esse rótulo: não repetimos aqui.
+  const exibida = stripAccents(formatProviderDescription(description, raw)).toUpperCase();
+  const distinto = (label: string | null): boolean =>
+    !!label && stripAccents(label).toUpperCase() !== exibida;
+
   const kind = cardLineKindLabel(line);
-  if (kind) parts.push(kind);
-  else if (line.kind === "sem_identificacao" && isCardOperationCode(line.text)) {
+  if (distinto(kind)) parts.push(kind as string);
+  else if (!kind && line.kind === "sem_identificacao" && isCardOperationCode(line.text)) {
     const label = cardOperationLabel(line.text);
-    if (label && label.toUpperCase() !== line.text.toUpperCase()) parts.push(label);
+    if (distinto(label) && label.toUpperCase() !== line.text.toUpperCase()) parts.push(label);
   }
 
 
