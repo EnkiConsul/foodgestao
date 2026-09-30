@@ -470,6 +470,9 @@ export default function ConciliacaoPluggy() {
   }>>([]);
   const [importarExtratoConta, setImportarExtratoConta] = useState<string | null>(null);
   const [importarExtratoAberto, setImportarExtratoAberto] = useState(false);
+  /** Orientação de desconectar/reconectar o banco quando o extrato vem incompleto. */
+  const [reconectarBanco, setReconectarBanco] = useState<string | null>(null);
+  const [reconectarAberto, setReconectarAberto] = useState(false);
 
   // Chave da requisição: empresa + escopo pedido. Resultado de uma chave antiga
   // nunca pode ser aplicado depois que o usuário trocou de empresa/conta.
