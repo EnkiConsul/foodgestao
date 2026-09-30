@@ -54,6 +54,10 @@ export interface EnrichInput {
   category?: string | null;
   /** Metadados da fatura do cartão (cardNumber, billId...). */
   creditCardMetadata?: any;
+  /** Tipo da operação no Open Finance ("PAGAMENTO", "OUTROS"...). */
+  operationType?: string | null;
+  /** Detalhe da operação ("ENCARG FINANC FATURADOS", "IOF Rotativo"). */
+  operationTypeAdditionalInfo?: string | null;
 }
 
 /**
