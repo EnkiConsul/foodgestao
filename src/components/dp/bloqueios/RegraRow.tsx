@@ -40,8 +40,12 @@ export function RegraRow({ regra: r, onEdit, onDelete }: Props) {
             )}
             {r.tipo === "dinamica" && (
               <>
-                <span>Mês: {cfg.meses?.[0] ? getMonthName(cfg.meses[0]) : "?"}</span>
-                <span>{NOMES_ORDINAIS[(cfg.ordinal ?? 1) - 1]} {NOMES_SEMANA[cfg.dia_semana ?? 0]}</span>
+                <span>Meses: {(cfg.meses ?? []).map(getMonthName).join(", ") || "Todos"}</span>
+                <span>
+                  {cfg.ordinal === 0
+                    ? `Todas as ${NOMES_SEMANA[cfg.dia_semana ?? 0]}s`
+                    : `${NOMES_ORDINAIS[(cfg.ordinal ?? 1) - 1]} ${NOMES_SEMANA[cfg.dia_semana ?? 0]}`}
+                </span>
               </>
             )}
             {r.tipo === "pos_pagamento" && (
