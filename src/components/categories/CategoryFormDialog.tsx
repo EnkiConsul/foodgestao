@@ -242,7 +242,15 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         });
     } else {
       setName(defaultName ?? "");
-      setType(defaultType ?? "saida");
+      // O tipo acompanha a categoria pai: se divergir, o filtro de opções
+      // esconderia o pai e o campo voltaria para "Nenhuma (raiz)".
+      const paiTipo = defaultParentId
+        ? (allCategories.find((c: any) => c.id === defaultParentId)?.transaction_type as
+            | "entrada"
+            | "saida"
+            | undefined)
+        : undefined;
+      setType(paiTipo ?? defaultType ?? "saida");
       setColor("#3b82f6");
       setParentId(defaultParentId || null);
       setChartAccountId(null);
