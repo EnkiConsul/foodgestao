@@ -1682,18 +1682,20 @@ export default function ConciliacaoPluggy() {
 
 
   // Pré-seleciona o fornecedor/cliente identificado pelo documento do extrato,
-  // sem sobrescrever escolhas manuais nem rascunhos salvos.
+  // sem sobrescrever escolhas manuais nem rascunhos salvos. Linhas marcadas
+  // como transferência ficam de fora: nelas não existe fornecedor/cliente.
   useEffect(() => {
     if (Object.keys(suggestedContact).length === 0) return;
     setRowContact((prev) => {
       const next = { ...prev };
       let changed = false;
       for (const [id, contactId] of Object.entries(suggestedContact)) {
+        if ((rowKind[id] ?? "auto") === "transfer") continue;
         if (!next[id]) { next[id] = contactId; changed = true; }
       }
       return changed ? next : prev;
     });
-  }, [suggestedContact]);
+  }, [suggestedContact, rowKind]);
 
 
   /**
