@@ -12,7 +12,9 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, Pencil, FileText, Split, CreditCard, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, Pencil, FileText, Split, CreditCard, Trash2, Upload } from "lucide-react";
+import { ImportStatementDialog } from "@/components/transactions/ImportStatementDialog";
+import { formatBRL } from "@/lib/billing";
 import { DividirLancamentoDialog } from "@/components/conciliacao/DividirLancamentoDialog";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -454,6 +456,20 @@ export default function ConciliacaoPluggy() {
   const [counterpartyReprocessing, setCounterpartyReprocessing] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
+  /**
+   * Contas em que o banco atualizou o saldo mas não entregou todos os
+   * lançamentos (falha silenciosa do Open Finance). Apurado na sincronização.
+   */
+  const [extratosIncompletos, setExtratosIncompletos] = useState<Array<{
+    pluggyAccountId: string;
+    nome: string;
+    diferenca: number;
+    de: string | null;
+    ate: string | null;
+    contaLocalId: string | null;
+  }>>([]);
+  const [importarExtratoConta, setImportarExtratoConta] = useState<string | null>(null);
+  const [importarExtratoAberto, setImportarExtratoAberto] = useState(false);
 
   // Chave da requisição: empresa + escopo pedido. Resultado de uma chave antiga
   // nunca pode ser aplicado depois que o usuário trocou de empresa/conta.
@@ -539,6 +555,37 @@ export default function ConciliacaoPluggy() {
     setScopeUnresolved(escopoBloqueado);
     setScopeProblem(escopoBloqueado ? scopeProblem : null);
     setConnectionId(resolvedScope ? resolvedScope.connectionId : "all");
+
+    // Extrato incompleto apurado na última sincronização (saldo do banco não é
+    // explicado pelos lançamentos entregues).
+    {
+      let gapQuery = supabase
+        .from("pluggy_accounts")
+        .select("pluggy_account_id, name, linked_account_id, statement_gap_amount, statement_gap_from, statement_gap_to")
+        .eq("company_id", selectedCompanyId)
+        .not("statement_gap_amount", "is", null);
+      if (resolvedScope) gapQuery = gapQuery.eq("pluggy_account_id", resolvedScope.pluggyAccountId);
+      const { data: gapRows } = await gapQuery;
+      if (stale()) return;
+      setExtratosIncompletos(
+        ((gapRows ?? []) as Array<{
+          pluggy_account_id: string;
+          name: string | null;
+          linked_account_id: string | null;
+          statement_gap_amount: number | null;
+          statement_gap_from: string | null;
+          statement_gap_to: string | null;
+        }>).map((g) => ({
+          pluggyAccountId: g.pluggy_account_id,
+          nome: cleanProviderName(g.name) ?? "Conta conectada",
+          diferenca: Number(g.statement_gap_amount ?? 0),
+          de: g.statement_gap_from,
+          ate: g.statement_gap_to,
+          contaLocalId: g.linked_account_id,
+        })),
+      );
+    }
+
 
     // Fábrica de query: cada página precisa de um builder novo (os builders do
     // supabase-js não podem ser reexecutados).
@@ -2037,6 +2084,35 @@ export default function ConciliacaoPluggy() {
         </Card>
       )}
 
+      {extratosIncompletos.map((e) => (
+        <Card key={e.pluggyAccountId} className="border-warning/50 bg-warning/10">
+          <CardContent className="flex flex-col gap-2 p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
+            <span className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+              <span>
+                O banco atualizou o saldo de {e.nome} mas não enviou todos os lançamentos.
+                Faltam {formatBRL(Math.abs(e.diferenca))}
+                {e.de && e.ate
+                  ? ` entre ${e.de.split("-").reverse().join("/")} e ${e.ate.split("-").reverse().join("/")}`
+                  : ""}
+                . Importe o extrato do período para completar a conciliação.
+              </span>
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              onClick={() => {
+                setImportarExtratoConta(e.contaLocalId);
+                setImportarExtratoAberto(true);
+              }}
+            >
+              <Upload className="h-4 w-4 mr-2" /> Importar extrato
+            </Button>
+          </CardContent>
+        </Card>
+      ))}
+
       {creditReviewPending.length > 0 && (
         <Card className="border-warning/50 bg-warning/10">
           <CardContent className="flex flex-col gap-2 p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
@@ -2842,6 +2918,18 @@ export default function ConciliacaoPluggy() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ImportStatementDialog
+        open={importarExtratoAberto}
+        onOpenChange={(aberto) => {
+          setImportarExtratoAberto(aberto);
+          if (!aberto) setImportarExtratoConta(null);
+        }}
+        onImported={() => { void load(); }}
+        defaultAccountId={importarExtratoConta}
+      />
+
+      
 
       
     </div>

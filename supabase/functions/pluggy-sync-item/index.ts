@@ -604,6 +604,22 @@ Deno.serve(async (req) => {
       .not('sync_paused_at', 'is', null);
     const pausedIds = new Set((pausedRows ?? []).map((r: any) => r.pluggy_account_id));
 
+    /**
+     * Base da conferência de completude do extrato.
+     *
+     * Alguns bancos (BMG, por exemplo) atualizam o SALDO no Open Finance mas
+     * devolvem o extrato vazio na mesma coleta — sem erro nenhum. Guardamos aqui
+     * a foto do saldo ANTES de qualquer atualização deste ciclo para, depois de
+     * importar os lançamentos, conferir se eles explicam a variação do saldo.
+     */
+    const baseConferencia = new Map<string, {
+      rowId: string | null;
+      saldoAnterior: number | null;
+      saldoAnteriorEm: string | null;
+      saldoAtual: number | null;
+    }>();
+
+
     for (const acc of accounts) {
       if (pausedIds.has(acc.id)) continue;
       const accNumber = acc.number ?? null;
@@ -689,6 +705,29 @@ Deno.serve(async (req) => {
       }
 
 
+
+      // Foto do saldo anterior ANTES de qualquer atualização deste ciclo.
+      if ((acc.type ?? '').toUpperCase() === 'BANK') {
+        let saldoAnterior: number | null = null;
+        let saldoAnteriorEm: string | null = null;
+        if (upserted?.linked_account_id) {
+          const { data: prevBal } = await admin
+            .from('accounts')
+            .select('bank_balance, bank_balance_at')
+            .eq('id', upserted.linked_account_id)
+            .maybeSingle();
+          if (prevBal?.bank_balance !== null && prevBal?.bank_balance !== undefined) {
+            saldoAnterior = Number(prevBal.bank_balance);
+          }
+          saldoAnteriorEm = prevBal?.bank_balance_at ?? null;
+        }
+        baseConferencia.set(acc.id, {
+          rowId: upserted?.id ?? null,
+          saldoAnterior,
+          saldoAnteriorEm,
+          saldoAtual: ofBalanceInfo.reported,
+        });
+      }
 
       if (upserted?.linked_account_id && (acc.type ?? '').toUpperCase() === 'BANK') {
         const { data: localAcc } = await admin
@@ -955,15 +994,16 @@ Deno.serve(async (req) => {
     } catch (_e) { /* opcional */ }
 
     const enrichOptions = { ownDocuments, ownNames };
+    const connIdFixo: string = conn.id;
 
-    for (const acc of accounts) {
-      if (pausedIds.has(acc.id)) continue;
-      // Evento do provedor aponta a conta afetada: as demais não mudaram.
-      if (requestedAccountIds.length > 0 && !requestedAccountIds.includes(acc.id)) continue;
-
-      const accFrom = await inicioIncremental(acc.id);
-      const txs = await listTransactions(acc.id, fmt(accFrom), fmt(to));
-      if (txs.length === 0) continue;
+    /**
+     * Importa UMA janela de extrato de uma conta e devolve quantos lançamentos
+     * entraram. Isolada em função para permitir uma segunda passada com janela
+     * ampliada quando a conferência de saldo indica extrato faltando.
+     */
+    async function importarJanela(acc: any, fromStr: string, toStr: string): Promise<number> {
+      const txs = await listTransactions(acc.id, fromStr, toStr);
+      if (txs.length === 0) return 0;
 
       const rows = txs.map((t: any): any => {
         const amt = Number(t.amount ?? 0);
@@ -974,7 +1014,7 @@ Deno.serve(async (req) => {
 
         return {
           company_id: effectiveCompanyId,
-          connection_id: conn.id,
+          connection_id: connIdFixo,
           pluggy_account_id: acc.id,
           pluggy_transaction_id: t.id,
           provider_id: (t.providerId ?? null) || null,
@@ -1108,8 +1148,89 @@ Deno.serve(async (req) => {
         if (error) console.error('staging re-enrich error', error);
       }
       // Contador real: descontamos os lotes que o banco recusou.
-      staged += Math.max(rows.length - naoGravados, 0);
+      return Math.max(rows.length - naoGravados, 0);
+    }
 
+    /**
+     * Confere se o extrato importado explica a variação do saldo informado pelo
+     * banco. Diferença = lançamento que o banco não entregou.
+     */
+    async function conferirCompletude(
+      accId: string,
+    ): Promise<{ diferenca: number; de: string; ate: string } | null> {
+      const base = baseConferencia.get(accId);
+      if (!base) return null;
+      if (base.saldoAtual === null || base.saldoAnterior === null || !base.saldoAnteriorEm) return null;
+      const de = String(base.saldoAnteriorEm).slice(0, 10);
+
+      let soma = 0;
+      for (let pagina = 0; pagina < 20; pagina += 1) {
+        const inicio = pagina * 1000;
+        const { data: linhas, error } = await admin
+          .from('pluggy_staging_transactions')
+          .select('amount')
+          .eq('company_id', effectiveCompanyId)
+          .eq('pluggy_account_id', accId)
+          .neq('status', 'duplicate')
+          .gt('date', de)
+          .range(inicio, inicio + 999);
+        if (error) return null;
+        const lote = linhas ?? [];
+        for (const l of lote as Array<{ amount: number | null }>) soma += Number(l.amount ?? 0);
+        if (lote.length < 1000) break;
+      }
+
+      const diferenca = Math.round((base.saldoAtual - (base.saldoAnterior + soma)) * 100) / 100;
+      if (Math.abs(diferenca) < 0.01) return null;
+      return { diferenca, de, ate: fmt(to) };
+    }
+
+    // Contas em que o banco atualizou o saldo mas não entregou todo o extrato.
+    const extratosIncompletos: Array<{ nome: string; diferenca: number; de: string; ate: string }> = [];
+
+    for (const acc of accounts) {
+      if (pausedIds.has(acc.id)) continue;
+      // Evento do provedor aponta a conta afetada: as demais não mudaram.
+      if (requestedAccountIds.length > 0 && !requestedAccountIds.includes(acc.id)) continue;
+
+      const accFrom = await inicioIncremental(acc.id);
+      staged += await importarJanela(acc, fmt(accFrom), fmt(to));
+
+      // Conferência de completude + nova tentativa com janela ampliada. Muitos
+      // bancos entregam o lançamento faltante quando a consulta recua alguns
+      // dias além do ponto incremental.
+      const base = baseConferencia.get(acc.id);
+      if (!base) continue;
+      let falta = await conferirCompletude(acc.id);
+      if (falta) {
+        const ampliada = new Date(`${falta.de}T12:00:00Z`);
+        ampliada.setDate(ampliada.getDate() - 7);
+        if (ampliada.getTime() < accFrom.getTime()) {
+          staged += await importarJanela(acc, fmt(ampliada), fmt(to));
+          falta = await conferirCompletude(acc.id);
+        }
+      }
+
+      if (base.rowId) {
+        await admin.from('pluggy_accounts').update({
+          statement_gap_amount: falta ? falta.diferenca : null,
+          statement_gap_from: falta ? falta.de : null,
+          statement_gap_to: falta ? falta.ate : null,
+          statement_gap_checked_at: new Date().toISOString(),
+        }).eq('id', base.rowId);
+      }
+
+      if (falta) {
+        extratosIncompletos.push({
+          nome: acc.name ?? acc.marketingName ?? 'Conta',
+          diferenca: falta.diferenca,
+          de: falta.de,
+          ate: falta.ate,
+        });
+        console.warn('extrato incompleto do banco', {
+          pluggyAccountId: acc.id, ...falta,
+        });
+      }
     }
 
     // Fecha o ciclo: sem isso a "próxima sincronização" continuava com data
@@ -1117,11 +1238,19 @@ Deno.serve(async (req) => {
     // contas não veio do banco) não ficava registrado para a tela mostrar.
     const execUpper = String(item?.executionStatus ?? '').toUpperCase();
     const parcialBanco = execUpper === 'PARTIAL_SUCCESS';
-    const parcial = parcialBanco || falhasGravacao > 0;
+    const parcial = parcialBanco || falhasGravacao > 0 || extratosIncompletos.length > 0;
     const motivos: string[] = [];
     if (parcialBanco) motivos.push('O banco não devolveu todas as contas nesta coleta.');
     if (falhasGravacao > 0) {
       motivos.push(`${falhasGravacao} lote(s) de lançamentos não foram gravados.`);
+    }
+    for (const e of extratosIncompletos) {
+      const valor = Math.abs(e.diferenca).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2, maximumFractionDigits: 2,
+      });
+      motivos.push(
+        `O banco atualizou o saldo de ${e.nome} mas não entregou todos os lançamentos: faltam R$ ${valor} entre ${e.de.split('-').reverse().join('/')} e ${e.ate.split('-').reverse().join('/')}. Importe o extrato do período para completar.`,
+      );
     }
     const intervaloMin = Number(Deno.env.get('PLUGGY_CRON_INTERVAL_MIN') ?? '60');
     // Timestamp de conclusão só agora, depois de tudo persistido.
@@ -1148,6 +1277,7 @@ Deno.serve(async (req) => {
       accounts: accounts.length,
       transactions: staged,
       write_failures: falhasGravacao,
+      incomplete_statements: extratosIncompletos,
       message: parcial ? motivos.join(' ') : null,
       first_connect: !!isFirstConnect,
       item_status: item?.status ?? null,
