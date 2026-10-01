@@ -24,7 +24,7 @@ export const DpFilePicker = forwardRef<HTMLInputElement, DpFilePickerProps>(
     useImperativeHandle(ref, () => innerRef.current as HTMLInputElement, []);
 
     return (
-      <div className="relative flex min-w-0 items-center gap-2">
+      <div className="relative flex min-w-0 flex-wrap items-center gap-2">
         <input
           ref={innerRef}
           id={inputId}
@@ -44,7 +44,7 @@ export const DpFilePicker = forwardRef<HTMLInputElement, DpFilePickerProps>(
             Selecionar arquivo
           </label>
         </Button>
-        <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+        <span className="min-w-0 basis-full truncate text-sm text-muted-foreground sm:basis-auto sm:flex-1">
           {file ? file.name : "Nenhum arquivo escolhido"}
         </span>
       </div>
