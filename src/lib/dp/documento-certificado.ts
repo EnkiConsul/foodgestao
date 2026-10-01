@@ -82,11 +82,12 @@ const ESTILO = `
   header { border-bottom: 2px solid #EB6119; padding-bottom: 8px; margin-bottom: 14px; }
   header h1 { margin: 0 0 4px; font-size: 17px; }
   header p { margin: 0; font-size: 11px; color: #555; }
-  .timbre { display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    background: #0F1B3D; border-radius: 6px 6px 0 0; padding: 12px 16px; margin: -20px -20px 0; }
-  .timbre img { height: 26px; width: auto; display: block; }
-  .timbre span { font-size: 10px; color: #C9D2E6; text-align: right; }
-  .selo { height: 3px; background: #EB6119; margin: 0 -20px 14px; }
+  .timbre { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding-bottom: 10px; }
+  .timbre img { height: 30px; width: auto; display: block; }
+  .timbre div { text-align: right; line-height: 1.5; }
+  .timbre strong { display: block; font-size: 10px; color: #0F1B3D; }
+  .timbre em { display: block; font-size: 9px; color: #6b7280; font-style: normal; }
+  .selo { height: 2px; background: #EB6119; margin-bottom: 12px; }
   .marca { margin-top: 6px; font-size: 10px; color: #0F1B3D; font-weight: 600; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
   td { border: 1px solid #e5e5e5; padding: 6px 8px; vertical-align: top; width: 50%; }
