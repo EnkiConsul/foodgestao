@@ -165,6 +165,9 @@ export function montarChecklist({
   for (const codigo of [...new Set([...requisitosCargo, ...requisitosUnidade])]) {
     itens.push(item(codigo, "condicional"));
   }
+  for (const codigo of requisitosEmpresa) {
+    if (codigo.startsWith("custom_")) itens.push(item(codigo, "condicional"));
+  }
 
   const estado = normaliza(ficha.estado_civil);
   if (SOLTEIRO.includes(estado)) itens.push(item("certidao_nascimento", "condicional"));

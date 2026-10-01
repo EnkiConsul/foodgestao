@@ -156,23 +156,23 @@ export async function requisitosPrevistos(
   if (pa.cargo_previsto_id) {
     const { data } = await admin
       .from("dp_requisito_cargos")
-      .select("dp_documento_requisitos(codigo)")
+      .select("dp_documento_requisitos(codigo, obrigatoriedade, responsavel)")
       .eq("cargo_id", pa.cargo_previsto_id)
       .eq("company_id", pa.company_id);
     for (const r of data ?? []) {
-      const c = (r as { dp_documento_requisitos?: { codigo?: string } }).dp_documento_requisitos?.codigo;
-      if (c) cargo.push(c);
+      const req = (r as { dp_documento_requisitos?: { codigo?: string; obrigatoriedade?: string; responsavel?: string } }).dp_documento_requisitos;
+      if (req?.codigo && req.obrigatoriedade !== "desativado" && req.responsavel !== "empresa") cargo.push(req.codigo);
     }
   }
   if (pa.unidade_prevista_id) {
     const { data } = await admin
       .from("dp_requisito_unidades")
-      .select("dp_documento_requisitos(codigo)")
+      .select("dp_documento_requisitos(codigo, obrigatoriedade, responsavel)")
       .eq("unidade_id", pa.unidade_prevista_id)
       .eq("company_id", pa.company_id);
     for (const r of data ?? []) {
-      const c = (r as { dp_documento_requisitos?: { codigo?: string } }).dp_documento_requisitos?.codigo;
-      if (c) unidade.push(c);
+      const req = (r as { dp_documento_requisitos?: { codigo?: string; obrigatoriedade?: string; responsavel?: string } }).dp_documento_requisitos;
+      if (req?.codigo && req.obrigatoriedade !== "desativado" && req.responsavel !== "empresa") unidade.push(req.codigo);
     }
   }
   return { cargo, unidade };
@@ -354,8 +354,10 @@ export async function requisitosEmpresa(admin: Db, companyId: string): Promise<s
   const { data, error } = await admin
     .from("dp_documento_requisitos")
     .select("codigo")
-    .eq("company_id", companyId);
-  if (error) return [];
+    .eq("company_id", companyId)
+    .neq("obrigatoriedade", "desativado")
+    .neq("responsavel", "empresa");
+  if (error) throw new Error("Não foi possível conferir os documentos exigidos pela empresa.");
   return (data ?? []).map((r: { codigo: string }) => r.codigo).filter(Boolean);
 }
 
