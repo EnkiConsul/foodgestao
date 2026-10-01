@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarClock, ExternalLink } from "lucide-react";
@@ -63,8 +64,14 @@ export function AdicionalTempoServicoCard({
   );
 
   const irParaCadastro = () => {
-    onBeforeNavigate?.();
-    navigate("/dp/cadastros/cargos?aba=complementos");
+    // Abre em nova aba: a ficha em edição continua aberta e nada se perde.
+    const aba = window.open("/dp/cadastros/cargos?aba=complementos", "_blank", "noopener");
+    if (aba) {
+      toast.info("Cadastro de regras aberto em nova aba. Depois de salvar a regra, volte aqui e salve a ficha.");
+    } else {
+      onBeforeNavigate?.();
+      navigate("/dp/cadastros/cargos?aba=complementos");
+    }
   };
 
   const cabecalho = (

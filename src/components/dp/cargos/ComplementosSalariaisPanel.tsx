@@ -49,7 +49,7 @@ const REGRA_VAZIA: RegraTempoServicoInput = {
   percentual_por_ciclo: 3,
   base: "salario_base",
   max_ciclos: null,
-  acumula: true,
+  acumula: false,
   vigencia_inicio: hoje(),
   vigencia_fim: null,
   ativo: true,
@@ -571,7 +571,7 @@ export function ComplementosSalariaisPanel({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {[12, 24, 36, 48, 60].map((m) => (
+                    {[12, 24, 36, 48, 60, 72, 84, 96, 108, 120].map((m) => (
                       <SelectItem key={m} value={String(m)}>
                         {rotuloCiclo(m)} ({m} meses)
                       </SelectItem>
