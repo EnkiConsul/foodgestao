@@ -65,7 +65,7 @@ export const DOCUMENTOS: Record<string, { titulo: string; instrucao?: string }> 
   },
   reservista: { titulo: "Certificado de reservista" },
   comprovante_escolar_menor: { titulo: "Comprovante escolar do candidato menor", instrucao: "Comprova a matrícula escolar do candidato menor de idade; não é o documento dos dependentes." },
-  autorizacao_judicial_menor: { titulo: "Autorização judicial", instrucao: "Envie somente quando houver decisão judicial específica para este caso." },
+  autorizacao_judicial_menor: { titulo: "Autorização judicial (somente quando cabível)", instrucao: "Solicite apenas quando uma decisão judicial específica exigir; não é necessária para todo menor." },
   licenciamento_veiculo: {
     titulo: "Último licenciamento do veículo",
     instrucao: "CRLV do ano vigente da motocicleta ou do veículo utilizado.",
@@ -141,7 +141,7 @@ export interface ChecklistInput {
    * exigido "por lei universal": só entra no checklist o que a empresa
    * cadastrou como requisito.
    */
-  requisitosEmpresa?: string[];
+  requisitosEmpresa?: Array<string | { codigo: string; nome: string; obrigatoriedade?: string }>;
   hoje?: Date;
 }
 
@@ -161,12 +161,22 @@ export function montarChecklist({
 }: ChecklistInput): ItemChecklist[] {
   const itens: ItemChecklist[] = GERAIS.map((c) => item(c, "candidato"));
 
+  const exigenciaEmpresa = new Map(requisitosEmpresa.map((r) => [typeof r === "string" ? r : r.codigo, typeof r === "string" ? "obrigatorio" : r.obrigatoriedade]));
+  const nomeEmpresa = new Map(requisitosEmpresa.filter((r): r is { codigo: string; nome: string; obrigatoriedade?: string } => typeof r !== "string").map((r) => [r.codigo, r.nome]));
   // Requisitos vindos do Cargo/Unidade canônicos — nunca pelo nome do cargo.
   for (const codigo of [...new Set([...requisitosCargo, ...requisitosUnidade])]) {
-    itens.push(item(codigo, "condicional"));
+    if (["autorizacao_menor", "autorizacao_judicial_menor", "cnh_sem_suspensao"].includes(codigo)) continue;
+    const novo = item(codigo, "condicional", null, exigenciaEmpresa.get(codigo) !== "opcional");
+    novo.titulo = nomeEmpresa.get(codigo) ?? novo.titulo;
+    itens.push(novo);
   }
-  for (const codigo of requisitosEmpresa) {
-    if (codigo.startsWith("custom_")) itens.push(item(codigo, "condicional"));
+  for (const requisito of requisitosEmpresa) {
+    const codigo = typeof requisito === "string" ? requisito : requisito.codigo;
+    if (codigo.startsWith("custom_") && !requisitosCargo.includes(codigo) && !requisitosUnidade.includes(codigo)) {
+      const novo = item(codigo, "condicional", null, typeof requisito === "string" || requisito.obrigatoriedade === "obrigatorio");
+      if (typeof requisito !== "string") novo.titulo = requisito.nome;
+      itens.push(novo);
+    }
   }
 
   const estado = normaliza(ficha.estado_civil);
@@ -176,13 +186,15 @@ export function montarChecklist({
   // Reservista só quando a empresa configurou esse requisito — e aí sim com a
   // condição de sexo e idade. Nunca por improviso.
   const idade = idadeEmAnos(ficha.data_nascimento, hoje);
-  const configurados = new Set([...requisitosEmpresa, ...requisitosCargo, ...requisitosUnidade]);
+  const configurados = new Set([...requisitosEmpresa.map((r) => typeof r === "string" ? r : r.codigo), ...requisitosCargo, ...requisitosUnidade]);
   if (configurados.has("reservista") && normaliza(ficha.sexo).startsWith("m") && idade !== null && idade >= 18) {
     itens.push(item("reservista", "condicional"));
   }
   if (idade !== null && idade < 18) {
     itens.push(item("comprovante_escolar_menor", "condicional"));
-    if (configurados.has("autorizacao_judicial_menor")) itens.push(item("autorizacao_judicial_menor", "condicional", null, false));
+    if (configurados.has("autorizacao_judicial_menor")) {
+      itens.push(item("autorizacao_judicial_menor", "condicional", null, exigenciaEmpresa.get("autorizacao_judicial_menor") === "obrigatorio"));
+    }
   }
 
   for (const p of pessoas) {

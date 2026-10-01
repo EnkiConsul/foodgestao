@@ -194,6 +194,7 @@ Deno.serve(async (req) => {
         pessoas: pessoas ?? [],
         documentos: docs ?? [],
         checklist,
+        parentescos_permitidos: regras.parentescos,
         pendencias: pendencias.map((p) => ({ key: p.key, titulo: p.titulo, pessoa_nome: p.pessoa_nome })),
         bloqueio: bloqueioMenorNoturno(ficha),
         eventos: eventos ?? [],

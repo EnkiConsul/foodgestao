@@ -69,13 +69,29 @@ describe("checklist documental", () => {
     }))).toContain("reservista");
   });
 
-  it("separa comprovante escolar do candidato menor de autorização judicial condicional", () => {
+  it("pede apenas comprovante escolar ao candidato menor, mesmo com exigências antigas", () => {
     const menor = { ...base, data_nascimento: "2010-01-01" };
     const itens = montarChecklist({ ficha: menor, hoje: HOJE });
     expect(codigos(itens)).toContain("comprovante_escolar_menor");
     expect(codigos(itens)).not.toContain("autorizacao_judicial_menor");
-    const configurados = montarChecklist({ ficha: menor, requisitosEmpresa: ["autorizacao_judicial_menor"], hoje: HOJE });
+    const configurados = montarChecklist({ ficha: menor, requisitosEmpresa: [{ codigo: "autorizacao_judicial_menor", nome: "Autorização judicial", obrigatoriedade: "opcional" }], hoje: HOJE });
+    expect(codigos(configurados)).toContain("autorizacao_judicial_menor");
     expect(configurados.find((i) => i.codigo === "autorizacao_judicial_menor")?.obrigatorio).toBe(false);
+    const exigidos = montarChecklist({ ficha: menor, requisitosEmpresa: [{ codigo: "autorizacao_judicial_menor", nome: "Autorização judicial", obrigatoriedade: "obrigatorio" }], hoje: HOJE });
+    expect(exigidos.find((i) => i.codigo === "autorizacao_judicial_menor")?.obrigatorio).toBe(true);
+    expect(codigos(montarChecklist({ ficha: base, requisitosEmpresa: ["autorizacao_judicial_menor"], hoje: HOJE }))).not.toContain("autorizacao_judicial_menor");
+    expect(codigos(montarChecklist({ ficha: menor, requisitosCargo: ["cnh_sem_suspensao", "autorizacao_menor"], hoje: HOJE }))).not.toContain("cnh_sem_suspensao");
+  });
+
+  it("inclui documentos personalizados da ficha como opcionais quando não há exigência específica", () => {
+    const itens = montarChecklist({ ficha: base, requisitosEmpresa: [{ codigo: "custom_documento", nome: "Declaração da empresa" }], hoje: HOJE });
+    expect(itens.find((i) => i.codigo === "custom_documento")?.obrigatorio).toBe(false);
+    expect(itens.find((i) => i.codigo === "custom_documento")?.titulo).toBe("Declaração da empresa");
+    const exigido = montarChecklist({ ficha: base, requisitosEmpresa: [{ codigo: "custom_documento", nome: "Declaração da empresa", obrigatoriedade: "obrigatorio" }], hoje: HOJE });
+    expect(exigido.find((i) => i.codigo === "custom_documento")?.obrigatorio).toBe(true);
+    const doCargo = montarChecklist({ ficha: base, requisitosCargo: ["custom_documento"], requisitosEmpresa: [{ codigo: "custom_documento", nome: "Declaração da empresa", obrigatoriedade: "opcional" }], hoje: HOJE });
+    expect(doCargo.filter((i) => i.codigo === "custom_documento")).toHaveLength(1);
+    expect(doCargo.find((i) => i.codigo === "custom_documento")?.obrigatorio).toBe(false);
   });
 
   it("acrescenta requisito do cargo e da unidade sem duplicar", () => {

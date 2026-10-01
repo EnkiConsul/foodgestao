@@ -216,6 +216,16 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const [salvando, setSalvando] = useState(false);
 
   const pa = data?.preadmissao;
+  const parentescosPermitidos = data?.parentescos_permitidos ?? null;
+  const parentescosDaEmpresa = parentescosPermitidos
+    ? parentescosPermitidos.filter((p) => p.permite_dependente || p.permite_sesc).map((p) => ({
+        value: p.parentesco,
+        label: PARENTESCOS.find((o) => o.value === p.parentesco)?.label ?? p.parentesco.replace(/_/g, " "),
+      }))
+    : PARENTESCOS;
+  const opcoesParentesco = (valor: string) => valor && !parentescosDaEmpresa.some((p) => p.value === valor)
+    ? [...parentescosDaEmpresa, { value: valor, label: `${PARENTESCOS.find((p) => p.value === valor)?.label ?? valor} (revisar com a empresa)` }]
+    : parentescosDaEmpresa;
   const status = (pa?.status ?? "aguardando_preenchimento") as PreadmissaoStatus;
   const dados = (pa?.dados ?? {}) as Record<string, unknown>;
   /** Ficha encerrada: nada mais pode ser alterado pelo gestor. */
@@ -373,7 +383,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           pe.finalidade_sesc ? "Sesc" : null,
         ].filter(Boolean).join(" e ");
         const partes = [
-          PARENTESCO_LABEL[(pe.parentesco ?? "").toLowerCase()] ?? pe.parentesco ?? "",
+           PARENTESCO_LABEL[(pe.parentesco ?? "").toLowerCase()] ?? pe.parentesco?.replace(/_/g, " ") ?? "",
           pe.data_nascimento ? `Nascimento: ${pe.data_nascimento}` : null,
           pe.cpf ? `CPF: ${pe.cpf}` : null,
           pe.rg ? `RG: ${pe.rg}` : null,
@@ -698,7 +708,7 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                           onValueChange={(v) => setPessoas((l) => l.map((x, j) => (j === i ? { ...x, parentesco: v } : x)))}>
                           <SelectTrigger className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
                           <SelectContent>
-                            {PARENTESCOS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                             {opcoesParentesco(p.parentesco).map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -722,14 +732,14 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                       <div className="space-y-1">
                         <Label className="text-xs">Finalidade</Label>
                         <div className="flex gap-2">
-                          <Button type="button" size="sm" disabled={encerrada}
+                           <Button type="button" size="sm" disabled={encerrada || (!!parentescosPermitidos && !parentescosPermitidos.find((o) => o.parentesco === p.parentesco)?.permite_dependente)}
                             variant={p.finalidade_dependente ? "default" : "outline"}
                             onClick={() =>
                               setPessoas((l) =>
                                 l.map((x, j) => (j === i ? { ...x, finalidade_dependente: !x.finalidade_dependente } : x)))}>
                             Dependente
                           </Button>
-                          <Button type="button" size="sm" disabled={encerrada}
+                           <Button type="button" size="sm" disabled={encerrada || (!!parentescosPermitidos && !parentescosPermitidos.find((o) => o.parentesco === p.parentesco)?.permite_sesc)}
                             variant={p.finalidade_sesc ? "default" : "outline"}
                             onClick={() =>
                               setPessoas((l) => l.map((x, j) => (j === i ? { ...x, finalidade_sesc: !x.finalidade_sesc } : x)))}>

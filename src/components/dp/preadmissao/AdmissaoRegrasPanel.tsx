@@ -138,13 +138,14 @@ interface Editando {
 export function AdmissaoRegrasPanel() {
   const { data: unidades = [] } = useDpUnidades();
   const { data: cargos = [] } = useDpCargos();
-  const { requisitos = [], criar, salvar: salvarDocumento, remover: removerDocumento } = useDpDocumentoRequisitos();
+  const { requisitos = [], criar, salvar: salvarDocumento } = useDpDocumentoRequisitos();
   const { regras, parentescos, salvar, excluir, definirParentesco } = useDpAdmissaoRegras();
 
   const [aberto, setAberto] = useState<string | null>(null);
   const [secaoAberta, setSecaoAberta] = useState<string | null>(null);
   const [novoDocumento, setNovoDocumento] = useState("");
   const [novoParentesco, setNovoParentesco] = useState("");
+  const [novaFinalidade, setNovaFinalidade] = useState<string>("");
   const [editando, setEditando] = useState<Editando | null>(null);
   // Simulador: mostra o resultado final da combinação escolhida.
   const [simUnidade, setSimUnidade] = useState<string>(TODOS);
@@ -210,6 +211,10 @@ export function AdmissaoRegrasPanel() {
   };
 
   const marcarParentesco = async (valor: string, dependente: boolean, sesc: boolean) => {
+    if (!dependente && !sesc) {
+      toast.warning("Mantenha ao menos uma finalidade para este familiar.");
+      return;
+    }
     try {
       await definirParentesco.mutateAsync({ parentesco: valor, dependente, sesc });
     } catch (e) {
@@ -227,8 +232,14 @@ export function AdmissaoRegrasPanel() {
       toast.warning("Esse parentesco já está na lista.");
       return;
     }
-    await marcarParentesco(valor, false, false);
-    setNovoParentesco("");
+    if (!novaFinalidade) { toast.warning("Escolha a finalidade deste familiar."); return; }
+    try {
+      await definirParentesco.mutateAsync({ parentesco: valor, dependente: novaFinalidade === "dependente" || novaFinalidade === "ambos", sesc: novaFinalidade === "sesc" || novaFinalidade === "ambos" });
+      setNovoParentesco("");
+      setNovaFinalidade("");
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "incluir o parentesco" });
+    }
   };
 
   const incluirDocumento = async () => {
@@ -259,11 +270,11 @@ export function AdmissaoRegrasPanel() {
   /** Documentos do catálogo separados por responsável e agrupados por assunto. */
   const documentos = useMemo(() => {
     const ativos = (requisitos as DpDocumentoRequisito[])
-      .filter((r) => r.obrigatoriedade !== "desativado");
+      .filter((r) => r.obrigatoriedade !== "desativado" || r.codigo === "autorizacao_judicial_menor");
     const separa = () => {
       const m = new Map<string, DpDocumentoRequisito[]>();
       ativos
-        .filter((r) => !requisitoDaEmpresa(r) && r.codigo !== "cnh_sem_suspensao")
+        .filter((r) => !requisitoDaEmpresa(r) && !["cnh_sem_suspensao", "autorizacao_menor"].includes(r.codigo))
         .forEach((r) => {
           const g = (r as { grupo?: string | null }).grupo || "identificacao";
           m.set(g, [...(m.get(g) ?? []), r]);
@@ -401,7 +412,7 @@ export function AdmissaoRegrasPanel() {
                     <SelectTrigger className="h-9 w-40" aria-label={`Exigência de ${r.nome}`}><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="obrigatorio">Obrigatório</SelectItem><SelectItem value="opcional">Opcional</SelectItem><SelectItem value="desativado">Não pedir</SelectItem></SelectContent>
                   </Select>
-                  {r.codigo.startsWith("custom_") && <Button type="button" size="sm" variant="ghost" className="text-destructive" onClick={() => void removerDocumento.mutateAsync(r.id)}><Trash2 className="h-4 w-4 mr-1" />Retirar</Button>}
+                  {r.codigo.startsWith("custom_") && <Button type="button" size="sm" variant="ghost" className="text-destructive" disabled={salvarDocumento.isPending} onClick={() => void salvarDocumento.mutateAsync({ id: r.id, patch: { obrigatoriedade: "desativado" } })}><Trash2 className="h-4 w-4 mr-1" />Retirar</Button>}
                 </div>
               </div>)}
             </div>
@@ -496,8 +507,9 @@ export function AdmissaoRegrasPanel() {
                <Button type="button" variant="ghost" className="w-full h-auto justify-between px-0" aria-expanded={secaoAberta === "familiares"} onClick={() => setSecaoAberta(secaoAberta === "familiares" ? null : "familiares")}>Familiares Aceitos <ChevronDown className={`h-4 w-4 ${secaoAberta === "familiares" ? "" : "-rotate-90"}`} /></Button>
                {secaoAberta === "familiares" && <><div>
                 <p className="text-xs text-muted-foreground">
-                  Escolha quais familiares o candidato pode incluir. Sem nenhuma marcação,
-                   todos os graus continuam aceitos. A finalidade da ficha não concede benefícios automaticamente.
+                   Escolha quais familiares o candidato pode incluir. Se não houver regras cadastradas,
+                    todos os graus continuam aceitos. Com regras, só entram os parentescos marcados.
+                    A finalidade da ficha não concede benefícios automaticamente.
                 </p>
               </div>
                <div className="space-y-2">
@@ -522,7 +534,7 @@ export function AdmissaoRegrasPanel() {
                     );
                   })}
                </div>
-               <div className="flex flex-col sm:flex-row gap-2"><Input aria-label="Novo parentesco" placeholder="Outro parentesco" value={novoParentesco} onChange={(e) => setNovoParentesco(e.target.value)} /><Button type="button" variant="outline" disabled={definirParentesco.isPending} onClick={() => void incluirParentesco()}><Plus className="h-4 w-4 mr-1" />Incluir parentesco</Button></div></>}
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"><Input aria-label="Novo parentesco" placeholder="Outro parentesco" value={novoParentesco} onChange={(e) => setNovoParentesco(e.target.value)} /><Select value={novaFinalidade} onValueChange={setNovaFinalidade}><SelectTrigger aria-label="Finalidade do novo familiar"><SelectValue placeholder="Escolha a finalidade" /></SelectTrigger><SelectContent><SelectItem value="dependente">Dependente do imposto</SelectItem><SelectItem value="sesc">Sesc</SelectItem><SelectItem value="ambos">Dependente e Sesc</SelectItem></SelectContent></Select><Button type="button" variant="outline" disabled={definirParentesco.isPending} onClick={() => void incluirParentesco()}><Plus className="h-4 w-4 mr-1" />Incluir parentesco</Button></div></>}
             </CardContent>
           </Card>
         </>

@@ -18,10 +18,11 @@ import {
   registrarFichaOficial,
   requisitosEmpresa,
   requisitosPrevistos,
+  regrasAdmissao,
   tipoRealDoArquivo,
   validarConvite,
 } from "../_shared/preadmissao.ts";
-import { montarChecklist } from "../_shared/preadmissao-checklist.ts";
+import { aplicarRegrasDocumentos, montarChecklist } from "../_shared/preadmissao-checklist.ts";
 
 const BUCKET = "dp-documentos";
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -72,7 +73,7 @@ Deno.serve(async (req) => {
 
       // O checklist atual é a única fonte do que pode ser enviado — inclui os
       // requisitos personalizados de Cargo/Unidade da empresa.
-      const [{ data: pessoas }, reqs, reqsEmpresa] = await Promise.all([
+       const [{ data: pessoas }, reqs, reqsEmpresa, regras] = await Promise.all([
         admin
           .from("dp_preadmissao_pessoas")
           .select("id, nome, data_nascimento, parentesco, finalidade_dependente, finalidade_sesc")
@@ -80,9 +81,10 @@ Deno.serve(async (req) => {
           .is("removido_em", null),
         requisitosPrevistos(admin, pa),
         requisitosEmpresa(admin, pa.company_id),
+        regrasAdmissao(admin as never, pa),
       ]);
       const dados = (pa.dados ?? {}) as Record<string, unknown>;
-      const checklist = montarChecklist({
+       const checklist = aplicarRegrasDocumentos(montarChecklist({
         ficha: {
           data_nascimento: pa.data_nascimento,
           estado_civil: pa.estado_civil,
@@ -92,7 +94,7 @@ Deno.serve(async (req) => {
         requisitosCargo: reqs.cargo,
         requisitosUnidade: reqs.unidade,
         requisitosEmpresa: reqsEmpresa,
-      });
+       }), regras.documentos);
       const previsto = checklist.find((i) => i.codigo === codigo && (i.pessoa_id ?? null) === pessoaIdPedido);
       if (!previsto) {
         return jsonResponse(req, 400, {
