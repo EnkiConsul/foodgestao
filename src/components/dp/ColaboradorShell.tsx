@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DpShell } from "@/components/dp/DpShell";
 import { CarenciaPortalBanner } from "@/components/dp/CarenciaPortalBanner";
 import { DocumentoAssinaturaGate } from "@/components/dp/portal/DocumentoAssinaturaGate";
+import { TermoPortalGate } from "@/components/dp/portal/TermoPortalGate";
 
 
 export function ColaboradorShell() {
@@ -55,11 +56,11 @@ export function ColaboradorShell() {
   }
 
   return (
-    <>
+    <TermoPortalGate>
       <CarenciaPortalBanner />
       <DocumentoAssinaturaGate />
       <DpShell variant="portal" />
-    </>
+    </TermoPortalGate>
   );
 }
 
