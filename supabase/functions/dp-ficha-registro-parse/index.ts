@@ -210,6 +210,11 @@ export function agruparFichas(paginas: PaginaLida[]): Ficha[] {
     atual.texto = `${atual.texto}\n${p.texto ?? ""}`;
     const novos = limpar(p.dados);
     for (const [k, v] of Object.entries(novos)) {
+      if (k.startsWith("historico_") && Array.isArray(v)) {
+        const atualArr = Array.isArray(atual.dados[k]) ? atual.dados[k] : [];
+        atual.dados[k] = [...atualArr, ...v];
+        continue;
+      }
       const vazio = atual.dados[k] === null || atual.dados[k] === undefined ||
         (Array.isArray(atual.dados[k]) && atual.dados[k].length === 0) ||
         (typeof atual.dados[k] === "string" && atual.dados[k].trim() === "");
@@ -270,6 +275,15 @@ Formato:
   "jornada_texto": null,               // linha da escala/horário como está escrita, ex "08:00/12:00-14:00/18:00 44:00" ou "das 17:00 as 00:35"
   "jornada_dias": [                    // apenas se a página tiver tabela por dia da semana
     { "dia": "Dom", "tipo": "Trabalhado|Folga", "entrada": null, "intervalo_inicio": null, "intervalo_fim": null, "saida": null }
+  ],
+  "historico_ferias": [                // anotações de férias da ficha (pode ser []), uma por período
+    { "aquisitivo_inicio": null, "aquisitivo_fim": null, "gozo_inicio": null, "gozo_fim": null, "dias": null }
+  ],
+  "historico_afastamentos": [          // afastamentos anotados (doença, acidente, licença...), pode ser []
+    { "motivo": null, "inicio": null, "fim": null }
+  ],
+  "historico_advertencias": [          // advertências/suspensões anotadas, pode ser []
+    { "tipo": "advertencia|suspensao", "data": null, "motivo": null, "dias": null }
   ],
   "confianca": { "campo": "alta|media|baixa" }  // para CADA campo devolvido com valor
 }`;
