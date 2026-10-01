@@ -21,7 +21,7 @@ const CORES = [
  * Medidor de força local, em português. A senha não sai do navegador:
  * a avaliação é feita em memória, sem nenhuma chamada de rede.
  */
-export function MedidorSenha({ senha, dados, id }: Props) {
+export function MedidorSenha({ senha, dados, id, semMensagem = false }: Props) {
   if (!senha) return null;
   const { pontuacao, rotulo, mensagem } = avaliarSenha(senha, dados);
   const preenchidas = pontuacao + 1;
