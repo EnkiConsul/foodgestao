@@ -9,7 +9,7 @@
  */
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, Loader2, Pencil, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
