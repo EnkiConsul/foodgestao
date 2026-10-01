@@ -1,10 +1,12 @@
-import { Download, FileCheck2, Link2, MessageCircle, Receipt, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Download, Eye, EyeOff, FileCheck2, Link2, Loader2, MessageCircle, Receipt, XCircle } from "lucide-react";
+import { PdfCanvasViewer } from "@/components/dp/PdfCanvasViewer";
 import { Button } from "@/components/ui/button";
 import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { DpStatusBadge } from "@/components/dp/DpStatusBadge";
 import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { centsParaBRL, MODALIDADE_LABEL } from "@/lib/dp/comprovante-quitacao";
-import { NATUREZA_RECIBO_LABEL, statusRecibo, type NaturezaRecibo } from "@/lib/dp/recibos";
+import { NATUREZA_RECIBO_LABEL, reciboPdfUrl, statusRecibo, type NaturezaRecibo } from "@/lib/dp/recibos";
 
 export type ReciboDetalhado = {
   id: string;
@@ -59,6 +61,31 @@ export function ReciboDetalhesDialog({
   onCertificado: (recibo: ReciboDetalhado) => void;
   onCancelar: (recibo: ReciboDetalhado) => void;
 }) {
+  const [verPdf, setVerPdf] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [carregandoPdf, setCarregandoPdf] = useState(false);
+  const [erroPdf, setErroPdf] = useState<string | null>(null);
+  const reciboId = recibo?.id;
+  const assinadoEm = recibo?.assinado_em;
+
+  // Troca de recibo (ou assinatura nova): descarta a prévia anterior.
+  useEffect(() => {
+    setVerPdf(false);
+    setErroPdf(null);
+    setPdfUrl((u) => { if (u) URL.revokeObjectURL(u); return null; });
+  }, [reciboId, assinadoEm]);
+
+  useEffect(() => {
+    if (!verPdf || pdfUrl || !reciboId) return;
+    let vivo = true;
+    setCarregandoPdf(true);
+    reciboPdfUrl(reciboId)
+      .then((u) => { if (vivo) setPdfUrl(u); else URL.revokeObjectURL(u); })
+      .catch((e) => vivo && setErroPdf((e as Error).message))
+      .finally(() => vivo && setCarregandoPdf(false));
+    return () => { vivo = false; };
+  }, [verPdf, pdfUrl, reciboId]);
+
   if (!recibo) return null;
   const status = statusRecibo(recibo);
   const aberto = !recibo.assinado_em && !recibo.cancelado_em;
@@ -100,7 +127,19 @@ export function ReciboDetalhesDialog({
 
         {recibo.descricao && <div className="rounded-md border bg-muted/30 p-3"><p className="text-xs font-medium text-muted-foreground">Descrição</p><p className="mt-1 text-sm">{recibo.descricao}</p></div>}
 
+        {verPdf && (
+          <div className="h-[60vh] overflow-hidden rounded-md border bg-muted/30">
+            {carregandoPdf && <div className="flex h-full items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
+            {erroPdf && <p className="p-4 text-sm text-destructive">{erroPdf}</p>}
+            {pdfUrl && <PdfCanvasViewer url={pdfUrl} title={`Recibo de ${recibo.beneficiario_nome}`} />}
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2 border-t pt-4">
+          <Button onClick={() => setVerPdf((v) => !v)}>
+            {verPdf ? <EyeOff className="mr-1.5 h-4 w-4" /> : <Eye className="mr-1.5 h-4 w-4" />}
+            {verPdf ? "Ocultar Recibo" : "Visualizar Recibo"}
+          </Button>
           <Button variant="outline" onClick={() => onPdf(recibo)}><Download className="mr-1.5 h-4 w-4" />Baixar PDF</Button>
           {avulso && aberto && recibo.canal_assinatura === "whatsapp" && <Button onClick={() => onWhatsApp(recibo)}><MessageCircle className="mr-1.5 h-4 w-4" />Enviar pelo WhatsApp</Button>}
           {avulso && aberto && recibo.canal_assinatura === "whatsapp" && <Button variant="outline" onClick={() => onCopiarLink(recibo)}><Link2 className="mr-1.5 h-4 w-4" />Copiar Link</Button>}
