@@ -189,6 +189,7 @@ Deno.serve(async (req) => {
         checklist,
         regras_campos: regras.campos,
         parentescos_permitidos: regras.parentescos,
+        finalidades_empresa: regras.finalidadesEmpresa,
         pendencias: pendenciasDocumentais(checklist, (docs ?? []) as never).map((i) => i.key),
       };
     };
