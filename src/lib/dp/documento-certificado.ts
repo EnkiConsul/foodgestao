@@ -156,6 +156,7 @@ export function certificadoValidacaoHtml(d: CertificadoValidacaoDados): string {
         Emitido em ${esc(fmtDataHora(new Date().toISOString()))} · Documento gerado
         automaticamente pelo sistema a partir do registro eletrônico de aprovação.
       </p>
+      <p class="marca">Autenticado pela plataforma AVETO 360</p>
     </section>
   </body></html>`;
 }
