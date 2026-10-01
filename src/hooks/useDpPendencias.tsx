@@ -1,5 +1,5 @@
 import { prazoPagamentoRescisao } from "@/lib/dp/desligamento";
-import { datasDeFeriados, type FeriadoRegra } from "@/lib/dp/feriados";
+import { datasDeFeriados } from "@/lib/dp/feriados";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
