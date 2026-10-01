@@ -15,6 +15,7 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "npm
 import { z } from "npm:zod@3";
 import { callerClient, requireUser, serviceClient } from "../_shared/authz.ts";
 import { recordEdgeError } from "../_shared/error-log.ts";
+import { resumoQuitacao } from "../_shared/quitacao.ts";
 import {
   MARCA_ASSINATURA,
   MARCA_LARANJA,
@@ -502,6 +503,7 @@ Deno.serve(async (req) => {
         dados.competencia,
         marca,
         dados.empresa,
+        dados.quitacao,
       );
       const aviso = await anexarArquivo(
         pdf,
