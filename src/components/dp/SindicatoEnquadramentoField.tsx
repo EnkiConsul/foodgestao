@@ -22,6 +22,8 @@ interface Props {
   onChange: (sindicatoId: string) => void;
   /** Executado antes de navegar para o cadastro de sindicatos (fecha o diálogo). */
   onBeforeNavigate?: () => void;
+  /** Quando informado, a navegação é delegada (ex.: ficha pergunta se salva antes). */
+  onNavegar?: (rota: string) => void;
 }
 
 const dataBR = (iso: string | null | undefined) =>
@@ -66,7 +68,7 @@ function ResumoVinculado({
  * quando falta, o usuário vincula ou cadastra completo sem sair desta tela.
  */
 export function SindicatoEnquadramentoField({
-  cargoId, cargoNome, unidadeId, value, onChange, onBeforeNavigate,
+  cargoId, cargoNome, unidadeId, value, onChange, onBeforeNavigate, onNavegar,
 }: Props) {
   const navigate = useNavigate();
   const enquadramento = useSindicatoDoCargo(cargoId || null, unidadeId || null);
@@ -152,6 +154,7 @@ export function SindicatoEnquadramentoField({
           size="sm"
           className="h-7 text-xs"
           onClick={() => {
+            if (onNavegar) { onNavegar("/dp/cadastros/sindicatos"); return; }
             onBeforeNavigate?.();
             navigate("/dp/cadastros/sindicatos");
           }}

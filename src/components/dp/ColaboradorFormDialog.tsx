@@ -1419,11 +1419,13 @@ export function ColaboradorFormDialog({
     return `/dp/folgas?${p.toString()}`;
   }, [form.unidade_id, form.nome]);
 
-  const abrirRegrasFolgas = () => {
-    destinoAposFechar.current = rotaRegrasFolgas;
+  /** Toda saída da ficha para outra tela passa por aqui: com edição pendente, pergunta antes. */
+  const sairPara = (rota: string) => {
+    destinoAposFechar.current = rota;
     if (dirty) { setIrRegrasOpen(true); return; }
     onOpenChange(false);
   };
+  const abrirRegrasFolgas = () => sairPara(rotaRegrasFolgas);
 
   useEffect(() => {
     if (open) { destinoAposFechar.current = null; return; }
@@ -2553,7 +2555,7 @@ export function ColaboradorFormDialog({
               unidadeId={form.unidade_id}
               value={form.sindicato_id}
               onChange={(id) => setForm((f) => ({ ...f, sindicato_id: id }))}
-              onBeforeNavigate={() => onOpenChange(false)}
+              onNavegar={sairPara}
             />
           )}
 
@@ -2842,6 +2844,7 @@ export function ColaboradorFormDialog({
 
 
             <ColaboradorJornadaPanel
+              onNavegar={sairPara}
               colaborador={{
                 id: colaborador?.id ?? criadoId ?? null,
                 nome: form.nome,
@@ -2945,7 +2948,7 @@ export function ColaboradorFormDialog({
                 onAplicarPadraoIsonomia={aplicarPadraoIsonomia}
                 salarioCargo={salarioCargo}
                 cargoNome={cargoSelecionado?.nome ?? null}
-                onBeforeNavigate={() => onOpenChange(false)}
+                onNavegar={sairPara}
                 cargoInsalubre={!!cargoSelecionado?.insalubre || !!cargoSelecionado?.insalubre_periculoso}
                 cargoPerigoso={!!cargoSelecionado?.perigoso}
                 regime={regimeSelecionado}
@@ -2998,7 +3001,7 @@ export function ColaboradorFormDialog({
                 sindicatoId={form.sindicato_id || null}
                 base={baseSalarialInformada()}
                 pisoCargo={salarioCargo ?? null}
-                onBeforeNavigate={() => onOpenChange(false)}
+                onNavegar={sairPara}
               />}
 
 
@@ -3484,10 +3487,10 @@ export function ColaboradorFormDialog({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Salvar a ficha antes de ir?</AlertDialogTitle>
+            <AlertDialogTitle>Salvar a Ficha antes de Sair?</AlertDialogTitle>
             <AlertDialogDescription>
               Há alterações que ainda não foram gravadas neste cadastro. Escolha o que fazer
-              antes de abrir as Regras de Folgas.
+              antes de abrir a outra tela, para não perder o que já foi editado.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

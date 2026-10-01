@@ -28,6 +28,8 @@ interface Props {
   pisoCargo: number | null;
   /** Executado antes de navegar para o cadastro de regras (fecha o diálogo). */
   onBeforeNavigate?: () => void;
+  /** Quando informado, a navegação é delegada (ex.: ficha pergunta se salva antes). */
+  onNavegar?: (rota: string) => void;
 }
 
 /**
@@ -42,7 +44,7 @@ export function AdicionalTempoServicoCard({
   sindicatoId,
   base,
   pisoCargo,
-  onBeforeNavigate,
+  onBeforeNavigate, onNavegar,
 }: Props) {
   const navigate = useNavigate();
   const { regras } = useDpAdicionaisTempoServico();
@@ -64,11 +66,13 @@ export function AdicionalTempoServicoCard({
   );
 
   const irParaCadastro = () => {
+    if (onNavegar) { onNavegar("/dp/cadastros/cargos?aba=complementos"); return; }
     // Abre em nova aba: a ficha em edição continua aberta e nada se perde.
     const aba = window.open("/dp/cadastros/cargos?aba=complementos", "_blank", "noopener");
     if (aba) {
       toast.info("Cadastro de regras aberto em nova aba. Depois de salvar a regra, volte aqui e salve a ficha.");
     } else {
+      if (onNavegar) { onNavegar("/dp/cadastros/cargos?aba=complementos"); return; }
       onBeforeNavigate?.();
       navigate("/dp/cadastros/cargos?aba=complementos");
     }

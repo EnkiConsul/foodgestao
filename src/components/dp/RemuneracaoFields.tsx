@@ -191,6 +191,8 @@ interface Props {
   cargoNome?: string | null;
   /** Executado antes de navegar para o cadastro de cargos (fecha o diálogo). */
   onBeforeNavigate?: () => void;
+  /** Quando informado, a navegação é delegada (ex.: ficha pergunta se salva antes). */
+  onNavegar?: (rota: string) => void;
   /** Insalubridade marcada no cargo. */
   cargoInsalubre?: boolean;
   /** Periculosidade marcada no cargo. */
@@ -251,7 +253,7 @@ function RemuneracaoFieldsConteudo({
   onChange,
   salarioCargo,
   cargoNome,
-  onBeforeNavigate,
+  onBeforeNavigate, onNavegar,
   cargoInsalubre,
   cargoPerigoso,
   beneficios,
@@ -943,6 +945,7 @@ function RemuneracaoFieldsConteudo({
                 size="sm"
                 className="h-auto p-0 text-[11px]"
                 onClick={() => {
+                  if (onNavegar) { onNavegar("/dp/cadastros/cargos"); return; }
                   onBeforeNavigate?.();
                   navigate("/dp/cadastros/cargos");
                 }}

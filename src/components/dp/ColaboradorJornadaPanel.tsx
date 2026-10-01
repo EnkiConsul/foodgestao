@@ -109,6 +109,8 @@ interface Props {
   onRascunho?: (r: JornadaRascunho) => void;
   /** Texto do aviso exibido quando ainda não existe cadastro gravado. */
   avisoSemCadastro?: string;
+  /** Delega a saída para a ficha, que pergunta se salva antes de sair. */
+  onNavegar?: (rota: string) => void;
 }
 
 /** Horário escolhido antes de existir o cadastro oficial do colaborador. */
@@ -130,7 +132,7 @@ export interface JornadaRascunho {
  */
 export function ColaboradorJornadaPanel({
   colaborador, active = true, showSaveButton = true, onRegistrarSalvar,
-  rascunhoInicial, onRascunho, avisoSemCadastro,
+  rascunhoInicial, onRascunho, avisoSemCadastro, onNavegar,
 }: Props) {
   const policy = contratoPolicy(colaborador?.regime, colaborador?.vinculo_label);
   const { selectedCompanyId } = useCompanyContext();
@@ -854,7 +856,8 @@ export function ColaboradorJornadaPanel({
 
   // ── Atalho para as Regras de Folgas ────────────────────────────────────
   // Sem alteração pendente vai direto; com alteração pergunta se salva antes.
-  const navigate = useNavigate();
+  const navigateRouter = useNavigate();
+  const navigate = (rota: string) => (onNavegar ? onNavegar(rota) : navigateRouter(rota));
   const [irRegrasOpen, setIrRegrasOpen] = useState(false);
   // Abre a tela de regras já filtrada na unidade e no colaborador da ficha.
   const ROTA_REGRAS = useMemo(() => {
