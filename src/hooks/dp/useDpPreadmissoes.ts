@@ -100,6 +100,7 @@ export interface PreadmissaoDetalhe {
   checklist: Array<{ key: string; codigo: string; titulo: string; pessoa_id?: string | null; pessoa_nome?: string | null; obrigatorio: boolean }>;
   pendencias: Array<{ key: string; titulo: string; pessoa_nome?: string | null }>;
   bloqueio: { situacao: "ok" | "bloqueado" | "pendente"; mensagem: string };
+  parentescos_permitidos: Array<{ parentesco: string; permite_dependente: boolean; permite_sesc: boolean }> | null;
   /** Aviso: CPF informado já existe na empresa (não bloqueia a revisão). */
   cpf_existente: {
     situacao: "ativo" | "desligado";

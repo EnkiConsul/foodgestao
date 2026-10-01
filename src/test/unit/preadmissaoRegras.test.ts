@@ -69,13 +69,19 @@ describe("checklist documental", () => {
     }))).toContain("reservista");
   });
 
-  it("separa comprovante escolar do candidato menor de autorização judicial condicional", () => {
+  it("pede apenas comprovante escolar ao candidato menor, mesmo com exigências antigas", () => {
     const menor = { ...base, data_nascimento: "2010-01-01" };
     const itens = montarChecklist({ ficha: menor, hoje: HOJE });
     expect(codigos(itens)).toContain("comprovante_escolar_menor");
     expect(codigos(itens)).not.toContain("autorizacao_judicial_menor");
     const configurados = montarChecklist({ ficha: menor, requisitosEmpresa: ["autorizacao_judicial_menor"], hoje: HOJE });
-    expect(configurados.find((i) => i.codigo === "autorizacao_judicial_menor")?.obrigatorio).toBe(false);
+    expect(codigos(configurados)).not.toContain("autorizacao_judicial_menor");
+    expect(codigos(montarChecklist({ ficha: menor, requisitosCargo: ["cnh_sem_suspensao", "autorizacao_menor"], hoje: HOJE }))).not.toContain("cnh_sem_suspensao");
+  });
+
+  it("inclui documentos personalizados da ficha como opcionais quando não há exigência específica", () => {
+    const itens = montarChecklist({ ficha: base, requisitosEmpresa: ["custom_documento"], hoje: HOJE });
+    expect(itens.find((i) => i.codigo === "custom_documento")?.obrigatorio).toBe(false);
   });
 
   it("acrescenta requisito do cargo e da unidade sem duplicar", () => {

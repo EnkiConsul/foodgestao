@@ -65,7 +65,6 @@ export const DOCUMENTOS: Record<string, { titulo: string; instrucao?: string }> 
   },
   reservista: { titulo: "Certificado de reservista" },
   comprovante_escolar_menor: { titulo: "Comprovante escolar do candidato menor", instrucao: "Comprova a matrícula escolar do candidato menor de idade; não é o documento dos dependentes." },
-  autorizacao_judicial_menor: { titulo: "Autorização judicial", instrucao: "Envie somente quando houver decisão judicial específica para este caso." },
   licenciamento_veiculo: {
     titulo: "Último licenciamento do veículo",
     instrucao: "CRLV do ano vigente da motocicleta ou do veículo utilizado.",
@@ -163,10 +162,11 @@ export function montarChecklist({
 
   // Requisitos vindos do Cargo/Unidade canônicos — nunca pelo nome do cargo.
   for (const codigo of [...new Set([...requisitosCargo, ...requisitosUnidade])]) {
+    if (["autorizacao_menor", "autorizacao_judicial_menor", "cnh_sem_suspensao"].includes(codigo)) continue;
     itens.push(item(codigo, "condicional"));
   }
   for (const codigo of requisitosEmpresa) {
-    if (codigo.startsWith("custom_")) itens.push(item(codigo, "condicional"));
+    if (codigo.startsWith("custom_") && !requisitosCargo.includes(codigo) && !requisitosUnidade.includes(codigo)) itens.push(item(codigo, "condicional", null, false));
   }
 
   const estado = normaliza(ficha.estado_civil);
@@ -182,7 +182,6 @@ export function montarChecklist({
   }
   if (idade !== null && idade < 18) {
     itens.push(item("comprovante_escolar_menor", "condicional"));
-    if (configurados.has("autorizacao_judicial_menor")) itens.push(item("autorizacao_judicial_menor", "condicional", null, false));
   }
 
   for (const p of pessoas) {

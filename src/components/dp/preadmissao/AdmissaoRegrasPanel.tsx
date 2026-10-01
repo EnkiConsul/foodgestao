@@ -263,7 +263,7 @@ export function AdmissaoRegrasPanel() {
     const separa = () => {
       const m = new Map<string, DpDocumentoRequisito[]>();
       ativos
-        .filter((r) => !requisitoDaEmpresa(r) && r.codigo !== "cnh_sem_suspensao")
+        .filter((r) => !requisitoDaEmpresa(r) && !["cnh_sem_suspensao", "autorizacao_menor", "autorizacao_judicial_menor"].includes(r.codigo))
         .forEach((r) => {
           const g = (r as { grupo?: string | null }).grupo || "identificacao";
           m.set(g, [...(m.get(g) ?? []), r]);
