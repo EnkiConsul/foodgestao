@@ -445,7 +445,7 @@ export default function DpFichaRegistroImportar() {
             </ol>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button asChild><Link to="/dp/colaboradores">Ver Colaboradores</Link></Button>
-              <Button asChild variant="outline"><Link to="/dp/cargos">Revisar Cargos</Link></Button>
+              <Button asChild variant="outline"><Link to="/dp/cadastros/cargos">Revisar Cargos</Link></Button>
               <Button variant="ghost" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
                 Enviar Novas Fichas
               </Button>
