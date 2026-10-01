@@ -12,3 +12,11 @@
 - [x] Revisão do gestor mais confortável no celular.
 - [x] Aviso de folgas aprovadas em datas bloqueadas.
 - [x] Selo "Cadastro incompleto" mostra o que falta e abre a aba certa.
+
+# Comprovação de pagamento (quitação)
+- [ ] Guardar modalidade da quitação (bancário, espécie ou misto) e os valores.
+- [ ] Exigir a data do pagamento ao anexar o comprovante.
+- [ ] Leitura automática da data e do valor em PDF, fotos e prints.
+- [ ] Recibo de pagamento em espécie timbrado: assinatura digital no portal.
+- [ ] Recibo de pagamento em espécie: opção de baixar para assinar à mão.
+- [ ] Mostrar data e forma de pagamento no certificado de validação e nos detalhes.
