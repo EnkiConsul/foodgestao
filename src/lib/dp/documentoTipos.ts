@@ -42,6 +42,7 @@ export type DpDocTipo =
   | "contracheque_ferias"
   | "plr"
   | "outros_pagamentos"
+  | "gorjeta"
   | "recibo_pagamento_especie"
   | "ponto"
   | "banco_horas"
@@ -147,6 +148,21 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
     exigeAceite: true,
     keywords: ["recibo de bonus", "premiacao", "abono"],
     badgeClass: "border-emerald-200 text-emerald-600",
+  },
+  {
+    value: "gorjeta",
+    label: "Relatório de Gorjetas",
+    grupo: "remuneracao",
+    importavel: true,
+    exigeAceite: true,
+    keywords: [
+      "gorjeta",
+      "relatorio de gorjetas",
+      "rateio de gorjeta",
+      "taxa de servico",
+      "prestacao de contas de gorjeta",
+    ],
+    badgeClass: "border-fuchsia-300 text-fuchsia-700",
   },
   {
     value: "recibo_pagamento_especie",
