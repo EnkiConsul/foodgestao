@@ -168,7 +168,9 @@ export default function DpDisciplinar() {
   // form importar
   const fileRef = useRef<HTMLInputElement>(null);
   const [unidadeId, setUnidadeId] = useState("");
-  const [colaboradorId, setColaboradorId] = useState("");
+  const [colaboradorId, setColaboradorId] = useState(
+    () => new URLSearchParams(window.location.search).get("colaborador") ?? "",
+  );
   useEffect(() => {
     const lista = unidades.data ?? [];
     if (!unidadeId && lista.length === 1) setUnidadeId(lista[0].id);
