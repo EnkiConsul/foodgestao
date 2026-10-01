@@ -1,5 +1,15 @@
 import { useId, useRef, useState } from "react";
-import { BadgeCheck, Download, Eye, Loader2, Receipt, Trash2, Upload } from "lucide-react";
+import {
+  BadgeCheck,
+  Banknote,
+  Download,
+  Eye,
+  FileSignature,
+  Loader2,
+  Receipt,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,9 +30,24 @@ import {
   avisoCompetenciaDivergente,
   competenciaDivergente,
   hojeISO,
-  sugerirDataPagamento,
   validarDataPagamento,
 } from "@/lib/dp/comprovante-data";
+import {
+  brlParaCents,
+  centsParaBRL,
+  COMPROVANTE_MODALIDADES,
+  exigeRecibo,
+  MODALIDADE_AJUDA,
+  MODALIDADE_LABEL,
+  resumoQuitacao,
+  validarQuitacao,
+  type ComprovanteModalidade,
+} from "@/lib/dp/comprovante-quitacao";
+import { frasesLeitura, lerComprovante, type LeituraComprovante } from "@/lib/dp/comprovante-leitura";
+import {
+  emitirReciboEspecieParaAssinatura,
+  reciboEspeciePdf,
+} from "@/lib/dp/recibo-especie";
 import { useDpComprovantePagamento, type ComprovanteAlvo } from "@/hooks/useDpComprovantePagamento";
 
 const MAX_MB = 15;
@@ -67,9 +92,86 @@ function useVerComprovante() {
 }
 
 /**
- * Formulário de anexo: primeiro a data do pagamento, depois a escolha do
- * arquivo. Antes o clique abria direto o seletor e ninguém sabia que podia
- * informar a data.
+ * Recibo do valor pago em dinheiro: baixar para assinar à mão ou guardar no
+ * acervo do colaborador pedindo assinatura no portal.
+ */
+function ReciboEspecieAcoes(props: { documentoId: string; jaEmitido: boolean }) {
+  const [ocupado, setOcupado] = useState<"baixar" | "assinar" | null>(null);
+  const [previa, setPrevia] = useState<{ url: string; revogar: () => void } | null>(null);
+
+  const baixar = async () => {
+    setOcupado("baixar");
+    try {
+      const pdf = await reciboEspeciePdf(props.documentoId);
+      previa?.revogar();
+      setPrevia(pdf);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setOcupado(null);
+    }
+  };
+
+  const pedirAssinatura = async () => {
+    setOcupado("assinar");
+    try {
+      await emitirReciboEspecieParaAssinatura(props.documentoId);
+      toast.success("Recibo enviado para assinatura no portal do colaborador");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setOcupado(null);
+    }
+  };
+
+  return (
+    <div className="rounded-md border border-amber-300 bg-amber-50/70 p-3">
+      <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase text-amber-800">
+        <Banknote className="size-3.5" /> Recibo do Valor em Dinheiro
+      </p>
+      <p className="mb-2 text-xs text-amber-800">
+        {props.jaEmitido
+          ? "O recibo deste pagamento já foi gerado. Você pode emitir outra via quando precisar."
+          : "Pagamento em dinheiro precisa de recibo assinado pelo colaborador (CLT, art. 464)."}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" disabled={ocupado !== null} onClick={() => void baixar()}>
+          {ocupado === "baixar" ? (
+            <Loader2 className="mr-1 size-4 animate-spin" />
+          ) : (
+            <Download className="mr-1 size-4" />
+          )}
+          Baixar Para Assinar à Mão
+        </Button>
+        <Button size="sm" disabled={ocupado !== null} onClick={() => void pedirAssinatura()}>
+          {ocupado === "assinar" ? (
+            <Loader2 className="mr-1 size-4 animate-spin" />
+          ) : (
+            <FileSignature className="mr-1 size-4" />
+          )}
+          Pedir Assinatura no Portal
+        </Button>
+      </div>
+      <DocumentPreview
+        open={!!previa}
+        onOpenChange={(v) => {
+          if (!v) {
+            previa?.revogar();
+            setPrevia(null);
+          }
+        }}
+        title="Recibo de pagamento em dinheiro"
+        url={previa?.url}
+        mime="application/pdf"
+      />
+    </div>
+  );
+}
+
+/**
+ * Formulário de anexo: o arquivo é lido pelo sistema (data, valor e tipo de
+ * operação), o gestor confere a data — agora obrigatória — e informa como o
+ * pagamento foi feito.
  */
 export function ComprovanteAnexarDialog(props: {
   open: boolean;
@@ -81,12 +183,25 @@ export function ComprovanteAnexarDialog(props: {
   colaboradorNome?: string | null;
   competencia?: string | null;
   pagoEmAtual?: string | null;
+  modalidadeAtual?: string | null;
+  valorBancarioAtual?: number | null;
+  valorEspecieAtual?: number | null;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const campoId = useId();
   const [pagoEm, setPagoEm] = useState(props.pagoEmAtual ?? "");
   const [arquivo, setArquivo] = useState<File | null>(null);
-  const [lida, setLida] = useState<"arquivo" | "nome" | null>(null);
+  const [lendo, setLendo] = useState(false);
+  const [leitura, setLeitura] = useState<LeituraComprovante | null>(null);
+  const [modalidade, setModalidade] = useState<ComprovanteModalidade>(
+    (props.modalidadeAtual as ComprovanteModalidade) ?? "bancario",
+  );
+  const [bancario, setBancario] = useState(
+    props.valorBancarioAtual ? centsParaBRL(props.valorBancarioAtual).replace("R$", "").trim() : "",
+  );
+  const [especie, setEspecie] = useState(
+    props.valorEspecieAtual ? centsParaBRL(props.valorEspecieAtual).replace("R$", "").trim() : "",
+  );
   const [confirmado, setConfirmado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const { anexar, ocupado } = useDpComprovantePagamento();
@@ -95,12 +210,14 @@ export function ComprovanteAnexarDialog(props: {
   const divergente = competenciaDivergente(pagoEm, props.competencia);
   const aviso =
     divergente && props.competencia ? avisoCompetenciaDivergente(pagoEm, props.competencia) : null;
+  const fraseLida = leitura ? frasesLeitura(leitura) : null;
 
   const limpar = () => {
     setErro(null);
     setArquivo(null);
-    setLida(null);
+    setLeitura(null);
     setConfirmado(false);
+    setLendo(false);
     setPagoEm(props.pagoEmAtual ?? "");
   };
 
@@ -108,11 +225,16 @@ export function ComprovanteAnexarDialog(props: {
     setArquivo(file);
     setErro(null);
     setConfirmado(false);
-    if (pagoEm) return;
-    const sugestao = await sugerirDataPagamento(file, hoje);
-    if (sugestao.valor) {
-      setPagoEm(sugestao.valor);
-      setLida(sugestao.origem);
+    setLendo(true);
+    try {
+      const lido = await lerComprovante(file);
+      setLeitura(lido);
+      if (lido.pagoEm && !pagoEm) setPagoEm(lido.pagoEm);
+      if (lido.valorCents && !bancario && modalidade === "bancario") {
+        setBancario((lido.valorCents / 100).toFixed(2).replace(".", ","));
+      }
+    } finally {
+      setLendo(false);
     }
   };
 
@@ -126,6 +248,19 @@ export function ComprovanteAnexarDialog(props: {
       setErro(check.motivo);
       return;
     }
+    if (!check.valor) {
+      setErro("Informe a data em que o pagamento foi feito.");
+      return;
+    }
+    const quitacao = validarQuitacao({
+      modalidade,
+      bancarioCents: brlParaCents(bancario),
+      especieCents: brlParaCents(especie),
+    });
+    if (!quitacao.ok) {
+      setErro(quitacao.motivo);
+      return;
+    }
     if (divergente && !confirmado) {
       setErro(aviso ?? "Confirme a competência do comprovante.");
       return;
@@ -137,6 +272,12 @@ export function ComprovanteAnexarDialog(props: {
         file: arquivo,
         pagoEm: check.valor,
         confirmarCompetencia: divergente && confirmado,
+        quitacao: {
+          modalidade: quitacao.modalidade,
+          valorBancarioCents: quitacao.bancarioCents,
+          valorEspecieCents: quitacao.especieCents,
+          leitura: leitura?.bruto ?? null,
+        },
       },
       { onSuccess: () => props.onOpenChange(false) },
     );
@@ -150,13 +291,13 @@ export function ComprovanteAnexarDialog(props: {
         props.onOpenChange(v);
       }}
     >
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {props.substituir ? "Substituir comprovante de pagamento" : "Anexar comprovante de pagamento"}
+            {props.substituir ? "Substituir Comprovante de Pagamento" : "Anexar Comprovante de Pagamento"}
           </DialogTitle>
           <DialogDescription>
-            Escolha o arquivo e confira a data do pagamento antes de importar.
+            Escolha o arquivo: o sistema lê a data e o valor para você conferir.
           </DialogDescription>
         </DialogHeader>
 
@@ -192,16 +333,21 @@ export function ComprovanteAnexarDialog(props: {
           <Label className="text-xs">Arquivo do comprovante</Label>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={() => inputRef.current?.click()} disabled={ocupado}>
-              <Upload className="mr-1 size-4" /> Escolher arquivo
+              <Upload className="mr-1 size-4" /> Escolher Arquivo
             </Button>
             <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-              {arquivo ? arquivo.name : `PDF ou imagem, até ${MAX_MB} MB`}
+              {arquivo ? arquivo.name : `PDF, foto ou print, até ${MAX_MB} MB`}
             </span>
           </div>
+          {lendo ? (
+            <p className="flex items-center gap-1.5 text-xs text-primary">
+              <Loader2 className="size-3.5 animate-spin" /> Lendo o comprovante…
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-1.5">
-          <Label htmlFor={campoId} className="text-xs">Data do pagamento (opcional)</Label>
+          <Label htmlFor={campoId} className="text-xs">Data do pagamento</Label>
           <Input
             id={campoId}
             type="date"
@@ -211,20 +357,83 @@ export function ComprovanteAnexarDialog(props: {
             aria-describedby={erro ? `${campoId}-erro` : undefined}
             onChange={(e) => {
               setPagoEm(e.target.value);
-              setLida(null);
+              setLeitura(leitura ? { ...leitura, origem: null } : null);
               setConfirmado(false);
               setErro(null);
             }}
           />
-          {lida ? (
-            <p className="text-xs text-primary">
-              Data lida do comprovante — confira antes de importar.
+          {fraseLida ? <p className="text-xs text-primary">{fraseLida}</p> : null}
+          {!pagoEm && arquivo && !lendo ? (
+            <p className="text-xs text-amber-700">
+              Não foi possível ler a data no comprovante. Informe a data do pagamento.
             </p>
           ) : null}
-          {erro ? (
-            <p id={`${campoId}-erro`} role="alert" className="text-xs text-destructive">{erro}</p>
-          ) : null}
         </div>
+
+        <div className="grid gap-1.5">
+          <Label className="text-xs">Como o pagamento foi feito</Label>
+          <div className="flex flex-wrap gap-2">
+            {COMPROVANTE_MODALIDADES.map((m) => (
+              <Button
+                key={m}
+                type="button"
+                size="sm"
+                variant={modalidade === m ? "default" : "outline"}
+                onClick={() => {
+                  setModalidade(m);
+                  setErro(null);
+                }}
+              >
+                {MODALIDADE_LABEL[m]}
+              </Button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">{MODALIDADE_AJUDA[modalidade]}</p>
+        </div>
+
+        {modalidade !== "bancario" ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {modalidade === "misto" ? (
+              <div className="grid gap-1.5">
+                <Label htmlFor={`${campoId}-banco`} className="text-xs">Valor pago na conta (R$)</Label>
+                <Input
+                  id={`${campoId}-banco`}
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={bancario}
+                  onChange={(e) => {
+                    setBancario(e.target.value);
+                    setErro(null);
+                  }}
+                />
+              </div>
+            ) : null}
+            <div className="grid gap-1.5">
+              <Label htmlFor={`${campoId}-especie`} className="text-xs">Valor pago em dinheiro (R$)</Label>
+              <Input
+                id={`${campoId}-especie`}
+                inputMode="decimal"
+                placeholder="0,00"
+                value={especie}
+                onChange={(e) => {
+                  setEspecie(e.target.value);
+                  setErro(null);
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        {modalidade !== "bancario" ? (
+          <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
+            Depois de importar, o sistema gera o recibo do valor em dinheiro para assinatura no portal
+            do colaborador — ou para você baixar e colher a assinatura à mão.
+          </p>
+        ) : null}
+
+        {erro ? (
+          <p id={`${campoId}-erro`} role="alert" className="text-xs text-destructive">{erro}</p>
+        ) : null}
 
         {aviso ? (
           <label className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
@@ -245,13 +454,13 @@ export function ComprovanteAnexarDialog(props: {
           <Button variant="outline" onClick={() => props.onOpenChange(false)} disabled={ocupado}>
             Cancelar
           </Button>
-          <Button onClick={importar} disabled={ocupado || !arquivo}>
+          <Button onClick={importar} disabled={ocupado || !arquivo || lendo}>
             {anexar.isPending ? (
               <Loader2 className="mr-1 size-4 animate-spin" />
             ) : (
               <Upload className="mr-1 size-4" />
             )}
-            Importar comprovante
+            Importar Comprovante
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -337,7 +546,7 @@ export function ComprovanteAcaoBotao(props: {
 
 /**
  * Bloco de comprovante nos detalhes do documento: importar, ver, baixar,
- * informar a data do pagamento e remover.
+ * conferir a forma de pagamento, emitir o recibo do dinheiro e remover.
  */
 export function ComprovantePagamentoPanel(props: {
   alvo: ComprovanteAlvo;
@@ -346,6 +555,10 @@ export function ComprovantePagamentoPanel(props: {
     pago_em: string | null;
     uploaded_at: string | null;
     tem: boolean;
+    modalidade?: string | null;
+    valor_bancario_cents?: number | null;
+    valor_especie_cents?: number | null;
+    recibo_documento_id?: string | null;
   };
   /** Versão anterior do documento: o comprovante é da versão substituída. */
   versaoAnterior?: boolean;
@@ -362,6 +575,12 @@ export function ComprovantePagamentoPanel(props: {
   const { comprovante } = props;
   // Portal: sem comprovante anexado, nem o bloco aparece.
   if (props.somenteLeitura && !comprovante.tem) return null;
+
+  const quitacao = resumoQuitacao({
+    modalidade: comprovante.modalidade,
+    valor_bancario_cents: comprovante.valor_bancario_cents,
+    valor_especie_cents: comprovante.valor_especie_cents,
+  });
 
   return (
     <div className="rounded-lg border p-3">
@@ -384,6 +603,7 @@ export function ComprovantePagamentoPanel(props: {
             {comprovante.file_name ?? "Comprovante"}
             {comprovante.pago_em ? ` · pago em ${comprovante.pago_em.split("-").reverse().join("/")}` : ""}
           </p>
+          <p className="break-words text-xs text-muted-foreground">{quitacao}</p>
           {props.versaoAnterior && (
             <p className="text-[11px] text-amber-700">
               Comprovante referente à versão anterior do documento.
@@ -413,6 +633,12 @@ export function ComprovantePagamentoPanel(props: {
               </>
             )}
           </div>
+          {!props.somenteLeitura && exigeRecibo(comprovante.modalidade) ? (
+            <ReciboEspecieAcoes
+              documentoId={props.alvo.documentoId}
+              jaEmitido={!!comprovante.recibo_documento_id}
+            />
+          ) : null}
         </div>
       ) : props.somenteLeitura ? (
         <p className="text-sm text-muted-foreground">
@@ -421,10 +647,11 @@ export function ComprovantePagamentoPanel(props: {
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Informe a data do pagamento e escolha o arquivo do comprovante.
+            Escolha o arquivo do comprovante: o sistema lê a data e o valor, e você informa como o
+            pagamento foi feito.
           </p>
           <Button size="sm" disabled={ocupado} onClick={() => setAnexarOpen(true)}>
-            <Upload className="mr-1 size-4" /> Anexar comprovante
+            <Upload className="mr-1 size-4" /> Anexar Comprovante
           </Button>
         </div>
       )}
@@ -437,6 +664,9 @@ export function ComprovantePagamentoPanel(props: {
         colaboradorNome={props.colaboradorNome}
         competencia={props.competencia}
         pagoEmAtual={comprovante.pago_em}
+        modalidadeAtual={comprovante.modalidade}
+        valorBancarioAtual={comprovante.valor_bancario_cents}
+        valorEspecieAtual={comprovante.valor_especie_cents}
       />
       {visualizador}
     </div>
