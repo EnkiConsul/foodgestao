@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { maskCpf } from "@/lib/cpf";
 import { avaliarSenha } from "@/lib/security/passwordPolicy";
 import { MedidorSenha } from "@/components/auth/MedidorSenha";
+import { ChecklistRequisitosSenha } from "@/components/auth/ChecklistRequisitosSenha";
 
 /** Regra única de senha nova (S3): src/lib/security/passwordPolicy.ts */
 function validarSenha(senha: string): string | null {
