@@ -379,6 +379,18 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           const desligamentoComp = vinculoComp ? vinculoComp.desligamento : desligamento;
           const regimeComp = String(vinculoComp?.regime ?? regime).toLowerCase();
           const assalariadoComp = REGIMES_ASSALARIADOS.has(regimeComp) && !socio;
+          // Algum vínculo assalariado tocou a competência (ex.: CLT até o dia 27
+          // e recontratação como freelancer no dia 28): a folha de ponto do
+          // período anterior é legítima.
+          const teveVinculoAssalariadoNaComp =
+            assalariadoComp ||
+            historicoVinculos.some(
+              (h: any) =>
+                h.colaborador_id === c.id &&
+                REGIMES_ASSALARIADOS.has(String(h.regime ?? "").toLowerCase()) &&
+                (!h.vigencia_inicio || String(h.vigencia_inicio) <= fimComp) &&
+                (!h.vigencia_fim || String(h.vigencia_fim) >= ini),
+            );
 
           // Mês do desligamento: por padrão o pagamento vem no acerto da
           // rescisão, então cobra-se TRCT/demonstrativo e não o contracheque.
@@ -471,7 +483,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
               // Documento de intermitente que trabalhou não é inconsistência.
               const inconsistente =
                 !intermitenteSemTrabalho &&
-                (tipo === "ponto" ||
+                ((tipo === "ponto" && !teveVinculoAssalariadoNaComp) ||
                   tipo === "adiantamento" ||
                   ((tipo === "contracheque" || tipo === "contracheque_13") &&
                     !assalariadoComp &&
@@ -670,7 +682,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           </div>
         )}
 
-        {onImportar && (
+        {onImportar && g.problema === "faltando" && (
           <Button
             size="sm"
             variant="outline"
