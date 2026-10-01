@@ -11,7 +11,7 @@ import { converterHeicParaJpeg } from "@/lib/storage/heic";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Camera, CheckCircle2, Loader2, Send } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, CheckCircle2, ChevronDown, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -372,6 +372,8 @@ export default function PreAdmissao() {
   /** Momento do último rascunho guardado, mostrado ao candidato. */
   const [salvoEm, setSalvoEm] = useState<string | null>(null);
   const [etapa, setEtapa] = useState(0);
+  const [blocoAberto, setBlocoAberto] = useState<string | null>(null);
+  const alternarBloco = (chave: string) => setBlocoAberto((atual) => atual === chave ? null : chave);
   const [form, setForm] = useState<Record<string, string>>({});
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [enviado, setEnviado] = useState(false);
@@ -742,7 +744,7 @@ export default function PreAdmissao() {
         </div>
       )}
 
-      <main className="p-4 space-y-4">
+      <main className="p-4 space-y-4 max-w-4xl mx-auto">
         {etapaAtual && (
           <Card>
             <CardContent className="p-4 space-y-3">
@@ -939,7 +941,11 @@ export default function PreAdmissao() {
                 </p>
               </div>
               {pessoas.map((p, i) => (
-                <div key={p.id ?? `nova-${i}`} className="rounded-lg border p-3 space-y-3">
+                <div key={p.id ?? `nova-${i}`} className="border-t pt-3 space-y-3">
+                  <Button type="button" variant="ghost" aria-expanded={blocoAberto === `familiar-${i}`} className="w-full justify-between text-left px-1" onClick={() => alternarBloco(`familiar-${i}`)}>
+                    <span className="min-w-0 truncate">{p.nome || `Familiar ${i + 1}`}</span><ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${blocoAberto === `familiar-${i}` ? "" : "-rotate-90"}`} />
+                  </Button>
+                  <div className={blocoAberto === `familiar-${i}` ? "space-y-3" : "hidden sm:block space-y-3"}>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1">
                       <Label className="text-xs" htmlFor={`fam-nome-${i}`}>Nome completo</Label>
@@ -990,13 +996,14 @@ export default function PreAdmissao() {
                     onClick={() => setPessoas(pessoas.filter((_, j) => j !== i))}>
                     Retirar Da Lista
                   </Button>
+                  </div>
                 </div>
               ))}
               <Button variant="outline" className="w-full h-11"
-                onClick={() => setPessoas([...pessoas, {
+                onClick={() => { setBlocoAberto(`familiar-${pessoas.length}`); setPessoas([...pessoas, {
                   nome: "", parentesco: "", data_nascimento: "", cpf: "", rg: "",
                   finalidade_dependente: true, finalidade_sesc: false,
-                }])}>
+                }]); }}>
                 Incluir Familiar
               </Button>
             </CardContent>
@@ -1020,7 +1027,11 @@ export default function PreAdmissao() {
                 const fotos = documentoPorChave.get(chave) ?? [];
                 const proximaParte = Math.min((fotos.reduce((max, d) => Math.max(max, d.parte ?? 1), 0)) + 1, 10);
                 return (
-                  <div key={item.key} className="rounded-lg border p-3 space-y-2">
+                  <div key={item.key} className="border-t pt-3 space-y-2">
+                    <Button type="button" variant="ghost" aria-expanded={blocoAberto === item.key} className="w-full justify-between text-left px-1" onClick={() => alternarBloco(item.key)}>
+                      <span className="min-w-0 truncate">{item.titulo}{item.pessoa_nome ? ` — ${item.pessoa_nome}` : ""}</span><ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${blocoAberto === item.key ? "" : "-rotate-90"}`} />
+                    </Button>
+                    <div className={blocoAberto === item.key ? "space-y-2" : "hidden sm:block space-y-2"}>
                     <div className="min-w-0">
                       <p className="text-sm font-medium">{item.titulo}</p>
                       <p className="text-xs text-muted-foreground">
