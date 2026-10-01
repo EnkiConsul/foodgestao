@@ -69,6 +69,15 @@ describe("checklist documental", () => {
     }))).toContain("reservista");
   });
 
+  it("separa comprovante escolar do candidato menor de autorização judicial condicional", () => {
+    const menor = { ...base, data_nascimento: "2010-01-01" };
+    const itens = montarChecklist({ ficha: menor, hoje: HOJE });
+    expect(codigos(itens)).toContain("comprovante_escolar_menor");
+    expect(codigos(itens)).not.toContain("autorizacao_judicial_menor");
+    const configurados = montarChecklist({ ficha: menor, requisitosEmpresa: ["autorizacao_judicial_menor"], hoje: HOJE });
+    expect(configurados.find((i) => i.codigo === "autorizacao_judicial_menor")?.obrigatorio).toBe(false);
+  });
+
   it("acrescenta requisito do cargo e da unidade sem duplicar", () => {
     const c = codigos(montarChecklist({
       ficha: base,

@@ -86,6 +86,7 @@ export function useDpDocumentoRequisitos() {
     mutationFn: async (input: {
       nome: string;
       descricao?: string | null;
+      grupo?: string;
       categoria?: string;
       aplica_a?: string;
       obrigatoriedade?: string;
@@ -99,6 +100,7 @@ export function useDpDocumentoRequisitos() {
         {
           nome: input.nome,
           descricao: input.descricao ?? null,
+          grupo: input.grupo ?? "identificacao",
           categoria: input.categoria ?? "admissao",
           aplica_a: input.aplica_a ?? "todos",
           obrigatoriedade: input.obrigatoriedade ?? "obrigatorio",

@@ -308,7 +308,7 @@ interface Estado {
   /** O que a empresa exige, dispensa ou nem pede em cada campo. */
   regras_campos?: Record<string, "obrigatorio" | "opcional" | "nao_pedir"> | null;
   /** Graus de parentesco aceitos pela empresa (nulo = todos). */
-  parentescos_permitidos?: string[] | null;
+  parentescos_permitidos?: Array<{ parentesco: string; permite_dependente: boolean; permite_sesc: boolean }> | null;
 }
 
 /** Campos que a ficha sempre pede quando a empresa não muda a regra. */
@@ -664,8 +664,15 @@ export default function PreAdmissao() {
   const campoVisivel = (c: Campo) => exigenciaCampo(c.nome) !== "nao_pedir";
   const parentescosPermitidos = estado?.parentescos_permitidos ?? null;
   const parentescosDaLista = parentescosPermitidos
-    ? PARENTESCO.filter((p) => parentescosPermitidos.includes(p.value))
+    ? parentescosPermitidos.filter((p) => p.permite_dependente || p.permite_sesc).map((p) => ({
+      value: p.parentesco,
+      label: PARENTESCO.find((o) => o.value === p.parentesco)?.label ?? p.parentesco.replace(/_/g, " "),
+    }))
     : PARENTESCO;
+  const opcoesPara = (p: Pessoa) => p.parentesco && !parentescosDaLista.some((o) => o.value === p.parentesco)
+    ? [...parentescosDaLista, { value: p.parentesco, label: `${ROTULO_PARENTESCO(p.parentesco)} (revisar com a empresa)` }]
+    : parentescosDaLista;
+  const finalidadePara = (p: Pessoa) => parentescosPermitidos?.find((o) => o.parentesco === p.parentesco);
   const camposDaRevisao = ETAPAS.flatMap((e) => (e.endereco ? CAMPOS_ENDERECO : e.campos)).filter(campoVisivel);
 
   /** Na revisão o valor aparece como a pessoa está acostumada a ver. */
@@ -685,7 +692,7 @@ export default function PreAdmissao() {
   return (
     <div className="min-h-screen bg-muted/30 pb-28">
       <Helmet>
-        <title>Ficha de Admissão | 360°FOOD</title>
+        <title>Ficha de Admissão | AVETO 360</title>
         <meta name="description" content="Preencha seus dados e envie seus documentos para iniciar sua admissão." />
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
@@ -949,7 +956,7 @@ export default function PreAdmissao() {
                         onValueChange={(v) => setPessoas(pessoas.map((x, j) => (j === i ? { ...x, parentesco: v } : x)))}>
                         <SelectTrigger id={`fam-par-${i}`} className="h-11"><SelectValue placeholder="Escolher" /></SelectTrigger>
                         <SelectContent>
-                          {parentescosDaLista.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                           {opcoesPara(p).map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
@@ -971,12 +978,12 @@ export default function PreAdmissao() {
                   </div>
                   <div className="flex items-center justify-between rounded-md border p-2">
                     <Label className="text-sm" htmlFor={`fam-dep-${i}`}>Declarar como dependente</Label>
-                    <Switch id={`fam-dep-${i}`} checked={p.finalidade_dependente}
+                     <Switch id={`fam-dep-${i}`} checked={p.finalidade_dependente} disabled={!!parentescosPermitidos && !finalidadePara(p)?.permite_dependente}
                       onCheckedChange={(v) => setPessoas(pessoas.map((x, j) => (j === i ? { ...x, finalidade_dependente: v } : x)))} />
                   </div>
                   <div className="flex items-center justify-between rounded-md border p-2">
                     <Label className="text-sm" htmlFor={`fam-sesc-${i}`}>Cadastrar no Sesc</Label>
-                    <Switch id={`fam-sesc-${i}`} checked={p.finalidade_sesc}
+                     <Switch id={`fam-sesc-${i}`} checked={p.finalidade_sesc} disabled={!!parentescosPermitidos && !finalidadePara(p)?.permite_sesc}
                       onCheckedChange={(v) => setPessoas(pessoas.map((x, j) => (j === i ? { ...x, finalidade_sesc: v } : x)))} />
                   </div>
                   <Button variant="ghost" className="text-destructive"
