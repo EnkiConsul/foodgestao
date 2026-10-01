@@ -65,7 +65,8 @@ function AvisoJuridicoDisciplinar() {
       </div>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-foreground/90">
         <li>Advertência escrita e suspensão devem ser <strong>aplicadas pessoalmente</strong>: gere o modelo, imprima, converse com o colaborador e colha a assinatura (ou de 2 testemunhas se ele recusar).</li>
-        <li>Só depois importe a <strong>via assinada</strong>. Ela é a única coisa que o colaborador verá no portal.</li>
+        <li>Registro disciplinar é assinado <strong>somente em papel</strong>: não existe assinatura digital, pelo portal ou por link do WhatsApp.</li>
+        <li>Só depois importe a <strong>via assinada</strong>. Ela é a única coisa que o colaborador verá no portal. Se houver erro no documento, refaça, colha nova assinatura e use "Substituir Via" (a anterior fica no histórico).</li>
         <li>Descobrir uma punição pelo celular, antes da conversa, gera atrito e pode embasar ação por <strong>dano moral ou assédio</strong>.</li>
         <li>Advertências verbais, observações e elogios ficam só no dossiê interno, visível ao DP/gestão. Escreva fatos objetivos, sem juízo de valor, pois o dossiê pode ser usado como prova.</li>
       </ul>
@@ -148,6 +149,7 @@ export default function DpDisciplinar() {
   const [viaPara, setViaPara] = useState<Registro | null>(null);
   const [viaArquivo, setViaArquivo] = useState<File | null>(null);
   const [viaConfirmo, setViaConfirmo] = useState(false);
+  const [viaMotivo, setViaMotivo] = useState("");
   const viaRef = useRef<HTMLInputElement>(null);
 
   // filtros histórico
@@ -402,12 +404,15 @@ export default function DpDisciplinar() {
       if (!selectedCompanyId || !viaPara) throw new Error("Registro não selecionado");
       if (!viaArquivo) throw new Error("Anexe a via assinada");
       if (!viaConfirmo) throw new Error("Confirme a aplicação presencial e as assinaturas.");
+      const troca = !!viaPara.via_assinada_path;
+      if (troca && viaMotivo.trim().length < 5) throw new Error("Informe o motivo da troca da via.");
       const path = await enviarArquivo(selectedCompanyId, viaPara.id, viaArquivo);
-      await importarViaAssinadaDisciplinar(viaPara.id, path);
+      await importarViaAssinadaDisciplinar(viaPara.id, path, troca ? viaMotivo.trim() : undefined);
+      return troca;
     },
-    onSuccess: () => {
-      toast.success("Via assinada importada e disponível ao colaborador");
-      setViaPara(null); setViaArquivo(null); setViaConfirmo(false);
+    onSuccess: (troca) => {
+      toast.success(troca ? "Via substituída. A anterior ficou guardada no histórico." : "Via assinada importada e disponível ao colaborador");
+      setViaPara(null); setViaArquivo(null); setViaConfirmo(false); setViaMotivo("");
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
     },
     onError: (e: any) => notifyError(e, { surface: "Medidas disciplinares", action: "importar a via assinada", fallback: "Erro ao importar a via" }),
@@ -711,9 +716,9 @@ export default function DpDisciplinar() {
                                 <FileSignature className="h-4 w-4" />
                               </Button>
                             )}
-                            {isFormal(r.tipo) && !r.via_assinada_path && (
-                              <Button aria-label="Importar via assinada" size="icon" variant="ghost" title="Importar Via Assinada" onClick={() => setViaPara(r)}>
-                                <FileCheck2 className="h-4 w-4 text-primary" />
+                            {isFormal(r.tipo) && (
+                              <Button aria-label={r.via_assinada_path ? "Substituir via assinada" : "Importar via assinada"} size="icon" variant="ghost" title={r.via_assinada_path ? "Substituir Via Assinada" : "Importar Via Assinada"} onClick={() => setViaPara(r)}>
+                                <FileCheck2 className={r.via_assinada_path ? "h-4 w-4 text-muted-foreground" : "h-4 w-4 text-primary"} />
                               </Button>
                             )}
                             {(r.pdf_storage_path || r.via_assinada_path) && (
@@ -873,16 +878,24 @@ export default function DpDisciplinar() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!viaPara} onOpenChange={(v) => { if (!v) { setViaPara(null); setViaArquivo(null); setViaConfirmo(false); } }}>
+      <Dialog open={!!viaPara} onOpenChange={(v) => { if (!v) { setViaPara(null); setViaArquivo(null); setViaConfirmo(false); setViaMotivo(""); } }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Importar Via Assinada</DialogTitle>
+            <DialogTitle>{viaPara?.via_assinada_path ? "Substituir Via Assinada" : "Importar Via Assinada"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 text-sm">
             <p className="text-muted-foreground">
               {viaPara?.dp_colaboradores?.nome} — {viaPara ? TIPO_LABEL[viaPara.tipo] : ""} de {formatDate(viaPara?.data)}.
-              Após importar, o documento fica disponível ao colaborador em Meus Documentos e não pode ser substituído.
             </p>
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs">
+              <strong>Somente assinatura em papel.</strong> Registros disciplinares não têm assinatura digital nem link pelo WhatsApp. O colaborador apenas visualiza no portal a cópia da folha que já assinou à mão.
+            </div>
+            {viaPara?.via_assinada_path && (
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">A via atual será trocada e ficará guardada no histórico do registro.</p>
+                <Textarea value={viaMotivo} onChange={(e) => setViaMotivo(e.target.value)} placeholder="Motivo da troca (ex.: erro na data corrigido e nova via assinada)" rows={2} />
+              </div>
+            )}
             <DpFilePicker ref={viaRef} accept="application/pdf,image/*" file={viaArquivo} onFileChange={setViaArquivo} />
             <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-xs">
               <Checkbox checked={viaConfirmo} onCheckedChange={(v) => setViaConfirmo(v === true)} className="mt-0.5" />
@@ -891,8 +904,8 @@ export default function DpDisciplinar() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setViaPara(null)}>Cancelar</Button>
-            <Button onClick={() => doVia.mutate()} disabled={doVia.isPending || !viaArquivo || !viaConfirmo}>
-              {doVia.isPending ? "Enviando..." : "Importar E Liberar Ao Colaborador"}
+            <Button onClick={() => doVia.mutate()} disabled={doVia.isPending || !viaArquivo || !viaConfirmo || (!!viaPara?.via_assinada_path && viaMotivo.trim().length < 5)}>
+              {doVia.isPending ? "Enviando..." : viaPara?.via_assinada_path ? "Substituir Via" : "Importar E Liberar Ao Colaborador"}
             </Button>
           </DialogFooter>
         </DialogContent>
