@@ -948,26 +948,26 @@ export default function DpDisciplinar() {
                   {(r.descricao || r.motivo) && (
                     <div className="text-xs text-muted-foreground line-clamp-2">{r.descricao || r.motivo}</div>
                   )}
-                  <div className="flex gap-1 pt-1 border-t border-border/60 flex-wrap">
-                    <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setEditing(r)}>
-                      <Pencil className="h-4 w-4 mr-1" /> Editar
+                  <div className="flex gap-1 pt-1 border-t border-border/60 items-center">
+                    <Button size="sm" variant="ghost" className="h-10 min-w-0 flex-1 px-1.5 text-xs" onClick={() => setEditing(r)}>
+                      <Pencil className="h-4 w-4 mr-1 shrink-0" /> Editar
                     </Button>
                     {!r.pdf_storage_path && (
-                      <Button size="sm" variant="ghost" className="min-h-11 flex-1" disabled={genPdf.isPending} onClick={() => genPdf.mutate(r.id)}>
-                        <FileSignature className="h-4 w-4 mr-1" /> PDF
+                      <Button size="sm" variant="ghost" className="h-10 min-w-0 flex-1 px-1.5 text-xs" disabled={genPdf.isPending} onClick={() => genPdf.mutate(r.id)}>
+                        <FileSignature className="h-4 w-4 mr-1 shrink-0" /> PDF
                       </Button>
                     )}
                     {isFormal(r.tipo) && !r.via_assinada_path && (
-                      <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setViaPara(r)}>
-                        <FileCheck2 className="h-4 w-4 mr-1" /> Via Assinada
+                      <Button size="sm" variant="ghost" className="h-10 min-w-0 flex-1 px-1.5 text-xs" onClick={() => setViaPara(r)}>
+                        <FileCheck2 className="h-4 w-4 mr-1 shrink-0" /> <span className="truncate">Via Assinada</span>
                       </Button>
                     )}
                     {(r.pdf_storage_path || r.via_assinada_path) && (
-                      <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => handleDownload(r)}>
-                        <Download className="h-4 w-4 mr-1" /> Baixar
+                      <Button size="sm" variant="ghost" className="h-10 min-w-0 flex-1 px-1.5 text-xs" onClick={() => handleDownload(r)}>
+                        <Download className="h-4 w-4 mr-1 shrink-0" /> Baixar
                       </Button>
                     )}
-                    <Button aria-label="Excluir registro" size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(r)}>
+                    <Button aria-label="Excluir registro" size="icon" variant="ghost" className="h-10 w-10 shrink-0" onClick={() => setToDelete(r)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
