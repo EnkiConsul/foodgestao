@@ -140,7 +140,7 @@ export interface ChecklistInput {
    * exigido "por lei universal": só entra no checklist o que a empresa
    * cadastrou como requisito.
    */
-  requisitosEmpresa?: string[];
+  requisitosEmpresa?: Array<string | { codigo: string; nome: string }>;
   hoje?: Date;
 }
 
@@ -165,8 +165,13 @@ export function montarChecklist({
     if (["autorizacao_menor", "autorizacao_judicial_menor", "cnh_sem_suspensao"].includes(codigo)) continue;
     itens.push(item(codigo, "condicional"));
   }
-  for (const codigo of requisitosEmpresa) {
-    if (codigo.startsWith("custom_") && !requisitosCargo.includes(codigo) && !requisitosUnidade.includes(codigo)) itens.push(item(codigo, "condicional", null, false));
+  for (const requisito of requisitosEmpresa) {
+    const codigo = typeof requisito === "string" ? requisito : requisito.codigo;
+    if (codigo.startsWith("custom_") && !requisitosCargo.includes(codigo) && !requisitosUnidade.includes(codigo)) {
+      const novo = item(codigo, "condicional", null, false);
+      if (typeof requisito !== "string") novo.titulo = requisito.nome;
+      itens.push(novo);
+    }
   }
 
   const estado = normaliza(ficha.estado_civil);
@@ -176,7 +181,7 @@ export function montarChecklist({
   // Reservista só quando a empresa configurou esse requisito — e aí sim com a
   // condição de sexo e idade. Nunca por improviso.
   const idade = idadeEmAnos(ficha.data_nascimento, hoje);
-  const configurados = new Set([...requisitosEmpresa, ...requisitosCargo, ...requisitosUnidade]);
+  const configurados = new Set([...requisitosEmpresa.map((r) => typeof r === "string" ? r : r.codigo), ...requisitosCargo, ...requisitosUnidade]);
   if (configurados.has("reservista") && normaliza(ficha.sexo).startsWith("m") && idade !== null && idade >= 18) {
     itens.push(item("reservista", "condicional"));
   }

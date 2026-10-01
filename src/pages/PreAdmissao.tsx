@@ -1163,7 +1163,7 @@ export default function PreAdmissao() {
         )}
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 border-t bg-background p-3">
+      <footer className="fixed bottom-0 left-0 right-0 border-t bg-background p-3 max-h-[45vh] overflow-y-auto">
       {avisoTopo && (
         <div
           className="mb-2 max-h-40 overflow-y-auto rounded-lg border border-destructive/40 bg-destructive/10 p-2 text-xs"
@@ -1190,22 +1190,22 @@ export default function PreAdmissao() {
           ? `Rascunho ${rotuloSalvoEm(salvoEm).toLowerCase()} — você pode sair e continuar depois.`
           : "O que você preencher fica guardado. Pode sair e voltar por este mesmo link."}
       </p>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap sm:flex-nowrap gap-2">
         <Button variant="outline" className="h-12" disabled={etapa === 0 || salvando}
           aria-label="Voltar uma etapa"
           onClick={() => setEtapa((n) => Math.max(0, n - 1))}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <Button variant="outline" className="h-12 flex-1" disabled={salvando} onClick={() => salvar(false)}>
+        <Button variant="outline" className="h-12 flex-1 min-w-0 text-xs sm:text-sm" disabled={salvando} onClick={() => salvar(false)}>
           Guardar E Continuar Depois
         </Button>
         {ehRevisao ? (
-          <Button className="h-12 flex-1" disabled={salvando} onClick={enviar}>
+          <Button className="h-12 flex-1 min-w-0" disabled={salvando} onClick={enviar}>
             {salvando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
             Enviar
           </Button>
         ) : (
-          <Button className="h-12 flex-1" disabled={salvando} onClick={() => salvar(true)}>
+          <Button className="h-12 flex-1 min-w-0" disabled={salvando} onClick={() => salvar(true)}>
             {ehDocumentos ? "Revisar" : "Continuar"} <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         )}

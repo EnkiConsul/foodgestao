@@ -80,8 +80,9 @@ describe("checklist documental", () => {
   });
 
   it("inclui documentos personalizados da ficha como opcionais quando não há exigência específica", () => {
-    const itens = montarChecklist({ ficha: base, requisitosEmpresa: ["custom_documento"], hoje: HOJE });
+    const itens = montarChecklist({ ficha: base, requisitosEmpresa: [{ codigo: "custom_documento", nome: "Declaração da empresa" }], hoje: HOJE });
     expect(itens.find((i) => i.codigo === "custom_documento")?.obrigatorio).toBe(false);
+    expect(itens.find((i) => i.codigo === "custom_documento")?.titulo).toBe("Declaração da empresa");
   });
 
   it("acrescenta requisito do cargo e da unidade sem duplicar", () => {

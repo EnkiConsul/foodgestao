@@ -383,7 +383,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           pe.finalidade_sesc ? "Sesc" : null,
         ].filter(Boolean).join(" e ");
         const partes = [
-          PARENTESCO_LABEL[(pe.parentesco ?? "").toLowerCase()] ?? pe.parentesco ?? "",
+           PARENTESCO_LABEL[(pe.parentesco ?? "").toLowerCase()] ?? pe.parentesco?.replace(/_/g, " ") ?? "",
           pe.data_nascimento ? `Nascimento: ${pe.data_nascimento}` : null,
           pe.cpf ? `CPF: ${pe.cpf}` : null,
           pe.rg ? `RG: ${pe.rg}` : null,
