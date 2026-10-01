@@ -10,6 +10,7 @@ import {
   MARCA_MARINHO,
   MARCA_PNG_BASE64,
 } from "./marca-aveto.ts";
+import { desenharAssinatura, embutirAssinatura, rubricarPaginas } from "./assinatura-pdf.ts";
 import { centsParaBRL, modalidadeLabel, valorPorExtenso } from "./quitacao.ts";
 
 export const NATUREZAS = ["acerto_mensal", "adiantamento", "diaria", "teste_operacional", "rescisao", "outros"] as const;
@@ -104,6 +105,8 @@ export type ReciboPdf = {
   codigo: string;
   emitidoEm: string;
   assinatura?: { em: string; ip: string; canal: string } | null;
+  /** PNG (data URL) da assinatura desenhada ou cursiva. */
+  assinaturaImagem?: string | null;
 };
 
 export async function montarReciboPdf(r: ReciboPdf): Promise<Uint8Array> {
@@ -193,7 +196,9 @@ export async function montarReciboPdf(r: ReciboPdf): Promise<Uint8Array> {
     y -= 13.5;
   }
 
-  y -= 42;
+  y -= 56;
+  const imgAss = r.assinatura ? await embutirAssinatura(pdf, r.assinaturaImagem) : null;
+  if (imgAss) desenharAssinatura(page, imgAss, margem + 4, y + 2, 240, 46);
   page.drawLine({ start: { x: margem, y }, end: { x: margem + 260, y }, thickness: 0.8, color: rgb(0.5, 0.5, 0.5) });
   page.drawText(limpar(r.beneficiario), { x: margem, y: y - 13, size: 9.5, font: negrito, color: rgb(0.1, 0.1, 0.1) });
   page.drawText(`CPF ${limpar(r.beneficiarioCpf)}`, { x: margem, y: y - 25, size: 8.5, font: fonte, color: CLARO });
@@ -214,6 +219,7 @@ export async function montarReciboPdf(r: ReciboPdf): Promise<Uint8Array> {
   });
   page.drawText(limpar(`Emitido em ${r.emitidoEm}`), { x: margem, y: 16, size: 6.5, font: fonte, color: CLARO });
   page.drawText(limpar(MARCA_ASSINATURA), { x: margem, y: 6, size: 6.5, font: fonte, color: MARINHO });
+  if (imgAss) rubricarPaginas(pdf, imgAss, fonte, 44);
 
   return await pdf.save();
 }
@@ -222,6 +228,7 @@ export async function montarReciboPdf(r: ReciboPdf): Promise<Uint8Array> {
 export function reciboDaLinha(
   row: Record<string, unknown>,
   empresa: { name?: string | null; trade_name?: string | null; cnpj?: string | null } | null,
+  assinaturaImagem?: string | null,
 ): ReciboPdf {
   const assinadoEm = row.assinado_em
     ? new Date(String(row.assinado_em)).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
@@ -243,6 +250,7 @@ export function reciboDaLinha(
     emitidoEm: new Date(String(row.created_at ?? new Date().toISOString())).toLocaleString("pt-BR", {
       timeZone: "America/Sao_Paulo",
     }),
+    assinaturaImagem: (row.assinatura_imagem as string | null) ?? assinaturaImagem ?? null,
     assinatura: assinadoEm
       ? {
         em: assinadoEm,

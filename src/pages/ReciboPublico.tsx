@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
+import { AssinaturaCaptura } from "@/components/dp/AssinaturaCaptura";
 import { centsParaBRL, modalidadeLabel } from "@/lib/dp/comprovante-quitacao";
 
 type Resumo = {
@@ -43,6 +44,7 @@ export default function ReciboPublico() {
   const [cpf, setCpf] = useState("");
   const [concordo, setConcordo] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [assinatura, setAssinatura] = useState<string | null>(null);
 
   useEffect(() => {
     chamar({ acao: "ver", token }).then(setResumo).catch((e) => setErro(e.message));
@@ -62,7 +64,7 @@ export default function ReciboPublico() {
     setEnviando(true);
     setErro(null);
     try {
-      const r = await chamar({ acao: "assinar", token, cpf, concordo });
+      const r = await chamar({ acao: "assinar", token, cpf, concordo, assinatura });
       setResumo((s) => (s ? { ...s, assinado_em: r.assinado_em } : s));
     } catch (e) {
       setErro((e as Error).message);
@@ -110,12 +112,13 @@ export default function ReciboPublico() {
                     <Label htmlFor="cpf">Confirme seu CPF{resumo.cpf_final ? ` (termina em ${resumo.cpf_final})` : ""}</Label>
                     <Input id="cpf" inputMode="numeric" value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" />
                   </div>
+                  <AssinaturaCaptura nomePadrao={resumo.beneficiario} onChange={setAssinatura} />
                   <label className="flex items-start gap-2 text-sm">
                     <Checkbox checked={concordo} onCheckedChange={(v) => setConcordo(v === true)} className="mt-0.5" />
                     Li o recibo e declaro que recebi o valor informado, dando quitação.
                   </label>
                   {erro && <p className="text-sm text-destructive">{erro}</p>}
-                  <Button className="w-full" disabled={!concordo || cpf.replace(/\D/g, "").length !== 11 || enviando} onClick={assinar}>
+                  <Button className="w-full" disabled={!concordo || !assinatura || cpf.replace(/\D/g, "").length !== 11 || enviando} onClick={assinar}>
                     {enviando ? "Assinando…" : "Assinar Recibo"}
                   </Button>
                   <p className="text-xs text-muted-foreground">Registramos data, hora, endereço de internet e aparelho como prova da assinatura.</p>

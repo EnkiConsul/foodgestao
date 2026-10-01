@@ -16,6 +16,8 @@ import { z } from "npm:zod@3";
 import { callerClient, requireUser, serviceClient } from "../_shared/authz.ts";
 import { recordEdgeError } from "../_shared/error-log.ts";
 import { resumoQuitacao } from "../_shared/quitacao.ts";
+import { desenharAssinatura, embutirAssinatura, rubricarPaginas } from "../_shared/assinatura-pdf.ts";
+import type { PDFImage } from "npm:pdf-lib@1.17.1";
 import {
   MARCA_ASSINATURA,
   MARCA_LARANJA,
@@ -167,6 +169,7 @@ function paginaCertificado(
   negrito: PDFFont,
   d: Dados,
   marca: Marca,
+  assinatura: PDFImage | null = null,
 ): void {
   const page = pdf.addPage(A4);
   const { width, height } = page.getSize();
@@ -225,6 +228,17 @@ function paginaCertificado(
       page.drawText(linha, { x: margem, y, size: 9.5, font: negrito, color: rgb(0.6, 0.2, 0.05) });
       y -= 12.5;
     }
+  }
+
+  if (assinatura) {
+    y -= 24;
+    page.drawText("ASSINATURA DO COLABORADOR", { x: margem, y, size: 7.5, font: negrito, color: rgb(0.42, 0.42, 0.42) });
+    desenharAssinatura(page, assinatura, margem, y - 58, 220, 50);
+    y -= 62;
+    page.drawLine({ start: { x: margem, y }, end: { x: margem + 240, y }, thickness: 0.6, color: rgb(0.6, 0.6, 0.6) });
+    page.drawText(limpar(`${d.aprovadoPor} · ${dataHora(d.aceitoEm)} · IP ${d.ip}`).slice(0, 110), {
+      x: margem, y: y - 11, size: 7.5, font: fonte, color: rgb(0.3, 0.3, 0.3),
+    });
   }
 }
 
@@ -377,7 +391,7 @@ Deno.serve(async (req) => {
 
     const { data: aceite } = await admin
       .from("dp_documento_aceites")
-      .select("id, aceito_em, aceito_por, ip, user_agent, conteudo_hash, documento_versao, hash_origem")
+      .select("id, aceito_em, aceito_por, ip, user_agent, conteudo_hash, documento_versao, hash_origem, assinatura_imagem")
       .eq("documento_id", documentoId)
       .order("aceito_em", { ascending: false })
       .limit(1)
@@ -484,7 +498,8 @@ Deno.serve(async (req) => {
     const pendentes: string[] = [];
 
     // Capa primeiro; o documento e o anexo entram nas páginas seguintes.
-    paginaCertificado(pdf, fonte, negrito, dados, marca);
+    const imgAssinatura = await embutirAssinatura(pdf, aceite.assinatura_imagem as string | null);
+    paginaCertificado(pdf, fonte, negrito, dados, marca, imgAssinatura);
 
     if (docBytes) {
       const aviso = await anexarArquivo(pdf, docBytes, String(doc.mime_type ?? ""), String(doc.file_name ?? ""));
@@ -537,6 +552,7 @@ Deno.serve(async (req) => {
     }
 
     rodape(pdf, fonte, dados);
+    if (imgAssinatura) rubricarPaginas(pdf, imgAssinatura, fonte, 44);
 
     const bytes = await pdf.save();
     return new Response(bytes as unknown as BodyInit, {

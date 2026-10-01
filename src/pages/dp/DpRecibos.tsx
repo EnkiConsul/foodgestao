@@ -294,7 +294,7 @@ export default function DpRecibos() {
 
   return (
     <DpPage>
-      <Helmet><title>Emitir Recibo | Pessoas 360°</title></Helmet>
+      <Helmet><title>Recibos | Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={Receipt}
         title="Recibos"

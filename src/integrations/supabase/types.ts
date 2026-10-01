@@ -7349,6 +7349,7 @@ export type Database = {
         Row: {
           aceito_em: string
           aceito_por: string | null
+          assinatura_imagem: string | null
           colaborador_id: string
           company_id: string
           conteudo_hash: string
@@ -7366,6 +7367,7 @@ export type Database = {
         Insert: {
           aceito_em?: string
           aceito_por?: string | null
+          assinatura_imagem?: string | null
           colaborador_id: string
           company_id: string
           conteudo_hash: string
@@ -7383,6 +7385,7 @@ export type Database = {
         Update: {
           aceito_em?: string
           aceito_por?: string | null
+          assinatura_imagem?: string | null
           colaborador_id?: string
           company_id?: string
           conteudo_hash?: string
@@ -11130,6 +11133,7 @@ export type Database = {
           assinado_hash: string | null
           assinado_ip: string | null
           assinado_user_agent: string | null
+          assinatura_imagem: string | null
           beneficiario_cpf: string | null
           beneficiario_nome: string
           beneficiario_whatsapp: string | null
@@ -11162,6 +11166,7 @@ export type Database = {
           assinado_hash?: string | null
           assinado_ip?: string | null
           assinado_user_agent?: string | null
+          assinatura_imagem?: string | null
           beneficiario_cpf?: string | null
           beneficiario_nome: string
           beneficiario_whatsapp?: string | null
@@ -11194,6 +11199,7 @@ export type Database = {
           assinado_hash?: string | null
           assinado_ip?: string | null
           assinado_user_agent?: string | null
+          assinatura_imagem?: string | null
           beneficiario_cpf?: string | null
           beneficiario_nome?: string
           beneficiario_whatsapp?: string | null

@@ -11,6 +11,7 @@ import { z } from "npm:zod@3";
 import { serviceClient } from "../_shared/authz.ts";
 import { recordEdgeError } from "../_shared/error-log.ts";
 import { strictCorsHeaders } from "../_shared/http.ts";
+import { assinaturaValida } from "../_shared/assinatura-pdf.ts";
 import { clientIp, ipRateLimited, isRateLimited, sha256Hex } from "../_shared/rate-limit.ts";
 import { montarReciboPdf, NATUREZA_LABEL, reciboDaLinha, type Natureza } from "../_shared/recibo-pdf.ts";
 
@@ -22,6 +23,7 @@ const Body = z.object({
   token: z.string().regex(/^[a-f0-9]{64}$/),
   cpf: z.string().max(20).optional(),
   concordo: z.boolean().optional(),
+  assinatura: z.string().max(400000).optional(),
 });
 
 Deno.serve(async (req) => {
@@ -84,6 +86,8 @@ Deno.serve(async (req) => {
     // ---------------- assinar ----------------
     if (row.assinado_em) return json(200, { assinado_em: row.assinado_em, ja_assinado: true });
     if (b.concordo !== true) return json(400, { error: "Marque que leu e concorda com o recibo." });
+    const assinaturaImg = assinaturaValida(b.assinatura);
+    if (!assinaturaImg) return json(400, { error: "Desenhe ou escolha a sua assinatura antes de confirmar." });
 
     // Tentativas erradas de CPF por recibo: limite próprio (anti força bruta).
     if (await isRateLimited(admin, `${FUNCAO}:cpf`, await sha256Hex(`cpf:${row.id}`), 8)) {
@@ -113,6 +117,8 @@ Deno.serve(async (req) => {
       p_user_agent: (req.headers.get("user-agent") ?? "").slice(0, 400),
     });
     if (error) throw error;
+    await admin.from("dp_recibos").update({ assinatura_imagem: assinaturaImg })
+      .eq("id", row.id).is("assinatura_imagem", null);
     return json(200, { assinado_em: assinadoEm });
   } catch (e) {
     await recordEdgeError({ functionName: FUNCAO, action: "assinar recibo pelo link", error: e });

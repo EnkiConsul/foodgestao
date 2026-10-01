@@ -15,6 +15,7 @@ import {
   type DocParaAssinar,
 } from "@/hooks/portal/useDocumentosAguardandoAssinatura";
 import { notifyError } from "@/lib/notifyError";
+import { AssinaturaCaptura } from "@/components/dp/AssinaturaCaptura";
 
 const BUCKET = "dp-documentos";
 /** Se o colaborador fechar sem assinar, o aviso volta depois deste intervalo. */
@@ -32,6 +33,7 @@ export function DocumentoAssinaturaGate() {
   const [adiado, setAdiado] = useState(false);
   const [visualizou, setVisualizou] = useState<string | null>(null);
   const [preview, setPreview] = useState<DocParaAssinar | null>(null);
+  const [assinaturaPng, setAssinaturaPng] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const atual = documentos[0] ?? null;
@@ -56,13 +58,15 @@ export function DocumentoAssinaturaGate() {
   const assinar = useMutation({
     mutationFn: async (d: DocParaAssinar) => {
       if (!colaborador) throw new Error("Colaborador não encontrado");
-      await assinarDocumento(d.id);
+      if (!assinaturaPng) throw new Error("Desenhe ou escolha a sua assinatura.");
+      await assinarDocumento(d.id, assinaturaPng);
     },
     onSuccess: () => {
       toast.success("Documento assinado", {
         description: "Registramos data, hora e dispositivo da sua assinatura.",
       });
       setVisualizou(null);
+      setAssinaturaPng(null);
       qc.invalidateQueries({ queryKey: ["dp_docs_aguardando_assinatura"] });
       qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias_colaborador"] });
@@ -78,7 +82,7 @@ export function DocumentoAssinaturaGate() {
     <>
       <Dialog open={open} onOpenChange={(v) => { if (!v) adiar(); }}>
         <DialogContent
-          className="w-[calc(100%-1rem)] max-w-md"
+          className="w-[calc(100%-1rem)] max-w-md max-h-[92dvh] overflow-y-auto"
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
@@ -129,12 +133,20 @@ export function DocumentoAssinaturaGate() {
             >
               <Eye className="h-4 w-4 mr-1" /> Abrir documento
             </Button>
+
+            {podeAssinar && (
+              <AssinaturaCaptura
+                key={atual.id}
+                nomePadrao={String(colaborador?.nome_social || colaborador?.nome || "")}
+                onChange={setAssinaturaPng}
+              />
+            )}
           </div>
 
           <DialogFooter className="flex-col gap-2 sm:flex-col">
             <Button
               className="w-full min-h-10"
-              disabled={!podeAssinar || assinar.isPending}
+              disabled={!podeAssinar || !assinaturaPng || assinar.isPending}
               onClick={() => assinar.mutate(atual)}
             >
               <PenLine className="h-4 w-4 mr-1" /> Assinar documento

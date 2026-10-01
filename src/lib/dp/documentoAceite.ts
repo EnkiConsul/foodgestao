@@ -8,9 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
  * conteúdo do arquivo antes de registrar. Chamar duas vezes não gera duas
  * assinaturas.
  */
-export async function assinarDocumento(documentoId: string): Promise<string> {
+export async function assinarDocumento(documentoId: string, assinatura: string): Promise<string> {
   const { data, error } = await supabase.functions.invoke("dp-documento-aceitar", {
-    body: { documento_id: documentoId },
+    body: { documento_id: documentoId, assinatura },
   });
 
   if (error) {
