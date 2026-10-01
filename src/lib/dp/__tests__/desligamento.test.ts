@@ -32,3 +32,12 @@ describe("desligamento — carência do portal", () => {
     expect(diasRestantesCarencia(null)).toBeNull();
   });
 });
+
+import { prazoPagamentoRescisao } from "@/lib/dp/desligamento";
+describe("prazoPagamentoRescisao", () => {
+  it("antecipa fim de semana e feriado", () => {
+    // 02/10/2026 +10 = 12/10 (segunda, feriado) → 09/10 (sexta)
+    expect(prazoPagamentoRescisao("2026-10-02")).toBe("2026-10-12");
+    expect(prazoPagamentoRescisao("2026-10-02", new Set(["2026-10-12"]))).toBe("2026-10-09");
+  });
+});
