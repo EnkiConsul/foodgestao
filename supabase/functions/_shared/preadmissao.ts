@@ -980,8 +980,7 @@ export async function regrasAdmissao(
     const alvo = r.tipo === "documento" ? documentos : r.tipo === "campo" ? campos : null;
     if (alvo) alvo[r.chave] = r.exigencia as Exigencia;
   }
-  const parentescos = lista.error || !(lista.data ?? []).length
-    ? null
-    : (lista.data as ParentescoPermitido[]);
+  if (lista.error) throw new Error("Não foi possível conferir os familiares aceitos pela empresa.");
+  const parentescos = !(lista.data ?? []).length ? null : (lista.data as ParentescoPermitido[]);
   return { campos, documentos, parentescos };
 }
