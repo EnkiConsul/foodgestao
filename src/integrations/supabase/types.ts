@@ -3253,6 +3253,44 @@ export type Database = {
           },
         ]
       }
+      dp_admissao_finalidades: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          company_id: string
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          company_id: string
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_admissao_finalidades_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_admissao_rascunhos: {
         Row: {
           chave: string
@@ -3341,6 +3379,7 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
+          finalidades: string[]
           id: string
           parentesco: string
           permite_dependente: boolean
@@ -3350,6 +3389,7 @@ export type Database = {
         Insert: {
           company_id: string
           created_at?: string
+          finalidades?: string[]
           id?: string
           parentesco: string
           permite_dependente?: boolean
@@ -3359,6 +3399,7 @@ export type Database = {
         Update: {
           company_id?: string
           created_at?: string
+          finalidades?: string[]
           id?: string
           parentesco?: string
           permite_dependente?: boolean
@@ -10770,6 +10811,7 @@ export type Database = {
           data_nascimento: string | null
           finalidade_dependente: boolean
           finalidade_sesc: boolean
+          finalidades: string[]
           id: string
           nome: string
           parentesco: string | null
@@ -10785,6 +10827,7 @@ export type Database = {
           data_nascimento?: string | null
           finalidade_dependente?: boolean
           finalidade_sesc?: boolean
+          finalidades?: string[]
           id?: string
           nome: string
           parentesco?: string | null
@@ -10800,6 +10843,7 @@ export type Database = {
           data_nascimento?: string | null
           finalidade_dependente?: boolean
           finalidade_sesc?: boolean
+          finalidades?: string[]
           id?: string
           nome?: string
           parentesco?: string | null
@@ -15187,6 +15231,19 @@ export type Database = {
         Args: { _base: string; _dias: number; _timezone: string }
         Returns: string
       }
+      dp_admissao_finalidade_remover: {
+        Args: { p_codigo: string; p_company_id: string }
+        Returns: undefined
+      }
+      dp_admissao_finalidade_salvar: {
+        Args: {
+          p_ativo?: boolean
+          p_codigo: string
+          p_company_id: string
+          p_nome: string
+        }
+        Returns: undefined
+      }
       dp_admissao_rascunho_descartar: {
         Args: { p_chave: string; p_company_id: string }
         Returns: boolean
@@ -15211,6 +15268,14 @@ export type Database = {
           p_dependente: boolean
           p_parentesco: string
           p_sesc: boolean
+        }
+        Returns: undefined
+      }
+      dp_admissao_regra_parentesco_definir_v2: {
+        Args: {
+          p_company_id: string
+          p_finalidades: string[]
+          p_parentesco: string
         }
         Returns: undefined
       }

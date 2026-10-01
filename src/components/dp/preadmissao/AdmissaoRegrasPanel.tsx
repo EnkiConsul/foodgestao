@@ -9,7 +9,7 @@
  */
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,7 +25,8 @@ import {
 import { notifyError } from "@/lib/notifyError";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import {
-  resolverExigencia, useDpAdmissaoRegras,
+  codigoFinalidade, resolverExigencia, useDpAdmissaoRegras,
+  FINALIDADE_LEGAL, FINALIDADE_LEGAL_NOME,
   type AdmissaoRegra, type Exigencia, type TipoRegra,
 } from "@/hooks/dp/useDpAdmissaoRegras";
 import { REGIMES_ADMISSAO } from "@/lib/dp/regimesAdmissao";
@@ -139,7 +140,10 @@ export function AdmissaoRegrasPanel() {
   const { data: unidades = [] } = useDpUnidades();
   const { data: cargos = [] } = useDpCargos();
   const { requisitos = [], criar, salvar: salvarDocumento } = useDpDocumentoRequisitos();
-  const { regras, parentescos, salvar, excluir, definirParentesco } = useDpAdmissaoRegras();
+  const {
+    regras, parentescos, finalidades, salvar, excluir,
+    definirParentesco, salvarFinalidade, removerFinalidade,
+  } = useDpAdmissaoRegras();
 
   const [aberto, setAberto] = useState<string | null>(null);
   const [secaoAberta, setSecaoAberta] = useState<string | null>(null);
@@ -210,13 +214,22 @@ export function AdmissaoRegrasPanel() {
     }
   };
 
-  const marcarParentesco = async (valor: string, dependente: boolean, sesc: boolean) => {
-    if (!dependente && !sesc) {
+  const finalidadesAtivas = useMemo(() => {
+    const extras = (finalidades.data ?? []).filter((f) => f.ativo)
+      .map((f) => ({ codigo: f.codigo, nome: f.nome, removivel: true }));
+    return [{ codigo: FINALIDADE_LEGAL, nome: FINALIDADE_LEGAL_NOME, removivel: false }, ...extras];
+  }, [finalidades.data]);
+
+  const marcarFinalidade = async (valor: string, codigo: string, marcar: boolean, atuais: string[]) => {
+    const lista = marcar
+      ? Array.from(new Set([...atuais, codigo]))
+      : atuais.filter((c) => c !== codigo);
+    if (!lista.length) {
       toast.warning("Mantenha ao menos uma finalidade para este familiar.");
       return;
     }
     try {
-      await definirParentesco.mutateAsync({ parentesco: valor, dependente, sesc });
+      await definirParentesco.mutateAsync({ parentesco: valor, finalidades: lista });
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "salvar os familiares aceitos" });
     }
@@ -232,15 +245,43 @@ export function AdmissaoRegrasPanel() {
       toast.warning("Esse parentesco já está na lista.");
       return;
     }
-    if (!novaFinalidade) { toast.warning("Escolha a finalidade deste familiar."); return; }
     try {
-      await definirParentesco.mutateAsync({ parentesco: valor, dependente: novaFinalidade === "dependente" || novaFinalidade === "ambos", sesc: novaFinalidade === "sesc" || novaFinalidade === "ambos" });
+      await definirParentesco.mutateAsync({ parentesco: valor, finalidades: [FINALIDADE_LEGAL] });
       setNovoParentesco("");
-      setNovaFinalidade("");
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "incluir o parentesco" });
     }
   };
+
+  const incluirFinalidade = async () => {
+    const nome = novaFinalidade.trim();
+    const codigo = codigoFinalidade(nome);
+    if (nome.length < 2 || codigo.length < 2) {
+      toast.warning("Informe o nome da finalidade (ao menos 2 letras).");
+      return;
+    }
+    if (finalidadesAtivas.some((f) => f.codigo === codigo)) {
+      toast.warning("Essa finalidade já está cadastrada.");
+      return;
+    }
+    try {
+      await salvarFinalidade.mutateAsync({ codigo, nome });
+      setNovaFinalidade("");
+      toast.success("Finalidade cadastrada");
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "cadastrar a finalidade" });
+    }
+  };
+
+  const excluirFinalidade = async (codigo: string) => {
+    try {
+      await removerFinalidade.mutateAsync(codigo);
+      toast.success("Finalidade removida");
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "remover a finalidade" });
+    }
+  };
+
 
   const incluirDocumento = async () => {
     const nome = novoDocumento.trim();
@@ -505,36 +546,73 @@ export function AdmissaoRegrasPanel() {
           <Card>
             <CardContent className="p-3 sm:p-4 space-y-2">
                <Button type="button" variant="ghost" className="w-full h-auto justify-between px-0" aria-expanded={secaoAberta === "familiares"} onClick={() => setSecaoAberta(secaoAberta === "familiares" ? null : "familiares")}>Familiares Aceitos <ChevronDown className={`h-4 w-4 ${secaoAberta === "familiares" ? "" : "-rotate-90"}`} /></Button>
-               {secaoAberta === "familiares" && <><div>
+               {secaoAberta === "familiares" && <>
                 <p className="text-xs text-muted-foreground">
-                   Escolha quais familiares o candidato pode incluir. Se não houver regras cadastradas,
-                    todos os graus continuam aceitos. Com regras, só entram os parentescos marcados.
-                    A finalidade da ficha não concede benefícios automaticamente.
+                   Escolha quais familiares o candidato pode incluir e para quais finalidades. Se não houver
+                    regras cadastradas, todos os graus continuam aceitos. A finalidade da ficha não concede
+                    benefícios automaticamente.
                 </p>
-              </div>
+
+                <div className="space-y-2 rounded-md border p-3">
+                  <p className="text-sm font-medium">Finalidades da Empresa</p>
+                  <p className="text-xs text-muted-foreground">
+                    O Dependente Legal vem da lei e existe em toda empresa. Cadastre aqui os convênios da sua
+                    operação (por exemplo Sesc, Plano de Saúde, Seguro de Vida).
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {finalidadesAtivas.map((f) => (
+                      <span key={f.codigo} className="flex items-center gap-1 rounded-full border px-3 py-1 text-xs">
+                        {f.nome}
+                        {f.removivel && (
+                          <button
+                            type="button"
+                            aria-label={`Remover ${f.nome}`}
+                            className="text-muted-foreground hover:text-destructive"
+                            onClick={() => void excluirFinalidade(f.codigo)}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                    <Input
+                      aria-label="Nova finalidade"
+                      placeholder="Ex.: Plano de Saúde"
+                      value={novaFinalidade}
+                      onChange={(e) => setNovaFinalidade(e.target.value)}
+                    />
+                    <Button type="button" variant="outline" disabled={salvarFinalidade.isPending} onClick={() => void incluirFinalidade()}>
+                      <Plus className="h-4 w-4 mr-1" />Incluir finalidade
+                    </Button>
+                  </div>
+                </div>
+
                <div className="space-y-2">
                    {[...PARENTESCOS, ...(parentescos.data ?? []).filter((p) => !PARENTESCOS.some((o) => o.value === p.parentesco)).map((p) => ({ value: p.parentesco, label: p.parentesco.replace(/_/g, " ") }))].map((p) => {
                     const atual = (parentescos.data ?? []).find((x) => x.parentesco === p.value);
-                    const dep = !!atual?.permite_dependente;
-                    const sesc = !!atual?.permite_sesc;
+                    const atuais = atual?.finalidades ?? [];
                     return (
-                       <div key={p.value} className="grid gap-2 border-b py-2 sm:grid-cols-[minmax(120px,1fr)_170px_100px] sm:items-center">
+                       <div key={p.value} className="grid gap-2 border-b py-2 sm:grid-cols-[minmax(120px,1fr)_minmax(0,2fr)] sm:items-start">
                          <span className="text-sm font-medium">{p.label}</span>
-                         <label className="flex items-center gap-2 text-sm"><Checkbox
-                            checked={dep}
-                            aria-label={`${p.label} pode ser dependente do imposto`}
-                            onCheckedChange={(v) => void marcarParentesco(p.value, v === true, sesc)}
-                           />Dependente do imposto</label>
-                         <label className="flex items-center gap-2 text-sm"><Checkbox
-                            checked={sesc}
-                            aria-label={`${p.label} pode entrar no Sesc`}
-                            onCheckedChange={(v) => void marcarParentesco(p.value, dep, v === true)}
-                           />Sesc</label>
+                         <div className="flex flex-wrap gap-x-4 gap-y-2">
+                           {finalidadesAtivas.map((f) => (
+                             <label key={f.codigo} className="flex items-center gap-2 text-sm">
+                               <Checkbox
+                                 checked={atuais.includes(f.codigo)}
+                                 aria-label={`${p.label} pode ter ${f.nome}`}
+                                 onCheckedChange={(v) => void marcarFinalidade(p.value, f.codigo, v === true, atuais)}
+                               />{f.nome}
+                             </label>
+                           ))}
+                         </div>
                        </div>
                     );
                   })}
                </div>
-                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"><Input aria-label="Novo parentesco" placeholder="Outro parentesco" value={novoParentesco} onChange={(e) => setNovoParentesco(e.target.value)} /><Select value={novaFinalidade} onValueChange={setNovaFinalidade}><SelectTrigger aria-label="Finalidade do novo familiar"><SelectValue placeholder="Escolha a finalidade" /></SelectTrigger><SelectContent><SelectItem value="dependente">Dependente do imposto</SelectItem><SelectItem value="sesc">Sesc</SelectItem><SelectItem value="ambos">Dependente e Sesc</SelectItem></SelectContent></Select><Button type="button" variant="outline" disabled={definirParentesco.isPending} onClick={() => void incluirParentesco()}><Plus className="h-4 w-4 mr-1" />Incluir parentesco</Button></div></>}
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"><Input aria-label="Novo parentesco" placeholder="Outro parentesco" value={novoParentesco} onChange={(e) => setNovoParentesco(e.target.value)} /><Button type="button" variant="outline" disabled={definirParentesco.isPending} onClick={() => void incluirParentesco()}><Plus className="h-4 w-4 mr-1" />Incluir parentesco</Button></div></>}
+
             </CardContent>
           </Card>
         </>

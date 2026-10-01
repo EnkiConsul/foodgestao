@@ -260,7 +260,25 @@ interface Pessoa {
   rg: string;
   finalidade_dependente: boolean;
   finalidade_sesc: boolean;
+  /** Finalidades marcadas (a legal e os convênios que a empresa cadastrou). */
+  finalidades: string[];
 }
+
+/** Finalidade que vem da lei e existe em toda empresa. */
+const FINALIDADE_LEGAL = "dependente_legal";
+const FINALIDADE_LEGAL_NOME = "Dependente Legal (Imposto de Renda)";
+
+/** Mantém as marcações antigas em linha com a lista de finalidades. */
+function comFinalidades(p: Pessoa, lista: string[]): Pessoa {
+  const limpa = Array.from(new Set(lista));
+  return {
+    ...p,
+    finalidades: limpa,
+    finalidade_dependente: limpa.includes(FINALIDADE_LEGAL),
+    finalidade_sesc: limpa.includes("sesc"),
+  };
+}
+
 
 interface ChecklistItem {
   key: string;
@@ -309,7 +327,9 @@ interface Estado {
   /** O que a empresa exige, dispensa ou nem pede em cada campo. */
   regras_campos?: Record<string, "obrigatorio" | "opcional" | "nao_pedir"> | null;
   /** Graus de parentesco aceitos pela empresa (nulo = todos). */
-  parentescos_permitidos?: Array<{ parentesco: string; permite_dependente: boolean; permite_sesc: boolean }> | null;
+  parentescos_permitidos?: Array<{ parentesco: string; permite_dependente: boolean; permite_sesc: boolean; finalidades?: string[] }> | null;
+  /** Convênios cadastrados pela empresa para familiares. */
+  finalidades_empresa?: Array<{ codigo: string; nome: string }> | null;
 }
 
 /** Campos que a ficha sempre pede quando a empresa não muda a regra. */
@@ -400,16 +420,24 @@ export default function PreAdmissao() {
     Object.entries(d).forEach(([k, v]) => { texto[k] = v == null ? "" : String(v); });
     setForm(texto);
     const lista =
-      (e.pessoas ?? []).map((p) => ({
-        id: String(p.id),
-        nome: String(p.nome ?? ""),
-        parentesco: String(p.parentesco ?? "").toLocaleLowerCase("pt-BR").replace(/\s+/g, "_"),
-        data_nascimento: String(p.data_nascimento ?? ""),
-        cpf: String(p.cpf ?? ""),
-        rg: String(p.rg ?? ""),
-        finalidade_dependente: !!p.finalidade_dependente,
-        finalidade_sesc: !!p.finalidade_sesc,
-      }));
+      (e.pessoas ?? []).map((p) => {
+        const salvas = Array.isArray(p.finalidades) ? (p.finalidades as string[]).map(String) : [];
+        const derivadas = salvas.length ? salvas : [
+          ...(p.finalidade_dependente ? [FINALIDADE_LEGAL] : []),
+          ...(p.finalidade_sesc ? ["sesc"] : []),
+        ];
+        return {
+          id: String(p.id),
+          nome: String(p.nome ?? ""),
+          parentesco: String(p.parentesco ?? "").toLocaleLowerCase("pt-BR").replace(/\s+/g, "_"),
+          data_nascimento: String(p.data_nascimento ?? ""),
+          cpf: String(p.cpf ?? ""),
+          rg: String(p.rg ?? ""),
+          finalidade_dependente: derivadas.includes(FINALIDADE_LEGAL),
+          finalidade_sesc: derivadas.includes("sesc"),
+          finalidades: derivadas,
+        };
+      });
     setPessoas(lista);
     servidorRef.current = JSON.stringify({ form: texto, pessoas: lista });
   }, []);
@@ -725,8 +753,18 @@ export default function PreAdmissao() {
   };
   const campoVisivel = (c: Campo) => exigenciaCampo(c.nome) !== "nao_pedir";
   const parentescosPermitidos = estado?.parentescos_permitidos ?? null;
+  /** Finalidades liberadas num grau, já com as marcações antigas como reserva. */
+  const liberadasDoGrau = (grau: string): string[] => {
+    const regra = parentescosPermitidos?.find((o) => o.parentesco === grau);
+    if (!regra) return [];
+    if (regra.finalidades?.length) return regra.finalidades;
+    return [
+      ...(regra.permite_dependente ? [FINALIDADE_LEGAL] : []),
+      ...(regra.permite_sesc ? ["sesc"] : []),
+    ];
+  };
   const parentescosDaLista = parentescosPermitidos
-    ? parentescosPermitidos.filter((p) => p.permite_dependente || p.permite_sesc).map((p) => ({
+    ? parentescosPermitidos.filter((p) => liberadasDoGrau(p.parentesco).length).map((p) => ({
       value: p.parentesco,
       label: PARENTESCO.find((o) => o.value === p.parentesco)?.label ?? p.parentesco.replace(/_/g, " "),
     }))
@@ -734,7 +772,19 @@ export default function PreAdmissao() {
   const opcoesPara = (p: Pessoa) => p.parentesco && !parentescosDaLista.some((o) => o.value === p.parentesco)
     ? [...parentescosDaLista, { value: p.parentesco, label: `${ROTULO_PARENTESCO(p.parentesco)} (revisar com a empresa)` }]
     : parentescosDaLista;
-  const finalidadePara = (p: Pessoa) => parentescosPermitidos?.find((o) => o.parentesco === p.parentesco);
+  /** Catálogo da empresa: a finalidade legal mais os convênios cadastrados. */
+  const catalogoFinalidades = [
+    { codigo: FINALIDADE_LEGAL, nome: FINALIDADE_LEGAL_NOME },
+    ...(estado?.finalidades_empresa ?? []).filter((f) => f.codigo !== FINALIDADE_LEGAL),
+  ];
+  const nomeFinalidade = (codigo: string) =>
+    catalogoFinalidades.find((f) => f.codigo === codigo)?.nome ?? codigo.replace(/_/g, " ");
+  /** Finalidades que o candidato pode marcar para este familiar. */
+  const finalidadesDoFamiliar = (p: Pessoa) => {
+    if (!parentescosPermitidos) return catalogoFinalidades;
+    const liberadas = liberadasDoGrau(p.parentesco);
+    return catalogoFinalidades.filter((f) => liberadas.includes(f.codigo));
+  };
   const camposDaRevisao = ETAPAS.flatMap((e) => (e.endereco ? CAMPOS_ENDERECO : e.campos)).filter(campoVisivel);
 
   /** Na revisão o valor aparece como a pessoa está acostumada a ver. */
@@ -1028,7 +1078,15 @@ export default function PreAdmissao() {
                     <div className="space-y-1">
                       <Label className="text-xs" htmlFor={`fam-par-${i}`}>Parentesco</Label>
                       <Select value={p.parentesco}
-                        onValueChange={(v) => setPessoas(pessoas.map((x, j) => (j === i ? { ...x, parentesco: v } : x)))}>
+                        onValueChange={(v) => setPessoas(pessoas.map((x, j) => {
+                          if (j !== i) return x;
+                          const trocado = { ...x, parentesco: v };
+                          const permitidas = finalidadesDoFamiliar(trocado).map((f) => f.codigo);
+                          const mantidas = trocado.finalidades.filter((c) => permitidas.includes(c));
+                          return comFinalidades(trocado, mantidas.length
+                            ? mantidas
+                            : permitidas.slice(0, 1));
+                        }))}>
                         <SelectTrigger id={`fam-par-${i}`} className="h-11"><SelectValue placeholder="Escolher" /></SelectTrigger>
                         <SelectContent>
                            {opcoesPara(p).map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
@@ -1051,16 +1109,30 @@ export default function PreAdmissao() {
                         onChange={(e) => setPessoas(pessoas.map((x, j) => (j === i ? { ...x, rg: e.target.value } : x)))} />
                     </div>
                   </div>
-                  <div className="flex items-center justify-between rounded-md border p-2">
-                    <Label className="text-sm" htmlFor={`fam-dep-${i}`}>Declarar como dependente</Label>
-                     <Switch id={`fam-dep-${i}`} checked={p.finalidade_dependente} disabled={!!parentescosPermitidos && !finalidadePara(p)?.permite_dependente}
-                      onCheckedChange={(v) => setPessoas(pessoas.map((x, j) => (j === i ? { ...x, finalidade_dependente: v } : x)))} />
-                  </div>
-                  <div className="flex items-center justify-between rounded-md border p-2">
-                    <Label className="text-sm" htmlFor={`fam-sesc-${i}`}>Cadastrar no Sesc</Label>
-                     <Switch id={`fam-sesc-${i}`} checked={p.finalidade_sesc} disabled={!!parentescosPermitidos && !finalidadePara(p)?.permite_sesc}
-                      onCheckedChange={(v) => setPessoas(pessoas.map((x, j) => (j === i ? { ...x, finalidade_sesc: v } : x)))} />
-                  </div>
+                  {!p.parentesco ? (
+                    <p className="text-xs text-muted-foreground">
+                      Escolha o parentesco para ver as finalidades disponíveis.
+                    </p>
+                  ) : !finalidadesDoFamiliar(p).length ? (
+                    <p className="text-xs text-muted-foreground">
+                      A empresa não liberou nenhuma finalidade para este parentesco.
+                    </p>
+                  ) : (
+                    finalidadesDoFamiliar(p).map((f) => (
+                      <div key={f.codigo} className="flex items-center justify-between rounded-md border p-2">
+                        <Label className="text-sm" htmlFor={`fam-${f.codigo}-${i}`}>{f.nome}</Label>
+                        <Switch
+                          id={`fam-${f.codigo}-${i}`}
+                          checked={p.finalidades.includes(f.codigo)}
+                          onCheckedChange={(v) => setPessoas(pessoas.map((x, j) => (j === i
+                            ? comFinalidades(x, v
+                              ? [...x.finalidades, f.codigo]
+                              : x.finalidades.filter((c) => c !== f.codigo))
+                            : x)))}
+                        />
+                      </div>
+                    ))
+                  )}
                   <Button variant="ghost" className="text-destructive"
                     onClick={() => setPessoas(pessoas.filter((_, j) => j !== i))}>
                     Retirar Da Lista
@@ -1071,8 +1143,9 @@ export default function PreAdmissao() {
               <Button variant="outline" className="w-full h-11"
                 onClick={() => { setBlocoAberto(`familiar-${pessoas.length}`); setPessoas([...pessoas, {
                   nome: "", parentesco: "", data_nascimento: "", cpf: "", rg: "",
-                  finalidade_dependente: true, finalidade_sesc: false,
+                  finalidade_dependente: true, finalidade_sesc: false, finalidades: [FINALIDADE_LEGAL],
                 }]); }}>
+
                 Incluir Familiar
               </Button>
             </CardContent>
@@ -1207,8 +1280,7 @@ export default function PreAdmissao() {
                     {pessoasParaEnviar().map((p, i) => (
                       <li key={p.id ?? `rev-${i}`} className="border-b border-dashed py-1">
                         {p.nome || "Sem nome"} — {ROTULO_PARENTESCO(p.parentesco)}
-                        {p.finalidade_dependente ? " · dependente" : ""}
-                        {p.finalidade_sesc ? " · Sesc" : ""}
+                        {p.finalidades.length ? ` · ${p.finalidades.map(nomeFinalidade).join(", ")}` : ""}
                       </li>
                     ))}
                   </ul>

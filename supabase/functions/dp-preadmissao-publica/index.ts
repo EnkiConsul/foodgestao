@@ -189,6 +189,7 @@ Deno.serve(async (req) => {
         checklist,
         regras_campos: regras.campos,
         parentescos_permitidos: regras.parentescos,
+        finalidades_empresa: regras.finalidadesEmpresa,
         pendencias: pendenciasDocumentais(checklist, (docs ?? []) as never).map((i) => i.key),
       };
     };
@@ -283,15 +284,19 @@ Deno.serve(async (req) => {
           const p = pessoasPedido[i];
           const grau = normaliza(String(p.parentesco ?? ""));
           const permitido = regrasPessoas.parentescos.find((r) => normaliza(r.parentesco) === grau);
-          const ehDependente = p.finalidade_dependente === true;
-          const ehSesc = p.finalidade_sesc === true;
-          if (
-            !permitido || (ehDependente && !permitido.permite_dependente) ||
-            (ehSesc && !permitido.permite_sesc)
-          ) {
+          if (!permitido) {
             return jsonResponse(req, 400, {
               error: `Este grau de parentesco não é aceito pela empresa (familiar ${i + 1}).`,
               motivo: "parentesco_nao_permitido",
+            });
+          }
+          // Cada finalidade pedida precisa estar liberada para este parentesco.
+          const pedidas = Array.isArray(p.finalidades) ? (p.finalidades as string[]) : [];
+          const fora = pedidas.filter((c) => !permitido.finalidades.includes(c));
+          if (fora.length) {
+            return jsonResponse(req, 400, {
+              error: `Uma das finalidades marcadas não é aceita para este parentesco (familiar ${i + 1}).`,
+              motivo: "finalidade_nao_permitida",
             });
           }
         }

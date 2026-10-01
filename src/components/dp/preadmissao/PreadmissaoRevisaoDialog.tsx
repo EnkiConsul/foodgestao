@@ -186,7 +186,24 @@ interface PessoaEditavel {
   rg: string;
   finalidade_dependente: boolean;
   finalidade_sesc: boolean;
+  finalidades: string[];
 }
+
+/** Finalidade que vem da lei e existe em toda empresa. */
+const FINALIDADE_LEGAL = "dependente_legal";
+const FINALIDADE_LEGAL_NOME = "Dependente Legal (Imposto de Renda)";
+
+/** Mantém as marcações antigas em linha com a lista de finalidades. */
+function comFinalidades(p: PessoaEditavel, lista: string[]): PessoaEditavel {
+  const limpa = Array.from(new Set(lista));
+  return {
+    ...p,
+    finalidades: limpa,
+    finalidade_dependente: limpa.includes(FINALIDADE_LEGAL),
+    finalidade_sesc: limpa.includes("sesc"),
+  };
+}
+
 
 interface Props {
   preadmissaoId: string | null;
@@ -217,8 +234,31 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
 
   const pa = data?.preadmissao;
   const parentescosPermitidos = data?.parentescos_permitidos ?? null;
+  /** Finalidades liberadas num grau, com as marcações antigas como reserva. */
+  const liberadasDoGrau = (grau: string): string[] => {
+    const regra = parentescosPermitidos?.find((o) => o.parentesco === grau);
+    if (!regra) return [];
+    const lista = (regra as { finalidades?: string[] }).finalidades ?? [];
+    if (lista.length) return lista;
+    return [
+      ...(regra.permite_dependente ? [FINALIDADE_LEGAL] : []),
+      ...(regra.permite_sesc ? ["sesc"] : []),
+    ];
+  };
+  const catalogoFinalidades = [
+    { codigo: FINALIDADE_LEGAL, nome: FINALIDADE_LEGAL_NOME },
+    ...((data as { finalidades_empresa?: Array<{ codigo: string; nome: string }> } | undefined)?.finalidades_empresa ?? [])
+      .filter((f) => f.codigo !== FINALIDADE_LEGAL),
+  ];
+  const nomeFinalidade = (codigo: string) =>
+    catalogoFinalidades.find((f) => f.codigo === codigo)?.nome ?? codigo.replace(/_/g, " ");
+  const finalidadesDoFamiliar = (grau: string) => {
+    if (!parentescosPermitidos) return catalogoFinalidades;
+    const liberadas = liberadasDoGrau(grau);
+    return catalogoFinalidades.filter((f) => liberadas.includes(f.codigo));
+  };
   const parentescosDaEmpresa = parentescosPermitidos
-    ? parentescosPermitidos.filter((p) => p.permite_dependente || p.permite_sesc).map((p) => ({
+    ? parentescosPermitidos.filter((p) => liberadasDoGrau(p.parentesco).length).map((p) => ({
         value: p.parentesco,
         label: PARENTESCOS.find((o) => o.value === p.parentesco)?.label ?? p.parentesco.replace(/_/g, " "),
       }))
@@ -268,16 +308,26 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
 
   useEffect(() => {
     setPessoas(
-      (data?.pessoas ?? []).map((p) => ({
-        id: p.id,
-        nome: p.nome ?? "",
-        parentesco: (p.parentesco ?? "").toLowerCase(),
-        data_nascimento: p.data_nascimento ?? "",
-        cpf: p.cpf ? mascaraCpf(p.cpf) : "",
-        rg: p.rg ?? "",
-        finalidade_dependente: !!p.finalidade_dependente,
-        finalidade_sesc: !!p.finalidade_sesc,
-      })),
+      (data?.pessoas ?? []).map((p) => {
+        const salvas = Array.isArray((p as { finalidades?: string[] }).finalidades)
+          ? ((p as { finalidades?: string[] }).finalidades ?? []).map(String)
+          : [];
+        const derivadas = salvas.length ? salvas : [
+          ...(p.finalidade_dependente ? [FINALIDADE_LEGAL] : []),
+          ...(p.finalidade_sesc ? ["sesc"] : []),
+        ];
+        return {
+          id: p.id,
+          nome: p.nome ?? "",
+          parentesco: (p.parentesco ?? "").toLowerCase(),
+          data_nascimento: p.data_nascimento ?? "",
+          cpf: p.cpf ? mascaraCpf(p.cpf) : "",
+          rg: p.rg ?? "",
+          finalidade_dependente: derivadas.includes(FINALIDADE_LEGAL),
+          finalidade_sesc: derivadas.includes("sesc"),
+          finalidades: derivadas,
+        };
+      }),
     );
   }, [data?.pessoas]);
 
@@ -317,6 +367,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
             rg: p.rg.trim(),
             finalidade_dependente: p.finalidade_dependente,
             finalidade_sesc: p.finalidade_sesc,
+            finalidades: p.finalidades,
           })),
       });
       await acoes.salvarAdmin.mutateAsync(adminParaEnvio());
@@ -378,10 +429,13 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     ].filter(Boolean).join(" — ");
     const listaPessoas = (data.pessoas ?? [])
       .map((pe) => {
-        const finalidades = [
-          pe.finalidade_dependente ? "Dependente" : null,
-          pe.finalidade_sesc ? "Sesc" : null,
-        ].filter(Boolean).join(" e ");
+        const salvas = Array.isArray((pe as { finalidades?: string[] }).finalidades)
+          ? ((pe as { finalidades?: string[] }).finalidades ?? [])
+          : [];
+        const finalidades = (salvas.length ? salvas : [
+          ...(pe.finalidade_dependente ? [FINALIDADE_LEGAL] : []),
+          ...(pe.finalidade_sesc ? ["sesc"] : []),
+        ]).map(nomeFinalidade).join(" e ");
         const partes = [
            PARENTESCO_LABEL[(pe.parentesco ?? "").toLowerCase()] ?? pe.parentesco?.replace(/_/g, " ") ?? "",
           pe.data_nascimento ? `Nascimento: ${pe.data_nascimento}` : null,
@@ -658,6 +712,7 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
             rg: p.rg.trim(),
             finalidade_dependente: p.finalidade_dependente,
             finalidade_sesc: p.finalidade_sesc,
+            finalidades: p.finalidades,
           })),
       });
 
@@ -705,7 +760,13 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                       <div className="space-y-1">
                         <Label className="text-xs">Parentesco</Label>
                         <Select value={p.parentesco} disabled={encerrada}
-                          onValueChange={(v) => setPessoas((l) => l.map((x, j) => (j === i ? { ...x, parentesco: v } : x)))}>
+                          onValueChange={(v) => setPessoas((l) => l.map((x, j) => {
+                            if (j !== i) return x;
+                            const trocado = { ...x, parentesco: v };
+                            const permitidas = finalidadesDoFamiliar(v).map((f) => f.codigo);
+                            const mantidas = trocado.finalidades.filter((c) => permitidas.includes(c));
+                            return comFinalidades(trocado, mantidas.length ? mantidas : permitidas.slice(0, 1));
+                          }))}>
                           <SelectTrigger className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
                           <SelectContent>
                              {opcoesParentesco(p.parentesco).map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
@@ -729,23 +790,32 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                         <Input className="h-10" value={p.rg} disabled={encerrada}
                           onChange={(e) => setPessoas((l) => l.map((x, j) => (j === i ? { ...x, rg: e.target.value } : x)))} />
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Finalidade</Label>
-                        <div className="flex gap-2">
-                           <Button type="button" size="sm" disabled={encerrada || (!!parentescosPermitidos && !parentescosPermitidos.find((o) => o.parentesco === p.parentesco)?.permite_dependente)}
-                            variant={p.finalidade_dependente ? "default" : "outline"}
-                            onClick={() =>
-                              setPessoas((l) =>
-                                l.map((x, j) => (j === i ? { ...x, finalidade_dependente: !x.finalidade_dependente } : x)))}>
-                            Dependente
-                          </Button>
-                           <Button type="button" size="sm" disabled={encerrada || (!!parentescosPermitidos && !parentescosPermitidos.find((o) => o.parentesco === p.parentesco)?.permite_sesc)}
-                            variant={p.finalidade_sesc ? "default" : "outline"}
-                            onClick={() =>
-                              setPessoas((l) => l.map((x, j) => (j === i ? { ...x, finalidade_sesc: !x.finalidade_sesc } : x)))}>
-                            Sesc
-                          </Button>
-                        </div>
+                      <div className="space-y-1 sm:col-span-2">
+                        <Label className="text-xs">Finalidades</Label>
+                        {!finalidadesDoFamiliar(p.parentesco).length ? (
+                          <p className="text-xs text-muted-foreground">
+                            A empresa não liberou finalidades para este parentesco.
+                          </p>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {finalidadesDoFamiliar(p.parentesco).map((f) => (
+                              <Button
+                                key={f.codigo}
+                                type="button"
+                                size="sm"
+                                disabled={encerrada}
+                                variant={p.finalidades.includes(f.codigo) ? "default" : "outline"}
+                                onClick={() => setPessoas((l) => l.map((x, j) => (j === i
+                                  ? comFinalidades(x, x.finalidades.includes(f.codigo)
+                                    ? x.finalidades.filter((c) => c !== f.codigo)
+                                    : [...x.finalidades, f.codigo])
+                                  : x)))}
+                              >
+                                {f.nome}
+                              </Button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <Button type="button" variant="ghost" size="sm" className="text-destructive" disabled={encerrada}
@@ -760,9 +830,10 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                       ...l,
                       {
                         id: null, nome: "", parentesco: "", data_nascimento: "", cpf: "", rg: "",
-                        finalidade_dependente: true, finalidade_sesc: false,
+                        finalidade_dependente: true, finalidade_sesc: false, finalidades: [FINALIDADE_LEGAL],
                       },
                     ])}>
+
                   <Plus className="h-4 w-4 mr-2" /> Adicionar Dependente
                 </Button>
                 <p className="text-xs text-muted-foreground">

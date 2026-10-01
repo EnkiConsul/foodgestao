@@ -459,8 +459,29 @@ export const CAMPOS_RAIZ_CANDIDATO = [
 /** Campos aceitos em cada familiar informado pelo candidato. */
 export const CAMPOS_PESSOA = [
   "id", "nome", "parentesco", "data_nascimento", "cpf", "rg",
-  "finalidade_dependente", "finalidade_sesc",
+  "finalidade_dependente", "finalidade_sesc", "finalidades",
 ] as const;
+
+/** Finalidade legal, sempre existente: dependente no imposto de renda. */
+export const FINALIDADE_LEGAL = "dependente_legal";
+
+/**
+ * Lista de finalidades de um familiar, já normalizada: códigos minúsculos,
+ * sem repetição e no máximo dez. Entrada inválida vira lista vazia, nunca
+ * libera uma finalidade por acidente.
+ */
+export function normalizarFinalidades(valor: unknown): string[] {
+  if (!Array.isArray(valor)) return [];
+  const out: string[] = [];
+  for (const item of valor) {
+    if (typeof item !== "string") continue;
+    const cod = item.trim().toLowerCase();
+    if (!/^[a-z0-9_]{2,40}$/.test(cod) || out.includes(cod)) continue;
+    out.push(cod);
+    if (out.length >= 10) break;
+  }
+  return out;
+}
 
 export function camposNaoPermitidosRaiz(
   body: unknown,
@@ -499,6 +520,19 @@ export function filtrarPessoasCandidato(pessoas: unknown): Record<string, unknow
         out[campo] = typeof v === "string" ? v.trim() : v;
       }
     }
+    // A lista de finalidades manda: as duas marcações antigas continuam
+    // gravadas, derivadas da lista, para as conferências já existentes.
+    if ("finalidades" in out) {
+      const lista = normalizarFinalidades(out.finalidades);
+      out.finalidades = lista;
+      out.finalidade_dependente = lista.includes(FINALIDADE_LEGAL);
+      out.finalidade_sesc = lista.includes("sesc");
+    } else if (out.finalidade_dependente === true || out.finalidade_sesc === true) {
+      out.finalidades = [
+        ...(out.finalidade_dependente === true ? [FINALIDADE_LEGAL] : []),
+        ...(out.finalidade_sesc === true ? ["sesc"] : []),
+      ];
+    }
     return out;
   });
 }
@@ -512,8 +546,8 @@ export const MOTIVOS_GRAVACAO: Record<string, string> = {
     "Sua ficha foi atualizada em outro dispositivo. Recarregue a página e tente novamente.",
   pessoa_nome: "Informe o nome completo de cada familiar.",
   pessoa_parentesco: "Selecione o parentesco de cada familiar na lista.",
-  pessoa_finalidade: "Marque se o familiar é dependente, Sesc ou ambos.",
-  pessoa_sesc_parentesco: "Este parentesco não é aceito no Sesc.",
+  pessoa_finalidade: "Marque ao menos uma finalidade para cada familiar.",
+  pessoa_sesc_parentesco: "Esta finalidade não é aceita para este parentesco.",
   pessoa_cpf: "Informe um CPF válido para o familiar.",
   pessoa_data: "Informe uma data de nascimento válida para o familiar.",
   pessoa_data_futura: "A data de nascimento do familiar não pode ser futura.",
@@ -927,6 +961,14 @@ export interface ParentescoPermitido {
   parentesco: string;
   permite_dependente: boolean;
   permite_sesc: boolean;
+  /** Códigos de finalidade aceitos neste grau de parentesco. */
+  finalidades: string[];
+}
+
+/** Convênio cadastrado pela empresa (além da finalidade legal). */
+export interface FinalidadeEmpresa {
+  codigo: string;
+  nome: string;
 }
 
 export interface RegrasAdmissao {
@@ -934,6 +976,8 @@ export interface RegrasAdmissao {
   documentos: Record<string, Exigencia>;
   /** null = empresa não configurou lista; qualquer parentesco é aceito. */
   parentescos: ParentescoPermitido[] | null;
+  /** Convênios da empresa; vazio = só a finalidade legal. */
+  finalidadesEmpresa: FinalidadeEmpresa[];
 }
 
 const EXIGENCIAS = new Set<string>(["obrigatorio", "opcional", "nao_pedir"]);
@@ -961,7 +1005,7 @@ export async function regrasAdmissao(
   const sexo = sexoBruto.startsWith("m") || sexoBruto.startsWith("h")
     ? "masculino"
     : sexoBruto.startsWith("f") ? "feminino" : null;
-  const [resolvidas, lista] = await Promise.all([
+  const [resolvidas, lista, convenios] = await Promise.all([
     admin.rpc("dp_admissao_regras_resolver", {
       p_company_id: pa.company_id,
       p_unidade_id: pa.unidade_prevista_id,
@@ -971,8 +1015,14 @@ export async function regrasAdmissao(
     }),
     admin
       .from("dp_admissao_regra_parentescos")
-      .select("parentesco, permite_dependente, permite_sesc")
+      .select("parentesco, permite_dependente, permite_sesc, finalidades")
       .eq("company_id", pa.company_id),
+    admin
+      .from("dp_admissao_finalidades")
+      .select("codigo, nome")
+      .eq("company_id", pa.company_id)
+      .eq("ativo", true)
+      .order("nome"),
   ]);
   const campos: Record<string, Exigencia> = {};
   const documentos: Record<string, Exigencia> = {};
@@ -983,6 +1033,23 @@ export async function regrasAdmissao(
     if (alvo) alvo[r.chave] = r.exigencia as Exigencia;
   }
   if (lista.error) throw new Error("Não foi possível conferir os familiares aceitos pela empresa.");
-  const parentescos = !(lista.data ?? []).length ? null : (lista.data as ParentescoPermitido[]);
-  return { campos, documentos, parentescos };
+  if (convenios.error) throw new Error("Não foi possível conferir as finalidades da empresa.");
+  const brutos = (lista.data ?? []) as Array<ParentescoPermitido & { finalidades?: string[] | null }>;
+  const parentescos = !brutos.length ? null : brutos.map((p) => ({
+    parentesco: p.parentesco,
+    permite_dependente: !!p.permite_dependente,
+    permite_sesc: !!p.permite_sesc,
+    // Fichas antigas sem lista continuam valendo pelas marcações originais.
+    finalidades: normalizarFinalidades(p.finalidades).length
+      ? normalizarFinalidades(p.finalidades)
+      : [
+        ...(p.permite_dependente ? [FINALIDADE_LEGAL] : []),
+        ...(p.permite_sesc ? ["sesc"] : []),
+      ],
+  }));
+  const finalidadesEmpresa = ((convenios.data ?? []) as FinalidadeEmpresa[]).map((f) => ({
+    codigo: String(f.codigo),
+    nome: String(f.nome),
+  }));
+  return { campos, documentos, parentescos, finalidadesEmpresa };
 }

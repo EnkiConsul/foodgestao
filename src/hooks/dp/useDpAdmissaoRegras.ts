@@ -10,7 +10,11 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { definirParentescoAdmissao } from "@/lib/dp/regras-oficial";
+import {
+  definirParentescoAdmissao,
+  salvarFinalidadeAdmissao,
+  removerFinalidadeAdmissao,
+} from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 
 export type Exigencia = "obrigatorio" | "opcional" | "nao_pedir";
@@ -35,7 +39,22 @@ export interface AdmissaoParentesco {
   parentesco: string;
   permite_dependente: boolean;
   permite_sesc: boolean;
+  finalidades: string[];
 }
+
+/** Finalidade (legal ou convênio) que a empresa aceita para familiares. */
+export interface AdmissaoFinalidade {
+  id: string;
+  company_id: string;
+  codigo: string;
+  nome: string;
+  ativo: boolean;
+}
+
+/** Única finalidade que vem da lei e existe em toda empresa. */
+export const FINALIDADE_LEGAL = "dependente_legal";
+export const FINALIDADE_LEGAL_NOME = "Dependente Legal (Imposto de Renda)";
+
 
 export interface RegraEntrada {
   id?: string | null;
@@ -120,17 +139,36 @@ export function useDpAdmissaoRegras() {
     queryFn: async (): Promise<AdmissaoParentesco[]> => {
       const { data, error } = await supabase
         .from("dp_admissao_regra_parentescos")
-        .select("id, company_id, parentesco, permite_dependente, permite_sesc")
+        .select("id, company_id, parentesco, permite_dependente, permite_sesc, finalidades")
         .eq("company_id", selectedCompanyId!)
         .order("parentesco");
       if (error) throw error;
-      return (data ?? []) as AdmissaoParentesco[];
+      return (data ?? []).map((p) => ({
+        ...(p as AdmissaoParentesco),
+        finalidades: ((p as { finalidades?: string[] | null }).finalidades ?? []) as string[],
+      }));
+    },
+  });
+
+  /** Convênios/finalidades que a empresa cadastrou para familiares. */
+  const finalidades = useQuery({
+    queryKey: ["dp-admissao-finalidades", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async (): Promise<AdmissaoFinalidade[]> => {
+      const { data, error } = await supabase
+        .from("dp_admissao_finalidades")
+        .select("id, company_id, codigo, nome, ativo")
+        .eq("company_id", selectedCompanyId!)
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as AdmissaoFinalidade[];
     },
   });
 
   const invalidar = () => {
     void qc.invalidateQueries({ queryKey: ["dp-admissao-regras", selectedCompanyId] });
     void qc.invalidateQueries({ queryKey: ["dp-admissao-parentescos", selectedCompanyId] });
+    void qc.invalidateQueries({ queryKey: ["dp-admissao-finalidades", selectedCompanyId] });
   };
 
   /** Cria ou atualiza uma regra (padrão ou exceção) com suas seleções. */
@@ -168,22 +206,53 @@ export function useDpAdmissaoRegras() {
     onSuccess: invalidar,
   });
 
-  /** Marca/desmarca um grau de parentesco aceito na lista de familiares. */
+  /** Define as finalidades liberadas para um grau de parentesco. */
   const definirParentesco = useMutation({
-    mutationFn: async (p: { parentesco: string; dependente: boolean; sesc: boolean }) => {
+    mutationFn: async (p: { parentesco: string; finalidades: string[] }) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
       await definirParentescoAdmissao({
         companyId: selectedCompanyId,
         parentesco: p.parentesco,
-        dependente: p.dependente,
-        sesc: p.sesc,
+        finalidades: p.finalidades,
       });
     },
     onSuccess: invalidar,
   });
 
-  return { regras, parentescos, salvar, excluir, definirParentesco };
+  /** Cadastra ou renomeia um convênio da empresa. */
+  const salvarFinalidade = useMutation({
+    mutationFn: async (p: { codigo: string; nome: string; ativo?: boolean }) => {
+      if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
+      await salvarFinalidadeAdmissao({ companyId: selectedCompanyId, ...p });
+    },
+    onSuccess: invalidar,
+  });
+
+  const removerFinalidade = useMutation({
+    mutationFn: async (codigo: string) => {
+      if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
+      await removerFinalidadeAdmissao(selectedCompanyId, codigo);
+    },
+    onSuccess: invalidar,
+  });
+
+  return {
+    regras, parentescos, finalidades, salvar, excluir,
+    definirParentesco, salvarFinalidade, removerFinalidade,
+  };
 }
+
+/** Código técnico a partir do nome digitado: "Plano de Saúde" → plano_de_saude. */
+export function codigoFinalidade(nome: string): string {
+  return nome
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
+}
+
 
 /** "MASCULINO", "m", "Homem" → masculino; nada reconhecido → null. */
 export function sexoCanonico(v?: string | null): "masculino" | "feminino" | null {
