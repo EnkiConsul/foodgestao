@@ -327,7 +327,9 @@ interface Estado {
   /** O que a empresa exige, dispensa ou nem pede em cada campo. */
   regras_campos?: Record<string, "obrigatorio" | "opcional" | "nao_pedir"> | null;
   /** Graus de parentesco aceitos pela empresa (nulo = todos). */
-  parentescos_permitidos?: Array<{ parentesco: string; permite_dependente: boolean; permite_sesc: boolean }> | null;
+  parentescos_permitidos?: Array<{ parentesco: string; permite_dependente: boolean; permite_sesc: boolean; finalidades?: string[] }> | null;
+  /** Convênios cadastrados pela empresa para familiares. */
+  finalidades_empresa?: Array<{ codigo: string; nome: string }> | null;
 }
 
 /** Campos que a ficha sempre pede quando a empresa não muda a regra. */
