@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { aprovarEmBlocos } from "@/lib/dp/bulkApproveChunks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft, ChevronRight, X, Check, Loader2, AlertTriangle, ExternalLink, RotateCcw,
@@ -268,10 +269,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
       savingBannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
     );
     try {
-      const { data, error } = await supabase.functions.invoke("dp-doc-bulk-approve", {
-        body: { item_ids, on_duplicate, sem_unidade_confirmado: semUnidadeOkRef.current },
-      });
-      if (error) throw error;
+      const data = await aprovarEmBlocos(item_ids, { on_duplicate, sem_unidade_confirmado: semUnidadeOkRef.current });
       const results = ((data as any)?.results ?? []) as Array<{ ok: boolean; error?: string; replaced?: boolean }>;
       const okc = results.filter((x) => x.ok && !x.replaced).length;
       const rep = results.filter((x) => x.ok && x.replaced).length;

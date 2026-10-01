@@ -20,6 +20,8 @@ const BodySchema = z.object({
   on_duplicate: z.enum(["skip", "replace"]).default("skip"),
   /** Aprovação explícita de lote sem unidade identificada (registrada em auditoria). */
   sem_unidade_confirmado: z.boolean().optional().default(false),
+  /** Páginas já aprovadas em blocos anteriores (progresso cumulativo). */
+  progresso_base: z.number().int().min(0).max(10000).optional().default(0),
 });
 
 Deno.serve(async (req) => {
@@ -73,7 +75,7 @@ Deno.serve(async (req) => {
     const batchIdsInvolved = [...new Set((items as any[]).map((i) => i.batch_id))];
     for (const bid of batchIdsInvolved) {
       await svc.from("dp_bulk_import_batches")
-        .update({ approved_count: 0 })
+        .update({ approved_count: parsed.data.progresso_base })
         .eq("id", bid);
     }
 
@@ -282,7 +284,7 @@ Deno.serve(async (req) => {
         for (const bid of batchIdsInvolved) {
           try {
             await svc.from("dp_bulk_import_batches")
-              .update({ approved_count: processedSoFar })
+              .update({ approved_count: parsed.data.progresso_base + processedSoFar })
               .eq("id", bid);
           } catch { /* noop */ }
         }
