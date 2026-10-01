@@ -74,7 +74,7 @@ describe("checklist documental", () => {
     const itens = montarChecklist({ ficha: menor, hoje: HOJE });
     expect(codigos(itens)).toContain("comprovante_escolar_menor");
     expect(codigos(itens)).not.toContain("autorizacao_judicial_menor");
-    const configurados = montarChecklist({ ficha: menor, requisitosEmpresa: ["autorizacao_judicial_menor"], hoje: HOJE });
+    const configurados = montarChecklist({ ficha: menor, requisitosEmpresa: [{ codigo: "autorizacao_judicial_menor", nome: "Autorização judicial", obrigatoriedade: "opcional" }], hoje: HOJE });
     expect(codigos(configurados)).toContain("autorizacao_judicial_menor");
     expect(configurados.find((i) => i.codigo === "autorizacao_judicial_menor")?.obrigatorio).toBe(false);
     const exigidos = montarChecklist({ ficha: menor, requisitosEmpresa: [{ codigo: "autorizacao_judicial_menor", nome: "Autorização judicial", obrigatoriedade: "obrigatorio" }], hoje: HOJE });
