@@ -753,8 +753,18 @@ export default function PreAdmissao() {
   };
   const campoVisivel = (c: Campo) => exigenciaCampo(c.nome) !== "nao_pedir";
   const parentescosPermitidos = estado?.parentescos_permitidos ?? null;
+  /** Finalidades liberadas num grau, já com as marcações antigas como reserva. */
+  const liberadasDoGrau = (grau: string): string[] => {
+    const regra = parentescosPermitidos?.find((o) => o.parentesco === grau);
+    if (!regra) return [];
+    if (regra.finalidades?.length) return regra.finalidades;
+    return [
+      ...(regra.permite_dependente ? [FINALIDADE_LEGAL] : []),
+      ...(regra.permite_sesc ? ["sesc"] : []),
+    ];
+  };
   const parentescosDaLista = parentescosPermitidos
-    ? parentescosPermitidos.filter((p) => p.permite_dependente || p.permite_sesc).map((p) => ({
+    ? parentescosPermitidos.filter((p) => liberadasDoGrau(p.parentesco).length).map((p) => ({
       value: p.parentesco,
       label: PARENTESCO.find((o) => o.value === p.parentesco)?.label ?? p.parentesco.replace(/_/g, " "),
     }))
@@ -762,7 +772,19 @@ export default function PreAdmissao() {
   const opcoesPara = (p: Pessoa) => p.parentesco && !parentescosDaLista.some((o) => o.value === p.parentesco)
     ? [...parentescosDaLista, { value: p.parentesco, label: `${ROTULO_PARENTESCO(p.parentesco)} (revisar com a empresa)` }]
     : parentescosDaLista;
-  const finalidadePara = (p: Pessoa) => parentescosPermitidos?.find((o) => o.parentesco === p.parentesco);
+  /** Catálogo da empresa: a finalidade legal mais os convênios cadastrados. */
+  const catalogoFinalidades = [
+    { codigo: FINALIDADE_LEGAL, nome: FINALIDADE_LEGAL_NOME },
+    ...(estado?.finalidades_empresa ?? []).filter((f) => f.codigo !== FINALIDADE_LEGAL),
+  ];
+  const nomeFinalidade = (codigo: string) =>
+    catalogoFinalidades.find((f) => f.codigo === codigo)?.nome ?? codigo.replace(/_/g, " ");
+  /** Finalidades que o candidato pode marcar para este familiar. */
+  const finalidadesDoFamiliar = (p: Pessoa) => {
+    if (!parentescosPermitidos) return catalogoFinalidades;
+    const liberadas = liberadasDoGrau(p.parentesco);
+    return catalogoFinalidades.filter((f) => liberadas.includes(f.codigo));
+  };
   const camposDaRevisao = ETAPAS.flatMap((e) => (e.endereco ? CAMPOS_ENDERECO : e.campos)).filter(campoVisivel);
 
   /** Na revisão o valor aparece como a pessoa está acostumada a ver. */
