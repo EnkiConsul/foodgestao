@@ -189,13 +189,15 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
     },
     onError: (e: any, variaveis) => {
       const amigavel = mensagemEnvioDocumento(e);
-      toast.error(amigavel);
+      toast.error(amigavel, { closeButton: true, duration: 15_000 });
       void reportError({
         error: e,
         surface: comoColaborador ? "Portal do colaborador · Documentos" : "Documentos do colaborador",
         action: "enviar documento",
         companyId: base.data?.colaborador?.company_id ?? null,
         userMessage: amigavel,
+        // A mensagem já orienta a pessoa; o aviso de chamado não deve cobri-la.
+        promptUser: false,
         details: {
           colaborador_id: base.data?.colaborador?.id ?? null,
           requisito: variaveis?.item?.requisito?.nome ?? null,

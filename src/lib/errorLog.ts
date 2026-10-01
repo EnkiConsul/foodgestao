@@ -24,6 +24,8 @@ export type ReportErrorInput = {
   userMessage?: string;
   /** Contexto adicional (ids, competência...). Nunca inclua dados sensíveis. */
   details?: Record<string, unknown>;
+  /** false = só registra; não abre o aviso "Relatar problema" por cima da mensagem. */
+  promptUser?: boolean;
 };
 
 export type ErrorReportReadyDetail = {
@@ -156,7 +158,9 @@ export async function reportError(input: ReportErrorInput): Promise<string | nul
       action: input.action,
       userMessage: input.userMessage,
     };
-    if (typeof window !== "undefined") {
+    const noPortal =
+      typeof window !== "undefined" && window.location.pathname.startsWith("/dp/meu");
+    if (typeof window !== "undefined" && input.promptUser !== false && !noPortal) {
       window.dispatchEvent(new CustomEvent<ErrorReportReadyDetail>("app:error-report-ready", { detail: latestReport }));
     }
     return errorLogId;
