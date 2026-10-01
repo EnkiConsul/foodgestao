@@ -68,6 +68,7 @@ export type ChecklistDocumentoDados = {
 
 export type RequisitoDocumentoDados = {
   nome?: string;
+  grupo?: string;
   descricao?: string | null;
   categoria?: string;
   obrigatoriedade?: string;

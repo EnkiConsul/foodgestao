@@ -182,7 +182,18 @@ export function useDpAdmissaoRegras() {
     onSuccess: invalidar,
   });
 
-  return { regras, parentescos, salvar, excluir, definirParentesco };
+  const removerParentesco = useMutation({
+    mutationFn: async (parentesco: string) => {
+      if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
+      const { error } = await supabase.rpc("dp_admissao_regra_parentesco_remover", {
+        p_company_id: selectedCompanyId, p_parentesco: parentesco,
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidar,
+  });
+
+  return { regras, parentescos, salvar, excluir, definirParentesco, removerParentesco };
 }
 
 /** "MASCULINO", "m", "Homem" → masculino; nada reconhecido → null. */
