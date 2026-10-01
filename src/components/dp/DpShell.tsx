@@ -11,6 +11,7 @@ import { AvisosPopout } from "./home/AvisosPopout";
 import { AtestadosPendentesPopout } from "./home/AtestadosPendentesPopout";
 import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
 import { HiddenScreenGuard } from "@/components/nav/HiddenScreenGuard";
+import { PushSoftPrompt } from "./PushSoftPrompt";
 
 export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" }) {
   const queryClient = useQueryClient();
@@ -43,6 +44,7 @@ export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" })
         {/* Popouts globais — visíveis em qualquer rota autenticada do DP */}
         <AvisosPopout />
         {variant === "admin" && <AtestadosPendentesPopout />}
+        <PushSoftPrompt />
       </div>
       <MobileBottomNav />
     </SidebarProvider>
