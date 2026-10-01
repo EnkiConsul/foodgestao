@@ -210,13 +210,22 @@ export function AdmissaoRegrasPanel() {
     }
   };
 
-  const marcarParentesco = async (valor: string, dependente: boolean, sesc: boolean) => {
-    if (!dependente && !sesc) {
+  const finalidadesAtivas = useMemo(() => {
+    const extras = (finalidades.data ?? []).filter((f) => f.ativo)
+      .map((f) => ({ codigo: f.codigo, nome: f.nome, removivel: true }));
+    return [{ codigo: FINALIDADE_LEGAL, nome: FINALIDADE_LEGAL_NOME, removivel: false }, ...extras];
+  }, [finalidades.data]);
+
+  const marcarFinalidade = async (valor: string, codigo: string, marcar: boolean, atuais: string[]) => {
+    const lista = marcar
+      ? Array.from(new Set([...atuais, codigo]))
+      : atuais.filter((c) => c !== codigo);
+    if (!lista.length) {
       toast.warning("Mantenha ao menos uma finalidade para este familiar.");
       return;
     }
     try {
-      await definirParentesco.mutateAsync({ parentesco: valor, dependente, sesc });
+      await definirParentesco.mutateAsync({ parentesco: valor, finalidades: lista });
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "salvar os familiares aceitos" });
     }
@@ -232,15 +241,43 @@ export function AdmissaoRegrasPanel() {
       toast.warning("Esse parentesco já está na lista.");
       return;
     }
-    if (!novaFinalidade) { toast.warning("Escolha a finalidade deste familiar."); return; }
     try {
-      await definirParentesco.mutateAsync({ parentesco: valor, dependente: novaFinalidade === "dependente" || novaFinalidade === "ambos", sesc: novaFinalidade === "sesc" || novaFinalidade === "ambos" });
+      await definirParentesco.mutateAsync({ parentesco: valor, finalidades: [FINALIDADE_LEGAL] });
       setNovoParentesco("");
-      setNovaFinalidade("");
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "incluir o parentesco" });
     }
   };
+
+  const incluirFinalidade = async () => {
+    const nome = novaFinalidade.trim();
+    const codigo = codigoFinalidade(nome);
+    if (nome.length < 2 || codigo.length < 2) {
+      toast.warning("Informe o nome da finalidade (ao menos 2 letras).");
+      return;
+    }
+    if (finalidadesAtivas.some((f) => f.codigo === codigo)) {
+      toast.warning("Essa finalidade já está cadastrada.");
+      return;
+    }
+    try {
+      await salvarFinalidade.mutateAsync({ codigo, nome });
+      setNovaFinalidade("");
+      toast.success("Finalidade cadastrada");
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "cadastrar a finalidade" });
+    }
+  };
+
+  const excluirFinalidade = async (codigo: string) => {
+    try {
+      await removerFinalidade.mutateAsync(codigo);
+      toast.success("Finalidade removida");
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "remover a finalidade" });
+    }
+  };
+
 
   const incluirDocumento = async () => {
     const nome = novoDocumento.trim();
