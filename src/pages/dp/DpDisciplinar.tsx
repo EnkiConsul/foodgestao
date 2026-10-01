@@ -145,6 +145,7 @@ export default function DpDisciplinar() {
   const [observacao, setObservacao] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [confirmo, setConfirmo] = useState(false);
+  const [elogioVis, setElogioVis] = useState<"privado" | "individual" | "publico">("privado");
   // importar via assinada (histórico)
   const [viaPara, setViaPara] = useState<Registro | null>(null);
   const [viaArquivo, setViaArquivo] = useState<File | null>(null);
@@ -562,6 +563,28 @@ export default function DpDisciplinar() {
                   </Select>
                 </div>
               </div>
+
+              {tipo === "elogio" && (
+                <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                  <Label htmlFor="elogio-visibilidade">Visibilidade Do Elogio</Label>
+                  <Select value={elogioVis} onValueChange={(v) => setElogioVis(v as typeof elogioVis)}>
+                    <SelectTrigger id="elogio-visibilidade"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="privado">Privado (Apenas Dossiê Interno)</SelectItem>
+                      <SelectItem value="individual">Individual (Avisar E Mostrar No Portal Do Colaborador)</SelectItem>
+                      <SelectItem value="publico">Público (Publicar No Mural Da Unidade)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {elogioVis === "publico"
+                      ? "Toda a equipe da unidade verá o texto da observação no Mural. Escreva pensando nos colegas lendo."
+                      : elogioVis === "individual"
+                        ? "Só o colaborador recebe o aviso e vê o reconhecimento em Meus Documentos."
+                        : "Fica guardado só na ficha, visível ao DP e à gestão."}
+                  </p>
+                </div>
+              )}
+
 
               <div className="space-y-2">
                 <Label htmlFor="dias-de-afastamento-se-aplicavel-5">Dias de Afastamento (se aplicável)</Label>
