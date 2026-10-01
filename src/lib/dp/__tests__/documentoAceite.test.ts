@@ -12,9 +12,9 @@ describe("assinarDocumento", () => {
 
   it("envia somente o identificador do documento para o servidor", async () => {
     invoke.mockResolvedValue({ data: { aceite_id: "a-1" }, error: null });
-    await expect(assinarDocumento("doc-1")).resolves.toBe("a-1");
+    await expect(assinarDocumento("doc-1", "data:image/png;base64,AA")).resolves.toBe("a-1");
     expect(invoke).toHaveBeenCalledWith("dp-documento-aceitar", {
-      body: { documento_id: "doc-1" },
+      body: { documento_id: "doc-1", assinatura: "data:image/png;base64,AA" },
     });
     // Nada de empresa, colaborador ou resumo de conteúdo vindo da tela.
     const body = invoke.mock.calls[0][1].body as Record<string, unknown>;
@@ -29,14 +29,14 @@ describe("assinarDocumento", () => {
         context: { json: async () => ({ error: "Este documento não está disponível para você." }) },
       },
     });
-    await expect(assinarDocumento("doc-2")).rejects.toThrow(
+    await expect(assinarDocumento("doc-2", "data:image/png;base64,AA")).rejects.toThrow(
       "Este documento não está disponível para você.",
     );
   });
 
   it("falha quando o servidor não confirma a assinatura", async () => {
     invoke.mockResolvedValue({ data: {}, error: null });
-    await expect(assinarDocumento("doc-3")).rejects.toThrow(
+    await expect(assinarDocumento("doc-3", "data:image/png;base64,AA")).rejects.toThrow(
       "Não foi possível registrar a assinatura",
     );
   });
