@@ -140,7 +140,7 @@ export interface ChecklistInput {
    * exigido "por lei universal": só entra no checklist o que a empresa
    * cadastrou como requisito.
    */
-  requisitosEmpresa?: Array<string | { codigo: string; nome: string }>;
+  requisitosEmpresa?: Array<string | { codigo: string; nome: string; obrigatoriedade?: string }>;
   hoje?: Date;
 }
 
@@ -168,7 +168,7 @@ export function montarChecklist({
   for (const requisito of requisitosEmpresa) {
     const codigo = typeof requisito === "string" ? requisito : requisito.codigo;
     if (codigo.startsWith("custom_") && !requisitosCargo.includes(codigo) && !requisitosUnidade.includes(codigo)) {
-      const novo = item(codigo, "condicional", null, false);
+      const novo = item(codigo, "condicional", null, typeof requisito !== "string" && requisito.obrigatoriedade === "obrigatorio");
       if (typeof requisito !== "string") novo.titulo = requisito.nome;
       itens.push(novo);
     }

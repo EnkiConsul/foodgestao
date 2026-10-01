@@ -350,15 +350,15 @@ export function pagamentoInformado(dados: Record<string, unknown>): boolean {
 }
 
 /** Requisitos condicionais configurados pela empresa (sem vínculo de cargo/unidade). */
-export async function requisitosEmpresa(admin: Db, companyId: string): Promise<{ codigo: string; nome: string }[]> {
+export async function requisitosEmpresa(admin: Db, companyId: string): Promise<{ codigo: string; nome: string; obrigatoriedade: string }[]> {
   const { data, error } = await admin
     .from("dp_documento_requisitos")
-    .select("codigo, nome")
+    .select("codigo, nome, obrigatoriedade")
     .eq("company_id", companyId)
     .neq("obrigatoriedade", "desativado")
     .neq("responsavel", "empresa");
   if (error) throw new Error("Não foi possível conferir os documentos exigidos pela empresa.");
-  return (data ?? []).filter((r: { codigo: string; nome: string }) => !!r.codigo);
+  return (data ?? []).filter((r: { codigo: string; nome: string; obrigatoriedade: string }) => !!r.codigo);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
