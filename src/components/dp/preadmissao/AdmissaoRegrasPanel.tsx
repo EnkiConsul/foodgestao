@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
@@ -21,9 +22,6 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { notifyError } from "@/lib/notifyError";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import {
@@ -92,11 +90,10 @@ const GRUPO_DOC_LABEL: Record<string, string> = {
   dependentes: "Dependentes",
   motorista: "Motorista E Veículo",
   vinculo: "Conforme O Vínculo",
-  empresa: "Documentos Da Empresa",
 };
 
 const GRUPO_DOC_ORDEM = [
-  "identificacao", "endereco", "pagamento", "vinculo", "motorista", "dependentes", "empresa",
+  "identificacao", "endereco", "pagamento", "vinculo", "motorista", "dependentes",
 ];
 
 /** Selo curto explicando quando o grupo se aplica. */
@@ -141,10 +138,13 @@ interface Editando {
 export function AdmissaoRegrasPanel() {
   const { data: unidades = [] } = useDpUnidades();
   const { data: cargos = [] } = useDpCargos();
-  const { requisitos = [] } = useDpDocumentoRequisitos();
+  const { requisitos = [], criar, salvar: salvarDocumento, remover: removerDocumento } = useDpDocumentoRequisitos();
   const { regras, parentescos, salvar, excluir, definirParentesco } = useDpAdmissaoRegras();
 
   const [aberto, setAberto] = useState<string | null>(null);
+  const [secaoAberta, setSecaoAberta] = useState<string | null>(null);
+  const [novoDocumento, setNovoDocumento] = useState("");
+  const [novoParentesco, setNovoParentesco] = useState("");
   const [editando, setEditando] = useState<Editando | null>(null);
   // Simulador: mostra o resultado final da combinação escolhida.
   const [simUnidade, setSimUnidade] = useState<string>(TODOS);
@@ -217,6 +217,29 @@ export function AdmissaoRegrasPanel() {
     }
   };
 
+  const incluirParentesco = async () => {
+    const valor = novoParentesco.trim().toLocaleLowerCase("pt-BR");
+    if (!valor || valor.length > 40 || !/^[a-z0-9_ ]+$/.test(valor)) {
+      toast.warning("Informe um parentesco com até 40 letras, números ou espaços (sem acentos).");
+      return;
+    }
+    if (PARENTESCOS.some((p) => p.value === valor) || (parentescos.data ?? []).some((p) => p.parentesco === valor)) {
+      toast.warning("Esse parentesco já está na lista.");
+      return;
+    }
+    await marcarParentesco(valor, false, false);
+    setNovoParentesco("");
+  };
+
+  const incluirDocumento = async () => {
+    const nome = novoDocumento.trim();
+    if (!nome) { toast.warning("Informe o nome do documento."); return; }
+    try {
+      await criar.mutateAsync({ nome, obrigatoriedade: "opcional" });
+      setNovoDocumento("");
+    } catch { /* mensagem exibida pela rotina de documentos */ }
+  };
+
   const alvoSimulado = {
     unidade_id: simUnidade === TODOS ? null : simUnidade,
     cargo_id: simCargo === TODOS ? null : simCargo,
@@ -237,10 +260,10 @@ export function AdmissaoRegrasPanel() {
   const documentos = useMemo(() => {
     const ativos = (requisitos as DpDocumentoRequisito[])
       .filter((r) => r.obrigatoriedade !== "desativado");
-    const separa = (daEmpresa: boolean) => {
+    const separa = () => {
       const m = new Map<string, DpDocumentoRequisito[]>();
       ativos
-        .filter((r) => requisitoDaEmpresa(r) === daEmpresa)
+        .filter((r) => !requisitoDaEmpresa(r) && r.codigo !== "cnh_sem_suspensao")
         .forEach((r) => {
           const g = (r as { grupo?: string | null }).grupo || "identificacao";
           m.set(g, [...(m.get(g) ?? []), r]);
@@ -249,7 +272,7 @@ export function AdmissaoRegrasPanel() {
         (a, b) => GRUPO_DOC_ORDEM.indexOf(a[0]) - GRUPO_DOC_ORDEM.indexOf(b[0]),
       );
     };
-    return { doCandidato: separa(false), daEmpresa: separa(true) };
+    return separa();
   }, [requisitos]);
 
   const escopoTexto = (r: AdmissaoRegra) => {
@@ -354,10 +377,9 @@ export function AdmissaoRegrasPanel() {
   ) => (
     <Card>
       <CardContent className="p-3 sm:p-4 space-y-3">
-        <div>
-          <h3 className="font-semibold text-sm">{titulo}</h3>
-          <p className="text-xs text-muted-foreground">{ajuda}</p>
-        </div>
+        <Button type="button" variant="ghost" className="w-full h-auto justify-between text-left px-0" aria-expanded={secaoAberta === "documentos"} onClick={() => setSecaoAberta(secaoAberta === "documentos" ? null : "documentos")}> {titulo} <ChevronDown className={`h-4 w-4 shrink-0 ${secaoAberta === "documentos" ? "" : "-rotate-90"}`} /> </Button>
+        {secaoAberta === "documentos" && <>
+        <p className="text-xs text-muted-foreground">{ajuda}</p>
         {!lista.length ? (
           <p className="text-sm text-muted-foreground">Nenhum documento nesta lista.</p>
         ) : (
@@ -371,10 +393,22 @@ export function AdmissaoRegrasPanel() {
                   <Badge variant="outline" className="text-[10px]">{GRUPO_DOC_SELO[grupo]}</Badge>
                 )}
               </div>
-              {itens.map((r) => linha("documento", r.codigo, r.nome))}
+              {itens.map((r) => <div key={r.id} className="flex flex-col gap-1 border-b py-2 last:border-0">
+                {linha("documento", r.codigo, r.nome)}
+                {r.descricao && <p className="text-xs text-muted-foreground">{r.descricao}</p>}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select value={r.obrigatoriedade} onValueChange={(v) => void salvarDocumento.mutateAsync({ id: r.id, patch: { obrigatoriedade: v } })}>
+                    <SelectTrigger className="h-9 w-40" aria-label={`Exigência de ${r.nome}`}><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="obrigatorio">Obrigatório</SelectItem><SelectItem value="opcional">Opcional</SelectItem><SelectItem value="desativado">Não pedir</SelectItem></SelectContent>
+                  </Select>
+                  {r.codigo.startsWith("custom_") && <Button type="button" size="sm" variant="ghost" className="text-destructive" onClick={() => void removerDocumento.mutateAsync(r.id)}><Trash2 className="h-4 w-4 mr-1" />Retirar</Button>}
+                </div>
+              </div>)}
             </div>
           ))
         )}
+        <div className="flex flex-col sm:flex-row gap-2"><Input aria-label="Nome do novo documento" placeholder="Novo documento" value={novoDocumento} onChange={(e) => setNovoDocumento(e.target.value)} /><Button type="button" variant="outline" disabled={criar.isPending} onClick={() => void incluirDocumento()}><Plus className="h-4 w-4 mr-1" />Incluir documento</Button></div>
+        </>}
       </CardContent>
     </Card>
   );
@@ -445,8 +479,8 @@ export function AdmissaoRegrasPanel() {
           {grupos.map(([grupo, campos]) => (
             <Card key={grupo}>
               <CardContent className="p-3 sm:p-4">
-                <h3 className="font-semibold text-sm mb-1">{grupo}</h3>
-                {campos.map((c) => linha("campo", c.chave, c.label))}
+                <Button type="button" variant="ghost" className="w-full h-auto justify-between px-0 text-left" aria-expanded={secaoAberta === grupo} onClick={() => setSecaoAberta(secaoAberta === grupo ? null : grupo)}>{grupo}<span className="flex items-center gap-2 text-xs text-muted-foreground">{campos.length} campos <ChevronDown className={`h-4 w-4 ${secaoAberta === grupo ? "" : "-rotate-90"}`} /></span></Button>
+                {secaoAberta === grupo && campos.map((c) => linha("campo", c.chave, c.label))}
               </CardContent>
             </Card>
           ))}
@@ -454,59 +488,41 @@ export function AdmissaoRegrasPanel() {
           {cardDocumentos(
             "Documentos Que O Candidato Envia",
             "Aparecem na ficha do candidato e bloqueiam o envio quando estão obrigatórios.",
-            documentos.doCandidato,
-          )}
-
-          {cardDocumentos(
-            "Documentos Que A Empresa Emite",
-            "Contrato, ficha de registro e termos: a própria empresa anexa, o candidato nunca é cobrado.",
-            documentos.daEmpresa,
+             documentos,
           )}
 
           <Card>
             <CardContent className="p-3 sm:p-4 space-y-2">
-              <div>
-                <h3 className="font-semibold text-sm">Familiares Aceitos</h3>
+               <Button type="button" variant="ghost" className="w-full h-auto justify-between px-0" aria-expanded={secaoAberta === "familiares"} onClick={() => setSecaoAberta(secaoAberta === "familiares" ? null : "familiares")}>Familiares Aceitos <ChevronDown className={`h-4 w-4 ${secaoAberta === "familiares" ? "" : "-rotate-90"}`} /></Button>
+               {secaoAberta === "familiares" && <><div>
                 <p className="text-xs text-muted-foreground">
                   Escolha quais familiares o candidato pode incluir. Sem nenhuma marcação,
-                  todos os graus continuam aceitos.
+                   todos os graus continuam aceitos. A finalidade da ficha não concede benefícios automaticamente.
                 </p>
               </div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Parentesco</TableHead>
-                    <TableHead className="w-[160px]">Dependente do imposto</TableHead>
-                    <TableHead className="w-[120px]">Sesc</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {PARENTESCOS.map((p) => {
+               <div className="space-y-2">
+                   {[...PARENTESCOS, ...(parentescos.data ?? []).filter((p) => !PARENTESCOS.some((o) => o.value === p.parentesco)).map((p) => ({ value: p.parentesco, label: p.parentesco.replace(/_/g, " ") }))].map((p) => {
                     const atual = (parentescos.data ?? []).find((x) => x.parentesco === p.value);
                     const dep = !!atual?.permite_dependente;
                     const sesc = !!atual?.permite_sesc;
                     return (
-                      <TableRow key={p.value}>
-                        <TableCell className="text-sm">{p.label}</TableCell>
-                        <TableCell>
-                          <Checkbox
+                       <div key={p.value} className="grid gap-2 border-b py-2 sm:grid-cols-[minmax(120px,1fr)_170px_100px] sm:items-center">
+                         <span className="text-sm font-medium">{p.label}</span>
+                         <label className="flex items-center gap-2 text-sm"><Checkbox
                             checked={dep}
                             aria-label={`${p.label} pode ser dependente do imposto`}
                             onCheckedChange={(v) => void marcarParentesco(p.value, v === true, sesc)}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Checkbox
+                           />Dependente do imposto</label>
+                         <label className="flex items-center gap-2 text-sm"><Checkbox
                             checked={sesc}
                             aria-label={`${p.label} pode entrar no Sesc`}
                             onCheckedChange={(v) => void marcarParentesco(p.value, dep, v === true)}
-                          />
-                        </TableCell>
-                      </TableRow>
+                           />Sesc</label>
+                       </div>
                     );
                   })}
-                </TableBody>
-              </Table>
+               </div>
+               <div className="flex flex-col sm:flex-row gap-2"><Input aria-label="Novo parentesco" placeholder="Outro parentesco" value={novoParentesco} onChange={(e) => setNovoParentesco(e.target.value)} /><Button type="button" variant="outline" disabled={definirParentesco.isPending} onClick={() => void incluirParentesco()}><Plus className="h-4 w-4 mr-1" />Incluir parentesco</Button></div></>}
             </CardContent>
           </Card>
         </>
