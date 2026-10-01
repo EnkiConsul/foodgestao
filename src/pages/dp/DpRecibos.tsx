@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
+import { diasRestantesCarencia } from "@/lib/dp/desligamento";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -117,6 +118,17 @@ export default function DpRecibos() {
     if (colab && canal === "whatsapp") setCanal("portal");
     if (colab) setWhats(String(colab.whatsapp || colab.telefone || ""));
   }, [avulso, colab, canal]);
+
+  // Alerta: colaborador sem acesso ao portal ou com acesso terminando em até 2 dias.
+  const avisoPortal = useMemo(() => {
+    if (!colab) return null;
+    if (!colab.user_id) return "Este colaborador não tem acesso ao Portal do Colaborador.";
+    if (colab.ativo !== false) return null;
+    const dias = diasRestantesCarencia(colab.acesso_portal_ate ?? null);
+    if (dias == null || dias < 0) return "O acesso deste colaborador ao portal já foi encerrado.";
+    if (dias <= 2) return `O acesso deste colaborador ao portal termina ${dias === 0 ? "hoje" : `em ${dias} ${dias === 1 ? "dia" : "dias"}`}.`;
+    return null;
+  }, [colab]);
 
   const recibos = useQuery({
     queryKey: ["dp_recibos", selectedCompanyId],
@@ -403,6 +415,17 @@ export default function DpRecibos() {
               </label>
             ))}
           </RadioGroup>
+          {canal === "portal" && avisoPortal && (
+            <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+              <div className="font-medium text-destructive">{avisoPortal}</div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Ele pode não conseguir assinar a tempo. Prefira a assinatura à mão.
+              </p>
+              <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => setCanal("fisico")}>
+                Usar Assinatura à Mão
+              </Button>
+            </div>
+          )}
           {canal === "whatsapp" && (
             <div className="space-y-1.5 sm:max-w-xs">
               <Label>WhatsApp</Label>
