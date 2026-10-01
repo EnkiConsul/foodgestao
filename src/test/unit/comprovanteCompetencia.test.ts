@@ -83,7 +83,13 @@ describe("telas e servidor do comprovante", () => {
     const src = readFileSync("src/components/dp/documentos/ComprovantePagamentoPanel.tsx", "utf8");
     expect(src).toContain("competenciaDivergente");
     expect(src).toContain("confirmarCompetencia");
-    expect(src).toContain("Data lida do comprovante");
+    expect(src).toContain("frasesLeitura");
+  });
+
+  it("a data do pagamento é obrigatória no formulário", () => {
+    const src = readFileSync("src/components/dp/documentos/ComprovantePagamentoPanel.tsx", "utf8");
+    expect(src).toContain("Informe a data em que o pagamento foi feito.");
+    expect(src).not.toContain("Data do pagamento (opcional)");
   });
 
   it("a rotina oficial envia a confirmação para o servidor", () => {
