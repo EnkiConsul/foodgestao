@@ -16,11 +16,14 @@ import { z } from "npm:zod@3";
 import { callerClient, requireUser, serviceClient } from "../_shared/authz.ts";
 import { recordEdgeError } from "../_shared/error-log.ts";
 import {
-  MARCA_ALTURA,
   MARCA_ASSINATURA,
-  MARCA_LARGURA,
+  MARCA_LARANJA,
+  MARCA_MARINHO,
   MARCA_PNG_BASE64,
 } from "../_shared/marca-aveto.ts";
+
+const MARINHO = rgb(MARCA_MARINHO[0], MARCA_MARINHO[1], MARCA_MARINHO[2]);
+const LARANJA = rgb(MARCA_LARANJA[0], MARCA_LARANJA[1], MARCA_LARANJA[2]);
 
 const BUCKET = "dp-documentos";
 const FUNCAO = "dp-documento-certificado";
