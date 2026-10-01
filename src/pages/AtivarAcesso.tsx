@@ -187,7 +187,11 @@ export default function AtivarAcesso() {
                   Ir para o Login
                 </Button>
               ) : (
-                <Button type="submit" className="min-h-11 w-full" disabled={enviando}>
+                <Button
+                  type="submit"
+                  className="min-h-11 w-full"
+                  disabled={enviando || !senhaAprovada || senha !== confirmar}
+                >
                   {enviando ? "Salvando..." : "Salvar senha e entrar"}
                 </Button>
               )}
