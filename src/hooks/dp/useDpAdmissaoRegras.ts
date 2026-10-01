@@ -39,7 +39,22 @@ export interface AdmissaoParentesco {
   parentesco: string;
   permite_dependente: boolean;
   permite_sesc: boolean;
+  finalidades: string[];
 }
+
+/** Finalidade (legal ou convênio) que a empresa aceita para familiares. */
+export interface AdmissaoFinalidade {
+  id: string;
+  company_id: string;
+  codigo: string;
+  nome: string;
+  ativo: boolean;
+}
+
+/** Única finalidade que vem da lei e existe em toda empresa. */
+export const FINALIDADE_LEGAL = "dependente_legal";
+export const FINALIDADE_LEGAL_NOME = "Dependente Legal (Imposto de Renda)";
+
 
 export interface RegraEntrada {
   id?: string | null;
