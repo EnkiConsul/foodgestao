@@ -220,15 +220,14 @@ function paginaAnexo(
   arquivo: string,
   pagoEm: string,
   competencia: string,
+  marca: Marca,
+  empresa: string,
 ): void {
   const page = pdf.addPage(A4);
   const { width, height } = page.getSize();
   const margem = 48;
-  let y = height - 120;
-  page.drawText("Anexo — Comprovante de pagamento", {
-    x: margem, y, size: 15, font: negrito, color: rgb(0.06, 0.11, 0.24),
-  });
-  y -= 24;
+  const usado = timbrado(page, negrito, fonte, marca, "Anexo — Comprovante de Pagamento", empresa);
+  let y = height - usado - 20;
   for (
     const linha of linhas(
       `Competência do documento: ${competencia || "—"}. Arquivo: ${arquivo || "—"}. ${
