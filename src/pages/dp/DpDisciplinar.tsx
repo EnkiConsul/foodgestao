@@ -750,7 +750,16 @@ export default function DpDisciplinar() {
               </div>
             </div>
 
-            <Button className="w-full mt-6" size="lg" disabled={doImport.isPending} onClick={() => doImport.mutate()}>
+            <Button
+              className="w-full mt-6"
+              size="lg"
+              disabled={doImport.isPending}
+              onClick={() => {
+                const pendente = validarFormulario();
+                if (pendente) return avisarCampoPendente(pendente);
+                doImport.mutate();
+              }}
+            >
               {isFormal(tipo) && caminho === "gerar" ? <FileText className="size-4 mr-2" /> : <Upload className="size-4 mr-2" />}
               {doImport.isPending
                 ? "Processando..."
