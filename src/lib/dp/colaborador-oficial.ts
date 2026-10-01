@@ -259,3 +259,13 @@ export async function ajustarColaboradoresEmLote(input: {
   if (error) lancar(error, "Não foi possível aplicar o ajuste.");
   return Number(data ?? 0);
 }
+
+/** Libera ao colaborador a via física assinada (só advertência escrita/suspensão). */
+export async function importarViaAssinadaDisciplinar(registroId: string, caminho: string): Promise<void> {
+  const { error } = await (supabase.rpc as any)("dp_registro_disciplinar_via_assinada", {
+    p_registro_id: registroId,
+    p_path: caminho,
+    p_confirmo_aplicacao: true,
+  });
+  if (error) lancar(error, "Não foi possível importar a via assinada.");
+}

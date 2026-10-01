@@ -2,13 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ShieldAlert, Upload, History, FileText, FileImage, Download, Trash2, Pencil, FileSignature } from "lucide-react";
+import { ShieldAlert, Upload, History, FileText, FileImage, Download, Trash2, Pencil, FileSignature, AlertTriangle, FileCheck2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import {
   registrarDisciplinar,
   anexarArquivoDisciplinar,
   corrigirDisciplinar,
   excluirDisciplinar,
+  importarViaAssinadaDisciplinar,
 } from "@/lib/dp/colaborador-oficial";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -48,6 +50,29 @@ const TIPOS = [
 
 const TIPO_LABEL: Record<string, string> = Object.fromEntries(TIPOS.map((t) => [t.value, t.label]));
 
+/** Medidas formais: exigem aplicação presencial e via física assinada para irem ao portal. */
+const FORMAIS = ["advertencia_escrita", "suspensao"];
+const isFormal = (t?: string | null) => !!t && FORMAIS.includes(t);
+
+const TEXTO_CONFIRMACAO =
+  "Confirmo que a medida foi aplicada presencialmente e que o arquivo é a via física assinada pelo colaborador (ou por duas testemunhas, em caso de recusa).";
+
+function AvisoJuridicoDisciplinar() {
+  return (
+    <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
+      <div className="flex items-center gap-2 font-semibold text-destructive">
+        <AlertTriangle className="size-4" /> Atenção: Risco Jurídico
+      </div>
+      <ul className="mt-2 list-disc space-y-1 pl-5 text-foreground/90">
+        <li>Advertência escrita e suspensão devem ser <strong>aplicadas pessoalmente</strong>: gere o modelo, imprima, converse com o colaborador e colha a assinatura (ou de 2 testemunhas se ele recusar).</li>
+        <li>Só depois importe a <strong>via assinada</strong>. Ela é a única coisa que o colaborador verá no portal.</li>
+        <li>Descobrir uma punição pelo celular, antes da conversa, gera atrito e pode embasar ação por <strong>dano moral ou assédio</strong>.</li>
+        <li>Advertências verbais, observações e elogios ficam só no dossiê interno, visível ao DP/gestão. Escreva fatos objetivos, sem juízo de valor, pois o dossiê pode ser usado como prova.</li>
+      </ul>
+    </div>
+  );
+}
+
 type DiscColKey = "colaborador" | "unidade" | "data" | "tipo" | "dias" | "observacoes" | "arquivo";
 type DiscSortKey = "padrao" | "colaborador" | "unidade" | "data" | "tipo" | "dias";
 
@@ -67,6 +92,8 @@ type Registro = {
   descricao: string | null;
   suspensao_dias: number | null;
   pdf_storage_path: string | null;
+  via_assinada_path: string | null;
+  via_assinada_em: string | null;
   created_at: string;
   dp_colaboradores: { nome: string; unidade_id: string | null } | null;
 };
@@ -77,6 +104,22 @@ const getFileKind = (path?: string | null) => {
   if (!path) return { label: "—", icon: FileText };
   return path.toLowerCase().endsWith(".pdf") ? { label: "PDF", icon: FileText } : { label: "Imagem", icon: FileImage };
 };
+
+function situacaoPortal(r: { tipo: string; via_assinada_path: string | null }): string {
+  if (!isFormal(r.tipo)) return "Interno (Só DP)";
+  return r.via_assinada_path ? "Via Assinada No Portal" : "Aguardando Via Assinada";
+}
+
+async function enviarArquivo(companyId: string, registroId: string, file: File): Promise<string> {
+  const envio = await prepararUpload(BUCKET, file);
+  const path = `${companyId}/${registroId}/${Date.now()}-${sanitizeStorageFilename(envio.name)}`;
+  const up = await supabase.storage.from(BUCKET).upload(path, envio, {
+    upsert: false,
+    contentType: envio.type || "application/pdf",
+  });
+  if (up.error) throw up.error;
+  return path;
+}
 
 export default function DpDisciplinar() {
   const { selectedCompanyId } = useCompanyContext();
@@ -100,6 +143,12 @@ export default function DpDisciplinar() {
   const [dias, setDias] = useState<string>("0");
   const [observacao, setObservacao] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [confirmo, setConfirmo] = useState(false);
+  // importar via assinada (histórico)
+  const [viaPara, setViaPara] = useState<Registro | null>(null);
+  const [viaArquivo, setViaArquivo] = useState<File | null>(null);
+  const [viaConfirmo, setViaConfirmo] = useState(false);
+  const viaRef = useRef<HTMLInputElement>(null);
 
   // filtros histórico
   const [fUnidade, setFUnidade] = useState("todos");
@@ -186,7 +235,12 @@ export default function DpDisciplinar() {
     tipo: {
       label: "Tipo", sortKey: "tipo" as const,
       value: (r: Registro) => TIPO_LABEL[r.tipo] ?? r.tipo,
-      render: (r: Registro) => <Badge variant="outline" className="max-w-full truncate">{TIPO_LABEL[r.tipo] ?? r.tipo}</Badge>,
+      render: (r: Registro) => (
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Badge variant="outline" className="max-w-full truncate">{TIPO_LABEL[r.tipo] ?? r.tipo}</Badge>
+          <span className="truncate text-[10px] text-muted-foreground">{situacaoPortal(r)}</span>
+        </div>
+      ),
     },
     dias: {
       label: "Dias", sortKey: "dias" as const,
@@ -302,7 +356,10 @@ export default function DpDisciplinar() {
       if (!colaboradorId) throw new Error("Selecione o colaborador");
       if (!dataDoc) throw new Error("Informe a data do documento");
       if (!tipo) throw new Error("Selecione o tipo de registro");
-      if (!pendingFile) throw new Error("Anexe o arquivo do registro");
+      const formal = isFormal(tipo);
+      if (formal && pendingFile && !confirmo) {
+        throw new Error("Confirme que a via anexada foi aplicada presencialmente e assinada.");
+      }
       const diasN = parseInt(dias || "0", 10);
       if (tipo === "suspensao" && (!Number.isFinite(diasN) || diasN <= 0)) {
         throw new Error("Informe os dias de afastamento para suspensão");
@@ -317,24 +374,43 @@ export default function DpDisciplinar() {
         suspensaoDias: diasN > 0 ? diasN : null,
       });
 
-      const envio = await prepararUpload(BUCKET, pendingFile);
-      const safeName = sanitizeStorageFilename(envio.name);
-      const path = `${selectedCompanyId}/${registroId}/${Date.now()}-${safeName}`;
-      const up = await supabase.storage.from(BUCKET).upload(path, envio, {
-        upsert: true,
-        contentType: envio.type || "application/pdf",
-      });
-      if (up.error) throw up.error;
-      await anexarArquivoDisciplinar(registroId, path);
+      if (pendingFile) {
+        const path = await enviarArquivo(selectedCompanyId, registroId, pendingFile);
+        await anexarArquivoDisciplinar(registroId, path);
+        if (formal) await importarViaAssinadaDisciplinar(registroId, path);
+        return { registroId, gerarModelo: false };
+      }
+      return { registroId, gerarModelo: formal };
     },
-    onSuccess: () => {
-      toast.success("Registro importado com sucesso");
-      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setTipo(""); setDias("0"); setObservacao(""); setPendingFile(null);
+    onSuccess: (res) => {
+      toast.success(
+        res.gerarModelo
+          ? "Registro salvo. Imprima o modelo, colha as assinaturas e depois importe a via assinada."
+          : "Registro cadastrado com sucesso",
+      );
+      if (res.gerarModelo) genPdf.mutate(res.registroId);
+      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setTipo(""); setDias("0"); setObservacao(""); setPendingFile(null); setConfirmo(false);
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
       setTab("historico");
     },
-    onError: (e: any) => notifyError(e, { surface: "Medidas disciplinares", action: "concluir a ação", fallback: "Erro ao importar" }),
+    onError: (e: any) => notifyError(e, { surface: "Medidas disciplinares", action: "concluir a ação", fallback: "Erro ao cadastrar" }),
+  });
+
+  const doVia = useMutation({
+    mutationFn: async () => {
+      if (!selectedCompanyId || !viaPara) throw new Error("Registro não selecionado");
+      if (!viaArquivo) throw new Error("Anexe a via assinada");
+      if (!viaConfirmo) throw new Error("Confirme a aplicação presencial e as assinaturas.");
+      const path = await enviarArquivo(selectedCompanyId, viaPara.id, viaArquivo);
+      await importarViaAssinadaDisciplinar(viaPara.id, path);
+    },
+    onSuccess: () => {
+      toast.success("Via assinada importada e disponível ao colaborador");
+      setViaPara(null); setViaArquivo(null); setViaConfirmo(false);
+      qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
+    },
+    onError: (e: any) => notifyError(e, { surface: "Medidas disciplinares", action: "importar a via assinada", fallback: "Erro ao importar a via" }),
   });
 
   const doDelete = useMutation({
@@ -384,7 +460,7 @@ export default function DpDisciplinar() {
       return data as { path: string; signed_url: string };
     },
     onSuccess: (data) => {
-      toast.success("PDF gerado");
+      toast.success("Modelo gerado. Imprima e colha as assinaturas.");
       if (data.signed_url) window.open(data.signed_url, "_blank");
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
     },
@@ -392,12 +468,13 @@ export default function DpDisciplinar() {
   });
 
   const handleDownload = async (r: Registro) => {
-    if (!r.pdf_storage_path) return;
-    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(r.pdf_storage_path, 60);
+    const caminho = r.via_assinada_path ?? r.pdf_storage_path;
+    if (!caminho) return;
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(caminho, 60);
     if (error || !data?.signedUrl) return toast.error("Não foi possível gerar o link");
     const a = document.createElement("a");
     a.href = data.signedUrl; a.rel = "noopener"; a.target = "_blank";
-    a.download = r.pdf_storage_path.split("/").pop() || "registro.pdf";
+    a.download = caminho.split("/").pop() || "registro.pdf";
     document.body.appendChild(a); a.click(); a.remove();
   };
 
@@ -431,6 +508,7 @@ export default function DpDisciplinar() {
               <Upload className="size-5 text-primary" />
               <h3 className="text-lg font-semibold">Cadastrar Registro Disciplinar</h3>
             </div>
+            <AvisoJuridicoDisciplinar />
 
             <div className="space-y-3 sm:space-y-4">
               <div className="space-y-2">
@@ -487,13 +565,24 @@ export default function DpDisciplinar() {
               </div>
 
               <div className="space-y-2">
-                <Label>Arquivo (PDF ou Imagem) *</Label>
+                <Label>{isFormal(tipo) ? "Via Física Assinada (PDF ou Imagem)" : "Arquivo (Opcional)"}</Label>
                 <DpFilePicker
                   ref={fileRef}
                   accept="application/pdf,image/*"
                   file={pendingFile}
                   onFileChange={setPendingFile}
                 />
+                {isFormal(tipo) && !pendingFile && (
+                  <p className="text-xs text-muted-foreground">
+                    Ainda não aplicou? Deixe sem arquivo: o sistema gera o modelo para imprimir e o colaborador não vê nada até você importar a via assinada.
+                  </p>
+                )}
+                {isFormal(tipo) && pendingFile && (
+                  <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-xs">
+                    <Checkbox checked={confirmo} onCheckedChange={(v) => setConfirmo(v === true)} className="mt-0.5" />
+                    <span>{TEXTO_CONFIRMACAO}</span>
+                  </label>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -509,7 +598,11 @@ export default function DpDisciplinar() {
               onClick={() => doImport.mutate()}
             >
               <Upload className="size-4 mr-2" />
-              {doImport.isPending ? "Enviando..." : "Cadastrar"}
+              {doImport.isPending
+                ? "Enviando..."
+                : isFormal(tipo) && !pendingFile
+                  ? "Salvar E Gerar Modelo Para Imprimir"
+                  : "Cadastrar"}
             </Button>
           </DpContentCard>
         </TabsContent>
@@ -618,7 +711,12 @@ export default function DpDisciplinar() {
                                 <FileSignature className="h-4 w-4" />
                               </Button>
                             )}
-                            {r.pdf_storage_path && (
+                            {isFormal(r.tipo) && !r.via_assinada_path && (
+                              <Button aria-label="Importar via assinada" size="icon" variant="ghost" title="Importar Via Assinada" onClick={() => setViaPara(r)}>
+                                <FileCheck2 className="h-4 w-4 text-primary" />
+                              </Button>
+                            )}
+                            {(r.pdf_storage_path || r.via_assinada_path) && (
                               <Button aria-label="Baixar registro" size="icon" variant="ghost" title="Baixar" onClick={() => handleDownload(r)}>
                                 <Download className="h-4 w-4" />
                               </Button>
@@ -658,7 +756,10 @@ export default function DpDisciplinar() {
                       <div className="truncate font-semibold">{r.dp_colaboradores?.nome ?? "—"}</div>
                       {unitName && <div className="text-[11px] text-muted-foreground truncate">{unitName}</div>}
                     </div>
-                    <Badge variant="outline" className="shrink-0">{TIPO_LABEL[r.tipo] ?? r.tipo}</Badge>
+                    <div className="flex shrink-0 flex-col items-end gap-0.5">
+                      <Badge variant="outline">{TIPO_LABEL[r.tipo] ?? r.tipo}</Badge>
+                      <span className="text-[10px] text-muted-foreground">{situacaoPortal(r)}</span>
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-border/60">
                     <div><span className="text-muted-foreground">Data:</span> {formatDate(r.data)}</div>
@@ -685,7 +786,12 @@ export default function DpDisciplinar() {
                         <FileSignature className="h-4 w-4 mr-1" /> PDF
                       </Button>
                     )}
-                    {r.pdf_storage_path && (
+                    {isFormal(r.tipo) && !r.via_assinada_path && (
+                      <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setViaPara(r)}>
+                        <FileCheck2 className="h-4 w-4 mr-1" /> Via Assinada
+                      </Button>
+                    )}
+                    {(r.pdf_storage_path || r.via_assinada_path) && (
                       <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => handleDownload(r)}>
                         <Download className="h-4 w-4 mr-1" /> Baixar
                       </Button>
@@ -762,6 +868,31 @@ export default function DpDisciplinar() {
             <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
             <Button onClick={() => doEdit.mutate()} disabled={doEdit.isPending}>
               {doEdit.isPending ? "Salvando..." : "Salvar alterações"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!viaPara} onOpenChange={(v) => { if (!v) { setViaPara(null); setViaArquivo(null); setViaConfirmo(false); } }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Importar Via Assinada</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <p className="text-muted-foreground">
+              {viaPara?.dp_colaboradores?.nome} — {viaPara ? TIPO_LABEL[viaPara.tipo] : ""} de {formatDate(viaPara?.data)}.
+              Após importar, o documento fica disponível ao colaborador em Meus Documentos e não pode ser substituído.
+            </p>
+            <DpFilePicker ref={viaRef} accept="application/pdf,image/*" file={viaArquivo} onFileChange={setViaArquivo} />
+            <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-xs">
+              <Checkbox checked={viaConfirmo} onCheckedChange={(v) => setViaConfirmo(v === true)} className="mt-0.5" />
+              <span>{TEXTO_CONFIRMACAO}</span>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViaPara(null)}>Cancelar</Button>
+            <Button onClick={() => doVia.mutate()} disabled={doVia.isPending || !viaArquivo || !viaConfirmo}>
+              {doVia.isPending ? "Enviando..." : "Importar E Liberar Ao Colaborador"}
             </Button>
           </DialogFooter>
         </DialogContent>

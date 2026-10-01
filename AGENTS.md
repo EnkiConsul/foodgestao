@@ -13,3 +13,4 @@
 - Imagem da assinatura (PNG em data URL) é gravada só pelo servidor em `assinatura_imagem` (dp_recibos/dp_documento_aceites), imutável após gravada, e estampada no PDF com rubrica em todas as páginas — reimpressão fiel sem confiar no cliente.
 
 - Notificações push (Web Push): fila `dp_push_fila` alimentada por gatilho em `dp_notificacoes`, envio pela função `dp-push-dispatch` a cada minuto e receptor isolado em `/push/sw.js` (sem cache) — mantém o push separado do worker de limpeza `/sw.js`.
+- Disciplinar: o portal só lê vias físicas assinadas (`via_assinada_path`, advertência escrita/suspensão) via `dp_portal_meus_disciplinares()`; verbais, observações e minutas ficam no dossiê interno da ficha — evita expor anotações do gestor e passivo de dano moral.
