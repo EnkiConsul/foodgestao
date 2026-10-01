@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertTriangle, Check, ChevronDown, ChevronUp, FileText, Loader2, Plus, UserCheck, UserCog, X,
@@ -124,7 +124,24 @@ export function FichaRevisaoCard({
     [dados.cargo_nome, dados.cbo, cargos],
   );
   const unidadeSugerida = useMemo(() => matchUnidade(dados, unidades, empresaCnpj), [dados, unidades, empresaCnpj]);
-  const [cargoId, setCargoId] = useState<string | null>(cargoSugerido.cargo_id);
+  /**
+   * Só o nome parecido preenche sozinho. CBO igual com nome diferente (ex.:
+   * CUMIM × GARÇONETE) fica como sugestão: o gestor confirma ou cria o cargo.
+   */
+  const cargoAutomatico =
+    cargoSugerido.motivo === "cbo_e_nome" || cargoSugerido.motivo === "nome" ? cargoSugerido.cargo_id : null;
+  const [cargoId, setCargoIdState] = useState<string | null>(cargoAutomatico);
+  const [cargoTocado, setCargoTocado] = useState(false);
+  const setCargoId = (id: string | null) => {
+    setCargoTocado(true);
+    setCargoIdState(id);
+  };
+  // A lista de cargos chega depois do primeiro desenho: preenche quando chegar.
+  useEffect(() => {
+    if (!cargoTocado && cargoAutomatico) setCargoIdState(cargoAutomatico);
+  }, [cargoAutomatico, cargoTocado]);
+  const cargoPorCbo =
+    cargoSugerido.motivo === "cbo" ? cargos.find((c) => c.id === cargoSugerido.cargo_id) ?? null : null;
   const [unidadeId, setUnidadeId] = useState<string | null>(
     unidadeSugerida.unidade_id ?? unidadePadraoId ?? unidades[0]?.id ?? null,
   );
