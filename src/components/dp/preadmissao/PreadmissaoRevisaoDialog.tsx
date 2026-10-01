@@ -367,6 +367,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
             rg: p.rg.trim(),
             finalidade_dependente: p.finalidade_dependente,
             finalidade_sesc: p.finalidade_sesc,
+            finalidades: p.finalidades,
           })),
       });
       await acoes.salvarAdmin.mutateAsync(adminParaEnvio());
