@@ -140,7 +140,10 @@ export function AdmissaoRegrasPanel() {
   const { data: unidades = [] } = useDpUnidades();
   const { data: cargos = [] } = useDpCargos();
   const { requisitos = [], criar, salvar: salvarDocumento } = useDpDocumentoRequisitos();
-  const { regras, parentescos, salvar, excluir, definirParentesco } = useDpAdmissaoRegras();
+  const {
+    regras, parentescos, finalidades, salvar, excluir,
+    definirParentesco, salvarFinalidade, removerFinalidade,
+  } = useDpAdmissaoRegras();
 
   const [aberto, setAberto] = useState<string | null>(null);
   const [secaoAberta, setSecaoAberta] = useState<string | null>(null);
