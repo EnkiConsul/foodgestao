@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { aprovarEmBlocos } from "@/lib/dp/bulkApproveChunks";
 import { validarUpload } from "@/lib/storage/uploadPolicy";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -344,11 +345,7 @@ export function BulkImportPanel({
 
   const approve = useMutation({
     mutationFn: async (item_ids: string[]) => {
-      const { data, error } = await supabase.functions.invoke("dp-doc-bulk-approve", {
-        body: { item_ids },
-      });
-      if (error) throw error;
-      return data;
+      return aprovarEmBlocos(item_ids);
     },
     onSuccess: (r: any) => {
       const results = (r?.results ?? []) as Array<{ ok: boolean; error?: string }>;
