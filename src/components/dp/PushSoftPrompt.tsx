@@ -76,7 +76,7 @@ export function PushSoftPrompt() {
           </ol>
         )}
         <DialogFooter className="flex-col gap-2 sm:flex-col">
-          {estado === "inativo" && <Button onClick={ativar} disabled={busy} className="w-full">Ativar Notificações</Button>}
+          {estado === "inativo" && <Button onClick={ativar} disabled={busy} className="w-full">{busy ? "Ativando..." : "Ativar Notificações"}</Button>}
           <Button variant="ghost" onClick={fechar} className="w-full">Agora Não</Button>
         </DialogFooter>
       </DialogContent>

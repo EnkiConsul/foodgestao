@@ -33,7 +33,7 @@ export function AtivarPushCard() {
         <div className="text-sm font-semibold">Notificações No Celular</div>
         <div className="text-xs text-muted-foreground">{PUSH_MENSAGEM[estado]}</div>
       </div>
-      {estado === "inativo" && <Button size="sm" onClick={ativar} disabled={busy}>Ativar</Button>}
+      {estado === "inativo" && <Button size="sm" onClick={ativar} disabled={busy}>{busy ? "Ativando..." : "Ativar"}</Button>}
       {estado === "ativo" && <Button size="sm" variant="outline" onClick={desativar} disabled={busy}>Desativar</Button>}
     </div>
   );
