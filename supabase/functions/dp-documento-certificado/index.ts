@@ -384,8 +384,8 @@ Deno.serve(async (req) => {
       const bytesLogo = new Uint8Array(bruto.length);
       for (let i = 0; i < bruto.length; i++) bytesLogo[i] = bruto.charCodeAt(i);
       const img = await pdf.embedPng(bytesLogo);
-      marca = { width: img.width || MARCA_LARGURA, height: img.height || MARCA_ALTURA } as Marca;
       marca = img as unknown as Marca;
+      if (!marca?.width || !marca?.height) marca = null;
     } catch {
       marca = null;
     }
