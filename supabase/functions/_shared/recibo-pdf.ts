@@ -12,7 +12,7 @@ import {
 } from "./marca-aveto.ts";
 import { centsParaBRL, modalidadeLabel, valorPorExtenso } from "./quitacao.ts";
 
-export const NATUREZAS = ["acerto_mensal", "adiantamento", "diaria", "teste_operacional", "outros"] as const;
+export const NATUREZAS = ["acerto_mensal", "adiantamento", "diaria", "teste_operacional", "rescisao", "outros"] as const;
 export type Natureza = (typeof NATUREZAS)[number];
 
 export const NATUREZA_LABEL: Record<Natureza, string> = {
@@ -20,6 +20,7 @@ export const NATUREZA_LABEL: Record<Natureza, string> = {
   adiantamento: "Adiantamento",
   diaria: "Diária / Extra",
   teste_operacional: "Teste Operacional Remunerado",
+  rescisao: "Rescisão / Quitação Rescisória",
   outros: "Outros Pagamentos",
 };
 
@@ -29,6 +30,7 @@ export const NATUREZA_TIPO_DOC: Record<Natureza, string> = {
   adiantamento: "adiantamento",
   diaria: "outros_pagamentos",
   teste_operacional: "outros_pagamentos",
+  rescisao: "trct",
   outros: "outros_pagamentos",
 };
 

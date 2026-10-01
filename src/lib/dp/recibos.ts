@@ -5,6 +5,7 @@ export const NATUREZAS_RECIBO = [
   { value: "adiantamento", label: "Adiantamento", ajuda: "Adiantamento quinzenal ou pontual." },
   { value: "diaria", label: "Diária / Extra", ajuda: "Diária de freelancer ou extra em evento." },
   { value: "teste_operacional", label: "Teste Operacional Remunerado", ajuda: "Dia de teste prático de candidato." },
+  { value: "rescisao", label: "Rescisão / Quitação Rescisória", ajuda: "Pagamento das verbas rescisórias (inclusive em dinheiro)." },
   { value: "outros", label: "Outros Pagamentos", ajuda: "Bônus, ajuda de custo, reembolso e outros." },
 ] as const;
 export type NaturezaRecibo = (typeof NATUREZAS_RECIBO)[number]["value"];
@@ -119,4 +120,29 @@ export function statusRecibo(r: { cancelado_em?: string | null; assinado_em?: st
     return { label: "Link Expirado", tom: "pendente" };
   }
   return { label: "Aguardando Assinatura", tom: "pendente" };
+}
+
+/** Data sugerida do pagamento a partir da competência escolhida. */
+export function dataSugeridaPagamento(natureza: NaturezaRecibo, competencia: string, diaAdiantamento?: number | null): string | null {
+  const [y, m] = competencia.split("-").map(Number);
+  if (!y || !m) return null;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const ultimo = new Date(y, m, 0).getDate();
+  if (natureza === "adiantamento") {
+    const dia = Math.min(Math.max(Number(diaAdiantamento) || 15, 1), ultimo);
+    return `${y}-${pad(m)}-${pad(dia)}`;
+  }
+  if (natureza === "acerto_mensal") {
+    // 5º dia útil do mês seguinte.
+    const d = new Date(y, m, 1);
+    let uteis = 0;
+    while (true) {
+      const w = d.getDay();
+      if (w !== 0 && w !== 6) uteis++;
+      if (uteis === 5) break;
+      d.setDate(d.getDate() + 1);
+    }
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+  return null;
 }
