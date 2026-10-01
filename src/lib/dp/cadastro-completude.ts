@@ -28,6 +28,7 @@ export const CAMPOS_ESSENCIAIS: CampoEssencial[] = [
   { chave: "data_nascimento", label: "data de nascimento", obrigatorio: false },
   { chave: "estado_civil", label: "estado civil", obrigatorio: false },
   { chave: "regime", label: "vínculo", obrigatorio: true },
+  { chave: "cargo_id", label: "cargo", obrigatorio: true },
   { chave: "pis_nit", label: "PIS", obrigatorio: false },
   { chave: "salario_base", label: "salário", obrigatorio: true },
   { chave: "dados_pagamento", label: "dados bancários ou Pix", obrigatorio: true },
@@ -117,6 +118,10 @@ export function camposFaltando(
         return enderecoVazio(c.endereco);
       case "salario_base":
         return !salarioPreenchido(c, opts);
+      case "cargo_id":
+        // Sócio não tem cargo de empregado; campo ausente na consulta não acusa.
+        if (c.regime === "socio" || !("cargo_id" in c)) return false;
+        return vazio(c.cargo_id);
       case "dados_pagamento":
         return pagamentoFaltando(c as Record<string, unknown>);
       default:

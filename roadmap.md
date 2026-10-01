@@ -30,3 +30,9 @@
 - [x] Cancelar recibo e arquivar o documento vinculado de forma atômica, reabrindo a pendência.
 - [x] Criar histórico clicável com ficha completa do recibo e ações disponíveis.
 - [x] Melhorar o retorno ao resolver pendência e identificar recibos no portal.
+
+# Reunião Samanta (Praianos) — pendências
+- [x] Sinalizar colaboradores sem cargo como cadastro incompleto (Samanta cadastra os cargos).
+- [ ] Dados bancários na ficha — aguardando resposta.
+- [ ] Domingos de folga para mulheres — aguardando resposta.
+- [ ] Não cobrar documentos de meses antes da admissão — aguardando resposta.

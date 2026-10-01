@@ -1331,6 +1331,7 @@ export function ColaboradorFormDialog({
     endereco: { campo: "endereco", aba: "dados" as AbaVisivel },
     data_nascimento: { campo: "data_nascimento", aba: "dados" as AbaVisivel },
     dados_pagamento: { campo: "dados_pagamento", aba: "dados" as AbaVisivel },
+    cargo_id: { campo: "cargo_id", aba: "dados" as AbaVisivel },
     salario_base: { campo: "salario_base", aba: "remuneracao" as AbaVisivel },
   };
   const faltantesNaTela = faltantesEssenciais.filter((c) => CAMPO_DA_CHAVE[c.chave]);
