@@ -2718,29 +2718,6 @@ export function ColaboradorFormDialog({
           </div>
 
 
-          {/* Folha de ponto (condicional) */}
-          {unidadeSelecionada?.possui_relogio_ponto && (
-            <div className="md:col-span-2 space-y-2 rounded-xl border border-border p-3">
-              <div className="flex items-center gap-3">
-                <Switch
-                  id="possui_folha_ponto"
-                  checked={form.possui_folha_ponto}
-                  onCheckedChange={(v) => setForm({ ...form, possui_folha_ponto: v })}
-                />
-                <Label htmlFor="possui_folha_ponto" className="cursor-pointer">Possui Folha de Ponto</Label>
-              </div>
-              {vinculoSemRegistro && (
-                <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
-                  {form.possui_folha_ponto
-                    ? "Atenção: exigir marcação de entrada e saída de quem não tem registro em carteira é prova de subordinação e habitualidade (arts. 2º e 3º da CLT) e favorece o reconhecimento de vínculo empregatício. O recomendado é manter desligado."
-                    : "Vínculo sem registro em carteira não bate ponto: o controle de horário é indício de subordinação. Deixe desligado."}
-                </p>
-              )}
-            </div>
-          )}
-
-
-
           {/* Senha Inicial */}
           {!isEdit && (
             <div className="md:col-span-2 space-y-2">
@@ -2796,6 +2773,35 @@ export function ColaboradorFormDialog({
           {/* forceMount: mantém o horário digitado ao alternar de aba, para que o
               botão único do rodapé grave também esta aba. */}
           <TabsContent value="jornada" className="mt-4 data-[state=inactive]:hidden" forceMount>
+          {/* Folha de ponto (condicional) */}
+          {form.unidade_id && (
+            <div className="mb-4 space-y-2 rounded-xl border border-border p-3">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="possui_folha_ponto"
+                  checked={form.possui_folha_ponto}
+                  onCheckedChange={(v) => setForm({ ...form, possui_folha_ponto: v })}
+                />
+                <Label htmlFor="possui_folha_ponto" className="cursor-pointer">Possui Folha de Ponto</Label>
+              </div>
+              {!unidadeSelecionada?.possui_relogio_ponto && form.possui_folha_ponto && (
+                <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
+                  A unidade ainda não está marcada como "Possui Folha de Ponto". Marque essa opção no cadastro da
+                  unidade para que as cobranças de folha de ponto apareçam corretamente.
+                </p>
+              )}
+              {vinculoSemRegistro && (
+                <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
+                  {form.possui_folha_ponto
+                    ? "Atenção: exigir marcação de entrada e saída de quem não tem registro em carteira é prova de subordinação e habitualidade (arts. 2º e 3º da CLT) e favorece o reconhecimento de vínculo empregatício. O recomendado é manter desligado."
+                    : "Vínculo sem registro em carteira não bate ponto: o controle de horário é indício de subordinação. Deixe desligado."}
+                </p>
+              )}
+            </div>
+          )}
+
+
+
             <ColaboradorJornadaPanel
               colaborador={{
                 id: colaborador?.id ?? criadoId ?? null,
