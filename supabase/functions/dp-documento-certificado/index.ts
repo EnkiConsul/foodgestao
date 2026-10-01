@@ -516,7 +516,7 @@ Deno.serve(async (req) => {
     rodape(pdf, fonte, dados);
 
     const bytes = await pdf.save();
-    return new Response(bytes, {
+    return new Response(bytes as unknown as BodyInit, {
       status: 200,
       headers: {
         ...corsHeaders,
