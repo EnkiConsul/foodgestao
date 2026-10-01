@@ -1,3 +1,4 @@
+import { sugerirPushContextual } from "@/components/dp/PushSoftPrompt";
 import { DpFormFooter } from "@/components/dp/DpFormFooter";
 import { Helmet } from "react-helmet-async";
 import { useEffect, useMemo, useState } from "react";
@@ -375,7 +376,7 @@ export default function DpMeuSolicitacoes() {
       }
     },
     onSuccess: () => {
-      toast.success("Solicitação enviada");
+      toast.success("Solicitação enviada"); sugerirPushContextual("Ative os avisos para saber na hora quando o gestor responder seu pedido.");
       qc.invalidateQueries({ queryKey: ["dp_meu_sol"] });
       setOpen(false);
       setForm({ tipo: "folga", data_alvo: undefined, data_fim: undefined, motivo: "" });
