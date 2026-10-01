@@ -1101,16 +1101,30 @@ export default function PreAdmissao() {
                         onChange={(e) => setPessoas(pessoas.map((x, j) => (j === i ? { ...x, rg: e.target.value } : x)))} />
                     </div>
                   </div>
-                  <div className="flex items-center justify-between rounded-md border p-2">
-                    <Label className="text-sm" htmlFor={`fam-dep-${i}`}>Declarar como dependente</Label>
-                     <Switch id={`fam-dep-${i}`} checked={p.finalidade_dependente} disabled={!!parentescosPermitidos && !finalidadePara(p)?.permite_dependente}
-                      onCheckedChange={(v) => setPessoas(pessoas.map((x, j) => (j === i ? { ...x, finalidade_dependente: v } : x)))} />
-                  </div>
-                  <div className="flex items-center justify-between rounded-md border p-2">
-                    <Label className="text-sm" htmlFor={`fam-sesc-${i}`}>Cadastrar no Sesc</Label>
-                     <Switch id={`fam-sesc-${i}`} checked={p.finalidade_sesc} disabled={!!parentescosPermitidos && !finalidadePara(p)?.permite_sesc}
-                      onCheckedChange={(v) => setPessoas(pessoas.map((x, j) => (j === i ? { ...x, finalidade_sesc: v } : x)))} />
-                  </div>
+                  {!p.parentesco ? (
+                    <p className="text-xs text-muted-foreground">
+                      Escolha o parentesco para ver as finalidades disponíveis.
+                    </p>
+                  ) : !finalidadesDoFamiliar(p).length ? (
+                    <p className="text-xs text-muted-foreground">
+                      A empresa não liberou nenhuma finalidade para este parentesco.
+                    </p>
+                  ) : (
+                    finalidadesDoFamiliar(p).map((f) => (
+                      <div key={f.codigo} className="flex items-center justify-between rounded-md border p-2">
+                        <Label className="text-sm" htmlFor={`fam-${f.codigo}-${i}`}>{f.nome}</Label>
+                        <Switch
+                          id={`fam-${f.codigo}-${i}`}
+                          checked={p.finalidades.includes(f.codigo)}
+                          onCheckedChange={(v) => setPessoas(pessoas.map((x, j) => (j === i
+                            ? comFinalidades(x, v
+                              ? [...x.finalidades, f.codigo]
+                              : x.finalidades.filter((c) => c !== f.codigo))
+                            : x)))}
+                        />
+                      </div>
+                    ))
+                  )}
                   <Button variant="ghost" className="text-destructive"
                     onClick={() => setPessoas(pessoas.filter((_, j) => j !== i))}>
                     Retirar Da Lista
@@ -1121,8 +1135,9 @@ export default function PreAdmissao() {
               <Button variant="outline" className="w-full h-11"
                 onClick={() => { setBlocoAberto(`familiar-${pessoas.length}`); setPessoas([...pessoas, {
                   nome: "", parentesco: "", data_nascimento: "", cpf: "", rg: "",
-                  finalidade_dependente: true, finalidade_sesc: false,
+                  finalidade_dependente: true, finalidade_sesc: false, finalidades: [FINALIDADE_LEGAL],
                 }]); }}>
+
                 Incluir Familiar
               </Button>
             </CardContent>
