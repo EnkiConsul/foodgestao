@@ -173,6 +173,9 @@ export default function AtivarAcesso() {
                     autoComplete="new-password"
                   />
                 </div>
+                {confirmar && confirmar !== senha && (
+                  <p className="text-xs text-destructive">As senhas não coincidem</p>
+                )}
               </div>
               {erro && <p className="text-sm text-destructive">{erro}</p>}
               {linkUsado ? (
