@@ -433,6 +433,8 @@ export function ColaboradorFormDialog({
   /** Cargo ainda sem salário de referência — decisão feita dentro do sistema. */
   const [cargoSemSalario, setCargoSemSalario] = useState<{ salarioInformado: number } | null>(null);
   const [salvandoPiso, setSalvandoPiso] = useState(false);
+  /** Com patronal: marcar grava o valor só nesta unidade (acima do piso). */
+  const [pisoSoUnidade, setPisoSoUnidade] = useState(false);
   const [adiantamentoOpen, setAdiantamentoOpen] = useState(false);
   /** Forma de remuneração do sócio: pró-labore ou somente participação de lucros. */
   const [socioRem, setSocioRem] = useState<SocioRemuneracao>("pro_labore");
@@ -3362,20 +3364,31 @@ export function ColaboradorFormDialog({
                   piso de sindicato: quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como
                   referência da empresa para este cargo nesta unidade?
                 </>
+              ) : patronalUnidade?.id ? (
+                <>
+                  O cargo {cargoSelecionado?.nome ?? ""} ainda não tem piso cadastrado. Deseja definir{" "}
+                  {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como piso da Convenção ({patronalUnidade.nome})
+                  para o cargo {cargoSelecionado?.nome ?? ""}? Vale para todas as unidades desse sindicato.
+                </>
               ) : (
                 <>
-                  O cargo {cargoSelecionado?.nome ?? ""} ainda não tem piso cadastrado
-                  {patronalUnidade?.nome
-                    ? ` no sindicato patronal ${patronalUnidade.nome}`
-                    : unidadeSelecionada?.nome
-                      ? ` para ${unidadeSelecionada.nome}`
-                      : ""}
-                  . Quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como piso, valendo para
-                  todas as unidades com esse mesmo patronal?
+                  Deseja definir {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como padrão de{" "}
+                  {cargoSelecionado?.nome ?? "este cargo"} para a unidade {unidadeSelecionada?.nome ?? ""}?
+                  Os próximos cadastros deste cargo nesta unidade já virão com este salário.
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {!socioSelecionado && !!patronalUnidade?.id && (
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={pisoSoUnidade}
+                onChange={(e) => setPisoSoUnidade(e.target.checked)}
+              />
+              Salário diferenciado apenas desta unidade (acima do piso)
+            </label>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel
               onClick={() => {
@@ -3390,39 +3403,39 @@ export function ColaboradorFormDialog({
               Empregado: o piso é do sindicato patronal e vale para todas as unidades dele.
               Sócio: o valor é referência da própria empresa, gravada na unidade.
             */}
-            {(socioSelecionado ? !!form.unidade_id : !!patronalUnidade?.id) && (
+            {!!form.unidade_id && (
               <AlertDialogAction
                 disabled={salvandoPiso || upsertCargoSalario.isPending}
                 onClick={async (e) => {
                   e.preventDefault();
                   if (!cargoSemSalario || !form.cargo_id || salvandoPiso) return;
                   const pendente = cargoSemSalario;
+                  // Com patronal: piso da convenção (salvo se marcado "só esta unidade").
+                  // Sem patronal ou sócio: padrão direto da unidade, nunca bloqueia.
+                  const viaSindicato = !socioSelecionado && !!patronalUnidade?.id && !pisoSoUnidade;
                   setSalvandoPiso(true);
                   setCargoSemSalario(null);
                   try {
                     await upsertCargoSalario.mutateAsync({
                       cargo_id: form.cargo_id,
-                      unidade_id: socioSelecionado ? form.unidade_id : null,
-                      sindicato_patronal_id: socioSelecionado ? null : patronalUnidade!.id,
+                      unidade_id: viaSindicato ? null : form.unidade_id,
+                      sindicato_patronal_id: viaSindicato ? patronalUnidade!.id : null,
                       salario_base: pendente.salarioInformado,
                       vigencia_inicio: form.data_admissao || new Date().toISOString().slice(0, 10),
                     });
                     await queryClient.refetchQueries({ queryKey: ["dp_cargo_salarios"] });
+                    toast.success(viaSindicato ? "Piso da convenção registrado." : "Padrão do cargo na unidade registrado.");
                   } catch (err) {
                     setCargoSemSalario(pendente);
-                    toast.error(
-                      socioSelecionado
-                        ? "Não foi possível gravar a referência do cargo na unidade"
-                        : "Não foi possível gravar o piso do sindicato patronal",
-                      {
-                        description: `${mensagemErroPiso(err)} Você pode usar “Só para este ${socioSelecionado ? "sócio" : "colaborador"}” para salvar o cadastro agora.`,
-                      },
-                    );
+                    toast.error("Não foi possível gravar o salário padrão do cargo", {
+                      description: `${mensagemErroPiso(err)} Você pode usar “Só para este ${socioSelecionado ? "sócio" : "colaborador"}” para salvar o cadastro agora.`,
+                    });
                     setSalvandoPiso(false);
                     return;
                   }
                   cargoResolvido.current = true;
                   setSalvandoPiso(false);
+                  setPisoSoUnidade(false);
                   await submit();
                 }}
               >
@@ -3430,7 +3443,9 @@ export function ColaboradorFormDialog({
                   ? "Salvando..."
                   : socioSelecionado
                     ? "Definir referência da unidade"
-                    : "Definir piso do patronal"}
+                    : patronalUnidade?.id && !pisoSoUnidade
+                      ? "Sim, Salvar Piso"
+                      : "Sim, Salvar Padrão da Unidade"}
               </AlertDialogAction>
             )}
 

@@ -144,15 +144,13 @@ export function CargoSalariosUnidadePanel({ cargoId }: Props) {
     if (!novoAjuste.unidade_id) return toast.error("Escolha a unidade.");
     const piso = pisoDoPatronal(todas, patronalId, novoAjuste.vigencia_inicio || hoje);
     const pisoValor = piso ? Number(piso.salario_base) : null;
-    const check = validarOverrideUnidade(valor, pisoValor);
-    if (check.ok === false) {
-      if (check.motivo === "abaixo_do_piso") {
+    // Sem piso do patronal (ou sem patronal), o salário da unidade é soberano.
+    if (!(valor > 0)) return toast.error("Informe um salário válido.");
+    if (pisoValor !== null) {
+      const check = validarOverrideUnidade(valor, pisoValor);
+      if (check.ok === false && check.motivo === "abaixo_do_piso") {
         return toast.error(`O valor não pode ficar abaixo do piso do patronal (${moedaBR(check.piso)}).`);
       }
-      if (check.motivo === "sem_piso_patronal") {
-        return toast.error("Cadastre primeiro o piso do sindicato patronal desta unidade.");
-      }
-      return toast.error("Informe um salário válido.");
     }
 
     const anterior = ajusteAbertoDaUnidade(novoAjuste.unidade_id);
