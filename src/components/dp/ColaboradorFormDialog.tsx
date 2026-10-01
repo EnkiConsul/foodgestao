@@ -3421,6 +3421,41 @@ export function ColaboradorFormDialog({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Atalho para as Regras de Folgas: com a ficha suja, decide antes de sair. */}
+      <AlertDialog
+        open={irRegrasOpen}
+        onOpenChange={(o) => {
+          setIrRegrasOpen(o);
+          if (!o) destinoAposFechar.current = null;
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Salvar a ficha antes de ir?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Há alterações que ainda não foram gravadas neste cadastro. Escolha o que fazer
+              antes de abrir as Regras de Folgas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => { setIrRegrasOpen(false); onOpenChange(false); }}
+            >
+              Ir sem salvar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => { setIrRegrasOpen(false); void submit("close"); }}
+            >
+              Salvar e ir
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
 
       {/* Alcance do padrão de remuneração: perguntado só quando há diferença real. */}
