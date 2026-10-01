@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Link2, MessageCircle, Receipt, XCircle } from "lucide-react";
+import { Download, Link2, MessageCircle, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -11,11 +11,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpDataList, DpListCard } from "@/components/dp/DpDataList";
+import { DpStatusBadge } from "@/components/dp/DpStatusBadge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ReciboDetalhesDialog, type ReciboDetalhado } from "@/components/dp/documentos/ReciboDetalhesDialog";
 import { brlParaCents, centsParaBRL, MODALIDADE_LABEL, COMPROVANTE_MODALIDADES } from "@/lib/dp/comprovante-quitacao";
+import { certificadoValidacaoPdf } from "@/lib/dp/documento-certificado";
 import {
   CANAIS_ASSINATURA,
   cancelarRecibo,
@@ -43,25 +47,10 @@ const mesAnterior = () => {
 const fmtBRL = (c: number | null) => (c ? (c / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "");
 const dataBR = (v?: string | null) => (v ? v.slice(0, 10).split("-").reverse().join("/") : "—");
 
-type Recibo = {
-  id: string;
-  beneficiario_nome: string;
-  beneficiario_whatsapp: string | null;
-  natureza: string;
-  competencia: string;
-  pago_em: string;
-  valor_cents: number;
-  modalidade: string;
-  canal_assinatura: string;
-  link_expira_em: string | null;
-  assinado_em: string | null;
-  cancelado_em: string | null;
-  created_at: string;
-};
-
 export default function DpRecibos() {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [params] = useSearchParams();
   const colabs = useDpColaboradores();
 
@@ -81,6 +70,8 @@ export default function DpRecibos() {
   const [canal, setCanal] = useState<CanalAssinatura>("portal");
   const [salvando, setSalvando] = useState(false);
   const [resultado, setResultado] = useState<{ id: string; link?: string; whatsapp: string | null; nome: string } | null>(null);
+  const [detalhe, setDetalhe] = useState<ReciboDetalhado | null>(null);
+  const veioDePendencia = params.has("colaborador") && params.has("competencia");
 
   const avulso = colabId === AVULSO;
   const colab = useMemo(
@@ -96,6 +87,7 @@ export default function DpRecibos() {
   }, [colab, natureza]);
   useEffect(() => {
     if (avulso && canal === "portal") setCanal("whatsapp");
+    if (colab && canal === "whatsapp") setCanal("portal");
     if (colab) setWhats(String(colab.whatsapp || colab.telefone || ""));
   }, [avulso, colab, canal]);
 
@@ -105,12 +97,12 @@ export default function DpRecibos() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("dp_recibos")
-        .select("id, beneficiario_nome, beneficiario_whatsapp, natureza, competencia, pago_em, valor_cents, modalidade, canal_assinatura, link_expira_em, assinado_em, cancelado_em, created_at")
+        .select("id, colaborador_id, documento_id, beneficiario_nome, beneficiario_cpf, beneficiario_whatsapp, natureza, descricao, competencia, pago_em, valor_cents, modalidade, valor_bancario_cents, valor_especie_cents, canal_assinatura, link_expira_em, link_enviado_em, assinado_em, assinado_ip, assinado_user_agent, cancelado_em, created_at")
         .eq("company_id", selectedCompanyId)
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
-      return (data ?? []) as Recibo[];
+      return (data ?? []) as ReciboDetalhado[];
     },
   });
 
@@ -130,6 +122,35 @@ export default function DpRecibos() {
     } catch (e) {
       toast.error((e as Error).message);
     }
+  }
+
+  async function copiarLink(r: ReciboDetalhado) {
+    try {
+      const link = await gerarLinkRecibo(r.id);
+      await navigator.clipboard.writeText(link.link);
+      toast.success("Link copiado.");
+      qc.invalidateQueries({ queryKey: ["dp_recibos"] });
+    } catch (e) { toast.error((e as Error).message); }
+  }
+
+  async function abrirCertificado(documentoId: string) {
+    try {
+      const certificado = await certificadoValidacaoPdf(documentoId);
+      window.open(certificado.url, "_blank", "noopener");
+      window.setTimeout(certificado.revogar, 60_000);
+    } catch (e) { toast.error((e as Error).message); }
+  }
+
+  async function cancelar(r: ReciboDetalhado) {
+    try {
+      await cancelarRecibo(r.id);
+      setDetalhe(null);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["dp_recibos"] }),
+        qc.invalidateQueries({ queryKey: ["dp_pendencias"] }),
+      ]);
+      toast.success("Recibo cancelado e pendências atualizadas.");
+    } catch (e) { toast.error((e as Error).message); }
   }
 
   async function emitir() {
@@ -263,7 +284,7 @@ export default function DpRecibos() {
         <div className="space-y-2">
           <Label>Como Vai Assinar</Label>
           <RadioGroup value={canal} onValueChange={(v) => setCanal(v as CanalAssinatura)} className="grid gap-2 sm:grid-cols-3">
-            {CANAIS_ASSINATURA.filter((c) => !(avulso && c.value === "portal")).map((c) => (
+            {CANAIS_ASSINATURA.filter((c) => avulso ? c.value !== "portal" : c.value !== "whatsapp").map((c) => (
               <label key={c.value} className="flex items-start gap-2 rounded-md border p-3 text-sm cursor-pointer">
                 <RadioGroupItem value={c.value} className="mt-0.5" />
                 <span><span className="font-medium">{c.label}</span><span className="block text-xs text-muted-foreground">{c.ajuda}</span></span>
@@ -287,6 +308,7 @@ export default function DpRecibos() {
             <p className="text-sm font-medium">Recibo emitido para {resultado.nome}.</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => abrirPdf(resultado.id)}><Download className="h-4 w-4 mr-1" />Baixar PDF</Button>
+              {veioDePendencia && <Button variant="outline" onClick={() => navigate("/dp")} >Voltar às Pendências</Button>}
               {resultado.link && (
                 <>
                   <Button onClick={() => window.open(whatsappUrl(resultado.whatsapp, resultado.nome, resultado.link!), "_blank", "noopener")}>
@@ -309,43 +331,22 @@ export default function DpRecibos() {
         ) : !recibos.data?.length ? (
           <p className="text-sm text-muted-foreground">Nenhum recibo emitido ainda.</p>
         ) : (
-          <ul className="divide-y">
-            {recibos.data.map((r) => {
-              const st = statusRecibo(r);
-              const aberto = !r.assinado_em && !r.cancelado_em;
-              return (
-                <li key={r.id} className="py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="font-medium truncate">{r.beneficiario_nome}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {NATUREZA_RECIBO_LABEL[r.natureza as NaturezaRecibo] ?? r.natureza} · {r.competencia.slice(5, 7)}/{r.competencia.slice(0, 4)} · {centsParaBRL(r.valor_cents)} · pago em {dataBR(r.pago_em)}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={st.tom === "ok" ? "default" : "outline"}>
-                      {st.label}{r.assinado_em ? ` · ${dataBR(r.assinado_em)}` : ""}
-                    </Badge>
-                    <Button size="sm" variant="ghost" onClick={() => abrirPdf(r.id)} aria-label="Baixar PDF"><Download className="h-4 w-4" /></Button>
-                    {aberto && (
-                      <Button size="sm" variant="ghost" onClick={() => enviarWhats(r.id, r.beneficiario_whatsapp, r.beneficiario_nome)} aria-label="Enviar pelo WhatsApp">
-                        <MessageCircle className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {aberto && (
-                      <Button size="sm" variant="ghost" aria-label="Cancelar recibo" onClick={async () => {
-                        if (!window.confirm("Cancelar este recibo?")) return;
-                        try { await cancelarRecibo(r.id); qc.invalidateQueries({ queryKey: ["dp_recibos"] }); } catch (e) { toast.error((e as Error).message); }
-                      }}>
-                        <XCircle className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <DpDataList
+            table={<Table><TableHeader><TableRow><TableHead>Beneficiário</TableHead><TableHead>Natureza</TableHead><TableHead>Competência</TableHead><TableHead>Valor</TableHead><TableHead>Situação</TableHead></TableRow></TableHeader><TableBody>{recibos.data.map((r) => { const st = statusRecibo(r); return <TableRow key={r.id} className="cursor-pointer" onClick={() => setDetalhe(r)}><TableCell className="font-medium">{r.beneficiario_nome}</TableCell><TableCell>{NATUREZA_RECIBO_LABEL[r.natureza as NaturezaRecibo] ?? r.natureza}</TableCell><TableCell>{r.competencia.slice(5, 7)}/{r.competencia.slice(0, 4)}</TableCell><TableCell>{centsParaBRL(r.valor_cents)}</TableCell><TableCell><DpStatusBadge tone={r.cancelado_em ? "danger" : r.assinado_em ? "success" : "warning"}>{st.label}</DpStatusBadge></TableCell></TableRow>; })}</TableBody></Table>}
+            cards={<>{recibos.data.map((r) => { const st = statusRecibo(r); return <DpListCard key={r.id} title={r.beneficiario_nome} subtitle={`${NATUREZA_RECIBO_LABEL[r.natureza as NaturezaRecibo] ?? r.natureza} · ${r.competencia.slice(5, 7)}/${r.competencia.slice(0, 4)}`} meta={`${centsParaBRL(r.valor_cents)} · pago em ${dataBR(r.pago_em)}`} badges={<DpStatusBadge tone={r.cancelado_em ? "danger" : r.assinado_em ? "success" : "warning"}>{st.label}</DpStatusBadge>} onOpen={() => setDetalhe(r)} openLabel="Detalhes" />; })}</>}
+          />
         )}
       </DpContentCard>
+
+      <ReciboDetalhesDialog
+        recibo={detalhe}
+        onOpenChange={(open) => !open && setDetalhe(null)}
+        onPdf={(r) => abrirPdf(r.id)}
+        onWhatsApp={(r) => enviarWhats(r.id, r.beneficiario_whatsapp, r.beneficiario_nome)}
+        onCopiarLink={copiarLink}
+        onCertificado={(r) => r.documento_id && abrirCertificado(r.documento_id)}
+        onCancelar={cancelar}
+      />
     </DpPage>
   );
 }
