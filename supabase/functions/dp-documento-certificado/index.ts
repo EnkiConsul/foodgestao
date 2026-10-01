@@ -295,20 +295,23 @@ function rodape(pdf: PDFDocument, fonte: PDFFont, d: Dados): void {
   const linha2 = limpar(
     `Aprovado em ${dataHora(d.aceitoEm)} · Registro ${d.registroId} · Conteúdo ${hash}`,
   );
+  const linha3 = limpar(MARCA_ASSINATURA);
   paginas.forEach((page: PDFPage, i: number) => {
     const { width } = page.getSize();
     const margem = 24;
-    page.drawRectangle({ x: 0, y: 0, width, height: 34, color: rgb(1, 1, 1), opacity: 0.85 });
+    page.drawRectangle({ x: 0, y: 0, width, height: 40, color: rgb(1, 1, 1), opacity: 0.85 });
     page.drawLine({
-      start: { x: margem, y: 34 }, end: { x: width - margem, y: 34 },
+      start: { x: margem, y: 40 }, end: { x: width - margem, y: 40 },
       thickness: 0.5, color: rgb(0.75, 0.75, 0.75),
     });
-    page.drawText(linha1.slice(0, 130), { x: margem, y: 22, size: 6.5, font: fonte, color: rgb(0.4, 0.4, 0.4) });
-    page.drawText(linha2.slice(0, 150), { x: margem, y: 12, size: 6.5, font: fonte, color: rgb(0.4, 0.4, 0.4) });
+    page.drawRectangle({ x: margem, y: 38.4, width: 54, height: 1.6, color: rgb(0.92, 0.38, 0.1) });
+    page.drawText(linha1.slice(0, 130), { x: margem, y: 28, size: 6.5, font: fonte, color: rgb(0.4, 0.4, 0.4) });
+    page.drawText(linha2.slice(0, 150), { x: margem, y: 18, size: 6.5, font: fonte, color: rgb(0.4, 0.4, 0.4) });
+    page.drawText(linha3, { x: margem, y: 8, size: 6.5, font: fonte, color: rgb(0.06, 0.11, 0.24) });
     const pag = `Página ${i + 1} de ${total}`;
     page.drawText(pag, {
       x: width - margem - fonte.widthOfTextAtSize(pag, 6.5),
-      y: 12, size: 6.5, font: fonte, color: rgb(0.4, 0.4, 0.4),
+      y: 8, size: 6.5, font: fonte, color: rgb(0.4, 0.4, 0.4),
     });
   });
 }
