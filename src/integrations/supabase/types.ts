@@ -15214,6 +15214,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      dp_admissao_regra_parentesco_remover: {
+        Args: { p_company_id: string; p_parentesco: string }
+        Returns: undefined
+      }
       dp_admissao_regra_salvar: { Args: { p_regra: Json }; Returns: string }
       dp_admissao_regras_resolver:
         | {
