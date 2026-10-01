@@ -1472,7 +1472,7 @@ export function useDpPendencias() {
             .from("dp_colaboradores")
             .select("vale_alimentacao, vale_transporte")
             .eq("company_id", selectedCompanyId!)
-            .eq("status", "ativo"),
+            .eq("ativo", true),
         ]);
         const c = (cfgVale ?? {}) as Record<string, any>;
         const vales: Array<{ tipo: "va" | "vt"; ativo: boolean; dia: number | null; nome: string; campo: string }> = [
