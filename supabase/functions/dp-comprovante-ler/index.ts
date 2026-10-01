@@ -110,7 +110,14 @@ Deno.serve(async (req) => {
     const user = await requireUser(req);
     if (!user) return erro(401, "Entre na sua conta para continuar.");
 
-    if (await ipRateLimited(admin, req, "dp-comprovante-ler", 120)) {
+    if (
+      await ipRateLimited(
+        admin as unknown as Parameters<typeof ipRateLimited>[0],
+        req,
+        "dp-comprovante-ler",
+        120,
+      )
+    ) {
       return erro(429, "Muitas leituras em sequência. Tente de novo em alguns minutos.");
     }
 
