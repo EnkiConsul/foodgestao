@@ -12,6 +12,8 @@ import { clientIp, ipRateLimited, isRateLimited, sha256Hex } from "../_shared/ra
 import { avaliarSenha, SENHA_MIN } from "../_shared/password-policy.ts";
 import {
   TERMO_PORTAL_MODELO,
+  TERMO_PORTAL_PARAGRAFOS,
+  TERMO_PORTAL_TITULO,
   TERMO_PORTAL_VERSAO,
   termoPortalConteudo,
 } from "../_shared/termo-portal.ts";
