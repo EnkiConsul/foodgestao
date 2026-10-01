@@ -377,6 +377,19 @@ Deno.serve(async (req) => {
     const negrito = await pdf.embedFont(StandardFonts.HelveticaBold);
     const avisos: string[] = [];
 
+    // Logo do timbrado: se falhar, o certificado sai com a marca em texto.
+    let marca: Marca = null;
+    try {
+      const bruto = atob(MARCA_PNG_BASE64);
+      const bytesLogo = new Uint8Array(bruto.length);
+      for (let i = 0; i < bruto.length; i++) bytesLogo[i] = bruto.charCodeAt(i);
+      const img = await pdf.embedPng(bytesLogo);
+      marca = { width: img.width || MARCA_LARGURA, height: img.height || MARCA_ALTURA } as Marca;
+      marca = img as unknown as Marca;
+    } catch {
+      marca = null;
+    }
+
     const empresaNome = (empresa as Record<string, unknown> | null);
     const dados: Dados = {
       empresa: String(empresaNome?.name ?? empresaNome?.trade_name ?? ""),
