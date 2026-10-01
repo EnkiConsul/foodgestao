@@ -18349,6 +18349,7 @@ export type Database = {
         | "desligamento"
         | "aso_admissional"
         | "aso_demissional"
+        | "recibo_pagamento_especie"
       dp_elegibilidade_recontratacao: "sim" | "nao" | "com_ressalvas"
       dp_escala_item_origem: "gerado" | "manual" | "troca" | "convocacao"
       dp_escala_item_tipo:
@@ -18794,6 +18795,7 @@ export const Constants = {
         "desligamento",
         "aso_admissional",
         "aso_demissional",
+        "recibo_pagamento_especie",
       ],
       dp_elegibilidade_recontratacao: ["sim", "nao", "com_ressalvas"],
       dp_escala_item_origem: ["gerado", "manual", "troca", "convocacao"],
