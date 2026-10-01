@@ -28,10 +28,35 @@ export function normalizeCbo(value: string | null | undefined): string {
   return String(value ?? "").replace(/\D+/g, "");
 }
 
+/** Abreviações comuns nas fichas da contabilidade. */
+const ABREVIACOES: Record<string, string> = {
+  AUX: "AUXILIAR",
+  AUXIL: "AUXILIAR",
+  ASSIST: "ASSISTENTE",
+  ATEND: "ATENDENTE",
+  OPER: "OPERADOR",
+  OP: "OPERADOR",
+  COZ: "COZINHA",
+  GER: "GERENTE",
+  SUPERV: "SUPERVISOR",
+  ENC: "ENCARREGADO",
+};
+
+/** Palavras de ligação não contam para a semelhança ("Aux de Cozinha" ≠ "Aux de Limpeza"). */
+const LIGACAO = new Set(["DE", "DA", "DO", "DAS", "DOS", "E", "EM", "NO", "NA"]);
+
+function tokensCargo(value: string | null | undefined): string[] {
+  return normalizeCargoNome(value)
+    .split(" ")
+    .filter(Boolean)
+    .map((t) => ABREVIACOES[t] ?? t)
+    .filter((t) => !LIGACAO.has(t));
+}
+
 /** Similaridade simples por tokens compartilhados (0..1). */
 export function similaridadeNome(a: string | null | undefined, b: string | null | undefined): number {
-  const ta = normalizeCargoNome(a).split(" ").filter(Boolean);
-  const tb = normalizeCargoNome(b).split(" ").filter(Boolean);
+  const ta = tokensCargo(a);
+  const tb = tokensCargo(b);
   if (ta.length === 0 || tb.length === 0) return 0;
   const setB = new Set(tb);
   const comuns = ta.filter((t) => setB.has(t)).length;
