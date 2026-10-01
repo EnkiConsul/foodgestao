@@ -468,7 +468,7 @@ export default function DpDisciplinar() {
           : "Registro cadastrado com sucesso",
       );
       if (res.gerarModelo) genPdf.mutate(res.registroId);
-      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setTipo(""); setDias("0"); setObservacao(""); setPendingFile(null); setConfirmo(false); setElogioVis("privado"); setMotivoSel(""); setCaminho("gerar");
+      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setTipo(""); setDias("0"); setObservacao(""); setPendingFile(null); setConfirmo(false); setElogioVis("privado"); setMotivoSel(""); setCaminho("gerar"); setCampoPendente(null);
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
       setTab("historico");
@@ -589,7 +589,7 @@ export default function DpDisciplinar() {
         </TabsList>
 
         <TabsContent value="importar" className="mt-4">
-          <DpContentCard>
+          <DpContentCard contentClassName="p-4 sm:p-6">
             <div className="flex items-center gap-2 mb-5">
               <FileSignature className="size-5 text-primary" />
               <h3 className="text-lg font-semibold">Novo Registro Disciplinar ou Elogio</h3>
