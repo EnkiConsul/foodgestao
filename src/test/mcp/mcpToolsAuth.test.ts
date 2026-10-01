@@ -35,7 +35,10 @@ const listColaboradores = (await import("@/lib/mcp/tools/list-colaboradores"))
 /** Cada ferramenta com um input mínimo válido. */
 const TOOLS: { tool: Tool; input: Record<string, unknown> }[] = [
   { tool: listCompanies, input: {} },
-  { tool: listAccounts, input: {} },
+  {
+    tool: listAccounts,
+    input: { company_id: "11111111-1111-1111-1111-111111111111", context: "pj" },
+  },
   { tool: listTransactions, input: { limit: 10 } },
   {
     tool: listColaboradores,
@@ -58,7 +61,8 @@ function queryStub() {
 
 function clientStub() {
   const from = vi.fn(() => queryStub());
-  return { from };
+  const rpc = vi.fn(async () => ({ data: [], error: null }));
+  return { from, rpc };
 }
 
 function ctx({ token, userId }: { token?: string | null; userId?: string } = {}) {

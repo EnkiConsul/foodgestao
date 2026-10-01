@@ -80,7 +80,7 @@ export function DocDetalhesDialog(props: {
         source === "doc"
           ? supabase
               .from("dp_documentos")
-              .select("id, file_name, file_size, uploaded_by, created_at, exige_aceite, assinatura_detectada, submetido_por_colaborador, colaborador_id, tipo, comprovante_file_path, comprovante_file_name, comprovante_pago_em, comprovante_uploaded_at, replaced_by_documento_id")
+              .select("id, file_name, file_size, uploaded_by, created_at, exige_aceite, assinatura_detectada, submetido_por_colaborador, colaborador_id, tipo, comprovante_file_path, comprovante_file_name, comprovante_pago_em, comprovante_uploaded_at, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents, comprovante_recibo_documento_id, replaced_by_documento_id")
               .eq("id", docId!)
               .maybeSingle()
           : Promise.resolve({ data: null } as any),
@@ -241,6 +241,10 @@ export function DocDetalhesDialog(props: {
                   file_name: detalhes.data?.doc?.comprovante_file_name ?? null,
                   pago_em: detalhes.data?.doc?.comprovante_pago_em ?? null,
                   uploaded_at: detalhes.data?.doc?.comprovante_uploaded_at ?? null,
+                  modalidade: detalhes.data?.doc?.comprovante_modalidade ?? null,
+                  valor_bancario_cents: detalhes.data?.doc?.comprovante_valor_bancario_cents ?? null,
+                  valor_especie_cents: detalhes.data?.doc?.comprovante_valor_especie_cents ?? null,
+                  recibo_documento_id: detalhes.data?.doc?.comprovante_recibo_documento_id ?? null,
                 }}
                 versaoAnterior={!!detalhes.data?.doc?.replaced_by_documento_id}
                 documentoTitulo={target.titulo}

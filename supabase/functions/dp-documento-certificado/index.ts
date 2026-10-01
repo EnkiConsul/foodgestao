@@ -15,6 +15,7 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "npm
 import { z } from "npm:zod@3";
 import { callerClient, requireUser, serviceClient } from "../_shared/authz.ts";
 import { recordEdgeError } from "../_shared/error-log.ts";
+import { resumoQuitacao } from "../_shared/quitacao.ts";
 import {
   MARCA_ASSINATURA,
   MARCA_LARANJA,
@@ -103,6 +104,10 @@ type Dados = {
   conteudoHash: string;
   versao: string;
   registroId: string;
+  /** Data do pagamento comprovado ("—" quando não houver comprovante). */
+  pagamentoEm: string;
+  /** Forma de pagamento e valores comprovados (vazio quando não houver). */
+  quitacao: string;
   avisos: string[];
 };
 
@@ -185,6 +190,11 @@ function paginaCertificado(
     ["Impressão digital do conteúdo", d.conteudoHash],
   ];
 
+  // Quitação: só aparece quando há comprovante de pagamento anexado.
+  if (d.quitacao) {
+    campos.splice(4, 0, ["Data do pagamento", d.pagamentoEm], ["Forma de pagamento", d.quitacao]);
+  }
+
   for (const [rotulo, valor] of campos) {
     page.drawText(limpar(rotulo).toUpperCase(), {
       x: margem, y, size: 7.5, font: negrito, color: rgb(0.42, 0.42, 0.42),
@@ -228,6 +238,7 @@ function paginaAnexo(
   competencia: string,
   marca: Marca,
   empresa: string,
+  quitacao: string,
 ): void {
   const page = pdf.addPage(A4);
   const { width, height } = page.getSize();
@@ -238,7 +249,7 @@ function paginaAnexo(
     const linha of linhas(
       `Competência do documento: ${competencia || "—"}. Arquivo: ${arquivo || "—"}. ${
         pagoEm === "—" ? "Sem data de pagamento informada." : `Pagamento registrado em ${pagoEm}.`
-      } Este comprovante acompanha o documento ` +
+      } ${quitacao ? `Forma de pagamento: ${quitacao}. ` : ""}Este comprovante acompanha o documento ` +
         "aprovado como anexo e não possui validação digital própria.",
       fonte, 10.5, width - margem * 2,
     )
@@ -358,7 +369,7 @@ Deno.serve(async (req) => {
     const { data: registro } = await admin
       .from("dp_documentos")
       .select(
-        "id, company_id, colaborador_id, titulo, tipo, referencia_data, versao, arquivo_sha256, comprovante_pago_em, comprovante_file_name",
+        "id, company_id, colaborador_id, titulo, tipo, referencia_data, versao, arquivo_sha256, comprovante_pago_em, comprovante_file_name, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents",
       )
       .eq("id", documentoId)
       .maybeSingle();
@@ -414,6 +425,17 @@ Deno.serve(async (req) => {
       conteudoHash: String(aceite.conteudo_hash ?? ""),
       versao: `Versão ${String(aceite.documento_versao ?? registro.versao ?? 1)}`,
       registroId: String(aceite.id ?? ""),
+      pagamentoEm: registro.comprovante_pago_em
+        ? new Date(`${String(registro.comprovante_pago_em).slice(0, 10)}T12:00:00Z`)
+          .toLocaleDateString("pt-BR")
+        : "Não informada",
+      quitacao: comp?.file_path
+        ? resumoQuitacao({
+          modalidade: registro.comprovante_modalidade as string | null,
+          valor_bancario_cents: registro.comprovante_valor_bancario_cents as number | null,
+          valor_especie_cents: registro.comprovante_valor_especie_cents as number | null,
+        })
+        : "",
       avisos,
     };
 
@@ -481,6 +503,7 @@ Deno.serve(async (req) => {
         dados.competencia,
         marca,
         dados.empresa,
+        dados.quitacao,
       );
       const aviso = await anexarArquivo(
         pdf,

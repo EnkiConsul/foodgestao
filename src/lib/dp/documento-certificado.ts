@@ -51,6 +51,10 @@ export interface CertificadoValidacaoDados {
   dispositivo?: string | null;
   conteudoHash?: string | null;
   registroId?: string | null;
+  /** Data do pagamento comprovado (AAAA-MM-DD), quando houver comprovante. */
+  pagamentoEm?: string | null;
+  /** Forma de pagamento e valores comprovados, quando houver comprovante. */
+  quitacao?: string | null;
 }
 
 const esc = (v: unknown) =>
@@ -65,6 +69,13 @@ function fmtDataHora(iso?: string | null) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "—";
   return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" });
+}
+
+/** Data simples (AAAA-MM-DD) para leitura: 15/09/2026. */
+function fmtData(valor?: string | null) {
+  const v = (valor ?? "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return "Não informada";
+  return v.split("-").reverse().join("/");
 }
 
 /**
@@ -134,6 +145,14 @@ export function certificadoValidacaoHtml(d: CertificadoValidacaoDados): string {
           ${linha("Data e hora da aprovação", fmtDataHora(d.aceitoEm))}
           ${linha("Aprovado por", d.aprovadoPor)}
         </tr>
+        ${
+    d.quitacao
+      ? `<tr>
+          ${linha("Data do pagamento", fmtData(d.pagamentoEm))}
+          ${linha("Forma de pagamento", d.quitacao)}
+        </tr>`
+      : ""
+  }
         <tr>
           ${linha("Endereço IP", d.ip ?? "—")}
           ${linha("Arquivo", d.arquivo ?? "—")}

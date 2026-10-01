@@ -7593,10 +7593,15 @@ export type Database = {
           comprovante_file_name: string | null
           comprovante_file_path: string | null
           comprovante_file_size: number | null
+          comprovante_leitura: Json | null
           comprovante_mime_type: string | null
+          comprovante_modalidade: string | null
           comprovante_pago_em: string | null
+          comprovante_recibo_documento_id: string | null
           comprovante_uploaded_at: string | null
           comprovante_uploaded_by: string | null
+          comprovante_valor_bancario_cents: number | null
+          comprovante_valor_especie_cents: number | null
           created_at: string
           descricao: string | null
           exige_aceite: boolean
@@ -7637,10 +7642,15 @@ export type Database = {
           comprovante_file_name?: string | null
           comprovante_file_path?: string | null
           comprovante_file_size?: number | null
+          comprovante_leitura?: Json | null
           comprovante_mime_type?: string | null
+          comprovante_modalidade?: string | null
           comprovante_pago_em?: string | null
+          comprovante_recibo_documento_id?: string | null
           comprovante_uploaded_at?: string | null
           comprovante_uploaded_by?: string | null
+          comprovante_valor_bancario_cents?: number | null
+          comprovante_valor_especie_cents?: number | null
           created_at?: string
           descricao?: string | null
           exige_aceite?: boolean
@@ -7681,10 +7691,15 @@ export type Database = {
           comprovante_file_name?: string | null
           comprovante_file_path?: string | null
           comprovante_file_size?: number | null
+          comprovante_leitura?: Json | null
           comprovante_mime_type?: string | null
+          comprovante_modalidade?: string | null
           comprovante_pago_em?: string | null
+          comprovante_recibo_documento_id?: string | null
           comprovante_uploaded_at?: string | null
           comprovante_uploaded_by?: string | null
+          comprovante_valor_bancario_cents?: number | null
+          comprovante_valor_especie_cents?: number | null
           created_at?: string
           descricao?: string | null
           exige_aceite?: boolean
@@ -7731,6 +7746,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documentos_comprovante_recibo_fk"
+            columns: ["comprovante_recibo_documento_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documentos"
             referencedColumns: ["id"]
           },
           {
@@ -15601,13 +15623,21 @@ export type Database = {
           p_arquivo: Json
           p_confirmar_competencia?: boolean
           p_documento_id: string
-          p_pago_em?: string
+          p_leitura?: Json
+          p_modalidade?: string
+          p_pago_em: string
+          p_valor_bancario_cents?: number
+          p_valor_especie_cents?: number
         }
         Returns: string
       }
       dp_comprovante_reassociar: {
         Args: { p_destino_id: string; p_motivo?: string; p_origem_id: string }
         Returns: boolean
+      }
+      dp_comprovante_recibo_vincular: {
+        Args: { p_documento_id: string; p_recibo_id: string }
+        Returns: undefined
       }
       dp_comprovante_remover: {
         Args: { p_documento_id: string }
@@ -18349,6 +18379,7 @@ export type Database = {
         | "desligamento"
         | "aso_admissional"
         | "aso_demissional"
+        | "recibo_pagamento_especie"
       dp_elegibilidade_recontratacao: "sim" | "nao" | "com_ressalvas"
       dp_escala_item_origem: "gerado" | "manual" | "troca" | "convocacao"
       dp_escala_item_tipo:
@@ -18794,6 +18825,7 @@ export const Constants = {
         "desligamento",
         "aso_admissional",
         "aso_demissional",
+        "recibo_pagamento_especie",
       ],
       dp_elegibilidade_recontratacao: ["sim", "nao", "com_ressalvas"],
       dp_escala_item_origem: ["gerado", "manual", "troca", "convocacao"],
