@@ -118,7 +118,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
         shortcut: true,
         shortLabel: "Histórico",
       },
-      { label: "Emitir Recibo", to: "/dp/documentos/recibos", icon: Receipt },
+      { label: "Recibos", to: "/dp/documentos/recibos", icon: Receipt },
       { label: "Disciplinares", to: "/dp/disciplinar", icon: ShieldAlert },
     ],
   },
