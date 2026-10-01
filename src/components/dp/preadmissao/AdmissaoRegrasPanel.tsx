@@ -545,15 +545,28 @@ export function AdmissaoRegrasPanel() {
     <div className="space-y-4">
       <Card>
         <CardContent className="p-3 sm:p-4 space-y-3">
-          <div>
-            <h3 className="font-semibold text-sm">Conferir Uma Combinação</h3>
-            <p className="text-xs text-muted-foreground">
-              Escolha unidade, tipo de vínculo, cargo e sexo para ver como cada item vai aparecer na
-              ficha do candidato. A regra mais específica vence: cargo, depois vínculo, depois
-              unidade, depois sexo.
-            </p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* No celular os filtros ficam recolhidos; no computador seguem visíveis. */}
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-2 text-left sm:cursor-default"
+            aria-expanded={simAberto}
+            onClick={() => setSimAberto(!simAberto)}
+          >
+            <span className="flex items-center gap-2 min-w-0">
+              <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">Conferir Uma Combinação</span>
+                <span className="block truncate text-xs text-muted-foreground">{resumoSimulacao}</span>
+              </span>
+            </span>
+            <ChevronDown className={`h-4 w-4 shrink-0 sm:hidden ${simAberto ? "" : "-rotate-90"}`} />
+          </button>
+          <p className="hidden text-xs text-muted-foreground sm:block">
+            Escolha unidade, tipo de vínculo, cargo e sexo para ver como cada item vai aparecer na
+            ficha do candidato. A regra mais específica vence: cargo, depois vínculo, depois
+            unidade, depois sexo.
+          </p>
+          <div className={`${simAberto ? "grid" : "hidden"} gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-4`}>
             <div className="space-y-1">
               <Label className="text-xs">Unidade</Label>
               <Select value={simUnidade} onValueChange={setSimUnidade}>
