@@ -200,6 +200,16 @@ export default function AtivarAcesso() {
                   <p className="text-xs text-destructive">As senhas não coincidem</p>
                 )}
               </div>
+              {exigeTermo && (
+                <TermoPrimeiroAcesso
+                  aceito={termoAceito}
+                  pendente={termoPendente}
+                  onAceitar={(v) => {
+                    setTermoAceito(v);
+                    if (v) setTermoPendente(false);
+                  }}
+                />
+              )}
               {erro && <p className="text-sm text-destructive">{erro}</p>}
               {linkUsado ? (
                 <Button
