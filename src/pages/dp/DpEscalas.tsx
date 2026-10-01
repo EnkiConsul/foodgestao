@@ -1,3 +1,4 @@
+import { sugerirPushContextual } from "@/components/dp/PushSoftPrompt";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -258,6 +259,7 @@ export default function DpEscalas() {
     },
     onSuccess: (n) => {
       toast.success(`${n} folga(s) publicada(s) na escala`);
+      sugerirPushContextual("Ative os avisos para saber na hora quando a equipe pedir trocas ou folgas.");
       setResultado(null);
       setSelecionadas(new Set());
       qc.invalidateQueries({ queryKey: ["dp_folgas"] });

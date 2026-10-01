@@ -128,7 +128,7 @@ export function ReciboDetalhesDialog({
         {recibo.descricao && <div className="rounded-md border bg-muted/30 p-3"><p className="text-xs font-medium text-muted-foreground">Descrição</p><p className="mt-1 text-sm">{recibo.descricao}</p></div>}
 
         {verPdf && (
-          <div className="h-[60vh] overflow-hidden rounded-md border bg-muted/30">
+          <div className="h-[75vh] sm:h-[60vh] overflow-hidden rounded-md border bg-muted/30">
             {carregandoPdf && <div className="flex h-full items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
             {erroPdf && <p className="p-4 text-sm text-destructive">{erroPdf}</p>}
             {pdfUrl && <PdfCanvasViewer url={pdfUrl} title={`Recibo de ${recibo.beneficiario_nome}`} />}
