@@ -302,6 +302,13 @@ export function AdmissaoRegrasPanel() {
     sexo: simSexo === TODOS ? null : simSexo,
   };
 
+  const resumoSimulacao = [
+    simUnidade === TODOS ? "Qualquer unidade" : nomeUnidade(simUnidade),
+    simCargo === TODOS ? "Qualquer cargo" : nomeCargo(simCargo),
+    simRegime === TODOS ? "Qualquer vínculo" : nomeRegime(simRegime),
+    simSexo === TODOS ? "Qualquer sexo" : nomeSexo(simSexo),
+  ].join(" · ");
+
   const alternar = (lista2: string[], id: string) =>
     lista2.includes(id) ? lista2.filter((x) => x !== id) : [...lista2, id];
 
