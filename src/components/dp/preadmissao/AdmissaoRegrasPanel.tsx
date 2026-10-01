@@ -145,6 +145,7 @@ export function AdmissaoRegrasPanel() {
   const [secaoAberta, setSecaoAberta] = useState<string | null>(null);
   const [novoDocumento, setNovoDocumento] = useState("");
   const [novoParentesco, setNovoParentesco] = useState("");
+  const [novaFinalidade, setNovaFinalidade] = useState<string>("");
   const [editando, setEditando] = useState<Editando | null>(null);
   // Simulador: mostra o resultado final da combinação escolhida.
   const [simUnidade, setSimUnidade] = useState<string>(TODOS);
@@ -227,8 +228,14 @@ export function AdmissaoRegrasPanel() {
       toast.warning("Esse parentesco já está na lista.");
       return;
     }
-    await marcarParentesco(valor, false, false);
-    setNovoParentesco("");
+    if (!novaFinalidade) { toast.warning("Escolha a finalidade deste familiar."); return; }
+    try {
+      await definirParentesco.mutateAsync({ parentesco: valor, dependente: novaFinalidade === "dependente" || novaFinalidade === "ambos", sesc: novaFinalidade === "sesc" || novaFinalidade === "ambos" });
+      setNovoParentesco("");
+      setNovaFinalidade("");
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "incluir o parentesco" });
+    }
   };
 
   const incluirDocumento = async () => {
@@ -523,7 +530,7 @@ export function AdmissaoRegrasPanel() {
                     );
                   })}
                </div>
-               <div className="flex flex-col sm:flex-row gap-2"><Input aria-label="Novo parentesco" placeholder="Outro parentesco" value={novoParentesco} onChange={(e) => setNovoParentesco(e.target.value)} /><Button type="button" variant="outline" disabled={definirParentesco.isPending} onClick={() => void incluirParentesco()}><Plus className="h-4 w-4 mr-1" />Incluir parentesco</Button></div></>}
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"><Input aria-label="Novo parentesco" placeholder="Outro parentesco" value={novoParentesco} onChange={(e) => setNovoParentesco(e.target.value)} /><Select value={novaFinalidade} onValueChange={setNovaFinalidade}><SelectTrigger aria-label="Finalidade do novo familiar"><SelectValue placeholder="Escolha a finalidade" /></SelectTrigger><SelectContent><SelectItem value="dependente">Dependente do imposto</SelectItem><SelectItem value="sesc">Sesc</SelectItem><SelectItem value="ambos">Dependente e Sesc</SelectItem></SelectContent></Select><Button type="button" variant="outline" disabled={definirParentesco.isPending} onClick={() => void incluirParentesco()}><Plus className="h-4 w-4 mr-1" />Incluir parentesco</Button></div></>}
             </CardContent>
           </Card>
         </>
