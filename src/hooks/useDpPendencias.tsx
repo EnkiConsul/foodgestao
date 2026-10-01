@@ -1,4 +1,5 @@
 import { prazoPagamentoRescisao } from "@/lib/dp/desligamento";
+import { datasDeFeriados, type FeriadoRegra } from "@/lib/dp/feriados";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -645,12 +646,32 @@ export function useDpPendencias() {
           }
         });
 
+        const feriadosPorUnidade = new Map<string, FeriadoRegra[]>();
+        try {
+          const { data } = await supabase
+            .from("dp_unidade_feriados")
+            .select("id, unidade_id, nome, tipo, data, dia, mes, ordinal, dia_semana, ativo")
+            .eq("company_id", selectedCompanyId!)
+            .eq("ativo", true);
+          for (const r of (data ?? []) as any[]) {
+            const l = feriadosPorUnidade.get(r.unidade_id) ?? [];
+            l.push(r);
+            feriadosPorUnidade.set(r.unidade_id, l);
+          }
+        } catch (e) {
+          console.warn("pendencias/feriados-rescisao:", e);
+        }
+
         for (const u of unidades) {
           const comps = new Set(compsPorUnidade.get(u.id)?.ateVigente ?? []);
           for (const v of encerradosPorUnidade.get(u.id) ?? []) {
             if (!comps.has(v.competencia)) continue;
             if (docs.has(`${v.colaboradorId}:${v.competencia}`)) continue;
-            const vencimento = prazoPagamentoRescisao(v.dataFim);
+            const anoFim = Number(v.dataFim.slice(0, 4));
+            const vencimento = prazoPagamentoRescisao(
+              v.dataFim,
+              datasDeFeriados(feriadosPorUnidade.get(u.id) ?? [], [anoFim, anoFim + 1]),
+            );
             const quando = format(new Date(`${v.dataFim}T12:00:00`), "dd/MM");
             const comp = v.competencia;
             results.push({

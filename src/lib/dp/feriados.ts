@@ -154,3 +154,10 @@ export const FERIADOS_NACIONAIS_FIXOS: { nome: string; dia: number; mes: number 
   { nome: "Consciência Negra", dia: 20, mes: 11 },
   { nome: "Natal", dia: 25, mes: 12 },
 ];
+
+/** Conjunto de datas (YYYY-MM-DD) dos feriados ativos nos anos informados. */
+export function datasDeFeriados(regras: FeriadoRegra[], anos: number[]): Set<string> {
+  const out = new Set<string>();
+  for (const ano of anos) for (const f of feriadosDoAno(regras, ano)) out.add(f.data);
+  return out;
+}

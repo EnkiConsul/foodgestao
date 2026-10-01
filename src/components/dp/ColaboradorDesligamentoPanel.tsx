@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { prazoPagamentoRescisao } from "@/lib/dp/desligamento";
+import { useDpFeriados } from "@/hooks/useDpFeriados";
+import { datasDeFeriados } from "@/lib/dp/feriados";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertTriangle, LogOut, RotateCcw, UserMinus, UserPlus } from "lucide-react";
@@ -45,6 +47,7 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
 
   const isDesligado = !!colaborador?.data_desligamento || colaborador?.ativo === false;
   const ressalvas = useDpDesligamentoRessalvas(colaborador?.id);
+  const { feriados } = useDpFeriados((colaborador as any)?.unidade_id ?? null);
 
   // A data nunca vem sugerida: só o gestor informa, manualmente.
   const [data, setData] = useState("");
@@ -184,10 +187,10 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
           {/^\d{4}-\d{2}-\d{2}$/.test(data) && (
             <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs">
               <p className="font-semibold text-foreground">
-                Pagar As Verbas Rescisórias Até {fmt(prazoPagamentoRescisao(data))}
+                Pagar As Verbas Rescisórias Até {fmt(prazoPagamentoRescisao(data, datasDeFeriados(feriados, [Number(data.slice(0, 4)), Number(data.slice(0, 4)) + 1])))}
               </p>
               <p className="mt-1 text-muted-foreground">
-                Prazo de 10 dias corridos (Art. 477 da CLT); se cair no fim de semana, antecipamos para o dia útil anterior.
+                Prazo de 10 dias corridos (Art. 477 da CLT); se cair no fim de semana ou em feriado da unidade, antecipamos para o dia útil anterior.
                 Atrasar gera multa de um salário do colaborador. Uma pendência será criada para não perder o prazo.
               </p>
             </div>
