@@ -45,6 +45,7 @@ import {
   Baby, ClipboardList,
 } from "lucide-react";
 import { ColaboradorOcorrenciasCard } from "@/components/dp/ocorrencias/ColaboradorOcorrenciasCard";
+import { ColaboradorDossieDisciplinarCard } from "@/components/dp/disciplinar/ColaboradorDossieDisciplinarCard";
 import { FichaImportadaLink } from "@/components/dp/FichaImportadaLink";
 import { maskCpf } from "@/lib/cpf";
 import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
@@ -773,6 +774,15 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
           {/* Ocorrências */}
           <Section icon={ClipboardList} title="Ocorrências">
             <ColaboradorOcorrenciasCard colaboradorId={colaborador?.id ?? null} />
+          </Section>
+
+          {/* Dossiê disciplinar (interno) */}
+          <Section icon={Shield} title="Dossiê Disciplinar">
+            <ColaboradorDossieDisciplinarCard
+              colaboradorId={colaborador?.id ?? null}
+              colaboradorNome={colaborador?.nome ?? null}
+              colaboradorCpf={colaborador?.cpf ? maskCpf(colaborador.cpf) : null}
+            />
           </Section>
 
           {/* Acesso ao portal */}
