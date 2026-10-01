@@ -1,3 +1,4 @@
+import { sugerirPushContextual } from "@/components/dp/PushSoftPrompt";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -139,7 +140,7 @@ export function useDpMinhasFerias() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Pedido de férias enviado para aprovação");
+      toast.success("Pedido de férias enviado para aprovação"); sugerirPushContextual("Ative os avisos para saber na hora quando suas férias forem aprovadas.");
       invalidate();
     },
     onError: (e: any) => toast.error(textoErroFerias(e?.message)),
