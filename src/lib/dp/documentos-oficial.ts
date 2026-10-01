@@ -124,6 +124,15 @@ const MENSAGENS: Record<string, string> = {
   DOC_COMPROVANTE_COMPETENCIA_DIVERGENTE:
     "A data do pagamento está em um mês diferente da competência do documento. Confirme antes de anexar.",
   DOC_COMPROVANTE_INEXISTENTE: "O documento de origem não tem comprovante anexado.",
+  DOC_COMPROVANTE_DATA_OBRIGATORIA: "Informe a data em que o pagamento foi feito.",
+  DOC_COMPROVANTE_MODALIDADE_OBRIGATORIA: "Informe como o pagamento foi feito.",
+  DOC_COMPROVANTE_MODALIDADE_INVALIDA: "Forma de pagamento não reconhecida.",
+  DOC_COMPROVANTE_MISTO_VALORES:
+    "No pagamento misto, informe o valor pago na conta e o valor pago em dinheiro.",
+  DOC_COMPROVANTE_VALOR_ESPECIE_OBRIGATORIO: "Informe o valor pago em dinheiro.",
+  DOC_COMPROVANTE_VALOR_INVALIDO: "Informe um valor válido para o pagamento.",
+  DOC_RECIBO_TIPO_INVALIDO: "O documento indicado não é um recibo de pagamento em dinheiro.",
+  DOC_RECIBO_COLABORADOR_DIVERGENTE: "O recibo não é do mesmo colaborador do documento pago.",
   DOC_COMPROVANTE_MESMO_DOCUMENTO: "Escolha um documento diferente para receber o comprovante.",
   DOC_ACAO_OBRIGATORIA: "Ação do histórico não informada.",
   DOC_ORIGEM_INVALIDA: "Origem do documento não reconhecida.",
@@ -205,19 +214,44 @@ export async function excluirDocumento(
   });
 }
 
+export type ComprovanteQuitacao = {
+  /** 'bancario' | 'especie' | 'misto'. */
+  modalidade: string;
+  valorBancarioCents?: number | null;
+  valorEspecieCents?: number | null;
+  /** Resultado da leitura automática do comprovante, para auditoria. */
+  leitura?: unknown;
+};
+
 /** Anexa o comprovante e devolve o caminho do arquivo anterior, se houver. */
 export async function anexarComprovante(
   documentoId: string,
   arquivo: ArquivoDoc,
-  pagoEm?: string | null,
+  pagoEm: string,
   /** Pagamento em mês diferente da competência, já confirmado na tela. */
   confirmarCompetencia = false,
+  quitacao?: ComprovanteQuitacao,
 ): Promise<string | null> {
   return await chamar<string | null>("dp_comprovante_anexar", {
     p_documento_id: documentoId,
     p_arquivo: arquivo,
     p_pago_em: pagoEm || null,
     p_confirmar_competencia: confirmarCompetencia,
+    p_modalidade: quitacao?.modalidade ?? "bancario",
+    p_valor_bancario_cents: quitacao?.valorBancarioCents ?? null,
+    p_valor_especie_cents: quitacao?.valorEspecieCents ?? null,
+    p_leitura: quitacao?.leitura ?? null,
+  });
+}
+
+/** Liga o recibo de pagamento em dinheiro ao documento pago. */
+export async function vincularReciboEspecie(
+  documentoId: string,
+  reciboId: string,
+): Promise<void> {
+  await chamar("dp_comprovante_recibo_vincular", {
+    p_documento_id: documentoId,
+    p_recibo_id: reciboId,
   });
 }
 
