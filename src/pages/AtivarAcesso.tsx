@@ -35,6 +35,7 @@ export default function AtivarAcesso() {
   const [confirmar, setConfirmar] = useState("");
   const [mostrar, setMostrar] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [linkUsado, setLinkUsado] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
@@ -68,9 +69,21 @@ export default function AtivarAcesso() {
       const { data, error } = await supabase.functions.invoke("dp-alterar-senha-colaborador", {
         body: { cpf: digitos, token_id: tokenId, codigo, purpose: modo, nova_senha: senha },
       });
-      if (error) throw error;
-      if ((data as any)?.error) {
-        setErro((data as any).error);
+      // Respostas de erro (4xx) chegam como exceção; lemos o corpo para
+      // distinguir "link já utilizado" de falhas genéricas.
+      let corpo: any = data;
+      if (error) {
+        try {
+          corpo = await (error as any).context?.json();
+        } catch { /* sem corpo legível */ }
+        if (!corpo?.error) {
+          setErro("Não foi possível concluir. Tente de novo ou peça um novo link.");
+          return;
+        }
+      }
+      if (corpo?.error) {
+        if (corpo?.code === "token_usado") setLinkUsado(true);
+        setErro(corpo.error);
         return;
       }
       toast.success("Senha criada!", { description: "Entre com seu CPF e a senha que você acabou de escolher." });
@@ -164,9 +177,19 @@ export default function AtivarAcesso() {
                 </div>
               </div>
               {erro && <p className="text-sm text-destructive">{erro}</p>}
-              <Button type="submit" className="min-h-11 w-full" disabled={enviando}>
-                {enviando ? "Salvando..." : "Salvar senha e entrar"}
-              </Button>
+              {linkUsado ? (
+                <Button
+                  type="button"
+                  className="min-h-11 w-full"
+                  onClick={() => navigate("/auth", { replace: true })}
+                >
+                  Ir para o Login
+                </Button>
+              ) : (
+                <Button type="submit" className="min-h-11 w-full" disabled={enviando}>
+                  {enviando ? "Salvando..." : "Salvar senha e entrar"}
+                </Button>
+              )}
             </CardContent>
           </form>
         </Card>
