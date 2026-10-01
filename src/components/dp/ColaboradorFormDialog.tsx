@@ -1642,12 +1642,6 @@ export function ColaboradorFormDialog({
         );
       }
       if (!form.data_nascimento) return erro("data_nascimento", "Data de nascimento é obrigatória");
-      if (exigeDomingosFolga && form.domingos_folga_mes === "none") {
-        return erro(
-          "domingos_folga_mes",
-          "Informe quantas folgas dominicais por mês (1 ou 2) se aplicam a este colaborador",
-        );
-      }
 
       const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
       const nascimento = new Date(form.data_nascimento + "T00:00:00");
@@ -2599,23 +2593,14 @@ export function ColaboradorFormDialog({
           </div>
 
           {exigeDomingosFolga && (
-            <div className="space-y-2">
-              <Label>Folgas Dominicais por Mês (Padrão CLT) *</Label>
-              <Select
-                value={form.domingos_folga_mes}
-                onValueChange={(v) => setForm({ ...form, domingos_folga_mes: v })}
-              >
-                <SelectTrigger {...marca("domingos_folga_mes")}>
-                  <SelectValue placeholder="Selecione a frequência" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 por mês</SelectItem>
-                  <SelectItem value="2">2 por mês</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                1 por mês = regra geral do comércio; 2 por mês = regra do Art. 386 da CLT.
-                Define quantas folgas dominicais este colaborador pode escolher.
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+              <p className="font-medium">Folgas dominicais: exceção por colaborador</p>
+              <p className="mt-1">
+                {form.domingos_folga_mes !== "none"
+                  ? `Este colaborador tem exceção de ${form.domingos_folga_mes} domingo${form.domingos_folga_mes === "1" ? "" : "s"} de folga por mês.`
+                  : "Este colaborador segue a regra geral da unidade."}{" "}
+                O cadastro da regra ou da exceção é feito em{" "}
+                <strong>Folgas &gt; Regras &gt; Exceções por Colaborador</strong>.
               </p>
             </div>
           )}
