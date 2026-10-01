@@ -1005,7 +1005,7 @@ export async function regrasAdmissao(
   const sexo = sexoBruto.startsWith("m") || sexoBruto.startsWith("h")
     ? "masculino"
     : sexoBruto.startsWith("f") ? "feminino" : null;
-  const [resolvidas, lista] = await Promise.all([
+  const [resolvidas, lista, convenios] = await Promise.all([
     admin.rpc("dp_admissao_regras_resolver", {
       p_company_id: pa.company_id,
       p_unidade_id: pa.unidade_prevista_id,
@@ -1015,8 +1015,14 @@ export async function regrasAdmissao(
     }),
     admin
       .from("dp_admissao_regra_parentescos")
-      .select("parentesco, permite_dependente, permite_sesc")
+      .select("parentesco, permite_dependente, permite_sesc, finalidades")
       .eq("company_id", pa.company_id),
+    admin
+      .from("dp_admissao_finalidades")
+      .select("codigo, nome")
+      .eq("company_id", pa.company_id)
+      .eq("ativo", true)
+      .order("nome"),
   ]);
   const campos: Record<string, Exigencia> = {};
   const documentos: Record<string, Exigencia> = {};
@@ -1027,6 +1033,23 @@ export async function regrasAdmissao(
     if (alvo) alvo[r.chave] = r.exigencia as Exigencia;
   }
   if (lista.error) throw new Error("Não foi possível conferir os familiares aceitos pela empresa.");
-  const parentescos = !(lista.data ?? []).length ? null : (lista.data as ParentescoPermitido[]);
-  return { campos, documentos, parentescos };
+  if (convenios.error) throw new Error("Não foi possível conferir as finalidades da empresa.");
+  const brutos = (lista.data ?? []) as Array<ParentescoPermitido & { finalidades?: string[] | null }>;
+  const parentescos = !brutos.length ? null : brutos.map((p) => ({
+    parentesco: p.parentesco,
+    permite_dependente: !!p.permite_dependente,
+    permite_sesc: !!p.permite_sesc,
+    // Fichas antigas sem lista continuam valendo pelas marcações originais.
+    finalidades: normalizarFinalidades(p.finalidades).length
+      ? normalizarFinalidades(p.finalidades)
+      : [
+        ...(p.permite_dependente ? [FINALIDADE_LEGAL] : []),
+        ...(p.permite_sesc ? ["sesc"] : []),
+      ],
+  }));
+  const finalidadesEmpresa = ((convenios.data ?? []) as FinalidadeEmpresa[]).map((f) => ({
+    codigo: String(f.codigo),
+    nome: String(f.nome),
+  }));
+  return { campos, documentos, parentescos, finalidadesEmpresa };
 }
