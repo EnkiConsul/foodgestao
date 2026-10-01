@@ -53,6 +53,8 @@ Deno.serve(async (req) => {
     const codigo = String(body?.codigo ?? "").trim().toUpperCase();
     const purposeBruto = String(body?.purpose ?? "");
     const novaSenha = typeof body?.nova_senha === "string" ? body.nova_senha : "";
+    const termoAceito = body?.termo_aceito === true;
+    const termoVersao = String(body?.termo_versao ?? "").trim();
 
     if (purposeBruto !== "activation" && purposeBruto !== "reset") {
       return jsonError(req, "invalid_input", "finalidade inválida");
@@ -61,6 +63,22 @@ Deno.serve(async (req) => {
 
     if (cpf.length !== 11 || !tokenId || codigo.length < 8) {
       return jsonError(req, "invalid_input", "payload incompleto");
+    }
+    // Ativação só conclui com o termo de primeiro acesso aceito na versão
+    // vigente: a tela pode estar velha em cache, e aí é melhor recarregar.
+    if (purpose === "activation") {
+      if (!termoAceito) {
+        return jsonResponse(req, 400, {
+          code: "termo_obrigatorio",
+          error: "É preciso marcar que você leu e concorda com o termo de primeiro acesso.",
+        });
+      }
+      if (termoVersao !== TERMO_PORTAL_VERSAO) {
+        return jsonResponse(req, 409, {
+          code: "termo_desatualizado",
+          error: "O termo foi atualizado. Recarregue a página para ler a versão atual.",
+        });
+      }
     }
     if (!senhaForte(novaSenha)) {
       return jsonResponse(req, 400, {
