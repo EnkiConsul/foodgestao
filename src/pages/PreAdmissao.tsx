@@ -744,7 +744,7 @@ export default function PreAdmissao() {
         </div>
       )}
 
-      <main className="p-4 space-y-4 max-w-4xl mx-auto">
+      <main className="p-4 pb-52 space-y-4 max-w-4xl mx-auto">
         {etapaAtual && (
           <Card>
             <CardContent className="p-4 space-y-3">
