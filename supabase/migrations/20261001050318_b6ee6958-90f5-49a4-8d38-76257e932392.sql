@@ -1,0 +1,2 @@
+ALTER TABLE public.dp_recibos DROP CONSTRAINT IF EXISTS dp_recibos_natureza_chk;
+ALTER TABLE public.dp_recibos ADD CONSTRAINT dp_recibos_natureza_chk CHECK (natureza IN ('acerto_mensal','adiantamento','diaria','teste_operacional','rescisao','outros'));
