@@ -60,7 +60,9 @@ export function TermoPrimeiroAcesso({ aceito, onAceitar, pendente }: Props) {
               </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader>
-                  <DialogTitle className="text-left text-base">{TERMO_PORTAL_TITULO}</DialogTitle>
+                  <DialogTitle className="pr-6 text-left text-base">
+                    {TERMO_PORTAL_TITULO}
+                  </DialogTitle>
                   <DialogDescription className="text-left">
                     Versão {TERMO_PORTAL_VERSAO} · Leia com atenção antes de aceitar.
                   </DialogDescription>
