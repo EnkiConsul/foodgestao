@@ -35,6 +35,7 @@ export default function AtivarAcesso() {
   const [confirmar, setConfirmar] = useState("");
   const [mostrar, setMostrar] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [linkUsado, setLinkUsado] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
@@ -70,6 +71,7 @@ export default function AtivarAcesso() {
       });
       if (error) throw error;
       if ((data as any)?.error) {
+        if ((data as any)?.code === "token_usado") setLinkUsado(true);
         setErro((data as any).error);
         return;
       }
