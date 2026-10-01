@@ -13,7 +13,7 @@ import { PreadmissoesPanel } from "@/components/dp/preadmissao/PreadmissoesPanel
 import type { ConviteInicial } from "@/components/dp/preadmissao/PreadmissaoConviteDialog";
 
 export default function DpPreadmissoes() {
-  // Chegando por "Enviar Link De Pré-Admissão" na tela de Colaboradores, o
+  // Chegando por "Enviar Link de Pré-Admissão" na tela de Colaboradores, o
   // convite já abre na frente (não existe entrada própria no menu).
   const [params, setParams] = useSearchParams();
   const [convidando, setConvidando] = useState(params.get("novo") === "1");

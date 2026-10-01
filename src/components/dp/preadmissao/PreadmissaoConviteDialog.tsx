@@ -243,7 +243,7 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
             </p>
             <div className="mt-2 flex gap-2">
               <Button type="button" size="sm" onClick={retomarRascunho}>Retomar Preenchimento</Button>
-              <Button type="button" size="sm" variant="outline" onClick={comecarDoZero}>Começar Do Zero</Button>
+              <Button type="button" size="sm" variant="outline" onClick={comecarDoZero}>Começar do Zero</Button>
             </div>
           </div>
         )}
@@ -361,7 +361,7 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
                     className="h-8"
                     onClick={() => { void recarregarCargos(); void recarregarVinculos(); }}
                   >
-                    Tentar De Novo
+                    Tentar de Novo
                   </Button>
                 )}
               </div>

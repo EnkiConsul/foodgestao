@@ -179,7 +179,7 @@ export default function DpMeuPerfil() {
           </Card>
 
           <Card className="dp-content-card">
-            <CardHeader><CardTitle className="text-base">Dados Para Pagamento</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Dados para Pagamento</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {p.recebe_em_especie === true ? (
                 <p className="text-sm text-muted-foreground">

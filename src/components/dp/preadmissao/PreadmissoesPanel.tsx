@@ -47,7 +47,7 @@ function podeProrrogar(status: PreadmissaoStatus, colaboradorId: string | null):
 }
 
 interface Props {
-  /** Abre o convite já na frente (chegada por "Enviar Link De Pré-Admissão"). */
+  /** Abre o convite já na frente (chegada por "Enviar Link de Pré-Admissão"). */
   convidarAberto?: boolean;
   onConvidarChange?: (aberto: boolean) => void;
   /** Mostra o botão de convidar dentro do painel (a tela própria usa o cabeçalho). */

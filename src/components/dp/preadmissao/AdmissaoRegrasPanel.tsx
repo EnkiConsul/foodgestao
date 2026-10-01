@@ -78,18 +78,18 @@ const CAMPOS: { chave: string; label: string; grupo: string }[] = [
   { chave: "titulo_secao", label: "Título — seção", grupo: "Registros" },
   { chave: "reservista", label: "Certificado de reservista", grupo: "Registros" },
   { chave: "reservista_categoria", label: "Reservista — categoria", grupo: "Registros" },
-  { chave: "banco_conta", label: "Banco, agência e conta", grupo: "Dados De Pagamento" },
-  { chave: "pix_chave", label: "Chave Pix", grupo: "Dados De Pagamento" },
+  { chave: "banco_conta", label: "Banco, agência e conta", grupo: "Dados de Pagamento" },
+  { chave: "pix_chave", label: "Chave Pix", grupo: "Dados de Pagamento" },
 ];
 
 /** Rótulo de cada grupo de documentos (coluna `grupo` do catálogo). */
 const GRUPO_DOC_LABEL: Record<string, string> = {
   identificacao: "Identificação",
   endereco: "Endereço",
-  pagamento: "Dados De Pagamento",
+  pagamento: "Dados de Pagamento",
   dependentes: "Dependentes",
-  motorista: "Motorista E Veículo",
-  vinculo: "Conforme O Vínculo",
+  motorista: "Motorista e Veículo",
+  vinculo: "Conforme o Vínculo",
 };
 
 const GRUPO_DOC_ORDEM = [

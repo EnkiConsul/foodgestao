@@ -91,7 +91,7 @@ export function FeriasRegrasSection() {
     <>
       <Card
         icon={Palmtree}
-        title="Férias — Limite De Simultâneos"
+        title="Férias — Limite de Simultâneos"
         description="Quantos colaboradores podem estar de férias ao mesmo tempo. A regra mais específica (unidade + cargo + turno) prevalece."
       >
         {regras.length === 0 ? (

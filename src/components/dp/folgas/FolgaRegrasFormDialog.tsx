@@ -223,7 +223,7 @@ export function FolgaRegrasFormDialog({
   const rotulos =
     tipoDias === "domingo"
       ? {
-          titulo: "Frequência Da Folga Dominical (DSR)",
+          titulo: "Frequência da Folga Dominical (DSR)",
           porMes: "Domingos de folga por mês",
           semanas: "Domingo de folga a cada (semanas)",
           porMesMulher: "Domingos por mês — mulheres",
@@ -233,7 +233,7 @@ export function FolgaRegrasFormDialog({
         }
       : tipoDias === "fim_de_semana"
         ? {
-            titulo: "Frequência Da Folga De Descanso (DSR)",
+            titulo: "Frequência da Folga de Descanso (DSR)",
             porMes: "Folgas de fim de semana por mês",
             semanas: "Folga de descanso a cada (semanas)",
             porMesMulher: "Folgas de fim de semana por mês — mulheres",
@@ -242,7 +242,7 @@ export function FolgaRegrasFormDialog({
             equivale: "1 folga de fim de semana",
           }
         : {
-            titulo: "Frequência Da Folga De Descanso (DSR)",
+            titulo: "Frequência da Folga de Descanso (DSR)",
             porMes: "Folgas de descanso por mês",
             semanas: "Folga de descanso a cada (semanas)",
             porMesMulher: "Folgas de descanso por mês — mulheres",
@@ -373,7 +373,7 @@ export function FolgaRegrasFormDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Nova Regra De Folgas</DialogTitle>
+            <DialogTitle>Nova Regra de Folgas</DialogTitle>
             <DialogDescription>
               Escolha a unidade que receberá as regras. Você pode começar copiando as regras de outra
               unidade.
@@ -456,7 +456,7 @@ export function FolgaRegrasFormDialog({
             )}
             <DialogTitle className="flex items-center gap-2">
               <Scale className="h-5 w-5" aria-hidden="true" />
-              {modo === "criar" ? "Nova Regra De Folgas" : "Editar Regras De Folgas"}
+              {modo === "criar" ? "Nova Regra de Folgas" : "Editar Regras de Folgas"}
             </DialogTitle>
           </div>
           <DialogDescription>
@@ -490,7 +490,7 @@ export function FolgaRegrasFormDialog({
           )}
 
           <SubSection
-            title="Base Da Regra De Folgas"
+            title="Base da Regra de Folgas"
             description="Define de onde vem a regra de descanso: a legislação, um acordo/convenção coletiva ou uma política própria."
           >
             <div className="grid gap-4 sm:grid-cols-2">
@@ -774,7 +774,7 @@ export function FolgaRegrasFormDialog({
           <Separator />
 
           <SubSection
-            title="Troca De Folga Entre Colaboradores"
+            title="Troca de Folga entre Colaboradores"
             description="Define se os colaboradores podem trocar folgas entre si e sobre quais folgas a troca vale."
           >
             <div className="grid gap-4 sm:grid-cols-2">
@@ -833,7 +833,7 @@ export function FolgaRegrasFormDialog({
           <Separator />
 
           <SubSection
-            title="Período Mensal Para Escolha Das Folgas"
+            title="Período Mensal para Escolha das Folgas"
             description="Define os dias do mês em que os colaboradores podem escolher as folgas do mês seguinte. Fora desse período eles só conseguem solicitar exceção."
           >
             <div className="space-y-4">

@@ -37,7 +37,7 @@ export function VincularUnidadeLote({ batchId, companyId, onLinked }: VincularUn
     onSuccess: (unidadeId) => {
       qc.invalidateQueries({ queryKey: ["dp_bulk_batch_info", batchId] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
-      toast.success("Unidade Vinculada Ao Lote");
+      toast.success("Unidade vinculada ao lote");
       onLinked?.(unidadeId);
     },
     onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Falha ao vincular unidade" }),

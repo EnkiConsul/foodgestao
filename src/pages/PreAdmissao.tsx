@@ -119,7 +119,7 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?:
     endereco: true,
   },
   {
-    titulo: "Dados De Pagamento",
+    titulo: "Dados de Pagamento",
     ajuda: "Informe a conta para depósito ou a sua chave Pix. Basta uma das duas.",
     campos: [
       { nome: "banco_nome", rotulo: "Banco", upper: true },
@@ -132,7 +132,7 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?:
     ],
   },
   {
-    titulo: "Documentos E Registros",
+    titulo: "Documentos e Registros",
     ajuda: "Se não souber algum número, deixe em branco.",
     campos: [
       { nome: "rg_numero", rotulo: "RG", inputMode: "numeric" },
@@ -168,7 +168,7 @@ const ROTULOS_EXTRA: Record<string, { rotulo: string; etapa: string }> = {
   bairro: { rotulo: "Bairro", etapa: "Endereço" },
   cidade: { rotulo: "Cidade", etapa: "Endereço" },
   uf: { rotulo: "Estado", etapa: "Endereço" },
-  banco_codigo: { rotulo: "Banco", etapa: "Dados De Pagamento" },
+  banco_codigo: { rotulo: "Banco", etapa: "Dados de Pagamento" },
 };
 
 const MAPA_CAMPOS: Record<string, { rotulo: string; etapa: string }> = (() => {
@@ -181,7 +181,7 @@ const MAPA_CAMPOS: Record<string, { rotulo: string; etapa: string }> = (() => {
   return mapa;
 })();
 
-/** Ex.: "rg_emissao" → "Data de emissão do RG (em Documentos E Registros)". */
+/** Ex.: "rg_emissao" → "Data de emissão do RG (em Documentos e Registros)". */
 function descreverCampo(nome: string): string {
   const achado = MAPA_CAMPOS[nome];
   if (!achado) return nome.replace(/_/g, " ");
@@ -1111,7 +1111,7 @@ export default function PreAdmissao() {
           <Card>
             <CardContent className="p-4 space-y-4">
               <div>
-                <h2 className="font-semibold">Confira Antes De Enviar</h2>
+                <h2 className="font-semibold">Confira antes de Enviar</h2>
                 <p className="text-xs text-muted-foreground">
                   Depois de enviar você não consegue mais alterar. Volte se algo estiver diferente do seu documento.
                 </p>

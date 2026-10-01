@@ -26,14 +26,14 @@ export type PreadmissaoStatus =
 
 /** Rótulos de tela (Primeira Maiúscula, como toda comunicação do sistema). */
 export const PREADMISSAO_STATUS_LABEL: Record<PreadmissaoStatus, string> = {
-  aguardando_preenchimento: "Aguardando O Candidato",
+  aguardando_preenchimento: "Aguardando o Candidato",
   em_preenchimento: "Candidato Preenchendo",
   aguardando_revisao: "Aguardando Sua Revisão",
-  correcao_solicitada: "Correção Pedida Ao Candidato",
+  correcao_solicitada: "Correção Pedida ao Candidato",
   aguardando_nova_versao: "Aguardando Nova Versão",
-  pronto_contabilidade: "Pronta Para A Contabilidade",
-  enviado_contabilidade: "Enviada À Contabilidade",
-  aguardando_retorno_contabilidade: "Aguardando Retorno Da Contabilidade",
+  pronto_contabilidade: "Pronta para a Contabilidade",
+  enviado_contabilidade: "Enviada à Contabilidade",
+  aguardando_retorno_contabilidade: "Aguardando Retorno da Contabilidade",
   registro_recebido: "Ficha Oficial Conferida",
   concluido: "Admissão Concluída",
   expirado: "Link Expirado",
