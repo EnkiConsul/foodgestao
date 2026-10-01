@@ -50,7 +50,7 @@ import { ApoioUnidadesDialog } from "@/components/dp/ApoioUnidadesDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpSalvarLargurasButton } from "@/components/dp/DpSalvarLargurasButton";
-import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-completude";
+import { camposFaltandoObrigatorios } from "@/lib/dp/cadastro-completude";
 import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
 
 
