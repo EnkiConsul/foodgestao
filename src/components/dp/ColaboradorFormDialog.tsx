@@ -435,6 +435,8 @@ export function ColaboradorFormDialog({
   const [salvandoPiso, setSalvandoPiso] = useState(false);
   /** Com patronal: marcar grava o valor só nesta unidade (acima do piso). */
   const [pisoSoUnidade, setPisoSoUnidade] = useState(false);
+  /** Marcado: o novo piso preenche também colegas do cargo com salário zerado. */
+  const [aplicarZerados, setAplicarZerados] = useState(false);
   const [adiantamentoOpen, setAdiantamentoOpen] = useState(false);
   /** Forma de remuneração do sócio: pró-labore ou somente participação de lucros. */
   const [socioRem, setSocioRem] = useState<SocioRemuneracao>("pro_labore");
@@ -3389,6 +3391,16 @@ export function ColaboradorFormDialog({
               Salário diferenciado apenas desta unidade (acima do piso)
             </label>
           )}
+          {!socioSelecionado && (
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={aplicarZerados}
+                onChange={(e) => setAplicarZerados(e.target.checked)}
+              />
+              Atualizar também os colaboradores atuais deste cargo que estão com salário zerado/pendente
+            </label>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel
               onClick={() => {
@@ -3425,6 +3437,26 @@ export function ColaboradorFormDialog({
                     });
                     await queryClient.refetchQueries({ queryKey: ["dp_cargo_salarios"] });
                     toast.success(viaSindicato ? "Piso da convenção registrado." : "Padrão do cargo na unidade registrado.");
+                    if (aplicarZerados && !socioSelecionado) {
+                      try {
+                        const { data: qtd, error: errZ } = await (supabase.rpc as any)("dp_cargo_aplicar_salario_zerados", {
+                          _cargo_id: form.cargo_id,
+                          _salario: pendente.salarioInformado,
+                          _unidade_id: viaSindicato ? null : form.unidade_id,
+                          _sindicato_patronal_id: viaSindicato ? patronalUnidade!.id : null,
+                        });
+                        if (errZ) throw errZ;
+                        queryClient.invalidateQueries({ queryKey: ["dp_colaboradores"] });
+                        toast.success(
+                          Number(qtd) > 0
+                            ? `${qtd} colaborador(es) com salário zerado atualizado(s).`
+                            : "Nenhum colaborador deste cargo estava com salário zerado.",
+                        );
+                      } catch {
+                        toast.error("O piso foi salvo, mas não foi possível atualizar os colaboradores com salário zerado.");
+                      }
+                    }
+                    setAplicarZerados(false);
                   } catch (err) {
                     setCargoSemSalario(pendente);
                     toast.error("Não foi possível gravar o salário padrão do cargo", {
