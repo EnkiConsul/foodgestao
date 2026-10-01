@@ -5,6 +5,8 @@ interface Props {
   dados?: { nome?: string | null; email?: string | null; cpf?: string | null };
   /** id para ligar o medidor ao campo por aria-describedby */
   id?: string;
+  /** Oculta a frase de força quando a lista de requisitos já explica o que falta. */
+  semMensagem?: boolean;
 }
 
 const CORES = [
