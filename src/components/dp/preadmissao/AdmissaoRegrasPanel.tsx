@@ -614,9 +614,20 @@ export function AdmissaoRegrasPanel() {
           ))}
 
           {cardDocumentos(
+            "documentos",
             "Documentos que o Candidato Envia",
-            "Aparecem na ficha do candidato e bloqueiam o envio quando estão obrigatórios.",
-             documentos,
+            "Toque no documento para ver a regra e cadastrar exceções.",
+            documentosGerais,
+            undefined,
+            true,
+          )}
+
+          {cardDocumentos(
+            "documentos_especificos",
+            "Documentos Específicos e Operacionais",
+            "Toque no documento para ver a regra e cadastrar exceções.",
+            documentosEspecificos,
+            "Exigidos só para quem dirige, usa veículo, é PJ/MEI ou tem dependentes",
           )}
 
           <Card>
