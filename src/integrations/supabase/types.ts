@@ -11349,6 +11349,8 @@ export type Database = {
           created_at: string
           data: string
           descricao: string | null
+          elogio_aviso_id: string | null
+          elogio_visibilidade: string
           id: string
           motivo: string
           pdf_storage_path: string | null
@@ -11370,6 +11372,8 @@ export type Database = {
           created_at?: string
           data?: string
           descricao?: string | null
+          elogio_aviso_id?: string | null
+          elogio_visibilidade?: string
           id?: string
           motivo: string
           pdf_storage_path?: string | null
@@ -11391,6 +11395,8 @@ export type Database = {
           created_at?: string
           data?: string
           descricao?: string | null
+          elogio_aviso_id?: string | null
+          elogio_visibilidade?: string
           id?: string
           motivo?: string
           pdf_storage_path?: string | null
@@ -11425,6 +11431,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_registros_disciplinares_elogio_aviso_id_fkey"
+            columns: ["elogio_aviso_id"]
+            isOneToOne: false
+            referencedRelation: "dp_avisos"
             referencedColumns: ["id"]
           },
         ]
@@ -16512,6 +16525,10 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_elogio_divulgar: {
+        Args: { p_registro_id: string; p_visibilidade: string }
+        Returns: undefined
+      }
       dp_escala_auto_gerar: {
         Args: { p_company_id: string; p_mes: string }
         Returns: number
@@ -17330,6 +17347,7 @@ export type Database = {
         Returns: {
           data: string
           id: string
+          mensagem: string
           suspensao_dias: number
           tipo: string
           via_assinada_em: string

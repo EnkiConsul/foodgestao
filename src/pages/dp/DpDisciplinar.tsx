@@ -145,6 +145,7 @@ export default function DpDisciplinar() {
   const [observacao, setObservacao] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [confirmo, setConfirmo] = useState(false);
+  const [elogioVis, setElogioVis] = useState<"privado" | "individual" | "publico">("privado");
   // importar via assinada (histórico)
   const [viaPara, setViaPara] = useState<Registro | null>(null);
   const [viaArquivo, setViaArquivo] = useState<File | null>(null);
@@ -376,6 +377,11 @@ export default function DpDisciplinar() {
         suspensaoDias: diasN > 0 ? diasN : null,
       });
 
+      if (tipo === "elogio" && elogioVis !== "privado") {
+        const { error } = await (supabase.rpc as any)("dp_elogio_divulgar", { p_registro_id: registroId, p_visibilidade: elogioVis });
+        if (error) throw error;
+      }
+
       if (pendingFile) {
         const path = await enviarArquivo(selectedCompanyId, registroId, pendingFile);
         await anexarArquivoDisciplinar(registroId, path);
@@ -391,7 +397,7 @@ export default function DpDisciplinar() {
           : "Registro cadastrado com sucesso",
       );
       if (res.gerarModelo) genPdf.mutate(res.registroId);
-      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setTipo(""); setDias("0"); setObservacao(""); setPendingFile(null); setConfirmo(false);
+      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setTipo(""); setDias("0"); setObservacao(""); setPendingFile(null); setConfirmo(false); setElogioVis("privado");
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
       setTab("historico");
@@ -562,6 +568,28 @@ export default function DpDisciplinar() {
                   </Select>
                 </div>
               </div>
+
+              {tipo === "elogio" && (
+                <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                  <Label htmlFor="elogio-visibilidade">Visibilidade Do Elogio</Label>
+                  <Select value={elogioVis} onValueChange={(v) => setElogioVis(v as typeof elogioVis)}>
+                    <SelectTrigger id="elogio-visibilidade"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="privado">Privado (Apenas Dossiê Interno)</SelectItem>
+                      <SelectItem value="individual">Individual (Avisar E Mostrar No Portal Do Colaborador)</SelectItem>
+                      <SelectItem value="publico">Público (Publicar No Mural Da Unidade)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {elogioVis === "publico"
+                      ? "Toda a equipe da unidade verá o texto da observação no Mural. Escreva pensando nos colegas lendo."
+                      : elogioVis === "individual"
+                        ? "Só o colaborador recebe o aviso e vê o reconhecimento em Meus Documentos."
+                        : "Fica guardado só na ficha, visível ao DP e à gestão."}
+                  </p>
+                </div>
+              )}
+
 
               <div className="space-y-2">
                 <Label htmlFor="dias-de-afastamento-se-aplicavel-5">Dias de Afastamento (se aplicável)</Label>

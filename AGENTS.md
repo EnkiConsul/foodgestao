@@ -14,3 +14,4 @@
 
 - Notificações push (Web Push): fila `dp_push_fila` alimentada por gatilho em `dp_notificacoes`, envio pela função `dp-push-dispatch` a cada minuto e receptor isolado em `/push/sw.js` (sem cache) — mantém o push separado do worker de limpeza `/sw.js`.
 - Disciplinar: o portal só lê vias físicas assinadas (`via_assinada_path`, advertência escrita/suspensão) via `dp_portal_meus_disciplinares()`; verbais, observações e minutas ficam no dossiê interno da ficha — evita expor anotações do gestor e passivo de dano moral.
+- Elogio: visibilidade privado/individual/público definida só pela RPC `dp_elogio_divulgar` (notifica o colaborador e, se público, publica no Mural da unidade via `dp_avisos`); verbais e observações nunca notificam o colaborador — reconhecimento sem expor o dossiê.

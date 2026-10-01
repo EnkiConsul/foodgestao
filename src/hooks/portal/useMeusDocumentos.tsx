@@ -270,6 +270,7 @@ export function useMeusDocumentos() {
       const DISC_LABEL: Record<string, string> = {
         advertencia_escrita: "Advertência Escrita",
         suspensao: "Suspensão",
+        elogio: "Reconhecimento",
       };
       const { data: disc } = await (supabase.rpc as any)("dp_portal_meus_disciplinares");
       for (const r of (disc ?? []) as any[]) {
@@ -285,12 +286,12 @@ export function useMeusDocumentos() {
           competencia_label: comp.label,
           competencia_sort: comp.sort,
           status_key: "assinado",
-          status_label: "Via Assinada",
+          status_label: r.tipo === "elogio" ? "Reconhecimento" : "Via Assinada",
           bucket: "dp-disciplinar",
           file_path: r.via_assinada_path,
           mime_type: null,
           created_at: r.via_assinada_em ?? r.data,
-          observacao: null,
+          observacao: r.tipo === "elogio" ? (r.mensagem ?? null) : null,
         });
       }
 
