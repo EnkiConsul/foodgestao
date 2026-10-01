@@ -73,6 +73,20 @@ Deno.serve(async (req) => {
     // 1) Reserva exclusiva do link, já conferindo hash, prazo e finalidade.
     const token = await reservarToken(admin, tokenId, codigo, purpose);
     if (!token) {
+      // Link já consumido com sucesso merece aviso próprio: a senha já foi
+      // criada e a pessoa só precisa entrar — não pedir outro link.
+      const { data: anterior } = await admin
+        .from("dp_portal_access_tokens")
+        .select("consumed_at, purpose")
+        .eq("id", tokenId)
+        .maybeSingle();
+      if (anterior?.consumed_at && anterior.purpose === purpose) {
+        return jsonResponse(req, 409, {
+          code: "token_usado",
+          error:
+            "Este link já foi utilizado e sua senha já foi criada. Entre com seu CPF e a senha cadastrada.",
+        });
+      }
       return jsonResponse(req, 400, { error: "Link inválido, expirado ou já utilizado." });
     }
 
