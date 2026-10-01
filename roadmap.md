@@ -33,6 +33,12 @@
 
 # Reunião Samanta (Praianos) — pendências
 - [x] Sinalizar colaboradores sem cargo como cadastro incompleto (Samanta cadastra os cargos).
-- [ ] Dados bancários na ficha — aguardando resposta.
-- [ ] Domingos de folga para mulheres — aguardando resposta.
-- [ ] Não cobrar documentos de meses antes da admissão — aguardando resposta.
+- [x] Dados bancários na ficha — já existem Banco, Agência, Conta, Dígito e Chave Pix; nenhuma mudança necessária.
+- [x] Não cobrar documentos de meses antes da admissão — já funciona, nenhum ajuste.
+- [x] Domingos de folga: cadastro centralizado em Folgas > Regras > Exceções por Colaborador (seletor por pessoa, com busca e filtro por unidade).
+- [x] Ficha do colaborador só informa (segue a regra geral / tem exceção) e traz o atalho "Abrir regras de folgas".
+- [x] Atalho abre a tela de regras já filtrada pela unidade e pelo nome da pessoa; avisa quando há alterações não salvas.
+- [ ] Aplicar a exceção de 2 domingos/mês às 3 colaboradoras do Praianos (Art. 386 da CLT) — na tela nova.
+- [ ] `private.dp_remuneracao_admin` ainda exige dono/administrador geral em vez da permissão de cadastros com salários.
+- [ ] Testar no celular o fluxo disciplinar (via física assinada).
+- [ ] Nada publicado: versão continua congelada, aguardando pedido explícito.

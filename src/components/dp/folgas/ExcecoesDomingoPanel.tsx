@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { UserCog } from "lucide-react";
@@ -32,9 +33,17 @@ const SEXO_LABEL: Record<string, string> = { F: "Feminino", M: "Masculino", outr
 export function ExcecoesDomingoPanel() {
   const qc = useQueryClient();
   const { data: unidades = [] } = useDpUnidades();
-  const [unidade, setUnidade] = useState("todas");
-  const [busca, setBusca] = useState("");
+  const [params] = useSearchParams();
+  // Vem do atalho da ficha do colaborador: abre já na unidade e na pessoa.
+  const [unidade, setUnidade] = useState(() => params.get("unidade") || "todas");
+  const [busca, setBusca] = useState(() => params.get("nome")?.trim() ?? "");
   const [salvando, setSalvando] = useState<string | null>(null);
+
+  // Unidade inexistente ou fora do alcance não pode deixar a lista vazia.
+  useEffect(() => {
+    if (unidade === "todas" || unidades.length === 0) return;
+    if (!unidades.some((u) => u.id === unidade)) setUnidade("todas");
+  }, [unidades, unidade]);
 
   const { data: colabs = [], isLoading } = useQuery({
     queryKey: ["dp-excecoes-domingo"],

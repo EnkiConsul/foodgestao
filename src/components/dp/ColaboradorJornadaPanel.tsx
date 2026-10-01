@@ -856,7 +856,14 @@ export function ColaboradorJornadaPanel({
   // Sem alteração pendente vai direto; com alteração pergunta se salva antes.
   const navigate = useNavigate();
   const [irRegrasOpen, setIrRegrasOpen] = useState(false);
-  const ROTA_REGRAS = "/dp/folgas?aba=regras";
+  // Abre a tela de regras já filtrada na unidade e no colaborador da ficha.
+  const ROTA_REGRAS = useMemo(() => {
+    const p = new URLSearchParams({ aba: "regras" });
+    if (colaborador?.unidade_id) p.set("unidade", colaborador.unidade_id);
+    const nome = colaborador?.nome?.trim();
+    if (nome) p.set("nome", nome);
+    return `/dp/folgas?${p.toString()}`;
+  }, [colaborador?.unidade_id, colaborador?.nome]);
 
   const abrirRegrasFolgas = () => {
     if (!colaborador?.id || !alterado) { navigate(ROTA_REGRAS); return; }

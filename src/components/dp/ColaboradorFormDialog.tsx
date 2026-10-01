@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Info } from "lucide-react";
+import { AlertTriangle, ExternalLink, Info } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { regimeRisco } from "@/lib/dp/regime-riscos";
@@ -1399,6 +1400,39 @@ export function ColaboradorFormDialog({
     onOpenChange(false);
   };
 
+  /**
+   * Atalho para a tela onde a regra e as exceções de folga são cadastradas
+   * (Folgas > Regras). A ficha só informa o resultado; o cadastro é lá.
+   *
+   * A navegação acontece quando a ficha fecha de fato: com alterações pendentes
+   * a pessoa escolhe salvar ou descartar antes de sair.
+   */
+  const navigate = useNavigate();
+  const [irRegrasOpen, setIrRegrasOpen] = useState(false);
+  const destinoAposFechar = useRef<string | null>(null);
+
+  const rotaRegrasFolgas = useMemo(() => {
+    const p = new URLSearchParams({ aba: "regras" });
+    if (form.unidade_id) p.set("unidade", form.unidade_id);
+    const nome = form.nome.trim();
+    if (nome) p.set("nome", nome);
+    return `/dp/folgas?${p.toString()}`;
+  }, [form.unidade_id, form.nome]);
+
+  const abrirRegrasFolgas = () => {
+    destinoAposFechar.current = rotaRegrasFolgas;
+    if (dirty) { setIrRegrasOpen(true); return; }
+    onOpenChange(false);
+  };
+
+  useEffect(() => {
+    if (open) { destinoAposFechar.current = null; return; }
+    const rota = destinoAposFechar.current;
+    if (!rota) return;
+    destinoAposFechar.current = null;
+    navigate(rota);
+  }, [open, navigate]);
+
   /** Aplica a intenção do botão que disparou o salvamento. */
   const finalizar = () => {
     const intencao = intencaoRef.current;
@@ -2592,16 +2626,35 @@ export function ColaboradorFormDialog({
             </p>
           </div>
 
-          {exigeDomingosFolga && (
-            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-              <p className="font-medium">Folgas dominicais: exceção por colaborador</p>
-              <p className="mt-1">
+          {/* Folga dominical: a ficha informa o que vale para esta pessoa; o
+              cadastro da regra e das exceções é na tela Folgas > Regras. */}
+          {policy.folgaSemanal !== "nao_se_aplica" && (
+            <div
+              className={[
+                "space-y-2 rounded-md border p-3 text-xs",
+                form.domingos_folga_mes !== "none"
+                  ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+                  : "border-border bg-muted/40 text-muted-foreground",
+              ].join(" ")}
+            >
+              <p className="font-medium text-foreground">Folgas dominicais</p>
+              <p>
                 {form.domingos_folga_mes !== "none"
                   ? `Este colaborador tem exceção de ${form.domingos_folga_mes} domingo${form.domingos_folga_mes === "1" ? "" : "s"} de folga por mês.`
                   : "Este colaborador segue a regra geral da unidade."}{" "}
                 O cadastro da regra ou da exceção é feito em{" "}
                 <strong>Folgas &gt; Regras &gt; Exceções por Colaborador</strong>.
               </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={abrirRegrasFolgas}
+              >
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                Abrir regras de folgas
+              </Button>
             </div>
           )}
 
@@ -3417,6 +3470,41 @@ export function ColaboradorFormDialog({
             >
               Salvar e sair
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Atalho para as Regras de Folgas: com a ficha suja, decide antes de sair. */}
+      <AlertDialog
+        open={irRegrasOpen}
+        onOpenChange={(o) => {
+          setIrRegrasOpen(o);
+          if (!o) destinoAposFechar.current = null;
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Salvar a ficha antes de ir?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Há alterações que ainda não foram gravadas neste cadastro. Escolha o que fazer
+              antes de abrir as Regras de Folgas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => { setIrRegrasOpen(false); onOpenChange(false); }}
+            >
+              Ir sem salvar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => { setIrRegrasOpen(false); void submit("close"); }}
+            >
+              Salvar e ir
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
