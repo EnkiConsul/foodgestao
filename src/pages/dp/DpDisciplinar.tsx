@@ -536,7 +536,7 @@ export default function DpDisciplinar() {
       <DpPageHeader
         icon={ShieldAlert}
         title="Disciplinares"
-        description="Gerencie advertências, suspensões e outros registros disciplinares."
+        description="Gerencie advertências, suspensões, elogios e o dossiê disciplinar da equipe."
         actions={
           <DpTableColumnsMenu
             columns={DISC_COL_ORDER.map((k) => ({ key: k, label: COLS[k].label }))}
@@ -550,19 +550,19 @@ export default function DpDisciplinar() {
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
         <TabsList>
-          <TabsTrigger value="importar"><FileSignature className="size-4 mr-2" />Emitir Medida</TabsTrigger>
+          <TabsTrigger value="importar"><FileSignature className="size-4 mr-2" />Novo Registro</TabsTrigger>
           <TabsTrigger value="historico"><History className="size-4 mr-2" />Histórico</TabsTrigger>
         </TabsList>
 
         <TabsContent value="importar" className="mt-4">
           <DpContentCard>
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-5">
               <FileSignature className="size-5 text-primary" />
-              <h3 className="text-lg font-semibold">Emitir Medida Disciplinar</h3>
+              <h3 className="text-lg font-semibold">Novo Registro Disciplinar ou Elogio</h3>
             </div>
             <AvisoJuridicoDisciplinar />
 
-            <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-5 lg:space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="unidade-1">Unidade *</Label>
                 <Select value={unidadeId} onValueChange={(v) => { setUnidadeId(v); setColaboradorId(""); }}>
@@ -611,7 +611,7 @@ export default function DpDisciplinar() {
               </div>
 
               {tipo === "elogio" && (
-                <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
                   <Label htmlFor="elogio-visibilidade">Visibilidade Do Elogio</Label>
                   <Select value={elogioVis} onValueChange={(v) => setElogioVis(v as typeof elogioVis)}>
                     <SelectTrigger id="elogio-visibilidade"><SelectValue /></SelectTrigger>
@@ -634,7 +634,7 @@ export default function DpDisciplinar() {
               {isFormal(tipo) && (
                 <div className="space-y-2">
                   <Label>Como Deseja Registrar? *</Label>
-                  <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="grid gap-3 sm:grid-cols-2">
                     {([
                       ["gerar", "Gerar Modelo Do Sistema", "Preencha motivo e fatos; o sistema gera a carta para imprimir."],
                       ["importar", "Importar Via Já Assinada", "Use o modelo próprio da empresa já assinado em papel."],
@@ -643,10 +643,10 @@ export default function DpDisciplinar() {
                         key={v}
                         type="button"
                         onClick={() => { setCaminho(v); if (v === "gerar") { setPendingFile(null); setConfirmo(false); } }}
-                        className={`rounded-lg border p-3 text-left transition-colors ${caminho === v ? "border-primary bg-primary/5" : "border-border"}`}
+                        className={`rounded-xl border p-4 text-left transition-colors ${caminho === v ? "border-primary bg-primary/5" : "border-border"}`}
                       >
-                        <div className="text-sm font-semibold">{t}</div>
-                        <div className="text-xs text-muted-foreground">{d}</div>
+                        <div className="text-sm font-semibold leading-snug">{t}</div>
+                        <div className="mt-1 text-xs text-muted-foreground leading-relaxed">{d}</div>
                       </button>
                     ))}
                   </div>
@@ -659,8 +659,15 @@ export default function DpDisciplinar() {
                   <Select value={MOTIVOS.some((m) => m.label === motivoSel) ? motivoSel : motivoSel ? "__outro" : ""} onValueChange={(v) => setMotivoSel(v === "__outro" ? " " : v)}>
                     <SelectTrigger id="motivo-disc"><SelectValue placeholder="Selecione o motivo" /></SelectTrigger>
                     <SelectContent>
-                      {MOTIVOS.map((m) => <SelectItem key={m.label} value={m.label}>{m.label} (Art. 482, “{m.alinea}”)</SelectItem>)}
-                      <SelectItem value="__outro">Outro (Digitar)</SelectItem>
+                      {MOTIVOS.map((m) => (
+                        <SelectItem key={m.label} value={m.label} className="whitespace-normal py-2">
+                          <span className="block font-medium leading-tight">{m.label}</span>
+                          <span className="block text-xs text-muted-foreground leading-tight">
+                            Art. 482 da CLT, alínea “{m.alinea}”
+                          </span>
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="__outro" className="whitespace-normal">Outro (Digitar)</SelectItem>
                     </SelectContent>
                   </Select>
                   {motivoSel && !MOTIVOS.some((m) => m.label === motivoSel) && (
