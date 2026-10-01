@@ -308,16 +308,26 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
 
   useEffect(() => {
     setPessoas(
-      (data?.pessoas ?? []).map((p) => ({
-        id: p.id,
-        nome: p.nome ?? "",
-        parentesco: (p.parentesco ?? "").toLowerCase(),
-        data_nascimento: p.data_nascimento ?? "",
-        cpf: p.cpf ? mascaraCpf(p.cpf) : "",
-        rg: p.rg ?? "",
-        finalidade_dependente: !!p.finalidade_dependente,
-        finalidade_sesc: !!p.finalidade_sesc,
-      })),
+      (data?.pessoas ?? []).map((p) => {
+        const salvas = Array.isArray((p as { finalidades?: string[] }).finalidades)
+          ? ((p as { finalidades?: string[] }).finalidades ?? []).map(String)
+          : [];
+        const derivadas = salvas.length ? salvas : [
+          ...(p.finalidade_dependente ? [FINALIDADE_LEGAL] : []),
+          ...(p.finalidade_sesc ? ["sesc"] : []),
+        ];
+        return {
+          id: p.id,
+          nome: p.nome ?? "",
+          parentesco: (p.parentesco ?? "").toLowerCase(),
+          data_nascimento: p.data_nascimento ?? "",
+          cpf: p.cpf ? mascaraCpf(p.cpf) : "",
+          rg: p.rg ?? "",
+          finalidade_dependente: derivadas.includes(FINALIDADE_LEGAL),
+          finalidade_sesc: derivadas.includes("sesc"),
+          finalidades: derivadas,
+        };
+      }),
     );
   }, [data?.pessoas]);
 
