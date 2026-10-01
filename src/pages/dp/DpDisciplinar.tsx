@@ -631,13 +631,13 @@ export default function DpDisciplinar() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="data-do-documento-3">Data do Documento *</Label>
-                  <Input id="data-do-documento-3" type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
+                  <Input id="data-do-documento-3" type="date" value={dataDoc} onChange={(e) => { setDataDoc(e.target.value); if (campoPendente === "data") setCampoPendente(null); }} className={campoPendente === "data" ? "border-destructive ring-1 ring-destructive" : undefined} />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="tipo-de-registro-4">Tipo de Registro *</Label>
-                  <Select value={tipo} onValueChange={setTipo}>
-                    <SelectTrigger id="tipo-de-registro-4"><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+                  <Select value={tipo} onValueChange={(v) => { setTipo(v); if (campoPendente === "tipo") setCampoPendente(null); }}>
+                    <SelectTrigger id="tipo-de-registro-4" className={campoPendente === "tipo" ? "border-destructive ring-1 ring-destructive" : undefined}><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
                     <SelectContent>
                       {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                     </SelectContent>
