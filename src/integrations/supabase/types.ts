@@ -7612,6 +7612,7 @@ export type Database = {
           id: string
           mime_type: string | null
           motivo_recusao: string | null
+          origem_recibo_id: string | null
           referencia_data: string | null
           replaced_by_documento_id: string | null
           replaces_documento_id: string | null
@@ -7661,6 +7662,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           motivo_recusao?: string | null
+          origem_recibo_id?: string | null
           referencia_data?: string | null
           replaced_by_documento_id?: string | null
           replaces_documento_id?: string | null
@@ -7710,6 +7712,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           motivo_recusao?: string | null
+          origem_recibo_id?: string | null
           referencia_data?: string | null
           replaced_by_documento_id?: string | null
           replaces_documento_id?: string | null
@@ -7760,6 +7763,13 @@ export type Database = {
             columns: ["ferias_gozo_id"]
             isOneToOne: false
             referencedRelation: "dp_ferias_gozos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documentos_origem_recibo_id_fkey"
+            columns: ["origem_recibo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_recibos"
             referencedColumns: ["id"]
           },
           {
@@ -17394,6 +17404,23 @@ export type Database = {
       dp_processar_troca_direta: { Args: { _troca_id: string }; Returns: Json }
       dp_purgar_colaborador: {
         Args: { p_colaborador_id: string; p_motivo?: string }
+        Returns: undefined
+      }
+      dp_recibo_assinar_externo: {
+        Args: {
+          p_hash: string
+          p_ip: string
+          p_recibo_id: string
+          p_user_agent: string
+        }
+        Returns: string
+      }
+      dp_recibo_cancelar: {
+        Args: { p_cancelado_por: string; p_recibo_id: string }
+        Returns: undefined
+      }
+      dp_recibo_vincular_documento: {
+        Args: { p_documento_id: string; p_recibo_id: string }
         Returns: undefined
       }
       dp_recontratar_colaborador: {
