@@ -110,7 +110,10 @@ export function certificadoValidacaoHtml(d: CertificadoValidacaoDados): string {
     <section class="cert">
       <div class="timbre">
         <img src="${esc(logoTimbrado())}" alt="AVETO 360" />
-        <span>Certificado de Validação Digital<br />Plataforma AVETO 360</span>
+        <div>
+          <strong>Plataforma AVETO 360</strong>
+          <em>${esc(d.empresa)}</em>
+        </div>
       </div>
       <div class="selo"></div>
       <header>
