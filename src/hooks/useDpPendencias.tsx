@@ -1,4 +1,4 @@
-import { prazoPagamentoRescisao } from "@/lib/dp/desligamento";
+import { prazoLegalRescisao, prazoPagamentoRescisao } from "@/lib/dp/desligamento";
 import { datasDeFeriados } from "@/lib/dp/feriados";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
@@ -668,11 +668,13 @@ export function useDpPendencias() {
             if (!comps.has(v.competencia)) continue;
             if (docs.has(`${v.colaboradorId}:${v.competencia}`)) continue;
             const anoFim = Number(v.dataFim.slice(0, 4));
-            const vencimento = prazoPagamentoRescisao(
+            const vencimento = prazoLegalRescisao(v.dataFim);
+            const util = prazoPagamentoRescisao(
               v.dataFim,
               datasDeFeriados(feriadosPorUnidade.get(u.id) ?? [], [anoFim, anoFim + 1]),
             );
-            const quando = format(new Date(`${v.dataFim}T12:00:00`), "dd/MM");
+            const dm = (s: string) => format(new Date(`${s}T12:00:00`), "dd/MM");
+            const quando = dm(v.dataFim);
             const comp = v.competencia;
             results.push({
               id: `rescisao-${v.colaboradorId}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`,
@@ -680,7 +682,9 @@ export function useDpPendencias() {
               titulo: "Pagamento Da Rescisão — Comprovar Até O Prazo",
               subtitulo: `${v.nome} · ${u.nome} — ${competenciaLabel(comp)} · ${
                 v.recontratado ? "vínculo encerrado" : "desligado"
-              } em ${quando} · pagar até ${format(new Date(`${vencimento}T12:00:00`), "dd/MM")} (multa Art. 477)`,
+              } em ${quando} · pagar até ${dm(vencimento)} (multa Art. 477)${
+                util !== vencimento ? ` · por TED/depósito, até ${dm(util)}` : ""
+              }`,
               tipo: "Rescisão",
               colaboradorNome: v.nome,
               unidadeNome: u.nome,

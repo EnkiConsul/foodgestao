@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { prazoPagamentoRescisao } from "@/lib/dp/desligamento";
+import { prazoLegalRescisao, prazoPagamentoRescisao } from "@/lib/dp/desligamento";
 import { useDpFeriados } from "@/hooks/useDpFeriados";
 import { datasDeFeriados } from "@/lib/dp/feriados";
 import { useQuery } from "@tanstack/react-query";
@@ -184,17 +184,27 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
             Pode ser uma data futura (aviso prévio). O acesso ao portal encerra em {dias} dias após ela
             {acessoAte ? ` — até ${fmt(acessoAte)}` : ""}.
           </p>
-          {/^\d{4}-\d{2}-\d{2}$/.test(data) && (
-            <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs">
-              <p className="font-semibold text-foreground">
-                Pagar As Verbas Rescisórias Até {fmt(prazoPagamentoRescisao(data, datasDeFeriados(feriados, [Number(data.slice(0, 4)), Number(data.slice(0, 4)) + 1])))}
-              </p>
-              <p className="mt-1 text-muted-foreground">
-                Prazo de 10 dias corridos (Art. 477 da CLT); se cair no fim de semana ou em feriado da unidade, antecipamos para o dia útil anterior.
-                Atrasar gera multa de um salário do colaborador. Uma pendência será criada para não perder o prazo.
-              </p>
-            </div>
-          )}
+          {/^\d{4}-\d{2}-\d{2}$/.test(data) && (() => {
+            const legal = prazoLegalRescisao(data);
+            const ano = Number(data.slice(0, 4));
+            const util = prazoPagamentoRescisao(data, datasDeFeriados(feriados, [ano, ano + 1]));
+            return (
+              <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs">
+                <p className="font-semibold text-foreground">
+                  Pagar As Verbas Rescisórias Até {fmt(legal)}
+                </p>
+                <p className="mt-1 text-muted-foreground">
+                  Prazo de 10 dias corridos (Art. 477 da CLT). Pix e dinheiro podem ser pagos nessa data, mesmo em fim de semana ou feriado.
+                  Atrasar gera multa de um salário do colaborador. Uma pendência será criada para não perder o prazo.
+                </p>
+                {util !== legal && (
+                  <p className="mt-1 text-muted-foreground">
+                    <span className="font-medium text-foreground">Sugestão:</span> se pagar por TED ou depósito, pague até {fmt(util)}, último dia útil antes do prazo.
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
