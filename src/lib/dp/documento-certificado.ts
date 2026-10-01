@@ -67,12 +67,27 @@ function fmtDataHora(iso?: string | null) {
   return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" });
 }
 
+/**
+ * O certificado é aberto por endereço temporário (blob:), onde caminho
+ * relativo não resolve: a logo precisa do endereço completo do site.
+ */
+function logoTimbrado(): string {
+  const base = typeof window !== "undefined" ? window.location.origin : "https://aveto360.com";
+  return `${base}${logoAveto.url}`;
+}
+
 const ESTILO = `
   body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; margin: 0; padding: 16px; }
   .cert { border: 1px solid #ccc; border-radius: 6px; padding: 20px; }
   header { border-bottom: 2px solid #EB6119; padding-bottom: 8px; margin-bottom: 14px; }
   header h1 { margin: 0 0 4px; font-size: 17px; }
   header p { margin: 0; font-size: 11px; color: #555; }
+  .timbre { display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    background: #0F1B3D; border-radius: 6px 6px 0 0; padding: 12px 16px; margin: -20px -20px 0; }
+  .timbre img { height: 26px; width: auto; display: block; }
+  .timbre span { font-size: 10px; color: #C9D2E6; text-align: right; }
+  .selo { height: 3px; background: #EB6119; margin: 0 -20px 14px; }
+  .marca { margin-top: 6px; font-size: 10px; color: #0F1B3D; font-weight: 600; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
   td { border: 1px solid #e5e5e5; padding: 6px 8px; vertical-align: top; width: 50%; }
   span.rot { display: block; font-size: 10px; color: #666; text-transform: uppercase; }
