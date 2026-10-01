@@ -27,6 +27,7 @@ export function PushSoftPrompt() {
   const [estado, setEstado] = useState<PushEstado | null>(null);
   const [motivo, setMotivo] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
+  const movel = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
   const avaliar = async (forcar: boolean, m?: string) => {
     const e = await pushEstado().catch(() => "nao_suportado" as PushEstado);
@@ -61,10 +62,10 @@ export function PushSoftPrompt() {
             <BellRing className="h-6 w-6 text-primary" />
           </div>
           <DialogTitle className="text-center">
-            {motivo ? "Quer Ser Avisado Da Resposta?" : "Receba Avisos Na Barra Do Celular"}
+            {motivo ? "Quer Ser Avisado Da Resposta?" : (movel ? "Receba Avisos Na Barra Do Celular" : "Receba Avisos Neste Computador")}
           </DialogTitle>
           <DialogDescription className="text-center">
-            {motivo ?? "Folgas, escalas, recibos para assinar e prazos chegam na hora, mesmo com o app fechado."}
+            {motivo ?? "Folgas, escalas, recibos para assinar e prazos chegam na hora, mesmo com o app fechado." + (movel ? "" : " Os avisos aparecem no canto da tela.")}
           </DialogDescription>
         </DialogHeader>
         {estado === "ios_instalar" && (

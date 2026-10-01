@@ -1,3 +1,4 @@
+import { sugerirPushContextual } from "@/components/dp/PushSoftPrompt";
 import { DpFormFooter } from "@/components/dp/DpFormFooter";
 import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
@@ -207,6 +208,7 @@ export default function DpMeuTrocas() {
     },
     onSuccess: () => {
       toast.success("Troca proposta enviada");
+      sugerirPushContextual("Ative os avisos para saber na hora quando seu colega e o gestor responderem a troca.");
       qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
       void resolverPendencias(qc, { companyId: meRef.data?.company_id ?? null });
       setOpen(false);

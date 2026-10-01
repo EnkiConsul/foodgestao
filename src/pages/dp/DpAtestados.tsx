@@ -1,3 +1,4 @@
+import { sugerirPushContextual } from "@/components/dp/PushSoftPrompt";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { Helmet } from "react-helmet-async";
@@ -416,6 +417,7 @@ export default function DpAtestados() {
     },
     onSuccess: () => {
       toast.success("Atestado atualizado");
+      sugerirPushContextual("Ative os avisos para receber na hora os próximos atestados enviados pela equipe.");
       qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
       void resolverPendencias(qc, { companyId: selectedCompanyId });
       setEditing(null);
