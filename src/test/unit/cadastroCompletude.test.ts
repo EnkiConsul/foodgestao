@@ -127,3 +127,12 @@ describe("salário por forma de pagamento e cargo", () => {
     expect(camposFaltando(c)).toEqual([]);
   });
 });
+
+describe("cargo obrigatório", () => {
+  it("acusa falta de cargo e ignora sócio", async () => {
+    const { camposFaltandoObrigatorios } = await import("@/lib/dp/cadastro-completude");
+    const base = { regime: "clt", whatsapp: "62999999999", salario_base: 2000, cargo_id: null };
+    expect(camposFaltandoObrigatorios(base).map((c) => c.chave)).toContain("cargo_id");
+    expect(camposFaltandoObrigatorios({ ...base, regime: "socio" }).map((c) => c.chave)).not.toContain("cargo_id");
+  });
+});
