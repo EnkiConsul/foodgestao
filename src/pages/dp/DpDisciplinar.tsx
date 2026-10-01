@@ -37,6 +37,7 @@ import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { notifyError } from "@/lib/notifyError";
 import { fetchAllPages } from "@/lib/supabase/fetchAllPages";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const BUCKET = "dp-disciplinar";
 
@@ -57,19 +58,47 @@ const isFormal = (t?: string | null) => !!t && FORMAIS.includes(t);
 const TEXTO_CONFIRMACAO =
   "Confirmo que a medida foi aplicada presencialmente e que o arquivo é a via física assinada pelo colaborador (ou por duas testemunhas, em caso de recusa).";
 
+/** Motivos comuns, cada um enquadrado na alínea do Art. 482 da CLT (mesma tabela no gerador do PDF). */
+const MOTIVOS: { label: string; alinea: string }[] = [
+  { label: "Atraso Ou Falta Injustificada", alinea: "e" },
+  { label: "Insubordinação / Descumprimento De Ordem", alinea: "h" },
+  { label: "Indisciplina / Descumprimento De Normas Internas", alinea: "h" },
+  { label: "Mau Procedimento / Conduta Inadequada", alinea: "b" },
+  { label: "Desídia No Desempenho Das Funções", alinea: "e" },
+  { label: "Ofensa Ou Agressão A Colega Ou Cliente", alinea: "j" },
+  { label: "Uso Indevido De Celular No Expediente", alinea: "h" },
+  { label: "Embriaguez Em Serviço", alinea: "f" },
+];
+
 function AvisoJuridicoDisciplinar() {
+  const isMobile = useIsMobile();
+  const [aberto, setAberto] = useState(false);
+  const mostrar = !isMobile || aberto;
   return (
-    <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
-      <div className="flex items-center gap-2 font-semibold text-destructive">
-        <AlertTriangle className="size-4" /> Atenção: Risco Jurídico
+    <div className={`mb-4 rounded-xl border border-destructive/30 bg-destructive/5 text-sm ${isMobile ? "p-3" : "p-4"}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2 font-semibold text-destructive">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <span>
+            Atenção: Risco Jurídico
+            {isMobile && <span className="block text-xs font-normal text-foreground/80">Medidas formais exigem aplicação presencial em papel.</span>}
+          </span>
+        </div>
+        {isMobile && (
+          <button type="button" onClick={() => setAberto((v) => !v)} className="shrink-0 text-xs font-semibold text-primary underline">
+            {aberto ? "Recolher" : "Ler Orientações"}
+          </button>
+        )}
       </div>
-      <ul className="mt-2 list-disc space-y-1 pl-5 text-foreground/90">
-        <li>Advertência escrita e suspensão devem ser <strong>aplicadas pessoalmente</strong>: gere o modelo, imprima, converse com o colaborador e colha a assinatura (ou de 2 testemunhas se ele recusar).</li>
-        <li>Registro disciplinar é assinado <strong>somente em papel</strong>: não existe assinatura digital, pelo portal ou por link do WhatsApp.</li>
-        <li>Só depois importe a <strong>via assinada</strong>. Ela é a única coisa que o colaborador verá no portal. Se houver erro no documento, refaça, colha nova assinatura e use "Substituir Via" (a anterior fica no histórico).</li>
-        <li>Descobrir uma punição pelo celular, antes da conversa, gera atrito e pode embasar ação por <strong>dano moral ou assédio</strong>.</li>
-        <li>Advertências verbais, observações e elogios ficam só no dossiê interno, visível ao DP/gestão. Escreva fatos objetivos, sem juízo de valor, pois o dossiê pode ser usado como prova.</li>
-      </ul>
+      {mostrar && (
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-foreground/90">
+          <li>Advertência escrita e suspensão devem ser <strong>aplicadas pessoalmente</strong>: gere o modelo, imprima, converse com o colaborador e colha a assinatura (ou de 2 testemunhas se ele recusar).</li>
+          <li>Registro disciplinar é assinado <strong>somente em papel</strong>: não existe assinatura digital, pelo portal ou por link do WhatsApp.</li>
+          <li>Só depois importe a <strong>via assinada</strong>. Ela é a única coisa que o colaborador verá no portal. Se houver erro no documento, refaça, colha nova assinatura e use "Substituir Via" (a anterior fica no histórico).</li>
+          <li>Descobrir uma punição pelo celular, antes da conversa, gera atrito e pode embasar ação por <strong>dano moral ou assédio</strong>.</li>
+          <li>Advertências verbais, observações e elogios ficam só no dossiê interno, visível ao DP/gestão. Escreva fatos objetivos, sem juízo de valor, pois o dossiê pode ser usado como prova.</li>
+        </ul>
+      )}
     </div>
   );
 }
