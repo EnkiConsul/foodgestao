@@ -2593,15 +2593,25 @@ export function ColaboradorFormDialog({
           </div>
 
           {exigeDomingosFolga && (
-            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+            <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
               <p className="font-medium">Folgas dominicais: exceção por colaborador</p>
-              <p className="mt-1">
+              <p>
                 {form.domingos_folga_mes !== "none"
                   ? `Este colaborador tem exceção de ${form.domingos_folga_mes} domingo${form.domingos_folga_mes === "1" ? "" : "s"} de folga por mês.`
                   : "Este colaborador segue a regra geral da unidade."}{" "}
                 O cadastro da regra ou da exceção é feito em{" "}
                 <strong>Folgas &gt; Regras &gt; Exceções por Colaborador</strong>.
               </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={abrirRegrasFolgas}
+              >
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                Abrir regras de folgas
+              </Button>
             </div>
           )}
 
