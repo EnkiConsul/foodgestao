@@ -9,7 +9,7 @@ describe("freelancer mensalista nas pendências", () => {
     const c = { ...base, regime: "freelancer", forma_pagamento: "mensalista" };
     expect(elegivelDocumento("contracheque", c, { competencia: "2026-08" })).toBe(true);
     expect(elegivelDocumento("adiantamento", c, { competencia: "2026-08" })).toBe(true);
-    expect(elegivelDocumento("ponto", c, { competencia: "2026-08", unidadeTemRelogio: true })).toBe(true === false);
+    expect(elegivelDocumento("ponto", c, { competencia: "2026-08", unidadeTemRelogio: true })).toBe(false);
   });
   it("não cobra do freelancer diarista", () => {
     const c = { ...base, regime: "freelancer", forma_pagamento: "diarista" };

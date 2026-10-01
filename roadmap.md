@@ -20,3 +20,8 @@
 - [x] Recibo de pagamento em espécie timbrado: assinatura digital no portal.
 - [x] Recibo de pagamento em espécie: opção de baixar para assinar à mão.
 - [x] Mostrar data e forma de pagamento no certificado de validação e nos detalhes.
+
+## Recibos avulsos (Emitir Recibo)
+- [x] Tela Documentos → Emitir Recibo (colaborador ou pessoa sem cadastro, natureza, valor sugerido, forma de pagamento)
+- [x] Assinatura pelo portal, link no WhatsApp (confirmação de CPF) ou à mão (PDF timbrado)
+- [x] Freelancer mensalista gera pendência de recibo mensal e adiantamento, com atalho para a emissão
