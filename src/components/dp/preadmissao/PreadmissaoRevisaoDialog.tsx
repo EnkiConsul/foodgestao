@@ -186,7 +186,24 @@ interface PessoaEditavel {
   rg: string;
   finalidade_dependente: boolean;
   finalidade_sesc: boolean;
+  finalidades: string[];
 }
+
+/** Finalidade que vem da lei e existe em toda empresa. */
+const FINALIDADE_LEGAL = "dependente_legal";
+const FINALIDADE_LEGAL_NOME = "Dependente Legal (Imposto de Renda)";
+
+/** Mantém as marcações antigas em linha com a lista de finalidades. */
+function comFinalidades(p: PessoaEditavel, lista: string[]): PessoaEditavel {
+  const limpa = Array.from(new Set(lista));
+  return {
+    ...p,
+    finalidades: limpa,
+    finalidade_dependente: limpa.includes(FINALIDADE_LEGAL),
+    finalidade_sesc: limpa.includes("sesc"),
+  };
+}
+
 
 interface Props {
   preadmissaoId: string | null;
