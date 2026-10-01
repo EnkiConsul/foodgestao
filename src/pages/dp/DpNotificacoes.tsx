@@ -13,6 +13,7 @@ import { useDpNotificacoes, useMarkNotifRead, useMarkAllNotifsRead } from "@/hoo
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { notificacaoOrigemLabel, notificacaoPathGestor } from "@/lib/dp/notificacoes";
+import { AtivarPushCard } from "@/components/dp/AtivarPushCard";
 
 export default function DpNotificacoes() {
   const { data = [], isLoading } = useDpNotificacoes();
@@ -61,6 +62,8 @@ export default function DpNotificacoes() {
           </Button>
         }
       />
+
+      <AtivarPushCard />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
