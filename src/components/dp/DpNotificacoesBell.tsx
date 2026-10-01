@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useDpNotificacoes, useMarkNotifRead, useMarkAllNotifsRead } from "@/hooks/useDpNotificacoes";
 import { useDpAtestadosPendentes } from "@/hooks/useDpAtestadosPendentes";
 import { notificacaoPathGestor, notificacaoPathPortal } from "@/lib/dp/notificacoes";
+import { AtivarPushCard } from "@/components/dp/AtivarPushCard";
 
 export function DpNotificacoesBell({ variant = "admin" }: { variant?: "admin" | "portal" }) {
   const portal = variant === "portal";
@@ -52,6 +53,7 @@ export function DpNotificacoesBell({ variant = "admin" }: { variant?: "admin" | 
             </Button>
           </div>
         </div>
+        <div className="border-b p-2"><AtivarPushCard /></div>
 
         {atestados.length > 0 && (
           <Link
