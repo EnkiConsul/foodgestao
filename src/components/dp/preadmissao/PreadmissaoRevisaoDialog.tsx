@@ -709,6 +709,7 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
             rg: p.rg.trim(),
             finalidade_dependente: p.finalidade_dependente,
             finalidade_sesc: p.finalidade_sesc,
+            finalidades: p.finalidades,
           })),
       });
 
