@@ -1498,7 +1498,7 @@ export function useDpPendencias() {
               vencimento: ciclo.vencimento,
               atrasoDias: ciclo.atrasoDias,
               urgente: ciclo.urgente,
-              url: `/dp/beneficios?aba=calculadora-${v.tipo}`,
+              url: "/dp/beneficios",
             });
           }
         }
@@ -1528,7 +1528,7 @@ export function useDpPendencias() {
               unidadeNome: u.nome,
               unidadeId: u.id,
               atrasoDias: 0,
-              url: `/dp/unidades?editar=${u.id}&aba=feriados`,
+              url: `/dp/cadastros/unidades?editar=${u.id}&aba=feriados`,
             });
           }
         }
