@@ -170,6 +170,32 @@ Deno.serve(async (req) => {
     );
     if (secErr) console.error("[dp-definir-senha] security_state:", secErr.message);
 
+    // 6) Aceite do termo de primeiro acesso: lastro das assinaturas seguintes.
+    // A impressão digital vem da cópia do servidor, nunca do texto do navegador.
+    // Índice único por colaborador e versão: reenvio não duplica o registro.
+    if (purpose === "activation") {
+      const { error: termoErr } = await admin.from("dp_documento_aceites").insert({
+        company_id: token.company_id,
+        colaborador_id: token.colaborador_id,
+        modelo: TERMO_PORTAL_MODELO,
+        modelo_versao: TERMO_PORTAL_VERSAO,
+        conteudo_hash: await sha256Hex(termoPortalConteudo()),
+        hash_origem: "sha256_conteudo",
+        aceito_por: token.user_id,
+        ip: clientIp(req),
+        user_agent: (req.headers.get("user-agent") ?? "").slice(0, 400) || null,
+        documento_snapshot: {
+          titulo: TERMO_PORTAL_TITULO,
+          versao: TERMO_PORTAL_VERSAO,
+          paragrafos: TERMO_PORTAL_PARAGRAFOS,
+        },
+      });
+      // Duplicidade (23505) é resultado esperado em reenvio: segue em frente.
+      if (termoErr && termoErr.code !== "23505") {
+        console.error("[dp-definir-senha] termo_portal:", termoErr.message);
+      }
+    }
+
     await registrarEvento(
       admin,
       purpose === "activation" ? "access_activated" : "password_reset_completed",
