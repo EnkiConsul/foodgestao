@@ -93,9 +93,11 @@ const GRUPO_DOC_LABEL: Record<string, string> = {
   vinculo: "Conforme o Vínculo",
 };
 
-const GRUPO_DOC_ORDEM = [
-  "identificacao", "endereco", "pagamento", "vinculo", "motorista", "dependentes",
-];
+/** Documentos que praticamente todo colaborador envia. */
+const GRUPOS_DOC_GERAIS = ["identificacao", "endereco", "pagamento"];
+
+/** Documentos de situações pontuais (dirige, veículo, PJ/MEI, dependentes). */
+const GRUPOS_DOC_ESPECIFICOS = ["motorista", "vinculo", "dependentes"];
 
 /** Selo curto explicando quando o grupo se aplica. */
 const GRUPO_DOC_SELO: Record<string, string> = {
