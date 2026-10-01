@@ -429,10 +429,13 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     ].filter(Boolean).join(" — ");
     const listaPessoas = (data.pessoas ?? [])
       .map((pe) => {
-        const finalidades = [
-          pe.finalidade_dependente ? "Dependente" : null,
-          pe.finalidade_sesc ? "Sesc" : null,
-        ].filter(Boolean).join(" e ");
+        const salvas = Array.isArray((pe as { finalidades?: string[] }).finalidades)
+          ? ((pe as { finalidades?: string[] }).finalidades ?? [])
+          : [];
+        const finalidades = (salvas.length ? salvas : [
+          ...(pe.finalidade_dependente ? [FINALIDADE_LEGAL] : []),
+          ...(pe.finalidade_sesc ? ["sesc"] : []),
+        ]).map(nomeFinalidade).join(" e ");
         const partes = [
            PARENTESCO_LABEL[(pe.parentesco ?? "").toLowerCase()] ?? pe.parentesco?.replace(/_/g, " ") ?? "",
           pe.data_nascimento ? `Nascimento: ${pe.data_nascimento}` : null,
