@@ -38,6 +38,9 @@ export default function DpCargos() {
   const [toDelete, setToDelete] = useState<DpCargoWithCount | null>(null);
   const [viewCargo, setViewCargo] = useState<DpCargoWithCount | null>(null);
   const [busca, setBusca] = useState("");
+  /** Filtro rápido: só cargos sem salário cadastrado. */
+  const [soSemPiso, setSoSemPiso] = useState(false);
+  const semPisoRef = useRef<(c: any) => boolean>(() => false);
   /** Colaborador aberto para edição a partir da lista de vinculados. */
   const [editarColaborador, setEditarColaborador] = useState<any | null>(null);
   const colaboradores = useDpColaboradores();
