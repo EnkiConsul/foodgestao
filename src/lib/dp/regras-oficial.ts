@@ -221,20 +221,50 @@ export async function excluirCoberturaMinima(id: string, motivo?: string | null)
   erro(error, "Não foi possível excluir a cobertura mínima.");
 }
 
-/** Grau de parentesco aceito na admissão. */
+/** Grau de parentesco aceito na admissão, com as finalidades liberadas. */
 export async function definirParentescoAdmissao(input: {
   companyId: string;
   parentesco: string;
-  dependente: boolean;
-  sesc: boolean;
+  finalidades: string[];
 }): Promise<void> {
-  const { error } = await rpc("dp_admissao_regra_parentesco_definir", {
+  const { error } = await rpc("dp_admissao_regra_parentesco_definir_v2", {
     p_company_id: input.companyId,
     p_parentesco: input.parentesco,
-    p_dependente: input.dependente,
-    p_sesc: input.sesc,
+    p_finalidades: input.finalidades,
   });
   erro(error, "Não foi possível salvar o grau de parentesco.");
+}
+
+export async function removerParentescoAdmissao(companyId: string, parentesco: string): Promise<void> {
+  const { error } = await rpc("dp_admissao_regra_parentesco_remover", {
+    p_company_id: companyId,
+    p_parentesco: parentesco,
+  });
+  erro(error, "Não foi possível remover o grau de parentesco.");
+}
+
+/** Finalidades (convênios) de familiares cadastradas pela empresa. */
+export async function salvarFinalidadeAdmissao(input: {
+  companyId: string;
+  codigo: string;
+  nome: string;
+  ativo?: boolean;
+}): Promise<void> {
+  const { error } = await rpc("dp_admissao_finalidade_salvar", {
+    p_company_id: input.companyId,
+    p_codigo: input.codigo,
+    p_nome: input.nome,
+    p_ativo: input.ativo ?? true,
+  });
+  erro(error, "Não foi possível salvar a finalidade.");
+}
+
+export async function removerFinalidadeAdmissao(companyId: string, codigo: string): Promise<void> {
+  const { error } = await rpc("dp_admissao_finalidade_remover", {
+    p_company_id: companyId,
+    p_codigo: codigo,
+  });
+  erro(error, "Não foi possível remover a finalidade.");
 }
 
 /** Dependentes do colaborador. */
