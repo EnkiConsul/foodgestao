@@ -473,6 +473,8 @@ Deno.serve(async (req) => {
           ? new Date(`${String(registro.comprovante_pago_em).slice(0, 10)}T12:00:00Z`).toLocaleDateString("pt-BR")
           : "—",
         dados.competencia,
+        marca,
+        dados.empresa,
       );
       const aviso = await anexarArquivo(
         pdf,
