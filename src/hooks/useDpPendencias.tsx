@@ -42,6 +42,8 @@ import {
   optanteNaCompetencia,
   type AdiantamentoSolicitacao,
 } from "@/lib/dp/adiantamento-opcao";
+import { ciclosValePendentes, unidadesSemFeriados } from "@/lib/dp/pendencias-vales";
+import { dataDoFeriadoNoAno, type FeriadoRegra } from "@/lib/dp/feriados";
 
 export type Pendencia = {
   id: string;
