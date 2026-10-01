@@ -51,6 +51,7 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
 
   // A data nunca vem sugerida: só o gestor informa, manualmente.
   const [data, setData] = useState("");
+  const [dataPendente, setDataPendente] = useState(false);
   const [motivo, setMotivo] = useState<string>(NONE);
   const [elegibilidade, setElegibilidade] = useState<string>(NONE);
   const [observacao, setObservacao] = useState("");
@@ -111,7 +112,6 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
     observacao: observacao.trim() || null,
   };
 
-  const [dataPendente, setDataPendente] = useState(false);
   const validar = () => {
     if (!data) {
       setDataPendente(true);
