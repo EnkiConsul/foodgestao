@@ -1078,7 +1078,15 @@ export default function PreAdmissao() {
                     <div className="space-y-1">
                       <Label className="text-xs" htmlFor={`fam-par-${i}`}>Parentesco</Label>
                       <Select value={p.parentesco}
-                        onValueChange={(v) => setPessoas(pessoas.map((x, j) => (j === i ? { ...x, parentesco: v } : x)))}>
+                        onValueChange={(v) => setPessoas(pessoas.map((x, j) => {
+                          if (j !== i) return x;
+                          const trocado = { ...x, parentesco: v };
+                          const permitidas = finalidadesDoFamiliar(trocado).map((f) => f.codigo);
+                          const mantidas = trocado.finalidades.filter((c) => permitidas.includes(c));
+                          return comFinalidades(trocado, mantidas.length
+                            ? mantidas
+                            : permitidas.slice(0, 1));
+                        }))}>
                         <SelectTrigger id={`fam-par-${i}`} className="h-11"><SelectValue placeholder="Escolher" /></SelectTrigger>
                         <SelectContent>
                            {opcoesPara(p).map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
