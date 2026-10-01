@@ -5,7 +5,7 @@
 export const DP_SCREEN_DESCRIPTIONS: Record<string, string> = {
   // Cadastro
   "/dp/colaboradores": "Gerencie perfis, cargos e status de colaboradores.",
-  "/dp/cadastros/cargos": "Cargos, pisos por unidade, complementos salariais, turnos e documentos obrigatórios.",
+  "/dp/cadastros/cargos": "Cargos, pisos por unidade, complementos salariais, turnos, documentos obrigatórios e sindicatos laborais.",
   "/dp/cadastros/unidades": "Unidades, CNPJ, funcionamento e sindicatos.",
   "/dp/cadastros/beneficios": "Vales, planos e benefícios por cargo e unidade.",
   "/dp/cadastros/pendencias": "Lista completa de pendências da empresa, com filtros e ações.",
