@@ -10,7 +10,11 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { definirParentescoAdmissao } from "@/lib/dp/regras-oficial";
+import {
+  definirParentescoAdmissao,
+  salvarFinalidadeAdmissao,
+  removerFinalidadeAdmissao,
+} from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 
 export type Exigencia = "obrigatorio" | "opcional" | "nao_pedir";
