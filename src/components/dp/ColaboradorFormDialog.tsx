@@ -1399,6 +1399,39 @@ export function ColaboradorFormDialog({
     onOpenChange(false);
   };
 
+  /**
+   * Atalho para a tela onde a regra e as exceções de folga são cadastradas
+   * (Folgas > Regras). A ficha só informa o resultado; o cadastro é lá.
+   *
+   * A navegação acontece quando a ficha fecha de fato: com alterações pendentes
+   * a pessoa escolhe salvar ou descartar antes de sair.
+   */
+  const navigate = useNavigate();
+  const [irRegrasOpen, setIrRegrasOpen] = useState(false);
+  const destinoAposFechar = useRef<string | null>(null);
+
+  const rotaRegrasFolgas = useMemo(() => {
+    const p = new URLSearchParams({ aba: "regras" });
+    if (form.unidade_id) p.set("unidade", form.unidade_id);
+    const nome = form.nome.trim();
+    if (nome) p.set("nome", nome);
+    return `/dp/folgas?${p.toString()}`;
+  }, [form.unidade_id, form.nome]);
+
+  const abrirRegrasFolgas = () => {
+    destinoAposFechar.current = rotaRegrasFolgas;
+    if (dirty) { setIrRegrasOpen(true); return; }
+    onOpenChange(false);
+  };
+
+  useEffect(() => {
+    if (open) { destinoAposFechar.current = null; return; }
+    const rota = destinoAposFechar.current;
+    if (!rota) return;
+    destinoAposFechar.current = null;
+    navigate(rota);
+  }, [open, navigate]);
+
   /** Aplica a intenção do botão que disparou o salvamento. */
   const finalizar = () => {
     const intencao = intencaoRef.current;
