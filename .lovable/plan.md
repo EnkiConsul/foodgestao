@@ -5,8 +5,10 @@ Concluir a integração jurídica e operacional dos recibos e transformar a list
 
 ## O que será entregue
 1. **Assinaturas sincronizadas**
-   - Assinatura pelo link do WhatsApp também registrará o aceite do documento vinculado, liberando o certificado.
-   - Assinatura pelo Portal atualizará o recibo correspondente para “Assinado”.
+   - Colaborador cadastrado terá somente **Portal do Colaborador** ou **Assinar à Mão**; a opção de link por WhatsApp será removida desse caso.
+   - Pessoa sem cadastro terá somente **Link pelo WhatsApp** ou **Assinar à Mão**.
+   - Assinatura pelo Portal atualizará o recibo correspondente para “Assinado” e liberará o certificado do documento.
+   - Assinatura pelo WhatsApp continuará restrita ao recibo avulso, com confirmação do CPF e trilha de auditoria própria.
    - Operações serão idempotentes: repetir a confirmação não duplicará evidências.
 
 2. **Quitação completa no acervo**
@@ -20,7 +22,7 @@ Concluir a integração jurídica e operacional dos recibos e transformar a list
 
 4. **Histórico detalhado de recibos**
    - Cada linha/card será clicável e abrirá uma ficha com beneficiário, natureza, competência, descrição, valores, forma e data do pagamento, canal e trilha da assinatura.
-   - A ficha terá ações compatíveis com o estado: baixar PDF, enviar/copiar link, abrir certificado e cancelar.
+   - A ficha terá ações compatíveis com o estado e o beneficiário: baixar PDF, enviar/copiar link apenas para pessoa sem cadastro, abrir certificado para colaborador e cancelar.
    - No celular, o detalhamento usará o padrão de painel inferior; no computador, diálogo centralizado.
 
 5. **Usabilidade complementar**
@@ -30,6 +32,7 @@ Concluir a integração jurídica e operacional dos recibos e transformar a list
 ## Detalhes técnicos
 - Criar uma migração reversível com rotinas transacionais para aceitar e cancelar recibos, mantendo menor privilégio e validação no servidor.
 - Não conceder gravação direta da tabela de recibos ao navegador.
+- Validar os canais também no servidor: colaborador cadastrado não poderá receber link externo; pessoa sem cadastro não poderá usar o portal.
 - Atualizar as funções de emissão, assinatura pública e aceite do portal para usar as novas rotinas.
 - Atualizar a tela de recibos e a classificação visual no Portal.
 - Cobrir sincronização, idempotência, cancelamento, reabertura de pendência e apresentação com testes direcionados.
