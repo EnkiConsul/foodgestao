@@ -103,6 +103,10 @@ type Dados = {
   conteudoHash: string;
   versao: string;
   registroId: string;
+  /** Data do pagamento comprovado ("—" quando não houver comprovante). */
+  pagamentoEm: string;
+  /** Forma de pagamento e valores comprovados (vazio quando não houver). */
+  quitacao: string;
   avisos: string[];
 };
 
