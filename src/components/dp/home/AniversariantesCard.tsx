@@ -116,6 +116,7 @@ export function AniversariantesCard({ variant = "admin" }: { variant?: "admin" |
         onClose={() => setTarget(null)}
         colaboradorId={target?.colaboradorId ?? null}
         nome={target?.nome ?? ""}
+        tiposModelo={target ? [target.tipo === "nascimento" ? "aniversario" : "tempo_casa"] : undefined}
         contexto={{
           tipo: target?.tipo === "nascimento" ? "aniversário" : "contratação",
           anos: String(target?.anosCompletos ?? ""),

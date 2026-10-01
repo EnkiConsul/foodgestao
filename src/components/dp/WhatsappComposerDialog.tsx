@@ -18,6 +18,8 @@ type Props = {
   contexto?: Record<string, string>;
   /** Títulos de modelo preferidos, em ordem de prioridade. */
   titulosPreferidos?: string[];
+  /** Mostra só modelos destes tipos (ex.: aniversario, tempo_casa). */
+  tiposModelo?: string[];
 };
 
 const norm = (s: string) =>
@@ -30,8 +32,12 @@ export function WhatsappComposerDialog({
   nome,
   contexto = {},
   titulosPreferidos = [],
+  tiposModelo,
 }: Props) {
-  const { data: modelos = [] } = useDpModelosMensagem("whatsapp");
+  const { data: todosModelos = [] } = useDpModelosMensagem("whatsapp");
+  const modelos = tiposModelo?.length
+    ? todosModelos.filter((m: { tipo?: string | null }) => tiposModelo.includes(String(m.tipo ?? "")))
+    : todosModelos;
   const [modeloId, setModeloId] = useState<string>("");
   const [texto, setTexto] = useState("");
 
