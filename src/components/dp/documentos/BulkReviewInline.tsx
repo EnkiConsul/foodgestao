@@ -490,7 +490,12 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       }
       if (okc + rep > 0 && loteConcluido(rows as any[], item_ids, ignorados)) onConcluido?.();
     } catch (e: any) {
-      notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao aprovar" });
+      notifyError(e, {
+        surface: "Importar documentos",
+        action: "aprovar páginas do lote",
+        fallback: e?.message || "Falha ao aprovar",
+        details: { batch_id: batchId, ...(e?.details ?? {}) },
+      });
     } finally {
       setIsSaving(false);
     }

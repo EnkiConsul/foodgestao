@@ -20,12 +20,18 @@ export async function aprovarEmBlocos(
       body: { ...extra, item_ids: bloco, progresso_base: i },
     });
     if (error) {
-      const err = new Error(
-        i > 0
-          ? `${i} de ${item_ids.length} páginas foram salvas antes da falha. Tente aprovar novamente as restantes.`
-          : "Não foi possível aprovar as páginas. Tente novamente.",
-      );
+      // O SDK só diz "non-2xx"; o motivo real está no corpo da resposta.
+      let motivo: string | null = null;
+      try {
+        const body = await (error as any)?.context?.json?.();
+        if (typeof body?.error === "string" && body.error.trim()) motivo = body.error.trim();
+      } catch { /* corpo ilegível */ }
+      const base = i > 0
+        ? `${i} de ${item_ids.length} páginas foram salvas antes da falha. Tente aprovar novamente as restantes.`
+        : "Não foi possível aprovar as páginas. Tente novamente.";
+      const err = new Error(motivo ? `${base} Motivo: ${motivo}` : base);
       (err as any).cause = error;
+      (err as any).details = { status: (error as any)?.context?.status ?? null, motivo, salvas: i, total: item_ids.length };
       throw err;
     }
     results.push(...(((data as any)?.results ?? []) as BulkApproveResult[]));
