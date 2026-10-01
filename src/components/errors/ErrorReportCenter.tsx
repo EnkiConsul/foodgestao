@@ -133,21 +133,11 @@ export function ErrorReportCenter() {
                   id="error-description"
                   value={description}
                   onChange={(event) => setDescription(event.target.value.slice(0, 4000))}
-                  placeholder="Descreva o problema com o máximo de detalhes possível."
-                  rows={5}
+                  placeholder="Conte o que você estava fazendo e o que deu errado (ex.: tentei enviar a foto da CNH e a tela não carregou)."
+                  rows={6}
                   autoFocus
                 />
                 <p className="text-right text-xs text-muted-foreground">{description.length}/4000</p>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="attempted-action">O que você estava tentando fazer?</Label>
-                <Textarea
-                  id="attempted-action"
-                  value={attemptedAction}
-                  onChange={(event) => setAttemptedAction(event.target.value.slice(0, 2000))}
-                  placeholder="Ex.: salvar um documento, publicar uma convocação..."
-                  rows={3}
-                />
               </div>
               <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
                 <Bug className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden="true" />
