@@ -10811,6 +10811,7 @@ export type Database = {
           data_nascimento: string | null
           finalidade_dependente: boolean
           finalidade_sesc: boolean
+          finalidades: string[]
           id: string
           nome: string
           parentesco: string | null
@@ -10826,6 +10827,7 @@ export type Database = {
           data_nascimento?: string | null
           finalidade_dependente?: boolean
           finalidade_sesc?: boolean
+          finalidades?: string[]
           id?: string
           nome: string
           parentesco?: string | null
@@ -10841,6 +10843,7 @@ export type Database = {
           data_nascimento?: string | null
           finalidade_dependente?: boolean
           finalidade_sesc?: boolean
+          finalidades?: string[]
           id?: string
           nome?: string
           parentesco?: string | null
