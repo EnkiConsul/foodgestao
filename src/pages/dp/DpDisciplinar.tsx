@@ -387,25 +387,57 @@ export default function DpDisciplinar() {
     setEditElogioVis(((editing as any).elogio_visibilidade ?? "privado") as typeof editElogioVis);
   }, [editing]);
 
+  /**
+   * Validação amigável: campo obrigatório vazio não é erro do sistema.
+   * Retorna o campo pendente (para destacar e focar) ou null se está tudo certo.
+   */
+  const validarFormulario = (): { campo: string; mensagem: string } | null => {
+    if (!unidadeId) return { campo: "unidade", mensagem: "Selecione a unidade para continuar." };
+    if (!colaboradorId) return { campo: "colaborador", mensagem: "Selecione o colaborador para continuar." };
+    if (!dataDoc) return { campo: "data", mensagem: "Informe a data do documento." };
+    if (!tipo) return { campo: "tipo", mensagem: "Selecione o tipo de registro." };
+    const formal = isFormal(tipo);
+    if (formal) {
+      if (!motivoSel.trim()) return { campo: "motivo", mensagem: "Selecione ou digite o motivo da medida." };
+      if (caminho === "gerar" && observacao.trim().length < 10)
+        return { campo: "observacao", mensagem: "Descreva os fatos com pelo menos 10 caracteres para gerar a carta." };
+      if (caminho === "importar" && !pendingFile)
+        return { campo: "arquivo", mensagem: "Anexe a foto ou o PDF da via assinada." };
+      if (caminho === "importar" && !confirmo)
+        return { campo: "confirmo", mensagem: "Confirme que a via anexada foi aplicada presencialmente e assinada." };
+    }
+    if (tipo === "suspensao") {
+      const diasN = parseInt(dias || "0", 10);
+      if (!Number.isFinite(diasN) || diasN <= 0 || diasN > 30)
+        return { campo: "dias", mensagem: "Informe de 1 a 30 dias de suspensão." };
+    }
+    return null;
+  };
+
+  /** Aviso orientativo + destaque e foco no campo pendente. */
+  const avisarCampoPendente = (pendente: { campo: string; mensagem: string }) => {
+    setCampoPendente(pendente.campo);
+    toast.warning(pendente.mensagem, { closeButton: true, duration: 8_000 });
+    const ids: Record<string, string> = {
+      unidade: "unidade-1",
+      colaborador: "colaborador-2",
+      data: "data-do-documento-3",
+      tipo: "tipo-de-registro-4",
+      motivo: "motivo-disc",
+      dias: "dias-de-afastamento-se-aplicavel-5",
+      observacao: "observacoes-6",
+    };
+    const el = ids[pendente.campo] ? document.getElementById(ids[pendente.campo]) : null;
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    el?.focus();
+  };
+
   const doImport = useMutation({
     mutationFn: async () => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      if (!unidadeId) throw new Error("Selecione a unidade");
-      if (!colaboradorId) throw new Error("Selecione o colaborador");
-      if (!dataDoc) throw new Error("Informe a data do documento");
-      if (!tipo) throw new Error("Selecione o tipo de registro");
       const formal = isFormal(tipo);
       const motivoTxt = motivoSel.trim();
-      if (formal) {
-        if (!motivoTxt) throw new Error("Selecione ou digite o motivo");
-        if (caminho === "gerar" && observacao.trim().length < 10) throw new Error("Descreva os fatos (mínimo 10 caracteres)");
-        if (caminho === "importar" && !pendingFile) throw new Error("Anexe a foto ou PDF da via assinada");
-        if (caminho === "importar" && !confirmo) throw new Error("Confirme que a via anexada foi aplicada presencialmente e assinada.");
-      }
       const diasN = tipo === "suspensao" ? parseInt(dias || "0", 10) : 0;
-      if (tipo === "suspensao" && (!Number.isFinite(diasN) || diasN <= 0 || diasN > 30)) {
-        throw new Error("Informe de 1 a 30 dias de suspensão");
-      }
 
       const registroId = await registrarDisciplinar({
         colaboradorId,
