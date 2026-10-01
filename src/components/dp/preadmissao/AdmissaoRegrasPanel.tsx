@@ -227,10 +227,6 @@ export function AdmissaoRegrasPanel() {
     const lista = marcar
       ? Array.from(new Set([...atuais, codigo]))
       : atuais.filter((c) => c !== codigo);
-    if (!lista.length) {
-      toast.warning("Mantenha ao menos uma finalidade para este familiar.");
-      return;
-    }
     try {
       await definirParentesco.mutateAsync({ parentesco: valor, finalidades: lista });
     } catch (e) {
@@ -658,8 +654,18 @@ export function AdmissaoRegrasPanel() {
                 <p className="text-xs text-muted-foreground">
                    Escolha quais familiares o candidato pode incluir e para quais finalidades. Se não houver
                     regras cadastradas, todos os graus continuam aceitos. A finalidade da ficha não concede
-                    benefícios automaticamente.
+                    benefícios automaticamente. Desmarcar todas as opções deixa o familiar aceito apenas para
+                    cadastro, sem benefícios.
                 </p>
+                <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1">
+                  <p className="font-medium text-foreground">Documentos Pedidos Para Familiares</p>
+                  <p>
+                    Os documentos de cada familiar (certidão de nascimento, CPF, vacinação até 7 anos, frequência
+                    escolar, laudo de invalidez) ficam em "Documentos Específicos e Operacionais", no grupo
+                    Dependentes. Lá você pode tornar cada um obrigatório, opcional ou não pedir.
+                  </p>
+                  <p>Vacinação e frequência escolar são exigidas por lei apenas para o Salário-Família.</p>
+                </div>
 
                 <div className="space-y-2 rounded-md border p-3">
                   <p className="text-sm font-medium">Finalidades da Empresa</p>
@@ -702,11 +708,11 @@ export function AdmissaoRegrasPanel() {
                     const atual = (parentescos.data ?? []).find((x) => x.parentesco === p.value);
                     const atuais = atual?.finalidades ?? [];
                     return (
-                       <div key={p.value} className="grid gap-2 border-b py-2 sm:grid-cols-[minmax(120px,1fr)_minmax(0,2fr)] sm:items-start">
-                         <span className="text-sm font-medium">{p.label}</span>
-                         <div className="flex flex-wrap gap-x-4 gap-y-2">
+                       <div key={p.value} className="grid min-w-0 gap-2 border-b py-2 sm:grid-cols-[minmax(120px,1fr)_minmax(0,2fr)] sm:items-start">
+                         <span className="text-sm font-medium capitalize">{p.label}{atual && !atuais.length && <span className="ml-2 text-xs font-normal text-muted-foreground">(Apenas Cadastro)</span>}</span>
+                         <div className="flex min-w-0 flex-wrap gap-x-4 gap-y-2">
                            {finalidadesAtivas.map((f) => (
-                             <label key={f.codigo} className="flex items-center gap-2 text-sm">
+                             <label key={f.codigo} className="flex min-w-0 max-w-full items-center gap-2 break-words text-sm">
                                <Checkbox
                                  checked={atuais.includes(f.codigo)}
                                  aria-label={`${p.label} pode ter ${f.nome}`}
