@@ -260,12 +260,13 @@ export async function ajustarColaboradoresEmLote(input: {
   return Number(data ?? 0);
 }
 
-/** Libera ao colaborador a via física assinada (só advertência escrita/suspensão). */
-export async function importarViaAssinadaDisciplinar(registroId: string, caminho: string): Promise<void> {
+/** Libera (ou substitui, com motivo) a via física assinada (só advertência escrita/suspensão). */
+export async function importarViaAssinadaDisciplinar(registroId: string, caminho: string, motivoTroca?: string): Promise<void> {
   const { error } = await (supabase.rpc as any)("dp_registro_disciplinar_via_assinada", {
     p_registro_id: registroId,
     p_path: caminho,
     p_confirmo_aplicacao: true,
+    p_motivo_troca: motivoTroca ?? null,
   });
   if (error) lancar(error, "Não foi possível importar a via assinada.");
 }
