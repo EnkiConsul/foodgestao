@@ -64,6 +64,8 @@ export const DOCUMENTOS: Record<string, { titulo: string; instrucao?: string }> 
     instrucao: "Envie a certidão correspondente ao seu estado civil.",
   },
   reservista: { titulo: "Certificado de reservista" },
+  comprovante_escolar_menor: { titulo: "Comprovante escolar do candidato menor", instrucao: "Comprova a matrícula escolar do candidato menor de idade; não é o documento dos dependentes." },
+  autorizacao_judicial_menor: { titulo: "Autorização judicial", instrucao: "Envie somente quando houver decisão judicial específica para este caso." },
   licenciamento_veiculo: {
     titulo: "Último licenciamento do veículo",
     instrucao: "CRLV do ano vigente da motocicleta ou do veículo utilizado.",
@@ -174,6 +176,10 @@ export function montarChecklist({
   const configurados = new Set([...requisitosEmpresa, ...requisitosCargo, ...requisitosUnidade]);
   if (configurados.has("reservista") && normaliza(ficha.sexo).startsWith("m") && idade !== null && idade >= 18) {
     itens.push(item("reservista", "condicional"));
+  }
+  if (idade !== null && idade < 18) {
+    itens.push(item("comprovante_escolar_menor", "condicional"));
+    if (configurados.has("autorizacao_judicial_menor")) itens.push(item("autorizacao_judicial_menor", "condicional", null, false));
   }
 
   for (const p of pessoas) {
