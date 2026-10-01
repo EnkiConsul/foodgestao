@@ -177,6 +177,8 @@ export default function DpDisciplinar() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [confirmo, setConfirmo] = useState(false);
   const [elogioVis, setElogioVis] = useState<"privado" | "individual" | "publico">("privado");
+  /** Campo com preenchimento pendente — destacado na borda, sem erro de sistema. */
+  const [campoPendente, setCampoPendente] = useState<string | null>(null);
   // importar via assinada (histórico)
   const [viaPara, setViaPara] = useState<Registro | null>(null);
   const [viaArquivo, setViaArquivo] = useState<File | null>(null);
