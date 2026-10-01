@@ -106,7 +106,12 @@ Deno.serve(async (req) => {
     const razao = c.razao_social ?? c.name ?? "";
     const fantasia = c.nome_fantasia ?? c.trade_name ?? "";
     const cnpj = cnpjFmt(c.cnpj);
-    const cidade = c.cidade ?? c.city ?? "";
+    let cidade: string = c.cidade ?? c.city ?? "";
+    if (!cidade && k.unidade_id) {
+      const { data: un } = await svc.from("dp_unidades").select("*").eq("id", k.unidade_id).maybeSingle();
+      const u: any = un ?? {};
+      cidade = u.cidade ?? u.city ?? u.municipio ?? "";
+    }
     const suspensao = reg.tipo === "suspensao";
     const dias = Number(reg.suspensao_dias ?? 0);
     const motivo = String(reg.motivo ?? "").trim();

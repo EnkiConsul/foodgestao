@@ -168,6 +168,10 @@ export default function DpDisciplinar() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [unidadeId, setUnidadeId] = useState("");
   const [colaboradorId, setColaboradorId] = useState("");
+  useEffect(() => {
+    const lista = unidades.data ?? [];
+    if (!unidadeId && lista.length === 1) setUnidadeId(lista[0].id);
+  }, [unidades.data, unidadeId]);
   const [dataDoc, setDataDoc] = useState("");
   const [tipo, setTipo] = useState<string>("");
   const [dias, setDias] = useState<string>("0");
