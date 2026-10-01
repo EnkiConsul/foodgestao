@@ -85,6 +85,9 @@ describe("checklist documental", () => {
     expect(itens.find((i) => i.codigo === "custom_documento")?.titulo).toBe("Declaração da empresa");
     const exigido = montarChecklist({ ficha: base, requisitosEmpresa: [{ codigo: "custom_documento", nome: "Declaração da empresa", obrigatoriedade: "obrigatorio" }], hoje: HOJE });
     expect(exigido.find((i) => i.codigo === "custom_documento")?.obrigatorio).toBe(true);
+    const doCargo = montarChecklist({ ficha: base, requisitosCargo: ["custom_documento"], requisitosEmpresa: [{ codigo: "custom_documento", nome: "Declaração da empresa", obrigatoriedade: "opcional" }], hoje: HOJE });
+    expect(doCargo.filter((i) => i.codigo === "custom_documento")).toHaveLength(1);
+    expect(doCargo.find((i) => i.codigo === "custom_documento")?.obrigatorio).toBe(false);
   });
 
   it("acrescenta requisito do cargo e da unidade sem duplicar", () => {

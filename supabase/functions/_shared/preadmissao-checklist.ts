@@ -160,15 +160,16 @@ export function montarChecklist({
 }: ChecklistInput): ItemChecklist[] {
   const itens: ItemChecklist[] = GERAIS.map((c) => item(c, "candidato"));
 
+  const exigenciaEmpresa = new Map(requisitosEmpresa.map((r) => [typeof r === "string" ? r : r.codigo, typeof r === "string" ? "obrigatorio" : r.obrigatoriedade]));
   // Requisitos vindos do Cargo/Unidade canônicos — nunca pelo nome do cargo.
   for (const codigo of [...new Set([...requisitosCargo, ...requisitosUnidade])]) {
     if (["autorizacao_menor", "autorizacao_judicial_menor", "cnh_sem_suspensao"].includes(codigo)) continue;
-    itens.push(item(codigo, "condicional"));
+    itens.push(item(codigo, "condicional", null, exigenciaEmpresa.get(codigo) !== "opcional"));
   }
   for (const requisito of requisitosEmpresa) {
     const codigo = typeof requisito === "string" ? requisito : requisito.codigo;
     if (codigo.startsWith("custom_") && !requisitosCargo.includes(codigo) && !requisitosUnidade.includes(codigo)) {
-      const novo = item(codigo, "condicional", null, typeof requisito !== "string" && requisito.obrigatoriedade === "obrigatorio");
+      const novo = item(codigo, "condicional", null, typeof requisito === "string" || requisito.obrigatoriedade === "obrigatorio");
       if (typeof requisito !== "string") novo.titulo = requisito.nome;
       itens.push(novo);
     }

@@ -138,7 +138,7 @@ interface Editando {
 export function AdmissaoRegrasPanel() {
   const { data: unidades = [] } = useDpUnidades();
   const { data: cargos = [] } = useDpCargos();
-  const { requisitos = [], criar, salvar: salvarDocumento, remover: removerDocumento } = useDpDocumentoRequisitos();
+  const { requisitos = [], criar, salvar: salvarDocumento } = useDpDocumentoRequisitos();
   const { regras, parentescos, salvar, excluir, definirParentesco } = useDpAdmissaoRegras();
 
   const [aberto, setAberto] = useState<string | null>(null);
@@ -401,7 +401,7 @@ export function AdmissaoRegrasPanel() {
                     <SelectTrigger className="h-9 w-40" aria-label={`Exigência de ${r.nome}`}><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="obrigatorio">Obrigatório</SelectItem><SelectItem value="opcional">Opcional</SelectItem><SelectItem value="desativado">Não pedir</SelectItem></SelectContent>
                   </Select>
-                  {r.codigo.startsWith("custom_") && <Button type="button" size="sm" variant="ghost" className="text-destructive" onClick={() => void removerDocumento.mutateAsync(r.id)}><Trash2 className="h-4 w-4 mr-1" />Retirar</Button>}
+                  {r.codigo.startsWith("custom_") && <Button type="button" size="sm" variant="ghost" className="text-destructive" disabled={salvarDocumento.isPending} onClick={() => void salvarDocumento.mutateAsync({ id: r.id, patch: { obrigatoriedade: "desativado" } })}><Trash2 className="h-4 w-4 mr-1" />Retirar</Button>}
                 </div>
               </div>)}
             </div>
@@ -496,8 +496,9 @@ export function AdmissaoRegrasPanel() {
                <Button type="button" variant="ghost" className="w-full h-auto justify-between px-0" aria-expanded={secaoAberta === "familiares"} onClick={() => setSecaoAberta(secaoAberta === "familiares" ? null : "familiares")}>Familiares Aceitos <ChevronDown className={`h-4 w-4 ${secaoAberta === "familiares" ? "" : "-rotate-90"}`} /></Button>
                {secaoAberta === "familiares" && <><div>
                 <p className="text-xs text-muted-foreground">
-                  Escolha quais familiares o candidato pode incluir. Sem nenhuma marcação,
-                   todos os graus continuam aceitos. A finalidade da ficha não concede benefícios automaticamente.
+                   Escolha quais familiares o candidato pode incluir. Se não houver regras cadastradas,
+                    todos os graus continuam aceitos. Com regras, só entram os parentescos marcados.
+                    A finalidade da ficha não concede benefícios automaticamente.
                 </p>
               </div>
                <div className="space-y-2">
