@@ -2626,9 +2626,18 @@ export function ColaboradorFormDialog({
             </p>
           </div>
 
-          {exigeDomingosFolga && (
-            <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-              <p className="font-medium">Folgas dominicais: exceção por colaborador</p>
+          {/* Folga dominical: a ficha informa o que vale para esta pessoa; o
+              cadastro da regra e das exceções é na tela Folgas > Regras. */}
+          {policy.folgaSemanal !== "nao_se_aplica" && (
+            <div
+              className={[
+                "space-y-2 rounded-md border p-3 text-xs",
+                form.domingos_folga_mes !== "none"
+                  ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+                  : "border-border bg-muted/40 text-muted-foreground",
+              ].join(" ")}
+            >
+              <p className="font-medium text-foreground">Folgas dominicais</p>
               <p>
                 {form.domingos_folga_mes !== "none"
                   ? `Este colaborador tem exceção de ${form.domingos_folga_mes} domingo${form.domingos_folga_mes === "1" ? "" : "s"} de folga por mês.`
