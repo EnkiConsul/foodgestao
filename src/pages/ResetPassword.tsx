@@ -136,7 +136,7 @@ export default function ResetPassword() {
                   />
                 </div>
                 {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-                <MedidorSenha senha={password} />
+                <MedidorSenha senha={password} semMensagem />
                 <ChecklistRequisitosSenha senha={password} />
               </div>
 
