@@ -12,6 +12,8 @@ import { maskCpf } from "@/lib/cpf";
 import { avaliarSenha } from "@/lib/security/passwordPolicy";
 import { MedidorSenha } from "@/components/auth/MedidorSenha";
 import { ChecklistRequisitosSenha } from "@/components/auth/ChecklistRequisitosSenha";
+import { TermoPrimeiroAcesso } from "@/components/auth/TermoPrimeiroAcesso";
+import { TERMO_PORTAL_VERSAO } from "@/lib/dp/termoPortal";
 
 /** Regra única de senha nova (S3): src/lib/security/passwordPolicy.ts */
 function validarSenha(senha: string): string | null {
