@@ -211,6 +211,10 @@ export function AdmissaoRegrasPanel() {
   };
 
   const marcarParentesco = async (valor: string, dependente: boolean, sesc: boolean) => {
+    if (!dependente && !sesc) {
+      toast.warning("Mantenha ao menos uma finalidade para este familiar.");
+      return;
+    }
     try {
       await definirParentesco.mutateAsync({ parentesco: valor, dependente, sesc });
     } catch (e) {
