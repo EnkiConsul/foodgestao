@@ -10,6 +10,7 @@
 const LOWER = new Set([
   "a", "o", "as", "os", "um", "uma", "uns", "umas",
   "de", "da", "do", "das", "dos", "em", "na", "no", "nas", "nos",
+  "ao", "aos", "à", "às", "pelo", "pela", "pelos", "pelas", "num", "numa",
   "por", "para", "com", "sem", "sob", "sobre", "entre", "até", "ante", "após",
   "e", "ou", "mas", "nem", "se", "que",
 ]);
