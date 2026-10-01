@@ -60,14 +60,14 @@ const TEXTO_CONFIRMACAO =
 
 /** Motivos comuns, cada um enquadrado na alínea do Art. 482 da CLT (mesma tabela no gerador do PDF). */
 const MOTIVOS: { label: string; alinea: string }[] = [
-  { label: "Atraso Ou Falta Injustificada", alinea: "e" },
-  { label: "Insubordinação / Descumprimento De Ordem", alinea: "h" },
-  { label: "Indisciplina / Descumprimento De Normas Internas", alinea: "h" },
+  { label: "Atraso ou Falta Injustificada", alinea: "e" },
+  { label: "Insubordinação / Descumprimento de Ordem", alinea: "h" },
+  { label: "Indisciplina / Descumprimento de Normas Internas", alinea: "h" },
   { label: "Mau Procedimento / Conduta Inadequada", alinea: "b" },
-  { label: "Desídia No Desempenho Das Funções", alinea: "e" },
-  { label: "Ofensa Ou Agressão A Colega Ou Cliente", alinea: "j" },
-  { label: "Uso Indevido De Celular No Expediente", alinea: "h" },
-  { label: "Embriaguez Em Serviço", alinea: "f" },
+  { label: "Desídia no Desempenho das Funções", alinea: "e" },
+  { label: "Ofensa ou Agressão a Colega ou Cliente", alinea: "j" },
+  { label: "Uso Indevido de Celular no Expediente", alinea: "h" },
+  { label: "Embriaguez em Serviço", alinea: "f" },
 ];
 
 function AvisoJuridicoDisciplinar() {
@@ -137,7 +137,7 @@ const getFileKind = (path?: string | null) => {
 
 function situacaoPortal(r: { tipo: string; via_assinada_path: string | null }): string {
   if (!isFormal(r.tipo)) return "Interno (Só DP)";
-  return r.via_assinada_path ? "Via Assinada No Portal" : "Aguardando Via Assinada";
+  return r.via_assinada_path ? "Via Assinada no Portal" : "Aguardando Via Assinada";
 }
 
 async function enviarArquivo(companyId: string, registroId: string, file: File): Promise<string> {
@@ -651,13 +651,13 @@ export default function DpDisciplinar() {
 
               {tipo === "elogio" && (
                 <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
-                  <Label htmlFor="elogio-visibilidade">Visibilidade Do Elogio</Label>
+                  <Label htmlFor="elogio-visibilidade">Visibilidade do Elogio</Label>
                   <Select value={elogioVis} onValueChange={(v) => setElogioVis(v as typeof elogioVis)}>
                     <SelectTrigger id="elogio-visibilidade"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="privado">Privado (Apenas Dossiê Interno)</SelectItem>
-                      <SelectItem value="individual">Individual (Avisar E Mostrar No Portal Do Colaborador)</SelectItem>
-                      <SelectItem value="publico">Público (Publicar No Mural Da Unidade)</SelectItem>
+                      <SelectItem value="individual">Individual (Avisar e Mostrar no Portal do Colaborador)</SelectItem>
+                      <SelectItem value="publico">Público (Publicar no Mural da Unidade)</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
@@ -675,7 +675,7 @@ export default function DpDisciplinar() {
                   <Label>Como Deseja Registrar? *</Label>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {([
-                      ["gerar", "Gerar Modelo Do Sistema", "Preencha motivo e fatos; o sistema gera a carta para imprimir."],
+                      ["gerar", "Gerar Modelo do Sistema", "Preencha motivo e fatos; o sistema gera a carta para imprimir."],
                       ["importar", "Importar Via Já Assinada", "Use o modelo próprio da empresa já assinado em papel."],
                     ] as const).map(([v, t, d]) => (
                       <button
@@ -717,7 +717,7 @@ export default function DpDisciplinar() {
 
               {tipo === "suspensao" && (
                 <div className="space-y-2">
-                  <Label htmlFor="dias-de-afastamento-se-aplicavel-5">Dias De Suspensão *</Label>
+                  <Label htmlFor="dias-de-afastamento-se-aplicavel-5">Dias de Suspensão *</Label>
                   <Input id="dias-de-afastamento-se-aplicavel-5" type="number" min={1} max={30} value={dias} onChange={(e) => { setDias(e.target.value); if (campoPendente === "dias") setCampoPendente(null); }} className={campoPendente === "dias" ? "border-destructive ring-1 ring-destructive" : undefined} />
                   <p className="text-xs text-muted-foreground">Máximo de 30 dias (Art. 474 da CLT). A suspensão começa no dia seguinte à data do documento.</p>
                 </div>
@@ -725,7 +725,7 @@ export default function DpDisciplinar() {
 
               {(!isFormal(tipo) || caminho === "importar") && (
                 <div className="space-y-2">
-                  <Label>{isFormal(tipo) ? "Foto Ou PDF Da Via Assinada *" : "Arquivo (Opcional)"}</Label>
+                  <Label>{isFormal(tipo) ? "Foto ou PDF da Via Assinada *" : "Arquivo (Opcional)"}</Label>
                   <div className={campoPendente === "arquivo" ? "rounded-lg ring-2 ring-destructive" : undefined}>
                     <DpFilePicker ref={fileRef} accept="application/pdf,image/*" file={pendingFile} onFileChange={(f) => { setPendingFile(f); if (f && campoPendente === "arquivo") setCampoPendente(null); }} />
                   </div>
@@ -739,7 +739,7 @@ export default function DpDisciplinar() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="observacoes-6">{isFormal(tipo) ? "Descrição Dos Fatos" + (caminho === "gerar" ? " *" : "") : "Observações"}</Label>
+                <Label htmlFor="observacoes-6">{isFormal(tipo) ? "Descrição dos Fatos" + (caminho === "gerar" ? " *" : "") : "Observações"}</Label>
                 <Textarea
                   id="observacoes-6"
                   rows={isFormal(tipo) ? 6 : 3}
@@ -768,7 +768,7 @@ export default function DpDisciplinar() {
               {doImport.isPending
                 ? "Processando..."
                 : isFormal(tipo)
-                  ? caminho === "gerar" ? "Gerar Carta Para Impressão (PDF)" : "Salvar E Arquivar Via Assinada"
+                  ? caminho === "gerar" ? "Gerar Carta para Impressão (PDF)" : "Salvar e Arquivar Via Assinada"
                   : "Salvar Registro"}
             </Button>
           </DpContentCard>
@@ -920,7 +920,11 @@ export default function DpDisciplinar() {
                 <div key={r.id} className="rounded-2xl border border-border bg-card p-4 space-y-2 active:scale-[0.98] transition-transform">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <div className="truncate font-semibold">{r.dp_colaboradores?.nome ?? "—"}</div>
+                      {(r.via_assinada_path || r.pdf_storage_path) ? (
+                        <button type="button" className="flex max-w-full items-center gap-1 text-left font-semibold text-primary hover:underline" onClick={() => setPreview({ title: `Registro — ${r.dp_colaboradores?.nome ?? ""}`, path: (r.via_assinada_path ?? r.pdf_storage_path)! })}>
+                          <span className="truncate">{r.dp_colaboradores?.nome ?? "—"}</span><FileText className="size-3.5 shrink-0" />
+                        </button>
+                      ) : <div className="truncate font-semibold">{r.dp_colaboradores?.nome ?? "—"}</div>}
                       {unitName && <div className="text-[11px] text-muted-foreground truncate">{unitName}</div>}
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-0.5">
@@ -935,7 +939,7 @@ export default function DpDisciplinar() {
                       <button
                         type="button"
                         className="inline-flex items-center gap-1 text-primary hover:underline text-left col-span-2"
-                        onClick={() => setPreview({ title: `Registro — ${r.dp_colaboradores?.nome ?? ""}`, path: r.pdf_storage_path! })}
+                        onClick={() => setPreview({ title: `Registro — ${r.dp_colaboradores?.nome ?? ""}`, path: (r.via_assinada_path ?? r.pdf_storage_path)! })}
                       >
                         <FileIcon className="h-3 w-3" /> {fileKind.label}
                       </button>
@@ -1032,13 +1036,13 @@ export default function DpDisciplinar() {
             </div>
             {editTipo === "elogio" && (
               <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
-                <Label htmlFor="edit-elogio-visibilidade">Visibilidade Do Elogio</Label>
+                <Label htmlFor="edit-elogio-visibilidade">Visibilidade do Elogio</Label>
                 <Select value={editElogioVis} onValueChange={(v) => setEditElogioVis(v as typeof editElogioVis)}>
                   <SelectTrigger id="edit-elogio-visibilidade"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="privado">Privado (Apenas Dossiê Interno)</SelectItem>
-                    <SelectItem value="individual">Individual (Avisar E Mostrar No Portal Do Colaborador)</SelectItem>
-                    <SelectItem value="publico">Público (Publicar No Mural Da Unidade)</SelectItem>
+                    <SelectItem value="individual">Individual (Avisar e Mostrar no Portal do Colaborador)</SelectItem>
+                    <SelectItem value="publico">Público (Publicar no Mural da Unidade)</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
@@ -1061,11 +1065,11 @@ export default function DpDisciplinar() {
       </Dialog>
 
       <Dialog open={!!viaPara} onOpenChange={(v) => { if (!v) { setViaPara(null); setViaArquivo(null); setViaConfirmo(false); setViaMotivo(""); } }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="overflow-x-hidden sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{viaPara?.via_assinada_path ? "Substituir Via Assinada" : "Importar Via Assinada"}</DialogTitle>
+            <DialogTitle className="pr-6">{viaPara?.via_assinada_path ? "Substituir Via Assinada" : "Importar Via Assinada"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 text-sm">
+          <div className="min-w-0 space-y-3 text-sm">
             <p className="text-muted-foreground">
               {viaPara?.dp_colaboradores?.nome} — {viaPara ? TIPO_LABEL[viaPara.tipo] : ""} de {formatDate(viaPara?.data)}.
             </p>
@@ -1087,7 +1091,7 @@ export default function DpDisciplinar() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setViaPara(null)}>Cancelar</Button>
             <Button onClick={() => doVia.mutate()} disabled={doVia.isPending || !viaArquivo || !viaConfirmo || (!!viaPara?.via_assinada_path && viaMotivo.trim().length < 5)}>
-              {doVia.isPending ? "Enviando..." : viaPara?.via_assinada_path ? "Substituir Via" : "Importar E Liberar Ao Colaborador"}
+              {doVia.isPending ? "Enviando..." : viaPara?.via_assinada_path ? "Substituir Via" : "Importar e Liberar ao Colaborador"}
             </Button>
           </DialogFooter>
         </DialogContent>
