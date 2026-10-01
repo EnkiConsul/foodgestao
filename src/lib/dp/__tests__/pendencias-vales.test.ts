@@ -4,8 +4,12 @@ import { ciclosValePendentes, unidadesSemFeriados } from "@/lib/dp/pendencias-va
 const base = { diaPagamento: 25, competenciasFechadas: new Set<string>() };
 
 describe("ciclosValePendentes", () => {
-  it("não alerta antes de 2 dias", () => {
-    expect(ciclosValePendentes({ ...base, hojeISO: "2026-09-22" })).toEqual([]);
+  it("antes da janela só cobra o ciclo anterior em aberto", () => {
+    const r = ciclosValePendentes({ ...base, hojeISO: "2026-09-22" });
+    expect(r.map((c) => c.vencimento)).toEqual(["2026-08-25"]);
+    expect(
+      ciclosValePendentes({ ...base, hojeISO: "2026-09-22", competenciasFechadas: new Set(["2026-08-01"]) }),
+    ).toEqual([]);
   });
   it("2 dias antes aparece como próxima", () => {
     const [c] = ciclosValePendentes({ ...base, hojeISO: "2026-09-23" });

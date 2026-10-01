@@ -62,7 +62,8 @@ export function ciclosValePendentes(opts: {
     if (atrasoDias < -VALE_ANTECEDENCIA_DIAS) continue;
     out.push({ vencimento, competencia, atrasoDias, urgente: atrasoDias >= 0 });
   }
-  return out;
+  // Quando o ciclo do mês atual já entrou na janela, ele substitui o anterior.
+  return out.length > 1 ? [out[out.length - 1]] : out;
 }
 
 /** Unidades ativas sem nenhum feriado ativo que caia no ano informado. */
