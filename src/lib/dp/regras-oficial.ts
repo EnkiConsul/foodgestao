@@ -235,13 +235,6 @@ export async function definirParentescoAdmissao(input: {
   erro(error, "Não foi possível salvar o grau de parentesco.");
 }
 
-export async function removerParentescoAdmissao(companyId: string, parentesco: string): Promise<void> {
-  const { error } = await rpc("dp_admissao_regra_parentesco_remover", {
-    p_company_id: companyId,
-    p_parentesco: parentesco,
-  });
-  erro(error, "Não foi possível remover o grau de parentesco.");
-}
 
 /** Finalidades (convênios) de familiares cadastradas pela empresa. */
 export async function salvarFinalidadeAdmissao(input: {
