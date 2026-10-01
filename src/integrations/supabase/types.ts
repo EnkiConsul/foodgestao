@@ -17808,6 +17808,10 @@ export type Database = {
         }[]
       }
       dp_txt_norm: { Args: { p: string }; Returns: string }
+      dp_unidade_seed_feriados_nacionais: {
+        Args: { _company_id: string; _unidade_id: string }
+        Returns: number
+      }
       dre_apply_default_mapping: {
         Args: { _company_id: string }
         Returns: number
