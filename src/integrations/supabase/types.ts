@@ -9580,6 +9580,36 @@ export type Database = {
           },
         ]
       }
+      dp_modelos_mensagem_padrao: {
+        Row: {
+          assunto: string | null
+          canal: string
+          corpo: string
+          created_at: string
+          id: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          assunto?: string | null
+          canal: string
+          corpo: string
+          created_at?: string
+          id?: string
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          assunto?: string | null
+          canal?: string
+          corpo?: string
+          created_at?: string
+          id?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
       dp_notificacoes: {
         Row: {
           chave: string | null
@@ -17072,6 +17102,10 @@ export type Database = {
         Returns: Json
       }
       dp_minutos_do_horario: { Args: { _t: string }; Returns: number }
+      dp_modelos_mensagem_seed: {
+        Args: { _company_id: string }
+        Returns: undefined
+      }
       dp_nome_normalizado: { Args: { p_nome: string }; Returns: string }
       dp_notificacao_marcar_lida: { Args: { _ids: string[] }; Returns: number }
       dp_notificacoes_marcar_todas: {
