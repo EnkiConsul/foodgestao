@@ -308,24 +308,27 @@ export function AdmissaoRegrasPanel() {
     return [...out.entries()];
   }, []);
 
-  /** Documentos do catálogo separados por responsável e agrupados por assunto. */
-  const documentos = useMemo(() => {
+  /** Documentos do catálogo agrupados por assunto, já separados por responsável. */
+  const porGrupo = useMemo(() => {
     const ativos = (requisitos as DpDocumentoRequisito[])
       .filter((r) => r.obrigatoriedade !== "desativado" || r.codigo === "autorizacao_judicial_menor");
-    const separa = () => {
-      const m = new Map<string, DpDocumentoRequisito[]>();
-      ativos
-        .filter((r) => !requisitoDaEmpresa(r) && !["cnh_sem_suspensao", "autorizacao_menor"].includes(r.codigo))
-        .forEach((r) => {
-          const g = (r as { grupo?: string | null }).grupo || "identificacao";
-          m.set(g, [...(m.get(g) ?? []), r]);
-        });
-      return [...m.entries()].sort(
-        (a, b) => GRUPO_DOC_ORDEM.indexOf(a[0]) - GRUPO_DOC_ORDEM.indexOf(b[0]),
-      );
-    };
-    return separa();
+    const m = new Map<string, DpDocumentoRequisito[]>();
+    ativos
+      .filter((r) => !requisitoDaEmpresa(r) && !["cnh_sem_suspensao", "autorizacao_menor"].includes(r.codigo))
+      .forEach((r) => {
+        const g = (r as { grupo?: string | null }).grupo || "identificacao";
+        m.set(g, [...(m.get(g) ?? []), r]);
+      });
+    return m;
   }, [requisitos]);
+
+  const listaDeGrupos = (chaves: string[]): [string, DpDocumentoRequisito[]][] =>
+    chaves
+      .filter((g) => (porGrupo.get(g) ?? []).length)
+      .map((g) => [g, porGrupo.get(g) as DpDocumentoRequisito[]]);
+
+  const documentosGerais = listaDeGrupos(GRUPOS_DOC_GERAIS);
+  const documentosEspecificos = listaDeGrupos(GRUPOS_DOC_ESPECIFICOS);
 
   const escopoTexto = (r: AdmissaoRegra) => {
     const partes: string[] = [];
@@ -336,21 +339,32 @@ export function AdmissaoRegrasPanel() {
     return partes.join(" · ");
   };
 
-  const linha = (tipo: TipoRegra, chave: string, label: string) => {
+  /**
+   * Linha compacta: nome, exigência, se tem exceção. O detalhe (regra padrão,
+   * exceções e ajustes) só abre quando o gestor clica no item.
+   */
+  const linha = (
+    tipo: TipoRegra,
+    chave: string,
+    label: string,
+    opcoes?: { exigenciaBase?: Exigencia | null; detalhe?: React.ReactNode; descricao?: string | null },
+  ) => {
     const doItem = porItem.get(`${tipo}:${chave}`) ?? [];
     const padrao = doItem.find((r) => r.padrao);
     const excecoes = doItem.filter((r) => !r.padrao);
     const chaveAberta = `${tipo}:${chave}`;
     const expandido = aberto === chaveAberta;
-    const simulado = resolverExigencia(doItem, alvoSimulado);
+    const simulado = resolverExigencia(doItem, alvoSimulado) ?? opcoes?.exigenciaBase ?? null;
+    const variante = simulado === "obrigatorio"
+      ? "default"
+      : simulado === "nao_pedir" ? "outline" : "secondary";
     return (
-      <div key={chaveAberta} className="border-b last:border-b-0 py-2">
-        {/* No celular o card inteiro abre as exceções; no desktop o título abre. */}
+      <div key={chaveAberta} className="border-b last:border-b-0">
         <div
           role="button"
           tabIndex={0}
           aria-expanded={expandido}
-          className="flex flex-wrap items-center gap-2 rounded-md p-1 -m-1 active:bg-muted/60 sm:active:bg-transparent cursor-pointer"
+          className="flex items-center gap-2 py-2.5 rounded-md px-1 -mx-1 active:bg-muted/60 cursor-pointer"
           onClick={() => setAberto(expandido ? null : chaveAberta)}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -359,111 +373,171 @@ export function AdmissaoRegrasPanel() {
             }
           }}
         >
-          <span className="flex items-center gap-1 text-sm font-medium text-left flex-1 min-w-[160px]">
-            <ChevronDown className={`h-4 w-4 transition-transform ${expandido ? "" : "-rotate-90"}`} />
-            {label}
-          </span>
-          <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-            <Select
-              value={padrao?.exigencia ?? "padrao"}
-              onValueChange={(v) => void salvarPadrao(tipo, chave, v as Exigencia | "padrao")}
-            >
-              <SelectTrigger className="h-10 w-[190px]" aria-label={`Regra padrão de ${label}`}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="padrao">Padrão do sistema</SelectItem>
-                {EXIGENCIAS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <Badge variant={excecoes.length ? "default" : "outline"} className="text-xs">
-            {excecoes.length ? `${excecoes.length} exceção(ões)` : "Sem exceções"}
-          </Badge>
-          <Badge variant="secondary" className="text-xs">Vale agora: {rotuloExigencia(simulado)}</Badge>
+          <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expandido ? "" : "-rotate-90"}`} />
+          <span className="flex-1 min-w-0 text-sm font-medium">{label}</span>
+          <Badge variant={variante} className="text-[11px] shrink-0">{rotuloExigencia(simulado)}</Badge>
+          {excecoes.length > 0 && (
+            <Badge variant="outline" className="text-[11px] shrink-0">{excecoes.length} exceção(ões)</Badge>
+          )}
         </div>
 
         {expandido && (
-          <div className="mt-2 space-y-2 sm:pl-5">
-            {excecoes.map((r) => (
-              <div key={r.id} className="flex flex-wrap items-center gap-2 text-xs bg-muted/40 rounded-md p-2">
-                <Badge variant="outline">{rotuloExigencia(r.exigencia)}</Badge>
-                <span className="flex-1 text-muted-foreground">{escopoTexto(r)}</span>
-                <Button
-                  type="button" size="sm" variant="ghost" className="h-9"
-                  onClick={() => setEditando({
-                    id: r.id, tipo, chave, label, exigencia: r.exigencia,
-                    unidades: r.unidades, cargos: r.cargos, regimes: r.regimes,
-                    sexos: r.sexos ?? [],
-                  })}
-                >
-                  <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-                </Button>
-                <Button
-                  type="button" size="sm" variant="ghost" className="h-9 text-destructive"
-                  onClick={() => void removerExcecao(r.id)}
-                >
-                  <Trash2 className="h-3.5 w-3.5 mr-1" /> Remover
-                </Button>
-              </div>
-            ))}
-            <Button
-              type="button" size="sm" variant="outline" className="h-10 w-full sm:w-auto"
-              onClick={() => setEditando({
-                id: null, tipo, chave, label, exigencia: "obrigatorio",
-                unidades: [], cargos: [], regimes: [], sexos: [],
-              })}
-            >
-              <Plus className="h-4 w-4 mr-1" /> Adicionar Exceção
-            </Button>
+          <div className="mb-3 space-y-3 rounded-md border bg-muted/30 p-3">
+            {opcoes?.descricao && <p className="text-xs text-muted-foreground">{opcoes.descricao}</p>}
+            <div className="space-y-1">
+              <Label className="text-xs">Regra padrão (vale para todos)</Label>
+              <Select
+                value={padrao?.exigencia ?? "padrao"}
+                onValueChange={(v) => void salvarPadrao(tipo, chave, v as Exigencia | "padrao")}
+              >
+                <SelectTrigger className="h-10 w-full sm:w-[220px]" aria-label={`Regra padrão de ${label}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="padrao">Padrão do sistema</SelectItem>
+                  {EXIGENCIAS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {opcoes?.detalhe}
+
+            <div className="space-y-2">
+              <Label className="text-xs">Exceções</Label>
+              {!excecoes.length && (
+                <p className="text-xs text-muted-foreground">Nenhuma exceção cadastrada.</p>
+              )}
+              {excecoes.map((r) => (
+                <div key={r.id} className="flex flex-wrap items-center gap-2 text-xs bg-background rounded-md border p-2">
+                  <Badge variant="outline">{rotuloExigencia(r.exigencia)}</Badge>
+                  <span className="flex-1 text-muted-foreground">{escopoTexto(r)}</span>
+                  <Button
+                    type="button" size="sm" variant="ghost" className="h-9"
+                    onClick={() => setEditando({
+                      id: r.id, tipo, chave, label, exigencia: r.exigencia,
+                      unidades: r.unidades, cargos: r.cargos, regimes: r.regimes,
+                      sexos: r.sexos ?? [],
+                    })}
+                  >
+                    <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                  </Button>
+                  <Button
+                    type="button" size="sm" variant="ghost" className="h-9 text-destructive"
+                    onClick={() => void removerExcecao(r.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" /> Remover
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button" size="sm" variant="outline" className="h-10 w-full sm:w-auto"
+                onClick={() => setEditando({
+                  id: null, tipo, chave, label, exigencia: "obrigatorio",
+                  unidades: [], cargos: [], regimes: [], sexos: [],
+                })}
+              >
+                <Plus className="h-4 w-4 mr-1" /> Adicionar Exceção
+              </Button>
+            </div>
           </div>
         )}
       </div>
     );
   };
 
+  const linhaDocumento = (r: DpDocumentoRequisito) => linha("documento", r.codigo, r.nome, {
+    exigenciaBase: r.obrigatoriedade === "desativado"
+      ? "nao_pedir"
+      : (r.obrigatoriedade as Exigencia),
+    descricao: r.descricao,
+    detalhe: (
+      <div className="space-y-1">
+        <Label className="text-xs">Como o documento vem do catálogo</Label>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={r.obrigatoriedade}
+            onValueChange={(v) => void salvarDocumento.mutateAsync({ id: r.id, patch: { obrigatoriedade: v } })}
+          >
+            <SelectTrigger className="h-10 w-full sm:w-[220px]" aria-label={`Exigência de ${r.nome}`}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="obrigatorio">Obrigatório</SelectItem>
+              <SelectItem value="opcional">Opcional</SelectItem>
+              <SelectItem value="desativado">Não pedir</SelectItem>
+            </SelectContent>
+          </Select>
+          {r.codigo.startsWith("custom_") && (
+            <Button
+              type="button" size="sm" variant="ghost" className="text-destructive"
+              disabled={salvarDocumento.isPending}
+              onClick={() => void salvarDocumento.mutateAsync({ id: r.id, patch: { obrigatoriedade: "desativado" } })}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />Retirar
+            </Button>
+          )}
+        </div>
+      </div>
+    ),
+  });
+
   const cardDocumentos = (
+    secao: string,
     titulo: string,
     ajuda: string,
     lista: [string, DpDocumentoRequisito[]][],
+    selo?: string,
+    permiteIncluir = false,
   ) => (
     <Card>
       <CardContent className="p-3 sm:p-4 space-y-3">
-        <Button type="button" variant="ghost" className="w-full h-auto justify-between text-left px-0" aria-expanded={secaoAberta === "documentos"} onClick={() => setSecaoAberta(secaoAberta === "documentos" ? null : "documentos")}> {titulo} <ChevronDown className={`h-4 w-4 shrink-0 ${secaoAberta === "documentos" ? "" : "-rotate-90"}`} /> </Button>
-        {secaoAberta === "documentos" && <>
-        <p className="text-xs text-muted-foreground">{ajuda}</p>
-        {!lista.length ? (
-          <p className="text-sm text-muted-foreground">Nenhum documento nesta lista.</p>
-        ) : (
-          lista.map(([grupo, itens]) => (
-            <div key={grupo} className="space-y-1">
-              <div className="flex items-center gap-2">
-                <h4 className="text-xs font-semibold uppercase text-muted-foreground">
-                  {GRUPO_DOC_LABEL[grupo] ?? grupo}
-                </h4>
-                {GRUPO_DOC_SELO[grupo] && (
-                  <Badge variant="outline" className="text-[10px]">{GRUPO_DOC_SELO[grupo]}</Badge>
-                )}
-              </div>
-              {itens.map((r) => <div key={r.id} className="flex flex-col gap-1 border-b py-2 last:border-0">
-                {linha("documento", r.codigo, r.nome)}
-                {r.descricao && <p className="text-xs text-muted-foreground">{r.descricao}</p>}
-                <div className="flex flex-wrap items-center gap-2">
-                  <Select value={r.obrigatoriedade} onValueChange={(v) => void salvarDocumento.mutateAsync({ id: r.id, patch: { obrigatoriedade: v } })}>
-                    <SelectTrigger className="h-9 w-40" aria-label={`Exigência de ${r.nome}`}><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="obrigatorio">Obrigatório</SelectItem><SelectItem value="opcional">Opcional</SelectItem><SelectItem value="desativado">Não pedir</SelectItem></SelectContent>
-                  </Select>
-                  {r.codigo.startsWith("custom_") && <Button type="button" size="sm" variant="ghost" className="text-destructive" disabled={salvarDocumento.isPending} onClick={() => void salvarDocumento.mutateAsync({ id: r.id, patch: { obrigatoriedade: "desativado" } })}><Trash2 className="h-4 w-4 mr-1" />Retirar</Button>}
+        <Button
+          type="button" variant="ghost"
+          className="w-full h-auto justify-between text-left px-0"
+          aria-expanded={secaoAberta === secao}
+          onClick={() => setSecaoAberta(secaoAberta === secao ? null : secao)}
+        >
+          <span className="flex flex-col items-start gap-1">
+            <span>{titulo}</span>
+            {selo && <span className="text-[11px] font-normal text-muted-foreground">{selo}</span>}
+          </span>
+          <ChevronDown className={`h-4 w-4 shrink-0 ${secaoAberta === secao ? "" : "-rotate-90"}`} />
+        </Button>
+        {secaoAberta === secao && <>
+          <p className="text-xs text-muted-foreground">{ajuda}</p>
+          {!lista.length ? (
+            <p className="text-sm text-muted-foreground">Nenhum documento nesta lista.</p>
+          ) : (
+            lista.map(([grupo, itens]) => (
+              <div key={grupo} className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs font-semibold uppercase text-muted-foreground">
+                    {GRUPO_DOC_LABEL[grupo] ?? grupo}
+                  </h4>
+                  {GRUPO_DOC_SELO[grupo] && (
+                    <Badge variant="outline" className="text-[10px]">{GRUPO_DOC_SELO[grupo]}</Badge>
+                  )}
                 </div>
-              </div>)}
+                <div className="rounded-md border px-2">
+                  {itens.map((r) => linhaDocumento(r))}
+                </div>
+              </div>
+            ))
+          )}
+          {permiteIncluir && (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                aria-label="Nome do novo documento" placeholder="Novo documento"
+                value={novoDocumento} onChange={(e) => setNovoDocumento(e.target.value)}
+              />
+              <Button type="button" variant="outline" disabled={criar.isPending} onClick={() => void incluirDocumento()}>
+                <Plus className="h-4 w-4 mr-1" />Incluir documento
+              </Button>
             </div>
-          ))
-        )}
-        <div className="flex flex-col sm:flex-row gap-2"><Input aria-label="Nome do novo documento" placeholder="Novo documento" value={novoDocumento} onChange={(e) => setNovoDocumento(e.target.value)} /><Button type="button" variant="outline" disabled={criar.isPending} onClick={() => void incluirDocumento()}><Plus className="h-4 w-4 mr-1" />Incluir documento</Button></div>
+          )}
         </>}
       </CardContent>
     </Card>
   );
+
 
   return (
     <div className="space-y-4">
