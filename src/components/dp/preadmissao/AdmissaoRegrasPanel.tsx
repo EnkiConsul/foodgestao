@@ -497,7 +497,7 @@ export function AdmissaoRegrasPanel() {
           ))}
 
           {cardDocumentos(
-            "Documentos Que O Candidato Envia",
+            "Documentos que o Candidato Envia",
             "Aparecem na ficha do candidato e bloqueiam o envio quando estão obrigatórios.",
              documentos,
           )}
