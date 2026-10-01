@@ -109,45 +109,48 @@ const A4: [number, number] = [595.28, 841.89];
 type Marca = { width: number; height: number } | null;
 
 /**
- * Timbrado institucional no topo da página: faixa marinho com a logo AVETO 360,
- * o nome do certificado e a linha laranja de assinatura da marca.
+ * Timbrado institucional no topo da página: logo AVETO 360 à esquerda, origem do
+ * documento à direita, linha laranja da marca e o título do certificado abaixo.
  * Devolve a altura ocupada para o conteúdo continuar abaixo.
  */
 function timbrado(page: PDFPage, negrito: PDFFont, fonte: PDFFont, marca: Marca, titulo: string, empresa: string): number {
   const { width, height } = page.getSize();
   const margem = 48;
-  const faixa = 76;
-  const topo = height - faixa;
-
-  page.drawRectangle({ x: 0, y: topo, width, height: faixa, color: rgb(0.06, 0.11, 0.24) });
-  page.drawRectangle({ x: 0, y: topo - 3, width, height: 3, color: rgb(0.92, 0.38, 0.1) });
+  const alturaLogo = 30;
+  const baseLogo = height - 40 - alturaLogo;
 
   if (marca) {
-    const alturaLogo = 26;
     const escala = alturaLogo / marca.height;
     page.drawImage(marca as never, {
-      x: margem,
-      y: topo + (faixa - alturaLogo) / 2 + 9,
-      width: marca.width * escala,
-      height: alturaLogo,
+      x: margem, y: baseLogo, width: marca.width * escala, height: alturaLogo,
     });
   } else {
     page.drawText("AVETO 360", {
-      x: margem, y: topo + faixa / 2 + 10, size: 16, font: negrito, color: rgb(1, 1, 1),
+      x: margem, y: baseLogo + 8, size: 17, font: negrito, color: MARINHO,
     });
   }
 
-  page.drawText(limpar(titulo), {
-    x: margem, y: topo + 16, size: 12.5, font: negrito, color: rgb(1, 1, 1),
+  const origem = "Plataforma AVETO 360";
+  page.drawText(origem, {
+    x: width - margem - negrito.widthOfTextAtSize(origem, 9),
+    y: baseLogo + alturaLogo - 11, size: 9, font: negrito, color: MARINHO,
   });
-  const sub = limpar(empresa);
+  const sub = limpar(empresa).slice(0, 60);
   if (sub) {
-    page.drawText(sub.slice(0, 70), {
-      x: width - margem - fonte.widthOfTextAtSize(sub.slice(0, 70), 9),
-      y: topo + 18, size: 9, font: fonte, color: rgb(0.78, 0.82, 0.9),
+    page.drawText(sub, {
+      x: width - margem - fonte.widthOfTextAtSize(sub, 8),
+      y: baseLogo + 1, size: 8, font: fonte, color: rgb(0.42, 0.45, 0.52),
     });
   }
-  return faixa + 14;
+
+  const linha = baseLogo - 14;
+  page.drawRectangle({ x: margem, y: linha, width: width - margem * 2, height: 2, color: LARANJA });
+
+  page.drawText(limpar(titulo), {
+    x: margem, y: linha - 22, size: 13.5, font: negrito, color: MARINHO,
+  });
+
+  return height - (linha - 22) + 10;
 }
 
 function paginaCertificado(
