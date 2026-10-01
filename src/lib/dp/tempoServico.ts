@@ -46,7 +46,7 @@ export const CICLO_LABEL: Record<number, string> = {
 };
 
 export function rotuloCiclo(meses: number): string {
-  return CICLO_LABEL[meses] ?? `Ciclo de ${meses} meses`;
+  return CICLO_LABEL[meses] ?? (meses % 12 === 0 ? `A cada ${meses / 12} anos` : `Ciclo de ${meses} meses`);
 }
 
 const PESO_ESCOPO: Record<EscopoAdicional, number> = {

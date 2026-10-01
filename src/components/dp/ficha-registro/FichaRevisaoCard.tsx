@@ -22,6 +22,7 @@ import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
 import { CargoCorrespondenciaDialog } from "./CargoCorrespondenciaDialog";
 import { UnidadeCorrespondenciaDialog } from "./UnidadeCorrespondenciaDialog";
 import { FichaComparacaoDialog } from "./FichaComparacaoDialog";
+import { FichaHistoricoLido } from "./FichaHistoricoLido";
 import {
   jornadaDaFicha, useAplicarFicha, useIgnorarFicha, type FichaItem,
 } from "@/hooks/useDpFichaImportacao";
@@ -899,6 +900,13 @@ export function FichaRevisaoCard({
             {jornada.vira_meia_noite && (
               <p className="mt-2 text-[11px] text-muted-foreground">A saída acontece no dia seguinte.</p>
             )}
+            {jornadaEditada && !jornadaLida.vazia && (
+              <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
+                <strong>Horário Diferente da Ficha.</strong> A ficha registra
+                {typeof dados.jornada_texto === "string" && dados.jornada_texto ? ` "${dados.jornada_texto}"` : " outro horário"}.
+                O cadastro usará o horário ajustado aqui. Peça à contabilidade para atualizar a ficha de registro.
+              </div>
+            )}
 
             {!aplicado && usarJornada && (
               <div className="mt-3 space-y-1">
@@ -999,6 +1007,13 @@ export function FichaRevisaoCard({
             Selecione antes de criar: {escolhasPendentes.join(", ")}.
           </p>
         )}
+
+        <FichaHistoricoLido
+          dados={dados}
+          cargoId={cargoId}
+          cargoNome={(cargos.find((c) => c.id === cargoId)?.nome as string | undefined) ?? null}
+          colaboradorId={aplicado ? item.colaborador_id ?? null : null}
+        />
 
         {aplicado && item.colaborador_id && onAbrirCadastro && (
           <div className="flex justify-end">

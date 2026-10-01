@@ -1,3 +1,4 @@
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -1325,18 +1326,24 @@ export function ColaboradorJornadaPanel({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-3">
-            <div className="grid gap-2">
-              <Button type="button" variant={vigDecModo === "nova" ? "default" : "outline"}
-                className="h-auto whitespace-normal py-2 text-left justify-start"
-                onClick={() => setVigDecModo("nova")}>
-                Nova condição a partir de uma data (o passado fica como estava)
-              </Button>
-              <Button type="button" variant={vigDecModo === "correcao" ? "default" : "outline"}
-                className="h-auto whitespace-normal py-2 text-left justify-start"
-                onClick={() => setVigDecModo("correcao")}>
-                Correção de cadastro (vale desde {fmt(vigente?.vigencia_inicio) ?? "a admissão"})
-              </Button>
-            </div>
+            <RadioGroup value={vigDecModo} onValueChange={(v) => setVigDecModo(v as typeof vigDecModo)} className="grid gap-2">
+              <div className="flex items-start gap-3 rounded-xl border border-border p-3">
+                <RadioGroupItem value="nova" id="vig-dec-nova" className="mt-1" />
+                <Label htmlFor="vig-dec-nova" className="cursor-pointer font-normal">
+                  <span className="block font-medium">Nova condição a partir de uma data</span>
+                  <span className="text-xs text-muted-foreground">O passado fica como estava.</span>
+                </Label>
+              </div>
+              <div className="flex items-start gap-3 rounded-xl border border-border p-3">
+                <RadioGroupItem value="correcao" id="vig-dec-correcao" className="mt-1" />
+                <Label htmlFor="vig-dec-correcao" className="cursor-pointer font-normal">
+                  <span className="block font-medium">Correção de cadastro</span>
+                  <span className="text-xs text-muted-foreground">
+                    O cadastro estava errado; vale desde {fmt(vigente?.vigencia_inicio) ?? "a admissão"}.
+                  </span>
+                </Label>
+              </div>
+            </RadioGroup>
             {vigDecModo === "nova" && (
               <div className="space-y-1">
                 <Label htmlFor="vig-dec-data">A partir de</Label>

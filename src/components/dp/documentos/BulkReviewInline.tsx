@@ -706,6 +706,50 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
             }
           />
         )}
+        {!ocrInProgress && !isSaving && (() => {
+          const sobrando = rows.filter((r: any) => r.status === "pending" && !r.matched_colaborador_id);
+          if (sobrando.length === 0) return null;
+          return (
+            <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-3 space-y-2">
+              <div className="text-sm font-semibold">Sem Cadastro no Sistema ({sobrando.length})</div>
+              <p className="text-xs text-muted-foreground">
+                Estas páginas trazem pessoas que não foram encontradas no cadastro. Crie o cadastro a partir do
+                documento ou escolha o colaborador manualmente na página.
+              </p>
+              <ul className="divide-y rounded-md border bg-background">
+                {sobrando.map((r: any) => {
+                  const nome = (r.matched_nome && !pareceRazaoSocial(r.matched_nome)
+                    ? r.matched_nome
+                    : extrairNomePessoa(r.ocr_text ?? "")) ?? "";
+                  const cpf = isCpfValido(r.matched_cpf ?? "")
+                    ? String(r.matched_cpf)
+                    : (extrairCpfValido(r.ocr_text ?? "") ?? "");
+                  return (
+                    <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                      <button
+                        type="button"
+                        className="min-w-0 text-left hover:underline"
+                        onClick={() => setCurrentIdx(rows.findIndex((x: any) => x.id === r.id))}
+                      >
+                        <span className="block truncate font-medium">{nome || `Página ${r.page_index}`}</span>
+                        <span className="block text-[11px] text-muted-foreground">
+                          Página {r.page_index}{cpf ? ` · CPF ${cpf}` : ""}
+                        </span>
+                      </button>
+                      <NovoColaboradorInlineDialog
+                        defaultNome={nome}
+                        defaultCpf={cpf}
+                        defaultUnidadeId={r.detected_unidade_id ?? batchInfo.data?.unidade_id ?? null}
+                        onCreated={(id) => setColab.mutate({ id: r.id, colaborador_id: id })}
+                        trigger={<Button size="sm" variant="outline">Criar Cadastro</Button>}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })()}
       </div>
 
 

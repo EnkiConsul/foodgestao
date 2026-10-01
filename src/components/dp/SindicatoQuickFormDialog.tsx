@@ -15,6 +15,15 @@ import { maskCnpj } from "@/lib/cnpj";
 import { maskPhone } from "@/lib/phone";
 import { somenteDigitos as onlyDigits } from "@/lib/dp/formato";
 
+/** Data-base se repete todo ano: guardamos dia/mês com ano fixo 2000. */
+const dataBaseIso = (v: string): string | null => {
+  const m = /^(\d{2})\/(\d{2})$/.exec(v.trim());
+  if (!m) return null;
+  const dia = Number(m[1]), mes = Number(m[2]);
+  if (mes < 1 || mes > 12 || dia < 1 || dia > 31) return null;
+  return `2000-${m[2]}-${m[1]}`;
+};
+
 const emailOk = (v: string) => !v.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
 interface CamposSindicato {
@@ -45,6 +54,8 @@ interface Props {
   faltaPatronal: boolean;
   /** Devolve o sindicato laboral criado para enquadrar o colaborador. */
   onCreated: (sindicato: { id: string; nome: string }) => void;
+  /** Nome já lido (ex.: ficha de registro) para pré-preencher o laboral. */
+  nomeLaboralInicial?: string | null;
 }
 
 /**
@@ -53,7 +64,7 @@ interface Props {
  */
 export function SindicatoQuickFormDialog({
   open, onOpenChange, cargoId, cargoNome, unidadeId, unidadeNome,
-  faltaLaboral, faltaPatronal, onCreated,
+  faltaLaboral, faltaPatronal, onCreated, nomeLaboralInicial,
 }: Props) {
   const upsert = useUpsertDpSindicato();
   const qc = useQueryClient();
@@ -65,11 +76,11 @@ export function SindicatoQuickFormDialog({
 
   useEffect(() => {
     if (!open) return;
-    setLaboral(vazio);
+    setLaboral({ ...vazio, nome: nomeLaboralInicial?.toUpperCase() ?? "" });
     setPatronal(vazio);
     setUsarLaboral(faltaLaboral);
     setUsarPatronal(faltaPatronal && !!unidadeId);
-  }, [open, faltaLaboral, faltaPatronal, unidadeId]);
+  }, [open, faltaLaboral, faltaPatronal, unidadeId, nomeLaboralInicial]);
 
   const criar = async (c: CamposSindicato, tipo: "laboral" | "patronal") =>
     upsert.mutateAsync({
@@ -78,7 +89,7 @@ export function SindicatoQuickFormDialog({
       contato_telefone: c.whatsapp ? onlyDigits(c.whatsapp) : null,
       contato_nome: c.contatoNome.trim() || null,
       contato_email: c.contatoEmail.trim() || null,
-      data_base: c.dataBase || null,
+      data_base: dataBaseIso(c.dataBase),
       tipo,
     } as Parameters<typeof upsert.mutateAsync>[0]);
 
@@ -90,11 +101,13 @@ export function SindicatoQuickFormDialog({
     if (usarLaboral) {
       if (!laboral.nome.trim()) { toast.error("Nome do sindicato laboral é obrigatório"); return; }
       if (!cargoId) { toast.error("Selecione o cargo antes de cadastrar o sindicato laboral"); return; }
+      if (laboral.dataBase && !dataBaseIso(laboral.dataBase)) { toast.warning("Informe a data-base como dia/mês, ex.: 01/05"); return; }
       if (!emailOk(laboral.contatoEmail)) { toast.error("E-mail do contato laboral inválido"); return; }
     }
     if (usarPatronal) {
       if (!patronal.nome.trim()) { toast.error("Nome do sindicato patronal é obrigatório"); return; }
       if (!unidadeId) { toast.error("Selecione a unidade antes de cadastrar o sindicato patronal"); return; }
+      if (patronal.dataBase && !dataBaseIso(patronal.dataBase)) { toast.warning("Informe a data-base como dia/mês, ex.: 01/05"); return; }
       if (!emailOk(patronal.contatoEmail)) { toast.error("E-mail do contato patronal inválido"); return; }
     }
 
@@ -143,7 +156,7 @@ export function SindicatoQuickFormDialog({
     }
   };
 
-  const Campos = ({
+  const renderCampos = ({
     valor, set, prefixo,
   }: { valor: CamposSindicato; set: (c: CamposSindicato) => void; prefixo: string }) => (
     <div className="space-y-3">
@@ -174,11 +187,16 @@ export function SindicatoQuickFormDialog({
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Data-base</Label>
+          <Label>Data-base (Dia e Mês)</Label>
           <Input
-            type="date"
+            inputMode="numeric"
+            placeholder="dd/mm"
+            maxLength={5}
             value={valor.dataBase}
-            onChange={(e) => set({ ...valor, dataBase: e.target.value })}
+            onChange={(e) => {
+              const d = e.target.value.replace(/\D/g, "").slice(0, 4);
+              set({ ...valor, dataBase: d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d });
+            }}
           />
         </div>
         <div className="space-y-1.5">
@@ -229,11 +247,11 @@ export function SindicatoQuickFormDialog({
               <Switch checked={usarLaboral} onCheckedChange={setUsarLaboral} disabled={!cargoId} />
             </div>
             {usarLaboral && (
-              <Campos
-                valor={laboral}
-                set={setLaboral}
-                prefixo="Ex: Sindicato dos Trabalhadores em Alimentação"
-              />
+              renderCampos({
+                valor: laboral,
+                set: setLaboral,
+                prefixo: "Ex: Sindicato dos Trabalhadores em Alimentação",
+              })
             )}
           </section>
 
@@ -258,11 +276,11 @@ export function SindicatoQuickFormDialog({
               </p>
             ) : (
               usarPatronal && (
-                <Campos
-                  valor={patronal}
-                  set={setPatronal}
-                  prefixo="Ex: Sindicato de Hotéis, Bares e Restaurantes"
-                />
+                renderCampos({
+                  valor: patronal,
+                  set: setPatronal,
+                  prefixo: "Ex: Sindicato de Hotéis, Bares e Restaurantes",
+                })
               )
             )}
           </section>
