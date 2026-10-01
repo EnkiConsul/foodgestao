@@ -426,7 +426,7 @@ export function ColaboradorJornadaPanel({
         : "Base: legislação (folga no domingo).";
 
     const origem = override
-      ? " (definido no cadastro deste colaborador)"
+      ? " (exceção configurada em Folgas > Regras > Exceções por Colaborador)"
       : colaborador?.sexo === "F"
         ? " (regra de mulheres da unidade — Art. 386 da CLT)"
         : " (regra geral da unidade)";
