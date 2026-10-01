@@ -11358,6 +11358,9 @@ export type Database = {
           suspensao_dias: number | null
           tipo: Database["public"]["Enums"]["dp_disciplinar_tipo"]
           updated_at: string
+          via_assinada_em: string | null
+          via_assinada_path: string | null
+          via_assinada_por: string | null
         }
         Insert: {
           aplicado_por?: string | null
@@ -11375,6 +11378,9 @@ export type Database = {
           suspensao_dias?: number | null
           tipo: Database["public"]["Enums"]["dp_disciplinar_tipo"]
           updated_at?: string
+          via_assinada_em?: string | null
+          via_assinada_path?: string | null
+          via_assinada_por?: string | null
         }
         Update: {
           aplicado_por?: string | null
@@ -11392,6 +11398,9 @@ export type Database = {
           suspensao_dias?: number | null
           tipo?: Database["public"]["Enums"]["dp_disciplinar_tipo"]
           updated_at?: string
+          via_assinada_em?: string | null
+          via_assinada_path?: string | null
+          via_assinada_por?: string | null
         }
         Relationships: [
           {
@@ -17313,6 +17322,17 @@ export type Database = {
           unidade_id: string
         }[]
       }
+      dp_portal_meus_disciplinares: {
+        Args: never
+        Returns: {
+          data: string
+          id: string
+          suspensao_dias: number
+          tipo: string
+          via_assinada_em: string
+          via_assinada_path: string
+        }[]
+      }
       dp_portal_rotina_dia: {
         Args: { p_data: string }
         Returns: {
@@ -17592,6 +17612,14 @@ export type Database = {
           p_tipo: string
         }
         Returns: string
+      }
+      dp_registro_disciplinar_via_assinada: {
+        Args: {
+          p_confirmo_aplicacao: boolean
+          p_path: string
+          p_registro_id: string
+        }
+        Returns: undefined
       }
       dp_regra_bloqueia_data: {
         Args: { _company_id: string; _data: string; _unidade_id: string }
