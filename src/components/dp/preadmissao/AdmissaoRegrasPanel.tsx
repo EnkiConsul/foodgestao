@@ -25,7 +25,8 @@ import {
 import { notifyError } from "@/lib/notifyError";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import {
-  resolverExigencia, useDpAdmissaoRegras,
+  codigoFinalidade, resolverExigencia, useDpAdmissaoRegras,
+  FINALIDADE_LEGAL, FINALIDADE_LEGAL_NOME,
   type AdmissaoRegra, type Exigencia, type TipoRegra,
 } from "@/hooks/dp/useDpAdmissaoRegras";
 import { REGIMES_ADMISSAO } from "@/lib/dp/regimesAdmissao";
