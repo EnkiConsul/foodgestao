@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { avaliarSenha, mensagemDoServidorDeContas } from "@/lib/security/passwordPolicy";
 import { MedidorSenha } from "@/components/auth/MedidorSenha";
+import { ChecklistRequisitosSenha } from "@/components/auth/ChecklistRequisitosSenha";
 import { logAudit } from "@/lib/audit";
 
 const schema = z
