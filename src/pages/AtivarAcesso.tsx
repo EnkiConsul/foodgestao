@@ -158,7 +158,7 @@ export default function AtivarAcesso() {
                     {mostrar ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                <MedidorSenha senha={senha} />
+                <MedidorSenha senha={senha} semMensagem />
                 <ChecklistRequisitosSenha senha={senha} dados={{ cpf }} />
               </div>
               <div className="space-y-2">
