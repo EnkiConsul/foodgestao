@@ -15,6 +15,12 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "npm
 import { z } from "npm:zod@3";
 import { callerClient, requireUser, serviceClient } from "../_shared/authz.ts";
 import { recordEdgeError } from "../_shared/error-log.ts";
+import {
+  MARCA_ALTURA,
+  MARCA_ASSINATURA,
+  MARCA_LARGURA,
+  MARCA_PNG_BASE64,
+} from "../_shared/marca-aveto.ts";
 
 const BUCKET = "dp-documentos";
 const FUNCAO = "dp-documento-certificado";
