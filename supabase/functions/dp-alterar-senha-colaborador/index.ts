@@ -8,8 +8,15 @@
  */
 import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
 import { serviceClient } from "../_shared/authz.ts";
-import { ipRateLimited, isRateLimited, sha256Hex } from "../_shared/rate-limit.ts";
+import { clientIp, ipRateLimited, isRateLimited, sha256Hex } from "../_shared/rate-limit.ts";
 import { avaliarSenha, SENHA_MIN } from "../_shared/password-policy.ts";
+import {
+  TERMO_PORTAL_MODELO,
+  TERMO_PORTAL_PARAGRAFOS,
+  TERMO_PORTAL_TITULO,
+  TERMO_PORTAL_VERSAO,
+  termoPortalConteudo,
+} from "../_shared/termo-portal.ts";
 import {
   confirmarToken,
   liberarToken,
@@ -48,6 +55,8 @@ Deno.serve(async (req) => {
     const codigo = String(body?.codigo ?? "").trim().toUpperCase();
     const purposeBruto = String(body?.purpose ?? "");
     const novaSenha = typeof body?.nova_senha === "string" ? body.nova_senha : "";
+    const termoAceito = body?.termo_aceito === true;
+    const termoVersao = String(body?.termo_versao ?? "").trim();
 
     if (purposeBruto !== "activation" && purposeBruto !== "reset") {
       return jsonError(req, "invalid_input", "finalidade inválida");
@@ -56,6 +65,22 @@ Deno.serve(async (req) => {
 
     if (cpf.length !== 11 || !tokenId || codigo.length < 8) {
       return jsonError(req, "invalid_input", "payload incompleto");
+    }
+    // Ativação só conclui com o termo de primeiro acesso aceito na versão
+    // vigente: a tela pode estar velha em cache, e aí é melhor recarregar.
+    if (purpose === "activation") {
+      if (!termoAceito) {
+        return jsonResponse(req, 400, {
+          code: "termo_obrigatorio",
+          error: "É preciso marcar que você leu e concorda com o termo de primeiro acesso.",
+        });
+      }
+      if (termoVersao !== TERMO_PORTAL_VERSAO) {
+        return jsonResponse(req, 409, {
+          code: "termo_desatualizado",
+          error: "O termo foi atualizado. Recarregue a página para ler a versão atual.",
+        });
+      }
     }
     if (!senhaForte(novaSenha)) {
       return jsonResponse(req, 400, {
@@ -146,6 +171,32 @@ Deno.serve(async (req) => {
       { onConflict: "user_id" },
     );
     if (secErr) console.error("[dp-definir-senha] security_state:", secErr.message);
+
+    // 6) Aceite do termo de primeiro acesso: lastro das assinaturas seguintes.
+    // A impressão digital vem da cópia do servidor, nunca do texto do navegador.
+    // Índice único por colaborador e versão: reenvio não duplica o registro.
+    if (purpose === "activation") {
+      const { error: termoErr } = await admin.from("dp_documento_aceites").insert({
+        company_id: token.company_id,
+        colaborador_id: token.colaborador_id,
+        modelo: TERMO_PORTAL_MODELO,
+        modelo_versao: TERMO_PORTAL_VERSAO,
+        conteudo_hash: await sha256Hex(termoPortalConteudo()),
+        hash_origem: "sha256_conteudo",
+        aceito_por: token.user_id,
+        ip: clientIp(req),
+        user_agent: (req.headers.get("user-agent") ?? "").slice(0, 400) || null,
+        documento_snapshot: {
+          titulo: TERMO_PORTAL_TITULO,
+          versao: TERMO_PORTAL_VERSAO,
+          paragrafos: TERMO_PORTAL_PARAGRAFOS,
+        },
+      });
+      // Duplicidade (23505) é resultado esperado em reenvio: segue em frente.
+      if (termoErr && termoErr.code !== "23505") {
+        console.error("[dp-definir-senha] termo_portal:", termoErr.message);
+      }
+    }
 
     await registrarEvento(
       admin,

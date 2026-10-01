@@ -12,6 +12,8 @@ import { maskCpf } from "@/lib/cpf";
 import { avaliarSenha } from "@/lib/security/passwordPolicy";
 import { MedidorSenha } from "@/components/auth/MedidorSenha";
 import { ChecklistRequisitosSenha } from "@/components/auth/ChecklistRequisitosSenha";
+import { TermoPrimeiroAcesso } from "@/components/auth/TermoPrimeiroAcesso";
+import { TERMO_PORTAL_VERSAO } from "@/lib/dp/termoPortal";
 
 /** Regra única de senha nova (S3): src/lib/security/passwordPolicy.ts */
 function validarSenha(senha: string): string | null {
@@ -38,6 +40,11 @@ export default function AtivarAcesso() {
   const [erro, setErro] = useState<string | null>(null);
   const [linkUsado, setLinkUsado] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  // O termo de primeiro acesso só é exigido na ativação; na redefinição de
+  // senha ele já foi aceito antes.
+  const exigeTermo = modo === "activation";
+  const [termoAceito, setTermoAceito] = useState(false);
+  const [termoPendente, setTermoPendente] = useState(false);
 
   useEffect(() => {
     // Ninguém precisa estar logado aqui; se houver sessão antiga, encerra.
@@ -65,10 +72,22 @@ export default function AtivarAcesso() {
       setErro("As senhas não coincidem");
       return;
     }
+    if (exigeTermo && !termoAceito) {
+      setTermoPendente(true);
+      setErro("Marque que você leu e concorda com o termo de primeiro acesso.");
+      return;
+    }
     setEnviando(true);
     try {
       const { data, error } = await supabase.functions.invoke("dp-alterar-senha-colaborador", {
-        body: { cpf: digitos, token_id: tokenId, codigo, purpose: modo, nova_senha: senha },
+        body: {
+          cpf: digitos,
+          token_id: tokenId,
+          codigo,
+          purpose: modo,
+          nova_senha: senha,
+          ...(exigeTermo ? { termo_aceito: true, termo_versao: TERMO_PORTAL_VERSAO } : {}),
+        },
       });
       // Respostas de erro (4xx) chegam como exceção; lemos o corpo para
       // distinguir "link já utilizado" de falhas genéricas.
@@ -97,8 +116,10 @@ export default function AtivarAcesso() {
   };
 
   const titulo = modo === "reset" ? "Criar uma nova senha" : "Ativar seu acesso";
-  // Botão só libera quando a senha atende a todos os requisitos e a confirmação bate.
+  // Botão só libera quando a senha atende a todos os requisitos, a confirmação
+  // bate e, na ativação, o termo de primeiro acesso está aceito.
   const senhaAprovada = avaliarSenha(senha, { cpf }).valida;
+  const termoOk = !exigeTermo || termoAceito;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -179,6 +200,16 @@ export default function AtivarAcesso() {
                   <p className="text-xs text-destructive">As senhas não coincidem</p>
                 )}
               </div>
+              {exigeTermo && (
+                <TermoPrimeiroAcesso
+                  aceito={termoAceito}
+                  pendente={termoPendente}
+                  onAceitar={(v) => {
+                    setTermoAceito(v);
+                    if (v) setTermoPendente(false);
+                  }}
+                />
+              )}
               {erro && <p className="text-sm text-destructive">{erro}</p>}
               {linkUsado ? (
                 <Button
@@ -192,7 +223,7 @@ export default function AtivarAcesso() {
                 <Button
                   type="submit"
                   className="min-h-11 w-full"
-                  disabled={enviando || !senhaAprovada || senha !== confirmar}
+                  disabled={enviando || !senhaAprovada || senha !== confirmar || !termoOk}
                 >
                   {enviando ? "Salvando..." : "Salvar senha e entrar"}
                 </Button>
