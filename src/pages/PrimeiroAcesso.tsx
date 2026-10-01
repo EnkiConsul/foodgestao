@@ -138,10 +138,7 @@ export default function PrimeiroAcesso() {
               </div>
               <MedidorSenha senha={password} />
               {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-              <p className="text-xs text-muted-foreground">
-                Pelo menos 12 caracteres, com maiúscula, minúscula, número e um símbolo (espaço e
-                letra acentuada não valem como símbolo). Evite sequências, seu nome, e-mail ou CPF.
-              </p>
+              <ChecklistRequisitosSenha senha={password} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm">Confirmar nova senha</Label>
