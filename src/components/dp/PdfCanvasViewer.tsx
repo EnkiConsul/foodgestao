@@ -63,30 +63,30 @@ export function PdfCanvasViewer({ url, title }: Props) {
 
   useEffect(() => {
     const doc = docRef.current;
-    const container = containerRef.current;
-    if (!doc || !container || paginas === 0) return;
+    const scroll = containerRef.current;
+    const container = paginasRef.current;
+    if (!doc || !scroll || !container || paginas === 0) return;
     let cancelado = false;
-    container.innerHTML = "";
+    const larguraBase = Math.max(scroll.clientWidth - 24, 240);
+    // Renderiza fora da tela e troca de uma vez, evitando piscar ao dar zoom.
+    const novo = document.createElement("div");
     (async () => {
       for (let n = 1; n <= doc.numPages; n++) {
         if (cancelado) return;
         const page = await doc.getPage(n);
         const base = page.getViewport({ scale: 1 });
-        // No celular a página precisa caber na largura real do container:
-        // forçar um mínimo maior que a tela obrigava o usuário a pinçar.
-        const larguraDisponivel = Math.max(container.clientWidth - 24, 240);
-        const escala = (larguraDisponivel / base.width) * zoom;
+        const escala = (larguraBase / base.width) * zoom;
         const viewport = page.getViewport({ scale: escala });
         const canvas = document.createElement("canvas");
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = Math.min(window.devicePixelRatio || 1, zoom > 2 ? 2 : 3);
         canvas.width = Math.floor(viewport.width * dpr);
         canvas.height = Math.floor(viewport.height * dpr);
         canvas.style.width = `${Math.floor(viewport.width)}px`;
         canvas.style.height = `${Math.floor(viewport.height)}px`;
-        canvas.className = "mx-auto mb-4 shadow-md bg-white rounded max-w-full";
+        canvas.className = "block mx-auto mb-4 shadow-md bg-white rounded";
         const ctx = canvas.getContext("2d");
         if (!ctx) continue;
-        container.appendChild(canvas);
+        novo.appendChild(canvas);
         await page.render({
           canvasContext: ctx,
           viewport,
