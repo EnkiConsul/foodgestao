@@ -722,10 +722,12 @@ export default function DpDisciplinar() {
               {(!isFormal(tipo) || caminho === "importar") && (
                 <div className="space-y-2">
                   <Label>{isFormal(tipo) ? "Foto Ou PDF Da Via Assinada *" : "Arquivo (Opcional)"}</Label>
-                  <DpFilePicker ref={fileRef} accept="application/pdf,image/*" file={pendingFile} onFileChange={setPendingFile} />
+                  <div className={campoPendente === "arquivo" ? "rounded-lg ring-2 ring-destructive" : undefined}>
+                    <DpFilePicker ref={fileRef} accept="application/pdf,image/*" file={pendingFile} onFileChange={(f) => { setPendingFile(f); if (f && campoPendente === "arquivo") setCampoPendente(null); }} />
+                  </div>
                   {isFormal(tipo) && (
-                    <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-xs">
-                      <Checkbox checked={confirmo} onCheckedChange={(v) => setConfirmo(v === true)} className="mt-0.5" />
+                    <label className={`flex items-start gap-2 rounded-lg border p-3 text-xs ${campoPendente === "confirmo" ? "border-destructive ring-1 ring-destructive" : "border-border"}`}>
+                      <Checkbox checked={confirmo} onCheckedChange={(v) => { setConfirmo(v === true); if (v === true && campoPendente === "confirmo") setCampoPendente(null); }} className="mt-0.5" />
                       <span>{TEXTO_CONFIRMACAO}</span>
                     </label>
                   )}
@@ -738,9 +740,13 @@ export default function DpDisciplinar() {
                   id="observacoes-6"
                   rows={isFormal(tipo) ? 6 : 3}
                   value={observacao}
-                  onChange={(e) => setObservacao(e.target.value)}
+                  onChange={(e) => { setObservacao(e.target.value); if (campoPendente === "observacao" && e.target.value.trim().length >= 10) setCampoPendente(null); }}
+                  className={campoPendente === "observacao" ? "border-destructive ring-1 ring-destructive" : undefined}
                   placeholder={isFormal(tipo) ? "Descreva de forma objetiva: o que aconteceu, quando, onde e quem presenciou." : "Observações adicionais (opcional)"}
                 />
+                {campoPendente === "observacao" && (
+                  <p className="text-xs text-destructive">Descreva os fatos com pelo menos 10 caracteres para gerar a carta.</p>
+                )}
               </div>
             </div>
 
