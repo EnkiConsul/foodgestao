@@ -1,0 +1,1 @@
+CREATE POLICY "Fila push sem acesso pelo app" ON public.dp_push_fila AS RESTRICTIVE FOR ALL TO authenticated, anon USING (false) WITH CHECK (false);
