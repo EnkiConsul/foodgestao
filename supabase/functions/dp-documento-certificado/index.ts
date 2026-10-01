@@ -496,9 +496,8 @@ Deno.serve(async (req) => {
     if (pendentes.length) {
       // Avisos descobertos na montagem entram em uma página final de observações.
       const page = pdf.addPage(A4);
-      let y = page.getHeight() - 120;
-      page.drawText("Observações", { x: 48, y, size: 14, font: negrito, color: rgb(0.6, 0.2, 0.05) });
-      y -= 24;
+      const usado = timbrado(page, negrito, fonte, marca, "Observações", dados.empresa);
+      let y = page.getHeight() - usado - 20;
       for (const aviso of pendentes) {
         for (const linha of linhas(aviso, fonte, 10.5, page.getWidth() - 96)) {
           page.drawText(linha, { x: 48, y, size: 10.5, font: fonte, color: rgb(0.25, 0.25, 0.25) });
