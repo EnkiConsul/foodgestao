@@ -542,36 +542,73 @@ export function AdmissaoRegrasPanel() {
           <Card>
             <CardContent className="p-3 sm:p-4 space-y-2">
                <Button type="button" variant="ghost" className="w-full h-auto justify-between px-0" aria-expanded={secaoAberta === "familiares"} onClick={() => setSecaoAberta(secaoAberta === "familiares" ? null : "familiares")}>Familiares Aceitos <ChevronDown className={`h-4 w-4 ${secaoAberta === "familiares" ? "" : "-rotate-90"}`} /></Button>
-               {secaoAberta === "familiares" && <><div>
+               {secaoAberta === "familiares" && <>
                 <p className="text-xs text-muted-foreground">
-                   Escolha quais familiares o candidato pode incluir. Se não houver regras cadastradas,
-                    todos os graus continuam aceitos. Com regras, só entram os parentescos marcados.
-                    A finalidade da ficha não concede benefícios automaticamente.
+                   Escolha quais familiares o candidato pode incluir e para quais finalidades. Se não houver
+                    regras cadastradas, todos os graus continuam aceitos. A finalidade da ficha não concede
+                    benefícios automaticamente.
                 </p>
-              </div>
+
+                <div className="space-y-2 rounded-md border p-3">
+                  <p className="text-sm font-medium">Finalidades da Empresa</p>
+                  <p className="text-xs text-muted-foreground">
+                    O Dependente Legal vem da lei e existe em toda empresa. Cadastre aqui os convênios da sua
+                    operação (por exemplo Sesc, Plano de Saúde, Seguro de Vida).
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {finalidadesAtivas.map((f) => (
+                      <span key={f.codigo} className="flex items-center gap-1 rounded-full border px-3 py-1 text-xs">
+                        {f.nome}
+                        {f.removivel && (
+                          <button
+                            type="button"
+                            aria-label={`Remover ${f.nome}`}
+                            className="text-muted-foreground hover:text-destructive"
+                            onClick={() => void excluirFinalidade(f.codigo)}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                    <Input
+                      aria-label="Nova finalidade"
+                      placeholder="Ex.: Plano de Saúde"
+                      value={novaFinalidade}
+                      onChange={(e) => setNovaFinalidade(e.target.value)}
+                    />
+                    <Button type="button" variant="outline" disabled={salvarFinalidade.isPending} onClick={() => void incluirFinalidade()}>
+                      <Plus className="h-4 w-4 mr-1" />Incluir finalidade
+                    </Button>
+                  </div>
+                </div>
+
                <div className="space-y-2">
                    {[...PARENTESCOS, ...(parentescos.data ?? []).filter((p) => !PARENTESCOS.some((o) => o.value === p.parentesco)).map((p) => ({ value: p.parentesco, label: p.parentesco.replace(/_/g, " ") }))].map((p) => {
                     const atual = (parentescos.data ?? []).find((x) => x.parentesco === p.value);
-                    const dep = !!atual?.permite_dependente;
-                    const sesc = !!atual?.permite_sesc;
+                    const atuais = atual?.finalidades ?? [];
                     return (
-                       <div key={p.value} className="grid gap-2 border-b py-2 sm:grid-cols-[minmax(120px,1fr)_170px_100px] sm:items-center">
+                       <div key={p.value} className="grid gap-2 border-b py-2 sm:grid-cols-[minmax(120px,1fr)_minmax(0,2fr)] sm:items-start">
                          <span className="text-sm font-medium">{p.label}</span>
-                         <label className="flex items-center gap-2 text-sm"><Checkbox
-                            checked={dep}
-                            aria-label={`${p.label} pode ser dependente do imposto`}
-                            onCheckedChange={(v) => void marcarParentesco(p.value, v === true, sesc)}
-                           />Dependente do imposto</label>
-                         <label className="flex items-center gap-2 text-sm"><Checkbox
-                            checked={sesc}
-                            aria-label={`${p.label} pode entrar no Sesc`}
-                            onCheckedChange={(v) => void marcarParentesco(p.value, dep, v === true)}
-                           />Sesc</label>
+                         <div className="flex flex-wrap gap-x-4 gap-y-2">
+                           {finalidadesAtivas.map((f) => (
+                             <label key={f.codigo} className="flex items-center gap-2 text-sm">
+                               <Checkbox
+                                 checked={atuais.includes(f.codigo)}
+                                 aria-label={`${p.label} pode ter ${f.nome}`}
+                                 onCheckedChange={(v) => void marcarFinalidade(p.value, f.codigo, v === true, atuais)}
+                               />{f.nome}
+                             </label>
+                           ))}
+                         </div>
                        </div>
                     );
                   })}
                </div>
-                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"><Input aria-label="Novo parentesco" placeholder="Outro parentesco" value={novoParentesco} onChange={(e) => setNovoParentesco(e.target.value)} /><Select value={novaFinalidade} onValueChange={setNovaFinalidade}><SelectTrigger aria-label="Finalidade do novo familiar"><SelectValue placeholder="Escolha a finalidade" /></SelectTrigger><SelectContent><SelectItem value="dependente">Dependente do imposto</SelectItem><SelectItem value="sesc">Sesc</SelectItem><SelectItem value="ambos">Dependente e Sesc</SelectItem></SelectContent></Select><Button type="button" variant="outline" disabled={definirParentesco.isPending} onClick={() => void incluirParentesco()}><Plus className="h-4 w-4 mr-1" />Incluir parentesco</Button></div></>}
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"><Input aria-label="Novo parentesco" placeholder="Outro parentesco" value={novoParentesco} onChange={(e) => setNovoParentesco(e.target.value)} /><Button type="button" variant="outline" disabled={definirParentesco.isPending} onClick={() => void incluirParentesco()}><Plus className="h-4 w-4 mr-1" />Incluir parentesco</Button></div></>}
+
             </CardContent>
           </Card>
         </>
