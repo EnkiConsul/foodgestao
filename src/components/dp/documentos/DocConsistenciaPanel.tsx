@@ -242,7 +242,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
         supabase
           .from("dp_colaboradores")
           .select(
-            "id, nome, ativo, regime, possui_folha_ponto, optante_adiantamento, unidade_id, data_admissao, data_desligamento, vinculo_label, socio_remuneracao",
+            "id, nome, ativo, regime, forma_pagamento, possui_folha_ponto, optante_adiantamento, unidade_id, data_admissao, data_desligamento, vinculo_label, socio_remuneracao",
           )
           .eq("company_id", selectedCompanyId!),
         supabase

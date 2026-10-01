@@ -259,7 +259,7 @@ export function useDpPendencias() {
         const { data: colabsU } = await supabase
           .from("dp_colaboradores")
           .select(
-            "id, nome, unidade_id, ativo, regime, vinculo_label, possui_folha_ponto, optante_adiantamento, data_admissao, data_desligamento",
+            "id, nome, unidade_id, ativo, regime, forma_pagamento, vinculo_label, possui_folha_ponto, optante_adiantamento, data_admissao, data_desligamento",
           )
           .eq("company_id", selectedCompanyId!);
         (colabsU ?? []).forEach((c: any) => {

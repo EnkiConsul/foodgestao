@@ -122,6 +122,8 @@ export const DOC_TIPOS_RESCISAO = ["desligamento", "trct", "demonstrativo_rescis
 export type ColabElegibilidade = {
   id: string;
   regime?: string | null;
+  /** Forma de pagamento: freelancer mensalista recebe recibo mensal e adiantamento. */
+  forma_pagamento?: string | null;
   ativo?: boolean | null;
   vinculo_label?: string | null;
   possui_folha_ponto?: boolean | null;
@@ -336,6 +338,10 @@ export function elegivelDocumento(
     : false;
   const regimeEfetivo = String(vinculo?.regime ?? c.regime ?? "").toLowerCase();
   const assalariado = REGIMES_ASSALARIADOS.has(regimeEfetivo) && !isSocio(c);
+  // Freelancer mensalista: pagamento regular do mês comprovado por recibo
+  // emitido no sistema (contracheque) e adiantamento quando optante.
+  const freelaMensalista =
+    regimeEfetivo === "freelancer" && String(c.forma_pagamento ?? "").toLowerCase() === "mensalista" && !isSocio(c);
 
   if (tipo === "rescisao") {
     return assalariado && desligadoNoMes;
@@ -347,9 +353,10 @@ export function elegivelDocumento(
   if (tipo === "contracheque") {
     if (intermitenteIncerto) return false;
     if (desligadoNoMes && !opts.exigirContrachequeMesDesligamento) return false;
-    return assalariado;
+    return assalariado || freelaMensalista;
   }
   if (tipo === "adiantamento") {
+    if (!assalariado && !freelaMensalista) return false;
     const optante = opts.optanteNaCompetencia ?? c.optante_adiantamento;
     if (optante !== true) return false;
     const dia = opts.diaAdiantamento ?? null;
