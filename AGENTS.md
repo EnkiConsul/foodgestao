@@ -9,3 +9,4 @@
 - `dp_ficha_aplicar` é `SECURITY DEFINER` com autorização explícita por `tem_permissao(company_id, 'dp.colaboradores', 'inclusao')`; a tabela `dp_colaboradores` permanece sem gravação direta para `authenticated` — mantém a aplicação atômica da ficha sem reabrir acesso amplo.
 - O portal não lê `dp_colaboradores` de colegas: `dp_portal_equipe_unidade()` expõe só nome, função e folga fixa da unidade — preserva privacidade.
 - Na pré-admissão, o checklist compartilhado governa leitura e envio; desativar requisitos preserva anexos históricos — evita divergência na validação.
+- Recibos avulsos ficam em `dp_recibos` (só leitura para `authenticated`); emissão, link do WhatsApp (token só em hash) e assinatura passam pelas funções `dp-recibo-emitir` e `dp-recibo-publico` — escrita só no servidor, com confirmação de CPF.
