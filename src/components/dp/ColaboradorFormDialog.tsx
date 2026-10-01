@@ -3038,7 +3038,9 @@ export function ColaboradorFormDialog({
               ? ` · rascunho ${rotuloSalvoEm(rascunho.salvoEm).toLowerCase()}`
               : ""}
           </p>
-          <div className="order-1 flex w-full items-center gap-2 sm:order-2 sm:w-auto">
+          <div className={admissao
+            ? "order-1 grid w-full grid-cols-1 gap-2 sm:order-2 sm:flex sm:w-auto sm:items-center [&>button]:w-full sm:[&>button]:w-auto"
+            : "order-1 flex w-full items-center gap-2 sm:order-2 sm:w-auto"}>
             <Button
               variant="ghost"
               className="hidden sm:inline-flex"
