@@ -15825,6 +15825,10 @@ export type Database = {
         Args: { p_colaborador_id: string; p_config: Json }
         Returns: string
       }
+      dp_colaborador_definir_domingos_folga: {
+        Args: { _colaborador_id: string; _domingos: number }
+        Returns: undefined
+      }
       dp_colaborador_documento_excluir: {
         Args: { p_id: string; p_motivo?: string }
         Returns: Json
