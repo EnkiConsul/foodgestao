@@ -429,6 +429,31 @@ export default function DpFichaRegistroImportar() {
         </Card>
       )}
 
+      {itens.length > 0 && pendentes.length === 0 && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Todas as Fichas Foram Cadastradas</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            <p className="text-muted-foreground">
+              As {itens.length} fichas deste lote já viraram colaboradores. Próximos passos sugeridos:
+            </p>
+            <ol className="list-decimal space-y-1 pl-5">
+              <li>Confira a lista de colaboradores e complete o que ficou marcado como incompleto.</li>
+              <li>Revise os cargos e salários de cada função.</li>
+              <li>Envie novas fichas, se ainda houver pessoas para cadastrar.</li>
+            </ol>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button asChild><Link to="/dp/colaboradores">Ver Colaboradores</Link></Button>
+              <Button asChild variant="outline"><Link to="/dp/cargos">Revisar Cargos</Link></Button>
+              <Button variant="ghost" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+                Enviar Novas Fichas
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {pendentes.length > 0 && !bloqueadoPorEmpresa && (
         <div className="space-y-3">
           <h2 className="text-sm font-semibold">Conferir e cadastrar ({pendentes.length})</h2>
