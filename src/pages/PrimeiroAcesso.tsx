@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { avaliarSenha, mensagemDoServidorDeContas } from "@/lib/security/passwordPolicy";
 import { MedidorSenha } from "@/components/auth/MedidorSenha";
+import { ChecklistRequisitosSenha } from "@/components/auth/ChecklistRequisitosSenha";
 
 /** Regra única de senha nova (S3): src/lib/security/passwordPolicy.ts */
 const schema = z.object({
@@ -136,12 +137,9 @@ export default function PrimeiroAcesso() {
                   {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <MedidorSenha senha={password} />
+              <MedidorSenha senha={password} semMensagem />
               {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-              <p className="text-xs text-muted-foreground">
-                Pelo menos 12 caracteres, com maiúscula, minúscula, número e um símbolo (espaço e
-                letra acentuada não valem como símbolo). Evite sequências, seu nome, e-mail ou CPF.
-              </p>
+              <ChecklistRequisitosSenha senha={password} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm">Confirmar nova senha</Label>

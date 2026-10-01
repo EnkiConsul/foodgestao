@@ -5,6 +5,8 @@ interface Props {
   dados?: { nome?: string | null; email?: string | null; cpf?: string | null };
   /** id para ligar o medidor ao campo por aria-describedby */
   id?: string;
+  /** Oculta a frase de força quando a lista de requisitos já explica o que falta. */
+  semMensagem?: boolean;
 }
 
 const CORES = [
@@ -19,7 +21,7 @@ const CORES = [
  * Medidor de força local, em português. A senha não sai do navegador:
  * a avaliação é feita em memória, sem nenhuma chamada de rede.
  */
-export function MedidorSenha({ senha, dados, id }: Props) {
+export function MedidorSenha({ senha, dados, id, semMensagem = false }: Props) {
   if (!senha) return null;
   const { pontuacao, rotulo, mensagem } = avaliarSenha(senha, dados);
   const preenchidas = pontuacao + 1;
@@ -36,7 +38,7 @@ export function MedidorSenha({ senha, dados, id }: Props) {
       </div>
       <p className="text-xs text-muted-foreground">
         Força da senha: {rotulo}
-        {mensagem ? ` — ${mensagem}` : ` — atende à regra de ${SENHA_MIN} caracteres`}
+        {semMensagem ? "" : mensagem ? ` — ${mensagem}` : ` — atende à regra de ${SENHA_MIN} caracteres`}
       </p>
     </div>
   );

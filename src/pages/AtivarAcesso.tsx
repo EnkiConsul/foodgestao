@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { maskCpf } from "@/lib/cpf";
 import { avaliarSenha } from "@/lib/security/passwordPolicy";
 import { MedidorSenha } from "@/components/auth/MedidorSenha";
+import { ChecklistRequisitosSenha } from "@/components/auth/ChecklistRequisitosSenha";
 
 /** Regra única de senha nova (S3): src/lib/security/passwordPolicy.ts */
 function validarSenha(senha: string): string | null {
@@ -96,6 +97,8 @@ export default function AtivarAcesso() {
   };
 
   const titulo = modo === "reset" ? "Criar uma nova senha" : "Ativar seu acesso";
+  // Botão só libera quando a senha atende a todos os requisitos e a confirmação bate.
+  const senhaAprovada = avaliarSenha(senha, { cpf }).valida;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -155,11 +158,8 @@ export default function AtivarAcesso() {
                     {mostrar ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                <MedidorSenha senha={senha} />
-                <p className="text-xs text-muted-foreground">
-                  Pelo menos 12 caracteres, com maiúscula, minúscula, número e um símbolo (espaço e
-                  letra acentuada não valem como símbolo). Evite sequências, seu nome, e-mail ou CPF.
-                </p>
+                <MedidorSenha senha={senha} semMensagem />
+                <ChecklistRequisitosSenha senha={senha} dados={{ cpf }} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmar">Confirmar nova senha</Label>
@@ -175,6 +175,9 @@ export default function AtivarAcesso() {
                     autoComplete="new-password"
                   />
                 </div>
+                {confirmar && confirmar !== senha && (
+                  <p className="text-xs text-destructive">As senhas não coincidem</p>
+                )}
               </div>
               {erro && <p className="text-sm text-destructive">{erro}</p>}
               {linkUsado ? (
@@ -186,7 +189,11 @@ export default function AtivarAcesso() {
                   Ir para o Login
                 </Button>
               ) : (
-                <Button type="submit" className="min-h-11 w-full" disabled={enviando}>
+                <Button
+                  type="submit"
+                  className="min-h-11 w-full"
+                  disabled={enviando || !senhaAprovada || senha !== confirmar}
+                >
                   {enviando ? "Salvando..." : "Salvar senha e entrar"}
                 </Button>
               )}
