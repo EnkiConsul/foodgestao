@@ -377,6 +377,11 @@ export default function DpDisciplinar() {
         suspensaoDias: diasN > 0 ? diasN : null,
       });
 
+      if (tipo === "elogio" && elogioVis !== "privado") {
+        const { error } = await (supabase.rpc as any)("dp_elogio_divulgar", { p_registro_id: registroId, p_visibilidade: elogioVis });
+        if (error) throw error;
+      }
+
       if (pendingFile) {
         const path = await enviarArquivo(selectedCompanyId, registroId, pendingFile);
         await anexarArquivoDisciplinar(registroId, path);
@@ -392,7 +397,7 @@ export default function DpDisciplinar() {
           : "Registro cadastrado com sucesso",
       );
       if (res.gerarModelo) genPdf.mutate(res.registroId);
-      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setTipo(""); setDias("0"); setObservacao(""); setPendingFile(null); setConfirmo(false);
+      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setTipo(""); setDias("0"); setObservacao(""); setPendingFile(null); setConfirmo(false); setElogioVis("privado");
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
       setTab("historico");

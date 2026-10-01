@@ -12,6 +12,7 @@ const PATH_GESTOR: Record<string, string> = {
 const PATH_PORTAL: Record<string, string> = {
   dp_trocas: "/dp/meu/calendario", dp_documentos: "/dp/meu/documentos", dp_folgas: "/dp/meu/calendario",
   dp_convocacoes: "/dp/meu/convocacoes", dp_indisponibilidades: "/dp/meu/calendario",
+  dp_elogios: "/dp/meu/documentos?tipo=disciplinar",
 };
 
 Deno.serve(async (req) => {

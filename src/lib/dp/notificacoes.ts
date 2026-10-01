@@ -16,6 +16,7 @@ export const NOTIFICACAO_ORIGEM_LABEL: Record<string, string> = {
   dp_convocacoes: "Convocações",
   dp_folgas: "Folgas",
   companies: "Disponibilidade",
+  dp_elogios: "Reconhecimento",
 };
 
 export function notificacaoOrigemLabel(refTable: string | null | undefined): string {
@@ -58,6 +59,7 @@ export const NOTIFICACAO_PATH_PORTAL: Record<string, string> = {
   dp_folgas: "/dp/meu/calendario",
   dp_convocacoes: "/dp/meu/convocacoes",
   companies: "/dp/meu/calendario",
+  dp_elogios: "/dp/meu/documentos?tipo=disciplinar",
 };
 
 export function notificacaoPathPortal(refTable: string | null | undefined): string {
