@@ -29,17 +29,37 @@ export async function pushEstado(): Promise<PushEstado> {
   return sub && Notification.permission === "granted" ? "ativo" : "inativo";
 }
 
+function comPrazo<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise((res, rej) => {
+    const t = setTimeout(() => rej(new Error("tempo_esgotado")), ms);
+    p.then((v) => { clearTimeout(t); res(v); }, (e) => { clearTimeout(t); rej(e); });
+  });
+}
+
+/** Espera o worker DESTE escopo ficar ativo (não usa serviceWorker.ready, que aguarda o escopo da página). */
+function aguardarAtivo(reg: ServiceWorkerRegistration): Promise<void> {
+  if (reg.active) return Promise.resolve();
+  const sw = reg.installing || reg.waiting;
+  if (!sw) return Promise.resolve();
+  return new Promise((res) => {
+    sw.addEventListener("statechange", () => { if (sw.state === "activated") res(); });
+  });
+}
+
 /** Chamar a partir de um clique (o navegador exige gesto do usuário). */
 export async function ativarPush(): Promise<PushEstado> {
   const est = await pushEstado();
   if (est !== "inativo" && est !== "ativo") return est;
   const perm = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
   if (perm !== "granted") return "negado";
-  const reg = await navigator.serviceWorker.register(SW_URL, { scope: SW_SCOPE });
-  await navigator.serviceWorker.ready.catch(() => undefined);
+  const reg = await comPrazo(navigator.serviceWorker.register(SW_URL, { scope: SW_SCOPE }), 8000);
+  await comPrazo(aguardarAtivo(reg), 8000);
   const sub =
     (await reg.pushManager.getSubscription()) ??
-    (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(VAPID_PUBLIC_KEY) }));
+    (await comPrazo(
+      reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(VAPID_PUBLIC_KEY) }),
+      10000,
+    ));
   const j = sub.toJSON();
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) throw new Error("Sessão expirada");
