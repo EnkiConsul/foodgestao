@@ -9,6 +9,7 @@
 // O HTML abaixo é a versão simples de leitura rápida, mantida como
 // alternativa; a impressão fica isolada em `imprimirCertificadoValidacao`.
 // ------------------------------------------------------------------
+import logoAveto from "@/assets/aveto360-horizontal.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
