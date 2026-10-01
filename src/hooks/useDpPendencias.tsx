@@ -42,6 +42,8 @@ import {
   optanteNaCompetencia,
   type AdiantamentoSolicitacao,
 } from "@/lib/dp/adiantamento-opcao";
+import { ciclosValePendentes, unidadesSemFeriados } from "@/lib/dp/pendencias-vales";
+import { dataDoFeriadoNoAno, type FeriadoRegra } from "@/lib/dp/feriados";
 
 export type Pendencia = {
   id: string;
@@ -1448,6 +1450,90 @@ export function useDpPendencias() {
         } catch (e) {
           console.warn("pendencias/comprovante-pagamento:", e);
         }
+      }
+
+      // Pagamento de vales (VA/VT): próxima 2 dias antes, urgente no dia, atrasada depois.
+      try {
+        const hojeVale = ymd(today);
+        const [{ data: cfgVale }, { data: apur }, { data: colabsVale }] = await Promise.all([
+          supabase
+            .from("dp_config_dp")
+            .select("va_ativo, vt_ativo, va_dia_pagamento, vt_dia_pagamento")
+            .eq("company_id", selectedCompanyId!)
+            .is("unidade_id", null)
+            .maybeSingle(),
+          supabase
+            .from("dp_va_apuracoes")
+            .select("tipo, competencia")
+            .eq("company_id", selectedCompanyId!)
+            .not("fechado_em", "is", null)
+            .gte("competencia", ymd(addDays(today, -70)).slice(0, 7) + "-01"),
+          supabase
+            .from("dp_colaboradores")
+            .select("vale_alimentacao, vale_transporte")
+            .eq("company_id", selectedCompanyId!)
+            .eq("ativo", true),
+        ]);
+        const c = (cfgVale ?? {}) as Record<string, any>;
+        const vales: Array<{ tipo: "va" | "vt"; ativo: boolean; dia: number | null; nome: string; campo: string }> = [
+          { tipo: "va", ativo: c.va_ativo ?? true, dia: c.va_dia_pagamento ?? null, nome: "Vale-Alimentação", campo: "vale_alimentacao" },
+          { tipo: "vt", ativo: c.vt_ativo ?? true, dia: c.vt_dia_pagamento ?? null, nome: "Vale-Transporte", campo: "vale_transporte" },
+        ];
+        for (const v of vales) {
+          if (!v.ativo) continue;
+          const qtd = ((colabsVale ?? []) as any[]).filter((x) => x[v.campo]).length;
+          if (qtd === 0) continue;
+          const fechadas = new Set(
+            ((apur ?? []) as any[]).filter((a) => (a.tipo ?? "va") === v.tipo).map((a) => String(a.competencia).slice(0, 10)),
+          );
+          for (const ciclo of ciclosValePendentes({ diaPagamento: v.dia, hojeISO: hojeVale, competenciasFechadas: fechadas })) {
+            const [a, m, d] = ciclo.vencimento.split("-");
+            results.push({
+              id: `vale-${v.tipo}-${ciclo.competencia}`,
+              icon: Coins,
+              titulo: `Pagamento do ${v.nome}`,
+              subtitulo: `${qtd} colaborador${qtd > 1 ? "es" : ""} · pagamento em ${d}/${m}/${a}. Feche a apuração na calculadora.`,
+              tipo: "Benefícios",
+              competencia: ciclo.competencia,
+              vencimento: ciclo.vencimento,
+              atrasoDias: ciclo.atrasoDias,
+              urgente: ciclo.urgente,
+              url: "/dp/beneficios",
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("pendencias/vales:", e);
+      }
+
+      // Unidades sem calendário de feriados no ano corrente.
+      try {
+        if (unidades.length > 0) {
+          const { data: fer } = await supabase
+            .from("dp_unidade_feriados")
+            .select("id, unidade_id, nome, tipo, data, dia, mes, ordinal, dia_semana, ativo")
+            .eq("company_id", selectedCompanyId!)
+            .eq("ativo", true);
+          const comFeriado = new Set<string>();
+          for (const f of (fer ?? []) as any[]) {
+            if (dataDoFeriadoNoAno(f as FeriadoRegra, anoVigente)) comFeriado.add(f.unidade_id);
+          }
+          for (const u of unidadesSemFeriados(unidades, comFeriado)) {
+            results.push({
+              id: `unidade-sem-feriados-${u.id}-${anoVigente}`,
+              icon: Scale,
+              titulo: "Unidade sem calendário de feriados",
+              subtitulo: `${u.nome} não possui feriados cadastrados para ${anoVigente}. Férias e folgas em feriado ficam sem validação.`,
+              tipo: "Cadastro",
+              unidadeNome: u.nome,
+              unidadeId: u.id,
+              atrasoDias: 0,
+              url: `/dp/cadastros/unidades?editar=${u.id}&aba=feriados`,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("pendencias/feriados:", e);
       }
 
 
