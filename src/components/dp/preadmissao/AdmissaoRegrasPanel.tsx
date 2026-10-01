@@ -158,6 +158,7 @@ export function AdmissaoRegrasPanel() {
   const [simCargo, setSimCargo] = useState<string>(TODOS);
   const [simRegime, setSimRegime] = useState<string>(TODOS);
   const [simSexo, setSimSexo] = useState<string>(TODOS);
+  const [simAberto, setSimAberto] = useState(false);
 
   const porItem = useMemo(() => {
     const m = new Map<string, AdmissaoRegra[]>();
