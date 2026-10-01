@@ -1,0 +1,1 @@
+DROP FUNCTION public.dp_admissao_regra_parentesco_remover(uuid,text);
