@@ -8,6 +8,7 @@ export type DocTipo =
   | "contracheque_ferias"
   | "plr"
   | "outros_pagamentos"
+  | "gorjeta"
   | "ponto"
   | "banco_horas"
   | "ajuste_jornada"
@@ -42,6 +43,7 @@ export const DOC_TIPO_LABEL: Record<string, string> = {
   contracheque_ferias: "Férias (Pagamento)",
   plr: "PLR",
   outros_pagamentos: "Outros Pagamentos",
+  gorjeta: "Relatório de Gorjetas",
   ponto: "Espelho de Ponto",
   banco_horas: "Banco de Horas",
   ajuste_jornada: "Ajuste de Jornada",
@@ -81,6 +83,7 @@ const KEYWORDS: Array<[DocTipo, string[]]> = [
   ["recibo_ferias", ["recibo de ferias", "quitacao de ferias"]],
   ["informe_rendimentos", ["informe de rendimentos", "comprovante de rendimentos", "imposto de renda", "dirf"]],
   ["plr", ["plr", "participacao nos lucros", "participacao nos resultados"]],
+  ["gorjeta", ["gorjeta", "relatorio de gorjetas", "rateio de gorjeta", "taxa de servico", "prestacao de contas de gorjeta"]],
   ["adiantamento", ["adiantamento", "antecipacao salarial", "vale salarial"]],
   ["banco_horas", ["banco de horas", "extrato de horas", "compensacao de horas"]],
   ["ajuste_jornada", ["ajuste de jornada", "acordo de compensacao", "alteracao de jornada"]],

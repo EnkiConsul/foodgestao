@@ -15,6 +15,8 @@ const TIPOS_FOLHA_MES_SEGUINTE = new Set<string>([
   "pro_labore",
   "plr",
   "outros_pagamentos",
+  // O rateio da gorjeta é pago junto com a folha do mês seguinte à competência.
+  "gorjeta",
 ]);
 
 export type ComprovantePrazoArgs = {
