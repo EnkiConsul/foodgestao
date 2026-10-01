@@ -10,3 +10,4 @@
 - O portal não lê `dp_colaboradores` de colegas: `dp_portal_equipe_unidade()` expõe só nome, função e folga fixa da unidade — preserva privacidade.
 - Na pré-admissão, o checklist compartilhado governa leitura e envio; desativar requisitos preserva anexos históricos — evita divergência na validação.
 - Recibo de cadastrado ativo: Portal/físico; avulso ou desligado: também WhatsApp — quem não acessa o portal ainda assina.
+- Imagem da assinatura (PNG em data URL) é gravada só pelo servidor em `assinatura_imagem` (dp_recibos/dp_documento_aceites), imutável após gravada, e estampada no PDF com rubrica em todas as páginas — reimpressão fiel sem confiar no cliente.
