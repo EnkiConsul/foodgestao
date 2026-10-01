@@ -148,6 +148,16 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
     keywords: ["recibo de bonus", "premiacao", "abono"],
     badgeClass: "border-emerald-200 text-emerald-600",
   },
+  {
+    value: "recibo_pagamento_especie",
+    label: "Recibo de Pagamento em Dinheiro",
+    grupo: "remuneracao",
+    importavel: false,
+    exigeAceite: true,
+    keywords: ["recibo de pagamento em dinheiro", "recibo em especie", "quitacao em especie"],
+    badgeClass: "border-orange-300 text-orange-700",
+  },
+
 
   // ---------- Jornada ----------
   {
