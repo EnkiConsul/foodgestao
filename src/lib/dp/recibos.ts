@@ -114,6 +114,7 @@ export function statusRecibo(r: { cancelado_em?: string | null; assinado_em?: st
   if (r.cancelado_em) return { label: "Cancelado", tom: "neutro" };
   if (r.assinado_em) return { label: "Assinado", tom: "ok" };
   if (r.canal_assinatura === "fisico") return { label: "Assinar à Mão", tom: "pendente" };
+  if (r.canal_assinatura === "portal") return { label: "Enviado ao Portal", tom: "pendente" };
   if (r.canal_assinatura === "whatsapp" && r.link_expira_em && new Date(r.link_expira_em) < new Date()) {
     return { label: "Link Expirado", tom: "pendente" };
   }
