@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { CadastroIncompletoBadge } from "@/components/dp/CadastroIncompletoBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -498,15 +499,9 @@ export default function DpColaboradores() {
               <Badge variant="outline" className="h-4 px-1 text-[10px] border-primary/30 text-primary bg-primary/5">
                 {vinculoLabel(c as any)}
               </Badge>
-              {c.ativo && faltantesDe(c).length > 0 && (
-                <Badge
-                  variant="outline"
-                  className="h-4 px-1 text-[10px] border-amber-500/40 text-amber-600 dark:text-amber-400"
-                  title={`Falta: ${resumoFaltando(faltantesDe(c), 9)}`}
-                >
-                  Cadastro incompleto ({faltantesDe(c).length})
-                </Badge>
-              )}
+              {c.ativo && (
+<CadastroIncompletoBadge faltando={faltantesDe(c)} className="h-4 px-1 text-[10px]" onCompletar={(aba) => abrirCadastro(c, aba)} />
+)}
               {folha && <Badge variant="outline" className="h-4 px-1 text-[10px]">Ponto</Badge>}
               {adiantamento && <Badge variant="outline" className="h-4 px-1 text-[10px]">Adiantamento</Badge>}
             </div>
@@ -1000,15 +995,9 @@ export default function DpColaboradores() {
                       >
                         Ponto: {folha ? "Sim" : "Não"}
                       </Badge>
-                      {c.ativo && faltantesDe(c).length > 0 && (
-                        <Badge
-                          variant="outline"
-                          className="text-[11px] border-amber-500/40 text-amber-600 dark:text-amber-400"
-                          title={`Falta: ${resumoFaltando(faltantesDe(c), 9)}`}
-                        >
-                          Cadastro incompleto ({faltantesDe(c).length})
-                        </Badge>
-                      )}
+                      {c.ativo && (
+<CadastroIncompletoBadge faltando={faltantesDe(c)} className="text-[11px]" onCompletar={(aba) => abrirCadastro(c, aba)} />
+)}
                     </>
                   }
                   onOpen={() => setViewing(c)}
@@ -1316,15 +1305,9 @@ export default function DpColaboradores() {
                         >
                           Ponto: {folha ? "Sim" : "Não"}
                         </Badge>
-                        {c.ativo && faltantesDe(c).length > 0 && (
-                          <Badge
-                            variant="outline"
-                            className="text-[11px] border-amber-500/40 text-amber-600 dark:text-amber-400"
-                            title={`Falta: ${resumoFaltando(faltantesDe(c), 9)}`}
-                          >
-                            Cadastro incompleto ({faltantesDe(c).length})
-                          </Badge>
-                        )}
+                        {c.ativo && (
+<CadastroIncompletoBadge faltando={faltantesDe(c)} className="text-[11px]" onCompletar={(aba) => abrirCadastro(c, aba)} />
+)}
                       </>
                     }
                     onOpen={() => setViewing(c)}
