@@ -62,9 +62,8 @@ export default function DpMeuHistorico() {
         supabase.from("dp_documentos")
           .select("id, tipo, titulo, created_at")
           .eq("colaborador_id", colabId!).order("created_at", { ascending: false }).limit(50),
-        supabase.from("dp_registros_disciplinares")
-          .select("id, tipo, motivo, created_at")
-          .eq("colaborador_id", colabId!).order("created_at", { ascending: false }).limit(20),
+        // Só vias disciplinares assinadas; texto interno do gestor nunca entra.
+        (supabase.rpc as any)("dp_portal_meus_disciplinares"),
       ]);
 
       const out: Evento[] = [];
@@ -82,8 +81,8 @@ export default function DpMeuHistorico() {
         titulo: d.titulo ?? d.tipo, icon: FileText,
       }));
       (disc.data ?? []).forEach((r: any) => out.push({
-        id: `r-${r.id}`, data: r.created_at, tipo: "Disciplinar",
-        titulo: `${r.tipo}: ${r.motivo ?? "-"}`, icon: ShieldAlert,
+        id: `r-${r.id}`, data: r.via_assinada_em ?? r.data, tipo: "Disciplinar",
+        titulo: r.tipo === "suspensao" ? "Suspensão (Via Assinada)" : "Advertência Escrita (Via Assinada)", icon: ShieldAlert,
       }));
       return out.sort((a, b) => (a.data < b.data ? 1 : -1));
     },
