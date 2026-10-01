@@ -9,6 +9,7 @@
 // O HTML abaixo é a versão simples de leitura rápida, mantida como
 // alternativa; a impressão fica isolada em `imprimirCertificadoValidacao`.
 // ------------------------------------------------------------------
+import logoAveto from "@/assets/aveto360-horizontal.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -66,12 +67,28 @@ function fmtDataHora(iso?: string | null) {
   return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" });
 }
 
+/**
+ * O certificado é aberto por endereço temporário (blob:), onde caminho
+ * relativo não resolve: a logo precisa do endereço completo do site.
+ */
+function logoTimbrado(): string {
+  const base = typeof window !== "undefined" ? window.location.origin : "https://aveto360.com";
+  return `${base}${logoAveto.url}`;
+}
+
 const ESTILO = `
   body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; margin: 0; padding: 16px; }
   .cert { border: 1px solid #ccc; border-radius: 6px; padding: 20px; }
   header { border-bottom: 2px solid #EB6119; padding-bottom: 8px; margin-bottom: 14px; }
   header h1 { margin: 0 0 4px; font-size: 17px; }
   header p { margin: 0; font-size: 11px; color: #555; }
+  .timbre { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding-bottom: 10px; }
+  .timbre img { height: 30px; width: auto; display: block; }
+  .timbre div { text-align: right; line-height: 1.5; }
+  .timbre strong { display: block; font-size: 10px; color: #0F1B3D; }
+  .timbre em { display: block; font-size: 9px; color: #6b7280; font-style: normal; }
+  .selo { height: 2px; background: #EB6119; margin-bottom: 12px; }
+  .marca { margin-top: 6px; font-size: 10px; color: #0F1B3D; font-weight: 600; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
   td { border: 1px solid #e5e5e5; padding: 6px 8px; vertical-align: top; width: 50%; }
   span.rot { display: block; font-size: 10px; color: #666; text-transform: uppercase; }
@@ -91,6 +108,14 @@ export function certificadoValidacaoHtml(d: CertificadoValidacaoDados): string {
   <style>${ESTILO}</style></head>
   <body>
     <section class="cert">
+      <div class="timbre">
+        <img src="${esc(logoTimbrado())}" alt="AVETO 360" />
+        <div>
+          <strong>Plataforma AVETO 360</strong>
+          <em>${esc(d.empresa)}</em>
+        </div>
+      </div>
+      <div class="selo"></div>
       <header>
         <h1>Certificado de Validação de Documento</h1>
         <p>${esc(d.empresa)}</p>
@@ -135,6 +160,7 @@ export function certificadoValidacaoHtml(d: CertificadoValidacaoDados): string {
         Emitido em ${esc(fmtDataHora(new Date().toISOString()))} · Documento gerado
         automaticamente pelo sistema a partir do registro eletrônico de aprovação.
       </p>
+      <p class="marca">Autenticado pela plataforma AVETO 360</p>
     </section>
   </body></html>`;
 }

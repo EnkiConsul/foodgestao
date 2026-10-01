@@ -15,6 +15,15 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "npm
 import { z } from "npm:zod@3";
 import { callerClient, requireUser, serviceClient } from "../_shared/authz.ts";
 import { recordEdgeError } from "../_shared/error-log.ts";
+import {
+  MARCA_ASSINATURA,
+  MARCA_LARANJA,
+  MARCA_MARINHO,
+  MARCA_PNG_BASE64,
+} from "../_shared/marca-aveto.ts";
+
+const MARINHO = rgb(MARCA_MARINHO[0], MARCA_MARINHO[1], MARCA_MARINHO[2]);
+const LARANJA = rgb(MARCA_LARANJA[0], MARCA_LARANJA[1], MARCA_LARANJA[2]);
 
 const BUCKET = "dp-documentos";
 const FUNCAO = "dp-documento-certificado";
@@ -99,24 +108,67 @@ type Dados = {
 
 const A4: [number, number] = [595.28, 841.89];
 
-function paginaCertificado(pdf: PDFDocument, fonte: PDFFont, negrito: PDFFont, d: Dados): void {
+/** Marca embutida: `null` quando a logo não pôde ser carregada (nunca impede a emissão). */
+type Marca = { width: number; height: number } | null;
+
+/**
+ * Timbrado institucional no topo da página: logo AVETO 360 à esquerda, origem do
+ * documento à direita, linha laranja da marca e o título do certificado abaixo.
+ * Devolve a altura ocupada para o conteúdo continuar abaixo.
+ */
+function timbrado(page: PDFPage, negrito: PDFFont, fonte: PDFFont, marca: Marca, titulo: string, empresa: string): number {
+  const { width, height } = page.getSize();
+  const margem = 48;
+  const alturaLogo = 30;
+  const baseLogo = height - 40 - alturaLogo;
+
+  if (marca) {
+    const escala = alturaLogo / marca.height;
+    page.drawImage(marca as never, {
+      x: margem, y: baseLogo, width: marca.width * escala, height: alturaLogo,
+    });
+  } else {
+    page.drawText("AVETO 360", {
+      x: margem, y: baseLogo + 8, size: 17, font: negrito, color: MARINHO,
+    });
+  }
+
+  const origem = "Plataforma AVETO 360";
+  page.drawText(origem, {
+    x: width - margem - negrito.widthOfTextAtSize(origem, 9),
+    y: baseLogo + alturaLogo - 11, size: 9, font: negrito, color: MARINHO,
+  });
+  const sub = limpar(empresa).slice(0, 60);
+  if (sub) {
+    page.drawText(sub, {
+      x: width - margem - fonte.widthOfTextAtSize(sub, 8),
+      y: baseLogo + 1, size: 8, font: fonte, color: rgb(0.42, 0.45, 0.52),
+    });
+  }
+
+  const linha = baseLogo - 14;
+  page.drawRectangle({ x: margem, y: linha, width: width - margem * 2, height: 2, color: LARANJA });
+
+  page.drawText(limpar(titulo), {
+    x: margem, y: linha - 22, size: 13.5, font: negrito, color: MARINHO,
+  });
+
+  return height - (linha - 22) + 10;
+}
+
+function paginaCertificado(
+  pdf: PDFDocument,
+  fonte: PDFFont,
+  negrito: PDFFont,
+  d: Dados,
+  marca: Marca,
+): void {
   const page = pdf.addPage(A4);
   const { width, height } = page.getSize();
   const margem = 48;
   const largura = width - margem * 2;
-  let y = height - margem;
-
-  page.drawText("Certificado de Validação de Documento", {
-    x: margem, y: y - 8, size: 17, font: negrito, color: rgb(0.06, 0.11, 0.24),
-  });
-  y -= 28;
-  page.drawText(limpar(d.empresa), { x: margem, y, size: 11, font: fonte, color: rgb(0.35, 0.35, 0.35) });
-  y -= 10;
-  page.drawLine({
-    start: { x: margem, y }, end: { x: margem + largura, y },
-    thickness: 2, color: rgb(0.92, 0.38, 0.1),
-  });
-  y -= 26;
+  const usado = timbrado(page, negrito, fonte, marca, "Certificado de Validação de Documento", d.empresa);
+  let y = height - usado - 18;
 
   const campos: Array<[string, string]> = [
     ["Colaborador", d.colaborador],
@@ -174,15 +226,14 @@ function paginaAnexo(
   arquivo: string,
   pagoEm: string,
   competencia: string,
+  marca: Marca,
+  empresa: string,
 ): void {
   const page = pdf.addPage(A4);
   const { width, height } = page.getSize();
   const margem = 48;
-  let y = height - 120;
-  page.drawText("Anexo — Comprovante de pagamento", {
-    x: margem, y, size: 15, font: negrito, color: rgb(0.06, 0.11, 0.24),
-  });
-  y -= 24;
+  const usado = timbrado(page, negrito, fonte, marca, "Anexo — Comprovante de Pagamento", empresa);
+  let y = height - usado - 20;
   for (
     const linha of linhas(
       `Competência do documento: ${competencia || "—"}. Arquivo: ${arquivo || "—"}. ${
@@ -250,20 +301,23 @@ function rodape(pdf: PDFDocument, fonte: PDFFont, d: Dados): void {
   const linha2 = limpar(
     `Aprovado em ${dataHora(d.aceitoEm)} · Registro ${d.registroId} · Conteúdo ${hash}`,
   );
+  const linha3 = limpar(MARCA_ASSINATURA);
   paginas.forEach((page: PDFPage, i: number) => {
     const { width } = page.getSize();
     const margem = 24;
-    page.drawRectangle({ x: 0, y: 0, width, height: 34, color: rgb(1, 1, 1), opacity: 0.85 });
+    page.drawRectangle({ x: 0, y: 0, width, height: 40, color: rgb(1, 1, 1), opacity: 0.85 });
     page.drawLine({
-      start: { x: margem, y: 34 }, end: { x: width - margem, y: 34 },
+      start: { x: margem, y: 40 }, end: { x: width - margem, y: 40 },
       thickness: 0.5, color: rgb(0.75, 0.75, 0.75),
     });
-    page.drawText(linha1.slice(0, 130), { x: margem, y: 22, size: 6.5, font: fonte, color: rgb(0.4, 0.4, 0.4) });
-    page.drawText(linha2.slice(0, 150), { x: margem, y: 12, size: 6.5, font: fonte, color: rgb(0.4, 0.4, 0.4) });
+    page.drawRectangle({ x: margem, y: 38.4, width: 54, height: 1.6, color: rgb(0.92, 0.38, 0.1) });
+    page.drawText(linha1.slice(0, 130), { x: margem, y: 28, size: 6.5, font: fonte, color: rgb(0.4, 0.4, 0.4) });
+    page.drawText(linha2.slice(0, 150), { x: margem, y: 18, size: 6.5, font: fonte, color: rgb(0.4, 0.4, 0.4) });
+    page.drawText(linha3, { x: margem, y: 8, size: 6.5, font: fonte, color: rgb(0.06, 0.11, 0.24) });
     const pag = `Página ${i + 1} de ${total}`;
     page.drawText(pag, {
       x: width - margem - fonte.widthOfTextAtSize(pag, 6.5),
-      y: 12, size: 6.5, font: fonte, color: rgb(0.4, 0.4, 0.4),
+      y: 8, size: 6.5, font: fonte, color: rgb(0.4, 0.4, 0.4),
     });
   });
 }
@@ -328,6 +382,19 @@ Deno.serve(async (req) => {
     const fonte = await pdf.embedFont(StandardFonts.Helvetica);
     const negrito = await pdf.embedFont(StandardFonts.HelveticaBold);
     const avisos: string[] = [];
+
+    // Logo do timbrado: se falhar, o certificado sai com a marca em texto.
+    let marca: Marca = null;
+    try {
+      const bruto = atob(MARCA_PNG_BASE64);
+      const bytesLogo = new Uint8Array(bruto.length);
+      for (let i = 0; i < bruto.length; i++) bytesLogo[i] = bruto.charCodeAt(i);
+      const img = await pdf.embedPng(bytesLogo);
+      marca = img as unknown as Marca;
+      if (!marca?.width || !marca?.height) marca = null;
+    } catch {
+      marca = null;
+    }
 
     const empresaNome = (empresa as Record<string, unknown> | null);
     const dados: Dados = {
@@ -395,7 +462,7 @@ Deno.serve(async (req) => {
     const pendentes: string[] = [];
 
     // Capa primeiro; o documento e o anexo entram nas páginas seguintes.
-    paginaCertificado(pdf, fonte, negrito, dados);
+    paginaCertificado(pdf, fonte, negrito, dados, marca);
 
     if (docBytes) {
       const aviso = await anexarArquivo(pdf, docBytes, String(doc.mime_type ?? ""), String(doc.file_name ?? ""));
@@ -412,6 +479,8 @@ Deno.serve(async (req) => {
           ? new Date(`${String(registro.comprovante_pago_em).slice(0, 10)}T12:00:00Z`).toLocaleDateString("pt-BR")
           : "—",
         dados.competencia,
+        marca,
+        dados.empresa,
       );
       const aviso = await anexarArquivo(
         pdf,
@@ -433,9 +502,8 @@ Deno.serve(async (req) => {
     if (pendentes.length) {
       // Avisos descobertos na montagem entram em uma página final de observações.
       const page = pdf.addPage(A4);
-      let y = page.getHeight() - 120;
-      page.drawText("Observações", { x: 48, y, size: 14, font: negrito, color: rgb(0.6, 0.2, 0.05) });
-      y -= 24;
+      const usado = timbrado(page, negrito, fonte, marca, "Observações", dados.empresa);
+      let y = page.getHeight() - usado - 20;
       for (const aviso of pendentes) {
         for (const linha of linhas(aviso, fonte, 10.5, page.getWidth() - 96)) {
           page.drawText(linha, { x: 48, y, size: 10.5, font: fonte, color: rgb(0.25, 0.25, 0.25) });
@@ -448,7 +516,7 @@ Deno.serve(async (req) => {
     rodape(pdf, fonte, dados);
 
     const bytes = await pdf.save();
-    return new Response(bytes, {
+    return new Response(bytes as unknown as BodyInit, {
       status: 200,
       headers: {
         ...corsHeaders,
