@@ -20,6 +20,7 @@ export type UnifiedTipo =
   | "admissao"
   | "desligamento"
   | "ferias"
+  | "recibo_pagamento"
   | "outros";
 
 export type UnifiedOrigem = "dp" | "meu_envio" | "disciplinar" | "act_cct";
@@ -71,6 +72,7 @@ const TIPO_LABEL: Record<UnifiedTipo, string> = {
   admissao: "Admissão",
   desligamento: "Desligamento",
   ferias: "Férias",
+  recibo_pagamento: "Recibo de Pagamento",
   outros: "Outros",
 };
 
@@ -87,6 +89,7 @@ const KNOWN = new Set<string>([
   "admissao",
   "desligamento",
   "ferias",
+  "recibo_pagamento_especie",
 ]);
 
 function fmtCompetencia(iso?: string | null): { label: string; sort: string } {
@@ -112,6 +115,7 @@ const LEGADOS: Record<string, UnifiedTipo> = {
 
 function normalizeTipo(t: string | null | undefined): UnifiedTipo {
   const v = (t ?? "").toLowerCase();
+  if (v === "recibo_pagamento_especie") return "recibo_pagamento";
   if (KNOWN.has(v)) return v as UnifiedTipo;
   if (LEGADOS[v]) return LEGADOS[v];
   return "outros";

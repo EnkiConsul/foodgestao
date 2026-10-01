@@ -43,6 +43,9 @@ Deno.serve(async (req) => {
 
     const { data: row } = await admin.from("dp_recibos").select("*").eq("link_token_hash", hash).maybeSingle();
     if (!row || row.cancelado_em) return json(404, { error: "Este link não é mais válido. Peça um novo link a quem enviou." });
+    if (row.colaborador_id || row.canal_assinatura !== "whatsapp") {
+      return json(404, { error: "Este link não é mais válido. Peça um novo link a quem enviou." });
+    }
     const expirado = !row.assinado_em && row.link_expira_em && new Date(row.link_expira_em) < new Date();
     if (expirado) return json(410, { error: "Este link expirou. Peça um novo link a quem enviou." });
 
@@ -98,16 +101,14 @@ Deno.serve(async (req) => {
     }
     if (!hashArquivo) return json(409, { error: "O arquivo do recibo não está disponível. Avise quem enviou." });
 
-    const agora = new Date().toISOString();
-    const { data: upd, error } = await admin.from("dp_recibos").update({
-      assinado_em: agora,
-      assinado_ip: clientIp(req),
-      assinado_user_agent: (req.headers.get("user-agent") ?? "").slice(0, 400),
-      assinado_hash: hashArquivo,
-      assinado_confirmacao: { metodo: "cpf", canal: "whatsapp", declaracao: "Li e concordo com o recibo" },
-    }).eq("id", row.id).is("assinado_em", null).select("assinado_em").maybeSingle();
+    const { data: assinadoEm, error } = await admin.rpc("dp_recibo_assinar_externo", {
+      p_recibo_id: row.id,
+      p_hash: hashArquivo,
+      p_ip: clientIp(req),
+      p_user_agent: (req.headers.get("user-agent") ?? "").slice(0, 400),
+    });
     if (error) throw error;
-    return json(200, { assinado_em: upd?.assinado_em ?? agora });
+    return json(200, { assinado_em: assinadoEm });
   } catch (e) {
     await recordEdgeError({ functionName: FUNCAO, action: "assinar recibo pelo link", error: e });
     return json(500, { error: "Não foi possível concluir agora. Tente novamente." });

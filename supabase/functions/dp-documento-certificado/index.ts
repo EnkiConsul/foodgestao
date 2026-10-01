@@ -429,7 +429,7 @@ Deno.serve(async (req) => {
         ? new Date(`${String(registro.comprovante_pago_em).slice(0, 10)}T12:00:00Z`)
           .toLocaleDateString("pt-BR")
         : "Não informada",
-      quitacao: comp?.file_path
+      quitacao: comp?.file_path || registro.comprovante_modalidade
         ? resumoQuitacao({
           modalidade: registro.comprovante_modalidade as string | null,
           valor_bancario_cents: registro.comprovante_valor_bancario_cents as number | null,

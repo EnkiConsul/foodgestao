@@ -86,6 +86,11 @@ async function permitido(token: string, companyId: string, nivel: string): Promi
 }
 
 async function novoLink(admin: ReturnType<typeof serviceClient>, reciboId: string, req: Request) {
+  const { data: recibo } = await admin.from("dp_recibos")
+    .select("id, colaborador_id, canal_assinatura, cancelado_em, assinado_em")
+    .eq("id", reciboId).maybeSingle();
+  if (!recibo || recibo.cancelado_em || recibo.assinado_em) throw new Error("RECIBO_INDISPONIVEL");
+  if (recibo.colaborador_id || recibo.canal_assinatura !== "whatsapp") throw new Error("RECIBO_CANAL_INVALIDO");
   const token = gerarToken();
   const expira = new Date(Date.now() + VALIDADE_LINK_DIAS * 86400_000).toISOString();
   const { error } = await admin.from("dp_recibos").update({
@@ -138,12 +143,15 @@ Deno.serve(async (req) => {
       if (row.cancelado_em) return erro(409, "Este recibo foi cancelado.");
       if (row.assinado_em) return erro(409, "Este recibo já foi assinado.");
       if (b.acao === "cancelar") {
-        await admin.from("dp_recibos").update({ cancelado_em: new Date().toISOString(), link_token_hash: null })
-          .eq("id", row.id);
+        const { error: cancelarErro } = await admin.rpc("dp_recibo_cancelar", {
+          p_recibo_id: row.id,
+          p_cancelado_por: caller.id,
+        });
+        if (cancelarErro) throw cancelarErro;
         return json(200, { ok: true });
       }
-      if (row.canal_assinatura !== "whatsapp") {
-        await admin.from("dp_recibos").update({ canal_assinatura: "whatsapp" }).eq("id", row.id);
+      if (row.colaborador_id || row.canal_assinatura !== "whatsapp") {
+        return erro(409, "O link externo é exclusivo para pessoas sem cadastro.");
       }
       return json(200, { ...(await novoLink(admin, row.id, req)), whatsapp: row.beneficiario_whatsapp });
     }
@@ -169,6 +177,9 @@ Deno.serve(async (req) => {
     let unidadeId = b.unidade_id ?? null;
 
     if (b.colaborador_id) {
+      if (b.canal_assinatura === "whatsapp") {
+        return erro(400, "Colaborador cadastrado assina pelo Portal ou à mão.");
+      }
       const { data: colab } = await admin.from("dp_colaboradores")
         .select("id, company_id, nome, nome_social, cpf, whatsapp, telefone, unidade_id")
         .eq("id", b.colaborador_id).maybeSingle();
@@ -243,6 +254,18 @@ Deno.serve(async (req) => {
       atualiza.documento_id = String(docId);
     }
     await admin.from("dp_recibos").update(atualiza).eq("id", row.id);
+
+    if (atualiza.documento_id) {
+      const { error: vinculoErro } = await admin.rpc("dp_recibo_vincular_documento", {
+        p_recibo_id: row.id,
+        p_documento_id: atualiza.documento_id,
+      });
+      if (vinculoErro) {
+        await admin.storage.from(BUCKET).remove([caminho]);
+        await admin.from("dp_recibos").delete().eq("id", row.id);
+        throw vinculoErro;
+      }
+    }
 
     let link: { link: string; expira_em: string } | null = null;
     if (b.canal_assinatura === "whatsapp") link = await novoLink(admin, row.id, req);
