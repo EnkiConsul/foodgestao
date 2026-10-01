@@ -165,6 +165,7 @@ export default function DpDisciplinar() {
   const [editColaboradorId, setEditColaboradorId] = useState("");
   const [editData, setEditData] = useState("");
   const [editTipo, setEditTipo] = useState<string>("");
+  const [editElogioVis, setEditElogioVis] = useState<"privado" | "individual" | "publico">("privado");
   const [editDias, setEditDias] = useState("0");
   const [editObs, setEditObs] = useState("");
 
@@ -350,6 +351,7 @@ export default function DpDisciplinar() {
     setEditTipo(editing.tipo);
     setEditDias(String(editing.suspensao_dias ?? 0));
     setEditObs(editing.descricao ?? editing.motivo ?? "");
+    setEditElogioVis(((editing as any).elogio_visibilidade ?? "privado") as typeof editElogioVis);
   }, [editing]);
 
   const doImport = useMutation({
@@ -454,6 +456,10 @@ export default function DpDisciplinar() {
         descricao: editObs || null,
         motivo: editObs || TIPO_LABEL[editTipo] || editTipo,
       });
+      if (editTipo === "elogio" && editing && editElogioVis !== ((editing as any).elogio_visibilidade ?? "privado")) {
+        const { error } = await (supabase.rpc as any)("dp_elogio_divulgar", { p_registro_id: editing.id, p_visibilidade: editElogioVis });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Registro atualizado");
@@ -896,6 +902,26 @@ export default function DpDisciplinar() {
               <Label htmlFor="observacoes-17">Observações</Label>
               <Textarea id="observacoes-17" rows={3} value={editObs} onChange={(e) => setEditObs(e.target.value)} />
             </div>
+            {editTipo === "elogio" && (
+              <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                <Label htmlFor="edit-elogio-visibilidade">Visibilidade Do Elogio</Label>
+                <Select value={editElogioVis} onValueChange={(v) => setEditElogioVis(v as typeof editElogioVis)}>
+                  <SelectTrigger id="edit-elogio-visibilidade"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="privado">Privado (Apenas Dossiê Interno)</SelectItem>
+                    <SelectItem value="individual">Individual (Avisar E Mostrar No Portal Do Colaborador)</SelectItem>
+                    <SelectItem value="publico">Público (Publicar No Mural Da Unidade)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {editElogioVis === "privado"
+                    ? "Voltar para Privado tira o elogio do portal e remove a publicação do Mural, se houver. O aviso já enviado não é apagado."
+                    : editElogioVis === "publico"
+                      ? "Toda a equipe da unidade verá o texto da observação no Mural."
+                      : "Só o colaborador vê o reconhecimento. Se estava no Mural, a publicação será removida."}
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
