@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ShieldAlert, Upload, History, FileText, FileImage, Download, Trash2, Pencil, FileSignature, AlertTriangle, FileCheck2 } from "lucide-react";
+import { ShieldAlert, Upload, History, FileText, FileImage, Download, Trash2, Pencil, FileSignature, AlertTriangle, FileCheck2, Eye } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -163,6 +163,7 @@ export default function DpDisciplinar() {
   const [preview, setPreview] = useState<{ title: string; path: string } | null>(null);
   const [toDelete, setToDelete] = useState<Registro | null>(null);
   const [editing, setEditing] = useState<Registro | null>(null);
+  const [detalhe, setDetalhe] = useState<Registro | null>(null);
 
   // form importar
   const fileRef = useRef<HTMLInputElement>(null);
@@ -916,15 +917,13 @@ export default function DpDisciplinar() {
               const unitName = r.dp_colaboradores?.unidade_id ? unidadeNameById.get(r.dp_colaboradores.unidade_id) : null;
               const fileKind = getFileKind(r.pdf_storage_path);
               const FileIcon = fileKind.icon;
+              const arq = r.via_assinada_path ?? r.pdf_storage_path;
+              const parar = (fn: () => void) => (e: React.MouseEvent) => { e.stopPropagation(); fn(); };
               return (
-                <div key={r.id} className="rounded-2xl border border-border bg-card p-4 space-y-2 active:scale-[0.98] transition-transform">
+                <div key={r.id} role="button" tabIndex={0} onClick={() => setDetalhe(r)} onKeyDown={(e) => { if (e.key === "Enter") setDetalhe(r); }} className="cursor-pointer rounded-2xl border border-border bg-card p-4 space-y-2 active:scale-[0.98] transition-transform">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      {(r.via_assinada_path || r.pdf_storage_path) ? (
-                        <button type="button" className="flex max-w-full items-center gap-1 text-left font-semibold text-primary hover:underline" onClick={() => setPreview({ title: `Registro — ${r.dp_colaboradores?.nome ?? ""}`, path: (r.via_assinada_path ?? r.pdf_storage_path)! })}>
-                          <span className="truncate">{r.dp_colaboradores?.nome ?? "—"}</span><FileText className="size-3.5 shrink-0" />
-                        </button>
-                      ) : <div className="truncate font-semibold">{r.dp_colaboradores?.nome ?? "—"}</div>}
+                      <div className="truncate font-semibold">{r.dp_colaboradores?.nome ?? "—"}</div>
                       {unitName && <div className="text-[11px] text-muted-foreground truncate">{unitName}</div>}
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-0.5">
@@ -932,43 +931,38 @@ export default function DpDisciplinar() {
                       <span className="text-[10px] text-muted-foreground">{situacaoPortal(r)}</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-border/60">
+                  <div className="flex gap-3 text-[11px] pt-1 border-t border-border/60">
                     <div><span className="text-muted-foreground">Data:</span> {formatDate(r.data)}</div>
                     {r.suspensao_dias != null && <div><span className="text-muted-foreground">Dias:</span> {r.suspensao_dias}</div>}
-                    {r.pdf_storage_path && (
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 text-primary hover:underline text-left col-span-2"
-                        onClick={() => setPreview({ title: `Registro — ${r.dp_colaboradores?.nome ?? ""}`, path: (r.via_assinada_path ?? r.pdf_storage_path)! })}
-                      >
-                        <FileIcon className="h-3 w-3" /> {fileKind.label}
-                      </button>
-                    )}
                   </div>
                   {(r.descricao || r.motivo) && (
                     <div className="text-xs text-muted-foreground line-clamp-2">{r.descricao || r.motivo}</div>
                   )}
-                  <div className="flex gap-1 pt-1 border-t border-border/60 items-center">
-                    <Button size="sm" variant="ghost" className="h-10 min-w-0 flex-1 px-1.5 text-xs" onClick={() => setEditing(r)}>
-                      <Pencil className="h-4 w-4 mr-1 shrink-0" /> Editar
+                  <div className="flex items-center justify-around gap-1 pt-1 border-t border-border/60">
+                    {arq ? (
+                      <Button aria-label="Ver documento" title="Ver" size="icon" variant="ghost" className="h-11 w-11" onClick={parar(() => setPreview({ title: `Registro — ${r.dp_colaboradores?.nome ?? ""}`, path: arq }))}>
+                        <Eye className="h-5 w-5 text-primary" />
+                      </Button>
+                    ) : (
+                      <Button aria-label="Gerar PDF" title="Gerar PDF" size="icon" variant="ghost" className="h-11 w-11" disabled={genPdf.isPending} onClick={parar(() => genPdf.mutate(r.id))}>
+                        <FileSignature className="h-5 w-5" />
+                      </Button>
+                    )}
+                    {arq && (
+                      <Button aria-label="Baixar" title="Baixar" size="icon" variant="ghost" className="h-11 w-11" onClick={parar(() => handleDownload(r))}>
+                        <Download className="h-5 w-5" />
+                      </Button>
+                    )}
+                    {isFormal(r.tipo) && (
+                      <Button aria-label={r.via_assinada_path ? "Substituir via assinada" : "Importar via assinada"} title="Via Assinada" size="icon" variant="ghost" className="h-11 w-11" onClick={parar(() => setViaPara(r))}>
+                        <FileCheck2 className={r.via_assinada_path ? "h-5 w-5 text-muted-foreground" : "h-5 w-5 text-primary"} />
+                      </Button>
+                    )}
+                    <Button aria-label="Editar" title="Editar" size="icon" variant="ghost" className="h-11 w-11" onClick={parar(() => setEditing(r))}>
+                      <Pencil className="h-5 w-5" />
                     </Button>
-                    {!r.pdf_storage_path && (
-                      <Button size="sm" variant="ghost" className="h-10 min-w-0 flex-1 px-1.5 text-xs" disabled={genPdf.isPending} onClick={() => genPdf.mutate(r.id)}>
-                        <FileSignature className="h-4 w-4 mr-1 shrink-0" /> PDF
-                      </Button>
-                    )}
-                    {isFormal(r.tipo) && !r.via_assinada_path && (
-                      <Button size="sm" variant="ghost" className="h-10 min-w-0 flex-1 px-1.5 text-xs" onClick={() => setViaPara(r)}>
-                        <FileCheck2 className="h-4 w-4 mr-1 shrink-0" /> <span className="truncate">Via Assinada</span>
-                      </Button>
-                    )}
-                    {(r.pdf_storage_path || r.via_assinada_path) && (
-                      <Button size="sm" variant="ghost" className="h-10 min-w-0 flex-1 px-1.5 text-xs" onClick={() => handleDownload(r)}>
-                        <Download className="h-4 w-4 mr-1 shrink-0" /> Baixar
-                      </Button>
-                    )}
-                    <Button aria-label="Excluir registro" size="icon" variant="ghost" className="h-10 w-10 shrink-0" onClick={() => setToDelete(r)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                    <Button aria-label="Excluir" title="Excluir" size="icon" variant="ghost" className="h-11 w-11" onClick={parar(() => setToDelete(r))}>
+                      <Trash2 className="h-5 w-5 text-destructive" />
                     </Button>
                   </div>
                 </div>
@@ -978,6 +972,70 @@ export default function DpDisciplinar() {
 
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!detalhe} onOpenChange={(v) => !v && setDetalhe(null)}>
+        <DialogContent className="overflow-x-hidden sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="pr-6">Detalhes da Ocorrência</DialogTitle>
+          </DialogHeader>
+          {detalhe && (() => {
+            const d = detalhe;
+            const arq = d.via_assinada_path ?? d.pdf_storage_path;
+            const unit = d.dp_colaboradores?.unidade_id ? unidadeNameById.get(d.dp_colaboradores.unidade_id) : null;
+            const fechar = (fn: () => void) => () => { setDetalhe(null); fn(); };
+            return (
+              <div className="min-w-0 space-y-4 text-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-semibold break-words">{d.dp_colaboradores?.nome ?? "—"}</div>
+                    {unit && <div className="text-xs text-muted-foreground">{unit}</div>}
+                  </div>
+                  <Badge variant="outline" className="shrink-0">{TIPO_LABEL[d.tipo] ?? d.tipo}</Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-3 rounded-lg border border-border p-3 text-xs">
+                  <div><div className="text-muted-foreground">Data</div>{formatDate(d.data)}</div>
+                  {d.suspensao_dias != null && <div><div className="text-muted-foreground">Dias de Suspensão</div>{d.suspensao_dias}</div>}
+                  <div className="col-span-2"><div className="text-muted-foreground">Situação no Portal</div>{situacaoPortal(d)}{d.via_assinada_em ? ` — enviada em ${new Date(d.via_assinada_em).toLocaleString("pt-BR")}` : ""}</div>
+                  {d.motivo && <div className="col-span-2"><div className="text-muted-foreground">Motivo</div><span className="break-words">{d.motivo}</span></div>}
+                </div>
+                {d.descricao && (
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">Descrição dos Fatos</div>
+                    <p className="whitespace-pre-wrap break-words leading-relaxed">{d.descricao}</p>
+                  </div>
+                )}
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {arq ? (
+                    <Button variant="outline" className="min-h-11" onClick={fechar(() => setPreview({ title: `Registro — ${d.dp_colaboradores?.nome ?? ""}`, path: arq }))}>
+                      <Eye className="mr-2 h-4 w-4" /> Ver Documento
+                    </Button>
+                  ) : (
+                    <Button variant="outline" className="min-h-11" disabled={genPdf.isPending} onClick={fechar(() => genPdf.mutate(d.id))}>
+                      <FileSignature className="mr-2 h-4 w-4" /> Gerar PDF
+                    </Button>
+                  )}
+                  {arq && (
+                    <Button variant="outline" className="min-h-11" onClick={() => handleDownload(d)}>
+                      <Download className="mr-2 h-4 w-4" /> Baixar Arquivo
+                    </Button>
+                  )}
+                  {isFormal(d.tipo) && (
+                    <Button variant="outline" className="min-h-11" onClick={fechar(() => setViaPara(d))}>
+                      <FileCheck2 className="mr-2 h-4 w-4" /> {d.via_assinada_path ? "Substituir Via Assinada" : "Importar Via Assinada"}
+                    </Button>
+                  )}
+                  <Button variant="outline" className="min-h-11" onClick={fechar(() => setEditing(d))}>
+                    <Pencil className="mr-2 h-4 w-4" /> Editar Registro
+                  </Button>
+                  <Button variant="outline" className="min-h-11 text-destructive hover:text-destructive sm:col-span-2" onClick={fechar(() => setToDelete(d))}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Excluir Ocorrência
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       <DocumentPreview
         open={!!preview}
