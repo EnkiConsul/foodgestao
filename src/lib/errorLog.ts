@@ -26,6 +26,8 @@ export type ReportErrorInput = {
   details?: Record<string, unknown>;
   /** false = só registra; não abre o aviso "Relatar problema" por cima da mensagem. */
   promptUser?: boolean;
+  /** Id do aviso já exibido: o botão "Relatar problema" é anexado a ele, sem novo card. */
+  toastId?: string | number;
 };
 
 export type ErrorReportReadyDetail = {
@@ -33,7 +35,15 @@ export type ErrorReportReadyDetail = {
   surface?: string;
   action?: string;
   userMessage?: string;
+  toastId?: string | number;
 };
+
+/** Queda de internet não é defeito do sistema: só orienta, sem chamado. */
+export function ehFalhaDeRede(error: unknown): boolean {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
+  const m = messageOf(error).toLowerCase();
+  return /failed to fetch|networkerror|network request failed|load failed|err_network|err_internet|timeout|timed out|conex[aã]o/.test(m);
+}
 
 let currentCompanyId: string | null = null;
 let latestReport: ErrorReportReadyDetail | null = null;
@@ -157,10 +167,9 @@ export async function reportError(input: ReportErrorInput): Promise<string | nul
       surface: input.surface,
       action: input.action,
       userMessage: input.userMessage,
+      toastId: input.toastId,
     };
-    const noPortal =
-      typeof window !== "undefined" && window.location.pathname.startsWith("/dp/meu");
-    if (typeof window !== "undefined" && input.promptUser !== false && !noPortal) {
+    if (typeof window !== "undefined" && input.promptUser !== false && !ehFalhaDeRede(input.error)) {
       window.dispatchEvent(new CustomEvent<ErrorReportReadyDetail>("app:error-report-ready", { detail: latestReport }));
     }
     return errorLogId;

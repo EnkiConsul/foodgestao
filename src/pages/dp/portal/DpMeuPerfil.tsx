@@ -263,6 +263,22 @@ export default function DpMeuPerfil() {
           </Card>
         </>
       )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Ajuda</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Algo não funcionou no aplicativo? Conte para a gente o que aconteceu.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => window.dispatchEvent(new CustomEvent("app:open-error-report"))}
+          >
+            Relatar um Problema
+          </Button>
+        </CardContent>
+      </Card>
     </DpPage>
   );
 }

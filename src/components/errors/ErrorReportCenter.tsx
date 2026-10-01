@@ -39,20 +39,37 @@ export function ErrorReportCenter() {
       if (!detail?.errorLogId) return;
       setPending(detail);
       setProtocol(null);
-      toast.error("Encontramos um problema", {
-        id: ERRO_RELATORIO_TOAST_ID,
+      const abrir = () => {
+        toast.dismiss(detail.toastId ?? ERRO_RELATORIO_TOAST_ID);
+        setOpen(true);
+      };
+      // Reaproveita o aviso já exibido (mesmo id): a mensagem original continua
+      // visível e ganha o botão, sem um segundo card por cima.
+      toast.error(detail.userMessage || "Encontramos um problema", {
+        id: detail.toastId ?? ERRO_RELATORIO_TOAST_ID,
         closeButton: true,
-        description: "Ajude-nos a corrigir: conte o que aconteceu. Se preferir, feche este aviso no X.",
-        duration: 20_000,
-        action: {
-          label: "Relatar problema",
-          onClick: () => {
-            toast.dismiss(ERRO_RELATORIO_TOAST_ID);
-            setOpen(true);
-          },
-        },
+        description: "Se continuar, toque em Relatar Problema e conte o que aconteceu.",
+        duration: 15_000,
+        action: { label: "Relatar Problema", onClick: abrir },
       });
     };
+    const onManual = async () => {
+      const id = await reportError({
+        error: "Relato manual do usuário",
+        surface: "Ajuda",
+        action: "relatar um problema",
+        severity: "info",
+        promptUser: false,
+      });
+      if (!id) {
+        toast.error("Não foi possível abrir o chamado agora. Tente novamente.");
+        return;
+      }
+      setPending({ errorLogId: id, surface: "Ajuda", action: "relatar um problema" });
+      setProtocol(null);
+      setOpen(true);
+    };
+    window.addEventListener("app:open-error-report", onManual);
     window.addEventListener("app:error-report-ready", onReady);
     window.__360_ERROR_SINK__ = (payload) => {
       if (payload.level !== "error") return;
@@ -66,6 +83,7 @@ export function ErrorReportCenter() {
     };
     return () => {
       window.removeEventListener("app:error-report-ready", onReady);
+      window.removeEventListener("app:open-error-report", onManual);
       delete window.__360_ERROR_SINK__;
     };
   }, []);

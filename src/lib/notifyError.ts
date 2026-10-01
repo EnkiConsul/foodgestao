@@ -40,7 +40,8 @@ export function notifyError(error: unknown, opts: NotifyErrorOptions): void {
     toast.warning(texto || textoAmigavel(opts), { closeButton: true, duration: 10_000 });
     return;
   }
-  toast.error(textoAmigavel(opts), { closeButton: true, duration: 10_000 });
+  const toastId = `notify-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  toast.error(textoAmigavel(opts), { id: toastId, closeButton: true, duration: 10_000 });
   if (!opts.silenciar) {
     void reportError({
       error,
@@ -48,6 +49,7 @@ export function notifyError(error: unknown, opts: NotifyErrorOptions): void {
       action: opts.action,
       userMessage: textoAmigavel(opts),
       details: opts.details,
+      toastId,
     });
   }
 }
