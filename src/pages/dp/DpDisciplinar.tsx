@@ -177,6 +177,8 @@ export default function DpDisciplinar() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [confirmo, setConfirmo] = useState(false);
   const [elogioVis, setElogioVis] = useState<"privado" | "individual" | "publico">("privado");
+  /** Campo com preenchimento pendente — destacado na borda, sem erro de sistema. */
+  const [campoPendente, setCampoPendente] = useState<string | null>(null);
   // importar via assinada (histórico)
   const [viaPara, setViaPara] = useState<Registro | null>(null);
   const [viaArquivo, setViaArquivo] = useState<File | null>(null);
@@ -385,25 +387,57 @@ export default function DpDisciplinar() {
     setEditElogioVis(((editing as any).elogio_visibilidade ?? "privado") as typeof editElogioVis);
   }, [editing]);
 
+  /**
+   * Validação amigável: campo obrigatório vazio não é erro do sistema.
+   * Retorna o campo pendente (para destacar e focar) ou null se está tudo certo.
+   */
+  const validarFormulario = (): { campo: string; mensagem: string } | null => {
+    if (!unidadeId) return { campo: "unidade", mensagem: "Selecione a unidade para continuar." };
+    if (!colaboradorId) return { campo: "colaborador", mensagem: "Selecione o colaborador para continuar." };
+    if (!dataDoc) return { campo: "data", mensagem: "Informe a data do documento." };
+    if (!tipo) return { campo: "tipo", mensagem: "Selecione o tipo de registro." };
+    const formal = isFormal(tipo);
+    if (formal) {
+      if (!motivoSel.trim()) return { campo: "motivo", mensagem: "Selecione ou digite o motivo da medida." };
+      if (caminho === "gerar" && observacao.trim().length < 10)
+        return { campo: "observacao", mensagem: "Descreva os fatos com pelo menos 10 caracteres para gerar a carta." };
+      if (caminho === "importar" && !pendingFile)
+        return { campo: "arquivo", mensagem: "Anexe a foto ou o PDF da via assinada." };
+      if (caminho === "importar" && !confirmo)
+        return { campo: "confirmo", mensagem: "Confirme que a via anexada foi aplicada presencialmente e assinada." };
+    }
+    if (tipo === "suspensao") {
+      const diasN = parseInt(dias || "0", 10);
+      if (!Number.isFinite(diasN) || diasN <= 0 || diasN > 30)
+        return { campo: "dias", mensagem: "Informe de 1 a 30 dias de suspensão." };
+    }
+    return null;
+  };
+
+  /** Aviso orientativo + destaque e foco no campo pendente. */
+  const avisarCampoPendente = (pendente: { campo: string; mensagem: string }) => {
+    setCampoPendente(pendente.campo);
+    toast.warning(pendente.mensagem, { closeButton: true, duration: 8_000 });
+    const ids: Record<string, string> = {
+      unidade: "unidade-1",
+      colaborador: "colaborador-2",
+      data: "data-do-documento-3",
+      tipo: "tipo-de-registro-4",
+      motivo: "motivo-disc",
+      dias: "dias-de-afastamento-se-aplicavel-5",
+      observacao: "observacoes-6",
+    };
+    const el = ids[pendente.campo] ? document.getElementById(ids[pendente.campo]) : null;
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    el?.focus();
+  };
+
   const doImport = useMutation({
     mutationFn: async () => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      if (!unidadeId) throw new Error("Selecione a unidade");
-      if (!colaboradorId) throw new Error("Selecione o colaborador");
-      if (!dataDoc) throw new Error("Informe a data do documento");
-      if (!tipo) throw new Error("Selecione o tipo de registro");
       const formal = isFormal(tipo);
       const motivoTxt = motivoSel.trim();
-      if (formal) {
-        if (!motivoTxt) throw new Error("Selecione ou digite o motivo");
-        if (caminho === "gerar" && observacao.trim().length < 10) throw new Error("Descreva os fatos (mínimo 10 caracteres)");
-        if (caminho === "importar" && !pendingFile) throw new Error("Anexe a foto ou PDF da via assinada");
-        if (caminho === "importar" && !confirmo) throw new Error("Confirme que a via anexada foi aplicada presencialmente e assinada.");
-      }
       const diasN = tipo === "suspensao" ? parseInt(dias || "0", 10) : 0;
-      if (tipo === "suspensao" && (!Number.isFinite(diasN) || diasN <= 0 || diasN > 30)) {
-        throw new Error("Informe de 1 a 30 dias de suspensão");
-      }
 
       const registroId = await registrarDisciplinar({
         colaboradorId,
@@ -434,7 +468,7 @@ export default function DpDisciplinar() {
           : "Registro cadastrado com sucesso",
       );
       if (res.gerarModelo) genPdf.mutate(res.registroId);
-      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setTipo(""); setDias("0"); setObservacao(""); setPendingFile(null); setConfirmo(false); setElogioVis("privado"); setMotivoSel(""); setCaminho("gerar");
+      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setTipo(""); setDias("0"); setObservacao(""); setPendingFile(null); setConfirmo(false); setElogioVis("privado"); setMotivoSel(""); setCaminho("gerar"); setCampoPendente(null);
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
       setTab("historico");
@@ -555,7 +589,7 @@ export default function DpDisciplinar() {
         </TabsList>
 
         <TabsContent value="importar" className="mt-4">
-          <DpContentCard>
+          <DpContentCard contentClassName="p-4 sm:p-6">
             <div className="flex items-center gap-2 mb-5">
               <FileSignature className="size-5 text-primary" />
               <h3 className="text-lg font-semibold">Novo Registro Disciplinar ou Elogio</h3>
@@ -565,8 +599,8 @@ export default function DpDisciplinar() {
             <div className="space-y-5 lg:space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="unidade-1">Unidade *</Label>
-                <Select value={unidadeId} onValueChange={(v) => { setUnidadeId(v); setColaboradorId(""); }}>
-                  <SelectTrigger id="unidade-1"><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
+                <Select value={unidadeId} onValueChange={(v) => { setUnidadeId(v); setColaboradorId(""); if (campoPendente === "unidade") setCampoPendente(null); }}>
+                  <SelectTrigger id="unidade-1" className={campoPendente === "unidade" ? "border-destructive ring-1 ring-destructive" : undefined}><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
                   <SelectContent>
                     {(unidades.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
                   </SelectContent>
@@ -581,10 +615,11 @@ export default function DpDisciplinar() {
                     setColaboradorId(v);
                     const c = (colabs.data ?? []).find((x) => x.id === v);
                     if (c?.unidade_id) setUnidadeId(c.unidade_id);
+                    if (campoPendente === "colaborador") setCampoPendente(null);
                   }}
                   disabled={!unidadeId}
                 >
-                  <SelectTrigger id="colaborador-2"><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
+                  <SelectTrigger id="colaborador-2" className={campoPendente === "colaborador" ? "border-destructive ring-1 ring-destructive" : undefined}><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
                   <SelectContent>
                     {(colabs.data ?? [])
                       .filter((c) => !unidadeId || c.unidade_id === unidadeId)
@@ -596,13 +631,13 @@ export default function DpDisciplinar() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="data-do-documento-3">Data do Documento *</Label>
-                  <Input id="data-do-documento-3" type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
+                  <Input id="data-do-documento-3" type="date" value={dataDoc} onChange={(e) => { setDataDoc(e.target.value); if (campoPendente === "data") setCampoPendente(null); }} className={campoPendente === "data" ? "border-destructive ring-1 ring-destructive" : undefined} />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="tipo-de-registro-4">Tipo de Registro *</Label>
-                  <Select value={tipo} onValueChange={setTipo}>
-                    <SelectTrigger id="tipo-de-registro-4"><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+                  <Select value={tipo} onValueChange={(v) => { setTipo(v); if (campoPendente === "tipo") setCampoPendente(null); }}>
+                    <SelectTrigger id="tipo-de-registro-4" className={campoPendente === "tipo" ? "border-destructive ring-1 ring-destructive" : undefined}><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
                     <SelectContent>
                       {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                     </SelectContent>
@@ -656,8 +691,8 @@ export default function DpDisciplinar() {
               {isFormal(tipo) && (
                 <div className="space-y-2">
                   <Label htmlFor="motivo-disc">Motivo *</Label>
-                  <Select value={MOTIVOS.some((m) => m.label === motivoSel) ? motivoSel : motivoSel ? "__outro" : ""} onValueChange={(v) => setMotivoSel(v === "__outro" ? " " : v)}>
-                    <SelectTrigger id="motivo-disc"><SelectValue placeholder="Selecione o motivo" /></SelectTrigger>
+                  <Select value={MOTIVOS.some((m) => m.label === motivoSel) ? motivoSel : motivoSel ? "__outro" : ""} onValueChange={(v) => { setMotivoSel(v === "__outro" ? " " : v); if (campoPendente === "motivo") setCampoPendente(null); }}>
+                    <SelectTrigger id="motivo-disc" className={campoPendente === "motivo" ? "border-destructive ring-1 ring-destructive" : undefined}><SelectValue placeholder="Selecione o motivo" /></SelectTrigger>
                     <SelectContent>
                       {MOTIVOS.map((m) => (
                         <SelectItem key={m.label} value={m.label} className="whitespace-normal py-2">
@@ -679,7 +714,7 @@ export default function DpDisciplinar() {
               {tipo === "suspensao" && (
                 <div className="space-y-2">
                   <Label htmlFor="dias-de-afastamento-se-aplicavel-5">Dias De Suspensão *</Label>
-                  <Input id="dias-de-afastamento-se-aplicavel-5" type="number" min={1} max={30} value={dias} onChange={(e) => setDias(e.target.value)} />
+                  <Input id="dias-de-afastamento-se-aplicavel-5" type="number" min={1} max={30} value={dias} onChange={(e) => { setDias(e.target.value); if (campoPendente === "dias") setCampoPendente(null); }} className={campoPendente === "dias" ? "border-destructive ring-1 ring-destructive" : undefined} />
                   <p className="text-xs text-muted-foreground">Máximo de 30 dias (Art. 474 da CLT). A suspensão começa no dia seguinte à data do documento.</p>
                 </div>
               )}
@@ -687,10 +722,12 @@ export default function DpDisciplinar() {
               {(!isFormal(tipo) || caminho === "importar") && (
                 <div className="space-y-2">
                   <Label>{isFormal(tipo) ? "Foto Ou PDF Da Via Assinada *" : "Arquivo (Opcional)"}</Label>
-                  <DpFilePicker ref={fileRef} accept="application/pdf,image/*" file={pendingFile} onFileChange={setPendingFile} />
+                  <div className={campoPendente === "arquivo" ? "rounded-lg ring-2 ring-destructive" : undefined}>
+                    <DpFilePicker ref={fileRef} accept="application/pdf,image/*" file={pendingFile} onFileChange={(f) => { setPendingFile(f); if (f && campoPendente === "arquivo") setCampoPendente(null); }} />
+                  </div>
                   {isFormal(tipo) && (
-                    <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-xs">
-                      <Checkbox checked={confirmo} onCheckedChange={(v) => setConfirmo(v === true)} className="mt-0.5" />
+                    <label className={`flex items-start gap-2 rounded-lg border p-3 text-xs ${campoPendente === "confirmo" ? "border-destructive ring-1 ring-destructive" : "border-border"}`}>
+                      <Checkbox checked={confirmo} onCheckedChange={(v) => { setConfirmo(v === true); if (v === true && campoPendente === "confirmo") setCampoPendente(null); }} className="mt-0.5" />
                       <span>{TEXTO_CONFIRMACAO}</span>
                     </label>
                   )}
@@ -703,13 +740,26 @@ export default function DpDisciplinar() {
                   id="observacoes-6"
                   rows={isFormal(tipo) ? 6 : 3}
                   value={observacao}
-                  onChange={(e) => setObservacao(e.target.value)}
+                  onChange={(e) => { setObservacao(e.target.value); if (campoPendente === "observacao" && e.target.value.trim().length >= 10) setCampoPendente(null); }}
+                  className={campoPendente === "observacao" ? "border-destructive ring-1 ring-destructive" : undefined}
                   placeholder={isFormal(tipo) ? "Descreva de forma objetiva: o que aconteceu, quando, onde e quem presenciou." : "Observações adicionais (opcional)"}
                 />
+                {campoPendente === "observacao" && (
+                  <p className="text-xs text-destructive">Descreva os fatos com pelo menos 10 caracteres para gerar a carta.</p>
+                )}
               </div>
             </div>
 
-            <Button className="w-full mt-6" size="lg" disabled={doImport.isPending} onClick={() => doImport.mutate()}>
+            <Button
+              className="w-full mt-6"
+              size="lg"
+              disabled={doImport.isPending}
+              onClick={() => {
+                const pendente = validarFormulario();
+                if (pendente) return avisarCampoPendente(pendente);
+                doImport.mutate();
+              }}
+            >
               {isFormal(tipo) && caminho === "gerar" ? <FileText className="size-4 mr-2" /> : <Upload className="size-4 mr-2" />}
               {doImport.isPending
                 ? "Processando..."
