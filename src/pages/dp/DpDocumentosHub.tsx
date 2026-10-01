@@ -10,7 +10,7 @@ export default function DpDocumentosHub() {
       <DpPageHeader
         icon={FileText}
         title="Documentos"
-        description="Importe documentos, consulte o histórico e os registros disciplinares."
+        description="Advertências, suspensões, elogios e ocorrências disciplinares da equipe."
       />
       <DpGroupCards groupId="documentos" />
     </DpPage>
