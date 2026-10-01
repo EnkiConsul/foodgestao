@@ -85,12 +85,18 @@ async function permitido(token: string, companyId: string, nivel: string): Promi
   return !error && data === true;
 }
 
+async function colaboradorDesligado(admin: ReturnType<typeof serviceClient>, id: string): Promise<boolean> {
+  const { data } = await admin.from("dp_colaboradores").select("ativo").eq("id", id).maybeSingle();
+  return !!data && data.ativo === false;
+}
+
 async function novoLink(admin: ReturnType<typeof serviceClient>, reciboId: string, req: Request) {
   const { data: recibo } = await admin.from("dp_recibos")
     .select("id, colaborador_id, canal_assinatura, cancelado_em, assinado_em")
     .eq("id", reciboId).maybeSingle();
   if (!recibo || recibo.cancelado_em || recibo.assinado_em) throw new Error("RECIBO_INDISPONIVEL");
-  if (recibo.colaborador_id || recibo.canal_assinatura !== "whatsapp") throw new Error("RECIBO_CANAL_INVALIDO");
+  if (recibo.canal_assinatura !== "whatsapp") throw new Error("RECIBO_CANAL_INVALIDO");
+  if (recibo.colaborador_id && !(await colaboradorDesligado(admin, recibo.colaborador_id))) throw new Error("RECIBO_CANAL_INVALIDO");
   const token = gerarToken();
   const expira = new Date(Date.now() + VALIDADE_LINK_DIAS * 86400_000).toISOString();
   const { error } = await admin.from("dp_recibos").update({
@@ -150,8 +156,8 @@ Deno.serve(async (req) => {
         if (cancelarErro) throw cancelarErro;
         return json(200, { ok: true });
       }
-      if (row.colaborador_id || row.canal_assinatura !== "whatsapp") {
-        return erro(409, "O link externo é exclusivo para pessoas sem cadastro.");
+      if (row.canal_assinatura !== "whatsapp" || (row.colaborador_id && !(await colaboradorDesligado(admin, row.colaborador_id)))) {
+        return erro(409, "O link externo é exclusivo para pessoas sem cadastro ou desligadas.");
       }
       return json(200, { ...(await novoLink(admin, row.id, req)), whatsapp: row.beneficiario_whatsapp });
     }
@@ -177,13 +183,13 @@ Deno.serve(async (req) => {
     let unidadeId = b.unidade_id ?? null;
 
     if (b.colaborador_id) {
-      if (b.canal_assinatura === "whatsapp") {
-        return erro(400, "Colaborador cadastrado assina pelo Portal ou à mão.");
-      }
       const { data: colab } = await admin.from("dp_colaboradores")
-        .select("id, company_id, nome, nome_social, cpf, whatsapp, telefone, unidade_id")
+        .select("id, company_id, nome, nome_social, cpf, whatsapp, telefone, unidade_id, ativo")
         .eq("id", b.colaborador_id).maybeSingle();
       if (!colab || colab.company_id !== b.company_id) return erro(403, "Colaborador não pertence à empresa.");
+      if (b.canal_assinatura === "whatsapp" && colab.ativo !== false) {
+        return erro(400, "Colaborador cadastrado assina pelo Portal ou à mão.");
+      }
       nome = String(colab.nome_social || colab.nome || "").toUpperCase();
       cpf = String(colab.cpf ?? "").replace(/\D+/g, "");
       whatsapp = whatsapp || String(colab.whatsapp || colab.telefone || "").replace(/\D+/g, "");
