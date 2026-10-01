@@ -390,6 +390,7 @@ export default function PreAdmissao() {
   /** Foto escolhida aguardando a conferência do candidato. */
   const [conferindo, setConferindo] = useState<File | null>(null);
   /** Cópia local do que foi digitado: sobrevive a recarga e troca de app. */
+  const servidorRef = useRef<string | null>(null);
   const chaveLocal = c ? `preadmissao-rascunho:${c}` : null;
 
   const aplicar = useCallback((e: Estado) => {
@@ -398,7 +399,7 @@ export default function PreAdmissao() {
     const texto: Record<string, string> = {};
     Object.entries(d).forEach(([k, v]) => { texto[k] = v == null ? "" : String(v); });
     setForm(texto);
-    setPessoas(
+    const lista =
       (e.pessoas ?? []).map((p) => ({
         id: String(p.id),
         nome: String(p.nome ?? ""),
@@ -408,8 +409,9 @@ export default function PreAdmissao() {
         rg: String(p.rg ?? ""),
         finalidade_dependente: !!p.finalidade_dependente,
         finalidade_sesc: !!p.finalidade_sesc,
-      })),
-    );
+      }));
+    setPessoas(lista);
+    servidorRef.current = JSON.stringify({ form: texto, pessoas: lista });
   }, []);
 
   /**
@@ -430,7 +432,6 @@ export default function PreAdmissao() {
       const servidor: Record<string, string> = {};
       Object.entries(lido.dados ?? {}).forEach(([k, v]) => { servidor[k] = v == null ? "" : String(v); });
       const formLocal = { ...servidor, ...(local.form ?? {}) };
-      if (JSON.stringify(formLocal) === JSON.stringify(servidor) && !local.pessoas) return;
       setForm(formLocal);
       if (Array.isArray(local.pessoas)) setPessoas(local.pessoas);
       // Força o salvamento automático do que foi recuperado.
@@ -444,6 +445,11 @@ export default function PreAdmissao() {
   useEffect(() => {
     if (!chaveLocal || !estado || enviado) return;
     try {
+      // Igual ao que o servidor já guardou: nada pendente no aparelho.
+      if (JSON.stringify({ form, pessoas }) === servidorRef.current) {
+        window.localStorage.removeItem(chaveLocal);
+        return;
+      }
       window.localStorage.setItem(
         chaveLocal,
         JSON.stringify({ form, pessoas, versao: estado.versao ?? null, em: Date.now() }),
