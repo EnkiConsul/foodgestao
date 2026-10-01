@@ -810,7 +810,11 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
 
   const etapa = (
     <div className="space-y-2">
-      <ol className="flex flex-wrap items-center gap-1 text-[11px] sm:text-xs" aria-label="Etapas da admissão">
+      <p className="text-xs text-muted-foreground sm:hidden">
+        Etapa {Math.min(etapaAtual + 1, ETAPAS.length)} de {ETAPAS.length}:{" "}
+        <span className="font-medium text-foreground">{ETAPAS[Math.min(etapaAtual, ETAPAS.length - 1)]?.rotulo}</span>
+      </p>
+      <ol className="hidden flex-wrap items-center gap-1 text-[11px] sm:flex sm:text-xs" aria-label="Etapas da admissão">
         {ETAPAS.map((e, i) => (
           <li key={e.rotulo} className="flex items-center gap-1">
             <span
