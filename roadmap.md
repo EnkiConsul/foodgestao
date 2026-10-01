@@ -25,8 +25,8 @@
 - [x] Tela Documentos → Emitir Recibo (colaborador ou pessoa sem cadastro, natureza, valor sugerido, forma de pagamento)
 - [x] Assinatura pelo portal, link no WhatsApp (confirmação de CPF) ou à mão (PDF timbrado)
 - [x] Freelancer mensalista gera pendência de recibo mensal e adiantamento, com atalho para a emissão
-- [ ] Sincronizar assinatura por WhatsApp e portal entre recibo, documento e certificado.
-- [ ] Registrar data, modalidade e valores da quitação no documento vinculado.
-- [ ] Cancelar recibo e arquivar o documento vinculado de forma atômica, reabrindo a pendência.
-- [ ] Criar histórico clicável com ficha completa do recibo e ações disponíveis.
-- [ ] Melhorar o retorno ao resolver pendência e identificar recibos no portal.
+- [x] Sincronizar assinatura por WhatsApp e portal entre recibo, documento e certificado.
+- [x] Registrar data, modalidade e valores da quitação no documento vinculado.
+- [x] Cancelar recibo e arquivar o documento vinculado de forma atômica, reabrindo a pendência.
+- [x] Criar histórico clicável com ficha completa do recibo e ações disponíveis.
+- [x] Melhorar o retorno ao resolver pendência e identificar recibos no portal.
