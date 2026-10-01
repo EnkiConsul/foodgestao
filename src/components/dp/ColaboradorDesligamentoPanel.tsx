@@ -111,9 +111,17 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
     observacao: observacao.trim() || null,
   };
 
+  const [dataPendente, setDataPendente] = useState(false);
   const validar = () => {
-    if (!data) { toast.error("Informe a data da demissão"); return false; }
-    if (observacao.length > 2000) { toast.error("Observação muito longa (máx. 2000 caracteres)"); return false; }
+    if (!data) {
+      setDataPendente(true);
+      toast.warning("Informe a data da demissão para continuar.");
+      const el = document.getElementById("data-desligamento");
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      (el as HTMLInputElement | null)?.focus();
+      return false;
+    }
+    if (observacao.length > 2000) { toast.warning("A observação pode ter no máximo 2000 caracteres."); return false; }
     return true;
   };
 
@@ -171,15 +179,17 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
         )}
       </div>
 
-      <div className="space-y-4 rounded-xl border border-border p-4">
+      <div className="space-y-5 rounded-xl border-0 p-0 sm:border sm:border-border sm:p-4">
         <div className="space-y-1.5">
           <Label htmlFor="data-desligamento">Data da demissão *</Label>
           <Input
             id="data-desligamento"
             type="date"
             value={data}
-            onChange={(e) => setData(e.target.value)}
+            onChange={(e) => { setData(e.target.value); if (e.target.value) setDataPendente(false); }}
+            className={dataPendente ? "border-destructive ring-1 ring-destructive" : undefined}
           />
+          {dataPendente && <p className="text-xs text-destructive">Informe a data da demissão.</p>}
           <p className="text-[11px] text-muted-foreground">
             Pode ser uma data futura (aviso prévio). O acesso ao portal encerra em {dias} dias após ela
             {acessoAte ? ` — até ${fmt(acessoAte)}` : ""}.
@@ -311,7 +321,7 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
             <Button
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => { if (validar()) setConfirmar(true); }}
-              disabled={pending || !data}
+              disabled={pending}
               title={!data ? "Informe a data da demissão" : undefined}
             >
               <UserMinus className="mr-2 h-4 w-4" aria-hidden="true" />
