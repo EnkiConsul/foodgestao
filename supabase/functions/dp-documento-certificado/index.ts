@@ -105,24 +105,64 @@ type Dados = {
 
 const A4: [number, number] = [595.28, 841.89];
 
-function paginaCertificado(pdf: PDFDocument, fonte: PDFFont, negrito: PDFFont, d: Dados): void {
+/** Marca embutida: `null` quando a logo não pôde ser carregada (nunca impede a emissão). */
+type Marca = { width: number; height: number } | null;
+
+/**
+ * Timbrado institucional no topo da página: faixa marinho com a logo AVETO 360,
+ * o nome do certificado e a linha laranja de assinatura da marca.
+ * Devolve a altura ocupada para o conteúdo continuar abaixo.
+ */
+function timbrado(page: PDFPage, negrito: PDFFont, fonte: PDFFont, marca: Marca, titulo: string, empresa: string): number {
+  const { width, height } = page.getSize();
+  const margem = 48;
+  const faixa = 76;
+  const topo = height - faixa;
+
+  page.drawRectangle({ x: 0, y: topo, width, height: faixa, color: rgb(0.06, 0.11, 0.24) });
+  page.drawRectangle({ x: 0, y: topo - 3, width, height: 3, color: rgb(0.92, 0.38, 0.1) });
+
+  if (marca) {
+    const alturaLogo = 26;
+    const escala = alturaLogo / marca.height;
+    page.drawImage(marca as never, {
+      x: margem,
+      y: topo + (faixa - alturaLogo) / 2 + 9,
+      width: marca.width * escala,
+      height: alturaLogo,
+    });
+  } else {
+    page.drawText("AVETO 360", {
+      x: margem, y: topo + faixa / 2 + 10, size: 16, font: negrito, color: rgb(1, 1, 1),
+    });
+  }
+
+  page.drawText(limpar(titulo), {
+    x: margem, y: topo + 16, size: 12.5, font: negrito, color: rgb(1, 1, 1),
+  });
+  const sub = limpar(empresa);
+  if (sub) {
+    page.drawText(sub.slice(0, 70), {
+      x: width - margem - fonte.widthOfTextAtSize(sub.slice(0, 70), 9),
+      y: topo + 18, size: 9, font: fonte, color: rgb(0.78, 0.82, 0.9),
+    });
+  }
+  return faixa + 14;
+}
+
+function paginaCertificado(
+  pdf: PDFDocument,
+  fonte: PDFFont,
+  negrito: PDFFont,
+  d: Dados,
+  marca: Marca,
+): void {
   const page = pdf.addPage(A4);
   const { width, height } = page.getSize();
   const margem = 48;
   const largura = width - margem * 2;
-  let y = height - margem;
-
-  page.drawText("Certificado de Validação de Documento", {
-    x: margem, y: y - 8, size: 17, font: negrito, color: rgb(0.06, 0.11, 0.24),
-  });
-  y -= 28;
-  page.drawText(limpar(d.empresa), { x: margem, y, size: 11, font: fonte, color: rgb(0.35, 0.35, 0.35) });
-  y -= 10;
-  page.drawLine({
-    start: { x: margem, y }, end: { x: margem + largura, y },
-    thickness: 2, color: rgb(0.92, 0.38, 0.1),
-  });
-  y -= 26;
+  const usado = timbrado(page, negrito, fonte, marca, "Certificado de Validação de Documento", d.empresa);
+  let y = height - usado - 18;
 
   const campos: Array<[string, string]> = [
     ["Colaborador", d.colaborador],
