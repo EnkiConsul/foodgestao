@@ -342,6 +342,16 @@ export function FichaRevisaoCard({
       return;
     }
     const decidido = preadmissaoId ? vinculoDecidido() : null;
+    if (!(decidido?.cargoId ?? cargoId)) {
+      setTentouCriar(true);
+      toast.warning(
+        dados.cargo_nome
+          ? `Escolha o cargo de ${String(dados.nome ?? "")} ou cadastre “${String(dados.cargo_nome)}” antes de salvar.`.replace("de  ou", "ou")
+          : "Escolha o cargo antes de salvar.",
+      );
+      document.getElementById(`ficha-cargo-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     const dadosEnvio = preadmissaoId ? dadosParaCadastro(stagingDados, dados, escolhas) : dados;
     aplicar.mutate(
       {
@@ -528,31 +538,59 @@ export function FichaRevisaoCard({
 
         {!aplicado && (
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label className="text-xs">Cargo cadastrado</Label>
-              <Select value={cargoId ?? "__none"} onValueChange={(v) => setCargoId(v === "__none" ? null : v)}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
+            <div className="space-y-1" id={`ficha-cargo-${item.id}`}>
+              <Label className="text-xs">Cargo cadastrado *</Label>
+              <Select value={cargoId ?? undefined} onValueChange={(v) => setCargoId(v)}>
+                <SelectTrigger className={cn("h-9", realce(!cargoId))}>
+                  <SelectValue placeholder="Escolha o cargo" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none">Sem cargo</SelectItem>
                   {cargos.map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {cargoSugerido.cargo_id && cargoSugerido.cargo_id === cargoId && (
-                <p className="text-[11px] text-muted-foreground">Sugerido pela ficha ({cargoSugerido.motivo === "cbo" ? "pelo código CBO" : "pelo nome"}).</p>
+              {cargoId && cargoAutomatico === cargoId && (
+                <p className="text-[11px] text-muted-foreground">Preenchido pelo cargo da ficha.</p>
               )}
-              {!cargoSugerido.cargo_id && !!dados.cargo_nome && (
+              {!cargoId && cargoPorCbo && !!dados.cargo_nome && (
+                <div className="space-y-1.5 rounded-md bg-amber-500/10 p-2">
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                    A ficha diz “{String(dados.cargo_nome)}”. O cargo {cargoPorCbo.nome} tem o mesmo código CBO, mas o nome é diferente.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setCargoId(cargoPorCbo.id)}>
+                      Usar {cargoPorCbo.nome}
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setCargoDialog(true)}>
+                      <Plus className="mr-1 h-3 w-3" /> Criar “{String(dados.cargo_nome)}”
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {!cargoId && !cargoPorCbo && (
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[11px] text-amber-600 dark:text-amber-400">
-                    Nenhum cargo parecido com “{String(dados.cargo_nome)}”.
+                  <p className={cn("text-[11px]", tentouCriar ? "text-destructive" : "text-amber-600 dark:text-amber-400")}>
+                    {dados.cargo_nome
+                      ? `Nenhum cargo cadastrado corresponde a “${String(dados.cargo_nome)}”.`
+                      : "Escolha o cargo ou cadastre um novo."}
                   </p>
                   <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setCargoDialog(true)}>
                     <Plus className="mr-1 h-3 w-3" /> Criar este cargo
                   </Button>
                 </div>
               )}
+              {cargoId && (
+                <button
+                  type="button"
+                  className="text-[11px] text-muted-foreground underline underline-offset-2"
+                  onClick={() => setCargoDialog(true)}
+                >
+                  Cadastrar outro cargo
+                </button>
+              )}
             </div>
+
 
             <div className="space-y-1">
               <Label className="text-xs">Unidade</Label>
