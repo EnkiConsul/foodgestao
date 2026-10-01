@@ -433,6 +433,8 @@ export function ColaboradorFormDialog({
   /** Cargo ainda sem salário de referência — decisão feita dentro do sistema. */
   const [cargoSemSalario, setCargoSemSalario] = useState<{ salarioInformado: number } | null>(null);
   const [salvandoPiso, setSalvandoPiso] = useState(false);
+  /** Com patronal: marcar grava o valor só nesta unidade (acima do piso). */
+  const [pisoSoUnidade, setPisoSoUnidade] = useState(false);
   const [adiantamentoOpen, setAdiantamentoOpen] = useState(false);
   /** Forma de remuneração do sócio: pró-labore ou somente participação de lucros. */
   const [socioRem, setSocioRem] = useState<SocioRemuneracao>("pro_labore");
