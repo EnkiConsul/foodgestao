@@ -11113,6 +11113,141 @@ export type Database = {
           },
         ]
       }
+      dp_recibos: {
+        Row: {
+          assinado_confirmacao: Json | null
+          assinado_em: string | null
+          assinado_hash: string | null
+          assinado_ip: string | null
+          assinado_user_agent: string | null
+          beneficiario_cpf: string | null
+          beneficiario_nome: string
+          beneficiario_whatsapp: string | null
+          canal_assinatura: string
+          cancelado_em: string | null
+          colaborador_id: string | null
+          company_id: string
+          competencia: string
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          documento_id: string | null
+          file_path: string | null
+          id: string
+          link_enviado_em: string | null
+          link_expira_em: string | null
+          link_token_hash: string | null
+          modalidade: string
+          natureza: string
+          pago_em: string
+          unidade_id: string | null
+          updated_at: string
+          valor_bancario_cents: number | null
+          valor_cents: number
+          valor_especie_cents: number | null
+        }
+        Insert: {
+          assinado_confirmacao?: Json | null
+          assinado_em?: string | null
+          assinado_hash?: string | null
+          assinado_ip?: string | null
+          assinado_user_agent?: string | null
+          beneficiario_cpf?: string | null
+          beneficiario_nome: string
+          beneficiario_whatsapp?: string | null
+          canal_assinatura: string
+          cancelado_em?: string | null
+          colaborador_id?: string | null
+          company_id: string
+          competencia: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          documento_id?: string | null
+          file_path?: string | null
+          id?: string
+          link_enviado_em?: string | null
+          link_expira_em?: string | null
+          link_token_hash?: string | null
+          modalidade: string
+          natureza: string
+          pago_em: string
+          unidade_id?: string | null
+          updated_at?: string
+          valor_bancario_cents?: number | null
+          valor_cents: number
+          valor_especie_cents?: number | null
+        }
+        Update: {
+          assinado_confirmacao?: Json | null
+          assinado_em?: string | null
+          assinado_hash?: string | null
+          assinado_ip?: string | null
+          assinado_user_agent?: string | null
+          beneficiario_cpf?: string | null
+          beneficiario_nome?: string
+          beneficiario_whatsapp?: string | null
+          canal_assinatura?: string
+          cancelado_em?: string | null
+          colaborador_id?: string | null
+          company_id?: string
+          competencia?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          documento_id?: string | null
+          file_path?: string | null
+          id?: string
+          link_enviado_em?: string | null
+          link_expira_em?: string | null
+          link_token_hash?: string | null
+          modalidade?: string
+          natureza?: string
+          pago_em?: string
+          unidade_id?: string | null
+          updated_at?: string
+          valor_bancario_cents?: number | null
+          valor_cents?: number
+          valor_especie_cents?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_recibos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_recibos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_recibos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_recibos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_recibos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_registros_disciplinares: {
         Row: {
           aplicado_por: string | null
