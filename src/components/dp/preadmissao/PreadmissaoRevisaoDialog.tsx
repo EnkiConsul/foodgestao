@@ -781,23 +781,32 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                         <Input className="h-10" value={p.rg} disabled={encerrada}
                           onChange={(e) => setPessoas((l) => l.map((x, j) => (j === i ? { ...x, rg: e.target.value } : x)))} />
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Finalidade</Label>
-                        <div className="flex gap-2">
-                           <Button type="button" size="sm" disabled={encerrada || (!!parentescosPermitidos && !parentescosPermitidos.find((o) => o.parentesco === p.parentesco)?.permite_dependente)}
-                            variant={p.finalidade_dependente ? "default" : "outline"}
-                            onClick={() =>
-                              setPessoas((l) =>
-                                l.map((x, j) => (j === i ? { ...x, finalidade_dependente: !x.finalidade_dependente } : x)))}>
-                            Dependente
-                          </Button>
-                           <Button type="button" size="sm" disabled={encerrada || (!!parentescosPermitidos && !parentescosPermitidos.find((o) => o.parentesco === p.parentesco)?.permite_sesc)}
-                            variant={p.finalidade_sesc ? "default" : "outline"}
-                            onClick={() =>
-                              setPessoas((l) => l.map((x, j) => (j === i ? { ...x, finalidade_sesc: !x.finalidade_sesc } : x)))}>
-                            Sesc
-                          </Button>
-                        </div>
+                      <div className="space-y-1 sm:col-span-2">
+                        <Label className="text-xs">Finalidades</Label>
+                        {!finalidadesDoFamiliar(p.parentesco).length ? (
+                          <p className="text-xs text-muted-foreground">
+                            A empresa não liberou finalidades para este parentesco.
+                          </p>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {finalidadesDoFamiliar(p.parentesco).map((f) => (
+                              <Button
+                                key={f.codigo}
+                                type="button"
+                                size="sm"
+                                disabled={encerrada}
+                                variant={p.finalidades.includes(f.codigo) ? "default" : "outline"}
+                                onClick={() => setPessoas((l) => l.map((x, j) => (j === i
+                                  ? comFinalidades(x, x.finalidades.includes(f.codigo)
+                                    ? x.finalidades.filter((c) => c !== f.codigo)
+                                    : [...x.finalidades, f.codigo])
+                                  : x)))}
+                              >
+                                {f.nome}
+                              </Button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <Button type="button" variant="ghost" size="sm" className="text-destructive" disabled={encerrada}
@@ -812,9 +821,10 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                       ...l,
                       {
                         id: null, nome: "", parentesco: "", data_nascimento: "", cpf: "", rg: "",
-                        finalidade_dependente: true, finalidade_sesc: false,
+                        finalidade_dependente: true, finalidade_sesc: false, finalidades: [FINALIDADE_LEGAL],
                       },
                     ])}>
+
                   <Plus className="h-4 w-4 mr-2" /> Adicionar Dependente
                 </Button>
                 <p className="text-xs text-muted-foreground">
