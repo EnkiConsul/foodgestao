@@ -54,6 +54,8 @@ interface Props {
   faltaPatronal: boolean;
   /** Devolve o sindicato laboral criado para enquadrar o colaborador. */
   onCreated: (sindicato: { id: string; nome: string }) => void;
+  /** Nome já lido (ex.: ficha de registro) para pré-preencher o laboral. */
+  nomeLaboralInicial?: string | null;
 }
 
 /**
@@ -62,7 +64,7 @@ interface Props {
  */
 export function SindicatoQuickFormDialog({
   open, onOpenChange, cargoId, cargoNome, unidadeId, unidadeNome,
-  faltaLaboral, faltaPatronal, onCreated,
+  faltaLaboral, faltaPatronal, onCreated, nomeLaboralInicial,
 }: Props) {
   const upsert = useUpsertDpSindicato();
   const qc = useQueryClient();
@@ -74,11 +76,11 @@ export function SindicatoQuickFormDialog({
 
   useEffect(() => {
     if (!open) return;
-    setLaboral(vazio);
+    setLaboral({ ...vazio, nome: nomeLaboralInicial?.toUpperCase() ?? "" });
     setPatronal(vazio);
     setUsarLaboral(faltaLaboral);
     setUsarPatronal(faltaPatronal && !!unidadeId);
-  }, [open, faltaLaboral, faltaPatronal, unidadeId]);
+  }, [open, faltaLaboral, faltaPatronal, unidadeId, nomeLaboralInicial]);
 
   const criar = async (c: CamposSindicato, tipo: "laboral" | "patronal") =>
     upsert.mutateAsync({
