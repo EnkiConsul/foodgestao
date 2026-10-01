@@ -71,6 +71,13 @@ function fmtDataHora(iso?: string | null) {
   return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" });
 }
 
+/** Data simples (AAAA-MM-DD) para leitura: 15/09/2026. */
+function fmtData(valor?: string | null) {
+  const v = (valor ?? "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return "Não informada";
+  return v.split("-").reverse().join("/");
+}
+
 /**
  * O certificado é aberto por endereço temporário (blob:), onde caminho
  * relativo não resolve: a logo precisa do endereço completo do site.
@@ -138,6 +145,14 @@ export function certificadoValidacaoHtml(d: CertificadoValidacaoDados): string {
           ${linha("Data e hora da aprovação", fmtDataHora(d.aceitoEm))}
           ${linha("Aprovado por", d.aprovadoPor)}
         </tr>
+        ${
+    d.quitacao
+      ? `<tr>
+          ${linha("Data do pagamento", fmtData(d.pagamentoEm))}
+          ${linha("Forma de pagamento", d.quitacao)}
+        </tr>`
+      : ""
+  }
         <tr>
           ${linha("Endereço IP", d.ip ?? "—")}
           ${linha("Arquivo", d.arquivo ?? "—")}
