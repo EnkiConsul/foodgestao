@@ -599,8 +599,8 @@ export default function DpDisciplinar() {
             <div className="space-y-5 lg:space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="unidade-1">Unidade *</Label>
-                <Select value={unidadeId} onValueChange={(v) => { setUnidadeId(v); setColaboradorId(""); }}>
-                  <SelectTrigger id="unidade-1"><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
+                <Select value={unidadeId} onValueChange={(v) => { setUnidadeId(v); setColaboradorId(""); if (campoPendente === "unidade") setCampoPendente(null); }}>
+                  <SelectTrigger id="unidade-1" className={campoPendente === "unidade" ? "border-destructive ring-1 ring-destructive" : undefined}><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
                   <SelectContent>
                     {(unidades.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
                   </SelectContent>
@@ -615,10 +615,11 @@ export default function DpDisciplinar() {
                     setColaboradorId(v);
                     const c = (colabs.data ?? []).find((x) => x.id === v);
                     if (c?.unidade_id) setUnidadeId(c.unidade_id);
+                    if (campoPendente === "colaborador") setCampoPendente(null);
                   }}
                   disabled={!unidadeId}
                 >
-                  <SelectTrigger id="colaborador-2"><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
+                  <SelectTrigger id="colaborador-2" className={campoPendente === "colaborador" ? "border-destructive ring-1 ring-destructive" : undefined}><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
                   <SelectContent>
                     {(colabs.data ?? [])
                       .filter((c) => !unidadeId || c.unidade_id === unidadeId)
