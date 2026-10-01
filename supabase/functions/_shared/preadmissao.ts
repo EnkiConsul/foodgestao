@@ -961,6 +961,14 @@ export interface ParentescoPermitido {
   parentesco: string;
   permite_dependente: boolean;
   permite_sesc: boolean;
+  /** Códigos de finalidade aceitos neste grau de parentesco. */
+  finalidades: string[];
+}
+
+/** Convênio cadastrado pela empresa (além da finalidade legal). */
+export interface FinalidadeEmpresa {
+  codigo: string;
+  nome: string;
 }
 
 export interface RegrasAdmissao {
@@ -968,6 +976,8 @@ export interface RegrasAdmissao {
   documentos: Record<string, Exigencia>;
   /** null = empresa não configurou lista; qualquer parentesco é aceito. */
   parentescos: ParentescoPermitido[] | null;
+  /** Convênios da empresa; vazio = só a finalidade legal. */
+  finalidadesEmpresa: FinalidadeEmpresa[];
 }
 
 const EXIGENCIAS = new Set<string>(["obrigatorio", "opcional", "nao_pedir"]);
