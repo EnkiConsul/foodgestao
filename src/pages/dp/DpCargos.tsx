@@ -93,9 +93,10 @@ export default function DpCargos() {
   const rows = useMemo(() => {
     const all = list.data ?? [];
     const q = busca.trim().toLowerCase();
-    if (!q) return all;
-    return all.filter((c) => c.nome.toLowerCase().includes(q));
-  }, [list.data, busca]);
+    const base = soSemPiso ? all.filter((c) => semPisoRef.current(c)) : all;
+    if (!q) return base;
+    return base.filter((c) => c.nome.toLowerCase().includes(q));
+  }, [list.data, busca, soSemPiso]);
 
   // Pisos por unidade da empresa (uma consulta só): usados para mostrar
   // "por unidade" na lista quando o cargo tem valores distintos.
@@ -109,6 +110,14 @@ export default function DpCargos() {
   /** Célula de salário: valor único ou faixa por sindicato patronal / unidade. */
   const salarioResumo = (c: any) =>
     rotuloSalarioCargo((pisosPorCargo.get(c.id) ?? []) as any, { data: hojeISO });
+
+  /** Cargo sem nenhum piso vigente (unidade ou convenção) e sem salário próprio. */
+  const semPiso = (c: any) =>
+    !todosPisos.isLoading &&
+    !(pisosPorCargo.get(c.id) ?? []).some((p: any) => !p.removido_em && (!p.vigencia_fim || p.vigencia_fim >= hojeISO)) &&
+    !(Number(c.salario_base) > 0);
+  const cargosSemPiso = (list.data ?? []).filter(semPiso);
+
 
 
 
@@ -170,6 +179,17 @@ export default function DpCargos() {
 
 
         <TabsContent value="cargos" className="m-0">
+      {!todosPisos.isLoading && cargosSemPiso.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-400">
+          <span>
+            <strong>{cargosSemPiso.length} cargo(s) sem salário cadastrado.</strong> Cadastre o piso por unidade
+            (ou pela convenção, se a unidade tiver sindicato patronal) para os próximos cadastros já virem preenchidos.
+          </span>
+          <Button type="button" size="sm" variant="outline" onClick={() => setSoSemPiso((v) => !v)}>
+            {soSemPiso ? "Mostrar Todos" : "Ver Somente Pendentes"}
+          </Button>
+        </div>
+      )}
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
         <Input className="pl-9" placeholder="Buscar cargo por nome..." value={busca} onChange={(e) => setBusca(e.target.value)} />
@@ -216,6 +236,15 @@ export default function DpCargos() {
                     <td className="p-4 hidden lg:table-cell text-muted-foreground truncate" title={descricao ?? ""}>{descricao || "—"}</td>
                     <td className="p-4 text-right align-middle" title={salarioResumo(c).dica}>
                       <div className="tabular-nums whitespace-nowrap">{salarioResumo(c).texto}</div>
+                      {semPiso(c) && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); openEdit(c); }}
+                          className="mt-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-amber-500/20 dark:text-amber-400"
+                        >
+                          Sem salário · Cadastrar
+                        </button>
+                      )}
                       {selosRiscoCargo(c as any).length > 0 && (
                         <div className="mt-1 flex flex-wrap justify-end gap-1">
                           {selosRiscoCargo(c as any).map((selo) => (
