@@ -116,8 +116,10 @@ export default function AtivarAcesso() {
   };
 
   const titulo = modo === "reset" ? "Criar uma nova senha" : "Ativar seu acesso";
-  // Botão só libera quando a senha atende a todos os requisitos e a confirmação bate.
+  // Botão só libera quando a senha atende a todos os requisitos, a confirmação
+  // bate e, na ativação, o termo de primeiro acesso está aceito.
   const senhaAprovada = avaliarSenha(senha, { cpf }).valida;
+  const termoOk = !exigeTermo || termoAceito;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
