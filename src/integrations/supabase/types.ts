@@ -15754,6 +15754,15 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_cargo_aplicar_salario_zerados: {
+        Args: {
+          _cargo_id: string
+          _salario: number
+          _sindicato_patronal_id?: string
+          _unidade_id?: string
+        }
+        Returns: number
+      }
       dp_cargo_piso_definir: {
         Args: { p_dados: Json; p_id?: string; p_justificativa?: string }
         Returns: string
