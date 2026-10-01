@@ -459,8 +459,29 @@ export const CAMPOS_RAIZ_CANDIDATO = [
 /** Campos aceitos em cada familiar informado pelo candidato. */
 export const CAMPOS_PESSOA = [
   "id", "nome", "parentesco", "data_nascimento", "cpf", "rg",
-  "finalidade_dependente", "finalidade_sesc",
+  "finalidade_dependente", "finalidade_sesc", "finalidades",
 ] as const;
+
+/** Finalidade legal, sempre existente: dependente no imposto de renda. */
+export const FINALIDADE_LEGAL = "dependente_legal";
+
+/**
+ * Lista de finalidades de um familiar, já normalizada: códigos minúsculos,
+ * sem repetição e no máximo dez. Entrada inválida vira lista vazia, nunca
+ * libera uma finalidade por acidente.
+ */
+export function normalizarFinalidades(valor: unknown): string[] {
+  if (!Array.isArray(valor)) return [];
+  const out: string[] = [];
+  for (const item of valor) {
+    if (typeof item !== "string") continue;
+    const cod = item.trim().toLowerCase();
+    if (!/^[a-z0-9_]{2,40}$/.test(cod) || out.includes(cod)) continue;
+    out.push(cod);
+    if (out.length >= 10) break;
+  }
+  return out;
+}
 
 export function camposNaoPermitidosRaiz(
   body: unknown,
