@@ -7,7 +7,11 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { notifyError } from "@/lib/notifyError";
 import { DP_DOCUMENTOS_BUCKET } from "@/lib/documentoArquivo";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
-import { anexarComprovante, removerComprovante } from "@/lib/dp/documentos-oficial";
+import {
+  anexarComprovante,
+  removerComprovante,
+  type ComprovanteQuitacao,
+} from "@/lib/dp/documentos-oficial";
 
 export type ComprovanteAlvo = {
   /** Id do documento em dp_documentos. */
@@ -72,8 +76,9 @@ export function useDpComprovantePagamento() {
             file_size: file.size,
             mime_type: file.type,
           },
-          pagoEm || null,
+          pagoEm,
           confirmarCompetencia === true,
+          quitacao,
         );
       } catch (e) {
         await supabase.storage.from(DP_DOCUMENTOS_BUCKET).remove([path]);
