@@ -21,7 +21,7 @@ describe("ConfirmarAcaoDialog", () => {
     const onConfirm = vi.fn();
     renderDialog(onConfirm);
     fireEvent.click(screen.getByLabelText("Excluir documento"));
-    expect(screen.getByText("Excluir documento?")).toBeTruthy();
+    expect(screen.getByText("Excluir Documento?")).toBeTruthy();
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
