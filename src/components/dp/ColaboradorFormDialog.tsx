@@ -1841,7 +1841,7 @@ export function ColaboradorFormDialog({
         vale_transporte_valor_dia: rem.vale_transporte ? vtDiaNum : null,
         premio_assiduidade: rem.premio_assiduidade,
         folga_fixa_semana:
-          policy.exigeFolgaSemanal && form.folga_fixa_semana !== "none"
+          policy.folgaSemanal !== "nao_se_aplica" && form.folga_fixa_semana !== "none"
             ? Number(form.folga_fixa_semana)
             : null,
         possui_folha_ponto: form.possui_folha_ponto,
@@ -1909,7 +1909,7 @@ export function ColaboradorFormDialog({
         perfil_acesso:
           socioSelecionado && form.perfil_acesso === "colaborador" ? "gestor" : form.perfil_acesso,
         folga_fixa_semana:
-          policy.exigeFolgaSemanal && form.folga_fixa_semana !== "none"
+          policy.folgaSemanal !== "nao_se_aplica" && form.folga_fixa_semana !== "none"
             ? Number(form.folga_fixa_semana)
             : null,
 
