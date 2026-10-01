@@ -3364,20 +3364,31 @@ export function ColaboradorFormDialog({
                   piso de sindicato: quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como
                   referência da empresa para este cargo nesta unidade?
                 </>
+              ) : patronalUnidade?.id ? (
+                <>
+                  O cargo {cargoSelecionado?.nome ?? ""} ainda não tem piso cadastrado. Deseja definir{" "}
+                  {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como piso da Convenção ({patronalUnidade.nome})
+                  para o cargo {cargoSelecionado?.nome ?? ""}? Vale para todas as unidades desse sindicato.
+                </>
               ) : (
                 <>
-                  O cargo {cargoSelecionado?.nome ?? ""} ainda não tem piso cadastrado
-                  {patronalUnidade?.nome
-                    ? ` no sindicato patronal ${patronalUnidade.nome}`
-                    : unidadeSelecionada?.nome
-                      ? ` para ${unidadeSelecionada.nome}`
-                      : ""}
-                  . Quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como piso, valendo para
-                  todas as unidades com esse mesmo patronal?
+                  Deseja definir {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como padrão de{" "}
+                  {cargoSelecionado?.nome ?? "este cargo"} para a unidade {unidadeSelecionada?.nome ?? ""}?
+                  Os próximos cadastros deste cargo nesta unidade já virão com este salário.
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {!socioSelecionado && !!patronalUnidade?.id && (
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={pisoSoUnidade}
+                onChange={(e) => setPisoSoUnidade(e.target.checked)}
+              />
+              Salário diferenciado apenas desta unidade (acima do piso)
+            </label>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel
               onClick={() => {
