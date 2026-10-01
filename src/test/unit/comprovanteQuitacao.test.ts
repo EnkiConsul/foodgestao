@@ -86,6 +86,7 @@ describe("recibo em dinheiro e certificado", () => {
     const src = readFileSync("supabase/functions/dp-comprovante-ler/index.ts", "utf8");
     expect(src).toContain("input_image");
     expect(src).toContain("input_file");
-    expect(src).not.toContain("dp_comprovante_anexar");
+    expect(src).not.toContain(".rpc(");
+    expect(src).not.toContain(".insert(");
   });
 });
