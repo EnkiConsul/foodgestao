@@ -156,10 +156,7 @@ export default function AtivarAcesso() {
                   </button>
                 </div>
                 <MedidorSenha senha={senha} />
-                <p className="text-xs text-muted-foreground">
-                  Pelo menos 12 caracteres, com maiúscula, minúscula, número e um símbolo (espaço e
-                  letra acentuada não valem como símbolo). Evite sequências, seu nome, e-mail ou CPF.
-                </p>
+                <ChecklistRequisitosSenha senha={senha} dados={{ cpf }} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmar">Confirmar nova senha</Label>
