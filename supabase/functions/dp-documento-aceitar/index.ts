@@ -16,11 +16,12 @@ import { z } from "npm:zod@3";
 import { callerClient, requireUser, serviceClient } from "../_shared/authz.ts";
 import { garantirHashDocumento } from "../_shared/doc-hash.ts";
 import { recordEdgeError } from "../_shared/error-log.ts";
+import { assinaturaValida } from "../_shared/assinatura-pdf.ts";
 
 const BUCKET = "dp-documentos";
 const FUNCAO = "dp-documento-aceitar";
 
-const Body = z.object({ documento_id: z.string().uuid() });
+const Body = z.object({ documento_id: z.string().uuid(), assinatura: z.string().max(400000).optional() });
 
 const FRASES: Record<string, { status: number; frase: string }> = {
   nao_autenticado: { status: 401, frase: "Sessão expirada. Entre novamente." },
@@ -52,6 +53,8 @@ Deno.serve(async (req) => {
     const parsed = Body.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) return erro(400, "Documento inválido.");
     const documentoId = parsed.data.documento_id;
+    const assinaturaImg = assinaturaValida(parsed.data.assinatura);
+    if (!assinaturaImg) return erro(400, "Desenhe ou escolha a sua assinatura antes de confirmar.");
 
     const cliente = callerClient(caller.token);
     const admin = serviceClient();
@@ -101,6 +104,12 @@ Deno.serve(async (req) => {
         details: { documento_id: documentoId },
       });
       return erro(500, "Não foi possível registrar a assinatura agora.");
+    }
+
+    // Imagem da assinatura: gravada uma única vez (aceite idempotente mantém a primeira).
+    if (aceiteId) {
+      await admin.from("dp_documento_aceites").update({ assinatura_imagem: assinaturaImg })
+        .eq("id", aceiteId).is("assinatura_imagem", null);
     }
 
     return new Response(JSON.stringify({ aceite_id: aceiteId, conteudo_hash: hash }), {

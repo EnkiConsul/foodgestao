@@ -132,7 +132,14 @@ Deno.serve(async (req) => {
       if (b.acao === "pdf") {
         const { data: empresa } = await admin.from("companies").select("name, trade_name, cnpj")
           .eq("id", companyId).maybeSingle();
-        const bytes = await montarReciboPdf(reciboDaLinha(row, empresa));
+        let imgAceite: string | null = null;
+        if (!row.assinatura_imagem && row.documento_id && row.assinado_em) {
+          const { data: ac } = await admin.from("dp_documento_aceites").select("assinatura_imagem")
+            .eq("documento_id", row.documento_id).not("assinatura_imagem", "is", null)
+            .order("aceito_em", { ascending: false }).limit(1).maybeSingle();
+          imgAceite = (ac?.assinatura_imagem as string | null) ?? null;
+        }
+        const bytes = await montarReciboPdf(reciboDaLinha(row, empresa, imgAceite));
         return new Response(bytes as unknown as BodyInit, {
           status: 200,
           headers: {

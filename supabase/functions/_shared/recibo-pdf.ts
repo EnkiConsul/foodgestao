@@ -196,7 +196,7 @@ export async function montarReciboPdf(r: ReciboPdf): Promise<Uint8Array> {
     y -= 13.5;
   }
 
-  y -= 42;
+  y -= 56;
   const imgAss = r.assinatura ? await embutirAssinatura(pdf, r.assinaturaImagem) : null;
   if (imgAss) desenharAssinatura(page, imgAss, margem + 4, y + 2, 240, 46);
   page.drawLine({ start: { x: margem, y }, end: { x: margem + 260, y }, thickness: 0.8, color: rgb(0.5, 0.5, 0.5) });
