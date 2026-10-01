@@ -265,30 +265,32 @@ export function useMeusDocumentos() {
         });
       }
 
-      // 3) dp_registros_disciplinares
-      const { data: disc } = await supabase
-        .from("dp_registros_disciplinares")
-        .select("id, tipo, motivo, descricao, data, pdf_storage_path, created_at")
-        .eq("colaborador_id", colab.id)
-        .order("data", { ascending: false });
-
+      // 3) Disciplinares: só vias físicas assinadas e importadas pelo DP.
+      // Advertências verbais, observações e minutas nunca chegam ao portal.
+      const DISC_LABEL: Record<string, string> = {
+        advertencia_escrita: "Advertência Escrita",
+        suspensao: "Suspensão",
+      };
+      const { data: disc } = await (supabase.rpc as any)("dp_portal_meus_disciplinares");
       for (const r of (disc ?? []) as any[]) {
         const comp = fmtCompetencia(r.data);
+        const rotulo = DISC_LABEL[r.tipo] ?? "Registro Disciplinar";
+        const dataBr = r.data ? String(r.data).split("-").reverse().join("/") : "";
         out.push({
           id: `disc-${r.id}`,
           origem: "disciplinar",
           tipo_key: "disciplinar",
           tipo_label: TIPO_LABEL.disciplinar,
-          titulo: `${r.tipo ?? "Registro"}${r.motivo ? " — " + r.motivo : ""}`,
+          titulo: `${rotulo}${dataBr ? " — " + dataBr : ""}`,
           competencia_label: comp.label,
           competencia_sort: comp.sort,
-          status_key: r.tipo ?? "outro",
-          status_label: r.tipo ?? "Registro",
-          bucket: "dp-documentos",
-          file_path: r.pdf_storage_path ?? null,
+          status_key: "assinado",
+          status_label: "Via Assinada",
+          bucket: "dp-disciplinar",
+          file_path: r.via_assinada_path,
           mime_type: null,
-          created_at: r.created_at,
-          observacao: r.descricao ?? null,
+          created_at: r.via_assinada_em ?? r.data,
+          observacao: null,
         });
       }
 
