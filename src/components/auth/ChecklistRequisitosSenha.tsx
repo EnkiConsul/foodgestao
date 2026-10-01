@@ -63,7 +63,9 @@ export function ChecklistRequisitosSenha({ senha, dados, mostrarDica = true, id 
               </span>
               <span>
                 {rotulo}
-                {chave === "curta" && digitou ? ` (${Math.min(senha.length, 99)}/${SENHA_MIN})` : ""}
+                {chave === "curta" && digitou && senha.length < SENHA_MIN
+                  ? ` (${senha.length} de ${SENHA_MIN})`
+                  : ""}
               </span>
               <span className="sr-only">{atendido ? "— pronto" : "— ainda falta"}</span>
             </li>
