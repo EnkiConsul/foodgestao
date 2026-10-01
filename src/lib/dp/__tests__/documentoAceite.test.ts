@@ -18,7 +18,7 @@ describe("assinarDocumento", () => {
     });
     // Nada de empresa, colaborador ou resumo de conteúdo vindo da tela.
     const body = invoke.mock.calls[0][1].body as Record<string, unknown>;
-    expect(Object.keys(body)).toEqual(["documento_id"]);
+    expect(Object.keys(body)).toEqual(["documento_id", "assinatura"]);
   });
 
   it("mostra a frase de negócio devolvida pelo servidor", async () => {

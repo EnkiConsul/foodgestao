@@ -34,6 +34,7 @@ import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import type { Database } from "@/integrations/supabase/types";
 import { notifyError } from "@/lib/notifyError";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
+import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
 import { excluirDocumento } from "@/lib/dp/documentos-oficial";
 
 type Tipo = Database["public"]["Enums"]["dp_documento_tipo"];
@@ -208,14 +209,16 @@ export default function DpMeuDocumentos() {
 
 
   /** Aceite digital do documento — registra data, hora e dispositivo. */
+  const [assinando, setAssinando] = useState<UnifiedDoc | null>(null);
   const aceitar = useMutation({
-    mutationFn: async (d: UnifiedDoc) => {
+    mutationFn: async ({ d, assinatura }: { d: UnifiedDoc; assinatura: string }) => {
       if (!colaborador) throw new Error("Colaborador não encontrado");
       const documentoId = d.meta?.originalId as string | undefined;
       if (!documentoId) throw new Error("Documento inválido");
-      await assinarDocumento(documentoId);
+      await assinarDocumento(documentoId, assinatura);
     },
     onSuccess: () => {
+      setAssinando(null);
       toast.success("Documento aprovado", {
         description: "Registramos data, hora e dispositivo da sua aprovação.",
       });
@@ -454,7 +457,7 @@ export default function DpMeuDocumentos() {
                         {d.aceite === false && (
                           <Button
                             size="sm"
-                            onClick={() => aceitar.mutate(d)}
+                            onClick={() => setAssinando(d)}
                             disabled={aceitar.isPending}
                             className="min-h-9 flex-1 sm:flex-none"
                           >
@@ -537,6 +540,14 @@ export default function DpMeuDocumentos() {
         mime={arquivoAberto?.mime}
       />
 
+      <AssinaturaConfirmarDialog
+        open={!!assinando}
+        onOpenChange={(v) => { if (!v) setAssinando(null); }}
+        titulo={assinando?.titulo ?? ""}
+        nome={String(colaborador?.nome_social || colaborador?.nome || "")}
+        enviando={aceitar.isPending}
+        onConfirmar={(assinatura) => assinando && aceitar.mutate({ d: assinando, assinatura })}
+      />
     </DpPage>
   );
 }
