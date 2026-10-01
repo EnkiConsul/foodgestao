@@ -420,16 +420,24 @@ export default function PreAdmissao() {
     Object.entries(d).forEach(([k, v]) => { texto[k] = v == null ? "" : String(v); });
     setForm(texto);
     const lista =
-      (e.pessoas ?? []).map((p) => ({
-        id: String(p.id),
-        nome: String(p.nome ?? ""),
-        parentesco: String(p.parentesco ?? "").toLocaleLowerCase("pt-BR").replace(/\s+/g, "_"),
-        data_nascimento: String(p.data_nascimento ?? ""),
-        cpf: String(p.cpf ?? ""),
-        rg: String(p.rg ?? ""),
-        finalidade_dependente: !!p.finalidade_dependente,
-        finalidade_sesc: !!p.finalidade_sesc,
-      }));
+      (e.pessoas ?? []).map((p) => {
+        const salvas = Array.isArray(p.finalidades) ? (p.finalidades as string[]).map(String) : [];
+        const derivadas = salvas.length ? salvas : [
+          ...(p.finalidade_dependente ? [FINALIDADE_LEGAL] : []),
+          ...(p.finalidade_sesc ? ["sesc"] : []),
+        ];
+        return {
+          id: String(p.id),
+          nome: String(p.nome ?? ""),
+          parentesco: String(p.parentesco ?? "").toLocaleLowerCase("pt-BR").replace(/\s+/g, "_"),
+          data_nascimento: String(p.data_nascimento ?? ""),
+          cpf: String(p.cpf ?? ""),
+          rg: String(p.rg ?? ""),
+          finalidade_dependente: derivadas.includes(FINALIDADE_LEGAL),
+          finalidade_sesc: derivadas.includes("sesc"),
+          finalidades: derivadas,
+        };
+      });
     setPessoas(lista);
     servidorRef.current = JSON.stringify({ form: texto, pessoas: lista });
   }, []);
