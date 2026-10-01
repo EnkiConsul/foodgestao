@@ -87,6 +87,16 @@ describe("correspondência de cargo", () => {
     expect(r.motivo).toBe("nenhum");
     expect(similaridadeNome("Atendente", "Atendente")).toBe(1);
   });
+
+  it("entende a abreviação AUX e não confunde funções diferentes", () => {
+    const lista = [
+      { id: "coz", nome: "AUX DE COZINHA", cbo: "513505" },
+      { id: "limp", nome: "AUXILIAR DE LIMPEZA", cbo: "514320" },
+    ];
+    expect(matchCargo({ cargo_nome: "AUX DE LIMPEZA", cbo: null }, lista).cargo_id).toBe("limp");
+    expect(matchCargo({ cargo_nome: "AUXILIAR DE COZINHA", cbo: null }, lista).cargo_id).toBe("coz");
+    expect(matchCargo({ cargo_nome: "AUX DE ESTOQUE", cbo: null }, lista).cargo_id).toBeNull();
+  });
 });
 
 describe("endereço da ficha", () => {
