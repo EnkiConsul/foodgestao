@@ -27,6 +27,7 @@ import { maskCpf } from "@/lib/cpf";
 import { maskPhone } from "@/lib/phone";
 import { CONTA_TIPOS, PIX_TIPOS } from "@/lib/dp/dadosPagamento";
 import { rotuloSalvoEm } from "@/lib/dp/admissao-rascunho";
+import { ConferirFotoDialog } from "@/components/dp/preadmissao/ConferirFotoDialog";
 
 type Opcao = { value: string; label: string };
 
@@ -386,6 +387,10 @@ export default function PreAdmissao() {
   const alvo = useRef<(ChecklistItem & { parte: number }) | null>(null);
   /** Assinatura do que já foi guardado, para o rascunho automático. */
   const assinaturaRef = useRef<string | null>(null);
+  /** Foto escolhida aguardando a conferência do candidato. */
+  const [conferindo, setConferindo] = useState<File | null>(null);
+  /** Cópia local do que foi digitado: sobrevive a recarga e troca de app. */
+  const chaveLocal = c ? `preadmissao-rascunho:${c}` : null;
 
   const aplicar = useCallback((e: Estado) => {
     setEstado(e);
@@ -407,11 +412,60 @@ export default function PreAdmissao() {
     );
   }, []);
 
+  /**
+   * Se a página recarregou antes do salvamento automático, devolve à tela o
+   * que estava digitado — desde que a ficha não tenha mudado em outro aparelho.
+   */
+  const restaurarLocal = (lido: Estado) => {
+    if (!chaveLocal) return;
+    try {
+      const bruto = window.localStorage.getItem(chaveLocal);
+      if (!bruto) return;
+      const local = JSON.parse(bruto) as { form?: Record<string, string>; pessoas?: Pessoa[]; versao?: unknown; em?: number };
+      const recente = typeof local.em === "number" && Date.now() - local.em < 7 * 86400000;
+      if (!recente || String(local.versao ?? "") !== String(lido.versao ?? "")) {
+        window.localStorage.removeItem(chaveLocal);
+        return;
+      }
+      const servidor: Record<string, string> = {};
+      Object.entries(lido.dados ?? {}).forEach(([k, v]) => { servidor[k] = v == null ? "" : String(v); });
+      const formLocal = { ...servidor, ...(local.form ?? {}) };
+      if (JSON.stringify(formLocal) === JSON.stringify(servidor) && !local.pessoas) return;
+      setForm(formLocal);
+      if (Array.isArray(local.pessoas)) setPessoas(local.pessoas);
+      // Força o salvamento automático do que foi recuperado.
+      assinaturaRef.current = "recuperado";
+      toast.info("Recuperamos o que você tinha digitado.");
+    } catch (_) {
+      /* cópia local corrompida: segue com o que está no servidor */
+    }
+  };
+
+  useEffect(() => {
+    if (!chaveLocal || !estado || enviado) return;
+    try {
+      window.localStorage.setItem(
+        chaveLocal,
+        JSON.stringify({ form, pessoas, versao: estado.versao ?? null, em: Date.now() }),
+      );
+    } catch (_) {
+      /* armazenamento cheio ou bloqueado: o servidor continua guardando */
+    }
+  }, [chaveLocal, form, pessoas, estado, enviado]);
+
+  useEffect(() => {
+    if (enviado && chaveLocal) {
+      try { window.localStorage.removeItem(chaveLocal); } catch (_) { /* ignora */ }
+    }
+  }, [enviado, chaveLocal]);
+
   useEffect(() => {
     if (!t || !c) { setErroLink("Este link não é válido. Peça um novo link à empresa."); setCarregando(false); return; }
     (async () => {
       try {
-        aplicar(await chamar<Estado>("dp-preadmissao-publica", { t, c, action: "ler" }));
+        const lido = await chamar<Estado>("dp-preadmissao-publica", { t, c, action: "ler" });
+        aplicar(lido);
+        restaurarLocal(lido);
       } catch (e) {
         setErroLink((e as Error).message);
       } finally {
@@ -709,8 +763,17 @@ export default function PreAdmissao() {
         onChange={(e) => {
           const f = e.target.files?.[0];
           e.target.value = "";
-          if (f) enviarArquivo(f);
+          if (!f) return;
+          // Foto de iPhone (HEIC) já convertida para a conferência.
+          void converterHeicParaJpeg(f).then(setConferindo, () => setConferindo(f));
         }}
+      />
+      <ConferirFotoDialog
+        arquivo={conferindo}
+        titulo={String((alvo.current as { titulo?: string } | null)?.titulo ?? "Documento")}
+        onConfirmar={(f) => { setConferindo(null); void enviarArquivo(f); }}
+        onTrocar={() => { setConferindo(null); fileRef.current?.click(); }}
+        onCancelar={() => { setConferindo(null); alvo.current = null; }}
       />
 
       <header className="bg-background border-b px-4 py-4">
