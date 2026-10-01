@@ -3,6 +3,7 @@ import * as pdfjsLib from "pdfjs-dist";
 import PdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?worker";
 import { Loader2, ZoomIn, ZoomOut, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { usePinchZoom } from "@/hooks/usePinchZoom";
 
 // Worker compartilhado com os demais visualizadores de PDF do DP.
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
@@ -26,6 +27,14 @@ export function PdfCanvasViewer({ url, title }: Props) {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const paginasRef = useRef<HTMLDivElement>(null);
+  const aplicarAncora = usePinchZoom(containerRef, paginasRef, {
+    zoom,
+    setZoom,
+    min: 0.5,
+    max: 4,
+    ancoraManual: true,
+  });
   const docRef = useRef<pdfjsLib.PDFDocumentProxy | null>(null);
   const taskRef = useRef<pdfjsLib.PDFDocumentLoadingTask | null>(null);
 
@@ -94,10 +103,14 @@ export function PdfCanvasViewer({ url, title }: Props) {
           transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
         } as Parameters<typeof page.render>[0]).promise;
       }
+      if (cancelado) return;
+      container.replaceChildren(...Array.from(novo.children));
+      aplicarAncora();
     })();
     return () => {
       cancelado = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paginas, zoom]);
 
   if (erro) {
@@ -133,12 +146,18 @@ export function PdfCanvasViewer({ url, title }: Props) {
           variant="ghost"
           className="h-8 w-8"
           aria-label="Aumentar zoom"
-          onClick={() => setZoom((z) => Math.min(3, +(z + 0.25).toFixed(2)))}
+          onClick={() => setZoom((z) => Math.min(4, +(z + 0.25).toFixed(2)))}
         >
           <ZoomIn className="size-4" />
         </Button>
       </div>
-      <div ref={containerRef} className="flex-1 min-h-0 overflow-auto p-2 sm:p-4" aria-label={title}>
+      <div
+        ref={containerRef}
+        className="flex-1 min-h-0 overflow-auto p-2 sm:p-4"
+        style={{ touchAction: "pan-x pan-y" }}
+        aria-label={title}
+      >
+        <div ref={paginasRef} className="w-max min-w-full" />
         {carregando && (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

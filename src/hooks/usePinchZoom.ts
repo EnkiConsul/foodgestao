@@ -5,6 +5,8 @@ type Opcoes = {
   setZoom: (z: number) => void;
   min?: number;
   max?: number;
+  /** Conteúdo renderiza de forma assíncrona: chame o retorno após trocar. */
+  ancoraManual?: boolean;
 };
 
 const limitar = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
@@ -18,23 +20,30 @@ const limitar = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v))
 export function usePinchZoom(
   scroll: RefObject<HTMLElement>,
   conteudo: RefObject<HTMLElement>,
-  { zoom, setZoom, min = 0.5, max = 4 }: Opcoes,
+  { zoom, setZoom, min = 0.5, max = 4, ancoraManual = false }: Opcoes,
 ) {
-  const estado = useRef({ zoom, setZoom, min, max });
-  estado.current = { zoom, setZoom, min, max };
+  const estado = useRef({ zoom, setZoom, min, max, ancoraManual });
+  estado.current = { zoom, setZoom, min, max, ancoraManual };
   const ancora = useRef<{ x: number; y: number; k: number } | null>(null);
 
   // Após o novo zoom renderizar, ajusta a rolagem para o ponto sob os dedos.
-  useEffect(() => {
+  const aplicarAncora = () => {
+    const c = conteudo.current;
+    if (c) c.style.transform = "";
     const a = ancora.current;
     const el = scroll.current;
     if (!a || !el) return;
     ancora.current = null;
-    requestAnimationFrame(() => {
-      el.scrollLeft = (el.scrollLeft + a.x) * a.k - a.x;
-      el.scrollTop = (el.scrollTop + a.y) * a.k - a.y;
-    });
-  }, [zoom, scroll]);
+    el.scrollLeft = (el.scrollLeft + a.x) * a.k - a.x;
+    el.scrollTop = (el.scrollTop + a.y) * a.k - a.y;
+  };
+  const aplicarRef = useRef(aplicarAncora);
+  aplicarRef.current = aplicarAncora;
+
+  useEffect(() => {
+    if (estado.current.ancoraManual) return;
+    requestAnimationFrame(() => aplicarRef.current());
+  }, [zoom]);
 
   useEffect(() => {
     const el = scroll.current;
@@ -57,11 +66,11 @@ export function usePinchZoom(
     const confirmar = () => {
       const { zoom: z, setZoom: set, min: mi, max: ma } = estado.current;
       const novo = limitar(+(z * razao).toFixed(3), mi, ma);
-      aplicarVisual(1);
       if (novo !== z) {
         ancora.current = { x: meio.x, y: meio.y, k: novo / z };
+        if (!estado.current.ancoraManual) aplicarVisual(1);
         set(novo);
-      }
+      } else aplicarVisual(1);
       razao = 1;
     };
 
@@ -116,4 +125,6 @@ export function usePinchZoom(
       el.removeEventListener("wheel", onWheel);
     };
   }, [scroll, conteudo]);
+
+  return () => aplicarRef.current();
 }
