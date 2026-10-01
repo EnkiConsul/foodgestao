@@ -691,8 +691,8 @@ export default function DpDisciplinar() {
               {isFormal(tipo) && (
                 <div className="space-y-2">
                   <Label htmlFor="motivo-disc">Motivo *</Label>
-                  <Select value={MOTIVOS.some((m) => m.label === motivoSel) ? motivoSel : motivoSel ? "__outro" : ""} onValueChange={(v) => setMotivoSel(v === "__outro" ? " " : v)}>
-                    <SelectTrigger id="motivo-disc"><SelectValue placeholder="Selecione o motivo" /></SelectTrigger>
+                  <Select value={MOTIVOS.some((m) => m.label === motivoSel) ? motivoSel : motivoSel ? "__outro" : ""} onValueChange={(v) => { setMotivoSel(v === "__outro" ? " " : v); if (campoPendente === "motivo") setCampoPendente(null); }}>
+                    <SelectTrigger id="motivo-disc" className={campoPendente === "motivo" ? "border-destructive ring-1 ring-destructive" : undefined}><SelectValue placeholder="Selecione o motivo" /></SelectTrigger>
                     <SelectContent>
                       {MOTIVOS.map((m) => (
                         <SelectItem key={m.label} value={m.label} className="whitespace-normal py-2">
@@ -714,7 +714,7 @@ export default function DpDisciplinar() {
               {tipo === "suspensao" && (
                 <div className="space-y-2">
                   <Label htmlFor="dias-de-afastamento-se-aplicavel-5">Dias De Suspensão *</Label>
-                  <Input id="dias-de-afastamento-se-aplicavel-5" type="number" min={1} max={30} value={dias} onChange={(e) => setDias(e.target.value)} />
+                  <Input id="dias-de-afastamento-se-aplicavel-5" type="number" min={1} max={30} value={dias} onChange={(e) => { setDias(e.target.value); if (campoPendente === "dias") setCampoPendente(null); }} className={campoPendente === "dias" ? "border-destructive ring-1 ring-destructive" : undefined} />
                   <p className="text-xs text-muted-foreground">Máximo de 30 dias (Art. 474 da CLT). A suspensão começa no dia seguinte à data do documento.</p>
                 </div>
               )}
