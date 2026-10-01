@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Info } from "lucide-react";
+import { AlertTriangle, ExternalLink, Info } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { regimeRisco } from "@/lib/dp/regime-riscos";
