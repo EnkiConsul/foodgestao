@@ -12,7 +12,7 @@ Deno.test("valor por extenso dos casos do dia a dia", () => {
 
 Deno.test("resumo da quitação", () => {
   assertEquals(
-    resumoQuitacao({ modalidade: "especie", valor_especie_cents: 30000 }),
+    resumoQuitacao({ modalidade: "especie", valor_especie_cents: 30000 }).replace(/\u00A0/g, " "),
     "Dinheiro (Espécie) · R$ 300,00 em dinheiro",
   );
   assertEquals(resumoQuitacao({ modalidade: null }), "Forma de pagamento não informada");
