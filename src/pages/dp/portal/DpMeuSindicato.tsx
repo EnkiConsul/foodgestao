@@ -137,7 +137,7 @@ export default function DpMeuSindicato() {
             ) : null}
             {sindicato.data.data_base ? (
               <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <CalendarDays className="h-4 w-4" /> Data-base: {dataBr(sindicato.data.data_base)}
+                <CalendarDays className="h-4 w-4" /> Data-base: {dataBr(sindicato.data.data_base).slice(0, 5)}
               </p>
             ) : null}
             {sindicato.data.contato_telefone ? (

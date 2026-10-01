@@ -42,7 +42,7 @@ function ResumoVinculado({
         )}
       </div>
       <div className="space-y-0.5 text-[11px] text-muted-foreground">
-        {sindicato.data_base && <div>Data-base: {dataBR(sindicato.data_base)}</div>}
+        {sindicato.data_base && <div>Data-base: {dataBR(sindicato.data_base).slice(0, 5)}</div>}
         {negociacao && (
           <div>
             {negociacao.tipo_documento?.toUpperCase() ?? "Negociação"} vigente:{" "}
