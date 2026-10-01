@@ -40,6 +40,11 @@ export default function AtivarAcesso() {
   const [erro, setErro] = useState<string | null>(null);
   const [linkUsado, setLinkUsado] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  // O termo de primeiro acesso só é exigido na ativação; na redefinição de
+  // senha ele já foi aceito antes.
+  const exigeTermo = modo === "activation";
+  const [termoAceito, setTermoAceito] = useState(false);
+  const [termoPendente, setTermoPendente] = useState(false);
 
   useEffect(() => {
     // Ninguém precisa estar logado aqui; se houver sessão antiga, encerra.
