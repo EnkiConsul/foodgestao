@@ -456,7 +456,7 @@ Deno.serve(async (req) => {
     const pendentes: string[] = [];
 
     // Capa primeiro; o documento e o anexo entram nas páginas seguintes.
-    paginaCertificado(pdf, fonte, negrito, dados);
+    paginaCertificado(pdf, fonte, negrito, dados, marca);
 
     if (docBytes) {
       const aviso = await anexarArquivo(pdf, docBytes, String(doc.mime_type ?? ""), String(doc.file_name ?? ""));
