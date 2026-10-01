@@ -376,6 +376,8 @@ export function elegivelDocumento(
   if (intermitenteIncerto) return false;
   // Mês 100% coberto por licença/afastamento: sem marcações a apresentar.
   if (opts.afastadoMesInteiro === true) return false;
+  // Folha de ponto só para quem tem vínculo assalariado (mesma regra do servidor).
+  if (!assalariado) return false;
   return opts.unidadeTemRelogio === true && c.possui_folha_ponto !== false;
 }
 
