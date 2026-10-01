@@ -72,10 +72,22 @@ export default function AtivarAcesso() {
       setErro("As senhas não coincidem");
       return;
     }
+    if (exigeTermo && !termoAceito) {
+      setTermoPendente(true);
+      setErro("Marque que você leu e concorda com o termo de primeiro acesso.");
+      return;
+    }
     setEnviando(true);
     try {
       const { data, error } = await supabase.functions.invoke("dp-alterar-senha-colaborador", {
-        body: { cpf: digitos, token_id: tokenId, codigo, purpose: modo, nova_senha: senha },
+        body: {
+          cpf: digitos,
+          token_id: tokenId,
+          codigo,
+          purpose: modo,
+          nova_senha: senha,
+          ...(exigeTermo ? { termo_aceito: true, termo_versao: TERMO_PORTAL_VERSAO } : {}),
+        },
       });
       // Respostas de erro (4xx) chegam como exceção; lemos o corpo para
       // distinguir "link já utilizado" de falhas genéricas.
