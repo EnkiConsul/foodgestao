@@ -1,3 +1,4 @@
+import { prazoPagamentoRescisao } from "@/lib/dp/desligamento";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -649,16 +650,16 @@ export function useDpPendencias() {
           for (const v of encerradosPorUnidade.get(u.id) ?? []) {
             if (!comps.has(v.competencia)) continue;
             if (docs.has(`${v.colaboradorId}:${v.competencia}`)) continue;
-            const vencimento = ymd(addDays(new Date(`${v.dataFim}T12:00:00`), 10));
+            const vencimento = prazoPagamentoRescisao(v.dataFim);
             const quando = format(new Date(`${v.dataFim}T12:00:00`), "dd/MM");
             const comp = v.competencia;
             results.push({
               id: `rescisao-${v.colaboradorId}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`,
               icon: FileMinus,
-              titulo: "Rescisão não importada",
+              titulo: "Pagamento Da Rescisão — Comprovar Até O Prazo",
               subtitulo: `${v.nome} · ${u.nome} — ${competenciaLabel(comp)} · ${
                 v.recontratado ? "vínculo encerrado" : "desligado"
-              } em ${quando}`,
+              } em ${quando} · pagar até ${format(new Date(`${vencimento}T12:00:00`), "dd/MM")} (multa Art. 477)`,
               tipo: "Rescisão",
               colaboradorNome: v.nome,
               unidadeNome: u.nome,

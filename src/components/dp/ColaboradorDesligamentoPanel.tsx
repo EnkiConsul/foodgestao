@@ -180,6 +180,17 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
             Pode ser uma data futura (aviso prévio). O acesso ao portal encerra em {dias} dias após ela
             {acessoAte ? ` — até ${fmt(acessoAte)}` : ""}.
           </p>
+          {/^\d{4}-\d{2}-\d{2}$/.test(data) && (
+            <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs">
+              <p className="font-semibold text-foreground">
+                Pagar As Verbas Rescisórias Até {fmt(prazoPagamentoRescisao(data))}
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                Prazo de 10 dias corridos (Art. 477 da CLT); se cair no fim de semana, antecipamos para o dia útil anterior.
+                Atrasar gera multa de um salário do colaborador. Uma pendência será criada para não perder o prazo.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">

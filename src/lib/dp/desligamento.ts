@@ -79,3 +79,15 @@ export function diasRestantesCarencia(
   const inicio = parseDateOnly(toDateOnly(hoje)).getTime();
   return Math.round((fim - inicio) / 86_400_000);
 }
+
+/**
+ * Prazo legal para pagar as verbas rescisórias (Art. 477, § 6º, CLT):
+ * 10 dias corridos após o término do contrato. Se cair em sábado ou domingo,
+ * antecipa para o último dia útil anterior (evita a multa do § 8º).
+ */
+export function prazoPagamentoRescisao(dataDesligamento: string): string {
+  const d = parseDateOnly(dataDesligamento);
+  d.setDate(d.getDate() + 10);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() - 1);
+  return toDateOnly(d);
+}
