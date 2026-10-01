@@ -760,7 +760,13 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                       <div className="space-y-1">
                         <Label className="text-xs">Parentesco</Label>
                         <Select value={p.parentesco} disabled={encerrada}
-                          onValueChange={(v) => setPessoas((l) => l.map((x, j) => (j === i ? { ...x, parentesco: v } : x)))}>
+                          onValueChange={(v) => setPessoas((l) => l.map((x, j) => {
+                            if (j !== i) return x;
+                            const trocado = { ...x, parentesco: v };
+                            const permitidas = finalidadesDoFamiliar(v).map((f) => f.codigo);
+                            const mantidas = trocado.finalidades.filter((c) => permitidas.includes(c));
+                            return comFinalidades(trocado, mantidas.length ? mantidas : permitidas.slice(0, 1));
+                          }))}>
                           <SelectTrigger className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
                           <SelectContent>
                              {opcoesParentesco(p.parentesco).map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
