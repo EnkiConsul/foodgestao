@@ -11359,6 +11359,7 @@ export type Database = {
           tipo: Database["public"]["Enums"]["dp_disciplinar_tipo"]
           updated_at: string
           via_assinada_em: string | null
+          via_assinada_historico: Json
           via_assinada_path: string | null
           via_assinada_por: string | null
         }
@@ -11379,6 +11380,7 @@ export type Database = {
           tipo: Database["public"]["Enums"]["dp_disciplinar_tipo"]
           updated_at?: string
           via_assinada_em?: string | null
+          via_assinada_historico?: Json
           via_assinada_path?: string | null
           via_assinada_por?: string | null
         }
@@ -11399,6 +11401,7 @@ export type Database = {
           tipo?: Database["public"]["Enums"]["dp_disciplinar_tipo"]
           updated_at?: string
           via_assinada_em?: string | null
+          via_assinada_historico?: Json
           via_assinada_path?: string | null
           via_assinada_por?: string | null
         }
@@ -17616,6 +17619,7 @@ export type Database = {
       dp_registro_disciplinar_via_assinada: {
         Args: {
           p_confirmo_aplicacao: boolean
+          p_motivo_troca?: string
           p_path: string
           p_registro_id: string
         }
