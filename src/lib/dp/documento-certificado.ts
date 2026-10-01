@@ -51,6 +51,10 @@ export interface CertificadoValidacaoDados {
   dispositivo?: string | null;
   conteudoHash?: string | null;
   registroId?: string | null;
+  /** Data do pagamento comprovado (AAAA-MM-DD), quando houver comprovante. */
+  pagamentoEm?: string | null;
+  /** Forma de pagamento e valores comprovados, quando houver comprovante. */
+  quitacao?: string | null;
 }
 
 const esc = (v: unknown) =>
