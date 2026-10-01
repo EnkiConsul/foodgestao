@@ -137,7 +137,7 @@ export default function PrimeiroAcesso() {
                   {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <MedidorSenha senha={password} />
+              <MedidorSenha senha={password} semMensagem />
               {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
               <ChecklistRequisitosSenha senha={password} />
             </div>
