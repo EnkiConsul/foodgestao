@@ -1099,6 +1099,7 @@ export default function PreAdmissao() {
                         : <Camera className="h-4 w-4 mr-2" />}
                       {fotos.length ? `Enviar ${rotuloParte(proximaParte)}` : "Enviar Frente"}
                     </Button>
+                    </div>
                   </div>
                 );
               })}
