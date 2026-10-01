@@ -101,12 +101,19 @@ interface Props {
   preadmissaoId?: string | null;
   /** Promoção de folguista: pessoa que passa a constar como já promovida. */
   pessoaApoioId?: string | null;
+  /** Posição da ficha no lote (1-based) e total, para orientar quem cadastra. */
+  posicao?: number;
+  total?: number;
+  /** Primeira ficha pendente: recebe destaque visual. */
+  emFoco?: boolean;
+  /** Chamado após cadastrar/atualizar com sucesso. */
+  onConcluido?: (itemId: string, nome: string) => void;
 }
 
 export function FichaRevisaoCard({
   item, cargos, unidades, setores = [], turnos = [], unidadePadraoId, empresaCnpj,
   setorPadraoId = null, regimePadrao = null, onAbrirCadastro, preadmissaoId = null,
-  pessoaApoioId = null,
+  pessoaApoioId = null, posicao, total, emFoco = false, onConcluido,
 }: Props) {
   const extraidos = (item.dados_extraidos ?? {}) as Record<string, unknown>;
   const confianca = (item.confianca_campos ?? {}) as Record<string, string>;
@@ -356,6 +363,7 @@ export function FichaRevisaoCard({
               ? "Cadastro atualizado"
               : "Colaborador cadastrado",
           );
+          onConcluido?.(item.id, String(dados.nome ?? item.nome_extraido ?? "Colaborador"));
         },
         onError: (e: Error) => notifyError(e, { surface: "Pessoas 360°", action: "concluir a ação" }),
       },
@@ -430,11 +438,21 @@ export function FichaRevisaoCard({
   }
 
   return (
-    <Card className={cn(aplicado && "border-emerald-500/40")}>
+    <Card className={cn(aplicado && "border-emerald-500/40", emFoco && !aplicado && "border-primary ring-2 ring-primary/30")}>
       <CardContent className="space-y-4 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
-            <p className="truncate font-semibold">{(dados.nome as string) ?? "Ficha sem nome"}</p>
+            {(posicao || emFoco) && (
+              <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                {posicao && total ? (
+                  <Badge variant="secondary" className="text-[11px]">Ficha {posicao} de {total}</Badge>
+                ) : null}
+                {emFoco && !aplicado && (
+                  <Badge className="text-[11px]">Cadastrando Agora</Badge>
+                )}
+              </div>
+            )}
+            <p className="truncate text-base font-semibold">{(dados.nome as string) ?? "Ficha sem nome"}</p>
             <p className="text-xs text-muted-foreground">
               Página {item.pagina_inicio}
               {item.pagina_fim > item.pagina_inicio ? ` a ${item.pagina_fim}` : ""}

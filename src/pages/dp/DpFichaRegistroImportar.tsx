@@ -477,9 +477,25 @@ export default function DpFichaRegistroImportar() {
             </CardContent>
           </Card>
 
-          {pendentes.map((item) => (
+          {pendentes.map((item, idx) => (
+            <div key={item.id} id={`ficha-item-${item.id}`} className="scroll-mt-20">
             <FichaRevisaoCard
-              key={item.id}
+              posicao={itens.findIndex((i) => i.id === item.id) + 1}
+              total={itens.length}
+              emFoco={idx === 0}
+              onConcluido={(itemId, nome) => {
+                const proximo = pendentes.find((p) => p.id !== itemId);
+                if (proximo) {
+                  const pos = itens.findIndex((i) => i.id === proximo.id) + 1;
+                  const nomeProx = String((proximo.dados_extraidos as Record<string, unknown> | null)?.nome ?? proximo.nome_extraido ?? "Ficha sem nome");
+                  toast.info(`${nome} concluído. Próximo: ${nomeProx} (Ficha ${pos} de ${itens.length})`, { duration: 6000 });
+                  setTimeout(() => {
+                    document.getElementById(`ficha-item-${proximo.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 400);
+                } else {
+                  toast.success("Todas as fichas deste lote foram conferidas.");
+                }
+              }}
               item={item}
               cargos={cargos.map((c) => ({ id: c.id, nome: c.nome, cbo: c.cbo }))}
               turnos={turnos}
@@ -493,6 +509,7 @@ export default function DpFichaRegistroImportar() {
               preadmissaoId={preadmissaoId}
               pessoaApoioId={pessoaApoioId}
             />
+            </div>
           ))}
         </div>
       )}
