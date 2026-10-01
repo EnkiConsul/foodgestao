@@ -37,6 +37,7 @@ import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { notifyError } from "@/lib/notifyError";
 import { fetchAllPages } from "@/lib/supabase/fetchAllPages";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const BUCKET = "dp-disciplinar";
 
@@ -57,19 +58,47 @@ const isFormal = (t?: string | null) => !!t && FORMAIS.includes(t);
 const TEXTO_CONFIRMACAO =
   "Confirmo que a medida foi aplicada presencialmente e que o arquivo é a via física assinada pelo colaborador (ou por duas testemunhas, em caso de recusa).";
 
+/** Motivos comuns, cada um enquadrado na alínea do Art. 482 da CLT (mesma tabela no gerador do PDF). */
+const MOTIVOS: { label: string; alinea: string }[] = [
+  { label: "Atraso Ou Falta Injustificada", alinea: "e" },
+  { label: "Insubordinação / Descumprimento De Ordem", alinea: "h" },
+  { label: "Indisciplina / Descumprimento De Normas Internas", alinea: "h" },
+  { label: "Mau Procedimento / Conduta Inadequada", alinea: "b" },
+  { label: "Desídia No Desempenho Das Funções", alinea: "e" },
+  { label: "Ofensa Ou Agressão A Colega Ou Cliente", alinea: "j" },
+  { label: "Uso Indevido De Celular No Expediente", alinea: "h" },
+  { label: "Embriaguez Em Serviço", alinea: "f" },
+];
+
 function AvisoJuridicoDisciplinar() {
+  const isMobile = useIsMobile();
+  const [aberto, setAberto] = useState(false);
+  const mostrar = !isMobile || aberto;
   return (
-    <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
-      <div className="flex items-center gap-2 font-semibold text-destructive">
-        <AlertTriangle className="size-4" /> Atenção: Risco Jurídico
+    <div className={`mb-4 rounded-xl border border-destructive/30 bg-destructive/5 text-sm ${isMobile ? "p-3" : "p-4"}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2 font-semibold text-destructive">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <span>
+            Atenção: Risco Jurídico
+            {isMobile && <span className="block text-xs font-normal text-foreground/80">Medidas formais exigem aplicação presencial em papel.</span>}
+          </span>
+        </div>
+        {isMobile && (
+          <button type="button" onClick={() => setAberto((v) => !v)} className="shrink-0 text-xs font-semibold text-primary underline">
+            {aberto ? "Recolher" : "Ler Orientações"}
+          </button>
+        )}
       </div>
-      <ul className="mt-2 list-disc space-y-1 pl-5 text-foreground/90">
-        <li>Advertência escrita e suspensão devem ser <strong>aplicadas pessoalmente</strong>: gere o modelo, imprima, converse com o colaborador e colha a assinatura (ou de 2 testemunhas se ele recusar).</li>
-        <li>Registro disciplinar é assinado <strong>somente em papel</strong>: não existe assinatura digital, pelo portal ou por link do WhatsApp.</li>
-        <li>Só depois importe a <strong>via assinada</strong>. Ela é a única coisa que o colaborador verá no portal. Se houver erro no documento, refaça, colha nova assinatura e use "Substituir Via" (a anterior fica no histórico).</li>
-        <li>Descobrir uma punição pelo celular, antes da conversa, gera atrito e pode embasar ação por <strong>dano moral ou assédio</strong>.</li>
-        <li>Advertências verbais, observações e elogios ficam só no dossiê interno, visível ao DP/gestão. Escreva fatos objetivos, sem juízo de valor, pois o dossiê pode ser usado como prova.</li>
-      </ul>
+      {mostrar && (
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-foreground/90">
+          <li>Advertência escrita e suspensão devem ser <strong>aplicadas pessoalmente</strong>: gere o modelo, imprima, converse com o colaborador e colha a assinatura (ou de 2 testemunhas se ele recusar).</li>
+          <li>Registro disciplinar é assinado <strong>somente em papel</strong>: não existe assinatura digital, pelo portal ou por link do WhatsApp.</li>
+          <li>Só depois importe a <strong>via assinada</strong>. Ela é a única coisa que o colaborador verá no portal. Se houver erro no documento, refaça, colha nova assinatura e use "Substituir Via" (a anterior fica no histórico).</li>
+          <li>Descobrir uma punição pelo celular, antes da conversa, gera atrito e pode embasar ação por <strong>dano moral ou assédio</strong>.</li>
+          <li>Advertências verbais, observações e elogios ficam só no dossiê interno, visível ao DP/gestão. Escreva fatos objetivos, sem juízo de valor, pois o dossiê pode ser usado como prova.</li>
+        </ul>
+      )}
     </div>
   );
 }
@@ -143,6 +172,8 @@ export default function DpDisciplinar() {
   const [tipo, setTipo] = useState<string>("");
   const [dias, setDias] = useState<string>("0");
   const [observacao, setObservacao] = useState("");
+  const [motivoSel, setMotivoSel] = useState("");
+  const [caminho, setCaminho] = useState<"gerar" | "importar">("gerar");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [confirmo, setConfirmo] = useState(false);
   const [elogioVis, setElogioVis] = useState<"privado" | "individual" | "publico">("privado");
@@ -362,19 +393,23 @@ export default function DpDisciplinar() {
       if (!dataDoc) throw new Error("Informe a data do documento");
       if (!tipo) throw new Error("Selecione o tipo de registro");
       const formal = isFormal(tipo);
-      if (formal && pendingFile && !confirmo) {
-        throw new Error("Confirme que a via anexada foi aplicada presencialmente e assinada.");
+      const motivoTxt = motivoSel.trim();
+      if (formal) {
+        if (!motivoTxt) throw new Error("Selecione ou digite o motivo");
+        if (caminho === "gerar" && observacao.trim().length < 10) throw new Error("Descreva os fatos (mínimo 10 caracteres)");
+        if (caminho === "importar" && !pendingFile) throw new Error("Anexe a foto ou PDF da via assinada");
+        if (caminho === "importar" && !confirmo) throw new Error("Confirme que a via anexada foi aplicada presencialmente e assinada.");
       }
-      const diasN = parseInt(dias || "0", 10);
-      if (tipo === "suspensao" && (!Number.isFinite(diasN) || diasN <= 0)) {
-        throw new Error("Informe os dias de afastamento para suspensão");
+      const diasN = tipo === "suspensao" ? parseInt(dias || "0", 10) : 0;
+      if (tipo === "suspensao" && (!Number.isFinite(diasN) || diasN <= 0 || diasN > 30)) {
+        throw new Error("Informe de 1 a 30 dias de suspensão");
       }
 
       const registroId = await registrarDisciplinar({
         colaboradorId,
         tipo,
         data: dataDoc,
-        motivo: observacao || TIPO_LABEL[tipo] || tipo,
+        motivo: (formal ? motivoTxt : observacao) || TIPO_LABEL[tipo] || tipo,
         descricao: observacao || null,
         suspensaoDias: diasN > 0 ? diasN : null,
       });
@@ -399,7 +434,7 @@ export default function DpDisciplinar() {
           : "Registro cadastrado com sucesso",
       );
       if (res.gerarModelo) genPdf.mutate(res.registroId);
-      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setTipo(""); setDias("0"); setObservacao(""); setPendingFile(null); setConfirmo(false); setElogioVis("privado");
+      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setTipo(""); setDias("0"); setObservacao(""); setPendingFile(null); setConfirmo(false); setElogioVis("privado"); setMotivoSel(""); setCaminho("gerar");
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
       setTab("historico");
@@ -515,15 +550,15 @@ export default function DpDisciplinar() {
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
         <TabsList>
-          <TabsTrigger value="importar"><Upload className="size-4 mr-2" />Cadastrar</TabsTrigger>
+          <TabsTrigger value="importar"><FileSignature className="size-4 mr-2" />Emitir Medida</TabsTrigger>
           <TabsTrigger value="historico"><History className="size-4 mr-2" />Histórico</TabsTrigger>
         </TabsList>
 
         <TabsContent value="importar" className="mt-4">
           <DpContentCard>
             <div className="flex items-center gap-2 mb-4">
-              <Upload className="size-5 text-primary" />
-              <h3 className="text-lg font-semibold">Cadastrar Registro Disciplinar</h3>
+              <FileSignature className="size-5 text-primary" />
+              <h3 className="text-lg font-semibold">Emitir Medida Disciplinar</h3>
             </div>
             <AvisoJuridicoDisciplinar />
 
@@ -596,52 +631,84 @@ export default function DpDisciplinar() {
                 </div>
               )}
 
+              {isFormal(tipo) && (
+                <div className="space-y-2">
+                  <Label>Como Deseja Registrar? *</Label>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {([
+                      ["gerar", "Gerar Modelo Do Sistema", "Preencha motivo e fatos; o sistema gera a carta para imprimir."],
+                      ["importar", "Importar Via Já Assinada", "Use o modelo próprio da empresa já assinado em papel."],
+                    ] as const).map(([v, t, d]) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => { setCaminho(v); if (v === "gerar") { setPendingFile(null); setConfirmo(false); } }}
+                        className={`rounded-lg border p-3 text-left transition-colors ${caminho === v ? "border-primary bg-primary/5" : "border-border"}`}
+                      >
+                        <div className="text-sm font-semibold">{t}</div>
+                        <div className="text-xs text-muted-foreground">{d}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {isFormal(tipo) && (
+                <div className="space-y-2">
+                  <Label htmlFor="motivo-disc">Motivo *</Label>
+                  <Select value={MOTIVOS.some((m) => m.label === motivoSel) ? motivoSel : motivoSel ? "__outro" : ""} onValueChange={(v) => setMotivoSel(v === "__outro" ? " " : v)}>
+                    <SelectTrigger id="motivo-disc"><SelectValue placeholder="Selecione o motivo" /></SelectTrigger>
+                    <SelectContent>
+                      {MOTIVOS.map((m) => <SelectItem key={m.label} value={m.label}>{m.label} (Art. 482, “{m.alinea}”)</SelectItem>)}
+                      <SelectItem value="__outro">Outro (Digitar)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {motivoSel && !MOTIVOS.some((m) => m.label === motivoSel) && (
+                    <Input value={motivoSel.trimStart()} onChange={(e) => setMotivoSel(e.target.value || " ")} placeholder="Descreva o motivo em poucas palavras" />
+                  )}
+                </div>
+              )}
+
+              {tipo === "suspensao" && (
+                <div className="space-y-2">
+                  <Label htmlFor="dias-de-afastamento-se-aplicavel-5">Dias De Suspensão *</Label>
+                  <Input id="dias-de-afastamento-se-aplicavel-5" type="number" min={1} max={30} value={dias} onChange={(e) => setDias(e.target.value)} />
+                  <p className="text-xs text-muted-foreground">Máximo de 30 dias (Art. 474 da CLT). A suspensão começa no dia seguinte à data do documento.</p>
+                </div>
+              )}
+
+              {(!isFormal(tipo) || caminho === "importar") && (
+                <div className="space-y-2">
+                  <Label>{isFormal(tipo) ? "Foto Ou PDF Da Via Assinada *" : "Arquivo (Opcional)"}</Label>
+                  <DpFilePicker ref={fileRef} accept="application/pdf,image/*" file={pendingFile} onFileChange={setPendingFile} />
+                  {isFormal(tipo) && (
+                    <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-xs">
+                      <Checkbox checked={confirmo} onCheckedChange={(v) => setConfirmo(v === true)} className="mt-0.5" />
+                      <span>{TEXTO_CONFIRMACAO}</span>
+                    </label>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-2">
-                <Label htmlFor="dias-de-afastamento-se-aplicavel-5">Dias de Afastamento (se aplicável)</Label>
-                <Input id="dias-de-afastamento-se-aplicavel-5" type="number" min={0} value={dias} onChange={(e) => setDias(e.target.value)} />
-                <p className="text-xs text-muted-foreground">Preencha com 0 se não houver afastamento.</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{isFormal(tipo) ? "Via Física Assinada (PDF ou Imagem)" : "Arquivo (Opcional)"}</Label>
-                <DpFilePicker
-                  ref={fileRef}
-                  accept="application/pdf,image/*"
-                  file={pendingFile}
-                  onFileChange={setPendingFile}
+                <Label htmlFor="observacoes-6">{isFormal(tipo) ? "Descrição Dos Fatos" + (caminho === "gerar" ? " *" : "") : "Observações"}</Label>
+                <Textarea
+                  id="observacoes-6"
+                  rows={isFormal(tipo) ? 6 : 3}
+                  value={observacao}
+                  onChange={(e) => setObservacao(e.target.value)}
+                  placeholder={isFormal(tipo) ? "Descreva de forma objetiva: o que aconteceu, quando, onde e quem presenciou." : "Observações adicionais (opcional)"}
                 />
-                {isFormal(tipo) && !pendingFile && (
-                  <p className="text-xs text-muted-foreground">
-                    Ainda não aplicou? Deixe sem arquivo: o sistema gera o modelo para imprimir e o colaborador não vê nada até você importar a via assinada.
-                  </p>
-                )}
-                {isFormal(tipo) && pendingFile && (
-                  <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-xs">
-                    <Checkbox checked={confirmo} onCheckedChange={(v) => setConfirmo(v === true)} className="mt-0.5" />
-                    <span>{TEXTO_CONFIRMACAO}</span>
-                  </label>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="observacoes-6">Observações</Label>
-                <Textarea id="observacoes-6" rows={3} value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Observações adicionais (opcional)" />
               </div>
             </div>
 
-            <Button
-              className="w-full mt-6"
-              size="lg"
-              disabled={doImport.isPending}
-              onClick={() => doImport.mutate()}
-            >
-              <Upload className="size-4 mr-2" />
+            <Button className="w-full mt-6" size="lg" disabled={doImport.isPending} onClick={() => doImport.mutate()}>
+              {isFormal(tipo) && caminho === "gerar" ? <FileText className="size-4 mr-2" /> : <Upload className="size-4 mr-2" />}
               {doImport.isPending
-                ? "Enviando..."
-                : isFormal(tipo) && !pendingFile
-                  ? "Salvar E Gerar Modelo Para Imprimir"
-                  : "Cadastrar"}
+                ? "Processando..."
+                : isFormal(tipo)
+                  ? caminho === "gerar" ? "Gerar Carta Para Impressão (PDF)" : "Salvar E Arquivar Via Assinada"
+                  : "Salvar Registro"}
             </Button>
           </DpContentCard>
         </TabsContent>
