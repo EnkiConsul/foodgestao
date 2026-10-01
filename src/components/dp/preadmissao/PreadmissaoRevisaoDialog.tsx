@@ -234,8 +234,31 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
 
   const pa = data?.preadmissao;
   const parentescosPermitidos = data?.parentescos_permitidos ?? null;
+  /** Finalidades liberadas num grau, com as marcações antigas como reserva. */
+  const liberadasDoGrau = (grau: string): string[] => {
+    const regra = parentescosPermitidos?.find((o) => o.parentesco === grau);
+    if (!regra) return [];
+    const lista = (regra as { finalidades?: string[] }).finalidades ?? [];
+    if (lista.length) return lista;
+    return [
+      ...(regra.permite_dependente ? [FINALIDADE_LEGAL] : []),
+      ...(regra.permite_sesc ? ["sesc"] : []),
+    ];
+  };
+  const catalogoFinalidades = [
+    { codigo: FINALIDADE_LEGAL, nome: FINALIDADE_LEGAL_NOME },
+    ...((data as { finalidades_empresa?: Array<{ codigo: string; nome: string }> } | undefined)?.finalidades_empresa ?? [])
+      .filter((f) => f.codigo !== FINALIDADE_LEGAL),
+  ];
+  const nomeFinalidade = (codigo: string) =>
+    catalogoFinalidades.find((f) => f.codigo === codigo)?.nome ?? codigo.replace(/_/g, " ");
+  const finalidadesDoFamiliar = (grau: string) => {
+    if (!parentescosPermitidos) return catalogoFinalidades;
+    const liberadas = liberadasDoGrau(grau);
+    return catalogoFinalidades.filter((f) => liberadas.includes(f.codigo));
+  };
   const parentescosDaEmpresa = parentescosPermitidos
-    ? parentescosPermitidos.filter((p) => p.permite_dependente || p.permite_sesc).map((p) => ({
+    ? parentescosPermitidos.filter((p) => liberadasDoGrau(p.parentesco).length).map((p) => ({
         value: p.parentesco,
         label: PARENTESCOS.find((o) => o.value === p.parentesco)?.label ?? p.parentesco.replace(/_/g, " "),
       }))
