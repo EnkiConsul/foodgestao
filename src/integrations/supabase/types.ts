@@ -11126,6 +11126,83 @@ export type Database = {
           },
         ]
       }
+      dp_push_fila: {
+        Row: {
+          created_at: string
+          erro: string | null
+          id: string
+          notificacao_id: string
+          processado_em: string | null
+          status: string
+          tentativas: number
+        }
+        Insert: {
+          created_at?: string
+          erro?: string | null
+          id?: string
+          notificacao_id: string
+          processado_em?: string | null
+          status?: string
+          tentativas?: number
+        }
+        Update: {
+          created_at?: string
+          erro?: string | null
+          id?: string
+          notificacao_id?: string
+          processado_em?: string | null
+          status?: string
+          tentativas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_push_fila_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: true
+            referencedRelation: "dp_notificacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_push_inscricoes: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          falhas: number
+          id: string
+          p256dh: string
+          ultimo_envio_em: string | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          falhas?: number
+          id?: string
+          p256dh: string
+          ultimo_envio_em?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          falhas?: number
+          id?: string
+          p256dh?: string
+          ultimo_envio_em?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       dp_recibos: {
         Row: {
           assinado_confirmacao: Json | null
@@ -17412,6 +17489,30 @@ export type Database = {
         Args: { p_colaborador_id: string; p_motivo?: string }
         Returns: undefined
       }
+      dp_push_destinos: {
+        Args: { _company_id: string; _para_admins: boolean; _user_id: string }
+        Returns: {
+          auth: string
+          endpoint: string
+          inscricao_id: string
+          p256dh: string
+          user_id: string
+        }[]
+      }
+      dp_push_reservar: {
+        Args: { _limite?: number }
+        Returns: {
+          company_id: string
+          descricao: string
+          fila_id: string
+          notificacao_id: string
+          para_admins: boolean
+          ref_table: string
+          titulo: string
+          user_id: string
+        }[]
+      }
+      dp_push_worker_secret: { Args: never; Returns: string }
       dp_recibo_assinar_externo: {
         Args: {
           p_hash: string
