@@ -69,10 +69,21 @@ export default function AtivarAcesso() {
       const { data, error } = await supabase.functions.invoke("dp-alterar-senha-colaborador", {
         body: { cpf: digitos, token_id: tokenId, codigo, purpose: modo, nova_senha: senha },
       });
-      if (error) throw error;
-      if ((data as any)?.error) {
-        if ((data as any)?.code === "token_usado") setLinkUsado(true);
-        setErro((data as any).error);
+      // Respostas de erro (4xx) chegam como exceção; lemos o corpo para
+      // distinguir "link já utilizado" de falhas genéricas.
+      let corpo: any = data;
+      if (error) {
+        try {
+          corpo = await (error as any).context?.json();
+        } catch { /* sem corpo legível */ }
+        if (!corpo?.error) {
+          setErro("Não foi possível concluir. Tente de novo ou peça um novo link.");
+          return;
+        }
+      }
+      if (corpo?.error) {
+        if (corpo?.code === "token_usado") setLinkUsado(true);
+        setErro(corpo.error);
         return;
       }
       toast.success("Senha criada!", { description: "Entre com seu CPF e a senha que você acabou de escolher." });
