@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { PdfCanvasViewer } from "./PdfCanvasViewer";
+import { ImagemZoomViewer } from "./ImagemZoomViewer";
 
 interface DocumentPreviewProps {
   open: boolean;
@@ -144,9 +145,7 @@ export function DocumentPreview({
               )}
             </div>
           ) : isImage ? (
-            <div className="flex items-center justify-center h-full overflow-auto p-4">
-              <img src={heicUrl ?? resolvedUrl} alt={title} className="max-h-full max-w-full object-contain" />
-            </div>
+            <ImagemZoomViewer src={heicUrl ?? resolvedUrl} alt={title} />
           ) : isPdf ? (
             <PdfCanvasViewer url={resolvedUrl} title={title} />
           ) : (
