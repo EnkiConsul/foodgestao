@@ -38,7 +38,7 @@ export function MedidorSenha({ senha, dados, id, semMensagem = false }: Props) {
       </div>
       <p className="text-xs text-muted-foreground">
         Força da senha: {rotulo}
-        {mensagem ? ` — ${mensagem}` : ` — atende à regra de ${SENHA_MIN} caracteres`}
+        {semMensagem ? "" : mensagem ? ` — ${mensagem}` : ` — atende à regra de ${SENHA_MIN} caracteres`}
       </p>
     </div>
   );
