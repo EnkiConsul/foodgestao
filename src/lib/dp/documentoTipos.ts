@@ -42,6 +42,7 @@ export type DpDocTipo =
   | "contracheque_ferias"
   | "plr"
   | "outros_pagamentos"
+  | "recibo_pagamento_especie"
   | "ponto"
   | "banco_horas"
   | "ajuste_jornada"
