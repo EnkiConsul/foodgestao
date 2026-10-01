@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { prazoPagamentoRescisao } from "@/lib/dp/desligamento";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertTriangle, LogOut, RotateCcw, UserMinus, UserPlus } from "lucide-react";
