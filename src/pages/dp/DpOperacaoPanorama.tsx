@@ -1296,7 +1296,7 @@ export default function DpOperacaoPanorama() {
                     <DpStatCard
                       icon={UserX}
                       tone="muted"
-                      label="Dias Sem Ninguém"
+                      label="Dias sem Ninguém"
                       value={panorama.dias.filter((d) => d.trabalhando === 0).length}
                     />
                   );
@@ -1448,7 +1448,7 @@ export default function DpOperacaoPanorama() {
               </Secao>
 
               <Secao
-                title="Dias Para Avaliar"
+                title="Dias para Avaliar"
                 description={
                   diasAlerta.length
                     ? `${diasAlerta.length} dia(s) fora do padrão histórico`

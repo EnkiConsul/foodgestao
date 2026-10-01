@@ -197,7 +197,7 @@ export default function Checkout() {
         <div className="grid md:grid-cols-2 gap-3 md:gap-4">
           <Card className="md:col-span-2">
             <CardHeader>
-              <CardTitle>Dados Para Emissão Da Nota Fiscal</CardTitle>
+              <CardTitle>Dados para Emissão da Nota Fiscal</CardTitle>
               <p className="text-sm text-muted-foreground">
                 A nota fiscal de cada mensalidade será emitida em nome desta empresa.
               </p>

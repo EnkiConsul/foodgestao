@@ -205,7 +205,7 @@ export default function DpConfiguracoesJornada() {
   if (isError) {
     return (
       <DpPage>
-        <DpPageHeader title="Regras De Folgas" icon={Scale} />
+        <DpPageHeader title="Regras de Folgas" icon={Scale} />
         <DpErrorState onRetry={refetch} />
       </DpPage>
     );
@@ -215,7 +215,7 @@ export default function DpConfiguracoesJornada() {
     <DpPage>
       {!embedded && (
         <Helmet>
-          <title>Regras De Folgas | Pessoas 360°</title>
+          <title>Regras de Folgas | Pessoas 360°</title>
           <meta
             name="description"
             content="Configure a periodicidade de folga dominical, o descanso por acordo coletivo e as regras de folgas do Departamento Pessoal, por unidade de loja."
@@ -224,7 +224,7 @@ export default function DpConfiguracoesJornada() {
       )}
 
       <DpPageHeader
-        title="Regras De Folgas"
+        title="Regras de Folgas"
         description="Parâmetros de DSR e folga dominical — configurados por unidade de loja."
         icon={Scale}
         actions={

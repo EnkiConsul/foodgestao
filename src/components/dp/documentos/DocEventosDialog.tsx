@@ -53,7 +53,7 @@ export function DocEventosDialog(props: {
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <History className="h-5 w-5 text-primary" /> Registro De Alterações
+            <History className="h-5 w-5 text-primary" /> Registro de Alterações
           </DialogTitle>
           <DialogDescription>
             Documentos excluídos ou substituídos, com autor, data e motivo informado.

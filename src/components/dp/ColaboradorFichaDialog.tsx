@@ -461,7 +461,7 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
             {/* Só aparece quando há override individual: gênero fora de F/M. */}
             {(colaborador as any)?.domingos_folga_mes && (
               <Field
-                label="Folgas Dominicais Por Mês"
+                label="Folgas Dominicais por Mês"
                 value={`${(colaborador as any).domingos_folga_mes} por mês`}
               />
             )}

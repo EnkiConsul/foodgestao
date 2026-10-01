@@ -3,7 +3,7 @@
  *
  * Regra de ouro: a lista de cargos nunca fica vazia em silêncio. Enquanto
  * carrega, diz que está carregando; se a leitura falhar, mostra o aviso com
- * "Tentar De Novo" e registra o erro; só quando realmente não existe cargo é
+ * "Tentar de Novo" e registra o erro; só quando realmente não existe cargo é
  * que a mensagem convida a cadastrar.
  */
 import { useEffect, type ReactNode } from "react";
@@ -80,7 +80,7 @@ export function CargoSelectAviso({
       <p className={`text-xs ${erro ? "text-destructive" : "text-muted-foreground"}`}>{mensagem}</p>
       {erro && onRecarregar && (
         <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={onRecarregar}>
-          Tentar De Novo
+          Tentar de Novo
         </Button>
       )}
     </div>

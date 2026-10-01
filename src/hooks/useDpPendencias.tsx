@@ -1077,7 +1077,7 @@ export function useDpPendencias() {
             results.push({
               id: `escala-${anoVigente}-${mesVigente + 1}`,
               icon: Clock,
-              titulo: "Definir Escala Do Próximo Mês",
+              titulo: "Definir Escala do Próximo Mês",
               subtitulo: `Sem folga marcada em ${MES_NOME[inicioProx.getMonth()]}: ${nomes} — o sistema gera automaticamente às 23:59 do dia ${ultimoDia}`,
               tipo: "Escala",
               vencimento: ymd(prazo),
@@ -1126,7 +1126,7 @@ export function useDpPendencias() {
           results.push({
             id: `lote-sem-unidade-${l.id}`,
             icon: FileText,
-            titulo: "Unidade Não Identificada No Lote",
+            titulo: "Unidade não Identificada no Lote",
             subtitulo: `${l.source_file_name ?? "Importação"} (${l.tipo}) — vincule a unidade para liberar a aprovação`,
             tipo: "Importação",
             vencimento: ymd(vencimento),
@@ -1160,7 +1160,7 @@ export function useDpPendencias() {
           results.push({
             id: `salario-familia-${anoVigente}`,
             icon: Coins,
-            titulo: "Atualizar Tabela Do Salário-Família",
+            titulo: "Atualizar Tabela do Salário-Família",
             subtitulo: sfConfig.vigencia
               ? `Valores de ${sfConfig.vigencia.slice(0, 4)} — confirme a cota e o teto de ${anoVigente}`
               : "Cadastre a cota por dependente e o teto de baixa renda",

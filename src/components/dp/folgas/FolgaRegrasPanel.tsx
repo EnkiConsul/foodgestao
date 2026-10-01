@@ -240,7 +240,7 @@ export function FolgaRegrasPanel({
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold">Particularidade De Folgas</h3>
+          <h3 className="text-sm font-semibold">Particularidade de Folgas</h3>
           <p className="text-xs text-muted-foreground">
             Travas do dia a dia desta unidade: quantas pessoas podem folgar por dia, limite por
             cargo e pessoas que não podem folgar no mesmo dia. Todas valem juntas quando o
@@ -381,7 +381,7 @@ export function FolgaRegrasPanel({
       <Dialog open={!!form} onOpenChange={(o) => !o && setForm(null)}>
         <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{form?.id ? "Editar Regra" : "Nova Regra De Folga"}</DialogTitle>
+            <DialogTitle>{form?.id ? "Editar Regra" : "Nova Regra de Folga"}</DialogTitle>
             <DialogDescription>
               Escolha o tipo de regra e o recorte em que ela vale.
             </DialogDescription>

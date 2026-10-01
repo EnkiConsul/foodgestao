@@ -195,7 +195,7 @@ export default function DpCargos() {
                 <tr><td colSpan={5} className="p-12 text-center">
                   <p className="text-sm text-destructive">Não conseguimos carregar os cargos agora.</p>
                   <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => list.refetch()}>
-                    Tentar De Novo
+                    Tentar de Novo
                   </Button>
                 </td></tr>
               )}
@@ -280,7 +280,7 @@ export default function DpCargos() {
           <div className="rounded-2xl border border-border bg-card p-6 text-center">
             <p className="text-sm text-destructive">Não conseguimos carregar os cargos agora.</p>
             <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => list.refetch()}>
-              Tentar De Novo
+              Tentar de Novo
             </Button>
           </div>
         )}

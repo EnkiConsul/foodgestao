@@ -456,14 +456,14 @@ export default function ExtratoConciliacao() {
           icon={<TrendingDown className="h-3.5 w-3.5" />}
         />
         <KpiCard
-          label="Créditos Sem Conciliação"
+          label="Créditos sem Conciliação"
           value={maskBRL(model.totais.creditosSemConciliacao.total)}
           count={model.totais.creditosSemConciliacao.count}
           tone="alerta"
           icon={<TrendingUp className="h-3.5 w-3.5" />}
         />
         <KpiCard
-          label="Débitos Sem Conciliação"
+          label="Débitos sem Conciliação"
           value={maskBRL(model.totais.debitosSemConciliacao.total)}
           count={model.totais.debitosSemConciliacao.count}
           tone="alerta"

@@ -112,7 +112,7 @@ export function PessoaApoioFormDialog({
   const titulo = pessoa
     ? "Editar pessoa"
     : form.tipo === "teste"
-      ? "Nova Pessoa Em Teste"
+      ? "Nova Pessoa em Teste"
       : "Novo Folguista";
 
   return (

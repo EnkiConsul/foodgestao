@@ -863,7 +863,7 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
   const acoesRodape = (
     <>
       <Button variant="outline" className="h-11 sm:h-10" onClick={imprimirPacote}>
-        <Printer className="h-4 w-4 mr-2" /> Gerar Ficha Para A Contabilidade
+        <Printer className="h-4 w-4 mr-2" /> Gerar Ficha para a Contabilidade
       </Button>
       {status === "aguardando_revisao" && (
         <Button
@@ -956,7 +956,7 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
       </div>
       <Separator />
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold">Admissão E Contabilidade</h3>
+        <h3 className="text-sm font-semibold">Admissão e Contabilidade</h3>
                 {["aguardando_revisao", "aguardando_nova_versao", "em_preenchimento"].includes(status) && (
                   <div className="space-y-2">
                     <Label className="text-xs">Pedir correção ao candidato</Label>
@@ -995,7 +995,7 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                     onClick={() =>
                       executar(() => acoes.marcarStatus.mutateAsync("enviado_contabilidade"), "Envio registrado")}
                   >
-                    Marcar Como Enviada À Contabilidade
+                    Marcar Como Enviada à Contabilidade
                   </Button>
                 )}
 
@@ -1008,7 +1008,7 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
                         "Aguardando o retorno da contabilidade",
                       )}
                   >
-                    Aguardando Retorno Da Contabilidade
+                    Aguardando Retorno da Contabilidade
                   </Button>
                 )}
 

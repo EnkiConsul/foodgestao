@@ -1160,7 +1160,7 @@ export function ColaboradorJornadaPanel({
               <div className="min-w-0 space-y-1 text-xs">
                 <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <CalendarOff className="h-4 w-4" aria-hidden="true" />
-                  {tituloSistema("Folga Dominical Do Colaborador")}
+                  {tituloSistema("Folga Dominical do Colaborador")}
                 </p>
                 <p className="text-muted-foreground">{regraDominical.baseTexto}</p>
                 <p className="text-muted-foreground">
@@ -1178,7 +1178,7 @@ export function ColaboradorJornadaPanel({
                 onClick={abrirRegrasFolgas}
               >
 
-                <CalendarOff className="h-4 w-4" aria-hidden="true" /> Ver Regras De Folgas
+                <CalendarOff className="h-4 w-4" aria-hidden="true" /> Ver Regras de Folgas
               </Button>
             </div>
             {regraDominical.alerta && (

@@ -2599,7 +2599,7 @@ export function ColaboradorFormDialog({
 
           {exigeDomingosFolga && (
             <div className="space-y-2">
-              <Label>Folgas Dominicais Por Mês (Padrão CLT) *</Label>
+              <Label>Folgas Dominicais por Mês (Padrão CLT) *</Label>
               <Select
                 value={form.domingos_folga_mes}
                 onValueChange={(v) => setForm({ ...form, domingos_folga_mes: v })}

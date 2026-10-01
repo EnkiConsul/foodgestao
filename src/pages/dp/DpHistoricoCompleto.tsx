@@ -775,7 +775,7 @@ export default function DpHistoricoCompleto() {
             />
             <DpSalvarLargurasButton screenKey="dp_historico_documentos" colOrder={colOrder} colWidths={colWidths} />
             <Button variant="outline" onClick={() => setLogAberto(true)}>
-              <HistoryIcon className="mr-1 h-4 w-4" /> Registro De Alterações
+              <HistoryIcon className="mr-1 h-4 w-4" /> Registro de Alterações
             </Button>
           </>
         }
@@ -1174,7 +1174,7 @@ export default function DpHistoricoCompleto() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Motivo Da Exclusão</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Motivo da Exclusão</Label>
             <Textarea
               rows={2}
               placeholder="Ex.: arquivo importado na competência errada"

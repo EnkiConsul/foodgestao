@@ -40,7 +40,7 @@ export function AdminBackofficeUsuarios() {
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription className="flex flex-wrap items-center gap-3">
           Não foi possível carregar a lista de acessos.
-          <Button size="sm" variant="outline" onClick={() => refetch()}>Tentar De Novo</Button>
+          <Button size="sm" variant="outline" onClick={() => refetch()}>Tentar de Novo</Button>
         </AlertDescription>
       </Alert>
     );
