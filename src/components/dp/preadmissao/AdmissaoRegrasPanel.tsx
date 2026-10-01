@@ -259,11 +259,11 @@ export function AdmissaoRegrasPanel() {
   /** Documentos do catálogo separados por responsável e agrupados por assunto. */
   const documentos = useMemo(() => {
     const ativos = (requisitos as DpDocumentoRequisito[])
-      .filter((r) => r.obrigatoriedade !== "desativado");
+      .filter((r) => r.obrigatoriedade !== "desativado" || r.codigo === "autorizacao_judicial_menor");
     const separa = () => {
       const m = new Map<string, DpDocumentoRequisito[]>();
       ativos
-        .filter((r) => !requisitoDaEmpresa(r) && !["cnh_sem_suspensao", "autorizacao_menor", "autorizacao_judicial_menor"].includes(r.codigo))
+        .filter((r) => !requisitoDaEmpresa(r) && !["cnh_sem_suspensao", "autorizacao_menor"].includes(r.codigo))
         .forEach((r) => {
           const g = (r as { grupo?: string | null }).grupo || "identificacao";
           m.set(g, [...(m.get(g) ?? []), r]);
