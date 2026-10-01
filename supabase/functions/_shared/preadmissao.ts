@@ -520,6 +520,19 @@ export function filtrarPessoasCandidato(pessoas: unknown): Record<string, unknow
         out[campo] = typeof v === "string" ? v.trim() : v;
       }
     }
+    // A lista de finalidades manda: as duas marcações antigas continuam
+    // gravadas, derivadas da lista, para as conferências já existentes.
+    if ("finalidades" in out) {
+      const lista = normalizarFinalidades(out.finalidades);
+      out.finalidades = lista;
+      out.finalidade_dependente = lista.includes(FINALIDADE_LEGAL);
+      out.finalidade_sesc = lista.includes("sesc");
+    } else if (out.finalidade_dependente === true || out.finalidade_sesc === true) {
+      out.finalidades = [
+        ...(out.finalidade_dependente === true ? [FINALIDADE_LEGAL] : []),
+        ...(out.finalidade_sesc === true ? ["sesc"] : []),
+      ];
+    }
     return out;
   });
 }
