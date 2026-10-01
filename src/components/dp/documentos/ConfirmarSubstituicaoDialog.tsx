@@ -4,7 +4,6 @@ import {
   AlertDialogDescription, AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 export interface DuplicateCollision {
   item_id: string;
@@ -27,11 +26,11 @@ export function ConfirmarSubstituicaoDialog({
   const nonDup = totalItems - collisions.length;
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-lg flex-col overflow-hidden">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-600" />
-            Documentos duplicados encontrados
+            Documentos Duplicados Encontrados
           </AlertDialogTitle>
           <AlertDialogDescription>
             {collisions.length} de {totalItems} página(s) já possuem documento
@@ -40,7 +39,7 @@ export function ConfirmarSubstituicaoDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <ScrollArea className="max-h-56 border rounded-md">
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-md border max-h-[40dvh]">
           <ul className="divide-y text-sm">
             {collisions.map((c) => (
               <li key={c.item_id} className="px-3 py-2 flex items-center justify-between gap-2">
@@ -49,18 +48,18 @@ export function ConfirmarSubstituicaoDialog({
               </li>
             ))}
           </ul>
-        </ScrollArea>
+        </div>
 
-        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+        <AlertDialogFooter className="shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           {nonDup > 0 && (
-            <Button variant="outline" onClick={onSkip}>
+            <Button variant="outline" className="h-auto whitespace-normal py-2" onClick={onSkip}>
               Pular duplicados e salvar {nonDup} nova(s)
             </Button>
           )}
-          <Button variant="destructive" onClick={onReplace}>
+          <Button variant="destructive" className="h-auto whitespace-normal py-2" onClick={onReplace}>
             Substituir {collisions.length} existente(s)
           </Button>
         </AlertDialogFooter>
