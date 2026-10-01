@@ -1280,8 +1280,7 @@ export default function PreAdmissao() {
                     {pessoasParaEnviar().map((p, i) => (
                       <li key={p.id ?? `rev-${i}`} className="border-b border-dashed py-1">
                         {p.nome || "Sem nome"} — {ROTULO_PARENTESCO(p.parentesco)}
-                        {p.finalidade_dependente ? " · dependente" : ""}
-                        {p.finalidade_sesc ? " · Sesc" : ""}
+                        {p.finalidades.length ? ` · ${p.finalidades.map(nomeFinalidade).join(", ")}` : ""}
                       </li>
                     ))}
                   </ul>
