@@ -177,9 +177,19 @@ export default function AtivarAcesso() {
                 </div>
               </div>
               {erro && <p className="text-sm text-destructive">{erro}</p>}
-              <Button type="submit" className="min-h-11 w-full" disabled={enviando}>
-                {enviando ? "Salvando..." : "Salvar senha e entrar"}
-              </Button>
+              {linkUsado ? (
+                <Button
+                  type="button"
+                  className="min-h-11 w-full"
+                  onClick={() => navigate("/auth", { replace: true })}
+                >
+                  Ir para o Login
+                </Button>
+              ) : (
+                <Button type="submit" className="min-h-11 w-full" disabled={enviando}>
+                  {enviando ? "Salvando..." : "Salvar senha e entrar"}
+                </Button>
+              )}
             </CardContent>
           </form>
         </Card>
