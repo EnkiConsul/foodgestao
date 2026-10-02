@@ -39,6 +39,8 @@ export interface PessoaApoioFormDialogProps {
   pessoa?: PessoaApoio | null;
   /** Tipo inicial quando é um cadastro novo. */
   tipoInicial?: PessoaApoioTipo;
+  /** Dados já conhecidos (ex.: vindos de um recibo) para pré-preencher um cadastro novo. */
+  dadosIniciais?: Partial<{ nome: string; cpf: string; telefone: string; unidade_id: string }>;
   onSaved?: () => void;
 }
 
@@ -47,7 +49,7 @@ export interface PessoaApoioFormDialogProps {
  * Colaboradores e na tela de Folguistas e testes.
  */
 export function PessoaApoioFormDialog({
-  open, onOpenChange, pessoa, tipoInicial = "folguista", onSaved,
+  open, onOpenChange, pessoa, tipoInicial = "folguista", dadosIniciais, onSaved,
 }: PessoaApoioFormDialogProps) {
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
@@ -71,8 +73,9 @@ export function PessoaApoioFormDialog({
             observacao: pessoa.observacao ?? "",
             ativo: pessoa.ativo,
           }
-        : { ...vazio, tipo: tipoInicial },
+        : { ...vazio, ...(dadosIniciais ?? {}), tipo: tipoInicial },
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, pessoa, tipoInicial]);
 
   const gravar = async () => {

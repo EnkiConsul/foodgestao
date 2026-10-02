@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Link2, MessageCircle, Receipt } from "lucide-react";
+import { Download, Link2, MessageCircle, Receipt, UserPlus } from "lucide-react";
+import { PessoaApoioFormDialog } from "@/components/dp/PessoaApoioFormDialog";
+import { useDpPessoasApoio } from "@/hooks/useDpPessoasApoio";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -88,7 +90,10 @@ export default function DpRecibos() {
   const [valorEspecie, setValorEspecie] = useState("");
   const [canal, setCanal] = useState<CanalAssinatura>("portal");
   const [salvando, setSalvando] = useState(false);
-  const [resultado, setResultado] = useState<{ id: string; link?: string; whatsapp: string | null; nome: string } | null>(null);
+  const [resultado, setResultado] = useState<{ id: string; link?: string; whatsapp: string | null; nome: string; avulso?: { cpf: string; telefone: string; unidade_id: string; tipo: "teste" | "folguista" } } | null>(null);
+  const [cadastroAberto, setCadastroAberto] = useState(false);
+  const [cadastrado, setCadastrado] = useState(false);
+  const apoios = useDpPessoasApoio();
   const [detalhe, setDetalhe] = useState<ReciboDetalhado | null>(null);
   const veioDePendencia = params.has("colaborador") && params.has("competencia");
 
@@ -196,6 +201,16 @@ export default function DpRecibos() {
     if (sug) setPagoEm(sug > hoje() ? hoje() : sug);
   }, [natureza, competencia, unidadeEfetiva, recibos.data, unidadesCfg.data, pagoEmManual]);
 
+  /** Já existe folguista/teste ou colaborador com este CPF (ou nome, sem CPF)? */
+  function jaNoBanco(cpfB: string, nomeB: string) {
+    const d = cpfB.replace(/\D/g, "");
+    const n = nomeB.trim().toUpperCase();
+    const bate = (c?: string | null, nm?: string | null) =>
+      d ? String(c ?? "").replace(/\D/g, "") === d : String(nm ?? "").trim().toUpperCase() === n;
+    return (apoios.data ?? []).some((p) => bate(p.cpf, p.nome))
+      || (colabs.data ?? []).some((c: any) => bate(c.cpf, c.nome));
+  }
+
   function limparFormulario() {
     setColabId(""); setNome(""); setCpf(""); setWhats(""); setDescricao(""); setValor("");
     setValorBanco(""); setValorEspecie(""); setModalidade("bancario"); setCanal("portal");
@@ -278,7 +293,13 @@ export default function DpRecibos() {
         canal_assinatura: canal,
       });
       const nomeB = avulso ? nome.toUpperCase() : String(colab?.nome ?? "");
-      setResultado({ id: r.recibo_id, link: r.link, whatsapp: r.whatsapp, nome: nomeB });
+      setCadastrado(false);
+      setResultado({
+        id: r.recibo_id, link: r.link, whatsapp: r.whatsapp, nome: nomeB,
+        avulso: avulso
+          ? { cpf, telefone: whats, unidade_id: unidadeId, tipo: natureza === "teste_operacional" ? "teste" : "folguista" }
+          : undefined,
+      });
       limparFormulario();
       toast.success(r.documento_id ? "Recibo emitido e guardado nos documentos do colaborador." : "Recibo emitido.");
       qc.invalidateQueries({ queryKey: ["dp_recibos"] });
@@ -454,7 +475,32 @@ export default function DpRecibos() {
                 </>
               )}
             </div>
+            {resultado.avulso && !cadastrado && !jaNoBanco(resultado.avulso.cpf, resultado.nome) && (
+              <div className="rounded-md border bg-background p-3 space-y-2">
+                <p className="text-sm">
+                  {resultado.nome} ainda não tem cadastro. Quer aproveitar os dados e incluir como{" "}
+                  {resultado.avulso.tipo === "teste" ? "pessoa em teste" : "folguista"}?
+                </p>
+                <Button size="sm" onClick={() => setCadastroAberto(true)}>
+                  <UserPlus className="h-4 w-4 mr-1" />Cadastrar no Sistema
+                </Button>
+              </div>
+            )}
           </div>
+        )}
+        {resultado?.avulso && (
+          <PessoaApoioFormDialog
+            open={cadastroAberto}
+            onOpenChange={setCadastroAberto}
+            tipoInicial={resultado.avulso.tipo}
+            dadosIniciais={{
+              nome: resultado.nome,
+              cpf: resultado.avulso.cpf,
+              telefone: resultado.avulso.telefone,
+              unidade_id: resultado.avulso.unidade_id,
+            }}
+            onSaved={() => setCadastrado(true)}
+          />
         )}
       </DpContentCard>
         </TabsContent>
