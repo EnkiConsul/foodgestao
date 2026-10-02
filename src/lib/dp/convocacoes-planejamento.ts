@@ -31,7 +31,7 @@ export const FORMAS_PAGAMENTO_CONVOCAVEIS = ["horista", "diarista"] as const;
  * (REMUNERACAO_MENSALISTA_NAO_ELEGIVEL em dp_convocacao_remuneracao_snapshot).
  */
 export function pessoaConvocavel(p: {
-  regime: string | null | undefined;
+  regime?: string | null | undefined;
   forma_pagamento?: string | null | undefined;
 }): boolean {
   if (!regimeConvocavel(p.regime)) return false;
