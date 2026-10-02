@@ -5,7 +5,7 @@ import { useUpsertDpCargo, useUpsertDpCargoSalario } from "@/hooks/useDpCadastro
 import { useSindicatoDoCargo } from "@/hooks/useSindicatoDoCargo";
 import { salvarDependente } from "@/lib/dp/regras-oficial";
 import {
-  dependentesDaFicha, inferirFormaPagamento, inferirRegime, LIMITE_PONTO_OBRIGATORIO, salarioDaFicha,
+  dependentesDaFicha, inferirFormaPagamento, inferirRegime, LIMITE_PONTO_OBRIGATORIO, parentescoDependente, salarioDaFicha,
 } from "@/lib/dp/ficha-registro/inferencia";
 import { Link } from "react-router-dom";
 import {
@@ -260,7 +260,23 @@ export function FichaRevisaoCard({
   }, [unidadeId, unidadeTemPonto, pontoObrigatorio, possuiFolhaPonto]);
 
   const salarioFicha = useMemo(() => salarioDaFicha(dados), [dados]);
-  const dependentesLidos = useMemo(() => dependentesDaFicha(dados), [dados]);
+  // Na pré-admissão valem os familiares que o próprio candidato informou.
+  const pessoasCandidato = preadmissaoJornada.data?.pessoas;
+  const dependentesLidos = useMemo(() => {
+    if (preadmissaoId) {
+      return (pessoasCandidato ?? [])
+        .map((p) => ({
+          nome: String(p.nome ?? "").trim().toUpperCase(),
+          parentesco: parentescoDependente(p.parentesco),
+          data_nascimento: p.data_nascimento && /^\d{4}-\d{2}-\d{2}$/.test(p.data_nascimento) ? p.data_nascimento : null,
+          cpf: String(p.cpf ?? "").replace(/\D/g, "") || null,
+          irrf: !!p.finalidade_dependente,
+        }))
+        .filter((d): d is { nome: string; parentesco: NonNullable<ReturnType<typeof parentescoDependente>>; data_nascimento: string | null; cpf: string | null; irrf: boolean } =>
+          d.nome.length >= 3 && !!d.parentesco);
+    }
+    return dependentesDaFicha(dados).map((d) => ({ ...d, irrf: true }));
+  }, [preadmissaoId, pessoasCandidato, dados]);
   const [importarDependentes, setImportarDependentes] = useState(true);
   const [automatizarCargo, setAutomatizarCargo] = useState(true);
   const upsertCargo = useUpsertDpCargo();
@@ -417,20 +433,23 @@ export function FichaRevisaoCard({
       return;
     }
     let cargoFinal = cargoId;
-    if (automatizarCargo && !preadmissaoId) {
+    if (automatizarCargo) {
       setPreparando(true);
       try {
         const nomeCargo = String(dados.cargo_nome ?? "").trim().toUpperCase();
-        if (!cargoFinal && !cargoPorCbo && nomeCargo) {
+        // Na pré-admissão o cargo já foi escolhido no convite: nada é criado.
+        if (!preadmissaoId && !cargoFinal && !cargoPorCbo && nomeCargo) {
           const novo = await upsertCargo.mutateAsync({ nome: nomeCargo, cbo: String(dados.cbo ?? "").trim() || null });
           cargoFinal = (novo as { id: string }).id;
           setCargoIdState(cargoFinal);
           setCargoTocado(true);
         }
-        const mensal = (formaPagamento ?? formaInferida) === "mensalista";
-        if (cargoFinal && unidadeId && salarioFicha && mensal && !salarioCargoDe(cargoFinal, unidadeId)) {
+        const cargoPiso = preadmissaoId ? (vinculoDecidido()?.cargoId ?? cargoFinal) : cargoFinal;
+        const formaFinal = preadmissaoId ? (vinculoDecidido()?.formaPagamento ?? formaPagamento) : formaPagamento;
+        const mensal = (formaFinal ?? formaInferida) === "mensalista";
+        if (cargoPiso && unidadeId && salarioFicha && mensal && !salarioCargoDe(cargoPiso, unidadeId)) {
           await upsertPiso.mutateAsync({
-            cargo_id: cargoFinal,
+            cargo_id: cargoPiso,
             salario_base: salarioFicha,
             vigencia_inicio: new Date().toISOString().slice(0, 10),
             sindicato_patronal_id: patronalUnidade?.id ?? null,
@@ -507,8 +526,8 @@ export function FichaRevisaoCard({
               try {
                 await salvarDependente(colabId, {
                   nome: dep.nome, parentesco: dep.parentesco, data_nascimento: dep.data_nascimento,
-                  cpf: dep.cpf, deficiencia: false, conta_irrf: true, conta_salario_familia: dep.parentesco !== "conjuge",
-                  observacao: "Importado da Ficha de Registro.",
+                  cpf: dep.cpf, deficiencia: false, conta_irrf: dep.irrf, conta_salario_familia: dep.parentesco !== "conjuge",
+                  observacao: preadmissaoId ? "Informado pelo candidato na pré-admissão." : "Importado da Ficha de Registro.",
                 });
               } catch { falhas += 1; }
             }
@@ -722,7 +741,7 @@ export function FichaRevisaoCard({
                   </Button>
                 </div>
               )}
-              {!preadmissaoId && salarioFicha && (
+              {salarioFicha && (
                 <label className="flex items-start gap-2 text-[11px] text-muted-foreground">
                   <Switch checked={automatizarCargo} onCheckedChange={setAutomatizarCargo} className="mt-0.5 scale-75" />
                   <span>
@@ -919,11 +938,11 @@ export function FichaRevisaoCard({
                     )}
                   </div>
 
-                  {dependentesLidos.length > 0 && !preadmissaoId && (
+                  {dependentesLidos.length > 0 && (
                     <div className="space-y-1 sm:col-span-2 rounded-md border p-2">
                       <label className="flex items-center gap-2 text-xs font-medium">
                         <Switch checked={importarDependentes} onCheckedChange={setImportarDependentes} className="scale-75" />
-                        Cadastrar {dependentesLidos.length} dependente(s) lido(s) na ficha
+                        Cadastrar {dependentesLidos.length} dependente(s) {preadmissaoId ? "informado(s) pelo candidato" : "lido(s) na ficha"}
                       </label>
                       <ul className="text-[11px] text-muted-foreground">
                         {dependentesLidos.map((d) => (

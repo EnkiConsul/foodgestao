@@ -17,7 +17,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useDpCargos, useDpCargosDaUnidade, useDpUnidades } from "@/hooks/useDpCadastros";
+import { useDpCargos, useDpCargosDaUnidade, useDpUnidades, type DpCargo } from "@/hooks/useDpCadastros";
+import { UnidadeFormDialog } from "@/components/dp/UnidadeFormDialog";
+import { CargoFormDialog } from "@/components/dp/cargos/CargoFormDialog";
 import { REGIMES_ADMISSAO } from "@/lib/dp/regimesAdmissao";
 import { isValidCpf, maskCpf } from "@/lib/cpf";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -78,6 +80,9 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
   const [validade, setValidade] = useState<string | null>(null);
   /** Número normalizado pelo servidor (com DDI) — é o que vai para o wa.me. */
   const [numeroEnvio, setNumeroEnvio] = useState<string | null>(null);
+  const [novaUnidade, setNovaUnidade] = useState(false);
+  const [novoCargo, setNovoCargo] = useState(false);
+  const [cargosCriados, setCargosCriados] = useState<DpCargo[]>([]);
 
   /**
    * Promoção de folguista: o que já está cadastrado dela entra preenchido, e o
@@ -154,7 +159,11 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
     carregandoCargos,
     erro: erroCargos || erroVinculos,
   });
-  const cargosDaUnidade = listaCargos.cargos;
+  // Cargo criado agora pelo atalho entra na lista mesmo sem vínculo com a unidade.
+  const cargosDaUnidade = [
+    ...listaCargos.cargos,
+    ...cargosCriados.filter((c) => !listaCargos.cargos.some((x) => x.id === c.id)),
+  ];
 
   /** Registra a falha de leitura para conseguirmos rastrear a causa depois. */
   useEffect(() => {
@@ -332,7 +341,12 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label className="text-xs">Unidade prevista</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-xs">Unidade prevista</Label>
+                  <button type="button" className="text-[11px] text-primary underline-offset-2 hover:underline" onClick={() => setNovaUnidade(true)}>
+                    + Nova Unidade
+                  </button>
+                </div>
                 <Select value={unidadeId} onValueChange={escolherUnidade}>
                   <SelectTrigger className="h-10" aria-label="Unidade prevista"><SelectValue placeholder="Escolher" /></SelectTrigger>
                   <SelectContent>
@@ -341,7 +355,12 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Cargo previsto</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-xs">Cargo previsto</Label>
+                  <button type="button" className="text-[11px] text-primary underline-offset-2 hover:underline disabled:opacity-50" disabled={!unidadeId} onClick={() => setNovoCargo(true)}>
+                    + Novo Cargo
+                  </button>
+                </div>
                 <Select value={cargoId} onValueChange={setCargoId} disabled={!unidadeId}>
                   <SelectTrigger className="h-10" aria-label="Cargo previsto">
                     <SelectValue placeholder={unidadeId ? "Escolher" : "Escolha a unidade primeiro"} />
@@ -421,6 +440,17 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
           )}
         </DialogFooter>
       </DialogContent>
+      <UnidadeFormDialog
+        open={novaUnidade}
+        onOpenChange={setNovaUnidade}
+        onSaved={(u) => { setUnidadeId(u.id); setCargoId(""); }}
+      />
+      <CargoFormDialog
+        open={novoCargo}
+        onOpenChange={setNovoCargo}
+        cargo={null}
+        onSaved={(c) => { setCargosCriados((l) => [...l, c]); setCargoId(c.id); }}
+      />
     </Dialog>
   );
 }
