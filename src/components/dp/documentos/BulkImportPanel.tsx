@@ -26,7 +26,6 @@ import { DpFilterCard } from "@/components/dp/DpPage";
 import { cn } from "@/lib/utils";
 import { BulkReviewDialog } from "./BulkReviewDialog";
 import { BulkReviewInline } from "./BulkReviewInline";
-import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
 import { DP_DOC_TIPOS_IMPORTAVEIS, docTipoGrupo, docTipoLabel } from "@/lib/dp/documentoTipos";
 import { competenciaPredominante } from "@/lib/dp/bulk-coverage";
 import { notifyError } from "@/lib/notifyError";
