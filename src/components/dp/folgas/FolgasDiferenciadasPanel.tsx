@@ -116,7 +116,7 @@ export function FolgasDiferenciadasPanel({ unidadeId, semanasHomens, semanasMulh
   }, [alvoId, afetados, colabs, regrasCargo]);
 
   const diasValidos = !diasProprios || dias.length > 0;
-  const podeSalvar = !!alvoId && !salvando && !comparativo.abaixoLei && diasValidos && cienciaIsonomiaValida(ciente, justificativa);
+  const podeSalvar = !!alvoId && !salvando && diasValidos && cienciaIsonomiaValida(ciente, justificativa);
 
   const recarregar = () => {
     void qc.invalidateQueries({ queryKey: ["dp_folga_domingo_cargos"] });
@@ -243,12 +243,16 @@ export function FolgasDiferenciadasPanel({ unidadeId, semanasHomens, semanasMulh
           <div className="space-y-1 rounded-md bg-muted/50 p-2 text-xs">
             <p>Regra da unidade — Homens: {fmtSemanas(semanasHomens)} · Mulheres: {fmtSemanas(semanasMulheres)}</p>
             <p className="font-medium">Folga diferenciada: {comparativo.texto}</p>
-            {comparativo.abaixoLei ? (
-              <Badge variant="destructive">Abaixo do mínimo legal</Badge>
-            ) : comparativo.maisFavoravel ? (
+            {comparativo.maisFavoravel ? (
               <Badge variant="secondary">Igual ou mais favorável que a regra da unidade</Badge>
             ) : (
-              <Badge variant="outline">Menos folgas que a regra da unidade (dentro da lei)</Badge>
+              <Badge variant="outline">Menos folgas que a regra da unidade</Badge>
+            )}
+            {comparativo.abaixoLei && (
+              <p className="text-muted-foreground">
+                Abaixo da referência da CLT (homens 1 a cada 3 semanas; mulheres 1 a cada 2). Válido se previsto na
+                convenção ou acordo coletivo da unidade — confirme na justificativa.
+              </p>
             )}
           </div>
           {isonomia && (
