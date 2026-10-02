@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
 
 export type MeuVinculoPortal = {
   colaboradorId: string;
@@ -9,13 +10,12 @@ export type MeuVinculoPortal = {
   unidadeId: string | null;
   unidadeNome: string | null;
   regime: string | null;
+  formaPagamento: string | null;
   /** A unidade registra ponto (relógio/marcação)? */
   unidadeUsaPonto: boolean;
   /** Pode ser convocado (intermitente / folguista). */
   podeSerConvocado: boolean;
 };
-
-const REGIMES_CONVOCAVEIS = ["intermitente", "freelancer"];
 
 /**
  * Dados do vínculo do próprio colaborador usados pelo portal para decidir
@@ -43,8 +43,9 @@ export function useMeuVinculoPortal() {
         unidadeId: row.unidade_id ?? null,
         unidadeNome: row.unidade_nome ?? null,
         regime,
+        formaPagamento: row.forma_pagamento ?? null,
         unidadeUsaPonto: row.unidade_usa_ponto ?? false,
-        podeSerConvocado: !!regime && REGIMES_CONVOCAVEIS.includes(regime),
+        podeSerConvocado: pessoaConvocavel({ regime, forma_pagamento: row.forma_pagamento }),
       };
     },
   });

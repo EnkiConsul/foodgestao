@@ -50,7 +50,7 @@ import {
   coberturaDoDia,
   janelaMinutos,
   minimoDoCargoNaData,
-  regimeConvocavel,
+  pessoaConvocavel,
   viraNoDiaSeguinte,
 } from "@/lib/dp/convocacoes-planejamento";
 import { dataDoErroDePublicacao, textoDoErroDePublicacao } from "@/lib/dp/convocacoes-motivos";
@@ -339,7 +339,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     () =>
       (colaboradores.data ?? []).filter(
         (c: any) =>
-          regimeConvocavel(c.regime) &&
+          pessoaConvocavel(c) &&
           c.ativo !== false &&
           // Desligado antes da primeira data planejada não entra na lista.
           !(c.data_desligamento && c.data_desligamento < (menorDataPlanejada ?? "9999-12-31")) &&

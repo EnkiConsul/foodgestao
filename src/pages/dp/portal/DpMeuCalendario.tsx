@@ -77,7 +77,7 @@ import { CalendarioMobileLista } from "@/components/dp/CalendarioMobileLista";
 import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { MinhaDisponibilidadeCard } from "@/components/dp/MinhaDisponibilidadeCard";
-import { regimeConvocavel } from "@/lib/dp/convocacoes-planejamento";
+import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
 import { notifyError } from "@/lib/notifyError";
 import { negarRegra } from "@/lib/dp/regraAviso";
 
@@ -171,7 +171,7 @@ export default function DpMeuCalendario() {
       if (!data) return null;
       const { data: c } = await supabase
         .from("dp_colaboradores")
-        .select("id, company_id, nome, sexo, regime, cargo_id, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, unidade_id, vinculo_label")
+        .select("id, company_id, nome, sexo, regime, forma_pagamento, cargo_id, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, unidade_id, vinculo_label")
         .eq("id", data)
         .single();
       return c;
@@ -179,7 +179,7 @@ export default function DpMeuCalendario() {
   });
 
   /** Intermitente/Freelancer usam a agenda de disponibilidade. */
-  const convocavel = regimeConvocavel(meRef.data?.regime ?? null);
+  const convocavel = pessoaConvocavel(meRef.data ?? {});
 
 
 

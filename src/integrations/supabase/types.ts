@@ -17223,6 +17223,7 @@ export type Database = {
           ativo: boolean
           colaborador_id: string
           company_id: string
+          forma_pagamento: string
           nome: string
           regime: string
           unidade_id: string
