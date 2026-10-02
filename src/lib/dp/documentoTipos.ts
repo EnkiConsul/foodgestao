@@ -56,6 +56,7 @@ export type DpDocTipo =
   | "contrato"
   | "ficha_registro"
   | "termos"
+  | "termo_autorizacao"
   | "outros_admissao"
   | "aviso_previo"
   | "desligamento"
@@ -265,6 +266,21 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
   },
 
   {
+    value: "termo_autorizacao",
+    label: "Termo de Autorização",
+    grupo: "admissao",
+    importavel: true,
+    exigeAceite: false,
+    keywords: [
+      "termo de autorizacao",
+      "autorizacao de pagamento",
+      "autorizacao a terceiro",
+      "autorizacao de desconto",
+      "autorizacao de imagem",
+    ],
+    badgeClass: "border-indigo-300 text-indigo-700",
+  },
+  {
     value: "aso_admissional",
     label: "ASO Admissional",
     grupo: "admissao",
@@ -473,6 +489,7 @@ export function detectarTipoDocumento(texto: string | null | undefined): DpDocTi
     "ponto",
     "acerto_rescisorio",
     "aviso_previo",
+    "termo_autorizacao",
     "aso_admissional",
     "aso_demissional",
     "desligamento",

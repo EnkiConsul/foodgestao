@@ -16,6 +16,8 @@ export type LeituraComprovante = {
   valorCents: number | null;
   operacao: string | null;
   instituicao: string | null;
+  /** Nome de quem recebeu o pagamento, quando legível. */
+  favorecido: string | null;
   /** De onde veio a sugestão da data. */
   origem: "ia" | "arquivo" | "nome" | null;
   /** Resposta estruturada do servidor, guardada junto com o comprovante. */
@@ -27,6 +29,7 @@ const VAZIO: LeituraComprovante = {
   valorCents: null,
   operacao: null,
   instituicao: null,
+  favorecido: null,
   origem: null,
   bruto: null,
 };
@@ -63,16 +66,18 @@ export async function lerComprovante(file: File): Promise<LeituraComprovante> {
           valor_cents?: number | null;
           operacao?: string | null;
           instituicao?: string | null;
+          favorecido_nome?: string | null;
         }
         | null;
       if (!error && corpo?.lido) {
         const pagoEm = corpo.pago_em && corpo.pago_em <= hoje ? corpo.pago_em : null;
-        if (pagoEm || corpo.valor_cents) {
+        if (pagoEm || corpo.valor_cents || corpo.favorecido_nome) {
           return {
             pagoEm,
             valorCents: corpo.valor_cents ?? null,
             operacao: corpo.operacao ?? null,
             instituicao: corpo.instituicao ?? null,
+            favorecido: corpo.favorecido_nome ?? null,
             origem: pagoEm ? "ia" : null,
             bruto: corpo,
           };
