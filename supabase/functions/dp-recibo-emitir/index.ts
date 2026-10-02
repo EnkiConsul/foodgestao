@@ -85,10 +85,6 @@ async function permitido(token: string, companyId: string, nivel: string): Promi
   return !error && data === true;
 }
 
-async function colaboradorDesligado(admin: ReturnType<typeof serviceClient>, id: string): Promise<boolean> {
-  const { data } = await admin.from("dp_colaboradores").select("ativo").eq("id", id).maybeSingle();
-  return !!data && data.ativo === false;
-}
 
 async function novoLink(admin: ReturnType<typeof serviceClient>, reciboId: string, req: Request) {
   const { data: recibo } = await admin.from("dp_recibos")
