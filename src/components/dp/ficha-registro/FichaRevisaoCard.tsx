@@ -30,6 +30,8 @@ import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
 import { CargoFormDialog } from "@/components/dp/cargos/CargoFormDialog";
 import { UnidadeFormDialog } from "@/components/dp/UnidadeFormDialog";
 import { SetorFormDialog } from "@/components/dp/setores/SetorFormDialog";
+import { TurnoForm } from "@/components/dp/TurnoForm";
+import { TURNO_FORM_DEFAULT, useDpTurnos } from "@/hooks/useDpTurnos";
 import { FichaComparacaoDialog } from "./FichaComparacaoDialog";
 import { FichaHistoricoLido } from "./FichaHistoricoLido";
 import {
@@ -217,6 +219,8 @@ export function FichaRevisaoCard({
   const turnoSugerido = useMemo(() => matchTurno(jornada, turnos, unidadeId), [jornada, turnos, unidadeId]);
   const [turnoId, setTurnoId] = useState<string | null>(null);
   const turnoEscolhido = turnoId ?? turnoSugerido.turno_id;
+  const [turnoDialog, setTurnoDialog] = useState(false);
+  const { criar: criarTurno } = useDpTurnos();
 
   /** Sugestões lidas da ficha: o gestor só confere. Escolha manual prevalece. */
   const regimeInferido = useMemo(() => inferirRegime(dados), [dados]);
@@ -1110,7 +1114,12 @@ export function FichaRevisaoCard({
 
             {!aplicado && usarJornada && (
               <div className="mt-3 space-y-1">
-                <Label className="text-xs">Turno correspondente</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-xs">Turno correspondente</Label>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-[11px]" onClick={() => setTurnoDialog(true)}>
+                    <Plus className="mr-1 h-3 w-3" /> Novo Turno
+                  </Button>
+                </div>
                 <Select
                   value={turnoEscolhido ?? "__none"}
                   onValueChange={(v) => setTurnoId(v === "__none" ? null : v)}
@@ -1368,6 +1377,33 @@ export function FichaRevisaoCard({
             onSaved={(st) => setSetorEscolhido(st.id)}
           />
         )}
+
+        <TurnoForm
+          open={turnoDialog}
+          onOpenChange={setTurnoDialog}
+          initial={{
+            ...TURNO_FORM_DEFAULT,
+            unidade_id: unidadeId ?? null,
+            entrada: turnoSugerido.entrada ?? TURNO_FORM_DEFAULT.entrada,
+            saida: turnoSugerido.saida ?? TURNO_FORM_DEFAULT.saida,
+          }}
+          unidades={unidades.map((u) => ({ id: u.id, nome: u.nome }))}
+          saving={criarTurno.isPending}
+          titulo="Novo Turno"
+          onSubmit={({ form, ciencia }) =>
+            criarTurno.mutate(
+              { form, ciencia },
+              {
+                onSuccess: (t) => {
+                  setTurnoId(t.id);
+                  setTurnoDialog(false);
+                  toast.success("Turno cadastrado e escolhido na ficha.");
+                },
+                onError: (e) => notifyError(e as Error, { surface: "Pessoas 360°", action: "cadastrar o turno da ficha" }),
+              },
+            )
+          }
+        />
 
         {comparacao && item.colaborador_existente_id && (
           <FichaComparacaoDialog
