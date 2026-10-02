@@ -115,7 +115,6 @@ export default function DpRecibos() {
   }, [colab, natureza]);
   useEffect(() => {
     if (avulso && canal === "portal") setCanal("whatsapp");
-    if (colab && colab.ativo !== false && canal === "whatsapp") setCanal("portal");
     if (colab) setWhats(String(colab.whatsapp || colab.telefone || ""));
   }, [avulso, colab, canal]);
 
@@ -408,7 +407,7 @@ export default function DpRecibos() {
         <div className="space-y-2">
           <Label>Como Vai Assinar</Label>
           <RadioGroup value={canal} onValueChange={(v) => setCanal(v as CanalAssinatura)} className="grid gap-2 sm:grid-cols-3">
-            {CANAIS_ASSINATURA.filter((c) => avulso ? c.value !== "portal" : (colab?.ativo === false || c.value !== "whatsapp")).map((c) => (
+            {CANAIS_ASSINATURA.filter((c) => !avulso || c.value !== "portal").map((c) => (
               <label key={c.value} className="flex items-start gap-2 rounded-md border p-3 text-sm cursor-pointer">
                 <RadioGroupItem value={c.value} className="mt-0.5" />
                 <span><span className="font-medium">{c.label}</span><span className="block text-xs text-muted-foreground">{c.ajuda}</span></span>

@@ -45,12 +45,9 @@ Deno.serve(async (req) => {
 
     const { data: row } = await admin.from("dp_recibos").select("*").eq("link_token_hash", hash).maybeSingle();
     if (!row || row.cancelado_em) return json(404, { error: "Este link não é mais válido. Peça um novo link a quem enviou." });
-    let colabAtivo = false;
-    if (row.colaborador_id) {
-      const { data: c } = await admin.from("dp_colaboradores").select("ativo").eq("id", row.colaborador_id).maybeSingle();
-      colabAtivo = !c || c.ativo !== false;
-    }
-    if (colabAtivo || row.canal_assinatura !== "whatsapp") {
+    // Link vale para qualquer beneficiário (cadastrado ou não), desde que o
+    // recibo tenha sido emitido para assinatura por link; o CPF é confirmado.
+    if (row.canal_assinatura !== "whatsapp") {
       return json(404, { error: "Este link não é mais válido. Peça um novo link a quem enviou." });
     }
     const expirado = !row.assinado_em && row.link_expira_em && new Date(row.link_expira_em) < new Date();
