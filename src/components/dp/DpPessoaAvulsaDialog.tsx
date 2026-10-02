@@ -388,29 +388,16 @@ export function DpPessoaAvulsaDialog({
     );
     if (!parsed) return;
 
-    // Quem não é colaborador cadastrado fica salvo no banco de apoio para reuso.
-    let apoioId = candidato.pessoa_apoio_id ?? null;
-    if (!manual) {
-      try {
-        apoioId = await salvarApoio.mutateAsync({
-          id: apoioId ?? undefined,
-          nome: candidato.nome!,
-          telefone: candidato.telefone ?? null,
-          tipo: form.tipo === "teste" ? "teste" : "folguista",
-          cargo_id: form.cargo_id || null,
-          unidade_id: form.unidade_id || null,
-          setor_id: form.setor_id || null,
-          cpf: null,
-          genero: null,
-          data_nascimento: null,
-          observacao: null,
-          colaborador_id: null,
-        });
-      } catch {
-        apoioId = candidato.pessoa_apoio_id ?? null;
-      }
+    // Folguista/teste novo só entra pelo formulário oficial completo
+    // (PessoaApoioFormDialog). Aqui a pessoa já precisa existir no banco de
+    // apoio — exceto em edição de registros antigos salvos só com nome.
+    if (!manual && !candidato.pessoa_apoio_id && !registro) {
+      toast.error("Cadastre a pessoa primeiro", {
+        description: "Use o formulário completo de folguista/teste para cadastrar a pessoa antes de adicioná-la ao dia.",
+      });
+      return;
     }
-    onSalvar({ ...candidato, pessoa_apoio_id: apoioId, id: registro?.id });
+    onSalvar({ ...candidato, pessoa_apoio_id: candidato.pessoa_apoio_id ?? null, id: registro?.id });
   };
 
 
