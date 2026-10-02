@@ -12342,6 +12342,9 @@ export type Database = {
           nome: string
           numero: string | null
           possui_relogio_ponto: boolean
+          relogio_ponto_dispensa_em: string | null
+          relogio_ponto_dispensa_justificativa: string | null
+          relogio_ponto_dispensa_por: string | null
           telefone: string | null
           tem_adiantamento: boolean
           timezone: string | null
@@ -12364,6 +12367,9 @@ export type Database = {
           nome: string
           numero?: string | null
           possui_relogio_ponto?: boolean
+          relogio_ponto_dispensa_em?: string | null
+          relogio_ponto_dispensa_justificativa?: string | null
+          relogio_ponto_dispensa_por?: string | null
           telefone?: string | null
           tem_adiantamento?: boolean
           timezone?: string | null
@@ -12386,6 +12392,9 @@ export type Database = {
           nome?: string
           numero?: string | null
           possui_relogio_ponto?: boolean
+          relogio_ponto_dispensa_em?: string | null
+          relogio_ponto_dispensa_justificativa?: string | null
+          relogio_ponto_dispensa_por?: string | null
           telefone?: string | null
           tem_adiantamento?: boolean
           timezone?: string | null
@@ -17867,6 +17876,10 @@ export type Database = {
         }[]
       }
       dp_txt_norm: { Args: { p: string }; Returns: string }
+      dp_unidade_definir_ponto: {
+        Args: { _justificativa?: string; _possui: boolean; _unidade_id: string }
+        Returns: Json
+      }
       dp_unidade_seed_feriados_nacionais: {
         Args: { _company_id: string; _unidade_id: string }
         Returns: number
