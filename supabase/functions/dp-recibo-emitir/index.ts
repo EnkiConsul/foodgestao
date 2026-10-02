@@ -96,7 +96,6 @@ async function novoLink(admin: ReturnType<typeof serviceClient>, reciboId: strin
     .eq("id", reciboId).maybeSingle();
   if (!recibo || recibo.cancelado_em || recibo.assinado_em) throw new Error("RECIBO_INDISPONIVEL");
   if (recibo.canal_assinatura !== "whatsapp") throw new Error("RECIBO_CANAL_INVALIDO");
-  if (recibo.colaborador_id && !(await colaboradorDesligado(admin, recibo.colaborador_id))) throw new Error("RECIBO_CANAL_INVALIDO");
   const token = gerarToken();
   const expira = new Date(Date.now() + VALIDADE_LINK_DIAS * 86400_000).toISOString();
   const { error } = await admin.from("dp_recibos").update({
