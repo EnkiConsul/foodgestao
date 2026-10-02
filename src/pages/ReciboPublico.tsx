@@ -22,6 +22,7 @@ type Resumo = {
   valor_cents: number;
   modalidade: string;
   assinado_em: string | null;
+  liberado?: boolean;
 };
 
 const dataBR = (v?: string | null) => (v ? v.slice(0, 10).split("-").reverse().join("/") : "—");
@@ -105,6 +106,10 @@ export default function ReciboPublico() {
                 <div className="flex items-center gap-2 rounded-md bg-primary/10 p-3 text-sm">
                   <CheckCircle2 className="h-5 w-5 text-primary" />
                   Recibo assinado em {new Date(resumo.assinado_em).toLocaleString("pt-BR")}.
+                </div>
+              ) : resumo.liberado === false ? (
+                <div className="rounded-md border bg-muted/40 p-3 text-sm">
+                  Disponível para assinatura a partir de {dataBR(resumo.pago_em)}, data do pagamento. Você já pode conferir o recibo acima.
                 </div>
               ) : (
                 <div className="space-y-3 border-t pt-4">

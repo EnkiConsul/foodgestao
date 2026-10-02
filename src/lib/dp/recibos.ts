@@ -77,7 +77,22 @@ export type EmitirReciboEntrada = {
   valor_bancario_cents?: number | null;
   valor_especie_cents?: number | null;
   canal_assinatura: CanalAssinatura;
+  substitui_recibo_id?: string | null;
 };
+
+export type EditarReciboEntrada = Pick<EmitirReciboEntrada, "descricao" | "competencia" | "pago_em" | "valor_cents" | "modalidade" | "valor_bancario_cents" | "valor_especie_cents">;
+
+export async function editarRecibo(reciboId: string, dados: EditarReciboEntrada): Promise<void> {
+  const { error } = await supabase.functions.invoke("dp-recibo-emitir", { body: { acao: "editar", recibo_id: reciboId, ...dados } });
+  if (error) throw await erroDe(error, "Não foi possível salvar o recibo.");
+}
+
+export const MAX_DIAS_PAGAMENTO_FUTURO = 60;
+export const hojeBRT = () => new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
+export const limitePagamentoFuturo = () =>
+  new Date(Date.now() - 3 * 3600_000 + MAX_DIAS_PAGAMENTO_FUTURO * 86400_000).toISOString().slice(0, 10);
+/** Assinatura digital só a partir do dia do pagamento. */
+export const assinaturaLiberada = (pagoEm: string, hoje = hojeBRT()) => pagoEm.slice(0, 10) <= hoje;
 
 export type EmitirReciboSaida = {
   recibo_id: string;
@@ -111,10 +126,14 @@ export async function reciboPdfUrl(reciboId: string): Promise<string> {
   return URL.createObjectURL(blob);
 }
 
-export function statusRecibo(r: { cancelado_em?: string | null; assinado_em?: string | null; canal_assinatura: string; link_expira_em?: string | null }): { label: string; tom: "ok" | "pendente" | "neutro" } {
+export function statusRecibo(r: { cancelado_em?: string | null; assinado_em?: string | null; substituido_em?: string | null; canal_assinatura: string; link_expira_em?: string | null; pago_em?: string | null }): { label: string; tom: "ok" | "pendente" | "neutro" } {
   if (r.cancelado_em) return { label: "Cancelado", tom: "neutro" };
+  if (r.substituido_em) return { label: "Substituído", tom: "neutro" };
   if (r.assinado_em) return { label: "Assinado", tom: "ok" };
   if (r.canal_assinatura === "fisico") return { label: "Assinar à Mão", tom: "pendente" };
+  if (r.pago_em && !assinaturaLiberada(r.pago_em)) {
+    return { label: `Libera em ${r.pago_em.slice(0, 10).split("-").reverse().join("/")}`, tom: "pendente" };
+  }
   if (r.canal_assinatura === "portal") return { label: "Enviado ao Portal", tom: "pendente" };
   if (r.canal_assinatura === "whatsapp" && r.link_expira_em && new Date(r.link_expira_em) < new Date()) {
     return { label: "Link Expirado", tom: "pendente" };

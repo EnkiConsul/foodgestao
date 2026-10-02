@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Download, Eye, EyeOff, FileCheck2, Link2, Loader2, MessageCircle, Receipt, XCircle } from "lucide-react";
+import { Copy, Download, Eye, Pencil, EyeOff, FileCheck2, Link2, Loader2, MessageCircle, Receipt, XCircle } from "lucide-react";
 import { PdfCanvasViewer } from "@/components/dp/PdfCanvasViewer";
 import { Button } from "@/components/ui/button";
 import { DpDialogShell } from "@/components/dp/DpDialogShell";
@@ -30,6 +30,8 @@ export type ReciboDetalhado = {
   assinado_ip: string | null;
   assinado_user_agent: string | null;
   cancelado_em: string | null;
+  substituido_em?: string | null;
+  substitui_recibo_id?: string | null;
   created_at: string;
 };
 
@@ -52,6 +54,8 @@ export function ReciboDetalhesDialog({
   onCopiarLink,
   onCertificado,
   onCancelar,
+  onEditar,
+  onNovaVia,
 }: {
   recibo: ReciboDetalhado | null;
   onOpenChange: (open: boolean) => void;
@@ -60,7 +64,10 @@ export function ReciboDetalhesDialog({
   onCopiarLink: (recibo: ReciboDetalhado) => void;
   onCertificado: (recibo: ReciboDetalhado) => void;
   onCancelar: (recibo: ReciboDetalhado) => void;
+  onEditar: (recibo: ReciboDetalhado) => void;
+  onNovaVia: (recibo: ReciboDetalhado) => void;
 }) {
+  const [avisoAssinado, setAvisoAssinado] = useState(false);
   const [verPdf, setVerPdf] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [carregandoPdf, setCarregandoPdf] = useState(false);
@@ -73,6 +80,7 @@ export function ReciboDetalhesDialog({
     setVerPdf(false);
     setErroPdf(null);
     setPdfUrl((u) => { if (u) URL.revokeObjectURL(u); return null; });
+    setAvisoAssinado(false);
   }, [reciboId, assinadoEm]);
 
   useEffect(() => {
@@ -144,8 +152,22 @@ export function ReciboDetalhesDialog({
           {avulso && aberto && recibo.canal_assinatura === "whatsapp" && <Button onClick={() => onWhatsApp(recibo)}><MessageCircle className="mr-1.5 h-4 w-4" />Enviar pelo WhatsApp</Button>}
           {avulso && aberto && recibo.canal_assinatura === "whatsapp" && <Button variant="outline" onClick={() => onCopiarLink(recibo)}><Link2 className="mr-1.5 h-4 w-4" />Copiar Link</Button>}
           {!avulso && recibo.assinado_em && recibo.documento_id && <Button variant="outline" onClick={() => onCertificado(recibo)}><FileCheck2 className="mr-1.5 h-4 w-4" />Abrir Certificado</Button>}
+          {aberto && <Button variant="outline" onClick={() => onEditar(recibo)}><Pencil className="mr-1.5 h-4 w-4" />Editar Recibo</Button>}
+          {recibo.assinado_em && !recibo.cancelado_em && !recibo.substituido_em && <Button variant="outline" onClick={() => setAvisoAssinado(true)}><Pencil className="mr-1.5 h-4 w-4" />Editar Recibo</Button>}
           {aberto && <ConfirmarAcaoDialog titulo="Cancelar Recibo" descricao="O recibo será cancelado, o documento vinculado será arquivado e a pendência poderá ser reaberta." confirmar="Cancelar Recibo" onConfirm={() => onCancelar(recibo)}><Button variant="outline" className="text-destructive"><XCircle className="mr-1.5 h-4 w-4" />Cancelar</Button></ConfirmarAcaoDialog>}
         </div>
+        {avisoAssinado && (
+          <div role="alert" className="rounded-md border border-primary/40 bg-primary/5 p-4 space-y-3 text-sm">
+            <p>Este recibo já foi assinado em {dataBR(recibo.assinado_em, true)} e não pode ter o conteúdo alterado, para manter a validade jurídica do documento.</p>
+            <p>Você pode emitir uma nova via corrigida a partir dele: os dados vêm preenchidos e o original fica marcado como substituído no histórico.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => onNovaVia(recibo)}><Copy className="mr-1.5 h-4 w-4" />Emitir Nova Via Corrigida</Button>
+              <Button variant="outline" onClick={() => setAvisoAssinado(false)}>Voltar</Button>
+            </div>
+          </div>
+        )}
+        {recibo.substituido_em && <p className="text-sm text-muted-foreground">Substituído por nova via corrigida em {dataBR(recibo.substituido_em, true)}.</p>}
+        {recibo.substitui_recibo_id && <p className="text-sm text-muted-foreground">Esta é uma nova via corrigida de um recibo anterior.</p>}
       </div>
     </DpDialogShell>
   );

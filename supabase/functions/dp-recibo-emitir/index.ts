@@ -8,6 +8,7 @@
  *  • link     — gera um novo link de assinatura (invalida o anterior).
  *  • pdf      — devolve o PDF atual do recibo.
  *  • cancelar — cancela recibo ainda não assinado.
+ *  • editar   — altera data/valores de recibo ainda não assinado e regera o PDF.
  *
  * Permissão sempre pela matriz `dp.documentos` no contexto de quem pediu.
  * Fail-closed: qualquer dúvida de permissão ou dado nega a operação.
@@ -49,12 +50,43 @@ const Emitir = z.object({
   valor_bancario_cents: z.number().int().nonnegative().nullable().optional(),
   valor_especie_cents: z.number().int().nonnegative().nullable().optional(),
   canal_assinatura: z.enum(["portal", "whatsapp", "fisico"]),
+  substitui_recibo_id: z.string().uuid().nullable().optional(),
+});
+const Editar = z.object({
+  acao: z.literal("editar"),
+  recibo_id: z.string().uuid(),
+  descricao: z.string().trim().max(500).optional(),
+  competencia: z.string().regex(/^\d{4}-\d{2}$/),
+  pago_em: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  valor_cents: z.number().int().positive().max(100_000_000),
+  modalidade: z.enum(["bancario", "especie", "misto"]),
+  valor_bancario_cents: z.number().int().nonnegative().nullable().optional(),
+  valor_especie_cents: z.number().int().nonnegative().nullable().optional(),
 });
 const PorId = z.object({
   acao: z.enum(["link", "pdf", "cancelar"]),
   recibo_id: z.string().uuid(),
 });
-const Body = z.union([Emitir, PorId]);
+const Body = z.union([Emitir, Editar, PorId]);
+const MAX_DIAS_FUTURO = 60;
+
+/** Data de pagamento: passada livre, futura até 60 dias (BRT). */
+function dataPagamentoInvalida(pagoEm: string): string | null {
+  const limite = new Date(Date.now() - 3 * 3600_000 + MAX_DIAS_FUTURO * 86400_000).toISOString().slice(0, 10);
+  return pagoEm > limite ? `A data do pagamento pode ser no máximo ${MAX_DIAS_FUTURO} dias à frente.` : null;
+}
+function partes(modalidade: string, total: number, banco?: number | null, especie?: number | null) {
+  const b = modalidade === "especie" ? 0 : Number(banco ?? 0);
+  const e = modalidade === "bancario" ? 0 : Number(especie ?? 0);
+  if (modalidade === "misto") {
+    if (b <= 0 || e <= 0) return { erro: "No pagamento misto informe a parte em conta e a parte em dinheiro." };
+    if (b + e !== total) return { erro: "A soma das partes precisa ser igual ao valor total." };
+  }
+  return {
+    valor_bancario_cents: modalidade === "especie" ? null : (modalidade === "bancario" ? total : b),
+    valor_especie_cents: modalidade === "bancario" ? null : (modalidade === "especie" ? total : e),
+  };
+}
 
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -149,7 +181,44 @@ Deno.serve(async (req) => {
         return erro(403, "Sem permissão para alterar recibos.");
       }
       if (row.cancelado_em) return erro(409, "Este recibo foi cancelado.");
-      if (row.assinado_em) return erro(409, "Este recibo já foi assinado.");
+      if (row.assinado_em) {
+        return erro(409, b.acao === "editar"
+          ? "Este recibo já foi assinado e não pode ser alterado. Emita uma nova via corrigida a partir dele."
+          : "Este recibo já foi assinado.");
+      }
+      if (b.acao === "editar") {
+        const invalida = dataPagamentoInvalida(b.pago_em);
+        if (invalida) return erro(400, invalida);
+        const pt = partes(b.modalidade, b.valor_cents, b.valor_bancario_cents, b.valor_especie_cents);
+        if ("erro" in pt) return erro(400, pt.erro!);
+        const { data: nova, error: upErr } = await admin.from("dp_recibos").update({
+          descricao: b.descricao || null,
+          competencia: `${b.competencia}-01`,
+          pago_em: b.pago_em,
+          valor_cents: b.valor_cents,
+          modalidade: b.modalidade,
+          ...pt,
+          updated_at: new Date().toISOString(),
+        }).eq("id", row.id).is("assinado_em", null).select("*").single();
+        if (upErr || !nova) throw upErr ?? new Error("update dp_recibos");
+        const { data: empresa } = await admin.from("companies").select("name, trade_name, cnpj")
+          .eq("id", companyId).maybeSingle();
+        const bytes = await montarReciboPdf(reciboDaLinha(nova, empresa));
+        if (nova.file_path) {
+          const envio = await admin.storage.from(BUCKET).upload(nova.file_path, bytes, { contentType: "application/pdf", upsert: true });
+          if (envio.error) throw envio.error;
+        }
+        if (nova.documento_id) {
+          await admin.from("dp_documentos").update({
+            arquivo_sha256: null,
+            file_size: bytes.byteLength,
+            referencia_data: `${b.competencia}-01`,
+            descricao: `Recibo emitido pelo sistema: ${centsParaBRL(b.valor_cents)}, pago em ${b.pago_em.split("-").reverse().join("/")}.`,
+            updated_at: new Date().toISOString(),
+          }).eq("id", nova.documento_id);
+        }
+        return json(200, { ok: true });
+      }
       if (b.acao === "cancelar") {
         const { error: cancelarErro } = await admin.rpc("dp_recibo_cancelar", {
           p_recibo_id: row.id,
@@ -170,14 +239,21 @@ Deno.serve(async (req) => {
       return erro(403, "Sem permissão para emitir recibos.");
     }
 
-    const bancario = b.modalidade === "especie" ? 0 : Number(b.valor_bancario_cents ?? 0);
-    const especie = b.modalidade === "bancario" ? 0 : Number(b.valor_especie_cents ?? 0);
-    if (b.modalidade === "misto") {
-      if (bancario <= 0 || especie <= 0) return erro(400, "No pagamento misto informe a parte em conta e a parte em dinheiro.");
-      if (bancario + especie !== b.valor_cents) return erro(400, "A soma das partes precisa ser igual ao valor total.");
+    const pt = partes(b.modalidade, b.valor_cents, b.valor_bancario_cents, b.valor_especie_cents);
+    if ("erro" in pt) return erro(400, pt.erro!);
+    const invalida = dataPagamentoInvalida(b.pago_em);
+    if (invalida) return erro(400, invalida);
+    if (b.natureza === "rescisao" && b.canal_assinatura !== "fisico") {
+      return erro(400, "Rescisão e quitação rescisória são assinadas só à mão, em duas vias.");
     }
-    const hoje = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
-    if (b.pago_em > hoje) return erro(400, "A data do pagamento não pode ser no futuro.");
+    let original: Record<string, unknown> | null = null;
+    if (b.substitui_recibo_id) {
+      const { data: o } = await admin.from("dp_recibos").select("id, company_id, assinado_em, cancelado_em, substituido_em")
+        .eq("id", b.substitui_recibo_id).maybeSingle();
+      if (!o || o.company_id !== b.company_id) return erro(403, "Recibo original não encontrado.");
+      if (!o.assinado_em || o.cancelado_em || o.substituido_em) return erro(409, "Só é possível substituir recibo assinado e ainda vigente.");
+      original = o;
+    }
 
     let nome = b.beneficiario_nome?.toUpperCase() ?? "";
     let cpf = (b.beneficiario_cpf ?? "").replace(/\D+/g, "");
@@ -215,9 +291,9 @@ Deno.serve(async (req) => {
       pago_em: b.pago_em,
       valor_cents: b.valor_cents,
       modalidade: b.modalidade,
-      valor_bancario_cents: b.modalidade === "especie" ? null : (b.modalidade === "bancario" ? b.valor_cents : bancario),
-      valor_especie_cents: b.modalidade === "bancario" ? null : (b.modalidade === "especie" ? b.valor_cents : especie),
+      ...pt,
       canal_assinatura: b.canal_assinatura,
+      substitui_recibo_id: original ? b.substitui_recibo_id : null,
       created_by: caller.id,
     }).select("*").single();
     if (insErr || !row) throw insErr ?? new Error("insert dp_recibos");
@@ -270,6 +346,13 @@ Deno.serve(async (req) => {
         await admin.from("dp_recibos").delete().eq("id", row.id);
         throw vinculoErro;
       }
+    }
+
+    if (original) {
+      await admin.from("dp_recibos").update({
+        substituido_em: new Date().toISOString(),
+        motivo_substituicao: "Substituído por nova via corrigida",
+      }).eq("id", original.id as string).is("substituido_em", null);
     }
 
     let link: { link: string; expira_em: string } | null = null;
