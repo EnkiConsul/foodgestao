@@ -207,6 +207,48 @@ export function FichaRevisaoCard({
   const [turnoId, setTurnoId] = useState<string | null>(null);
   const turnoEscolhido = turnoId ?? turnoSugerido.turno_id;
 
+  /** Sugestões lidas da ficha: o gestor só confere. Escolha manual prevalece. */
+  const regimeInferido = useMemo(() => inferirRegime(dados), [dados]);
+  const formaInferida = useMemo(() => inferirFormaPagamento(dados, jornada), [dados, jornada]);
+  useEffect(() => {
+    if (!regimeEscolhido && !regimePadrao && regimeInferido) setRegimeEscolhido(regimeInferido);
+  }, [regimeInferido, regimeEscolhido, regimePadrao]);
+  useEffect(() => {
+    if (!formaPagamento && formaInferida) setFormaPagamento(formaInferida);
+  }, [formaInferida, formaPagamento]);
+
+  /** Art. 74, § 2º da CLT: unidade com mais de 20 pessoas exige controle de jornada. */
+  const lotacao = useQuery({
+    queryKey: ["dp_unidade_lotacao", unidadeId],
+    enabled: !!unidadeId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("dp_colaboradores")
+        .select("id", { count: "exact", head: true })
+        .eq("unidade_id", unidadeId!)
+        .eq("ativo", true)
+        .is("deleted_at", null);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+  const pontoObrigatorio = (lotacao.data ?? 0) + (item.colaborador_existente_id ? 0 : 1) > LIMITE_PONTO_OBRIGATORIO;
+  const [justificativaPonto, setJustificativaPonto] = useState("");
+  useEffect(() => {
+    if (possuiFolhaPonto === null && pontoObrigatorio) setPossuiFolhaPonto(true);
+  }, [pontoObrigatorio, possuiFolhaPonto]);
+
+  const salarioFicha = useMemo(() => salarioDaFicha(dados), [dados]);
+  const dependentesLidos = useMemo(() => dependentesDaFicha(dados), [dados]);
+  const [importarDependentes, setImportarDependentes] = useState(true);
+  const [automatizarCargo, setAutomatizarCargo] = useState(true);
+  const upsertCargo = useUpsertDpCargo();
+  const upsertPiso = useUpsertDpCargoSalario();
+  const sindicatoUnidade = useSindicatoDoCargo(null, unidadeId);
+  const patronalUnidade = sindicatoUnidade.data?.patronal ?? null;
+  const [preparando, setPreparando] = useState(false);
+
   /** Corrige um dia do horário desta ficha, mantendo o resumo coerente. */
   const alterarDiaJornada = (dow: number, patch: Partial<JornadaDia>) =>
     setJornadaEditada((atual) => {
