@@ -17,6 +17,7 @@ import { callerClient, requireUser, serviceClient } from "../_shared/authz.ts";
 import { garantirHashDocumento } from "../_shared/doc-hash.ts";
 import { recordEdgeError } from "../_shared/error-log.ts";
 import { assinaturaValida } from "../_shared/assinatura-pdf.ts";
+import { TIPOS_DESLIGAMENTO_SEM_DIGITAL } from "../_shared/doc-tipos.ts";
 
 const BUCKET = "dp-documentos";
 const FUNCAO = "dp-documento-aceitar";
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
     const { data: doc } = await admin
       .from("dp_documentos")
       .select(
-        "id, company_id, colaborador_id, file_path, arquivo_sha256, exige_aceite, ciclo_status, arquivado_em, aprovacao_status",
+        "id, company_id, colaborador_id, tipo, file_path, arquivo_sha256, exige_aceite, ciclo_status, arquivado_em, aprovacao_status",
       )
       .eq("id", documentoId)
       .maybeSingle();
@@ -79,6 +80,10 @@ Deno.serve(async (req) => {
       (doc.aprovacao_status ?? "aprovado") !== "aprovado"
     ) {
       return erro(403, FRASES.documento_indisponivel.frase);
+    }
+    // Desligamento só com assinatura física (prova pericial).
+    if (TIPOS_DESLIGAMENTO_SEM_DIGITAL.has(String(doc.tipo))) {
+      return erro(409, "Documentos de desligamento são assinados somente à mão, na via impressa.");
     }
     if (doc.exige_aceite !== true) return erro(409, FRASES.documento_nao_exige_aceite.frase);
     if (!doc.file_path) return erro(409, FRASES.documento_sem_arquivo.frase);

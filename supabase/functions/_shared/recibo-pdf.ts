@@ -31,7 +31,7 @@ export const NATUREZA_TIPO_DOC: Record<Natureza, string> = {
   adiantamento: "adiantamento",
   diaria: "outros_pagamentos",
   teste_operacional: "outros_pagamentos",
-  rescisao: "trct",
+  rescisao: "acerto_rescisorio",
   outros: "outros_pagamentos",
 };
 
