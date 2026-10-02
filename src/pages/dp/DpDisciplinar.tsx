@@ -1,3 +1,4 @@
+import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { Helmet } from "react-helmet-async";
@@ -1171,6 +1172,7 @@ export default function DpDisciplinar() {
               </div>
             )}
             <DpFilePicker ref={viaRef} accept="application/pdf,image/*" file={viaArquivo} onFileChange={setViaArquivo} />
+            <AvisoViaFisica />
             <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-xs">
               <Checkbox checked={viaConfirmo} onCheckedChange={(v) => setViaConfirmo(v === true)} className="mt-0.5" />
               <span>{TEXTO_CONFIRMACAO}</span>
