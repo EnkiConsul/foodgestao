@@ -82,6 +82,12 @@ Deno.serve(async (req) => {
     }
     if (doc.exige_aceite !== true) return erro(409, FRASES.documento_nao_exige_aceite.frase);
     if (!doc.file_path) return erro(409, FRASES.documento_sem_arquivo.frase);
+    // Recibo: quitação só a partir da data do pagamento.
+    const { data: rec } = await admin.from("dp_recibos").select("pago_em").eq("documento_id", documentoId).maybeSingle();
+    const hojeBRT = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
+    if (rec?.pago_em && String(rec.pago_em).slice(0, 10) > hojeBRT) {
+      return erro(409, `Disponível para assinatura a partir de ${String(rec.pago_em).slice(0, 10).split("-").reverse().join("/")}.`);
+    }
 
     const { hash } = await garantirHashDocumento(admin, BUCKET, doc as never);
     if (!hash) return erro(409, FRASES.conteudo_nao_conferido.frase);

@@ -16,6 +16,7 @@ import { clientIp, ipRateLimited, isRateLimited, sha256Hex } from "../_shared/ra
 import { montarReciboPdf, NATUREZA_LABEL, reciboDaLinha, type Natureza } from "../_shared/recibo-pdf.ts";
 
 const FUNCAO = "dp-recibo-publico";
+const hojeBRT = () => new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
 const BUCKET = "dp-documentos";
 
 const Body = z.object({
@@ -69,6 +70,7 @@ Deno.serve(async (req) => {
         valor_cents: row.valor_cents,
         modalidade: row.modalidade,
         assinado_em: row.assinado_em,
+        liberado: String(row.pago_em).slice(0, 10) <= hojeBRT(),
       });
     }
 
@@ -82,6 +84,10 @@ Deno.serve(async (req) => {
 
     // ---------------- assinar ----------------
     if (row.assinado_em) return json(200, { assinado_em: row.assinado_em, ja_assinado: true });
+    // Quitação só a partir da data do pagamento (nunca antes do dinheiro).
+    if (String(row.pago_em).slice(0, 10) > hojeBRT()) {
+      return json(409, { error: `Disponível para assinatura a partir de ${String(row.pago_em).slice(0, 10).split("-").reverse().join("/")}.` });
+    }
     if (b.concordo !== true) return json(400, { error: "Marque que leu e concorda com o recibo." });
     const assinaturaImg = assinaturaValida(b.assinatura);
     if (!assinaturaImg) return json(400, { error: "Desenhe ou escolha a sua assinatura antes de confirmar." });
