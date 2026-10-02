@@ -19,7 +19,7 @@ O *Portal do Colaborador da {Nome da Empresa}* está no ar para acompanhar suas 
 ✅ Acompanhar Comunicados e Avisos da Empresa
 
 🔐 *Como fazer o seu primeiro acesso:*
-1. Acesse pelo navegador: *https://aveto360.com*
+1. Acesse pelo navegador: *https://www.aveto360.com/login*
 2. Digite o seu *CPF* (apenas números).
 3. No primeiro acesso, você receberá um código de segurança de 6 dígitos no seu WhatsApp cadastrado para criar sua senha exclusiva.
 

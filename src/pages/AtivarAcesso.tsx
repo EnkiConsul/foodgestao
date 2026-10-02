@@ -107,7 +107,7 @@ export default function AtivarAcesso() {
         return;
       }
       toast.success("Senha criada!", { description: "Entre com seu CPF e a senha que você acabou de escolher." });
-      navigate("/auth", { replace: true });
+      navigate("/login", { replace: true });
     } catch {
       setErro("Não foi possível concluir. Tente de novo ou peça um novo link.");
     } finally {
@@ -215,7 +215,7 @@ export default function AtivarAcesso() {
                 <Button
                   type="button"
                   className="min-h-11 w-full"
-                  onClick={() => navigate("/auth", { replace: true })}
+                  onClick={() => navigate("/login", { replace: true })}
                 >
                   Ir para o Login
                 </Button>

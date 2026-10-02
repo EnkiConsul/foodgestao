@@ -273,7 +273,7 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
       />
     );
   }
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/login" replace />;
   if (completed) return <Navigate to="/hub" replace />;
   if (portal.isPortalOnly) return <Navigate to={PORTAL_PATH} replace />;
   return <>{children}</>;

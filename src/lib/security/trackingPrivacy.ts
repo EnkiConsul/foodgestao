@@ -14,6 +14,7 @@
 export const SENSITIVE_PREFIXES = [
   "/auth",
   "/login",
+  "/login",
   "/dp/login",
   "/primeiro-acesso",
   "/ativar-acesso",

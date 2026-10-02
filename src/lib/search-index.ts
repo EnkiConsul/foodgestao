@@ -23,7 +23,7 @@ export const SEARCH_INDEX: SearchDoc[] = [
     section: "Início",
   },
   {
-    path: "/auth",
+    path: "/login",
     title: "Entrar ou criar conta",
     description: "Acesse sua conta Aveto 360 ou crie um cadastro gratuito.",
     keywords: ["login", "entrar", "cadastro", "criar conta", "acessar", "senha"],

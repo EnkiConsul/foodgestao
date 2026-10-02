@@ -443,7 +443,7 @@ export default function EsqueciSenha() {
               <p className="text-sm text-muted-foreground">
                 Sua senha foi atualizada. Faça login com suas novas credenciais.
               </p>
-              <Button className="w-full" onClick={() => navigate("/auth")}>
+              <Button className="w-full" onClick={() => navigate("/login")}>
                 Ir para o login
               </Button>
             </div>
@@ -451,7 +451,7 @@ export default function EsqueciSenha() {
         </CardContent>
 
         <CardFooter className="justify-center">
-          <Link to="/auth" className="text-xs text-muted-foreground hover:text-foreground">
+          <Link to="/login" className="text-xs text-muted-foreground hover:text-foreground">
             Voltar ao login
           </Link>
         </CardFooter>

@@ -42,7 +42,7 @@ export default function PrimeiroAcesso() {
       const { data } = await supabase.auth.getSession();
       if (!ativo) return;
       if (!data.session) {
-        navigate("/auth", { replace: true });
+        navigate("/login", { replace: true });
         return;
       }
       // Se a senha já foi trocada, esta tela não deve aparecer de novo.
