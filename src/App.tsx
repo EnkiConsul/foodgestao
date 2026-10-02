@@ -413,6 +413,8 @@ const AppRoutes = () => (
       <Routes>
 
       <Route path="/" element={<RootGate />} />
+      <Route path="/index" element={<Navigate to="/" replace />} />
+      <Route path="/index.html" element={<Navigate to="/" replace />} />
       <Route path="/login" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
       <Route path="/cadastro" element={<PublicOnlyRoute><Auth key="cadastro" /></PublicOnlyRoute>} />
       <Route path="/auth" element={<RedirectLogin />} />

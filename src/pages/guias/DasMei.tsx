@@ -191,7 +191,7 @@ export default function DasMei() {
               faturamento anual em tempo real. Teste grátis por 7 dias, sem cartão de crédito.
             </p>
             <Button asChild>
-              <Link to="/login">Começar grátis</Link>
+              <Link to="/cadastro">Começar grátis</Link>
             </Button>
           </div>
 
