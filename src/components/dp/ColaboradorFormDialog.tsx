@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { LIMITE_PONTO_OBRIGATORIO } from "@/lib/dp/ficha-registro/inferencia";
 import { AlertTriangle, ExternalLink, Info } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -1019,6 +1020,33 @@ export function ColaboradorFormDialog({
   const unidadeSelecionada = (unidades.data ?? []).find((u) => u.id === form.unidade_id) as any;
   const cargoSelecionado = (cargos.data ?? []).find((c) => c.id === form.cargo_id) as any;
 
+  // Art. 74, § 2º da CLT: acima de 20 pessoas na unidade o ponto é obrigatório.
+  const lotacaoUnidade = useQuery({
+    queryKey: ["dp_unidade_lotacao", form.unidade_id],
+    enabled: !!form.unidade_id,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("dp_colaboradores")
+        .select("id", { count: "exact", head: true })
+        .eq("unidade_id", form.unidade_id)
+        .eq("ativo", true)
+        .is("deleted_at", null);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+  const jaContadoNaUnidade = !!colaborador?.id && (colaborador as any)?.unidade_id === form.unidade_id;
+  const pontoObrigatorio =
+    !vinculoSemRegistro &&
+    (lotacaoUnidade.data ?? 0) + (jaContadoNaUnidade ? 0 : 1) > LIMITE_PONTO_OBRIGATORIO;
+  const [justificativaPonto, setJustificativaPonto] = useState("");
+  useEffect(() => {
+    setJustificativaPonto(String((colaborador as any)?.folha_ponto_dispensa_justificativa ?? ""));
+  }, [colaborador?.id]);
+  const dispensaPontoPendente =
+    pontoObrigatorio && !form.possui_folha_ponto && justificativaPonto.trim().length < 10;
+
   // O piso é negociado pelo sindicato patronal, que é vinculado à unidade:
   // unidades com o mesmo patronal compartilham o piso; ajustes por unidade só
   // valem acima dele. Sem patronal ou sem piso, a referência fica pendente.
@@ -1619,6 +1647,15 @@ export function ColaboradorFormDialog({
     const alvo = intencaoRef.current;
     setCampoErro(null);
 
+    if (dispensaPontoPendente) {
+      setTab("jornada");
+      toast.error("Justifique a dispensa da folha de ponto", {
+        description:
+          "A unidade tem mais de 20 pessoas: o ponto é obrigatório (Art. 74 da CLT). Informe o motivo, por exemplo cargo de confiança (Art. 62, II).",
+      });
+      return;
+    }
+
     // Admissão: grava na ficha da pré-admissão; o servidor revalida tudo e o
     // cadastro oficial só nasce na efetivação, depois do retorno da contabilidade.
     if (admissao) {
@@ -1949,6 +1986,8 @@ export function ColaboradorFormDialog({
             : null,
 
         possui_folha_ponto: form.possui_folha_ponto,
+        folha_ponto_dispensa_justificativa:
+          pontoObrigatorio && !form.possui_folha_ponto ? justificativaPonto.trim() : null,
         optante_adiantamento: permiteAdiantamento ? form.optante_adiantamento : false,
 
         forma_pagamento: rem.forma_pagamento,
@@ -2829,6 +2868,24 @@ export function ColaboradorFormDialog({
                 />
                 <Label htmlFor="possui_folha_ponto" className="cursor-pointer">Possui Folha de Ponto</Label>
               </div>
+              {pontoObrigatorio && !form.possui_folha_ponto && (
+                <div className="space-y-1.5 rounded-lg border border-destructive/40 bg-destructive/5 p-2.5">
+                  <p className="text-[11px] leading-relaxed text-destructive">
+                    Atenção (Art. 74 da CLT): esta unidade tem mais de 20 pessoas e o controle de ponto é obrigatório.
+                    Dispensar pode gerar autuação e presunção das horas extras alegadas (Súmula 338 do TST). Só dispense
+                    em casos previstos: cargo de gestão/confiança (Art. 62, II), trabalho externo (Art. 62, I) ou
+                    teletrabalho (Art. 75-B).
+                  </p>
+                  <Label htmlFor="justificativa_ponto" className="text-xs">Justificativa da Dispensa *</Label>
+                  <Input
+                    id="justificativa_ponto"
+                    value={justificativaPonto}
+                    onChange={(e) => setJustificativaPonto(e.target.value)}
+                    placeholder="Ex.: Gerente da unidade, cargo de confiança (Art. 62, II)"
+                    maxLength={300}
+                  />
+                </div>
+              )}
               {!unidadeSelecionada?.possui_relogio_ponto && form.possui_folha_ponto && (
                 <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
                   A unidade ainda não está marcada como "Possui Folha de Ponto". Marque essa opção no cadastro da

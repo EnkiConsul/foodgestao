@@ -5556,6 +5556,7 @@ export type Database = {
           ferias_controle_inicio: string | null
           ficha_importacao_item_id: string | null
           folga_fixa_semana: number | null
+          folha_ponto_dispensa_justificativa: string | null
           forma_pagamento: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido: boolean
           grau_instrucao: string | null
@@ -5689,6 +5690,7 @@ export type Database = {
           ferias_controle_inicio?: string | null
           ficha_importacao_item_id?: string | null
           folga_fixa_semana?: number | null
+          folha_ponto_dispensa_justificativa?: string | null
           forma_pagamento?: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido?: boolean
           grau_instrucao?: string | null
@@ -5822,6 +5824,7 @@ export type Database = {
           ferias_controle_inicio?: string | null
           ficha_importacao_item_id?: string | null
           folga_fixa_semana?: number | null
+          folha_ponto_dispensa_justificativa?: string | null
           forma_pagamento?: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido?: boolean
           grau_instrucao?: string | null
