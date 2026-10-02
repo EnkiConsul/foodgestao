@@ -12337,6 +12337,8 @@ export type Database = {
           created_at: string
           dia_adiantamento: number | null
           endereco: string | null
+          feriados_locais_ciente_em: string | null
+          feriados_locais_ciente_por: string | null
           id: string
           logradouro: string | null
           nome: string
@@ -12362,6 +12364,8 @@ export type Database = {
           created_at?: string
           dia_adiantamento?: number | null
           endereco?: string | null
+          feriados_locais_ciente_em?: string | null
+          feriados_locais_ciente_por?: string | null
           id?: string
           logradouro?: string | null
           nome: string
@@ -12387,6 +12391,8 @@ export type Database = {
           created_at?: string
           dia_adiantamento?: number | null
           endereco?: string | null
+          feriados_locais_ciente_em?: string | null
+          feriados_locais_ciente_por?: string | null
           id?: string
           logradouro?: string | null
           nome?: string
