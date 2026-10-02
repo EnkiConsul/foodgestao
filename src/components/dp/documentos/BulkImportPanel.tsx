@@ -1,3 +1,4 @@
+import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { aprovarEmBlocos } from "@/lib/dp/bulkApproveChunks";
 import { validarUpload } from "@/lib/storage/uploadPolicy";
@@ -398,6 +399,7 @@ export function BulkImportPanel({
       <DpFilterCard>
         <div className="space-y-3">
           <h2 className="text-base font-semibold">{title}</h2>
+          <AvisoViaFisica />
 
           <div
             role="button"
