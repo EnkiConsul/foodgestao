@@ -116,7 +116,10 @@ export const REGIMES_ASSALARIADOS = new Set(["clt", "intermitente", "temporario"
 
 export type DocTipoColaborador = "contracheque" | "adiantamento" | "ponto" | "rescisao";
 
-/** Tipos gravados em dp_documentos que satisfazem a pendência de rescisão. */
+/** Momentos do desligamento: só assinatura física. */
+export const REGIMES_COM_AVISO_PREVIO = new Set(["clt", "aprendiz"]);
+
+/** Tipos gravados em dp_documentos que satisfazem a pendência de Documentos Rescisórios. */
 export const DOC_TIPOS_RESCISAO = ["desligamento", "trct", "demonstrativo_rescisorio"] as const;
 
 export type ColabElegibilidade = {

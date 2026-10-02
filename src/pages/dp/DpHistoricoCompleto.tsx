@@ -1,3 +1,4 @@
+import { docTipoLabel } from "@/lib/dp/documentoTipos";
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -406,7 +407,7 @@ export default function DpHistoricoCompleto() {
           colaborador_nome: c?.nome ?? "—",
           colaborador_id: d.colaborador_id,
           tipo_key: d.tipo,
-          tipo_label: TIPO_OPTIONS.find((t) => t.value === d.tipo)?.label ?? d.tipo,
+          tipo_label: TIPO_OPTIONS.find((t) => t.value === d.tipo)?.label ?? docTipoLabel(d.tipo),
           competencia: comp.label,
           competencia_sort: comp.sort,
           unidade_nome: c?.unidade_nome ?? "—",
