@@ -46,6 +46,8 @@ import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { notifyError } from "@/lib/notifyError";
 import { ComprovanteAcaoBotao } from "@/components/dp/documentos/ComprovantePagamentoPanel";
+import { consolidarQuitacao, rotuloQuitacao, fraseConferenciaValor, type QuitacaoConsolidada } from "@/lib/dp/comprovante-valor";
+import { useComprovantesComplementares } from "@/hooks/useDpComprovantesComplementares";
 
 
 type UnifiedDoc = {
@@ -74,7 +76,30 @@ type UnifiedDoc = {
   tem_comprovante?: boolean;
   comprovante_path?: string | null;
   comprovante_mime?: string | null;
+  /** Soma consolidada dos comprovantes (lida do banco, sem nova leitura). */
+  quitacao?: QuitacaoConsolidada | null;
 };
+
+function QuitacaoSelo({ q }: { q?: QuitacaoConsolidada | null }) {
+  if (!q) return null;
+  const rotulo = rotuloQuitacao(q);
+  if (!rotulo) return null;
+  const tom =
+    q.status === "exato"
+      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+      : q.status === "sem_referencia"
+        ? "border-border text-muted-foreground"
+        : "border-amber-300 bg-amber-50 text-amber-800";
+  return (
+    <span
+      className={`inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium ${tom}`}
+      title={fraseConferenciaValor(q) ?? "Valor do documento não informado"}
+    >
+      {rotulo}
+      {q.status === "menor" || q.status === "maior" ? " ⚠" : ""}
+    </span>
+  );
+}
 
 const TIPO_OPTIONS = [
   ...DP_DOC_TIPOS.filter((t) => t.value !== "sindicato").map((t) => ({ value: t.value as string, label: t.label })),
@@ -286,7 +311,12 @@ export default function DpHistoricoCompleto() {
   const [ano, setAno] = useState("all");
   const [busca, setBusca] = useState("");
   const [preview, setPreviewRaw] = useState<UnifiedDoc | null>(null);
-  const [previewAba, setPreviewAba] = useState<"doc" | "comprovante">("doc");
+  const [previewAba, setPreviewAba] = useState<string>("doc");
+  const extrasQuery = useComprovantesComplementares(
+    preview?.id?.startsWith("doc:") && (preview?.quitacao?.qtd ?? 0) > 1 ? preview.id.slice(4) : null,
+  );
+  const extrasPreview = extrasQuery.data ?? [];
+  const extraAtual = extrasPreview.find((e) => e.id === previewAba) ?? null;
   const setPreview = (r: UnifiedDoc | null) => { setPreviewAba("doc"); setPreviewRaw(r); };
   const [detalhe, setDetalhe] = useState<UnifiedDoc | null>(null);
   const [logAberto, setLogAberto] = useState(false);
@@ -365,7 +395,7 @@ export default function DpHistoricoCompleto() {
         fetchAllPages<any>((from, to) =>
           supabase
             .from("dp_documentos")
-            .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id, comprovante_file_path, comprovante_mime_type")
+            .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id, comprovante_file_path, comprovante_mime_type, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents, comprovantes_extra_qtd, comprovantes_extra_cents, valor_liquido_cents")
             .eq("company_id", cId)
             .order("id", { ascending: true })
             .range(from, to)),
@@ -430,6 +460,16 @@ export default function DpHistoricoCompleto() {
           tem_comprovante: !!d.comprovante_file_path,
           comprovante_path: d.comprovante_file_path ?? null,
           comprovante_mime: d.comprovante_mime_type ?? null,
+          quitacao: d.comprovante_file_path
+            ? consolidarQuitacao({
+                liquidoCents: d.valor_liquido_cents,
+                temPrincipal: true,
+                principalBancarioCents: d.comprovante_modalidade === "especie" ? null : d.comprovante_valor_bancario_cents,
+                principalEspecieCents: d.comprovante_modalidade === "bancario" ? null : d.comprovante_valor_especie_cents,
+                extraQtd: d.comprovantes_extra_qtd,
+                extraCents: d.comprovantes_extra_cents,
+              })
+            : null,
         });
       });
 
@@ -1008,6 +1048,7 @@ export default function DpHistoricoCompleto() {
                           className="h-8 w-8 p-0"
                         />
                       )}
+                      <QuitacaoSelo q={r.quitacao} />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -1066,6 +1107,7 @@ export default function DpHistoricoCompleto() {
                     className="min-h-11 flex-1 max-w-[45%]"
                   />
                 ) : null}
+                {r.quitacao ? <div className="w-full"><QuitacaoSelo q={r.quitacao} /></div> : null}
                 <Button size="sm" variant="ghost" className="min-h-11 flex-1 max-w-[45%]" onClick={() => download(r)} disabled={!r.file_path}>
                   <Download className="h-4 w-4 mr-1" /> Baixar
                 </Button>
@@ -1124,11 +1166,11 @@ export default function DpHistoricoCompleto() {
         onOpenChange={(v) => { if (!v) setPreview(null); }}
         title={preview?.titulo}
         bucket={preview?.bucket}
-        path={(previewAba === "comprovante" ? preview?.comprovante_path : preview?.file_path) ?? undefined}
-        mime={previewAba === "comprovante" ? preview?.comprovante_mime : preview?.mime_type}
+        path={(previewAba === "comprovante" ? preview?.comprovante_path : extraAtual ? extraAtual.file_path : preview?.file_path) ?? undefined}
+        mime={previewAba === "comprovante" ? preview?.comprovante_mime : extraAtual ? extraAtual.mime_type : preview?.mime_type}
         toolbar={preview?.comprovante_path ? (
-          <div className="mt-2 flex gap-2" role="tablist" aria-label="Arquivos do documento">
-            {([["doc", "Documento Principal"], ["comprovante", "Comprovante de Pagamento"]] as const).map(([k, l]) => (
+          <div className="mt-2 flex flex-wrap gap-2" role="tablist" aria-label="Arquivos do documento">
+            {([["doc", "Documento Principal"], ["comprovante", extrasPreview.length ? "Comprovante 1" : "Comprovante de Pagamento"], ...extrasPreview.map((e, i) => [e.id, `Comprovante ${i + 2}`] as const)] as const).map(([k, l]) => (
               <Button key={k} role="tab" aria-selected={previewAba === k} size="sm" variant={previewAba === k ? "default" : "outline"} className="h-8 text-xs" onClick={() => setPreviewAba(k)}>
                 {l}
               </Button>
