@@ -307,7 +307,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         qc.invalidateQueries({ queryKey: ["dp_ponto_conformidade"] });
         qc.invalidateQueries({ queryKey: ["dp_unidades"] });
         qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
-        forcarRecargaPendencias?.();
+        forcarRecargaPendencias(form.company_id);
       }
       if (salvarFuncionamento.current) await salvarFuncionamento.current();
       onSaved?.(salva);
