@@ -210,7 +210,7 @@ export function agruparFichas(paginas: PaginaLida[]): Ficha[] {
     atual.texto = `${atual.texto}\n${p.texto ?? ""}`;
     const novos = limpar(p.dados);
     for (const [k, v] of Object.entries(novos)) {
-      if (k.startsWith("historico_") && Array.isArray(v)) {
+      if ((k.startsWith("historico_") || k === "familiares") && Array.isArray(v)) {
         const atualArr = Array.isArray(atual.dados[k]) ? atual.dados[k] : [];
         atual.dados[k] = [...atualArr, ...v];
         continue;
