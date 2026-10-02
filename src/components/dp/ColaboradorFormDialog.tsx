@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { LIMITE_PONTO_OBRIGATORIO } from "@/lib/dp/ficha-registro/inferencia";
 import { AlertTriangle, ExternalLink, Info } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -1018,6 +1019,33 @@ export function ColaboradorFormDialog({
 
   const unidadeSelecionada = (unidades.data ?? []).find((u) => u.id === form.unidade_id) as any;
   const cargoSelecionado = (cargos.data ?? []).find((c) => c.id === form.cargo_id) as any;
+
+  // Art. 74, § 2º da CLT: acima de 20 pessoas na unidade o ponto é obrigatório.
+  const lotacaoUnidade = useQuery({
+    queryKey: ["dp_unidade_lotacao", form.unidade_id],
+    enabled: !!form.unidade_id,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("dp_colaboradores")
+        .select("id", { count: "exact", head: true })
+        .eq("unidade_id", form.unidade_id)
+        .eq("ativo", true)
+        .is("deleted_at", null);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+  const jaContadoNaUnidade = !!colaborador?.id && (colaborador as any)?.unidade_id === form.unidade_id;
+  const pontoObrigatorio =
+    !vinculoSemRegistro &&
+    (lotacaoUnidade.data ?? 0) + (jaContadoNaUnidade ? 0 : 1) > LIMITE_PONTO_OBRIGATORIO;
+  const [justificativaPonto, setJustificativaPonto] = useState("");
+  useEffect(() => {
+    setJustificativaPonto(String((colaborador as any)?.folha_ponto_dispensa_justificativa ?? ""));
+  }, [colaborador?.id]);
+  const dispensaPontoPendente =
+    pontoObrigatorio && !form.possui_folha_ponto && justificativaPonto.trim().length < 10;
 
   // O piso é negociado pelo sindicato patronal, que é vinculado à unidade:
   // unidades com o mesmo patronal compartilham o piso; ajustes por unidade só
