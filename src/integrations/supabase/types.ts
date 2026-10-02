@@ -4391,6 +4391,7 @@ export type Database = {
             | null
           tipo_origem: string | null
           updated_at: string
+          valor_liquido_cents: number | null
         }
         Insert: {
           assinatura_detectada?: boolean | null
@@ -4436,6 +4437,7 @@ export type Database = {
             | null
           tipo_origem?: string | null
           updated_at?: string
+          valor_liquido_cents?: number | null
         }
         Update: {
           assinatura_detectada?: boolean | null
@@ -4481,6 +4483,7 @@ export type Database = {
             | null
           tipo_origem?: string | null
           updated_at?: string
+          valor_liquido_cents?: number | null
         }
         Relationships: [
           {
@@ -7642,6 +7645,7 @@ export type Database = {
           unidade_id: string | null
           updated_at: string
           uploaded_by: string | null
+          valor_liquido_cents: number | null
           versao: number
         }
         Insert: {
@@ -7692,6 +7696,7 @@ export type Database = {
           unidade_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
+          valor_liquido_cents?: number | null
           versao?: number
         }
         Update: {
@@ -7742,6 +7747,7 @@ export type Database = {
           unidade_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
+          valor_liquido_cents?: number | null
           versao?: number
         }
         Relationships: [
@@ -16629,6 +16635,10 @@ export type Database = {
           file_path: string
           mime_type: string
         }[]
+      }
+      dp_documento_definir_valor_liquido: {
+        Args: { p_documento_id: string; p_valor_cents: number }
+        Returns: undefined
       }
       dp_documento_evento_registrar: {
         Args: { p_dados: Json }
