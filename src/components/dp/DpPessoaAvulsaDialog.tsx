@@ -790,6 +790,17 @@ export function DpPessoaAvulsaDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {/* Cadastro oficial completo de folguista/teste — o mesmo da tela de
+          Colaboradores. Ao salvar, a pessoa criada já fica selecionada aqui. */}
+      <PessoaApoioFormDialog
+        open={cadastroApoioOpen}
+        onOpenChange={setCadastroApoioOpen}
+        tipoInicial={form.tipo === "teste" ? "teste" : "folguista"}
+        dadosIniciais={{ unidade_id: form.unidade_id || unidadePadrao || "" }}
+        onSaved={(id) => {
+          if (id) escolherApoio(id);
+        }}
+      />
     </Dialog>
   );
 }
