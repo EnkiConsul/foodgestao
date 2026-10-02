@@ -54,6 +54,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { conferirFavorecido } from "@/lib/dp/comprovante-favorecido";
 import { useDpComprovantePagamento, type ComprovanteAlvo } from "@/hooks/useDpComprovantePagamento";
+import {
+  conferirValor,
+  fraseConferenciaValor,
+  JUSTIFICATIVA_VALOR_MIN,
+} from "@/lib/dp/comprovante-valor";
+import { Textarea } from "@/components/ui/textarea";
+
+/** Valor líquido esperado do documento (recibo, contracheque, rescisão...). */
+function useValorLiquido(documentoId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["dp_doc_valor_liquido", documentoId],
+    enabled: enabled && !!documentoId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_documentos")
+        .select("valor_liquido_cents")
+        .eq("id", documentoId)
+        .maybeSingle();
+      if (error) throw error;
+      return ((data as { valor_liquido_cents: number | null } | null)?.valor_liquido_cents ?? null) as number | null;
+    },
+  });
+}
 
 const MAX_MB = 15;
 
@@ -209,6 +232,10 @@ export function ComprovanteAnexarDialog(props: {
   );
   const [confirmado, setConfirmado] = useState(false);
   const [cienteFavorecido, setCienteFavorecido] = useState(false);
+  const [cienteValor, setCienteValor] = useState(false);
+  const [justValor, setJustValor] = useState("");
+  const [liquidoTexto, setLiquidoTexto] = useState<string | null>(null);
+  const liquido = useValorLiquido(props.alvo.documentoId, props.open);
   const { selectedCompanyId } = useCompanyContext();
   const colegas = useQuery({
     queryKey: ["dp_colaboradores_nomes", selectedCompanyId],
@@ -233,6 +260,15 @@ export function ComprovanteAnexarDialog(props: {
     conferencia.status === "outro_colaborador" || conferencia.status === "terceiro";
   const [erro, setErro] = useState<string | null>(null);
   const { anexar, ocupado } = useDpComprovantePagamento();
+  const esperadoCents =
+    liquidoTexto !== null ? brlParaCents(liquidoTexto) : (liquido.data ?? null);
+  const confValor = conferirValor(
+    esperadoCents,
+    modalidade === "especie" ? null : brlParaCents(bancario),
+    modalidade === "bancario" ? null : brlParaCents(especie),
+  );
+  const valorDivergente = confValor.status === "menor" || confValor.status === "maior";
+  const fraseValor = fraseConferenciaValor(confValor);
   const hoje = hojeISO();
 
   const divergente = competenciaDivergente(pagoEm, props.competencia);
@@ -246,6 +282,9 @@ export function ComprovanteAnexarDialog(props: {
     setLeitura(null);
     setConfirmado(false);
     setCienteFavorecido(false);
+    setCienteValor(false);
+    setJustValor("");
+    setLiquidoTexto(null);
     setLendo(false);
     setPagoEm(props.pagoEmAtual ?? "");
   };
@@ -295,6 +334,14 @@ export function ComprovanteAnexarDialog(props: {
       setErro("Confirme a ciência sobre o favorecido do comprovante antes de importar.");
       return;
     }
+    if (liquidoTexto !== null && liquidoTexto.trim() && !brlParaCents(liquidoTexto)) {
+      setErro("Valor líquido do documento inválido.");
+      return;
+    }
+    if (valorDivergente && (!cienteValor || justValor.trim().length < JUSTIFICATIVA_VALOR_MIN)) {
+      setErro(`O valor pago não bate com o documento: marque a ciência e justifique (mín. ${JUSTIFICATIVA_VALOR_MIN} caracteres).`);
+      return;
+    }
     if (divergente && !confirmado) {
       setErro(aviso ?? "Confirme a competência do comprovante.");
       return;
@@ -310,12 +357,32 @@ export function ComprovanteAnexarDialog(props: {
           modalidade: quitacao.modalidade,
           valorBancarioCents: quitacao.bancarioCents,
           valorEspecieCents: quitacao.especieCents,
-          leitura: leitura?.bruto
-            ? { ...(leitura.bruto as object), conferencia_favorecido: conferencia.status, ciente_favorecido: favorecidoDivergente ? cienteFavorecido : null }
-            : null,
+          leitura: {
+            ...((leitura?.bruto as object | null) ?? {}),
+            conferencia_favorecido: conferencia.status,
+            ciente_favorecido: favorecidoDivergente ? cienteFavorecido : null,
+            conferencia_valor: confValor.status,
+            valor_esperado_cents: confValor.esperadoCents,
+            valor_comprovado_cents: confValor.comprovadoCents,
+            diferenca_cents: confValor.diferencaCents,
+            justificativa_valor: valorDivergente ? justValor.trim() : null,
+          },
         },
       },
-      { onSuccess: () => props.onOpenChange(false) },
+      {
+        onSuccess: async () => {
+          const novo = liquidoTexto !== null ? brlParaCents(liquidoTexto) : undefined;
+          if (novo !== undefined && novo !== (liquido.data ?? null)) {
+            const { error } = await supabase.rpc("dp_documento_definir_valor_liquido", {
+              p_documento_id: props.alvo.documentoId,
+              p_valor_cents: novo,
+            });
+            if (error) toast.error("Comprovante salvo, mas o valor líquido do documento não foi atualizado.");
+          }
+          void liquido.refetch();
+          props.onOpenChange(false);
+        },
+      },
     );
   };
 
@@ -466,6 +533,63 @@ export function ComprovanteAnexarDialog(props: {
             Depois de importar, o sistema gera o recibo do valor em dinheiro para assinatura no portal
             do colaborador — ou para você baixar e colher a assinatura à mão.
           </p>
+        ) : null}
+
+        <div className="grid gap-1.5">
+          <Label htmlFor={`${campoId}-liquido`} className="text-xs">Valor líquido do documento (R$)</Label>
+          <Input
+            id={`${campoId}-liquido`}
+            inputMode="decimal"
+            placeholder={liquido.isLoading ? "Carregando…" : "Não informado"}
+            value={liquidoTexto ?? (liquido.data ? centsParaBRL(liquido.data).replace("R$", "").trim() : "")}
+            onChange={(e) => {
+              setLiquidoTexto(e.target.value);
+              setCienteValor(false);
+              setErro(null);
+            }}
+          />
+          {confValor.status === "exato" ? (
+            <p className="flex items-center gap-1.5 text-xs text-emerald-700">
+              <BadgeCheck className="size-3.5" /> {fraseValor}
+            </p>
+          ) : confValor.status === "sem_referencia" ? (
+            <p className="text-xs text-muted-foreground">
+              Informe o líquido para o sistema conferir o valor pago.
+            </p>
+          ) : null}
+        </div>
+
+        {valorDivergente ? (
+          <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
+            <p>
+              Documento: <strong>{centsParaBRL(confValor.esperadoCents)}</strong> · Comprovado:{" "}
+              <strong>{centsParaBRL(confValor.comprovadoCents)}</strong>
+            </p>
+            <p className="font-medium">{fraseValor}</p>
+            <label className="flex items-start gap-2 text-foreground">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={cienteValor}
+                onChange={(e) => {
+                  setCienteValor(e.target.checked);
+                  setErro(null);
+                }}
+              />
+              <span>Estou ciente da diferença de valor e quero importar mesmo assim.</span>
+            </label>
+            {cienteValor ? (
+              <Textarea
+                rows={2}
+                placeholder="Justifique (ex.: primeira parcela, desconto já pago)"
+                value={justValor}
+                onChange={(e) => {
+                  setJustValor(e.target.value);
+                  setErro(null);
+                }}
+              />
+            ) : null}
+          </div>
         ) : null}
 
         {conferencia.status === "confere" ? (
@@ -647,6 +771,7 @@ export function ComprovantePagamentoPanel(props: {
   const [anexarOpen, setAnexarOpen] = useState(false);
   const { remover, ocupado } = useDpComprovantePagamento();
   const { ver, visualizador } = useVerComprovante();
+  const liquido = useValorLiquido(props.alvo.documentoId, aceitaComprovante(props.alvo.tipo));
   if (!aceitaComprovante(props.alvo.tipo)) return null;
 
   const { comprovante } = props;
@@ -681,6 +806,26 @@ export function ComprovantePagamentoPanel(props: {
             {comprovante.pago_em ? ` · pago em ${comprovante.pago_em.split("-").reverse().join("/")}` : ""}
           </p>
           <p className="break-words text-xs text-muted-foreground">{quitacao}</p>
+          {(() => {
+            const c = conferirValor(
+              liquido.data ?? null,
+              comprovante.modalidade === "especie" ? null : comprovante.valor_bancario_cents,
+              comprovante.modalidade === "bancario" ? null : comprovante.valor_especie_cents,
+            );
+            if (c.status === "sem_referencia") return null;
+            return (
+              <p
+                className={
+                  c.status === "exato"
+                    ? "flex flex-wrap items-center gap-1 text-xs text-emerald-700"
+                    : "flex flex-wrap items-center gap-1 text-xs text-amber-700"
+                }
+              >
+                Líquido: {centsParaBRL(c.esperadoCents)} | Comprovado: {centsParaBRL(c.comprovadoCents)}
+                {c.status === "exato" ? " ✓" : ` · ${fraseConferenciaValor(c)}`}
+              </p>
+            );
+          })()}
           {props.versaoAnterior && (
             <p className="text-[11px] text-amber-700">
               Comprovante referente à versão anterior do documento.
