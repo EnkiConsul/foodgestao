@@ -414,6 +414,7 @@ const AppRoutes = () => (
 
       <Route path="/" element={<RootGate />} />
       <Route path="/login" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
+      <Route path="/cadastro" element={<PublicOnlyRoute><Auth key="cadastro" /></PublicOnlyRoute>} />
       <Route path="/auth" element={<RedirectLogin />} />
       <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
       <Route path="/dp/login" element={<RedirectLogin />} />

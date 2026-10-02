@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
-import { LogIn, MessageCircle, Instagram, Users, Wallet, CalendarDays } from "lucide-react";
-import logo from "@/assets/aveto360-horizontal.png.asset.json";
-import img360 from "@/assets/landing-360.jpg";
+import { LogIn, MessageCircle, Instagram, Users, Wallet, CalendarDays, Rocket } from "lucide-react";
+import imgGestora from "@/assets/site-gestor-indicadores.jpg";
+import imgEquipe from "@/assets/site-equipe-turno.jpg";
 import imgGarcom from "@/assets/landing-garcom.jpg";
 
 const WHATSAPP = "https://wa.me/5562992365959?text=Ol%C3%A1!%20Quero%20conhecer%20o%20Aveto%20360.";
@@ -10,6 +10,17 @@ const INSTAGRAM = "https://www.instagram.com/aveto360";
 const G = ({ children }: { children: React.ReactNode }) => (
   <strong className="font-extrabold text-lp-green">{children}</strong>
 );
+
+function Marca({ grande = false }: { grande?: boolean }) {
+  return (
+    <span className={`inline-flex items-baseline gap-1.5 font-extrabold tracking-[0.18em] ${grande ? "text-3xl" : "text-xl"}`} aria-label="Aveto 360">
+      AVETO <span className="text-lp-green">360</span>
+    </span>
+  );
+}
+
+const CONTRATAR_CLS = "inline-flex min-h-12 items-center gap-2 rounded-full bg-lp-green px-6 font-bold text-lp-bg transition-colors hover:bg-lp-green-dark hover:text-lp-text";
+const SECUNDARIO_CLS = "inline-flex min-h-12 items-center gap-2 rounded-full border border-lp-text/30 px-6 font-bold hover:border-lp-green";
 
 function Triangulos() {
   return (
@@ -34,7 +45,7 @@ export default function Landing() {
     <div className="min-h-screen bg-lp-bg font-montserrat text-lp-text">
       <header className="absolute inset-x-0 top-0 z-20">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <img src={logo.url} alt="Aveto 360" className="h-10 w-auto" />
+          <Marca />
           <Link
             to="/login"
             className="inline-flex min-h-11 items-center gap-2 rounded-full border border-lp-green px-5 text-sm font-bold text-lp-text transition-colors hover:bg-lp-green hover:text-lp-bg"
@@ -57,17 +68,15 @@ export default function Landing() {
               Gestão de pessoas e financeira para bares e restaurantes, em um só lugar.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <a href={WHATSAPP} target="_blank" rel="noopener noreferrer"
-                className="inline-flex min-h-12 items-center gap-2 rounded-full bg-lp-green px-6 font-bold text-lp-bg transition-colors hover:bg-lp-green-dark hover:text-lp-text">
+              <Link to="/cadastro" className={CONTRATAR_CLS}>
+                <Rocket className="h-5 w-5" /> Começar Agora
+              </Link>
+              <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" className={SECUNDARIO_CLS}>
                 <MessageCircle className="h-5 w-5" /> Falar Conosco
               </a>
-              <Link to="/login"
-                className="inline-flex min-h-12 items-center gap-2 rounded-full border border-lp-text/30 px-6 font-bold hover:border-lp-green">
-                <LogIn className="h-5 w-5" /> Já sou cliente
-              </Link>
             </div>
           </div>
-          <img src={img360} alt="360 graus em vidro verde" width={1024} height={1024} className="mx-auto w-full max-w-md rounded-3xl" />
+          <img src={imgGestora} alt="Dona de restaurante acompanhando a operação no balcão" width={1280} height={960} className="mx-auto w-full rounded-3xl object-cover shadow-2xl" />
         </div>
       </section>
 
@@ -91,6 +100,7 @@ export default function Landing() {
         <p className="mt-4 text-xl"><strong className="font-bold">Ninguém</strong> registrou.</p>
         <p className="mt-6 text-lg">Na semana seguinte, o funcionário <G>cobra a folga combinada.</G></p>
         <p className="mt-2 text-lp-muted">O gerente procura a conversa... ninguém lembra exatamente o que ficou acertado.</p>
+        <img src={imgEquipe} alt="Equipe de restaurante na troca de turno" loading="lazy" width={1280} height={960} className="mt-10 w-full rounded-3xl object-cover" />
       </Secao>
 
       {/* Informação espalhada */}
@@ -151,12 +161,14 @@ export default function Landing() {
 
       {/* Fechamento */}
       <Secao className="bg-gradient-to-b from-lp-bg to-lp-deep text-center">
-        <img src={logo.url} alt="" aria-hidden className="mx-auto h-14 w-auto" />
+        <Marca grande />
         <h2 className="mt-8 text-3xl font-medium md:text-5xl">E no seu <G>restaurante?</G></h2>
         <p className="mt-4 text-xl">Onde estão hoje as <strong className="font-bold">informações da sua equipe?</strong></p>
         <div className="mt-10 flex flex-wrap justify-center gap-3">
-          <a href={WHATSAPP} target="_blank" rel="noopener noreferrer"
-            className="inline-flex min-h-12 items-center gap-2 rounded-full bg-lp-green px-6 font-bold text-lp-bg hover:bg-lp-green-dark hover:text-lp-text">
+          <Link to="/cadastro" className={CONTRATAR_CLS}>
+            <Rocket className="h-5 w-5" /> Começar Agora
+          </Link>
+          <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" className={SECUNDARIO_CLS}>
             <MessageCircle className="h-5 w-5" /> Falar Conosco
           </a>
           <a href={INSTAGRAM} target="_blank" rel="noopener noreferrer"
