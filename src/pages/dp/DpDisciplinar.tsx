@@ -726,23 +726,51 @@ export default function DpDisciplinar() {
 
               {isFormal(tipo) && (
                 <div className="space-y-2">
-                  <Label htmlFor="motivo-disc">Motivo *</Label>
-                  <Select value={MOTIVOS.some((m) => m.label === motivoSel) ? motivoSel : motivoSel ? "__outro" : ""} onValueChange={(v) => { setMotivoSel(v === "__outro" ? " " : v); if (campoPendente === "motivo") setCampoPendente(null); }}>
-                    <SelectTrigger id="motivo-disc" className={campoPendente === "motivo" ? "border-destructive ring-1 ring-destructive" : undefined}><SelectValue placeholder="Selecione o motivo" /></SelectTrigger>
-                    <SelectContent>
-                      {MOTIVOS.map((m) => (
-                        <SelectItem key={m.label} value={m.label} className="whitespace-normal py-2">
-                          <span className="block font-medium leading-tight">{m.label}</span>
-                          <span className="block text-xs text-muted-foreground leading-tight">
-                            Art. 482 da CLT, alínea “{m.alinea}”
+                  <Label htmlFor="motivo-disc">Motivos * <span className="font-normal text-muted-foreground">(marque um ou mais)</span></Label>
+                  <div id="motivo-disc" className={`space-y-1 rounded-md border p-2 ${campoPendente === "motivo" ? "border-destructive ring-1 ring-destructive" : ""}`}>
+                    {MOTIVOS.map((m) => {
+                      const marcados = motivoSel.split(" + ").filter((s) => s.trim());
+                      const on = marcados.includes(m.label);
+                      return (
+                        <label key={m.label} className="flex cursor-pointer items-start gap-2 rounded px-1 py-1.5 hover:bg-muted/50">
+                          <Checkbox
+                            checked={on}
+                            className="mt-0.5"
+                            onCheckedChange={(v) => {
+                              const outros = marcados.filter((x) => x !== m.label);
+                              const novo = v === true ? [...outros, m.label] : outros;
+                              const ordem = (x: string) => { const i = MOTIVOS.findIndex((k) => k.label === x); return i < 0 ? 99 : i; };
+                              novo.sort((a, b) => ordem(a) - ordem(b));
+                              setMotivoSel(novo.join(" + "));
+                              if (campoPendente === "motivo") setCampoPendente(null);
+                            }}
+                          />
+                          <span>
+                            <span className="block text-sm font-medium leading-tight">{m.label}</span>
+                            <span className="block text-xs text-muted-foreground leading-tight">Art. 482 da CLT, alínea “{m.alinea}”</span>
                           </span>
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="__outro" className="whitespace-normal">Outro (Digitar)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {motivoSel && !MOTIVOS.some((m) => m.label === motivoSel) && (
-                    <Input value={motivoSel.trimStart()} onChange={(e) => setMotivoSel(e.target.value || " ")} placeholder="Descreva o motivo em poucas palavras" />
+                        </label>
+                      );
+                    })}
+                    {(() => {
+                      const marcados = motivoSel.split(" + ").filter((s) => s.trim());
+                      const padrao = marcados.filter((x) => MOTIVOS.some((m) => m.label === x));
+                      const outro = marcados.filter((x) => !MOTIVOS.some((m) => m.label === x)).join(" ");
+                      return (
+                        <Input
+                          className="mt-1"
+                          value={outro}
+                          onChange={(e) => {
+                            const t = e.target.value.replace(/\+/g, "");
+                            setMotivoSel([...padrao, t].filter((x) => x.trim()).join(" + "));
+                          }}
+                          placeholder="Outro motivo (opcional)"
+                        />
+                      );
+                    })()}
+                  </div>
+                  {motivoSel.split(" + ").filter((x) => MOTIVOS.some((m) => m.label === x.trim())).length > 1 && (
+                    <p className="text-xs text-muted-foreground">Uma única medida para o mesmo fato, com todas as alíneas citadas na carta.</p>
                   )}
                 </div>
               )}
