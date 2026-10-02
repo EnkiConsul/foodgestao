@@ -8,7 +8,8 @@ import { useDpPendenciasConfig, type DpPendenciasConfig } from "@/hooks/useDpPen
 import { useDpFeriasConfig } from "@/hooks/useDpFeriasConfig";
 import { addDays, differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
-import { ClipboardList, FileCheck2, FileMinus, FileText, Users, Coins, Clock, Scale, Palmtree, UserCog, Baby } from "lucide-react";
+import { ClipboardList, FileCheck2, FileMinus, FileText, Users, Coins, Clock, Scale, Palmtree, UserCog, Baby, AlertTriangle } from "lucide-react";
+import { conformidadePonto } from "@/lib/dp/ponto-conformidade";
 import { LEMBRETE_RETORNO_DIAS, TIPOS_AFASTAMENTO, TIPOS_LICENCA, afastamentoCobreCompetencia, labelAfastamento, situacaoRetorno } from "@/lib/dp/licencas";
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
 import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-completude";
@@ -862,6 +863,44 @@ export function useDpPendencias() {
         console.warn("pendencias/regras-folgas:", e);
       }
 
+
+      // 6b. Conformidade do ponto (Art. 74 CLT): unidade com mais de 20 ativos sem ponto e sem justificativa.
+      try {
+        const ids = unidades.map((u) => u.id);
+        if (ids.length) {
+          const [{ data: uj }, { data: ativosRows }] = await Promise.all([
+            supabase.from("dp_unidades").select("id, relogio_ponto_dispensa_justificativa").in("id", ids),
+            supabase
+              .from("dp_colaboradores")
+              .select("unidade_id")
+              .in("unidade_id", ids)
+              .eq("ativo", true)
+              .is("deleted_at", null)
+              .is("data_desligamento", null),
+          ]);
+          const just = new Map((uj ?? []).map((r: any) => [r.id, r.relogio_ponto_dispensa_justificativa as string | null]));
+          const cont = new Map<string, number>();
+          (ativosRows ?? []).forEach((c: any) => c.unidade_id && cont.set(c.unidade_id, (cont.get(c.unidade_id) ?? 0) + 1));
+          unidades.forEach((u) => {
+            const ativos = cont.get(u.id) ?? 0;
+            if (conformidadePonto({ possui_relogio_ponto: u.possui_relogio_ponto, relogio_ponto_dispensa_justificativa: just.get(u.id) }, ativos) !== "irregular") return;
+            results.push({
+              id: `ponto-art74-${u.id}`,
+              icon: AlertTriangle,
+              titulo: "Registro de ponto obrigatório (Art. 74 da CLT)",
+              subtitulo: `${u.nome} — ${ativos} colaboradores ativos sem relógio de ponto e sem justificativa. Ative o ponto ou registre a justificativa.`,
+              tipo: "Conformidade",
+              unidadeNome: u.nome,
+              unidadeId: u.id,
+              urgente: true,
+              atrasoDias: 0,
+              url: `/dp/cadastros/unidades?editar=${u.id}&aba=dados`,
+            });
+          });
+        }
+      } catch (e) {
+        console.warn("pendencias/ponto-art74:", e);
+      }
 
       // 7. Férias — períodos aquisitivos com saldo perto do limite concessivo
       try {

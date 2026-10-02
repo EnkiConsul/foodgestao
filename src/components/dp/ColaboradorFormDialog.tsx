@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LIMITE_PONTO_OBRIGATORIO } from "@/lib/dp/ficha-registro/inferencia";
+import { AVISO_ART74, justificativaValida as justificativaValidaPonto } from "@/lib/dp/ponto-conformidade";
 import { AlertTriangle, ExternalLink, Info } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -1037,9 +1038,15 @@ export function ColaboradorFormDialog({
     },
   });
   const jaContadoNaUnidade = !!colaborador?.id && (colaborador as any)?.unidade_id === form.unidade_id;
+  const lotacaoComEste = (lotacaoUnidade.data ?? 0) + (jaContadoNaUnidade ? 0 : 1);
+  // O ponto é decisão da unidade: sem relógio na unidade, a ficha só herda (sem justificativa individual).
+  const unidadeTemPonto = !!unidadeSelecionada?.possui_relogio_ponto;
+  const unidadeDispensaJustificada = justificativaValidaPonto(unidadeSelecionada?.relogio_ponto_dispensa_justificativa);
   const pontoObrigatorio =
-    !vinculoSemRegistro &&
-    (lotacaoUnidade.data ?? 0) + (jaContadoNaUnidade ? 0 : 1) > LIMITE_PONTO_OBRIGATORIO;
+    unidadeTemPonto && !vinculoSemRegistro && lotacaoComEste > LIMITE_PONTO_OBRIGATORIO;
+  /** A unidade passa (ou já passou) de 20 ativos sem ponto e sem justificativa registrada. */
+  const unidadeIrregularPonto =
+    !!form.unidade_id && !unidadeTemPonto && !unidadeDispensaJustificada && lotacaoComEste > LIMITE_PONTO_OBRIGATORIO;
   const [justificativaPonto, setJustificativaPonto] = useState("");
   useEffect(() => {
     setJustificativaPonto(String((colaborador as any)?.folha_ponto_dispensa_justificativa ?? ""));
@@ -1985,7 +1992,7 @@ export function ColaboradorFormDialog({
             ? Number(form.folga_fixa_semana)
             : null,
 
-        possui_folha_ponto: form.possui_folha_ponto,
+        possui_folha_ponto: unidadeTemPonto ? form.possui_folha_ponto : false,
         folha_ponto_dispensa_justificativa:
           pontoObrigatorio && !form.possui_folha_ponto ? justificativaPonto.trim() : null,
         optante_adiantamento: permiteAdiantamento ? form.optante_adiantamento : false,
@@ -2152,6 +2159,12 @@ export function ColaboradorFormDialog({
       // Cadastro concluído: o rascunho guardado deixa de existir.
       void rascunho.descartar();
       toast.success("Colaborador cadastrado");
+      if (unidadeIrregularPonto) {
+        toast.warning("Registro de ponto obrigatório na unidade (Art. 74 da CLT)", {
+          description: `A unidade chegou a ${lotacaoComEste} colaboradores ativos e está sem relógio de ponto. Foi gerada uma pendência: ative o ponto ou registre a justificativa no cadastro da unidade.`,
+          duration: 15000,
+        });
+      }
 
       if (intencaoRef.current !== "close" && tab === "dados") {
         toast("Defina o turno e a jornada");
@@ -2858,7 +2871,34 @@ export function ColaboradorFormDialog({
               botão único do rodapé grave também esta aba. */}
           <TabsContent value="jornada" className="mt-4 data-[state=inactive]:hidden" forceMount>
           {/* Folha de ponto (condicional) */}
-          {form.unidade_id && (
+          {form.unidade_id && !unidadeTemPonto && (
+            <div className="mb-4 space-y-2 rounded-xl border border-border p-3">
+              <p className="text-xs text-muted-foreground">
+                Ponto desativado no cadastro da unidade{unidadeSelecionada?.nome ? ` ${unidadeSelecionada.nome}` : ""}.
+                {unidadeDispensaJustificada &&
+                  ` Justificativa registrada: "${unidadeSelecionada.relogio_ponto_dispensa_justificativa}".`}
+              </p>
+              {unidadeIrregularPonto && (
+                <div className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-2.5">
+                  <p className="text-[11px] leading-relaxed text-destructive">
+                    {jaContadoNaUnidade
+                      ? `Esta unidade tem ${lotacaoComEste} colaboradores ativos.`
+                      : `Com este cadastro, a unidade chega a ${lotacaoComEste} colaboradores ativos.`}{" "}
+                    {AVISO_ART74} Ative o ponto da unidade ou registre a justificativa no cadastro dela.
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => sairPara(`/dp/cadastros/unidades?editar=${form.unidade_id}&aba=dados`)}
+                  >
+                    Regularizar Unidade
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+          {form.unidade_id && unidadeTemPonto && (
             <div className="mb-4 space-y-2 rounded-xl border border-border p-3">
               <div className="flex items-center gap-3">
                 <Switch

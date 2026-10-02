@@ -6,6 +6,7 @@ import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
 import { KpiCards } from "@/components/dp/home/KpiCards";
 import { MenusPrincipaisCards } from "@/components/dp/home/MenusPrincipaisCards";
+import { PontoConformidadeAlerta } from "@/components/dp/PontoConformidadeAlerta";
 import { useMenuSwipeVertical } from "@/components/dp/nav/useMenuSwipeVertical";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -37,6 +38,8 @@ export default function DpHome() {
           </Tooltip>
         }
       />
+
+      <PontoConformidadeAlerta />
 
       {isMobile && <MenusPrincipaisCards />}
 
