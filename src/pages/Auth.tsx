@@ -701,7 +701,8 @@ export default function Auth() {
                     {errors.password}
                   </p>
                 )}
-                {isSignup && <MedidorSenha senha={password} dados={{ nome: fullName, email }} />}
+                {isSignup && <MedidorSenha senha={password} dados={{ nome: fullName, email }} semMensagem />}
+                {isSignup && <ChecklistRequisitosSenha senha={password} dados={{ nome: fullName, email }} mostrarDica={false} />}
               </div>
             )}
 
@@ -738,6 +739,7 @@ export default function Auth() {
                     {errors.confirmPassword}
                   </p>
                 )}
+                {!errors.confirmPassword && <ConferenciaSenhas senha={password} confirmacao={confirmPassword} />}
               </div>
             )}
 

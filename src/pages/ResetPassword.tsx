@@ -157,14 +157,16 @@ export default function ResetPassword() {
                     maxLength={72}
                   />
                 </div>
-                {errors.confirmPassword && (
+                {errors.confirmPassword ? (
                   <p className="text-xs text-destructive">{errors.confirmPassword}</p>
+                ) : (
+                  <ConferenciaSenhas senha={password} confirmacao={confirmPassword} />
                 )}
               </div>
             </CardContent>
 
             <CardFooter>
-              <Button type="submit" className="w-full min-h-11" disabled={submitting}>
+              <Button type="submit" className="w-full min-h-11" disabled={submitting || !avaliarSenha(password).valida || password !== confirmPassword}>
                 {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Redefinir Senha
               </Button>
