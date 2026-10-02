@@ -492,9 +492,9 @@ export default function Auth() {
 
         <section className="relative z-10 flex h-full items-end justify-center px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[clamp(4rem,28svh,42svh)] md:min-h-screen md:h-auto md:items-start md:justify-end md:px-[4vw] md:py-[clamp(2rem,8vw,8rem)] lg:px-[5vw] lg:py-[clamp(2.5rem,9vh,6rem)]">
           <div className="flex w-full max-w-[340px] flex-col md:max-w-[320px] lg:max-w-[340px]">
-        <Card className="max-h-[62svh] w-full overflow-y-auto border-border/70 bg-card/90 shadow-site-float backdrop-blur-xl supports-[backdrop-filter]:bg-card/84 md:max-h-[calc(100svh-2rem)]">
+        <Card className="max-h-[68svh] w-full overflow-y-auto border-border/70 bg-card/90 shadow-site-float backdrop-blur-xl supports-[backdrop-filter]:bg-card/84 md:max-h-[calc(100svh-2rem)]">
 
-        <CardHeader className="space-y-0 px-4 pb-1 pt-2 text-center md:pb-2 md:pt-4">
+        <CardHeader className="space-y-0 px-4 pb-0.5 pt-1.5 text-center md:pb-2 md:pt-4">
           <CardTitle className="sr-only">Aveto 360</CardTitle>
           <CardDescription className="text-sm font-semibold text-foreground/80">
             {mfaRequired
@@ -552,7 +552,7 @@ export default function Auth() {
           </CardContent>
         ) : (
           <form onSubmit={handleSubmit} autoComplete="on">
-          <CardContent className="space-y-2 px-4 md:space-y-2.5">
+          <CardContent className="space-y-1.5 px-4 md:space-y-2.5">
             {isSignup && duplicateEmail && (
               <div
                 role="alert"
@@ -632,7 +632,7 @@ export default function Auth() {
                 )}
                 <button
                   type="button"
-                  className="min-h-11 text-left text-xs font-medium text-primary hover:underline"
+                  className="min-h-8 text-left text-xs font-medium text-primary hover:underline md:min-h-11"
                   onClick={() => navigate("/esqueci-senha?primeiro=1")}
                 >
                   Primeiro acesso? Crie sua senha pelo CPF
@@ -831,7 +831,7 @@ export default function Auth() {
             )}
           </CardContent>
 
-          <CardFooter className="flex flex-col gap-1 px-4 pb-2 pt-0 md:gap-2 md:pb-4 md:pt-1">
+          <CardFooter className="flex flex-col gap-0.5 px-4 pb-1.5 pt-0 md:gap-2 md:pb-4 md:pt-1">
             {/* CTA principal da autenticação: verde escuro opaco para contraste
                 AA (~5.5:1 normal, ~7:1 hover/ativo). Cores explícitas também no
                 tema escuro para não herdar texto escuro. Sem opacity no hover. */}
