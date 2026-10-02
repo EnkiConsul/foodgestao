@@ -240,12 +240,11 @@ export function FolgaRegrasPanel({
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold">Particularidade de Folgas</h3>
+          <h3 className="text-sm font-semibold">Travas da Escala</h3>
           <p className="text-xs text-muted-foreground">
-            Travas do dia a dia desta unidade: quantas pessoas podem folgar por dia, limite por
-            cargo e pessoas que não podem folgar no mesmo dia. Todas valem juntas quando o
-            colaborador marca a folga. Um limite lançado para uma data específica no calendário vale
-            como exceção. Cada regra pode ser copiada para outras unidades.
+            Regras para não desfalcar a operação no dia a dia: quantas pessoas podem folgar por dia,
+            limite por cargo e pessoas que não podem folgar no mesmo dia. Todas valem juntas quando o
+            colaborador marca a folga. Cada trava pode ser copiada para outras unidades.
           </p>
         </div>
         <Button variant="outline" className="gap-2" onClick={abrirNova}>

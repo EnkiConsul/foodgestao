@@ -36,6 +36,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { MenosProtetivaBadge } from "@/components/dp/MenosProtetivaBadge";
 import { FolgaRegrasPanel } from "@/components/dp/folgas/FolgaRegrasPanel";
+import { FolgasDiferenciadasPanel } from "@/components/dp/folgas/FolgasDiferenciadasPanel";
 import { useDpConfigDp, type DpConfigDpForm } from "@/hooks/useDpConfigDp";
 import { useDpFolgaLimites, type RegraLimiteInput } from "@/hooks/useDpFolgaLimites";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
@@ -598,7 +599,7 @@ export function FolgaRegrasFormDialog({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="modo-freq">Modelo de frequência</Label>
+                <Label htmlFor="modo-freq">Modelo de frequência — homens</Label>
                 <Select
                   disabled={travadoClt}
                   value={form.modo_frequencia_domingo}
@@ -615,12 +616,12 @@ export function FolgaRegrasFormDialog({
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">Apenas um modelo vale por vez.</p>
+                <p className="text-xs text-muted-foreground">Lei 10.101/2000: no comércio, ao menos 1 domingo a cada 3 semanas.</p>
               </div>
 
               {form.modo_frequencia_domingo === "semanas" ? (
                 <div className="space-y-1.5">
-                  <Label htmlFor="per-domingo">{rotulos.semanas}</Label>
+                  <Label htmlFor="per-domingo">{rotulos.semanas} — homens</Label>
                   <Input
                     id="per-domingo"
                     type="number"
@@ -642,7 +643,7 @@ export function FolgaRegrasFormDialog({
                 </div>
               ) : (
                 <div className="space-y-1.5">
-                  <Label htmlFor="dom-mes">{rotulos.porMes}</Label>
+                  <Label htmlFor="dom-mes">{rotulos.porMes} — homens</Label>
                   <Select
                     disabled={travadoClt}
                     value={String(form.domingos_por_mes)}
@@ -760,6 +761,15 @@ export function FolgaRegrasFormDialog({
               )}
             </div>
           </SubSection>
+
+          <Separator />
+
+          <FolgasDiferenciadasPanel
+            unidadeId={unidadeEfetiva ?? null}
+            semanasHomens={semanas.geral}
+            semanasMulheres={semanas.mulher}
+            diasConsiderados={nomesDiasDeFolga}
+          />
 
           <Separator />
 

@@ -70,7 +70,7 @@ function resumoFrequencia(regra: DpConfigDpForm): string {
       ? `${regra.periodicidade_domingo_mulher} em ${regra.periodicidade_domingo_mulher} semana(s)`
       : `${regra.domingos_por_mes_mulher} por mês`;
   const ok = semanas.geral >= padrao && semanas.mulher >= 2;
-  return `${geral} (geral) / ${mulher} (mulheres)${ok ? "" : " — abaixo do padrão legal"}`;
+  return `Homens: ${geral} / Mulheres: ${mulher}${ok ? "" : " — abaixo do padrão legal"}`;
 }
 
 function resumoJanela(regra: DpConfigDpForm): string {
