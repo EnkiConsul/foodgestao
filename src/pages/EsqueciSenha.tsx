@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { avaliarSenha, SENHA_MIN } from "@/lib/security/passwordPolicy";
 import { MedidorSenha } from "@/components/auth/MedidorSenha";
+import { ChecklistRequisitosSenha } from "@/components/auth/ChecklistRequisitosSenha";
+import { ConferenciaSenhas } from "@/components/auth/ConferenciaSenhas";
 
 type Step = "identify" | "otp" | "password" | "done";
 
@@ -383,7 +385,7 @@ export default function EsqueciSenha() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     className="pl-10 pr-10"
-                    minLength={12}
+                    minLength={SENHA_MIN}
                     maxLength={72}
                     autoFocus
                     required

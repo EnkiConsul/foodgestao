@@ -23,6 +23,8 @@ import { consumePendingInviteToken } from "@/lib/auth/invite";
 import { z } from "zod";
 import { avaliarSenha, mensagemDoServidorDeContas, SENHA_MIN } from "@/lib/security/passwordPolicy";
 import { MedidorSenha } from "@/components/auth/MedidorSenha";
+import { ChecklistRequisitosSenha } from "@/components/auth/ChecklistRequisitosSenha";
+import { ConferenciaSenhas } from "@/components/auth/ConferenciaSenhas";
 import { toast } from "sonner";
 import { trackEvent, FunnelStep } from "@/lib/analytics";
 import loginDesktop from "@/assets/aveto360-login-desktop-v2.png.asset.json";
