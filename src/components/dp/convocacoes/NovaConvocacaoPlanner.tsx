@@ -50,7 +50,7 @@ import {
   coberturaDoDia,
   janelaMinutos,
   minimoDoCargoNaData,
-  regimeConvocavel,
+  pessoaConvocavel,
   viraNoDiaSeguinte,
 } from "@/lib/dp/convocacoes-planejamento";
 import { dataDoErroDePublicacao, textoDoErroDePublicacao } from "@/lib/dp/convocacoes-motivos";
