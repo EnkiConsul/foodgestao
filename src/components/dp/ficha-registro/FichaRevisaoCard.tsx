@@ -242,7 +242,7 @@ export function FichaRevisaoCard({
    */
   const [justDivergencia, setJustDivergencia] = useState("");
   const [cienteDivergencia, setCienteDivergencia] = useState(false);
-  const divergenciasFicha = useMemo(() => {
+  const divergenciasRegistro = useMemo(() => {
     if (preadmissaoId) return [];
     const cargoSel = cargos.find((c) => c.id === cargoId)?.nome ?? null;
     return divergenciasComFicha(
@@ -477,7 +477,7 @@ export function FichaRevisaoCard({
       toast.error("A unidade tem mais de 20 pessoas: o ponto é obrigatório (Art. 74 da CLT). Justifique a dispensa (ex.: cargo de confiança, Art. 62).");
       return;
     }
-    if (divergenciasFicha.length > 0 && !cienciaDivergenciaValida(justDivergencia, cienteDivergencia)) {
+    if (divergenciasRegistro.length > 0 && !cienciaDivergenciaValida(justDivergencia, cienteDivergencia)) {
       setTentouCriar(true);
       toast.error("Há divergência com a ficha de registro. Informe a justificativa e confirme a ciência.");
       document.getElementById(`ficha-div-${item.id}-just`)?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -567,7 +567,7 @@ export function FichaRevisaoCard({
           setComparacao(false);
           // Familiares da ficha viram dependentes (filhos, enteados, tutelados, cônjuge).
           const colabId = (res as { colaboradorId?: string } | undefined)?.colaboradorId;
-          if (divergenciasFicha.length > 0) {
+          if (divergenciasRegistro.length > 0) {
             try {
               await registrarCienciaRegra({
                 companyId: item.company_id,
@@ -576,7 +576,7 @@ export function FichaRevisaoCard({
                 valorAntigo: { origem: "ficha_registro", ficha_item_id: item.id },
                 valorNovo: {
                   tipo: "divergencia_ficha_registro",
-                  divergencias: resumoDivergencias(divergenciasFicha),
+                  divergencias: resumoDivergencias(divergenciasRegistro),
                 },
                 justificativa: justDivergencia.trim(),
                 ciencia: true,
@@ -1404,7 +1404,7 @@ export function FichaRevisaoCard({
         {!aplicado && (
           <DivergenciaFichaAlerta
             id={`ficha-div-${item.id}`}
-            divergencias={divergenciasFicha}
+            divergencias={divergenciasRegistro}
             justificativa={justDivergencia}
             onJustificativa={setJustDivergencia}
             ciente={cienteDivergencia}
