@@ -19,7 +19,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
 import { pessoaAvulsaSchema, validateWithToast } from "@/lib/validations";
 import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
-import { useDpPessoasApoio, useSalvarDpPessoaApoio } from "@/hooks/useDpPessoasApoio";
+import { useDpPessoasApoio } from "@/hooks/useDpPessoasApoio";
+import { PessoaApoioFormDialog } from "@/components/dp/PessoaApoioFormDialog";
 import { useDpApoioUnidades } from "@/hooks/useDpApoioUnidades";
 import { liberacoesParaUnidade, pessoasSelecionaveisNaUnidade } from "@/lib/dp/apoio-unidades";
 import type { HorarioSugerido, PessoaAvulsaPanorama, PessoaAvulsaTipo } from "@/lib/dp/operacao-panorama";
@@ -152,8 +153,8 @@ export function DpPessoaAvulsaDialog({
     observacao: "",
   });
   const [horarioTocado, setHorarioTocado] = useState(false);
+  const [cadastroApoioOpen, setCadastroApoioOpen] = useState(false);
   const apoio = useDpPessoasApoio({ apenasAtivos: true });
-  const salvarApoio = useSalvarDpPessoaApoio();
   const apoioUnidades = useDpApoioUnidades({ apenasAtivas: true });
 
 
