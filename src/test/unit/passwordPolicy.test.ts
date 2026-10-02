@@ -14,12 +14,12 @@ import {
 const FORTE = "Trilha#Verde42x";
 
 describe("regra única de senha (S3)", () => {
-  it("exige 12 caracteres", () => {
-    expect(SENHA_MIN).toBe(12);
-    const r = avaliarSenha("Ale!2026aB1"); // 11 caracteres, quatro classes
+  it("exige 8 caracteres", () => {
+    expect(SENHA_MIN).toBe(8);
+    const r = avaliarSenha("Ale!26B"); // 7 caracteres, quatro classes
     expect(r.valida).toBe(false);
     expect(r.problemas).toContain("curta");
-    expect(r.mensagem).toBe("Use pelo menos 12 caracteres");
+    expect(r.mensagem).toBe("Use pelo menos 8 caracteres");
   });
 
   it("aprova senha com 12+ e quatro classes", () => {
@@ -107,7 +107,7 @@ describe("regra única de senha (S3)", () => {
     expect(traducao).not.toContain("mínimo 6 caracteres");
   });
 
-  it("os textos das telas falam em 12 e não trazem senha de exemplo", () => {
+  it("os textos das telas usam a regra única e não trazem senha de exemplo", () => {
     for (const arq of [
       "src/pages/Auth.tsx",
       "src/pages/ResetPassword.tsx",
@@ -130,7 +130,7 @@ describe("regra única de senha (S3)", () => {
 
   it("traduz as recusas do serviço de contas", () => {
     expect(mensagemDoServidorDeContas("Password is known to be weak and easy to guess (pwned)")).toContain("vazamentos");
-    expect(mensagemDoServidorDeContas("Password should be at least 12 characters")).toContain("12 caracteres");
+    expect(mensagemDoServidorDeContas("Password should be at least 12 characters")).toContain("8 caracteres");
     expect(mensagemDoServidorDeContas("New password should be different from the old password")).toContain("diferente");
   });
 

@@ -12,7 +12,7 @@ import { useTurnstileConfig } from "@/hooks/useTurnstileSiteKey";
 import { describeTurnstileError, currentHostname } from "@/lib/auth/turnstileErrors";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { avaliarSenha } from "@/lib/security/passwordPolicy";
+import { avaliarSenha, SENHA_MIN } from "@/lib/security/passwordPolicy";
 import { MedidorSenha } from "@/components/auth/MedidorSenha";
 
 type Step = "identify" | "otp" | "password" | "done";
@@ -400,7 +400,7 @@ export default function EsqueciSenha() {
                 </div>
                 <MedidorSenha senha={newPassword} />
                 <p className="text-xs text-muted-foreground">
-                  Mín. 12 caracteres com maiúscula, minúscula, número e símbolo (espaço e letra
+                  Mín. {SENHA_MIN} caracteres com maiúscula, minúscula, número e símbolo (espaço e letra
                   acentuada não valem). Evite sequências, seu nome, e-mail ou CPF.
                 </p>
               </div>
