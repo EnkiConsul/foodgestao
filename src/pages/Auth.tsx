@@ -462,10 +462,12 @@ export default function Auth() {
   return (
     <main className="h-[100svh] overflow-hidden bg-site-navy-deep md:min-h-screen md:h-auto md:overflow-visible">
       <Helmet>
-        <title>Entrar ou criar conta — Aveto 360</title>
-        <meta name="description" content="Acesse sua conta Aveto 360 ou crie um cadastro gratuito para gerenciar suas finanças pessoais e empresariais." />
-        <meta property="og:title" content="Entrar ou criar conta — Aveto 360" />
-        <meta property="og:description" content="Acesse sua conta Aveto 360 ou crie um cadastro gratuito para gerenciar suas finanças." />
+        <title>{isSignup ? "Criar conta — Aveto 360" : "Entrar — Aveto 360"}</title>
+        <meta name="description" content={isSignup
+          ? "Crie sua conta no Aveto 360 e organize a gestão do seu bar, restaurante ou rede de unidades."
+          : "Acesse sua conta Aveto 360 com CPF ou e-mail e gerencie seu bar, restaurante ou rede de unidades."} />
+        <meta property="og:title" content={isSignup ? "Criar conta — Aveto 360" : "Entrar — Aveto 360"} />
+        <meta property="og:description" content="Gestão financeira e de pessoas para bares, restaurantes e redes de unidades." />
       </Helmet>
       <h1 className="sr-only">Acesse sua conta ou crie seu cadastro no Aveto 360</h1>
 
