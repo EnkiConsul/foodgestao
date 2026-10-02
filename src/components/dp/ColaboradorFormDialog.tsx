@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LIMITE_PONTO_OBRIGATORIO } from "@/lib/dp/ficha-registro/inferencia";
+import { AVISO_ART74, justificativaValida as justificativaValidaPonto } from "@/lib/dp/ponto-conformidade";
 import { AlertTriangle, ExternalLink, Info } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
