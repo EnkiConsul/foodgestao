@@ -32,10 +32,10 @@ import loginMobile from "@/assets/aveto360-login-mobile-v2.png.asset.json";
 
 // Login identifier: e-mail OR CPF (11 digits with or without punctuation)
 const loginSchema = z.object({
-  identifier: z.string().trim().min(3, "Informe seu e-mail ou CPF").max(255).refine((v) => {
+  identifier: z.string().trim().min(3, "Informe seu CPF ou e-mail").max(255).refine((v) => {
     if (v.includes("@")) return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
     return /^\d{11}$/.test(v.replace(/\D/g, ""));
-  }, { message: "Informe um e-mail válido ou um CPF com 11 dígitos" }),
+  }, { message: "Informe um CPF com 11 dígitos ou um e-mail válido" }),
   password: z.string().min(6, "Mínimo 6 caracteres").max(128),
 });
 
@@ -605,7 +605,7 @@ export default function Auth() {
 
             {isLogin ? (
               <div className="space-y-0.5">
-                <Label htmlFor="identifier" className="text-xs md:text-sm">E-mail ou CPF</Label>
+                <Label htmlFor="identifier" className="text-xs md:text-sm">CPF ou e-mail</Label>
                 <div className="relative">
                   <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -614,8 +614,8 @@ export default function Auth() {
                     aria-describedby={errors.identifier ? "erro-identifier" : undefined}
                     name="username"
                     type="text"
-                    inputMode="email"
-                    placeholder="seu@email.com ou 000.000.000-00"
+                    inputMode="text"
+                    placeholder="000.000.000-00 ou seu@email.com"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                      className="h-9 bg-background/80 pl-10"
