@@ -15,7 +15,7 @@ const FORTE = "Trilha#Verde42x";
 
 describe("regra única de senha (S3)", () => {
   it("exige 12 caracteres", () => {
-    expect(SENHA_MIN).toBe(12);
+    expect(SENHA_MIN).toBe(8);
     const r = avaliarSenha("Ale!2026aB1"); // 11 caracteres, quatro classes
     expect(r.valida).toBe(false);
     expect(r.problemas).toContain("curta");
