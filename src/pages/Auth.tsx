@@ -620,6 +620,13 @@ export default function Auth() {
                     {errors.identifier}
                   </p>
                 )}
+                <button
+                  type="button"
+                  className="min-h-11 text-left text-xs font-medium text-primary hover:underline"
+                  onClick={() => navigate("/esqueci-senha?primeiro=1")}
+                >
+                  Primeiro acesso ao Portal do Colaborador? Crie sua senha pelo CPF
+                </button>
               </div>
             ) : (
               <div className="space-y-1">
