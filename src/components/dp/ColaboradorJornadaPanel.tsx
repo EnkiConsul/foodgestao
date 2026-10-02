@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useDpTurnos, TURNO_FORM_DEFAULT } from "@/hooks/useDpTurnos";
 import { CopiarConfigColaboradorDialog, type ConfigCopiada } from "@/components/dp/CopiarConfigColaboradorDialog";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
+import { JUSTIFICATIVA_DIVERGENCIA_MIN } from "@/lib/dp/ficha-registro/divergencia";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -1389,8 +1390,24 @@ export function ColaboradorJornadaPanel({
                 <p className="text-[11px] text-muted-foreground">Pode ser uma data passada (correção retroativa a partir dela).</p>
               </div>
             )}
+            {divergenciaHorarioFicha && (
+              <div className="space-y-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-xs">
+                <p className="flex items-center gap-1.5 font-semibold text-destructive">
+                  <ShieldAlert className="h-4 w-4" aria-hidden="true" /> Horário diferente da Ficha de Registro
+                </p>
+                <p className="text-muted-foreground">
+                  Na ficha: {divergenciaHorarioFicha.ficha} → Novo: <span className="font-semibold text-foreground">{divergenciaHorarioFicha.sistema}</span>
+                </p>
+                <div className="flex items-start gap-2">
+                  <Checkbox id="vig-dec-ciente-ficha" checked={vigDecCienteFicha} onCheckedChange={(v) => setVigDecCienteFicha(v === true)} />
+                  <Label htmlFor="vig-dec-ciente-ficha" className="text-xs font-normal leading-snug">
+                    Estou ciente de que este horário difere do registro oficial na ficha e assumo a responsabilidade pela divergência.
+                  </Label>
+                </div>
+              </div>
+            )}
             <div className="space-y-1">
-              <Label htmlFor="vig-dec-just">Justificativa *</Label>
+              <Label htmlFor="vig-dec-just">Justificativa *{divergenciaHorarioFicha ? ` (mínimo ${JUSTIFICATIVA_DIVERGENCIA_MIN} caracteres)` : ""}</Label>
               <Textarea id="vig-dec-just" rows={3} value={vigDecJust} onChange={(e) => setVigDecJust(e.target.value)} />
             </div>
           </div>
