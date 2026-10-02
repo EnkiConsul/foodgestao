@@ -203,11 +203,11 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     const redirect = encodeURIComponent(location.pathname + location.search);
-    return <Navigate to={`/auth?redirect=${redirect}`} replace />;
+    return <Navigate to={`/login?redirect=${redirect}`} replace />;
   }
   if (mfaRequired) {
     const redirect = encodeURIComponent(location.pathname + location.search);
-    return <Navigate to={`/auth?redirect=${redirect}`} replace />;
+    return <Navigate to={`/login?redirect=${redirect}`} replace />;
   }
   if (onboardingCompleted === false) {
     if (portal.isPortalOnly) return <Navigate to={PORTAL_PATH} replace />;

@@ -157,7 +157,7 @@ export default function AcceptInvite() {
               <Button onClick={handleAccept} disabled={busy} className="w-full min-h-11">
                 {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Aceitando...</> : <><CheckCircle className="h-4 w-4 mr-2" />Aceitar Convite</>}
               </Button>
-              <Button variant="outline" onClick={() => navigate("/")} className="w-full min-h-10">Cancelar</Button>
+              <Button variant="outline" onClick={() => navigate("/login")} className="w-full min-h-10">Cancelar</Button>
             </CardContent>
           </>
         )}
@@ -205,7 +205,7 @@ export default function AcceptInvite() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" onClick={() => navigate("/")} className="w-full">Voltar ao Início</Button>
+              <Button variant="outline" onClick={() => navigate("/login")} className="w-full">Voltar ao Início</Button>
             </CardContent>
           </>
         )}

@@ -80,7 +80,7 @@ describe("OAuth consent — usuário autenticado", () => {
 
     await waitFor(() => expect(hrefSetter).toHaveBeenCalled());
     const target = hrefSetter.mock.calls[0][0] as string;
-    expect(target.startsWith("/auth?redirect=")).toBe(true);
+    expect(target.startsWith("/login?redirect=")).toBe(true);
     expect(decodeURIComponent(target)).toContain("/.lovable/oauth/consent?authorization_id=auth-123");
     expect(getAuthorizationDetails).not.toHaveBeenCalled();
   });
