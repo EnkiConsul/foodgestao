@@ -163,8 +163,8 @@ Deno.serve(async (req) => {
         if (cancelarErro) throw cancelarErro;
         return json(200, { ok: true });
       }
-      if (row.canal_assinatura !== "whatsapp" || (row.colaborador_id && !(await colaboradorDesligado(admin, row.colaborador_id)))) {
-        return erro(409, "O link externo é exclusivo para pessoas sem cadastro ou desligadas.");
+      if (row.canal_assinatura !== "whatsapp") {
+        return erro(409, "Este recibo não foi emitido para assinatura por link.");
       }
       return json(200, { ...(await novoLink(admin, row.id, req)), whatsapp: row.beneficiario_whatsapp });
     }
@@ -194,9 +194,6 @@ Deno.serve(async (req) => {
         .select("id, company_id, nome, nome_social, cpf, whatsapp, telefone, unidade_id, ativo")
         .eq("id", b.colaborador_id).maybeSingle();
       if (!colab || colab.company_id !== b.company_id) return erro(403, "Colaborador não pertence à empresa.");
-      if (b.canal_assinatura === "whatsapp" && colab.ativo !== false) {
-        return erro(400, "Colaborador cadastrado assina pelo Portal ou à mão.");
-      }
       nome = String(colab.nome_social || colab.nome || "").toUpperCase();
       cpf = String(colab.cpf ?? "").replace(/\D+/g, "");
       whatsapp = whatsapp || String(colab.whatsapp || colab.telefone || "").replace(/\D+/g, "");

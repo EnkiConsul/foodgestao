@@ -115,7 +115,6 @@ export default function DpRecibos() {
   }, [colab, natureza]);
   useEffect(() => {
     if (avulso && canal === "portal") setCanal("whatsapp");
-    if (colab && colab.ativo !== false && canal === "whatsapp") setCanal("portal");
     if (colab) setWhats(String(colab.whatsapp || colab.telefone || ""));
   }, [avulso, colab, canal]);
 
