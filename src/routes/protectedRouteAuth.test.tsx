@@ -2,7 +2,7 @@
  * Teste — rotas privadas exigem autenticação.
  *
  * Cobre a regressão: sem sessão ativa, o `ProtectedRoute` deve redirecionar
- * o usuário para `/auth?redirect=<rota-original>` e nunca renderizar o
+ * o usuário para `/login?redirect=<rota-original>` e nunca renderizar o
  * conteúdo protegido.
  */
 import { describe, it, expect, vi } from "vitest";
@@ -63,7 +63,7 @@ function renderAt(pathname: string) {
             </ProtectedRoute>
           }
         />
-        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/login" element={<AuthPage />} />
       </Routes>
     </MemoryRouter>,
   );
