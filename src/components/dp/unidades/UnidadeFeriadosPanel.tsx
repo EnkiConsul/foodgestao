@@ -27,6 +27,34 @@ const fmt = (iso: string) => {
 export function UnidadeFeriadosPanel({ unidadeId }: Props) {
   const { feriados, isLoading, salvar, alternar, excluir, incluirNacionais, replicar } =
     useDpFeriados(unidadeId ?? null);
+  const qc = useQueryClient();
+  const { companyId } = useCompanyContext() as any;
+  const cienteEm = useQuery({
+    queryKey: ["dp_unidade_feriados_ciente", unidadeId],
+    enabled: !!unidadeId,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("dp_unidades").select("feriados_locais_ciente_em").eq("id", unidadeId).maybeSingle();
+      return (data?.feriados_locais_ciente_em as string | null) ?? null;
+    },
+  });
+  const definirCiencia = async (ciente: boolean) => {
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await (supabase as any).from("dp_unidades").update({
+      feriados_locais_ciente_em: ciente ? new Date().toISOString() : null,
+      feriados_locais_ciente_por: ciente ? u.user?.id ?? null : null,
+    }).eq("id", unidadeId);
+    if (error) throw error;
+  };
+  const aposCiencia = {
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_unidade_feriados_ciente", unidadeId] });
+      if (companyId) forcarRecargaPendencias(companyId);
+    },
+    onError: () => toast.error("Não foi possível registrar a confirmação."),
+  };
+  const confirmar = useMutation({ mutationFn: () => definirCiencia(true), ...aposCiencia });
+  const desfazer = useMutation({ mutationFn: () => definirCiencia(false), ...aposCiencia });
   const [open, setOpen] = useState(false);
   const [replicarOpen, setReplicarOpen] = useState(false);
   const [editando, setEditando] = useState<FeriadoRegra | null>(null);
@@ -74,6 +102,25 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
           </Button>
         </div>
       </div>
+
+      {!isLoading && !cienteEm.isLoading && faltaFeriadoLocal(feriados, cienteEm.data) && (
+        <div className="space-y-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
+          <p className="font-medium">Faltam os feriados municipais e estaduais</p>
+          <p className="text-xs text-muted-foreground">
+            Esta unidade só tem feriados nacionais. Cadastre os feriados da cidade e do estado
+            (ex.: aniversário da cidade, padroeiro) para que férias, folgas e escalas fiquem corretas.
+          </p>
+          <Button size="sm" variant="outline" disabled={confirmar.isPending} onClick={() => confirmar.mutate()}>
+            Confirmar que Não Há Feriados Locais
+          </Button>
+        </div>
+      )}
+      {cienteEm.data && !feriados.some((f) => f.ativo !== false && ehFeriadoLocal(f)) && (
+        <p className="text-xs text-muted-foreground">
+          Confirmado que esta unidade não tem feriados locais.{" "}
+          <button type="button" className="underline" onClick={() => desfazer.mutate()}>Desfazer</button>
+        </p>
+      )}
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
