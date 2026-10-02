@@ -742,14 +742,30 @@ export function ColaboradorJornadaPanel({
     topoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  /**
+   * Horário diferente do registrado na Ficha de Registro (CTPS/eSocial):
+   * exige tipo (nova condição ou correção), data, justificativa (mín. 15) e ciência.
+   */
+  const divergenciaHorarioFicha = (() => {
+    if (!horarioFicha || !horario.entrada || !horario.saida) return null;
+    const igual =
+      horarioFicha.entrada === horario.entrada &&
+      horarioFicha.saida === horario.saida &&
+      (horarioFicha.intervalo_minutos == null || horarioFicha.intervalo_minutos === (horario.intervalo_minutos ?? 0));
+    return igual ? null : { ficha: descreverHorario(horarioFicha), sistema: descreverHorario(horario) };
+  })();
+  const [vigDecCienteFicha, setVigDecCienteFicha] = useState(false);
+
   /** Alterar a condição vigente exige decidir: nova vigência ou correção. */
-  const precisaDecidirVigencia = () => !!vigente && vigenciaModo === "base" && !decisaoRef.current;
+  const precisaDecidirVigencia = () =>
+    !decisaoRef.current && ((!!vigente && vigenciaModo === "base") || !!divergenciaHorarioFicha);
   const pedirDecisao = () =>
     new Promise<boolean>((resolve) => {
       vigDecResolveRef.current = resolve;
       setVigDecModo("nova");
       setVigDecData(hoje());
       setVigDecJust("");
+      setVigDecCienteFicha(false);
       setVigDecOpen(true);
     });
   const fecharDecisao = (ok: boolean) => {
@@ -759,7 +775,9 @@ export function ColaboradorJornadaPanel({
     r?.(ok);
   };
   const confirmarDecisao = () => {
-    if (vigDecJust.trim().length < 5) { toast.error("Informe a justificativa (mínimo 5 caracteres)."); return; }
+    const minJust = divergenciaHorarioFicha ? JUSTIFICATIVA_DIVERGENCIA_MIN : 5;
+    if (vigDecJust.trim().length < minJust) { toast.error(`Informe a justificativa (mínimo ${minJust} caracteres).`); return; }
+    if (divergenciaHorarioFicha && !vigDecCienteFicha) { toast.error("Confirme a ciência da divergência com a ficha de registro."); return; }
     if (vigDecModo === "nova") {
       if (!vigDecData) { toast.error("Informe a data de início."); return; }
       if (admissao && vigDecData < admissao) { toast.error("A data não pode ser anterior à admissão."); return; }
@@ -770,10 +788,13 @@ export function ColaboradorJornadaPanel({
       setInicio(vigDecData);
       setVigenciaModo("nova_data");
     }
+    const prefixoFicha = divergenciaHorarioFicha
+      ? `[Divergência com a Ficha de Registro: ficha "${divergenciaHorarioFicha.ficha}" → sistema "${divergenciaHorarioFicha.sistema}"; ciência confirmada] `
+      : "";
     decisaoRef.current = {
       modo: vigDecModo,
       inicio: vigDecModo === "nova" ? vigDecData : inicio,
-      justificativa: vigDecJust.trim(),
+      justificativa: prefixoFicha + vigDecJust.trim(),
     };
     fecharDecisao(true);
   };
