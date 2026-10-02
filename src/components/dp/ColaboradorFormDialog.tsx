@@ -2896,6 +2896,16 @@ export function ColaboradorFormDialog({
                   </Button>
                 </div>
               )}
+              {!unidadeIrregularPonto && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => sairPara(`/dp/cadastros/unidades?editar=${form.unidade_id}&aba=dados`)}
+                >
+                  Ativar Ponto na Unidade
+                </Button>
+              )}
             </div>
           )}
           {form.unidade_id && unidadeTemPonto && (

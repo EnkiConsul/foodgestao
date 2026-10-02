@@ -242,11 +242,16 @@ export function FichaRevisaoCard({
       return count ?? 0;
     },
   });
-  const pontoObrigatorio = (lotacao.data ?? 0) + (item.colaborador_existente_id ? 0 : 1) > LIMITE_PONTO_OBRIGATORIO;
+  // O ponto é decisão da unidade: sem relógio, a ficha herda "não utiliza" sem justificativa individual.
+  const unidadeTemPonto = !!unidades.find((u) => u.id === unidadeId)?.possui_relogio_ponto;
+  const pontoObrigatorio =
+    unidadeTemPonto && (lotacao.data ?? 0) + (item.colaborador_existente_id ? 0 : 1) > LIMITE_PONTO_OBRIGATORIO;
   const [justificativaPonto, setJustificativaPonto] = useState("");
   useEffect(() => {
-    if (possuiFolhaPonto === null && pontoObrigatorio) setPossuiFolhaPonto(true);
-  }, [pontoObrigatorio, possuiFolhaPonto]);
+    if (!unidadeId) return;
+    if (!unidadeTemPonto) setPossuiFolhaPonto(false);
+    else if (possuiFolhaPonto === null && pontoObrigatorio) setPossuiFolhaPonto(true);
+  }, [unidadeId, unidadeTemPonto, pontoObrigatorio, possuiFolhaPonto]);
 
   const salarioFicha = useMemo(() => salarioDaFicha(dados), [dados]);
   const dependentesLidos = useMemo(() => dependentesDaFicha(dados), [dados]);
@@ -387,6 +392,12 @@ export function FichaRevisaoCard({
    * e confere a dispensa de ponto em unidade com mais de 20 pessoas.
    */
   const executar = async (camposPermitidos: string[] | null) => {
+    if (!unidadeId) {
+      setCompletarAberto(true);
+      setTentouCriar(true);
+      toast.error("Escolha a unidade antes de aprovar. Se ela ainda não existe, use \"Cadastrar Unidade da Ficha\".");
+      return;
+    }
     if (escolhasPendentes.length > 0) {
       setCompletarAberto(true);
       setTentouCriar(true);
