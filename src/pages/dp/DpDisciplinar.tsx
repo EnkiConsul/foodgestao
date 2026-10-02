@@ -729,7 +729,7 @@ export default function DpDisciplinar() {
                   <Label htmlFor="motivo-disc">Motivos * <span className="font-normal text-muted-foreground">(marque um ou mais)</span></Label>
                   <div id="motivo-disc" className={`space-y-1 rounded-md border p-2 ${campoPendente === "motivo" ? "border-destructive ring-1 ring-destructive" : ""}`}>
                     {MOTIVOS.map((m) => {
-                      const marcados = motivoSel.split(" + ").map((s) => s.trim()).filter(Boolean);
+                      const marcados = motivoSel.split(" + ").filter((s) => s.trim());
                       const on = marcados.includes(m.label);
                       return (
                         <label key={m.label} className="flex cursor-pointer items-start gap-2 rounded px-1 py-1.5 hover:bg-muted/50">
@@ -753,7 +753,7 @@ export default function DpDisciplinar() {
                       );
                     })}
                     {(() => {
-                      const marcados = motivoSel.split(" + ").map((s) => s.trim()).filter(Boolean);
+                      const marcados = motivoSel.split(" + ").filter((s) => s.trim());
                       const padrao = marcados.filter((x) => MOTIVOS.some((m) => m.label === x));
                       const outro = marcados.filter((x) => !MOTIVOS.some((m) => m.label === x)).join(" ");
                       return (
