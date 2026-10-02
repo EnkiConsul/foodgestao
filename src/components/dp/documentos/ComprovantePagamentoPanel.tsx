@@ -310,7 +310,9 @@ export function ComprovanteAnexarDialog(props: {
           modalidade: quitacao.modalidade,
           valorBancarioCents: quitacao.bancarioCents,
           valorEspecieCents: quitacao.especieCents,
-          leitura: leitura?.bruto ?? null,
+          leitura: leitura?.bruto
+            ? { ...(leitura.bruto as object), conferencia_favorecido: conferencia.status, ciente_favorecido: favorecidoDivergente ? cienteFavorecido : null }
+            : null,
         },
       },
       { onSuccess: () => props.onOpenChange(false) },
