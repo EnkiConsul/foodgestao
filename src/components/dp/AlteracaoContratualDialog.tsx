@@ -16,6 +16,8 @@ import {
   type AlteracaoContratual,
   type EfeitoAlteracao,
 } from "@/lib/dp/alteracao-contratual";
+import { Checkbox } from "@/components/ui/checkbox";
+import { JUSTIFICATIVA_DIVERGENCIA_MIN, type DivergenciaFicha } from "@/lib/dp/ficha-registro/divergencia";
 
 const hoje = () => new Date().toISOString().slice(0, 10);
 
@@ -35,6 +37,8 @@ export interface AlteracaoContratualConfirmacao {
   efeito: EfeitoAlteracao;
   vigencia: string;
   justificativa: string;
+  /** Ciência formal da divergência com a ficha de registro (quando houver). */
+  cienciaFicha?: boolean;
 }
 
 interface Props {
@@ -44,6 +48,8 @@ interface Props {
   admissao?: string | null;
   alteracoes: AlteracaoContratual[];
   alertas: AlertaAlteracao[];
+  /** Diferenças em relação à Ficha de Registro de origem (registro contábil). */
+  divergenciasFicha?: DivergenciaFicha[];
   salvando?: boolean;
   onCancel: () => void;
   onConfirm: (c: AlteracaoContratualConfirmacao) => void | Promise<void>;
@@ -56,21 +62,26 @@ interface Props {
  * condição vale (permitindo correção retroativa) e registra a justificativa.
  */
 export function AlteracaoContratualDialog({
-  open, nome, admissao, alteracoes, alertas, salvando, onCancel, onConfirm,
+  open, nome, admissao, alteracoes, alertas, divergenciasFicha = [], salvando, onCancel, onConfirm,
 }: Props) {
   const [efeito, setEfeito] = useState<EfeitoAlteracao>("nova_vigencia");
   const [vigencia, setVigencia] = useState(hoje());
   const [justificativa, setJustificativa] = useState("");
+  const [cienteFicha, setCienteFicha] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setEfeito("nova_vigencia");
     setVigencia(hoje());
     setJustificativa("");
+    setCienteFicha(false);
   }, [open]);
 
-  const exigeJustificativa = temRiscoAlto(alertas) || efeito === "correcao";
-  const justificativaOk = !exigeJustificativa || justificativa.trim().length >= 10;
+  const temDivFicha = divergenciasFicha.length > 0;
+  const minJust = temDivFicha ? JUSTIFICATIVA_DIVERGENCIA_MIN : 10;
+  const exigeJustificativa = temDivFicha || temRiscoAlto(alertas) || efeito === "correcao";
+  const justificativaOk = !exigeJustificativa || justificativa.trim().length >= minJust;
+  const cienciaOk = !temDivFicha || cienteFicha;
   const vigenciaOk = /^\d{4}-\d{2}-\d{2}$/.test(vigencia) && (!admissao || vigencia >= admissao);
 
   return (
@@ -95,6 +106,28 @@ export function AlteracaoContratualDialog({
               </div>
             ))}
           </div>
+
+          {temDivFicha && (
+            <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="flex items-start gap-2">
+                <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
+                <div className="space-y-2">
+                  <p className="font-semibold">Alteração em relação à Ficha de Registro</p>
+                  <p className="text-[13px] leading-relaxed opacity-90">
+                    Esta alteração diverge do contrato registrado na ficha de registro (CTPS / eSocial). Informe a
+                    motivação formal (ex.: promoção homologada, acordo individual de jornada, aditivo contratual assinado).
+                  </p>
+                  <ul className="space-y-1 text-xs">
+                    {divergenciasFicha.map((d) => (
+                      <li key={d.campo}>
+                        <span className="font-medium">{d.label}:</span> na ficha {d.ficha} → {d.sistema}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
 
           {alertas.map((al, i) => {
             const Icone = ICONE[al.nivel];
@@ -172,9 +205,19 @@ export function AlteracaoContratualDialog({
               onChange={(e) => setJustificativa(e.target.value)}
             />
             {exigeJustificativa && !justificativaOk && (
-              <p className="text-xs text-destructive">Descreva o motivo com pelo menos 10 caracteres.</p>
+              <p className="text-xs text-destructive">Descreva o motivo com pelo menos {minJust} caracteres.</p>
             )}
           </div>
+
+          {temDivFicha && (
+            <div className="flex items-start gap-2">
+              <Checkbox id="ciencia-ficha" checked={cienteFicha} onCheckedChange={(v) => setCienteFicha(v === true)} />
+              <Label htmlFor="ciencia-ficha" className="text-sm font-normal leading-snug">
+                Estou ciente de que esta condição difere do registro oficial na ficha e assumo a responsabilidade
+                pela divergência.
+              </Label>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -182,8 +225,8 @@ export function AlteracaoContratualDialog({
             Voltar e revisar
           </Button>
           <Button
-            disabled={!vigenciaOk || !justificativaOk || salvando}
-            onClick={() => void onConfirm({ efeito, vigencia, justificativa: justificativa.trim() })}
+            disabled={!vigenciaOk || !justificativaOk || !cienciaOk || salvando}
+            onClick={() => void onConfirm({ efeito, vigencia, justificativa: justificativa.trim(), cienciaFicha: temDivFicha ? cienteFicha : undefined })}
           >
             Confirmar alteração
           </Button>
