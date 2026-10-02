@@ -286,7 +286,12 @@ function RootGate() {
 
   if (loading || (user && !target)) return <PageSpinner />;
   if (user && target) return <Navigate to={target} replace />;
-  return <Auth />;
+  return <Landing />;
+}
+
+function RedirectLogin() {
+  const loc = useLocation();
+  return <Navigate to={`/login${loc.search}${loc.hash}`} replace />;
 }
 
 
@@ -407,10 +412,10 @@ const AppRoutes = () => (
       <Routes>
 
       <Route path="/" element={<RootGate />} />
-      <Route path="/auth" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
+      <Route path="/login" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
+      <Route path="/auth" element={<RedirectLogin />} />
       <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
-      <Route path="/login" element={<Navigate to="/auth" replace />} />
-      <Route path="/dp/login" element={<Navigate to="/auth" replace />} />
+      <Route path="/dp/login" element={<RedirectLogin />} />
       <Route path="/primeiro-acesso" element={<PrimeiroAcesso />} />
       <Route path="/ativar-acesso" element={<AtivarAcesso />} />
       <Route path="/redefinir-acesso" element={<AtivarAcesso />} />

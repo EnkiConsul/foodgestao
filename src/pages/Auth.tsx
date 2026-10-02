@@ -627,7 +627,7 @@ export default function Auth() {
                   className="min-h-11 text-left text-xs font-medium text-primary hover:underline"
                   onClick={() => navigate("/esqueci-senha?primeiro=1")}
                 >
-                  Primeiro acesso ao Portal do Colaborador? Crie sua senha pelo CPF
+                  Primeiro acesso? Crie sua senha pelo CPF
                 </button>
               </div>
             ) : (
@@ -852,9 +852,10 @@ export default function Auth() {
               <button
                 type="button"
                 className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-3 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                onClick={() => switchMode(isLogin ? "signup" : "login")}
+                onClick={() => switchMode("login")}
+                hidden={isLogin}
               >
-                {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Entre"}
+                Já tem conta? Entre
               </button>
             )}
           </CardFooter>
