@@ -22,10 +22,12 @@ export function useDpRegrasColaborador(
   domingosMesIndividual?: number | null,
   /** Cargo da pessoa: aplica a regra diferenciada do cargo na unidade. */
   cargoId?: string | null,
+  /** Dias de descanso próprios da exceção individual (null = dias da unidade). */
+  diasIndividuais?: number[] | null,
 ) {
   const { data: regrasCargo = [] } = useDpFolgaDomingoCargos(companyId);
   const { domingos: domingosMes, origem: origemDomingos, dias: diasDiferenciados } = domingosDiferenciados(
-    { domingos_folga_mes: domingosMesIndividual ?? null, unidade_id: unidadeId ?? null, cargo_id: cargoId ?? null },
+    { domingos_folga_mes: domingosMesIndividual ?? null, unidade_id: unidadeId ?? null, cargo_id: cargoId ?? null, folga_dif_dias: diasIndividuais ?? null },
     regrasCargo,
   );
   const query = useQuery({
