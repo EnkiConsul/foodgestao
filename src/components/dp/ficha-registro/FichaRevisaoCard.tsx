@@ -236,6 +236,41 @@ export function FichaRevisaoCard({
     if (!formaPagamento && formaInferida) setFormaPagamento(formaInferida);
   }, [formaInferida, formaPagamento]);
 
+  /**
+   * Divergência com a ficha de registro (registro contábil). Só na importação de
+   * ficha — na pré-admissão os dados vêm do candidato, não de registro oficial.
+   */
+  const [justDivergencia, setJustDivergencia] = useState("");
+  const [cienteDivergencia, setCienteDivergencia] = useState(false);
+  const divergenciasFicha = useMemo(() => {
+    if (preadmissaoId) return [];
+    const cargoSel = cargos.find((c) => c.id === cargoId)?.nome ?? null;
+    return divergenciasComFicha(
+      {
+        cargoNome: (extraidos.cargo_nome as string) ?? null,
+        salario: extraidos.salario as string | number | null,
+        regime: regimeInferido ?? null,
+        formaPagamento: formaInferida ?? null,
+      },
+      {
+        cargoNome: cargoSel,
+        salario: dados.salario as string | number | null,
+        regime: regimeEscolhidoManual ? regime : null,
+        formaPagamento,
+        horarioAlterado:
+          usarJornada && jornadaEditada && !jornadaLida.vazia
+            ? { ficha: "Conforme a ficha", sistema: "Ajustado nesta conferência" }
+            : null,
+      },
+      {
+        regime: (v) => REGIMES.find((r) => r.value === v)?.label ?? v,
+        forma: (v) => FORMAS_PAGAMENTO.find((f) => f.value === v)?.label ?? v,
+      },
+    );
+  }, [preadmissaoId, cargos, cargoId, extraidos, regimeInferido, formaInferida, dados.salario,
+    regimeEscolhidoManual, regime, formaPagamento, usarJornada, jornadaEditada, jornadaLida]);
+
+
   /** Art. 74, § 2º da CLT: unidade com mais de 20 pessoas exige controle de jornada. */
   const lotacao = useQuery({
     queryKey: ["dp_unidade_lotacao", unidadeId],
