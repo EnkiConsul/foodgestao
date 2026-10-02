@@ -8702,6 +8702,61 @@ export type Database = {
           },
         ]
       }
+      dp_folga_domingo_cargos: {
+        Row: {
+          cargo_id: string
+          company_id: string
+          created_at: string
+          domingos_mes: number
+          id: string
+          unidade_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cargo_id: string
+          company_id: string
+          created_at?: string
+          domingos_mes: number
+          id?: string
+          unidade_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cargo_id?: string
+          company_id?: string
+          created_at?: string
+          domingos_mes?: number
+          id?: string
+          unidade_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_folga_domingo_cargos_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folga_domingo_cargos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folga_domingo_cargos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_folga_limite_regra_cargos: {
         Row: {
           cargo_id: string
@@ -16987,6 +17042,10 @@ export type Database = {
       dp_folga_dias_fds_aplicaveis: {
         Args: { _company: string; _unidade: string }
         Returns: number[]
+      }
+      dp_folga_domingo_cargo_definir: {
+        Args: { _cargo_id: string; _domingos: number; _unidade_id: string }
+        Returns: undefined
       }
       dp_folga_escopo_empresa_ok: {
         Args: { _company: string }

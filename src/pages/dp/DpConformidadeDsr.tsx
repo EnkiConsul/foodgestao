@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { ScaleIcon, Download, CheckCircle2, AlertTriangle } from "lucide-react";
+import { domingosDiferenciados, type FolgaDomingoCargo } from "@/hooks/useDpFolgaDomingoCargos";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpConfigDp, type DpConfigDpForm } from "@/hooks/useDpConfigDp";
@@ -150,6 +151,12 @@ export default function DpConformidadeDsr() {
         .order("nome");
       if (cErr) throw cErr;
 
+      // Domingos diferenciados por cargo na unidade (a exceção individual prevalece).
+      const { data: regrasCargo } = await supabase
+        .from("dp_folga_domingo_cargos" as never)
+        .select("id, unidade_id, cargo_id, domingos_mes")
+        .eq("company_id", selectedCompanyId!);
+
       // Busca desde o mês anterior para medir o intervalo na virada do mês.
       const { data: folgas, error: fErr } = await supabase
         .from("dp_folgas")
@@ -239,7 +246,7 @@ export default function DpConformidadeDsr() {
             colaboradorId: c.id,
             nome: c.nome,
             sexo: c.sexo,
-            domingosMesOverride: c.domingos_folga_mes ?? null,
+            domingosMesOverride: domingosDiferenciados(c, (regrasCargo ?? []) as unknown as FolgaDomingoCargo[]).domingos,
             unidadeId: c.unidade_id ?? null,
             cargoId: c.cargo_id ?? null,
             domingosFolgados: domingoFixo

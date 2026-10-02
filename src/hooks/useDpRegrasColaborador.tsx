@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { domingosDiferenciados, useDpFolgaDomingoCargos } from "@/hooks/useDpFolgaDomingoCargos";
 import {
   DP_CONFIG_DP_DEFAULT,
   diasElegiveisDaConfig,
@@ -17,9 +18,16 @@ export function useDpRegrasColaborador(
   companyId?: string | null,
   unidadeId?: string | null,
   sexo?: string | null,
-  /** Override individual de domingos de folga por mês (gênero fora de F/M). */
-  domingosMes?: number | null,
+  /** Exceção individual de domingos de folga por mês. */
+  domingosMesIndividual?: number | null,
+  /** Cargo da pessoa: aplica a regra diferenciada do cargo na unidade. */
+  cargoId?: string | null,
 ) {
+  const { data: regrasCargo = [] } = useDpFolgaDomingoCargos(companyId);
+  const { domingos: domingosMes, origem: origemDomingos } = domingosDiferenciados(
+    { domingos_folga_mes: domingosMesIndividual ?? null, unidade_id: unidadeId ?? null, cargo_id: cargoId ?? null },
+    regrasCargo,
+  );
   const query = useQuery({
     queryKey: ["dp_config_resolvida", companyId, unidadeId ?? null],
     enabled: !!companyId,
@@ -57,7 +65,8 @@ export function useDpRegrasColaborador(
   return {
     config,
     sexo: sexo ?? null,
-    domingosMes: domingosMes ?? null,
+    domingosMes,
+    origemDomingos,
     diasElegiveis: diasElegiveisDaConfig(config),
     tetoMensal: tetoFolgasMes(config, { sexo, domingosMes }),
     isLoading: query.isLoading,

@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
 import {
@@ -70,7 +71,7 @@ function resumoFrequencia(regra: DpConfigDpForm): string {
       ? `${regra.periodicidade_domingo_mulher} em ${regra.periodicidade_domingo_mulher} semana(s)`
       : `${regra.domingos_por_mes_mulher} por mês`;
   const ok = semanas.geral >= padrao && semanas.mulher >= 2;
-  return `${geral} (geral) / ${mulher} (mulheres)${ok ? "" : " — abaixo do padrão legal"}`;
+  return `Homens: ${geral} / Mulheres: ${mulher}${ok ? "" : " — abaixo do padrão legal"}`;
 }
 
 function resumoJanela(regra: DpConfigDpForm): string {
@@ -183,6 +184,16 @@ export default function DpConfiguracoesJornada() {
   const [limparAberto, setLimparAberto] = useState<string | null>(null);
 
   const unidades = useMemo(() => todasUnidades, [todasUnidades]);
+
+  // Atalho da ficha do colaborador: abre direto as regras da unidade dele.
+  const [params] = useSearchParams();
+  const atalhoAberto = useRef(false);
+  useEffect(() => {
+    const alvo = params.get("unidade");
+    if (atalhoAberto.current || !alvo || isLoading || !unidades.some((u) => u.id === alvo)) return;
+    atalhoAberto.current = true;
+    setDialog({ open: true, modo: "editar", unidadeId: alvo, copiarDe: null });
+  }, [params, unidades, isLoading]);
 
   const regraDaUnidade = (unidadeId: string): DpConfigDpForm => {
     const row = rows.find((r) => r.unidade_id === unidadeId);

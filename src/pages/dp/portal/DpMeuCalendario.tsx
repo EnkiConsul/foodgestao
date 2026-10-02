@@ -191,7 +191,7 @@ export default function DpMeuCalendario() {
 
   const companyId = meRef.data?.company_id;
   const myUnidade = meRef.data?.unidade_id ?? null;
-  const { config: regrasConfig, diasElegiveis, tetoMensal } = useDpRegrasColaborador(companyId, myUnidade, (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null, (meRef.data as { domingos_folga_mes?: number | null } | undefined)?.domingos_folga_mes ?? null);
+  const { config: regrasConfig, diasElegiveis, tetoMensal, domingosMes: domingosMesEfetivo } = useDpRegrasColaborador(companyId, myUnidade, (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null, (meRef.data as { domingos_folga_mes?: number | null } | undefined)?.domingos_folga_mes ?? null, (meRef.data as { cargo_id?: string | null } | undefined)?.cargo_id ?? null);
   const resumoFolgas = resumoEscolhaFolgas(regrasConfig, { sexo: (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null });
   /** No padrão CLT o sistema gera a folga dominical — o colaborador não marca nem remove. */
   const folgaCltAutomatica = folgaDominicalAutomatica(regrasConfig);
@@ -469,9 +469,7 @@ export default function DpMeuCalendario() {
     const domingosNoMes = dias.filter((d) => d.getDay() === 0).length;
     const previstas = domingosFolgaNoPeriodo(regrasConfig, domingosNoMes, {
       sexo: (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null,
-      domingosMes:
-        (meRef.data as { domingos_folga_mes?: number | null } | undefined)?.domingos_folga_mes ??
-        null,
+      domingosMes: domingosMesEfetivo,
     });
     // Férias no mês: a folga continua valendo, mas só pode cair nos dias
     // trabalhados — a pessoa precisa saber disso antes de escolher.
@@ -519,6 +517,7 @@ export default function DpMeuCalendario() {
 
   }, [
     diasElegiveis,
+    domingosMesEfetivo,
     folgas,
     folgaCltAutomatica,
     meRef.data,

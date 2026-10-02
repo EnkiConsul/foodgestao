@@ -163,11 +163,14 @@ export function ColaboradorJornadaPanel({
     config: regrasCfg,
     diasElegiveis: diasElegiveisFolga,
     tetoMensal: tetoDomingos,
+    domingosMes: domingosEfetivos,
+    origemDomingos,
   } = useDpRegrasColaborador(
     selectedCompanyId ?? null,
     colaborador?.unidade_id ?? null,
     colaborador?.sexo ?? null,
     colaborador?.domingos_folga_mes ?? null,
+    colaborador?.cargo_id ?? null,
   );
 
 
@@ -424,7 +427,7 @@ export function ColaboradorJornadaPanel({
     const domingosMes = tetoDomingos;
     const trabalhaDomingo = dias.some((d) => d.dow === 0 && d.trabalha);
     const generoDefinido = colaborador?.sexo === "F" || colaborador?.sexo === "M";
-    const override = colaborador?.domingos_folga_mes ?? null;
+    const override = domingosEfetivos;
 
     const baseTexto =
       regrasCfg.tipo_descanso_domingo === "acordo_coletivo"
@@ -434,7 +437,9 @@ export function ColaboradorJornadaPanel({
         : "Base: legislação (folga no domingo).";
 
     const origem = override
-      ? " (exceção configurada em Folgas > Regras > Exceções por Colaborador)"
+      ? origemDomingos === "cargo"
+        ? " (folga diferenciada do cargo nas regras da unidade)"
+        : " (folga diferenciada do colaborador nas regras da unidade)"
       : colaborador?.sexo === "F"
         ? " (regra de mulheres da unidade — Art. 386 da CLT)"
         : " (regra geral da unidade)";
@@ -452,7 +457,7 @@ export function ColaboradorJornadaPanel({
     return { domingosMes, baseTexto, origem, alerta, trabalhaDomingo };
   }, [
     tetoDomingos, dias, folgaVariavel, diasElegiveisFolga,
-    regrasCfg.tipo_descanso_domingo, colaborador?.sexo, colaborador?.domingos_folga_mes,
+    regrasCfg.tipo_descanso_domingo, colaborador?.sexo, domingosEfetivos, origemDomingos,
   ]);
 
   /**
