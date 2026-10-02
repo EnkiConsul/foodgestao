@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpsertDpCargo, useUpsertDpCargoSalario } from "@/hooks/useDpCadastros";
 import { useSindicatoDoCargo } from "@/hooks/useSindicatoDoCargo";
-import { salvarDependente } from "@/lib/dp/regras-oficial";
+import { registrarCienciaRegra, salvarDependente } from "@/lib/dp/regras-oficial";
+import { cienciaDivergenciaValida, divergenciasComFicha, resumoDivergencias } from "@/lib/dp/ficha-registro/divergencia";
+import { DivergenciaFichaAlerta } from "./DivergenciaFichaAlerta";
 import { useDpPontoConformidade } from "@/hooks/useDpPontoConformidade";
 import { AVISO_ART74, justificativaValida } from "@/lib/dp/ponto-conformidade";
 import {
@@ -530,6 +532,22 @@ export function FichaRevisaoCard({
           setComparacao(false);
           // Familiares da ficha viram dependentes (filhos, enteados, tutelados, cônjuge).
           const colabId = (res as { colaboradorId?: string } | undefined)?.colaboradorId;
+          if (divergenciasFicha.length > 0) {
+            try {
+              await registrarCienciaRegra({
+                companyId: item.company_id,
+                tabela: "dp_colaboradores",
+                registroId: colabId ?? null,
+                valorAntigo: { origem: "ficha_registro", ficha_item_id: item.id },
+                valorNovo: {
+                  tipo: "divergencia_ficha_registro",
+                  divergencias: resumoDivergencias(divergenciasFicha),
+                },
+                justificativa: justDivergencia.trim(),
+                ciencia: true,
+              });
+            } catch { /* o cadastro não falha pelo registro de ciência */ }
+          }
           if (colabId && importarDependentes && dependentesLidos.length > 0 && !res?.jaAplicado) {
             const { data: existentes } = await supabase
               .from("dp_dependentes").select("nome").eq("colaborador_id", colabId);
