@@ -4,7 +4,6 @@ import { ReclameAquiSeal } from "@/components/marketing/ReclameAquiSeal";
 import imgGestora from "@/assets/site-gestor-indicadores.jpg";
 import imgEquipe from "@/assets/site-equipe-turno.jpg";
 import imgGarcom from "@/assets/landing-garcom.jpg";
-import logoHorizontalLight from "@/assets/aveto360-horizontal-light.png.asset.json";
 import logoLight from "@/assets/aveto360-logo-light.png.asset.json";
 
 const WHATSAPP = "https://wa.me/5562992365959?text=Ol%C3%A1!%20Quero%20conhecer%20o%20Aveto%20360.";
@@ -14,12 +13,15 @@ const G = ({ children }: { children: React.ReactNode }) => (
   <strong className="font-extrabold text-lp-green">{children}</strong>
 );
 
-// Logomarca oficial: horizontal no cabeçalho, vertical completa no fechamento.
+// Logomarca oficial para fundo escuro (PNG transparente, lettering branco).
 function Marca({ grande = false }: { grande?: boolean }) {
-  return grande ? (
-    <img src={logoLight.url} alt="Aveto 360" className="mx-auto h-44 w-auto md:h-56" draggable={false} />
-  ) : (
-    <img src={logoHorizontalLight.url} alt="Aveto 360" className="h-12 w-auto" draggable={false} />
+  return (
+    <img
+      src={logoLight.url}
+      alt="Aveto 360"
+      className={grande ? "mx-auto h-44 w-auto md:h-56" : "h-14 w-auto"}
+      draggable={false}
+    />
   );
 }
 
