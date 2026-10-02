@@ -27,8 +27,9 @@ import { CONFIANCA_LABEL, nivelDoCampo, trechoDoTexto, type NivelConfianca } fro
 import { montarPayloadFicha } from "@/lib/dp/ficha-registro/payload";
 import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
-import { CargoCorrespondenciaDialog } from "./CargoCorrespondenciaDialog";
-import { UnidadeCorrespondenciaDialog } from "./UnidadeCorrespondenciaDialog";
+import { CargoFormDialog } from "@/components/dp/cargos/CargoFormDialog";
+import { UnidadeFormDialog } from "@/components/dp/UnidadeFormDialog";
+import { SetorFormDialog } from "@/components/dp/setores/SetorFormDialog";
 import { FichaComparacaoDialog } from "./FichaComparacaoDialog";
 import { FichaHistoricoLido } from "./FichaHistoricoLido";
 import {
@@ -181,6 +182,7 @@ export function FichaRevisaoCard({
   const [verTexto, setVerTexto] = useState(false);
   const [cargoDialog, setCargoDialog] = useState(false);
   const [unidadeDialog, setUnidadeDialog] = useState(false);
+  const [setorDialog, setSetorDialog] = useState(false);
   const [comparacao, setComparacao] = useState(false);
   const [confirmouEmpresa, setConfirmouEmpresa] = useState(false);
   const [whatsappEditado, setWhatsappEditado] = useState(false);
@@ -813,9 +815,16 @@ export function FichaRevisaoCard({
             {completarAberto && (
               <div className="space-y-3 border-t p-3">
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {setores.length > 0 && (
+                  {(setores.length > 0 || !!unidadeId) && (
                     <div className="space-y-1">
-                      <Label className="text-xs">Setor</Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">Setor</Label>
+                        {unidadeId && (
+                          <button type="button" className="text-[11px] text-primary hover:underline" onClick={() => setSetorDialog(true)}>
+                            + Novo Setor
+                          </button>
+                        )}
+                      </div>
                       <Select
                         value={setorId ?? "__none"}
                         onValueChange={(v) => setSetorEscolhido(v === "__none" ? null : v)}
@@ -1327,24 +1336,36 @@ export function FichaRevisaoCard({
         )}
 
         {unidadeDialog && (
-          <UnidadeCorrespondenciaDialog
+          <UnidadeFormDialog
             open={unidadeDialog}
             onOpenChange={setUnidadeDialog}
-            nome={unidadeSugerida.empregador_lido ?? ""}
-            cnpj={unidadeSugerida.cnpj_lido}
-            onCriada={(id) => setUnidadeId(id)}
+            nomeInicial={(unidadeSugerida.empregador_lido ?? "").toUpperCase()}
+            inicial={{ cnpj: unidadeSugerida.cnpj_lido ?? "" }}
+            onSaved={(u) => setUnidadeId(u.id)}
           />
         )}
 
         {cargoDialog && (
-          <CargoCorrespondenciaDialog
+          <CargoFormDialog
             open={cargoDialog}
             onOpenChange={setCargoDialog}
-            cargoNome={String(dados.cargo_nome ?? "")}
-            cbo={(dados.cbo as string) ?? null}
+            cargo={null}
+            inicial={{
+              nome: String(dados.cargo_nome ?? "").toUpperCase(),
+              cbo: String((dados.cbo as string) ?? ""),
+            }}
+            onSaved={(c) => setCargoId(c.id)}
+          />
+        )}
+
+        {setorDialog && unidadeId && (
+          <SetorFormDialog
+            open={setorDialog}
+            onOpenChange={setSetorDialog}
             unidadeId={unidadeId}
-            unidadeNome={unidades.find((u) => u.id === unidadeId)?.nome ?? null}
-            onCriado={(id) => setCargoId(id)}
+            unidadeNome={unidades.find((u) => u.id === unidadeId)?.nome}
+            nomeInicial={String(dados.setor ?? "").toUpperCase()}
+            onSaved={(st) => setSetorEscolhido(st.id)}
           />
         )}
 

@@ -93,6 +93,8 @@ interface Props {
   unidade?: UnidadeEdicao | null;
   /** Nome sugerido no cadastro (usado no atalho do colaborador). */
   nomeInicial?: string;
+  /** Dados já conhecidos (ex.: lidos da ficha de registro) para pré-preencher uma unidade nova. */
+  inicial?: Partial<typeof blank>;
   /** Recebe a unidade salva — usado para selecioná-la de imediato. */
   onSaved?: (unidade: DpUnidade) => void;
   /** Abre direto numa aba (ex.: atalho "Funcionamento" do card da unidade). */
@@ -104,7 +106,7 @@ interface Props {
  * "Nova unidade" do cadastro do colaborador: a unidade nasce no mesmo lugar,
  * com as mesmas regras, venha de onde vier.
  */
-export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInicial = "", onSaved, abaInicial = "dados" }: Props) {
+export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInicial = "", inicial, onSaved, abaInicial = "dados" }: Props) {
   const { companies } = useCompanyContext();
   const upsert = useUpsertDpUnidade();
   const qc = useQueryClient();
@@ -214,7 +216,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
     }
     // Nova unidade abre em branco: só a empresa é pré-selecionada quando há uma só.
     const only = companies.length === 1 ? companies[0].id : "";
-    setForm({ ...blank, company_id: only, nome: nomeInicial });
+    setForm({ ...blank, company_id: only, nome: nomeInicial, ...(inicial ?? {}) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, unidade?.id, nomeInicial]);
 
