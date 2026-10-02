@@ -24,7 +24,7 @@ export function useDpRegrasColaborador(
   cargoId?: string | null,
 ) {
   const { data: regrasCargo = [] } = useDpFolgaDomingoCargos(companyId);
-  const { domingos: domingosMes, origem: origemDomingos } = domingosDiferenciados(
+  const { domingos: domingosMes, origem: origemDomingos, dias: diasDiferenciados } = domingosDiferenciados(
     { domingos_folga_mes: domingosMesIndividual ?? null, unidade_id: unidadeId ?? null, cargo_id: cargoId ?? null },
     regrasCargo,
   );
@@ -67,7 +67,8 @@ export function useDpRegrasColaborador(
     sexo: sexo ?? null,
     domingosMes,
     origemDomingos,
-    diasElegiveis: diasElegiveisDaConfig(config),
+    diasDiferenciados,
+    diasElegiveis: diasDiferenciados?.length ? diasDiferenciados : diasElegiveisDaConfig(config),
     tetoMensal: tetoFolgasMes(config, { sexo, domingosMes }),
     isLoading: query.isLoading,
   };
