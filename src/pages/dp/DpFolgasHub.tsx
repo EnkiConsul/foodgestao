@@ -7,7 +7,6 @@ import { DpPage, DpPageHeader, DpEmbeddedProvider } from "@/components/dp/DpPage
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { Separator } from "@/components/ui/separator";
 import { RegrasHistoricoPanel } from "@/components/dp/regras/RegrasHistoricoPanel";
-import { ExcecoesDomingoPanel } from "@/components/dp/folgas/ExcecoesDomingoPanel";
 
 const CalendarioPanel = lazy(() => import("./DpFolgas"));
 const RegrasPanel = lazy(() => import("./cadastros/DpConfiguracoesJornada"));
@@ -95,7 +94,6 @@ export default function DpFolgasHub() {
           {aba === "regras" && (
             <Embedded>
               <RegrasPanel />
-              <ExcecoesDomingoPanel />
               <Separator />
               <BloqueiosPanel />
               <Separator />

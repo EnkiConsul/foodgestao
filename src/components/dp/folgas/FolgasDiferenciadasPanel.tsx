@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, Trash2, Briefcase, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/contexts/CompanyContext";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -35,7 +35,7 @@ const fmtSemanas = (s: number) => (s > 0 ? `a cada ${s.toFixed(s % 1 ? 1 : 0)} s
  */
 export function FolgasDiferenciadasPanel({ unidadeId, semanasHomens, semanasMulheres, diasConsiderados }: Props) {
   const qc = useQueryClient();
-  const { selectedCompanyId } = useCompany();
+  const { selectedCompanyId } = useCompanyContext();
   const { data: cargos = [] } = useDpCargos();
   const { data: regrasCargo = [] } = useDpFolgaDomingoCargos(selectedCompanyId);
   const [novo, setNovo] = useState(false);

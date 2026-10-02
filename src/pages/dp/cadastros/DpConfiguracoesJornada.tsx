@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
 import {
@@ -183,6 +184,16 @@ export default function DpConfiguracoesJornada() {
   const [limparAberto, setLimparAberto] = useState<string | null>(null);
 
   const unidades = useMemo(() => todasUnidades, [todasUnidades]);
+
+  // Atalho da ficha do colaborador: abre direto as regras da unidade dele.
+  const [params] = useSearchParams();
+  const atalhoAberto = useRef(false);
+  useEffect(() => {
+    const alvo = params.get("unidade");
+    if (atalhoAberto.current || !alvo || isLoading || !unidades.some((u) => u.id === alvo)) return;
+    atalhoAberto.current = true;
+    setDialog({ open: true, modo: "editar", unidadeId: alvo, copiarDe: null });
+  }, [params, unidades, isLoading]);
 
   const regraDaUnidade = (unidadeId: string): DpConfigDpForm => {
     const row = rows.find((r) => r.unidade_id === unidadeId);
