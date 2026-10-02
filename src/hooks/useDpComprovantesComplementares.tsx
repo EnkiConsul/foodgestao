@@ -8,6 +8,7 @@ import { sanitizeStorageFilename } from "@/lib/storage";
 import { DP_DOCUMENTOS_BUCKET } from "@/lib/documentoArquivo";
 import type { ComprovanteAlvo } from "@/hooks/useDpComprovantePagamento";
 import type { ComprovanteQuitacao } from "@/lib/dp/documentos-oficial";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 export type ComprovanteComplementar = {
   id: string;
@@ -49,7 +50,9 @@ export function useDpComprovanteComplementarAcoes() {
   const invalidar = () => {
     qc.invalidateQueries({ queryKey: ["dp_doc_comprovantes"] });
     qc.invalidateQueries({ queryKey: ["dp_documentos"] });
+    qc.invalidateQueries({ queryKey: ["dp_doc_detalhes"] });
     qc.invalidateQueries({ queryKey: ["dp_historico_documentos"] });
+    void resolverPendencias(qc, { companyId: selectedCompanyId });
   };
 
   const adicionar = useMutation({
