@@ -5555,6 +5555,9 @@ export type Database = {
           estado_civil: string | null
           ferias_controle_inicio: string | null
           ficha_importacao_item_id: string | null
+          folga_dif_dias: number[] | null
+          folga_dif_modo: string | null
+          folga_dif_periodicidade: number | null
           folga_fixa_semana: number | null
           folha_ponto_dispensa_justificativa: string | null
           forma_pagamento: Database["public"]["Enums"]["dp_forma_pagamento"]
@@ -5689,6 +5692,9 @@ export type Database = {
           estado_civil?: string | null
           ferias_controle_inicio?: string | null
           ficha_importacao_item_id?: string | null
+          folga_dif_dias?: number[] | null
+          folga_dif_modo?: string | null
+          folga_dif_periodicidade?: number | null
           folga_fixa_semana?: number | null
           folha_ponto_dispensa_justificativa?: string | null
           forma_pagamento?: Database["public"]["Enums"]["dp_forma_pagamento"]
@@ -5823,6 +5829,9 @@ export type Database = {
           estado_civil?: string | null
           ferias_controle_inicio?: string | null
           ficha_importacao_item_id?: string | null
+          folga_dif_dias?: number[] | null
+          folga_dif_modo?: string | null
+          folga_dif_periodicidade?: number | null
           folga_fixa_semana?: number | null
           folha_ponto_dispensa_justificativa?: string | null
           forma_pagamento?: Database["public"]["Enums"]["dp_forma_pagamento"]
@@ -8707,8 +8716,11 @@ export type Database = {
           cargo_id: string
           company_id: string
           created_at: string
+          dias_descanso: number[] | null
           domingos_mes: number
           id: string
+          modo_frequencia: string
+          periodicidade_semanas: number | null
           unidade_id: string
           updated_at: string
           updated_by: string | null
@@ -8717,8 +8729,11 @@ export type Database = {
           cargo_id: string
           company_id: string
           created_at?: string
+          dias_descanso?: number[] | null
           domingos_mes: number
           id?: string
+          modo_frequencia?: string
+          periodicidade_semanas?: number | null
           unidade_id: string
           updated_at?: string
           updated_by?: string | null
@@ -8727,8 +8742,11 @@ export type Database = {
           cargo_id?: string
           company_id?: string
           created_at?: string
+          dias_descanso?: number[] | null
           domingos_mes?: number
           id?: string
+          modo_frequencia?: string
+          periodicidade_semanas?: number | null
           unidade_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -15908,7 +15926,15 @@ export type Database = {
         Returns: string
       }
       dp_colaborador_definir_domingos_folga: {
-        Args: { _colaborador_id: string; _domingos: number }
+        Args: {
+          _ciencia?: boolean
+          _colaborador_id: string
+          _contexto?: Json
+          _dias?: number[]
+          _domingos: number
+          _justificativa?: string
+          _modo?: string
+        }
         Returns: undefined
       }
       dp_colaborador_documento_excluir: {
@@ -17044,7 +17070,16 @@ export type Database = {
         Returns: number[]
       }
       dp_folga_domingo_cargo_definir: {
-        Args: { _cargo_id: string; _domingos: number; _unidade_id: string }
+        Args: {
+          _cargo_id: string
+          _ciencia?: boolean
+          _contexto?: Json
+          _dias?: number[]
+          _domingos: number
+          _justificativa?: string
+          _modo?: string
+          _unidade_id: string
+        }
         Returns: undefined
       }
       dp_folga_escopo_empresa_ok: {
