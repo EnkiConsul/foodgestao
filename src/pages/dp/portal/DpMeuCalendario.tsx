@@ -517,6 +517,7 @@ export default function DpMeuCalendario() {
 
   }, [
     diasElegiveis,
+    domingosMesEfetivo,
     folgas,
     folgaCltAutomatica,
     meRef.data,
