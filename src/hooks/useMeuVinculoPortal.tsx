@@ -10,13 +10,12 @@ export type MeuVinculoPortal = {
   unidadeId: string | null;
   unidadeNome: string | null;
   regime: string | null;
+  formaPagamento: string | null;
   /** A unidade registra ponto (relógio/marcação)? */
   unidadeUsaPonto: boolean;
   /** Pode ser convocado (intermitente / folguista). */
   podeSerConvocado: boolean;
 };
-
-const REGIMES_CONVOCAVEIS = ["intermitente", "freelancer"];
 
 /**
  * Dados do vínculo do próprio colaborador usados pelo portal para decidir
