@@ -524,6 +524,7 @@ export default function DpMeuDocumentos() {
         bucket={preview?.bucket}
         path={preview?.file_path ?? undefined}
         mime={preview?.mime_type ?? undefined}
+        comprovanteDocumentoId={preview?.origem === "dp" && preview?.meta?.comprovante ? String(preview.meta?.originalId ?? preview.id) : null}
       />
 
       {/* Comprovante e certificado abrem aqui mesmo: no celular, outra aba é bloqueada. */}

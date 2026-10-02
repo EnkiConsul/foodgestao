@@ -165,6 +165,7 @@ export function DocumentoAssinaturaGate() {
         bucket={BUCKET}
         path={preview?.file_path ?? null}
         mime={preview?.mime_type ?? null}
+        comprovanteDocumentoId={preview?.id ?? null}
       />
     </>
   );

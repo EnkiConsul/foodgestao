@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { PdfCanvasViewer } from "./PdfCanvasViewer";
 import { ImagemZoomViewer } from "./ImagemZoomViewer";
+import { linkDocumentoAssinado } from "@/lib/documentoArquivo";
 
 interface DocumentPreviewProps {
   open: boolean;
@@ -21,6 +22,8 @@ interface DocumentPreviewProps {
   expiresIn?: number;
   /** Conteúdo extra abaixo do título (ex.: abas Documento / Comprovante). */
   toolbar?: React.ReactNode;
+  /** Documento do DP cujo comprovante de pagamento aparece logo abaixo, na mesma rolagem. */
+  comprovanteDocumentoId?: string | null;
 }
 
 /**
@@ -37,7 +40,18 @@ export function DocumentPreview({
   mime,
   expiresIn = 300,
   toolbar,
+  comprovanteDocumentoId,
 }: DocumentPreviewProps) {
+  const [comprovante, setComprovante] = useState<{ url: string; mime: string | null; nome: string | null } | null>(null);
+  useEffect(() => {
+    setComprovante(null);
+    if (!open || !comprovanteDocumentoId) return;
+    let cancelado = false;
+    linkDocumentoAssinado(comprovanteDocumentoId, expiresIn, "comprovante")
+      .then((l) => { if (!cancelado && l) setComprovante({ url: l.url, mime: l.mimeType, nome: l.fileName }); })
+      .catch(() => undefined);
+    return () => { cancelado = true; };
+  }, [open, comprovanteDocumentoId, expiresIn]);
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(url ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +132,8 @@ export function DocumentPreview({
           <DialogTitle className="truncate text-sm sm:text-base">{title}</DialogTitle>
           {toolbar}
         </DialogHeader>
-        <div className="flex-1 min-h-0 bg-muted/30">
+        <div className={comprovante ? "flex-1 min-h-0 overflow-y-auto bg-muted/30" : "flex-1 min-h-0 bg-muted/30"}>
+        <div className={comprovante ? "h-[75svh] sm:h-[70vh]" : "h-full"}>
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -163,6 +178,19 @@ export function DocumentPreview({
               </Button>
             </div>
           )}
+        </div>
+        {comprovante && (
+          <section className="border-t bg-background">
+            <p className="px-3 py-2 text-sm font-medium">Comprovante de Pagamento</p>
+            {(comprovante.mime ?? "").startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(comprovante.nome ?? "") ? (
+              <img src={comprovante.url} alt="Comprovante de pagamento" className="block w-full h-auto" />
+            ) : (
+              <div className="h-[75svh] sm:h-[70vh]">
+                <PdfCanvasViewer url={comprovante.url} title="Comprovante de pagamento" />
+              </div>
+            )}
+          </section>
+        )}
         </div>
         <DialogFooter className="p-2 sm:p-3 border-t flex-row flex-wrap sm:justify-between gap-2">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>
