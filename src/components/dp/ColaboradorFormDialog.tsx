@@ -2159,6 +2159,12 @@ export function ColaboradorFormDialog({
       // Cadastro concluído: o rascunho guardado deixa de existir.
       void rascunho.descartar();
       toast.success("Colaborador cadastrado");
+      if (unidadeIrregularPonto) {
+        toast.warning("Registro de ponto obrigatório na unidade (Art. 74 da CLT)", {
+          description: `A unidade chegou a ${lotacaoComEste} colaboradores ativos e está sem relógio de ponto. Foi gerada uma pendência: ative o ponto ou registre a justificativa no cadastro da unidade.`,
+          duration: 15000,
+        });
+      }
 
       if (intencaoRef.current !== "close" && tab === "dados") {
         toast("Defina o turno e a jornada");
