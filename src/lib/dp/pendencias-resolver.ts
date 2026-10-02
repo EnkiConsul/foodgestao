@@ -143,6 +143,15 @@ export async function resolverPendencias(
   }
 
   if (companyId) {
+    // Ação confirmada do gestor: a próxima leitura substitui o quadro, mesmo
+    // vazia ou sem nova data de apuração (senão o retrato antigo fica preso).
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent<PendenciasRecarregarDetalhe>(PENDENCIAS_RECARREGAR_EVENTO, {
+          detail: { companyId, desde: Date.now() },
+        }),
+      );
+    }
     void qc.invalidateQueries({ queryKey: ["dp_pendencias", companyId] });
   } else {
     void qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
