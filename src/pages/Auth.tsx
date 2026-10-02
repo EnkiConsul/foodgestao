@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -97,7 +97,8 @@ function classifySignupError(message: string): { reason: string; category: "vali
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
-  const initialMode: Mode = searchParams.get("tab") === "signup" ? "signup" : "login";
+  const { pathname } = useLocation();
+  const initialMode: Mode = pathname === "/cadastro" || searchParams.get("tab") === "signup" ? "signup" : "login";
   const [mode, setMode] = useState<Mode>(initialMode);
   const [identifier, setIdentifier] = useState("");
   const [email, setEmail] = useState("");
@@ -848,16 +849,15 @@ export default function Auth() {
               >
                 Voltar para o login
               </button>
-            ) : (
+            ) : isSignup ? (
               <button
                 type="button"
                 className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-3 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                onClick={() => switchMode("login")}
-                hidden={isLogin}
+                onClick={() => navigate("/login")}
               >
                 Já tem conta? Entre
               </button>
-            )}
+            ) : null}
           </CardFooter>
           </form>
         )}
