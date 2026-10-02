@@ -223,6 +223,7 @@ Deno.serve(async (req) => {
           ciclo_status: "processando",
           revisado_em: nowIso,
           revisado_por: uid,
+           valor_liquido_cents: typeof it.valor_liquido_cents === "number" ? it.valor_liquido_cents : null,
            rescisao_grupo_id: TIPOS_RESCISAO.has(tipoDoc) ? batch.rescisao_grupo_id ?? null : null,
         }).select("id").single();
         if (dErr) throw new Error(dErr.message);
