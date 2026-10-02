@@ -21,6 +21,7 @@ export type DocTipo =
   | "contrato"
   | "ficha_registro"
   | "termos"
+  | "termo_autorizacao"
   | "outros_admissao"
   | "aviso_previo"
   | "desligamento"
@@ -55,6 +56,7 @@ export const DOC_TIPO_LABEL: Record<string, string> = {
   contrato: "Contrato (Admissão)",
   ficha_registro: "Ficha de Registro (Admissão)",
   termos: "Termos (Admissão)",
+  termo_autorizacao: "Termo de Autorização",
   outros_admissao: "Outros (Admissão)",
   aviso_previo: "Aviso Prévio",
   desligamento: "Documentos Rescisórios",

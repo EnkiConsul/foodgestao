@@ -1,3 +1,4 @@
+import type React from "react";
 import { useEffect, useState } from "react";
 import { Loader2, Download, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,6 +19,8 @@ interface DocumentPreviewProps {
   mime?: string | null;
   /** Segundos de validade da signed URL (default 300) */
   expiresIn?: number;
+  /** Conteúdo extra abaixo do título (ex.: abas Documento / Comprovante). */
+  toolbar?: React.ReactNode;
 }
 
 /**
@@ -33,6 +36,7 @@ export function DocumentPreview({
   path,
   mime,
   expiresIn = 300,
+  toolbar,
 }: DocumentPreviewProps) {
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(url ?? null);
   const [loading, setLoading] = useState(false);
@@ -112,6 +116,7 @@ export function DocumentPreview({
       <DialogContent className="w-[calc(100%-0.5rem)] sm:w-[95vw] max-w-full sm:max-w-4xl h-[88svh] sm:h-[85vh] flex flex-col p-0 gap-0 overflow-hidden [padding-top:0] [padding-bottom:0] sm:[padding-top:0] sm:[padding-bottom:0]">
         <DialogHeader className="p-3 pr-12 sm:p-4 border-b">
           <DialogTitle className="truncate text-sm sm:text-base">{title}</DialogTitle>
+          {toolbar}
         </DialogHeader>
         <div className="flex-1 min-h-0 bg-muted/30">
           {loading ? (

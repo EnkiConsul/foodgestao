@@ -36,13 +36,15 @@ const Leitura = z.object({
   operacao: z.enum(["pix", "ted", "doc", "boleto", "deposito", "dinheiro", "outro"]).nullable(),
   instituicao: z.string().max(80).nullable(),
   confianca: z.number().min(0).max(1).nullable(),
+  favorecido_nome: z.string().max(160).nullable().optional(),
 });
 
 const PROMPT = [
   "Você lê comprovantes de pagamento brasileiros (Pix, TED, DOC, boleto, depósito),",
   "inclusive fotos e prints de tela de aplicativos de banco.",
   "Responda SOMENTE um JSON válido, sem texto em volta, no formato:",
-  '{"pago_em":"AAAA-MM-DD"|null,"valor_cents":inteiro|null,"operacao":"pix"|"ted"|"doc"|"boleto"|"deposito"|"dinheiro"|"outro"|null,"instituicao":"nome"|null,"confianca":0a1}',
+  '{"pago_em":"AAAA-MM-DD"|null,"valor_cents":inteiro|null,"operacao":"pix"|"ted"|"doc"|"boleto"|"deposito"|"dinheiro"|"outro"|null,"instituicao":"nome"|null,"favorecido_nome":"nome"|null,"confianca":0a1}',
+  "favorecido_nome é o nome completo de quem RECEBEU o pagamento (favorecido/destinatário/recebedor), nunca o pagador.",
   "pago_em é a data em que o pagamento foi efetivado/liquidado (não a data de emissão do comprovante nem a competência).",
   "valor_cents é o valor pago em centavos (R$ 1.234,56 => 123456).",
   "Use null em qualquer campo que não estiver claramente legível. Nunca invente valores.",
@@ -190,6 +192,7 @@ Deno.serve(async (req) => {
       valor_cents: dados.valor_cents ?? null,
       operacao: dados.operacao ?? null,
       instituicao: dados.instituicao ?? null,
+      favorecido_nome: dados.favorecido_nome?.trim() || null,
       confianca: dados.confianca ?? null,
       modelo: MODELO,
       lido_em: new Date().toISOString(),
