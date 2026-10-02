@@ -19,7 +19,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
 import { pessoaAvulsaSchema, validateWithToast } from "@/lib/validations";
 import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
-import { useDpPessoasApoio, useSalvarDpPessoaApoio } from "@/hooks/useDpPessoasApoio";
+import { useDpPessoasApoio } from "@/hooks/useDpPessoasApoio";
+import { PessoaApoioFormDialog } from "@/components/dp/PessoaApoioFormDialog";
 import { useDpApoioUnidades } from "@/hooks/useDpApoioUnidades";
 import { liberacoesParaUnidade, pessoasSelecionaveisNaUnidade } from "@/lib/dp/apoio-unidades";
 import type { HorarioSugerido, PessoaAvulsaPanorama, PessoaAvulsaTipo } from "@/lib/dp/operacao-panorama";
@@ -152,8 +153,8 @@ export function DpPessoaAvulsaDialog({
     observacao: "",
   });
   const [horarioTocado, setHorarioTocado] = useState(false);
+  const [cadastroApoioOpen, setCadastroApoioOpen] = useState(false);
   const apoio = useDpPessoasApoio({ apenasAtivos: true });
-  const salvarApoio = useSalvarDpPessoaApoio();
   const apoioUnidades = useDpApoioUnidades({ apenasAtivas: true });
 
 
@@ -276,19 +277,9 @@ export function DpPessoaAvulsaDialog({
   /** Reaproveita alguém já cadastrado no banco de folguistas/testes. */
   const escolherApoio = (id: string) => {
     if (id === "novo") {
-      // "Nova pessoa" limpa tudo que foi herdado de outro cadastro; preserva
-      // apenas as datas e a unidade da operação (padrão da tela).
-      setForm((f) => ({
-        ...f,
-        pessoa_apoio_id: "",
-        nome: "",
-        telefone: "",
-        cargo_id: "",
-        setor_id: "",
-        cobre_colaborador_id: "",
-        cobre_motivo: "",
-        unidade_id: unidadePadrao ?? (unidades.length === 1 ? unidades[0].id : ""),
-      }));
+      // "Nova pessoa" abre o formulário oficial completo de folguista/teste —
+      // nunca um cadastro inline parcial. Ao salvar, a pessoa é selecionada.
+      setCadastroApoioOpen(true);
       return;
     }
     const p = (apoio.data ?? []).find((x) => x.id === id);
@@ -397,34 +388,22 @@ export function DpPessoaAvulsaDialog({
     );
     if (!parsed) return;
 
-    // Quem não é colaborador cadastrado fica salvo no banco de apoio para reuso.
-    let apoioId = candidato.pessoa_apoio_id ?? null;
-    if (!manual) {
-      try {
-        apoioId = await salvarApoio.mutateAsync({
-          id: apoioId ?? undefined,
-          nome: candidato.nome!,
-          telefone: candidato.telefone ?? null,
-          tipo: form.tipo === "teste" ? "teste" : "folguista",
-          cargo_id: form.cargo_id || null,
-          unidade_id: form.unidade_id || null,
-          setor_id: form.setor_id || null,
-          cpf: null,
-          genero: null,
-          data_nascimento: null,
-          observacao: null,
-          colaborador_id: null,
-        });
-      } catch {
-        apoioId = candidato.pessoa_apoio_id ?? null;
-      }
+    // Folguista/teste novo só entra pelo formulário oficial completo
+    // (PessoaApoioFormDialog). Aqui a pessoa já precisa existir no banco de
+    // apoio — exceto em edição de registros antigos salvos só com nome.
+    if (!manual && !candidato.pessoa_apoio_id && !registro) {
+      toast.error("Cadastre a pessoa primeiro", {
+        description: "Use o formulário completo de folguista/teste para cadastrar a pessoa antes de adicioná-la ao dia.",
+      });
+      return;
     }
-    onSalvar({ ...candidato, pessoa_apoio_id: apoioId, id: registro?.id });
+    onSalvar({ ...candidato, pessoa_apoio_id: candidato.pessoa_apoio_id ?? null, id: registro?.id });
   };
 
 
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -566,50 +545,50 @@ export function DpPessoaAvulsaDialog({
             </div>
           ) : (
             <>
-              {apoioDaUnidade.length > 0 && (
-                <div className="grid gap-1.5">
-                  <Label htmlFor="ja-cadastrada-antes-2">Já cadastrada antes?</Label>
-                  <Select value={form.pessoa_apoio_id || "novo"} onValueChange={escolherApoio}>
-                    <SelectTrigger id="ja-cadastrada-antes-2">
-                      <SelectValue placeholder="Nova pessoa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="novo">Nova pessoa</SelectItem>
-                      {apoioDaUnidade.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.nome}
-                          {p.telefone ? ` — ${p.telefone}` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Mostra só quem pode trabalhar nesta unidade: a equipe dela e quem foi
-                    liberado para apoiar aqui.
+              <div className="grid gap-1.5">
+                <Label htmlFor="ja-cadastrada-antes-2">Pessoa *</Label>
+                <Select value={form.pessoa_apoio_id || "novo"} onValueChange={escolherApoio}>
+                  <SelectTrigger id="ja-cadastrada-antes-2">
+                    <SelectValue placeholder="Nova pessoa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="novo">+ Cadastrar nova pessoa (formulário completo)</SelectItem>
+                    {apoioDaUnidade.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nome}
+                        {p.telefone ? ` — ${p.telefone}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Mostra só quem pode trabalhar nesta unidade: a equipe dela e quem foi
+                  liberado para apoiar aqui. Pessoa nova é cadastrada pelo formulário
+                  completo de folguista/teste.
+                </p>
+              </div>
+              {!form.pessoa_apoio_id && (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-dashed p-2.5 text-xs">
+                  <p className="text-muted-foreground">
+                    Nenhuma pessoa selecionada. Cadastre pelo formulário completo ou escolha alguém já cadastrado.
                   </p>
+                  <Button type="button" size="sm" variant="outline" onClick={() => setCadastroApoioOpen(true)}>
+                    Cadastrar pessoa
+                  </Button>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="grid gap-1.5">
-                  <Label htmlFor="nome-da-pessoa-3">Nome da pessoa *</Label>
-                  <Input id="nome-da-pessoa-3"
-                    value={form.nome}
-                    maxLength={120}
-                    placeholder="Ex.: Maria Souza"
-                    onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                  />
+              {form.pessoa_apoio_id && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>Nome da pessoa</Label>
+                    <Input value={form.nome} readOnly disabled />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Telefone</Label>
+                    <Input value={form.telefone} readOnly disabled placeholder="—" />
+                  </div>
                 </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="telefone-4">Telefone</Label>
-                  <Input id="telefone-4"
-                    value={form.telefone}
-                    maxLength={20}
-                    inputMode="tel"
-                    placeholder="(62) 90000-0000"
-                    onChange={(e) => setForm({ ...form, telefone: e.target.value })}
-                  />
-                </div>
-              </div>
+              )}
             </>
           )}
 
@@ -813,5 +792,19 @@ export function DpPessoaAvulsaDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    {/* Cadastro oficial completo de folguista/teste — o mesmo da tela de
+        Colaboradores. Ao salvar, a pessoa criada já fica selecionada aqui. */}
+    <PessoaApoioFormDialog
+      open={cadastroApoioOpen}
+      onOpenChange={setCadastroApoioOpen}
+      tipoInicial={form.tipo === "teste" ? "teste" : "folguista"}
+      dadosIniciais={{ unidade_id: form.unidade_id || unidadePadrao || "" }}
+      onSaved={async (id) => {
+        if (!id) return;
+        await apoio.refetch();
+        escolherApoio(id);
+      }}
+    />
+    </>
   );
 }

@@ -41,7 +41,8 @@ export interface PessoaApoioFormDialogProps {
   tipoInicial?: PessoaApoioTipo;
   /** Dados já conhecidos (ex.: vindos de um recibo) para pré-preencher um cadastro novo. */
   dadosIniciais?: Partial<{ nome: string; cpf: string; telefone: string; unidade_id: string }>;
-  onSaved?: () => void;
+  /** Chamado após salvar; recebe o id da pessoa (criada ou editada). */
+  onSaved?: (id?: string) => void;
 }
 
 /**
@@ -96,7 +97,7 @@ export function PessoaApoioFormDialog({
     );
     if (!parsed) return;
     try {
-      await salvar.mutateAsync({
+      const salvoId = await salvar.mutateAsync({
         ...candidato,
         setor_id: form.setor_id || null,
         ativo: form.ativo,
@@ -104,7 +105,7 @@ export function PessoaApoioFormDialog({
       });
       toast.success(pessoa ? "Cadastro atualizado" : "Pessoa cadastrada");
       onOpenChange(false);
-      onSaved?.();
+      onSaved?.(salvoId ?? pessoa?.id);
     } catch (e) {
       toast.error("Não foi possível salvar", {
         description: e instanceof Error ? e.message : String(e),
