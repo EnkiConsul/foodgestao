@@ -1,3 +1,4 @@
+import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
 import { useId, useRef, useState } from "react";
 import {
   BadgeCheck,
@@ -329,6 +330,7 @@ export function ComprovanteAnexarDialog(props: {
           }}
         />
 
+        <AvisoViaFisica />
         <div className="grid gap-1.5">
           <Label className="text-xs">Arquivo do comprovante</Label>
           <div className="flex items-center gap-2">
