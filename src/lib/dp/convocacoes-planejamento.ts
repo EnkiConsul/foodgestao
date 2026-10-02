@@ -22,6 +22,23 @@ export function regimeConvocavel(regime: string | null | undefined): boolean {
   return (REGIMES_CONVOCAVEIS as string[]).includes(regime);
 }
 
+/** Formas de pagamento convocáveis: quem recebe por hora ou por diária. */
+export const FORMAS_PAGAMENTO_CONVOCAVEIS = ["horista", "diarista"] as const;
+
+/**
+ * Quem pode aparecer como opção de convocação. Freelancer mensalista já faz
+ * parte da rotina da loja e não é convocado — espelha o bloqueio do backend
+ * (REMUNERACAO_MENSALISTA_NAO_ELEGIVEL em dp_convocacao_remuneracao_snapshot).
+ */
+export function pessoaConvocavel(p: {
+  regime: string | null | undefined;
+  forma_pagamento?: string | null | undefined;
+}): boolean {
+  if (!regimeConvocavel(p.regime)) return false;
+  if (p.regime === "intermitente") return true; // intermitente é sempre convocável (CLT)
+  return (FORMAS_PAGAMENTO_CONVOCAVEIS as readonly string[]).includes(p.forma_pagamento ?? "");
+}
+
 // ---------------------------------------------------------------- datas
 
 export const MINUTOS_DIA = 1440;

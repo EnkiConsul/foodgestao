@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
 
 export type MeuVinculoPortal = {
   colaboradorId: string;
