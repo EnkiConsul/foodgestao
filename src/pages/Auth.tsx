@@ -494,7 +494,7 @@ export default function Auth() {
           <div className="flex w-full max-w-[340px] flex-col md:max-w-[320px] lg:max-w-[340px]">
         <Card className="max-h-[68svh] w-full overflow-y-auto border-border/70 bg-card/90 shadow-site-float backdrop-blur-xl supports-[backdrop-filter]:bg-card/84 md:max-h-[calc(100svh-2rem)]">
 
-        <CardHeader className="space-y-0 px-4 pb-0.5 pt-1.5 text-center md:pb-2 md:pt-4">
+        <CardHeader className="space-y-0 px-4 pb-0 pt-1 text-center md:pb-2 md:pt-4">
           <CardTitle className="sr-only">Aveto 360</CardTitle>
           <CardDescription className="text-sm font-semibold text-foreground/80">
             {mfaRequired
@@ -552,7 +552,7 @@ export default function Auth() {
           </CardContent>
         ) : (
           <form onSubmit={handleSubmit} autoComplete="on">
-          <CardContent className="space-y-1.5 px-4 md:space-y-2.5">
+          <CardContent className="space-y-1 px-3 pb-1 md:space-y-2.5">
             {isSignup && duplicateEmail && (
               <div
                 role="alert"
@@ -604,8 +604,8 @@ export default function Auth() {
             )}
 
             {isLogin ? (
-              <div className="space-y-1">
-                <Label htmlFor="identifier">E-mail ou CPF</Label>
+              <div className="space-y-0.5">
+                <Label htmlFor="identifier" className="text-xs md:text-sm">E-mail ou CPF</Label>
                 <div className="relative">
                   <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -632,7 +632,7 @@ export default function Auth() {
                 )}
                 <button
                   type="button"
-                  className="min-h-8 text-left text-xs font-medium text-primary hover:underline md:min-h-11"
+                  className="min-h-0 py-0.5 text-left text-xs font-medium text-primary hover:underline md:min-h-11"
                   onClick={() => navigate("/esqueci-senha?primeiro=1")}
                 >
                   Primeiro acesso? Crie sua senha pelo CPF
@@ -666,13 +666,13 @@ export default function Auth() {
             )}
 
             {!isForgot && (
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Senha</Label>
+                  <Label htmlFor="password" className="text-xs md:text-sm">Senha</Label>
                   {isLogin && (
                     <button
                       type="button"
-                      className="-mr-2 inline-flex min-h-11 min-w-11 items-center justify-end rounded-md px-2 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="-mr-2 inline-flex min-h-6 md:min-h-11 md:min-w-11 items-center justify-end rounded-md px-2 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       onClick={() => navigate("/esqueci-senha")}
                     >
                       Esqueci minha senha
@@ -691,13 +691,13 @@ export default function Auth() {
                     placeholder="••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                     className="h-11 bg-background/80 pl-10 pr-12"
+                     className="h-9 bg-background/80 pl-10 pr-12"
                     maxLength={128}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-0 top-1/2 flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="absolute right-0 top-1/2 flex min-h-9 min-w-9 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                     aria-pressed={showPassword}
                   >
@@ -831,7 +831,7 @@ export default function Auth() {
             )}
           </CardContent>
 
-          <CardFooter className="flex flex-col gap-0.5 px-4 pb-1.5 pt-0 md:gap-2 md:pb-4 md:pt-1">
+          <CardFooter className="flex flex-col gap-0.5 px-3 pb-2 pt-0 md:gap-2 md:pb-4 md:pt-1">
             {/* CTA principal da autenticação: verde escuro opaco para contraste
                 AA (~5.5:1 normal, ~7:1 hover/ativo). Cores explícitas também no
                 tema escuro para não herdar texto escuro. Sem opacity no hover. */}
