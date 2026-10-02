@@ -1399,7 +1399,7 @@ export function FichaRevisaoCard({
                   setTurnoDialog(false);
                   toast.success("Turno cadastrado e escolhido na ficha.");
                 },
-                onError: (e) => notifyError(e, { action: "cadastrar turno" }),
+                onError: (e) => notifyError(e as Error, { surface: "Pessoas 360°", action: "cadastrar o turno da ficha" }),
               },
             )
           }
