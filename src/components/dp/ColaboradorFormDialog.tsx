@@ -107,6 +107,8 @@ import {
   AlteracaoContratualDialog,
   type AlteracaoContratualConfirmacao,
 } from "@/components/dp/AlteracaoContratualDialog";
+import { divergenciasComFicha, resumoDivergencias, type DivergenciaFicha } from "@/lib/dp/ficha-registro/divergencia";
+import { inferirRegime } from "@/lib/dp/ficha-registro/inferencia";
 import {
   detectarAlteracoesContratuais,
   alertasAlteracaoContratual,
@@ -406,7 +408,7 @@ export function ColaboradorFormDialog({
   const alteracaoConfirmada = useRef<AlteracaoContratualConfirmacao | null>(null);
   /** Alterações contratuais aguardando confirmação do gestor. */
   const [alteracaoPendente, setAlteracaoPendente] = useState<
-    { alteracoes: AlteracaoContratual[]; alertas: AlertaAlteracao[] } | null
+    { alteracoes: AlteracaoContratual[]; alertas: AlertaAlteracao[]; divergenciasFicha?: DivergenciaFicha[] } | null
   >(null);
 
 
@@ -1020,6 +1022,22 @@ export function ColaboradorFormDialog({
 
   const unidadeSelecionada = (unidades.data ?? []).find((u) => u.id === form.unidade_id) as any;
   const cargoSelecionado = (cargos.data ?? []).find((c) => c.id === form.cargo_id) as any;
+
+  /** Dados da Ficha de Registro de origem (registro contábil), quando o cadastro veio de importação. */
+  const fichaItemId = (colaborador as { ficha_importacao_item_id?: string | null } | null)?.ficha_importacao_item_id ?? null;
+  const fichaOrigem = useQuery({
+    queryKey: ["dp_ficha_origem", fichaItemId],
+    enabled: !!fichaItemId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_ficha_importacao_itens")
+        .select("dados_extraidos")
+        .eq("id", fichaItemId!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.dados_extraidos ?? null) as Record<string, unknown> | null;
+    },
+  });
 
   // Art. 74, § 2º da CLT: acima de 20 pessoas na unidade o ponto é obrigatório.
   const lotacaoUnidade = useQuery({
@@ -1937,9 +1955,26 @@ export function ColaboradorFormDialog({
         sindicato: (id) => nomeDe(sindicatos.data as any[], id),
       });
       if (alteracoes.length > 0) {
+        const ficha = fichaOrigem.data;
+        const campos = new Set(alteracoes.map((a) => a.campo));
+        const divergenciasFicha = ficha
+          ? divergenciasComFicha(
+              {
+                cargoNome: campos.has("cargo") ? (ficha.cargo_nome as string) ?? null : null,
+                salario: campos.has("salario_base") ? (ficha.salario as string | number | null) : null,
+                regime: campos.has("vinculo") ? inferirRegime(ficha) : null,
+              },
+              {
+                cargoNome: nomeDe(cargos.data as any[], depois.cargo_id),
+                salario: depois.salario_base ?? null,
+                regime: depois.regime ?? null,
+              },
+            )
+          : [];
         setAlteracaoPendente({
           alteracoes,
           alertas: alertasAlteracaoContratual(antes, depois),
+          divergenciasFicha,
         });
         return;
       }
@@ -3304,13 +3339,15 @@ export function ColaboradorFormDialog({
         admissao={form.data_admissao || null}
         alteracoes={alteracaoPendente?.alteracoes ?? []}
         alertas={alteracaoPendente?.alertas ?? []}
+        divergenciasFicha={alteracaoPendente?.divergenciasFicha ?? []}
         salvando={upsert.isPending}
         onCancel={() => setAlteracaoPendente(null)}
         onConfirm={async (c) => {
           alteracaoConfirmada.current = c;
+          const divFicha = alteracaoPendente?.divergenciasFicha ?? [];
           const resumo = (alteracaoPendente?.alteracoes ?? [])
             .map((a) => `${a.label}: ${a.de} → ${a.para}`)
-            .join("; ");
+            .join("; ") + (divFicha.length ? ` | Divergência com a ficha de registro (ciência formal): ${resumoDivergencias(divFicha)}` : "");
           setAlteracaoPendente(null);
           await registrarAlteracaoContratual(c, resumo);
           await submit();
