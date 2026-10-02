@@ -1986,6 +1986,8 @@ export function ColaboradorFormDialog({
             : null,
 
         possui_folha_ponto: form.possui_folha_ponto,
+        folha_ponto_dispensa_justificativa:
+          pontoObrigatorio && !form.possui_folha_ponto ? justificativaPonto.trim() : null,
         optante_adiantamento: permiteAdiantamento ? form.optante_adiantamento : false,
 
         forma_pagamento: rem.forma_pagamento,
@@ -2866,6 +2868,24 @@ export function ColaboradorFormDialog({
                 />
                 <Label htmlFor="possui_folha_ponto" className="cursor-pointer">Possui Folha de Ponto</Label>
               </div>
+              {pontoObrigatorio && !form.possui_folha_ponto && (
+                <div className="space-y-1.5 rounded-lg border border-destructive/40 bg-destructive/5 p-2.5">
+                  <p className="text-[11px] leading-relaxed text-destructive">
+                    Atenção (Art. 74 da CLT): esta unidade tem mais de 20 pessoas e o controle de ponto é obrigatório.
+                    Dispensar pode gerar autuação e presunção das horas extras alegadas (Súmula 338 do TST). Só dispense
+                    em casos previstos: cargo de gestão/confiança (Art. 62, II), trabalho externo (Art. 62, I) ou
+                    teletrabalho (Art. 75-B).
+                  </p>
+                  <Label htmlFor="justificativa_ponto" className="text-xs">Justificativa da Dispensa *</Label>
+                  <Input
+                    id="justificativa_ponto"
+                    value={justificativaPonto}
+                    onChange={(e) => setJustificativaPonto(e.target.value)}
+                    placeholder="Ex.: Gerente da unidade, cargo de confiança (Art. 62, II)"
+                    maxLength={300}
+                  />
+                </div>
+              )}
               {!unidadeSelecionada?.possui_relogio_ponto && form.possui_folha_ponto && (
                 <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
                   A unidade ainda não está marcada como "Possui Folha de Ponto". Marque essa opção no cadastro da
