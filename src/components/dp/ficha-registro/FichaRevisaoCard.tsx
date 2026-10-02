@@ -440,6 +440,12 @@ export function FichaRevisaoCard({
       toast.error("A unidade tem mais de 20 pessoas: o ponto é obrigatório (Art. 74 da CLT). Justifique a dispensa (ex.: cargo de confiança, Art. 62).");
       return;
     }
+    if (divergenciasFicha.length > 0 && !cienciaDivergenciaValida(justDivergencia, cienteDivergencia)) {
+      setTentouCriar(true);
+      toast.error("Há divergência com a ficha de registro. Informe a justificativa e confirme a ciência.");
+      document.getElementById(`ficha-div-${item.id}-just`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     let cargoFinal = cargoId;
     if (automatizarCargo) {
       setPreparando(true);
