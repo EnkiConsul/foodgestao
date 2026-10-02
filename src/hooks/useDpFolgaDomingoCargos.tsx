@@ -6,6 +6,9 @@ export interface FolgaDomingoCargo {
   unidade_id: string;
   cargo_id: string;
   domingos_mes: number;
+  modo_frequencia?: "semanas" | "por_mes" | null;
+  periodicidade_semanas?: number | null;
+  dias_descanso?: number[] | null;
 }
 
 /** Domingos de folga diferenciados por cargo dentro da unidade. */
@@ -16,7 +19,7 @@ export function useDpFolgaDomingoCargos(companyId?: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_folga_domingo_cargos" as never)
-        .select("id, unidade_id, cargo_id, domingos_mes")
+        .select("id, unidade_id, cargo_id, domingos_mes, modo_frequencia, periodicidade_semanas, dias_descanso")
         .eq("company_id", companyId!);
       if (error) throw error;
       return (data ?? []) as unknown as FolgaDomingoCargo[];
@@ -29,12 +32,12 @@ export function useDpFolgaDomingoCargos(companyId?: string | null) {
  * na unidade → null (segue a regra da unidade para homens/mulheres).
  */
 export function domingosDiferenciados(
-  colab: { domingos_folga_mes?: number | null; unidade_id?: string | null; cargo_id?: string | null },
+  colab: { domingos_folga_mes?: number | null; unidade_id?: string | null; cargo_id?: string | null; folga_dif_dias?: number[] | null },
   regras: FolgaDomingoCargo[],
-): { domingos: number | null; origem: "colaborador" | "cargo" | null } {
-  if (colab.domingos_folga_mes != null) return { domingos: colab.domingos_folga_mes, origem: "colaborador" };
+): { domingos: number | null; origem: "colaborador" | "cargo" | null; dias: number[] | null } {
+  if (colab.domingos_folga_mes != null) return { domingos: colab.domingos_folga_mes, origem: "colaborador", dias: colab.folga_dif_dias ?? null };
   const r = regras.find((x) => x.unidade_id === colab.unidade_id && x.cargo_id === colab.cargo_id);
-  return r ? { domingos: r.domingos_mes, origem: "cargo" } : { domingos: null, origem: null };
+  return r ? { domingos: r.domingos_mes, origem: "cargo", dias: r.dias_descanso ?? null } : { domingos: null, origem: null, dias: null };
 }
 
 /** Opções oferecidas: mesmo padrão da unidade (a cada X semanas ou X por mês). */

@@ -171,7 +171,7 @@ export default function DpMeuCalendario() {
       if (!data) return null;
       const { data: c } = await supabase
         .from("dp_colaboradores")
-        .select("id, company_id, nome, sexo, regime, cargo_id, domingos_folga_mes, folga_fixa_semana, ativo, unidade_id, vinculo_label")
+        .select("id, company_id, nome, sexo, regime, cargo_id, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, unidade_id, vinculo_label")
         .eq("id", data)
         .single();
       return c;
@@ -191,7 +191,7 @@ export default function DpMeuCalendario() {
 
   const companyId = meRef.data?.company_id;
   const myUnidade = meRef.data?.unidade_id ?? null;
-  const { config: regrasConfig, diasElegiveis, tetoMensal, domingosMes: domingosMesEfetivo } = useDpRegrasColaborador(companyId, myUnidade, (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null, (meRef.data as { domingos_folga_mes?: number | null } | undefined)?.domingos_folga_mes ?? null, (meRef.data as { cargo_id?: string | null } | undefined)?.cargo_id ?? null);
+  const { config: regrasConfig, diasElegiveis, tetoMensal, domingosMes: domingosMesEfetivo } = useDpRegrasColaborador(companyId, myUnidade, (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null, (meRef.data as { domingos_folga_mes?: number | null } | undefined)?.domingos_folga_mes ?? null, (meRef.data as { cargo_id?: string | null } | undefined)?.cargo_id ?? null, (meRef.data as { folga_dif_dias?: number[] | null } | undefined)?.folga_dif_dias ?? null);
   const resumoFolgas = resumoEscolhaFolgas(regrasConfig, { sexo: (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null });
   /** No padrão CLT o sistema gera a folga dominical — o colaborador não marca nem remove. */
   const folgaCltAutomatica = folgaDominicalAutomatica(regrasConfig);
