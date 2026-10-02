@@ -1402,6 +1402,18 @@ export function FichaRevisaoCard({
         )}
 
         {!aplicado && (
+          <DivergenciaFichaAlerta
+            id={`ficha-div-${item.id}`}
+            divergencias={divergenciasFicha}
+            justificativa={justDivergencia}
+            onJustificativa={setJustDivergencia}
+            ciente={cienteDivergencia}
+            onCiente={setCienteDivergencia}
+            mostrarErro={tentouCriar}
+          />
+        )}
+
+        {!aplicado && (
 
           <div className="flex flex-wrap justify-end gap-2">
             <Button
