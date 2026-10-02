@@ -87,7 +87,7 @@ export default function ResetPassword() {
     toast.success("Senha redefinida com sucesso");
     await logAudit("user_password_changed", "auth");
     await supabase.auth.signOut();
-    navigate("/auth", { replace: true });
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -111,7 +111,7 @@ export default function ResetPassword() {
               </p>
             </CardContent>
             <CardFooter>
-              <Button className="w-full min-h-11" onClick={() => navigate("/auth", { replace: true })}>
+              <Button className="w-full min-h-11" onClick={() => navigate("/login", { replace: true })}>
                 Voltar para o Login
               </Button>
             </CardFooter>

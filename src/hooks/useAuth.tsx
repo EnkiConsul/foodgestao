@@ -100,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast.error("Sua conta foi desconectada porque foi feito login em outro aparelho.", {
         duration: 10000,
       });
-      navigate("/auth", { replace: true });
+      navigate("/login", { replace: true });
     };
 
     const canal = supabase
@@ -157,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user?.id) sessionStorage.removeItem(`audit_resume_${user.id}`);
     await supabase.auth.signOut();
     queryClient.clear();
-    navigate("/auth", { replace: true });
+    navigate("/login", { replace: true });
   };
 
   return (

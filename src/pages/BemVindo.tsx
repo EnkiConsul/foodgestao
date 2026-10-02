@@ -50,7 +50,7 @@ export default function BemVindo() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/auth", { replace: true });
+    navigate("/login", { replace: true });
   };
 
   return (

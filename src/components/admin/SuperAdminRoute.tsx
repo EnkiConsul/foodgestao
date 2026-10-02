@@ -52,7 +52,7 @@ export function SuperAdminRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/login" replace />;
   if (!isSuperAdmin) return <Navigate to="/" replace />;
 
   if (mfa !== "ok") {

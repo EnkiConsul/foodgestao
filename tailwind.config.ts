@@ -24,6 +24,7 @@ export default {
       fontFamily: {
         sans: ["Epilogue", "Inter", "sans-serif"],
         display: ["Urbanist", "Epilogue", "Inter", "sans-serif"],
+        montserrat: ["Montserrat", "sans-serif"],
         marketing: ["Manrope", "Inter", "sans-serif"],
       },
       colors: {
@@ -68,6 +69,15 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        lp: {
+          bg: "hsl(var(--lp-bg))",
+          deep: "hsl(var(--lp-deep))",
+          green: "hsl(var(--lp-green))",
+          "green-dark": "hsl(var(--lp-green-dark))",
+          text: "hsl(var(--lp-text))",
+          muted: "hsl(var(--lp-muted))",
+          graphite: "hsl(var(--lp-graphite))",
         },
         site: {
           navy: "hsl(var(--site-navy))",

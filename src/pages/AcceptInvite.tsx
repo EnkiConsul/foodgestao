@@ -53,7 +53,7 @@ export default function AcceptInvite() {
 
   const irParaLogin = () => {
     try { sessionStorage.setItem(INVITE_TOKEN_KEY, token ?? ""); } catch { /* noop */ }
-    navigate("/auth", { replace: true });
+    navigate("/login", { replace: true });
   };
 
   const handleAccept = async () => {
@@ -92,7 +92,7 @@ export default function AcceptInvite() {
     }
     const { error: signErr } = await supabase.auth.signInWithPassword({ email: d.login_email, password: senha });
     setBusy(false);
-    if (signErr) { toast.success("Conta criada! Entre com sua senha."); navigate("/auth"); return; }
+    if (signErr) { toast.success("Conta criada! Entre com sua senha."); navigate("/login"); return; }
     setCompanyName((d.empresas ?? []).join(", "));
     setStatus("accepted");
   };
@@ -185,7 +185,7 @@ export default function AcceptInvite() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => navigate(user ? "/hub" : "/auth")} className="w-full">
+              <Button onClick={() => navigate(user ? "/hub" : "/login")} className="w-full">
                 {user ? "Acessar o sistema" : "Entrar"}
               </Button>
             </CardContent>

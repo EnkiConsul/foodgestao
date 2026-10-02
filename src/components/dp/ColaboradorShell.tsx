@@ -37,7 +37,7 @@ export function ColaboradorShell() {
     },
   });
 
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/login" replace />;
   if (superLoading || ownerOrAdmin.isLoading || check.isLoading) {
     return <div className="p-8 text-muted-foreground">Carregando…</div>;
   }

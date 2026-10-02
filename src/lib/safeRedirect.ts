@@ -9,7 +9,7 @@
 export const DEFAULT_REDIRECT = "/hub";
 
 /** Rotas que nunca devem ser destino de redirect (evita loop de login). */
-const BLOCKED_PREFIXES = ["/auth", "/reset-password"];
+const BLOCKED_PREFIXES = ["/auth", "/login", "/reset-password"];
 
 /**
  * Remove caracteres de controle (U+0000–U+001F e U+007F) por ponto de código.

@@ -289,3 +289,14 @@
     }
   }
 }
+
+/* Site público AVETO 360 (paleta dos posts oficiais) */
+:root {
+  --lp-bg: 300 100% 2%;
+  --lp-deep: 145 70% 8%;
+  --lp-green: 145 63% 42%;
+  --lp-green-dark: 142 72% 29%;
+  --lp-text: 0 0% 95%;
+  --lp-muted: 0 0% 70%;
+  --lp-graphite: 0 0% 20%;
+}
