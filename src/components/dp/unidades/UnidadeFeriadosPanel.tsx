@@ -1,4 +1,9 @@
 import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { forcarRecargaPendencias } from "@/lib/dp/pendencias-resolver";
 import { CalendarDays, Copy, Pencil, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useDpFeriados } from "@/hooks/useDpFeriados";
 import {
-  descricaoRegra, feriadosDoAno, type FeriadoRegra,
+  descricaoRegra, ehFeriadoLocal, faltaFeriadoLocal, feriadosDoAno, type FeriadoRegra,
 } from "@/lib/dp/feriados";
 import { FeriadoFormDialog } from "@/components/dp/unidades/FeriadoFormDialog";
 import { ReplicarFeriadosDialog } from "@/components/dp/unidades/ReplicarFeriadosDialog";
@@ -28,7 +33,7 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
   const { feriados, isLoading, salvar, alternar, excluir, incluirNacionais, replicar } =
     useDpFeriados(unidadeId ?? null);
   const qc = useQueryClient();
-  const { companyId } = useCompanyContext() as any;
+  const { selectedCompanyId: companyId } = useCompanyContext();
   const cienteEm = useQuery({
     queryKey: ["dp_unidade_feriados_ciente", unidadeId],
     enabled: !!unidadeId,
