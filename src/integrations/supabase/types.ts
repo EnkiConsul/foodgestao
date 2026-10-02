@@ -16862,6 +16862,15 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_ficha_historico_aplicar: {
+        Args: {
+          p_advertencias: Json
+          p_afastamentos: Json
+          p_ferias: Json
+          p_item_id: string
+        }
+        Returns: Json
+      }
       dp_ficha_ignorar: { Args: { p_item_id: string }; Returns: Json }
       dp_folga_admin_cancelar: {
         Args: {

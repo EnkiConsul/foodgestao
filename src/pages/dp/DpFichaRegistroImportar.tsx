@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { FichaRevisaoCard } from "@/components/dp/ficha-registro/FichaRevisaoCard";
+import { FichaHistoricoPainel } from "@/components/dp/ficha-registro/FichaHistoricoPainel";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
@@ -537,6 +538,10 @@ export default function DpFichaRegistroImportar() {
             </div>
           ))}
         </div>
+      )}
+
+      {atual?.status === "ready" && !preadmissaoId && (
+        <FichaHistoricoPainel importacaoId={atual.id} itens={itens} />
       )}
 
       {prontos.length > 0 && (
