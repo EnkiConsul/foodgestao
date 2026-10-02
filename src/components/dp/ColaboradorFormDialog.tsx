@@ -69,7 +69,7 @@ import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTr
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { PadraoDivergenciaAviso } from "@/components/dp/PadraoDivergenciaAviso";
 import { ColaboradorJornadaPanel, type JornadaRascunho, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
-import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
+import { CargoFormDialog } from "@/components/dp/cargos/CargoFormDialog";
 import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { UnidadeFormDialog } from "@/components/dp/UnidadeFormDialog";
@@ -227,6 +227,10 @@ interface Props {
   admissao?: ModoAdmissao | null;
   /** Horário escolhido na admissão, aplicado ao abrir o cadastro recém-efetivado. */
   jornadaInicial?: JornadaRascunho | null;
+  /** Dados já conhecidos (ex.: conferência de documentos) para pré-preencher um cadastro novo. */
+  dadosIniciais?: { nome?: string; cpf?: string; unidade_id?: string | null } | null;
+  /** Chamado uma vez quando um colaborador NOVO é gravado. */
+  onCriado?: (id: string, nome: string) => void;
 }
 
 export interface SalvarAdmissaoEntrada {
@@ -316,6 +320,8 @@ export function ColaboradorFormDialog({
   pessoaApoioInicial,
   admissao = null,
   jornadaInicial = null,
+  dadosIniciais = null,
+  onCriado,
 }: Props) {
   const upsert = useUpsertDpColaborador();
   const unidades = useDpUnidades();
@@ -672,6 +678,18 @@ export function ColaboradorFormDialog({
     setRem({ ...remuneracaoBlank, forma_pagamento: formaPagamentoPadrao("clt") });
     setCriadoId(null);
   }, [open, pessoaApoioInicial, colaborador?.id]);
+
+  // Atalhos (ex.: conferência de documentos) abrem ESTE formulário completo já preenchido.
+  useEffect(() => {
+    if (!open || colaborador?.id || pessoaApoioInicial || !dadosIniciais) return;
+    setForm((f) => ({
+      ...f,
+      nome: dadosIniciais.nome ? dadosIniciais.nome.toUpperCase() : f.nome,
+      cpf: dadosIniciais.cpf ? maskCpf(dadosIniciais.cpf.replace(/\D/g, "")) : f.cpf,
+      unidade_id: dadosIniciais.unidade_id ?? f.unidade_id,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, colaborador?.id, dadosIniciais?.nome, dadosIniciais?.cpf, dadosIniciais?.unidade_id]);
 
   useEffect(() => {
     if (!open) { admissaoResetRef.current = null; return; }
@@ -2142,6 +2160,7 @@ export function ColaboradorFormDialog({
           .update({ colaborador_id: colaboradorId, ativo: false })
           .eq("id", pessoaApoioInicial.id);
       }
+      if (!colaborador?.id && colaboradorId && onCriado) onCriado(colaboradorId, form.nome);
 
       // Sincroniza a ficha de benefícios marcada no cadastro.
       const hoje = new Date().toISOString().slice(0, 10);
@@ -3404,11 +3423,11 @@ export function ColaboradorFormDialog({
         }}
       />
 
-      <CargoQuickCreateDialog
+      <CargoFormDialog
         open={novoCargoOpen}
         onOpenChange={setNovoCargoOpen}
-        salarioInicial={baseSalarialInformada() || null}
-        onCreated={selecionarCargo}
+        cargo={null}
+        onSaved={selecionarCargo}
       />
 
       <UnidadeFormDialog
