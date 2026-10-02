@@ -1647,6 +1647,15 @@ export function ColaboradorFormDialog({
     const alvo = intencaoRef.current;
     setCampoErro(null);
 
+    if (dispensaPontoPendente) {
+      setTab("jornada");
+      toast.error("Justifique a dispensa da folha de ponto", {
+        description:
+          "A unidade tem mais de 20 pessoas: o ponto é obrigatório (Art. 74 da CLT). Informe o motivo, por exemplo cargo de confiança (Art. 62, II).",
+      });
+      return;
+    }
+
     // Admissão: grava na ficha da pré-admissão; o servidor revalida tudo e o
     // cadastro oficial só nasce na efetivação, depois do retorno da contabilidade.
     if (admissao) {
