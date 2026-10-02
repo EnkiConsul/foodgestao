@@ -15,7 +15,7 @@ const BUCKET = "dp-disciplinar";
 const BodySchema = z.object({ registro_id: z.string().uuid() });
 
 // Mesma tabela do formulário (src/pages/dp/DpDisciplinar.tsx).
-const ALINEA_POR_MOTIVO: Record<string, string> = {
+const ALINEA_BASE: Record<string, string> = {
   "Atraso Ou Falta Injustificada": "e",
   "Insubordinação / Descumprimento De Ordem": "h",
   "Indisciplina / Descumprimento De Normas Internas": "h",
@@ -25,6 +25,9 @@ const ALINEA_POR_MOTIVO: Record<string, string> = {
   "Uso Indevido De Celular No Expediente": "h",
   "Embriaguez Em Serviço": "f",
 };
+const ALINEA_POR_MOTIVO: Record<string, string> = Object.fromEntries(
+  Object.entries(ALINEA_BASE).map(([k, v]) => [k.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(), v]),
+);
 const ALINEA_NOME: Record<string, string> = {
   b: "incontinência de conduta ou mau procedimento",
   e: "desídia no desempenho das respectivas funções",
@@ -66,6 +69,7 @@ const cpfFmt = (v?: string | null) => {
   return d.length === 11 ? d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4") : (v ?? "");
 };
 // Helvetica padrão só cobre WinAnsi: remove o que não for representável.
+const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 const safe = (s: unknown) => String(s ?? "").replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/[–—]/g, "-").replace(/[^\x20-\x7E\xA0-\xFF\n]/g, "");
 
 Deno.serve(async (req) => {
@@ -115,130 +119,131 @@ Deno.serve(async (req) => {
     const suspensao = reg.tipo === "suspensao";
     const dias = Number(reg.suspensao_dias ?? 0);
     const motivo = String(reg.motivo ?? "").trim();
-    const alinea = ALINEA_POR_MOTIVO[motivo];
+    // Vários motivos chegam unidos por " + " (concurso de infrações, punição única).
+    const motivos = motivo.split(" + ").map((m) => m.trim()).filter(Boolean);
+    const alineas = [...new Set(motivos.map((m) => ALINEA_POR_MOTIVO[norm(m)]).filter(Boolean))].sort();
+    const transcricoes = alineas.map((al) => ART_482.find((l) => l.startsWith(`${al})`))!).filter(Boolean);
 
-    // ---------- PDF ----------
-    const pdf = await PDFDocument.create();
-    const font = await pdf.embedFont(StandardFonts.Helvetica);
-    const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-    const W = 595, H = 842, M = 56;
-    const cor = rgb(0.1, 0.1, 0.12), cinza = rgb(0.4, 0.4, 0.43);
-    let page: PDFPage = pdf.addPage([W, H]);
-    let y = H - M;
+    const desenhar = async (escala: number) => {
+      const pdf = await PDFDocument.create();
+      const font = await pdf.embedFont(StandardFonts.Helvetica);
+      const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+      const W = 595, H = 842, M = 48;
+      const cor = rgb(0.1, 0.1, 0.12), cinza = rgb(0.4, 0.4, 0.43);
+      const s = (n: number) => n * escala;
+      let menorY = H;
+      for (const via of ["1ª Via - Empregador", "2ª Via - Empregado(a)"]) {
+        const page: PDFPage = pdf.addPage([W, H]);
+        let y = H - 40;
+        const linhas = (text: string, size: number, f: PDFFont, maxW: number) => {
+          const out: string[] = [];
+          for (const par of safe(text).split("\n")) {
+            let line = "";
+            for (const w of par.split(/\s+/).filter(Boolean)) {
+              const t = line ? `${line} ${w}` : w;
+              if (f.widthOfTextAtSize(t, size) > maxW && line) { out.push(line); line = w; } else line = t;
+            }
+            out.push(line);
+          }
+          return out;
+        };
+        const texto = (t: string, o: { size?: number; f?: PDFFont; color?: any; align?: "left" | "center" | "justify"; gap?: number; indent?: number } = {}) => {
+          const size = s(o.size ?? 10), f = o.f ?? font, lh = size * 1.38, x0 = M + (o.indent ?? 0), maxW = W - M - x0;
+          const ls = linhas(t, size, f, maxW);
+          ls.forEach((l, i) => {
+            const wl = f.widthOfTextAtSize(l, size);
+            if (o.align === "center") page.drawText(l, { x: (W - wl) / 2, y, size, font: f, color: o.color ?? cor });
+            else if (o.align === "justify" && i < ls.length - 1 && l.includes(" ")) {
+              const ps = l.split(" "); const extra = (maxW - wl) / (ps.length - 1); let x = x0;
+              for (const p of ps) { page.drawText(p, { x, y, size, font: f, color: o.color ?? cor }); x += f.widthOfTextAtSize(p + " ", size) + extra; }
+            } else page.drawText(l, { x: x0, y, size, font: f, color: o.color ?? cor });
+            y -= lh;
+          });
+          y -= s(o.gap ?? 3);
+        };
+        const campo = (rot: string, val: string, x: number, yy: number) => {
+          page.drawText(safe(rot), { x, y: yy, size: 7, font: bold, color: cinza });
+          page.drawText(safe(val || "-").slice(0, 60), { x, y: yy - 11, size: 9, font, color: cor });
+        };
 
-    const novaPagina = () => { page = pdf.addPage([W, H]); y = H - M; };
-    const garantir = (h: number) => { if (y - h < 70) novaPagina(); };
-    const linhas = (text: string, size: number, f: PDFFont, maxW: number) => {
-      const out: string[] = [];
-      for (const par of safe(text).split("\n")) {
-        let line = "";
-        for (const w of par.split(/\s+/).filter(Boolean)) {
-          const t = line ? `${line} ${w}` : w;
-          if (f.widthOfTextAtSize(t, size) > maxW && line) { out.push(line); line = w; } else line = t;
+        const vt = safe(via.toUpperCase());
+        page.drawText(vt, { x: W - M - bold.widthOfTextAtSize(vt, 7.5), y: H - 26, size: 7.5, font: bold, color: cinza });
+        texto(razao.toUpperCase(), { size: 11.5, f: bold, align: "center", gap: 0 });
+        const sub = [fantasia.toUpperCase(), cnpj ? `CNPJ ${cnpj}` : ""].filter(Boolean).join("  |  ");
+        if (sub) texto(sub, { size: 8.5, align: "center", color: cinza, gap: 0 });
+        y -= 4;
+        page.drawLine({ start: { x: M, y }, end: { x: W - M, y }, thickness: 1, color: cor });
+        y -= s(20);
+        texto(suspensao ? "CARTA DE SUSPENSÃO DISCIPLINAR" : "CARTA DE ADVERTÊNCIA", { size: 14, f: bold, align: "center", gap: 8 });
+
+        const boxH = 54;
+        page.drawRectangle({ x: M, y: y - boxH, width: W - 2 * M, height: boxH, borderColor: cinza, borderWidth: 0.6 });
+        const col = (W - 2 * M) / 3;
+        campo("COLABORADOR(A)", String(k.nome ?? "").toUpperCase(), M + 8, y - 13);
+        campo("CPF", cpfFmt(k.cpf), M + 8 + col * 2, y - 13);
+        campo("CARGO / FUNÇÃO", String(cargoNome).toUpperCase(), M + 8, y - 38);
+        campo("MATRÍCULA", String(k.matricula ?? ""), M + 8 + col, y - 38);
+        campo("DATA DO DOCUMENTO", br(reg.data), M + 8 + col * 2, y - 38);
+        y -= boxH + s(14);
+
+        texto(`Prezado(a) Sr(a). ${safe(k.nome ?? "")},`, { gap: 4 });
+        texto(`${motivos.length > 1 ? "Motivos" : "Motivo"}: ${motivos.join("; ") || "-"}`, { f: bold, gap: 6 });
+
+        const enq = alineas.length
+          ? `, conduta enquadrada no Art. 482, ${alineas.length > 1 ? "alíneas" : "alínea"} ${alineas.map((al) => `"${al}" (${ALINEA_NOME[al]})`).join(alineas.length > 2 ? ", " : " e ").replace(/, ([^,]*)$/, " e $1")}, da Consolidação das Leis do Trabalho`
+          : "";
+        if (suspensao) {
+          const ini = somaDias(reg.data, 1), fim = somaDias(reg.data, dias), ret = somaDias(reg.data, dias + 1);
+          texto(`Pela presente, comunicamos que V.Sa. está sendo SUSPENSO(A) de suas atividades por ${dias} dia(s), no período de ${br(ini)} a ${br(fim)}, devendo retornar ao trabalho em ${br(ret)}, em razão do descumprimento das normas da empresa e do Manual do Colaborador${enq}. Nos termos do Art. 474 da CLT (limite de 30 dias), os dias de suspensão não serão remunerados e serão descontados, inclusive para efeito do repouso semanal remunerado.`, { align: "justify", gap: 6 });
+        } else {
+          texto(`Pela presente, fica V.Sa. ADVERTIDO(A) em razão do descumprimento das normas da empresa e do Manual do Colaborador${enq}, conforme os fatos descritos abaixo.`, { align: "justify", gap: 6 });
         }
-        out.push(line);
+        if (alineas.length > 1) texto("Trata-se de medida disciplinar única aplicada ao mesmo fato, sem dupla punição.", { size: 9, color: cinza, gap: 6 });
+
+        texto("Descrição Dos Fatos", { f: bold, gap: 1 });
+        texto(String(reg.descricao ?? "-"), { align: "justify", gap: 6 });
+
+        if (transcricoes.length) {
+          texto("Transcrição Do Dispositivo Legal (Art. 482 Da CLT)", { f: bold, size: 8.5, color: cinza, gap: 1 });
+          for (const l of transcricoes) texto(l, { size: 8.5, color: cinza, gap: 0, indent: 8 });
+          y -= s(5);
+        }
+
+        texto("Esclarecemos que a reincidência poderá acarretar a aplicação de penalidades mais severas, inclusive a rescisão do contrato de trabalho por justa causa, nos termos do Art. 482 da CLT.", { align: "justify", gap: 8 });
+        texto(`${cidade ? `${safe(cidade)}, ` : ""}${extenso(reg.data)}.`, { gap: 30 });
+
+        const metade = (W - 2 * M - 30) / 2;
+        const assin = (x: number, rot: string, sub: string) => {
+          page.drawLine({ start: { x, y }, end: { x: x + metade, y }, thickness: 0.6, color: cor });
+          page.drawText(safe(rot), { x, y: y - 11, size: 8.5, font: bold, color: cor });
+          page.drawText(safe(sub), { x, y: y - 21, size: 7.5, font, color: cinza });
+        };
+        assin(M, "Empregador", razao.toUpperCase().slice(0, 48));
+        assin(M + metade + 30, "Ciente Do(a) Colaborador(a)", `${String(k.nome ?? "").toUpperCase().slice(0, 36)}  Data: ___/___/_____`);
+        y -= 38;
+
+        texto("Em Caso De Recusa De Assinatura", { f: bold, size: 8.5, gap: 1 });
+        texto("Certificamos que a presente medida foi lida e comunicada ao(à) colaborador(a) em nossa presença, que se recusou a assiná-la.", { size: 8.5, align: "justify", gap: 22 });
+        assin(M, "Testemunha 1", "Nome:                                  CPF:");
+        assin(M + metade + 30, "Testemunha 2", "Nome:                                  CPF:");
+        y -= 26;
+        menorY = Math.min(menorY, y);
+
+        const rod = safe([razao, fantasia, cnpj ? `CNPJ ${cnpj}` : ""].filter(Boolean).join("  |  ").toUpperCase());
+        page.drawLine({ start: { x: M, y: 40 }, end: { x: W - M, y: 40 }, thickness: 0.4, color: cinza });
+        page.drawText(rod, { x: (W - font.widthOfTextAtSize(rod, 7)) / 2, y: 29, size: 7, font, color: cinza });
+        page.drawText(vt, { x: (W - font.widthOfTextAtSize(vt, 6.5)) / 2, y: 18, size: 6.5, font, color: cinza });
       }
-      return out;
-    };
-    const texto = (t: string, o: { size?: number; f?: PDFFont; color?: any; align?: "left" | "center" | "justify"; gap?: number; indent?: number } = {}) => {
-      const size = o.size ?? 10.5, f = o.f ?? font, lh = size * 1.45, x0 = M + (o.indent ?? 0), maxW = W - M - x0;
-      const ls = linhas(t, size, f, maxW);
-      ls.forEach((l, i) => {
-        garantir(lh);
-        const wl = f.widthOfTextAtSize(l, size);
-        if (o.align === "center") page.drawText(l, { x: (W - wl) / 2, y, size, font: f, color: o.color ?? cor });
-        else if (o.align === "justify" && i < ls.length - 1 && l.includes(" ")) {
-          const ps = l.split(" "); const extra = (maxW - wl) / (ps.length - 1); let x = x0;
-          for (const p of ps) { page.drawText(p, { x, y, size, font: f, color: o.color ?? cor }); x += f.widthOfTextAtSize(p + " ", size) + extra; }
-        } else page.drawText(l, { x: x0, y, size, font: f, color: o.color ?? cor });
-        y -= lh;
-      });
-      y -= o.gap ?? 4;
-    };
-    const campo = (rot: string, val: string, x: number, yy: number) => {
-      page.drawText(safe(rot), { x, y: yy, size: 8, font: bold, color: cinza });
-      page.drawText(safe(val || "-"), { x, y: yy - 12, size: 10, font, color: cor });
+      return { pdf, cabe: menorY >= 46 };
     };
 
-    // Cabeçalho da empresa
-    texto(razao.toUpperCase(), { size: 12, f: bold, align: "center", gap: 0 });
-    if (fantasia) texto(fantasia.toUpperCase(), { size: 9.5, align: "center", color: cinza, gap: 0 });
-    if (cnpj) texto(`CNPJ ${cnpj}`, { size: 9, align: "center", color: cinza, gap: 0 });
-    y -= 6;
-    page.drawLine({ start: { x: M, y }, end: { x: W - M, y }, thickness: 1, color: cor });
-    y -= 26;
-    texto(suspensao ? "CARTA DE SUSPENSÃO DISCIPLINAR" : "CARTA DE ADVERTÊNCIA", { size: 15, f: bold, align: "center", gap: 14 });
-
-    // Quadro de identificação
-    const boxH = 66;
-    page.drawRectangle({ x: M, y: y - boxH, width: W - 2 * M, height: boxH, borderColor: cinza, borderWidth: 0.6 });
-    const col = (W - 2 * M) / 3;
-    campo("COLABORADOR(A)", String(k.nome ?? "").toUpperCase(), M + 10, y - 16);
-    campo("CPF", cpfFmt(k.cpf), M + 10 + col * 2, y - 16);
-    campo("CARGO / FUNÇÃO", String(cargoNome).toUpperCase(), M + 10, y - 46);
-    campo("MATRÍCULA", String(k.matricula ?? ""), M + 10 + col, y - 46);
-    campo("DATA DO DOCUMENTO", br(reg.data), M + 10 + col * 2, y - 46);
-    y -= boxH + 22;
-
-    texto(`Prezado(a) Sr(a). ${safe(k.nome ?? "")},`, { gap: 8 });
-    texto(`Referente: ${suspensao ? "Suspensão Disciplinar" : "Advertência Disciplinar"}`, { f: bold, gap: 0 });
-    texto(`Motivo: ${motivo || "-"}`, { f: bold, gap: 10 });
-
-    const enq = alinea
-      ? `, conduta enquadrada no Art. 482, alínea "${alinea}" (${ALINEA_NOME[alinea]}), da Consolidação das Leis do Trabalho`
-      : "";
-    if (suspensao) {
-      const ini = somaDias(reg.data, 1), fim = somaDias(reg.data, dias), ret = somaDias(reg.data, dias + 1);
-      texto(`Pela presente, comunicamos que V.Sa. está sendo SUSPENSO(A) de suas atividades por ${dias} (${dias === 1 ? "um" : dias}) dia(s), no período de ${br(ini)} a ${br(fim)}, devendo retornar ao trabalho em ${br(ret)}, em razão do descumprimento das normas da empresa e do Manual do Colaborador${enq}. Nos termos do Art. 474 da CLT, os dias de suspensão não serão remunerados e serão descontados, inclusive para efeito do repouso semanal remunerado.`, { align: "justify", gap: 10 });
-    } else {
-      texto(`Pela presente, fica V.Sa. ADVERTIDO(A) em razão do descumprimento das normas da empresa e do Manual do Colaborador${enq}, conforme os fatos descritos abaixo.`, { align: "justify", gap: 10 });
+    // Cada via precisa caber em uma folha: reduz a escala só se necessário.
+    let pdf!: PDFDocument;
+    for (const e of [1, 0.94, 0.88, 0.82, 0.76, 0.7]) {
+      const r = await desenhar(e);
+      pdf = r.pdf;
+      if (r.cabe) break;
     }
-
-    texto("Descrição Dos Fatos", { f: bold, gap: 2 });
-    texto(String(reg.descricao ?? "-"), { align: "justify", gap: 10 });
-
-    texto("Esclarecemos que a reincidência poderá acarretar a aplicação de penalidades mais severas, inclusive a rescisão do contrato de trabalho por justa causa, nos termos do Art. 482 da CLT, cuja transcrição segue ao final deste documento.", { align: "justify", gap: 14 });
-
-    texto(`${cidade ? `${safe(cidade)}, ` : ""}${extenso(reg.data)}.`, { gap: 30 });
-
-    // Assinaturas
-    garantir(60);
-    const metade = (W - 2 * M - 30) / 2;
-    const assin = (x: number, rot: string, sub: string) => {
-      page.drawLine({ start: { x, y }, end: { x: x + metade, y }, thickness: 0.6, color: cor });
-      page.drawText(safe(rot), { x, y: y - 12, size: 9, font: bold, color: cor });
-      page.drawText(safe(sub), { x, y: y - 23, size: 8, font, color: cinza });
-    };
-    assin(M, "Empregador", razao.toUpperCase().slice(0, 48));
-    assin(M + metade + 30, "Ciente Do(a) Colaborador(a)", `${String(k.nome ?? "").toUpperCase().slice(0, 40)}  Data: ___/___/_____`);
-    y -= 48;
-
-    // Testemunhas em caso de recusa
-    garantir(110);
-    texto("Em Caso De Recusa De Assinatura", { f: bold, size: 9.5, gap: 2 });
-    texto("Certificamos que a presente medida disciplinar foi lida e comunicada ao(à) colaborador(a) em nossa presença, que se recusou a assiná-la.", { size: 9, align: "justify", gap: 26 });
-    garantir(40);
-    assin(M, "Testemunha 1", "Nome:                                  CPF:");
-    assin(M + metade + 30, "Testemunha 2", "Nome:                                  CPF:");
-    y -= 40;
-
-    // Transcrição do Art. 482
-    garantir(60);
-    page.drawLine({ start: { x: M, y }, end: { x: W - M, y }, thickness: 0.4, color: cinza });
-    y -= 14;
-    texto("Transcrição Do Art. 482 Da CLT", { f: bold, size: 8.5, color: cinza, gap: 2 });
-    for (const l of ART_482) texto(l, { size: 7.5, color: cinza, gap: 0, indent: /^[a-m]\)/.test(l) ? 8 : 0 });
-
-    // Rodapé em todas as páginas
-    const rod = [razao, fantasia, cnpj ? `CNPJ ${cnpj}` : ""].filter(Boolean).join("  |  ").toUpperCase();
-    const pags = pdf.getPages();
-    pags.forEach((p, i) => {
-      p.drawLine({ start: { x: M, y: 46 }, end: { x: W - M, y: 46 }, thickness: 0.4, color: cinza });
-      const t = safe(rod);
-      p.drawText(t, { x: (W - font.widthOfTextAtSize(t, 7.5)) / 2, y: 34, size: 7.5, font, color: cinza });
-      const pg = `Página ${i + 1} de ${pags.length}`;
-      p.drawText(pg, { x: W - M - font.widthOfTextAtSize(pg, 7), y: 22, size: 7, font, color: cinza });
-    });
 
     const bytes = await pdf.save();
     const path = `${reg.company_id}/${reg.id}.pdf`;
