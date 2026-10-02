@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, MailCheck, Lock, User, Eye, EyeOff, IdCard } from "lucide-react";
+import { Mail, MailCheck, Lock, User, Eye, EyeOff, IdCard, ArrowLeft } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -482,6 +482,13 @@ export default function Auth() {
           </picture>
         </section>
 
+        {/* Voltar ao site principal */}
+        <Link
+          to="/"
+          className="absolute left-3 top-[max(0.75rem,env(safe-area-inset-top))] z-20 inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/25 bg-black/40 px-4 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Voltar ao site
+        </Link>
 
         <section className="relative z-10 flex h-full items-end justify-center px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[clamp(4rem,28svh,42svh)] md:min-h-screen md:h-auto md:items-start md:justify-end md:px-[4vw] md:py-[clamp(2rem,8vw,8rem)] lg:px-[5vw] lg:py-[clamp(2.5rem,9vh,6rem)]">
           <div className="flex w-full max-w-[340px] flex-col md:max-w-[320px] lg:max-w-[340px]">
