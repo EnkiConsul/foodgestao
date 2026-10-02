@@ -58,7 +58,7 @@ export function FichaHistoricoPainel({ importacaoId, itens }: { importacaoId: st
     const { error } = await supabase.functions.invoke("dp-ficha-historico-varrer", {
       body: { importacao_id: importacaoId, refazer },
     });
-    if (error) { setLendo(false); notifyError(error, { action: "ler o histórico das fichas" }); return; }
+    if (error) { setLendo(false); notifyError(error, { action: "ler o histórico das fichas", surface: "dp-ficha-historico" }); return; }
     toast.info("Leitura do histórico iniciada. A lista atualiza sozinha.");
   };
 
@@ -77,7 +77,7 @@ export function FichaHistoricoPainel({ importacaoId, itens }: { importacaoId: st
       if (falhas) toast.warning(`${falhas} anotação(ões) não puderam ser lançadas (datas inválidas ou já ocupadas). Confira em Férias.`);
       qc.invalidateQueries({ queryKey: ["dp_ficha_itens"] });
     } catch (e) {
-      notifyError(e, { action: "lançar o histórico das fichas" });
+      notifyError(e, { action: "lançar o histórico das fichas", surface: "dp-ficha-historico" });
     } finally {
       setGravando(false);
     }
