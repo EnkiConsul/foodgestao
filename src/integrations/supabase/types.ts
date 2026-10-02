@@ -7453,6 +7453,72 @@ export type Database = {
           },
         ]
       }
+      dp_documento_comprovantes: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          documento_id: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          leitura: Json | null
+          mime_type: string | null
+          modalidade: string
+          pago_em: string
+          valor_bancario_cents: number | null
+          valor_especie_cents: number | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          documento_id: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          leitura?: Json | null
+          mime_type?: string | null
+          modalidade: string
+          pago_em: string
+          valor_bancario_cents?: number | null
+          valor_especie_cents?: number | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          documento_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          leitura?: Json | null
+          mime_type?: string | null
+          modalidade?: string
+          pago_em?: string
+          valor_bancario_cents?: number | null
+          valor_especie_cents?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_documento_comprovantes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documento_comprovantes_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_documento_eventos: {
         Row: {
           acao: string
@@ -7620,6 +7686,8 @@ export type Database = {
           comprovante_uploaded_by: string | null
           comprovante_valor_bancario_cents: number | null
           comprovante_valor_especie_cents: number | null
+          comprovantes_extra_cents: number
+          comprovantes_extra_qtd: number
           created_at: string
           descricao: string | null
           exige_aceite: boolean
@@ -7671,6 +7739,8 @@ export type Database = {
           comprovante_uploaded_by?: string | null
           comprovante_valor_bancario_cents?: number | null
           comprovante_valor_especie_cents?: number | null
+          comprovantes_extra_cents?: number
+          comprovantes_extra_qtd?: number
           created_at?: string
           descricao?: string | null
           exige_aceite?: boolean
@@ -7722,6 +7792,8 @@ export type Database = {
           comprovante_uploaded_by?: string | null
           comprovante_valor_bancario_cents?: number | null
           comprovante_valor_especie_cents?: number | null
+          comprovantes_extra_cents?: number
+          comprovantes_extra_qtd?: number
           created_at?: string
           descricao?: string | null
           exige_aceite?: boolean
@@ -16035,6 +16107,18 @@ export type Database = {
           unidade_nome: string
         }[]
       }
+      dp_comprovante_adicionar: {
+        Args: {
+          p_arquivo: Json
+          p_documento_id: string
+          p_leitura?: Json
+          p_modalidade: string
+          p_pago_em: string
+          p_valor_bancario_cents?: number
+          p_valor_especie_cents?: number
+        }
+        Returns: string
+      }
       dp_comprovante_anexar: {
         Args: {
           p_arquivo: Json
@@ -16046,6 +16130,10 @@ export type Database = {
           p_valor_bancario_cents?: number
           p_valor_especie_cents?: number
         }
+        Returns: string
+      }
+      dp_comprovante_excluir: {
+        Args: { p_comprovante_id: string }
         Returns: string
       }
       dp_comprovante_reassociar: {

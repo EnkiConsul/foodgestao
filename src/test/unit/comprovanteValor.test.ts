@@ -21,3 +21,21 @@ describe("conferirValor", () => {
     expect(conferirValor(70000, null, null).status).toBe("sem_referencia");
   });
 });
+
+import { consolidarQuitacao, rotuloQuitacao } from "@/lib/dp/comprovante-valor";
+describe("consolidarQuitacao", () => {
+  it("soma principal e complementares", () => {
+    const q = consolidarQuitacao({ liquidoCents: 300000, temPrincipal: true, principalBancarioCents: 150000, extraQtd: 1, extraCents: 150000 });
+    expect(q.status).toBe("exato");
+    expect(q.qtd).toBe(2);
+    expect(rotuloQuitacao(q)).toContain("2 comprovantes");
+  });
+  it("parcial mostra de quanto", () => {
+    const q = consolidarQuitacao({ liquidoCents: 70000, temPrincipal: true, principalBancarioCents: 40000 });
+    expect(q.status).toBe("menor");
+    expect(rotuloQuitacao(q)).toContain("de R$");
+  });
+  it("sem comprovante não rotula", () => {
+    expect(rotuloQuitacao(consolidarQuitacao({ liquidoCents: 70000, temPrincipal: false }))).toBeNull();
+  });
+});
