@@ -14,12 +14,12 @@ import {
 const FORTE = "Trilha#Verde42x";
 
 describe("regra única de senha (S3)", () => {
-  it("exige 12 caracteres", () => {
+  it("exige 8 caracteres", () => {
     expect(SENHA_MIN).toBe(8);
-    const r = avaliarSenha("Ale!2026aB1"); // 11 caracteres, quatro classes
+    const r = avaliarSenha("Ale!26B"); // 7 caracteres, quatro classes
     expect(r.valida).toBe(false);
     expect(r.problemas).toContain("curta");
-    expect(r.mensagem).toBe("Use pelo menos 12 caracteres");
+    expect(r.mensagem).toBe("Use pelo menos 8 caracteres");
   });
 
   it("aprova senha com 12+ e quatro classes", () => {
