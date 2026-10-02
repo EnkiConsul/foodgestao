@@ -1760,7 +1760,7 @@ export function ColaboradorFormDialog({
       if (cpfDigits.length !== 11) return erro("cpf", "CPF deve ter 11 dígitos");
       if (!isValidCpf(cpfDigits)) return erro("cpf", "CPF inválido");
       if (!form.cargo_id) return erro("cargo_id", "Cargo é obrigatório");
-      if (exigeDomingosFolga && form.regime === "clt" && form.domingos_folga_mes === "none")
+      if (exigeDomingosFolga && regimeSelecionado === "clt" && form.domingos_folga_mes === "none")
         return erro("domingos_folga_mes", "Informe a quantidade de folgas dominicais por mês");
       if (!form.unidade_id && !socioSelecionado) return erro("unidade_id", "Unidade é obrigatória");
       if (!form.data_admissao) {
