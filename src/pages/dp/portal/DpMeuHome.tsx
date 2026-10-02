@@ -24,11 +24,14 @@ import { useMinhaProximaFolga } from "@/hooks/useMinhaProximaFolga";
 import { textoProximaFolga } from "@/lib/dp/proxima-folga";
 import { toProperName } from "@/lib/text/properName";
 import { InstalarAppCard } from "@/components/dp/portal/InstalarAppCard";
+import { PortalMenusPrincipaisCards } from "@/components/dp/home/PortalMenusPrincipaisCards";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 
 export default function DpMeuHome() {
   const { user } = useAuth();
   const meu = useDpMeuResumo();
+  const isMobile = useIsMobile();
 
   const colabId = useQuery({
     queryKey: ["colab_of", user?.id],
@@ -127,6 +130,9 @@ export default function DpMeuHome() {
 
       {/* Convite para instalar o app, no primeiro acesso pelo celular. */}
       <InstalarAppCard />
+
+      {/* Atalhos dos menus principais, no topo do Início no celular. */}
+      {isMobile && <PortalMenusPrincipaisCards />}
 
       {/* Pendências em destaque, logo depois da saudação. */}
       <MinhasPendenciasCard />
