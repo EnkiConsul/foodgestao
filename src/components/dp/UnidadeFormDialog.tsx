@@ -20,6 +20,15 @@ import { UnidadeFeriadosPanel } from "@/components/dp/unidades/UnidadeFeriadosPa
 import { EnderecoFields } from "@/components/shared/EnderecoFields";
 import { maskCep } from "@/lib/endereco";
 import { parseEnderecoTexto } from "@/lib/dp/ficha-registro/endereco-parse";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AVISO_ART74,
+  MIN_JUSTIFICATIVA_PONTO,
+  justificativaValida,
+  pontoObrigatorioPorLotacao,
+} from "@/lib/dp/ponto-conformidade";
+import { forcarRecargaPendencias } from "@/lib/dp/pendencias-resolver";
 
 
 export const onlyNumbers = (v: string) => v.replace(/\D/g, "");
@@ -69,6 +78,7 @@ export interface UnidadeEdicao {
   ativo: boolean;
   telefone?: string | null;
   possui_relogio_ponto?: boolean | null;
+  relogio_ponto_dispensa_justificativa?: string | null;
   tem_adiantamento?: boolean | null;
   dia_adiantamento?: number | null;
 }
@@ -209,6 +219,33 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
 
   const unidadeId = unidade?.id ?? criadaId;
 
+  // Conformidade do ponto (Art. 74 CLT) — decisão da unidade, herdada pelos colaboradores.
+  const [justificativaPonto, setJustificativaPonto] = useState("");
+  useEffect(() => {
+    if (open) setJustificativaPonto(unidade?.relogio_ponto_dispensa_justificativa ?? "");
+  }, [open, unidade?.id, unidade?.relogio_ponto_dispensa_justificativa]);
+  const lotacao = useQuery({
+    queryKey: ["dp_unidade_lotacao", unidadeId],
+    enabled: open && !!unidadeId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("dp_colaboradores")
+        .select("id", { count: "exact", head: true })
+        .eq("unidade_id", unidadeId!)
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .is("data_desligamento", null);
+      return count ?? 0;
+    },
+  });
+  const ativosUnidade = lotacao.data ?? 0;
+  const pontoObrigatorio = pontoObrigatorioPorLotacao(ativosUnidade);
+  const pontoOriginal = unidade?.possui_relogio_ponto ?? false;
+  const pontoAlterado = !!unidade && form.possui_relogio_ponto !== pontoOriginal;
+  const justificativaAlterada =
+    justificativaPonto.trim() !== (unidade?.relogio_ponto_dispensa_justificativa ?? "").trim();
+
   const save = async () => {
     if (!form.company_id) {
       toast.error("Selecione a empresa vinculada");
@@ -216,6 +253,13 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
     }
     if (!form.nome.trim()) {
       toast.error("Nome é obrigatório");
+      return;
+    }
+    if (pontoObrigatorio && !form.possui_relogio_ponto && !justificativaValida(justificativaPonto)) {
+      setAba("dados");
+      toast.error("Justifique a dispensa do relógio de ponto", {
+        description: `A unidade tem mais de 20 colaboradores ativos (Art. 74 da CLT). Escreva pelo menos ${MIN_JUSTIFICATIVA_PONTO} letras.`,
+      });
       return;
     }
     try {
@@ -243,10 +287,27 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         uf: form.uf.trim().toUpperCase() || null,
         ativo: form.ativo,
         telefone: form.telefone.trim() || null,
-        possui_relogio_ponto: form.possui_relogio_ponto,
+        // Unidade existente: o ponto é gravado pela rotina com cascata abaixo.
+        ...(unidadeId ? {} : { possui_relogio_ponto: form.possui_relogio_ponto }),
         tem_adiantamento: form.tem_adiantamento,
         dia_adiantamento: form.dia_adiantamento ? Number(form.dia_adiantamento) : null,
       } as Parameters<typeof upsert.mutateAsync>[0]);
+      if (unidadeId && (pontoAlterado || (!form.possui_relogio_ponto && justificativaAlterada))) {
+        const { data: r, error: errPonto } = await supabase.rpc("dp_unidade_definir_ponto" as never, {
+          _unidade_id: unidadeId,
+          _possui: form.possui_relogio_ponto,
+          _justificativa: form.possui_relogio_ponto ? null : justificativaPonto.trim() || null,
+        } as never);
+        if (errPonto) throw errPonto;
+        const alterados = (r as { colaboradores_alterados?: number } | null)?.colaboradores_alterados ?? 0;
+        if (pontoAlterado && alterados > 0) {
+          toast.info(`Folha de ponto ${form.possui_relogio_ponto ? "ativada" : "desativada"} para ${alterados} colaborador(es) da unidade.`);
+        }
+        qc.invalidateQueries({ queryKey: ["dp_ponto_conformidade"] });
+        qc.invalidateQueries({ queryKey: ["dp_unidades"] });
+        qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
+        forcarRecargaPendencias?.();
+      }
       if (salvarFuncionamento.current) await salvarFuncionamento.current();
       onSaved?.(salva);
       if (unidade || criadaId) {
@@ -377,13 +438,39 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
               placeholder="Ex: (62) 99999-9999"
             />
           </div>
-          <div className="flex items-center space-x-2 rounded-xl border border-border p-3">
-            <Switch
-              id="possui_relogio_ponto"
-              checked={form.possui_relogio_ponto}
-              onCheckedChange={(v) => setForm({ ...form, possui_relogio_ponto: v })}
-            />
-            <Label htmlFor="possui_relogio_ponto">Possui relógio de ponto</Label>
+          <div className="space-y-2 rounded-xl border border-border p-3">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="possui_relogio_ponto"
+                checked={form.possui_relogio_ponto}
+                onCheckedChange={(v) => setForm({ ...form, possui_relogio_ponto: v })}
+              />
+              <Label htmlFor="possui_relogio_ponto">Possui relógio de ponto</Label>
+            </div>
+            {pontoObrigatorio && !form.possui_relogio_ponto && (
+              <div className="space-y-1.5 rounded-lg border border-destructive/40 bg-destructive/5 p-2.5">
+                <p className="text-[11px] leading-relaxed text-destructive">
+                  Atenção: esta unidade tem {ativosUnidade} colaboradores ativos. {AVISO_ART74} Se a unidade não
+                  adota o ponto, registre o motivo.
+                </p>
+                <Label htmlFor="justificativa_ponto_unidade" className="text-xs">Justificativa da Dispensa *</Label>
+                <Textarea
+                  id="justificativa_ponto_unidade"
+                  value={justificativaPonto}
+                  onChange={(e) => setJustificativaPonto(e.target.value)}
+                  placeholder="Ex.: Implantação do relógio eletrônico em andamento, previsão para dezembro"
+                  maxLength={500}
+                  rows={2}
+                />
+              </div>
+            )}
+            {pontoAlterado && unidadeId && (
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                {form.possui_relogio_ponto
+                  ? "Ao salvar, a folha de ponto volta a ser exigida dos colaboradores com carteira assinada desta unidade (exceto dispensas individuais justificadas)."
+                  : "Ao salvar, a folha de ponto deixa de ser exigida de todos os colaboradores desta unidade."}
+              </p>
+            )}
           </div>
           <div className="flex items-center space-x-2 rounded-xl border border-border p-3">
             <Switch
