@@ -345,6 +345,33 @@ export default function DpFichaRegistroImportar() {
               </div>
             )}
 
+            {atual.status === "ready" && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed p-3">
+                <p className="text-xs text-muted-foreground">
+                  Leia o mesmo arquivo de novo com a leitura atualizada (familiares, eSocial e FGTS). Quem já foi
+                  cadastrado não é alterado: a ficha volta como "Já cadastrado" para você conferir e aprovar só o que
+                  for novo.
+                </p>
+                <ConfirmarAcaoDialog
+                  titulo="Ler o Arquivo Novamente?"
+                  descricao="Os cadastros já concluídos ficam como estão. As fichas ainda não aprovadas serão lidas de novo, e as de quem já está cadastrado voltam para conferência das informações novas."
+                  confirmar="Ler Novamente"
+                  onConfirm={() =>
+                    repetir.mutate(atual, {
+                      onSuccess: () => toast.success("Leitura reiniciada. As fichas voltam para conferência ao terminar."),
+                      onError: (e) => toast.error((e as Error).message),
+                    })
+                  }
+                  disabled={repetir.isPending}
+                >
+                  <Button size="sm" variant="outline" className="h-8" disabled={repetir.isPending}>
+                    {repetir.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+                    Ler o Arquivo Novamente
+                  </Button>
+                </ConfirmarAcaoDialog>
+              </div>
+            )}
+
             {atual.status === "failed" && (
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className={cn("text-sm", atual.erro_mensagem === MOTIVO_CANCELADA ? "text-muted-foreground" : "text-destructive")}>
