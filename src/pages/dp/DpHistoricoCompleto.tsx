@@ -378,6 +378,7 @@ export default function DpHistoricoCompleto() {
           supabase
             .from("dp_registros_disciplinares")
             .select("id, motivo, tipo, data, pdf_storage_path, created_at, colaborador_id")
+            .is("removido_em", null)
             .eq("company_id", cId)
             .order("id", { ascending: true })
             .range(from, to)),

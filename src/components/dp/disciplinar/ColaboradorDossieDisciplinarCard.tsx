@@ -12,6 +12,7 @@ const TIPO_LABEL: Record<string, string> = {
   suspensao: "Suspensão",
   elogio: "Elogio",
   observacao: "Observação",
+  alinhamento_operacional: "Alinhamento Operacional",
 };
 const FORMAIS = ["advertencia_escrita", "suspensao"];
 

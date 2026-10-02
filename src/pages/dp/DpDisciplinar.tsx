@@ -42,14 +42,24 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const BUCKET = "dp-disciplinar";
 
 const TIPOS = [
-  { value: "advertencia_verbal", label: "Advertência verbal" },
-  { value: "advertencia_escrita", label: "Advertência escrita" },
+  { value: "advertencia_verbal", label: "Advertência Verbal" },
+  { value: "advertencia_escrita", label: "Advertência Escrita" },
   { value: "suspensao", label: "Suspensão" },
   { value: "elogio", label: "Elogio" },
   { value: "observacao", label: "Observação" },
+  { value: "alinhamento_operacional", label: "Alinhamento Operacional" },
 ] as const;
 
 const TIPO_LABEL: Record<string, string> = Object.fromEntries(TIPOS.map((t) => [t.value, t.label]));
+
+/** Medidas punitivas: só para vínculo de emprego (o banco também barra). */
+const PUNITIVOS = ["advertencia_verbal", "advertencia_escrita", "suspensao"];
+const REGIMES_EMPREGO = ["clt", "intermitente", "temporario", "aprendiz"];
+const temVinculoEmprego = (regime?: string | null) => REGIMES_EMPREGO.includes((regime ?? "").toLowerCase());
+const tiposPara = (regime?: string | null) =>
+  temVinculoEmprego(regime)
+    ? TIPOS.filter((t) => t.value !== "alinhamento_operacional")
+    : TIPOS.filter((t) => !PUNITIVOS.includes(t.value));
 
 /** Medidas formais: exigem aplicação presencial e via física assinada para irem ao portal. */
 const FORMAIS = ["advertencia_escrita", "suspensao"];
@@ -178,6 +188,13 @@ export default function DpDisciplinar() {
   const [dataDoc, setDataDoc] = useState("");
   const [tipo, setTipo] = useState<string>("");
   const [dias, setDias] = useState<string>("0");
+  const regimeSel = useMemo(
+    () => (colabs.data ?? []).find((c) => c.id === colaboradorId)?.regime ?? null,
+    [colabs.data, colaboradorId],
+  );
+  useEffect(() => {
+    if (tipo && colaboradorId && !tiposPara(regimeSel).some((t) => t.value === tipo)) setTipo("");
+  }, [regimeSel, colaboradorId, tipo]);
   const [observacao, setObservacao] = useState("");
   const [motivoSel, setMotivoSel] = useState("");
   const [caminho, setCaminho] = useState<"gerar" | "importar">("gerar");
@@ -646,10 +663,21 @@ export default function DpDisciplinar() {
                   <Select value={tipo} onValueChange={(v) => { setTipo(v); if (campoPendente === "tipo") setCampoPendente(null); }}>
                     <SelectTrigger id="tipo-de-registro-4" className={campoPendente === "tipo" ? "border-destructive ring-1 ring-destructive" : undefined}><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
                     <SelectContent>
-                      {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                      {tiposPara(regimeSel).map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {colaboradorId && !temVinculoEmprego(regimeSel) && (
+                <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+                  Esta pessoa não tem vínculo de emprego. Advertência e suspensão são poder disciplinar do empregador (Art. 2º e 3º da CLT) e
+                  aplicá-las a freelancer, PJ, MEI, sócio ou estagiário pode servir de prova de vínculo. Use <strong>Alinhamento Operacional</strong> para
+                  registrar a correção de padrão de serviço no dossiê.
+                </div>
+              )}
+
+              <div className="hidden">
               </div>
 
               {tipo === "elogio" && (
