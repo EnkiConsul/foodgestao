@@ -161,3 +161,18 @@ export function datasDeFeriados(regras: FeriadoRegra[], anos: number[]): Set<str
   for (const ano of anos) for (const f of feriadosDoAno(regras, ano)) out.add(f.data);
   return out;
 }
+
+/** Regra que não é um dos feriados nacionais fixos (municipal, estadual ou móvel). */
+export function ehFeriadoLocal(regra: Pick<FeriadoRegra, "tipo" | "dia" | "mes">): boolean {
+  if (regra.tipo !== "anual") return true;
+  return !FERIADOS_NACIONAIS_FIXOS.some((n) => n.dia === regra.dia && n.mes === regra.mes);
+}
+
+/** A unidade precisa cadastrar feriados locais ou confirmar que não tem. */
+export function faltaFeriadoLocal(
+  regras: Pick<FeriadoRegra, "tipo" | "dia" | "mes" | "ativo">[],
+  cienteEm: string | null | undefined,
+): boolean {
+  if (cienteEm) return false;
+  return !regras.some((r) => r.ativo !== false && ehFeriadoLocal(r));
+}

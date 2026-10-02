@@ -1,5 +1,5 @@
 import { prazoLegalRescisao, prazoPagamentoRescisao } from "@/lib/dp/desligamento";
-import { datasDeFeriados } from "@/lib/dp/feriados";
+import { datasDeFeriados, faltaFeriadoLocal } from "@/lib/dp/feriados";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -900,6 +900,40 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/ponto-art74:", e);
+      }
+
+      // 6c. Feriados municipais/estaduais: unidade sem feriado local e sem ciência do gestor.
+      try {
+        const ids = unidades.map((u) => u.id);
+        if (ids.length) {
+          const [{ data: uc }, { data: fr }] = await Promise.all([
+            (supabase as any).from("dp_unidades").select("id, feriados_locais_ciente_em").in("id", ids),
+            supabase.from("dp_unidade_feriados").select("unidade_id, tipo, dia, mes, ativo").in("unidade_id", ids),
+          ]);
+          const ciente = new Map(((uc ?? []) as any[]).map((r) => [r.id, r.feriados_locais_ciente_em as string | null]));
+          const porUnidade = new Map<string, any[]>();
+          (fr ?? []).forEach((f: any) => {
+            const l = porUnidade.get(f.unidade_id) ?? [];
+            l.push(f);
+            porUnidade.set(f.unidade_id, l);
+          });
+          unidades.forEach((u) => {
+            if (!faltaFeriadoLocal(porUnidade.get(u.id) ?? [], ciente.get(u.id))) return;
+            results.push({
+              id: `feriados-locais-${u.id}`,
+              icon: AlertTriangle,
+              titulo: "Cadastrar feriados municipais e estaduais",
+              subtitulo: `${u.nome} — só tem feriados nacionais. Cadastre os feriados da cidade/estado ou confirme que não há.`,
+              tipo: "Cadastros",
+              unidadeNome: u.nome,
+              unidadeId: u.id,
+              atrasoDias: 0,
+              url: `/dp/cadastros/unidades?editar=${u.id}&aba=feriados`,
+            });
+          });
+        }
+      } catch (e) {
+        console.warn("pendencias/feriados-locais:", e);
       }
 
       // 7. Férias — períodos aquisitivos com saldo perto do limite concessivo

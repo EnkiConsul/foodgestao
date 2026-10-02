@@ -75,3 +75,18 @@ describe("descricaoRegra", () => {
     ).toBe("Todo ano no primeiro domingo de outubro");
   });
 });
+
+import { ehFeriadoLocal, faltaFeriadoLocal } from "@/lib/dp/feriados";
+describe("feriados locais", () => {
+  it("nacional fixo não conta como local", () => {
+    expect(ehFeriadoLocal({ tipo: "anual", dia: 25, mes: 12 })).toBe(false);
+    expect(ehFeriadoLocal({ tipo: "anual", dia: 24, mes: 10 })).toBe(true);
+    expect(ehFeriadoLocal({ tipo: "relativa", mes: 2 })).toBe(true);
+  });
+  it("pendência some com local ou com ciência", () => {
+    const nac = [{ tipo: "anual" as const, dia: 1, mes: 1 }];
+    expect(faltaFeriadoLocal(nac, null)).toBe(true);
+    expect(faltaFeriadoLocal(nac, "2026-10-02")).toBe(false);
+    expect(faltaFeriadoLocal([...nac, { tipo: "anual" as const, dia: 24, mes: 10 }], null)).toBe(false);
+  });
+});
