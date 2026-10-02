@@ -108,7 +108,15 @@ import {
   type AlteracaoContratualConfirmacao,
 } from "@/components/dp/AlteracaoContratualDialog";
 import { divergenciasComFicha, resumoDivergencias, type DivergenciaFicha } from "@/lib/dp/ficha-registro/divergencia";
-import { inferirRegime } from "@/lib/dp/ficha-registro/inferencia";
+import { inferirRegime, inferirFormaPagamento } from "@/lib/dp/ficha-registro/inferencia";
+import { jornadaDaFicha } from "@/hooks/useDpFichaImportacao";
+
+const FORMA_PAGAMENTO_ROTULO: Record<string, string> = {
+  mensalista: "Mensalista",
+  horista: "Horista",
+  diarista: "Diarista",
+  por_tarefa: "Por tarefa",
+};
 import {
   detectarAlteracoesContratuais,
   alertasAlteracaoContratual,
@@ -1963,12 +1971,17 @@ export function ColaboradorFormDialog({
                 cargoNome: campos.has("cargo") ? (ficha.cargo_nome as string) ?? null : null,
                 salario: campos.has("salario_base") ? (ficha.salario as string | number | null) : null,
                 regime: campos.has("vinculo") ? inferirRegime(ficha) : null,
+                formaPagamento: campos.has("forma_pagamento")
+                  ? inferirFormaPagamento(ficha, jornadaDaFicha(ficha))
+                  : null,
               },
               {
                 cargoNome: nomeDe(cargos.data as any[], depois.cargo_id),
                 salario: depois.salario_base ?? null,
                 regime: depois.regime ?? null,
+                formaPagamento: depois.forma_pagamento ?? null,
               },
+              { forma: (v) => FORMA_PAGAMENTO_ROTULO[v] ?? v },
             )
           : [];
         setAlteracaoPendente({
@@ -3006,6 +3019,13 @@ export function ColaboradorFormDialog({
               active={tab === "jornada"}
               showSaveButton={false}
               onRegistrarSalvar={(fn) => { jornadaSalvarRef.current = fn; }}
+              horarioFicha={(() => {
+                if (!fichaOrigem.data) return null;
+                const j = jornadaDaFicha(fichaOrigem.data);
+                return j.vazia || !j.entrada || !j.saida
+                  ? null
+                  : { entrada: j.entrada, saida: j.saida, intervalo_minutos: j.intervalo_minutos };
+              })()}
               rascunhoInicial={admissao ? (admissao.jornada ?? null) : jornadaInicial}
               onRascunho={admissao ? (r) => { jornadaAdmissaoRef.current = r; } : undefined}
               avisoSemCadastro={admissao
