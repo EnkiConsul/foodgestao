@@ -9,7 +9,7 @@
 - `dp_ficha_aplicar` é `SECURITY DEFINER` com autorização explícita por `tem_permissao(company_id, 'dp.colaboradores', 'inclusao')`; a tabela `dp_colaboradores` permanece sem gravação direta para `authenticated` — mantém a aplicação atômica da ficha sem reabrir acesso amplo.
 - O portal não lê `dp_colaboradores` de colegas: `dp_portal_equipe_unidade()` expõe só nome, função e folga fixa da unidade — preserva privacidade.
 - Na pré-admissão, o checklist compartilhado governa leitura e envio; desativar requisitos preserva anexos históricos — evita divergência na validação.
-- Recibo de cadastrado ativo: Portal/físico; avulso ou desligado: também WhatsApp — quem não acessa o portal ainda assina.
+
 - Imagem da assinatura (PNG em data URL) é gravada só pelo servidor em `assinatura_imagem` (dp_recibos/dp_documento_aceites), imutável após gravada, e estampada no PDF com rubrica em todas as páginas — reimpressão fiel sem confiar no cliente.
 
 - Notificações push (Web Push): fila `dp_push_fila` alimentada por gatilho em `dp_notificacoes`, envio pela função `dp-push-dispatch` a cada minuto e receptor isolado em `/push/sw.js` (sem cache) — mantém o push separado do worker de limpeza `/sw.js`.
@@ -17,3 +17,5 @@
 - Elogio: visibilidade privado/individual/público definida só pela RPC `dp_elogio_divulgar` (notifica o colaborador e, se público, publica no Mural da unidade via `dp_avisos`); verbais e observações nunca notificam o colaborador — reconhecimento sem expor o dossiê.
 - Piso do cargo: com sindicato patronal na unidade grava no patronal (convenção); sem patronal grava direto na unidade (Cargo + Unidade) — o patronal acelera, nunca bloqueia.
 - Histórico da ficha de registro (férias gozadas, afastamentos, advertências) é lido por `dp-ficha-historico-varrer` e só vai aos módulos oficiais pela RPC idempotente `dp_ficha_historico_aplicar` após conferência; afastamentos e advertências ficam no dossiê interno sem notificar o colaborador — evita alertas falsos de férias e exposição indevida.
+- Importação de ficha: regime, forma de pagamento, cargo (com CBO), salário padrão da unidade/convenção e dependentes são sugeridos a partir da própria ficha e gravados só quando o gestor aprova; unidade com mais de 20 ativos exige justificativa para dispensar o ponto (Art. 74 CLT) — automação sem tirar a decisão do gestor.
+- Recibo por link (WhatsApp com confirmação de CPF) vale para qualquer beneficiário, inclusive colaborador ativo; portal continua exclusivo de cadastrados — quem não usa o app ainda assina.
