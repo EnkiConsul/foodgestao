@@ -11335,8 +11335,11 @@ export type Database = {
           link_expira_em: string | null
           link_token_hash: string | null
           modalidade: string
+          motivo_substituicao: string | null
           natureza: string
           pago_em: string
+          substitui_recibo_id: string | null
+          substituido_em: string | null
           unidade_id: string | null
           updated_at: string
           valor_bancario_cents: number | null
@@ -11368,8 +11371,11 @@ export type Database = {
           link_expira_em?: string | null
           link_token_hash?: string | null
           modalidade: string
+          motivo_substituicao?: string | null
           natureza: string
           pago_em: string
+          substitui_recibo_id?: string | null
+          substituido_em?: string | null
           unidade_id?: string | null
           updated_at?: string
           valor_bancario_cents?: number | null
@@ -11401,8 +11407,11 @@ export type Database = {
           link_expira_em?: string | null
           link_token_hash?: string | null
           modalidade?: string
+          motivo_substituicao?: string | null
           natureza?: string
           pago_em?: string
+          substitui_recibo_id?: string | null
+          substituido_em?: string | null
           unidade_id?: string | null
           updated_at?: string
           valor_bancario_cents?: number | null
@@ -11436,6 +11445,13 @@ export type Database = {
             columns: ["documento_id"]
             isOneToOne: false
             referencedRelation: "dp_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_recibos_substitui_recibo_id_fkey"
+            columns: ["substitui_recibo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_recibos"
             referencedColumns: ["id"]
           },
           {
