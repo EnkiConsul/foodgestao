@@ -45,7 +45,7 @@ import {
 } from "@/lib/dp/recibos";
 
 const AVULSO = "__avulso__";
-const hoje = () => new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
+const hoje = hojeBRT;
 const mesAnterior = () => {
   const d = new Date();
   d.setDate(1);
@@ -95,6 +95,10 @@ export default function DpRecibos() {
   const [cadastrado, setCadastrado] = useState(false);
   const apoios = useDpPessoasApoio();
   const [detalhe, setDetalhe] = useState<ReciboDetalhado | null>(null);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [substituiId, setSubstituiId] = useState<string | null>(null);
+  const rescisao = natureza === "rescisao";
+  useEffect(() => { if (rescisao && canal !== "fisico") setCanal("fisico"); }, [rescisao, canal]);
   const veioDePendencia = params.has("colaborador") && params.has("competencia");
 
   const avulso = colabId === AVULSO;
@@ -140,7 +144,7 @@ export default function DpRecibos() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("dp_recibos")
-        .select("id, unidade_id, colaborador_id, documento_id, beneficiario_nome, beneficiario_cpf, beneficiario_whatsapp, natureza, descricao, competencia, pago_em, valor_cents, modalidade, valor_bancario_cents, valor_especie_cents, canal_assinatura, link_expira_em, link_enviado_em, assinado_em, assinado_ip, assinado_user_agent, cancelado_em, created_at")
+        .select("id, unidade_id, colaborador_id, documento_id, beneficiario_nome, beneficiario_cpf, beneficiario_whatsapp, natureza, descricao, competencia, pago_em, valor_cents, modalidade, valor_bancario_cents, valor_especie_cents, canal_assinatura, link_expira_em, link_enviado_em, assinado_em, assinado_ip, assinado_user_agent, cancelado_em, substituido_em, substitui_recibo_id, created_at")
         .eq("company_id", selectedCompanyId)
         .order("created_at", { ascending: false })
         .limit(200);
@@ -198,7 +202,7 @@ export default function DpRecibos() {
       const dia = (unidadesCfg.data ?? []).find((u) => u.id === unidadeEfetiva)?.dia_adiantamento;
       sug = dataSugeridaPagamento(natureza, competencia, dia);
     }
-    if (sug) setPagoEm(sug > hoje() ? hoje() : sug);
+    if (sug) setPagoEm(sug > limitePagamentoFuturo() ? limitePagamentoFuturo() : sug);
   }, [natureza, competencia, unidadeEfetiva, recibos.data, unidadesCfg.data, pagoEmManual]);
 
   /** Já existe folguista/teste ou colaborador com este CPF (ou nome, sem CPF)? */
@@ -214,7 +218,30 @@ export default function DpRecibos() {
   function limparFormulario() {
     setColabId(""); setNome(""); setCpf(""); setWhats(""); setDescricao(""); setValor("");
     setValorBanco(""); setValorEspecie(""); setModalidade("bancario"); setCanal("portal");
-    setPagoEmManual(false);
+    setPagoEmManual(false); setEditandoId(null); setSubstituiId(null);
+  }
+
+  /** Carrega um recibo no formulário (edição de pendente ou nova via de assinado). */
+  function carregarNoFormulario(r: ReciboDetalhado, modo: "editar" | "nova_via") {
+    setDetalhe(null);
+    setResultado(null);
+    setAba("emitir");
+    if (r.colaborador_id) { setColabId(r.colaborador_id); }
+    else { setColabId(AVULSO); setNome(r.beneficiario_nome); setCpf(r.beneficiario_cpf ?? ""); }
+    setWhats(r.beneficiario_whatsapp ?? "");
+    setNatureza(r.natureza as NaturezaRecibo);
+    setDescricao(r.descricao ?? "");
+    setCompetencia(r.competencia.slice(0, 7));
+    setPagoEm(r.pago_em.slice(0, 10));
+    setPagoEmManual(true);
+    setValor(fmtBRL(r.valor_cents));
+    setModalidade(r.modalidade);
+    setValorBanco(r.modalidade === "misto" ? fmtBRL(r.valor_bancario_cents ?? 0) : "");
+    setValorEspecie(r.modalidade === "misto" ? fmtBRL(r.valor_especie_cents ?? 0) : "");
+    setCanal(r.canal_assinatura as CanalAssinatura);
+    setEditandoId(modo === "editar" ? r.id : null);
+    setSubstituiId(modo === "nova_via" ? r.id : null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function abrirPdf(id: string) {
@@ -274,9 +301,25 @@ export default function DpRecibos() {
     if (modalidade === "misto" && (!banco || !especie || banco + especie !== total)) {
       return toast.error("No pagamento misto, a parte em conta + a parte em dinheiro precisa dar o valor total.");
     }
+    if (pagoEm > limitePagamentoFuturo()) return toast.error("A data do pagamento pode ser no máximo 60 dias à frente.");
     setSalvando(true);
+    if (editandoId) {
+      try {
+        await editarRecibo(editandoId, {
+          descricao: descricao || undefined, competencia, pago_em: pagoEm, valor_cents: total,
+          modalidade, valor_bancario_cents: banco, valor_especie_cents: especie,
+        });
+        toast.success("Recibo atualizado. O PDF foi refeito com os novos dados.");
+        limparFormulario();
+        qc.invalidateQueries({ queryKey: ["dp_recibos"] });
+        setAba("historico");
+      } catch (e) { toast.error((e as Error).message); }
+      finally { setSalvando(false); }
+      return;
+    }
     try {
       const r = await emitirRecibo({
+        substitui_recibo_id: substituiId,
         company_id: selectedCompanyId,
         colaborador_id: avulso ? null : colabId,
         beneficiario_nome: avulso ? nome : undefined,
@@ -329,6 +372,13 @@ export default function DpRecibos() {
         <TabsContent value="emitir" className="mt-0">
 
       <DpContentCard contentClassName="p-4 md:p-6 space-y-5">
+        {(editandoId || substituiId) && (
+          <div role="status" className="rounded-md border border-primary/40 bg-primary/5 p-3 text-sm">
+            {editandoId
+              ? "Editando um recibo ainda não assinado. Ao salvar, o PDF é refeito e o link continua o mesmo."
+              : "Nova via corrigida: ajuste o que precisar (ex.: a data do pagamento). O recibo original continua no histórico, marcado como substituído."}
+          </div>
+        )}
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Unidade</Label>
@@ -392,8 +442,11 @@ export default function DpRecibos() {
           </div>
           <div className="space-y-1.5">
             <Label>Data do Pagamento</Label>
-            <Input type="date" value={pagoEm} max={hoje()} onChange={(e) => { setPagoEm(e.target.value); setPagoEmManual(true); }} />
+            <Input type="date" value={pagoEm} max={limitePagamentoFuturo()} onChange={(e) => { setPagoEm(e.target.value); setPagoEmManual(true); }} />
             {!pagoEmManual && <p className="text-xs text-muted-foreground">Sugerida pela rotina da unidade; ajuste se precisar.</p>}
+            {pagoEm > hoje() && canal !== "fisico" && (
+              <p className="text-xs text-muted-foreground">Pagamento futuro: a assinatura digital só será liberada a partir de {pagoEm.split("-").reverse().join("/")}.</p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label>Valor Total (R$)</Label>
@@ -428,13 +481,16 @@ export default function DpRecibos() {
         <div className="space-y-2">
           <Label>Como Vai Assinar</Label>
           <RadioGroup value={canal} onValueChange={(v) => setCanal(v as CanalAssinatura)} className="grid gap-2 sm:grid-cols-3">
-            {CANAIS_ASSINATURA.filter((c) => !avulso || c.value !== "portal").map((c) => (
+            {CANAIS_ASSINATURA.filter((c) => !avulso || c.value !== "portal").filter((c) => !rescisao || c.value === "fisico").map((c) => (
               <label key={c.value} className="flex items-start gap-2 rounded-md border p-3 text-sm cursor-pointer">
                 <RadioGroupItem value={c.value} className="mt-0.5" />
                 <span><span className="font-medium">{c.label}</span><span className="block text-xs text-muted-foreground">{c.ajuda}</span></span>
               </label>
             ))}
           </RadioGroup>
+          {rescisao && (
+            <p className="text-xs text-muted-foreground">Rescisão e quitação rescisória são assinadas só à mão, em duas vias: a assinatura física tem prova de autoria mais forte em caso de discussão na Justiça do Trabalho.</p>
+          )}
           {canal === "portal" && avisoPortal && (
             <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
               <div className="font-medium text-destructive">{avisoPortal}</div>
@@ -455,7 +511,8 @@ export default function DpRecibos() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button onClick={emitir} disabled={salvando}>{salvando ? "Emitindo…" : "Gerar Recibo"}</Button>
+          <Button onClick={emitir} disabled={salvando}>{salvando ? "Salvando…" : editandoId ? "Salvar Alterações" : substituiId ? "Emitir Nova Via" : "Gerar Recibo"}</Button>
+          {(editandoId || substituiId) && <Button variant="outline" onClick={limparFormulario}>Descartar</Button>}
         </div>
 
         {resultado && (
@@ -555,8 +612,8 @@ export default function DpRecibos() {
           <p className="text-sm text-muted-foreground">Nenhum recibo encontrado.</p>
         ) : (
           <DpDataList
-            table={<Table><TableHeader><TableRow><TableHead>Beneficiário</TableHead><TableHead>Natureza</TableHead><TableHead>Competência</TableHead><TableHead>Valor</TableHead><TableHead>Situação</TableHead></TableRow></TableHeader><TableBody>{filtrados.map((r) => { const st = statusRecibo(r); return <TableRow key={r.id} className="cursor-pointer" onClick={() => setDetalhe(r)}><TableCell className="font-medium">{r.beneficiario_nome}</TableCell><TableCell>{NATUREZA_RECIBO_LABEL[r.natureza as NaturezaRecibo] ?? r.natureza}</TableCell><TableCell>{r.competencia.slice(5, 7)}/{r.competencia.slice(0, 4)}</TableCell><TableCell>{centsParaBRL(r.valor_cents)}</TableCell><TableCell><DpStatusBadge tone={r.cancelado_em ? "danger" : r.assinado_em ? "success" : "warning"}>{st.label}</DpStatusBadge></TableCell></TableRow>; })}</TableBody></Table>}
-            cards={<>{filtrados.map((r) => { const st = statusRecibo(r); return <DpListCard key={r.id} title={r.beneficiario_nome} subtitle={`${NATUREZA_RECIBO_LABEL[r.natureza as NaturezaRecibo] ?? r.natureza} · ${r.competencia.slice(5, 7)}/${r.competencia.slice(0, 4)}`} meta={`${centsParaBRL(r.valor_cents)} · pago em ${dataBR(r.pago_em)}`} badges={<DpStatusBadge tone={r.cancelado_em ? "danger" : r.assinado_em ? "success" : "warning"}>{st.label}</DpStatusBadge>} onOpen={() => setDetalhe(r)} openLabel="Detalhes" />; })}</>}
+            table={<Table><TableHeader><TableRow><TableHead>Beneficiário</TableHead><TableHead>Natureza</TableHead><TableHead>Competência</TableHead><TableHead>Valor</TableHead><TableHead>Situação</TableHead></TableRow></TableHeader><TableBody>{filtrados.map((r) => { const st = statusRecibo(r); return <TableRow key={r.id} className="cursor-pointer" onClick={() => setDetalhe(r)}><TableCell className="font-medium">{r.beneficiario_nome}</TableCell><TableCell>{NATUREZA_RECIBO_LABEL[r.natureza as NaturezaRecibo] ?? r.natureza}</TableCell><TableCell>{r.competencia.slice(5, 7)}/{r.competencia.slice(0, 4)}</TableCell><TableCell>{centsParaBRL(r.valor_cents)}</TableCell><TableCell><DpStatusBadge tone={r.cancelado_em ? "danger" : r.substituido_em ? "muted" : r.assinado_em ? "success" : "warning"}>{st.label}</DpStatusBadge></TableCell></TableRow>; })}</TableBody></Table>}
+            cards={<>{filtrados.map((r) => { const st = statusRecibo(r); return <DpListCard key={r.id} title={r.beneficiario_nome} subtitle={`${NATUREZA_RECIBO_LABEL[r.natureza as NaturezaRecibo] ?? r.natureza} · ${r.competencia.slice(5, 7)}/${r.competencia.slice(0, 4)}`} meta={`${centsParaBRL(r.valor_cents)} · pago em ${dataBR(r.pago_em)}`} badges={<DpStatusBadge tone={r.cancelado_em ? "danger" : r.substituido_em ? "muted" : r.assinado_em ? "success" : "warning"}>{st.label}</DpStatusBadge>} onOpen={() => setDetalhe(r)} openLabel="Detalhes" />; })}</>}
           />
         )}
       </DpContentCard>
@@ -571,6 +628,8 @@ export default function DpRecibos() {
         onCopiarLink={copiarLink}
         onCertificado={(r) => r.documento_id && abrirCertificado(r.documento_id)}
         onCancelar={cancelar}
+        onEditar={(r) => carregarNoFormulario(r, "editar")}
+        onNovaVia={(r) => carregarNoFormulario(r, "nova_via")}
       />
     </DpPage>
   );
