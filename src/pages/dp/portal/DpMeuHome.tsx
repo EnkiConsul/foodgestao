@@ -24,6 +24,8 @@ import { useMinhaProximaFolga } from "@/hooks/useMinhaProximaFolga";
 import { textoProximaFolga } from "@/lib/dp/proxima-folga";
 import { toProperName } from "@/lib/text/properName";
 import { InstalarAppCard } from "@/components/dp/portal/InstalarAppCard";
+import { PortalMenusPrincipaisCards } from "@/components/dp/home/PortalMenusPrincipaisCards";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 
 export default function DpMeuHome() {
