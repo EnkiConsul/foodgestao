@@ -25,6 +25,8 @@ interface Props {
   /** Quantidade de colaboradores vinculados (para propagar riscos). */
   colaboradoresCount?: number;
   onSaved?: (cargo: DpCargo) => void;
+  /** Dados já conhecidos (ex.: lidos da ficha de registro) para pré-preencher um cargo novo. */
+  inicial?: Partial<FormState>;
 }
 
 interface FormState {
@@ -63,7 +65,7 @@ const CNH = ["A", "B", "AB", "C", "D", "E"];
  * campos de cargo que aparecem na ficha do colaborador (riscos, base de cálculo,
  * requisitos e sindicato laboral) ficam disponíveis aqui.
  */
-export function CargoFormDialog({ open, onOpenChange, cargo, colaboradoresCount = 0, onSaved }: Props) {
+export function CargoFormDialog({ open, onOpenChange, cargo, colaboradoresCount = 0, onSaved, inicial }: Props) {
   const upsert = useUpsertDpCargo();
   const sindicatos = useDpSindicatos();
   const laboralPorCargo = useDpLaboralPorCargo();
@@ -83,7 +85,7 @@ export function CargoFormDialog({ open, onOpenChange, cargo, colaboradoresCount 
     if (!open) return;
     setAba("dados");
     setPropagarRiscos(false);
-    if (!cargo) { setForm(blank); return; }
+    if (!cargo) { setForm({ ...blank, ...(inicial ?? {}) }); return; }
     setForm({
       nome: cargo.nome ?? "",
       descricao: cargo.descricao ?? "",
