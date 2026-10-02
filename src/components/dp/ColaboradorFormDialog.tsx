@@ -974,9 +974,7 @@ export function ColaboradorFormDialog({
   const exigeDomingosFolga = form.sexo !== "none" && form.sexo !== "F" && form.sexo !== "M";
   /** Override individual efetivo (null quando a regra vem da unidade). */
   const domingosFolgaMes =
-    exigeDomingosFolga && form.domingos_folga_mes !== "none"
-      ? Number(form.domingos_folga_mes)
-      : null;
+    form.domingos_folga_mes !== "none" ? Number(form.domingos_folga_mes) : null;
 
   // Orientação jurídica: vínculos sem previsão legal (freelancer), de risco de
   // pejotização (PJ/MEI) ou de sócio sem gestão ganham faixa de alerta.
@@ -1038,7 +1036,7 @@ export function ColaboradorFormDialog({
     setForm((f) => {
       if (f.sexo !== "none" && !sexoSugerido) return f;
       if (f.sexo === sugerido) return f;
-      return { ...f, sexo: sugerido, domingos_folga_mes: "none" };
+      return { ...f, sexo: sugerido };
     });
     setSexoSugerido(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2732,8 +2730,6 @@ export function ColaboradorFormDialog({
                 setForm({
                   ...form,
                   sexo: v,
-                  // M/F seguem a regra da unidade: o override individual é limpo.
-                  domingos_folga_mes: v === "F" || v === "M" ? "none" : form.domingos_folga_mes,
                 });
               }}
             >
@@ -2765,10 +2761,10 @@ export function ColaboradorFormDialog({
               <p className="font-medium text-foreground">Folgas dominicais</p>
               <p>
                 {form.domingos_folga_mes !== "none"
-                  ? `Este colaborador tem exceção de ${form.domingos_folga_mes} domingo${form.domingos_folga_mes === "1" ? "" : "s"} de folga por mês.`
-                  : "Este colaborador segue a regra geral da unidade."}{" "}
-                O cadastro da regra ou da exceção é feito em{" "}
-                <strong>Folgas &gt; Regras &gt; Exceções por Colaborador</strong>.
+                  ? `Este colaborador tem folga diferenciada: ${form.domingos_folga_mes} domingo${form.domingos_folga_mes === "1" ? "" : "s"} por mês.`
+                  : "Este colaborador segue a regra da unidade (homens ou mulheres) ou a do cargo."}{" "}
+                Folgas diferenciadas por cargo ou colaborador são cadastradas em{" "}
+                <strong>Folgas &gt; Regras &gt; Editar regras da unidade</strong>.
               </p>
               <Button
                 type="button"
