@@ -277,19 +277,9 @@ export function DpPessoaAvulsaDialog({
   /** Reaproveita alguém já cadastrado no banco de folguistas/testes. */
   const escolherApoio = (id: string) => {
     if (id === "novo") {
-      // "Nova pessoa" limpa tudo que foi herdado de outro cadastro; preserva
-      // apenas as datas e a unidade da operação (padrão da tela).
-      setForm((f) => ({
-        ...f,
-        pessoa_apoio_id: "",
-        nome: "",
-        telefone: "",
-        cargo_id: "",
-        setor_id: "",
-        cobre_colaborador_id: "",
-        cobre_motivo: "",
-        unidade_id: unidadePadrao ?? (unidades.length === 1 ? unidades[0].id : ""),
-      }));
+      // "Nova pessoa" abre o formulário oficial completo de folguista/teste —
+      // nunca um cadastro inline parcial. Ao salvar, a pessoa é selecionada.
+      setCadastroApoioOpen(true);
       return;
     }
     const p = (apoio.data ?? []).find((x) => x.id === id);
