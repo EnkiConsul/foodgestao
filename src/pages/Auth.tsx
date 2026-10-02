@@ -857,8 +857,7 @@ export default function Auth() {
               >
                 Já tem conta? Entre
               </button>
-            ) : null
-            )}
+            ) : null}
           </CardFooter>
           </form>
         )}
