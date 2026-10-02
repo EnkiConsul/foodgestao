@@ -107,6 +107,7 @@ interface Props {
 export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInicial = "", onSaved, abaInicial = "dados" }: Props) {
   const { companies } = useCompanyContext();
   const upsert = useUpsertDpUnidade();
+  const qc = useQueryClient();
   const [form, setForm] = useState(blank);
   const [loadingBrasilApi, setLoadingBrasilApi] = useState(false);
 
