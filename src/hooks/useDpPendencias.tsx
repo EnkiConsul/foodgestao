@@ -693,7 +693,7 @@ export function useDpPendencias() {
               const rec = recibos.get(d.id);
               // Recibo do sistema só quita assinado; upload externo (recibo de
               // papelaria assinado ou comprovante bancário) já quita.
-              const quitado = !!d.comprovante_file_path || !rec || (!!rec.assinado_em && !rec.substituido_em);
+              const quitado = !!d.comprovante_file_path || (d.comprovante_modalidade === "especie" && !!d.comprovante_pago_em) || !rec || (!!rec.assinado_em && !rec.substituido_em);
               if (quitado) acertos.add(`${d.colaborador_id}:${String(d.referencia_data).slice(0, 7)}`);
             }
           }
