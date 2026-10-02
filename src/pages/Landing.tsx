@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { LogIn, MessageCircle, Instagram, Users, Wallet, CalendarDays, Rocket } from "lucide-react";
+import { ReclameAquiSeal } from "@/components/marketing/ReclameAquiSeal";
 import imgGestora from "@/assets/site-gestor-indicadores.jpg";
 import imgEquipe from "@/assets/site-equipe-turno.jpg";
 import imgGarcom from "@/assets/landing-garcom.jpg";
@@ -179,14 +180,21 @@ export default function Landing() {
       </Secao>
 
       <footer className="border-t border-lp-graphite px-6 py-8 text-sm text-lp-muted">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
-          <p><strong className="text-lp-text">AVETO 360</strong> · Gestão para bares e restaurantes</p>
-          <nav className="flex gap-4">
-            <Link to="/termos" className="hover:text-lp-green">Termos</Link>
-            <Link to="/privacidade" className="hover:text-lp-green">Privacidade</Link>
-            <Link to="/cookies" className="hover:text-lp-green">Cookies</Link>
-            <Link to="/login" className="hover:text-lp-green">Entrar</Link>
-          </nav>
+        <div className="mx-auto max-w-6xl">
+          {/* Selo verificado do Reclame Aqui: âncora de confiança no rodapé.
+              Não carrega em homologação; falha de rede deixa a área vazia. */}
+          <div className="mb-6 flex justify-center">
+            <ReclameAquiSeal />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <p><strong className="text-lp-text">AVETO 360</strong> · Gestão para bares e restaurantes</p>
+            <nav className="flex gap-4">
+              <Link to="/termos" className="hover:text-lp-green">Termos</Link>
+              <Link to="/privacidade" className="hover:text-lp-green">Privacidade</Link>
+              <Link to="/cookies" className="hover:text-lp-green">Cookies</Link>
+              <Link to="/login" className="hover:text-lp-green">Entrar</Link>
+            </nav>
+          </div>
         </div>
       </footer>
     </div>
