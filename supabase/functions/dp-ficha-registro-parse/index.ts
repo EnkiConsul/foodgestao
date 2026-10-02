@@ -133,12 +133,23 @@ async function processarAsync({ svc, aiKey, imp }: { svc: any; aiKey: string; im
     await svc.from("dp_ficha_importacao_itens").delete()
       .eq("importacao_id", id).in("status", ["pendente", "revisar", "duplicado"]);
 
+    // Fichas já concluídas em leituras anteriores, por CPF. Na releitura a mesma
+    // linha é renovada (uma ficha por pessoa); o cadastro oficial não é tocado.
+    const { data: antigas } = await svc.from("dp_ficha_importacao_itens")
+      .select("id, cpf_extraido").eq("importacao_id", id);
+    const antigaPorCpf = new Map<string, string>();
+    for (const a of (antigas ?? []) as Array<{ id: string; cpf_extraido: string | null }>) {
+      const c = onlyDigits(a.cpf_extraido ?? "");
+      if (c.length === 11 && !antigaPorCpf.has(c)) antigaPorCpf.set(c, a.id);
+    }
+
     if (fichas.length > 0) {
-      const rows = fichas.map((f) => {
+      const novas: Record<string, unknown>[] = [];
+      for (const f of fichas) {
         const cpf = onlyDigits(String(f.dados.cpf ?? ""));
         const existente = cpf.length === 11 ? porCpf.get(cpf) : undefined;
         const semEssencial = !f.dados.nome || cpf.length !== 11;
-        return {
+        const row = {
           importacao_id: id,
           company_id: imp.company_id,
           pagina_inicio: f.pagina_inicio,
@@ -151,9 +162,20 @@ async function processarAsync({ svc, aiKey, imp }: { svc: any; aiKey: string; im
           texto_origem: f.texto.slice(0, 12000),
           status: existente ? "duplicado" : semEssencial ? "revisar" : "pendente",
         };
-      });
-      const { error: insErr } = await svc.from("dp_ficha_importacao_itens").insert(rows);
-      if (insErr) throw new Error(insErr.message);
+        const antigaId = cpf.length === 11 ? antigaPorCpf.get(cpf) : undefined;
+        if (antigaId) {
+          antigaPorCpf.delete(cpf);
+          const { error: upErr } = await svc.from("dp_ficha_importacao_itens")
+            .update(row).eq("id", antigaId).eq("importacao_id", id);
+          if (upErr) throw new Error(upErr.message);
+        } else {
+          novas.push(row);
+        }
+      }
+      if (novas.length > 0) {
+        const { error: insErr } = await svc.from("dp_ficha_importacao_itens").insert(novas);
+        if (insErr) throw new Error(insErr.message);
+      }
     }
 
     await svc.from("dp_ficha_importacoes").update({
