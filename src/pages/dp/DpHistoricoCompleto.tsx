@@ -72,6 +72,8 @@ type UnifiedDoc = {
   rescisao_grupo_id?: string | null;
   /** Comprovante de pagamento anexado a este documento. */
   tem_comprovante?: boolean;
+  comprovante_path?: string | null;
+  comprovante_mime?: string | null;
 };
 
 const TIPO_OPTIONS = [
@@ -283,7 +285,9 @@ export default function DpHistoricoCompleto() {
   const [mes, setMes] = useState("all");
   const [ano, setAno] = useState("all");
   const [busca, setBusca] = useState("");
-  const [preview, setPreview] = useState<UnifiedDoc | null>(null);
+  const [preview, setPreviewRaw] = useState<UnifiedDoc | null>(null);
+  const [previewAba, setPreviewAba] = useState<"doc" | "comprovante">("doc");
+  const setPreview = (r: UnifiedDoc | null) => { setPreviewAba("doc"); setPreviewRaw(r); };
   const [detalhe, setDetalhe] = useState<UnifiedDoc | null>(null);
   const [logAberto, setLogAberto] = useState(false);
   const [excluir, setExcluir] = useState<UnifiedDoc | null>(null);
@@ -361,7 +365,7 @@ export default function DpHistoricoCompleto() {
         fetchAllPages<any>((from, to) =>
           supabase
             .from("dp_documentos")
-            .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id, comprovante_file_path")
+            .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id, comprovante_file_path, comprovante_mime_type")
             .eq("company_id", cId)
             .order("id", { ascending: true })
             .range(from, to)),
@@ -424,6 +428,8 @@ export default function DpHistoricoCompleto() {
           aceiteDispensado: !d.exige_aceite && d.assinatura_detectada === true,
            rescisao_grupo_id: d.rescisao_grupo_id ?? null,
           tem_comprovante: !!d.comprovante_file_path,
+          comprovante_path: d.comprovante_file_path ?? null,
+          comprovante_mime: d.comprovante_mime_type ?? null,
         });
       });
 
@@ -1118,8 +1124,17 @@ export default function DpHistoricoCompleto() {
         onOpenChange={(v) => { if (!v) setPreview(null); }}
         title={preview?.titulo}
         bucket={preview?.bucket}
-        path={preview?.file_path ?? undefined}
-        mime={preview?.mime_type}
+        path={(previewAba === "comprovante" ? preview?.comprovante_path : preview?.file_path) ?? undefined}
+        mime={previewAba === "comprovante" ? preview?.comprovante_mime : preview?.mime_type}
+        toolbar={preview?.comprovante_path ? (
+          <div className="mt-2 flex gap-2" role="tablist" aria-label="Arquivos do documento">
+            {([["doc", "Documento Principal"], ["comprovante", "Comprovante de Pagamento"]] as const).map(([k, l]) => (
+              <Button key={k} role="tab" aria-selected={previewAba === k} size="sm" variant={previewAba === k ? "default" : "outline"} className="h-8 text-xs" onClick={() => setPreviewAba(k)}>
+                {l}
+              </Button>
+            ))}
+          </div>
+        ) : null}
       />
 
       <DocSubstituirDialog
