@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
-import { LogIn, MessageCircle, Instagram, Users, Wallet, CalendarDays, Rocket } from "lucide-react";
+import { LogIn, MessageCircle, Instagram, Users, Wallet, CalendarDays, ClipboardList } from "lucide-react";
 import { ReclameAquiSeal } from "@/components/marketing/ReclameAquiSeal";
 import imgGestora from "@/assets/site-gestor-indicadores.jpg";
 import imgEquipe from "@/assets/site-equipe-turno.jpg";
 import imgGarcom from "@/assets/landing-garcom.jpg";
+import logoHorizontalLight from "@/assets/aveto360-horizontal-light.png.asset.json";
+import logoLight from "@/assets/aveto360-logo-light.png.asset.json";
 
 const WHATSAPP = "https://wa.me/5562992365959?text=Ol%C3%A1!%20Quero%20conhecer%20o%20Aveto%20360.";
 const INSTAGRAM = "https://www.instagram.com/aveto360";
@@ -12,11 +14,12 @@ const G = ({ children }: { children: React.ReactNode }) => (
   <strong className="font-extrabold text-lp-green">{children}</strong>
 );
 
+// Logomarca oficial: horizontal no cabeçalho, vertical completa no fechamento.
 function Marca({ grande = false }: { grande?: boolean }) {
-  return (
-    <span className={`inline-flex items-baseline gap-1.5 font-extrabold tracking-[0.18em] ${grande ? "text-3xl" : "text-xl"}`} aria-label="Aveto 360">
-      AVETO <span className="text-lp-green">360</span>
-    </span>
+  return grande ? (
+    <img src={logoLight.url} alt="Aveto 360" className="mx-auto h-44 w-auto md:h-56" draggable={false} />
+  ) : (
+    <img src={logoHorizontalLight.url} alt="Aveto 360" className="h-12 w-auto" draggable={false} />
   );
 }
 
@@ -70,7 +73,7 @@ export default function Landing() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to="/cadastro" className={CONTRATAR_CLS}>
-                <Rocket className="h-5 w-5" /> Começar Agora
+                <ClipboardList className="h-5 w-5" /> Organizar minha operação
               </Link>
               <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" className={SECUNDARIO_CLS}>
                 <MessageCircle className="h-5 w-5" /> Falar Conosco
@@ -167,7 +170,7 @@ export default function Landing() {
         <p className="mt-4 text-xl">Onde estão hoje as <strong className="font-bold">informações da sua equipe?</strong></p>
         <div className="mt-10 flex flex-wrap justify-center gap-3">
           <Link to="/cadastro" className={CONTRATAR_CLS}>
-            <Rocket className="h-5 w-5" /> Começar Agora
+            <ClipboardList className="h-5 w-5" /> Organizar minha operação
           </Link>
           <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" className={SECUNDARIO_CLS}>
             <MessageCircle className="h-5 w-5" /> Falar Conosco
