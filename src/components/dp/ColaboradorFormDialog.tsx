@@ -1760,6 +1760,8 @@ export function ColaboradorFormDialog({
       if (cpfDigits.length !== 11) return erro("cpf", "CPF deve ter 11 dígitos");
       if (!isValidCpf(cpfDigits)) return erro("cpf", "CPF inválido");
       if (!form.cargo_id) return erro("cargo_id", "Cargo é obrigatório");
+      if (exigeDomingosFolga && form.regime === "clt" && form.domingos_folga_mes === "none")
+        return erro("domingos_folga_mes", "Informe a quantidade de folgas dominicais por mês");
       if (!form.unidade_id && !socioSelecionado) return erro("unidade_id", "Unidade é obrigatória");
       if (!form.data_admissao) {
         return erro(
@@ -2766,6 +2768,22 @@ export function ColaboradorFormDialog({
                 Folgas diferenciadas por cargo ou colaborador são cadastradas em{" "}
                 <strong>Folgas &gt; Regras &gt; Editar regras da unidade</strong>.
               </p>
+              {exigeDomingosFolga && (
+                <div className="space-y-1">
+                  <Label>Folgas Dominicais por Mês *</Label>
+                  <Select
+                    value={form.domingos_folga_mes}
+                    onValueChange={(v) => setForm({ ...form, domingos_folga_mes: v })}
+                  >
+                    <SelectTrigger {...marca("domingos_folga_mes")}><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Selecione</SelectItem>
+                      <SelectItem value="1">1 domingo por mês</SelectItem>
+                      <SelectItem value="2">2 domingos por mês</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <Button
                 type="button"
                 variant="outline"
