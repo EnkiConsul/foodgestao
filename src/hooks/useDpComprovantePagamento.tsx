@@ -6,7 +6,7 @@ import { sanitizeStorageFilename } from "@/lib/storage";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { notifyError } from "@/lib/notifyError";
 import { DP_DOCUMENTOS_BUCKET } from "@/lib/documentoArquivo";
-import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { porIds, resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import {
   anexarComprovante,
   removerComprovante,
@@ -28,12 +28,15 @@ export function useDpComprovantePagamento() {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
 
-  const invalidar = () => {
+  const invalidar = (baixar?: string[]) => {
     qc.invalidateQueries({ queryKey: ["dp_documentos"] });
     qc.invalidateQueries({ queryKey: ["dp_doc_detalhes"] });
     qc.invalidateQueries({ queryKey: ["dp_historico_documentos"] });
     qc.invalidateQueries({ queryKey: ["meus_documentos"] });
-    void resolverPendencias(qc, { companyId: selectedCompanyId });
+    void resolverPendencias(qc, {
+      companyId: selectedCompanyId,
+      match: baixar?.length ? porIds(baixar) : undefined,
+    });
   };
 
   const anexar = useMutation({
@@ -89,9 +92,9 @@ export function useDpComprovantePagamento() {
         await supabase.storage.from(DP_DOCUMENTOS_BUCKET).remove([anterior]);
       }
     },
-    onSuccess: () => {
+    onSuccess: (_r, vars) => {
       toast.success("Comprovante de pagamento anexado");
-      invalidar();
+      invalidar([`comprovante-${vars.alvo.documentoId}`]);
     },
     onError: (e) =>
       notifyError(e, { surface: "Documentos", action: "anexar o comprovante", fallback: "Erro" }),
