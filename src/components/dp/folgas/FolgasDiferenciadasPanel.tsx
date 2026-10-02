@@ -239,6 +239,7 @@ export function FolgasDiferenciadasPanel({ unidadeId, semanasHomens, semanasMulh
               </div>
             )}
             {!diasValidos && <p className="text-xs text-destructive">Escolha ao menos um dia.</p>}
+          </div>
           <div className="space-y-1 rounded-md bg-muted/50 p-2 text-xs">
             <p>Regra da unidade — Homens: {fmtSemanas(semanasHomens)} · Mulheres: {fmtSemanas(semanasMulheres)}</p>
             <p className="font-medium">Folga diferenciada: {comparativo.texto}</p>
