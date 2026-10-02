@@ -53,7 +53,7 @@ export function SindicatosPanel({ tipo }: { tipo: SindicatoTipo }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DpSindicato | null>(null);
   const [toDelete, setToDelete] = useState<DpSindicato | null>(null);
-  const [form, setForm] = useState({ nome: "", cnpj: "", contato_whatsapp: "" });
+  const [form, setForm] = useState({ nome: "", cnpj: "", contato_whatsapp: "", data_base: "", contato_nome: "", contato_email: "" });
   const [unidadesSel, setUnidadesSel] = useState<string[]>([]);
   const [cargosSel, setCargosSel] = useState<string[]>([]);
   const [busca, setBusca] = useState("");
@@ -98,7 +98,7 @@ export function SindicatosPanel({ tipo }: { tipo: SindicatoTipo }) {
 
   const abrirNovo = () => {
     setEditing(null);
-    setForm({ nome: "", cnpj: "", contato_whatsapp: "" });
+    setForm({ nome: "", cnpj: "", contato_whatsapp: "", data_base: "", contato_nome: "", contato_email: "" });
     setUnidadesSel([]);
     setCargosSel([]);
     setOpen(true);
@@ -110,6 +110,9 @@ export function SindicatosPanel({ tipo }: { tipo: SindicatoTipo }) {
       nome: s.nome,
       cnpj: s.cnpj ? maskCnpj(s.cnpj) : "",
       contato_whatsapp: s.contato_telefone ? maskPhone(s.contato_telefone) : "",
+      data_base: (() => { const m = /^\d{4}-(\d{2})-(\d{2})/.exec(String((s as any).data_base ?? "")); return m ? `${m[2]}/${m[1]}` : ""; })(),
+      contato_nome: (s as any).contato_nome ?? "",
+      contato_email: (s as any).contato_email ?? "",
     });
     setUnidadesSel([]);
     setCargosSel([]);
@@ -135,12 +138,25 @@ export function SindicatosPanel({ tipo }: { tipo: SindicatoTipo }) {
       return;
     }
 
+    const mDb = /^(\d{2})\/(\d{2})$/.exec(form.data_base.trim());
+    if (form.data_base.trim() && (!mDb || Number(mDb[2]) < 1 || Number(mDb[2]) > 12 || Number(mDb[1]) < 1 || Number(mDb[1]) > 31)) {
+      toast.error("Data-base inválida", { description: "Use dia/mês, ex.: 01/05" });
+      return;
+    }
+    if (form.contato_email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contato_email.trim())) {
+      toast.error("E-mail do contato inválido");
+      return;
+    }
+
     try {
       const sindicatoId = await upsert.mutateAsync({
         id: editing?.id,
         nome: form.nome.trim(),
         cnpj: form.cnpj ? onlyDigits(form.cnpj) : null,
         contato_telefone: form.contato_whatsapp ? onlyDigits(form.contato_whatsapp) : null,
+        contato_nome: form.contato_nome.trim() || null,
+        contato_email: form.contato_email.trim() || null,
+        data_base: mDb ? `2000-${mDb[2]}-${mDb[1]}` : null,
         tipo,
       } as any);
 
@@ -315,6 +331,35 @@ export function SindicatosPanel({ tipo }: { tipo: SindicatoTipo }) {
                 placeholder="(62) 99999-9999"
                 maxLength={15}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Data-base (dia/mês)</Label>
+              <Input
+                value={form.data_base}
+                onChange={(e) => setForm({ ...form, data_base: e.target.value })}
+                placeholder="01/05"
+                maxLength={5}
+                inputMode="numeric"
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Nome do contato</Label>
+                <Input
+                  value={form.contato_nome}
+                  onChange={(e) => setForm({ ...form, contato_nome: e.target.value })}
+                  maxLength={120}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>E-mail do contato</Label>
+                <Input
+                  type="email"
+                  value={form.contato_email}
+                  onChange={(e) => setForm({ ...form, contato_email: e.target.value })}
+                  maxLength={160}
+                />
+              </div>
             </div>
 
             {isPatronal ? (
