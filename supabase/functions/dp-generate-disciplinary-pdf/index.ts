@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
     const alineas = [...new Set(motivos.map((m) => ALINEA_POR_MOTIVO[norm(m)]).filter(Boolean))].sort();
     const transcricoes = alineas.map((al) => ART_482.find((l) => l.startsWith(`${al})`))!).filter(Boolean);
 
-    const desenhar = async (escala: number) => {
+    const desenhar = async (escala: number, quebrar = false) => {
       const pdf = await PDFDocument.create();
       const font = await pdf.embedFont(StandardFonts.Helvetica);
       const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -133,8 +133,24 @@ Deno.serve(async (req) => {
       const s = (n: number) => n * escala;
       let menorY = H;
       for (const via of ["1ª Via - Empregador", "2ª Via - Empregado(a)"]) {
-        const page: PDFPage = pdf.addPage([W, H]);
+        let page: PDFPage = pdf.addPage([W, H]);
         let y = H - 40;
+        const vt = safe(via.toUpperCase());
+        const rod = safe([razao, fantasia, cnpj ? `CNPJ ${cnpj}` : ""].filter(Boolean).join("  |  ").toUpperCase());
+        const rodape = (pg: PDFPage) => {
+          pg.drawLine({ start: { x: M, y: 40 }, end: { x: W - M, y: 40 }, thickness: 0.4, color: cinza });
+          pg.drawText(rod, { x: (W - font.widthOfTextAtSize(rod, 7)) / 2, y: 29, size: 7, font, color: cinza });
+          pg.drawText(vt, { x: (W - font.widthOfTextAtSize(vt, 6.5)) / 2, y: 18, size: 6.5, font, color: cinza });
+        };
+        // Última alternativa: se não couber em 1 folha nem reduzido, continua na
+        // folha seguinte em vez de desenhar fora da página.
+        const espaco = (h: number) => {
+          if (!quebrar || y - h >= 50) return;
+          rodape(page);
+          page = pdf.addPage([W, H]);
+          page.drawText(vt + " (continuação)", { x: W - M - bold.widthOfTextAtSize(vt + " (continuação)", 7.5), y: H - 26, size: 7.5, font: bold, color: cinza });
+          y = H - 50;
+        };
         const linhas = (text: string, size: number, f: PDFFont, maxW: number) => {
           const out: string[] = [];
           for (const par of safe(text).split("\n")) {
@@ -151,6 +167,7 @@ Deno.serve(async (req) => {
           const size = s(o.size ?? 10), f = o.f ?? font, lh = size * 1.38, x0 = M + (o.indent ?? 0), maxW = W - M - x0;
           const ls = linhas(t, size, f, maxW);
           ls.forEach((l, i) => {
+            espaco(lh);
             const wl = f.widthOfTextAtSize(l, size);
             if (o.align === "center") page.drawText(l, { x: (W - wl) / 2, y, size, font: f, color: o.color ?? cor });
             else if (o.align === "justify" && i < ls.length - 1 && l.includes(" ")) {
@@ -166,7 +183,6 @@ Deno.serve(async (req) => {
           page.drawText(safe(val || "-").slice(0, 60), { x, y: yy - 11, size: 9, font, color: cor });
         };
 
-        const vt = safe(via.toUpperCase());
         page.drawText(vt, { x: W - M - bold.widthOfTextAtSize(vt, 7.5), y: H - 26, size: 7.5, font: bold, color: cinza });
         texto(razao.toUpperCase(), { size: 11.5, f: bold, align: "center", gap: 0 });
         const sub = [fantasia.toUpperCase(), cnpj ? `CNPJ ${cnpj}` : ""].filter(Boolean).join("  |  ");
@@ -218,21 +234,20 @@ Deno.serve(async (req) => {
           page.drawText(safe(rot), { x, y: y - 11, size: 8.5, font: bold, color: cor });
           page.drawText(safe(sub), { x, y: y - 21, size: 7.5, font, color: cinza });
         };
+        espaco(32);
         assin(M, "Empregador", razao.toUpperCase().slice(0, 48));
         assin(M + metade + 30, "Ciente Do(a) Colaborador(a)", `${String(k.nome ?? "").toUpperCase().slice(0, 36)}  Data: ___/___/_____`);
         y -= 38;
 
         texto("Em Caso De Recusa De Assinatura", { f: bold, size: 8.5, gap: 1 });
         texto("Certificamos que a presente medida foi lida e comunicada ao(à) colaborador(a) em nossa presença, que se recusou a assiná-la.", { size: 8.5, align: "justify", gap: 22 });
+        espaco(32);
         assin(M, "Testemunha 1", "Nome:                                  CPF:");
         assin(M + metade + 30, "Testemunha 2", "Nome:                                  CPF:");
         y -= 26;
         menorY = Math.min(menorY, y);
 
-        const rod = safe([razao, fantasia, cnpj ? `CNPJ ${cnpj}` : ""].filter(Boolean).join("  |  ").toUpperCase());
-        page.drawLine({ start: { x: M, y: 40 }, end: { x: W - M, y: 40 }, thickness: 0.4, color: cinza });
-        page.drawText(rod, { x: (W - font.widthOfTextAtSize(rod, 7)) / 2, y: 29, size: 7, font, color: cinza });
-        page.drawText(vt, { x: (W - font.widthOfTextAtSize(vt, 6.5)) / 2, y: 18, size: 6.5, font, color: cinza });
+        rodape(page);
       }
       return { pdf, cabe: menorY >= 46 };
     };
@@ -243,6 +258,7 @@ Deno.serve(async (req) => {
       const r = await desenhar(e);
       pdf = r.pdf;
       if (r.cabe) break;
+      if (e === 0.7) pdf = (await desenhar(0.7, true)).pdf;
     }
 
     const bytes = await pdf.save();
