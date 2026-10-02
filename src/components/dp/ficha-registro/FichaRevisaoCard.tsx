@@ -767,9 +767,20 @@ export function FichaRevisaoCard({
                   Não conseguimos ler o CNPJ do empregador nesta ficha — confira a unidade.
                 </p>
               )}
-              {!unidadeSugerida.unidade_id && (!!unidadeSugerida.cnpj_lido || !!unidadeSugerida.empregador_lido) && (
-                <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setUnidadeDialog(true)}>
-                  <Plus className="mr-1 h-3 w-3" /> Criar unidade com os dados da ficha
+              {!unidadeId && (
+                <p className="text-[11px] text-destructive">
+                  A unidade é obrigatória para aprovar a ficha.
+                  {unidades.length === 0 && " Nenhuma unidade cadastrada ainda: cadastre a partir dos dados da ficha."}
+                </p>
+              )}
+              {!unidadeSugerida.unidade_id && (!unidadeId || !!unidadeSugerida.cnpj_lido || !!unidadeSugerida.empregador_lido) && (
+                <Button
+                  variant={unidadeId ? "outline" : "default"}
+                  size="sm"
+                  className="h-7 text-[11px]"
+                  onClick={() => setUnidadeDialog(true)}
+                >
+                  <Plus className="mr-1 h-3 w-3" /> Cadastrar Unidade da Ficha
                 </Button>
               )}
             </div>
