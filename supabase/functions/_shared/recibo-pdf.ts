@@ -323,7 +323,7 @@ async function montarDuasVias(r: ReciboPdf): Promise<Uint8Array> {
     }
     // Assinatura
     const baseAss = topo - meio + 58;
-    const ya = Math.min(y - 30, baseAss + 0) < baseAss ? baseAss : Math.min(y - 30, baseAss + 20);
+    const ya = Math.max(baseAss, Math.min(y - 30, baseAss + 40));
     page.drawLine({ start: { x: margem, y: ya }, end: { x: margem + 240, y: ya }, thickness: 0.8, color: rgb(0.5, 0.5, 0.5) });
     page.drawText(limpar(r.beneficiario).slice(0, 50), { x: margem, y: ya - 11, size: 8.5, font: negrito, color: rgb(0.1, 0.1, 0.1) });
     page.drawText(limpar(`CPF ${r.beneficiarioCpf} · Assinatura do recebedor`), { x: margem, y: ya - 21, size: 7.5, font: fonte, color: CLARO });
