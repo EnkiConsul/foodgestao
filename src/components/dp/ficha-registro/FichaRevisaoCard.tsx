@@ -1,4 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useUpsertDpCargo, useUpsertDpCargoSalario } from "@/hooks/useDpCadastros";
+import { useSindicatoDoCargo } from "@/hooks/useSindicatoDoCargo";
+import { salvarDependente } from "@/lib/dp/regras-oficial";
+import {
+  dependentesDaFicha, inferirFormaPagamento, inferirRegime, LIMITE_PONTO_OBRIGATORIO, salarioDaFicha,
+} from "@/lib/dp/ficha-registro/inferencia";
 import { Link } from "react-router-dom";
 import {
   AlertTriangle, Check, ChevronDown, ChevronUp, FileText, Loader2, Plus, UserCheck, UserCog, X,
@@ -372,7 +380,50 @@ export function FichaRevisaoCard({
     }
   };
 
-  const executar = (camposPermitidos: string[] | null) => {
+  /**
+   * Antes de aprovar: cria o cargo que a ficha traz (com CBO), grava o salário
+   * da ficha como padrão da unidade (ou piso da convenção, se houver patronal)
+   * e confere a dispensa de ponto em unidade com mais de 20 pessoas.
+   */
+  const executar = async (camposPermitidos: string[] | null) => {
+    if (pontoObrigatorio && possuiFolhaPonto === false && justificativaPonto.trim().length < 10) {
+      setCompletarAberto(true);
+      setTentouCriar(true);
+      toast.error("A unidade tem mais de 20 pessoas: o ponto é obrigatório (Art. 74 da CLT). Justifique a dispensa (ex.: cargo de confiança, Art. 62).");
+      return;
+    }
+    let cargoFinal = cargoId;
+    if (automatizarCargo && !preadmissaoId) {
+      setPreparando(true);
+      try {
+        const nomeCargo = String(dados.cargo_nome ?? "").trim().toUpperCase();
+        if (!cargoFinal && !cargoPorCbo && nomeCargo) {
+          const novo = await upsertCargo.mutateAsync({ nome: nomeCargo, cbo: String(dados.cbo ?? "").trim() || null });
+          cargoFinal = (novo as { id: string }).id;
+          setCargoIdState(cargoFinal);
+          setCargoTocado(true);
+        }
+        const mensal = (formaPagamento ?? formaInferida) === "mensalista";
+        if (cargoFinal && unidadeId && salarioFicha && mensal && !salarioCargoDe(cargoFinal, unidadeId)) {
+          await upsertPiso.mutateAsync({
+            cargo_id: cargoFinal,
+            salario_base: salarioFicha,
+            vigencia_inicio: new Date().toISOString().slice(0, 10),
+            sindicato_patronal_id: patronalUnidade?.id ?? null,
+            unidade_id: patronalUnidade?.id ? null : unidadeId,
+          });
+        }
+      } catch (e) {
+        notifyError(e as Error, { surface: "Pessoas 360°", action: "cadastrar o cargo e o salário da ficha" });
+        setPreparando(false);
+        return;
+      }
+      setPreparando(false);
+    }
+    executarInterno(camposPermitidos, cargoFinal);
+  };
+
+  const executarInterno = (camposPermitidos: string[] | null, cargoAuto: string | null) => {
     if (escolhasPendentes.length > 0) {
       setCompletarAberto(true);
       setTentouCriar(true);
@@ -385,7 +436,7 @@ export function FichaRevisaoCard({
       return;
     }
     const decidido = preadmissaoId ? vinculoDecidido() : null;
-    if (!(decidido?.cargoId ?? cargoId)) {
+    if (!(decidido?.cargoId ?? cargoAuto ?? cargoId)) {
       setTentouCriar(true);
       toast.warning(
         dados.cargo_nome
@@ -395,12 +446,15 @@ export function FichaRevisaoCard({
       document.getElementById(`ficha-cargo-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    const dadosEnvio = preadmissaoId ? dadosParaCadastro(stagingDados, dados, escolhas) : dados;
+    const dadosBase = preadmissaoId ? dadosParaCadastro(stagingDados, dados, escolhas) : dados;
+    const dadosEnvio = pontoObrigatorio && possuiFolhaPonto === false
+      ? { ...dadosBase, folha_ponto_dispensa_justificativa: justificativaPonto.trim() }
+      : dadosBase;
     aplicar.mutate(
       {
         item,
         dados: dadosEnvio,
-        cargoId: decidido?.cargoId ?? cargoId,
+        cargoId: decidido?.cargoId ?? cargoAuto ?? cargoId,
         unidadeId: decidido?.unidadeId ?? unidadeId,
         setorId: decidido?.setorId ?? setorId,
         regime: decidido?.regime ?? regime,
@@ -415,8 +469,27 @@ export function FichaRevisaoCard({
         preadmissaoId,
       },
       {
-        onSuccess: async () => {
+        onSuccess: async (res) => {
           setComparacao(false);
+          // Familiares da ficha viram dependentes (filhos, enteados, tutelados, cônjuge).
+          const colabId = (res as { colaboradorId?: string } | undefined)?.colaboradorId;
+          if (colabId && importarDependentes && dependentesLidos.length > 0 && !res?.jaAplicado) {
+            const { data: existentes } = await supabase
+              .from("dp_dependentes").select("nome").eq("colaborador_id", colabId);
+            const jaTem = new Set((existentes ?? []).map((x) => String(x.nome).toUpperCase()));
+            let falhas = 0;
+            for (const dep of dependentesLidos) {
+              if (jaTem.has(dep.nome)) continue;
+              try {
+                await salvarDependente(colabId, {
+                  nome: dep.nome, parentesco: dep.parentesco, data_nascimento: dep.data_nascimento,
+                  cpf: dep.cpf, deficiencia: false, conta_irrf: true, conta_salario_familia: dep.parentesco !== "conjuge",
+                  observacao: "Importado da Ficha de Registro.",
+                });
+              } catch { falhas += 1; }
+            }
+            if (falhas) toast.warning(`${falhas} dependente(s) da ficha não puderam ser cadastrados. Confira na aba Dependentes.`);
+          }
           // Promoção de folguista: o servidor liga a ficha à pessoa e conclui a
           // promoção. Repetir a chamada não promove duas vezes.
           if (pessoaApoioId) {
