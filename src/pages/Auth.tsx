@@ -490,7 +490,7 @@ export default function Auth() {
           <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Voltar ao site
         </Link>
 
-        <section className="relative z-10 flex h-full items-end justify-center px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[clamp(4rem,28svh,42svh)] md:min-h-screen md:h-auto md:items-start md:justify-end md:px-[4vw] md:py-[clamp(2rem,8vw,8rem)] lg:px-[5vw] lg:py-[clamp(2.5rem,9vh,6rem)]">
+        <section className="relative z-10 flex h-full items-end justify-center px-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[clamp(4rem,28svh,42svh)] md:min-h-screen md:h-auto md:items-start md:justify-end md:px-[4vw] md:py-[clamp(2rem,8vw,8rem)] lg:px-[5vw] lg:py-[clamp(2.5rem,9vh,6rem)]">
           <div className="flex w-full max-w-[340px] flex-col md:max-w-[320px] lg:max-w-[340px]">
         <Card className="max-h-[68svh] w-full overflow-y-auto border-border/70 bg-card/90 shadow-site-float backdrop-blur-xl supports-[backdrop-filter]:bg-card/84 md:max-h-[calc(100svh-2rem)]">
 
