@@ -267,6 +267,8 @@ Formato:
   "ctps_numero": null, "ctps_serie": null, "ctps_uf": null, "ctps_expedicao": null,
   "titulo_eleitor": null, "titulo_zona": null, "titulo_secao": null,
   "reservista": null, "reservista_categoria": null,
+  "matricula_esocial": null,           // matrícula eSocial do empregado, se impressa
+  "fgts_optante": null,                // true se a ficha indica opção pelo FGTS (ou a data da opção)
   "pis_nit": null, "cnh_numero": null, "cnh_categoria": null, "cnh_validade": null,
   "endereco": { "logradouro": null, "numero": null, "bairro": null, "cidade": null, "uf": null, "cep": null, "texto": null },
   "cargo_nome": null, "cbo": null, "data_admissao": null,
@@ -275,6 +277,9 @@ Formato:
   "jornada_texto": null,               // linha da escala/horário como está escrita, ex "08:00/12:00-14:00/18:00 44:00" ou "das 17:00 as 00:35"
   "jornada_dias": [                    // apenas se a página tiver tabela por dia da semana
     { "dia": "Dom", "tipo": "Trabalhado|Folga", "entrada": null, "intervalo_inicio": null, "intervalo_fim": null, "saida": null }
+  ],
+  "familiares": [                      // dependentes/familiares listados na ficha (pode ser [])
+    { "nome": null, "parentesco": null, "data_nascimento": null, "cpf": null }
   ],
   "historico_ferias": [                // anotações de férias da ficha (pode ser []), uma por período
     { "aquisitivo_inicio": null, "aquisitivo_fim": null, "gozo_inicio": null, "gozo_fim": null, "dias": null }
