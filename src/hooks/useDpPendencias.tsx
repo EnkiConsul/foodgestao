@@ -28,6 +28,8 @@ import {
   competenciaLabel,
   competenciasParaCobrar,
   DOC_TIPOS_RESCISAO,
+  REGIMES_COM_AVISO_PREVIO,
+  elegivelRescisaoDoVinculo,
   elegivelDocumento,
   intervaloCompetencia,
   limiteMesSeguinte,
@@ -663,11 +665,46 @@ export function useDpPendencias() {
           console.warn("pendencias/feriados-rescisao:", e);
         }
 
+        // Aviso Prévio e Acerto Rescisório: cobrados por colaborador, a partir
+        // do desligamento (sem janela de competência — o prazo é curto).
+        const avisos = new Set<string>();
+        const acertos = new Set<string>();
+        try {
+          const ids = Array.from(new Set(colaboradoresDocs.map((c) => c.id)));
+          if (ids.length) {
+            const { data } = await supabase
+              .from("dp_documentos")
+              .select("id, tipo, colaborador_id, referencia_data, comprovante_file_path, arquivado_em")
+              .eq("company_id", selectedCompanyId!)
+              .in("tipo", ["aviso_previo", "acerto_rescisorio"] as any)
+              .gte("referencia_data", rangeInicio);
+            const docsAcerto = ((data ?? []) as any[]).filter((d) => d.tipo === "acerto_rescisorio" && !d.arquivado_em);
+            const recibos = new Map<string, any>();
+            if (docsAcerto.length) {
+              const { data: recs } = await supabase
+                .from("dp_recibos")
+                .select("documento_id, assinado_em, substituido_em")
+                .in("documento_id", docsAcerto.map((d) => d.id));
+              (recs ?? []).forEach((r: any) => recibos.set(r.documento_id, r));
+            }
+            for (const d of (data ?? []) as any[]) {
+              if (!d.colaborador_id || d.arquivado_em) continue;
+              if (d.tipo === "aviso_previo") { avisos.add(d.colaborador_id); continue; }
+              const rec = recibos.get(d.id);
+              // Recibo do sistema só quita assinado; upload externo (recibo de
+              // papelaria assinado ou comprovante bancário) já quita.
+              const quitado = !!d.comprovante_file_path || !rec || (!!rec.assinado_em && !rec.substituido_em);
+              if (quitado) acertos.add(`${d.colaborador_id}:${String(d.referencia_data).slice(0, 7)}`);
+            }
+          }
+        } catch (e) {
+          console.warn("pendencias/rescisao-momentos:", e);
+        }
+
         for (const u of unidades) {
           const comps = new Set(compsPorUnidade.get(u.id)?.ateVigente ?? []);
           for (const v of encerradosPorUnidade.get(u.id) ?? []) {
             if (!comps.has(v.competencia)) continue;
-            if (docs.has(`${v.colaboradorId}:${v.competencia}`)) continue;
             const anoFim = Number(v.dataFim.slice(0, 4));
             const vencimento = prazoLegalRescisao(v.dataFim);
             const util = prazoPagamentoRescisao(
@@ -677,22 +714,60 @@ export function useDpPendencias() {
             const dm = (s: string) => format(new Date(`${s}T12:00:00`), "dd/MM");
             const quando = dm(v.dataFim);
             const comp = v.competencia;
-            results.push({
-              id: `rescisao-${v.colaboradorId}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`,
-              icon: FileMinus,
-              titulo: "Pagamento Da Rescisão — Comprovar Até O Prazo",
-              subtitulo: `${v.nome} · ${u.nome} — ${competenciaLabel(comp)} · ${
-                v.recontratado ? "vínculo encerrado" : "desligado"
-              } em ${quando} · pagar até ${dm(vencimento)} (multa Art. 477)${
-                util !== vencimento ? ` · por TED/depósito, até ${dm(util)}` : ""
-              }`,
+            const sufixo = `${v.colaboradorId}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`;
+            const base = {
               tipo: "Rescisão",
               colaboradorNome: v.nome,
               unidadeNome: u.nome,
-              vencimento,
-              atrasoDias: atrasoEmDias(vencimento, hojeISO),
-              url: `/dp/documentos?tipo=trct&competencia=${comp}&unidade=${u.id}`,
-            });
+              competencia: comp,
+            };
+            const estado = v.recontratado ? "vínculo encerrado" : "desligado";
+            const regime = String(v.regime ?? "").toLowerCase();
+
+            // 1. Aviso Prévio — CLT, vence na data do desligamento.
+            if (REGIMES_COM_AVISO_PREVIO.has(regime) && !avisos.has(v.colaboradorId)) {
+              results.push({
+                ...base,
+                id: `rescisao-aviso-${sufixo}`,
+                icon: FileMinus,
+                titulo: "Aviso Prévio Pendente",
+                subtitulo: `${v.nome} · ${u.nome} — ${estado} em ${quando} · importar o aviso assinado à mão`,
+                vencimento: v.dataFim,
+                atrasoDias: atrasoEmDias(v.dataFim, hojeISO),
+                url: `/dp/documentos?tipo=aviso_previo&competencia=${comp}&unidade=${u.id}`,
+              });
+            }
+
+            // 2. Documentos Rescisórios — assalariados (freelancer dispensado).
+            if (elegivelRescisaoDoVinculo(v) && !docs.has(`${v.colaboradorId}:${comp}`)) {
+              results.push({
+                ...base,
+                id: `rescisao-docs-${sufixo}`,
+                icon: FileMinus,
+                titulo: "Documentos Rescisórios A Importar",
+                subtitulo: `${v.nome} · ${u.nome} — ${estado} em ${quando} · cálculo da contabilidade até ${dm(vencimento)}`,
+                vencimento,
+                atrasoDias: atrasoEmDias(vencimento, hojeISO),
+                url: `/dp/documentos?tipo=desligamento&competencia=${comp}&unidade=${u.id}`,
+              });
+            }
+
+            // 3. Acerto Rescisório — todos os vínculos; só baixa com recibo
+            // assinado ou comprovante de pagamento.
+            if (!acertos.has(`${v.colaboradorId}:${comp}`)) {
+              results.push({
+                ...base,
+                id: `rescisao-${sufixo}`,
+                icon: FileMinus,
+                titulo: "Acerto Rescisório A Comprovar",
+                subtitulo: `${v.nome} · ${u.nome} — ${estado} em ${quando} · pagar até ${dm(vencimento)} (multa Art. 477)${
+                  util !== vencimento ? ` · por TED/depósito, até ${dm(util)}` : ""
+                } · recibo assinado ou comprovante de pagamento`,
+                vencimento,
+                atrasoDias: atrasoEmDias(vencimento, hojeISO),
+                url: `/dp/documentos?tipo=acerto_rescisorio&competencia=${comp}&unidade=${u.id}`,
+              });
+            }
           }
         }
       }
