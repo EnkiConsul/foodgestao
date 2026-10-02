@@ -1,3 +1,4 @@
+import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
 import { useEffect, useState } from "react";
 import { Loader2, Replace, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -126,6 +127,7 @@ export function DocSubstituirDialog(props: {
             <p className="text-xs text-muted-foreground">
               O arquivo atual será apagado e a validação digital, se já concedida, voltará para "Aguardando".
             </p>
+            <AvisoViaFisica />
           </div>
 
           {editavel && (

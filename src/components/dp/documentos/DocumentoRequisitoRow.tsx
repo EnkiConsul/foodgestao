@@ -1,3 +1,4 @@
+import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
 import { useRef, useState } from "react";
 import {
   Upload, Eye, Check, X, Ban, CalendarClock, Loader2, Trash2, PenLine, FileText,
@@ -118,6 +119,7 @@ export function DocumentoRequisitoRow({
           )}
         </div>
 
+        {!somenteEnvio && <AvisoViaFisica />}
         <div className="flex flex-wrap items-center gap-2">
           {precisaValidade && !somenteEnvio && (
             <Input
