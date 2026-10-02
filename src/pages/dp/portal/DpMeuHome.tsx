@@ -31,6 +31,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 export default function DpMeuHome() {
   const { user } = useAuth();
   const meu = useDpMeuResumo();
+  const isMobile = useIsMobile();
 
   const colabId = useQuery({
     queryKey: ["colab_of", user?.id],
@@ -129,6 +130,9 @@ export default function DpMeuHome() {
 
       {/* Convite para instalar o app, no primeiro acesso pelo celular. */}
       <InstalarAppCard />
+
+      {/* Atalhos dos menus principais, no topo do Início no celular. */}
+      {isMobile && <PortalMenusPrincipaisCards />}
 
       {/* Pendências em destaque, logo depois da saudação. */}
       <MinhasPendenciasCard />
