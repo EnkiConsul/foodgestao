@@ -8,7 +8,8 @@ import { useDpPendenciasConfig, type DpPendenciasConfig } from "@/hooks/useDpPen
 import { useDpFeriasConfig } from "@/hooks/useDpFeriasConfig";
 import { addDays, differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
-import { ClipboardList, FileCheck2, FileMinus, FileText, Users, Coins, Clock, Scale, Palmtree, UserCog, Baby } from "lucide-react";
+import { ClipboardList, FileCheck2, FileMinus, FileText, Users, Coins, Clock, Scale, Palmtree, UserCog, Baby, AlertTriangle } from "lucide-react";
+import { conformidadePonto } from "@/lib/dp/ponto-conformidade";
 import { LEMBRETE_RETORNO_DIAS, TIPOS_AFASTAMENTO, TIPOS_LICENCA, afastamentoCobreCompetencia, labelAfastamento, situacaoRetorno } from "@/lib/dp/licencas";
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
 import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-completude";
