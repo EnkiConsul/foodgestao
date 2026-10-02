@@ -30,6 +30,9 @@ import { certificadoValidacaoPdf } from "@/lib/dp/documento-certificado";
 import {
   CANAIS_ASSINATURA,
   cancelarRecibo,
+  editarRecibo,
+  hojeBRT,
+  limitePagamentoFuturo,
   ehNatureza,
   emitirRecibo,
   gerarLinkRecibo,
