@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useDpTurnos, TURNO_FORM_DEFAULT } from "@/hooks/useDpTurnos";
 import { CopiarConfigColaboradorDialog, type ConfigCopiada } from "@/components/dp/CopiarConfigColaboradorDialog";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
+import { JUSTIFICATIVA_DIVERGENCIA_MIN } from "@/lib/dp/ficha-registro/divergencia";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -111,7 +112,12 @@ interface Props {
   avisoSemCadastro?: string;
   /** Delega a saída para a ficha, que pergunta se salva antes de sair. */
   onNavegar?: (rota: string) => void;
+  /** Horário registrado na Ficha de Registro (registro contábil) de origem. */
+  horarioFicha?: { entrada: string; saida: string; intervalo_minutos: number | null } | null;
 }
+
+const descreverHorario = (h: { entrada?: string | null; saida?: string | null; intervalo_minutos?: number | null }) =>
+  `${h.entrada || "--:--"} às ${h.saida || "--:--"}${h.intervalo_minutos ? ` (intervalo ${h.intervalo_minutos} min)` : ""}`;
 
 /** Horário escolhido antes de existir o cadastro oficial do colaborador. */
 export interface JornadaRascunho {
@@ -132,7 +138,7 @@ export interface JornadaRascunho {
  */
 export function ColaboradorJornadaPanel({
   colaborador, active = true, showSaveButton = true, onRegistrarSalvar,
-  rascunhoInicial, onRascunho, avisoSemCadastro, onNavegar,
+  rascunhoInicial, onRascunho, avisoSemCadastro, onNavegar, horarioFicha,
 }: Props) {
   const policy = contratoPolicy(colaborador?.regime, colaborador?.vinculo_label);
   const { selectedCompanyId } = useCompanyContext();
@@ -737,14 +743,30 @@ export function ColaboradorJornadaPanel({
     topoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  /**
+   * Horário diferente do registrado na Ficha de Registro (CTPS/eSocial):
+   * exige tipo (nova condição ou correção), data, justificativa (mín. 15) e ciência.
+   */
+  const divergenciaHorarioFicha = (() => {
+    if (!horarioFicha || !horario.entrada || !horario.saida) return null;
+    const igual =
+      horarioFicha.entrada === horario.entrada &&
+      horarioFicha.saida === horario.saida &&
+      (horarioFicha.intervalo_minutos == null || horarioFicha.intervalo_minutos === (horario.intervalo_minutos ?? 0));
+    return igual ? null : { ficha: descreverHorario(horarioFicha), sistema: descreverHorario(horario) };
+  })();
+  const [vigDecCienteFicha, setVigDecCienteFicha] = useState(false);
+
   /** Alterar a condição vigente exige decidir: nova vigência ou correção. */
-  const precisaDecidirVigencia = () => !!vigente && vigenciaModo === "base" && !decisaoRef.current;
+  const precisaDecidirVigencia = () =>
+    !decisaoRef.current && ((!!vigente && vigenciaModo === "base") || !!divergenciaHorarioFicha);
   const pedirDecisao = () =>
     new Promise<boolean>((resolve) => {
       vigDecResolveRef.current = resolve;
       setVigDecModo("nova");
       setVigDecData(hoje());
       setVigDecJust("");
+      setVigDecCienteFicha(false);
       setVigDecOpen(true);
     });
   const fecharDecisao = (ok: boolean) => {
@@ -754,7 +776,9 @@ export function ColaboradorJornadaPanel({
     r?.(ok);
   };
   const confirmarDecisao = () => {
-    if (vigDecJust.trim().length < 5) { toast.error("Informe a justificativa (mínimo 5 caracteres)."); return; }
+    const minJust = divergenciaHorarioFicha ? JUSTIFICATIVA_DIVERGENCIA_MIN : 5;
+    if (vigDecJust.trim().length < minJust) { toast.error(`Informe a justificativa (mínimo ${minJust} caracteres).`); return; }
+    if (divergenciaHorarioFicha && !vigDecCienteFicha) { toast.error("Confirme a ciência da divergência com a ficha de registro."); return; }
     if (vigDecModo === "nova") {
       if (!vigDecData) { toast.error("Informe a data de início."); return; }
       if (admissao && vigDecData < admissao) { toast.error("A data não pode ser anterior à admissão."); return; }
@@ -765,10 +789,13 @@ export function ColaboradorJornadaPanel({
       setInicio(vigDecData);
       setVigenciaModo("nova_data");
     }
+    const prefixoFicha = divergenciaHorarioFicha
+      ? `[Divergência com a Ficha de Registro: ficha "${divergenciaHorarioFicha.ficha}" → sistema "${divergenciaHorarioFicha.sistema}"; ciência confirmada] `
+      : "";
     decisaoRef.current = {
       modo: vigDecModo,
       inicio: vigDecModo === "nova" ? vigDecData : inicio,
-      justificativa: vigDecJust.trim(),
+      justificativa: prefixoFicha + vigDecJust.trim(),
     };
     fecharDecisao(true);
   };
@@ -1363,8 +1390,24 @@ export function ColaboradorJornadaPanel({
                 <p className="text-[11px] text-muted-foreground">Pode ser uma data passada (correção retroativa a partir dela).</p>
               </div>
             )}
+            {divergenciaHorarioFicha && (
+              <div className="space-y-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-xs">
+                <p className="flex items-center gap-1.5 font-semibold text-destructive">
+                  <ShieldAlert className="h-4 w-4" aria-hidden="true" /> Horário diferente da Ficha de Registro
+                </p>
+                <p className="text-muted-foreground">
+                  Na ficha: {divergenciaHorarioFicha.ficha} → Novo: <span className="font-semibold text-foreground">{divergenciaHorarioFicha.sistema}</span>
+                </p>
+                <div className="flex items-start gap-2">
+                  <Checkbox id="vig-dec-ciente-ficha" checked={vigDecCienteFicha} onCheckedChange={(v) => setVigDecCienteFicha(v === true)} />
+                  <Label htmlFor="vig-dec-ciente-ficha" className="text-xs font-normal leading-snug">
+                    Estou ciente de que este horário difere do registro oficial na ficha e assumo a responsabilidade pela divergência.
+                  </Label>
+                </div>
+              </div>
+            )}
             <div className="space-y-1">
-              <Label htmlFor="vig-dec-just">Justificativa *</Label>
+              <Label htmlFor="vig-dec-just">Justificativa *{divergenciaHorarioFicha ? ` (mínimo ${JUSTIFICATIVA_DIVERGENCIA_MIN} caracteres)` : ""}</Label>
               <Textarea id="vig-dec-just" rows={3} value={vigDecJust} onChange={(e) => setVigDecJust(e.target.value)} />
             </div>
           </div>
