@@ -674,7 +674,7 @@ export function useDpPendencias() {
           if (ids.length) {
             const { data } = await supabase
               .from("dp_documentos")
-              .select("id, tipo, colaborador_id, referencia_data, comprovante_file_path, arquivado_em")
+              .select("id, tipo, colaborador_id, referencia_data, comprovante_file_path, comprovante_modalidade, comprovante_pago_em, arquivado_em")
               .eq("company_id", selectedCompanyId!)
               .in("tipo", ["aviso_previo", "acerto_rescisorio"] as any)
               .gte("referencia_data", rangeInicio);
@@ -1583,7 +1583,7 @@ export function useDpPendencias() {
           const inicio = cfg.comprovante_vigencia_inicio || "2026-09-01";
           const { data: docsPagto } = await supabase
             .from("dp_documentos")
-            .select("id, tipo, titulo, referencia_data, created_at, colaborador_id, comprovante_file_path, ciclo_status")
+            .select("id, tipo, titulo, referencia_data, created_at, colaborador_id, comprovante_file_path, comprovante_modalidade, comprovante_pago_em, ciclo_status")
             .eq("company_id", selectedCompanyId!)
             .in("tipo", [...TIPOS_COM_COMPROVANTE] as never)
             .is("comprovante_file_path", null)
@@ -1595,6 +1595,8 @@ export function useDpPendencias() {
           for (const d of (docsPagto ?? []) as any[]) {
             const referencia = String(d.referencia_data ?? d.created_at ?? "").slice(0, 10);
             if (!referencia || referencia < inicio) continue;
+            // Pago em dinheiro com quitação registrada: não há comprovante bancário.
+            if (d.comprovante_modalidade === "especie" && d.comprovante_pago_em) continue;
             const unidadeId = d.colaborador_id ? unidadeDoColab.get(d.colaborador_id) ?? null : null;
             // O comprovante só existe depois do pagamento: o prazo parte da data
             // prevista de pagamento do documento, não da competência.
