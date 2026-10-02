@@ -111,7 +111,12 @@ interface Props {
   avisoSemCadastro?: string;
   /** Delega a saída para a ficha, que pergunta se salva antes de sair. */
   onNavegar?: (rota: string) => void;
+  /** Horário registrado na Ficha de Registro (registro contábil) de origem. */
+  horarioFicha?: { entrada: string; saida: string; intervalo_minutos: number | null } | null;
 }
+
+const descreverHorario = (h: { entrada?: string | null; saida?: string | null; intervalo_minutos?: number | null }) =>
+  `${h.entrada || "--:--"} às ${h.saida || "--:--"}${h.intervalo_minutos ? ` (intervalo ${h.intervalo_minutos} min)` : ""}`;
 
 /** Horário escolhido antes de existir o cadastro oficial do colaborador. */
 export interface JornadaRascunho {
