@@ -20,6 +20,27 @@ import {
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { UnidadeFormDialog, formatCNPJ, onlyNumbers, type UnidadeAba } from "@/components/dp/UnidadeFormDialog";
 import { useDpFuncionamentoResumo } from "@/hooks/useDpFuncionamentoResumo";
+import { useDpPontoConformidade } from "@/hooks/useDpPontoConformidade";
+import { PontoConformidadeAlerta } from "@/components/dp/PontoConformidadeAlerta";
+import type { PontoConformidade } from "@/lib/dp/ponto-conformidade";
+
+/** Selo do Art. 74 CLT: só aparece em unidades com mais de 20 ativos. */
+function SeloPonto({ situacao }: { situacao?: PontoConformidade }) {
+  if (!situacao || situacao === "nao_obrigatorio") return null;
+  const estilo = {
+    ok: "bg-primary/10 text-primary",
+    justificado: "bg-accent text-accent-foreground",
+    irregular: "bg-destructive/10 text-destructive",
+  }[situacao];
+  const texto = {
+    ok: "Ponto Ativo",
+    justificado: "Ponto Dispensado (Justificado)",
+    irregular: "Sem Ponto (Obrigatório)",
+  }[situacao];
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${estilo}`}>{texto}</span>
+  );
+}
 
 export default function DpUnidades() {
   const list = useDpUnidades();
@@ -28,6 +49,11 @@ export default function DpUnidades() {
 
   const { resumos } = useDpFuncionamentoResumo();
   const patronais = useDpPatronalPorUnidade();
+  const pontoConf = useDpPontoConformidade();
+  const conformidade = useMemo(
+    () => new Map((pontoConf.data ?? []).map((c) => [c.id, c.situacao] as const)),
+    [pontoConf.data],
+  );
   const [open, setOpen] = useState(false);
   const [abaForm, setAbaForm] = useState<UnidadeAba>("dados");
   const [editing, setEditing] = useState<DpUnidadeWithCounts | null>(null);
@@ -191,6 +217,7 @@ export default function DpUnidades() {
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
                       <Users className="size-3" /> {u.colaboradores_count}
                     </span>
+                    <div className="mt-1"><SeloPonto situacao={conformidade.get(u.id)} /></div>
                   </td>
                   <td className="p-4 text-center">
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
@@ -287,6 +314,7 @@ export default function DpUnidades() {
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-secondary text-secondary-foreground">
                 <Users className="size-3" /> {u.colaboradores_count} colab.
               </span>
+              <SeloPonto situacao={conformidade.get(u.id)} />
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">
                 <ListChecks className="size-3" /> {u.cargos_count} cargos
               </span>
