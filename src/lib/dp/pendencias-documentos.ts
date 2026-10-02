@@ -116,7 +116,10 @@ export const REGIMES_ASSALARIADOS = new Set(["clt", "intermitente", "temporario"
 
 export type DocTipoColaborador = "contracheque" | "adiantamento" | "ponto" | "rescisao";
 
-/** Tipos gravados em dp_documentos que satisfazem a pendência de rescisão. */
+/** Momentos do desligamento: só assinatura física. */
+export const REGIMES_COM_AVISO_PREVIO = new Set(["clt", "aprendiz"]);
+
+/** Tipos gravados em dp_documentos que satisfazem a pendência de Documentos Rescisórios. */
 export const DOC_TIPOS_RESCISAO = ["desligamento", "trct", "demonstrativo_rescisorio"] as const;
 
 export type ColabElegibilidade = {
@@ -194,6 +197,7 @@ export function elegivelRescisaoDoVinculo(v: {
 export function vinculosEncerrados(
   historico: VinculoHistorico[] | undefined | null,
   c: ColabElegibilidade,
+  opts: { todosRegimes?: boolean } = {},
 ): VinculoEncerrado[] {
   const doColaborador = (historico ?? [])
     .filter((h) => h.colaborador_id === c.id)
@@ -209,7 +213,8 @@ export function vinculosEncerrados(
   const adicionar = (fim: string, regime: string | null, unidadeId: string | null) => {
     if (!fim || vistos.has(fim)) return;
     vistos.add(fim);
-    if (!elegivelRescisaoDoVinculo({ regime, vinculo_label: c.vinculo_label })) return;
+    if (opts.todosRegimes ? isSocio({ ...c, regime } as ColabElegibilidade)
+      : !elegivelRescisaoDoVinculo({ regime, vinculo_label: c.vinculo_label })) return;
     encerrados.push({
       colaboradorId: c.id,
       dataFim: fim,

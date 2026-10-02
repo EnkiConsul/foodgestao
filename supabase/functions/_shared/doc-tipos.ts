@@ -25,6 +25,7 @@ export type DocTipo =
   | "aviso_previo"
   | "desligamento"
   | "trct"
+  | "acerto_rescisorio"
   | "demonstrativo_rescisorio"
   | "outros_desligamento"
   | "informe_rendimentos"
@@ -56,11 +57,12 @@ export const DOC_TIPO_LABEL: Record<string, string> = {
   termos: "Termos (Admissão)",
   outros_admissao: "Outros (Admissão)",
   aviso_previo: "Aviso Prévio",
-  desligamento: "Desligamento",
+  desligamento: "Documentos Rescisórios",
+  acerto_rescisorio: "Acerto Rescisório",
   aso_admissional: "ASO Admissional",
   aso_demissional: "ASO Demissional",
-  trct: "TRCT (Desligamento)",
-  demonstrativo_rescisorio: "Demonstrativo Rescisório (Desligamento)",
+  trct: "Documentos Rescisórios",
+  demonstrativo_rescisorio: "Documentos Rescisórios",
   outros_desligamento: "Outros (Desligamento)",
   informe_rendimentos: "Informe de Rendimentos",
   outros_fiscais: "Outros (Fiscais)",
@@ -71,9 +73,14 @@ export const DOC_TIPO_LABEL: Record<string, string> = {
   outros: "Documento",
 };
 
+/** Documentos de desligamento: só assinatura física, nunca aceite digital. */
+export const TIPOS_DESLIGAMENTO_SEM_DIGITAL = new Set([
+  "aviso_previo", "desligamento", "trct", "demonstrativo_rescisorio", "outros_desligamento", "acerto_rescisorio",
+]);
+
 /** Tipos que pedem aceite digital do colaborador. */
 export const DOC_TIPO_EXIGE_ACEITE: Record<string, boolean> = Object.fromEntries(
-  Object.keys(DOC_TIPO_LABEL).map((k) => [k, k !== "sindicato" && k !== "outros"]),
+  Object.keys(DOC_TIPO_LABEL).map((k) => [k, k !== "sindicato" && k !== "outros" && !TIPOS_DESLIGAMENTO_SEM_DIGITAL.has(k)]),
 );
 
 const KEYWORDS: Array<[DocTipo, string[]]> = [
@@ -88,6 +95,7 @@ const KEYWORDS: Array<[DocTipo, string[]]> = [
   ["banco_horas", ["banco de horas", "extrato de horas", "compensacao de horas"]],
   ["ajuste_jornada", ["ajuste de jornada", "acordo de compensacao", "alteracao de jornada"]],
   ["ponto", ["folha de ponto", "espelho de ponto", "cartao ponto", "registro de ponto"]],
+  ["acerto_rescisorio", ["acerto rescisorio", "recibo de rescisao", "quitacao rescisoria", "recibo de quitacao"]],
   ["aviso_previo", ["aviso previo"]],
   ["aso_admissional", ["aso admissional", "exame admissional", "atestado de saude ocupacional admissional", "aso de admissao"]],
   ["aso_demissional", ["aso demissional", "exame demissional", "atestado de saude ocupacional demissional", "aso de demissao"]],

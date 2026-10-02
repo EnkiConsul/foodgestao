@@ -109,6 +109,7 @@ const LEGADOS: Record<string, UnifiedTipo> = {
   termos: "admissao",
   outros_admissao: "admissao",
   trct: "desligamento",
+  acerto_rescisorio: "desligamento",
   demonstrativo_rescisorio: "desligamento",
   outros_desligamento: "desligamento",
 };

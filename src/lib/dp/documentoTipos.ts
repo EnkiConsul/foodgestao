@@ -60,6 +60,7 @@ export type DpDocTipo =
   | "aviso_previo"
   | "desligamento"
   | "trct"
+  | "acerto_rescisorio"
   | "demonstrativo_rescisorio"
   | "outros_desligamento"
   | "informe_rendimentos"
@@ -284,16 +285,17 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
     label: "Aviso Prévio",
     grupo: "desligamento",
     importavel: true,
-    exigeAceite: true,
+    // Desligamento: só assinatura física (sem aceite digital).
+    exigeAceite: false,
     keywords: ["aviso previo"],
     badgeClass: "border-rose-300 text-rose-700",
   },
   {
     value: "desligamento",
-    label: "Desligamento",
+    label: "Documentos Rescisórios",
     grupo: "desligamento",
     importavel: true,
-    exigeAceite: true,
+    exigeAceite: false,
     keywords: [
       "trct",
       "termo de rescisao do contrato de trabalho",
@@ -304,6 +306,15 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
       "demissao",
     ],
     badgeClass: "border-red-300 text-red-700",
+  },
+  {
+    value: "acerto_rescisorio",
+    label: "Acerto Rescisório",
+    grupo: "desligamento",
+    importavel: true,
+    exigeAceite: false,
+    keywords: ["acerto rescisorio", "recibo de rescisao", "quitacao rescisoria", "recibo de quitacao"],
+    badgeClass: "border-amber-300 text-amber-700",
   },
   {
     value: "aso_demissional",
@@ -389,9 +400,9 @@ export const DP_DOC_TIPOS_LEGADOS: DpDocTipoDef[] = [
   { value: "ficha_registro", label: "Ficha de Registro (Admissão)", grupo: "admissao", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-slate-300 text-slate-600" },
   { value: "termos", label: "Termos (Admissão)", grupo: "admissao", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-zinc-300 text-zinc-600" },
   { value: "outros_admissao", label: "Outros (Admissão)", grupo: "admissao", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-zinc-200 text-zinc-600" },
-  { value: "trct", label: "TRCT (Desligamento)", grupo: "desligamento", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-red-300 text-red-700" },
-  { value: "demonstrativo_rescisorio", label: "Demonstrativo Rescisório (Desligamento)", grupo: "desligamento", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-red-200 text-red-600" },
-  { value: "outros_desligamento", label: "Outros (Desligamento)", grupo: "desligamento", importavel: false, exigeAceite: true, keywords: [], badgeClass: "border-rose-200 text-rose-600" },
+  { value: "trct", label: "Documentos Rescisórios", grupo: "desligamento", importavel: false, exigeAceite: false, keywords: [], badgeClass: "border-red-300 text-red-700" },
+  { value: "demonstrativo_rescisorio", label: "Documentos Rescisórios", grupo: "desligamento", importavel: false, exigeAceite: false, keywords: [], badgeClass: "border-red-200 text-red-600" },
+  { value: "outros_desligamento", label: "Outros (Desligamento)", grupo: "desligamento", importavel: false, exigeAceite: false, keywords: [], badgeClass: "border-rose-200 text-rose-600" },
 ];
 
 export const DP_DOC_TIPO_MAP: Record<string, DpDocTipoDef> = Object.fromEntries(
@@ -460,6 +471,7 @@ export function detectarTipoDocumento(texto: string | null | undefined): DpDocTi
     "banco_horas",
     "ajuste_jornada",
     "ponto",
+    "acerto_rescisorio",
     "aviso_previo",
     "aso_admissional",
     "aso_demissional",
@@ -516,6 +528,7 @@ export const TIPOS_COM_COMPROVANTE = [
   "desligamento",
   "trct",
   "demonstrativo_rescisorio",
+  "acerto_rescisorio",
   "plr",
   "pro_labore",
   "outros_pagamentos",
