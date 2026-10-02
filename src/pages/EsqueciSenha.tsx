@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,10 @@ type Step = "identify" | "otp" | "password" | "done";
 
 export default function EsqueciSenha() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const primeiro = searchParams.get("primeiro") === "1";
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [telefoneMascarado, setTelefoneMascarado] = useState<string | null>(null);
   const { siteKey, mode: turnstileMode } = useTurnstileConfig();
 
   const [step, setStep] = useState<Step>("identify");
@@ -67,6 +71,53 @@ export default function EsqueciSenha() {
       return;
     }
     const raw = identifier.trim();
+    setAviso(null);
+    if (primeiro) {
+      if (raw.replace(/\D/g, "").length !== 11) {
+        setAviso("Digite os 11 números do seu CPF.");
+        return;
+      }
+      setSubmitting(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("auth-primeiro-acesso-cpf", {
+          body: { cpf: raw, turnstile_token: turnstileToken },
+        });
+        if (error) {
+          let msg = "Não foi possível enviar o código agora. Tente novamente.";
+          try { msg = (await (error as any).context?.json())?.error ?? msg; } catch { /* ignora */ }
+          setAviso(msg);
+          return;
+        }
+        const mensagens: Record<string, string> = {
+          cpf_invalido: "Digite os 11 números do seu CPF.",
+          cpf_nao_encontrado:
+            "Não localizamos nenhum cadastro ativo com este CPF. Confira se os 11 números foram digitados corretamente ou procure o gestor/RH da sua empresa para confirmar seu cadastro.",
+          sem_whatsapp:
+            "Seu cadastro foi localizado, mas ainda não possui um número de WhatsApp cadastrado para envio do código de segurança. Solicite ao gestor ou RH da sua empresa a inclusão do seu celular com DDD.",
+          ja_possui_senha:
+            "Você já criou sua senha. Volte à tela de login e entre com seu CPF e senha. Se não lembrar, use \"Esqueci minha senha\".",
+          acesso_indisponivel:
+            "O acesso ao portal não está disponível para este cadastro. Procure o gestor ou RH da sua empresa.",
+          falha_envio:
+            "Não conseguimos enviar o código pelo WhatsApp agora. Tente novamente em alguns minutos ou procure o gestor/RH.",
+        };
+        if (data?.status !== "enviado") {
+          setAviso(mensagens[data?.status] ?? "Não foi possível enviar o código agora.");
+          return;
+        }
+        setChallengeId(data.challenge_id);
+        setChallengeToken(data.challenge_token);
+        setTelefoneMascarado(data.telefone_mascarado ?? null);
+        setSecondsLeft(data.expires_in ?? 600);
+        setResendIn(RESEND_COOLDOWN);
+        setStep("otp");
+      } finally {
+        setTurnstileToken(null);
+        setTurnstileNonce((nonce) => nonce + 1);
+        setSubmitting(false);
+      }
+      return;
+    }
     if (raw.length < 3) {
       toast.error("Informe seu e-mail ou CPF.");
       return;
@@ -161,7 +212,7 @@ export default function EsqueciSenha() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
       <Helmet>
-        <title>Recuperar senha — Aveto 360</title>
+        <title>{primeiro ? "Primeiro acesso" : "Recuperar senha"} — Aveto 360</title>
         <meta name="description" content="Recupere o acesso à sua conta Aveto 360 com verificação via WhatsApp." />
       </Helmet>
 
@@ -175,10 +226,14 @@ export default function EsqueciSenha() {
         </Link>
         <Card className="w-full">
         <CardHeader>
-          <CardTitle className="text-2xl">Recuperar senha</CardTitle>
+          <CardTitle className="text-2xl">{primeiro ? "Primeiro Acesso" : "Recuperar senha"}</CardTitle>
           <CardDescription>
-            {step === "identify" && "Informe seu e-mail ou CPF. Enviaremos um código pelo WhatsApp cadastrado."}
-            {step === "otp" && "Digite o código de 6 dígitos enviado para o WhatsApp cadastrado."}
+            {step === "identify" && (primeiro
+              ? "Digite seu CPF. Enviaremos um código de segurança para o WhatsApp da sua ficha."
+              : "Informe seu e-mail ou CPF. Enviaremos um código pelo WhatsApp cadastrado.")}
+            {step === "otp" && (telefoneMascarado
+              ? `Enviamos um código de 6 dígitos para o WhatsApp com final ${telefoneMascarado}. Digite o código abaixo para criar sua senha.`
+              : "Digite o código de 6 dígitos enviado para o WhatsApp cadastrado.")}
             {step === "password" && "Escolha uma nova senha forte para continuar."}
             {step === "done" && "Tudo pronto! Você já pode entrar com sua nova senha."}
           </CardDescription>
@@ -188,7 +243,7 @@ export default function EsqueciSenha() {
           {step === "identify" && (
             <form onSubmit={handleRequest} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="identifier">E-mail ou CPF</Label>
+                <Label htmlFor="identifier">{primeiro ? "CPF" : "E-mail ou CPF"}</Label>
                 <div className="relative">
                   <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -197,7 +252,8 @@ export default function EsqueciSenha() {
                     autoComplete="username"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="seu@email.com ou 000.000.000-00"
+                    placeholder={primeiro ? "Apenas números" : "seu@email.com ou 000.000.000-00"}
+                    inputMode={primeiro ? "numeric" : undefined}
                     className="pl-10"
                     maxLength={255}
                     autoFocus
@@ -206,13 +262,18 @@ export default function EsqueciSenha() {
                 </div>
               </div>
 
-              <Alert>
+              {aviso && (
+                <Alert variant="destructive">
+                  <AlertDescription className="text-sm">{aviso}</AlertDescription>
+                </Alert>
+              )}
+              {!primeiro && <Alert>
                 <MessageCircle className="h-4 w-4" />
                 <AlertDescription className="text-xs">
                   Por segurança, não informamos se o cadastro existe. Se estiver correto, você receberá o código no
                   WhatsApp cadastrado.
                 </AlertDescription>
-              </Alert>
+              </Alert>}
 
               {siteKey && (
                 <TurnstileWidget
