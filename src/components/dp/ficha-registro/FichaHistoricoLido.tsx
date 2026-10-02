@@ -121,8 +121,9 @@ export function FichaHistoricoLido({ dados, cargoId, cargoNome, colaboradorId }:
             </div>
           )}
           <p className="text-[11px] text-muted-foreground">
-            Depois de criar o cadastro, lance as férias já gozadas em Férias, os afastamentos em Ocorrências e as
-            advertências no Dossiê Disciplinar (como registro interno, sem avisar o colaborador).
+            Depois de criar o cadastro, confirme este histórico no quadro "Histórico Anterior das Fichas" no fim da
+            página: as férias entram como já gozadas e as advertências e afastamentos vão para o dossiê interno, sem
+            avisar o colaborador.
           </p>
           {colaboradorId && adv.length > 0 && (
             <Button asChild size="sm" variant="outline">
