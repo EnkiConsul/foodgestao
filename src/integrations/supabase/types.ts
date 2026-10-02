@@ -15700,6 +15700,11 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      dp_acesso_massa_analisar: { Args: { p_company: string }; Returns: Json }
+      dp_acesso_massa_completar: {
+        Args: { p_company: string; p_itens: Json }
+        Returns: Json
+      }
       dp_adiantamento_encerrar_no_vinculo: {
         Args: { p_colaborador: string; p_data_fim: string; p_motivo: string }
         Returns: string

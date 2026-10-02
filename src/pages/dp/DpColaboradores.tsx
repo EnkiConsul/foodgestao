@@ -49,6 +49,7 @@ import { ColaboradorCondicoesDialog } from "@/components/dp/ColaboradorCondicoes
 import { ApoioUnidadesDialog } from "@/components/dp/ApoioUnidadesDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { AcessoMassaDialog } from "@/components/dp/AcessoMassaDialog";
 import { DpSalvarLargurasButton } from "@/components/dp/DpSalvarLargurasButton";
 import { camposFaltandoObrigatorios } from "@/lib/dp/cadastro-completude";
 import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
@@ -139,7 +140,9 @@ export default function DpColaboradores() {
     setDialogOpen(true);
   };
   const navigate = useNavigate();
-  const { selectedCompanyId } = useCompanyContext();
+  const { selectedCompanyId, companies } = useCompanyContext();
+  const [acessoMassaOpen, setAcessoMassaOpen] = useState(false);
+  const empresaAtual = companies.find((c) => c.id === selectedCompanyId);
   // Fichas de registro importadas aguardando conferência: aviso em destaque
   // no topo da tela para o usuário voltar ao lote sem procurar no menu.
   const fichasImportacoes = useDpFichaImportacoes();
@@ -674,9 +677,13 @@ export default function DpColaboradores() {
         }
         actionItems={[
           { key: "novo", label: "Novo colaborador", icon: Plus, primary: true, onSelect: () => setMetodoOpen(true) },
+          { key: "acesso-massa", label: "Gerar Acessos ao Portal", icon: KeyRound, onSelect: () => setAcessoMassaOpen(true) },
           { key: "lixeira", label: "Lixeira", icon: Trash, to: "/dp/colaboradores/lixeira", keepVisible: true },
         ]}
       />
+
+      <AcessoMassaDialog open={acessoMassaOpen} onOpenChange={setAcessoMassaOpen} companyId={selectedCompanyId}
+        empresaNome={empresaAtual ? (empresaAtual.trade_name || empresaAtual.name) : undefined} />
 
       {totalFichasPendentes > 0 && (
         <button
