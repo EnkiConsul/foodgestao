@@ -49,6 +49,10 @@ import {
   emitirReciboEspecieParaAssinatura,
   reciboEspeciePdf,
 } from "@/lib/dp/recibo-especie";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { conferirFavorecido } from "@/lib/dp/comprovante-favorecido";
 import { useDpComprovantePagamento, type ComprovanteAlvo } from "@/hooks/useDpComprovantePagamento";
 
 const MAX_MB = 15;
@@ -204,6 +208,29 @@ export function ComprovanteAnexarDialog(props: {
     props.valorEspecieAtual ? centsParaBRL(props.valorEspecieAtual).replace("R$", "").trim() : "",
   );
   const [confirmado, setConfirmado] = useState(false);
+  const [cienteFavorecido, setCienteFavorecido] = useState(false);
+  const { selectedCompanyId } = useCompanyContext();
+  const colegas = useQuery({
+    queryKey: ["dp_colaboradores_nomes", selectedCompanyId],
+    enabled: props.open && !!selectedCompanyId,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_colaboradores")
+        .select("id,nome")
+        .eq("company_id", selectedCompanyId!);
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+  const conferencia = conferirFavorecido(
+    leitura?.favorecido,
+    props.colaboradorNome,
+    colegas.data ?? [],
+    props.alvo.colaboradorId,
+  );
+  const favorecidoDivergente =
+    conferencia.status === "outro_colaborador" || conferencia.status === "terceiro";
   const [erro, setErro] = useState<string | null>(null);
   const { anexar, ocupado } = useDpComprovantePagamento();
   const hoje = hojeISO();
@@ -218,6 +245,7 @@ export function ComprovanteAnexarDialog(props: {
     setArquivo(null);
     setLeitura(null);
     setConfirmado(false);
+    setCienteFavorecido(false);
     setLendo(false);
     setPagoEm(props.pagoEmAtual ?? "");
   };
@@ -226,6 +254,7 @@ export function ComprovanteAnexarDialog(props: {
     setArquivo(file);
     setErro(null);
     setConfirmado(false);
+    setCienteFavorecido(false);
     setLendo(true);
     try {
       const lido = await lerComprovante(file);
@@ -260,6 +289,10 @@ export function ComprovanteAnexarDialog(props: {
     });
     if (!quitacao.ok) {
       setErro(quitacao.motivo);
+      return;
+    }
+    if (favorecidoDivergente && !cienteFavorecido) {
+      setErro("Confirme a ciência sobre o favorecido do comprovante antes de importar.");
       return;
     }
     if (divergente && !confirmado) {
@@ -431,6 +464,46 @@ export function ComprovanteAnexarDialog(props: {
             Depois de importar, o sistema gera o recibo do valor em dinheiro para assinatura no portal
             do colaborador — ou para você baixar e colher a assinatura à mão.
           </p>
+        ) : null}
+
+        {conferencia.status === "confere" ? (
+          <p className="flex items-center gap-1.5 text-xs text-emerald-700">
+            <BadgeCheck className="size-3.5" /> Favorecido confere: {conferencia.favorecido.toUpperCase()}
+          </p>
+        ) : null}
+        {favorecidoDivergente ? (
+          <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
+            {conferencia.status === "outro_colaborador" ? (
+              <p>
+                <strong>Provável troca de arquivo:</strong> este comprovante está em nome de{" "}
+                {conferencia.outroNome.toUpperCase()}, outro colaborador da empresa. Confira se escolheu o
+                arquivo certo.
+              </p>
+            ) : (
+              <p>
+                O comprovante está em nome de <strong>{conferencia.favorecido.toUpperCase()}</strong>, diferente
+                do colaborador ({(props.colaboradorNome ?? "").toUpperCase()}). Pagamento a terceiro só vale com
+                autorização escrita do colaborador (Art. 464 da CLT): importe o Termo de Autorização nos
+                documentos dele.
+              </p>
+            )}
+            <label className="flex items-start gap-2 text-foreground">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={cienteFavorecido}
+                onChange={(e) => {
+                  setCienteFavorecido(e.target.checked);
+                  setErro(null);
+                }}
+              />
+              <span>
+                {conferencia.status === "outro_colaborador"
+                  ? "Conferi e este é o comprovante correto deste documento."
+                  : "Estou ciente: o pagamento foi feito a terceiro com autorização escrita do colaborador."}
+              </span>
+            </label>
+          </div>
         ) : null}
 
         {erro ? (
