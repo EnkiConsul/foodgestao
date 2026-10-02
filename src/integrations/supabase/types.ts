@@ -18850,6 +18850,7 @@ export type Database = {
         | "suspensao"
         | "elogio"
         | "observacao"
+        | "alinhamento_operacional"
       dp_documento_aprovacao_status: "pendente" | "aprovado" | "recusado"
       dp_documento_tipo:
         | "contracheque"
@@ -19297,6 +19298,7 @@ export const Constants = {
         "suspensao",
         "elogio",
         "observacao",
+        "alinhamento_operacional",
       ],
       dp_documento_aprovacao_status: ["pendente", "aprovado", "recusado"],
       dp_documento_tipo: [
