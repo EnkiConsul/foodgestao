@@ -43,8 +43,9 @@ export function useMeuVinculoPortal() {
         unidadeId: row.unidade_id ?? null,
         unidadeNome: row.unidade_nome ?? null,
         regime,
+        formaPagamento: row.forma_pagamento ?? null,
         unidadeUsaPonto: row.unidade_usa_ponto ?? false,
-        podeSerConvocado: !!regime && REGIMES_CONVOCAVEIS.includes(regime),
+        podeSerConvocado: pessoaConvocavel({ regime, forma_pagamento: row.forma_pagamento }),
       };
     },
   });
