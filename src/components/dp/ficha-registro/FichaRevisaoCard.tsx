@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpsertDpCargo, useUpsertDpCargoSalario } from "@/hooks/useDpCadastros";
 import { useSindicatoDoCargo } from "@/hooks/useSindicatoDoCargo";
-import { salvarDependente } from "@/lib/dp/regras-oficial";
+import { registrarCienciaRegra, salvarDependente } from "@/lib/dp/regras-oficial";
+import { cienciaDivergenciaValida, divergenciasComFicha, resumoDivergencias } from "@/lib/dp/ficha-registro/divergencia";
+import { DivergenciaFichaAlerta } from "./DivergenciaFichaAlerta";
 import { useDpPontoConformidade } from "@/hooks/useDpPontoConformidade";
 import { AVISO_ART74, justificativaValida } from "@/lib/dp/ponto-conformidade";
 import {
@@ -234,6 +236,41 @@ export function FichaRevisaoCard({
     if (!formaPagamento && formaInferida) setFormaPagamento(formaInferida);
   }, [formaInferida, formaPagamento]);
 
+  /**
+   * Divergência com a ficha de registro (registro contábil). Só na importação de
+   * ficha — na pré-admissão os dados vêm do candidato, não de registro oficial.
+   */
+  const [justDivergencia, setJustDivergencia] = useState("");
+  const [cienteDivergencia, setCienteDivergencia] = useState(false);
+  const divergenciasRegistro = useMemo(() => {
+    if (preadmissaoId) return [];
+    const cargoSel = cargos.find((c) => c.id === cargoId)?.nome ?? null;
+    return divergenciasComFicha(
+      {
+        cargoNome: (extraidos.cargo_nome as string) ?? null,
+        salario: extraidos.salario as string | number | null,
+        regime: regimeInferido ?? null,
+        formaPagamento: formaInferida ?? null,
+      },
+      {
+        cargoNome: cargoSel,
+        salario: dados.salario as string | number | null,
+        regime: regimeEscolhidoManual ? regime : null,
+        formaPagamento,
+        horarioAlterado:
+          usarJornada && jornadaEditada && !jornadaLida.vazia
+            ? { ficha: "Conforme a ficha", sistema: "Ajustado nesta conferência" }
+            : null,
+      },
+      {
+        regime: (v) => REGIMES.find((r) => r.value === v)?.label ?? v,
+        forma: (v) => FORMAS_PAGAMENTO.find((f) => f.value === v)?.label ?? v,
+      },
+    );
+  }, [preadmissaoId, cargos, cargoId, extraidos, regimeInferido, formaInferida, dados.salario,
+    regimeEscolhidoManual, regime, formaPagamento, usarJornada, jornadaEditada, jornadaLida]);
+
+
   /** Art. 74, § 2º da CLT: unidade com mais de 20 pessoas exige controle de jornada. */
   const lotacao = useQuery({
     queryKey: ["dp_unidade_lotacao", unidadeId],
@@ -440,6 +477,12 @@ export function FichaRevisaoCard({
       toast.error("A unidade tem mais de 20 pessoas: o ponto é obrigatório (Art. 74 da CLT). Justifique a dispensa (ex.: cargo de confiança, Art. 62).");
       return;
     }
+    if (divergenciasRegistro.length > 0 && !cienciaDivergenciaValida(justDivergencia, cienteDivergencia)) {
+      setTentouCriar(true);
+      toast.error("Há divergência com a ficha de registro. Informe a justificativa e confirme a ciência.");
+      document.getElementById(`ficha-div-${item.id}-just`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     let cargoFinal = cargoId;
     if (automatizarCargo) {
       setPreparando(true);
@@ -524,6 +567,22 @@ export function FichaRevisaoCard({
           setComparacao(false);
           // Familiares da ficha viram dependentes (filhos, enteados, tutelados, cônjuge).
           const colabId = (res as { colaboradorId?: string } | undefined)?.colaboradorId;
+          if (divergenciasRegistro.length > 0) {
+            try {
+              await registrarCienciaRegra({
+                companyId: item.company_id,
+                tabela: "dp_colaboradores",
+                registroId: colabId ?? null,
+                valorAntigo: { origem: "ficha_registro", ficha_item_id: item.id },
+                valorNovo: {
+                  tipo: "divergencia_ficha_registro",
+                  divergencias: resumoDivergencias(divergenciasRegistro),
+                },
+                justificativa: justDivergencia.trim(),
+                ciencia: true,
+              });
+            } catch { /* o cadastro não falha pelo registro de ciência */ }
+          }
           if (colabId && importarDependentes && dependentesLidos.length > 0 && !res?.jaAplicado) {
             const { data: existentes } = await supabase
               .from("dp_dependentes").select("nome").eq("colaborador_id", colabId);
@@ -1340,6 +1399,18 @@ export function FichaRevisaoCard({
               </div>
             )}
           </div>
+        )}
+
+        {!aplicado && (
+          <DivergenciaFichaAlerta
+            id={`ficha-div-${item.id}`}
+            divergencias={divergenciasRegistro}
+            justificativa={justDivergencia}
+            onJustificativa={setJustDivergencia}
+            ciente={cienteDivergencia}
+            onCiente={setCienteDivergencia}
+            mostrarErro={tentouCriar}
+          />
         )}
 
         {!aplicado && (
