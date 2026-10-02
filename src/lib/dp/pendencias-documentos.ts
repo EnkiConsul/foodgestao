@@ -197,6 +197,7 @@ export function elegivelRescisaoDoVinculo(v: {
 export function vinculosEncerrados(
   historico: VinculoHistorico[] | undefined | null,
   c: ColabElegibilidade,
+  opts: { todosRegimes?: boolean } = {},
 ): VinculoEncerrado[] {
   const doColaborador = (historico ?? [])
     .filter((h) => h.colaborador_id === c.id)
@@ -212,7 +213,8 @@ export function vinculosEncerrados(
   const adicionar = (fim: string, regime: string | null, unidadeId: string | null) => {
     if (!fim || vistos.has(fim)) return;
     vistos.add(fim);
-    if (!elegivelRescisaoDoVinculo({ regime, vinculo_label: c.vinculo_label })) return;
+    if (opts.todosRegimes ? isSocio({ ...c, regime } as ColabElegibilidade)
+      : !elegivelRescisaoDoVinculo({ regime, vinculo_label: c.vinculo_label })) return;
     encerrados.push({
       colaboradorId: c.id,
       dataFim: fim,

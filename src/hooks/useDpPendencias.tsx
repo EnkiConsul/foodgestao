@@ -635,7 +635,7 @@ export function useDpPendencias() {
           Array<VinculoEncerrado & { nome: string; recontratado: boolean }>
         >();
         colaboradoresDocs.forEach((c) => {
-          for (const v of vinculosEncerrados(historicoVinculos, c)) {
+          for (const v of vinculosEncerrados(historicoVinculos, c, { todosRegimes: true })) {
             const unidadeId =
               v.unidadeId && unidadesValidas.has(v.unidadeId) ? v.unidadeId : c.unidade_id;
             if (!unidadeId) continue;
