@@ -12,6 +12,7 @@ import { z } from "zod";
 import { avaliarSenha, mensagemDoServidorDeContas } from "@/lib/security/passwordPolicy";
 import { MedidorSenha } from "@/components/auth/MedidorSenha";
 import { ChecklistRequisitosSenha } from "@/components/auth/ChecklistRequisitosSenha";
+import { ConferenciaSenhas } from "@/components/auth/ConferenciaSenhas";
 
 /** Regra única de senha nova (S3): src/lib/security/passwordPolicy.ts */
 const schema = z.object({
@@ -155,9 +156,9 @@ export default function PrimeiroAcesso() {
                   autoComplete="new-password"
                 />
               </div>
-              {errors.confirm && <p className="text-xs text-destructive">{errors.confirm}</p>}
+              {errors.confirm ? <p className="text-xs text-destructive">{errors.confirm}</p> : <ConferenciaSenhas senha={password} confirmacao={confirm} />}
             </div>
-            <Button type="submit" className="w-full min-h-11" disabled={submitting}>
+            <Button type="submit" className="w-full min-h-11" disabled={submitting || !avaliarSenha(password).valida || password !== confirm}>
               {submitting ? "Salvando..." : "Salvar Nova Senha"}
             </Button>
           </CardContent>

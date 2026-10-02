@@ -23,6 +23,8 @@ import { consumePendingInviteToken } from "@/lib/auth/invite";
 import { z } from "zod";
 import { avaliarSenha, mensagemDoServidorDeContas, SENHA_MIN } from "@/lib/security/passwordPolicy";
 import { MedidorSenha } from "@/components/auth/MedidorSenha";
+import { ChecklistRequisitosSenha } from "@/components/auth/ChecklistRequisitosSenha";
+import { ConferenciaSenhas } from "@/components/auth/ConferenciaSenhas";
 import { toast } from "sonner";
 import { trackEvent, FunnelStep } from "@/lib/analytics";
 import loginDesktop from "@/assets/aveto360-login-desktop-v2.png.asset.json";
@@ -699,7 +701,8 @@ export default function Auth() {
                     {errors.password}
                   </p>
                 )}
-                {isSignup && <MedidorSenha senha={password} dados={{ nome: fullName, email }} />}
+                {isSignup && <MedidorSenha senha={password} dados={{ nome: fullName, email }} semMensagem />}
+                {isSignup && <ChecklistRequisitosSenha senha={password} dados={{ nome: fullName, email }} mostrarDica={false} />}
               </div>
             )}
 
@@ -736,6 +739,7 @@ export default function Auth() {
                     {errors.confirmPassword}
                   </p>
                 )}
+                {!errors.confirmPassword && <ConferenciaSenhas senha={password} confirmacao={confirmPassword} />}
               </div>
             )}
 
