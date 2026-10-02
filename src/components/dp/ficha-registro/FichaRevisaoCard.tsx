@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUpsertDpCargo, useUpsertDpCargoSalario } from "@/hooks/useDpCadastros";
 import { useSindicatoDoCargo } from "@/hooks/useSindicatoDoCargo";
 import { salvarDependente } from "@/lib/dp/regras-oficial";
+import { useDpPontoConformidade } from "@/hooks/useDpPontoConformidade";
+import { AVISO_ART74, justificativaValida } from "@/lib/dp/ponto-conformidade";
 import {
   dependentesDaFicha, inferirFormaPagamento, inferirRegime, LIMITE_PONTO_OBRIGATORIO, parentescoDependente, salarioDaFicha,
 } from "@/lib/dp/ficha-registro/inferencia";
@@ -252,6 +254,12 @@ export function FichaRevisaoCard({
   const unidadeTemPonto = !!unidades.find((u) => u.id === unidadeId)?.possui_relogio_ponto;
   const pontoObrigatorio =
     unidadeTemPonto && (lotacao.data ?? 0) + (item.colaborador_existente_id ? 0 : 1) > LIMITE_PONTO_OBRIGATORIO;
+  // Unidade sem ponto e sem justificativa que passa de 20 ativos com esta admissão.
+  const pontoConformidade = useDpPontoConformidade();
+  const lotacaoComEste = (lotacao.data ?? 0) + (item.colaborador_existente_id ? 0 : 1);
+  const justificativaUnidade = pontoConformidade.data?.find((u) => u.id === unidadeId)?.justificativa ?? null;
+  const unidadeIrregularPonto =
+    !!unidadeId && !unidadeTemPonto && lotacaoComEste > LIMITE_PONTO_OBRIGATORIO && !justificativaValida(justificativaUnidade);
   const [justificativaPonto, setJustificativaPonto] = useState("");
   useEffect(() => {
     if (!unidadeId) return;
@@ -549,6 +557,12 @@ export function FichaRevisaoCard({
               ? "Cadastro atualizado"
               : "Colaborador cadastrado",
           );
+          if (unidadeIrregularPonto && !atualizar) {
+            toast.warning("Registro de ponto obrigatório na unidade (Art. 74 da CLT)", {
+              description: `A unidade agora tem ${lotacaoComEste} colaboradores ativos e está sem ponto e sem justificativa. A pendência foi criada: ative o ponto ou registre a justificativa no cadastro da unidade.`,
+              duration: 15000,
+            });
+          }
           onConcluido?.(item.id, String(dados.nome ?? item.nome_extraido ?? "Colaborador"));
         },
         onError: (e: Error) => notifyError(e, { surface: "Pessoas 360°", action: "concluir a ação" }),
@@ -931,6 +945,20 @@ export function FichaRevisaoCard({
                           placeholder="Justificativa da dispensa *"
                           className={cn("h-8 text-xs", realce(justificativaPonto.trim().length < 10))}
                         />
+                      </div>
+                    )}
+                    {unidadeIrregularPonto && (
+                      <div className="space-y-1 rounded-md border border-destructive/40 bg-destructive/5 p-2 text-[11px] text-destructive">
+                        <p className="font-medium">
+                          Com esta admissão, a unidade passa a ter {lotacaoComEste} colaboradores ativos e está sem registro de ponto.
+                        </p>
+                        <p>{AVISO_ART74} Ative o ponto da unidade ou registre a justificativa legal.</p>
+                        <Button
+                          type="button" size="sm" variant="outline" className="h-7 text-[11px]"
+                          onClick={() => window.open(`/dp/cadastros/unidades?editar=${unidadeId}&aba=dados`, "_blank", "noopener")}
+                        >
+                          Regularizar Unidade
+                        </Button>
                       </div>
                     )}
                     {unidades.find((u) => u.id === unidadeId)?.possui_relogio_ponto && possuiFolhaPonto === null && (
