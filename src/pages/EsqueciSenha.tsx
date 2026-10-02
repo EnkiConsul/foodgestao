@@ -12,7 +12,7 @@ import { useTurnstileConfig } from "@/hooks/useTurnstileSiteKey";
 import { describeTurnstileError, currentHostname } from "@/lib/auth/turnstileErrors";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { avaliarSenha } from "@/lib/security/passwordPolicy";
+import { avaliarSenha, SENHA_MIN } from "@/lib/security/passwordPolicy";
 import { MedidorSenha } from "@/components/auth/MedidorSenha";
 
 type Step = "identify" | "otp" | "password" | "done";
