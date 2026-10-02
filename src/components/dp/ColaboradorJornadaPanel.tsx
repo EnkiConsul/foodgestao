@@ -137,7 +137,7 @@ export interface JornadaRascunho {
  */
 export function ColaboradorJornadaPanel({
   colaborador, active = true, showSaveButton = true, onRegistrarSalvar,
-  rascunhoInicial, onRascunho, avisoSemCadastro, onNavegar,
+  rascunhoInicial, onRascunho, avisoSemCadastro, onNavegar, horarioFicha,
 }: Props) {
   const policy = contratoPolicy(colaborador?.regime, colaborador?.vinculo_label);
   const { selectedCompanyId } = useCompanyContext();
