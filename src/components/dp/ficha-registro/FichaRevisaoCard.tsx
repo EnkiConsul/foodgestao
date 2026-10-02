@@ -156,6 +156,7 @@ export function FichaRevisaoCard({
   );
   const [setorEscolhido, setSetorEscolhido] = useState<string | null>(null);
   const [regimeEscolhido, setRegimeEscolhido] = useState<string | null>(null);
+  const [regimeEscolhidoManual, setRegimeEscolhidoManual] = useState(false);
   const setorId = setorEscolhido ?? setorPadraoId ?? null;
   const regime = regimeEscolhido ?? regimePadrao ?? null;
   const [completarAberto, setCompletarAberto] = useState(false);
@@ -386,6 +387,12 @@ export function FichaRevisaoCard({
    * e confere a dispensa de ponto em unidade com mais de 20 pessoas.
    */
   const executar = async (camposPermitidos: string[] | null) => {
+    if (escolhasPendentes.length > 0) {
+      setCompletarAberto(true);
+      setTentouCriar(true);
+      toast.error(mensagemEscolhasObrigatorias(escolhasPendentes));
+      return;
+    }
     if (pontoObrigatorio && possuiFolhaPonto === false && justificativaPonto.trim().length < 10) {
       setCompletarAberto(true);
       setTentouCriar(true);
@@ -686,15 +693,26 @@ export function FichaRevisaoCard({
               )}
               {!cargoId && !cargoPorCbo && (
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className={cn("text-[11px]", tentouCriar ? "text-destructive" : "text-amber-600 dark:text-amber-400")}>
+                  <p className={cn("text-[11px]", tentouCriar && !(automatizarCargo && dados.cargo_nome && !preadmissaoId) ? "text-destructive" : "text-amber-600 dark:text-amber-400")}>
                     {dados.cargo_nome
-                      ? `Nenhum cargo cadastrado corresponde a “${String(dados.cargo_nome)}”.`
+                      ? automatizarCargo && !preadmissaoId
+                        ? `O cargo “${String(dados.cargo_nome).toUpperCase()}”${dados.cbo ? ` (CBO ${String(dados.cbo)})` : ""} será cadastrado automaticamente ao aprovar.`
+                        : `Nenhum cargo cadastrado corresponde a “${String(dados.cargo_nome)}”.`
                       : "Escolha o cargo ou cadastre um novo."}
                   </p>
                   <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setCargoDialog(true)}>
                     <Plus className="mr-1 h-3 w-3" /> Criar este cargo
                   </Button>
                 </div>
+              )}
+              {!preadmissaoId && salarioFicha && (
+                <label className="flex items-start gap-2 text-[11px] text-muted-foreground">
+                  <Switch checked={automatizarCargo} onCheckedChange={setAutomatizarCargo} className="mt-0.5 scale-75" />
+                  <span>
+                    Usar o salário da ficha (R$ {salarioFicha.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}) como padrão do cargo
+                    {patronalUnidade ? ` na convenção ${patronalUnidade.nome}` : " nesta unidade"} quando ainda não houver salário cadastrado.
+                  </span>
+                </label>
               )}
               {cargoId && (
                 <button
@@ -793,7 +811,7 @@ export function FichaRevisaoCard({
 
                   <div className="space-y-1">
                     <Label className="text-xs">Vínculo *</Label>
-                    <Select value={regime ?? undefined} onValueChange={setRegimeEscolhido}>
+                    <Select value={regime ?? undefined} onValueChange={(v) => { setRegimeEscolhidoManual(true); setRegimeEscolhido(v); }}>
                       <SelectTrigger className={cn("h-9", realce(!regime))}>
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
@@ -803,6 +821,9 @@ export function FichaRevisaoCard({
                         ))}
                       </SelectContent>
                     </Select>
+                    {regime && regime === regimeInferido && !regimeEscolhidoManual && (
+                      <p className="text-[11px] text-muted-foreground">Sugerido pela ficha (PIS, CTPS, eSocial ou FGTS).</p>
+                    )}
                     {tentouCriar && !regime && (
                       <p className="text-[11px] text-destructive">Escolha o vínculo.</p>
                     )}
@@ -820,6 +841,9 @@ export function FichaRevisaoCard({
                         <SelectItem value="diarista">Diarista</SelectItem>
                       </SelectContent>
                     </Select>
+                    {formaPagamento && formaPagamento === formaInferida && (
+                      <p className="text-[11px] text-muted-foreground">Sugerido pela ficha (salário e dias de trabalho).</p>
+                    )}
                     {tentouCriar && !formaPagamento && (
                       <p className="text-[11px] text-destructive">Escolha a forma de pagamento.</p>
                     )}
@@ -839,10 +863,40 @@ export function FichaRevisaoCard({
                     {tentouCriar && possuiFolhaPonto === null && (
                       <p className="text-[11px] text-destructive">Informe se usa folha de ponto.</p>
                     )}
+                    {pontoObrigatorio && possuiFolhaPonto !== false && (
+                      <p className="text-[11px] text-muted-foreground">Obrigatório: a unidade tem mais de 20 pessoas (Art. 74 da CLT).</p>
+                    )}
+                    {pontoObrigatorio && possuiFolhaPonto === false && (
+                      <div className="space-y-1 rounded-md bg-amber-500/10 p-2">
+                        <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                          A unidade tem mais de 20 pessoas e o ponto é obrigatório por lei. Só dispense em exceção legal (ex.: cargo de confiança, Art. 62 da CLT).
+                        </p>
+                        <Input
+                          value={justificativaPonto}
+                          onChange={(e) => setJustificativaPonto(e.target.value)}
+                          placeholder="Justificativa da dispensa *"
+                          className={cn("h-8 text-xs", realce(justificativaPonto.trim().length < 10))}
+                        />
+                      </div>
+                    )}
                     {unidades.find((u) => u.id === unidadeId)?.possui_relogio_ponto && possuiFolhaPonto === null && (
                       <p className="text-[11px] text-muted-foreground">Sugestão: ativa, pois a unidade possui relógio de ponto.</p>
                     )}
                   </div>
+
+                  {dependentesLidos.length > 0 && !preadmissaoId && (
+                    <div className="space-y-1 sm:col-span-2 rounded-md border p-2">
+                      <label className="flex items-center gap-2 text-xs font-medium">
+                        <Switch checked={importarDependentes} onCheckedChange={setImportarDependentes} className="scale-75" />
+                        Cadastrar {dependentesLidos.length} dependente(s) lido(s) na ficha
+                      </label>
+                      <ul className="text-[11px] text-muted-foreground">
+                        {dependentesLidos.map((d) => (
+                          <li key={d.nome}>{d.nome} · {d.parentesco === "conjuge" ? "Cônjuge" : d.parentesco.charAt(0).toUpperCase() + d.parentesco.slice(1)}{d.data_nascimento ? ` · ${d.data_nascimento.split("-").reverse().join("/")}` : ""}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   <div className="space-y-1">
                     <Label className="text-xs">Adiantamento salarial *</Label>
@@ -1229,7 +1283,7 @@ export function FichaRevisaoCard({
             <Button
               size="sm"
               disabled={
-                aplicar.isPending ||
+                aplicar.isPending || preparando ||
                 bloqueadoPorEmpresa ||
                 (!preadmissaoId && !!item.colaborador_existente_id && !atualizar) ||
                 (!!preadmissaoId && (!stagingDados || faltaDecidir > 0))
@@ -1240,7 +1294,7 @@ export function FichaRevisaoCard({
                 else executar(null);
               }}
             >
-              {aplicar.isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Check className="mr-1 h-4 w-4" />}
+              {aplicar.isPending || preparando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Check className="mr-1 h-4 w-4" />}
               {preadmissaoId
                 ? "Concluir admissão com esta ficha"
                 : atualizar && item.colaborador_existente_id
