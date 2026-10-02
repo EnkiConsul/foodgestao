@@ -544,50 +544,50 @@ export function DpPessoaAvulsaDialog({
             </div>
           ) : (
             <>
-              {apoioDaUnidade.length > 0 && (
-                <div className="grid gap-1.5">
-                  <Label htmlFor="ja-cadastrada-antes-2">Já cadastrada antes?</Label>
-                  <Select value={form.pessoa_apoio_id || "novo"} onValueChange={escolherApoio}>
-                    <SelectTrigger id="ja-cadastrada-antes-2">
-                      <SelectValue placeholder="Nova pessoa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="novo">Nova pessoa</SelectItem>
-                      {apoioDaUnidade.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.nome}
-                          {p.telefone ? ` — ${p.telefone}` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Mostra só quem pode trabalhar nesta unidade: a equipe dela e quem foi
-                    liberado para apoiar aqui.
+              <div className="grid gap-1.5">
+                <Label htmlFor="ja-cadastrada-antes-2">Pessoa *</Label>
+                <Select value={form.pessoa_apoio_id || "novo"} onValueChange={escolherApoio}>
+                  <SelectTrigger id="ja-cadastrada-antes-2">
+                    <SelectValue placeholder="Nova pessoa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="novo">+ Cadastrar nova pessoa (formulário completo)</SelectItem>
+                    {apoioDaUnidade.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nome}
+                        {p.telefone ? ` — ${p.telefone}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Mostra só quem pode trabalhar nesta unidade: a equipe dela e quem foi
+                  liberado para apoiar aqui. Pessoa nova é cadastrada pelo formulário
+                  completo de folguista/teste.
+                </p>
+              </div>
+              {!form.pessoa_apoio_id && (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-dashed p-2.5 text-xs">
+                  <p className="text-muted-foreground">
+                    Nenhuma pessoa selecionada. Cadastre pelo formulário completo ou escolha alguém já cadastrado.
                   </p>
+                  <Button type="button" size="sm" variant="outline" onClick={() => setCadastroApoioOpen(true)}>
+                    Cadastrar pessoa
+                  </Button>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="grid gap-1.5">
-                  <Label htmlFor="nome-da-pessoa-3">Nome da pessoa *</Label>
-                  <Input id="nome-da-pessoa-3"
-                    value={form.nome}
-                    maxLength={120}
-                    placeholder="Ex.: Maria Souza"
-                    onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                  />
+              {form.pessoa_apoio_id && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>Nome da pessoa</Label>
+                    <Input value={form.nome} readOnly disabled />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Telefone</Label>
+                    <Input value={form.telefone} readOnly disabled placeholder="—" />
+                  </div>
                 </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="telefone-4">Telefone</Label>
-                  <Input id="telefone-4"
-                    value={form.telefone}
-                    maxLength={20}
-                    inputMode="tel"
-                    placeholder="(62) 90000-0000"
-                    onChange={(e) => setForm({ ...form, telefone: e.target.value })}
-                  />
-                </div>
-              </div>
+              )}
             </>
           )}
 
