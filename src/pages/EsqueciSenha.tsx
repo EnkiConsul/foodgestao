@@ -398,11 +398,8 @@ export default function EsqueciSenha() {
                     {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                <MedidorSenha senha={newPassword} />
-                <p className="text-xs text-muted-foreground">
-                  Mín. {SENHA_MIN} caracteres com maiúscula, minúscula, número e símbolo (espaço e letra
-                  acentuada não valem). Evite sequências, seu nome, e-mail ou CPF.
-                </p>
+                <MedidorSenha senha={newPassword} semMensagem />
+                <ChecklistRequisitosSenha senha={newPassword} />
               </div>
 
               <div className="space-y-2">
@@ -417,15 +414,19 @@ export default function EsqueciSenha() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10"
-                    minLength={12}
                     maxLength={128}
                     required
                   />
                 </div>
+                <ConferenciaSenhas senha={newPassword} confirmacao={confirmPassword} />
               </div>
 
-              <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting ? "Salvando..." : "Redefinir senha"}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={submitting || !avaliarSenha(newPassword).valida || newPassword !== confirmPassword}
+              >
+                {submitting ? "Salvando..." : "Salvar senha"}
               </Button>
             </form>
           )}
