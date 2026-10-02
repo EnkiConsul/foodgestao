@@ -107,9 +107,12 @@ export type ReciboPdf = {
   assinatura?: { em: string; ip: string; canal: string } | null;
   /** PNG (data URL) da assinatura desenhada ou cursiva. */
   assinaturaImagem?: string | null;
+  /** Canal escolhido na emissão; "fisico" gera 2 vias na mesma folha. */
+  canal?: string | null;
 };
 
 export async function montarReciboPdf(r: ReciboPdf): Promise<Uint8Array> {
+  if (r.canal === "fisico" && !r.assinatura) return await montarDuasVias(r);
   const pdf = await PDFDocument.create();
   const fonte = await pdf.embedFont(StandardFonts.Helvetica);
   const negrito = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -224,6 +227,122 @@ export async function montarReciboPdf(r: ReciboPdf): Promise<Uint8Array> {
   return await pdf.save();
 }
 
+/**
+ * Assinatura à mão: duas vias compactas na mesma A4 (empregador em cima,
+ * empregado embaixo) separadas por linha de corte.
+ */
+async function montarDuasVias(r: ReciboPdf): Promise<Uint8Array> {
+  const pdf = await PDFDocument.create();
+  const fonte = await pdf.embedFont(StandardFonts.Helvetica);
+  const negrito = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const page = pdf.addPage([595.28, 841.89]);
+  const { width, height } = page.getSize();
+  const margem = 40;
+  const largura = width - margem * 2;
+  const meio = height / 2;
+  let logo: Awaited<ReturnType<typeof pdf.embedPng>> | null = null;
+  try {
+    const bruto = atob(MARCA_PNG_BASE64);
+    const bytes = new Uint8Array(bruto.length);
+    for (let i = 0; i < bruto.length; i++) bytes[i] = bruto.charCodeAt(i);
+    logo = await pdf.embedPng(bytes);
+  } catch { logo = null; }
+
+  const valor = centsParaBRL(r.valorCents);
+  const extenso = valorPorExtenso(r.valorCents);
+  const campos: Array<[string, string]> = [
+    ["Pagador", `${r.empresa} — CNPJ ${r.empresaCnpj}`],
+    ["Recebedor", `${r.beneficiario} — CPF ${r.beneficiarioCpf}`],
+    ["Natureza", NATUREZA_LABEL[r.natureza]],
+    ["Competência", competenciaBR(r.competencia)],
+    ["Data do pagamento", dataBR(r.pagoEm)],
+    ["Forma de pagamento", modalidadeLabel(r.modalidade)],
+  ];
+  if (r.modalidade === "misto") {
+    campos.push(["Em conta (Pix/Transf.)", centsParaBRL(r.valorBancarioCents)]);
+    campos.push(["Em dinheiro", centsParaBRL(r.valorEspecieCents)]);
+  }
+  const vinculo = r.natureza === "teste_operacional"
+    ? " O pagamento refere-se exclusivamente ao teste prático realizado e não constitui vínculo de emprego."
+    : "";
+  const declaracao =
+    `Declaro ter recebido do pagador acima a quantia de ${valor} (${extenso}), referente a ` +
+    `${NATUREZA_LABEL[r.natureza].toLowerCase()} da competência ${competenciaBR(r.competencia)}, paga em ` +
+    `${dataBR(r.pagoEm)}, dando plena e geral quitação do valor discriminado (Código Civil, arts. 319 e 320).${vinculo}`;
+
+  const via = (topo: number, rotulo: string) => {
+    const alturaLogo = 22;
+    const baseLogo = topo - 28 - alturaLogo;
+    if (logo) {
+      const esc = alturaLogo / logo.height;
+      page.drawImage(logo, { x: margem, y: baseLogo, width: logo.width * esc, height: alturaLogo });
+    } else page.drawText("AVETO 360", { x: margem, y: baseLogo + 6, size: 14, font: negrito, color: MARINHO });
+    const rv = limpar(rotulo).toUpperCase();
+    page.drawText(rv, { x: width - margem - negrito.widthOfTextAtSize(rv, 8.5), y: baseLogo + alturaLogo - 9, size: 8.5, font: negrito, color: LARANJA });
+    const sub = limpar(r.empresa).slice(0, 60);
+    page.drawText(sub, { x: width - margem - fonte.widthOfTextAtSize(sub, 7.5), y: baseLogo + 1, size: 7.5, font: fonte, color: CLARO });
+    let y = baseLogo - 10;
+    page.drawRectangle({ x: margem, y, width: largura, height: 1.6, color: LARANJA });
+    y -= 17;
+    page.drawText(limpar(`Recibo de Pagamento — ${NATUREZA_LABEL[r.natureza]}`), { x: margem, y, size: 11.5, font: negrito, color: MARINHO });
+    const vt = limpar(valor);
+    page.drawText(vt, { x: width - margem - negrito.widthOfTextAtSize(vt, 15), y: y - 2, size: 15, font: negrito, color: MARINHO });
+    y -= 20;
+
+    // Grade em 2 colunas
+    const colW = (largura - 16) / 2;
+    for (let i = 0; i < campos.length; i += 2) {
+      let menor = y;
+      for (let j = 0; j < 2 && i + j < campos.length; j++) {
+        const [rot, txt] = campos[i + j];
+        const x = margem + j * (colW + 16);
+        let yy = y;
+        page.drawText(limpar(rot).toUpperCase(), { x, y: yy, size: 6.5, font: negrito, color: CLARO });
+        yy -= 10;
+        for (const l of linhas(txt || "—", fonte, 8.5, colW).slice(0, 2)) {
+          page.drawText(l, { x, y: yy, size: 8.5, font: fonte, color: rgb(0.07, 0.07, 0.07) });
+          yy -= 10.5;
+        }
+        menor = Math.min(menor, yy);
+      }
+      y = menor - 4;
+    }
+    if (r.descricao) {
+      page.drawText("DESCRIÇÃO", { x: margem, y, size: 6.5, font: negrito, color: CLARO });
+      y -= 10;
+      for (const l of linhas(r.descricao, fonte, 8.5, largura).slice(0, 2)) {
+        page.drawText(l, { x: margem, y, size: 8.5, font: fonte, color: rgb(0.07, 0.07, 0.07) });
+        y -= 10.5;
+      }
+      y -= 4;
+    }
+    y -= 2;
+    for (const l of linhas(declaracao, fonte, 8.5, largura)) {
+      page.drawText(l, { x: margem, y, size: 8.5, font: fonte, color: CINZA });
+      y -= 11;
+    }
+    // Assinatura
+    const baseAss = topo - meio + 58;
+    const ya = Math.min(y - 30, baseAss + 0) < baseAss ? baseAss : Math.min(y - 30, baseAss + 20);
+    page.drawLine({ start: { x: margem, y: ya }, end: { x: margem + 240, y: ya }, thickness: 0.8, color: rgb(0.5, 0.5, 0.5) });
+    page.drawText(limpar(r.beneficiario).slice(0, 50), { x: margem, y: ya - 11, size: 8.5, font: negrito, color: rgb(0.1, 0.1, 0.1) });
+    page.drawText(limpar(`CPF ${r.beneficiarioCpf} · Assinatura do recebedor`), { x: margem, y: ya - 21, size: 7.5, font: fonte, color: CLARO });
+    const local = "Local e data: ____________________, ___/___/_____";
+    page.drawText(local, { x: width - margem - fonte.widthOfTextAtSize(local, 8), y: ya, size: 8, font: fonte, color: CINZA });
+    page.drawText(limpar(`Código ${r.codigo} · Emitido em ${r.emitidoEm}`), { x: margem, y: topo - meio + 16, size: 6, font: fonte, color: CLARO });
+  };
+
+  via(height, "1ª Via — Empregador");
+  // Linha de corte
+  for (let x = margem - 20; x < width - margem + 20; x += 8) {
+    page.drawLine({ start: { x, y: meio }, end: { x: x + 4, y: meio }, thickness: 0.6, color: CLARO });
+  }
+  const corte = "corte aqui";
+  page.drawText(corte, { x: (width - fonte.widthOfTextAtSize(corte, 6)) / 2, y: meio + 3, size: 6, font: fonte, color: CLARO });
+  via(meio, "2ª Via — Empregado(a)");
+  return await pdf.save();
+}
+
 /** Monta os dados do PDF a partir da linha de dp_recibos + empresa. */
 export function reciboDaLinha(
   row: Record<string, unknown>,
@@ -250,6 +369,7 @@ export function reciboDaLinha(
     emitidoEm: new Date(String(row.created_at ?? new Date().toISOString())).toLocaleString("pt-BR", {
       timeZone: "America/Sao_Paulo",
     }),
+    canal: (row.canal_assinatura as string | null) ?? null,
     assinaturaImagem: (row.assinatura_imagem as string | null) ?? assinaturaImagem ?? null,
     assinatura: assinadoEm
       ? {
