@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { salvarConfigDp } from "@/lib/dp/regras-oficial";
+import { forcarRecargaPendencias, resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { SalarioFamiliaConfig } from "@/lib/dp/salarioFamilia";
 import type { ModoAdicional } from "@/lib/dp/tempoServico";
@@ -105,6 +106,13 @@ export function useDpSalarioFamiliaConfig() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["dp_salario_familia_config", selectedCompanyId] });
       void qc.invalidateQueries({ queryKey: ["dp_config_dp", selectedCompanyId] });
+      // Baixa imediata da pendência "Atualizar Tabela do Salário-Família"
+      // no card do Início e no sino, sem esperar recarregar a página.
+      forcarRecargaPendencias(selectedCompanyId);
+      void resolverPendencias(qc, {
+        companyId: selectedCompanyId,
+        match: (p) => p.id.startsWith("salario-familia-"),
+      });
     },
   });
 
