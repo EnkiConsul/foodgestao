@@ -18893,6 +18893,7 @@ export type Database = {
         | "aso_demissional"
         | "recibo_pagamento_especie"
         | "gorjeta"
+        | "acerto_rescisorio"
       dp_elegibilidade_recontratacao: "sim" | "nao" | "com_ressalvas"
       dp_escala_item_origem: "gerado" | "manual" | "troca" | "convocacao"
       dp_escala_item_tipo:
@@ -19340,6 +19341,7 @@ export const Constants = {
         "aso_demissional",
         "recibo_pagamento_especie",
         "gorjeta",
+        "acerto_rescisorio",
       ],
       dp_elegibilidade_recontratacao: ["sim", "nao", "com_ressalvas"],
       dp_escala_item_origem: ["gerado", "manual", "troca", "convocacao"],
