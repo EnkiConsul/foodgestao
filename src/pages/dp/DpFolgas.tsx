@@ -629,6 +629,8 @@ export default function DpFolgas() {
       auto: boolean;
       hasGlobal: boolean;
       hasUnidade: boolean;
+      /** Lojas afetadas quando o bloqueio não é geral (visão "todas"). */
+      unidadesNomes: string[];
       partials: Array<{ id: string; unidade_id: string; unidade_nome: string }>;
     };
     const m = new Map<string, BlockInfo>();
@@ -660,11 +662,20 @@ export default function DpFolgas() {
         }
         continue;
       }
+      const prev = m.get(b.data);
+      const nomeU = b.unidade_id ? unidadeNomeById.get(b.unidade_id) ?? "Unidade" : null;
+      if (prev) {
+        prev.hasGlobal = prev.hasGlobal || b.unidade_id == null;
+        prev.hasUnidade = prev.hasUnidade || b.unidade_id != null;
+        if (nomeU && !prev.unidadesNomes.includes(nomeU)) prev.unidadesNomes.push(nomeU);
+        continue;
+      }
       m.set(b.data, {
         reason: b.motivo ?? "Bloqueado",
         auto: !!b.regra_id,
         hasGlobal: b.unidade_id == null,
         hasUnidade: b.unidade_id != null,
+        unidadesNomes: nomeU ? [nomeU] : [],
         partials: [],
       });
     }
@@ -679,14 +690,21 @@ export default function DpFolgas() {
       });
       fromRegras.forEach((orig, iso) => {
         if (liberadasGlobal.has(iso)) return;
-        if (!m.has(iso)) {
+        const nomes = orig.unidadeIds.map((id) => unidadeNomeById.get(id) ?? "Unidade");
+        const cur = m.get(iso);
+        if (!cur) {
           m.set(iso, {
             reason: orig.motivo,
             auto: true,
             hasGlobal: orig.hasGlobal,
             hasUnidade: orig.hasUnidade,
+            unidadesNomes: nomes,
             partials: [],
           });
+        } else {
+          cur.hasGlobal = cur.hasGlobal || orig.hasGlobal;
+          cur.hasUnidade = cur.hasUnidade || orig.hasUnidade;
+          for (const n of nomes) if (!cur.unidadesNomes.includes(n)) cur.unidadesNomes.push(n);
         }
       });
     }
@@ -759,6 +777,13 @@ export default function DpFolgas() {
     ? eventsByDay.get(format(selectedDay, "yyyy-MM-dd")) ?? []
     : [];
   const selectedIso = selectedDay ? format(selectedDay, "yyyy-MM-dd") : null;
+  /** "Bloqueado" quando vale para todas as lojas; com o nome da loja quando é só de algumas. */
+  const rotuloBloqueio = (b: { hasGlobal: boolean; unidadesNomes: string[] }) => {
+    if (unidadeFilter !== "todas" || b.hasGlobal || b.unidadesNomes.length === 0) return "Bloqueado";
+    const curto = b.unidadesNomes.map((n) => n.replace(/^PAKER[ÊE]\s+/i, "").trim() || n);
+    return `Bloqueado · ${curto.join(", ")}`;
+  };
+
   const selectedBlock = selectedIso ? blockedByDate.get(selectedIso) ?? null : null;
   const selectedIsWeekend = selectedDay ? isWeekend(selectedDay) : false;
 
@@ -1055,7 +1080,7 @@ export default function DpFolgas() {
                       </span>
                       {inMonth && blocked && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-destructive/20 text-destructive uppercase tracking-wider">
-                          Bloqueado
+                          {rotuloBloqueio(blocked)}
                         </span>
                       )}
                       {inMonth && !blocked && (
@@ -1161,7 +1186,7 @@ export default function DpFolgas() {
                           <span className="inline-flex items-center gap-1 rounded-full border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive max-w-full">
                             <Lock className="h-3 w-3 shrink-0" />
                             {/* Motivo do bloqueio aparece só no detalhe do dia */}
-                            <span>Bloqueado</span>
+                            <span className="truncate">{rotuloBloqueio(blocked)}</span>
                           </span>
                         )}
 
