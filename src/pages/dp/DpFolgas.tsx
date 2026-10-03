@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+import { RestricoesDoDia } from "@/components/dp/bloqueios/RestricoesDoDia";
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
@@ -629,6 +631,8 @@ export default function DpFolgas() {
       auto: boolean;
       hasGlobal: boolean;
       hasUnidade: boolean;
+      /** Lojas afetadas quando o bloqueio não é geral (visão "todas"). */
+      unidadesNomes: string[];
       partials: Array<{ id: string; unidade_id: string; unidade_nome: string }>;
     };
     const m = new Map<string, BlockInfo>();
@@ -660,11 +664,20 @@ export default function DpFolgas() {
         }
         continue;
       }
+      const prev = m.get(b.data);
+      const nomeU = b.unidade_id ? unidadeNomeById.get(b.unidade_id) ?? "Unidade" : null;
+      if (prev) {
+        prev.hasGlobal = prev.hasGlobal || b.unidade_id == null;
+        prev.hasUnidade = prev.hasUnidade || b.unidade_id != null;
+        if (nomeU && !prev.unidadesNomes.includes(nomeU)) prev.unidadesNomes.push(nomeU);
+        continue;
+      }
       m.set(b.data, {
         reason: b.motivo ?? "Bloqueado",
         auto: !!b.regra_id,
         hasGlobal: b.unidade_id == null,
         hasUnidade: b.unidade_id != null,
+        unidadesNomes: nomeU ? [nomeU] : [],
         partials: [],
       });
     }
@@ -679,14 +692,21 @@ export default function DpFolgas() {
       });
       fromRegras.forEach((orig, iso) => {
         if (liberadasGlobal.has(iso)) return;
-        if (!m.has(iso)) {
+        const nomes = orig.unidadeIds.map((id) => unidadeNomeById.get(id) ?? "Unidade");
+        const cur = m.get(iso);
+        if (!cur) {
           m.set(iso, {
             reason: orig.motivo,
             auto: true,
             hasGlobal: orig.hasGlobal,
             hasUnidade: orig.hasUnidade,
+            unidadesNomes: nomes,
             partials: [],
           });
+        } else {
+          cur.hasGlobal = cur.hasGlobal || orig.hasGlobal;
+          cur.hasUnidade = cur.hasUnidade || orig.hasUnidade;
+          for (const n of nomes) if (!cur.unidadesNomes.includes(n)) cur.unidadesNomes.push(n);
         }
       });
     }
@@ -759,6 +779,12 @@ export default function DpFolgas() {
     ? eventsByDay.get(format(selectedDay, "yyyy-MM-dd")) ?? []
     : [];
   const selectedIso = selectedDay ? format(selectedDay, "yyyy-MM-dd") : null;
+  /** "Bloqueado" quando vale para todas as lojas; com o nome da loja quando é só de algumas. */
+  const rotuloBloqueio = (b: { hasGlobal: boolean; unidadesNomes: string[] }) => {
+    if (unidadeFilter !== "todas" || b.hasGlobal || b.unidadesNomes.length === 0) return "Bloqueado";
+    return `Bloqueado · ${b.unidadesNomes.join(", ")}`;
+  };
+
   const selectedBlock = selectedIso ? blockedByDate.get(selectedIso) ?? null : null;
   const selectedIsWeekend = selectedDay ? isWeekend(selectedDay) : false;
 
@@ -1055,7 +1081,7 @@ export default function DpFolgas() {
                       </span>
                       {inMonth && blocked && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-destructive/20 text-destructive uppercase tracking-wider">
-                          Bloqueado
+                          {rotuloBloqueio(blocked)}
                         </span>
                       )}
                       {inMonth && !blocked && (
@@ -1161,7 +1187,7 @@ export default function DpFolgas() {
                           <span className="inline-flex items-center gap-1 rounded-full border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive max-w-full">
                             <Lock className="h-3 w-3 shrink-0" />
                             {/* Motivo do bloqueio aparece só no detalhe do dia */}
-                            <span>Bloqueado</span>
+                            <span className="truncate">{rotuloBloqueio(blocked)}</span>
                           </span>
                         )}
 
@@ -1269,6 +1295,20 @@ export default function DpFolgas() {
                     <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
                     {selectedBlock.reason}
                   </div>
+                  {!selectedBlock.hasGlobal && selectedBlock.unidadesNomes.length > 0 && (
+                    <p className="text-xs font-semibold text-destructive">
+                      Vale só para: {selectedBlock.unidadesNomes.join(", ")}. As demais lojas seguem liberadas.
+                    </p>
+                  )}
+                  {selectedBlock.auto && (
+                    <Link
+                      to="/dp/folgas?aba=regras"
+                      onClick={() => setSelectedDay(null)}
+                      className="inline-flex text-xs font-bold text-destructive underline underline-offset-2"
+                    >
+                      Alterar esta regra em Regras
+                    </Link>
+                  )}
                   {selectedBlock.partials.length > 0 && (
                     <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-1.5">
                       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-emerald-700">
@@ -1393,6 +1433,15 @@ export default function DpFolgas() {
                   </div>
                   <p className="text-[11px] text-muted-foreground">0 = ninguém pode folgar neste dia.</p>
                 </div>
+              )}
+
+              {selectedDay && selectedCompanyId && (
+                <RestricoesDoDia
+                  companyId={selectedCompanyId}
+                  data={format(selectedDay, "yyyy-MM-dd")}
+                  unidadeIdInicial={unidadeFilter === "todas" ? null : unidadeFilter}
+                  unidades={(unidadesQuery.data ?? []).map((u: any) => ({ id: u.id, nome: u.nome }))}
+                />
               )}
 
 

@@ -170,6 +170,8 @@ export type BloqueioOrigem = {
   hasGlobal: boolean;
   /** true se pelo menos uma regra cobrindo a data é vinculada a alguma unidade. */
   hasUnidade: boolean;
+  /** Unidades das regras por unidade que cobrem a data (vazio se só global). */
+  unidadeIds: string[];
 };
 
 /**
@@ -204,10 +206,12 @@ export function buildBloqueiosDeRegrasDetalhado(params: {
           motivo: r.nome,
           hasGlobal: isGlobal,
           hasUnidade: !isGlobal,
+          unidadeIds: [...unidades],
         });
       } else {
         cur.hasGlobal = cur.hasGlobal || isGlobal;
         cur.hasUnidade = cur.hasUnidade || !isGlobal;
+        for (const u of unidades) if (!cur.unidadeIds.includes(u)) cur.unidadeIds.push(u);
       }
     }
   }
