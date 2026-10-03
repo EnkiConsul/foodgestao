@@ -308,7 +308,10 @@ const checks = [
       JOIN pg_roles r ON r.oid = a.grantee
       WHERE n.nspname = 'public' AND p.prosecdef = true
         AND a.privilege_type = 'EXECUTE'
-        AND r.rolname = 'authenticated';
+        AND r.rolname = 'authenticated'
+        AND (n.nspname || '.' || p.proname || '(' ||
+             pg_catalog.pg_get_function_identity_arguments(p.oid) || ')')
+             <> ALL (${authenticatedAllowlistSqlArray});
     `,
   },
   {
