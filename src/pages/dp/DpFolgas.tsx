@@ -1323,6 +1323,19 @@ export default function DpFolgas() {
 
           {selectedDay && (
             <div className="space-y-6 py-2">
+              {unidadeFilter === "todas" && (
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-bold text-muted-foreground">Unidade deste dia</Label>
+                  <Select value={unidadeDia} onValueChange={setUnidadeDia}>
+                    <SelectTrigger className="h-10 rounded-xl"><SelectValue placeholder="Escolha a unidade" /></SelectTrigger>
+                    <SelectContent>
+                      {(unidadesQuery.data ?? []).map((u: any) => (
+                        <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               {selectedBlock && (
                 <div className="space-y-3 rounded-2xl border border-destructive/20 bg-destructive/10 p-5">
                   <div className="flex items-center justify-between">
