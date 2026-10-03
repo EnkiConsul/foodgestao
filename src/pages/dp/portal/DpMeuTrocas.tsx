@@ -30,6 +30,8 @@ import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
 import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
+import { avaliarRiscoDsrTroca, avisoDsr, descansosDoColaborador } from "@/lib/dp/dsr-consecutivo";
+import { diasFixosDoColaborador, registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
 
 const statusLabel: Record<string, string> = {
   pendente_colega: "Aguardando colega",
@@ -119,6 +121,24 @@ export default function DpMeuTrocas() {
     () =>
       (folgasFuturas.data ?? []).filter((f: any) => f.colaborador_id === meRef.data?.id),
     [folgasFuturas.data, meRef.data?.id],
+  );
+
+  /** Meus dias fixos de folga na semana (para avaliar dias seguidos sem descanso). */
+  const meusFixos = useQuery({
+    queryKey: ["dp_meus_dias_fixos", meRef.data?.id],
+    enabled: !!meRef.data?.id,
+    queryFn: () => diasFixosDoColaborador(meRef.data!.id),
+  });
+
+  const meusDescansos = useMemo(
+    () =>
+      descansosDoColaborador({
+        folgasIso: minhasFolgas.map((f: any) => f.data as string),
+        diasFixos: meusFixos.data ?? [],
+        inicioIso: hojeIsoLocal(),
+        dias: 120,
+      }),
+    [minhasFolgas, meusFixos.data],
   );
 
   /** Folgas de colegas da minha loja, agrupadas por data. */
@@ -395,10 +415,48 @@ export default function DpMeuTrocas() {
                     <div className="flex gap-2 pt-1 flex-wrap">
                       {podeResponderColega && (
                         <>
-                          <Button size="sm" onClick={() => responderColega.mutate({ id: t.id, aceito: true })}
-                            disabled={responderColega.isPending}>
-                            <Check className="h-4 w-4 mr-1" /> Aceitar
-                          </Button>
+                          {(() => {
+                            // Quem aceita cede a data proposta e passa a folgar na data original.
+                            const r = avaliarRiscoDsrTroca({
+                              descansoIso: meusDescansos,
+                              diaCedidoIso: t.data_proposta,
+                              diaNovoIso: t.data_original,
+                            });
+                            const botao = (
+                              <Button size="sm" disabled={responderColega.isPending}
+                                onClick={r.risco ? undefined : () => responderColega.mutate({ id: t.id, aceito: true })}>
+                                <Check className="h-4 w-4 mr-1" /> Aceitar
+                              </Button>
+                            );
+                            if (!r.risco) return botao;
+                            return (
+                              <ConfirmarAcaoDialog
+                                titulo="Atenção à regra de descanso semanal"
+                                descricao={`${avisoDsr(r.sequencia)} Ao aceitar, você declara: "Estou ciente da regra trabalhista de descanso e aceito a troca por livre iniciativa." O gestor será avisado.`}
+                                confirmar="Estou ciente e aceito"
+                                cancelar="Voltar"
+                                destrutivo={false}
+                                onConfirm={() =>
+                                  responderColega.mutate(
+                                    { id: t.id, aceito: true },
+                                    {
+                                      onSuccess: () =>
+                                        void registrarCienciaDsr({
+                                          papel: "destino",
+                                          tabela: "dp_trocas",
+                                          referenciaId: t.id,
+                                          data: t.data_proposta,
+                                          dias: r.sequencia,
+                                        }),
+                                    },
+                                  )
+                                }
+                                disabled={responderColega.isPending}
+                              >
+                                {botao}
+                              </ConfirmarAcaoDialog>
+                            );
+                          })()}
                           <ConfirmarAcaoDialog
                             titulo="Recusar esta troca?"
                             descricao="O colega será avisado de que você não aceitou trocar essa folga. Não é possível desfazer."
