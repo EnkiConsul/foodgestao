@@ -110,7 +110,7 @@ export function DocDetalhesDialog(props: {
       const eventos = (eventosRes as any)?.data ?? [];
 
       const userIds = [
-        doc?.uploaded_by,
+        doc?.uploaded_by, (doc as any)?.via_assinada_por,
         aceite?.aceito_por,
         ...eventos.map((e: any) => e.autor_id),
       ].filter(Boolean) as string[];
