@@ -1,5 +1,8 @@
 import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +38,35 @@ const STATUS_OPCOES: { value: string; label: string }[] = [
 
 export default function DpTrocas() {
   const embedded = useDpEmbedded();
+  const { selectedCompanyId } = useCompanyContext();
+  /** Ciências de DSR (mais de 6 dias seguidos) ligadas às trocas. */
+  const cienciasDsr = useQuery({
+    queryKey: ["dp_dsr_ciencias_trocas", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("dp_dsr_ciencias")
+        .select("colaborador_id, referencia_id, dias_seguidos, created_at")
+        .eq("company_id", selectedCompanyId!)
+        .eq("referencia_tabela", "dp_trocas");
+      if (error) throw error;
+      return (data ?? []) as {
+        colaborador_id: string; referencia_id: string | null; dias_seguidos: number; created_at: string;
+      }[];
+    },
+  });
+  const alertaDsr = (t: { id: string; solicitante_id: string; destino_id: string; created_at: string }) => {
+    const ini = new Date(t.created_at).getTime();
+    const dias = (cienciasDsr.data ?? [])
+      .filter((c) =>
+        c.referencia_id
+          ? c.referencia_id === t.id
+          : (c.colaborador_id === t.solicitante_id || c.colaborador_id === t.destino_id) &&
+            Math.abs(new Date(c.created_at).getTime() - ini) < 10 * 60 * 1000,
+      )
+      .map((c) => c.dias_seguidos);
+    return dias.length ? Math.max(...dias) : null;
+  };
   const [filtros, setFiltros] = useState<TrocaFiltros>(FILTROS_TROCA_PADRAO);
   const [recusa, setRecusa] = useState<string | null>(null);
   const [cancelamento, setCancelamento] = useState<string | null>(null);
@@ -212,6 +244,7 @@ export default function DpTrocas() {
             <TrocaCard
               key={r.id}
               troca={r}
+              alertaDsrDias={alertaDsr(r)}
               onOpen={() => setDetalheId(r.id)}
               onAprovar={() => aprovar(r.id)}
               onRecusar={() => abrirRecusa(r.id)}

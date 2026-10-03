@@ -35,13 +35,15 @@ interface TrocaCardProps {
   onAprovar: () => void;
   onRecusar: () => void;
   onCancelar: () => void;
+  /** Maior sequência de dias sem descanso registrada nas ciências desta troca. */
+  alertaDsrDias?: number | null;
 }
 
 /**
  * Cartão da lista de trocas: resumo clicável (abre os detalhes) com as ações
  * do gestor disponíveis direto no cartão.
  */
-export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar }: TrocaCardProps) {
+export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar, alertaDsrDias }: TrocaCardProps) {
   const meta = metaStatusTroca(troca.status);
   const acoes = acoesGestorTroca(troca.status, troca.modo);
   const unidade = troca.destino?.unidade?.nome ?? troca.solicitante?.unidade?.nome ?? null;
@@ -91,6 +93,15 @@ export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar }: T
         </div>
       )}
 
+      {alertaDsrDias ? (
+        <div className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs font-semibold text-destructive">
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+          <span>
+            Alerta de DSR: com esta troca, colaborador fica {alertaDsrDias} dias seguidos sem
+            descanso (mais de 6). Ciência registrada pelos colaboradores.
+          </span>
+        </div>
+      ) : null}
 
       {troca.motivo && (
         <div className="flex items-start gap-2 text-xs text-muted-foreground">
