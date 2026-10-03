@@ -171,7 +171,8 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
     label: "Recibo de Pagamento em Dinheiro",
     grupo: "remuneracao",
     importavel: false,
-    exigeAceite: true,
+    // Assinatura física (papel): sem aceite digital.
+    exigeAceite: false,
     keywords: ["recibo de pagamento em dinheiro", "recibo em especie", "quitacao em especie"],
     badgeClass: "border-orange-300 text-orange-700",
   },
@@ -382,7 +383,8 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
     label: "Disciplinar",
     grupo: "outros",
     importavel: true,
-    exigeAceite: true,
+    // Assinatura física (papel): sem aceite digital.
+    exigeAceite: false,
     keywords: ["advertencia", "suspensao", "disciplinar"],
     badgeClass: "border-orange-300 text-orange-700",
   },
@@ -449,12 +451,20 @@ export function docTipoExigeAceite(tipo?: string | null): boolean {
 }
 
 /**
+ * Tipos assinados à mão além do grupo de desligamento: disciplinar
+ * (advertência/suspensão) e recibo de pagamento em dinheiro.
+ */
+const TIPOS_ASSINATURA_FISICA_EXTRA = new Set<string>(["disciplinar", "recibo_pagamento_especie"]);
+
+/**
  * Documento com assinatura física (papel): sem aceite digital, a minuta pode
  * ser importada sem assinatura e a via assinada é anexada depois.
  */
 export function docTipoAssinaturaFisica(tipo?: string | null): boolean {
   const def = DP_DOC_TIPO_MAP[tipo ?? ""];
-  return !!def && def.grupo === "desligamento" && !def.exigeAceite;
+  if (!def) return false;
+  if (TIPOS_ASSINATURA_FISICA_EXTRA.has(def.value)) return true;
+  return def.grupo === "desligamento" && !def.exigeAceite;
 }
 
 export function docTipoGrupo(tipo?: string | null): DpDocGrupo {
