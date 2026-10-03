@@ -107,6 +107,7 @@ export default function DpAdminCalendario() {
   const [filterType, setFilterType] = useState<"all" | OccupantType>("all");
 
   const [dayOpen, setDayOpen] = useState<string | null>(null);
+  const [unidadeDia, setUnidadeDia] = useState<string>("");
   const [assignUser, setAssignUser] = useState("");
   const [editLimit, setEditLimit] = useState<number>(1);
   const [socioBloqueio, setSocioBloqueio] = useState<{
@@ -229,6 +230,17 @@ export default function DpAdminCalendario() {
   const folgas = (folgasQ.data ?? []) as any[];
   const bloqueios = (blockedQ.data ?? []) as any[];
   const unidades = (unidadesQ.data ?? []) as any[];
+
+  // Unidade que governa o diálogo do dia: herda o filtro da tela; em "Todas"
+  // usa um seletor único no topo do diálogo (sem seletores repetidos nos blocos).
+  useEffect(() => {
+    if (!dayOpen) return;
+    setUnidadeDia((atual) => {
+      if (filterUnidade !== "all") return filterUnidade;
+      const ids = unidades.map((u: any) => u.id as string);
+      return atual && ids.includes(atual) ? atual : ids[0] ?? "";
+    });
+  }, [dayOpen, filterUnidade, unidades]);
   const pendentes = (pendentesQ.data ?? []) as any[];
 
   const dayLimits = useMemo(() => {
@@ -944,17 +956,28 @@ export default function DpAdminCalendario() {
 
               {selectedCompanyId && (
                 <>
+                  {filterUnidade === "all" && (
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold text-muted-foreground">Unidade deste dia</Label>
+                      <Select value={unidadeDia} onValueChange={setUnidadeDia}>
+                        <SelectTrigger className="h-10 rounded-xl"><SelectValue placeholder="Escolha a unidade" /></SelectTrigger>
+                        <SelectContent>
+                          {unidades.map((u: any) => (
+                            <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <VagasCargoSetorDia
                     companyId={selectedCompanyId}
                     data={dayOpen}
-                    unidadeIdInicial={filterUnidade === "all" ? null : filterUnidade}
-                    unidades={unidades.map((u: any) => ({ id: u.id, nome: u.nome }))}
+                    unidadeId={unidadeDia}
                   />
                   <ImpedimentosDoDia
                     companyId={selectedCompanyId}
                     data={dayOpen}
-                    unidadeIdInicial={filterUnidade === "all" ? null : filterUnidade}
-                    unidades={unidades.map((u: any) => ({ id: u.id, nome: u.nome }))}
+                    unidadeId={unidadeDia}
                   />
                 </>
               )}
