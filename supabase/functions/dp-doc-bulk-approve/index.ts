@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
     const { data: items, error: iErr } = await userClient
       .from("dp_bulk_import_items")
-      .select("*, dp_bulk_import_batches!inner(id, company_id, tipo, referencia_data, source_file_name, source_file_path, deteccao_automatica, exigir_aceite, unidade_id, rescisao_grupo_id)")
+      .select("*, dp_bulk_import_batches!inner(id, company_id, tipo, referencia_data, source_file_name, source_file_path, deteccao_automatica, exigir_aceite, ja_assinado, unidade_id, rescisao_grupo_id)")
       .in("id", parsed.data.item_ids);
     if (iErr) {
       console.error("[dp-doc-bulk-approve]", iErr.message);
@@ -161,7 +161,9 @@ Deno.serve(async (req) => {
         );
         // Desligamento: assinatura física, competência = mês do desligamento
         // e vários documentos do mesmo desligamento convivem (sem duplicidade).
-        const fisicoDeslig = __TDSD.has(tipoDoc);
+        const fisicoDeslig = TIPOS_RESCISAO.has(tipoDoc);
+        const jaAssinado = batch.ja_assinado === true;
+        const assinaturaFisica = __TDSD.has(tipoDoc) || jaAssinado;
         const deslig = vinculoPorColab.get(it.matched_colaborador_id)?.data_desligamento ?? null;
         const referenciaData = fisicoDeslig && deslig
           ? `${String(deslig).slice(0, 7)}-01`
@@ -201,7 +203,7 @@ Deno.serve(async (req) => {
         const titulo = `${prettyTipo(tipoDoc)} p.${it.page_index} — ${batch.source_file_name ?? "lote"}`;
         // Validação digital: decisão da página tem prioridade; sem decisão,
         // o padrão é exigir aceite (salvo lote configurado para dispensar).
-        const exigeAceite = fisicoDeslig ? false : typeof it.exige_aceite === "boolean"
+        const exigeAceite = assinaturaFisica ? false : typeof it.exige_aceite === "boolean"
           ? it.exige_aceite
           : (batch.exigir_aceite !== false) && (DOC_TIPO_EXIGE_ACEITE[tipoDoc] ?? false);
 
@@ -216,6 +218,14 @@ Deno.serve(async (req) => {
           tipo: tipoDoc,
           titulo,
           exige_aceite: exigeAceite,
+          assinatura_fisica: assinaturaFisica,
+          ...(jaAssinado ? {
+            via_assinada_path: dstPath,
+            via_assinada_nome: `${batch.id}_p${it.page_index}.pdf`,
+            via_assinada_mime: "application/pdf",
+            via_assinada_em: nowIso,
+            via_assinada_por: uid,
+          } : {}),
           assinatura_detectada: it.assinatura_detectada ?? null,
           unidade_id:
             it.detected_unidade_id ??
