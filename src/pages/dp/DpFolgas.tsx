@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { RestricoesDoDia } from "@/components/dp/bloqueios/RestricoesDoDia";
+import { VagasCargoSetorDia, ImpedimentosDoDia } from "@/components/dp/bloqueios/RestricoesDoDia";
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
@@ -630,6 +630,30 @@ export default function DpFolgas() {
     }
     return map;
   }, [limiteByDay]);
+
+  const [verLimitesLojas, setVerLimitesLojas] = useState(false);
+
+  /** Na visão "Todas as lojas", limite de cada unidade para o dia aberto. */
+  const limitesPorUnidade = useMemo(() => {
+    if (!selectedDay || unidadeFilter !== "todas") return [];
+    const key = format(selectedDay, "yyyy-MM-dd");
+    const wd = selectedDay.getDay();
+    return (unidadesQuery.data ?? []).map((u: any) => {
+      const res = resolverLimiteFolga({
+        data: key,
+        unidadeId: u.id,
+        regras: regrasLimite,
+        diaConfig: diaConfigQuery.data ?? [],
+      });
+      if (wd >= 1 && wd <= 5 && res.origem !== "excecao_data") {
+        const qtd = (colabs.data ?? []).filter(
+          (c) => c.ativo !== false && c.unidade_id === u.id && normalizeWeekday(c.folga_fixa_semana) === wd,
+        ).length;
+        return { id: u.id as string, nome: u.nome as string, limite: qtd, origem: "folga_fixa" as const };
+      }
+      return { id: u.id as string, nome: u.nome as string, limite: res.limite, origem: res.origem };
+    });
+  }, [selectedDay, unidadeFilter, unidadesQuery.data, regrasLimite, diaConfigQuery.data, colabs.data]);
 
 
   const blockedByDate = useMemo(() => {
@@ -1383,38 +1407,50 @@ export default function DpFolgas() {
                 </div>
               )}
 
-              {!selectedBlock && (
-                <Button
-                  variant="outline"
-                  className="h-11 w-full rounded-xl border-destructive/30 font-bold text-destructive hover:bg-destructive/10"
-                  onClick={() => {
-                    setBloqueioForm({
-                      data: format(selectedDay, "yyyy-MM-dd"),
-                      motivo: "",
-                      unidade_id: unidadeFilter === "todas" ? "" : unidadeFilter,
-                    });
-                    setBloqueioOpen(true);
-                  }}
-                >
-                  <Lock className="mr-2 h-4 w-4" /> Bloquear esta data
-                </Button>
-              )}
-
               {selectedDay && (
                 <div className="space-y-3 rounded-2xl border bg-muted/30 p-5">
                   <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                    <Settings2 className="h-3.5 w-3.5" /> Quantas Pessoas Podem Folgar
+                    <Settings2 className="h-3.5 w-3.5" /> Vagas de Folga no Dia
                   </h3>
-                  {(() => {
-                    const res = limiteByDay.get(format(selectedDay, "yyyy-MM-dd"));
-                    return (
+                  {unidadeFilter === "todas" ? (
+                    <div className="space-y-2">
                       <p className="text-[11px] text-muted-foreground">
-                        {res?.limite != null
-                          ? `Hoje o limite é ${res.limite} ${res.limite === 1 ? "pessoa" : "pessoas"} em folga — ${origemLimiteLabel(res.origem).toLowerCase()}.`
-                          : "Nenhum limite para este dia. Cadastre uma regra fixa em Folgas > Regras ou informe uma exceção abaixo."}
+                        Cada loja tem um limite próprio de vagas neste dia.
                       </p>
-                    );
-                  })()}
+                      <Button
+                        variant="outline"
+                        className="h-9 w-full rounded-xl text-xs font-bold"
+                        onClick={() => setVerLimitesLojas((v) => !v)}
+                      >
+                        {verLimitesLojas ? "Ocultar limites por loja" : "Ver limites por loja"}
+                      </Button>
+                      {verLimitesLojas && (
+                        <div className="space-y-2">
+                          {limitesPorUnidade.map((u) => (
+                            <div key={u.id} className="flex items-center justify-between rounded-xl border bg-card px-3 py-2 text-sm">
+                              <span className="font-semibold">{u.nome}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {u.limite != null
+                                  ? `${u.limite} ${u.limite === 1 ? "pessoa" : "pessoas"} — ${origemLimiteLabel(u.origem).toLowerCase()}`
+                                  : "Sem limite cadastrado"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    (() => {
+                      const res = limiteByDay.get(format(selectedDay, "yyyy-MM-dd"));
+                      return (
+                        <p className="text-[11px] text-muted-foreground">
+                          {res?.limite != null
+                            ? `Hoje o limite é ${res.limite} ${res.limite === 1 ? "pessoa" : "pessoas"} em folga — ${origemLimiteLabel(res.origem).toLowerCase()}.`
+                            : "Nenhum limite para este dia. Cadastre uma regra fixa em Folgas > Regras ou informe uma exceção abaixo."}
+                        </p>
+                      );
+                    })()
+                  )}
                   <div className="flex gap-3">
                     <div className="flex-1">
                       <Label className="mb-1.5 block text-[10px] font-bold text-muted-foreground">
@@ -1439,16 +1475,46 @@ export default function DpFolgas() {
                     </Button>
                   </div>
                   <p className="text-[11px] text-muted-foreground">0 = ninguém pode folgar neste dia.</p>
+
+                  {selectedCompanyId && (
+                    <VagasCargoSetorDia
+                      companyId={selectedCompanyId}
+                      data={format(selectedDay, "yyyy-MM-dd")}
+                      unidadeIdInicial={unidadeFilter === "todas" ? null : unidadeFilter}
+                      unidades={(unidadesQuery.data ?? []).map((u: any) => ({ id: u.id, nome: u.nome }))}
+                    />
+                  )}
                 </div>
               )}
 
               {selectedDay && selectedCompanyId && (
-                <RestricoesDoDia
-                  companyId={selectedCompanyId}
-                  data={format(selectedDay, "yyyy-MM-dd")}
-                  unidadeIdInicial={unidadeFilter === "todas" ? null : unidadeFilter}
-                  unidades={(unidadesQuery.data ?? []).map((u: any) => ({ id: u.id, nome: u.nome }))}
-                />
+                <div className="space-y-3">
+                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                    Bloqueios e Impedimentos
+                  </h3>
+                  {!selectedBlock && (
+                    <Button
+                      variant="outline"
+                      className="h-11 w-full rounded-xl border-destructive/30 font-bold text-destructive hover:bg-destructive/10"
+                      onClick={() => {
+                        setBloqueioForm({
+                          data: format(selectedDay, "yyyy-MM-dd"),
+                          motivo: "",
+                          unidade_id: unidadeFilter === "todas" ? "" : unidadeFilter,
+                        });
+                        setBloqueioOpen(true);
+                      }}
+                    >
+                      <Lock className="mr-2 h-4 w-4" /> Bloquear esta data
+                    </Button>
+                  )}
+                  <ImpedimentosDoDia
+                    companyId={selectedCompanyId}
+                    data={format(selectedDay, "yyyy-MM-dd")}
+                    unidadeIdInicial={unidadeFilter === "todas" ? null : unidadeFilter}
+                    unidades={(unidadesQuery.data ?? []).map((u: any) => ({ id: u.id, nome: u.nome }))}
+                  />
+                </div>
               )}
 
 
