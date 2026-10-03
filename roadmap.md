@@ -42,3 +42,9 @@
 - [ ] `private.dp_remuneracao_admin` ainda exige dono/administrador geral em vez da permissão de cadastros com salários.
 - [ ] Testar no celular o fluxo disciplinar (via física assinada).
 - [ ] Nada publicado: versão continua congelada, aguardando pedido explícito.
+
+## Calendário de folgas (03/10)
+- [ ] Restrições do dia (colaborador/cargo/setor) no modal de /dp/folgas
+- [ ] "Todas as lojas": bloqueio por unidade mostra a loja
+- [ ] Detalhe do dia mostra limites por cargo/setor da unidade
+- [ ] Atalho do bloqueio/limite do dia para a tela de Regras
