@@ -44,7 +44,7 @@
 - [ ] Nada publicado: versão continua congelada, aguardando pedido explícito.
 
 ## Calendário de folgas (03/10)
-- [ ] Restrições do dia (colaborador/cargo/setor) no modal de /dp/folgas
-- [ ] "Todas as lojas": bloqueio por unidade mostra a loja
-- [ ] Detalhe do dia mostra limites por cargo/setor da unidade
-- [ ] Atalho do bloqueio/limite do dia para a tela de Regras
+- [x] Restrições do dia (colaborador/cargo/setor) no modal de /dp/folgas
+- [x] "Todas as lojas": bloqueio por unidade mostra a loja
+- [x] Detalhe do dia mostra limites por cargo/setor da unidade
+- [x] Atalho do bloqueio/limite do dia para a tela de Regras
