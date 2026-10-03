@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { RestricoesDoDia } from "@/components/dp/bloqueios/RestricoesDoDia";
+import { VagasCargoSetorDia, ImpedimentosDoDia } from "@/components/dp/bloqueios/RestricoesDoDia";
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
