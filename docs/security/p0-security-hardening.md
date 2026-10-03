@@ -50,6 +50,25 @@ tratar), `dp_pessoa_apoio_upsert`, `dp_pessoa_avulsa_salvar`,
 Nenhuma. A allowlist de funções anônimas em `scripts/security-lint.mjs` fica
 vazia por design, com os critérios de inclusão documentados no próprio arquivo.
 
+### (e) exceções documentadas — portal do colaborador (2026-10-03)
+
+As rotinas abaixo são `SECURITY DEFINER` executáveis por `authenticated` **por
+decisão de produto**, não por falha. Sem elas o calendário de folgas do portal
+não carrega (folgas, datas bloqueadas e limite de folgas do mês):
+
+- `public.dp_colaborador_of(_user_id uuid)` — resolve o colaborador vinculado
+  ao `auth.uid()`; referenciada pelas RLS policies do portal.
+- `public.dp_config_resolvida(_company_id uuid, _unidade_id uuid)` — lê a
+  configuração de descanso da unidade (dias elegíveis, teto de folgas).
+- `public.dp_dias_fixos_folga(_colaborador uuid, _data date)` — calcula os
+  dias de folga fixa semanal do próprio colaborador.
+
+Todas derivam identidade de `auth.uid()`, não expõem dado de outra empresa e
+têm `SET search_path` explícito. Estão registradas na allowlist
+`AUTHENTICATED_DEFINER_ALLOWLIST` em `scripts/security-lint.mjs`, que impede
+que varreduras futuras as apontem como finding ou que hardenings revoguem o
+GRANT por engano.
+
 ### (d) mover para schema privado — P0.2
 
 As ~299 funções `SECURITY DEFINER` executáveis por `authenticated` continuam

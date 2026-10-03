@@ -76,6 +76,30 @@ const allowlistSqlArray = ANON_SECURITY_DEFINER_ALLOWLIST.length
   ? `ARRAY[${ANON_SECURITY_DEFINER_ALLOWLIST.map((f) => `'${f.replace(/'/g, "''")}'`).join(",")}]`
   : `ARRAY[]::text[]`;
 
+/**
+ * Rotinas SECURITY DEFINER executáveis por `authenticated` por decisão de
+ * produto (portal do colaborador). Sem elas o calendário de folgas, as datas
+ * bloqueadas e o limite de folgas do mês não carregam para o colaborador.
+ *
+ * Regras para incluir uma função:
+ *   1. É chamada diretamente pelo portal do colaborador (RLS a referencia ou
+ *      o frontend a invoca via supabase.rpc).
+ *   2. Deriva identidade por auth.uid() e não expõe dado de outra empresa.
+ *   3. Tem `SET search_path` explícito.
+ *   4. A justificativa fica registrada em docs/security/p0-security-hardening.md.
+ *
+ * Qualquer função nova fora desta lista continua sendo finding (warning).
+ */
+const AUTHENTICATED_DEFINER_ALLOWLIST = [
+  "public.dp_colaborador_of(_user_id uuid)",
+  "public.dp_config_resolvida(_company_id uuid, _unidade_id uuid)",
+  "public.dp_dias_fixos_folga(_colaborador uuid, _data date)",
+];
+
+const authenticatedAllowlistSqlArray = AUTHENTICATED_DEFINER_ALLOWLIST.length
+  ? `ARRAY[${AUTHENTICATED_DEFINER_ALLOWLIST.map((f) => `'${f.replace(/'/g, "''")}'`).join(",")}]`
+  : `ARRAY[]::text[]`;
+
 /** Tabelas financeiras que nunca podem ficar acessíveis a `anon`. */
 const TABELAS_FINANCEIRAS = [
   "accounts",
@@ -284,7 +308,10 @@ const checks = [
       JOIN pg_roles r ON r.oid = a.grantee
       WHERE n.nspname = 'public' AND p.prosecdef = true
         AND a.privilege_type = 'EXECUTE'
-        AND r.rolname = 'authenticated';
+        AND r.rolname = 'authenticated'
+        AND (n.nspname || '.' || p.proname || '(' ||
+             pg_catalog.pg_get_function_identity_arguments(p.oid) || ')')
+             <> ALL (${authenticatedAllowlistSqlArray});
     `,
   },
   {
