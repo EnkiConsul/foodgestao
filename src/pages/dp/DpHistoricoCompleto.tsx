@@ -1,5 +1,6 @@
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
 import { useEffect, useMemo, useState } from "react";
+import { certificadoValidacaoPdf } from "@/lib/dp/documento-certificado";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -170,15 +171,15 @@ function AssinaturaSelo({ r, longo }: { r: UnifiedDoc; longo?: boolean }) {
   if (r.aceite === true) {
     const quando = fmtDataHora(r.aceite_em);
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+      <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
         ✓ {longo ? `Assinado pelo colaborador${quando ? ` em ${quando}` : ""}` : "Assinado"}
       </span>
     );
   }
   if (r.aceite === false) {
     return (
-      <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800">
-        Aguardando assinatura
+      <span className="inline-flex items-center whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+        Falta assinar
       </span>
     );
   }
@@ -350,6 +351,17 @@ export default function DpHistoricoCompleto() {
   );
   const extrasPreview = extrasQuery.data ?? [];
   const setPreview = (r: UnifiedDoc | null) => { setPreviewRaw(r); };
+  // Documento assinado abre já com o certificado completo de validação.
+  const [certPreview, setCertPreview] = useState<{ url: string; revogar: () => void } | null>(null);
+  useEffect(() => {
+    if (!preview || preview.aceite !== true || !preview.id.startsWith("doc:")) return;
+    let cancelado = false;
+    let atual: { url: string; revogar: () => void } | null = null;
+    certificadoValidacaoPdf(preview.id.slice(4))
+      .then((c) => { if (cancelado) c.revogar(); else { atual = c; setCertPreview(c); } })
+      .catch(() => undefined);
+    return () => { cancelado = true; atual?.revogar(); setCertPreview(null); };
+  }, [preview]);
   const [detalhe, setDetalhe] = useState<UnifiedDoc | null>(null);
   const [logAberto, setLogAberto] = useState(false);
   const [excluir, setExcluir] = useState<UnifiedDoc | null>(null);
@@ -1133,13 +1145,13 @@ export default function DpHistoricoCompleto() {
                 </Button>
                 {r.id.startsWith("doc:") ? (
                   <div className="relative flex">
-                    {r.quitacao && r.quitacao.comprovadoCents > 0 && r.quitacao.status !== "sem_referencia" ? (
+                    {r.tem_comprovante ? (
                       <span
-                        aria-label={r.quitacao.status === "exato" ? "Valor conferido" : "Valor divergente"}
-                        title={fraseConferenciaValor(r.quitacao) ?? undefined}
-                        className={`pointer-events-none absolute -top-1.5 left-1/2 z-10 -translate-x-1/2 rounded-full px-1.5 text-[10px] font-bold leading-4 ${r.quitacao.status === "exato" ? "bg-emerald-600 text-primary-foreground" : "bg-amber-500 text-primary-foreground"}`}
+                        aria-label={r.quitacao?.status === "menor" || r.quitacao?.status === "maior" ? "Valor divergente" : "Comprovante conferido"}
+                        title={(r.quitacao && fraseConferenciaValor(r.quitacao)) ?? "Comprovante anexado"}
+                        className={`pointer-events-none absolute right-1 top-1 z-10 text-[10px] font-bold leading-none ${r.quitacao?.status === "menor" || r.quitacao?.status === "maior" ? "text-amber-600" : "text-emerald-600"}`}
                       >
-                        {r.quitacao.status === "exato" ? "✓" : "⚠"}
+                        {r.quitacao?.status === "menor" || r.quitacao?.status === "maior" ? "⚠" : "✓"}
                       </span>
                     ) : null}
                     <ComprovanteAcaoBotao
@@ -1211,15 +1223,15 @@ export default function DpHistoricoCompleto() {
         onOpenChange={(v) => { if (!v) setPreview(null); }}
         title={preview?.titulo}
         bucket={preview?.bucket}
-        path={preview?.file_path ?? undefined}
-        mime={preview?.mime_type}
+        path={certPreview ? undefined : preview?.file_path ?? undefined}
+        url={certPreview?.url}
+        mime={certPreview ? "application/pdf" : preview?.mime_type}
         comprovanteDocumentoId={preview?.comprovante_path && preview.id.startsWith("doc:") ? preview.id.slice(4) : null}
         comprovantesExtras={extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null }))}
         toolbar={preview && (preview.aceite !== null || preview.aceiteDispensado || preview.quitacao) ? (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <AssinaturaSelo r={preview} longo />
             <QuitacaoSelo q={preview.quitacao} />
-            {preview.comprovante_path ? <span className="text-[11px] text-muted-foreground">Comprovante logo abaixo do documento ↓</span> : null}
           </div>
         ) : null}
       />
