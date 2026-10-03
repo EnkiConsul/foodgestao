@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Ban, Loader2, Plus, ShieldAlert, Trash2 } from "lucide-react";
@@ -95,6 +96,21 @@ export function RestricoesDoDia({ companyId, data, unidadeIdInicial, unidades }:
     [regras, data, unidadeId],
   );
 
+  /** Regras permanentes da unidade que valem nesta data (por cargo, setor ou "não folgam juntos"). */
+  const regrasFixas = useMemo(() => {
+    const dow = new Date(`${data}T12:00:00`).getDay();
+    return regras.filter(
+      (r) =>
+        r.ativo &&
+        r.unidade_id === unidadeId &&
+        r.tipo !== "quantidade" &&
+        !(r.vigencia_inicio === data && r.vigencia_fim === data) &&
+        (r.dia_semana == null || r.dia_semana === dow) &&
+        (!r.vigencia_inicio || r.vigencia_inicio <= data) &&
+        (!r.vigencia_fim || r.vigencia_fim >= data),
+    );
+  }, [regras, data, unidadeId]);
+
   const bloquearColab = useMutation({
     mutationFn: async () => {
       const { data: u } = await supabase.auth.getUser();
@@ -155,6 +171,10 @@ export function RestricoesDoDia({ companyId, data, unidadeIdInicial, unidades }:
   };
 
   const descreverRegra = (r: (typeof restricoesDia)[number]) => {
+    if (r.tipo === "colaboradores") {
+      const nomes = (r.colaborador_ids ?? []).map((id) => nomeColab(id) ?? "Colaborador").join(", ");
+      return `Não folgam juntos: ${nomes}`;
+    }
     const alvo =
       r.tipo === "setor"
         ? r.setor_ids.map((id) => setores.find((s) => s.id === id)?.nome ?? "Setor").join(", ")
@@ -184,6 +204,22 @@ export function RestricoesDoDia({ companyId, data, unidadeIdInicial, unidades }:
         <p className="text-xs text-muted-foreground">Escolha a unidade para ver e criar restrições.</p>
       ) : (
         <>
+          <div className="space-y-2">
+            <Label className="text-[10px] font-bold text-muted-foreground">Regras da unidade que valem neste dia</Label>
+            {regrasFixas.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Nenhuma regra por cargo, setor ou pessoas nesta unidade.</p>
+            ) : (
+              regrasFixas.map((r) => (
+                <div key={r.id} className="rounded-xl border bg-card px-3 py-2 text-sm font-semibold">
+                  {descreverRegra(r)}
+                </div>
+              ))
+            )}
+            <Link to="/dp/folgas?aba=regras" className="inline-flex text-xs font-bold text-primary underline underline-offset-2">
+              Alterar regras da unidade
+            </Link>
+          </div>
+
           {/* A. Colaborador específico */}
           <div className="space-y-2">
             <Label className="text-[10px] font-bold text-muted-foreground">

@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+import { RestricoesDoDia } from "@/components/dp/bloqueios/RestricoesDoDia";
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
@@ -1293,6 +1295,20 @@ export default function DpFolgas() {
                     <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
                     {selectedBlock.reason}
                   </div>
+                  {!selectedBlock.hasGlobal && selectedBlock.unidadesNomes.length > 0 && (
+                    <p className="text-xs font-semibold text-destructive">
+                      Vale só para: {selectedBlock.unidadesNomes.join(", ")}. As demais lojas seguem liberadas.
+                    </p>
+                  )}
+                  {selectedBlock.auto && (
+                    <Link
+                      to="/dp/folgas?aba=regras"
+                      onClick={() => setSelectedDay(null)}
+                      className="inline-flex text-xs font-bold text-destructive underline underline-offset-2"
+                    >
+                      Alterar esta regra em Regras
+                    </Link>
+                  )}
                   {selectedBlock.partials.length > 0 && (
                     <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-1.5">
                       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-emerald-700">
@@ -1417,6 +1433,15 @@ export default function DpFolgas() {
                   </div>
                   <p className="text-[11px] text-muted-foreground">0 = ninguém pode folgar neste dia.</p>
                 </div>
+              )}
+
+              {selectedDay && selectedCompanyId && (
+                <RestricoesDoDia
+                  companyId={selectedCompanyId}
+                  data={format(selectedDay, "yyyy-MM-dd")}
+                  unidadeIdInicial={unidadeFilter === "todas" ? null : unidadeFilter}
+                  unidades={(unidadesQuery.data ?? []).map((u: any) => ({ id: u.id, nome: u.nome }))}
+                />
               )}
 
 
