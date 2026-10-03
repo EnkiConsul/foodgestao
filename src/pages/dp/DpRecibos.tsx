@@ -352,7 +352,7 @@ export default function DpRecibos() {
       toast.success(r.documento_id ? "Recibo emitido e guardado nos documentos do colaborador." : "Recibo emitido.");
       qc.invalidateQueries({ queryKey: ["dp_recibos"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
-      if (canal === "fisico") abrirPdf(r.recibo_id);
+      if (canal === "fisico") abrirPdf(r.recibo_id, { natureza, nome: nomeB, competencia });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -448,7 +448,7 @@ export default function DpRecibos() {
           <div className="space-y-1.5">
             <Label>Data do Pagamento</Label>
             <Input type="date" value={pagoEm} max={limitePagamentoFuturo()} onChange={(e) => { setPagoEm(e.target.value); setPagoEmManual(true); }} />
-            {!pagoEmManual && <p className="text-xs text-muted-foreground">Sugerida pela rotina da unidade; ajuste se precisar.</p>}
+            {!pagoEmManual && <p className="text-xs text-muted-foreground">Preenchida com a data de hoje; ajuste se precisar.</p>}
             {pagoEm > hoje() && canal !== "fisico" && (
               <p className="text-xs text-muted-foreground">Pagamento futuro: a assinatura digital só será liberada a partir de {pagoEm.split("-").reverse().join("/")}.</p>
             )}
