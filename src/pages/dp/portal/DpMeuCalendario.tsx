@@ -49,6 +49,8 @@ import { resumoEscolhaFolgas, folgaDominicalAutomatica, podeTrocarFolga, domingo
 import { folgasOfertaveis } from "@/lib/dp/troca-oferta";
 import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
 import { avaliarRiscoDsrTroca, avisoDsr } from "@/lib/dp/dsr-consecutivo";
+import { registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
+import { CienciaDsrBox } from "@/components/dp/CienciaDsrBox";
 import {
   diasParaRemarcar,
   mensagemErroRemarcacao,
@@ -153,6 +155,8 @@ export default function DpMeuCalendario() {
   const [exceptionMotivo, setExceptionMotivo] = useState("");
   const [tradeOpen, setTradeOpen] = useState<{ occupantId: string; occupantName: string; iso: string } | null>(null);
   const [tradeMyDate, setTradeMyDate] = useState<string>("");
+  /** Ciência da regra de descanso (mais de 6 dias seguidos) no diálogo aberto. */
+  const [cienteDsr, setCienteDsr] = useState(false);
   const [tradeMotivo, setTradeMotivo] = useState("");
   /** Mudança do dia da própria folga: dia atual, novo dia e motivo. */
   const [remarcarOpen, setRemarcarOpen] = useState<string | null>(null);
@@ -671,7 +675,10 @@ export default function DpMeuCalendario() {
     const comRegistro = new Set(
       folgas.filter((f) => f.colaborador_id === meRef.data!.id && f.status !== "cancelada").map((f) => f.data as string),
     );
-    return eachDayOfInterval({ start: range.startDate, end: range.endDate })
+    // Mês atual e o seguinte: a troca da folga fixa pode ir para qualquer dia desse intervalo.
+    const hojeD = parseYMD(hojeIso);
+    const fimProximoMes = new Date(hojeD.getFullYear(), hojeD.getMonth() + 2, 0);
+    return eachDayOfInterval({ start: hojeD, end: fimProximoMes })
       .filter((d) => fixos.includes(d.getDay()))
       .map((d) => ymd(d))
       .filter((iso) => iso >= hojeIso && !comRegistro.has(iso))
@@ -927,6 +934,8 @@ export default function DpMeuCalendario() {
       }
     },
     onSuccess: () => {
+      if (riscoDsrExcecao)
+        void registrarCienciaDsr({ papel: "colaborador", tabela: "dp_solicitacoes", data: riscoDsrExcecao.data, dias: riscoDsrExcecao.sequencia });
       toast.success("Solicitação de exceção enviada.");
       setExceptionOpen(false);
       setExceptionMotivo("");
@@ -962,6 +971,8 @@ export default function DpMeuCalendario() {
       if (error) throw new Error(mensagemErroTroca(error.message));
     },
     onSuccess: () => {
+      if (riscoDsrTroca)
+        void registrarCienciaDsr({ papel: "solicitante", tabela: "dp_trocas", data: riscoDsrTroca.data, dias: riscoDsrTroca.sequencia });
       toast.success(
         tradeMyDate && tradeOpen && trocaExigeAprovacaoGestor(tradeMyDate, tradeOpen.iso)
           ? "Troca enviada ao colega. Depois do aceite, o gestor precisa aprovar."
@@ -1067,16 +1078,30 @@ export default function DpMeuCalendario() {
     trabalhoExcepcionalQuery.data,
   ]);
 
-  /** Risco de descanso semanal (DSR) na troca aberta no diálogo. */
-  const riscoDsrTroca = useMemo(() => {
-    if (!tradeOpen || !tradeMyDate) return null;
-    const r = avaliarRiscoDsrTroca({
-      descansoIso: meusDescansosIso,
-      diaCedidoIso: tradeMyDate,
-      diaNovoIso: tradeOpen.iso,
-    });
-    return r.risco ? avisoDsr(r.sequencia) : null;
-  }, [tradeOpen, tradeMyDate, meusDescansosIso]);
+  /** Risco de descanso semanal (DSR) ao ceder um dia e folgar em outro. */
+  const avaliarDsr = (cedido?: string | null, novo?: string | null) => {
+    if (!cedido || !novo) return null;
+    const r = avaliarRiscoDsrTroca({ descansoIso: meusDescansosIso, diaCedidoIso: cedido, diaNovoIso: novo });
+    return r.risco ? { texto: avisoDsr(r.sequencia), sequencia: r.sequencia, data: cedido } : null;
+  };
+  const riscoDsrTroca = useMemo(
+    () => avaliarDsr(tradeMyDate, tradeOpen?.iso),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tradeOpen, tradeMyDate, meusDescansosIso],
+  );
+  const riscoDsrRemarcar = useMemo(
+    () => avaliarDsr(remarcarOpen, remarcarNova),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [remarcarOpen, remarcarNova, meusDescansosIso],
+  );
+  const riscoDsrExcecao = useMemo(
+    () => (excecaoModo === "troca_semanal" ? avaliarDsr(excecaoDiaTrabalho, selectedDay?.iso) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [excecaoModo, excecaoDiaTrabalho, selectedDay?.iso, meusDescansosIso],
+  );
+  useEffect(() => {
+    setCienteDsr(false);
+  }, [tradeOpen, tradeMyDate, remarcarOpen, remarcarNova, excecaoDiaTrabalho, excecaoModo]);
 
   /** Troca pendente que envolve o dia aberto no diálogo. */
   const trocaPendenteDoDia = useMemo(() => {
@@ -1135,6 +1160,8 @@ export default function DpMeuCalendario() {
       }
     },
     onSuccess: () => {
+      if (riscoDsrRemarcar)
+        void registrarCienciaDsr({ papel: "colaborador", tabela: "dp_folgas", data: riscoDsrRemarcar.data, dias: riscoDsrRemarcar.sequencia });
       toast.success("Folga mudada de dia. O setor de pessoal foi avisado.");
       setRemarcarOpen(null);
       setRemarcarNova("");
@@ -1173,6 +1200,8 @@ export default function DpMeuCalendario() {
       }
     },
     onSuccess: () => {
+      if (riscoDsrRemarcar)
+        void registrarCienciaDsr({ papel: "colaborador", tabela: "dp_solicitacoes", data: riscoDsrRemarcar.data, dias: riscoDsrRemarcar.sequencia });
       toast.success("Pedido de mudança enviado ao setor de pessoal.");
       setRemarcarOpen(null);
       setRemarcarNova("");
@@ -1660,6 +1689,9 @@ export default function DpMeuCalendario() {
                     ))}
                   </SelectContent>
                 </Select>
+                {riscoDsrExcecao && (
+                  <CienciaDsrBox texto={riscoDsrExcecao.texto} ciente={cienteDsr} onChange={setCienteDsr} />
+                )}
                 {excecaoDiaTrabalho && selectedDay && (
                   <p className="mt-2 rounded-xl border border-sky-200 bg-sky-500/10 px-3 py-2 text-xs font-medium text-sky-700">
                     Você pede para trabalhar em {descreverDia(excecaoDiaTrabalho)} (sua folga semanal) e folgar em{" "}
@@ -1686,7 +1718,7 @@ export default function DpMeuCalendario() {
             <Button variant="ghost" onClick={() => setExceptionOpen(false)} className="min-h-10 w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button onClick={() => enviarExcecao.mutate()} disabled={enviarExcecao.isPending} className="min-h-10 w-full sm:w-auto">
+            <Button onClick={() => enviarExcecao.mutate()} disabled={enviarExcecao.isPending || (!!riscoDsrExcecao && !cienteDsr)} className="min-h-10 w-full sm:w-auto">
               {enviarExcecao.isPending ? (
                 "Enviando..."
               ) : (
@@ -1741,9 +1773,7 @@ export default function DpMeuCalendario() {
                 </p>
               )}
               {riscoDsrTroca && (
-                <p className="mt-2 rounded-xl border border-red-200 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-700">
-                  {riscoDsrTroca}
-                </p>
+                <CienciaDsrBox texto={riscoDsrTroca.texto} ciente={cienteDsr} onChange={setCienteDsr} />
               )}
               {folgasParaOferecer.length === 0 && (
                 <p className="text-xs text-destructive mt-1">
@@ -1772,7 +1802,7 @@ export default function DpMeuCalendario() {
             </Button>
             <Button
               onClick={() => solicitarTroca.mutate()}
-              disabled={solicitarTroca.isPending || !tradeMyDate}
+              disabled={solicitarTroca.isPending || !tradeMyDate || (!!riscoDsrTroca && !cienteDsr)}
               className="min-h-10 w-full sm:w-auto"
             >
               {solicitarTroca.isPending ? "Enviando..." : "Enviar troca"}
@@ -1816,6 +1846,9 @@ export default function DpMeuCalendario() {
                   ))}
                 </SelectContent>
               </Select>
+              {riscoDsrRemarcar && (
+                <CienciaDsrBox texto={riscoDsrRemarcar.texto} ciente={cienteDsr} onChange={setCienteDsr} />
+              )}
               {diasRemarcacao.length === 0 && (
                 <p className="text-xs text-destructive mt-1">
                   Não há outro dia de descanso disponível neste mês. Fale com o setor de pessoal.
@@ -1887,7 +1920,7 @@ export default function DpMeuCalendario() {
             {diaRemarcacaoEscolhido && !diaRemarcacaoEscolhido.disponivel ? (
               <Button
                 onClick={() => pedirRemarcacao.mutate()}
-                disabled={pedirRemarcacao.isPending || !remarcarNova}
+                disabled={pedirRemarcacao.isPending || !remarcarNova || (!!riscoDsrRemarcar && !cienteDsr)}
                 className="min-h-10 w-full sm:w-auto"
               >
                 {pedirRemarcacao.isPending ? "Enviando..." : "Pedir a mudança ao gestor"}
@@ -1895,7 +1928,7 @@ export default function DpMeuCalendario() {
             ) : remarcarAviso ? (
               <Button
                 onClick={() => pedirRemarcacao.mutate()}
-                disabled={pedirRemarcacao.isPending || !remarcarNova}
+                disabled={pedirRemarcacao.isPending || !remarcarNova || (!!riscoDsrRemarcar && !cienteDsr)}
                 className="min-h-10 w-full sm:w-auto"
               >
                 {pedirRemarcacao.isPending ? "Enviando..." : "Pedir a mudança ao gestor"}
@@ -1903,7 +1936,7 @@ export default function DpMeuCalendario() {
             ) : (
               <Button
                 onClick={() => remarcarFolga.mutate()}
-                disabled={remarcarFolga.isPending || !remarcarNova}
+                disabled={remarcarFolga.isPending || !remarcarNova || (!!riscoDsrRemarcar && !cienteDsr)}
                 className="min-h-10 w-full sm:w-auto"
               >
                 {remarcarFolga.isPending ? "Mudando..." : "Mudar a folga"}

@@ -56,7 +56,33 @@ export function avaliarRiscoDsrTroca(params: {
   return { sequencia, risco: sequencia >= DSR_LIMITE_DIAS };
 }
 
-/** Texto do aviso mostrado ao colaborador e ao gestor. */
+/** Texto do aviso mostrado ao colaborador. */
 export function avisoDsr(sequencia: number): string {
-  return `Com esta troca você ficaria ${sequencia} dias seguidos trabalhando sem descanso. A lei garante um dia de descanso a cada semana, então o gestor precisa avaliar antes de aprovar.`;
+  return `Com esta troca você ficaria ${sequencia} dias seguidos trabalhando sem descanso. A lei garante um dia de descanso a cada semana (o limite é de 6 dias seguidos de trabalho).`;
+}
+
+/** Texto do aviso mostrado ao gestor. */
+export function avisoDsrGestor(sequencia: number): string {
+  return `Com esta mudança o colaborador ficaria ${sequencia} dias seguidos trabalhando sem descanso (o limite legal é de 6 dias). Trabalhar 7 dias ou mais sem descanso gera pagamento em dobro.`;
+}
+
+/**
+ * Monta o conjunto de dias de descanso: folgas registradas + dias fixos da
+ * semana dentro da janela informada (com 21 dias de folga para trás).
+ */
+export function descansosDoColaborador(params: {
+  folgasIso: string[];
+  diasFixos: number[];
+  inicioIso: string;
+  dias: number;
+}): Set<string> {
+  const s = new Set(params.folgasIso);
+  if (params.diasFixos.length) {
+    const base = parseYMD(params.inicioIso);
+    for (let i = -21; i <= params.dias; i++) {
+      const d = addDays(base, i);
+      if (params.diasFixos.includes(d.getDay())) s.add(ymd(d));
+    }
+  }
+  return s;
 }
