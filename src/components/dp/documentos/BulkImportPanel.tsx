@@ -84,6 +84,7 @@ export function BulkImportPanel({
   const [dragOver, setDragOver] = useState(false);
   const [tipo, setTipo] = useState<string>(tipoFixed ?? tipoInicial ?? AUTO_TIPO);
   const [referencia, setReferencia] = useState<string>(referenciaFixed ?? referenciaInicial ?? "");
+  const [jaAssinado, setJaAssinado] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -255,6 +256,7 @@ export function BulkImportPanel({
           status: "queued",
           uploaded_by: uid,
            rescisao_grupo_id: rescisaoGrupoId,
+          ja_assinado: jaAssinado,
         })
         .select("id")
         .single();
@@ -534,6 +536,21 @@ export function BulkImportPanel({
               </div>
             )}
           </div>
+
+          <label className="flex items-start gap-2 rounded-md border p-3 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]"
+              checked={jaAssinado}
+              onChange={(e) => setJaAssinado(e.target.checked)}
+            />
+            <span>
+              <span className="font-medium">Arquivo já é a via assinada</span>
+              <span className="block text-[11px] text-muted-foreground">
+                Documento assinado à mão: fica registrado direto como “Via assinada”, sem validação digital.
+              </span>
+            </span>
+          </label>
 
           <Button onClick={() => upload.mutate()} disabled={!files.length || uploading} className="w-full">
             {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
