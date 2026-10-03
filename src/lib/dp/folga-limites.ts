@@ -47,7 +47,7 @@ export type LimiteDiaConfig = {
   limite_folgas: number | null;
 };
 
-export type OrigemLimite = "excecao_data" | "regra_recorrente" | "sem_limite";
+export type OrigemLimite = "excecao_data" | "regra_recorrente" | "folga_fixa" | "sem_limite";
 
 export type LimiteResolvido = {
   limite: number | null;
@@ -58,6 +58,7 @@ export type LimiteResolvido = {
 const ORIGEM_LABEL: Record<OrigemLimite, string> = {
   excecao_data: "Exceção cadastrada para esta data",
   regra_recorrente: "Regra fixa de folgas por dia",
+  folga_fixa: "Igual ao número de colaboradores com folga fixa neste dia da semana",
   sem_limite: "Sem limite cadastrado",
 };
 
