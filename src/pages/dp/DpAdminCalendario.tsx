@@ -83,6 +83,7 @@ import {
 } from "@/lib/dp/bloqueio-rules";
 import { LiberarEscopoDialog } from "@/components/dp/bloqueios/LiberarEscopoDialog";
 import { DataDialog } from "@/components/dp/bloqueios/DataDialog";
+import { RestricoesDoDia } from "@/components/dp/bloqueios/RestricoesDoDia";
 import type { DataFormState } from "@/lib/dp/bloqueios";
 import { CalendarioMobileLista } from "@/components/dp/CalendarioMobileLista";
 import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
@@ -860,7 +861,7 @@ export default function DpAdminCalendario() {
 
       {/* Dialog do dia */}
       <Dialog open={!!dayOpen} onOpenChange={(o) => !o && setDayOpen(null)}>
-        <DialogContent className="max-w-lg rounded-3xl border-none p-7 shadow-2xl">
+        <DialogContent className="max-h-[92vh] max-w-lg overflow-y-auto rounded-3xl border-none p-7 shadow-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3 text-3xl font-black tracking-tight">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -939,6 +940,15 @@ export default function DpAdminCalendario() {
                 >
                   <Lock className="mr-2 h-4 w-4" /> Bloquear esta data
                 </Button>
+              )}
+
+              {selectedCompanyId && (
+                <RestricoesDoDia
+                  companyId={selectedCompanyId}
+                  data={dayOpen}
+                  unidadeIdInicial={filterUnidade === "all" ? null : filterUnidade}
+                  unidades={unidades.map((u: any) => ({ id: u.id, nome: u.nome }))}
+                />
               )}
 
               {currentIsWeekend && (
