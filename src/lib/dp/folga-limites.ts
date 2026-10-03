@@ -115,7 +115,26 @@ export function resolverLimiteFolga(params: {
   });
 
 
-  if (candidatas.length === 0) return { limite: null, origem: "sem_limite" };
+  if (candidatas.length === 0) {
+    // Visão da loja sem cargo/setor informado: regras separadas por cargo/setor
+    // somam o teto do dia (ex.: Motoqueiro 1 + Pizzaiolo/Atendente 1 = 2).
+    if (unidadeId !== null && !cargoId && !setorId) {
+      const escopadas = regras.filter(
+        (r) =>
+          r.ativo &&
+          r.tipo !== "colaboradores" &&
+          r.unidade_id === unidadeId &&
+          (r.dia_semana === null || r.dia_semana === wd) &&
+          (r.cargo_ids.length > 0 || r.setor_ids.length > 0) &&
+          vigente(r, data),
+      );
+      if (escopadas.length > 0) {
+        const total = escopadas.reduce((s, r) => s + r.maximo, 0);
+        return { limite: total, origem: "regra_recorrente" };
+      }
+    }
+    return { limite: null, origem: "sem_limite" };
+  }
 
   const peso = (r: RegraLimiteFolga) =>
     (r.cargo_ids.length > 0 ? 4 : 0) + (r.setor_ids.length > 0 ? 2 : 0) + (r.dia_semana !== null ? 1 : 0);
