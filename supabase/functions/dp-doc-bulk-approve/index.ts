@@ -4,6 +4,7 @@
 //
 // Body: { item_ids: uuid[] } (todos do mesmo batch)
 
+import { TIPOS_DESLIGAMENTO_SEM_DIGITAL as __TDSD } from "../_shared/doc-tipos.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireCompanyAccess, requireUser } from "../_shared/authz.ts";
@@ -105,17 +106,19 @@ Deno.serve(async (req) => {
       vinculo_label: string | null;
       socio_remuneracao: string | null;
       unidade_id: string | null;
+      data_desligamento?: string | null;
     }>();
     if (colabIds.length) {
       const { data: colabs } = await svc
         .from("dp_colaboradores")
-        .select("id, vinculo_label, socio_remuneracao, unidade_id")
+        .select("id, vinculo_label, socio_remuneracao, unidade_id, data_desligamento")
         .in("id", colabIds);
       (colabs ?? []).forEach((c: any) =>
         vinculoPorColab.set(c.id, {
           vinculo_label: c.vinculo_label,
           socio_remuneracao: c.socio_remuneracao,
           unidade_id: c.unidade_id,
+          data_desligamento: c.data_desligamento ?? null,
         }),
       );
     }
@@ -151,18 +154,24 @@ Deno.serve(async (req) => {
 
         const batch = it.dp_bulk_import_batches;
 
-        const referenciaData = normalizeReferenciaData(it.detected_competencia) ?? batch.referencia_data ?? null;
         // Natureza efetiva: a escolhida/detectada por página tem prioridade.
         const tipoDoc: string = tipoCanonicoPorVinculo(
           it.tipo_detectado ?? batch.tipo,
           vinculoPorColab.get(it.matched_colaborador_id) ?? null,
         );
+        // Desligamento: assinatura física, competência = mês do desligamento
+        // e vários documentos do mesmo desligamento convivem (sem duplicidade).
+        const fisicoDeslig = __TDSD.has(tipoDoc);
+        const deslig = vinculoPorColab.get(it.matched_colaborador_id)?.data_desligamento ?? null;
+        const referenciaData = fisicoDeslig && deslig
+          ? `${String(deslig).slice(0, 7)}-01`
+          : normalizeReferenciaData(it.detected_competencia) ?? batch.referencia_data ?? null;
 
         // Duplicidade: já existe documento ativo para (colaborador, tipo, competência)?
         // O anterior NUNCA é apagado aqui — ele só é marcado como substituído
         // depois que a nova versão estiver gravada com o arquivo no lugar.
         let anteriorId: string | null = null;
-        if (referenciaData) {
+        if (referenciaData && !fisicoDeslig) {
           const { data: dup } = await svc
             .from("dp_documentos")
             .select("id, versao")
@@ -192,7 +201,7 @@ Deno.serve(async (req) => {
         const titulo = `${prettyTipo(tipoDoc)} p.${it.page_index} — ${batch.source_file_name ?? "lote"}`;
         // Validação digital: decisão da página tem prioridade; sem decisão,
         // o padrão é exigir aceite (salvo lote configurado para dispensar).
-        const exigeAceite = typeof it.exige_aceite === "boolean"
+        const exigeAceite = fisicoDeslig ? false : typeof it.exige_aceite === "boolean"
           ? it.exige_aceite
           : (batch.exigir_aceite !== false) && (DOC_TIPO_EXIGE_ACEITE[tipoDoc] ?? false);
 
