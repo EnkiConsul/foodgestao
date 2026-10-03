@@ -90,7 +90,6 @@ export function VagasCargoSetorDia({ companyId, data, unidadeId }: Props) {
   const [alvoSel, setAlvoSel] = useState("");
   const [maximo, setMaximo] = useState(1);
   const [formAberto, setFormAberto] = useState(false);
-  const [regrasAbertas, setRegrasAbertas] = useState(false);
 
   const { regras, salvar, excluir } = useDpFolgaLimites(unidadeId || null);
   const setoresQ = useDpSetores(unidadeId || null);
@@ -156,17 +155,6 @@ export function VagasCargoSetorDia({ companyId, data, unidadeId }: Props) {
   return (
     <div className="space-y-2">
       {regrasFixas.length > 0 && (
-        <button
-          type="button"
-          onClick={() => setRegrasAbertas((v) => !v)}
-          className="inline-flex items-center gap-1 text-xs font-bold text-primary underline underline-offset-2"
-        >
-          {regrasFixas.length} {regrasFixas.length === 1 ? "regra ativa" : "regras ativas"} da loja (ver detalhes)
-          {regrasAbertas ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-        </button>
-      )}
-
-      {regrasAbertas && regrasFixas.length > 0 && (
         <div className="space-y-2">
           {regrasFixas.map((r) => (
             <div key={r.id} className="rounded-xl border bg-card px-3 py-2 text-sm font-semibold">

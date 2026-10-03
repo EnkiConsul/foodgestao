@@ -1539,7 +1539,7 @@ export default function DpFolgas() {
                       return (
                         <p className="text-sm font-semibold">
                           {res?.limite != null
-                            ? `Vagas da unidade: ${res.limite} ${res.limite === 1 ? "pessoa" : "pessoas"} em folga — ${origemLimiteLabel(res.origem).toLowerCase()}.`
+                            ? `Vagas da unidade: até ${res.limite} ${res.limite === 1 ? "pessoa pode" : "pessoas podem"} folgar neste dia — ${res.origem === "folga_recorrente" ? "soma das regras da loja" : origemLimiteLabel(res.origem).toLowerCase()}.`
                             : "Nenhum limite para este dia. Cadastre uma regra fixa em Folgas > Regras ou ajuste as vagas abaixo."}
                         </p>
                       );
@@ -1588,6 +1588,13 @@ export default function DpFolgas() {
                           unidadeId={unidadeDia}
                         />
                       )}
+                      {selectedCompanyId && (
+                        <ImpedimentosDoDia
+                          companyId={selectedCompanyId}
+                          data={format(selectedDay, "yyyy-MM-dd")}
+                          unidadeId={unidadeDia}
+                        />
+                      )}
                     </div>
                   )}
                 </div>
@@ -1596,7 +1603,7 @@ export default function DpFolgas() {
               {selectedDay && selectedCompanyId && (
                 <div className="space-y-3">
                   <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                    Bloqueios e Impedimentos
+                    Bloqueio da Data
                   </h3>
                   {!selectedBlock && (
                     <Button
@@ -1614,11 +1621,6 @@ export default function DpFolgas() {
                       <Lock className="mr-2 h-4 w-4" /> Bloquear esta data
                     </Button>
                   )}
-                  <ImpedimentosDoDia
-                    companyId={selectedCompanyId}
-                    data={format(selectedDay, "yyyy-MM-dd")}
-                    unidadeId={unidadeDia}
-                  />
                 </div>
               )}
 
