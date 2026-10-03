@@ -159,6 +159,39 @@ function aceiteLabel(r: UnifiedDoc) {
   return r.aceite ? "Aceito" : "Aguardando";
 }
 
+function fmtDataHora(iso?: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? "" : d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+/** Selo de assinatura para card mobile e visualizador. */
+function AssinaturaSelo({ r, longo }: { r: UnifiedDoc; longo?: boolean }) {
+  if (r.aceite === true) {
+    const quando = fmtDataHora(r.aceite_em);
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+        ✓ {longo ? `Assinado pelo colaborador${quando ? ` em ${quando}` : ""}` : "Assinado"}
+      </span>
+    );
+  }
+  if (r.aceite === false) {
+    return (
+      <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+        Aguardando assinatura
+      </span>
+    );
+  }
+  if (r.aceiteDispensado) {
+    return (
+      <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+        Assinatura física (dispensado)
+      </span>
+    );
+  }
+  return null;
+}
+
 /**
  * Cabeçalho de coluna com menu de ordenação + filtro por valores,
  * suporte a arrastar para reordenar e alça de redimensionamento na borda direita.
