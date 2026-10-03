@@ -91,9 +91,9 @@ const allowlistSqlArray = ANON_SECURITY_DEFINER_ALLOWLIST.length
  * Qualquer função nova fora desta lista continua sendo finding (warning).
  */
 const AUTHENTICATED_DEFINER_ALLOWLIST = [
-  "public.dp_colaborador_of(uuid)",
-  "public.dp_config_resolvida(uuid,uuid)",
-  "public.dp_dias_fixos_folga(uuid,integer,integer)",
+  "public.dp_colaborador_of(_user_id uuid)",
+  "public.dp_config_resolvida(_company_id uuid, _unidade_id uuid)",
+  "public.dp_dias_fixos_folga(_colaborador uuid, _data date)",
 ];
 
 const authenticatedAllowlistSqlArray = AUTHENTICATED_DEFINER_ALLOWLIST.length
