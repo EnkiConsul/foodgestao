@@ -1493,7 +1493,15 @@ export default function DpMeuCalendario() {
                       // "Teto do mês" conta a própria folga que está sendo movida:
                       // no mesmo mês, mover não aumenta o total, então segue direto.
                       const tetoPelaPropria =
-                        selectedDay.label === "Teto do mês" &&
+                        selectedDay.status === "taken" &&
+                        !(manualBlocked.get(selectedDay.iso) && !manualBlocked.get(selectedDay.iso)?.liberada) &&
+                        !(() => {
+                          const lim = dayLimits.get(selectedDay.iso);
+                          const oc = (occupantsByDate.get(selectedDay.iso) ?? []).filter(
+                            (o) => o.colaboradorId !== meRef.data?.id,
+                          ).length;
+                          return lim != null && oc >= lim;
+                        })() &&
                         folgaParaMover.data.slice(0, 7) === selectedDay.iso.slice(0, 7);
                       setRemarcarAviso(
                         !tetoPelaPropria && MOTIVO_STATUS[selectedDay.status]
