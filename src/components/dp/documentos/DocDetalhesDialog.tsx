@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ViaAssinadaBotao } from "@/components/dp/documentos/ViaAssinadaBotao";
 import { useQuery } from "@tanstack/react-query";
 import {
   Download, Eye, FileText, History, Replace, Trash2, Loader2, Printer,
@@ -80,7 +81,7 @@ export function DocDetalhesDialog(props: {
         source === "doc"
           ? supabase
               .from("dp_documentos")
-              .select("id, file_name, file_size, uploaded_by, created_at, exige_aceite, assinatura_detectada, submetido_por_colaborador, colaborador_id, tipo, comprovante_file_path, comprovante_file_name, comprovante_pago_em, comprovante_uploaded_at, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents, comprovante_recibo_documento_id, replaced_by_documento_id")
+              .select("id, file_name, file_size, uploaded_by, created_at, exige_aceite, assinatura_detectada, submetido_por_colaborador, colaborador_id, tipo, comprovante_file_path, comprovante_file_name, comprovante_pago_em, comprovante_uploaded_at, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents, comprovante_recibo_documento_id, replaced_by_documento_id, assinatura_fisica, via_assinada_path, via_assinada_em, via_assinada_por")
               .eq("id", docId!)
               .maybeSingle()
           : Promise.resolve({ data: null } as any),
