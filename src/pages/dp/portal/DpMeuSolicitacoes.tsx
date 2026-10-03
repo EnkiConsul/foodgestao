@@ -536,7 +536,11 @@ export default function DpMeuSolicitacoes() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="text-base capitalize">
-                    {s.tipo === "folga" && s.data_fim ? "Troca de folga" : s.tipo}
+                    {s.tipo === "folga" && s.data_fim
+                      ? "Troca de folga"
+                      : s.tipo === "folga" && (s as any).fora_da_janela
+                        ? "Folga extra (exceção)"
+                        : s.tipo}
                   </CardTitle>
                   <DpStatusBadge tone={statusToneFor(s.status)}>
                     {STATUS_LABEL[s.status] ?? s.status}
