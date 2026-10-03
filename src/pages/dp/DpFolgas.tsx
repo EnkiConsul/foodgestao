@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
+import { avaliarRiscoDsrTroca, avisoDsrGestor, descansosDoColaborador } from "@/lib/dp/dsr-consecutivo";
+import { diasFixosDoColaborador, registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -337,6 +339,13 @@ export default function DpFolgas() {
     },
     onError: (e) =>
       toast.error("Erro ao cancelar", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
+  /** Dias fixos de folga do colaborador da folga aberta (para checar dias seguidos sem descanso). */
+  const fixosGerenciar = useQuery({
+    queryKey: ["dp_meus_dias_fixos", folgaGerenciar?.colaboradorId],
+    enabled: !!folgaGerenciar?.colaboradorId,
+    queryFn: () => diasFixosDoColaborador(folgaGerenciar!.colaboradorId),
   });
 
   /** Remarca a folga para outro dia, no mesmo registro. */
@@ -1589,6 +1598,40 @@ export default function DpFolgas() {
                     if (ocupantes >= lim)
                       avisos.push(`Capacidade atingida: o limite desta data já foi alcançado (${ocupantes} ${ocupantes === 1 ? "pessoa" : "pessoas"} em folga).`);
                   }
+                  let dsr: { sequencia: number } | null = null;
+                  if (folgaGerenciar && remarcarData) {
+                    const folgasColab: string[] = [];
+                    eventsByDay.forEach((lista, iso) => {
+                      if (lista.some((r) => r.tipo === "folga" && r.colaborador_id === folgaGerenciar.colaboradorId))
+                        folgasColab.push(iso);
+                    });
+                    const r = avaliarRiscoDsrTroca({
+                      descansoIso: descansosDoColaborador({
+                        folgasIso: folgasColab,
+                        diasFixos: fixosGerenciar.data ?? [],
+                        inicioIso: format(rangeStart, "yyyy-MM-dd"),
+                        dias: 60,
+                      }),
+                      diaCedidoIso: folgaGerenciar.data,
+                      diaNovoIso: remarcarData,
+                    });
+                    if (r.risco) {
+                      dsr = { sequencia: r.sequencia };
+                      avisos.push(`Atenção trabalhista: ${avisoDsrGestor(r.sequencia)} Ao confirmar, você declara: "Ciente do trabalho por mais de 6 dias consecutivos autorizado pela gestão."`);
+                    }
+                  }
+                  const executarComCiencia = () => {
+                    executar();
+                    if (dsr && folgaGerenciar)
+                      void registrarCienciaDsr({
+                        papel: "gestor",
+                        tabela: "dp_folgas",
+                        referenciaId: folgaGerenciar.id.startsWith("folga:") ? folgaGerenciar.id.slice(6) : null,
+                        data: folgaGerenciar.data,
+                        dias: dsr.sequencia,
+                        colaboradorId: folgaGerenciar.colaboradorId,
+                      });
+                  };
                   const rotulo = remarcarFolga.isPending ? "Salvando..." : "Remarcar";
                   if (avisos.length === 0)
                     return (
@@ -1602,7 +1645,7 @@ export default function DpFolgas() {
                       descricao={`${avisos.join(" ")} Se continuar, a folga fica registrada como exceção autorizada pela gestão.`}
                       confirmar="Sim, continuar e remarcar"
                       cancelar="Cancelar troca"
-                      onConfirm={executar}
+                      onConfirm={executarComCiencia}
                       disabled={desabilitado}
                     >
                       <Button disabled={desabilitado}>{rotulo}</Button>
