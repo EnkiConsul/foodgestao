@@ -7888,6 +7888,45 @@ export type Database = {
           },
         ]
       }
+      dp_dsr_ciencias: {
+        Row: {
+          colaborador_id: string | null
+          company_id: string
+          created_at: string
+          data_referencia: string | null
+          dias_seguidos: number
+          id: string
+          papel: string
+          referencia_id: string | null
+          referencia_tabela: string
+          user_id: string
+        }
+        Insert: {
+          colaborador_id?: string | null
+          company_id: string
+          created_at?: string
+          data_referencia?: string | null
+          dias_seguidos: number
+          id?: string
+          papel: string
+          referencia_id?: string | null
+          referencia_tabela: string
+          user_id: string
+        }
+        Update: {
+          colaborador_id?: string | null
+          company_id?: string
+          created_at?: string
+          data_referencia?: string | null
+          dias_seguidos?: number
+          id?: string
+          papel?: string
+          referencia_id?: string | null
+          referencia_tabela?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       dp_escala_itens: {
         Row: {
           carga_prevista_horas: number
@@ -16777,6 +16816,17 @@ export type Database = {
       dp_documento_versao_publicar: {
         Args: { _anterior_id?: string; _motivo?: string; _novo_id: string }
         Returns: boolean
+      }
+      dp_dsr_ciencia_registrar: {
+        Args: {
+          p_colaborador?: string
+          p_data: string
+          p_dias: number
+          p_papel: string
+          p_referencia_id: string
+          p_referencia_tabela: string
+        }
+        Returns: string
       }
       dp_e_dia_util: { Args: { _data: string }; Returns: boolean }
       dp_editar_desligamento: {
