@@ -511,6 +511,18 @@ export default function DpFolgas() {
     unidadeFilter === "todas" ? null : unidadeFilter,
   );
 
+  // Unidade que governa o diálogo do dia: herda o filtro da tela; em "Todas as lojas"
+  // usa um seletor único no topo do diálogo (sem seletores repetidos nos blocos).
+  useEffect(() => {
+    if (!selectedDay) return;
+    setAjustarVagasAberto(false);
+    setUnidadeDia((atual) => {
+      if (unidadeFilter !== "todas") return unidadeFilter;
+      const ids = (unidadesQuery.data ?? []).map((u: any) => u.id as string);
+      return atual && ids.includes(atual) ? atual : ids[0] ?? "";
+    });
+  }, [selectedDay, unidadeFilter, unidadesQuery.data]);
+
 
 
 
