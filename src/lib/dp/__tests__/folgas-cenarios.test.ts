@@ -50,7 +50,7 @@ describe("Cenários de folga", () => {
   });
 
   it("dia lotado por colega da unidade fica indisponível", () => {
-    const st = base("2027-01-10", [{ colaborador_id: COLEGA, data: "2027-01-10" }], { tetoMensal: 5 });
+    const st = base("2027-01-10", [{ colaborador_id: COLEGA, data: "2027-01-10", tipo: "normal" }], { tetoMensal: 5 });
     expect(st.status).toBe("taken");
   });
 
