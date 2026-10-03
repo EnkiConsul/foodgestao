@@ -1137,6 +1137,18 @@ export default function DpAdminCalendario() {
         onLiberarGlobal={() => liberarData.mutate({ unidadeId: null })}
       />
 
+      {/* Mesmo formulário oficial da tela Regras > Datas Bloqueadas */}
+      <DataDialog
+        open={bloqueioOpen}
+        isEditing={false}
+        form={bloqueioForm}
+        unidades={unidades.map((u: any) => ({ id: u.id, nome: u.nome }))}
+        saving={bloquearData.isPending}
+        onChange={(updater) => setBloqueioForm(updater)}
+        onCancel={() => setBloqueioOpen(false)}
+        onSubmit={() => bloquearData.mutate()}
+      />
+
       {socioBloqueio && selectedCompanyId && (
         <SocioBloqueioDialog
           open
