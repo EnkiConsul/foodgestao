@@ -448,6 +448,15 @@ export function docTipoExigeAceite(tipo?: string | null): boolean {
   return DP_DOC_TIPO_MAP[tipo ?? ""]?.exigeAceite ?? false;
 }
 
+/**
+ * Documento com assinatura física (papel): sem aceite digital, a minuta pode
+ * ser importada sem assinatura e a via assinada é anexada depois.
+ */
+export function docTipoAssinaturaFisica(tipo?: string | null): boolean {
+  const def = DP_DOC_TIPO_MAP[tipo ?? ""];
+  return !!def && def.grupo === "desligamento" && !def.exigeAceite;
+}
+
 export function docTipoGrupo(tipo?: string | null): DpDocGrupo {
   return DP_DOC_TIPO_MAP[tipo ?? ""]?.grupo ?? "outros";
 }

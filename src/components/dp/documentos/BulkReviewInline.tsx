@@ -22,6 +22,7 @@ import { BulkProgressBanner } from "./BulkProgressBanner";
 import { ConfirmarSubstituicaoDialog, type DuplicateCollision } from "./ConfirmarSubstituicaoDialog";
 import { ConfirmarFaltantesDialog } from "./ConfirmarFaltantesDialog";
 import { ConfirmarSemUnidadeDialog } from "./ConfirmarSemUnidadeDialog";
+import { docTipoAssinaturaFisica } from "@/lib/dp/documentoTipos";
 import { detectDuplicates, type DuplicateHit } from "@/lib/dp/bulk-duplicates";
 import { resolverDecisoesDup } from "@/lib/dp/bulk-duplicate-decisoes";
 import { ColaboradoresFaltantesPanel } from "./ColaboradoresFaltantesPanel";
@@ -1045,7 +1046,22 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
               </div>
             </div>
 
-            {/* Validação digital desta página */}
+            {docTipoAssinaturaFisica(current.tipo_detectado ?? (batchInfo.data as any)?.tipo) ? (
+              <div className="mt-3 rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
+                  Assinatura física
+                </div>
+                <p className="mt-0.5">
+                  Pode importar sem assinatura para imprimir e colher a assinatura. Depois, anexe a via assinada no Histórico de Documentos.
+                  {(() => {
+                    const c = colaboradores.find((x: any) => x.id === current.matched_colaborador_id) as any;
+                    const d = c?.data_desligamento as string | undefined;
+                    return d ? ` Competência pelo desligamento: ${d.slice(5, 7)}/${d.slice(0, 4)}.` : "";
+                  })()}
+                </p>
+              </div>
+            ) : (
             <div className="mt-3 rounded-lg border bg-muted/20 p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-sm font-medium">
@@ -1071,6 +1087,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
               </div>
             </div>
 
+            )}
           </div>
         )}
       </div>
@@ -1082,6 +1099,9 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       {stats.total > 0 && (
         <div className="px-3 sm:px-4 py-3 border-t bg-muted/10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2">
+            {docTipoAssinaturaFisica((batchInfo.data as any)?.tipo) ? (
+              <span className="text-xs text-muted-foreground">Assinatura física — sem validação digital</span>
+            ) : (<>
             <Switch
               id="lote-aceite"
               checked={(batchInfo.data as any)?.exigir_aceite !== false}
@@ -1091,6 +1111,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
             <Label htmlFor="lote-aceite" className="text-xs text-muted-foreground cursor-pointer">
               Exigir validação digital em todo o lote
             </Label>
+            </>)}
           </div>
           <Button
             className="w-full sm:w-auto h-11"
