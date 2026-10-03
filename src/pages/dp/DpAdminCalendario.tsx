@@ -82,6 +82,8 @@ import {
   type RegraRow,
 } from "@/lib/dp/bloqueio-rules";
 import { LiberarEscopoDialog } from "@/components/dp/bloqueios/LiberarEscopoDialog";
+import { DataDialog } from "@/components/dp/bloqueios/DataDialog";
+import type { DataFormState } from "@/lib/dp/bloqueios";
 import { CalendarioMobileLista } from "@/components/dp/CalendarioMobileLista";
 import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
 import { isSocio } from "@/lib/dp/contrato-policy";
@@ -494,6 +496,43 @@ export default function DpAdminCalendario() {
 
   const [liberarEscopoOpen, setLiberarEscopoOpen] = useState(false);
 
+  // Bloqueio manual direto no dia — reutiliza o mesmo formulário oficial da
+  // tela de Regras > Datas Bloqueadas (mesmo componente, mesma gravação).
+  const [bloqueioOpen, setBloqueioOpen] = useState(false);
+  const [bloqueioForm, setBloqueioForm] = useState<DataFormState>({ data: "", motivo: "", unidade_id: "" });
+
+  const bloquearData = useMutation({
+    mutationFn: async () => {
+      if (!bloqueioForm.data) throw new Error("Selecione uma data");
+      if (!bloqueioForm.motivo.trim()) throw new Error("Informe o motivo");
+      await salvarDataBloqueada({
+        companyId: selectedCompanyId!,
+        data: bloqueioForm.data,
+        motivo: bloqueioForm.motivo.trim(),
+        unidadeId: bloqueioForm.unidade_id || null,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Data bloqueada");
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_geral"] });
+      setBloqueioOpen(false);
+      setDayOpen(null);
+    },
+    onError: (e: any) => notifyError(e, { surface: "Calendário", action: "concluir a ação", fallback: "Erro ao bloquear" }),
+  });
+
+  const openBloqueioDia = () => {
+    if (!dayOpen) return;
+    setBloqueioForm({
+      data: dayOpen,
+      motivo: "",
+      unidade_id: filterUnidade === "all" ? "" : filterUnidade,
+    });
+    setBloqueioOpen(true);
+  };
+
   const liberarData = useMutation({
     mutationFn: async (params: { unidadeId: string | null }) => {
       if (!dayOpen) return;
@@ -892,6 +931,16 @@ export default function DpAdminCalendario() {
                 </div>
               )}
 
+              {!currentBlock && !currentRelease && (
+                <Button
+                  variant="outline"
+                  className="h-11 w-full rounded-xl border-destructive/30 font-bold text-destructive hover:bg-destructive/10"
+                  onClick={openBloqueioDia}
+                >
+                  <Lock className="mr-2 h-4 w-4" /> Bloquear esta data
+                </Button>
+              )}
+
               {currentIsWeekend && (
                 <div className="space-y-3 rounded-2xl border bg-muted/30 p-5">
                   <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
@@ -1086,6 +1135,18 @@ export default function DpAdminCalendario() {
           liberarData.mutate({ unidadeId: filterUnidade });
         }}
         onLiberarGlobal={() => liberarData.mutate({ unidadeId: null })}
+      />
+
+      {/* Mesmo formulário oficial da tela Regras > Datas Bloqueadas */}
+      <DataDialog
+        open={bloqueioOpen}
+        isEditing={false}
+        form={bloqueioForm}
+        unidades={unidades.map((u: any) => ({ id: u.id, nome: u.nome }))}
+        saving={bloquearData.isPending}
+        onChange={(updater) => setBloqueioForm(updater)}
+        onCancel={() => setBloqueioOpen(false)}
+        onSubmit={() => bloquearData.mutate()}
       />
 
       {socioBloqueio && selectedCompanyId && (
