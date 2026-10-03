@@ -24,6 +24,8 @@ interface DocumentPreviewProps {
   toolbar?: React.ReactNode;
   /** Documento do DP cujo comprovante de pagamento aparece logo abaixo, na mesma rolagem. */
   comprovanteDocumentoId?: string | null;
+  /** Comprovantes complementares (bucket dp-documentos), exibidos na mesma rolagem. */
+  comprovantesExtras?: { id: string; path: string; mime: string | null }[];
 }
 
 /**
@@ -41,6 +43,7 @@ export function DocumentPreview({
   expiresIn = 300,
   toolbar,
   comprovanteDocumentoId,
+  comprovantesExtras,
 }: DocumentPreviewProps) {
   const [comprovante, setComprovante] = useState<{ url: string; mime: string | null; nome: string | null } | null>(null);
   useEffect(() => {
@@ -52,6 +55,20 @@ export function DocumentPreview({
       .catch(() => undefined);
     return () => { cancelado = true; };
   }, [open, comprovanteDocumentoId, expiresIn]);
+  const extrasChave = (comprovantesExtras ?? []).map((e) => e.path).join("|");
+  const [extras, setExtras] = useState<{ id: string; url: string; mime: string | null; path: string }[]>([]);
+  useEffect(() => {
+    setExtras([]);
+    if (!open || !comprovantesExtras?.length) return;
+    let cancelado = false;
+    Promise.all(comprovantesExtras.map(async (e) => {
+      const { data } = await supabase.storage.from("dp-documentos").createSignedUrl(e.path, expiresIn);
+      return data?.signedUrl ? { id: e.id, url: data.signedUrl, mime: e.mime, path: e.path } : null;
+    })).then((r) => { if (!cancelado) setExtras(r.filter((x): x is NonNullable<typeof x> => !!x)); });
+    return () => { cancelado = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, extrasChave, expiresIn]);
+  const temAnexos = !!comprovante || extras.length > 0;
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(url ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

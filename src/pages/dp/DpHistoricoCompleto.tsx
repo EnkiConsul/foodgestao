@@ -1213,15 +1213,15 @@ export default function DpHistoricoCompleto() {
         onOpenChange={(v) => { if (!v) setPreview(null); }}
         title={preview?.titulo}
         bucket={preview?.bucket}
-        path={(previewAba === "comprovante" ? preview?.comprovante_path : extraAtual ? extraAtual.file_path : preview?.file_path) ?? undefined}
-        mime={previewAba === "comprovante" ? preview?.comprovante_mime : extraAtual ? extraAtual.mime_type : preview?.mime_type}
-        toolbar={preview?.comprovante_path ? (
-          <div className="mt-2 flex flex-wrap gap-2" role="tablist" aria-label="Arquivos do documento">
-            {([["doc", "Documento Principal"], ["comprovante", extrasPreview.length ? "Comprovante 1" : "Comprovante de Pagamento"], ...extrasPreview.map((e, i) => [e.id, `Comprovante ${i + 2}`] as const)] as const).map(([k, l]) => (
-              <Button key={k} role="tab" aria-selected={previewAba === k} size="sm" variant={previewAba === k ? "default" : "outline"} className="h-8 text-xs" onClick={() => setPreviewAba(k)}>
-                {l}
-              </Button>
-            ))}
+        path={preview?.file_path ?? undefined}
+        mime={preview?.mime_type}
+        comprovanteDocumentoId={preview?.comprovante_path && preview.id.startsWith("doc:") ? preview.id.slice(4) : null}
+        comprovantesExtras={extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null }))}
+        toolbar={preview && (preview.aceite !== null || preview.aceiteDispensado || preview.quitacao) ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <AssinaturaSelo r={preview} longo />
+            <QuitacaoSelo q={preview.quitacao} />
+            {preview.comprovante_path ? <span className="text-[11px] text-muted-foreground">Comprovante logo abaixo do documento ↓</span> : null}
           </div>
         ) : null}
       />
