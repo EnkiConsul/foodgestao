@@ -454,7 +454,9 @@ const checks = [
         AND NOT (
           COALESCE(qual, '') ~ 'is_company_admin_or_owner'
           AND COALESCE(qual, '') ~ 'is_super_admin'
-        );
+        )
+        -- Matriz de Permissões: a autorização é delegada à função oficial.
+        AND COALESCE(qual, '') !~ 'dp_storage_caminho_liberado';
     `,
   },
 ];
