@@ -780,8 +780,7 @@ export default function DpFolgas() {
   /** "Bloqueado" quando vale para todas as lojas; com o nome da loja quando é só de algumas. */
   const rotuloBloqueio = (b: { hasGlobal: boolean; unidadesNomes: string[] }) => {
     if (unidadeFilter !== "todas" || b.hasGlobal || b.unidadesNomes.length === 0) return "Bloqueado";
-    const curto = b.unidadesNomes.map((n) => n.replace(/^PAKER[ÊE]\s+/i, "").trim() || n);
-    return `Bloqueado · ${curto.join(", ")}`;
+    return `Bloqueado · ${b.unidadesNomes.join(", ")}`;
   };
 
   const selectedBlock = selectedIso ? blockedByDate.get(selectedIso) ?? null : null;
