@@ -235,7 +235,9 @@ export default function DpSolicitacoes() {
                         </>
                       ) : (
                         <>
-                          <span className="capitalize mr-2">{s.tipo}</span>
+                          <span className="capitalize mr-2">
+                            {s.tipo === "folga" && s.fora_da_janela ? "Folga extra (exceção)" : s.tipo}
+                          </span>
                           <b>{formatBR(s.data_alvo)}{s.data_fim ? ` → ${formatBR(s.data_fim)}` : ""}</b>
                         </>
                       )}
@@ -245,6 +247,12 @@ export default function DpSolicitacoes() {
                     {new Date(s.created_at).toLocaleString("pt-BR")}
                   </span>
                 </div>
+
+                {s.tipo === "folga" && !s.data_fim && s.fora_da_janela && (
+                  <div className="rounded-lg border border-border bg-muted/40 p-2 text-xs text-muted-foreground">
+                    Folga adicional: não conta como folga de fim de semana nem substitui a folga semanal fixa.
+                  </div>
+                )}
 
                 {riscoDsr(s) && (
                   <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-2 text-xs font-medium text-destructive">
