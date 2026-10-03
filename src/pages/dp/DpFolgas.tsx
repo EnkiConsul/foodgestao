@@ -1550,8 +1550,7 @@ export default function DpFolgas() {
                   <ImpedimentosDoDia
                     companyId={selectedCompanyId}
                     data={format(selectedDay, "yyyy-MM-dd")}
-                    unidadeIdInicial={unidadeFilter === "todas" ? null : unidadeFilter}
-                    unidades={(unidadesQuery.data ?? []).map((u: any) => ({ id: u.id, nome: u.nome }))}
+                    unidadeId={unidadeDia}
                   />
                 </div>
               )}
