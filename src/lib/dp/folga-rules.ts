@@ -26,6 +26,7 @@ export interface FolgaRecord {
   data: string;
   tipo?: string | null;
   extra?: boolean | null;
+  direito_origem?: string | null;
 }
 
 export interface ColaboradorRecord {
@@ -317,8 +318,14 @@ export function calculateDateStatus(params: {
   const isMyFixed = !isAdmin && myFixed.includes(date.getDay()) && !isCanceled;
 
   if (isMyFixed) {
+    // Só a folga fixa deslocada para outro dia substitui a semanal;
+    // a folga de fim de semana (direito do mês) coexiste com ela.
     const hasOtherFolgaInSameWeek = allFolgas.some(
-      (f) => f.colaborador_id === myColaboradorId && f.data !== iso && isSameWeek(date, parseYMD(f.data)),
+      (f) =>
+        f.colaborador_id === myColaboradorId &&
+        f.data !== iso &&
+        f.direito_origem === "folga_fixa_deslocada" &&
+        isSameWeek(date, parseYMD(f.data)),
     );
     if (!hasOtherFolgaInSameWeek) {
       return { status: "fixed", label: "Semanal", reason: "Sua folga semanal fixa" };

@@ -630,18 +630,35 @@ export default function DpMeuCalendario() {
 
   const allFolgasRecords: FolgaRecord[] = useMemo(
     () =>
-      folgas.map((f: any) => ({
-        colaborador_id: f.colaborador_id,
-        data: f.data,
-        tipo: f.tipo,
-        extra: !!f.extra,
-      })),
-    [folgas],
+      folgas
+        // Só a minha unidade: folgas de outras lojas não lotam a escala daqui.
+        .filter(
+          (f: any) =>
+            f.colaborador_id === meRef.data?.id ||
+            !myUnidade ||
+            f.dp_colaboradores?.unidade_id === myUnidade,
+        )
+        .map((f: any) => ({
+          colaborador_id: f.colaborador_id,
+          data: f.data,
+          tipo: f.tipo,
+          extra: !!f.extra,
+          direito_origem: f.direito_origem ?? null,
+        })),
+    [folgas, myUnidade, meRef.data?.id],
   );
 
   const pendingRequests = useMemo(
-    () => pendentes.map((p: any) => ({ data: p.data_alvo, colaborador_id: p.colaborador_id })),
-    [pendentes],
+    () =>
+      pendentes
+        .filter(
+          (p: any) =>
+            p.colaborador_id === meRef.data?.id ||
+            !myUnidade ||
+            p.dp_colaboradores?.unidade_id === myUnidade,
+        )
+        .map((p: any) => ({ data: p.data_alvo, colaborador_id: p.colaborador_id })),
+    [pendentes, myUnidade, meRef.data?.id],
   );
 
   const goPrev = () => {
@@ -1473,8 +1490,13 @@ export default function DpMeuCalendario() {
                       setRemarcarMotivo("");
                       // Dia lotado ou bloqueado já abre pelo caminho do gestor,
                       // sem tentar uma mudança direta que seria recusada.
+                      // "Teto do mês" conta a própria folga que está sendo movida:
+                      // no mesmo mês, mover não aumenta o total, então segue direto.
+                      const tetoPelaPropria =
+                        selectedDay.label === "Teto do mês" &&
+                        folgaParaMover.data.slice(0, 7) === selectedDay.iso.slice(0, 7);
                       setRemarcarAviso(
-                        MOTIVO_STATUS[selectedDay.status]
+                        !tetoPelaPropria && MOTIVO_STATUS[selectedDay.status]
                           ? `${MOTIVO_STATUS[selectedDay.status]}. Você pode trocar com um colega que folga neste dia ou pedir a mudança ao gestor.`
                           : null,
                       );
