@@ -7715,6 +7715,11 @@ export type Database = {
           uploaded_by: string | null
           valor_liquido_cents: number | null
           versao: number
+          via_assinada_em: string | null
+          via_assinada_mime: string | null
+          via_assinada_nome: string | null
+          via_assinada_path: string | null
+          via_assinada_por: string | null
         }
         Insert: {
           aprovacao_status?: Database["public"]["Enums"]["dp_documento_aprovacao_status"]
@@ -7768,6 +7773,11 @@ export type Database = {
           uploaded_by?: string | null
           valor_liquido_cents?: number | null
           versao?: number
+          via_assinada_em?: string | null
+          via_assinada_mime?: string | null
+          via_assinada_nome?: string | null
+          via_assinada_path?: string | null
+          via_assinada_por?: string | null
         }
         Update: {
           aprovacao_status?: Database["public"]["Enums"]["dp_documento_aprovacao_status"]
@@ -7821,6 +7831,11 @@ export type Database = {
           uploaded_by?: string | null
           valor_liquido_cents?: number | null
           versao?: number
+          via_assinada_em?: string | null
+          via_assinada_mime?: string | null
+          via_assinada_nome?: string | null
+          via_assinada_path?: string | null
+          via_assinada_por?: string | null
         }
         Relationships: [
           {
@@ -16753,6 +16768,15 @@ export type Database = {
       }
       dp_documento_aceitar: {
         Args: { _documento_id: string; _ip?: string; _user_agent?: string }
+        Returns: string
+      }
+      dp_documento_anexar_via_assinada: {
+        Args: {
+          _documento_id: string
+          _file_name: string
+          _file_path: string
+          _mime_type: string
+        }
         Returns: string
       }
       dp_documento_anexo_aceitar: {

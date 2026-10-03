@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { docTipoAssinaturaFisica } from "@/lib/dp/documentoTipos";
 
 export interface DuplicateInput {
   item_id: string;
@@ -30,7 +31,11 @@ export async function detectDuplicates(params: {
   itens: DuplicateInput[];
 }): Promise<DuplicateHit[]> {
   const { company_id, tipo, itens } = params;
-  const withRef = itens.filter((i) => !!i.referencia_data);
+  // Documentos de desligamento (assinatura física) convivem no mesmo
+  // desligamento: só o colaborador é conferido, nunca há duplicidade.
+  const withRef = itens.filter(
+    (i) => !!i.referencia_data && !docTipoAssinaturaFisica(i.tipo || tipo),
+  );
   if (withRef.length === 0) return [];
 
   const colabIds = [...new Set(withRef.map((i) => i.colaborador_id))];

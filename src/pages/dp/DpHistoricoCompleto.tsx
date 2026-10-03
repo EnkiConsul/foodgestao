@@ -46,6 +46,8 @@ import { docSourceConfig, excluirDocumentoHistorico } from "@/lib/dp/historicoDo
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { notifyError } from "@/lib/notifyError";
+import { ViaAssinadaBotao } from "@/components/dp/documentos/ViaAssinadaBotao";
+import { docTipoAssinaturaFisica } from "@/lib/dp/documentoTipos";
 import { ComprovanteAcaoBotao } from "@/components/dp/documentos/ComprovantePagamentoPanel";
 import { consolidarQuitacao, rotuloQuitacao, fraseConferenciaValor, type QuitacaoConsolidada } from "@/lib/dp/comprovante-valor";
 import { useComprovantesComplementares } from "@/hooks/useDpComprovantesComplementares";
@@ -73,6 +75,8 @@ type UnifiedDoc = {
   aceite_em?: string | null;
   /** Validação digital dispensada porque o documento já veio assinado. */
   aceiteDispensado?: boolean;
+  /** Documento de assinatura física: null = não se aplica. */
+  viaFisica?: { path: string | null; mime: string | null; em: string | null } | null;
   rescisao_grupo_id?: string | null;
   /** Comprovante de pagamento anexado a este documento. */
   tem_comprovante?: boolean;
@@ -180,6 +184,17 @@ function AssinaturaSelo({ r, longo }: { r: UnifiedDoc; longo?: boolean }) {
     return (
       <span className="inline-flex items-center whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800">
         Falta assinar
+      </span>
+    );
+  }
+  if (r.viaFisica) {
+    return r.viaFisica.path ? (
+      <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+        ✓ {longo ? `Via assinada anexada${r.viaFisica.em ? ` em ${fmtDataHora(r.viaFisica.em)}` : ""}` : "Via assinada"}
+      </span>
+    ) : (
+      <span className="inline-flex items-center whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+        Falta via assinada
       </span>
     );
   }
@@ -439,7 +454,7 @@ export default function DpHistoricoCompleto() {
         fetchAllPages<any>((from, to) =>
           supabase
             .from("dp_documentos")
-            .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id, comprovante_file_path, comprovante_mime_type, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents, comprovantes_extra_qtd, comprovantes_extra_cents, valor_liquido_cents")
+            .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id, comprovante_file_path, comprovante_mime_type, via_assinada_path, via_assinada_mime, via_assinada_em, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents, comprovantes_extra_qtd, comprovantes_extra_cents, valor_liquido_cents")
             .eq("company_id", cId)
             .order("id", { ascending: true })
             .range(from, to)),
@@ -501,7 +516,10 @@ export default function DpHistoricoCompleto() {
           titulo: d.titulo,
           aceite: d.exige_aceite ? aceitos.has(d.id) : null,
           aceite_em: aceitoEm.get(d.id) ?? null,
-          aceiteDispensado: !d.exige_aceite && d.assinatura_detectada === true,
+          aceiteDispensado: !d.exige_aceite && d.assinatura_detectada === true && !docTipoAssinaturaFisica(d.tipo),
+          viaFisica: !d.exige_aceite && docTipoAssinaturaFisica(d.tipo)
+            ? { path: d.via_assinada_path ?? null, mime: d.via_assinada_mime ?? null, em: d.via_assinada_em ?? null }
+            : null,
            rescisao_grupo_id: d.rescisao_grupo_id ?? null,
           tem_comprovante: !!d.comprovante_file_path,
           comprovante_path: d.comprovante_file_path ?? null,
@@ -1084,6 +1102,9 @@ export default function DpHistoricoCompleto() {
                       <Button aria-label="Excluir documento" size="icon" variant="ghost" className="h-8 w-8" title="Excluir documento" onClick={() => setExcluir(r)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
+                      {r.id.startsWith("doc:") && r.viaFisica && (
+                        <ViaAssinadaBotao documentoId={r.id.slice(4)} companyId={selectedCompanyId ?? null} colaboradorId={r.colaborador_id} temVia={!!r.viaFisica.path} className="h-8 w-8" onDone={recarregar} />
+                      )}
                       {r.id.startsWith("doc:") && (
                         <ComprovanteAcaoBotao
                           alvo={{ documentoId: r.id.slice(4), colaboradorId: r.colaborador_id, tipo: r.tipo_key }}
@@ -1169,6 +1190,9 @@ export default function DpHistoricoCompleto() {
                   <Download className="h-4 w-4 mr-1" /> Baixar
                 </Button>
               </div>
+              {r.id.startsWith("doc:") && r.viaFisica && (
+                <ViaAssinadaBotao rotulo documentoId={r.id.slice(4)} companyId={selectedCompanyId ?? null} colaboradorId={r.colaborador_id} temVia={!!r.viaFisica.path} className="min-h-11 w-full" onDone={recarregar} />
+              )}
               <div className="grid grid-cols-2 gap-1">
                 <Button size="sm" variant="ghost" className="min-h-11 text-destructive" onClick={() => setExcluir(r)}>
                   <Trash2 className="h-4 w-4 mr-1" /> Excluir
@@ -1223,12 +1247,12 @@ export default function DpHistoricoCompleto() {
         onOpenChange={(v) => { if (!v) setPreview(null); }}
         title={preview?.titulo}
         bucket={preview?.bucket}
-        path={certPreview ? undefined : preview?.file_path ?? undefined}
+        path={certPreview ? undefined : preview?.viaFisica?.path ?? preview?.file_path ?? undefined}
         url={certPreview?.url}
-        mime={certPreview ? "application/pdf" : preview?.mime_type}
+        mime={certPreview ? "application/pdf" : preview?.viaFisica?.path ? preview.viaFisica.mime : preview?.mime_type}
         comprovanteDocumentoId={preview?.comprovante_path && preview.id.startsWith("doc:") ? preview.id.slice(4) : null}
         comprovantesExtras={extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null }))}
-        toolbar={preview && (preview.aceite !== null || preview.aceiteDispensado || preview.quitacao) ? (
+        toolbar={preview && (preview.aceite !== null || preview.aceiteDispensado || preview.viaFisica || preview.quitacao) ? (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <AssinaturaSelo r={preview} longo />
             <QuitacaoSelo q={preview.quitacao} />
