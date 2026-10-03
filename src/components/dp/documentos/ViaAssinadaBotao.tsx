@@ -4,7 +4,7 @@ import { FileCheck2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { prepararUpload } from "@/lib/storage/uploadPolicy";
+import { comRetentativa, prepararUpload } from "@/lib/storage/uploadPolicy";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { DP_DOCUMENTOS_BUCKET } from "@/lib/documentoArquivo";
 import { notifyError } from "@/lib/notifyError";
@@ -39,8 +39,10 @@ export function ViaAssinadaBotao({
       if (!companyId) throw new Error("Empresa não selecionada");
       const file = await prepararUpload(DP_DOCUMENTOS_BUCKET, escolhido);
       const path = `${companyId}/${colaboradorId ?? "geral"}/vias-assinadas/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
-      const up = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
-      if (up.error) throw up.error;
+      await comRetentativa(async () => {
+        const up = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(path, file, { contentType: file.type, upsert: true });
+        if (up.error) throw up.error;
+      });
       const { error } = await (supabase.rpc as any)("dp_documento_anexar_via_assinada", {
         _documento_id: documentoId,
         _file_path: path,
@@ -48,7 +50,7 @@ export function ViaAssinadaBotao({
         _mime_type: file.type,
       });
       if (error) {
-        await supabase.storage.from(DP_DOCUMENTOS_BUCKET).remove([path]);
+        await supabase.storage.from(DP_DOCUMENTOS_BUCKET).remove([path]).catch(() => undefined);
         throw error;
       }
     },
