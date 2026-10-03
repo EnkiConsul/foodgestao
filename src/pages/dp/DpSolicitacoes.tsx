@@ -21,6 +21,9 @@ import { porIds, resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { mensagemErro } from "@/lib/dp/mensagemErro";
+import { registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
+import { avisoDsrGestor } from "@/lib/dp/dsr-consecutivo";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
@@ -77,6 +80,32 @@ export default function DpSolicitacoes() {
       return (data ?? []) as RowWithColab[];
     },
   });
+
+  /** Ciências de DSR dadas pelo colaborador (mais de 6 dias seguidos sem descanso). */
+  const ciencias = useQuery({
+    queryKey: ["dp_dsr_ciencias", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("dp_dsr_ciencias")
+        .select("colaborador_id, papel, referencia_tabela, dias_seguidos, created_at")
+        .eq("company_id", selectedCompanyId!)
+        .eq("referencia_tabela", "dp_solicitacoes")
+        .eq("papel", "colaborador");
+      if (error) throw error;
+      return (data ?? []) as { colaborador_id: string; dias_seguidos: number; created_at: string }[];
+    },
+  });
+  /** Risco de DSR do pedido: ciência do colaborador registrada junto com o envio. */
+  const riscoDsr = (r: Row): number | null => {
+    const t = new Date(r.created_at).getTime();
+    const c = (ciencias.data ?? []).find(
+      (x) => x.colaborador_id === r.colaborador_id && Math.abs(new Date(x.created_at).getTime() - t) < 10 * 60 * 1000,
+    );
+    return c ? c.dias_seguidos : null;
+  };
+  const [confirmDsr, setConfirmDsr] = useState<{ row: RowWithColab; dias: number } | null>(null);
+  const [gestorCiente, setGestorCiente] = useState(false);
 
   const rows = list.data ?? [];
   const pendentes = useMemo(() => rows.filter((r) => r.status === "pendente"), [rows]);
@@ -140,6 +169,12 @@ export default function DpSolicitacoes() {
 
   const decide = (r: RowWithColab, approve: boolean) => {
     const resposta = (respostas[r.id] ?? "").trim() || (approve ? "Aprovado" : "Recusado");
+    const dias = approve ? riscoDsr(r) : null;
+    if (dias) {
+      setGestorCiente(false);
+      setConfirmDsr({ row: r, dias });
+      return;
+    }
     if (approve && r.tipo === "adiantamento") {
       setConfirmAdiantamento(r);
       return;
@@ -211,6 +246,12 @@ export default function DpSolicitacoes() {
                   </span>
                 </div>
 
+                {riscoDsr(s) && (
+                  <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-2 text-xs font-medium text-destructive">
+                    <AlertTriangle className="size-4 shrink-0" />
+                    Alerta de DSR: {riscoDsr(s)} dias seguidos sem descanso. O colaborador deu ciência.
+                  </div>
+                )}
                 {s.motivo && (
                   <div className="text-sm bg-muted/40 rounded-lg p-3 line-clamp-2 md:line-clamp-none">{s.motivo}</div>
                 )}
@@ -360,6 +401,52 @@ export default function DpSolicitacoes() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Ciência do gestor: mais de 6 dias seguidos sem descanso */}
+      <AlertDialog open={!!confirmDsr} onOpenChange={(v) => !v && setConfirmDsr(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" /> Atenção trabalhista
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDsr && avisoDsrGestor(confirmDsr.dias)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <label className="flex items-start gap-2 text-sm font-medium">
+            <Checkbox checked={gestorCiente} onCheckedChange={(v) => setGestorCiente(v === true)} className="mt-0.5" />
+            <span>Ciente do trabalho por mais de 6 dias consecutivos autorizado pela gestão.</span>
+          </label>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!gestorCiente}
+              onClick={() => {
+                if (!confirmDsr) return;
+                const r = confirmDsr.row;
+                const resposta = (respostas[r.id] ?? "").trim() || "Aprovado";
+                respond.mutate(
+                  { id: r.id, status: "aprovada", resposta },
+                  {
+                    onSuccess: () =>
+                      void registrarCienciaDsr({
+                        papel: "gestor",
+                        tabela: "dp_solicitacoes",
+                        referenciaId: r.id,
+                        data: r.data_alvo ?? new Date().toISOString().slice(0, 10),
+                        dias: confirmDsr.dias,
+                        colaboradorId: r.colaborador_id,
+                      }),
+                  },
+                );
+                setConfirmDsr(null);
+              }}
+            >
+              Aprovar com ciência
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Confirmação adiantamento */}
       <AlertDialog open={!!confirmAdiantamento} onOpenChange={(v) => !v && setConfirmAdiantamento(null)}>
