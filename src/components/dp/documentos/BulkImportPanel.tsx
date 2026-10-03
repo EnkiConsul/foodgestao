@@ -27,7 +27,8 @@ import { DpFilterCard } from "@/components/dp/DpPage";
 import { cn } from "@/lib/utils";
 import { BulkReviewDialog } from "./BulkReviewDialog";
 import { BulkReviewInline } from "./BulkReviewInline";
-import { DP_DOC_TIPOS_IMPORTAVEIS, docTipoGrupo, docTipoLabel } from "@/lib/dp/documentoTipos";
+import { DP_DOC_GRUPOS, DP_DOC_TIPOS_IMPORTAVEIS, docTipoGrupo, docTipoLabel } from "@/lib/dp/documentoTipos";
+import { SelectGroup, SelectLabel } from "@/components/ui/select";
 import { competenciaPredominante } from "@/lib/dp/bulk-coverage";
 import { notifyError } from "@/lib/notifyError";
 
@@ -512,7 +513,19 @@ export function BulkImportPanel({
                 <Label>Natureza do documento</Label>
                 <Select value={tipo} onValueChange={setTipo}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{TIPO_OPTS.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    <SelectItem value={AUTO_TIPO}>{TIPO_OPTS[0].l}</SelectItem>
+                    {DP_DOC_GRUPOS.map((g) => {
+                      const tipos = g.tipos.filter((t) => t.importavel);
+                      if (!tipos.length) return null;
+                      return (
+                        <SelectGroup key={g.grupo}>
+                          <SelectLabel className="text-xs uppercase text-muted-foreground">{g.label}</SelectLabel>
+                          {tipos.map((t) => <SelectItem key={t.value} value={t.value} className="pl-6">{t.label}</SelectItem>)}
+                        </SelectGroup>
+                      );
+                    })}
+                  </SelectContent>
                 </Select>
                 <p className="text-[11px] text-muted-foreground">
                   {tipo === AUTO_TIPO
