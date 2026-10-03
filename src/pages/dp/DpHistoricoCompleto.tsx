@@ -368,13 +368,15 @@ export default function DpHistoricoCompleto() {
   const setPreview = (r: UnifiedDoc | null) => { setPreviewRaw(r); };
   // Documento assinado abre já com o certificado completo de validação.
   const [certPreview, setCertPreview] = useState<{ url: string; revogar: () => void } | null>(null);
+  const [certStatus, setCertStatus] = useState<"idle" | "carregando" | "falhou">("idle");
   useEffect(() => {
-    if (!preview || preview.aceite !== true || !preview.id.startsWith("doc:")) return;
+    if (!preview || preview.aceite !== true || !preview.id.startsWith("doc:")) { setCertStatus("idle"); return; }
     let cancelado = false;
     let atual: { url: string; revogar: () => void } | null = null;
+    setCertStatus("carregando");
     certificadoValidacaoPdf(preview.id.slice(4))
-      .then((c) => { if (cancelado) c.revogar(); else { atual = c; setCertPreview(c); } })
-      .catch(() => undefined);
+      .then((c) => { if (cancelado) c.revogar(); else { atual = c; setCertPreview(c); setCertStatus("idle"); } })
+      .catch(() => { if (!cancelado) setCertStatus("falhou"); });
     return () => { cancelado = true; atual?.revogar(); setCertPreview(null); };
   }, [preview]);
   const [detalhe, setDetalhe] = useState<UnifiedDoc | null>(null);
@@ -1251,8 +1253,10 @@ export default function DpHistoricoCompleto() {
         path={certPreview ? undefined : preview?.viaFisica?.path ?? preview?.file_path ?? undefined}
         url={certPreview?.url}
         mime={certPreview ? "application/pdf" : preview?.viaFisica?.path ? preview.viaFisica.mime : preview?.mime_type}
-        comprovanteDocumentoId={preview?.comprovante_path && preview.id.startsWith("doc:") ? preview.id.slice(4) : null}
-        comprovantesExtras={extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null }))}
+        aguardando={certStatus === "carregando" && !certPreview ? "Carregando validação digital..." : null}
+        // O certificado já traz o comprovante de pagamento; não repetir ao final.
+        comprovanteDocumentoId={!certPreview && preview?.comprovante_path && preview.id.startsWith("doc:") ? preview.id.slice(4) : null}
+        comprovantesExtras={certPreview ? [] : extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null }))}
         toolbar={preview && (preview.aceite !== null || preview.aceiteDispensado || preview.viaFisica || preview.quitacao) ? (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <AssinaturaSelo r={preview} longo />

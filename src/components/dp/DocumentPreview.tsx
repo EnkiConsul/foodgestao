@@ -26,6 +26,8 @@ interface DocumentPreviewProps {
   comprovanteDocumentoId?: string | null;
   /** Comprovantes complementares (bucket dp-documentos), exibidos na mesma rolagem. */
   comprovantesExtras?: { id: string; path: string; mime: string | null }[];
+  /** Mensagem de espera: nada é carregado enquanto estiver definida. */
+  aguardando?: string | null;
 }
 
 /**
@@ -44,22 +46,23 @@ export function DocumentPreview({
   toolbar,
   comprovanteDocumentoId,
   comprovantesExtras,
+  aguardando,
 }: DocumentPreviewProps) {
   const [comprovante, setComprovante] = useState<{ url: string; mime: string | null; nome: string | null } | null>(null);
   useEffect(() => {
     setComprovante(null);
-    if (!open || !comprovanteDocumentoId) return;
+    if (!open || !comprovanteDocumentoId || aguardando) return;
     let cancelado = false;
     linkDocumentoAssinado(comprovanteDocumentoId, expiresIn, "comprovante")
       .then((l) => { if (!cancelado && l) setComprovante({ url: l.url, mime: l.mimeType, nome: l.fileName }); })
       .catch(() => undefined);
     return () => { cancelado = true; };
-  }, [open, comprovanteDocumentoId, expiresIn]);
+  }, [open, comprovanteDocumentoId, expiresIn, aguardando]);
   const extrasChave = (comprovantesExtras ?? []).map((e) => e.path).join("|");
   const [extras, setExtras] = useState<{ id: string; url: string; mime: string | null; path: string }[]>([]);
   useEffect(() => {
     setExtras([]);
-    if (!open || !comprovantesExtras?.length) return;
+    if (!open || !comprovantesExtras?.length || aguardando) return;
     let cancelado = false;
     Promise.all(comprovantesExtras.map(async (e) => {
       const { data } = await supabase.storage.from("dp-documentos").createSignedUrl(e.path, expiresIn);
@@ -67,14 +70,14 @@ export function DocumentPreview({
     })).then((r) => { if (!cancelado) setExtras(r.filter((x): x is NonNullable<typeof x> => !!x)); });
     return () => { cancelado = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, extrasChave, expiresIn]);
+  }, [open, extrasChave, expiresIn, aguardando]);
   const temAnexos = !!comprovante || extras.length > 0;
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(url ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || aguardando) return;
     if (url) {
       setResolvedUrl(url);
       return;
@@ -95,7 +98,7 @@ export function DocumentPreview({
     return () => {
       cancelled = true;
     };
-  }, [open, url, bucket, path, expiresIn]);
+  }, [open, url, bucket, path, expiresIn, aguardando]);
 
   /**
    * O link temporário do Storage vem com token na query, então a extensão
@@ -151,7 +154,12 @@ export function DocumentPreview({
         </DialogHeader>
         <div className={temAnexos ? "flex-1 min-h-0 overflow-y-auto bg-muted/30" : "flex-1 min-h-0 bg-muted/30"}>
         <div className={temAnexos ? "h-[75svh] sm:h-[70vh]" : "h-full"}>
-          {loading ? (
+          {aguardando ? (
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-sm text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <p>{aguardando}</p>
+            </div>
+          ) : loading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>

@@ -17,9 +17,24 @@ import { supabase } from "@/integrations/supabase/client";
  * temporário para abrir na própria tela (funciona no celular, onde abrir
  * outra aba é bloqueado). Lança erro com a frase pronta para a tela.
  */
+// Certificados já gerados na sessão: reabrir o mesmo documento é instantâneo.
+const cacheCertificados = new Map<string, Promise<Blob>>();
+
 export async function certificadoValidacaoPdf(
   documentoId: string,
 ): Promise<{ url: string; revogar: () => void }> {
+  let pendente = cacheCertificados.get(documentoId);
+  if (!pendente) {
+    pendente = gerarCertificadoBlob(documentoId);
+    cacheCertificados.set(documentoId, pendente);
+    pendente.catch(() => cacheCertificados.delete(documentoId));
+  }
+  const blob = await pendente;
+  const url = URL.createObjectURL(blob);
+  return { url, revogar: () => URL.revokeObjectURL(url) };
+}
+
+async function gerarCertificadoBlob(documentoId: string): Promise<Blob> {
   const { data, error } = await supabase.functions.invoke("dp-documento-certificado", {
     body: { documento_id: documentoId },
   });
@@ -32,9 +47,7 @@ export async function certificadoValidacaoPdf(
     }
     throw new Error(frase || "Não foi possível gerar o certificado agora.");
   }
-  const blob = data instanceof Blob ? data : new Blob([data as BlobPart], { type: "application/pdf" });
-  const url = URL.createObjectURL(blob);
-  return { url, revogar: () => URL.revokeObjectURL(url) };
+  return data instanceof Blob ? data : new Blob([data as BlobPart], { type: "application/pdf" });
 }
 
 export interface CertificadoValidacaoDados {
