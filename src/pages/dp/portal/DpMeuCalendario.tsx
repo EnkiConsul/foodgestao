@@ -153,6 +153,8 @@ export default function DpMeuCalendario() {
   const [exceptionMotivo, setExceptionMotivo] = useState("");
   const [tradeOpen, setTradeOpen] = useState<{ occupantId: string; occupantName: string; iso: string } | null>(null);
   const [tradeMyDate, setTradeMyDate] = useState<string>("");
+  /** Ciência da regra de descanso (mais de 6 dias seguidos) no diálogo aberto. */
+  const [cienteDsr, setCienteDsr] = useState(false);
   const [tradeMotivo, setTradeMotivo] = useState("");
   /** Mudança do dia da própria folga: dia atual, novo dia e motivo. */
   const [remarcarOpen, setRemarcarOpen] = useState<string | null>(null);
@@ -1067,16 +1069,30 @@ export default function DpMeuCalendario() {
     trabalhoExcepcionalQuery.data,
   ]);
 
-  /** Risco de descanso semanal (DSR) na troca aberta no diálogo. */
-  const riscoDsrTroca = useMemo(() => {
-    if (!tradeOpen || !tradeMyDate) return null;
-    const r = avaliarRiscoDsrTroca({
-      descansoIso: meusDescansosIso,
-      diaCedidoIso: tradeMyDate,
-      diaNovoIso: tradeOpen.iso,
-    });
-    return r.risco ? avisoDsr(r.sequencia) : null;
-  }, [tradeOpen, tradeMyDate, meusDescansosIso]);
+  /** Risco de descanso semanal (DSR) ao ceder um dia e folgar em outro. */
+  const avaliarDsr = (cedido?: string | null, novo?: string | null) => {
+    if (!cedido || !novo) return null;
+    const r = avaliarRiscoDsrTroca({ descansoIso: meusDescansosIso, diaCedidoIso: cedido, diaNovoIso: novo });
+    return r.risco ? { texto: avisoDsr(r.sequencia), sequencia: r.sequencia, data: cedido } : null;
+  };
+  const riscoDsrTroca = useMemo(
+    () => avaliarDsr(tradeMyDate, tradeOpen?.iso),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tradeOpen, tradeMyDate, meusDescansosIso],
+  );
+  const riscoDsrRemarcar = useMemo(
+    () => avaliarDsr(remarcarOpen, remarcarNova),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [remarcarOpen, remarcarNova, meusDescansosIso],
+  );
+  const riscoDsrExcecao = useMemo(
+    () => (excecaoModo === "troca_semanal" ? avaliarDsr(excecaoDiaTrabalho, selectedDay?.iso) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [excecaoModo, excecaoDiaTrabalho, selectedDay?.iso, meusDescansosIso],
+  );
+  useEffect(() => {
+    setCienteDsr(false);
+  }, [tradeOpen, tradeMyDate, remarcarOpen, remarcarNova, excecaoDiaTrabalho, excecaoModo]);
 
   /** Troca pendente que envolve o dia aberto no diálogo. */
   const trocaPendenteDoDia = useMemo(() => {
