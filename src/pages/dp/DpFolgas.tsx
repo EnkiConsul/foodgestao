@@ -631,6 +631,30 @@ export default function DpFolgas() {
     return map;
   }, [limiteByDay]);
 
+  const [verLimitesLojas, setVerLimitesLojas] = useState(false);
+
+  /** Na visão "Todas as lojas", limite de cada unidade para o dia aberto. */
+  const limitesPorUnidade = useMemo(() => {
+    if (!selectedDay || unidadeFilter !== "todas") return [];
+    const key = format(selectedDay, "yyyy-MM-dd");
+    const wd = selectedDay.getDay();
+    return (unidadesQuery.data ?? []).map((u: any) => {
+      const res = resolverLimiteFolga({
+        data: key,
+        unidadeId: u.id,
+        regras: regrasLimite,
+        diaConfig: diaConfigQuery.data ?? [],
+      });
+      if (wd >= 1 && wd <= 5 && res.origem !== "excecao_data") {
+        const qtd = (colabs.data ?? []).filter(
+          (c) => c.ativo !== false && c.unidade_id === u.id && normalizeWeekday(c.folga_fixa_semana) === wd,
+        ).length;
+        return { id: u.id as string, nome: u.nome as string, limite: qtd, origem: "folga_fixa" as const };
+      }
+      return { id: u.id as string, nome: u.nome as string, limite: res.limite, origem: res.origem };
+    });
+  }, [selectedDay, unidadeFilter, unidadesQuery.data, regrasLimite, diaConfigQuery.data, colabs.data]);
+
 
   const blockedByDate = useMemo(() => {
     type BlockInfo = {
