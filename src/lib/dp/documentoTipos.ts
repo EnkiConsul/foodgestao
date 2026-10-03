@@ -171,7 +171,8 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
     label: "Recibo de Pagamento em Dinheiro",
     grupo: "remuneracao",
     importavel: false,
-    exigeAceite: true,
+    // Assinatura física (papel): sem aceite digital.
+    exigeAceite: false,
     keywords: ["recibo de pagamento em dinheiro", "recibo em especie", "quitacao em especie"],
     badgeClass: "border-orange-300 text-orange-700",
   },
@@ -382,7 +383,8 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
     label: "Disciplinar",
     grupo: "outros",
     importavel: true,
-    exigeAceite: true,
+    // Assinatura física (papel): sem aceite digital.
+    exigeAceite: false,
     keywords: ["advertencia", "suspensao", "disciplinar"],
     badgeClass: "border-orange-300 text-orange-700",
   },
