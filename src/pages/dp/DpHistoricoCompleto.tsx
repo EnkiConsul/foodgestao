@@ -454,7 +454,7 @@ export default function DpHistoricoCompleto() {
         fetchAllPages<any>((from, to) =>
           supabase
             .from("dp_documentos")
-            .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id, comprovante_file_path, comprovante_mime_type, via_assinada_path, via_assinada_mime, via_assinada_em, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents, comprovantes_extra_qtd, comprovantes_extra_cents, valor_liquido_cents")
+            .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id, comprovante_file_path, comprovante_mime_type, via_assinada_path, via_assinada_mime, via_assinada_em, assinatura_fisica, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents, comprovantes_extra_qtd, comprovantes_extra_cents, valor_liquido_cents")
             .eq("company_id", cId)
             .order("id", { ascending: true })
             .range(from, to)),
@@ -517,7 +517,7 @@ export default function DpHistoricoCompleto() {
           aceite: d.exige_aceite ? aceitos.has(d.id) : null,
           aceite_em: aceitoEm.get(d.id) ?? null,
           aceiteDispensado: !d.exige_aceite && d.assinatura_detectada === true && !docTipoAssinaturaFisica(d.tipo),
-          viaFisica: !d.exige_aceite && docTipoAssinaturaFisica(d.tipo)
+          viaFisica: !d.exige_aceite && (d.assinatura_fisica || docTipoAssinaturaFisica(d.tipo))
             ? { path: d.via_assinada_path ?? null, mime: d.via_assinada_mime ?? null, em: d.via_assinada_em ?? null }
             : null,
            rescisao_grupo_id: d.rescisao_grupo_id ?? null,
@@ -779,8 +779,9 @@ export default function DpHistoricoCompleto() {
 
 
   const download = async (row: UnifiedDoc) => {
-    if (!row.file_path) return toast.error("Arquivo indisponível");
-    const { data, error } = await supabase.storage.from(row.bucket).createSignedUrl(row.file_path, 60);
+    const caminho = row.viaFisica?.path ?? row.file_path;
+    if (!caminho) return toast.error("Arquivo indisponível");
+    const { data, error } = await supabase.storage.from(row.bucket).createSignedUrl(caminho, 60);
     if (error || !data) return toast.error("Erro ao gerar link");
     const a = document.createElement("a");
     a.href = data.signedUrl;

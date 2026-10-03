@@ -540,7 +540,7 @@ export function BulkImportPanel({
           <label className="flex items-start gap-2 rounded-md border p-3 text-sm cursor-pointer">
             <input
               type="checkbox"
-              className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]"
+              className="mt-0.5 h-4 w-4 accent-primary"
               checked={jaAssinado}
               onChange={(e) => setJaAssinado(e.target.checked)}
             />
