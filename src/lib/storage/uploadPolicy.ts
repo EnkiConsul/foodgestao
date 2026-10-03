@@ -84,5 +84,41 @@ export function validarUpload(bucket: string, file: File): void {
 export async function prepararUpload(bucket: string, file: File): Promise<File> {
   const pronto = await converterHeicParaJpeg(file);
   validarUpload(bucket, pronto);
-  return pronto;
+  return materializarArquivo(pronto);
+}
+
+/**
+ * Copia os bytes do arquivo para a memória antes do envio. No Android, arquivos
+ * exportados por outros apps (ex.: CNH Digital) chegam como leitura temporária
+ * que o sistema corta no meio do envio ("Failed to fetch").
+ */
+export async function materializarArquivo(file: File): Promise<File> {
+  try {
+    const buf = await file.arrayBuffer();
+    return new File([buf], file.name, {
+      type: file.type || "application/octet-stream",
+      lastModified: file.lastModified,
+    });
+  } catch {
+    throw new Error(
+      "Não foi possível ler o arquivo no celular. Salve o arquivo na pasta Downloads ou envie uma foto e tente novamente.",
+    );
+  }
+}
+
+/** Repete operações de envio que falham por queda momentânea de rede. */
+export async function comRetentativa<T>(fn: () => Promise<T>, tentativas = 3): Promise<T> {
+  let ultimo: unknown;
+  for (let i = 0; i < tentativas; i++) {
+    try {
+      return await fn();
+    } catch (e: any) {
+      ultimo = e;
+      const msg = String(e?.message ?? e ?? "");
+      const rede = /fetch|network|timeout|load failed/i.test(msg) || e?.name === "StorageUnknownError";
+      if (!rede || i === tentativas - 1) throw e;
+      await new Promise((r) => setTimeout(r, 800 * (i + 1)));
+    }
+  }
+  throw ultimo;
 }
