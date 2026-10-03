@@ -1,5 +1,6 @@
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
 import { useEffect, useMemo, useState } from "react";
+import { certificadoValidacaoPdf } from "@/lib/dp/documento-certificado";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -350,6 +351,17 @@ export default function DpHistoricoCompleto() {
   );
   const extrasPreview = extrasQuery.data ?? [];
   const setPreview = (r: UnifiedDoc | null) => { setPreviewRaw(r); };
+  // Documento assinado abre já com o certificado completo de validação.
+  const [certPreview, setCertPreview] = useState<{ url: string; revogar: () => void } | null>(null);
+  useEffect(() => {
+    if (!preview || preview.aceite !== true || !preview.id.startsWith("doc:")) return;
+    let cancelado = false;
+    let atual: { url: string; revogar: () => void } | null = null;
+    certificadoValidacaoPdf(preview.id.slice(4))
+      .then((c) => { if (cancelado) c.revogar(); else { atual = c; setCertPreview(c); } })
+      .catch(() => undefined);
+    return () => { cancelado = true; atual?.revogar(); setCertPreview(null); };
+  }, [preview]);
   const [detalhe, setDetalhe] = useState<UnifiedDoc | null>(null);
   const [logAberto, setLogAberto] = useState(false);
   const [excluir, setExcluir] = useState<UnifiedDoc | null>(null);
