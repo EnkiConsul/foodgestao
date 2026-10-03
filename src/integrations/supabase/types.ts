@@ -4265,6 +4265,7 @@ export type Database = {
           error_message: string | null
           exigir_aceite: boolean
           id: string
+          ja_assinado: boolean
           matched_count: number
           prep_attempt_count: number
           prep_lease_expires_at: string | null
@@ -4289,6 +4290,7 @@ export type Database = {
           error_message?: string | null
           exigir_aceite?: boolean
           id?: string
+          ja_assinado?: boolean
           matched_count?: number
           prep_attempt_count?: number
           prep_lease_expires_at?: string | null
@@ -4313,6 +4315,7 @@ export type Database = {
           error_message?: string | null
           exigir_aceite?: boolean
           id?: string
+          ja_assinado?: boolean
           matched_count?: number
           prep_attempt_count?: number
           prep_lease_expires_at?: string | null
@@ -7671,6 +7674,7 @@ export type Database = {
           arquivo_sha256: string | null
           arquivo_sha256_em: string | null
           assinatura_detectada: boolean | null
+          assinatura_fisica: boolean
           ciclo_status: string
           colaborador_id: string | null
           company_id: string
@@ -7729,6 +7733,7 @@ export type Database = {
           arquivo_sha256?: string | null
           arquivo_sha256_em?: string | null
           assinatura_detectada?: boolean | null
+          assinatura_fisica?: boolean
           ciclo_status?: string
           colaborador_id?: string | null
           company_id: string
@@ -7787,6 +7792,7 @@ export type Database = {
           arquivo_sha256?: string | null
           arquivo_sha256_em?: string | null
           assinatura_detectada?: boolean | null
+          assinatura_fisica?: boolean
           ciclo_status?: string
           colaborador_id?: string | null
           company_id?: string
