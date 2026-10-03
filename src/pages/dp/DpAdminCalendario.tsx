@@ -230,6 +230,17 @@ export default function DpAdminCalendario() {
   const folgas = (folgasQ.data ?? []) as any[];
   const bloqueios = (blockedQ.data ?? []) as any[];
   const unidades = (unidadesQ.data ?? []) as any[];
+
+  // Unidade que governa o diálogo do dia: herda o filtro da tela; em "Todas"
+  // usa um seletor único no topo do diálogo (sem seletores repetidos nos blocos).
+  useEffect(() => {
+    if (!dayOpen) return;
+    setUnidadeDia((atual) => {
+      if (filterUnidade !== "all") return filterUnidade;
+      const ids = unidades.map((u: any) => u.id as string);
+      return atual && ids.includes(atual) ? atual : ids[0] ?? "";
+    });
+  }, [dayOpen, filterUnidade, unidades]);
   const pendentes = (pendentesQ.data ?? []) as any[];
 
   const dayLimits = useMemo(() => {
