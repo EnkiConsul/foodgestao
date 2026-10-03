@@ -161,7 +161,7 @@ export function useMeusDocumentos() {
       const { data: docs } = await supabase
         .from("dp_documentos")
         .select(
-          "id, titulo, tipo, referencia_data, file_path, file_name, mime_type, aprovacao_status, motivo_recusao, submetido_por_colaborador, descricao, created_at, exige_aceite, comprovante_file_path, comprovante_file_name, comprovante_pago_em"
+          "id, titulo, tipo, referencia_data, file_path, file_name, mime_type, aprovacao_status, motivo_recusao, submetido_por_colaborador, descricao, created_at, exige_aceite, comprovante_file_path, comprovante_file_name, comprovante_pago_em, via_assinada_path, via_assinada_mime"
         )
         .eq("colaborador_id", colab.id)
         .order("created_at", { ascending: false });
@@ -210,8 +210,8 @@ export function useMeusDocumentos() {
           status_key,
           status_label,
           bucket: "dp-documentos",
-          file_path: d.file_path ?? null,
-          mime_type: d.mime_type ?? null,
+          file_path: d.via_assinada_path ?? d.file_path ?? null,
+          mime_type: d.via_assinada_path ? d.via_assinada_mime ?? null : d.mime_type ?? null,
           created_at: d.created_at,
           observacao: d.descricao ?? null,
           motivo_recusao: d.motivo_recusao ?? null,

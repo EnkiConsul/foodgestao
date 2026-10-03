@@ -72,6 +72,7 @@ export const DOC_TIPO_LABEL: Record<string, string> = {
   disciplinar: "Disciplinar",
   ferias: "Férias",
   sindicato: "Negociação Sindical",
+  recibo_pagamento_especie: "Recibo de Pagamento em Dinheiro",
   outros: "Documento",
 };
 

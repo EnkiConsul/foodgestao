@@ -333,6 +333,9 @@ Deno.serve(async (req) => {
         return erro(400, "O recibo não pôde ser registrado no acervo do colaborador.");
       }
       atualiza.documento_id = String(docId);
+      if (b.canal_assinatura === "fisico") {
+        await admin.from("dp_documentos").update({ assinatura_fisica: true }).eq("id", String(docId));
+      }
     }
     await admin.from("dp_recibos").update(atualiza).eq("id", row.id);
 

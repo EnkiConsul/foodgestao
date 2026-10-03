@@ -348,7 +348,8 @@ Deno.serve(async (req) => {
         file_size: bytes.byteLength,
         mime_type: "application/pdf",
         referencia_data: visivel.referencia_data,
-        exige_aceite: true,
+        exige_aceite: false,
+        assinatura_fisica: true,
       },
     });
     if (erroRegistro || !novoId) {
