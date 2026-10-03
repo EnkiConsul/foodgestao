@@ -24,6 +24,8 @@ interface DocumentPreviewProps {
   toolbar?: React.ReactNode;
   /** Documento do DP cujo comprovante de pagamento aparece logo abaixo, na mesma rolagem. */
   comprovanteDocumentoId?: string | null;
+  /** Comprovantes complementares (bucket dp-documentos), exibidos na mesma rolagem. */
+  comprovantesExtras?: { id: string; path: string; mime: string | null }[];
 }
 
 /**
@@ -41,6 +43,7 @@ export function DocumentPreview({
   expiresIn = 300,
   toolbar,
   comprovanteDocumentoId,
+  comprovantesExtras,
 }: DocumentPreviewProps) {
   const [comprovante, setComprovante] = useState<{ url: string; mime: string | null; nome: string | null } | null>(null);
   useEffect(() => {
@@ -52,6 +55,20 @@ export function DocumentPreview({
       .catch(() => undefined);
     return () => { cancelado = true; };
   }, [open, comprovanteDocumentoId, expiresIn]);
+  const extrasChave = (comprovantesExtras ?? []).map((e) => e.path).join("|");
+  const [extras, setExtras] = useState<{ id: string; url: string; mime: string | null; path: string }[]>([]);
+  useEffect(() => {
+    setExtras([]);
+    if (!open || !comprovantesExtras?.length) return;
+    let cancelado = false;
+    Promise.all(comprovantesExtras.map(async (e) => {
+      const { data } = await supabase.storage.from("dp-documentos").createSignedUrl(e.path, expiresIn);
+      return data?.signedUrl ? { id: e.id, url: data.signedUrl, mime: e.mime, path: e.path } : null;
+    })).then((r) => { if (!cancelado) setExtras(r.filter((x): x is NonNullable<typeof x> => !!x)); });
+    return () => { cancelado = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, extrasChave, expiresIn]);
+  const temAnexos = !!comprovante || extras.length > 0;
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(url ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -132,8 +149,8 @@ export function DocumentPreview({
           <DialogTitle className="truncate text-sm sm:text-base">{title}</DialogTitle>
           {toolbar}
         </DialogHeader>
-        <div className={comprovante ? "flex-1 min-h-0 overflow-y-auto bg-muted/30" : "flex-1 min-h-0 bg-muted/30"}>
-        <div className={comprovante ? "h-[75svh] sm:h-[70vh]" : "h-full"}>
+        <div className={temAnexos ? "flex-1 min-h-0 overflow-y-auto bg-muted/30" : "flex-1 min-h-0 bg-muted/30"}>
+        <div className={temAnexos ? "h-[75svh] sm:h-[70vh]" : "h-full"}>
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -179,18 +196,18 @@ export function DocumentPreview({
             </div>
           )}
         </div>
-        {comprovante && (
-          <section className="border-t bg-background">
-            <p className="px-3 py-2 text-sm font-medium">Comprovante de Pagamento</p>
-            {(comprovante.mime ?? "").startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(comprovante.nome ?? "") ? (
-              <img src={comprovante.url} alt="Comprovante de pagamento" className="block w-full h-auto" />
+        {[...(comprovante ? [{ id: "principal", url: comprovante.url, mime: comprovante.mime, path: comprovante.nome ?? "" }] : []), ...extras].map((c, i, arr) => (
+          <section key={c.id} className="border-t bg-background">
+            <p className="px-3 py-2 text-sm font-medium">{arr.length > 1 ? `Comprovante de Pagamento ${i + 1}` : "Comprovante de Pagamento"}</p>
+            {(c.mime ?? "").startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(c.path) ? (
+              <img src={c.url} alt="Comprovante de pagamento" className="block w-full h-auto" />
             ) : (
               <div className="h-[75svh] sm:h-[70vh]">
-                <PdfCanvasViewer url={comprovante.url} title="Comprovante de pagamento" />
+                <PdfCanvasViewer url={c.url} title="Comprovante de pagamento" />
               </div>
             )}
           </section>
-        )}
+        ))}
         </div>
         <DialogFooter className="p-2 sm:p-3 border-t flex-row flex-wrap sm:justify-between gap-2">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>

@@ -69,6 +69,7 @@ type UnifiedDoc = {
   titulo: string;
   /** null = não exige aceite; false = aguardando; true = aceito */
   aceite: boolean | null;
+  aceite_em?: string | null;
   /** Validação digital dispensada porque o documento já veio assinado. */
   aceiteDispensado?: boolean;
   rescisao_grupo_id?: string | null;
@@ -156,6 +157,39 @@ const ACOES_WIDTH = 96;
 function aceiteLabel(r: UnifiedDoc) {
   if (r.aceite === null) return r.aceiteDispensado ? "Dispensado" : "—";
   return r.aceite ? "Aceito" : "Aguardando";
+}
+
+function fmtDataHora(iso?: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? "" : d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+/** Selo de assinatura para card mobile e visualizador. */
+function AssinaturaSelo({ r, longo }: { r: UnifiedDoc; longo?: boolean }) {
+  if (r.aceite === true) {
+    const quando = fmtDataHora(r.aceite_em);
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+        ✓ {longo ? `Assinado pelo colaborador${quando ? ` em ${quando}` : ""}` : "Assinado"}
+      </span>
+    );
+  }
+  if (r.aceite === false) {
+    return (
+      <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+        Aguardando assinatura
+      </span>
+    );
+  }
+  if (r.aceiteDispensado) {
+    return (
+      <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+        Assinatura física (dispensado)
+      </span>
+    );
+  }
+  return null;
 }
 
 /**
@@ -311,13 +345,11 @@ export default function DpHistoricoCompleto() {
   const [ano, setAno] = useState("all");
   const [busca, setBusca] = useState("");
   const [preview, setPreviewRaw] = useState<UnifiedDoc | null>(null);
-  const [previewAba, setPreviewAba] = useState<string>("doc");
   const extrasQuery = useComprovantesComplementares(
     preview?.id?.startsWith("doc:") && (preview?.quitacao?.qtd ?? 0) > 1 ? preview.id.slice(4) : null,
   );
   const extrasPreview = extrasQuery.data ?? [];
-  const extraAtual = extrasPreview.find((e) => e.id === previewAba) ?? null;
-  const setPreview = (r: UnifiedDoc | null) => { setPreviewAba("doc"); setPreviewRaw(r); };
+  const setPreview = (r: UnifiedDoc | null) => { setPreviewRaw(r); };
   const [detalhe, setDetalhe] = useState<UnifiedDoc | null>(null);
   const [logAberto, setLogAberto] = useState(false);
   const [excluir, setExcluir] = useState<UnifiedDoc | null>(null);
@@ -419,7 +451,7 @@ export default function DpHistoricoCompleto() {
         fetchAllPages<any>((from, to) =>
           supabase
             .from("dp_documento_aceites")
-            .select("id, documento_id")
+            .select("id, documento_id, aceito_em")
             .eq("company_id", cId)
             .not("documento_id", "is", null)
             .order("id", { ascending: true })
@@ -430,6 +462,7 @@ export default function DpHistoricoCompleto() {
       const discRes = { data: discs };
 
       const aceitos = new Set(aceites.map((a: any) => a.documento_id as string));
+      const aceitoEm = new Map<string, string | null>(aceites.map((a: any) => [a.documento_id as string, (a.aceito_em as string) ?? null]));
 
       const rows: UnifiedDoc[] = [];
 
@@ -455,6 +488,7 @@ export default function DpHistoricoCompleto() {
           mime_type: d.mime_type,
           titulo: d.titulo,
           aceite: d.exige_aceite ? aceitos.has(d.id) : null,
+          aceite_em: aceitoEm.get(d.id) ?? null,
           aceiteDispensado: !d.exige_aceite && d.assinatura_detectada === true,
            rescisao_grupo_id: d.rescisao_grupo_id ?? null,
           tem_comprovante: !!d.comprovante_file_path,
@@ -1085,38 +1119,49 @@ export default function DpHistoricoCompleto() {
                 <div className="font-semibold truncate">{r.colaborador_nome}</div>
                 <div className="text-[11px] text-muted-foreground truncate">{r.unidade_nome}</div>
               </div>
-              <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
                 <Badge variant="outline" className={tipoBadgeClass(r.tipo_key) + " text-[10px]"}>{r.tipo_label}</Badge>
                 <span className="font-mono text-muted-foreground">Comp. {r.competencia}</span>
+                <AssinaturaSelo r={r} />
               </div>
             </button>
 
             <div className="pt-1 border-t border-border/60 space-y-1">
-              <div className="flex items-center justify-center gap-1">
-                <Button size="sm" variant="ghost" className="min-h-11 flex-1 max-w-[45%]" onClick={() => setPreview(r)} disabled={!r.file_path}>
+              <div className="grid grid-cols-3 gap-1">
+                <Button size="sm" variant="ghost" className="min-h-11 px-1" onClick={() => setPreview(r)} disabled={!r.file_path}>
                   <Eye className="h-4 w-4 mr-1 text-primary" /> Ver
                 </Button>
                 {r.id.startsWith("doc:") ? (
-                  <ComprovanteAcaoBotao
-                    alvo={{ documentoId: r.id.slice(4), colaboradorId: r.colaborador_id, tipo: r.tipo_key }}
-                    temComprovante={!!r.tem_comprovante}
-                    documentoTitulo={r.titulo}
-                    colaboradorNome={r.colaborador_nome}
-                    competencia={r.competencia}
-                    rotulo="Comprovante"
-                    className="min-h-11 flex-1 max-w-[45%]"
-                  />
-                ) : null}
-                {r.quitacao ? <div className="w-full"><QuitacaoSelo q={r.quitacao} /></div> : null}
-                <Button size="sm" variant="ghost" className="min-h-11 flex-1 max-w-[45%]" onClick={() => download(r)} disabled={!r.file_path}>
+                  <div className="relative flex">
+                    {r.quitacao && r.quitacao.comprovadoCents > 0 && r.quitacao.status !== "sem_referencia" ? (
+                      <span
+                        aria-label={r.quitacao.status === "exato" ? "Valor conferido" : "Valor divergente"}
+                        title={fraseConferenciaValor(r.quitacao) ?? undefined}
+                        className={`pointer-events-none absolute -top-1.5 left-1/2 z-10 -translate-x-1/2 rounded-full px-1.5 text-[10px] font-bold leading-4 ${r.quitacao.status === "exato" ? "bg-emerald-600 text-primary-foreground" : "bg-amber-500 text-primary-foreground"}`}
+                      >
+                        {r.quitacao.status === "exato" ? "✓" : "⚠"}
+                      </span>
+                    ) : null}
+                    <ComprovanteAcaoBotao
+                      alvo={{ documentoId: r.id.slice(4), colaboradorId: r.colaborador_id, tipo: r.tipo_key }}
+                      temComprovante={!!r.tem_comprovante}
+                      documentoTitulo={r.titulo}
+                      colaboradorNome={r.colaborador_nome}
+                      competencia={r.competencia}
+                      rotulo="Comprovante"
+                      className="min-h-11 w-full px-1"
+                    />
+                  </div>
+                ) : <span />}
+                <Button size="sm" variant="ghost" className="min-h-11 px-1" onClick={() => download(r)} disabled={!r.file_path}>
                   <Download className="h-4 w-4 mr-1" /> Baixar
                 </Button>
               </div>
-              <div className="flex items-center justify-center gap-2">
-                <Button size="sm" variant="ghost" className="min-h-11 flex-1 max-w-[45%] text-destructive" onClick={() => setExcluir(r)}>
+              <div className="grid grid-cols-2 gap-1">
+                <Button size="sm" variant="ghost" className="min-h-11 text-destructive" onClick={() => setExcluir(r)}>
                   <Trash2 className="h-4 w-4 mr-1" /> Excluir
                 </Button>
-                <Button size="sm" variant="ghost" className="min-h-11 flex-1 max-w-[45%]" onClick={() => abrirSubstituir(r)}>
+                <Button size="sm" variant="ghost" className="min-h-11" onClick={() => abrirSubstituir(r)}>
                   <Replace className="h-4 w-4 mr-1" /> Substituir
                 </Button>
               </div>
@@ -1166,15 +1211,15 @@ export default function DpHistoricoCompleto() {
         onOpenChange={(v) => { if (!v) setPreview(null); }}
         title={preview?.titulo}
         bucket={preview?.bucket}
-        path={(previewAba === "comprovante" ? preview?.comprovante_path : extraAtual ? extraAtual.file_path : preview?.file_path) ?? undefined}
-        mime={previewAba === "comprovante" ? preview?.comprovante_mime : extraAtual ? extraAtual.mime_type : preview?.mime_type}
-        toolbar={preview?.comprovante_path ? (
-          <div className="mt-2 flex flex-wrap gap-2" role="tablist" aria-label="Arquivos do documento">
-            {([["doc", "Documento Principal"], ["comprovante", extrasPreview.length ? "Comprovante 1" : "Comprovante de Pagamento"], ...extrasPreview.map((e, i) => [e.id, `Comprovante ${i + 2}`] as const)] as const).map(([k, l]) => (
-              <Button key={k} role="tab" aria-selected={previewAba === k} size="sm" variant={previewAba === k ? "default" : "outline"} className="h-8 text-xs" onClick={() => setPreviewAba(k)}>
-                {l}
-              </Button>
-            ))}
+        path={preview?.file_path ?? undefined}
+        mime={preview?.mime_type}
+        comprovanteDocumentoId={preview?.comprovante_path && preview.id.startsWith("doc:") ? preview.id.slice(4) : null}
+        comprovantesExtras={extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null }))}
+        toolbar={preview && (preview.aceite !== null || preview.aceiteDispensado || preview.quitacao) ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <AssinaturaSelo r={preview} longo />
+            <QuitacaoSelo q={preview.quitacao} />
+            {preview.comprovante_path ? <span className="text-[11px] text-muted-foreground">Comprovante logo abaixo do documento ↓</span> : null}
           </div>
         ) : null}
       />
