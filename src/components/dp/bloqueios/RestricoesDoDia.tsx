@@ -87,7 +87,7 @@ export function RestricoesDoDia({ companyId, data, unidadeIdInicial, unidades }:
   const colabs = colabsQ.data ?? [];
   const nomeColab = (id: string) => colabs.find((c) => c.id === id)?.nome;
   const bloqueiosDaUnidade = (bloqueiosQ.data ?? []).filter((b) => nomeColab(b.colaborador_id));
-  const setores = ((setoresQ as any).data ?? (setoresQ as any).setores ?? []) as { id: string; nome: string }[];
+  const setores = ((setoresQ as any).setores ?? []) as { id: string; nome: string }[];
   const cargos = cargosQ.data ?? [];
 
   const restricoesDia = useMemo(
@@ -115,7 +115,7 @@ export function RestricoesDoDia({ companyId, data, unidadeIdInicial, unidades }:
       setColabSel("");
       qc.invalidateQueries({ queryKey: ["restricoes_dia_bloqueios"] });
     },
-    onError: (e) => notifyError(e, "Não foi possível bloquear o colaborador."),
+    onError: (e) => notifyError(e, { surface: "Calendário", action: "bloquear o colaborador" }),
   });
 
   const liberarColab = useMutation({
@@ -127,7 +127,7 @@ export function RestricoesDoDia({ companyId, data, unidadeIdInicial, unidades }:
       toast.success("Bloqueio removido.");
       qc.invalidateQueries({ queryKey: ["restricoes_dia_bloqueios"] });
     },
-    onError: (e) => notifyError(e, "Não foi possível remover o bloqueio."),
+    onError: (e) => notifyError(e, { surface: "Calendário", action: "remover o bloqueio" }),
   });
 
   const adicionarLimite = async () => {
@@ -150,7 +150,7 @@ export function RestricoesDoDia({ companyId, data, unidadeIdInicial, unidades }:
       setAlvoSel("");
       setMaximo(0);
     } catch (e) {
-      notifyError(e, "Não foi possível salvar a restrição.");
+      notifyError(e, { surface: "Calendário", action: "salvar a restrição" });
     }
   };
 
