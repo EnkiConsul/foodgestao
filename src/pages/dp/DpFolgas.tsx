@@ -1470,46 +1470,58 @@ export default function DpFolgas() {
                     (() => {
                       const res = limiteByDay.get(format(selectedDay, "yyyy-MM-dd"));
                       return (
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-sm font-semibold">
                           {res?.limite != null
-                            ? `Hoje o limite é ${res.limite} ${res.limite === 1 ? "pessoa" : "pessoas"} em folga — ${origemLimiteLabel(res.origem).toLowerCase()}.`
-                            : "Nenhum limite para este dia. Cadastre uma regra fixa em Folgas > Regras ou informe uma exceção abaixo."}
+                            ? `Vagas da unidade: ${res.limite} ${res.limite === 1 ? "pessoa" : "pessoas"} em folga — ${origemLimiteLabel(res.origem).toLowerCase()}.`
+                            : "Nenhum limite para este dia. Cadastre uma regra fixa em Folgas > Regras ou ajuste as vagas abaixo."}
                         </p>
                       );
                     })()
                   )}
-                  <div className="flex gap-3">
-                    <div className="flex-1">
-                      <Label className="mb-1.5 block text-[10px] font-bold text-muted-foreground">
-                        Exceção só para esta data
-                      </Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={20}
-                        value={editLimit}
-                        onChange={(e) => setEditLimit(Number(e.target.value))}
-                        className="h-11 rounded-xl font-bold"
-                      />
-                    </div>
-                    <Button
-                      onClick={() => salvarLimite.mutate()}
-                      disabled={salvarLimite.isPending}
-                      className="mt-auto h-11 rounded-xl px-5"
-                    >
-                      <Save className="mr-2 h-4 w-4" />
-                      {salvarLimite.isPending ? "..." : "Salvar"}
-                    </Button>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">0 = ninguém pode folgar neste dia.</p>
 
-                  {selectedCompanyId && (
-                    <VagasCargoSetorDia
-                      companyId={selectedCompanyId}
-                      data={format(selectedDay, "yyyy-MM-dd")}
-                      unidadeIdInicial={unidadeFilter === "todas" ? null : unidadeFilter}
-                      unidades={(unidadesQuery.data ?? []).map((u: any) => ({ id: u.id, nome: u.nome }))}
-                    />
+                  <Button
+                    variant="outline"
+                    className="h-10 w-full rounded-xl font-bold"
+                    onClick={() => setAjustarVagasAberto((v) => !v)}
+                  >
+                    {ajustarVagasAberto ? "Fechar ajuste de vagas" : "Ajustar vagas deste dia"}
+                  </Button>
+
+                  {ajustarVagasAberto && (
+                    <div className="space-y-3">
+                      <div className="flex gap-3">
+                        <div className="flex-1">
+                          <Label className="mb-1.5 block text-[10px] font-bold text-muted-foreground">
+                            Exceção só para esta data
+                          </Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={20}
+                            value={editLimit}
+                            onChange={(e) => setEditLimit(Number(e.target.value))}
+                            className="h-11 rounded-xl font-bold"
+                          />
+                        </div>
+                        <Button
+                          onClick={() => salvarLimite.mutate()}
+                          disabled={salvarLimite.isPending}
+                          className="mt-auto h-11 rounded-xl px-5"
+                        >
+                          <Save className="mr-2 h-4 w-4" />
+                          {salvarLimite.isPending ? "..." : "Salvar"}
+                        </Button>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">0 = ninguém pode folgar neste dia.</p>
+
+                      {selectedCompanyId && (
+                        <VagasCargoSetorDia
+                          companyId={selectedCompanyId}
+                          data={format(selectedDay, "yyyy-MM-dd")}
+                          unidadeId={unidadeDia}
+                        />
+                      )}
+                    </div>
                   )}
                 </div>
               )}
