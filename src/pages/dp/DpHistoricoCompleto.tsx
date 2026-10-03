@@ -69,6 +69,7 @@ type UnifiedDoc = {
   titulo: string;
   /** null = não exige aceite; false = aguardando; true = aceito */
   aceite: boolean | null;
+  aceite_em?: string | null;
   /** Validação digital dispensada porque o documento já veio assinado. */
   aceiteDispensado?: boolean;
   rescisao_grupo_id?: string | null;
@@ -419,7 +420,7 @@ export default function DpHistoricoCompleto() {
         fetchAllPages<any>((from, to) =>
           supabase
             .from("dp_documento_aceites")
-            .select("id, documento_id")
+            .select("id, documento_id, aceito_em")
             .eq("company_id", cId)
             .not("documento_id", "is", null)
             .order("id", { ascending: true })
@@ -430,6 +431,7 @@ export default function DpHistoricoCompleto() {
       const discRes = { data: discs };
 
       const aceitos = new Set(aceites.map((a: any) => a.documento_id as string));
+      const aceitoEm = new Map<string, string | null>(aceites.map((a: any) => [a.documento_id as string, (a.aceito_em as string) ?? null]));
 
       const rows: UnifiedDoc[] = [];
 
@@ -455,6 +457,7 @@ export default function DpHistoricoCompleto() {
           mime_type: d.mime_type,
           titulo: d.titulo,
           aceite: d.exige_aceite ? aceitos.has(d.id) : null,
+          aceite_em: aceitoEm.get(d.id) ?? null,
           aceiteDispensado: !d.exige_aceite && d.assinatura_detectada === true,
            rescisao_grupo_id: d.rescisao_grupo_id ?? null,
           tem_comprovante: !!d.comprovante_file_path,
