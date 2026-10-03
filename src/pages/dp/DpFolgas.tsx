@@ -100,6 +100,8 @@ import {
   type RegraRow,
 } from "@/lib/dp/bloqueio-rules";
 import { LiberarEscopoDialog } from "@/components/dp/bloqueios/LiberarEscopoDialog";
+import { DataDialog } from "@/components/dp/bloqueios/DataDialog";
+import type { DataFormState } from "@/lib/dp/bloqueios";
 import type { Database } from "@/integrations/supabase/types";
 
 type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"] & {
@@ -261,6 +263,32 @@ export default function DpFolgas() {
   const [triagemOpen, setTriagemOpen] = useState(false);
 
   const [liberarEscopoOpen, setLiberarEscopoOpen] = useState(false);
+
+  // Bloqueio direto pelo dia: reutiliza o formulário oficial de Regras > Datas Bloqueadas.
+  const [bloqueioOpen, setBloqueioOpen] = useState(false);
+  const [bloqueioForm, setBloqueioForm] = useState<DataFormState>({ data: "", motivo: "", unidade_id: "" });
+  const bloquearData = useMutation({
+    mutationFn: async () => {
+      if (!selectedCompanyId) return;
+      if (!bloqueioForm.data) throw new Error("Selecione uma data");
+      if (!bloqueioForm.motivo.trim()) throw new Error("Informe o motivo");
+      await salvarDataBloqueada({
+        companyId: selectedCompanyId,
+        data: bloqueioForm.data,
+        motivo: bloqueioForm.motivo.trim(),
+        unidadeId: bloqueioForm.unidade_id || null,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Data bloqueada");
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_geral"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_admin"] });
+      setBloqueioOpen(false);
+      setSelectedDay(null);
+    },
+    onError: (e: any) => toast.error("Erro ao bloquear", { description: e?.message ?? "Tente novamente." }),
+  });
 
   const liberarData = useMutation({
     mutationFn: async (params: { unidadeId: string | null }) => {
@@ -493,7 +521,8 @@ export default function DpFolgas() {
     for (const r of query.data ?? []) {
       if (!r.data_alvo) continue;
       const start = parseISO(r.data_alvo);
-      const end = r.data_fim ? parseISO(r.data_fim) : start;
+      // Pedido de folga é sempre um dia exato; só férias/atestados/licenças são intervalos.
+      const end = r.data_fim && r.tipo !== "folga" ? parseISO(r.data_fim) : start;
       for (const d of eachDayOfInterval({ start, end })) {
         if (!isWithinInterval(d, { start: rangeStart, end: rangeEnd })) continue;
         const key = format(d, "yyyy-MM-dd");
@@ -1307,6 +1336,23 @@ export default function DpFolgas() {
                 </div>
               )}
 
+              {!selectedBlock && (
+                <Button
+                  variant="outline"
+                  className="h-11 w-full rounded-xl border-destructive/30 font-bold text-destructive hover:bg-destructive/10"
+                  onClick={() => {
+                    setBloqueioForm({
+                      data: format(selectedDay, "yyyy-MM-dd"),
+                      motivo: "",
+                      unidade_id: unidadeFilter === "todas" ? "" : unidadeFilter,
+                    });
+                    setBloqueioOpen(true);
+                  }}
+                >
+                  <Lock className="mr-2 h-4 w-4" /> Bloquear esta data
+                </Button>
+              )}
+
               {selectedDay && (
                 <div className="space-y-3 rounded-2xl border bg-muted/30 p-5">
                   <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
@@ -1662,6 +1708,17 @@ export default function DpFolgas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DataDialog
+        open={bloqueioOpen}
+        isEditing={false}
+        form={bloqueioForm}
+        unidades={unidadesQuery.data ?? []}
+        saving={bloquearData.isPending}
+        onChange={(u) => setBloqueioForm(u)}
+        onCancel={() => setBloqueioOpen(false)}
+        onSubmit={() => bloquearData.mutate()}
+      />
 
       <LiberarEscopoDialog
         open={liberarEscopoOpen}
