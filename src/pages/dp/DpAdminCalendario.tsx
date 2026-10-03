@@ -83,7 +83,7 @@ import {
 } from "@/lib/dp/bloqueio-rules";
 import { LiberarEscopoDialog } from "@/components/dp/bloqueios/LiberarEscopoDialog";
 import { DataDialog } from "@/components/dp/bloqueios/DataDialog";
-import { RestricoesDoDia } from "@/components/dp/bloqueios/RestricoesDoDia";
+import { VagasCargoSetorDia, ImpedimentosDoDia } from "@/components/dp/bloqueios/RestricoesDoDia";
 import type { DataFormState } from "@/lib/dp/bloqueios";
 import { CalendarioMobileLista } from "@/components/dp/CalendarioMobileLista";
 import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
@@ -943,12 +943,20 @@ export default function DpAdminCalendario() {
               )}
 
               {selectedCompanyId && (
-                <RestricoesDoDia
-                  companyId={selectedCompanyId}
-                  data={dayOpen}
-                  unidadeIdInicial={filterUnidade === "all" ? null : filterUnidade}
-                  unidades={unidades.map((u: any) => ({ id: u.id, nome: u.nome }))}
-                />
+                <>
+                  <VagasCargoSetorDia
+                    companyId={selectedCompanyId}
+                    data={dayOpen}
+                    unidadeIdInicial={filterUnidade === "all" ? null : filterUnidade}
+                    unidades={unidades.map((u: any) => ({ id: u.id, nome: u.nome }))}
+                  />
+                  <ImpedimentosDoDia
+                    companyId={selectedCompanyId}
+                    data={dayOpen}
+                    unidadeIdInicial={filterUnidade === "all" ? null : filterUnidade}
+                    unidades={unidades.map((u: any) => ({ id: u.id, nome: u.nome }))}
+                  />
+                </>
               )}
 
               {currentIsWeekend && (
