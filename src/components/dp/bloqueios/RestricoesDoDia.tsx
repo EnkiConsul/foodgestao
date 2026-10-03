@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Ban, ChevronDown, ChevronUp, Loader2, Plus, ShieldAlert, Trash2, Users } from "lucide-react";
+import { Ban, Loader2, Plus, ShieldAlert, Trash2, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
 import { useDpSetores } from "@/hooks/useDpSetores";

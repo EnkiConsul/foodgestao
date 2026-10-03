@@ -1539,7 +1539,7 @@ export default function DpFolgas() {
                       return (
                         <p className="text-sm font-semibold">
                           {res?.limite != null
-                            ? `Vagas da unidade: até ${res.limite} ${res.limite === 1 ? "pessoa pode" : "pessoas podem"} folgar neste dia — ${res.origem === "folga_recorrente" ? "soma das regras da loja" : origemLimiteLabel(res.origem).toLowerCase()}.`
+                            ? `Vagas da unidade: até ${res.limite} ${res.limite === 1 ? "pessoa pode" : "pessoas podem"} folgar neste dia — ${res.origem === "regra_recorrente" ? "regras da loja" : origemLimiteLabel(res.origem).toLowerCase()}.`
                             : "Nenhum limite para este dia. Cadastre uma regra fixa em Folgas > Regras ou ajuste as vagas abaixo."}
                         </p>
                       );
