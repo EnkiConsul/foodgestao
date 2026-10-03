@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { prepararUpload } from "@/lib/storage/uploadPolicy";
+import { prepararUpload, comRetentativa } from "@/lib/storage/uploadPolicy";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -141,11 +141,14 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
       if (!ctx) throw new Error("Checklist não carregado");
       const file = await prepararUpload(DP_DOCUMENTOS_BUCKET, escolhido);
       const path = `${ctx.colaborador.company_id}/${ctx.colaborador.id}/requisitos/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
-      const up = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(path, file, {
-        contentType: file.type,
-        upsert: false,
+      await comRetentativa(async () => {
+        const up = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(path, file, {
+          contentType: file.type,
+          upsert: false,
+        });
+        // Retentativa após envio já concluído no servidor: o arquivo existe.
+        if (up.error && !/exists|duplicate/i.test(up.error.message)) throw up.error;
       });
-      if (up.error) throw up.error;
 
       const hash = await hashArquivo(file);
 
