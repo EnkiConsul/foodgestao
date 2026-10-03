@@ -245,6 +245,8 @@ export default function DpFolgas() {
   }, [selectedCompanyId, unidadeFilter, colabFilter, tipoFilter]);
 
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [unidadeDia, setUnidadeDia] = useState<string>("");
+  const [ajustarVagasAberto, setAjustarVagasAberto] = useState(false);
   const [quickColabId, setQuickColabId] = useState<string>("");
   const [editLimit, setEditLimit] = useState<number>(1);
   
