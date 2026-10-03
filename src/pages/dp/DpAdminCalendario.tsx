@@ -956,17 +956,28 @@ export default function DpAdminCalendario() {
 
               {selectedCompanyId && (
                 <>
+                  {filterUnidade === "all" && (
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold text-muted-foreground">Unidade deste dia</Label>
+                      <Select value={unidadeDia} onValueChange={setUnidadeDia}>
+                        <SelectTrigger className="h-10 rounded-xl"><SelectValue placeholder="Escolha a unidade" /></SelectTrigger>
+                        <SelectContent>
+                          {unidades.map((u: any) => (
+                            <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <VagasCargoSetorDia
                     companyId={selectedCompanyId}
                     data={dayOpen}
-                    unidadeIdInicial={filterUnidade === "all" ? null : filterUnidade}
-                    unidades={unidades.map((u: any) => ({ id: u.id, nome: u.nome }))}
+                    unidadeId={unidadeDia}
                   />
                   <ImpedimentosDoDia
                     companyId={selectedCompanyId}
                     data={dayOpen}
-                    unidadeIdInicial={filterUnidade === "all" ? null : filterUnidade}
-                    unidades={unidades.map((u: any) => ({ id: u.id, nome: u.nome }))}
+                    unidadeId={unidadeDia}
                   />
                 </>
               )}
