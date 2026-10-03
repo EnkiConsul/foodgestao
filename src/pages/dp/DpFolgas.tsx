@@ -603,18 +603,25 @@ export default function DpFolgas() {
     const map = new Map<string, LimiteResolvido>();
     for (const d of days) {
       const key = format(d, "yyyy-MM-dd");
-      map.set(
-        key,
-        resolverLimiteFolga({
-          data: key,
-          unidadeId: unidadeFilter !== "todas" ? unidadeFilter : null,
-          regras: regrasLimite,
-          diaConfig: diaConfigQuery.data ?? [],
-        }),
-      );
+      const res = resolverLimiteFolga({
+        data: key,
+        unidadeId: unidadeFilter !== "todas" ? unidadeFilter : null,
+        regras: regrasLimite,
+        diaConfig: diaConfigQuery.data ?? [],
+      });
+      const wd = d.getDay();
+      // Dia útil (fora do fim de semana dominical): limite = quem tem folga fixa neste dia da semana.
+      if (wd >= 1 && wd <= 5 && res.origem !== "excecao_data" && unidadeFilter !== "todas") {
+        const qtd = (colabs.data ?? []).filter(
+          (c) => c.ativo !== false && c.unidade_id === unidadeFilter && normalizeWeekday(c.folga_fixa_semana) === wd,
+        ).length;
+        map.set(key, { limite: qtd, origem: "folga_fixa" });
+      } else {
+        map.set(key, res);
+      }
     }
     return map;
-  }, [days, unidadeFilter, regrasLimite, diaConfigQuery.data]);
+  }, [days, unidadeFilter, regrasLimite, diaConfigQuery.data, colabs.data]);
 
   const capacityByDay = useMemo(() => {
     const map = new Map<string, number>();

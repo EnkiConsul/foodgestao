@@ -36,6 +36,7 @@ export function RestricoesDoDia({ companyId, data, unidadeIdInicial, unidades }:
   const [escopo, setEscopo] = useState<"cargo" | "setor">("cargo");
   const [alvoSel, setAlvoSel] = useState("");
   const [maximo, setMaximo] = useState(0);
+  const [formAberto, setFormAberto] = useState(false);
 
   const { regras, salvar, excluir } = useDpFolgaLimites(unidadeId || null);
   const setoresQ = useDpSetores(unidadeId || null);
@@ -103,7 +104,7 @@ export function RestricoesDoDia({ companyId, data, unidadeIdInicial, unidades }:
       (r) =>
         r.ativo &&
         r.unidade_id === unidadeId &&
-        r.tipo !== "quantidade" &&
+        (r.tipo === "colaboradores" || r.cargo_ids.length > 0 || r.setor_ids.length > 0) &&
         !(r.vigencia_inicio === data && r.vigencia_fim === data) &&
         (r.dia_semana == null || r.dia_semana === dow) &&
         (!r.vigencia_inicio || r.vigencia_inicio <= data) &&
@@ -176,7 +177,9 @@ export function RestricoesDoDia({ companyId, data, unidadeIdInicial, unidades }:
       return `Não folgam juntos: ${nomes}`;
     }
     const alvo =
-      r.tipo === "setor"
+      r.cargo_ids.length === 0 && r.setor_ids.length === 0
+        ? "Todos"
+        : r.setor_ids.length > 0 && r.cargo_ids.length === 0
         ? r.setor_ids.map((id) => setores.find((s) => s.id === id)?.nome ?? "Setor").join(", ")
         : r.cargo_ids.map((id) => cargos.find((c) => c.id === id)?.nome ?? "Cargo").join(", ");
     return r.maximo === 0
@@ -220,6 +223,25 @@ export function RestricoesDoDia({ companyId, data, unidadeIdInicial, unidades }:
             </Link>
           </div>
 
+          {(restricoesDia.length > 0 || bloqueiosDaUnidade.length > 0) && !formAberto && (
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold text-muted-foreground">Restrições só desta data</Label>
+              {bloqueiosDaUnidade.map((b) => (
+                <div key={b.id} className="rounded-xl border bg-card px-3 py-2 text-sm font-semibold">
+                  {nomeColab(b.colaborador_id)}: não folga
+                </div>
+              ))}
+              {restricoesDia.map((r) => (
+                <div key={r.id} className="rounded-xl border bg-card px-3 py-2 text-sm font-semibold">{descreverRegra(r)}</div>
+              ))}
+            </div>
+          )}
+
+          <Button variant="outline" className="h-10 w-full rounded-xl font-bold" onClick={() => setFormAberto((v) => !v)}>
+            {formAberto ? "Fechar" : <><Ban className="mr-2 h-4 w-4" /> Restringir este dia</>}
+          </Button>
+
+          {formAberto && <>
           {/* A. Colaborador específico */}
           <div className="space-y-2">
             <Label className="text-[10px] font-bold text-muted-foreground">
@@ -308,6 +330,7 @@ export function RestricoesDoDia({ companyId, data, unidadeIdInicial, unidades }:
           <p className="text-[11px] text-muted-foreground">
             Valem só para esta data: o colaborador não consegue marcar nem pedir troca, e o sorteio não escolhe este dia.
           </p>
+          </>}
         </>
       )}
     </div>
