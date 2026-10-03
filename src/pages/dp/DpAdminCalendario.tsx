@@ -107,6 +107,7 @@ export default function DpAdminCalendario() {
   const [filterType, setFilterType] = useState<"all" | OccupantType>("all");
 
   const [dayOpen, setDayOpen] = useState<string | null>(null);
+  const [unidadeDia, setUnidadeDia] = useState<string>("");
   const [assignUser, setAssignUser] = useState("");
   const [editLimit, setEditLimit] = useState<number>(1);
   const [socioBloqueio, setSocioBloqueio] = useState<{
