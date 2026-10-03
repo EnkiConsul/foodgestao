@@ -1121,38 +1121,49 @@ export default function DpHistoricoCompleto() {
                 <div className="font-semibold truncate">{r.colaborador_nome}</div>
                 <div className="text-[11px] text-muted-foreground truncate">{r.unidade_nome}</div>
               </div>
-              <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
                 <Badge variant="outline" className={tipoBadgeClass(r.tipo_key) + " text-[10px]"}>{r.tipo_label}</Badge>
                 <span className="font-mono text-muted-foreground">Comp. {r.competencia}</span>
+                <AssinaturaSelo r={r} />
               </div>
             </button>
 
             <div className="pt-1 border-t border-border/60 space-y-1">
-              <div className="flex items-center justify-center gap-1">
-                <Button size="sm" variant="ghost" className="min-h-11 flex-1 max-w-[45%]" onClick={() => setPreview(r)} disabled={!r.file_path}>
+              <div className="grid grid-cols-3 gap-1">
+                <Button size="sm" variant="ghost" className="min-h-11 px-1" onClick={() => setPreview(r)} disabled={!r.file_path}>
                   <Eye className="h-4 w-4 mr-1 text-primary" /> Ver
                 </Button>
                 {r.id.startsWith("doc:") ? (
-                  <ComprovanteAcaoBotao
-                    alvo={{ documentoId: r.id.slice(4), colaboradorId: r.colaborador_id, tipo: r.tipo_key }}
-                    temComprovante={!!r.tem_comprovante}
-                    documentoTitulo={r.titulo}
-                    colaboradorNome={r.colaborador_nome}
-                    competencia={r.competencia}
-                    rotulo="Comprovante"
-                    className="min-h-11 flex-1 max-w-[45%]"
-                  />
-                ) : null}
-                {r.quitacao ? <div className="w-full"><QuitacaoSelo q={r.quitacao} /></div> : null}
-                <Button size="sm" variant="ghost" className="min-h-11 flex-1 max-w-[45%]" onClick={() => download(r)} disabled={!r.file_path}>
+                  <div className="relative flex">
+                    {r.quitacao && r.quitacao.comprovadoCents > 0 && r.quitacao.status !== "sem_referencia" ? (
+                      <span
+                        aria-label={r.quitacao.status === "exato" ? "Valor conferido" : "Valor divergente"}
+                        title={fraseConferenciaValor(r.quitacao) ?? undefined}
+                        className={`pointer-events-none absolute -top-1.5 left-1/2 z-10 -translate-x-1/2 rounded-full px-1.5 text-[10px] font-bold leading-4 ${r.quitacao.status === "exato" ? "bg-emerald-600 text-primary-foreground" : "bg-amber-500 text-primary-foreground"}`}
+                      >
+                        {r.quitacao.status === "exato" ? "✓" : "⚠"}
+                      </span>
+                    ) : null}
+                    <ComprovanteAcaoBotao
+                      alvo={{ documentoId: r.id.slice(4), colaboradorId: r.colaborador_id, tipo: r.tipo_key }}
+                      temComprovante={!!r.tem_comprovante}
+                      documentoTitulo={r.titulo}
+                      colaboradorNome={r.colaborador_nome}
+                      competencia={r.competencia}
+                      rotulo="Comprovante"
+                      className="min-h-11 w-full px-1"
+                    />
+                  </div>
+                ) : <span />}
+                <Button size="sm" variant="ghost" className="min-h-11 px-1" onClick={() => download(r)} disabled={!r.file_path}>
                   <Download className="h-4 w-4 mr-1" /> Baixar
                 </Button>
               </div>
-              <div className="flex items-center justify-center gap-2">
-                <Button size="sm" variant="ghost" className="min-h-11 flex-1 max-w-[45%] text-destructive" onClick={() => setExcluir(r)}>
+              <div className="grid grid-cols-2 gap-1">
+                <Button size="sm" variant="ghost" className="min-h-11 text-destructive" onClick={() => setExcluir(r)}>
                   <Trash2 className="h-4 w-4 mr-1" /> Excluir
                 </Button>
-                <Button size="sm" variant="ghost" className="min-h-11 flex-1 max-w-[45%]" onClick={() => abrirSubstituir(r)}>
+                <Button size="sm" variant="ghost" className="min-h-11" onClick={() => abrirSubstituir(r)}>
                   <Replace className="h-4 w-4 mr-1" /> Substituir
                 </Button>
               </div>
