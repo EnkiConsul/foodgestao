@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
+import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -1560,25 +1561,54 @@ export default function DpFolgas() {
                   onChange={(e) => setRemarcarData(e.target.value)}
                   className="h-11"
                 />
-                <Button
-                  onClick={() =>
+                {(() => {
+                  const executar = () =>
                     folgaGerenciar &&
                     remarcarFolga.mutate({
                       id: folgaGerenciar.id,
                       colaboradorId: folgaGerenciar.colaboradorId,
                       dataAtual: folgaGerenciar.data,
                       novaData: remarcarData,
-                    })
-                  }
-                  disabled={
+                    });
+                  const desabilitado =
                     !folgaGerenciar ||
                     !remarcarData ||
                     remarcarData === folgaGerenciar.data ||
-                    remarcarFolga.isPending
+                    remarcarFolga.isPending;
+                  // Restrições da data de destino: bloqueio ativo ou limite de pessoas atingido.
+                  const avisos: string[] = [];
+                  const bloq = remarcarData ? blockedByDate.get(remarcarData) : undefined;
+                  if (bloq) avisos.push(`Data com bloqueio ativo: ${bloq.reason}.`);
+                  const lim = remarcarData ? limiteByDay.get(remarcarData)?.limite : null;
+                  if (lim != null && folgaGerenciar) {
+                    const ocupantes = new Set(
+                      (eventsByDay.get(remarcarData) ?? [])
+                        .filter((r) => r.tipo === "folga" && r.colaborador_id !== folgaGerenciar.colaboradorId)
+                        .map((r) => r.colaborador_id),
+                    ).size;
+                    if (ocupantes >= lim)
+                      avisos.push(`Capacidade atingida: o limite desta data já foi alcançado (${ocupantes} ${ocupantes === 1 ? "pessoa" : "pessoas"} em folga).`);
                   }
-                >
-                  {remarcarFolga.isPending ? "Salvando..." : "Remarcar"}
-                </Button>
+                  const rotulo = remarcarFolga.isPending ? "Salvando..." : "Remarcar";
+                  if (avisos.length === 0)
+                    return (
+                      <Button onClick={executar} disabled={desabilitado}>
+                        {rotulo}
+                      </Button>
+                    );
+                  return (
+                    <ConfirmarAcaoDialog
+                      titulo="Deseja realmente continuar a troca mesmo com esta restrição?"
+                      descricao={`${avisos.join(" ")} Se continuar, a folga fica registrada como exceção autorizada pela gestão.`}
+                      confirmar="Sim, continuar e remarcar"
+                      cancelar="Cancelar troca"
+                      onConfirm={executar}
+                      disabled={desabilitado}
+                    >
+                      <Button disabled={desabilitado}>{rotulo}</Button>
+                    </ConfirmarAcaoDialog>
+                  );
+                })()}
               </div>
             </div>
 

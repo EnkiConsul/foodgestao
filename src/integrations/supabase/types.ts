@@ -9029,6 +9029,7 @@ export type Database = {
           created_at: string
           criado_por: string | null
           data: string
+          direito_origem: string | null
           extra: boolean
           id: string
           observacao: string | null
@@ -9043,6 +9044,7 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data: string
+          direito_origem?: string | null
           extra?: boolean
           id?: string
           observacao?: string | null
@@ -9057,6 +9059,7 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data?: string
+          direito_origem?: string | null
           extra?: boolean
           id?: string
           observacao?: string | null

@@ -216,7 +216,13 @@ export function tetoFolgasMes(cfg: CfgTeto, opts?: OptsColabDsr): number {
   const derivar = (semanas: number) =>
     semanas <= 0 ? 1 : Math.max(1, Math.ceil(SEMANAS_POR_MES / semanas));
 
-  const geral = derivar(semanasEfetivas(cfg));
+  const c = cfg as CfgTeto & { tipo_descanso_domingo?: string; folgas_fds_por_mes?: number };
+  const fdsAcordo = Number(c.folgas_fds_por_mes);
+  // Acordo coletivo: a unidade define direto quantas folgas de fim de semana há no mês.
+  const geral =
+    c.tipo_descanso_domingo === "acordo_coletivo" && Number.isFinite(fdsAcordo) && fdsAcordo > 0
+      ? Math.floor(fdsAcordo)
+      : derivar(semanasEfetivas(cfg));
 
   const override = overrideDomingosMes(opts);
   if (override !== null) return Math.max(geral, override);

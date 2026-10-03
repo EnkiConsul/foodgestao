@@ -273,7 +273,7 @@ export default function DpMeuCalendario() {
       const { data, error } = await supabase
         .from("dp_folgas")
         .select(
-          "id, data, colaborador_id, status, tipo, extra, origem, criado_por, dp_colaboradores(nome, unidade_id, cargo_id)",
+          "id, data, colaborador_id, status, tipo, extra, origem, criado_por, direito_origem, dp_colaboradores(nome, unidade_id, cargo_id)",
         )
         .eq("company_id", companyId!)
         .gte("data", range.start)
@@ -1474,7 +1474,12 @@ export default function DpMeuCalendario() {
                     <CalendarClock className="mr-2 h-4 w-4" /> Mudar o dia da minha folga
                   </Button>
                 )}
-                {selectedDay.status === "mine" && (
+                {selectedDay.status === "mine" && janela.estado !== "aberta" && (
+                  <p className="text-xs text-muted-foreground">
+                    O período de escolha já fechou: esta folga não pode mais ser removida, apenas trocada para outro dia.
+                  </p>
+                )}
+                {selectedDay.status === "mine" && janela.estado === "aberta" && (
                   <ConfirmarAcaoDialog
                     titulo="Remover esta folga?"
                     descricao="O dia volta a ficar livre e pode ser escolhido por outra pessoa da equipe."
