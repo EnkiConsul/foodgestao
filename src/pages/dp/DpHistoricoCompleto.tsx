@@ -1145,13 +1145,13 @@ export default function DpHistoricoCompleto() {
                 </Button>
                 {r.id.startsWith("doc:") ? (
                   <div className="relative flex">
-                    {r.tem_comprovante ? (
+                    {r.tem_comprovante && r.quitacao && r.quitacao.status !== "sem_referencia" ? (
                       <span
-                        aria-label={r.quitacao?.status === "menor" || r.quitacao?.status === "maior" ? "Valor divergente" : "Comprovante conferido"}
-                        title={(r.quitacao && fraseConferenciaValor(r.quitacao)) ?? "Comprovante anexado"}
-                        className={`pointer-events-none absolute right-1 top-1 z-10 text-[10px] font-bold leading-none ${r.quitacao?.status === "menor" || r.quitacao?.status === "maior" ? "text-amber-600" : "text-emerald-600"}`}
+                        aria-label={r.quitacao.status === "menor" || r.quitacao.status === "maior" ? "Valor divergente" : "Valor conferido"}
+                        title={fraseConferenciaValor(r.quitacao) ?? undefined}
+                        className={`pointer-events-none absolute right-1 top-1 z-10 text-[10px] font-bold leading-none ${r.quitacao.status === "menor" || r.quitacao.status === "maior" ? "text-amber-600" : "text-emerald-600"}`}
                       >
-                        {r.quitacao?.status === "menor" || r.quitacao?.status === "maior" ? "⚠" : "✓"}
+                        {r.quitacao.status === "menor" || r.quitacao.status === "maior" ? "⚠" : "✓"}
                       </span>
                     ) : null}
                     <ComprovanteAcaoBotao
