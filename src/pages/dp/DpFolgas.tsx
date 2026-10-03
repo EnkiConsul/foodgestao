@@ -690,22 +690,9 @@ export default function DpFolgas() {
 
   const execucoesExcedidas = execucoesQuery.data ?? [];
 
-  /**
-   * Folgas já aprovadas em datas que hoje estão bloqueadas (ex.: regra criada
-   * depois da escala publicada). Nada é desfeito: só avisamos o gestor.
-   */
-  const conflitosBloqueio = useMemo(() => {
-    const lista: Array<{ data: string; nomes: string[] }> = [];
-    blockedByDate.forEach((info, iso) => {
-      // No filtro "todas", bloqueio só de algumas unidades não dá para atribuir com segurança.
-      if (unidadeFilter === "todas" && !info.hasGlobal) return;
-      const nomes = (eventsByDay.get(iso) ?? [])
-        .filter((e) => e.tipo === "folga" && e.status === "aprovada" && !String(e.id).startsWith(WEEKLY_FOLGA_ID_PREFIX))
-        .map((e) => String((e as { dp_colaboradores?: { nome?: string } }).dp_colaboradores?.nome ?? "Colaborador"));
-      if (nomes.length) lista.push({ data: iso, nomes: Array.from(new Set(nomes)) });
-    });
-    return lista.sort((x, y) => x.data.localeCompare(y.data));
-  }, [blockedByDate, eventsByDay, unidadeFilter]);
+  // Folgas aprovadas em datas bloqueadas não geram mais banner fixo: o alerta
+  // de bloqueio/lotação aparece apenas no momento da decisão (aprovar ou
+  // remarcar). Se o gestor aprovou, ele já está ciente.
 
   const stats = useMemo(() => {
     let marcadas = 0;
@@ -840,26 +827,6 @@ export default function DpFolgas() {
 
         }
       />
-
-      {conflitosBloqueio.length > 0 && (
-        <div className="rounded-xl border border-amber-300 bg-amber-500/10 p-4">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600" />
-            <div className="space-y-1 text-sm">
-              <p className="font-semibold text-amber-800">Folgas Aprovadas em Datas Bloqueadas</p>
-              <p className="text-xs text-amber-800/90">
-                Essas folgas foram aprovadas antes do bloqueio e continuam valendo. Confira se precisa reorganizar.
-              </p>
-              {conflitosBloqueio.map((c) => (
-                <p key={c.data} className="text-xs text-amber-800/90">
-                  <span className="font-medium">{format(parseISO(c.data), "dd/MM (EEE)", { locale: ptBR })}:</span>{" "}
-                  {c.nomes.join(", ")}
-                </p>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {execucoesExcedidas.length > 0 && (
         <div className="rounded-xl border border-amber-300 bg-amber-500/10 p-4">
