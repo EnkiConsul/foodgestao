@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.dp_dias_fixos_folga(uuid, date) TO authenticated;
