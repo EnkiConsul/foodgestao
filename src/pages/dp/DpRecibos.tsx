@@ -121,10 +121,12 @@ export default function DpRecibos() {
   }, [colab, unidadeId]);
 
   // Valor sugerido da ficha ao trocar pessoa/natureza (o gestor pode ajustar).
+  // Sem sugestão, o campo fica vazio — nunca herda o valor do recibo anterior.
   useEffect(() => {
+    if (editandoId || substituiId) return;
     const sug = valorSugeridoCents(colab ?? null, natureza);
-    if (sug) setValor(fmtBRL(sug));
-  }, [colab, natureza]);
+    setValor(sug ? fmtBRL(sug) : "");
+  }, [colab, natureza, editandoId, substituiId]);
   useEffect(() => {
     if (avulso && canal === "portal") setCanal("whatsapp");
     if (colab) setWhats(String(colab.whatsapp || colab.telefone || ""));
@@ -185,28 +187,12 @@ export default function DpRecibos() {
     fModalidade && { key: "m", label: MODALIDADE_LABEL[fModalidade as keyof typeof MODALIDADE_LABEL], onRemove: () => setFModalidade("") },
   ].filter(Boolean) as { key: string; label: string; onRemove: () => void }[];
 
-  // Data sugerida: aprende com o último recibo igual (mesma natureza e unidade);
-  // sem histórico, usa a regra da unidade (adiantamento) ou o 5º dia útil.
+  // Data do pagamento: sempre hoje por padrão; o gestor ajusta se precisar.
   const unidadeEfetiva = unidadeId || (colab?.unidade_id as string | undefined) || "";
   useEffect(() => {
-    if (pagoEmManual || !competencia) return;
-    const anterior = (recibos.data ?? []).find((r: any) => !r.cancelado_em && r.natureza === natureza
-      && (!unidadeEfetiva || r.unidade_id === unidadeEfetiva));
-    let sug: string | null = null;
-    if (anterior) {
-      const [cy, cm] = anterior.competencia.slice(0, 7).split("-").map(Number);
-      const [py, pm, pd] = anterior.pago_em.slice(0, 10).split("-").map(Number);
-      const desloc = (py - cy) * 12 + (pm - cm);
-      const [y, m] = competencia.split("-").map(Number);
-      const alvo = new Date(y, m - 1 + desloc, 1);
-      const ultimo = new Date(alvo.getFullYear(), alvo.getMonth() + 1, 0).getDate();
-      sug = `${alvo.getFullYear()}-${String(alvo.getMonth() + 1).padStart(2, "0")}-${String(Math.min(pd, ultimo)).padStart(2, "0")}`;
-    } else {
-      const dia = (unidadesCfg.data ?? []).find((u) => u.id === unidadeEfetiva)?.dia_adiantamento;
-      sug = dataSugeridaPagamento(natureza, competencia, dia);
-    }
-    if (sug) setPagoEm(sug > limitePagamentoFuturo() ? limitePagamentoFuturo() : sug);
-  }, [natureza, competencia, unidadeEfetiva, recibos.data, unidadesCfg.data, pagoEmManual]);
+    if (pagoEmManual) return;
+    setPagoEm(hoje());
+  }, [natureza, competencia, unidadeEfetiva, pagoEmManual]);
 
   /** Já existe folguista/teste ou colaborador com este CPF (ou nome, sem CPF)? */
   function jaNoBanco(cpfB: string, nomeB: string) {
@@ -221,7 +207,7 @@ export default function DpRecibos() {
   function limparFormulario() {
     setColabId(""); setNome(""); setCpf(""); setWhats(""); setDescricao(""); setValor("");
     setValorBanco(""); setValorEspecie(""); setModalidade("bancario"); setCanal("portal");
-    setPagoEmManual(false); setEditandoId(null); setSubstituiId(null);
+    setPagoEm(hoje()); setPagoEmManual(false); setEditandoId(null); setSubstituiId(null);
   }
 
   /** Carrega um recibo no formulário (edição de pendente ou nova via de assinado). */
@@ -247,9 +233,25 @@ export default function DpRecibos() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function abrirPdf(id: string) {
+  /** Baixa o PDF com nome "Tipo - Nome - MM-AAAA.pdf" (funciona no celular). */
+  async function abrirPdf(id: string, info?: { natureza: string; nome: string; competencia: string }) {
     try {
-      window.open(await reciboPdfUrl(id), "_blank", "noopener");
+      const url = await reciboPdfUrl(id);
+      const r = info ?? (() => {
+        const x = (recibos.data ?? []).find((y: any) => y.id === id) as any;
+        return x ? { natureza: x.natureza, nome: x.beneficiario_nome, competencia: x.competencia } : null;
+      })();
+      const limpar = (s: string) => s.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
+      const comp = r?.competencia ? `${r.competencia.slice(5, 7)}-${r.competencia.slice(0, 4)}` : "";
+      const tipo = r ? `Recibo de ${NATUREZA_RECIBO_LABEL[r.natureza as NaturezaRecibo] ?? r.natureza}` : "Recibo";
+      const nomeArq = limpar([tipo, r?.nome, comp].filter(Boolean).join(" - ")) + ".pdf";
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nomeArq;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -350,7 +352,7 @@ export default function DpRecibos() {
       toast.success(r.documento_id ? "Recibo emitido e guardado nos documentos do colaborador." : "Recibo emitido.");
       qc.invalidateQueries({ queryKey: ["dp_recibos"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
-      if (canal === "fisico") abrirPdf(r.recibo_id);
+      if (canal === "fisico") abrirPdf(r.recibo_id, { natureza, nome: nomeB, competencia });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -446,7 +448,7 @@ export default function DpRecibos() {
           <div className="space-y-1.5">
             <Label>Data do Pagamento</Label>
             <Input type="date" value={pagoEm} max={limitePagamentoFuturo()} onChange={(e) => { setPagoEm(e.target.value); setPagoEmManual(true); }} />
-            {!pagoEmManual && <p className="text-xs text-muted-foreground">Sugerida pela rotina da unidade; ajuste se precisar.</p>}
+            {!pagoEmManual && <p className="text-xs text-muted-foreground">Preenchida com a data de hoje; ajuste se precisar.</p>}
             {pagoEm > hoje() && canal !== "fisico" && (
               <p className="text-xs text-muted-foreground">Pagamento futuro: a assinatura digital só será liberada a partir de {pagoEm.split("-").reverse().join("/")}.</p>
             )}
