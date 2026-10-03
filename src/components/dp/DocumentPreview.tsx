@@ -208,18 +208,6 @@ export function DocumentPreview({
             )}
           </section>
         ))}
-        {false && comprovante && (
-          <section className="border-t bg-background">
-            <p className="px-3 py-2 text-sm font-medium">Comprovante de Pagamento</p>
-            {(comprovante.mime ?? "").startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(comprovante.nome ?? "") ? (
-              <img src={comprovante.url} alt="Comprovante de pagamento" className="block w-full h-auto" />
-            ) : (
-              <div className="h-[75svh] sm:h-[70vh]">
-                <PdfCanvasViewer url={comprovante.url} title="Comprovante de pagamento" />
-              </div>
-            )}
-          </section>
-        )}
         </div>
         <DialogFooter className="p-2 sm:p-3 border-t flex-row flex-wrap sm:justify-between gap-2">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>

@@ -345,13 +345,11 @@ export default function DpHistoricoCompleto() {
   const [ano, setAno] = useState("all");
   const [busca, setBusca] = useState("");
   const [preview, setPreviewRaw] = useState<UnifiedDoc | null>(null);
-  const [previewAba, setPreviewAba] = useState<string>("doc");
   const extrasQuery = useComprovantesComplementares(
     preview?.id?.startsWith("doc:") && (preview?.quitacao?.qtd ?? 0) > 1 ? preview.id.slice(4) : null,
   );
   const extrasPreview = extrasQuery.data ?? [];
-  const extraAtual = extrasPreview.find((e) => e.id === previewAba) ?? null;
-  const setPreview = (r: UnifiedDoc | null) => { setPreviewAba("doc"); setPreviewRaw(r); };
+  const setPreview = (r: UnifiedDoc | null) => { setPreviewRaw(r); };
   const [detalhe, setDetalhe] = useState<UnifiedDoc | null>(null);
   const [logAberto, setLogAberto] = useState(false);
   const [excluir, setExcluir] = useState<UnifiedDoc | null>(null);
