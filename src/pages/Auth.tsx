@@ -499,7 +499,7 @@ export default function Auth() {
             (≈0,93 da altura da arte), sem cobri-la em nenhum aparelho. */}
         <section className="relative z-10 flex h-full items-end justify-center px-3 pb-[max(env(safe-area-inset-bottom),calc(100svh_-_min(100svh,177.68vw)_*_0.93))] md:min-h-screen md:h-auto md:items-start md:justify-end md:px-[4vw] md:py-[clamp(2rem,8vw,8rem)] lg:px-[5vw] lg:py-[clamp(2.5rem,9vh,6rem)]">
           <div className="flex w-full max-w-[340px] flex-col md:max-w-[320px] lg:max-w-[340px]">
-        <Card className="max-h-[60svh] w-full overflow-y-auto border-border/70 bg-card/90 shadow-site-float backdrop-blur-xl supports-[backdrop-filter]:bg-card/84 md:max-h-[calc(100svh-2rem)]">
+        <Card className="max-h-[max(11rem,calc(min(100svh,177.68vw)*0.65_-_80px))] w-full overflow-y-auto border-border/70 bg-card/90 shadow-site-float backdrop-blur-xl supports-[backdrop-filter]:bg-card/84 md:max-h-[calc(100svh-2rem)]">
 
         <CardHeader className="space-y-0 px-4 pb-0 pt-1 text-center md:pb-2 md:pt-4">
           <CardTitle className="sr-only">Aveto 360</CardTitle>
