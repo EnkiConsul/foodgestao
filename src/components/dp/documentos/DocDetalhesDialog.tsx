@@ -253,6 +253,29 @@ export function DocDetalhesDialog(props: {
               />
             )}
 
+            {detalhes.data?.doc?.assinatura_fisica && !detalhes.data?.doc?.exige_aceite ? (
+              <div className="rounded-lg border p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="text-xs font-medium text-muted-foreground">Assinatura Física</div>
+                  <span className={detalhes.data.doc.via_assinada_path ? "text-xs font-medium text-emerald-600" : "text-xs font-medium text-amber-600"}>
+                    {detalhes.data.doc.via_assinada_path ? "✓ Via assinada" : "Falta via assinada"}
+                  </span>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Campo label="Anexada Em">{fmtDataHora(detalhes.data.doc.via_assinada_em)}</Campo>
+                  <Campo label="Anexada Por">{nome(detalhes.data.doc.via_assinada_por)}</Campo>
+                </div>
+                <ViaAssinadaBotao
+                  rotulo
+                  className="mt-3"
+                  documentoId={detalhes.data.doc.id}
+                  companyId={companyId}
+                  colaboradorId={detalhes.data.doc.colaborador_id ?? null}
+                  temVia={!!detalhes.data.doc.via_assinada_path}
+                  onDone={() => void detalhes.refetch()}
+                />
+              </div>
+            ) : (
             <div className="rounded-lg border p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <div className="text-xs font-medium text-muted-foreground">Validação Digital</div>
@@ -278,6 +301,7 @@ export function DocDetalhesDialog(props: {
                 </Button>
               )}
             </div>
+            )}
 
             <div className="rounded-lg border p-3">
               <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
