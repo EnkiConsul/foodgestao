@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,8 @@ export function CookieConsentBanner() {
   const [analytics, setAnalytics] = useState(prefs.analytics);
   const [marketing, setMarketing] = useState(prefs.marketing);
   const [hidden, setHidden] = useState(false);
+  const { pathname } = useLocation();
+  const telaEntrada = /^\/(login|cadastro|primeiro-acesso|esqueci-senha|reset-password|ativar-acesso)/.test(pathname);
 
   useEffect(() => {
     const handler = () => {
@@ -34,7 +36,15 @@ export function CookieConsentBanner() {
         // porque a barra de ações da ficha de admissão é mais alta (botões de
         // 48px + espaçamento) que a barra de navegação do app: com 64px o aviso
         // cobria "Guardar"/"Continuar" e o candidato não conseguia clicar.
-        <div className="fixed inset-x-3 bottom-[calc(88px+env(safe-area-inset-bottom)+0.75rem)] z-[60] sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-md max-sm:max-h-[32vh] max-sm:overflow-y-auto">
+        // Nas telas de entrada o formulário fica colado na base no celular,
+        // então o aviso sobe para o topo para não cobri-lo.
+        <div
+          className={
+            telaEntrada
+              ? "fixed inset-x-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[60] sm:inset-x-auto sm:top-auto sm:right-4 sm:bottom-4 sm:max-w-md max-sm:max-h-[32vh] max-sm:overflow-y-auto"
+              : "fixed inset-x-3 bottom-[calc(88px+env(safe-area-inset-bottom)+0.75rem)] z-[60] sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-md max-sm:max-h-[32vh] max-sm:overflow-y-auto"
+          }
+        >
           <div className="rounded-lg border border-border bg-card p-3 shadow-2xl sm:p-4">
             <div className="flex items-start gap-3">
               <Cookie className="h-5 w-5 shrink-0 text-primary" />
