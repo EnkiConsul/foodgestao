@@ -149,8 +149,8 @@ export function DocumentPreview({
           <DialogTitle className="truncate text-sm sm:text-base">{title}</DialogTitle>
           {toolbar}
         </DialogHeader>
-        <div className={comprovante ? "flex-1 min-h-0 overflow-y-auto bg-muted/30" : "flex-1 min-h-0 bg-muted/30"}>
-        <div className={comprovante ? "h-[75svh] sm:h-[70vh]" : "h-full"}>
+        <div className={temAnexos ? "flex-1 min-h-0 overflow-y-auto bg-muted/30" : "flex-1 min-h-0 bg-muted/30"}>
+        <div className={temAnexos ? "h-[75svh] sm:h-[70vh]" : "h-full"}>
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -196,7 +196,19 @@ export function DocumentPreview({
             </div>
           )}
         </div>
-        {comprovante && (
+        {[...(comprovante ? [{ id: "principal", url: comprovante.url, mime: comprovante.mime, path: comprovante.nome ?? "" }] : []), ...extras].map((c, i, arr) => (
+          <section key={c.id} className="border-t bg-background">
+            <p className="px-3 py-2 text-sm font-medium">{arr.length > 1 ? `Comprovante de Pagamento ${i + 1}` : "Comprovante de Pagamento"}</p>
+            {(c.mime ?? "").startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(c.path) ? (
+              <img src={c.url} alt="Comprovante de pagamento" className="block w-full h-auto" />
+            ) : (
+              <div className="h-[75svh] sm:h-[70vh]">
+                <PdfCanvasViewer url={c.url} title="Comprovante de pagamento" />
+              </div>
+            )}
+          </section>
+        ))}
+        {false && comprovante && (
           <section className="border-t bg-background">
             <p className="px-3 py-2 text-sm font-medium">Comprovante de Pagamento</p>
             {(comprovante.mime ?? "").startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(comprovante.nome ?? "") ? (
