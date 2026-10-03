@@ -101,3 +101,14 @@ describe("Cenários de folga", () => {
     expect(mensagemErroRemarcacao("FOLGA_REMARCAR_BLOQUEADA: x").length).toBeGreaterThan(0);
   });
 });
+
+describe("Folga extra (exceção)", () => {
+  it("folga extra no fim de semana não consome o teto do mês", () => {
+    const st = base("2027-01-16", [{ colaborador_id: EU, data: "2027-01-09", direito_origem: "excecao_gestor" }]);
+    expect(st.status).toBe("available");
+  });
+  it("folga extra na semana não substitui a folga semanal fixa", () => {
+    const st = base("2027-01-06", [{ colaborador_id: EU, data: "2027-01-08", extra: true, direito_origem: "excecao_gestor" }]);
+    expect(st.status).toBe("fixed");
+  });
+});
