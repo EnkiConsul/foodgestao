@@ -360,7 +360,10 @@ export function calculateDateStatus(params: {
         f.colaborador_id === myColaboradorId &&
         f.extra !== true &&
         // Folga fixa deslocada para o fim de semana não consome o direito do mês.
-        (f as { direito_origem?: string | null }).direito_origem !== "folga_fixa_deslocada" &&
+        // Folga extra (exceção do gestor) também não consome.
+        !["folga_fixa_deslocada", "excecao_gestor"].includes(
+          (f as { direito_origem?: string | null }).direito_origem ?? "",
+        ) &&
         monthKey(parseYMD(f.data)) === mk &&
         elegiveis.includes(parseYMD(f.data).getDay()),
     ).length;
