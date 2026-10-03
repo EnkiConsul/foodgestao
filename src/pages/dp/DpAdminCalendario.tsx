@@ -82,6 +82,8 @@ import {
   type RegraRow,
 } from "@/lib/dp/bloqueio-rules";
 import { LiberarEscopoDialog } from "@/components/dp/bloqueios/LiberarEscopoDialog";
+import { DataDialog } from "@/components/dp/bloqueios/DataDialog";
+import type { DataFormState } from "@/lib/dp/bloqueios";
 import { CalendarioMobileLista } from "@/components/dp/CalendarioMobileLista";
 import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
 import { isSocio } from "@/lib/dp/contrato-policy";
