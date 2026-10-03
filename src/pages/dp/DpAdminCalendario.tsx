@@ -931,6 +931,16 @@ export default function DpAdminCalendario() {
                 </div>
               )}
 
+              {!currentBlock && !currentRelease && (
+                <Button
+                  variant="outline"
+                  className="h-11 w-full rounded-xl border-destructive/30 font-bold text-destructive hover:bg-destructive/10"
+                  onClick={openBloqueioDia}
+                >
+                  <Lock className="mr-2 h-4 w-4" /> Bloquear esta data
+                </Button>
+              )}
+
               {currentIsWeekend && (
                 <div className="space-y-3 rounded-2xl border bg-muted/30 p-5">
                   <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
