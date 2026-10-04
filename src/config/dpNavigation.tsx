@@ -191,7 +191,6 @@ export const DP_ADMIN_NAV: DpNavSurface = {
   // Hubs mantidos como opção de atalho para preservar defaults já salvos.
   extraShortcuts: [
     { label: "Documentos", to: "/dp/documentos", icon: FileText, shortcut: true },
-    { label: "Folgas", to: "/dp/folgas", icon: CalendarClock, shortcut: true },
     { label: "Comunicação", to: "/dp/comunicacao", icon: BellRing, shortcut: true },
   ],
 };
