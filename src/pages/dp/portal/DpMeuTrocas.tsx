@@ -1,3 +1,4 @@
+import { CienciaFaltaTrocaBox, TEXTO_CIENCIA_FALTA_TROCA } from "@/components/dp/CienciaFaltaTrocaBox";
 import { sugerirPushContextual } from "@/components/dp/PushSoftPrompt";
 import { DpFormFooter } from "@/components/dp/DpFormFooter";
 import { Helmet } from "react-helmet-async";
@@ -63,6 +64,7 @@ export default function DpMeuTrocas() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<"todas" | "recebidas" | "enviadas">("todas");
   const [open, setOpen] = useState(false);
+  const [cienteFalta, setCienteFalta] = useState(false);
   const [form, setForm] = useState<{
     destino_id: string;
     data_original: string;
@@ -236,6 +238,7 @@ export default function DpMeuTrocas() {
       qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
       void resolverPendencias(qc, { companyId: meRef.data?.company_id ?? null });
       setOpen(false);
+      setCienteFalta(false);
       setForm({ destino_id: "", data_original: undefined, data_proposta: undefined, motivo: "" });
     },
     onError: (e: any) => notifyError(e, { surface: "Trocas de folga", action: "concluir a ação", fallback: "Erro" }),
@@ -329,11 +332,12 @@ export default function DpMeuTrocas() {
                   <Label>Motivo<span className="text-destructive ml-0.5">*</span></Label>
                   <Textarea rows={3} value={form.motivo} onChange={(e) => setForm({ ...form, motivo: e.target.value })} />
                 </div>
+                <CienciaFaltaTrocaBox ciente={cienteFalta} onChange={setCienteFalta} />
                 {validation && <p className="text-xs text-destructive">{validation}</p>}
               </div>
               <DpFormFooter className="-mx-6 -mb-6 mt-2">
                 <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button disabled={criar.isPending || !!validation} onClick={() => criar.mutate()}>Enviar</Button>
+                <Button disabled={criar.isPending || !!validation || !cienteFalta} onClick={() => criar.mutate()}>Enviar</Button>
               </DpFormFooter>
             </DialogContent>
           </Dialog>
@@ -437,15 +441,14 @@ export default function DpMeuTrocas() {
                             });
                             const botao = (
                               <Button size="sm" disabled={responderColega.isPending}
-                                onClick={r.risco ? undefined : () => responderColega.mutate({ id: t.id, aceito: true })}>
+                                >
                                 <Check className="h-4 w-4 mr-1" /> Aceitar
                               </Button>
                             );
-                            if (!r.risco) return botao;
                             return (
                               <ConfirmarAcaoDialog
-                                titulo="Atenção à regra de descanso semanal"
-                                descricao={`${avisoDsr(r.sequencia)} Ao aceitar, você declara: "Estou ciente da regra trabalhista de descanso e aceito a troca por livre iniciativa." O gestor será avisado.`}
+                                titulo={r.risco ? "Atenção à regra de descanso semanal" : "Confirmar troca de folga"}
+                                descricao={`${r.risco ? `${avisoDsr(r.sequencia)} Ao aceitar, você declara: "Estou ciente da regra trabalhista de descanso e aceito a troca por livre iniciativa." O gestor será avisado. ` : ""}${TEXTO_CIENCIA_FALTA_TROCA}`}
                                 confirmar="Estou ciente e aceito"
                                 cancelar="Voltar"
                                 destrutivo={false}
@@ -453,14 +456,15 @@ export default function DpMeuTrocas() {
                                   responderColega.mutate(
                                     { id: t.id, aceito: true },
                                     {
-                                      onSuccess: () =>
-                                        void registrarCienciaDsr({
+                                      onSuccess: () => {
+                                        if (r.risco) void registrarCienciaDsr({
                                           papel: "destino",
                                           tabela: "dp_trocas",
                                           referenciaId: t.id,
                                           data: t.data_proposta,
                                           dias: r.sequencia,
-                                        }),
+                                        });
+                                      },
                                     },
                                   )
                                 }

@@ -1,3 +1,4 @@
+import { CienciaFaltaTrocaBox } from "@/components/dp/CienciaFaltaTrocaBox";
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
@@ -174,6 +175,7 @@ export default function DpMeuCalendario() {
   const [tradeMyDate, setTradeMyDate] = useState<string>("");
   /** Ciência da regra de descanso (mais de 6 dias seguidos) no diálogo aberto. */
   const [cienteDsr, setCienteDsr] = useState(false);
+  const [cienteFaltaTroca, setCienteFaltaTroca] = useState(false);
   const [tradeMotivo, setTradeMotivo] = useState("");
   /** Mudança do dia da própria folga: dia atual, novo dia e motivo. */
   const [remarcarOpen, setRemarcarOpen] = useState<string | null>(null);
@@ -1021,6 +1023,7 @@ export default function DpMeuCalendario() {
       setTradeOpen(null);
       setTradeMyDate("");
       setTradeMotivo("");
+      setCienteFaltaTroca(false);
       setSelectedDay(null);
     },
     onError: (e: any) => notifyError(e, { surface: "Meu calendário", action: "concluir a ação", fallback: "Erro ao solicitar troca" }),
@@ -1850,6 +1853,7 @@ export default function DpMeuCalendario() {
               {riscoDsrTroca && (
                 <CienciaDsrBox texto={riscoDsrTroca.texto} ciente={cienteDsr} onChange={setCienteDsr} />
               )}
+              <CienciaFaltaTrocaBox ciente={cienteFaltaTroca} onChange={setCienteFaltaTroca} />
               {folgasParaOferecer.length === 0 && (
                 <p className="text-xs text-destructive mt-1">
                   Você não tem folga em outro dia para oferecer nesta troca.
@@ -1877,7 +1881,7 @@ export default function DpMeuCalendario() {
             </Button>
             <Button
               onClick={() => solicitarTroca.mutate()}
-              disabled={solicitarTroca.isPending || !tradeMyDate || (!!riscoDsrTroca && !cienteDsr)}
+              disabled={solicitarTroca.isPending || !tradeMyDate || !cienteFaltaTroca || (!!riscoDsrTroca && !cienteDsr)}
               className="min-h-10 w-full sm:w-auto"
             >
               {solicitarTroca.isPending ? "Enviando..." : "Enviar troca"}
