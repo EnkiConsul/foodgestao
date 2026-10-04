@@ -90,17 +90,18 @@ export default function DpMeuSolicitacoes() {
   const meRef = useQuery({
     queryKey: ["colab_of_sol", user?.id],
     enabled: !!user?.id,
-    queryFn: async () => {
+    queryFn: async (): Promise<MeuVinculoSol | null> => {
       const { data } = await supabase.rpc("dp_meu_colaborador");
       if (!data) return null;
       const colunas =
         "id, company_id, unidade_id, cargo_id, sexo, regime, forma_pagamento, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, nome";
       const tentativa = await supabase.from("dp_colaboradores").select(colunas).eq("id", data).single();
+      if (!tentativa.error) return tentativa.data as unknown as MeuVinculoSol;
       // Se uma coluna nova ainda não tem permissão de leitura, refaz sem ela.
       const semDif = colunas.replace(", folga_dif_dias", "");
       const { data: c, error } = await supabase.from("dp_colaboradores").select(semDif).eq("id", data).single();
       if (error) throw error;
-      return (tentativa.error ? c : tentativa.data) as typeof c;
+      return c as unknown as MeuVinculoSol;
     },
   });
 
