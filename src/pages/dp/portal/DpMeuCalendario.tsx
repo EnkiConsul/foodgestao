@@ -1334,72 +1334,25 @@ export default function DpMeuCalendario() {
         />
       )}
 
+      {convocavel && (
+        <div className="rounded-xl border bg-muted/40 p-3 text-sm space-y-2">
+          <p>
+            Como seu contrato é <strong>intermitente/por convocação</strong>, você não marca folga: marque acima os dias em que
+            <strong> não pode trabalhar</strong>. Os dias de trabalho chegam por convocação (Art. 452-A da CLT).
+          </p>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate("/dp/meu/escala")}>
+            <CalendarDays className="size-4 mr-2" /> Ver Minha Escala e Convocações
+          </Button>
+        </div>
+      )}
 
-
+      {!convocavel && (<>
       <div className="hidden md:block">
-        <FolgaCalendarShared
-          year={ano}
-          month0={mes - 1}
-          occupantsByDate={occupantsByDate}
-          manualBlocked={manualBlocked}
-          dayLimits={dayLimits}
-          myColaboradorId={meRef.data?.id ?? null}
-          allFolgas={allFolgasRecords}
-          allColaboradores={colaboradores}
-          pendingRequests={pendingRequests}
-          isAdmin={false}
-          diasElegiveis={diasElegiveis}
-          tetoMensal={tetoMensal}
-          variant="chunky"
-          onPrev={goPrev}
-          onNext={goNext}
-          onSelectDay={(iso, info) => {
-            const st = calculateDateStatus({
-              date: parseYMD(iso),
-              myColaboradorId: meRef.data?.id ?? null,
-              allFolgas: allFolgasRecords,
-              allColaboradores: colaboradores,
-              manualBlocked,
-              dayLimits,
-              pendingRequests,
-              isAdmin: false,
-              diasElegiveis,
-              tetoMensal,
-            });
-            setSelectedDay({ iso, status: (info?.status ?? st.status) as DateStatusKind });
-          }}
-        />
-      </div>
-      <div className="md:hidden">
-        <CalendarioMobileLista
-          year={ano}
-          month0={mes - 1}
-          occupantsByDate={occupantsByDate as any}
-          manualBlocked={manualBlocked}
-          myColaboradorId={meRef.data?.id ?? null}
-          onPrev={goPrev}
-          onNext={goNext}
-          onSelectDay={(iso) => {
-            const st = calculateDateStatus({
-              date: parseYMD(iso),
-              myColaboradorId: meRef.data?.id ?? null,
-              allFolgas: allFolgasRecords,
-              allColaboradores: colaboradores,
-              manualBlocked,
-              dayLimits,
-              pendingRequests,
-              isAdmin: false,
-              diasElegiveis,
-              tetoMensal,
-            });
-            setSelectedDay({ iso, status: st.status as DateStatusKind });
-          }}
-        />
-      </div>
-
-      <p className="text-xs text-muted-foreground">
+...
         Clique em um dia para ver detalhes, marcar folga de fim de semana, pedir troca ou solicitar exceção.
       </p>
+      </>)}
+
 
 
       {/* Dialog do dia */}
