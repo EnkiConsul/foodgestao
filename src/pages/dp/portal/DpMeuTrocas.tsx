@@ -66,6 +66,8 @@ export default function DpMeuTrocas() {
   const [tab, setTab] = useState<"todas" | "recebidas" | "enviadas">("todas");
   const [open, setOpen] = useState(false);
   const [cienteFalta, setCienteFalta] = useState(false);
+  const [assinarPedido, setAssinarPedido] = useState(false);
+  const [assinarAceite, setAssinarAceite] = useState<null | { id: string; risco: boolean; sequencia: number; data: string }>(null);
   const [form, setForm] = useState<{
     destino_id: string;
     data_original: string;
@@ -80,7 +82,7 @@ export default function DpMeuTrocas() {
       const { data } = await supabase.rpc("dp_meu_colaborador");
       if (!data) return null;
       const { data: c } = await supabase
-        .from("dp_colaboradores").select("id, company_id, unidade_id, regime, forma_pagamento").eq("id", data).single();
+        .from("dp_colaboradores").select("id, nome, company_id, unidade_id, regime, forma_pagamento").eq("id", data).single();
       return c;
     },
   });
