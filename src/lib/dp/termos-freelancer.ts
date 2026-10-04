@@ -126,7 +126,7 @@ export async function emitirTermoEventual(input: {
   const bytes = await gerarPdf(TERMO_EVENTUAL_TITULO, TERMO_EVENTUAL_VERSAO, paragrafos);
   const nomeArquivo = `termo-servicos-eventuais-${input.nome.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}.pdf`;
   const path = `${input.companyId}/${input.colaboradorId}/${Date.now()}-${nomeArquivo}`;
-  const blob = new Blob([bytes], { type: "application/pdf" });
+  const blob = new Blob([bytes as BlobPart], { type: "application/pdf" });
   const up = await supabase.storage.from("dp-documentos").upload(path, blob, { contentType: "application/pdf", upsert: false });
   if (up.error) throw new Error("Não foi possível guardar o arquivo do termo. Tente salvar o cadastro de novo em instantes.");
   await registrarDocumento({
