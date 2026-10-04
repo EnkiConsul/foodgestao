@@ -1,6 +1,6 @@
 import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
 import { assinarTroca } from "@/lib/dp/troca-assinatura";
-import { CienciaFaltaTrocaBox } from "@/components/dp/CienciaFaltaTrocaBox";
+import { CienciaFaltaTrocaBox, TEXTO_CIENCIA_FALTA_TROCA } from "@/components/dp/CienciaFaltaTrocaBox";
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
@@ -410,7 +410,7 @@ export default function DpMeuCalendario() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_trocas")
-        .select("id, solicitante_id, destino_id, data_original, data_proposta, status")
+        .select("id, solicitante_id, destino_id, data_original, data_proposta, status, motivo, solicitante:solicitante_id(nome)")
         .eq("company_id", companyId!)
         .in("status", ["pendente_colega", "pendente_gestor"]);
       if (error) throw error;
@@ -702,9 +702,24 @@ export default function DpMeuCalendario() {
 
   // Minhas folgas futuras (para oferecer troca)
   const hojeIso = useMemo(() => ymd(new Date()), []);
+  /** Minhas datas já comprometidas numa troca ainda pendente — não podem ser oferecidas de novo. */
+  const diasEmTrocaPendente = useMemo(() => {
+    const meuId = meRef.data?.id;
+    const s = new Set<string>();
+    if (!meuId) return s;
+    for (const t of (trocasPendentesQuery.data ?? []) as any[]) {
+      if (t.solicitante_id === meuId && t.data_original) s.add(t.data_original);
+      if (t.destino_id === meuId && t.data_proposta) s.add(t.data_proposta);
+    }
+    return s;
+  }, [trocasPendentesQuery.data, meRef.data?.id]);
+
   const minhasFolgasFuturas = useMemo(
-    () => folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso }),
-    [folgas, meRef.data?.id, hojeIso],
+    () =>
+      folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso }).filter(
+        (f) => !diasEmTrocaPendente.has(f.data as string),
+      ),
+    [folgas, meRef.data?.id, hojeIso, diasEmTrocaPendente],
   );
 
   /**
@@ -729,17 +744,19 @@ export default function DpMeuCalendario() {
       .filter((iso) => iso >= hojeIso && !comRegistro.has(iso))
       // Folga fixa já cedida numa troca: nesse dia agora trabalha, não pode ser oferecida de novo.
       .filter((iso) => !trabalhoExcepcionalQuery.data?.has(`${meRef.data!.id}|${iso}`))
+      // Folga já oferecida numa troca pendente.
+      .filter((iso) => !diasEmTrocaPendente.has(iso))
       .map((iso) => ({ id: `fixa-${iso}`, data: iso, fixa: true as const }));
-  }, [meRef.data, meusDiasFixosQuery.data, folgas, range.startDate, range.endDate, hojeIso, trabalhoExcepcionalQuery.data]);
+  }, [meRef.data, meusDiasFixosQuery.data, folgas, range.startDate, range.endDate, hojeIso, trabalhoExcepcionalQuery.data, diasEmTrocaPendente]);
 
   /** Folgas ofertáveis para o dia aberto no diálogo (sem o próprio dia pedido). */
   const folgasParaOferecer = useMemo(() => {
-    const avulsas = folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso, diaPedidoIso: tradeOpen?.iso }).map(
-      (f) => ({ id: f.id as string, data: f.data as string, fixa: false }),
-    );
+    const avulsas = folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso, diaPedidoIso: tradeOpen?.iso })
+      .filter((f) => !diasEmTrocaPendente.has(f.data as string))
+      .map((f) => ({ id: f.id as string, data: f.data as string, fixa: false }));
     const fixas = minhasFixasFuturas.filter((f) => f.data !== tradeOpen?.iso);
     return [...avulsas, ...fixas].sort((a, b) => a.data.localeCompare(b.data));
-  }, [folgas, meRef.data?.id, hojeIso, tradeOpen?.iso, minhasFixasFuturas]);
+  }, [folgas, meRef.data?.id, hojeIso, tradeOpen?.iso, minhasFixasFuturas, diasEmTrocaPendente]);
 
   /** Exceção ao gestor: folga extra ou troca de um dia da folga semanal. */
   const [excecaoModo, setExcecaoModo] = useState<"extra" | "troca_semanal">("extra");
@@ -1169,6 +1186,42 @@ export default function DpMeuCalendario() {
       ) ?? null
     );
   }, [selectedDay?.iso, meRef.data?.id, trocasPendentesQuery.data]);
+
+  /** Risco de DSR para quem aceita: cede a data proposta e passa a folgar na original. */
+  const riscoDsrAceite = useMemo(() => {
+    const t = trocaPendenteDoDia;
+    if (!t || t.destino_id !== meRef.data?.id || !t.data_proposta) return null;
+    const r = avaliarRiscoDsrTroca({ descansoIso: meusDescansosIso, diaCedidoIso: t.data_proposta, diaNovoIso: t.data_original });
+    return r.risco ? { sequencia: r.sequencia, data: t.data_proposta as string } : null;
+  }, [trocaPendenteDoDia, meRef.data?.id, meusDescansosIso]);
+
+  const [assinarAceiteId, setAssinarAceiteId] = useState<string | null>(null);
+
+  /** Resposta do colega direto no calendário (o servidor efetiva se a troca for direta). */
+  const responderTroca = useMutation({
+    mutationFn: async ({ id, aceito, assinatura }: { id: string; aceito: boolean; assinatura?: string }) => {
+      if (aceito) {
+        if (!assinatura) throw new Error("Assine digitalmente para aceitar a troca.");
+        await assinarTroca(id, assinatura);
+      }
+      const { data, error } = await supabase.rpc("dp_troca_responder_colega", { p_id: id, p_aceito: aceito });
+      if (error) throw new Error(mensagemErroTroca(error.message));
+      return { aceito, efetivada: !!(data as { efetivada?: boolean } | null)?.efetivada, id };
+    },
+    onSuccess: ({ aceito, efetivada, id }) => {
+      toast.success(aceito ? (efetivada ? "Troca efetivada no calendário" : "Aceite registrado — aguardando o gestor") : "Troca recusada");
+      if (aceito && riscoDsrAceite) {
+        void registrarCienciaDsr({ papel: "destino", tabela: "dp_trocas", referenciaId: id, data: riscoDsrAceite.data, dias: riscoDsrAceite.sequencia });
+      }
+      setAssinarAceiteId(null);
+      setSelectedDay(null);
+      qc.invalidateQueries({ queryKey: ["dp_trocas_pend_meu_cal"] });
+      qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+      qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+    },
+    onError: (e: any) =>
+      notifyError(e, { surface: "Meu calendário", action: "responder a troca", fallback: "Não foi possível responder a troca. Atualize a tela e tente de novo." }),
+  });
 
   const cancelarTroca = useMutation({
     mutationFn: async (id: string) => {
@@ -1660,16 +1713,62 @@ export default function DpMeuCalendario() {
 
                 {trocaPendenteDoDia && (
                   <div className="space-y-2 rounded-xl border border-violet-200 bg-violet-500/10 p-3 text-xs text-violet-800">
-                    <p className="font-semibold">
-                      Troca em análise —{" "}
-                      {trocaPendenteDoDia.status === "pendente_colega"
-                        ? "aguardando a resposta do colega."
-                        : "aguardando a aprovação do gestor."}
-                    </p>
-                    <p>
-                      Sua folga de {descreverDia(trocaPendenteDoDia.data_original)} continua valendo
-                      até a decisão.
-                    </p>
+                    {trocaPendenteDoDia.destino_id === meRef.data?.id ? (
+                      <>
+                        <p className="font-semibold">
+                          {trocaPendenteDoDia.status === "pendente_colega"
+                            ? "Pedido de troca para você responder."
+                            : "Você aceitou — aguardando a aprovação do gestor."}
+                        </p>
+                        <p>
+                          <b>{trocaPendenteDoDia.solicitante?.nome ?? "Seu colega"}</b> pede sua folga de{" "}
+                          <b>{descreverDia(trocaPendenteDoDia.data_proposta)}</b> e oferece a folga de{" "}
+                          <b>{descreverDia(trocaPendenteDoDia.data_original)}</b>.
+                        </p>
+                        {trocaPendenteDoDia.motivo && <p>Motivo: {trocaPendenteDoDia.motivo}</p>}
+                        {trocaPendenteDoDia.status === "pendente_colega" && (
+                          <div className="grid grid-cols-2 gap-2 pt-1">
+                            <ConfirmarAcaoDialog
+                              titulo={riscoDsrAceite ? "Atenção à regra de descanso semanal" : "Confirmar troca de folga"}
+                              descricao={`${riscoDsrAceite ? `${avisoDsr(riscoDsrAceite.sequencia)} Ao aceitar, você declara: "Estou ciente da regra trabalhista de descanso e aceito a troca por livre iniciativa." O gestor será avisado. ` : ""}${TEXTO_CIENCIA_FALTA_TROCA}`}
+                              confirmar="Estou ciente — assinar"
+                              cancelar="Voltar"
+                              destrutivo={false}
+                              onConfirm={() => setAssinarAceiteId(trocaPendenteDoDia.id)}
+                              disabled={responderTroca.isPending}
+                            >
+                              <Button size="sm" className="min-h-9 w-full" disabled={responderTroca.isPending}>
+                                Aceitar
+                              </Button>
+                            </ConfirmarAcaoDialog>
+                            <ConfirmarAcaoDialog
+                              titulo="Recusar esta troca?"
+                              descricao="O colega será avisado de que você não aceitou trocar essa folga. Não é possível desfazer."
+                              confirmar="Recusar troca"
+                              onConfirm={() => responderTroca.mutate({ id: trocaPendenteDoDia.id, aceito: false })}
+                              disabled={responderTroca.isPending}
+                            >
+                              <Button size="sm" variant="outline" className="min-h-9 w-full bg-background" disabled={responderTroca.isPending}>
+                                Recusar
+                              </Button>
+                            </ConfirmarAcaoDialog>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-semibold">
+                          Troca em análise —{" "}
+                          {trocaPendenteDoDia.status === "pendente_colega"
+                            ? "aguardando a resposta do colega."
+                            : "aguardando a aprovação do gestor."}
+                        </p>
+                        <p>
+                          Sua folga de {descreverDia(trocaPendenteDoDia.data_original)} continua valendo
+                          até a decisão.
+                        </p>
+                      </>
+                    )}
                     {trocaPendenteDoDia.solicitante_id === meRef.data?.id && (
                       <ConfirmarAcaoDialog
                         titulo="Cancelar o pedido de troca?"
@@ -1907,6 +2006,15 @@ export default function DpMeuCalendario() {
         nome={(meRef.data as { nome?: string } | null)?.nome ?? ""}
         enviando={solicitarTroca.isPending}
         onConfirmar={(png) => solicitarTroca.mutate(png)}
+      />
+
+      <AssinaturaConfirmarDialog
+        open={!!assinarAceiteId}
+        onOpenChange={(v) => !v && setAssinarAceiteId(null)}
+        titulo="Aceite da troca de folga — sua assinatura digital fica registrada no termo da troca."
+        nome={(meRef.data as { nome?: string } | null)?.nome ?? ""}
+        enviando={responderTroca.isPending}
+        onConfirmar={(png) => assinarAceiteId && responderTroca.mutate({ id: assinarAceiteId, aceito: true, assinatura: png })}
       />
 
       {/* Dialog mudança do dia da minha folga */}
