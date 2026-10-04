@@ -1322,7 +1322,7 @@ export default function DpMeuCalendario() {
             <span>{avisoJanela}</span>
           </div>
         )}
-      </div>
+      </div>}
 
       {convocavel && (
         <MinhaDisponibilidadeCard
