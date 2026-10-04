@@ -166,6 +166,11 @@ export function DocumentoAssinaturaGate() {
         path={preview?.file_path ?? null}
         mime={preview?.mime_type ?? null}
         comprovanteDocumentoId={preview?.id ?? null}
+        toolbar={
+          <Button className="w-full min-h-10" onClick={() => setPreview(null)}>
+            <PenLine className="h-4 w-4 mr-1" /> Já Li — Assinar Agora
+          </Button>
+        }
       />
     </>
   );

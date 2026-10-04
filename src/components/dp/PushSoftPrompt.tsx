@@ -32,6 +32,11 @@ export function PushSoftPrompt() {
   const avaliar = async (forcar: boolean, m?: string) => {
     const e = await pushEstado().catch(() => "nao_suportado" as PushEstado);
     if (e !== "inativo" && e !== "ios_instalar") return;
+    // Já autorizou antes: só refaz a inscrição em silêncio, sem perguntar de novo.
+    if (e === "inativo" && "Notification" in window && Notification.permission === "granted") {
+      await ativarPush().catch(() => undefined);
+      return;
+    }
     if (!forcar && adiado()) return;
     setEstado(e); setMotivo(m); setOpen(true);
   };

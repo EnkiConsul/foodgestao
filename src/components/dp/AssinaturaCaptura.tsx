@@ -77,6 +77,7 @@ export function AssinaturaCaptura({ nomePadrao, onChange: emitir }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const desenhando = useRef(false);
   const tracou = useRef(false);
+  const [temTraco, setTemTraco] = useState(false);
 
   useEffect(() => { carregarFontes(); }, []);
   useEffect(() => { setNome(nomePadrao); }, [nomePadrao]);
@@ -125,6 +126,7 @@ export function AssinaturaCaptura({ nomePadrao, onChange: emitir }: Props) {
   const fim = () => {
     if (!desenhando.current) return;
     desenhando.current = false;
+    if (tracou.current) setTemTraco(true);
     if (tracou.current && canvasRef.current) onChange(canvasRef.current.toDataURL("image/png"));
   };
 
@@ -133,6 +135,7 @@ export function AssinaturaCaptura({ nomePadrao, onChange: emitir }: Props) {
     if (!c) return;
     c.getContext("2d")!.clearRect(0, 0, c.width, c.height);
     tracou.current = false;
+    setTemTraco(false);
     onChange(null);
   };
 
@@ -166,7 +169,7 @@ export function AssinaturaCaptura({ nomePadrao, onChange: emitir }: Props) {
 
         <TabsContent value="desenhar" className="space-y-2">
           <div className="relative">
-          {!tracou.current && <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">✍️ Assine Aqui Com o Dedo</span>}
+          {!temTraco && <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">✍️ Assine Aqui Com o Dedo</span>}
           <canvas
             ref={canvasRef}
             aria-label="Área para desenhar a assinatura"
