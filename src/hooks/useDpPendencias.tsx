@@ -1192,10 +1192,10 @@ export function useDpPendencias() {
         {
           const inicioProx = new Date(anoVigente, mesVigente - 1, 1);
           const fimProx = new Date(anoVigente, mesVigente, 0);
-          const [{ data: colabs }, { data: folgas }, { data: cfgs }, { data: sols }] = await Promise.all([
+          const [{ data: colabs }, { data: folgas }, { data: cfgs }, { data: sols }, { data: gozosMes }] = await Promise.all([
             supabase
               .from("dp_colaboradores")
-              .select("id, nome, regime, vinculo_label, forma_pagamento")
+              .select("id, nome, regime, vinculo_label, forma_pagamento, data_admissao, data_desligamento")
               .eq("company_id", selectedCompanyId!)
               .eq("ativo", true)
               .is("deleted_at", null),
@@ -1219,7 +1219,24 @@ export function useDpPendencias() {
               .eq("status", "aprovada")
               .gte("data_alvo", ymd(inicioProx))
               .lte("data_alvo", ymd(fimProx)),
+            supabase
+              .from("dp_ferias_gozos")
+              .select("colaborador_id, data_inicio, data_fim")
+              .eq("company_id", selectedCompanyId!)
+              .in("status", ["aprovado", "em_gozo", "concluido"])
+              .lte("data_inicio", ymd(fimProx))
+              .gte("data_fim", ymd(inicioProx)),
           ]);
+          // Férias que cobrem o mês inteiro dispensam a folga mensal.
+          const feriasMesInteiro = new Set(
+            (gozosMes ?? [])
+              .filter(
+                (g: any) =>
+                  String(g.data_inicio).slice(0, 10) <= ymd(inicioProx) &&
+                  String(g.data_fim).slice(0, 10) >= ymd(fimProx),
+              )
+              .map((g: any) => g.colaborador_id),
+          );
           const comFolga = new Set([
             ...(folgas ?? []).map((f: any) => f.colaborador_id),
             ...(sols ?? []).map((s: any) => s.colaborador_id),
@@ -1240,7 +1257,12 @@ export function useDpPendencias() {
             if (r !== "clt" && !freelaMensal) return false;
             const v = String(c.vinculo_label ?? "").toLowerCase();
             if (v === "socio" || v === "sócio") return false;
-            return !semDomingo.has(c.id);
+            if (semDomingo.has(c.id)) return false;
+            // Afastamento (licença/atestado longo) ou férias cobrindo o mês
+            // inteiro dispensam a folga mensal — não há dias trabalhados.
+            if (feriasMesInteiro.has(c.id)) return false;
+            if (afastadoMesInteiro(c as ColabElegibilidade, ymd(inicioProx).slice(0, 7))) return false;
+            return true;
           });
           const faltantes = elegiveis.filter((c: any) => !comFolga.has(c.id));
           const semEscala = faltantes.length;
