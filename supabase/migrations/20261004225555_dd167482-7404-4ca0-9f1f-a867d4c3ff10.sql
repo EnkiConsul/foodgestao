@@ -1,0 +1,1 @@
+UPDATE public.dp_user_prefs SET extras = extras - 'mobile_shortcuts' WHERE extras ? 'mobile_shortcuts';
