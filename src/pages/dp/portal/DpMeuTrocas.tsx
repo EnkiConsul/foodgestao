@@ -517,6 +517,21 @@ export default function DpMeuTrocas() {
 
                     </div>
                   )}
+
+                  {t.status === "aprovada" && (
+                    <div className="pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={empresaRef.isLoading}
+                        onClick={() =>
+                          imprimirTermoTroca(t, { nome: empresaRef.data?.nome ?? "Empresa" })
+                        }
+                      >
+                        <FileText className="h-4 w-4 mr-1" /> Ver termo da troca
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
