@@ -133,7 +133,6 @@ export default function DpMeuTrocas() {
       return { nome: (data as any)?.razao_social ?? (data as any)?.nome_fantasia ?? "Empresa" };
     },
   });
-  });
 
   const minhaUnidade = (meRef.data as { unidade_id?: string | null } | undefined)?.unidade_id ?? null;
 
