@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Repeat, Check, X, Ban, Plus, ArrowRight, User, Users } from "lucide-react";
+import { Repeat, Check, X, Ban, Plus, ArrowRight, User, Users, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +34,7 @@ import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { avaliarRiscoDsrTroca, avisoDsr, descansosDoColaborador } from "@/lib/dp/dsr-consecutivo";
 import { diasFixosDoColaborador, registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
+import { imprimirTermoTroca } from "@/lib/dp/troca-certificado";
 
 const statusLabel: Record<string, string> = {
   pendente_colega: "Aguardando colega",
@@ -117,6 +118,19 @@ export default function DpMeuTrocas() {
         .order("data");
       if (error) throw error;
       return (data ?? []).filter((f: any) => f.status !== "cancelada");
+    },
+  });
+
+  const empresaRef = useQuery({
+    queryKey: ["dp_minha_empresa_termo", meRef.data?.company_id],
+    enabled: !!meRef.data?.company_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("razao_social, nome_fantasia")
+        .eq("id", meRef.data!.company_id!)
+        .maybeSingle();
+      return { nome: (data as any)?.razao_social ?? (data as any)?.nome_fantasia ?? "Empresa" };
     },
   });
 
@@ -501,6 +515,21 @@ export default function DpMeuTrocas() {
                         </ConfirmarAcaoDialog>
                       )}
 
+                    </div>
+                  )}
+
+                  {t.status === "aprovada" && (
+                    <div className="pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={empresaRef.isLoading}
+                        onClick={() =>
+                          imprimirTermoTroca(t, { nome: empresaRef.data?.nome ?? "Empresa" })
+                        }
+                      >
+                        <FileText className="h-4 w-4 mr-1" /> Ver termo da troca
+                      </Button>
                     </div>
                   )}
                 </CardContent>
