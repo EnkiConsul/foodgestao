@@ -50,9 +50,19 @@ export function avaliarRiscoDsrTroca(params: {
   const simulado = new Set(descansoIso);
   if (diaCedidoIso) simulado.delete(diaCedidoIso);
   if (diaNovoIso) simulado.add(diaNovoIso);
-  const sequencia = diaCedidoIso
-    ? maiorSequenciaTrabalhada({ dataIso: diaCedidoIso, descansoIso: simulado })
-    : 0;
+  // Avalia a semana anterior e a seguinte aos dois dias envolvidos: a troca
+  // pode alongar a sequência antes ou depois do dia cedido.
+  let sequencia = 0;
+  if (diaCedidoIso) {
+    const datas = [diaCedidoIso, diaNovoIso].filter(Boolean).map(parseYMD);
+    const ini = new Date(Math.min(...datas.map((d) => d.getTime())));
+    const fim = new Date(Math.max(...datas.map((d) => d.getTime())));
+    for (let d = addDays(ini, -7); d <= addDays(fim, 7); d = addDays(d, 1)) {
+      const iso = ymd(d);
+      if (simulado.has(iso)) continue;
+      sequencia = Math.max(sequencia, maiorSequenciaTrabalhada({ dataIso: iso, descansoIso: simulado }));
+    }
+  }
   return { sequencia, risco: sequencia >= DSR_LIMITE_DIAS };
 }
 

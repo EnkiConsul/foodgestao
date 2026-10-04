@@ -1,5 +1,6 @@
 import { Helmet } from "react-helmet-async";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -71,6 +72,12 @@ export default function DpTrocas() {
   const [recusa, setRecusa] = useState<string | null>(null);
   const [cancelamento, setCancelamento] = useState<string | null>(null);
   const [detalheId, setDetalheId] = useState<string | null>(null);
+  // Vindo de uma notificação: abre direto a troca indicada.
+  const [searchParams] = useSearchParams();
+  const trocaIdUrl = searchParams.get("troca_id");
+  useEffect(() => {
+    if (trocaIdUrl) setDetalheId(trocaIdUrl);
+  }, [trocaIdUrl]);
 
   const {
     rows,

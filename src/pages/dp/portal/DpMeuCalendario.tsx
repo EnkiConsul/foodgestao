@@ -727,8 +727,10 @@ export default function DpMeuCalendario() {
       .filter((d) => fixos.includes(d.getDay()))
       .map((d) => ymd(d))
       .filter((iso) => iso >= hojeIso && !comRegistro.has(iso))
+      // Folga fixa já cedida numa troca: nesse dia agora trabalha, não pode ser oferecida de novo.
+      .filter((iso) => !trabalhoExcepcionalQuery.data?.has(`${meRef.data!.id}|${iso}`))
       .map((iso) => ({ id: `fixa-${iso}`, data: iso, fixa: true as const }));
-  }, [meRef.data, meusDiasFixosQuery.data, folgas, range.startDate, range.endDate, hojeIso]);
+  }, [meRef.data, meusDiasFixosQuery.data, folgas, range.startDate, range.endDate, hojeIso, trabalhoExcepcionalQuery.data]);
 
   /** Folgas ofertáveis para o dia aberto no diálogo (sem o próprio dia pedido). */
   const folgasParaOferecer = useMemo(() => {
@@ -1015,11 +1017,13 @@ export default function DpMeuCalendario() {
       });
       if (error) throw new Error(mensagemErroTroca(error.message));
       const trocaId = (res as { troca_id?: string } | null)?.troca_id;
-      if (trocaId) await assinarTroca(trocaId, assinatura);
+      if (!trocaId) throw new Error("A troca não foi registrada. Atualize a tela e tente de novo.");
+      await assinarTroca(trocaId, assinatura);
+      return trocaId;
     },
-    onSuccess: () => {
+    onSuccess: (trocaId) => {
       if (riscoDsrTroca)
-        void registrarCienciaDsr({ papel: "solicitante", tabela: "dp_trocas", data: riscoDsrTroca.data, dias: riscoDsrTroca.sequencia });
+        void registrarCienciaDsr({ papel: "solicitante", tabela: "dp_trocas", referenciaId: trocaId, data: riscoDsrTroca.data, dias: riscoDsrTroca.sequencia });
       toast.success(
         tradeMyDate && tradeOpen && trocaExigeAprovacaoGestor(tradeMyDate, tradeOpen.iso)
           ? "Troca enviada ao colega. Depois do aceite, o gestor precisa aprovar."

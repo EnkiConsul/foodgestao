@@ -38,7 +38,12 @@ Deno.serve(async (req) => {
       const url = it.user_id
         ? (PATH_PORTAL[it.ref_table] ?? "/dp/meu")
         : (PATH_GESTOR[it.ref_table] ?? "/dp/notificacoes");
-      const payload = JSON.stringify({ title: it.titulo, body: it.descricao ?? "", url, tag: it.notificacao_id });
+      let finalUrl = url;
+      if (it.ref_table === "dp_trocas" && !it.user_id) {
+        const { data: n } = await admin.from("dp_notificacoes").select("ref_id").eq("id", it.notificacao_id).maybeSingle();
+        if (n?.ref_id) finalUrl = `${url}&troca_id=${encodeURIComponent(n.ref_id)}`;
+      }
+      const payload = JSON.stringify({ title: it.titulo, body: it.descricao ?? "", url: finalUrl, tag: it.notificacao_id });
       for (const d of (destinos ?? []) as any[]) {
         try {
           await webpush.sendNotification({ endpoint: d.endpoint, keys: { p256dh: d.p256dh, auth: d.auth } }, payload, { TTL: 86400 });

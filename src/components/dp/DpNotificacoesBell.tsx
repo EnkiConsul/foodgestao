@@ -74,7 +74,7 @@ export function DpNotificacoesBell({ variant = "admin" }: { variant?: "admin" | 
           ) : (
             <ul className="divide-y">
               {list.map((n) => {
-                const path = portal ? notificacaoPathPortal(n.ref_table) : notificacaoPathGestor(n.ref_table);
+                const path = portal ? notificacaoPathPortal(n.ref_table) : notificacaoPathGestor(n.ref_table, (n as { ref_id?: string | null }).ref_id);
                 return (
                   <li key={n.id} className={n.lida ? "opacity-60" : ""}>
                     <Link
