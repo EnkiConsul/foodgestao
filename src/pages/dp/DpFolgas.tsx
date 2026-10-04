@@ -908,24 +908,6 @@ export default function DpFolgas() {
         icon={CalendarDays}
         title="Calendário de Folgas"
         description="Gestão centralizada de escalas e folgas da equipe."
-        actions={
-          <div className="flex items-center gap-2">
-            {podeDistribuir && (
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={() => setAutoOpen(true)}
-                title="Gera as folgas de fim de semana de quem ainda não marcou neste mês, conforme a regra da unidade"
-              >
-                <Wand2 className="h-4 w-4" />
-                Gerar Folgas
-              </Button>
-            )}
-
-          </div>
-
-
-        }
       />
 
       {execucoesExcedidas.length > 0 && (

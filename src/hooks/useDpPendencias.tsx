@@ -1186,12 +1186,12 @@ export function useDpPendencias() {
         console.warn("pendencias/licencas:", e);
       }
 
-      // 9. Escala do próximo mês — cobrar o gestor nos últimos dias do mês
+      // 9. Contingência: a rotina automática já fechou o mês vigente (23:59 do último
+      // dia do mês anterior). Quem continua sem folga indica falha do sistema.
       try {
-        const ultimoDia = new Date(anoVigente, mesVigente, 0).getDate();
-        if (diaHoje >= ultimoDia - 4) {
-          const inicioProx = new Date(anoVigente, mesVigente, 1);
-          const fimProx = new Date(anoVigente, mesVigente + 1, 0);
+        {
+          const inicioProx = new Date(anoVigente, mesVigente - 1, 1);
+          const fimProx = new Date(anoVigente, mesVigente, 0);
           const [{ data: colabs }, { data: folgas }, { data: cfgs }, { data: sols }] = await Promise.all([
             supabase
               .from("dp_colaboradores")
@@ -1245,16 +1245,16 @@ export function useDpPendencias() {
           const faltantes = elegiveis.filter((c: any) => !comFolga.has(c.id));
           const semEscala = faltantes.length;
           if (semEscala > 0) {
-            const prazo = new Date(anoVigente, mesVigente - 1, ultimoDia);
+            const prazo = inicioProx;
             const nomes = faltantes
               .map((c: any) => String(c.nome ?? "").trim().split(/\s+/).slice(0, 2).join(" "))
               .filter(Boolean)
               .join(", ");
             results.push({
-              id: `escala-${anoVigente}-${mesVigente + 1}`,
+              id: `sem-folga-${anoVigente}-${mesVigente}`,
               icon: Clock,
-              titulo: "Definir Escala do Próximo Mês",
-              subtitulo: `Sem folga marcada em ${MES_NOME[inicioProx.getMonth()]}: ${nomes} — o sistema gera automaticamente às 23:59 do dia ${ultimoDia}`,
+              titulo: "Colaborador Sem Folga no Mês",
+              subtitulo: `A distribuição automática não definiu folga em ${MES_NOME[inicioProx.getMonth()]} para: ${nomes}. Abra o calendário e marque o dia manualmente.`,
               tipo: "Escala",
               vencimento: ymd(prazo),
               atrasoDias: differenceInCalendarDays(today, prazo),
