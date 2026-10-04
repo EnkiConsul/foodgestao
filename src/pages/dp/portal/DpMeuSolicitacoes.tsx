@@ -115,10 +115,24 @@ export default function DpMeuSolicitacoes() {
   const fixos = diasFixos.data ?? [];
   const podeTrocar = podePedirTrocaFds(fixos);
   const ehTroca = form.tipo === "troca_fds";
+  /** Intermitente/freelancer não tem folga nem DSR: trabalha por convocação. */
+  const convocavel = pessoaConvocavel(meRef.data ?? {});
   const tiposDisponiveis = useMemo(
-    () => TIPOS.filter((t) => t.value !== "troca_fds" || podeTrocar),
-    [podeTrocar],
+    () =>
+      TIPOS.filter((t) => {
+        if (convocavel && (t.value === "folga" || t.value === "troca_fds")) return false;
+        return t.value !== "troca_fds" || podeTrocar;
+      }),
+    [podeTrocar, convocavel],
   );
+
+  // Se o vínculo não tem direito a folga, não deixa o formulário preso nesse tipo.
+  useEffect(() => {
+    if (convocavel && (form.tipo === "folga" || form.tipo === "troca_fds")) {
+      setForm((f) => ({ ...f, tipo: "outro" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convocavel]);
 
   // Regra de adiantamento da unidade (dia do pagamento) para o painel do portal.
   const minhaUnidade = useQuery({
