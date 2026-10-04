@@ -1294,7 +1294,7 @@ export default function DpMeuCalendario() {
       <DpPageHeader
         icon={CalendarDays}
         title="Meu Calendário"
-        description="Escolha suas folgas de fim de semana."
+        description={convocavel ? "Marque os dias em que você não pode trabalhar." : "Escolha suas folgas de fim de semana."}
         actions={
           <Button
             variant="outline"
@@ -1306,7 +1306,7 @@ export default function DpMeuCalendario() {
         }
       />
 
-      <div className="space-y-2">
+      {!convocavel && <div className="space-y-2">
         <p className="text-xs text-muted-foreground">{resumoFolgas.texto}</p>
         <p className="text-xs text-muted-foreground">{resumoDomingos}</p>
         {avisoJanela && (
