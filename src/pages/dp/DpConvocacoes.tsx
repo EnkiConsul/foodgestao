@@ -408,9 +408,7 @@ export default function DpConvocacoes() {
         </TabsContent>
 
         <TabsContent value="aprovacoes" className="mt-3 space-y-3">
-          <DpContentCard>
-            <SubstituicoesAprovacao />
-          </DpContentCard>
+          <SubstituicoesAprovacao />
           <DpContentCard>
             {parciais.isLoading ? (
               <p className="text-sm text-muted-foreground">Carregando…</p>

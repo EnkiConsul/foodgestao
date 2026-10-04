@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { UserPlus } from "lucide-react";
+import { DpContentCard } from "@/components/dp/DpPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +27,7 @@ export function SubstituicoesAprovacao() {
   const fechar = () => { setAberta(null); setMotivo(""); };
 
   return (
+    <DpContentCard>
     <div className="space-y-2">
       <p className="flex items-center gap-2 text-sm font-semibold">
         <UserPlus className="h-4 w-4" /> Folguistas indicados para substituição
@@ -97,5 +99,6 @@ export function SubstituicoesAprovacao() {
         </DialogContent>
       </Dialog>
     </div>
+    </DpContentCard>
   );
 }
