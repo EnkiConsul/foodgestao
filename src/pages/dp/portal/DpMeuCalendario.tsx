@@ -1,6 +1,6 @@
 import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
 import { assinarTroca } from "@/lib/dp/troca-assinatura";
-import { CienciaFaltaTrocaBox } from "@/components/dp/CienciaFaltaTrocaBox";
+import { CienciaFaltaTrocaBox, TEXTO_CIENCIA_FALTA_TROCA } from "@/components/dp/CienciaFaltaTrocaBox";
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
@@ -2006,6 +2006,15 @@ export default function DpMeuCalendario() {
         nome={(meRef.data as { nome?: string } | null)?.nome ?? ""}
         enviando={solicitarTroca.isPending}
         onConfirmar={(png) => solicitarTroca.mutate(png)}
+      />
+
+      <AssinaturaConfirmarDialog
+        open={!!assinarAceiteId}
+        onOpenChange={(v) => !v && setAssinarAceiteId(null)}
+        titulo="Aceite da troca de folga — sua assinatura digital fica registrada no termo da troca."
+        nome={(meRef.data as { nome?: string } | null)?.nome ?? ""}
+        enviando={responderTroca.isPending}
+        onConfirmar={(png) => assinarAceiteId && responderTroca.mutate({ id: assinarAceiteId, aceito: true, assinatura: png })}
       />
 
       {/* Dialog mudança do dia da minha folga */}
