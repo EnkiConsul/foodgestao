@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 /** Estilos cursivos oferecidos quando a pessoa prefere não desenhar. */
 export const ESTILOS_ASSINATURA = [
@@ -28,12 +29,30 @@ function carregarFontes() {
 const COR_TINTA = "#0F1B3D";
 const CHAVE_SALVA = "aveto_assinatura_modelo";
 
-/** Assinatura escolhida pela pessoa, guardada só neste aparelho para reutilizar. */
+/** Cópia local só como atalho; a fonte oficial é a conta do usuário. */
 export function assinaturaSalva(): string | null {
   try { return localStorage.getItem(CHAVE_SALVA); } catch { return null; }
 }
-function salvarAssinatura(png: string | null) {
-  try { if (png) localStorage.setItem(CHAVE_SALVA, png); } catch { /* sem espaço */ }
+function cacheLocal(png: string | null) {
+  try { if (png) localStorage.setItem(CHAVE_SALVA, png); else localStorage.removeItem(CHAVE_SALVA); } catch { /* sem espaço */ }
+}
+
+/** Busca a assinatura salva na conta do usuário (vale em qualquer aparelho). */
+export async function carregarAssinaturaDaConta(): Promise<string | null> {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return null;
+  const { data } = await supabase.from("dp_assinatura_modelos" as never).select("imagem").eq("user_id", u.user.id).maybeSingle();
+  const img = (data as { imagem?: string } | null)?.imagem ?? null;
+  cacheLocal(img);
+  return img;
+}
+
+/** Guarda a assinatura usada como modelo da conta do usuário. */
+export async function salvarAssinaturaNaConta(png: string): Promise<void> {
+  cacheLocal(png);
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return;
+  await supabase.from("dp_assinatura_modelos" as never).upsert({ user_id: u.user.id, imagem: png } as never, { onConflict: "user_id" });
 }
 
 /** Gera PNG transparente com o nome no estilo cursivo escolhido. */
@@ -68,8 +87,17 @@ type Props = {
 export function AssinaturaCaptura({ nomePadrao, onChange: emitir }: Props) {
   const [salva, setSalva] = useState<string | null>(() => assinaturaSalva());
   const [usarSalva, setUsarSalva] = useState<boolean>(() => !!assinaturaSalva());
-  const onChange = (png: string | null) => { if (png) salvarAssinatura(png); emitir(png); };
-  useEffect(() => { if (usarSalva && salva) emitir(salva); // eslint-disable-next-line react-hooks/exhaustive-deps
+  const onChange = (png: string | null) => emitir(png);
+  useEffect(() => {
+    if (usarSalva && salva) emitir(salva);
+    let vivo = true;
+    carregarAssinaturaDaConta().then((img) => {
+      if (!vivo) return;
+      if (img) { setSalva(img); setUsarSalva(true); emitir(img); }
+      else if (salva) { setSalva(null); setUsarSalva(false); emitir(null); }
+    }).catch(() => { /* mantém cópia local */ });
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [modo, setModo] = useState<"desenhar" | "digitar">("desenhar");
   const [nome, setNome] = useState(nomePadrao);

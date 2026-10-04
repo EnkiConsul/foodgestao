@@ -3696,6 +3696,27 @@ export type Database = {
           },
         ]
       }
+      dp_assinatura_modelos: {
+        Row: {
+          created_at: string
+          imagem: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          imagem: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          imagem?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       dp_avisos: {
         Row: {
           arquivo_mime: string | null
