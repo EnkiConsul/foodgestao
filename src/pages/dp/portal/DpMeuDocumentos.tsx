@@ -438,8 +438,8 @@ export default function DpMeuDocumentos() {
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{d.observacao}</p>
                       )}
                       <div className="flex gap-2 mt-3 flex-wrap">
-                        <Button size="sm" variant="outline" onClick={() => setPreview(d)} disabled={!d.file_path} className="min-h-9 flex-1 sm:flex-none">
-                          <Eye className="h-4 w-4 mr-1" /> Visualizar
+                        <Button size="sm" variant="outline" onClick={() => (d.aceite === true && d.meta?.source !== "solicitacao" ? void certificado(d) : setPreview(d))} disabled={!d.file_path || gerando === d.id} className="min-h-9 flex-1 sm:flex-none">
+                          <Eye className="h-4 w-4 mr-1" /> {gerando === d.id ? "Carregando validação..." : "Visualizar"}
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => download(d)} disabled={!d.file_path} className="min-h-9 flex-1 sm:flex-none">
                           <Download className="h-4 w-4 mr-1" /> Baixar

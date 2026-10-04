@@ -8,6 +8,7 @@ import { ativarPush, pushEstado, PUSH_MENSAGEM, type PushEstado } from "@/lib/pu
 const KEY = "aveto_push_prompt_adiado_ate";
 const ADIAR_DIAS = 3;
 const EVENTO = "aveto:push-sugerir";
+const AUTORIZADO = "aveto_push_autorizado";
 
 /** Chame após uma ação de alta intenção (pedido de folga, atestado, publicação de escala). */
 export function sugerirPushContextual(motivo?: string) {
@@ -30,6 +31,17 @@ export function PushSoftPrompt() {
   const movel = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
   const avaliar = async (forcar: boolean, m?: string) => {
+    // Já autorizado neste aparelho: nunca mais pergunta; só renova em silêncio.
+    const jaAutorizado = localStorage.getItem(AUTORIZADO) === "1" ||
+      ("Notification" in window && Notification.permission === "granted");
+    if (jaAutorizado) {
+      localStorage.setItem(AUTORIZADO, "1");
+      if ("Notification" in window && Notification.permission === "granted") {
+        const atual = await pushEstado().catch(() => "nao_suportado" as PushEstado);
+        if (atual === "inativo") await ativarPush().catch(() => undefined);
+      }
+      return;
+    }
     const e = await pushEstado().catch(() => "nao_suportado" as PushEstado);
     if (e !== "inativo" && e !== "ios_instalar") return;
     // Já autorizou antes: só refaz a inscrição em silêncio, sem perguntar de novo.
@@ -53,7 +65,7 @@ export function PushSoftPrompt() {
     setBusy(true);
     try {
       const r = await ativarPush();
-      if (r === "ativo") { toast.success("Notificações Ativadas Neste Aparelho."); setOpen(false); }
+      if (r === "ativo") { localStorage.setItem(AUTORIZADO, "1"); toast.success("Notificações Ativadas Neste Aparelho."); setOpen(false); }
       else { toast.info(PUSH_MENSAGEM[r]); if (r === "negado") adiar(3650); setOpen(false); }
     } catch { toast.error("Não foi possível ativar as notificações. Tente novamente."); }
     finally { setBusy(false); }
