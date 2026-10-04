@@ -343,7 +343,7 @@ export default function DpMeuSolicitacoes() {
       }
     }
     return errors;
-  }, [form, dateStatus, ehTroca, fixos]);
+  }, [form, dateStatus, ehTroca, fixos, convocavel]);
 
   const create = useMutation({
     mutationFn: async () => {

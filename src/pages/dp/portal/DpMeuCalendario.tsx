@@ -184,6 +184,8 @@ export default function DpMeuCalendario() {
 
   /** Intermitente/Freelancer usam a agenda de disponibilidade. */
   const convocavel = pessoaConvocavel(meRef.data ?? {});
+  /** Enquanto o vínculo carrega, não exibe a tela de folgas (evita flash indevido). */
+  const vinculoCarregado = !!meRef.data;
 
 
 
