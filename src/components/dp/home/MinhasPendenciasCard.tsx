@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Bell, ArrowRight, Clock, CheckCircle2 } from "lucide-react";
+import { Bell, ArrowRight, Clock, CheckCircle2, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useDpPendenciasColaborador } from "@/hooks/useDpPendenciasColaborador";
@@ -10,7 +10,7 @@ import { useDpPendenciasColaborador } from "@/hooks/useDpPendenciasColaborador";
  * (que tem escopo da empresa inteira).
  */
 export function MinhasPendenciasCard() {
-  const { data = [], isLoading } = useDpPendenciasColaborador();
+  const { data = [], isLoading, refetch, isFetching } = useDpPendenciasColaborador();
 
   const counters = useMemo(() => {
     let atrasado = 0;
@@ -32,7 +32,10 @@ export function MinhasPendenciasCard() {
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <Bell className="h-5 w-5 text-primary shrink-0" />
         <h2 className="text-base sm:text-lg font-semibold min-w-0 break-words">Minhas Pendências</h2>
-        <Badge className="ml-auto bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2 shrink-0">
+        <Button variant="ghost" size="sm" className="ml-auto h-8 px-2" disabled={isFetching} onClick={() => refetch()} aria-label="Atualizar pendências">
+          <RefreshCw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} /><span className="ml-1 text-xs">Atualizar</span>
+        </Button>
+        <Badge className="bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2 shrink-0">
           {data.length}
         </Badge>
       </div>

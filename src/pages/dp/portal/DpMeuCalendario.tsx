@@ -1294,7 +1294,7 @@ export default function DpMeuCalendario() {
       <DpPageHeader
         icon={CalendarDays}
         title="Meu Calendário"
-        description="Escolha suas folgas de fim de semana."
+        description={convocavel ? "Marque os dias em que você não pode trabalhar." : "Escolha suas folgas de fim de semana."}
         actions={
           <Button
             variant="outline"
@@ -1306,7 +1306,7 @@ export default function DpMeuCalendario() {
         }
       />
 
-      <div className="space-y-2">
+      {!convocavel && <div className="space-y-2">
         <p className="text-xs text-muted-foreground">{resumoFolgas.texto}</p>
         <p className="text-xs text-muted-foreground">{resumoDomingos}</p>
         {avisoJanela && (
@@ -1322,7 +1322,7 @@ export default function DpMeuCalendario() {
             <span>{avisoJanela}</span>
           </div>
         )}
-      </div>
+      </div>}
 
       {convocavel && (
         <MinhaDisponibilidadeCard
@@ -1334,8 +1334,19 @@ export default function DpMeuCalendario() {
         />
       )}
 
+      {convocavel && (
+        <div className="rounded-xl border bg-muted/40 p-3 text-sm space-y-2">
+          <p>
+            Como seu contrato é <strong>intermitente/por convocação</strong>, você não marca folga: marque acima os dias em que
+            <strong> não pode trabalhar</strong>. Os dias de trabalho chegam por convocação (Art. 452-A da CLT).
+          </p>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate("/dp/meu/escala")}>
+            <CalendarDays className="size-4 mr-2" /> Ver Minha Escala e Convocações
+          </Button>
+        </div>
+      )}
 
-
+      {!convocavel && (<>
       <div className="hidden md:block">
         <FolgaCalendarShared
           year={ano}
@@ -1400,6 +1411,8 @@ export default function DpMeuCalendario() {
       <p className="text-xs text-muted-foreground">
         Clique em um dia para ver detalhes, marcar folga de fim de semana, pedir troca ou solicitar exceção.
       </p>
+      </>)}
+
 
 
       {/* Dialog do dia */}

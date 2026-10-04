@@ -47,7 +47,7 @@ export function useDpPendenciasColaborador() {
     // Mesma regra do portal do gestor: a lista não se refaz a cada abertura de
     // tela; ela é atualizada pela rotina diária e pelas ações do próprio portal.
     staleTime: Infinity,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<PendenciaColaborador[]> => {
       const { data: colabId } = await supabase.rpc("dp_meu_colaborador");
       if (!colabId) return [];

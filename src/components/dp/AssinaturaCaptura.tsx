@@ -26,6 +26,15 @@ function carregarFontes() {
 }
 
 const COR_TINTA = "#0F1B3D";
+const CHAVE_SALVA = "aveto_assinatura_modelo";
+
+/** Assinatura escolhida pela pessoa, guardada só neste aparelho para reutilizar. */
+export function assinaturaSalva(): string | null {
+  try { return localStorage.getItem(CHAVE_SALVA); } catch { return null; }
+}
+function salvarAssinatura(png: string | null) {
+  try { if (png) localStorage.setItem(CHAVE_SALVA, png); } catch { /* sem espaço */ }
+}
 
 /** Gera PNG transparente com o nome no estilo cursivo escolhido. */
 export async function nomeCursivoParaPng(nome: string, fonte: string): Promise<string> {
@@ -56,20 +65,26 @@ type Props = {
  * Captura da assinatura: desenhar com o dedo/mouse ou escolher um modelo de
  * letra cursiva com o próprio nome. Produz um PNG leve com fundo transparente.
  */
-export function AssinaturaCaptura({ nomePadrao, onChange }: Props) {
+export function AssinaturaCaptura({ nomePadrao, onChange: emitir }: Props) {
+  const [salva, setSalva] = useState<string | null>(() => assinaturaSalva());
+  const [usarSalva, setUsarSalva] = useState<boolean>(() => !!assinaturaSalva());
+  const onChange = (png: string | null) => { if (png) salvarAssinatura(png); emitir(png); };
+  useEffect(() => { if (usarSalva && salva) emitir(salva); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [modo, setModo] = useState<"desenhar" | "digitar">("desenhar");
   const [nome, setNome] = useState(nomePadrao);
   const [estilo, setEstilo] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const desenhando = useRef(false);
   const tracou = useRef(false);
+  const [temTraco, setTemTraco] = useState(false);
 
   useEffect(() => { carregarFontes(); }, []);
   useEffect(() => { setNome(nomePadrao); }, [nomePadrao]);
 
   // Canvas com resolução real do aparelho para o traço sair nítido.
   useEffect(() => {
-    if (modo !== "desenhar") return;
+    if (modo !== "desenhar" || usarSalva) return;
     const c = canvasRef.current;
     if (!c) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -85,7 +100,7 @@ export function AssinaturaCaptura({ nomePadrao, onChange }: Props) {
     tracou.current = false;
     onChange(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modo]);
+  }, [modo, usarSalva]);
 
   const ponto = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -111,6 +126,7 @@ export function AssinaturaCaptura({ nomePadrao, onChange }: Props) {
   const fim = () => {
     if (!desenhando.current) return;
     desenhando.current = false;
+    if (tracou.current) setTemTraco(true);
     if (tracou.current && canvasRef.current) onChange(canvasRef.current.toDataURL("image/png"));
   };
 
@@ -119,6 +135,7 @@ export function AssinaturaCaptura({ nomePadrao, onChange }: Props) {
     if (!c) return;
     c.getContext("2d")!.clearRect(0, 0, c.width, c.height);
     tracou.current = false;
+    setTemTraco(false);
     onChange(null);
   };
 
@@ -128,9 +145,22 @@ export function AssinaturaCaptura({ nomePadrao, onChange }: Props) {
     onChange(await nomeCursivoParaPng(nome.trim(), fonte));
   };
 
+  if (usarSalva && salva) {
+    return (
+      <div className="space-y-2 rounded-lg border-2 border-primary/40 bg-primary/5 p-3">
+        <p className="text-sm font-semibold">Sua Assinatura Salva</p>
+        <img src={salva} alt="Sua assinatura salva" className="h-24 w-full rounded-md border bg-background object-contain" />
+        <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => { setUsarSalva(false); setSalva(null); emitir(null); }}>
+          <PenLine className="mr-1 h-4 w-4" />Fazer Outra Assinatura
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium">Sua Assinatura</p>
+    <div className="space-y-2 rounded-lg border-2 border-primary/40 bg-primary/5 p-3">
+      <p className="text-sm font-semibold">Passo Final: Faça Sua Assinatura Abaixo</p>
+      <p className="text-xs text-muted-foreground">Desenhe com o dedo no quadro branco ou toque em "Escolher Modelo". Ela fica salva para os próximos documentos.</p>
       <Tabs value={modo} onValueChange={(v) => { setModo(v as typeof modo); setEstilo(null); onChange(null); }}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="desenhar"><PenLine className="mr-1.5 h-4 w-4" />Desenhar</TabsTrigger>
@@ -138,15 +168,18 @@ export function AssinaturaCaptura({ nomePadrao, onChange }: Props) {
         </TabsList>
 
         <TabsContent value="desenhar" className="space-y-2">
+          <div className="relative">
+          {!temTraco && <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">✍️ Assine Aqui Com o Dedo</span>}
           <canvas
             ref={canvasRef}
             aria-label="Área para desenhar a assinatura"
-            className="h-36 w-full touch-none rounded-md border border-dashed bg-background"
+            className="relative h-40 w-full touch-none rounded-md border-2 border-dashed border-primary bg-background"
             onPointerDown={inicio}
             onPointerMove={mover}
             onPointerUp={fim}
             onPointerLeave={fim}
           />
+          </div>
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">Desenhe com o dedo ou o mouse.</p>
             <Button type="button" size="sm" variant="ghost" onClick={limpar}><Eraser className="mr-1 h-4 w-4" />Limpar</Button>
