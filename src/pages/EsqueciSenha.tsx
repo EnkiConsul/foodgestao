@@ -19,6 +19,16 @@ import { ConferenciaSenhas } from "@/components/auth/ConferenciaSenhas";
 
 type Step = "identify" | "otp" | "password" | "done";
 
+async function mensagemDeErro(err: any, padrao: string): Promise<string> {
+  try {
+    const corpo = await err?.context?.json?.();
+    if (corpo?.code === "invalid_reset" || corpo?.code === "reset_failed")
+      return "Sua sessão de criação de senha expirou. Volte e solicite um novo código no WhatsApp.";
+    if (typeof corpo?.error === "string" && corpo.error) return corpo.error;
+  } catch { /* ignora */ }
+  return padrao;
+}
+
 export default function EsqueciSenha() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -140,7 +150,7 @@ export default function EsqueciSenha() {
       setResendIn(RESEND_COOLDOWN);
       setStep("otp");
     } catch (err: any) {
-      const msg = err?.context?.error ?? err?.message ?? "Falha ao enviar código.";
+      const msg = await mensagemDeErro(err, "Não foi possível enviar o código agora. Tente novamente.");
       toast.error(msg);
     } finally {
       // Turnstile tokens are single-use, including requests that return an error.
@@ -170,7 +180,7 @@ export default function EsqueciSenha() {
       setResetToken(data.reset_token);
       setStep("password");
     } catch (err: any) {
-      const msg = err?.context?.error ?? err?.message ?? "Código inválido ou expirado.";
+      const msg = await mensagemDeErro(err, "Código inválido ou expirado. Solicite um novo código.");
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -202,7 +212,7 @@ export default function EsqueciSenha() {
       setStep("done");
       toast.success("Senha redefinida com sucesso!");
     } catch (err: any) {
-      const msg = err?.context?.error ?? err?.message ?? "Falha ao redefinir senha.";
+      const msg = await mensagemDeErro(err, "Não foi possível salvar a senha. Solicite um novo código e tente novamente.");
       toast.error(msg);
     } finally {
       setSubmitting(false);

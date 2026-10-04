@@ -13,7 +13,7 @@
  */
 
 /** Mínimo de caracteres para qualquer senha nova. */
-export const SENHA_MIN = 8;
+export const SENHA_MIN = 12;
 
 /**
  * Máximo em BYTES (UTF-8). O serviço de contas usa bcrypt, que ignora o que
