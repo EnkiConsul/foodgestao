@@ -410,7 +410,7 @@ export default function DpMeuCalendario() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_trocas")
-        .select("id, solicitante_id, destino_id, data_original, data_proposta, status")
+        .select("id, solicitante_id, destino_id, data_original, data_proposta, status, motivo, solicitante:solicitante_id(nome)")
         .eq("company_id", companyId!)
         .in("status", ["pendente_colega", "pendente_gestor"]);
       if (error) throw error;
@@ -702,9 +702,24 @@ export default function DpMeuCalendario() {
 
   // Minhas folgas futuras (para oferecer troca)
   const hojeIso = useMemo(() => ymd(new Date()), []);
+  /** Minhas datas já comprometidas numa troca ainda pendente — não podem ser oferecidas de novo. */
+  const diasEmTrocaPendente = useMemo(() => {
+    const meuId = meRef.data?.id;
+    const s = new Set<string>();
+    if (!meuId) return s;
+    for (const t of (trocasPendentesQuery.data ?? []) as any[]) {
+      if (t.solicitante_id === meuId && t.data_original) s.add(t.data_original);
+      if (t.destino_id === meuId && t.data_proposta) s.add(t.data_proposta);
+    }
+    return s;
+  }, [trocasPendentesQuery.data, meRef.data?.id]);
+
   const minhasFolgasFuturas = useMemo(
-    () => folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso }),
-    [folgas, meRef.data?.id, hojeIso],
+    () =>
+      folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso }).filter(
+        (f) => !diasEmTrocaPendente.has(f.data as string),
+      ),
+    [folgas, meRef.data?.id, hojeIso, diasEmTrocaPendente],
   );
 
   /**
@@ -729,17 +744,19 @@ export default function DpMeuCalendario() {
       .filter((iso) => iso >= hojeIso && !comRegistro.has(iso))
       // Folga fixa já cedida numa troca: nesse dia agora trabalha, não pode ser oferecida de novo.
       .filter((iso) => !trabalhoExcepcionalQuery.data?.has(`${meRef.data!.id}|${iso}`))
+      // Folga já oferecida numa troca pendente.
+      .filter((iso) => !diasEmTrocaPendente.has(iso))
       .map((iso) => ({ id: `fixa-${iso}`, data: iso, fixa: true as const }));
-  }, [meRef.data, meusDiasFixosQuery.data, folgas, range.startDate, range.endDate, hojeIso, trabalhoExcepcionalQuery.data]);
+  }, [meRef.data, meusDiasFixosQuery.data, folgas, range.startDate, range.endDate, hojeIso, trabalhoExcepcionalQuery.data, diasEmTrocaPendente]);
 
   /** Folgas ofertáveis para o dia aberto no diálogo (sem o próprio dia pedido). */
   const folgasParaOferecer = useMemo(() => {
-    const avulsas = folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso, diaPedidoIso: tradeOpen?.iso }).map(
-      (f) => ({ id: f.id as string, data: f.data as string, fixa: false }),
-    );
+    const avulsas = folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso, diaPedidoIso: tradeOpen?.iso })
+      .filter((f) => !diasEmTrocaPendente.has(f.data as string))
+      .map((f) => ({ id: f.id as string, data: f.data as string, fixa: false }));
     const fixas = minhasFixasFuturas.filter((f) => f.data !== tradeOpen?.iso);
     return [...avulsas, ...fixas].sort((a, b) => a.data.localeCompare(b.data));
-  }, [folgas, meRef.data?.id, hojeIso, tradeOpen?.iso, minhasFixasFuturas]);
+  }, [folgas, meRef.data?.id, hojeIso, tradeOpen?.iso, minhasFixasFuturas, diasEmTrocaPendente]);
 
   /** Exceção ao gestor: folga extra ou troca de um dia da folga semanal. */
   const [excecaoModo, setExcecaoModo] = useState<"extra" | "troca_semanal">("extra");
