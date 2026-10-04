@@ -82,6 +82,9 @@ export default function DpMeuTrocas() {
     },
   });
 
+  /** Intermitente/freelancer não tem folga semanal para trocar. */
+  const convocavel = pessoaConvocavel(meRef.data ?? {});
+
   const list = useQuery({
     queryKey: ["dp_meu_trocas", meRef.data?.id],
     enabled: !!meRef.data?.id,
