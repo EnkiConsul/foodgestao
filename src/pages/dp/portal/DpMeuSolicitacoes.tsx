@@ -31,6 +31,7 @@ import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { resumoEscolhaFolgas } from "@/lib/dp/dsr-rules";
 
 import { calculateDateStatus, type ColaboradorRecord, type FolgaRecord } from "@/lib/dp/folga-rules";
+import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
 import { podePedirTrocaFds, validarTrocaFds } from "@/lib/dp/troca-fds";
 import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import { notifyError } from "@/lib/notifyError";
@@ -94,7 +95,7 @@ export default function DpMeuSolicitacoes() {
       if (!data) return null;
       const { data: c } = await supabase
         .from("dp_colaboradores")
-        .select("id, company_id, unidade_id, cargo_id, sexo, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, nome")
+        .select("id, company_id, unidade_id, cargo_id, sexo, regime, forma_pagamento, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, nome")
         .eq("id", data)
         .single();
       return c;
