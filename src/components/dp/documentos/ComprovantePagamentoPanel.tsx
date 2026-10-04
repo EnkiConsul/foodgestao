@@ -1,4 +1,5 @@
 import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
+import { DicaEnquadramento, useConferenciaDigitalizacao } from "@/components/dp/documentos/ConferenciaDigitalizacao";
 import { DicaEnquadramento, useConferenciaDigitalizacao } from "./ConferenciaDigitalizacao";
 import { useId, useRef, useState } from "react";
 import {
@@ -225,6 +226,7 @@ export function ComprovanteAnexarDialog(props: {
   complementar?: { jaComprovadoCents: number };
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { conferir: conferirFoto, dialogo: dialogoFoto } = useConferenciaDigitalizacao({ onTirarOutra: () => inputRef.current?.click() });
   const campoId = useId();
   const [pagoEm, setPagoEm] = useState(props.pagoEmAtual ?? "");
   const [arquivo, setArquivo] = useState<File | null>(null);
