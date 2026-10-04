@@ -1,6 +1,5 @@
 import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
 import { DicaEnquadramento, useConferenciaDigitalizacao } from "@/components/dp/documentos/ConferenciaDigitalizacao";
-import { DicaEnquadramento, useConferenciaDigitalizacao } from "./ConferenciaDigitalizacao";
 import { useId, useRef, useState } from "react";
 import {
   BadgeCheck,
