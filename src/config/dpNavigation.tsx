@@ -191,6 +191,7 @@ export const DP_ADMIN_NAV: DpNavSurface = {
   // Hubs mantidos como opção de atalho para preservar defaults já salvos.
   extraShortcuts: [
     { label: "Documentos", to: "/dp/documentos", icon: FileText, shortcut: true },
+    { label: "Folgas", to: "/dp/folgas", icon: CalendarClock, shortcut: true },
     { label: "Comunicação", to: "/dp/comunicacao", icon: BellRing, shortcut: true },
   ],
 };
@@ -212,7 +213,7 @@ const PORTAL_GROUPS: DpNavGroup[] = [
       "/dp/meu/solicitacoes",
     ],
     items: [
-      { label: "Calendário", to: "/dp/meu/calendario", icon: Calendar, shortcut: true },
+      { label: "Calendário", to: "/dp/meu/calendario", icon: Calendar, shortcut: true, shortLabel: "Folgas" },
       // "Minha Escala" só faz sentido para quem é chamado por convocação
       // (freelancer e intermitente); some do menu para quem tem escala fixa.
       { label: "Minha Escala", to: "/dp/meu/escala", icon: CalendarRange, shortcut: true },

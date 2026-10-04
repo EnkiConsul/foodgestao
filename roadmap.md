@@ -48,3 +48,8 @@
 - [x] "Todas as lojas": bloqueio por unidade mostra a loja
 - [x] Detalhe do dia mostra limites por cargo/setor da unidade
 - [x] Atalho do bloqueio/limite do dia para a tela de Regras
+
+## Atalhos padrão (04/10)
+- [ ] Barra inferior: gestor e colaborador com Documentos e Folgas por padrão, para todos os usuários
+- [ ] Calendário do intermitente/freelancer diarista-horista segue o vínculo (rótulo "Calendário")
+- [ ] Documentos do gestor com abas Importar, Histórico e Recibos
