@@ -9,6 +9,7 @@ import { sanitizeStorageFilename } from "@/lib/storage";
 import { DP_DOCUMENTOS_BUCKET } from "@/lib/documentoArquivo";
 import { notifyError } from "@/lib/notifyError";
 import { cn } from "@/lib/utils";
+import { useConferenciaDigitalizacao } from "./ConferenciaDigitalizacao";
 
 /**
  * Anexa (ou substitui) a via assinada em papel de um documento de assinatura
@@ -33,6 +34,7 @@ export function ViaAssinadaBotao({
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
+  const { conferir, dialogo } = useConferenciaDigitalizacao({ onTirarOutra: () => ref.current?.click() });
 
   const anexar = useMutation({
     mutationFn: async (escolhido: File) => {
@@ -66,6 +68,7 @@ export function ViaAssinadaBotao({
   const titulo = temVia ? "Substituir Via Assinada" : "Importar Via Assinada";
   return (
     <>
+      {dialogo}
       <input
         ref={ref}
         type="file"
@@ -74,7 +77,7 @@ export function ViaAssinadaBotao({
         onChange={(e) => {
           const f = e.target.files?.[0];
           e.target.value = "";
-          if (f) anexar.mutate(f);
+          if (f) void conferir(f).then((ok) => ok && anexar.mutate(ok));
         }}
       />
       <Button
