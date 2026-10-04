@@ -135,10 +135,10 @@ Deno.serve(async (req) => {
   const ipHash = ip ? await sha256Hex(ip) : "no-ip";
 
   if (await isRateLimited(admin, "recovery_request_ip", ipHash, MAX_PER_IP_PER_HOUR)) {
-    return json(429, { error: "Muitas tentativas. Aguarde alguns minutos.", code: "rate_limited" });
+    return json(429, { error: mensagemLimite("pedidos de recuperação a partir desta rede/aparelho", MAX_PER_IP_PER_HOUR, "solicite um novo código."), code: "rate_limited" });
   }
   if (await isRateLimited(admin, "recovery_request_id", identifierHash, MAX_PER_IDENTIFIER_PER_HOUR)) {
-    return json(429, { error: "Muitas tentativas. Aguarde alguns minutos.", code: "rate_limited" });
+    return json(429, { error: mensagemLimite("pedidos de código para este CPF/e-mail", MAX_PER_IDENTIFIER_PER_HOUR, "solicite um novo código. Se já recebeu um código há pouco, use esse último."), code: "rate_limited" });
   }
 
   // 3) Resolve identifier -> user (may be null; we still return a decoy)

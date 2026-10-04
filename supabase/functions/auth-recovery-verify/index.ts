@@ -4,7 +4,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { timingSafeEqualHex } from "../_shared/zapi.ts";
-import { ipRateLimited } from "../_shared/rate-limit.ts";
+import { ipRateLimited, mensagemLimite } from "../_shared/rate-limit.ts";
 
 const BodySchema = z.object({
   challenge_id: z.string().uuid(),
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
   let body: z.infer<typeof BodySchema>;
   try {
     const parsed = BodySchema.safeParse(await req.json());
-    if (!parsed.success) return json(400, { error: "Dados inválidos" });
+    if (!parsed.success) return json(400, { error: "Dados incompletos. Volte e solicite um novo código." });
     body = parsed.data;
   } catch {
     return json(400, { error: "JSON inválido" });
@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
 
   if (await ipRateLimited(admin, req, "recovery_verify", MAX_VERIFY_PER_IP_PER_HOUR)) {
     return json(429, {
-      error: "Muitas tentativas. Aguarde e tente novamente.",
+      error: mensagemLimite("conferências de código a partir desta rede/aparelho", MAX_VERIFY_PER_IP_PER_HOUR, "tente novamente."),
       code: "rate_limited",
     });
   }
@@ -67,11 +67,14 @@ Deno.serve(async (req) => {
     .eq("id", body.challenge_id)
     .maybeSingle();
 
-  const generic = () => json(400, { error: "Código inválido ou expirado.", code: "invalid_otp" });
+  const generic = (motivo = "O código digitado não confere. Confira os 6 números da última mensagem do WhatsApp ou solicite um novo código.") =>
+    json(400, { error: motivo, code: "invalid_otp" });
   if (!row) return generic();
 
   // Terminal states short-circuit
-  if (row.status === "completed" || row.status === "expired" || row.status === "blocked") return generic();
+  if (row.status === "completed") return generic("Este código já foi usado. Solicite um novo código no WhatsApp.");
+  if (row.status === "expired") return generic("Este código expirou (vale 10 minutos). Solicite um novo código no WhatsApp.");
+  if (row.status === "blocked") return generic("Este código foi bloqueado após tentativas erradas. Solicite um novo código no WhatsApp.");
 
   // Validate challenge_token
   const tokenHash = await sha256Hex(body.challenge_token);
@@ -80,13 +83,13 @@ Deno.serve(async (req) => {
   // Expired?
   if (!row.otp_expires_at || new Date(row.otp_expires_at).getTime() < Date.now()) {
     await admin.from("auth_recovery_challenges").update({ status: "expired" }).eq("id", row.id);
-    return generic();
+    return generic("Este código expirou (vale 10 minutos). Solicite um novo código no WhatsApp.");
   }
 
   // Too many attempts?
   if ((row.otp_attempt_count ?? 0) >= MAX_ATTEMPTS) {
     await admin.from("auth_recovery_challenges").update({ status: "blocked" }).eq("id", row.id);
-    return json(429, { error: "Muitas tentativas. Solicite um novo código.", code: "too_many_attempts" });
+    return json(429, { error: `O código foi digitado errado ${MAX_ATTEMPTS} vezes e foi bloqueado por segurança. Volte e solicite um novo código no WhatsApp.`, code: "too_many_attempts" });
   }
 
   // A reset token is already in flight for this challenge — do not mint another one.
@@ -114,7 +117,7 @@ Deno.serve(async (req) => {
     const info = (attempt ?? {}) as { attempt_count?: number; status?: string };
     if (info.status === "blocked" || (info.attempt_count ?? 0) >= MAX_ATTEMPTS) {
       return json(429, {
-        error: "Muitas tentativas. Solicite um novo código.",
+        error: `O código foi digitado errado ${MAX_ATTEMPTS} vezes e foi bloqueado por segurança. Volte e solicite um novo código no WhatsApp.`,
         code: "too_many_attempts",
       });
     }

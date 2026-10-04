@@ -15,7 +15,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { checkZapiStatus, sendZapiText, normalizeBRPhone } from "../_shared/zapi.ts";
 import { verifyTurnstileToken } from "../_shared/turnstile.ts";
-import { isRateLimited, sha256Hex, clientIp } from "../_shared/rate-limit.ts";
+import { isRateLimited, sha256Hex, clientIp, mensagemLimite } from "../_shared/rate-limit.ts";
 import { gerarCodigo, situacaoAcesso, registrarEvento } from "../_shared/portal-access.ts";
 
 const BodySchema = z.object({
@@ -89,15 +89,15 @@ Deno.serve(async (req) => {
 
   const ip = clientIp(req);
   const captcha = await verifyTurnstileToken({ token: body.turnstile_token, ip, contexto: "auth-primeiro-acesso" });
-  if (!captcha.ok) return json(400, { error: "Verificação de segurança falhou. Recarregue e tente novamente.", code: "captcha_failed" });
+  if (!captcha.ok) return json(400, { error: "A verificação de segurança (anti-robô) não foi concluída. Recarregue a página, aguarde a caixa de verificação ficar verde e tente de novo.", code: "captcha_failed" });
 
   const ipHash = await sha256Hex(ip);
   const cpfHash = await sha256Hex(cpf);
   if (await isRateLimited(admin, "primeiro_acesso_ip", ipHash, 10)) {
-    return json(429, { error: "Muitas tentativas. Aguarde alguns minutos.", code: "rate_limited" });
+    return json(429, { error: mensagemLimite("pedidos de código a partir desta rede/aparelho", 10, "peça um novo código pelo Primeiro Acesso."), code: "rate_limited" });
   }
   if (await isRateLimited(admin, "primeiro_acesso_cpf", cpfHash, 3)) {
-    return json(429, { error: "Muitas tentativas. Aguarde alguns minutos.", code: "rate_limited" });
+    return json(429, { error: mensagemLimite("pedidos de código para este CPF", 3, "peça um novo código. Se já recebeu um código no WhatsApp há pouco, use esse último."), code: "rate_limited" });
   }
 
   // Cadastros com este CPF (formatado ou só números), não removidos.

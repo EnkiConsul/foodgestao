@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     const row = Array.isArray(probe) ? probe[0] : probe;
     if (row?.blocked) {
       return json(429, {
-        error: `Muitas tentativas. Tente novamente em ${Math.ceil((row.retry_after_seconds ?? 60) / 60)} minuto(s).`,
+        error: `Por segurança, o acesso foi pausado após várias senhas incorretas. Aguarde ${Math.ceil((row.retry_after_seconds ?? 60) / 60)} minuto(s) e tente de novo. Se não lembrar a senha, use "Esqueci minha senha".`,
         code: "rate_limited",
         retry_after_seconds: row.retry_after_seconds,
       });
