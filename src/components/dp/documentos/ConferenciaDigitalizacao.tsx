@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, Loader2, ScanLine, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, RotateCw, ScanLine, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -13,6 +13,34 @@ export const DICAS_ENQUADRAMENTO = [
   "Boa luz, sem sombra da mão ou do celular e sem flash direto.",
   "Toque na tela sobre o texto para focar; assinatura e números precisam estar legíveis.",
 ];
+
+async function girarImagem(arquivo: File, graus: number): Promise<File> {
+  const g = ((graus % 360) + 360) % 360;
+  if (g === 0) return arquivo;
+  const url = URL.createObjectURL(arquivo);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error("Não foi possível ler a foto."));
+      i.src = url;
+    });
+    const deitado = g === 90 || g === 270;
+    const canvas = document.createElement("canvas");
+    canvas.width = deitado ? img.naturalHeight : img.naturalWidth;
+    canvas.height = deitado ? img.naturalWidth : img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return arquivo;
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate((g * Math.PI) / 180);
+    ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.92));
+    if (!blob) return arquivo;
+    return new File([blob], arquivo.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 type Pendente = { arquivo: File; resolve: (f: File | null) => void };
 
@@ -51,9 +79,25 @@ export function useConferenciaDigitalizacao(opcoes?: { onTirarOutra?: () => void
     return () => { vivo = false; URL.revokeObjectURL(u); };
   }, [pendente]);
 
+  const [graus, setGraus] = useState(0);
+  const [preparando, setPreparando] = useState(false);
+  useEffect(() => { setGraus(0); }, [pendente]);
+
   const fechar = (f: File | null) => {
     pendente?.resolve(f);
     setPendente(null);
+  };
+
+  const enviar = async () => {
+    if (!pendente) return;
+    setPreparando(true);
+    try {
+      fechar(await girarImagem(pendente.arquivo, graus));
+    } catch {
+      fechar(pendente.arquivo);
+    } finally {
+      setPreparando(false);
+    }
   };
 
   const ruim = resultado?.nota === "ruim";
@@ -66,7 +110,7 @@ export function useConferenciaDigitalizacao(opcoes?: { onTirarOutra?: () => void
         </DialogHeader>
 
         <div className="rounded-md border bg-muted/40 grid place-items-center overflow-hidden h-56">
-          {url && <img src={url} alt="Foto escolhida" className="max-h-56 max-w-full object-contain" />}
+          {url && <img src={url} alt="Foto escolhida" className="max-h-56 max-w-full object-contain transition-transform" style={{ transform: `rotate(${graus}deg)` }} />}
         </div>
 
         {!resultado && !erro && (
@@ -103,10 +147,13 @@ export function useConferenciaDigitalizacao(opcoes?: { onTirarOutra?: () => void
           <Button variant={ruim ? "default" : "outline"} onClick={() => { fechar(null); tirarOutraRef.current?.(); }}>
             Fotografar de Novo
           </Button>
+          <Button variant="outline" onClick={() => setGraus((g) => (g + 90) % 360)}>
+            <RotateCw className="mr-2 size-4" /> Girar
+          </Button>
           <Button
             variant={ruim ? "outline" : "default"}
-            disabled={!resultado && !erro}
-            onClick={() => fechar(pendente?.arquivo ?? null)}
+            disabled={(!resultado && !erro) || preparando}
+            onClick={() => void enviar()}
           >
             {ruim ? "Enviar Mesmo Assim" : "Está Legível, Enviar"}
           </Button>

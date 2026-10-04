@@ -1,4 +1,5 @@
 import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
+import { useConferenciaDigitalizacao } from "@/components/dp/documentos/ConferenciaDigitalizacao";
 import { useRef, useState } from "react";
 import {
   Upload, Eye, Check, X, Ban, CalendarClock, Loader2, Trash2, PenLine, FileText,
@@ -55,6 +56,8 @@ export function DocumentoRequisitoRow({
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inputParteRef = useRef<HTMLInputElement | null>(null);
+  const conf = useConferenciaDigitalizacao({ onTirarOutra: () => inputRef.current?.click() });
+  const confParte = useConferenciaDigitalizacao({ onTirarOutra: () => inputParteRef.current?.click() });
   const [validade, setValidade] = useState<string>(item.validade ?? "");
   const [recusaAlvo, setRecusaAlvo] = useState<Anexo | null>(null);
   const [dispensaAberta, setDispensaAberta] = useState(false);
@@ -130,6 +133,8 @@ export function DocumentoRequisitoRow({
               aria-label="Validade do documento"
             />
           )}
+          {conf.dialogo}
+          {confParte.dialogo}
           <input
             ref={inputRef}
             type="file"
@@ -137,8 +142,8 @@ export function DocumentoRequisitoRow({
             accept="image/*,application/pdf"
             onChange={(e) => {
               const f = e.target.files?.[0];
-              if (f) onEnviar(f, validade || null);
               e.target.value = "";
+              if (f) void conf.conferir(f).then((ok) => ok && onEnviar(ok, validade || null));
             }}
           />
           <input
@@ -148,8 +153,8 @@ export function DocumentoRequisitoRow({
             accept="image/*,application/pdf"
             onChange={(e) => {
               const f = e.target.files?.[0];
-              if (f) onEnviar(f, validade || null, true);
               e.target.value = "";
+              if (f) void confParte.conferir(f).then((ok) => ok && onEnviar(ok, validade || null, true));
             }}
           />
           <Button size="sm" variant="outline" disabled={ocupado} onClick={() => inputRef.current?.click()}>
