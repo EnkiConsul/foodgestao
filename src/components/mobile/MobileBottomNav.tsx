@@ -6,6 +6,7 @@ import { useActiveModule, type ActiveModule } from "@/hooks/useActiveModule";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { MODULE_NAV, type NavLeaf } from "@/config/mobileNav";
 import { useModuleShortcuts, type ShortcutSlot } from "@/hooks/useModuleShortcut";
+import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 import { BottomNavShape } from "./BottomNavShape";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -31,7 +32,20 @@ export function MobileBottomNav() {
   const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
 
   const config = MODULE_NAV[activeModule] ?? MODULE_NAV.financeiro;
-  const { shortcutA, shortcutB, shortcutC, hasSlotC, setShortcut, options } = useModuleShortcuts(activeModule);
+  const raw = useModuleShortcuts(activeModule);
+  const { hasSlotC, setShortcut, options } = raw;
+  const vinculo = useMeuVinculoPortal();
+  const convocavel = vinculo.data?.podeSerConvocado === true;
+  // Rótulo curto pelo vínculo: o calendário do portal é de folgas para quem
+  // tem escala fixa e de convocações para intermitente/freelancer por hora ou diária.
+  const rotular = (leaf: NavLeaf): NavLeaf => {
+    if (leaf.to === "/dp/meu/calendario") return { ...leaf, label: convocavel ? "Calendário" : "Folgas" };
+    if (leaf.to === "/dp/documentos" || leaf.to === "/dp/meu/documentos") return { ...leaf, label: "Documentos" };
+    return leaf;
+  };
+  const shortcutA = rotular(raw.shortcutA);
+  const shortcutB = rotular(raw.shortcutB);
+  const shortcutC = rotular(raw.shortcutC);
 
   const [customizerSlot, setCustomizerSlot] = useState<ShortcutSlot | null>(null);
 

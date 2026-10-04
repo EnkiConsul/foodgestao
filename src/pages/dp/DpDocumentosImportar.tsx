@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link, useSearchParams } from "react-router-dom";
-import { FileUp, ListChecks, Info, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useSearchParams } from "react-router-dom";
+import { FileUp, Info, X } from "lucide-react";
+import { DpDocumentosAbas } from "@/components/dp/documentos/DpDocumentosAbas";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { BulkImportPanel } from "@/components/dp/documentos/BulkImportPanel";
@@ -84,14 +84,8 @@ export default function DpDocumentosImportar() {
         icon={FileUp}
         title="Importar"
         description="Envie o PDF do escritório contábil. O sistema identifica a natureza, a competência e o colaborador de cada página."
-        actions={
-          <Button asChild size="sm" variant="outline">
-            <Link to="/dp/documentos/historico">
-              <ListChecks className="h-4 w-4 mr-1" /> Histórico
-            </Link>
-          </Button>
-        }
       />
+      <DpDocumentosAbas />
 
       {mostrarAviso && (
         <Alert className="relative pr-10">
