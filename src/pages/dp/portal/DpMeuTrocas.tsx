@@ -21,6 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { CardListSkeleton } from "@/components/dp/DpSkeletons";
 import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
+import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
+import { assinarTroca } from "@/lib/dp/troca-assinatura";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
@@ -66,6 +68,8 @@ export default function DpMeuTrocas() {
   const [tab, setTab] = useState<"todas" | "recebidas" | "enviadas">("todas");
   const [open, setOpen] = useState(false);
   const [cienteFalta, setCienteFalta] = useState(false);
+  const [assinarPedido, setAssinarPedido] = useState(false);
+  const [assinarAceite, setAssinarAceite] = useState<null | { id: string; risco: boolean; sequencia: number; data: string }>(null);
   const [form, setForm] = useState<{
     destino_id: string;
     data_original: string;
@@ -80,7 +84,7 @@ export default function DpMeuTrocas() {
       const { data } = await supabase.rpc("dp_meu_colaborador");
       if (!data) return null;
       const { data: c } = await supabase
-        .from("dp_colaboradores").select("id, company_id, unidade_id, regime, forma_pagamento").eq("id", data).single();
+        .from("dp_colaboradores").select("id, nome, company_id, unidade_id, regime, forma_pagamento").eq("id", data).single();
       return c;
     },
   });
@@ -193,7 +197,11 @@ export default function DpMeuTrocas() {
    * quando a unidade usa troca direta, efetiva as folgas na mesma operação.
    */
   const responderColega = useMutation({
-    mutationFn: async ({ id, aceito }: { id: string; aceito: boolean }) => {
+    mutationFn: async ({ id, aceito, assinatura }: { id: string; aceito: boolean; assinatura?: string }) => {
+      if (aceito) {
+        if (!assinatura) throw new Error("Assine digitalmente para aceitar a troca.");
+        await assinarTroca(id, assinatura);
+      }
       const { data, error } = await supabase.rpc("dp_troca_responder_colega", {
         p_id: id,
         p_aceito: aceito,
@@ -235,16 +243,18 @@ export default function DpMeuTrocas() {
   }, [form]);
 
   const criar = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (assinatura: string) => {
       if (!meRef.data) throw new Error("Colaborador não encontrado");
       if (validation) throw new Error(validation);
-      const { error } = await supabase.rpc("dp_troca_propor", {
+      const { data, error } = await supabase.rpc("dp_troca_propor", {
         p_destino: form.destino_id,
         p_data_original: form.data_original!,
         p_data_proposta: form.data_proposta!,
         p_motivo: form.motivo,
       });
       if (error) throw new Error(mensagemErroTroca(error.message));
+      const trocaId = (data as { troca_id?: string } | null)?.troca_id;
+      if (trocaId) await assinarTroca(trocaId, assinatura);
     },
     onSuccess: () => {
       toast.success("Troca proposta enviada");
@@ -252,6 +262,7 @@ export default function DpMeuTrocas() {
       qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
       void resolverPendencias(qc, { companyId: meRef.data?.company_id ?? null });
       setOpen(false);
+      setAssinarPedido(false);
       setCienteFalta(false);
       setForm({ destino_id: "", data_original: undefined, data_proposta: undefined, motivo: "" });
     },
@@ -351,7 +362,7 @@ export default function DpMeuTrocas() {
               </div>
               <DpFormFooter className="-mx-6 -mb-6 mt-2">
                 <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button disabled={criar.isPending || !!validation || !cienteFalta} onClick={() => criar.mutate()}>Enviar</Button>
+                <Button disabled={criar.isPending || !!validation || !cienteFalta} onClick={() => setAssinarPedido(true)}>Assinar e enviar</Button>
               </DpFormFooter>
             </DialogContent>
           </Dialog>
@@ -463,25 +474,10 @@ export default function DpMeuTrocas() {
                               <ConfirmarAcaoDialog
                                 titulo={r.risco ? "Atenção à regra de descanso semanal" : "Confirmar troca de folga"}
                                 descricao={`${r.risco ? `${avisoDsr(r.sequencia)} Ao aceitar, você declara: "Estou ciente da regra trabalhista de descanso e aceito a troca por livre iniciativa." O gestor será avisado. ` : ""}${TEXTO_CIENCIA_FALTA_TROCA}`}
-                                confirmar="Estou ciente e aceito"
+                                confirmar="Estou ciente — assinar"
                                 cancelar="Voltar"
                                 destrutivo={false}
-                                onConfirm={() =>
-                                  responderColega.mutate(
-                                    { id: t.id, aceito: true },
-                                    {
-                                      onSuccess: () => {
-                                        if (r.risco) void registrarCienciaDsr({
-                                          papel: "destino",
-                                          tabela: "dp_trocas",
-                                          referenciaId: t.id,
-                                          data: t.data_proposta,
-                                          dias: r.sequencia,
-                                        });
-                                      },
-                                    },
-                                  )
-                                }
+                                onConfirm={() => setAssinarAceite({ id: t.id, risco: !!r.risco, sequencia: r.sequencia, data: t.data_proposta })}
                                 disabled={responderColega.isPending}
                               >
                                 {botao}
@@ -538,6 +534,33 @@ export default function DpMeuTrocas() {
           })}
         </div>
       )}
+    <AssinaturaConfirmarDialog
+        open={assinarPedido}
+        onOpenChange={setAssinarPedido}
+        titulo="Pedido de troca de folga — sua assinatura digital fica registrada no termo da troca."
+        nome={(meRef.data as any)?.nome ?? ""}
+        enviando={criar.isPending}
+        onConfirmar={(png) => criar.mutate(png)}
+      />
+      <AssinaturaConfirmarDialog
+        open={!!assinarAceite}
+        onOpenChange={(v) => !v && setAssinarAceite(null)}
+        titulo="Aceite da troca de folga — sua assinatura digital fica registrada no termo da troca."
+        nome={(meRef.data as any)?.nome ?? ""}
+        enviando={responderColega.isPending}
+        onConfirmar={(png) => {
+          const a = assinarAceite!;
+          responderColega.mutate(
+            { id: a.id, aceito: true, assinatura: png },
+            {
+              onSuccess: () => {
+                setAssinarAceite(null);
+                if (a.risco) void registrarCienciaDsr({ papel: "destino", tabela: "dp_trocas", referenciaId: a.id, data: a.data, dias: a.sequencia });
+              },
+            },
+          );
+        }}
+      />
     </DpPage>
   );
 }

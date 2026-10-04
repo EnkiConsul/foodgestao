@@ -12413,12 +12413,16 @@ export type Database = {
           created_by: string | null
           data_original: string
           data_proposta: string
+          destino_assinado_em: string | null
+          destino_assinatura: string | null
           destino_id: string
           gestor_id: string | null
           gestor_respondido_em: string | null
           gestor_resposta: string | null
           id: string
           motivo: string
+          solicitante_assinado_em: string | null
+          solicitante_assinatura: string | null
           solicitante_id: string
           status: Database["public"]["Enums"]["dp_troca_status"]
           updated_at: string
@@ -12431,12 +12435,16 @@ export type Database = {
           created_by?: string | null
           data_original: string
           data_proposta: string
+          destino_assinado_em?: string | null
+          destino_assinatura?: string | null
           destino_id: string
           gestor_id?: string | null
           gestor_respondido_em?: string | null
           gestor_resposta?: string | null
           id?: string
           motivo: string
+          solicitante_assinado_em?: string | null
+          solicitante_assinatura?: string | null
           solicitante_id: string
           status?: Database["public"]["Enums"]["dp_troca_status"]
           updated_at?: string
@@ -12449,12 +12457,16 @@ export type Database = {
           created_by?: string | null
           data_original?: string
           data_proposta?: string
+          destino_assinado_em?: string | null
+          destino_assinatura?: string | null
           destino_id?: string
           gestor_id?: string | null
           gestor_respondido_em?: string | null
           gestor_resposta?: string | null
           id?: string
           motivo?: string
+          solicitante_assinado_em?: string | null
+          solicitante_assinatura?: string | null
           solicitante_id?: string
           status?: Database["public"]["Enums"]["dp_troca_status"]
           updated_at?: string
@@ -18387,6 +18399,10 @@ export type Database = {
       dp_timezone_resolvido: {
         Args: { _company_id: string; _unidade_id?: string }
         Returns: string
+      }
+      dp_troca_assinar: {
+        Args: { p_assinatura: string; p_id: string }
+        Returns: Json
       }
       dp_troca_cancelar_self: { Args: { p_id: string }; Returns: Json }
       dp_troca_propor: {
