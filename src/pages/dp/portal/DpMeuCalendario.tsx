@@ -1,3 +1,5 @@
+import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
+import { assinarTroca } from "@/lib/dp/troca-assinatura";
 import { CienciaFaltaTrocaBox } from "@/components/dp/CienciaFaltaTrocaBox";
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
@@ -186,6 +188,7 @@ export default function DpMeuCalendario() {
     null,
   );
 
+  const [assinarTrocaOpen, setAssinarTrocaOpen] = useState(false);
   const meRef = useQuery({
     queryKey: ["dp_meu_colaborador", user?.id],
     enabled: !!user?.id,
@@ -989,7 +992,7 @@ export default function DpMeuCalendario() {
 
 
   const solicitarTroca = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (assinatura: string) => {
       if (!meRef.data || !tradeOpen) throw new Error("Sem contexto");
       if (!tradeMyDate) negarRegra("Escolha uma folga sua para oferecer.");
       if (tradeOpen.occupantId === meRef.data.id)
@@ -1004,13 +1007,15 @@ export default function DpMeuCalendario() {
 
 
       // duplicidade, folgas envolvidas e concorrência são revalidadas no servidor
-      const { error } = await supabase.rpc("dp_troca_propor", {
+      const { data: res, error } = await supabase.rpc("dp_troca_propor", {
         p_destino: tradeOpen.occupantId,
         p_data_original: tradeMyDate,
         p_data_proposta: tradeOpen.iso,
         p_motivo: motivo,
       });
       if (error) throw new Error(mensagemErroTroca(error.message));
+      const trocaId = (res as { troca_id?: string } | null)?.troca_id;
+      if (trocaId) await assinarTroca(trocaId, assinatura);
     },
     onSuccess: () => {
       if (riscoDsrTroca)
@@ -1021,6 +1026,7 @@ export default function DpMeuCalendario() {
           : "Solicitação de troca enviada ao colega.",
       );
       setTradeOpen(null);
+      setAssinarTrocaOpen(false);
       setTradeMyDate("");
       setTradeMotivo("");
       setCienteFaltaTroca(false);
@@ -1880,15 +1886,24 @@ export default function DpMeuCalendario() {
               Cancelar
             </Button>
             <Button
-              onClick={() => solicitarTroca.mutate()}
+              onClick={() => setAssinarTrocaOpen(true)}
               disabled={solicitarTroca.isPending || !tradeMyDate || !cienteFaltaTroca || (!!riscoDsrTroca && !cienteDsr)}
               className="min-h-10 w-full sm:w-auto"
             >
-              {solicitarTroca.isPending ? "Enviando..." : "Enviar troca"}
+              {solicitarTroca.isPending ? "Enviando..." : "Assinar e enviar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AssinaturaConfirmarDialog
+        open={assinarTrocaOpen}
+        onOpenChange={setAssinarTrocaOpen}
+        titulo="Pedido de troca de folga — sua assinatura digital fica registrada no termo da troca."
+        nome={(meRef.data as { nome?: string } | null)?.nome ?? ""}
+        enviando={solicitarTroca.isPending}
+        onConfirmar={(png) => solicitarTroca.mutate(png)}
+      />
 
       {/* Dialog mudança do dia da minha folga */}
       <Dialog open={!!remarcarOpen} onOpenChange={(o) => !o && setRemarcarOpen(null)}>
