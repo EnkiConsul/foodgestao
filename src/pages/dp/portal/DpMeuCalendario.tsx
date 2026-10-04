@@ -177,13 +177,12 @@ export default function DpMeuCalendario() {
       const colunas =
         "id, company_id, nome, sexo, regime, forma_pagamento, cargo_id, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, unidade_id, vinculo_label";
       const tentativa = await supabase.from("dp_colaboradores").select(colunas).eq("id", data).single();
-      if (!tentativa.error) return tentativa.data;
       // Se uma coluna nova ainda não tem permissão de leitura, refaz a consulta
       // sem as colunas de folga diferenciada para o calendário nunca travar.
       const semDif = colunas.replace(", folga_dif_dias", "");
       const { data: c, error } = await supabase.from("dp_colaboradores").select(semDif).eq("id", data).single();
       if (error) throw error;
-      return c;
+      return (tentativa.error ? c : tentativa.data) as typeof c;
     },
   });
 
