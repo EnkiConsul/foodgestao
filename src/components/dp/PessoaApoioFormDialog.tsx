@@ -17,6 +17,12 @@ import {
 } from "@/hooks/useDpPessoasApoio";
 import { pessoaApoioSchema, validateWithToast } from "@/lib/validations";
 import { ApoioUnidadesField } from "@/components/dp/ApoioUnidadesField";
+import { DpFilePicker } from "@/components/dp/DpFilePicker";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { abrirDocumentoFoto, enviarDocumentoFoto } from "@/hooks/useDpSubstituicoes";
+import {
+  PagamentoFolguistaCampos, PAGAMENTO_FOLGUISTA_VAZIO, type PagamentoFolguista,
+} from "@/components/dp/convocacoes/PagamentoFolguistaCampos";
 
 const vazio = {
   nome: "",
@@ -56,6 +62,10 @@ export function PessoaApoioFormDialog({
   const cargos = useDpCargos();
   const salvar = useSalvarDpPessoaApoio();
   const [form, setForm] = useState(vazio);
+  const { selectedCompanyId } = useCompanyContext();
+  const [pag, setPag] = useState<PagamentoFolguista>(PAGAMENTO_FOLGUISTA_VAZIO);
+  const [docPath, setDocPath] = useState<string | null>(null);
+  const [docFile, setDocFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -76,6 +86,17 @@ export function PessoaApoioFormDialog({
           }
         : { ...vazio, ...(dadosIniciais ?? {}), tipo: tipoInicial },
     );
+    setPag({
+      banco_nome: pessoa?.banco_nome ?? "",
+      agencia: pessoa?.agencia ?? "",
+      conta: pessoa?.conta ?? "",
+      conta_digito: pessoa?.conta_digito ?? "",
+      conta_tipo: pessoa?.conta_tipo ?? "",
+      pix_tipo: pessoa?.pix_tipo ?? "",
+      pix_chave: pessoa?.pix_chave ?? "",
+    });
+    setDocPath(pessoa?.documento_foto_path ?? null);
+    setDocFile(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, pessoa, tipoInicial]);
 
@@ -96,9 +117,17 @@ export function PessoaApoioFormDialog({
       toast.error("Verifique os dados", { description: msg }),
     );
     if (!parsed) return;
+    if (pag.pix_chave.trim() && !pag.pix_tipo) {
+      toast.error("Verifique os dados", { description: "Escolha o tipo da chave Pix." });
+      return;
+    }
     try {
+      let documento = docPath;
+      if (docFile) documento = await enviarDocumentoFoto(`${selectedCompanyId}/folguistas`, docFile);
       const salvoId = await salvar.mutateAsync({
         ...candidato,
+        ...pag,
+        documento_foto_path: documento,
         setor_id: form.setor_id || null,
         ativo: form.ativo,
         id: pessoa?.id,
@@ -264,6 +293,21 @@ export function PessoaApoioFormDialog({
               value={form.observacao}
               onChange={(e) => setForm({ ...form, observacao: e.target.value })}
             />
+          </div>
+
+          <PagamentoFolguistaCampos value={pag} onChange={setPag} />
+
+          <div className="grid gap-1.5 rounded-md border p-3">
+            <Label className="text-sm">Documento com foto (RG ou CNH)</Label>
+            {docPath && !docFile ? (
+              <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => void abrirDocumentoFoto(docPath)}>
+                Ver documento anexado
+              </Button>
+            ) : null}
+            <DpFilePicker accept="image/*,application/pdf" file={docFile} onFileChange={setDocFile} />
+            {!docPath && !docFile ? (
+              <p className="text-xs text-amber-600">Sem documento com foto anexado.</p>
+            ) : null}
           </div>
 
           {pessoa?.id ? (
