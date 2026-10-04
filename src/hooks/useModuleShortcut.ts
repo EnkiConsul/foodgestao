@@ -9,7 +9,7 @@ import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 export type ShortcutSlot = "a" | "b" | "c";
 
 const keyOf = (mod: ActiveModule, slot: ShortcutSlot) =>
-  `360food:mobile-shortcut:${mod}:${slot}`;
+  `aveto:mobile-shortcut:v2:${mod}:${slot}`;
 
 function readStored(mod: ActiveModule, slot: ShortcutSlot): string | null {
   if (typeof window === "undefined") return null;

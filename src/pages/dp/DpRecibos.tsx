@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Link2, MessageCircle, Receipt, UserPlus } from "lucide-react";
 import { PessoaApoioFormDialog } from "@/components/dp/PessoaApoioFormDialog";
+import { DpDocumentosAbas } from "@/components/dp/documentos/DpDocumentosAbas";
 import { useDpPessoasApoio } from "@/hooks/useDpPessoasApoio";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -368,6 +369,7 @@ export default function DpRecibos() {
         title="Recibos"
         description="Recibos de freelancer, diária, teste operacional, rescisão e outros pagamentos, com assinatura digital."
       />
+      <DpDocumentosAbas />
 
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
         <TabsList>

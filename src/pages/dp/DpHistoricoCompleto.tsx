@@ -1,4 +1,5 @@
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
+import { DpDocumentosAbas } from "@/components/dp/documentos/DpDocumentosAbas";
 import { useEffect, useMemo, useState } from "react";
 import { certificadoValidacaoPdf } from "@/lib/dp/documento-certificado";
 import { Helmet } from "react-helmet-async";
@@ -896,6 +897,7 @@ export default function DpHistoricoCompleto() {
         }
 
       />
+      <DpDocumentosAbas />
 
 
       {/* Barra de naturezas: somente os grupos */}
