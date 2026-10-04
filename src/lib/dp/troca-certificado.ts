@@ -8,7 +8,7 @@ function dh(iso: string | null) {
   return new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
 }
 
-/** Termo de Permuta de Folga: lastro eletrônico + campos de assinatura física dos dois colaboradores. */
+/** Termo de Permuta de Folga: lastro eletrônico + assinaturas digitais dos dois colaboradores. */
 export function termoTrocaHtml(t: DpTrocaRow, empresa: { nome: string; cnpj?: string | null }): string {
   const s = t.solicitante;
   const d = t.destino;
@@ -16,9 +16,12 @@ export function termoTrocaHtml(t: DpTrocaRow, empresa: { nome: string; cnpj?: st
     <div class="box"><div class="lbl">${papel}</div>
     <b>${e(p?.nome ?? "—")}</b><br/>Cargo: ${e(p?.cargo?.nome ?? "—")}<br/>
     Unidade: ${e(p?.unidade?.nome ?? "—")}<br/>Matrícula: ${e(p?.matricula ?? "—")}</div>`;
-  const assinatura = (p: DpTrocaRow["solicitante"], quando: string) => `
-    <div class="ass"><div class="linha"></div><b>${e(p?.nome ?? "—")}</b><br/>
-    <small>Aceite eletrônico registrado em ${e(quando)}</small></div>`;
+  const x = t as unknown as Record<string, string | null>;
+  const img = (v: string | null) =>
+    v && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(v) ? `<img src="${v}" alt="Assinatura" style="max-height:60px;max-width:220px"/>` : "";
+  const assinatura = (p: DpTrocaRow["solicitante"], png: string | null, quando: string | null, papel: string) => `
+    <div class="ass">${png ? img(png) : `<div style="height:60px;color:#b00;font-size:10px;padding-top:24px">${papel} sem assinatura digital registrada</div>`}<div class="linha"></div><b>${e(p?.nome ?? "—")}</b><br/>
+    <small>${png ? `Assinado digitalmente em ${e(dh(quando))}` : "—"}</small></div>`;
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/><title>Termo de Troca de Folga</title>
 <style>
 body{font-family:Arial,sans-serif;color:#0F1B3D;margin:28px;font-size:12px;line-height:1.45}
@@ -45,8 +48,8 @@ ${t.motivo ? `<p>Motivo: ${e(t.motivo)}</p>` : ""}</div>
 <tr><td>Identificador do registro</td><td>${e(t.id)}</td></tr>
 </table>
 <div class="aviso"><b>Ciência dos colaboradores:</b> ${e(TEXTO_CIENCIA_FALTA_TROCA)}</div>
-<div class="asss">${assinatura(s, dh(t.created_at))}${assinatura(d, dh(t.colega_respondido_em))}</div>
-<div class="rod">Documento emitido em ${e(dh(new Date().toISOString()))} pelo AVETO 360. As assinaturas acima podem ser colhidas à mão; o registro eletrônico de data e hora do pedido e do aceite permanece como lastro no sistema.</div>
+<div class="asss">${assinatura(s, x.solicitante_assinatura, x.solicitante_assinado_em, "Pedido")}${assinatura(d, x.destino_assinatura, x.destino_assinado_em, "Aceite")}</div>
+<div class="rod">Documento emitido em ${e(dh(new Date().toISOString()))} pelo AVETO 360. As assinaturas acima foram feitas digitalmente pelos próprios colaboradores, logados no portal, no momento do pedido e do aceite (MP 2.200-2/2001, art. 10, §2º, e Lei 14.063/2020). Data, hora e identificador do registro ficam guardados no sistema como lastro.</div>
 </body></html>`;
 }
 
