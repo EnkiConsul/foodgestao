@@ -103,15 +103,13 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     queryKey: ["dp_convites_troca_meu_cal", colaboradorId, inicio, fim],
     enabled: ativo,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("dp_convocacao_substituicoes")
-        .select("id, status, convocacao:dp_convocacoes!dp_convocacao_substituicoes_convocacao_id_fkey(data)")
-        .eq("colega_id", colaboradorId!)
-        .eq("status", "aguardando_colega");
+      // RPC própria: a convocação pertence ao colega que pediu, então a leitura direta é barrada.
+      const { data, error } = await (supabase.rpc as any)("dp_meus_convites_troca", {
+        p_inicio: inicio,
+        p_fim: fim,
+      });
       if (error) return [] as string[];
-      return ((data ?? []) as any[])
-        .map((r) => r.convocacao?.data as string | undefined)
-        .filter((d): d is string => !!d && d >= inicio && d <= fim);
+      return ((data ?? []) as Array<{ data: string }>).map((r) => r.data);
     },
   });
 

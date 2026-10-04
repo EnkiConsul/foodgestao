@@ -93,6 +93,8 @@ export interface ColegaSubstituto {
   nome: string;
   cargo_nome: string | null;
   unidade_nome: string | null;
+  /** Marcou indisponibilidade no dia — ainda pode receber o convite. */
+  indisponivel: boolean;
 }
 
 export function useColegasSubstitutos(convocacaoId: string | null) {
