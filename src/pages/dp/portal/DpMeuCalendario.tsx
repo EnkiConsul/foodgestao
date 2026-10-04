@@ -143,6 +143,22 @@ const MOTIVO_STATUS: Partial<Record<DateStatusKind, string>> = {
 };
 
 
+type MeuVinculo = {
+  id: string;
+  company_id: string;
+  nome: string;
+  sexo: string | null;
+  regime: string | null;
+  forma_pagamento: string | null;
+  cargo_id: string | null;
+  domingos_folga_mes: number | null;
+  folga_dif_dias: number[] | null;
+  folga_fixa_semana: number | null;
+  ativo: boolean;
+  unidade_id: string | null;
+  vinculo_label: string | null;
+};
+
 export default function DpMeuCalendario() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -171,22 +187,26 @@ export default function DpMeuCalendario() {
   const meRef = useQuery({
     queryKey: ["dp_meu_colaborador", user?.id],
     enabled: !!user?.id,
-    queryFn: async () => {
+    queryFn: async (): Promise<MeuVinculo | null> => {
       const { data } = await supabase.rpc("dp_meu_colaborador");
       if (!data) return null;
-      const { data: c } = await supabase
-        .from("dp_colaboradores")
-        .select("id, company_id, nome, sexo, regime, forma_pagamento, cargo_id, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, unidade_id, vinculo_label")
-        .eq("id", data)
-        .single();
-      return c;
+      const colunas =
+        "id, company_id, nome, sexo, regime, forma_pagamento, cargo_id, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, unidade_id, vinculo_label";
+      const tentativa = await supabase.from("dp_colaboradores").select(colunas).eq("id", data).single();
+      if (!tentativa.error) return tentativa.data as unknown as MeuVinculo;
+      // Se uma coluna nova ainda não tem permissão de leitura, refaz a consulta
+      // sem as colunas de folga diferenciada para o calendário nunca travar.
+      const semDif = colunas.replace(", folga_dif_dias", "");
+      const { data: c, error } = await supabase.from("dp_colaboradores").select(semDif).eq("id", data).single();
+      if (error) throw error;
+      return c as unknown as MeuVinculo;
     },
   });
 
   /** Intermitente/Freelancer usam a agenda de disponibilidade. */
   const convocavel = pessoaConvocavel(meRef.data ?? {});
   /** Enquanto o vínculo carrega, não exibe a tela de folgas (evita flash indevido). */
-  const vinculoCarregado = !!meRef.data;
+  const vinculoCarregado = !!meRef.data || meRef.isError;
 
 
 
