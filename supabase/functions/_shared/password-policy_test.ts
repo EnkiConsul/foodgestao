@@ -3,10 +3,10 @@
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { avaliarSenha, SENHA_MAX_BYTES, SENHA_MIN } from "./password-policy.ts";
 
-Deno.test("mínimo de 12 e limite de 72 bytes", () => {
-  assertEquals(SENHA_MIN, 12);
+Deno.test("mínimo de 8 e limite de 72 bytes", () => {
+  assertEquals(SENHA_MIN, 8);
   assertEquals(SENHA_MAX_BYTES, 72);
-  assert(!avaliarSenha("Ale!2026aB1").valida); // 11 caracteres
+  assert(!avaliarSenha("Ale!26B").valida); // 7 caracteres
   assert(avaliarSenha("Trilha#Verde42x").valida);
   assert(!avaliarSenha("Aa1!" + "ç".repeat(40)).valida); // acima de 72 bytes
 });

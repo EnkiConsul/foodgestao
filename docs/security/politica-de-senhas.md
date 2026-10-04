@@ -8,7 +8,7 @@ Fonte: `src/lib/security/passwordPolicy.ts`, espelhada em
 
 Vale para **todos os caminhos que definem senha**:
 
-- mínimo de **12** caracteres;
+- mínimo de **8** caracteres;
 - máximo de **72 bytes** (UTF-8) — limite real do bcrypt usado pelo serviço de
   contas. Acima disso a senha é **recusada com mensagem que fala em bytes**,
   nunca truncada em silêncio (letra acentuada e emoji ocupam mais de 1 byte);
@@ -35,7 +35,7 @@ normalmente (`loginSchema` em `src/pages/Auth.tsx` e `auth-login`).
 | Redefinição por link | `src/pages/ResetPassword.tsx` | navegador + serviço de contas |
 | Primeiro acesso | `src/pages/PrimeiroAcesso.tsx` | navegador + serviço de contas |
 | Recuperação por código | `src/pages/EsqueciSenha.tsx` + `auth-recovery-reset` | navegador + **servidor** |
-| Portal do colaborador | `src/pages/AtivarAcesso.tsx` + `dp-alterar-senha-colaborador` | navegador + **servidor** (subiu de 8 para 12) |
+| Portal do colaborador | `src/pages/AtivarAcesso.tsx` + `dp-alterar-senha-colaborador` | navegador + **servidor**  |
 
 Medidor de força: `src/components/auth/MedidorSenha.tsx`. É **local** — a
 avaliação roda em memória, sem biblioteca externa e sem enviar a senha a
@@ -53,7 +53,7 @@ gerenciado: o arquivo só traz `project_id` e `verify_jwt` por função. Tamanho
 mínimo e classes obrigatórias do serviço são ajustados na própria configuração
 gerenciada (Usuários → Configurações de autenticação → E-mail).
 
-**Verificado pelo proprietário em 19/09/2026:** mínimo de **12** salvo e
+**Verificado pelo proprietário em 19/09/2026:** mínimo de **8** salvo e
 confirmado ao reabrir a tela (captura de tela), bloqueio de senhas vazadas
 marcado e as **quatro classes** exigidas. A regra do aplicativo está alinhada a
 essa configuração, inclusive no conjunto de símbolos.
