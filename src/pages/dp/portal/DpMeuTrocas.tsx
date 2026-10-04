@@ -110,6 +110,16 @@ export default function DpMeuTrocas() {
     enabled: !!meRef.data?.company_id,
     queryFn: async () => {
       const hoje = hojeIsoLocal();
+      const { data, error } = await supabase
+        .from("dp_folgas")
+        .select("id, data, colaborador_id, status, dp_colaboradores(nome, unidade_id, ativo)")
+        .eq("company_id", meRef.data!.company_id!)
+        .gte("data", hoje)
+        .order("data");
+      if (error) throw error;
+      return (data ?? []).filter((f: any) => f.status !== "cancelada");
+    },
+  });
 
   const empresaRef = useQuery({
     queryKey: ["dp_minha_empresa_termo", meRef.data?.company_id],
@@ -123,16 +133,6 @@ export default function DpMeuTrocas() {
       return { nome: (data as any)?.razao_social ?? (data as any)?.nome_fantasia ?? "Empresa" };
     },
   });
-      const hoje = hojeIsoLocal();
-      const { data, error } = await supabase
-        .from("dp_folgas")
-        .select("id, data, colaborador_id, status, dp_colaboradores(nome, unidade_id, ativo)")
-        .eq("company_id", meRef.data!.company_id!)
-        .gte("data", hoje)
-        .order("data");
-      if (error) throw error;
-      return (data ?? []).filter((f: any) => f.status !== "cancelada");
-    },
   });
 
   const minhaUnidade = (meRef.data as { unidade_id?: string | null } | undefined)?.unidade_id ?? null;
