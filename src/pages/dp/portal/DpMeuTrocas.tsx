@@ -108,8 +108,8 @@ export default function DpMeuTrocas() {
   const folgasFuturas = useQuery({
     queryKey: ["dp_folgas_trocas", meRef.data?.company_id, meRef.data?.id],
     enabled: !!meRef.data?.company_id,
-
-  });
+    queryFn: async () => {
+      const hoje = hojeIsoLocal();
 
   const empresaRef = useQuery({
     queryKey: ["dp_minha_empresa_termo", meRef.data?.company_id],
