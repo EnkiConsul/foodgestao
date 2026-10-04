@@ -312,6 +312,12 @@ export default function DpMeuSolicitacoes() {
   // Validação
   const validation = useMemo(() => {
     const errors: string[] = [];
+    if (convocavel && (form.tipo === "folga" || form.tipo === "troca_fds")) {
+      errors.push(
+        "Seu contrato é por convocação (intermitente): não há folga semanal nem troca de fim de semana. Marque seus dias de indisponibilidade em Meu Calendário.",
+      );
+      return errors;
+    }
     if (ehTroca)
       return validarTrocaFds({
         diasFixos: fixos,
