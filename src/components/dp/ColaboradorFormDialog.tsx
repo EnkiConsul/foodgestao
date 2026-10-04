@@ -415,6 +415,15 @@ export function ColaboradorFormDialog({
   const [sexoSugerido, setSexoSugerido] = useState(false);
   // Ciência do risco jurídico do vínculo sem registro, válida para este salvamento.
   const cienciaConfirmada = useRef<{ justificativa: string } | null>(null);
+  const termoRiscoAssinado = useRef(false);
+  const [termoRiscoAberto, setTermoRiscoAberto] = useState(false);
+  const [nomeGestor, setNomeGestor] = useState("");
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => {
+      const m = data.user?.user_metadata as { full_name?: string; name?: string } | undefined;
+      setNomeGestor(m?.full_name || m?.name || data.user?.email?.split("@")[0] || "");
+    });
+  }, []);
   /**
    * Alteração de condição de trabalho já confirmada (efeito, vigência e
    * justificativa), válida para este salvamento.
@@ -1905,7 +1914,15 @@ export function ColaboradorFormDialog({
 
     if (validaDados) {
       // Vínculo sem registro em carteira exige ciência formal do risco jurídico.
-      if (policy.exigeCienciaLegal && !cienciaConfirmada.current) {
+      // Freelancer mensalista: termo de assunção de risco assinado pelo gestor.
+      const freelaMensalista = regimeSelecionado === "freelancer" && rem.forma_pagamento === "mensalista";
+      const jaEraFreelaMensalista = isEdit && colaborador?.regime === "freelancer" &&
+        (colaborador as { forma_pagamento?: string | null }).forma_pagamento === "mensalista";
+      if (freelaMensalista && !jaEraFreelaMensalista && !termoRiscoAssinado.current) {
+        setTermoRiscoAberto(true);
+        return;
+      }
+      if (policy.exigeCienciaLegal && !cienciaConfirmada.current && !termoRiscoAssinado.current) {
         setCienciaAberta(true);
         return;
       }
@@ -2161,6 +2178,26 @@ export function ColaboradorFormDialog({
           .eq("id", pessoaApoioInicial.id);
       }
       if (!colaborador?.id && colaboradorId && onCriado) onCriado(colaboradorId, form.nome);
+      // Freelancer horista/diarista: termo de serviços eventuais para assinar no portal.
+      if (
+        colaboradorId && selectedCompanyId && regimeSelecionado === "freelancer" &&
+        (rem.forma_pagamento === "horista" || rem.forma_pagamento === "diarista")
+      ) {
+        try {
+          const { emitirTermoEventual } = await import("@/lib/dp/termos-freelancer");
+          const r = await emitirTermoEventual({
+            companyId: selectedCompanyId, colaboradorId, nome: form.nome.trim(),
+            cpf: form.cpf, forma: rem.forma_pagamento,
+          });
+          if (r === "emitido") toast.success("Termo de Prestação de Serviços Eventuais enviado", {
+            description: "O prestador lê e assina digitalmente pelo portal. A via assinada fica nos documentos dele.",
+          });
+        } catch (e) {
+          toast.error("Cadastro salvo, mas o termo de serviços eventuais não foi emitido", {
+            description: `${e instanceof Error ? e.message : ""} Salve o cadastro de novo para tentar emitir.`.trim(),
+          });
+        }
+      }
 
       // Sincroniza a ficha de benefícios marcada no cadastro.
       const hoje = new Date().toISOString().slice(0, 10);
