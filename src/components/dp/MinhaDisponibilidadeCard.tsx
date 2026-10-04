@@ -18,6 +18,7 @@ import { AlertTriangle, Lock } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useDpIndisponibilidades, type DisponibilidadeDia } from "@/hooks/useDpIndisponibilidades";
+import { PassarPlantaoDialog } from "@/components/dp/convocacoes/PassarPlantaoDialog";
 import {
   competenciaLabel,
   diaMes,
@@ -27,6 +28,7 @@ import {
 
 interface Props {
   colaboradorId: string | null;
+  companyId?: string | null;
   ano: number;
   mes: number; // 1-12
   onPrev: () => void;
@@ -61,8 +63,9 @@ const ymdLocal = (d: Date) =>
  * Agenda de disponibilidade do trabalhador convocável (Intermitente/Freelancer).
  * Mobile-first: toque no dia abre a ação correspondente.
  */
-export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNext }: Props) {
-  const { estadoPorDia, tardiaPorDia, conflitoPorDia, regime, janela, marcar, remover, isLoading } =
+export function MinhaDisponibilidadeCard({ colaboradorId, companyId = null, ano, mes, onPrev, onNext }: Props) {
+  const [passar, setPassar] = useState<{ id: string; rotulo: string } | null>(null);
+  const { estadoPorDia, convocacaoPorDia, tardiaPorDia, conflitoPorDia, regime, janela, marcar, remover, isLoading } =
     useDpIndisponibilidades({ colaboradorId, ano, mes });
   const [selecionado, setSelecionado] = useState<string | null>(null);
   // Depois do fechamento, marcar exige um passo extra e explícito.
@@ -186,6 +189,12 @@ export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNe
                           )}
                         />
                         {ROTULO[est]}
+                        {convocacaoPorDia.get(c.iso) ? (
+                          <span className="text-xs text-muted-foreground">
+                            {convocacaoPorDia.get(c.iso)!.entrada}–{convocacaoPorDia.get(c.iso)!.saida}
+                            {convocacaoPorDia.get(c.iso)!.unidade ? ` · ${convocacaoPorDia.get(c.iso)!.unidade}` : ""}
+                          </span>
+                        ) : null}
                       </span>
                     ),
                     chips: tardiaPorDia.has(c.iso) ? (
@@ -258,6 +267,25 @@ export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNe
 
           <div className="space-y-3 text-sm">
             {passado && <p className="text-muted-foreground">Dias que já passaram não podem ser alterados.</p>}
+
+            {!passado && estadoSel === "convocacao_confirmada" && selecionado && convocacaoPorDia.get(selecionado) && (
+              <div className="space-y-2 rounded-xl border border-primary/40 bg-primary/5 p-3">
+                <p className="font-semibold">
+                  {convocacaoPorDia.get(selecionado)!.entrada}–{convocacaoPorDia.get(selecionado)!.saida}
+                  {convocacaoPorDia.get(selecionado)!.turno ? ` · ${convocacaoPorDia.get(selecionado)!.turno}` : ""}
+                  {convocacaoPorDia.get(selecionado)!.unidade ? ` · ${convocacaoPorDia.get(selecionado)!.unidade}` : ""}
+                </p>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setPassar({ id: convocacaoPorDia.get(selecionado)!.id, rotulo: formatBR(parseYMD(selecionado)) });
+                    setSelecionado(null);
+                  }}
+                >
+                  Passar plantão (colega ou folguista)
+                </Button>
+              </div>
+            )}
 
             {!passado && estadoSel === "convocacao_confirmada" && (
               <div className="space-y-3">
@@ -368,6 +396,15 @@ export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNe
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PassarPlantaoDialog
+        open={!!passar}
+        onOpenChange={(o) => !o && setPassar(null)}
+        convocacaoId={passar?.id ?? null}
+        companyId={companyId}
+        colaboradorId={colaboradorId}
+        rotuloDia={passar?.rotulo ?? ""}
+      />
     </>
   );
 }
