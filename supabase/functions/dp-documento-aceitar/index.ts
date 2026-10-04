@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     const { data: doc } = await admin
       .from("dp_documentos")
       .select(
-        "id, company_id, colaborador_id, tipo, file_path, arquivo_sha256, exige_aceite, ciclo_status, arquivado_em, aprovacao_status",
+        "id, company_id, colaborador_id, tipo, file_path, arquivo_sha256, exige_aceite, ciclo_status, arquivado_em, aprovacao_status, assinatura_fisica",
       )
       .eq("id", documentoId)
       .maybeSingle();
@@ -84,6 +84,9 @@ Deno.serve(async (req) => {
     // Desligamento só com assinatura física (prova pericial).
     if (TIPOS_DESLIGAMENTO_SEM_DIGITAL.has(String(doc.tipo))) {
       return erro(409, "Documentos de desligamento são assinados somente à mão, na via impressa.");
+    }
+    if ((doc as any).assinatura_fisica === true) {
+      return erro(409, "Este documento é assinado somente à mão, na via impressa. Procure o setor de pessoas para assinar.");
     }
     if (doc.exige_aceite !== true) return erro(409, FRASES.documento_nao_exige_aceite.frase);
     if (!doc.file_path) return erro(409, FRASES.documento_sem_arquivo.frase);
