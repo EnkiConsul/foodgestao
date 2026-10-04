@@ -16544,6 +16544,7 @@ export type Database = {
           _ignorar_convocacao_id?: string
           _ocorrencia_id: string
           _pendente_bloqueia?: boolean
+          _permitir_indisponivel?: boolean
         }
         Returns: Json
       }
@@ -16564,6 +16565,7 @@ export type Database = {
         Returns: {
           cargo_nome: string
           colaborador_id: string
+          indisponivel: boolean
           nome: string
           unidade_nome: string
         }[]
@@ -17660,6 +17662,18 @@ export type Database = {
           unidade_id: string
           unidade_nome: string
           unidade_usa_ponto: boolean
+        }[]
+      }
+      dp_meus_convites_troca: {
+        Args: { p_fim: string; p_inicio: string }
+        Returns: {
+          data: string
+          entrada: string
+          motivo: string
+          saida: string
+          solicitante_nome: string
+          substituicao_id: string
+          unidade_nome: string
         }[]
       }
       dp_meus_dias_fixos_folga: { Args: { _data?: string }; Returns: number[] }
