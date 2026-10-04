@@ -4,6 +4,8 @@
  */
 export function mensagemErroTroca(raw: string | null | undefined): string {
   const msg = raw ?? "";
+  if (msg.includes("troca_sem_assinatura_solicitante"))
+    return "Quem pediu a troca ainda não assinou digitalmente. Peça para a pessoa cancelar e enviar o pedido de novo, assinando.";
   if (msg.includes("TROCA_SEM_FOLGA_PROPRIA"))
     return "Você não tem folga marcada na data que ofereceu.";
   if (msg.includes("TROCA_SEM_FOLGA_COLEGA"))

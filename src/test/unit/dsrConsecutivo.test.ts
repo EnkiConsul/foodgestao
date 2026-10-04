@@ -41,6 +41,11 @@ describe("avaliarRiscoDsrTroca", () => {
       "2026-10-24",
       "2026-10-25",
       "2026-10-31",
+      "2026-11-01",
+      "2026-11-07",
+      "2026-11-08",
+      "2026-11-14",
+      "2026-11-15",
     ]);
     const r = avaliarRiscoDsrTroca({
       descansoIso: descanso,

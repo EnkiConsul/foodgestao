@@ -204,6 +204,8 @@ export function buildOccupantsByDate(params: {
   if (filterType === "all" || filterType === "monthly") {
     for (const f of folgas) {
       if (!validIds.has(f.colaborador_id)) continue;
+      // Folga cancelada (troca desfeita, remarcação) não acontece mais.
+      if ((f as { status?: string | null }).status === "cancelada") continue;
       if (filterUser !== "all" && f.colaborador_id !== filterUser) continue;
       const origin = f.extra
         ? "Extra (Admin)"

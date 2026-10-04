@@ -39,9 +39,12 @@ export const NOTIFICACAO_PATH_GESTOR: Record<string, string> = {
   dp_folgas: "/dp/folgas",
 };
 
-export function notificacaoPathGestor(refTable: string | null | undefined): string {
+export function notificacaoPathGestor(refTable: string | null | undefined, refId?: string | null): string {
   if (!refTable) return "/dp/notificacoes";
-  return NOTIFICACAO_PATH_GESTOR[refTable] ?? "/dp/notificacoes";
+  const base = NOTIFICACAO_PATH_GESTOR[refTable] ?? "/dp/notificacoes";
+  // Troca: abre direto o detalhe da troca envolvida.
+  if (refTable === "dp_trocas" && refId) return `${base}&troca_id=${encodeURIComponent(refId)}`;
+  return base;
 }
 
 /** Destino ao abrir a notificação no PORTAL do colaborador. */
