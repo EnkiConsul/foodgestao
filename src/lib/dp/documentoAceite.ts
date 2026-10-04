@@ -20,6 +20,11 @@ export async function assinarDocumento(documentoId: string, assinatura: string):
 
   const aceiteId = (data as { aceite_id?: string } | null)?.aceite_id;
   if (!aceiteId) throw new Error("Não foi possível registrar a assinatura");
+  // Guarda como modelo da conta para os próximos documentos (falha não impede o aceite).
+  try {
+    const { salvarAssinaturaNaConta } = await import("@/components/dp/AssinaturaCaptura");
+    await salvarAssinaturaNaConta(assinatura);
+  } catch { /* segue */ }
   return aceiteId;
 }
 
