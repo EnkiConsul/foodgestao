@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
 import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
+import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { avaliarRiscoDsrTroca, avisoDsr, descansosDoColaborador } from "@/lib/dp/dsr-consecutivo";
 import { diasFixosDoColaborador, registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
@@ -76,10 +77,13 @@ export default function DpMeuTrocas() {
       const { data } = await supabase.rpc("dp_meu_colaborador");
       if (!data) return null;
       const { data: c } = await supabase
-        .from("dp_colaboradores").select("id, company_id, unidade_id").eq("id", data).single();
+        .from("dp_colaboradores").select("id, company_id, unidade_id, regime, forma_pagamento").eq("id", data).single();
       return c;
     },
   });
+
+  /** Intermitente/freelancer não tem folga semanal para trocar. */
+  const convocavel = pessoaConvocavel(meRef.data ?? {});
 
   const list = useQuery({
     queryKey: ["dp_meu_trocas", meRef.data?.id],
@@ -262,6 +266,7 @@ export default function DpMeuTrocas() {
         icon={Repeat}
         title="Minhas trocas"
         actions={
+          convocavel ? null : (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4 mr-1" /> Propor troca</Button>
@@ -332,8 +337,16 @@ export default function DpMeuTrocas() {
               </DpFormFooter>
             </DialogContent>
           </Dialog>
+          )
         }
       />
+
+      {convocavel && (
+        <div className="rounded-xl border bg-muted/40 p-3 text-sm">
+          Seu contrato é <strong>intermitente/por convocação</strong>: você não tem folga semanal para trocar.
+          Seus dias de trabalho chegam por convocação (Art. 452-A da CLT).
+        </div>
+      )}
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
         <div className="-mx-1 overflow-x-auto">

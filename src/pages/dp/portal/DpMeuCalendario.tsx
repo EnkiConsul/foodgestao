@@ -184,6 +184,8 @@ export default function DpMeuCalendario() {
 
   /** Intermitente/Freelancer usam a agenda de disponibilidade. */
   const convocavel = pessoaConvocavel(meRef.data ?? {});
+  /** Enquanto o vínculo carrega, não exibe a tela de folgas (evita flash indevido). */
+  const vinculoCarregado = !!meRef.data;
 
 
 
@@ -1294,7 +1296,13 @@ export default function DpMeuCalendario() {
       <DpPageHeader
         icon={CalendarDays}
         title="Meu Calendário"
-        description={convocavel ? "Marque os dias em que você não pode trabalhar." : "Escolha suas folgas de fim de semana."}
+        description={
+          !vinculoCarregado
+            ? "Carregando seu vínculo..."
+            : convocavel
+              ? "Marque os dias em que você não pode trabalhar."
+              : "Escolha suas folgas de fim de semana."
+        }
         actions={
           <Button
             variant="outline"
@@ -1306,7 +1314,7 @@ export default function DpMeuCalendario() {
         }
       />
 
-      {!convocavel && <div className="space-y-2">
+      {!convocavel && vinculoCarregado && <div className="space-y-2">
         <p className="text-xs text-muted-foreground">{resumoFolgas.texto}</p>
         <p className="text-xs text-muted-foreground">{resumoDomingos}</p>
         {avisoJanela && (
@@ -1346,7 +1354,7 @@ export default function DpMeuCalendario() {
         </div>
       )}
 
-      {!convocavel && (<>
+      {!convocavel && vinculoCarregado && (<>
       <div className="hidden md:block">
         <FolgaCalendarShared
           year={ano}

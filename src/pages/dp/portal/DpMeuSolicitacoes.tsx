@@ -31,6 +31,7 @@ import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { resumoEscolhaFolgas } from "@/lib/dp/dsr-rules";
 
 import { calculateDateStatus, type ColaboradorRecord, type FolgaRecord } from "@/lib/dp/folga-rules";
+import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
 import { podePedirTrocaFds, validarTrocaFds } from "@/lib/dp/troca-fds";
 import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import { notifyError } from "@/lib/notifyError";
@@ -94,7 +95,7 @@ export default function DpMeuSolicitacoes() {
       if (!data) return null;
       const { data: c } = await supabase
         .from("dp_colaboradores")
-        .select("id, company_id, unidade_id, cargo_id, sexo, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, nome")
+        .select("id, company_id, unidade_id, cargo_id, sexo, regime, forma_pagamento, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, nome")
         .eq("id", data)
         .single();
       return c;
@@ -114,10 +115,24 @@ export default function DpMeuSolicitacoes() {
   const fixos = diasFixos.data ?? [];
   const podeTrocar = podePedirTrocaFds(fixos);
   const ehTroca = form.tipo === "troca_fds";
+  /** Intermitente/freelancer não tem folga nem DSR: trabalha por convocação. */
+  const convocavel = pessoaConvocavel(meRef.data ?? {});
   const tiposDisponiveis = useMemo(
-    () => TIPOS.filter((t) => t.value !== "troca_fds" || podeTrocar),
-    [podeTrocar],
+    () =>
+      TIPOS.filter((t) => {
+        if (convocavel && (t.value === "folga" || t.value === "troca_fds")) return false;
+        return t.value !== "troca_fds" || podeTrocar;
+      }),
+    [podeTrocar, convocavel],
   );
+
+  // Se o vínculo não tem direito a folga, não deixa o formulário preso nesse tipo.
+  useEffect(() => {
+    if (convocavel && (form.tipo === "folga" || form.tipo === "troca_fds")) {
+      setForm((f) => ({ ...f, tipo: "outro" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convocavel]);
 
   // Regra de adiantamento da unidade (dia do pagamento) para o painel do portal.
   const minhaUnidade = useQuery({
@@ -297,6 +312,12 @@ export default function DpMeuSolicitacoes() {
   // Validação
   const validation = useMemo(() => {
     const errors: string[] = [];
+    if (convocavel && (form.tipo === "folga" || form.tipo === "troca_fds")) {
+      errors.push(
+        "Seu contrato é por convocação (intermitente): não há folga semanal nem troca de fim de semana. Marque seus dias de indisponibilidade em Meu Calendário.",
+      );
+      return errors;
+    }
     if (ehTroca)
       return validarTrocaFds({
         diasFixos: fixos,
@@ -322,7 +343,7 @@ export default function DpMeuSolicitacoes() {
       }
     }
     return errors;
-  }, [form, dateStatus, ehTroca, fixos]);
+  }, [form, dateStatus, ehTroca, fixos, convocavel]);
 
   const create = useMutation({
     mutationFn: async () => {
