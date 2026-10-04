@@ -1,4 +1,5 @@
 import { CienciaFaltaTrocaBox, TEXTO_CIENCIA_FALTA_TROCA } from "@/components/dp/CienciaFaltaTrocaBox";
+import { Link } from "react-router-dom";
 import { sugerirPushContextual } from "@/components/dp/PushSoftPrompt";
 import { DpFormFooter } from "@/components/dp/DpFormFooter";
 import { Helmet } from "react-helmet-async";
@@ -295,77 +296,7 @@ export default function DpMeuTrocas() {
         title="Minhas trocas"
         actions={
           convocavel ? null : (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-1" /> Propor troca</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md max-h-[90svh] overflow-y-auto">
-              <DialogHeader><DialogTitle>Nova proposta de troca</DialogTitle></DialogHeader>
-              <div className="space-y-3">
-                <div>
-                  <Label>Minha folga (a que você oferece)</Label>
-                  <Select
-                    value={form.data_original}
-                    onValueChange={(v) => setForm({ ...form, data_original: v })}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Escolha uma folga sua" /></SelectTrigger>
-                    <SelectContent>
-                      {minhasFolgas.map((f: any) => (
-                        <SelectItem key={f.id} value={f.data}>{dataBR(f.data)}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {minhasFolgas.length === 0 && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Você ainda não tem folga marcada nos próximos dias para oferecer.
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <Label>Dia que você quer folgar</Label>
-                  <Select
-                    value={form.data_proposta}
-                    onValueChange={(v) => setForm({ ...form, data_proposta: v, destino_id: "" })}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Escolha o dia" /></SelectTrigger>
-                    <SelectContent>
-                      {datasPropostas.map((d) => (
-                        <SelectItem key={d} value={d}>{dataBR(d)}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {datasPropostas.length === 0 && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Nenhum colega da sua loja tem folga marcada nos próximos dias.
-                    </p>
-                  )}
-                </div>
-                {form.data_proposta && (
-                  <div>
-                    <Label>Colega que folga nesse dia</Label>
-                    <Select value={form.destino_id} onValueChange={(v) => setForm({ ...form, destino_id: v })}>
-                      <SelectTrigger><SelectValue placeholder="Selecionar colega" /></SelectTrigger>
-                      <SelectContent>
-                        {colegasDaData.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                <div>
-                  <Label>Motivo<span className="text-destructive ml-0.5">*</span></Label>
-                  <Textarea rows={3} value={form.motivo} onChange={(e) => setForm({ ...form, motivo: e.target.value })} />
-                </div>
-                <CienciaFaltaTrocaBox ciente={cienteFalta} onChange={setCienteFalta} />
-                {validation && <p className="text-xs text-destructive">{validation}</p>}
-              </div>
-              <DpFormFooter className="-mx-6 -mb-6 mt-2">
-                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button disabled={criar.isPending || !!validation || !cienteFalta} onClick={() => setAssinarPedido(true)}>Assinar e enviar</Button>
-              </DpFormFooter>
-            </DialogContent>
-          </Dialog>
+            <Button asChild variant="outline"><Link to="/dp/meu/calendario"><Plus className="h-4 w-4 mr-1" /> Trocar pelo calendário</Link></Button>
           )
         }
       />
