@@ -28,6 +28,8 @@ interface DocumentPreviewProps {
   comprovantesExtras?: { id: string; path: string; mime: string | null }[];
   /** Mensagem de espera: nada é carregado enquanto estiver definida. */
   aguardando?: string | null;
+  /** Ação principal no rodapé (ex.: "Assinar documento" após a leitura). */
+  acaoRodape?: React.ReactNode;
 }
 
 /**
@@ -47,6 +49,7 @@ export function DocumentPreview({
   comprovanteDocumentoId,
   comprovantesExtras,
   aguardando,
+  acaoRodape,
 }: DocumentPreviewProps) {
   const [comprovante, setComprovante] = useState<{ url: string; mime: string | null; nome: string | null } | null>(null);
   useEffect(() => {
@@ -219,6 +222,7 @@ export function DocumentPreview({
         </div>
         <DialogFooter className="p-2 sm:p-3 border-t flex-row flex-wrap sm:justify-between gap-2">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>
+          {acaoRodape}
           {resolvedUrl && (
             <div className="flex flex-wrap gap-2">
               <Button asChild size="sm" variant="outline" className="hidden sm:inline-flex">

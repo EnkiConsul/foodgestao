@@ -305,6 +305,7 @@ export function useDpPendenciasColaborador() {
           .eq("colaborador_id", colabId as string)
           .eq("exige_aceite", true)
           .eq("submetido_por_colaborador", false)
+          .eq("assinatura_fisica", false)
           .neq("aprovacao_status", "recusado")
           .order("created_at", { ascending: true })
           .limit(50);
