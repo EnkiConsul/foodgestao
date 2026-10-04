@@ -64,3 +64,17 @@ export async function ipRateLimited(
   const keyHash = await sha256Hex(`${bucket}:ip:${clientIp(req)}`);
   return await isRateLimited(admin, bucket, keyHash, max);
 }
+
+/** Minutos até a janela de 1 hora (alinhada à hora cheia) ser zerada. */
+export function minutosParaLiberar(now = new Date()): number {
+  const hour = 60 * 60 * 1000;
+  const fim = (Math.floor(now.getTime() / hour) + 1) * hour;
+  return Math.max(1, Math.ceil((fim - now.getTime()) / 60000));
+}
+
+/** Mensagem clara para o usuário: qual limite, quanto esperar e o que fazer. */
+export function mensagemLimite(oQue: string, max: number, proximoPasso: string): string {
+  const min = minutosParaLiberar();
+  return `Por segurança, o sistema permite no máximo ${max} ${oQue} por hora e esse limite foi atingido. ` +
+    `Aguarde ${min} minuto(s) e ${proximoPasso}`;
+}
