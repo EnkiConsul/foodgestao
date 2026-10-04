@@ -69,7 +69,7 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_convocacoes")
-        .select("id, data, status")
+        .select("id, data, status, entrada, saida, unidade:dp_unidades(nome), turno:dp_turnos(nome)")
         .eq("colaborador_id", colaboradorId!)
         .gte("data", inicio)
         .lte("data", fim);
@@ -118,6 +118,22 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     }
     return map;
   }, [indisponibilidades.data, convocacoes.data]);
+
+  /** Convocação aceita do dia (para exibir horário e passar o plantão). */
+  const convocacaoPorDia = useMemo(() => {
+    const map = new Map<string, { id: string; entrada: string; saida: string; unidade: string | null; turno: string | null }>();
+    for (const c of (convocacoes.data ?? []) as any[]) {
+      if (c.status !== "aceita") continue;
+      map.set(c.data, {
+        id: c.id,
+        entrada: String(c.entrada ?? "").slice(0, 5),
+        saida: String(c.saida ?? "").slice(0, 5),
+        unidade: c.unidade?.nome ?? null,
+        turno: c.turno?.nome ?? null,
+      });
+    }
+    return map;
+  }, [convocacoes.data]);
 
   const invalidar = () => {
     qc.invalidateQueries({ queryKey: ["dp_indisponibilidades_meu"] });
@@ -189,6 +205,7 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
 
   return {
     estadoPorDia,
+    convocacaoPorDia,
     tardiaPorDia,
     conflitoPorDia,
     regime: regime.data ?? null,

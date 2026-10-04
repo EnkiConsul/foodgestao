@@ -6785,6 +6785,153 @@ export type Database = {
           },
         ]
       }
+      dp_convocacao_substituicoes: {
+        Row: {
+          agencia: string | null
+          banco_codigo: string | null
+          banco_nome: string | null
+          colega_id: string | null
+          company_id: string
+          conta: string | null
+          conta_digito: string | null
+          conta_tipo: string | null
+          convocacao_id: string
+          created_at: string
+          decidido_em: string | null
+          decidido_por: string | null
+          decisao_motivo: string | null
+          documento_foto_path: string | null
+          id: string
+          motivo: string | null
+          nova_convocacao_id: string | null
+          pessoa_apoio_id: string | null
+          pix_chave: string | null
+          pix_tipo: string | null
+          solicitante_id: string
+          status: string
+          terceiro_cpf: string | null
+          terceiro_nome: string | null
+          terceiro_telefone: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          agencia?: string | null
+          banco_codigo?: string | null
+          banco_nome?: string | null
+          colega_id?: string | null
+          company_id: string
+          conta?: string | null
+          conta_digito?: string | null
+          conta_tipo?: string | null
+          convocacao_id: string
+          created_at?: string
+          decidido_em?: string | null
+          decidido_por?: string | null
+          decisao_motivo?: string | null
+          documento_foto_path?: string | null
+          id?: string
+          motivo?: string | null
+          nova_convocacao_id?: string | null
+          pessoa_apoio_id?: string | null
+          pix_chave?: string | null
+          pix_tipo?: string | null
+          solicitante_id: string
+          status?: string
+          terceiro_cpf?: string | null
+          terceiro_nome?: string | null
+          terceiro_telefone?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          agencia?: string | null
+          banco_codigo?: string | null
+          banco_nome?: string | null
+          colega_id?: string | null
+          company_id?: string
+          conta?: string | null
+          conta_digito?: string | null
+          conta_tipo?: string | null
+          convocacao_id?: string
+          created_at?: string
+          decidido_em?: string | null
+          decidido_por?: string | null
+          decisao_motivo?: string | null
+          documento_foto_path?: string | null
+          id?: string
+          motivo?: string | null
+          nova_convocacao_id?: string | null
+          pessoa_apoio_id?: string | null
+          pix_chave?: string | null
+          pix_tipo?: string | null
+          solicitante_id?: string
+          status?: string
+          terceiro_cpf?: string | null
+          terceiro_nome?: string | null
+          terceiro_telefone?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_convocacao_substituicoes_colega_id_fkey"
+            columns: ["colega_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_convocacao_substituicoes_colega_id_fkey"
+            columns: ["colega_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_convocacao_substituicoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_convocacao_substituicoes_convocacao_id_fkey"
+            columns: ["convocacao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_convocacao_substituicoes_nova_convocacao_id_fkey"
+            columns: ["nova_convocacao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_convocacao_substituicoes_pessoa_apoio_id_fkey"
+            columns: ["pessoa_apoio_id"]
+            isOneToOne: false
+            referencedRelation: "dp_pessoas_apoio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_convocacao_substituicoes_solicitante_id_fkey"
+            columns: ["solicitante_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_convocacao_substituicoes_solicitante_id_fkey"
+            columns: ["solicitante_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_convocacoes: {
         Row: {
           aceite_atrasado: boolean
@@ -10618,18 +10765,27 @@ export type Database = {
       }
       dp_pessoas_apoio: {
         Row: {
+          agencia: string | null
           ativo: boolean
+          banco_codigo: string | null
+          banco_nome: string | null
           cargo_id: string | null
           colaborador_id: string | null
           company_id: string
+          conta: string | null
+          conta_digito: string | null
+          conta_tipo: string | null
           cpf: string | null
           created_at: string
           criado_por: string | null
           data_nascimento: string | null
+          documento_foto_path: string | null
           genero: string | null
           id: string
           nome: string
           observacao: string | null
+          pix_chave: string | null
+          pix_tipo: string | null
           setor_id: string | null
           telefone: string | null
           tipo: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
@@ -10637,18 +10793,27 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          agencia?: string | null
           ativo?: boolean
+          banco_codigo?: string | null
+          banco_nome?: string | null
           cargo_id?: string | null
           colaborador_id?: string | null
           company_id: string
+          conta?: string | null
+          conta_digito?: string | null
+          conta_tipo?: string | null
           cpf?: string | null
           created_at?: string
           criado_por?: string | null
           data_nascimento?: string | null
+          documento_foto_path?: string | null
           genero?: string | null
           id?: string
           nome: string
           observacao?: string | null
+          pix_chave?: string | null
+          pix_tipo?: string | null
           setor_id?: string | null
           telefone?: string | null
           tipo?: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
@@ -10656,18 +10821,27 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          agencia?: string | null
           ativo?: boolean
+          banco_codigo?: string | null
+          banco_nome?: string | null
           cargo_id?: string | null
           colaborador_id?: string | null
           company_id?: string
+          conta?: string | null
+          conta_digito?: string | null
+          conta_tipo?: string | null
           cpf?: string | null
           created_at?: string
           criado_por?: string | null
           data_nascimento?: string | null
+          documento_foto_path?: string | null
           genero?: string | null
           id?: string
           nome?: string
           observacao?: string | null
+          pix_chave?: string | null
+          pix_tipo?: string | null
           setor_id?: string | null
           telefone?: string | null
           tipo?: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
@@ -16385,6 +16559,15 @@ export type Database = {
         Args: { p_expected_updated_at?: string; p_ocorrencia_id: string }
         Returns: Json
       }
+      dp_convocacao_colegas_substitutos: {
+        Args: { p_convocacao_id: string }
+        Returns: {
+          cargo_nome: string
+          colaborador_id: string
+          nome: string
+          unidade_nome: string
+        }[]
+      }
       dp_convocacao_config_resolvida: {
         Args: { _company_id: string; _unidade_id?: string }
         Returns: {
@@ -16699,6 +16882,27 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_convocacao_substituicao_cancelar: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      dp_convocacao_substituicao_decidir: {
+        Args: { p_aprovar: boolean; p_id: string; p_motivo?: string }
+        Returns: string
+      }
+      dp_convocacao_substituicao_responder_colega: {
+        Args: { p_aceitar: boolean; p_id: string }
+        Returns: string
+      }
+      dp_convocacao_substituicao_solicitar: {
+        Args: {
+          p_colega_id?: string
+          p_convocacao_id: string
+          p_dados?: Json
+          p_tipo: string
+        }
+        Returns: string
+      }
       dp_convocacao_timezone: {
         Args: { _company_id: string; _unidade_id?: string }
         Returns: string
@@ -16771,6 +16975,10 @@ export type Database = {
       dp_dias_fixos_folga: {
         Args: { _colaborador: string; _data?: string }
         Returns: number[]
+      }
+      dp_disponibilidade_dia: {
+        Args: { _company_id: string; _data: string; _unidade_id: string }
+        Returns: Json
       }
       dp_disponibilidade_janela: {
         Args: {
@@ -17637,18 +17845,27 @@ export type Database = {
           p_unidade_id?: string
         }
         Returns: {
+          agencia: string | null
           ativo: boolean
+          banco_codigo: string | null
+          banco_nome: string | null
           cargo_id: string | null
           colaborador_id: string | null
           company_id: string
+          conta: string | null
+          conta_digito: string | null
+          conta_tipo: string | null
           cpf: string | null
           created_at: string
           criado_por: string | null
           data_nascimento: string | null
+          documento_foto_path: string | null
           genero: string | null
           id: string
           nome: string
           observacao: string | null
+          pix_chave: string | null
+          pix_tipo: string | null
           setor_id: string | null
           telefone: string | null
           tipo: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]

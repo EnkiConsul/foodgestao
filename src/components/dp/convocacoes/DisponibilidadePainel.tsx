@@ -10,6 +10,17 @@ import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpDisponibilidadePainel, type DisponibilidadeDiaResumo } from "@/hooks/useDpDisponibilidadePainel";
 import { competenciaLabel, diaMes, type DisponibilidadeJanela } from "@/lib/dp/disponibilidade-janela";
 import { cn } from "@/lib/utils";
+import { DiaDisponibilidadeDialog, type VisaoCalendario } from "./DiaDisponibilidadeDialog";
+
+const VISOES: { v: VisaoCalendario; rotulo: string }[] = [
+  { v: "convocados", rotulo: "Convocados" },
+  { v: "disponiveis", rotulo: "Disponíveis" },
+  { v: "indisponiveis", rotulo: "Indisponíveis" },
+];
+
+function valorVisao(d: DisponibilidadeDiaResumo, v: VisaoCalendario) {
+  return v === "convocados" ? d.aceitas + d.pendentes : v === "disponiveis" ? d.disponiveis : d.indisponiveis;
+}
 
 const EMPRESA = "__empresa__";
 
@@ -48,27 +59,29 @@ function Chip({ icone: Icone, valor, rotulo, tom }: { icone: any; valor: number;
   );
 }
 
-function DiaCelula({ dia }: { dia: DisponibilidadeDiaResumo }) {
+function DiaCelula({ dia, visao, onClick }: { dia: DisponibilidadeDiaResumo; visao: VisaoCalendario; onClick: () => void }) {
   const num = Number(dia.data.slice(8, 10));
   const cheio = dia.disponiveis === 0;
   const apertado = !cheio && dia.indisponiveis > 0 && dia.disponiveis <= 2;
   return (
-    <div
+    <button
+      type="button"
+      onClick={onClick}
       className={cn(
-        "rounded-lg border border-border p-1.5 text-center",
+        "rounded-lg border border-border p-1.5 text-center transition-colors hover:bg-muted/60",
         apertado && "border-amber-500/50 bg-amber-500/5",
         cheio && "border-destructive/50 bg-destructive/5",
       )}
       title={`${dia.disponiveis} disponível(is) · ${dia.indisponiveis} indisponível(is) · ${dia.pendentes} aguardando · ${dia.aceitas} confirmada(s)`}
     >
       <div className="text-[10px] text-muted-foreground">{num}</div>
-      <div className="text-sm font-semibold">{dia.disponiveis}</div>
-      {dia.indisponiveis > 0 ? (
-        <div className="text-[10px] text-muted-foreground">−{dia.indisponiveis}</div>
+      <div className="text-sm font-semibold">{valorVisao(dia, visao)}</div>
+      {visao === "convocados" && dia.pendentes > 0 ? (
+        <div className="text-[10px] text-amber-600">{dia.pendentes} aguard.</div>
       ) : (
         <div className="text-[10px] text-transparent">·</div>
       )}
-    </div>
+    </button>
   );
 }
 
@@ -76,6 +89,8 @@ function DiaCelula({ dia }: { dia: DisponibilidadeDiaResumo }) {
 export function DisponibilidadePainel() {
   const [escopo, setEscopo] = useState<string>(EMPRESA);
   const [competencia, setCompetencia] = useState<string>(competenciaInicial);
+  const [visao, setVisao] = useState<VisaoCalendario>("convocados");
+  const [diaAberto, setDiaAberto] = useState<string | null>(null);
   const unidadeId = escopo === EMPRESA ? null : escopo;
 
   const unidades = useDpUnidades();
@@ -161,12 +176,30 @@ export function DisponibilidadePainel() {
           </DpContentCard>
 
           <DpContentCard>
-            <div className="mb-2 text-sm font-semibold">Disponíveis por dia</div>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <div className="text-sm font-semibold">Calendário</div>
+              <div className="flex rounded-lg border border-border p-0.5">
+                {VISOES.map((o) => (
+                  <button
+                    key={o.v}
+                    type="button"
+                    onClick={() => setVisao(o.v)}
+                    className={cn(
+                      "rounded-md px-2.5 py-1 text-xs font-medium",
+                      visao === o.v ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+                    )}
+                  >
+                    {o.rotulo}
+                  </button>
+                ))}
+              </div>
+            </div>
             {/* Mobile: 1 dia = 1 linha */}
             <div className="md:hidden">
               <DiasEmLista
                 dias={dados.dias.map((d) => ({
                   iso: d.data,
+                  onSelect: () => setDiaAberto(d.data),
                   tom:
                     d.disponiveis === 0
                       ? ("critico" as const)
@@ -175,10 +208,8 @@ export function DisponibilidadePainel() {
                         : undefined,
                   resumo: (
                     <span>
-                      <span className="font-semibold">{d.disponiveis}</span> disponível(is)
-                      {d.indisponiveis > 0 ? (
-                        <span className="text-destructive"> · {d.indisponiveis} indisponível(is)</span>
-                      ) : null}
+                      <span className="font-semibold">{valorVisao(d, visao)}</span>{" "}
+                      {visao === "convocados" ? "convocado(s)" : visao === "disponiveis" ? "disponível(is)" : "indisponível(is)"}
                     </span>
                   ),
                   chips: (
@@ -204,13 +235,15 @@ export function DisponibilidadePainel() {
             </div>
             <div className="hidden grid-cols-7 gap-1 md:grid">
               {Array.from({ length: offset }, (_, i) => <div key={`v${i}`} />)}
-              {dados.dias.map((d) => <DiaCelula key={d.data} dia={d} />)}
+              {dados.dias.map((d) => <DiaCelula key={d.data} dia={d} visao={visao} onClick={() => setDiaAberto(d.data)} />)}
             </div>
             <p className="mt-2 text-[11px] text-muted-foreground">
-              O número grande é quanta gente segue disponível no dia; o valor menor em vermelho é quem já avisou que não pode.
-              Dias em âmbar estão apertados e em vermelho ninguém sobrou.
+              O número de cada dia segue a visão escolhida. Disponíveis já descontam quem está convocado ou indisponível.
+              Dias em âmbar estão apertados e em vermelho ninguém sobrou. Toque no dia para ver as três listas.
             </p>
           </DpContentCard>
+
+          <DiaDisponibilidadeDialog data={diaAberto} unidadeId={unidadeId} visao={visao} onClose={() => setDiaAberto(null)} />
 
           <DpContentCard>
             <div className="mb-2 text-sm font-semibold">

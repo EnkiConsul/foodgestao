@@ -19,6 +19,14 @@ export interface PessoaApoio {
   observacao: string | null;
   colaborador_id: string | null;
   ativo: boolean;
+  banco_nome?: string | null;
+  agencia?: string | null;
+  conta?: string | null;
+  conta_digito?: string | null;
+  conta_tipo?: string | null;
+  pix_tipo?: string | null;
+  pix_chave?: string | null;
+  documento_foto_path?: string | null;
 }
 
 export interface PessoaApoioInput extends Omit<PessoaApoio, "id" | "ativo" | "setor_id"> {
@@ -28,7 +36,7 @@ export interface PessoaApoioInput extends Omit<PessoaApoio, "id" | "ativo" | "se
 }
 
 const COLS =
-  "id, nome, telefone, tipo, cargo_id, unidade_id, setor_id, cpf, genero, data_nascimento, observacao, colaborador_id, ativo";
+  "id, nome, telefone, tipo, cargo_id, unidade_id, setor_id, cpf, genero, data_nascimento, observacao, colaborador_id, ativo, banco_nome, agencia, conta, conta_digito, conta_tipo, pix_tipo, pix_chave, documento_foto_path";
 
 /** Banco de folguistas e pessoas em teste reaproveitáveis na rotina do dia. */
 export function useDpPessoasApoio(opts?: { apenasAtivos?: boolean }) {
@@ -70,6 +78,14 @@ export function useSalvarDpPessoaApoio() {
         observacao: input.observacao?.trim() || null,
         colaborador_id: input.colaborador_id || null,
         ativo: input.ativo ?? true,
+        banco_nome: input.banco_nome?.trim() || null,
+        agencia: input.agencia?.trim() || null,
+        conta: input.conta?.trim() || null,
+        conta_digito: input.conta_digito?.trim() || null,
+        conta_tipo: input.conta_tipo || null,
+        pix_tipo: input.pix_tipo || null,
+        pix_chave: input.pix_chave?.trim() || null,
+        documento_foto_path: input.documento_foto_path || null,
       };
       if (input.id) {
         const { data, error } = await supabase

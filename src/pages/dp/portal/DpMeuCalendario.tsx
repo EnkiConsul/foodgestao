@@ -79,6 +79,7 @@ import { CalendarioMobileLista } from "@/components/dp/CalendarioMobileLista";
 import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { MinhaDisponibilidadeCard } from "@/components/dp/MinhaDisponibilidadeCard";
+import { MeusPlantoesTrocaCard } from "@/components/dp/convocacoes/MeusPlantoesTrocaCard";
 import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
 import { notifyError } from "@/lib/notifyError";
 import { negarRegra } from "@/lib/dp/regraAviso";
@@ -1335,12 +1336,15 @@ export default function DpMeuCalendario() {
       {convocavel && (
         <MinhaDisponibilidadeCard
           colaboradorId={meRef.data?.id ?? null}
+          companyId={(meRef.data as any)?.company_id ?? null}
           ano={ano}
           mes={mes}
           onPrev={() => (mes === 1 ? (setAno(ano - 1), setMes(12)) : setMes(mes - 1))}
           onNext={() => (mes === 12 ? (setAno(ano + 1), setMes(1)) : setMes(mes + 1))}
         />
       )}
+
+      {convocavel && <MeusPlantoesTrocaCard colaboradorId={meRef.data?.id ?? null} />}
 
       {convocavel && (
         <div className="rounded-xl border bg-muted/40 p-3 text-sm space-y-2">
