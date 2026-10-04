@@ -50,6 +50,6 @@
 - [x] Atalho do bloqueio/limite do dia para a tela de Regras
 
 ## Atalhos padrão (04/10)
-- [ ] Barra inferior: gestor e colaborador com Documentos e Folgas por padrão, para todos os usuários
-- [ ] Calendário do intermitente/freelancer diarista-horista segue o vínculo (rótulo "Calendário")
-- [ ] Documentos do gestor com abas Importar, Histórico e Recibos
+- [x] Barra inferior: gestor e colaborador com Documentos e Folgas por padrão, para todos os usuários
+- [x] Calendário do intermitente/freelancer diarista-horista segue o vínculo (rótulo "Calendário")
+- [x] Documentos do gestor com abas Importar, Histórico e Recibos
