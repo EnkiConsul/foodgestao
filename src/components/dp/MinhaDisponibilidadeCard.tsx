@@ -40,13 +40,17 @@ const ESTILO: Record<DisponibilidadeDia, string> = {
   indisponivel: "bg-destructive/10 border-destructive/40",
   convocacao_pendente: "bg-amber-500/10 border-amber-500/40",
   convocacao_confirmada: "bg-primary/10 border-primary/40",
+  falta: "bg-orange-500/15 border-orange-500/50",
+  fora_jornada: "bg-muted/30 border-dashed border-border text-muted-foreground",
 };
 
 const ROTULO: Record<DisponibilidadeDia, string> = {
-  disponivel: "Disponível",
+  disponivel: "Disponível para convocação",
   indisponivel: "Indisponível",
-  convocacao_pendente: "Convocação aguardando",
-  convocacao_confirmada: "Convocação confirmada",
+  convocacao_pendente: "Troca ou convocação extra aguardando",
+  convocacao_confirmada: "Convocado",
+  falta: "Falta registrada",
+  fora_jornada: "Fora da jornada cadastrada",
 };
 
 const PONTO: Record<DisponibilidadeDia, string> = {
@@ -54,6 +58,8 @@ const PONTO: Record<DisponibilidadeDia, string> = {
   indisponivel: "bg-destructive",
   convocacao_pendente: "bg-amber-500",
   convocacao_confirmada: "bg-primary",
+  falta: "bg-orange-500",
+  fora_jornada: "bg-muted-foreground/40",
 };
 
 const ymdLocal = (d: Date) =>
@@ -179,7 +185,11 @@ export function MinhaDisponibilidadeCard({ colaboradorId, companyId = null, ano,
                             ? ("atencao" as const)
                             : est === "convocacao_confirmada"
                               ? ("primario" as const)
-                              : ("sucesso" as const),
+                              : est === "falta"
+                                ? ("critico" as const)
+                                : est === "fora_jornada"
+                                  ? undefined
+                                  : ("sucesso" as const),
                     resumo: (
                       <span className="flex items-center gap-2">
                         <span
@@ -219,7 +229,9 @@ export function MinhaDisponibilidadeCard({ colaboradorId, companyId = null, ano,
                   onClick={() => abrirDia(c.iso)}
                   className={cn(
                     "aspect-square rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1 transition",
-                    c.iso < hojeIso ? "bg-muted/40 text-muted-foreground" : ESTILO[estado(c.iso)],
+                    c.iso < hojeIso && estado(c.iso) !== "falta" && estado(c.iso) !== "convocacao_confirmada"
+                      ? "bg-muted/40 text-muted-foreground"
+                      : ESTILO[estado(c.iso)],
                   )}
                   aria-label={`${formatBR(parseYMD(c.iso))} — ${ROTULO[estado(c.iso)]}`}
                 >
@@ -340,8 +352,20 @@ export function MinhaDisponibilidadeCard({ colaboradorId, companyId = null, ano,
 
             {!passado && estadoSel === "convocacao_pendente" && (
               <p className="text-amber-600">
-                Existe uma convocação aguardando sua resposta neste dia. Ao marcar a data como indisponível, essa
-                oferta será encerrada.
+                Há um pedido de troca de um colega ou uma convocação extra aguardando sua resposta neste dia. Responda
+                em "Trocas de plantão" ou "Minhas convocações". Ao marcar a data como indisponível, a oferta é encerrada.
+              </p>
+            )}
+
+            {estadoSel === "falta" && (
+              <p className="text-orange-600">
+                Há uma falta registrada neste dia de convocação. Se houver justificativa, fale com o gestor.
+              </p>
+            )}
+
+            {!passado && estadoSel === "fora_jornada" && (
+              <p className="text-muted-foreground">
+                Este dia não faz parte da jornada cadastrada para você. Ainda assim, você pode marcar indisponibilidade.
               </p>
             )}
 
@@ -358,7 +382,7 @@ export function MinhaDisponibilidadeCard({ colaboradorId, companyId = null, ano,
               </Button>
             )}
 
-            {!passado && (estadoSel === "disponivel" || estadoSel === "convocacao_pendente") && (
+            {!passado && (estadoSel === "disponivel" || estadoSel === "convocacao_pendente" || estadoSel === "fora_jornada") && (
               <>
                 {encerrada && !alteracaoAssumida ? (
                   <>

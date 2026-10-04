@@ -10,7 +10,9 @@ export type DisponibilidadeDia =
   | "disponivel"
   | "indisponivel"
   | "convocacao_pendente"
-  | "convocacao_confirmada";
+  | "convocacao_confirmada"
+  | "falta"
+  | "fora_jornada";
 
 export interface UseDpIndisponibilidadesArgs {
   colaboradorId: string | null | undefined;
@@ -78,6 +80,56 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     },
   });
 
+  /** Faltas registradas em dias do mês. */
+  const faltas = useQuery({
+    queryKey: ["dp_faltas_meu_cal", colaboradorId, inicio, fim],
+    enabled: ativo,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_ocorrencias")
+        .select("data_operacional, tipo, estado")
+        .eq("colaborador_id", colaboradorId!)
+        .eq("tipo", "falta")
+        .neq("estado", "cancelada")
+        .gte("data_operacional", inicio)
+        .lte("data_operacional", fim);
+      if (error) return [];
+      return data ?? [];
+    },
+  });
+
+  /** Convites de troca recebidos de colegas (aguardando minha resposta). */
+  const convites = useQuery({
+    queryKey: ["dp_convites_troca_meu_cal", colaboradorId, inicio, fim],
+    enabled: ativo,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("dp_convocacao_substituicoes")
+        .select("id, status, convocacao:dp_convocacoes!dp_convocacao_substituicoes_convocacao_id_fkey(data)")
+        .eq("colega_id", colaboradorId!)
+        .eq("status", "aguardando_colega");
+      if (error) return [] as string[];
+      return ((data ?? []) as any[])
+        .map((r) => r.convocacao?.data as string | undefined)
+        .filter((d): d is string => !!d && d >= inicio && d <= fim);
+    },
+  });
+
+  /** Dias da semana em que a jornada cadastrada prevê trabalho (vazio = sem restrição). */
+  const diasJornada = useQuery({
+    queryKey: ["dp_jornada_dias_meu_cal", colaboradorId],
+    enabled: ativo,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_colaborador_config_trabalho")
+        .select("vigencia_inicio, vigencia_fim, dias:dp_colaborador_config_dias(dow, trabalha)")
+        .eq("colaborador_id", colaboradorId!)
+        .order("vigencia_inicio", { ascending: false });
+      if (error) return [];
+      return (data ?? []) as any[];
+    },
+  });
+
   /** Vínculo do trabalhador — define o texto legal exibido no aviso de conflito. */
   const regime = useQuery({
     queryKey: ["dp_colab_regime", colaboradorId],
@@ -116,8 +168,26 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
       else if (c.status === "pendente" && map.get(c.data) !== "convocacao_confirmada")
         map.set(c.data, "convocacao_pendente");
     }
+    for (const d of convites.data ?? []) {
+      const atual = map.get(d);
+      if (atual !== "convocacao_confirmada") map.set(d, "convocacao_pendente");
+    }
+    for (const f of (faltas.data ?? []) as any[]) map.set(f.data_operacional, "falta");
+    // Dias sem informação fora da jornada cadastrada.
+    const configs = diasJornada.data ?? [];
+    const total = new Date(ano, mes, 0).getDate();
+    for (let d = 1; d <= total; d++) {
+      const dt = new Date(ano, mes - 1, d);
+      const iso = ymdLocal(dt);
+      if (map.has(iso)) continue;
+      const cfg = configs.find((c) => c.vigencia_inicio <= iso && (!c.vigencia_fim || c.vigencia_fim >= iso));
+      const dias = (cfg?.dias ?? []) as { dow: number; trabalha: boolean }[];
+      if (!dias.length) continue;
+      const dia = dias.find((x) => x.dow === dt.getDay());
+      if (!dia?.trabalha) map.set(iso, "fora_jornada");
+    }
     return map;
-  }, [indisponibilidades.data, convocacoes.data]);
+  }, [indisponibilidades.data, convocacoes.data, convites.data, faltas.data, diasJornada.data, ano, mes]);
 
   /** Convocação aceita do dia (para exibir horário e passar o plantão). */
   const convocacaoPorDia = useMemo(() => {
@@ -140,6 +210,7 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     qc.invalidateQueries({ queryKey: ["dp_convocacoes_meu_cal"] });
     qc.invalidateQueries({ queryKey: ["dp_minhas_convocacoes"] });
     qc.invalidateQueries({ queryKey: ["dp_minha_disponibilidade_janela"] });
+    qc.invalidateQueries({ queryKey: ["dp_convites_troca_meu_cal"] });
   };
 
   const marcar = useMutation({
