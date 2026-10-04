@@ -16,6 +16,7 @@ import { DpPage, DpPageHeader, DpContentCard, DpEmptyState } from "@/components/
 import { NovaConvocacaoPlanner } from "@/components/dp/convocacoes/NovaConvocacaoPlanner";
 import { ConvocacoesRegrasPanel } from "@/components/dp/convocacoes/ConvocacoesRegrasPanel";
 import { DisponibilidadePainel } from "@/components/dp/convocacoes/DisponibilidadePainel";
+import { SubstituicoesAprovacao } from "@/components/dp/convocacoes/SubstituicoesAprovacao";
 import { PlanejamentoPainel } from "@/components/dp/convocacoes/PlanejamentoPainel";
 import { CustoGrupoPanel, type ConvocacaoComValor } from "@/components/dp/convocacoes/CustoGrupoPanel";
 import { AprovacaoParcialDialog } from "@/components/dp/convocacoes/AprovacaoParcialDialog";
@@ -374,7 +375,7 @@ export default function DpConvocacoes() {
             <History className="h-4 w-4" /> Histórico
           </TabsTrigger>
           <TabsTrigger value="disponibilidade" className="gap-1.5">
-            <CalendarRange className="h-4 w-4" /> Disponibilidade
+            <CalendarRange className="h-4 w-4" /> Calendário
           </TabsTrigger>
           <TabsTrigger value="planejamento" className="gap-1.5">
             <CalendarDays className="h-4 w-4" /> Planejamento
@@ -406,7 +407,10 @@ export default function DpConvocacoes() {
           </DpContentCard>
         </TabsContent>
 
-        <TabsContent value="aprovacoes" className="mt-3">
+        <TabsContent value="aprovacoes" className="mt-3 space-y-3">
+          <DpContentCard>
+            <SubstituicoesAprovacao />
+          </DpContentCard>
           <DpContentCard>
             {parciais.isLoading ? (
               <p className="text-sm text-muted-foreground">Carregando…</p>
