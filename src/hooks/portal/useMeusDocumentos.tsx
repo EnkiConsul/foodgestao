@@ -161,7 +161,7 @@ export function useMeusDocumentos() {
       const { data: docs } = await supabase
         .from("dp_documentos")
         .select(
-          "id, titulo, tipo, referencia_data, file_path, file_name, mime_type, aprovacao_status, motivo_recusao, submetido_por_colaborador, descricao, created_at, exige_aceite, comprovante_file_path, comprovante_file_name, comprovante_pago_em, via_assinada_path, via_assinada_mime"
+          "id, titulo, tipo, referencia_data, file_path, file_name, mime_type, aprovacao_status, motivo_recusao, submetido_por_colaborador, descricao, created_at, exige_aceite, comprovante_file_path, comprovante_file_name, comprovante_pago_em, via_assinada_path, via_assinada_mime, assinatura_fisica"
         )
         .eq("colaborador_id", colab.id)
         .order("created_at", { ascending: false });
@@ -179,6 +179,8 @@ export function useMeusDocumentos() {
       const aceitos = new Set(aceitePorDoc.keys());
 
       for (const d of (docs ?? []) as any[]) {
+        // Assinatura à mão: a minuta fica só no DP até a via assinada ser importada.
+        if (d.assinatura_fisica && !d.via_assinada_path) continue;
         const tipo = normalizeTipo(d.tipo);
         const comp = fmtCompetencia(d.referencia_data);
         const origem: UnifiedOrigem = d.submetido_por_colaborador ? "meu_envio" : "dp";
@@ -215,7 +217,7 @@ export function useMeusDocumentos() {
           created_at: d.created_at,
           observacao: d.descricao ?? null,
           motivo_recusao: d.motivo_recusao ?? null,
-          aceite: d.exige_aceite && !d.submetido_por_colaborador ? aceitos.has(d.id) : null,
+          aceite: d.exige_aceite && !d.submetido_por_colaborador && !d.assinatura_fisica ? aceitos.has(d.id) : null,
           aceiteInfo: aceitePorDoc.get(d.id) ?? null,
           meta: {
             originalId: d.id,

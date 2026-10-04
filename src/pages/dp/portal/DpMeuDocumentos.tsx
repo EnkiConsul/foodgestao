@@ -457,11 +457,11 @@ export default function DpMeuDocumentos() {
                         {d.aceite === false && (
                           <Button
                             size="sm"
-                            onClick={() => setAssinando(d)}
+                            onClick={() => (d.file_path ? setPreview(d) : setAssinando(d))}
                             disabled={aceitar.isPending}
                             className="min-h-9 flex-1 sm:flex-none"
                           >
-                            <PenLine className="h-4 w-4 mr-1" /> Aprovar documento
+                            <PenLine className="h-4 w-4 mr-1" /> Ler e assinar
                           </Button>
                         )}
                         {d.aceite === true && d.aceiteInfo && (
@@ -525,6 +525,11 @@ export default function DpMeuDocumentos() {
         path={preview?.file_path ?? undefined}
         mime={preview?.mime_type ?? undefined}
         comprovanteDocumentoId={preview?.origem === "dp" && preview?.meta?.comprovante ? String(preview.meta?.originalId ?? preview.id) : null}
+        acaoRodape={preview?.aceite === false ? (
+          <Button size="sm" onClick={() => { const d = preview; setPreview(null); setAssinando(d); }}>
+            <PenLine className="h-4 w-4 mr-1" /> Assinar documento
+          </Button>
+        ) : undefined}
       />
 
       {/* Comprovante e certificado abrem aqui mesmo: no celular, outra aba é bloqueada. */}
