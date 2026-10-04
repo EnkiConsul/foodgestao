@@ -108,7 +108,21 @@ export default function DpMeuTrocas() {
   const folgasFuturas = useQuery({
     queryKey: ["dp_folgas_trocas", meRef.data?.company_id, meRef.data?.id],
     enabled: !!meRef.data?.company_id,
+
+  });
+
+  const empresaRef = useQuery({
+    queryKey: ["dp_minha_empresa_termo", meRef.data?.company_id],
+    enabled: !!meRef.data?.company_id,
     queryFn: async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("razao_social, nome_fantasia")
+        .eq("id", meRef.data!.company_id!)
+        .maybeSingle();
+      return { nome: (data as any)?.razao_social ?? (data as any)?.nome_fantasia ?? "Empresa" };
+    },
+  });
       const hoje = hojeIsoLocal();
       const { data, error } = await supabase
         .from("dp_folgas")
