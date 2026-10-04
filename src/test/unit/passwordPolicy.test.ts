@@ -130,7 +130,7 @@ describe("regra única de senha (S3)", () => {
 
   it("traduz as recusas do serviço de contas", () => {
     expect(mensagemDoServidorDeContas("Password is known to be weak and easy to guess (pwned)")).toContain("vazamentos");
-    expect(mensagemDoServidorDeContas("Password should be at least 12 characters")).toContain("8 caracteres");
+    expect(mensagemDoServidorDeContas("Password should be at least 12 characters")).toContain("12 caracteres");
     expect(mensagemDoServidorDeContas("New password should be different from the old password")).toContain("diferente");
   });
 
