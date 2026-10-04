@@ -76,7 +76,7 @@ export default function DpMeuTrocas() {
       const { data } = await supabase.rpc("dp_meu_colaborador");
       if (!data) return null;
       const { data: c } = await supabase
-        .from("dp_colaboradores").select("id, company_id, unidade_id").eq("id", data).single();
+        .from("dp_colaboradores").select("id, company_id, unidade_id, regime, forma_pagamento").eq("id", data).single();
       return c;
     },
   });
@@ -262,6 +262,7 @@ export default function DpMeuTrocas() {
         icon={Repeat}
         title="Minhas trocas"
         actions={
+          convocavel ? null : (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4 mr-1" /> Propor troca</Button>
