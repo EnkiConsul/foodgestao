@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
 import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
+import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { avaliarRiscoDsrTroca, avisoDsr, descansosDoColaborador } from "@/lib/dp/dsr-consecutivo";
 import { diasFixosDoColaborador, registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
@@ -333,8 +334,16 @@ export default function DpMeuTrocas() {
               </DpFormFooter>
             </DialogContent>
           </Dialog>
+          )
         }
       />
+
+      {convocavel && (
+        <div className="rounded-xl border bg-muted/40 p-3 text-sm">
+          Seu contrato é <strong>intermitente/por convocação</strong>: você não tem folga semanal para trocar.
+          Seus dias de trabalho chegam por convocação (Art. 452-A da CLT).
+        </div>
+      )}
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
         <div className="-mx-1 overflow-x-auto">
