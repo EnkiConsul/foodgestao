@@ -67,6 +67,7 @@ import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
+import { TermoRiscoMensalistaDialog } from "@/components/dp/TermoRiscoMensalistaDialog";
 import { PadraoDivergenciaAviso } from "@/components/dp/PadraoDivergenciaAviso";
 import { ColaboradorJornadaPanel, type JornadaRascunho, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoFormDialog } from "@/components/dp/cargos/CargoFormDialog";
@@ -415,6 +416,15 @@ export function ColaboradorFormDialog({
   const [sexoSugerido, setSexoSugerido] = useState(false);
   // Ciência do risco jurídico do vínculo sem registro, válida para este salvamento.
   const cienciaConfirmada = useRef<{ justificativa: string } | null>(null);
+  const termoRiscoAssinado = useRef(false);
+  const [termoRiscoAberto, setTermoRiscoAberto] = useState(false);
+  const [nomeGestor, setNomeGestor] = useState("");
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => {
+      const m = data.user?.user_metadata as { full_name?: string; name?: string } | undefined;
+      setNomeGestor(m?.full_name || m?.name || data.user?.email?.split("@")[0] || "");
+    });
+  }, []);
   /**
    * Alteração de condição de trabalho já confirmada (efeito, vigência e
    * justificativa), válida para este salvamento.
@@ -1002,6 +1012,7 @@ export function ColaboradorFormDialog({
   // é mensalista): reconciliamos sempre pela política do contrato.
   useEffect(() => {
     cienciaConfirmada.current = null;
+    termoRiscoAssinado.current = false;
     alteracaoConfirmada.current = null;
     setRem((r) => {
       const ajustada = ajustarFormaPagamento(regimeSelecionado, r.forma_pagamento) as FormaPagamento;
@@ -1905,7 +1916,15 @@ export function ColaboradorFormDialog({
 
     if (validaDados) {
       // Vínculo sem registro em carteira exige ciência formal do risco jurídico.
-      if (policy.exigeCienciaLegal && !cienciaConfirmada.current) {
+      // Freelancer mensalista: termo de assunção de risco assinado pelo gestor.
+      const freelaMensalista = regimeSelecionado === "freelancer" && rem.forma_pagamento === "mensalista";
+      const jaEraFreelaMensalista = isEdit && colaborador?.regime === "freelancer" &&
+        (colaborador as { forma_pagamento?: string | null }).forma_pagamento === "mensalista";
+      if (freelaMensalista && !jaEraFreelaMensalista && !termoRiscoAssinado.current) {
+        setTermoRiscoAberto(true);
+        return;
+      }
+      if (policy.exigeCienciaLegal && !cienciaConfirmada.current && !termoRiscoAssinado.current) {
         setCienciaAberta(true);
         return;
       }
@@ -2161,6 +2180,26 @@ export function ColaboradorFormDialog({
           .eq("id", pessoaApoioInicial.id);
       }
       if (!colaborador?.id && colaboradorId && onCriado) onCriado(colaboradorId, form.nome);
+      // Freelancer horista/diarista: termo de serviços eventuais para assinar no portal.
+      if (
+        colaboradorId && selectedCompanyId && regimeSelecionado === "freelancer" &&
+        (rem.forma_pagamento === "horista" || rem.forma_pagamento === "diarista")
+      ) {
+        try {
+          const { emitirTermoEventual } = await import("@/lib/dp/termos-freelancer");
+          const r = await emitirTermoEventual({
+            companyId: selectedCompanyId, colaboradorId, nome: form.nome.trim(),
+            cpf: form.cpf, forma: rem.forma_pagamento,
+          });
+          if (r === "emitido") toast.success("Termo de Prestação de Serviços Eventuais enviado", {
+            description: "O prestador lê e assina digitalmente pelo portal. A via assinada fica nos documentos dele.",
+          });
+        } catch (e) {
+          toast.error("Cadastro salvo, mas o termo de serviços eventuais não foi emitido", {
+            description: `${e instanceof Error ? e.message : ""} Salve o cadastro de novo para tentar emitir.`.trim(),
+          });
+        }
+      }
 
       // Sincroniza a ficha de benefícios marcada no cadastro.
       const hoje = new Date().toISOString().slice(0, 10);
@@ -3367,6 +3406,50 @@ export function ColaboradorFormDialog({
         </AlertDialogContent>
       </AlertDialog>
 
+
+      <TermoRiscoMensalistaDialog
+        open={termoRiscoAberto}
+        empresa={(companies?.find((c: { id: string }) => c.id === selectedCompanyId) as { name?: string } | undefined)?.name?.toUpperCase() ?? "EMPRESA"}
+        nome={form.nome.trim().toUpperCase()}
+        nomeGestor={nomeGestor}
+        onCancel={() => setTermoRiscoAberto(false)}
+        onConfirm={async ({ justificativa, assinatura }) => {
+          if (!selectedCompanyId) return;
+          try {
+            const { registrarCienciaRegra } = await import("@/lib/dp/regras-oficial");
+            const t = await import("@/lib/dp/termos-freelancer");
+            const empresaNome = (companies?.find((c: { id: string }) => c.id === selectedCompanyId) as { name?: string } | undefined)?.name?.toUpperCase() ?? "EMPRESA";
+            const paragrafos = t.termoRiscoMensalistaParagrafos({ empresa: empresaNome, nome: form.nome.trim().toUpperCase() });
+            await registrarCienciaRegra({
+              companyId: selectedCompanyId,
+              tabela: "dp_colaboradores",
+              registroId: colaborador?.id ?? null,
+              justificativa,
+              valorNovo: {
+                tipo: "termo_risco_freelancer_mensalista",
+                versao: t.TERMO_RISCO_MENSALISTA_VERSAO,
+                hash_termo: await t.hashTermo(t.TERMO_RISCO_MENSALISTA_TITULO, t.TERMO_RISCO_MENSALISTA_VERSAO, paragrafos),
+                texto: paragrafos,
+                gestor: nomeGestor,
+                assinatura_gestor: assinatura,
+                assinado_em: new Date().toISOString(),
+                nome: form.nome.trim(),
+                cpf: form.cpf.replace(/\D/g, ""),
+                regime: regimeSelecionado,
+                forma_pagamento: rem.forma_pagamento,
+              },
+            });
+          } catch (e) {
+            toast.error("Não foi possível registrar o termo assinado", {
+              description: `${e instanceof Error ? e.message : ""} O cadastro não foi salvo. Tente de novo em instantes.`.trim(),
+            });
+            return;
+          }
+          termoRiscoAssinado.current = true;
+          setTermoRiscoAberto(false);
+          await submit();
+        }}
+      />
 
       <CienciaLegalDialog
         open={cienciaAberta}
