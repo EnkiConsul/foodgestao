@@ -174,11 +174,15 @@ export default function DpMeuCalendario() {
     queryFn: async () => {
       const { data } = await supabase.rpc("dp_meu_colaborador");
       if (!data) return null;
-      const { data: c } = await supabase
-        .from("dp_colaboradores")
-        .select("id, company_id, nome, sexo, regime, forma_pagamento, cargo_id, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, unidade_id, vinculo_label")
-        .eq("id", data)
-        .single();
+      const colunas =
+        "id, company_id, nome, sexo, regime, forma_pagamento, cargo_id, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, unidade_id, vinculo_label";
+      const tentativa = await supabase.from("dp_colaboradores").select(colunas).eq("id", data).single();
+      if (!tentativa.error) return tentativa.data;
+      // Se uma coluna nova ainda não tem permissão de leitura, refaz a consulta
+      // sem as colunas de folga diferenciada para o calendário nunca travar.
+      const semDif = colunas.replace(", folga_dif_dias", "");
+      const { data: c, error } = await supabase.from("dp_colaboradores").select(semDif).eq("id", data).single();
+      if (error) throw error;
       return c;
     },
   });
@@ -186,7 +190,7 @@ export default function DpMeuCalendario() {
   /** Intermitente/Freelancer usam a agenda de disponibilidade. */
   const convocavel = pessoaConvocavel(meRef.data ?? {});
   /** Enquanto o vínculo carrega, não exibe a tela de folgas (evita flash indevido). */
-  const vinculoCarregado = !!meRef.data;
+  const vinculoCarregado = !!meRef.data || meRef.isError;
 
 
 
