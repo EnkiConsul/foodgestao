@@ -531,7 +531,13 @@ export function RevisaoConvocacao(props: Props) {
                     const av = aptidaoPorChave.get(`${o.dia.cargo_id}|${o.dia.data}|${l.pessoa.id}`);
                     if (!av) return null;
                     return av.apto ? (
-                      <Badge variant="secondary" className="text-[10px]">Apta</Badge>
+                      av.indisponivel ? (
+                        <span className="w-full text-[11px] text-amber-700 dark:text-amber-400">
+                          Marcou indisponibilidade neste dia. A convocação será enviada mesmo assim e ela decide se aceita.
+                        </span>
+                      ) : (
+                        <Badge variant="secondary" className="text-[10px]">Apta</Badge>
+                      )
                     ) : (
                       <span className="w-full text-[11px] text-destructive">
                         {textoDoMotivo(av.motivo, {

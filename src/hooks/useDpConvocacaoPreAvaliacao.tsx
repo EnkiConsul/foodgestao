@@ -14,6 +14,8 @@ export interface PreAvaliacaoLinha {
   colaborador_nome: string | null;
   apto: boolean;
   motivo: string | null;
+  /** Marcou indisponibilidade na data (convocação manual pode seguir mesmo assim). */
+  indisponivel?: boolean;
   entrada: string | null;
   saida: string | null;
   termina_no_dia_seguinte: boolean;

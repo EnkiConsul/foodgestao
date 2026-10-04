@@ -115,14 +115,14 @@ export function PassarPlantaoDialog({ open, onOpenChange, convocacaoId, companyI
           {modo === "colega" ? (
             <>
               <p className="text-xs text-muted-foreground">
-                Só aparecem colegas do mesmo cargo que não estão escalados nem indisponíveis neste dia.
+                Aparecem colegas do mesmo cargo que ainda não estão escalados neste dia. Quem marcou indisponibilidade aparece sinalizado, mas você pode convidar mesmo assim.
                 O plantão passa para o colega assim que ele aceitar, e o gestor é avisado.
               </p>
               {colegas.isLoading ? (
                 <p className="flex items-center gap-2 text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Buscando colegas…</p>
               ) : (colegas.data ?? []).length === 0 ? (
                 <p className="rounded-xl border border-dashed p-3 text-muted-foreground">
-                  Nenhum colega do mesmo cargo está livre neste dia. Você pode indicar um folguista.
+                  Nenhum colega do mesmo cargo está livre neste dia (todos já escalados). Você pode indicar um folguista.
                 </p>
               ) : (
                 <div className="space-y-1.5">
@@ -138,6 +138,11 @@ export function PassarPlantaoDialog({ open, onOpenChange, convocacaoId, companyI
                     >
                       <p className="font-medium">{c.nome}</p>
                       <p className="text-xs text-muted-foreground">{c.cargo_nome ?? "—"} · {c.unidade_nome ?? "—"}</p>
+                      {c.indisponivel && (
+                        <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+                          Marcou indisponibilidade neste dia — o convite será enviado mesmo assim e ele decide se aceita.
+                        </p>
+                      )}
                     </button>
                   ))}
                 </div>
