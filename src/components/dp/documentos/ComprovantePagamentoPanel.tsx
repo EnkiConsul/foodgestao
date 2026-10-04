@@ -1,4 +1,5 @@
 import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
+import { DicaEnquadramento, useConferenciaDigitalizacao } from "@/components/dp/documentos/ConferenciaDigitalizacao";
 import { useId, useRef, useState } from "react";
 import {
   BadgeCheck,
@@ -224,6 +225,7 @@ export function ComprovanteAnexarDialog(props: {
   complementar?: { jaComprovadoCents: number };
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { conferir: conferirFoto, dialogo: dialogoFoto } = useConferenciaDigitalizacao({ onTirarOutra: () => inputRef.current?.click() });
   const campoId = useId();
   const [pagoEm, setPagoEm] = useState(props.pagoEmAtual ?? "");
   const [arquivo, setArquivo] = useState<File | null>(null);
@@ -462,11 +464,13 @@ export function ComprovanteAnexarDialog(props: {
             const file = e.target.files?.[0];
             e.target.value = "";
             if (!file || !validar(file)) return;
-            void escolherArquivo(file);
+            void conferirFoto(file).then((ok) => ok && escolherArquivo(ok));
           }}
         />
 
+        {dialogoFoto}
         <AvisoViaFisica />
+        <DicaEnquadramento />
         <div className="grid gap-1.5">
           <Label className="text-xs">Arquivo do comprovante</Label>
           <div className="flex items-center gap-2">

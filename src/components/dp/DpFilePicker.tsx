@@ -1,6 +1,7 @@
 import { forwardRef, useId, useImperativeHandle, useRef } from "react";
 import { Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useConferenciaDigitalizacao } from "@/components/dp/documentos/ConferenciaDigitalizacao";
 
 type DpFilePickerProps = {
   accept?: string;
@@ -21,6 +22,7 @@ export const DpFilePicker = forwardRef<HTMLInputElement, DpFilePickerProps>(
     const autoId = useId();
     const inputId = id ?? `dp-file-${autoId}`;
 
+    const { conferir, dialogo } = useConferenciaDigitalizacao({ onTirarOutra: () => innerRef.current?.click() });
     useImperativeHandle(ref, () => innerRef.current as HTMLInputElement, []);
 
     return (
@@ -36,7 +38,11 @@ export const DpFilePicker = forwardRef<HTMLInputElement, DpFilePickerProps>(
           onClick={(e) => {
             e.currentTarget.value = "";
           }}
-          onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
+          onChange={(e) => {
+            const f = e.target.files?.[0] ?? null;
+            if (!f) return onFileChange(null);
+            void conferir(f).then((ok) => ok && onFileChange(ok));
+          }}
         />
         <Button asChild type="button" variant="outline" className="min-h-11 shrink-0 sm:min-h-10">
           <label htmlFor={inputId} className="cursor-pointer">
@@ -44,6 +50,7 @@ export const DpFilePicker = forwardRef<HTMLInputElement, DpFilePickerProps>(
             Selecionar arquivo
           </label>
         </Button>
+        {dialogo}
         <span className="min-w-0 basis-full truncate text-sm text-muted-foreground sm:basis-auto sm:flex-1">
           {file ? file.name : "Nenhum arquivo escolhido"}
         </span>
