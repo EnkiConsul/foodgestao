@@ -51,9 +51,25 @@ export function useConferenciaDigitalizacao(opcoes?: { onTirarOutra?: () => void
     return () => { vivo = false; URL.revokeObjectURL(u); };
   }, [pendente]);
 
+  const [graus, setGraus] = useState(0);
+  const [preparando, setPreparando] = useState(false);
+  useEffect(() => { setGraus(0); }, [pendente]);
+
   const fechar = (f: File | null) => {
     pendente?.resolve(f);
     setPendente(null);
+  };
+
+  const enviar = async () => {
+    if (!pendente) return;
+    setPreparando(true);
+    try {
+      fechar(await girarImagem(pendente.arquivo, graus));
+    } catch {
+      fechar(pendente.arquivo);
+    } finally {
+      setPreparando(false);
+    }
   };
 
   const ruim = resultado?.nota === "ruim";
