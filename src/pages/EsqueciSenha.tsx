@@ -26,6 +26,9 @@ async function mensagemDeErro(err: any, padrao: string): Promise<string> {
       return "Sua sessão de criação de senha expirou. Volte e solicite um novo código no WhatsApp.";
     if (typeof corpo?.error === "string" && corpo.error) return corpo.error;
   } catch { /* ignora */ }
+  const m = String(err?.message ?? "");
+  if (/Failed to fetch|NetworkError|Load failed/i.test(m))
+    return "Sem conexão com o servidor. Verifique sua internet (Wi-Fi ou dados móveis) e tente de novo.";
   return padrao;
 }
 
@@ -79,7 +82,7 @@ export default function EsqueciSenha() {
   async function handleRequest(e: React.FormEvent) {
     e.preventDefault();
     if (!turnstileToken) {
-      toast.error("Aguarde a verificação de segurança.");
+      setAviso("A verificação de segurança (anti-robô) ainda não terminou. Aguarde a caixa de verificação ficar verde e tente de novo.");
       return;
     }
     const raw = identifier.trim();
@@ -131,7 +134,7 @@ export default function EsqueciSenha() {
       return;
     }
     if (raw.length < 3) {
-      toast.error("Informe seu e-mail ou CPF.");
+      setAviso("Informe seu e-mail ou CPF para receber o código.");
       return;
     }
     setSubmitting(true);
@@ -141,7 +144,7 @@ export default function EsqueciSenha() {
       });
       if (error) throw error;
       if (!data?.challenge_id || !data?.challenge_token) {
-        toast.error("Não foi possível iniciar a recuperação.");
+        setAviso("O servidor não devolveu o código de recuperação. Tente novamente em instantes; se continuar, procure o gestor/RH.");
         return;
       }
       setChallengeId(data.challenge_id);
@@ -150,8 +153,7 @@ export default function EsqueciSenha() {
       setResendIn(RESEND_COOLDOWN);
       setStep("otp");
     } catch (err: any) {
-      const msg = await mensagemDeErro(err, "Não foi possível enviar o código agora. Tente novamente.");
-      toast.error(msg);
+      setAviso(await mensagemDeErro(err, "Não foi possível enviar o código agora. Tente novamente."));
     } finally {
       // Turnstile tokens are single-use, including requests that return an error.
       setTurnstileToken(null);
@@ -164,9 +166,10 @@ export default function EsqueciSenha() {
     e.preventDefault();
     if (!challengeId || !challengeToken) return;
     if (!/^\d{6}$/.test(otp)) {
-      toast.error("Digite o código de 6 dígitos.");
+      setAviso("Digite os 6 números do código recebido no WhatsApp.");
       return;
     }
+    setAviso(null);
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("auth-recovery-verify", {
@@ -174,14 +177,13 @@ export default function EsqueciSenha() {
       });
       if (error) throw error;
       if (!data?.reset_token) {
-        toast.error("Código inválido.");
+        setAviso("O código digitado não confere. Confira a última mensagem do WhatsApp.");
         return;
       }
       setResetToken(data.reset_token);
       setStep("password");
     } catch (err: any) {
-      const msg = await mensagemDeErro(err, "Código inválido ou expirado. Solicite um novo código.");
-      toast.error(msg);
+      setAviso(await mensagemDeErro(err, "Código inválido ou expirado. Solicite um novo código."));
     } finally {
       setSubmitting(false);
     }
@@ -192,13 +194,14 @@ export default function EsqueciSenha() {
     if (!challengeId || !resetToken) return;
     const av = avaliarSenha(newPassword);
     if (!av.valida) {
-      toast.error(av.mensagem as string);
+      setAviso(av.mensagem as string);
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error("As senhas não coincidem.");
+      setAviso("A confirmação está diferente da senha. Digite a mesma senha nos dois campos.");
       return;
     }
+    setAviso(null);
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("auth-recovery-reset", {
@@ -206,14 +209,13 @@ export default function EsqueciSenha() {
       });
       if (error) throw error;
       if (!data?.ok) {
-        toast.error("Não foi possível redefinir a senha.");
+        setAviso("O servidor não confirmou a nova senha. Solicite um novo código e tente novamente.");
         return;
       }
       setStep("done");
       toast.success("Senha redefinida com sucesso!");
     } catch (err: any) {
-      const msg = await mensagemDeErro(err, "Não foi possível salvar a senha. Solicite um novo código e tente novamente.");
-      toast.error(msg);
+      setAviso(await mensagemDeErro(err, "Não foi possível salvar a senha. Solicite um novo código e tente novamente."));
     } finally {
       setSubmitting(false);
     }
@@ -252,6 +254,21 @@ export default function EsqueciSenha() {
         </CardHeader>
 
         <CardContent>
+          {aviso && step !== "done" && (
+            <Alert variant="destructive" className="mb-4" role="alert">
+              <AlertDescription className="text-sm space-y-2">
+                <p>{aviso}</p>
+                {step !== "identify" && (
+                  <Button type="button" size="sm" variant="outline" onClick={() => {
+                    setAviso(null); setStep("identify"); setOtp(""); setResetToken(null);
+                    setChallengeId(null); setChallengeToken(null);
+                  }}>
+                    Pedir novo código
+                  </Button>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
           {step === "identify" && (
             <form onSubmit={handleRequest} className="space-y-4">
               <div className="space-y-2">
@@ -274,11 +291,6 @@ export default function EsqueciSenha() {
                 </div>
               </div>
 
-              {aviso && (
-                <Alert variant="destructive">
-                  <AlertDescription className="text-sm">{aviso}</AlertDescription>
-                </Alert>
-              )}
               {!primeiro && <Alert>
                 <MessageCircle className="h-4 w-4" />
                 <AlertDescription className="text-xs">

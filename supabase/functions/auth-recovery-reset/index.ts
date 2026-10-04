@@ -2,7 +2,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
-import { ipRateLimited } from "../_shared/rate-limit.ts";
+import { ipRateLimited, mensagemLimite } from "../_shared/rate-limit.ts";
 import { avaliarSenha, SENHA_MIN } from "../_shared/password-policy.ts";
 
 const BodySchema = z.object({
@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
   let body: z.infer<typeof BodySchema>;
   try {
     const parsed = BodySchema.safeParse(await req.json());
-    if (!parsed.success) return json(400, { error: "Dados inválidos" });
+    if (!parsed.success) return json(400, { error: `A senha precisa ter entre ${SENHA_MIN} e 200 caracteres. Se o problema continuar, volte e solicite um novo código.` });
     body = parsed.data;
   } catch {
     return json(400, { error: "JSON inválido" });
@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
 
   if (await ipRateLimited(admin, req, "recovery_reset", MAX_RESET_PER_IP_PER_HOUR)) {
     return json(429, {
-      error: "Muitas tentativas. Aguarde e tente novamente.",
+      error: mensagemLimite("tentativas de salvar senha a partir desta rede/aparelho", MAX_RESET_PER_IP_PER_HOUR, "solicite um novo código para criar a senha."),
       code: "rate_limited",
     });
   }
@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
   }
 
   const invalid = () =>
-    json(400, { error: "Sessão de recuperação inválida ou expirada.", code: "invalid_reset" });
+    json(400, { error: "Sua sessão de criação de senha expirou ou já foi usada. Volte e solicite um novo código no WhatsApp.", code: "invalid_reset" });
 
   const providedHash = await sha256Hex(body.reset_token);
 
