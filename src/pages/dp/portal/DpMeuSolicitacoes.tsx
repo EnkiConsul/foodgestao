@@ -60,6 +60,21 @@ function toIso(d: Date | undefined): string {
   return d ? format(d, "yyyy-MM-dd") : "";
 }
 
+type MeuVinculoSol = {
+  id: string;
+  company_id: string;
+  unidade_id: string | null;
+  cargo_id: string | null;
+  sexo: string | null;
+  regime: string | null;
+  forma_pagamento: string | null;
+  domingos_folga_mes: number | null;
+  folga_dif_dias: number[] | null;
+  folga_fixa_semana: number | null;
+  ativo: boolean;
+  nome: string;
+};
+
 export default function DpMeuSolicitacoes() {
   const { user } = useAuth();
   const qc = useQueryClient();

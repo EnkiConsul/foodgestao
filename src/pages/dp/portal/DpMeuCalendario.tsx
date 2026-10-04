@@ -143,6 +143,22 @@ const MOTIVO_STATUS: Partial<Record<DateStatusKind, string>> = {
 };
 
 
+type MeuVinculo = {
+  id: string;
+  company_id: string;
+  nome: string;
+  sexo: string | null;
+  regime: string | null;
+  forma_pagamento: string | null;
+  cargo_id: string | null;
+  domingos_folga_mes: number | null;
+  folga_dif_dias: number[] | null;
+  folga_fixa_semana: number | null;
+  ativo: boolean;
+  unidade_id: string | null;
+  vinculo_label: string | null;
+};
+
 export default function DpMeuCalendario() {
   const { user } = useAuth();
   const qc = useQueryClient();
