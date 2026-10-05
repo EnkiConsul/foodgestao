@@ -62,6 +62,7 @@ const Editar = z.object({
   modalidade: z.enum(["bancario", "especie", "misto"]),
   valor_bancario_cents: z.number().int().nonnegative().nullable().optional(),
   valor_especie_cents: z.number().int().nonnegative().nullable().optional(),
+  canal_assinatura: z.enum(["portal", "whatsapp", "fisico"]).optional(),
 });
 const PorId = z.object({
   acao: z.enum(["link", "pdf", "cancelar"]),
@@ -187,6 +188,18 @@ Deno.serve(async (req) => {
           : "Este recibo já foi assinado.");
       }
       if (b.acao === "editar") {
+        if (row.documento_id) {
+          const { data: docVia } = await admin.from("dp_documentos").select("via_assinada_path")
+            .eq("id", row.documento_id).maybeSingle();
+          if (docVia?.via_assinada_path) {
+            return erro(409, "A via assinada à mão já foi importada, então este recibo não pode mais ser alterado. Emita uma nova via corrigida a partir dele.");
+          }
+        }
+        const canalNovo = b.canal_assinatura ?? row.canal_assinatura;
+        if (!row.colaborador_id && canalNovo === "portal") {
+          return erro(400, "Pessoa sem cadastro não acessa o portal. Escolha WhatsApp ou Assinatura à Mão.");
+        }
+        const trocaCanal = canalNovo !== row.canal_assinatura;
         const invalida = dataPagamentoInvalida(b.pago_em);
         if (invalida) return erro(400, invalida);
         const pt = partes(b.modalidade, b.valor_cents, b.valor_bancario_cents, b.valor_especie_cents);
@@ -198,6 +211,7 @@ Deno.serve(async (req) => {
           valor_cents: b.valor_cents,
           modalidade: b.modalidade,
           ...pt,
+          ...(trocaCanal ? { canal_assinatura: canalNovo, link_token_hash: null, link_expira_em: null, link_enviado_em: null } : {}),
           updated_at: new Date().toISOString(),
         }).eq("id", row.id).is("assinado_em", null).select("*").single();
         if (upErr || !nova) throw upErr ?? new Error("update dp_recibos");
