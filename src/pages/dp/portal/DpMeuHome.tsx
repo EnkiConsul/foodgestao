@@ -78,17 +78,20 @@ export default function DpMeuHome() {
     },
   });
 
-  // Mensagens não lidas (destinatário = user).
+  // Avisos do Mural ainda não lidos pelo colaborador.
   const msgs = useQuery({
-    queryKey: ["dp_meu_msgs", user?.id],
+    queryKey: ["dp_meu_mural_nao_lidos", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { count } = await supabase
-        .from("dp_mensagens")
-        .select("id", { count: "exact", head: true })
-        .eq("destinatario_user_id", user!.id)
-        .is("lida_em", null);
-      return count ?? 0;
+      const { data: avisos } = await supabase.from("dp_avisos").select("id").limit(200);
+      const ids = (avisos ?? []).map((a) => a.id);
+      if (!ids.length) return 0;
+      const { data: lidos } = await supabase
+        .from("dp_avisos_leituras")
+        .select("aviso_id")
+        .in("aviso_id", ids)
+        .eq("user_id", user!.id);
+      return ids.length - new Set((lidos ?? []).map((l) => l.aviso_id)).size;
     },
   });
 
@@ -164,10 +167,10 @@ export default function DpMeuHome() {
         />
         <ResumoCard
           icon={MessageSquare}
-          label="Mensagens não lidas"
+          label="Avisos do Mural"
           value={String(msgs.data ?? 0)}
-          hint={(msgs.data ?? 0) > 0 ? "Você tem mensagens novas" : "Nenhuma mensagem nova"}
-          to="/dp/meu/solicitacoes"
+          hint={(msgs.data ?? 0) > 0 ? "Você tem avisos não lidos" : "Nenhum aviso novo"}
+          to="/dp/meu/mural"
           loading={msgs.isLoading}
         />
       </div>

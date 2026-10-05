@@ -398,7 +398,7 @@ export const HELP_CONTENT = {
     texto: "Períodos já concedidos e pedidos em análise, com o saldo disponível.",
   },
   "portal.escala": {
-    titulo: "Minha Escala",
+    titulo: "Rotina",
     texto: "Seus dias e horários da escala já publicada. Rascunhos não aparecem aqui.",
   },
   "portal.convocacoes": {

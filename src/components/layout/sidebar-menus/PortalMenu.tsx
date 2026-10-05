@@ -6,7 +6,7 @@ const items: MenuItem[] = [
   { title: "Mural", url: "/dp/meu/mural", icon: Megaphone },
   { title: "Meus dados", url: "/dp/meu/perfil", icon: User },
   { title: "Calendário", url: "/dp/meu/calendario", icon: CalendarDays },
-  { title: "Minha Escala", url: "/dp/meu/escala", icon: CalendarClock },
+  { title: "Rotina", url: "/dp/meu/escala", icon: CalendarClock },
   { title: "Convocações", url: "/dp/meu/convocacoes", icon: BellRing },
   { title: "Meu Ponto", url: "/dp/meu/ponto", icon: Fingerprint, badge: "Em breve" },
   { title: "Meus documentos", url: "/dp/meu/documentos", icon: FileText },

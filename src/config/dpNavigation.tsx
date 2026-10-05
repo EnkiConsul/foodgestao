@@ -200,7 +200,7 @@ export const DP_ADMIN_NAV: DpNavSurface = {
 const PORTAL_GROUPS: DpNavGroup[] = [
   {
     id: "minha-escala",
-    label: "Minha Escala",
+    label: "Rotina",
     icon: Calendar,
     matchPrefixes: [
       "/dp/meu/calendario",
@@ -215,7 +215,7 @@ const PORTAL_GROUPS: DpNavGroup[] = [
       { label: "Calendário", to: "/dp/meu/calendario", icon: Calendar, shortcut: true, shortLabel: "Folgas" },
       // "Minha Escala" só faz sentido para quem é chamado por convocação
       // (freelancer e intermitente); some do menu para quem tem escala fixa.
-      { label: "Minha Escala", to: "/dp/meu/escala", icon: CalendarRange, shortcut: true },
+      { label: "Rotina", to: "/dp/meu/escala", icon: CalendarRange, shortcut: true },
       { label: "Rotina da Loja", to: "/dp/meu/rotina", icon: Store, shortcut: true, shortLabel: "Rotina" },
       { label: "Convocações", to: "/dp/meu/convocacoes", icon: BellRing, shortcut: true },
       { label: "Trocas", to: "/dp/meu/trocas", icon: Repeat, shortcut: true },

@@ -29,22 +29,21 @@ export function MinhasPendenciasCard() {
 
   return (
     <div className="rounded-2xl border-2 border-[hsl(var(--dp-pending-border))] bg-[hsl(var(--dp-pending-bg))] p-5">
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
+      <div className="flex items-center gap-2 mb-4 min-w-0">
         <Bell className="h-5 w-5 text-primary shrink-0" />
-        <h2 className="text-base sm:text-lg font-semibold min-w-0 break-words">Minhas Pendências</h2>
-        <Button variant="ghost" size="sm" className="ml-auto h-8 px-2" disabled={isFetching} onClick={() => refetch()} aria-label="Atualizar pendências">
-          <RefreshCw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} /><span className="ml-1 text-xs">Atualizar</span>
-        </Button>
+        <h2 className="text-base sm:text-lg font-semibold min-w-0 truncate">Minhas Pendências</h2>
         <Badge className="bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2 shrink-0">
           {data.length}
         </Badge>
+        {counters.atrasado > 0 && (
+          <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive text-[10px] shrink-0">
+            {counters.atrasado} {counters.atrasado === 1 ? "atrasado" : "atrasados"}
+          </Badge>
+        )}
+        <Button variant="ghost" size="icon" className="ml-auto h-8 w-8 shrink-0" disabled={isFetching} onClick={() => refetch()} aria-label="Atualizar pendências">
+          <RefreshCw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+        </Button>
       </div>
-
-      {counters.atrasado > 0 && (
-        <p className="text-xs text-destructive mb-3">
-          {counters.atrasado} {counters.atrasado === 1 ? "item atrasado" : "itens atrasados"}
-        </p>
-      )}
 
       <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
         {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
