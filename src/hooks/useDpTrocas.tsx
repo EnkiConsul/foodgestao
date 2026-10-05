@@ -17,6 +17,7 @@ export type DpTrocaModo = "direta" | "aprovacao_admin" | "proibida";
 export type DpTrocaPessoa = {
   nome: string | null;
   matricula: string | null;
+  cpf?: string | null;
   cargo_id: string | null;
   unidade_id: string | null;
   cargo: { nome: string | null } | null;
@@ -53,7 +54,7 @@ export type ResponderTrocaInput = {
 };
 
 const PESSOA_SELECT =
-  "nome, matricula, cargo_id, unidade_id, cargo:cargo_id(nome), unidade:unidade_id(nome)";
+  "nome, matricula, cpf, cargo_id, unidade_id, cargo:cargo_id(nome), unidade:unidade_id(nome)";
 
 /**
  * Dados e mutations da tela de Trocas (DP, visão do gestor).

@@ -2,10 +2,15 @@ import { escapeHtml as e, imprimirHtmlEmQuadro } from "@/lib/print/imprimirHtml"
 import type { DpTrocaRow } from "@/hooks/useDpTrocas";
 import { dataComDiaSemana } from "@/lib/dp/troca-apresentacao";
 import { TEXTO_CIENCIA_FALTA_TROCA } from "@/components/dp/CienciaFaltaTrocaBox";
+import { maskCpf } from "@/lib/cpf";
+import logoAveto from "@/assets/aveto360-horizontal-light.png.asset.json";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 export const TEXTO_CIENCIA_DSR_TROCA =
   "Os colaboradores declaram que esta troca foi pedida e aceita por livre e espontânea vontade, no interesse pessoal de cada um, e não por determinação da empresa. Estão cientes de que, em razão da troca, poderá haver mais de 6 (seis) dias consecutivos de trabalho antes do descanso, situação que concordam por sua própria conveniência (Art. 67 da CLT e Lei 605/1949).";
+
+const cpfFmt = (v?: string | null) => (v && v.replace(/\D/g, "").length === 11 ? maskCpf(v) : "Não informado");
+const logoUrl = () => (typeof window !== "undefined" ? `${window.location.origin}${logoAveto.url}` : logoAveto.url);
 
 function dh(iso: string | null) {
   if (!iso) return "—";
@@ -18,8 +23,8 @@ export function termoTrocaHtml(t: DpTrocaRow, empresa: { nome: string; cnpj?: st
   const d = t.destino;
   const pessoa = (papel: string, p: DpTrocaRow["solicitante"]) => `
     <div class="box"><div class="lbl">${papel}</div>
-    <b>${e(p?.nome ?? "—")}</b><br/>Cargo: ${e(p?.cargo?.nome ?? "—")}<br/>
-    Unidade: ${e(p?.unidade?.nome ?? "—")}<br/>Matrícula: ${e(p?.matricula ?? "—")}</div>`;
+    <b>${e(p?.nome ?? "—")}</b><br/>CPF: ${e(cpfFmt(p?.cpf))}<br/>Cargo: ${e(p?.cargo?.nome ?? "—")}<br/>
+    Unidade: ${e(p?.unidade?.nome ?? "—")}${p?.matricula ? `<br/>Matrícula: ${e(p.matricula)}` : ""}</div>`;
   const x = t as unknown as Record<string, string | null>;
   const img = (v: string | null) =>
     v && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(v) ? `<img src="${v}" alt="Assinatura" style="max-height:60px;max-width:220px"/>` : "";
@@ -36,8 +41,10 @@ table{width:100%;border-collapse:collapse;margin-top:6px}td{border:1px solid #dd
 .aviso{border:1px solid #EB6119;background:#fff4ee;padding:10px;border-radius:8px;margin-top:12px}
 .asss{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:40px}.ass{text-align:center;min-width:0;word-break:normal;overflow-wrap:anywhere}.ass img{max-width:100%}
 @media (max-width:520px){body{margin:14px}.grid,.asss{grid-template-columns:1fr;gap:24px}}
+.topo{border-bottom:3px solid #EB6119;padding-bottom:10px;margin-bottom:14px}.topo img{height:40px}
 .linha{border-top:1px solid #0F1B3D;margin-bottom:4px}.rod{margin-top:30px;font-size:9px;color:#777}
 </style></head><body>
+<div class="topo"><img src="${e(logoUrl())}" alt="AVETO 360"/></div>
 <h1>Termo de Troca de Folga</h1>
 <div class="sub">${e(empresa.nome)}${empresa.cnpj ? ` — CNPJ ${e(empresa.cnpj)}` : ""}</div>
 <div class="grid">${pessoa("Solicitante", s)}${pessoa("Colega", d)}</div>
@@ -89,10 +96,19 @@ export async function termoTrocaPdf(t: DpTrocaRow, empresa: { nome: string; cnpj
   };
   const s = t.solicitante, d = t.destino;
   const x = t as unknown as Record<string, string | null>;
+  try {
+    const bytes = new Uint8Array(await (await fetch(logoUrl())).arrayBuffer());
+    const logo = await pdf.embedPng(bytes);
+    const esc = 34 / logo.height;
+    page.drawImage(logo, { x: M, y: y - 34, width: logo.width * esc, height: 34 });
+    y -= 44;
+    page.drawLine({ start: { x: M, y }, end: { x: W - M, y }, thickness: 2, color: laranja });
+    y -= 20;
+  } catch { /* sem logo, segue o documento */ }
   par("Termo de Troca de Folga", b, 17, laranja);
   par(`${empresa.nome}${empresa.cnpj ? ` - CNPJ ${empresa.cnpj}` : ""}`, f, 10, cinza);
   const pessoa = (r: string, p: DpTrocaRow["solicitante"]) =>
-    par(`${r}: ${p?.nome ?? "-"} | Cargo: ${p?.cargo?.nome ?? "-"} | Unidade: ${p?.unidade?.nome ?? "-"} | Matrícula: ${p?.matricula ?? "-"}`);
+    par(`${r}: ${p?.nome ?? "-"} | CPF: ${cpfFmt(p?.cpf)} | Cargo: ${p?.cargo?.nome ?? "-"} | Unidade: ${p?.unidade?.nome ?? "-"}${p?.matricula ? ` | Matrícula: ${p.matricula}` : ""}`);
   pessoa("Solicitante", s); pessoa("Colega", d);
   par("Folgas permutadas", b, 11);
   par(`${dataComDiaSemana(t.data_original, true)}: era folga de ${s?.nome ?? "-"}; passa a ser folga de ${d?.nome ?? "-"} e dia de trabalho de ${s?.nome ?? "-"}.`);
