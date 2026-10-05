@@ -337,6 +337,7 @@ export default function DpRecibos() {
           descricao: descricao || undefined, competencia, pago_em: pagoEm, valor_cents: total,
           modalidade, valor_bancario_cents: banco, valor_especie_cents: especie,
           canal_assinatura: canal,
+          beneficiario_whatsapp: avulso ? whats || undefined : undefined,
         });
         toast.success("Recibo atualizado. O PDF foi refeito com os novos dados.");
         limparFormulario();
