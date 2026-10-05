@@ -19,6 +19,14 @@ const TIPOS_FOLHA_MES_SEGUINTE = new Set<string>([
   "gorjeta",
 ]);
 
+/** Documentos rescisórios: pagamento em até 10 dias corridos do desligamento (Art. 477, §6º CLT). */
+export const TIPOS_RESCISORIOS = new Set<string>([
+  "desligamento",
+  "trct",
+  "demonstrativo_rescisorio",
+  "acerto_rescisorio",
+]);
+
 export type ComprovantePrazoArgs = {
   tipo: string;
   /** Data de referência do documento (YYYY-MM-DD). */
@@ -27,6 +35,8 @@ export type ComprovantePrazoArgs = {
   diaAdiantamento?: number | null;
   /** Dia de pagamento da folha configurado nas pendências. */
   diaPagamentoFolha: number;
+  /** Data de desligamento do colaborador (YYYY-MM-DD), para rescisórios. */
+  dataDesligamento?: string | null;
 };
 
 /** Data prevista de pagamento (YYYY-MM-DD) do documento. */
@@ -38,7 +48,11 @@ export function pagamentoPrevisto(args: ComprovantePrazoArgs): string {
   if (TIPOS_FOLHA_MES_SEGUINTE.has(args.tipo)) {
     return limiteMesSeguinte(comp, args.diaPagamentoFolha);
   }
-  // Férias, rescisão e demais pagamentos avulsos usam a própria data do documento.
+  if (TIPOS_RESCISORIOS.has(args.tipo)) {
+    const base = (args.dataDesligamento || args.referencia).slice(0, 10);
+    return format(addDays(new Date(`${base}T12:00:00`), 10), "yyyy-MM-dd");
+  }
+  // Férias e demais pagamentos avulsos usam a própria data do documento.
   return args.referencia;
 }
 

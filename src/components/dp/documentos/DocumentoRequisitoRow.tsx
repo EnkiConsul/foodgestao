@@ -1,5 +1,5 @@
 import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
-import { useConferenciaDigitalizacao } from "@/components/dp/documentos/ConferenciaDigitalizacao";
+import { acionarInput, useConferenciaDigitalizacao } from "@/components/dp/documentos/ConferenciaDigitalizacao";
 import { useRef, useState } from "react";
 import {
   Upload,
@@ -83,12 +83,12 @@ export function DocumentoRequisitoRow({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inputParteRef = useRef<HTMLInputElement | null>(null);
   const conf = useConferenciaDigitalizacao({
-    onSelecionarArquivo: () => inputRef.current?.click(),
-    onTirarOutra: () => inputRef.current?.click(),
+    onSelecionarArquivo: (modo) => acionarInput(inputRef.current, modo),
+    onTirarOutra: () => acionarInput(inputRef.current, "camera"),
   });
   const confParte = useConferenciaDigitalizacao({
-    onSelecionarArquivo: () => inputParteRef.current?.click(),
-    onTirarOutra: () => inputParteRef.current?.click(),
+    onSelecionarArquivo: (modo) => acionarInput(inputParteRef.current, modo),
+    onTirarOutra: () => acionarInput(inputParteRef.current, "camera"),
   });
   const [validade, setValidade] = useState<string>(item.validade ?? "");
   const [recusaAlvo, setRecusaAlvo] = useState<Anexo | null>(null);
