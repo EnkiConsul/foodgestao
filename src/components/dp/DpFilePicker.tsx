@@ -1,7 +1,7 @@
 import { forwardRef, useId, useImperativeHandle, useRef } from "react";
 import { Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useConferenciaDigitalizacao } from "@/components/dp/documentos/ConferenciaDigitalizacao";
+import { acionarInput, useConferenciaDigitalizacao } from "@/components/dp/documentos/ConferenciaDigitalizacao";
 
 type DpFilePickerProps = {
   accept?: string;
@@ -23,8 +23,8 @@ export const DpFilePicker = forwardRef<HTMLInputElement, DpFilePickerProps>(
     const inputId = id ?? `dp-file-${autoId}`;
 
     const { abrirSeletor, conferir, dialogo } = useConferenciaDigitalizacao({
-      onSelecionarArquivo: () => innerRef.current?.click(),
-      onTirarOutra: () => innerRef.current?.click(),
+      onSelecionarArquivo: (modo) => acionarInput(innerRef.current, modo),
+      onTirarOutra: () => acionarInput(innerRef.current, "camera"),
     });
     useImperativeHandle(ref, () => innerRef.current as HTMLInputElement, []);
 

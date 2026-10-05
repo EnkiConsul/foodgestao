@@ -62,7 +62,57 @@ async function girarImagem(arquivo: File, graus: number): Promise<File> {
   }
 }
 
-type Pendente = { arquivo: File; resolve: (f: File | null) => void };
+type Pendente = { arquivo: File; soNitidez: boolean; resolve: (f: File | null) => void };
+
+export type ModoSelecao = "camera" | "arquivo";
+
+/** Abre o seletor nativo: com câmera traseira ("Tirar Foto") ou galeria/arquivos. */
+export function acionarInput(el: HTMLInputElement | null, modo: ModoSelecao) {
+  if (!el) return;
+  if (modo === "camera") el.setAttribute("capture", "environment");
+  else el.removeAttribute("capture");
+  el.click();
+}
+
+/**
+ * Indica se a imagem tem marca de câmera (EXIF com fabricante/modelo).
+ * Prints, comprovantes baixados do banco e PDFs convertidos não têm.
+ */
+export async function temMarcaDeCamera(arquivo: File): Promise<boolean> {
+  try {
+    if (!/jpe?g/i.test(arquivo.type)) return false;
+    const buf = new DataView(await arquivo.slice(0, 131072).arrayBuffer());
+    if (buf.getUint16(0) !== 0xffd8) return false;
+    let off = 2;
+    while (off + 4 < buf.byteLength) {
+      const marker = buf.getUint16(off);
+      const len = buf.getUint16(off + 2);
+      if (marker === 0xffe1 && buf.getUint32(off + 4) === 0x45786966) {
+        const tiff = off + 10;
+        const le = buf.getUint16(tiff) === 0x4949;
+        const ifd = tiff + buf.getUint32(tiff + 4, le);
+        const n = buf.getUint16(ifd, le);
+        for (let i = 0; i < n; i++) {
+          const tag = buf.getUint16(ifd + 2 + i * 12, le);
+          if (tag === 0x010f || tag === 0x0110) return true;
+        }
+        return false;
+      }
+      if ((marker & 0xff00) !== 0xff00) return false;
+      off += 2 + len;
+    }
+  } catch {
+    /* sem metadado legível */
+  }
+  return false;
+}
+
+/** Arquivo digital sem marca de câmera: só a nitidez importa. */
+function filtrarSoNitidez(r: ResultadoQualidade): ResultadoQualidade {
+  const problemas = r.problemas.filter((p) => /nitidez|tremida|desfocada/i.test(p.titulo));
+  const graves = problemas.filter((p) => p.nivel === "grave").length;
+  return { ...r, problemas, nota: graves ? "ruim" : problemas.length ? "aceitavel" : "boa" };
+}
 
 /**
  * Antes de enviar uma foto de documento, mostra a imagem, as orientações de
@@ -73,8 +123,9 @@ type Pendente = { arquivo: File; resolve: (f: File | null) => void };
  */
 export function useConferenciaDigitalizacao(opcoes?: {
   onTirarOutra?: () => void;
-  onSelecionarArquivo?: () => void;
+  onSelecionarArquivo?: (modo: ModoSelecao) => void;
 }) {
+  const modoRef = useRef<ModoSelecao>("arquivo");
   const [pendente, setPendente] = useState<Pendente | null>(null);
   const [orientacaoAberta, setOrientacaoAberta] = useState(false);
   const [resultado, setResultado] = useState<ResultadoQualidade | null>(null);
@@ -91,7 +142,22 @@ export function useConferenciaDigitalizacao(opcoes?: {
     if (!arquivo.type.startsWith("image/") || /heic|heif/i.test(arquivo.type)) {
       return Promise.resolve(arquivo);
     }
-    return new Promise((resolve) => setPendente({ arquivo, resolve }));
+    const camera = modoRef.current === "camera";
+    return (async () => {
+      const soNitidez = !camera && !(await temMarcaDeCamera(arquivo));
+      if (soNitidez) {
+        // Arquivo digital (print, comprovante do banco): passa direto se nítido.
+        try {
+          const r = filtrarSoNitidez(await avaliarQualidadeImagem(arquivo));
+          if (r.problemas.length === 0) return arquivo;
+        } catch {
+          return arquivo;
+        }
+      }
+      return new Promise<File | null>((resolve) =>
+        setPendente({ arquivo, soNitidez, resolve }),
+      );
+    })();
   }, []);
 
   useEffect(() => {
@@ -105,7 +171,7 @@ export function useConferenciaDigitalizacao(opcoes?: {
     setUrl(u);
     let vivo = true;
     avaliarQualidadeImagem(pendente.arquivo)
-      .then((r) => vivo && setResultado(r))
+      .then((r) => vivo && setResultado(pendente.soNitidez ? filtrarSoNitidez(r) : r))
       .catch(
         () =>
           vivo &&
@@ -168,12 +234,23 @@ export function useConferenciaDigitalizacao(opcoes?: {
               Cancelar
             </Button>
             <Button
+              variant="outline"
               onClick={() => {
                 setOrientacaoAberta(false);
-                selecionarArquivoRef.current?.();
+                modoRef.current = "arquivo";
+                selecionarArquivoRef.current?.("arquivo");
               }}
             >
-              Escolher Arquivo ou Tirar Foto
+              Selecionar Arquivo
+            </Button>
+            <Button
+              onClick={() => {
+                setOrientacaoAberta(false);
+                modoRef.current = "camera";
+                selecionarArquivoRef.current?.("camera");
+              }}
+            >
+              <Camera className="mr-2 size-4" /> Tirar Foto
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -275,6 +352,7 @@ export function useConferenciaDigitalizacao(opcoes?: {
               variant={ruim ? "default" : "outline"}
               onClick={() => {
                 fechar(null);
+                modoRef.current = "camera";
                 tirarOutraRef.current?.();
               }}
             >

@@ -1,7 +1,7 @@
 import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
 import {
   DicaEnquadramento,
-  useConferenciaDigitalizacao,
+  acionarInput, useConferenciaDigitalizacao,
 } from "@/components/dp/documentos/ConferenciaDigitalizacao";
 import { useId, useRef, useState } from "react";
 import {
@@ -265,8 +265,8 @@ export function ComprovanteAnexarDialog(props: {
     conferir: conferirFoto,
     dialogo: dialogoFoto,
   } = useConferenciaDigitalizacao({
-    onSelecionarArquivo: () => inputRef.current?.click(),
-    onTirarOutra: () => inputRef.current?.click(),
+    onSelecionarArquivo: (modo) => acionarInput(inputRef.current, modo),
+    onTirarOutra: () => acionarInput(inputRef.current, "camera"),
   });
   const campoId = useId();
   const [pagoEm, setPagoEm] = useState(props.pagoEmAtual ?? "");
