@@ -53,8 +53,10 @@ export type ResponderTrocaInput = {
   obs?: string;
 };
 
+// CPF é dado sigiloso (sem leitura direta): só é buscado pela RPC
+// `dp_troca_termo_cpfs` quando o Termo de Troca é aberto.
 const PESSOA_SELECT =
-  "nome, matricula, cpf, cargo_id, unidade_id, cargo:cargo_id(nome), unidade:unidade_id(nome)";
+  "nome, matricula, cargo_id, unidade_id, cargo:cargo_id(nome), unidade:unidade_id(nome)";
 
 /**
  * Dados e mutations da tela de Trocas (DP, visão do gestor).
