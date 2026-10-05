@@ -29,9 +29,24 @@ export async function certificadoValidacaoPdf(
     cacheCertificados.set(documentoId, pendente);
     pendente.catch(() => cacheCertificados.delete(documentoId));
   }
-  const blob = await pendente;
-  const url = URL.createObjectURL(blob);
-  return { url, revogar: () => URL.revokeObjectURL(url) };
+  // Relógio próprio por chamada: mesmo que a tentativa guardada fique presa
+  // (celular em segundo plano, conexão caída sem erro), esta tela não espera
+  // para sempre — e a tentativa presa sai da memória para a próxima abrir do zero.
+  const atual = pendente;
+  let relogio: ReturnType<typeof setTimeout> | undefined;
+  const limite = new Promise<never>((_, rejeitar) => {
+    relogio = setTimeout(() => {
+      if (cacheCertificados.get(documentoId) === atual) cacheCertificados.delete(documentoId);
+      rejeitar(new Error("A validação digital demorou demais. Mostrando o documento original; tente abrir novamente."));
+    }, 20_000);
+  });
+  try {
+    const blob = await Promise.race([atual, limite]);
+    const url = URL.createObjectURL(blob);
+    return { url, revogar: () => URL.revokeObjectURL(url) };
+  } finally {
+    clearTimeout(relogio);
+  }
 }
 
 async function gerarCertificadoBlob(documentoId: string): Promise<Blob> {
