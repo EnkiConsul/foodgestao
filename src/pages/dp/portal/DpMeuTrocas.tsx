@@ -68,6 +68,10 @@ function dataBR(iso: string) {
 export default function DpMeuTrocas() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  // Troca cujas duas datas já passaram não pode mais ser desfeita (folga já gozada).
+  const hojeBRT = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
+  const trocaJaPassou = (t: { data_original: string; data_proposta: string | null }) =>
+    t.data_original < hojeBRT && (t.data_proposta ?? t.data_original) < hojeBRT;
   const [tab, setTab] = useState<"todas" | "recebidas" | "enviadas">("todas");
   const [open, setOpen] = useState(false);
   const [cienteFalta, setCienteFalta] = useState(false);
@@ -497,7 +501,7 @@ export default function DpMeuTrocas() {
                       >
                         <FileText className="h-4 w-4 mr-1" /> Ver termo da troca
                       </Button>
-                      {!t.cancelamento_solicitado_em && (
+                      {!t.cancelamento_solicitado_em && !trocaJaPassou(t) && (
                         <Button size="sm" variant="ghost" onClick={() => setPedirCancel(t.id)}>
                           <Ban className="h-4 w-4 mr-1" /> Solicitar Cancelamento da Troca
                         </Button>

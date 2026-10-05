@@ -63,6 +63,7 @@ const Editar = z.object({
   valor_bancario_cents: z.number().int().nonnegative().nullable().optional(),
   valor_especie_cents: z.number().int().nonnegative().nullable().optional(),
   canal_assinatura: z.enum(["portal", "whatsapp", "fisico"]).optional(),
+  beneficiario_whatsapp: z.string().trim().max(20).optional(),
 });
 const PorId = z.object({
   acao: z.enum(["link", "pdf", "cancelar"]),
@@ -204,6 +205,10 @@ Deno.serve(async (req) => {
         if (invalida) return erro(400, invalida);
         const pt = partes(b.modalidade, b.valor_cents, b.valor_bancario_cents, b.valor_especie_cents);
         if ("erro" in pt) return erro(400, pt.erro!);
+        // Recibo avulso (pessoa sem cadastro): o WhatsApp do beneficiário pode ser corrigido na edição.
+        const whatsNovo = !row.colaborador_id && b.beneficiario_whatsapp !== undefined
+          ? (b.beneficiario_whatsapp.replace(/\D+/g, "") || null)
+          : undefined;
         const { data: nova, error: upErr } = await admin.from("dp_recibos").update({
           descricao: b.descricao || null,
           competencia: `${b.competencia}-01`,
@@ -211,6 +216,7 @@ Deno.serve(async (req) => {
           valor_cents: b.valor_cents,
           modalidade: b.modalidade,
           ...pt,
+          ...(whatsNovo !== undefined ? { beneficiario_whatsapp: whatsNovo } : {}),
           ...(trocaCanal ? { canal_assinatura: canalNovo, link_token_hash: null, link_expira_em: null, link_enviado_em: null } : {}),
           updated_at: new Date().toISOString(),
         }).eq("id", row.id).is("assinado_em", null).select("*").single();
