@@ -1,3 +1,4 @@
+import { ViaAssinadaBotao } from "./ViaAssinadaBotao";
 import { useEffect, useState } from "react";
 import { Copy, Download, Eye, Pencil, EyeOff, FileCheck2, Link2, Loader2, MessageCircle, Receipt, XCircle } from "lucide-react";
 import { PdfCanvasViewer } from "@/components/dp/PdfCanvasViewer";
