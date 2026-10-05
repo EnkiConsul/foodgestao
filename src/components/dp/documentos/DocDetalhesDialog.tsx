@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { ViaAssinadaBotao } from "@/components/dp/documentos/ViaAssinadaBotao";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import {
-  Download, Eye, FileText, History, Replace, Trash2, Loader2, Printer,
+  Download, Eye, FileText, Pencil, History, Replace, Trash2, Loader2, Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,6 +71,7 @@ export function DocDetalhesDialog(props: {
   onExcluir: () => void;
 }) {
   const { target, companyId } = props;
+  const navigate = useNavigate();
   const source = target ? parseDocRowId(target.rowId).source : "doc";
   const docId = target ? parseDocRowId(target.rowId).id : null;
 
@@ -81,7 +83,7 @@ export function DocDetalhesDialog(props: {
         source === "doc"
           ? supabase
               .from("dp_documentos")
-              .select("id, file_name, file_size, uploaded_by, created_at, exige_aceite, assinatura_detectada, submetido_por_colaborador, colaborador_id, tipo, comprovante_file_path, comprovante_file_name, comprovante_pago_em, comprovante_uploaded_at, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents, comprovante_recibo_documento_id, replaced_by_documento_id, assinatura_fisica, via_assinada_path, via_assinada_em, via_assinada_por")
+              .select("id, file_name, file_size, uploaded_by, created_at, exige_aceite, assinatura_detectada, submetido_por_colaborador, colaborador_id, tipo, comprovante_file_path, comprovante_file_name, comprovante_pago_em, comprovante_uploaded_at, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents, comprovante_recibo_documento_id, replaced_by_documento_id, assinatura_fisica, via_assinada_path, via_assinada_em, via_assinada_por, origem_recibo_id")
               .eq("id", docId!)
               .maybeSingle()
           : Promise.resolve({ data: null } as any),
@@ -331,6 +333,17 @@ export function DocDetalhesDialog(props: {
         )}
 
         <DialogFooter className="flex-wrap gap-2">
+          {(() => {
+            const d = detalhes.data?.doc as { origem_recibo_id?: string | null; via_assinada_path?: string | null } | undefined;
+            const recId = d?.origem_recibo_id;
+            if (!recId) return null;
+            if (d?.via_assinada_path) return null;
+            return (
+              <Button onClick={() => { props.onOpenChange(false); navigate(`/dp/documentos/recibos?editar=${recId}`); }}>
+                <Pencil className="mr-1 h-4 w-4" /> Editar Recibo
+              </Button>
+            );
+          })()}
           <Button variant="outline" onClick={props.onPreview} disabled={!target?.file_path}>
             <Eye className="mr-1 h-4 w-4 text-primary" /> Ver
           </Button>

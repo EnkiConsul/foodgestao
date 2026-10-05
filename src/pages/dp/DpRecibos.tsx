@@ -155,9 +155,30 @@ export default function DpRecibos() {
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
-      return (data ?? []) as ReciboDetalhado[];
+      const lista = (data ?? []) as ReciboDetalhado[];
+      // Via assinada à mão fica no documento vinculado: traz junto para travar a edição.
+      const docIds = lista.map((r) => r.documento_id).filter(Boolean) as string[];
+      const vias = new Map<string, string | null>();
+      for (let i = 0; i < docIds.length; i += 100) {
+        const { data: docs } = await (supabase as any).from("dp_documentos")
+          .select("id, via_assinada_path").in("id", docIds.slice(i, i + 100));
+        for (const d of docs ?? []) vias.set(d.id, d.via_assinada_path ?? null);
+      }
+      return lista.map((r) => ({ ...r, via_assinada_path: r.documento_id ? vias.get(r.documento_id) ?? null : null }));
     },
   });
+
+  // Deep link vindo do Histórico de Documentos: ?editar=<recibo_id>
+  const editarParam = params.get("editar");
+  useEffect(() => {
+    if (!editarParam || !recibos.data) return;
+    const r = recibos.data.find((x) => x.id === editarParam);
+    navigate("/dp/documentos/recibos", { replace: true });
+    if (!r) { toast.error("Recibo não encontrado nesta empresa. Confira a empresa selecionada."); return; }
+    if (r.assinado_em || r.cancelado_em || r.via_assinada_path) { setAba("historico"); setDetalhe(r); return; }
+    carregarNoFormulario(r, "editar");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editarParam, recibos.data]);
 
   const [fBusca, setFBusca] = useState("");
   const [fUnidade, setFUnidade] = useState("");
@@ -216,6 +237,7 @@ export default function DpRecibos() {
     setDetalhe(null);
     setResultado(null);
     setAba("emitir");
+    setUnidadeId((r as { unidade_id?: string | null }).unidade_id ?? "");
     if (r.colaborador_id) { setColabId(r.colaborador_id); }
     else { setColabId(AVULSO); setNome(r.beneficiario_nome); setCpf(r.beneficiario_cpf ?? ""); }
     setWhats(r.beneficiario_whatsapp ?? "");
@@ -314,6 +336,7 @@ export default function DpRecibos() {
         await editarRecibo(editandoId, {
           descricao: descricao || undefined, competencia, pago_em: pagoEm, valor_cents: total,
           modalidade, valor_bancario_cents: banco, valor_especie_cents: especie,
+          canal_assinatura: canal,
         });
         toast.success("Recibo atualizado. O PDF foi refeito com os novos dados.");
         limparFormulario();
@@ -629,6 +652,8 @@ export default function DpRecibos() {
 
       <ReciboDetalhesDialog
         recibo={detalhe}
+        companyId={selectedCompanyId ?? null}
+        onViaAnexada={() => { qc.invalidateQueries({ queryKey: ["dp_recibos"] }); setDetalhe(null); }}
         onOpenChange={(open) => !open && setDetalhe(null)}
         onPdf={(r) => abrirPdf(r.id)}
         onWhatsApp={(r) => enviarWhats(r.id, r.beneficiario_whatsapp, r.beneficiario_nome)}

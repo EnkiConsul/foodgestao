@@ -80,7 +80,7 @@ export type EmitirReciboEntrada = {
   substitui_recibo_id?: string | null;
 };
 
-export type EditarReciboEntrada = Pick<EmitirReciboEntrada, "descricao" | "competencia" | "pago_em" | "valor_cents" | "modalidade" | "valor_bancario_cents" | "valor_especie_cents">;
+export type EditarReciboEntrada = Pick<EmitirReciboEntrada, "descricao" | "competencia" | "pago_em" | "valor_cents" | "modalidade" | "valor_bancario_cents" | "valor_especie_cents"> & { canal_assinatura?: EmitirReciboEntrada["canal_assinatura"] };
 
 export async function editarRecibo(reciboId: string, dados: EditarReciboEntrada): Promise<void> {
   const { error } = await supabase.functions.invoke("dp-recibo-emitir", { body: { acao: "editar", recibo_id: reciboId, ...dados } });
