@@ -76,7 +76,9 @@ export default function DpMeuTrocas() {
   const [open, setOpen] = useState(false);
   const [cienteFalta, setCienteFalta] = useState(false);
   const [assinarPedido, setAssinarPedido] = useState(false);
-  const [assinarTermo, setAssinarTermo] = useState<string | null>(null);
+  const [assinarTermo, setAssinarTermo] = useState<string | null>(
+    () => new URLSearchParams(window.location.search).get("assinar"),
+  );
   const [assinandoTermo, setAssinandoTermo] = useState(false);
   const [assinarAceite, setAssinarAceite] = useState<null | { id: string; risco: boolean; sequencia: number; data: string }>(null);
   const [form, setForm] = useState<{
