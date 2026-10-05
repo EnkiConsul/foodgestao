@@ -1400,7 +1400,10 @@ export default function DpMeuCalendario() {
       />
 
       {!convocavel && vinculoCarregado && <div className="space-y-2">
-        <p className="text-xs text-muted-foreground">{resumoFolgas.texto}</p>
+        <p className="text-sm font-medium">Clique no dia desejado para visualizar, solicitar ou trocar folga.</p>
+        {!/já está marcada|folga fixa/.test(resumoDomingos) && (
+          <p className="text-xs text-muted-foreground">{resumoFolgas.texto}</p>
+        )}
         <p className="text-xs text-muted-foreground">{resumoDomingos}</p>
         {avisoJanela && (
           <div
