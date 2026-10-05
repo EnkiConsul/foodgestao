@@ -39,6 +39,7 @@ export function DpListCard({
   actions = [],
   children,
   className,
+  footer,
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
@@ -51,6 +52,8 @@ export function DpListCard({
   actions?: DpAction[];
   children?: ReactNode;
   className?: string;
+  /** Rodapé de ações próprio: substitui o botão "Ver" (o cartão continua clicável). */
+  footer?: ReactNode;
 }) {
   const menuActions = actions.filter((a) => !a.hidden);
   return (
@@ -70,7 +73,14 @@ export function DpListCard({
         {children}
       </div>
 
-      {(onOpen || menuActions.length > 0) && (
+      {footer ? (
+        <div
+          className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {footer}
+        </div>
+      ) : (onOpen || menuActions.length > 0) && (
         <div
           className="flex items-center gap-2 border-t border-border/60 pt-3"
           onClick={(e) => e.stopPropagation()}

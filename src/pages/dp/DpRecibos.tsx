@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Link2, MessageCircle, Receipt, UserPlus } from "lucide-react";
+import { CheckCircle2, Download, Eye, Link2, MessageCircle, Pencil, Receipt, UserPlus, XCircle } from "lucide-react";
+import { ViaAssinadaBotao } from "@/components/dp/documentos/ViaAssinadaBotao";
+import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
+import { DP_DOCUMENTOS_BUCKET } from "@/lib/documentoArquivo";
 import { PessoaApoioFormDialog } from "@/components/dp/PessoaApoioFormDialog";
 import { DpDocumentosAbas } from "@/components/dp/documentos/DpDocumentosAbas";
 import { useDpPessoasApoio } from "@/hooks/useDpPessoasApoio";
@@ -307,6 +310,46 @@ export default function DpRecibos() {
     } catch (e) { toast.error((e as Error).message); }
   }
 
+  async function visualizar(r: ReciboDetalhado) {
+    try {
+      if (r.assinado_em && r.documento_id) return await abrirCertificado(r.documento_id);
+      if (r.via_assinada_path) {
+        const { data, error } = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).createSignedUrl(r.via_assinada_path, 300);
+        if (error || !data?.signedUrl) throw new Error("Não foi possível abrir a via assinada. Tente de novo em instantes.");
+        window.open(data.signedUrl, "_blank", "noopener");
+        return;
+      }
+      const url = await reciboPdfUrl(r.id);
+      window.open(url, "_blank", "noopener");
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e) { toast.error((e as Error).message); }
+  }
+
+  function acoesCard(r: ReciboDetalhado) {
+    const assinado = !!r.assinado_em || !!r.via_assinada_path;
+    const ativo = !r.cancelado_em && !r.substituido_em;
+    return (
+      <>
+        <Button size="sm" variant="outline" className="rounded-full" onClick={() => visualizar(r)}><Eye className="h-4 w-4 mr-1" />Visualizar</Button>
+        <Button size="sm" variant="outline" className="rounded-full" onClick={() => abrirPdf(r.id)}><Download className="h-4 w-4 mr-1" />Baixar</Button>
+        {ativo && !assinado && (
+          <Button size="sm" variant="outline" className="rounded-full" onClick={() => carregarNoFormulario(r, "editar")}><Pencil className="h-4 w-4 mr-1" />Editar</Button>
+        )}
+        {ativo && !assinado && r.documento_id && (
+          <ViaAssinadaBotao documentoId={r.documento_id} companyId={selectedCompanyId ?? null} colaboradorId={r.colaborador_id} temVia={false} rotulo className="rounded-full border" onDone={() => qc.invalidateQueries({ queryKey: ["dp_recibos"] })} />
+        )}
+        {assinado && ativo && (
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600"><CheckCircle2 className="h-4 w-4" />Assinado</span>
+        )}
+        {ativo && !assinado && (
+          <ConfirmarAcaoDialog titulo="Cancelar este recibo?" descricao="O recibo deixa de valer e as pendências são atualizadas. Essa ação não pode ser desfeita." confirmar="Cancelar Recibo" onConfirm={() => cancelar(r)}>
+            <Button size="sm" variant="ghost" className="rounded-full text-destructive"><XCircle className="h-4 w-4 mr-1" />Cancelar</Button>
+          </ConfirmarAcaoDialog>
+        )}
+      </>
+    );
+  }
+
   async function cancelar(r: ReciboDetalhado) {
     try {
       await cancelarRecibo(r.id);
@@ -544,6 +587,16 @@ export default function DpRecibos() {
         <div className="flex flex-wrap gap-2">
           <Button onClick={emitir} disabled={salvando}>{salvando ? "Salvando…" : editandoId ? "Salvar Alterações" : substituiId ? "Emitir Nova Via" : "Gerar Recibo"}</Button>
           {(editandoId || substituiId) && <Button variant="outline" onClick={limparFormulario}>Descartar</Button>}
+          {editandoId && canal === "whatsapp" && (() => {
+            const r = (recibos.data ?? []).find((x) => x.id === editandoId);
+            if (!r) return null;
+            return (
+              <>
+                <Button variant="outline" onClick={() => enviarWhats(r.id, whats || r.beneficiario_whatsapp, r.beneficiario_nome)}><MessageCircle className="h-4 w-4 mr-1" />Enviar WhatsApp</Button>
+                <Button variant="outline" onClick={() => copiarLink(r)}><Link2 className="h-4 w-4 mr-1" />Copiar Link</Button>
+              </>
+            );
+          })()}
         </div>
 
         {resultado && (
@@ -644,7 +697,7 @@ export default function DpRecibos() {
         ) : (
           <DpDataList
             table={<Table><TableHeader><TableRow><TableHead>Beneficiário</TableHead><TableHead>Natureza</TableHead><TableHead>Competência</TableHead><TableHead>Valor</TableHead><TableHead>Situação</TableHead></TableRow></TableHeader><TableBody>{filtrados.map((r) => { const st = statusRecibo(r); return <TableRow key={r.id} className="cursor-pointer" onClick={() => setDetalhe(r)}><TableCell className="font-medium">{r.beneficiario_nome}</TableCell><TableCell>{NATUREZA_RECIBO_LABEL[r.natureza as NaturezaRecibo] ?? r.natureza}</TableCell><TableCell>{r.competencia.slice(5, 7)}/{r.competencia.slice(0, 4)}</TableCell><TableCell>{centsParaBRL(r.valor_cents)}</TableCell><TableCell><DpStatusBadge tone={r.cancelado_em ? "danger" : r.substituido_em ? "muted" : r.assinado_em ? "success" : "warning"}>{st.label}</DpStatusBadge></TableCell></TableRow>; })}</TableBody></Table>}
-            cards={<>{filtrados.map((r) => { const st = statusRecibo(r); return <DpListCard key={r.id} title={r.beneficiario_nome} subtitle={`${NATUREZA_RECIBO_LABEL[r.natureza as NaturezaRecibo] ?? r.natureza} · ${r.competencia.slice(5, 7)}/${r.competencia.slice(0, 4)}`} meta={`${centsParaBRL(r.valor_cents)} · pago em ${dataBR(r.pago_em)}`} badges={<DpStatusBadge tone={r.cancelado_em ? "danger" : r.substituido_em ? "muted" : r.assinado_em ? "success" : "warning"}>{st.label}</DpStatusBadge>} onOpen={() => setDetalhe(r)} openLabel="Detalhes" />; })}</>}
+            cards={<>{filtrados.map((r) => { const st = statusRecibo(r); return <DpListCard key={r.id} title={r.beneficiario_nome} subtitle={`${NATUREZA_RECIBO_LABEL[r.natureza as NaturezaRecibo] ?? r.natureza} · ${r.competencia.slice(5, 7)}/${r.competencia.slice(0, 4)}`} meta={`${centsParaBRL(r.valor_cents)} · pago em ${dataBR(r.pago_em)}`} badges={<DpStatusBadge tone={r.cancelado_em ? "danger" : r.substituido_em ? "muted" : r.assinado_em ? "success" : "warning"}>{st.label}</DpStatusBadge>} onOpen={() => setDetalhe(r)} footer={acoesCard(r)} />; })}</>}
           />
         )}
       </DpContentCard>
