@@ -707,7 +707,12 @@ export default function DpColaboradores() {
       )}
 
       <Tabs value={origem} onValueChange={(v) => setOrigem(v as Origem)}>
-        <DpTabsBar>
+        <DpTabsBar
+          sections={ORIGENS.map((o) => ({ value: o.key, label: o.label }))}
+          value={origem}
+          onValueChange={(v) => setOrigem(v as Origem)}
+          sectionTitle="Cadastros"
+        >
           {ORIGENS.map((o) => (
             <TabsTrigger key={o.key} value={o.key}>{o.label}</TabsTrigger>
           ))}
