@@ -38,17 +38,59 @@ function ymd(d: Date) {
  * usuário autenticado — nunca a empresa inteira (isso é `useDpPendencias`,
  * o hook administrativo).
  */
+const ICONES_COLAB: Record<string, LucideIcon> = {
+  CalendarPlus, FileWarning, Repeat2, Palmtree, Megaphone, UserCog, FileCheck2, Landmark,
+};
+const SNAP_VALIDADE_MS = 7 * 24 * 60 * 60 * 1000;
+const snapKey = (uid: string) => `dp_pendencias_colab_snapshot:${uid}`;
+
+function lerSnapshotColab(uid: string | undefined): { data: PendenciaColaborador[]; at: number } | null {
+  if (!uid || typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(snapKey(uid));
+    if (!raw) return null;
+    const p = JSON.parse(raw) as { v: number; at: number; itens: (Omit<PendenciaColaborador, "icon"> & { iconKey: string })[] };
+    if (p?.v !== 1 || !Array.isArray(p.itens) || Date.now() - p.at > SNAP_VALIDADE_MS) return null;
+    return { at: p.at, data: p.itens.map(({ iconKey, ...r }) => ({ ...r, icon: ICONES_COLAB[iconKey] ?? FileWarning })) };
+  } catch {
+    return null;
+  }
+}
+
+function salvarSnapshotColab(uid: string, data: PendenciaColaborador[]) {
+  try {
+    const itens = data.map(({ icon, ...r }) => ({
+      ...r,
+      iconKey: Object.entries(ICONES_COLAB).find(([, i]) => i === icon)?.[0] ?? "FileWarning",
+    }));
+    window.localStorage.setItem(snapKey(uid), JSON.stringify({ v: 1, at: Date.now(), itens }));
+  } catch {
+    // storage indisponível: segue sem retrato
+  }
+}
+
 export function useDpPendenciasColaborador() {
   const { user } = useAuth();
+  const snap = lerSnapshotColab(user?.id);
 
   return useQuery({
     queryKey: ["dp_pendencias_colaborador", user?.id],
     enabled: !!user?.id,
-    // Mesma regra do portal do gestor: a lista não se refaz a cada abertura de
-    // tela; ela é atualizada pela rotina diária e pelas ações do próprio portal.
-    staleTime: Infinity,
-    refetchOnWindowFocus: true,
+    // Mesmo padrão do gestor: mostra na hora o último quadro salvo e atualiza
+    // em segundo plano, sem "Carregando…" e sem refazer a cada troca de aba.
+    initialData: snap?.data,
+    initialDataUpdatedAt: snap?.at,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async (): Promise<PendenciaColaborador[]> => {
+      const r = await calcularPendenciasColab();
+      if (user?.id) salvarSnapshotColab(user.id, r);
+      return r;
+    },
+  });
+
+  async function calcularPendenciasColab(): Promise<PendenciaColaborador[]> {
+      {
       const { data: colabId } = await supabase.rpc("dp_meu_colaborador");
       if (!colabId) return [];
 
