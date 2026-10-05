@@ -22,7 +22,10 @@ export const DpFilePicker = forwardRef<HTMLInputElement, DpFilePickerProps>(
     const autoId = useId();
     const inputId = id ?? `dp-file-${autoId}`;
 
-    const { conferir, dialogo } = useConferenciaDigitalizacao({ onTirarOutra: () => innerRef.current?.click() });
+    const { abrirSeletor, conferir, dialogo } = useConferenciaDigitalizacao({
+      onSelecionarArquivo: () => innerRef.current?.click(),
+      onTirarOutra: () => innerRef.current?.click(),
+    });
     useImperativeHandle(ref, () => innerRef.current as HTMLInputElement, []);
 
     return (
@@ -44,11 +47,14 @@ export const DpFilePicker = forwardRef<HTMLInputElement, DpFilePickerProps>(
             void conferir(f).then((ok) => ok && onFileChange(ok));
           }}
         />
-        <Button asChild type="button" variant="outline" className="min-h-11 shrink-0 sm:min-h-10">
-          <label htmlFor={inputId} className="cursor-pointer">
-            <Paperclip className="mr-2 size-4" />
-            Selecionar arquivo
-          </label>
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11 shrink-0 sm:min-h-10"
+          onClick={abrirSeletor}
+        >
+          <Paperclip className="mr-2 size-4" />
+          Selecionar arquivo
         </Button>
         {dialogo}
         <span className="min-w-0 basis-full truncate text-sm text-muted-foreground sm:basis-auto sm:flex-1">
