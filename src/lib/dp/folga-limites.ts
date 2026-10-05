@@ -284,3 +284,57 @@ export function conflitoColaboradores(params: {
   return null;
 }
 
+
+export type CotaCargoDia = {
+  regraId: string;
+  rotulo: string;
+  maximo: number;
+  ocupados: number;
+  nomes: string[];
+};
+
+/**
+ * Cotas separadas por cargo/setor da unidade no dia, com ocupação de cada uma.
+ * Vazio quando a unidade não tem regras por cargo/setor ou há exceção da data.
+ * Evita mostrar "vaga restante" genérica quando a vaga é de outro cargo.
+ */
+export function cotasPorCargoNoDia(params: {
+  data: string;
+  unidadeId: string | null;
+  regras: RegraLimiteFolga[];
+  diaConfig?: LimiteDiaConfig[];
+  ocupantes: ReadonlyArray<{ nome: string; cargoId?: string | null; setorId?: string | null }>;
+  cargoNomeById: Map<string, string>;
+}): CotaCargoDia[] {
+  const { data, unidadeId, regras, diaConfig = [], ocupantes, cargoNomeById } = params;
+  if (!unidadeId) return [];
+  const temExcecao = diaConfig.some(
+    (c) => c.data === data && c.limite_folgas != null && (c.unidade_id === null || c.unidade_id === unidadeId),
+  );
+  if (temExcecao) return [];
+  const wd = diaSemanaISO(data);
+  const escopadas = regras.filter(
+    (r) =>
+      r.ativo &&
+      r.tipo !== "colaboradores" &&
+      r.unidade_id === unidadeId &&
+      (r.dia_semana === null || r.dia_semana === wd) &&
+      (r.cargo_ids.length > 0 || r.setor_ids.length > 0) &&
+      vigente(r, data),
+  );
+  return escopadas.map((r) => {
+    const noEscopo = ocupantes.filter(
+      (p) =>
+        (r.cargo_ids.length === 0 || (p.cargoId != null && r.cargo_ids.includes(p.cargoId))) &&
+        (r.setor_ids.length === 0 || (p.setorId != null && r.setor_ids.includes(p.setorId))),
+    );
+    const nomesCargos = r.cargo_ids.map((id) => cargoNomeById.get(id)).filter(Boolean) as string[];
+    return {
+      regraId: r.id,
+      rotulo: nomesCargos.length > 0 ? nomesCargos.join(" / ") : r.nome ?? "Setor",
+      maximo: r.maximo,
+      ocupados: noEscopo.length,
+      nomes: noEscopo.map((p) => p.nome),
+    };
+  });
+}
