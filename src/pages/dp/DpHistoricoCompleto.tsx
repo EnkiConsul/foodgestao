@@ -2,6 +2,7 @@ import { aceitaComprovante } from "@/lib/dp/documentoTipos";
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
 import { DpDocumentosAbas } from "@/components/dp/documentos/DpDocumentosAbas";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { certificadoValidacaoPdf } from "@/lib/dp/documento-certificado";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -360,10 +361,13 @@ export default function DpHistoricoCompleto() {
 
   const [unidadeId, setUnidadeId] = useState("all");
   const [colabId, setColabId] = useState("all");
-  const [mes, setMes] = useState("all");
-  const [ano, setAno] = useState("all");
+  const [urlParams] = useSearchParams();
+  const [mes, setMes] = useState(urlParams.get("mes") ?? "all");
+  const [ano, setAno] = useState(urlParams.get("ano") ?? "all");
   const [busca, setBusca] = useState("");
-  const [pendencia, setPendencia] = useState<"all" | "assinatura" | "comprovante">("all");
+  const [pendencia, setPendencia] = useState<"all" | "assinatura" | "comprovante">(
+    urlParams.get("pendencia") === "comprovante" ? "comprovante" : urlParams.get("pendencia") === "assinatura" ? "assinatura" : "all",
+  );
   const [preview, setPreviewRaw] = useState<UnifiedDoc | null>(null);
   const [anexarDoPreview, setAnexarDoPreview] = useState(false);
   const extrasQuery = useComprovantesComplementares(
