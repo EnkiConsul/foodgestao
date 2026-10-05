@@ -9,6 +9,7 @@ import {
   FileText, Eye, Download, Search, ArrowUp, ArrowDown, ChevronsUpDown,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Trash2, Replace,
   History as HistoryIcon, ChevronDown, ArrowDownUp,
+  Upload,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -50,7 +51,7 @@ import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { notifyError } from "@/lib/notifyError";
 import { ViaAssinadaBotao } from "@/components/dp/documentos/ViaAssinadaBotao";
 import { docTipoAssinaturaFisica } from "@/lib/dp/documentoTipos";
-import { ComprovanteAcaoBotao } from "@/components/dp/documentos/ComprovantePagamentoPanel";
+import { ComprovanteAcaoBotao, ComprovanteAnexarDialog } from "@/components/dp/documentos/ComprovantePagamentoPanel";
 import { consolidarQuitacao, rotuloQuitacao, fraseConferenciaValor, type QuitacaoConsolidada } from "@/lib/dp/comprovante-valor";
 import { useComprovantesComplementares } from "@/hooks/useDpComprovantesComplementares";
 
@@ -364,6 +365,7 @@ export default function DpHistoricoCompleto() {
   const [busca, setBusca] = useState("");
   const [pendencia, setPendencia] = useState<"all" | "assinatura" | "comprovante">("all");
   const [preview, setPreviewRaw] = useState<UnifiedDoc | null>(null);
+  const [anexarDoPreview, setAnexarDoPreview] = useState(false);
   const extrasQuery = useComprovantesComplementares(
     preview?.id?.startsWith("doc:") && (preview?.quitacao?.qtd ?? 0) > 1 ? preview.id.slice(4) : null,
   );
@@ -1271,6 +1273,16 @@ export default function DpHistoricoCompleto() {
         path={certPreview ? undefined : preview?.viaFisica?.path ?? preview?.file_path ?? undefined}
         url={certPreview?.url}
         mime={certPreview ? "application/pdf" : preview?.viaFisica?.path ? preview.viaFisica.mime : preview?.mime_type}
+        acaoRodape={(() => {
+          const lista = Array.isArray(query.data) ? (query.data as UnifiedDoc[]) : [];
+          const atual = preview ? lista.find((r) => r.id === preview.id) ?? preview : null;
+          if (!atual || !atual.id.startsWith("doc:") || !aceitaComprovante(atual.tipo_key) || atual.tem_comprovante) return null;
+          return (
+            <Button size="sm" onClick={() => setAnexarDoPreview(true)}>
+              <Upload className="h-4 w-4 mr-2" /> Importar Comprovante
+            </Button>
+          );
+        })()}
         aguardando={certStatus === "carregando" && !certPreview ? "Carregando validação digital..." : null}
         // O certificado já traz o comprovante de pagamento; não repetir ao final.
         comprovanteDocumentoId={!certPreview && preview?.comprovante_path && preview.id.startsWith("doc:") ? preview.id.slice(4) : null}
@@ -1282,6 +1294,20 @@ export default function DpHistoricoCompleto() {
           </div>
         ) : null}
       />
+
+      {preview && preview.id.startsWith("doc:") && (
+        <ComprovanteAnexarDialog
+          open={anexarDoPreview}
+          onOpenChange={(v) => {
+            setAnexarDoPreview(v);
+            if (!v) queryClient.invalidateQueries({ queryKey: ["dp_historico_unified"] });
+          }}
+          alvo={{ documentoId: preview.id.slice(4), colaboradorId: preview.colaborador_id, tipo: preview.tipo_key }}
+          documentoTitulo={preview.titulo}
+          colaboradorNome={preview.colaborador_nome}
+          competencia={preview.competencia}
+        />
+      )}
 
       <DocSubstituirDialog
         target={substituir}
