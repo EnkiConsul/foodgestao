@@ -12,6 +12,7 @@ import {
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Trash2, Replace,
   History as HistoryIcon, ChevronDown, ArrowDownUp,
   Upload,
+  Receipt,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
