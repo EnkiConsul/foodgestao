@@ -228,6 +228,47 @@ export default function DpMeuCalendario() {
   /** No padrão CLT o sistema gera a folga dominical — o colaborador não marca nem remove. */
   const folgaCltAutomatica = folgaDominicalAutomatica(regrasConfig);
 
+  /** Atestados e faltas do próprio colaborador, marcados no calendário dele. */
+  const marcadoresQuery = useQuery({
+    queryKey: ["dp_meus_marcadores_calendario", meRef.data?.id],
+    enabled: !!meRef.data?.id,
+    queryFn: async () => {
+      const id = meRef.data!.id as string;
+      const [ates, faltas] = await Promise.all([
+        supabase
+          .from("dp_solicitacoes")
+          .select("data_alvo, data_fim, status")
+          .eq("colaborador_id", id)
+          .eq("tipo", "atestado")
+          .in("status", ["aprovada", "pendente"]),
+        supabase
+          .from("dp_ocorrencias")
+          .select("data_operacional")
+          .eq("colaborador_id", id)
+          .eq("tipo", "falta")
+          .is("cancelado_em", null),
+      ]);
+      const mapa = new Map<string, string[]>();
+      const add = (iso: string, rotulo: string) => {
+        const l = mapa.get(iso) ?? [];
+        if (!l.includes(rotulo)) l.push(rotulo);
+        mapa.set(iso, l);
+      };
+      for (const a of ates.data ?? []) {
+        if (!a.data_alvo) continue;
+        const ini = new Date(`${String(a.data_alvo).slice(0, 10)}T12:00:00`);
+        const fim = new Date(`${String(a.data_fim ?? a.data_alvo).slice(0, 10)}T12:00:00`);
+        for (let d = new Date(ini), n = 0; d <= fim && n < 400; d.setDate(d.getDate() + 1), n++) {
+          add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, "Atestado");
+        }
+      }
+      for (const f of faltas.data ?? []) {
+        if (f.data_operacional) add(String(f.data_operacional).slice(0, 10), "Falta");
+      }
+      return mapa;
+    },
+  });
+
   /** Período mensal de escolha das folgas (fonte da verdade no servidor). */
   const janelaQuery = useQuery({
     queryKey: ["dp_folga_janela", companyId, myUnidade],
@@ -1460,6 +1501,7 @@ export default function DpMeuCalendario() {
           isAdmin={false}
           diasElegiveis={diasElegiveis}
           tetoMensal={tetoMensal}
+          marcadoresPorDia={marcadoresQuery.data}
           variant="chunky"
           onPrev={goPrev}
           onNext={goNext}
