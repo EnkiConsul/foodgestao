@@ -39,6 +39,7 @@ import {
   PromoverApoioMetodoDialog, type PromoverApoioMetodo,
 } from "@/components/dp/PromoverApoioMetodoDialog";
 import { PreadmissoesPanel } from "@/components/dp/preadmissao/PreadmissoesPanel";
+import { useDpPreadmissoes } from "@/hooks/dp/useDpPreadmissoes";
 import { PessoaApoioFormDialog } from "@/components/dp/PessoaApoioFormDialog";
 import type { PessoaApoioTipo } from "@/hooks/useDpPessoasApoio";
 import { useNavigate } from "react-router-dom";
@@ -283,6 +284,21 @@ export default function DpColaboradores() {
   }, [origem, statusFilter]);
 
   const pessoasApoio = useDpPessoasApoio();
+  const preadmissoes = useDpPreadmissoes();
+  // Contadores por aba, exibidos no seletor de seção do celular.
+  const contagemOrigem = useMemo(() => {
+    const apoio = pessoasApoio.data ?? [];
+    const colabsN = (list.data ?? []).length;
+    const folguistas = apoio.filter((p) => p.tipo === "folguista").length;
+    const teste = apoio.filter((p) => p.tipo === "teste").length;
+    return {
+      todos: colabsN + apoio.length,
+      colaboradores: colabsN,
+      folguistas,
+      teste,
+      preadmissao: (preadmissoes.data ?? []).length,
+    } as Record<Origem, number>;
+  }, [list.data, pessoasApoio.data, preadmissoes.data]);
   const pessoasApoioVisiveis = useMemo(() => {
     const q = search.trim().toLowerCase();
     return (pessoasApoio.data ?? [])
@@ -708,7 +724,7 @@ export default function DpColaboradores() {
 
       <Tabs value={origem} onValueChange={(v) => setOrigem(v as Origem)}>
         <DpTabsBar
-          sections={ORIGENS.map((o) => ({ value: o.key, label: o.label }))}
+          sections={ORIGENS.map((o) => ({ value: o.key, label: o.label, badge: contagemOrigem[o.key] }))}
           value={origem}
           onValueChange={(v) => setOrigem(v as Origem)}
           sectionTitle="Cadastros"
