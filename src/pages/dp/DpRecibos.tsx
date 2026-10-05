@@ -318,6 +318,7 @@ export default function DpRecibos() {
   }
 
   async function visualizar(r: ReciboDetalhado) {
+    setVisualizandoId(r.id);
     try {
       if (r.assinado_em && r.documento_id) return await abrirCertificado(r.documento_id);
       if (r.via_assinada_path) {
@@ -330,6 +331,10 @@ export default function DpRecibos() {
       window.open(url, "_blank", "noopener");
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (e) { toast.error((e as Error).message); }
+    finally {
+      // Pequeno atraso para o rótulo "Abrindo…" ser perceptível mesmo com resposta rápida.
+      window.setTimeout(() => setVisualizandoId((cur) => (cur === r.id ? null : cur)), 600);
+    }
   }
 
   function acoesCard(r: ReciboDetalhado) {
