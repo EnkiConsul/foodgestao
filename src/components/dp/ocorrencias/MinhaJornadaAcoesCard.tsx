@@ -20,7 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { registrarDocumento } from "@/lib/dp/documentos-oficial";
-import { TIPO_LABEL, resumoOperacional, somarMinutos } from "@/lib/dp/ocorrencias";
+import { TIPO_LABEL, resumoOperacional } from "@/lib/dp/ocorrencias";
 import {
   PORTAL_MOMENTOS,
   exigeJustificativa,
@@ -42,7 +42,6 @@ import {
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 import { useMinhaProximaFolga } from "@/hooks/useMinhaProximaFolga";
 
-const ATRASOS = [10, 20, 30, 45, 60];
 const BUCKET = "dp-documentos";
 
 const ICONE: Record<PortalOpcaoId, typeof Clock> = {
@@ -68,7 +67,7 @@ export function MinhaJornadaAcoesCard() {
   const [aberta, setAberta] = useState<PortalOpcaoId | null>(null);
   const [quando, setQuando] = useState<PortalQuando>("ocorrido");
   const [momento, setMomento] = useState<PortalMomentoId | null>(null);
-  const [minutos, setMinutos] = useState<number | null>(30);
+
   const [horario, setHorario] = useState("");
   const [motivo, setMotivo] = useState("");
   const [enviandoAtestado, setEnviandoAtestado] = useState(false);
@@ -88,7 +87,6 @@ export function MinhaJornadaAcoesCard() {
     setAberta(id);
     setQuando("ocorrido");
     setMomento(o.pedeMomento ? "entrada" : null);
-    setMinutos(30);
     setHorario(id === "saida_antecipada" ? (saida ?? "") : "");
     setMotivo("");
     if (arquivoRef.current) arquivoRef.current.value = "";
@@ -366,7 +364,7 @@ export function MinhaJornadaAcoesCard() {
               disabled={
                 registrar.isPending ||
                 enviandoAtestado ||
-                (motivoObrigatorio && !motivo.trim()) ||
+                !motivo.trim() ||
                 faltaHorario ||
                 faltaAtraso
               }
