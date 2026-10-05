@@ -26,6 +26,8 @@ import { docTipoAssinaturaFisica } from "@/lib/dp/documentoTipos";
 import { detectDuplicates, type DuplicateHit } from "@/lib/dp/bulk-duplicates";
 import { resolverDecisoesDup } from "@/lib/dp/bulk-duplicate-decisoes";
 import { ColaboradoresFaltantesPanel } from "./ColaboradoresFaltantesPanel";
+import { useDpIntermitenteConfirmacoes } from "@/hooks/useDpIntermitenteConfirmacoes";
+import { isIntermitente } from "@/lib/dp/contrato-policy";
 import { competenciaPredominante, computeCoverage, resolveUnidadesLote } from "@/lib/dp/bulk-coverage";
 import { VincularUnidadeLote } from "./VincularUnidadeLote";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
@@ -82,6 +84,10 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
   const [isSaving, setIsSaving] = useState(false);
   /** Âncora do quadro "Salvando documentos": a tela desce até ele ao aprovar. */
   const savingBannerRef = useRef<HTMLDivElement | null>(null);
+  const aprovandoRef = useRef(false);
+  const [redrawTick, setRedrawTick] = useState(0);
+  const { confirmacoes: confirmacoesIntermitente, responder: responderIntermitente } =
+    useDpIntermitenteConfirmacoes();
 
   const batchInfo = useQuery({
     queryKey: ["dp_bulk_batch_info", batchId],
@@ -250,7 +256,18 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       }
     })();
     return () => { cancelled = true; };
-  }, [current?.page_file_path, current?.id, zoom, boxWidth]);
+  }, [current?.page_file_path, current?.id, zoom, boxWidth, redrawTick]);
+
+  // Celular descarta o desenho da prévia ao trocar de app: redesenha ao voltar.
+  useEffect(() => {
+    const h = () => { if (document.visibilityState === "visible") setRedrawTick((t) => t + 1); };
+    document.addEventListener("visibilitychange", h);
+    window.addEventListener("pageshow", h);
+    return () => {
+      document.removeEventListener("visibilitychange", h);
+      window.removeEventListener("pageshow", h);
+    };
+  }, []);
 
 
   // Pré-carrega páginas vizinhas (próxima e anterior)
@@ -443,6 +460,9 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       toast.error("Nenhuma página elegível");
       return;
     }
+    // Trava imediata contra toque duplo (antes mesmo da tela redesenhar).
+    if (aprovandoRef.current) return;
+    aprovandoRef.current = true;
     setSavingTotal(item_ids.length);
     setIsSaving(true);
     // O quadro de progresso fica acima do botão: trazemos ele para a vista.
@@ -462,8 +482,16 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       if (other) parts.push(`${other} falha(s)`);
       toast.success(parts.join(", "));
       qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
+      qc.invalidateQueries({ queryKey: ["dp_bulk_batch_info", batchId] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_items"] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+      // O status "Importado" é gravado logo após a aprovação: confere de novo.
+      [1500, 4000].forEach((ms) =>
+        setTimeout(() => {
+          qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+          qc.invalidateQueries({ queryKey: ["dp_bulk_batch_info", batchId] });
+        }, ms),
+      );
       qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
@@ -499,6 +527,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       });
     } finally {
       setIsSaving(false);
+      aprovandoRef.current = false;
     }
   }
 
@@ -670,6 +699,14 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
     unidadeIds: unidadesLote,
     tipo: bInfo?.tipo ?? null,
   });
+  // Intermitente marcado como "não trabalhou" na competência sai da lista de faltantes.
+  const compMes = competenciaLote ? competenciaLote.slice(0, 7) : null;
+  const dispensados = new Set(
+    confirmacoesIntermitente
+      .filter((x) => !x.trabalhou && x.competencia?.slice(0, 7) === compMes)
+      .map((x) => x.colaborador_id),
+  );
+  const faltantesVisiveis = coverage.faltantes.filter((c) => !dispensados.has(c.id));
 
 
 
@@ -703,12 +740,18 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
         {!ocrInProgress && !isSaving && (
           <ColaboradoresFaltantesPanel
             className="mt-2"
-            faltantes={coverage.faltantes}
-            totalEsperados={coverage.esperados.length}
+            faltantes={faltantesVisiveis}
+            totalEsperados={coverage.esperados.length - (coverage.faltantes.length - faltantesVisiveis.length)}
             competencia={competenciaLote}
             unidadeIndefinida={coverage.unidadeIndefinida}
             unidadeSlot={
               <VincularUnidadeLote batchId={batchId} companyId={bInfo?.company_id ?? null} />
+            }
+            podeDispensar={(c) => !!compMes && isIntermitente((c as any).regime ?? (c as any).regime_trabalho)}
+            dispensandoId={responderIntermitente.isPending ? (responderIntermitente.variables?.colaboradorId ?? null) : null}
+            onNaoTrabalhou={(c) =>
+              compMes &&
+              responderIntermitente.mutate({ colaboradorId: c.id, competencia: `${compMes}-01`, trabalhou: false })
             }
           />
         )}

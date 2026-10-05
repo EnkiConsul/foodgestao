@@ -14,10 +14,15 @@ export interface ColaboradoresFaltantesPanelProps {
   /** seletor de unidade renderizado quando a unidade não foi identificada */
   unidadeSlot?: ReactNode;
   className?: string;
+  /** Intermitente sem trabalho na competência: dispensa o documento do mês. */
+  onNaoTrabalhou?: (c: CoverageColaborador) => void;
+  podeDispensar?: (c: CoverageColaborador) => boolean;
+  dispensandoId?: string | null;
 }
 
 export function ColaboradoresFaltantesPanel({
   faltantes, totalEsperados, competencia, unidadeIndefinida, unidadeSlot, className,
+  onNaoTrabalhou, podeDispensar, dispensandoId,
 }: ColaboradoresFaltantesPanelProps) {
   const [open, setOpen] = useState(false);
 
@@ -104,6 +109,18 @@ export function ColaboradoresFaltantesPanel({
                   )}
                   {c.ativo === false && (
                     <span className="text-[10px] text-muted-foreground">(inativo hoje)</span>
+                  )}
+                  {onNaoTrabalhou && podeDispensar?.(c) && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[11px] ml-auto"
+                      disabled={dispensandoId === c.id}
+                      onClick={() => onNaoTrabalhou(c)}
+                    >
+                      {dispensandoId === c.id ? "Registrando…" : "Não Trabalhou no Mês"}
+                    </Button>
                   )}
                 </li>
               ))}

@@ -395,6 +395,9 @@ export function BulkImportPanel({
     onSuccess: (n) => {
       toast.success(`Reprocessamento iniciado: ${n} página(s) voltaram para a leitura automática. Acompanhe o progresso no lote.`);
       qc.invalidateQueries({ queryKey: ["dp_bulk_items"] });
+      // Painel de revisão aberto acompanha o reprocessamento na hora.
+      qc.invalidateQueries({ queryKey: ["dp_bulk_items_review"] });
+      qc.invalidateQueries({ queryKey: ["dp_bulk_batch_info"] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
     },
