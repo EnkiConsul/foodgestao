@@ -527,6 +527,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       });
     } finally {
       setIsSaving(false);
+      aprovandoRef.current = false;
     }
   }
 
