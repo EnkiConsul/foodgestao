@@ -92,6 +92,7 @@ export function DocumentoAssinaturaGate() {
       <Dialog open={open} onOpenChange={(v) => { if (!v) adiar(); }}>
         <DialogContent
           className="w-[calc(100%-1rem)] max-w-md max-h-[92dvh] overflow-y-auto"
+          hideClose={bloqueado}
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
