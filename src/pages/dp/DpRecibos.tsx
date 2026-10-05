@@ -237,6 +237,7 @@ export default function DpRecibos() {
     setDetalhe(null);
     setResultado(null);
     setAba("emitir");
+    setUnidadeId((r as { unidade_id?: string | null }).unidade_id ?? "");
     if (r.colaborador_id) { setColabId(r.colaborador_id); }
     else { setColabId(AVULSO); setNome(r.beneficiario_nome); setCpf(r.beneficiario_cpf ?? ""); }
     setWhats(r.beneficiario_whatsapp ?? "");
@@ -335,6 +336,7 @@ export default function DpRecibos() {
         await editarRecibo(editandoId, {
           descricao: descricao || undefined, competencia, pago_em: pagoEm, valor_cents: total,
           modalidade, valor_bancario_cents: banco, valor_especie_cents: especie,
+          canal_assinatura: canal,
         });
         toast.success("Recibo atualizado. O PDF foi refeito com os novos dados.");
         limparFormulario();
@@ -650,6 +652,8 @@ export default function DpRecibos() {
 
       <ReciboDetalhesDialog
         recibo={detalhe}
+        companyId={selectedCompanyId ?? null}
+        onViaAnexada={() => { qc.invalidateQueries({ queryKey: ["dp_recibos"] }); setDetalhe(null); }}
         onOpenChange={(open) => !open && setDetalhe(null)}
         onPdf={(r) => abrirPdf(r.id)}
         onWhatsApp={(r) => enviarWhats(r.id, r.beneficiario_whatsapp, r.beneficiario_nome)}

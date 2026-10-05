@@ -33,6 +33,9 @@ export type ReciboDetalhado = {
   substituido_em?: string | null;
   substitui_recibo_id?: string | null;
   created_at: string;
+  unidade_id?: string | null;
+  /** Via assinada à mão já importada no documento vinculado. */
+  via_assinada_path?: string | null;
 };
 
 const dataBR = (v?: string | null, hora = false) => {
@@ -56,6 +59,8 @@ export function ReciboDetalhesDialog({
   onCancelar,
   onEditar,
   onNovaVia,
+  companyId = null,
+  onViaAnexada,
 }: {
   recibo: ReciboDetalhado | null;
   onOpenChange: (open: boolean) => void;
@@ -66,6 +71,8 @@ export function ReciboDetalhesDialog({
   onCancelar: (recibo: ReciboDetalhado) => void;
   onEditar: (recibo: ReciboDetalhado) => void;
   onNovaVia: (recibo: ReciboDetalhado) => void;
+  companyId?: string | null;
+  onViaAnexada?: () => void;
 }) {
   const [avisoAssinado, setAvisoAssinado] = useState(false);
   const [verPdf, setVerPdf] = useState(false);
@@ -96,7 +103,12 @@ export function ReciboDetalhesDialog({
 
   if (!recibo) return null;
   const status = statusRecibo(recibo);
-  const aberto = !recibo.assinado_em && !recibo.cancelado_em;
+  const fisico = recibo.canal_assinatura === "fisico";
+  const temVia = !!recibo.via_assinada_path;
+  const pendente = !recibo.assinado_em && !recibo.cancelado_em;
+  // Editável só enquanto não houver assinatura digital nem via física importada.
+  const aberto = pendente && !temVia;
+  const travado = !recibo.cancelado_em && !recibo.substituido_em && (!!recibo.assinado_em || temVia);
   const avulso = !recibo.colaborador_id;
   const tone = recibo.cancelado_em ? "danger" : recibo.assinado_em ? "success" : "warning";
 
@@ -114,6 +126,9 @@ export function ReciboDetalhesDialog({
         <div className="flex flex-wrap items-center gap-2">
           <DpStatusBadge tone={tone}>{status.label}</DpStatusBadge>
           <DpStatusBadge tone="muted">{canalLabel[recibo.canal_assinatura] ?? recibo.canal_assinatura}</DpStatusBadge>
+          {fisico && !recibo.cancelado_em && !recibo.assinado_em && (
+            <DpStatusBadge tone={temVia ? "success" : "warning"}>{temVia ? "Via Assinada Importada" : "Falta Via Assinada"}</DpStatusBadge>
+          )}
         </div>
 
         <dl className="grid gap-4 sm:grid-cols-2">
@@ -153,12 +168,15 @@ export function ReciboDetalhesDialog({
           {avulso && aberto && recibo.canal_assinatura === "whatsapp" && <Button variant="outline" onClick={() => onCopiarLink(recibo)}><Link2 className="mr-1.5 h-4 w-4" />Copiar Link</Button>}
           {!avulso && recibo.assinado_em && recibo.documento_id && <Button variant="outline" onClick={() => onCertificado(recibo)}><FileCheck2 className="mr-1.5 h-4 w-4" />Abrir Certificado</Button>}
           {aberto && <Button variant="outline" onClick={() => onEditar(recibo)}><Pencil className="mr-1.5 h-4 w-4" />Editar Recibo</Button>}
-          {recibo.assinado_em && !recibo.cancelado_em && !recibo.substituido_em && <Button variant="outline" onClick={() => setAvisoAssinado(true)}><Pencil className="mr-1.5 h-4 w-4" />Editar Recibo</Button>}
+          {fisico && pendente && recibo.documento_id && (
+            <ViaAssinadaBotao documentoId={recibo.documento_id} companyId={companyId} colaboradorId={recibo.colaborador_id} temVia={temVia} rotulo className="border" onDone={onViaAnexada} />
+          )}
+          {travado && <Button variant="outline" onClick={() => setAvisoAssinado(true)}><Pencil className="mr-1.5 h-4 w-4" />Editar Recibo</Button>}
           {aberto && <ConfirmarAcaoDialog titulo="Cancelar Recibo" descricao="O recibo será cancelado, o documento vinculado será arquivado e a pendência poderá ser reaberta." confirmar="Cancelar Recibo" onConfirm={() => onCancelar(recibo)}><Button variant="outline" className="text-destructive"><XCircle className="mr-1.5 h-4 w-4" />Cancelar</Button></ConfirmarAcaoDialog>}
         </div>
         {avisoAssinado && (
           <div role="alert" className="rounded-md border border-primary/40 bg-primary/5 p-4 space-y-3 text-sm">
-            <p>Este recibo já foi assinado em {dataBR(recibo.assinado_em, true)} e não pode ter o conteúdo alterado, para manter a validade jurídica do documento.</p>
+            <p>{recibo.assinado_em ? `Este recibo já foi assinado em ${dataBR(recibo.assinado_em, true)}` : "A via assinada à mão deste recibo já foi importada"} e não pode ter o conteúdo alterado, para manter a validade jurídica do documento.</p>
             <p>Você pode emitir uma nova via corrigida a partir dele: os dados vêm preenchidos e o original fica marcado como substituído no histórico.</p>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => onNovaVia(recibo)}><Copy className="mr-1.5 h-4 w-4" />Emitir Nova Via Corrigida</Button>
