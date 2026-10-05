@@ -485,6 +485,7 @@ export default function DpMeuTrocas() {
           empresa={{ nome: empresaRef.data?.nome ?? "Empresa" }}
           onOpenChange={(v) => !v && setTermo(null)}
         />
+        </>
       )}
     <AssinaturaConfirmarDialog
         open={assinarPedido}
