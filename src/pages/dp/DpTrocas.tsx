@@ -71,6 +71,7 @@ export default function DpTrocas() {
   const [filtros, setFiltros] = useState<TrocaFiltros>(FILTROS_TROCA_PADRAO);
   const [recusa, setRecusa] = useState<string | null>(null);
   const [cancelamento, setCancelamento] = useState<string | null>(null);
+  const [manter, setManter] = useState<string | null>(null);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   // Vindo de uma notificação: abre direto a troca indicada.
   const [searchParams] = useSearchParams();
@@ -88,6 +89,7 @@ export default function DpTrocas() {
     refetch,
     responder: responderMut,
     cancelar: cancelarMut,
+    recusarCancelamento: recusarCancelMut,
   } = useDpTrocas(filtros);
 
   const { data: unidades = [] } = useDpUnidades();
@@ -256,6 +258,7 @@ export default function DpTrocas() {
               onAprovar={() => aprovar(r.id)}
               onRecusar={() => abrirRecusa(r.id)}
               onCancelar={() => abrirCancelamento(r.id)}
+              onManter={() => setManter(r.id)}
             />
           ))
         )}
@@ -288,6 +291,8 @@ export default function DpTrocas() {
       <RecusaDialog
         open={!!cancelamento}
         onOpenChange={(v) => !v && setCancelamento(null)}
+        textoInicial={rows.find((x) => x.id === cancelamento)?.cancelamento_motivo ? `A pedido do colaborador: ${rows.find((x) => x.id === cancelamento)?.cancelamento_motivo}` : ""}
+        confirmLabel="Cancelar troca"
         title="Cancelar troca aprovada"
         description="Informe o motivo do cancelamento. As folgas voltam ao estado anterior e os dois colaboradores são avisados."
         motivoObrigatorio
@@ -298,6 +303,18 @@ export default function DpTrocas() {
             { id: cancelamento, motivo },
             { onSuccess: () => setCancelamento(null) },
           )
+        }
+      />
+      <RecusaDialog
+        open={!!manter}
+        onOpenChange={(v) => !v && setManter(null)}
+        title="Manter troca (recusar pedido de cancelamento)"
+        description="A troca continua valendo. Informe o motivo; os dois colaboradores serão avisados."
+        motivoObrigatorio
+        confirmLabel="Manter troca"
+        loading={recusarCancelMut.isPending}
+        onConfirm={(motivo) =>
+          manter && recusarCancelMut.mutate({ id: manter, motivo }, { onSuccess: () => setManter(null) })
         }
       />
     </DpPage>

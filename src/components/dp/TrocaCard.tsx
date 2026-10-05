@@ -38,6 +38,7 @@ interface TrocaCardProps {
   onAprovar: () => void;
   onRecusar: () => void;
   onCancelar: () => void;
+  onManter?: () => void;
   /** Maior sequência de dias sem descanso registrada nas ciências desta troca. */
   alertaDsrDias?: number | null;
 }
@@ -46,7 +47,7 @@ interface TrocaCardProps {
  * Cartão da lista de trocas: resumo clicável (abre os detalhes) com as ações
  * do gestor disponíveis direto no cartão.
  */
-export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar, alertaDsrDias }: TrocaCardProps) {
+export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar, onManter, alertaDsrDias }: TrocaCardProps) {
   const meta = metaStatusTroca(troca.status);
   const acoes = acoesGestorTroca(troca.status, troca.modo);
   const unidade = troca.destino?.unidade?.nome ?? troca.solicitante?.unidade?.nome ?? null;
@@ -113,6 +114,17 @@ export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar, ale
         </div>
       ) : null}
 
+      {troca.status === "aprovada" && troca.cancelamento_solicitado_em && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+          <span>
+            Solicitação de cancelamento recebida de{" "}
+            <strong>{(troca.cancelamento_solicitado_por === troca.solicitante_id ? troca.solicitante?.nome : troca.destino?.nome) ?? "colaborador"}</strong>{" "}
+            em {new Date(troca.cancelamento_solicitado_em).toLocaleDateString("pt-BR")}: {troca.cancelamento_motivo}
+          </span>
+        </div>
+      )}
+
       {troca.motivo && (
         <div className="flex items-start gap-2 text-xs text-muted-foreground">
           <MessageSquare className="mt-0.5 size-3.5 shrink-0" />
@@ -140,6 +152,11 @@ export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar, ale
           {acoes.recusar && (
             <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={onRecusar}>
               <X className="mr-1 h-4 w-4" /> Recusar troca
+            </Button>
+          )}
+          {acoes.cancelar && troca.cancelamento_solicitado_em && onManter && (
+            <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={onManter}>
+              <Check className="mr-1 h-4 w-4" /> Manter troca
             </Button>
           )}
           {acoes.cancelar && (
