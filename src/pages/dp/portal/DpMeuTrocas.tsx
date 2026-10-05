@@ -335,41 +335,55 @@ export default function DpMeuTrocas() {
             const souSolicitante = t.solicitante_id === meId;
             const podeResponderColega = souDestino && t.status === "pendente_colega";
             const podeCancelar = souSolicitante && ["pendente_colega", "pendente_gestor"].includes(t.status);
+            const trocaDireta = String(t.gestor_resposta ?? "").includes("dispensada");
             return (
               <Card key={t.id} className="dp-content-card">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      {t.solicitante?.nome} <ArrowRight className="h-4 w-4 text-muted-foreground" /> {t.destino?.nome}
+                    <CardTitle className="text-base">
+                      {format(new Date(t.data_original + "T00:00:00"), "dd/MM/yyyy (EEE)", { locale: ptBR })}
+                      {" ↔ "}
+                      {format(new Date(t.data_proposta + "T00:00:00"), "dd/MM/yyyy (EEE)", { locale: ptBR })}
                     </CardTitle>
                     <DpStatusBadge tone={statusTone[t.status] ?? "neutral"}>
                       {statusLabel[t.status] ?? t.status}
                     </DpStatusBadge>
-
                   </div>
-                  {/* Fluxo colega → gestor */}
-                  <div className="flex items-center gap-1 mt-1 text-[11px]">
-                    <StepBadge label="Colega" state={
-                      t.colega_resposta === "aprovada" ? "ok"
-                      : t.colega_resposta === "recusada" ? "no"
-                      : t.status === "pendente_colega" ? "cur" : "wait"
-                    } />
-                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                    <StepBadge label="Gestor" state={
-                      t.gestor_resposta === "aprovada" ? "ok"
-                      : t.gestor_resposta === "recusada" ? "no"
-                      : t.status === "pendente_gestor" ? "cur" : "wait"
-                    } />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {format(new Date(t.data_original + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}
-                    {" ↔ "}
-                    {format(new Date(t.data_proposta + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}
+                  <p className="text-sm mt-1">
+                    {souSolicitante
+                      ? <>Proposta enviada para <strong>{t.destino?.nome}</strong></>
+                      : <>Solicitado por <strong>{t.solicitante?.nome}</strong></>}
                   </p>
+                  <p className="text-xs text-muted-foreground">
+                    {souSolicitante ? "Você" : t.solicitante?.nome} folga em{" "}
+                    {format(new Date(t.data_proposta + "T00:00:00"), "dd/MM", { locale: ptBR })}
+                    {" · "}
+                    {souDestino ? "você" : t.destino?.nome} folga em{" "}
+                    {format(new Date(t.data_original + "T00:00:00"), "dd/MM", { locale: ptBR })}
+                  </p>
+                  {trocaDireta ? (
+                    t.status === "aprovada" && (
+                      <p className="mt-1 text-[11px] font-medium text-muted-foreground">Aprovada entre colegas</p>
+                    )
+                  ) : (
+                    <div className="flex items-center gap-1 mt-1 text-[11px]">
+                      <StepBadge label="Colega" state={
+                        t.colega_resposta === "aprovada" ? "ok"
+                        : t.colega_resposta === "recusada" ? "no"
+                        : t.status === "pendente_colega" ? "cur" : "wait"
+                      } />
+                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                      <StepBadge label="Gestor" state={
+                        t.gestor_resposta === "aprovada" ? "ok"
+                        : t.gestor_resposta === "recusada" ? "no"
+                        : t.status === "pendente_gestor" ? "cur" : "wait"
+                      } />
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {t.motivo && <TextoExpansivel texto={t.motivo} className="text-sm" />}
-                  {textoDecisaoGestor(t.gestor_resposta) && (
+                  {!trocaDireta && textoDecisaoGestor(t.gestor_resposta) && (
                     <div className="rounded-lg border border-border/60 bg-muted/40 p-2.5 text-xs">
                       <span className="mb-0.5 block font-semibold uppercase tracking-wide text-[10px] text-muted-foreground">
                         {t.status === "expirada"
