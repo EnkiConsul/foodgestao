@@ -497,7 +497,7 @@ export default function DpMeuTrocas() {
                       >
                         <FileText className="h-4 w-4 mr-1" /> Ver termo da troca
                       </Button>
-                      {!t.cancelamento_solicitado_em && (
+                      {!t.cancelamento_solicitado_em && !trocaJaPassou(t) && (
                         <Button size="sm" variant="ghost" onClick={() => setPedirCancel(t.id)}>
                           <Ban className="h-4 w-4 mr-1" /> Solicitar Cancelamento da Troca
                         </Button>
