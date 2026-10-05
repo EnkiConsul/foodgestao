@@ -17661,6 +17661,13 @@ export type Database = {
         }[]
       }
       dp_meu_colaborador: { Args: never; Returns: string }
+      dp_meu_sindicato_ctx: {
+        Args: never
+        Returns: {
+          sindicato_id: string
+          unidade_id: string
+        }[]
+      }
       dp_meu_vinculo: {
         Args: never
         Returns: {
@@ -17697,6 +17704,10 @@ export type Database = {
       dp_modelos_mensagem_seed: {
         Args: { _company_id: string }
         Returns: undefined
+      }
+      dp_negociacao_visivel_colab: {
+        Args: { _neg_id: string }
+        Returns: boolean
       }
       dp_nome_normalizado: { Args: { p_nome: string }; Returns: string }
       dp_notificacao_marcar_lida: { Args: { _ids: string[] }; Returns: number }
