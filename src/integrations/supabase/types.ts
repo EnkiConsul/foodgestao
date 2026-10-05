@@ -16204,6 +16204,7 @@ export type Database = {
         }[]
       }
       dp_bulk_reclaim_expired: { Args: { _limit?: number }; Returns: Json }
+      dp_bulk_reprocessar_lote: { Args: { _batch_id: string }; Returns: number }
       dp_bulk_worker_secret: { Args: never; Returns: string }
       dp_cadastro_remuneracao_excluir: {
         Args: { p_id: string; p_motivo?: string; p_tabela: string }
