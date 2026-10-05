@@ -342,8 +342,14 @@ export default function DpRecibos() {
     const ativo = !r.cancelado_em && !r.substituido_em;
     return (
       <>
-        <Button size="sm" variant="outline" className="rounded-full" onClick={() => visualizar(r)}><Eye className="h-4 w-4 mr-1" />Visualizar</Button>
-        <Button size="sm" variant="outline" className="rounded-full" onClick={() => abrirPdf(r.id)}><Download className="h-4 w-4 mr-1" />Baixar</Button>
+        <Button size="sm" variant="outline" className="rounded-full" disabled={visualizandoId === r.id} onClick={() => visualizar(r)}>
+          {visualizandoId === r.id ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Eye className="h-4 w-4 mr-1" />}
+          {visualizandoId === r.id ? "Abrindo…" : "Visualizar"}
+        </Button>
+        <Button size="sm" variant="outline" className="rounded-full" disabled={baixandoId === r.id} onClick={() => abrirPdf(r.id)}>
+          {baixandoId === r.id ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+          {baixandoId === r.id ? "Baixando…" : "Baixar"}
+        </Button>
         {ativo && !assinado && (
           <Button size="sm" variant="outline" className="rounded-full" onClick={() => carregarNoFormulario(r, "editar")}><Pencil className="h-4 w-4 mr-1" />Editar</Button>
         )}
