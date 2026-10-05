@@ -2,21 +2,38 @@ import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
 import { useConferenciaDigitalizacao } from "@/components/dp/documentos/ConferenciaDigitalizacao";
 import { useRef, useState } from "react";
 import {
-  Upload, Eye, Check, X, Ban, CalendarClock, Loader2, Trash2, PenLine, FileText,
+  Upload,
+  Eye,
+  Check,
+  X,
+  Ban,
+  CalendarClock,
+  Loader2,
+  Trash2,
+  PenLine,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
-  PERIODICIDADE_LABEL, STATUS_LABEL, tituloItem,
-  type DpColaboradorDocumento, type ItemChecklist, type StatusItem,
+  PERIODICIDADE_LABEL,
+  STATUS_LABEL,
+  tituloItem,
+  type DpColaboradorDocumento,
+  type ItemChecklist,
+  type StatusItem,
 } from "@/lib/dp/documentos-requisitos";
 import { dataBr as fmt } from "@/lib/dp/formato";
 
@@ -51,8 +68,17 @@ type Props = {
 const dtHora = (iso: string) => new Date(iso).toLocaleString("pt-BR");
 
 export function DocumentoRequisitoRow({
-  item, somenteEnvio = false, ocupado = false,
-  onEnviar, onAbrir, onAprovar, onRecusar, onDispensar, onExcluir, onPedirAceite, onAceitar,
+  item,
+  somenteEnvio = false,
+  ocupado = false,
+  onEnviar,
+  onAbrir,
+  onAprovar,
+  onRecusar,
+  onDispensar,
+  onExcluir,
+  onPedirAceite,
+  onAceitar,
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inputParteRef = useRef<HTMLInputElement | null>(null);
@@ -72,7 +98,9 @@ export function DocumentoRequisitoRow({
   const anexos = (item.anexos ?? []).filter((a) => !!a.documento_id) as Anexo[];
   const temArquivo = anexos.length > 0;
   // Frente, verso e fotos extras seguem a ordem de envio.
-  const ordemEnvio = [...anexos].sort((a, b) => (a.created_at ?? "").localeCompare(b.created_at ?? ""));
+  const ordemEnvio = [...anexos].sort((a, b) =>
+    (a.created_at ?? "").localeCompare(b.created_at ?? ""),
+  );
   const rotuloParte = (id: string) => {
     const i = ordemEnvio.findIndex((a) => a.id === id);
     if (i === 0) return "Frente";
@@ -80,29 +108,41 @@ export function DocumentoRequisitoRow({
     return `Foto ${i + 1}`;
   };
   const precisaValidade =
-    item.requisito.periodicidade === "vencimento" || item.requisito.periodicidade === "anual";
+    item.requisito.periodicidade === "vencimento" ||
+    item.requisito.periodicidade === "anual";
 
   return (
     <div
       className={cn(
         "rounded-xl border border-border bg-card p-4",
-        item.obrigatorio && ["pendente", "vencido", "recusado"].includes(item.status) && "border-destructive/50",
+        item.obrigatorio &&
+          ["pendente", "vencido", "recusado"].includes(item.status) &&
+          "border-destructive/50",
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-medium">{tituloItem(item)}</span>
-            <Badge variant="outline" className={cn("border-0 text-xs", STATUS_STYLE[item.status])}>
+            <Badge
+              variant="outline"
+              className={cn("border-0 text-xs", STATUS_STYLE[item.status])}
+            >
               {STATUS_LABEL[item.status]}
             </Badge>
             {item.obrigatorio ? (
-              <Badge variant="outline" className="text-xs">Obrigatório</Badge>
+              <Badge variant="outline" className="text-xs">
+                Obrigatório
+              </Badge>
             ) : (
-              <Badge variant="secondary" className="text-xs">Opcional</Badge>
+              <Badge variant="secondary" className="text-xs">
+                Opcional
+              </Badge>
             )}
             {item.multiplos && (
-              <Badge variant="secondary" className="text-xs">Vários arquivos</Badge>
+              <Badge variant="secondary" className="text-xs">
+                Vários arquivos
+              </Badge>
             )}
             {item.requisito.periodicidade !== "unica" && (
               <span className="text-xs text-muted-foreground">
@@ -111,7 +151,9 @@ export function DocumentoRequisitoRow({
             )}
           </div>
           {item.requisito.descricao && (
-            <p className="text-xs text-muted-foreground">{item.requisito.descricao}</p>
+            <p className="text-xs text-muted-foreground">
+              {item.requisito.descricao}
+            </p>
           )}
           {item.validade && (
             <p className="text-xs text-muted-foreground">
@@ -124,7 +166,9 @@ export function DocumentoRequisitoRow({
             </p>
           )}
           {item.vinculo?.motivo_dispensa && (
-            <p className="text-xs text-muted-foreground">Dispensa: {item.vinculo.motivo_dispensa}</p>
+            <p className="text-xs text-muted-foreground">
+              Dispensa: {item.vinculo.motivo_dispensa}
+            </p>
           )}
         </div>
 
@@ -149,7 +193,10 @@ export function DocumentoRequisitoRow({
             onChange={(e) => {
               const f = e.target.files?.[0];
               e.target.value = "";
-              if (f) void conf.conferir(f).then((ok) => ok && onEnviar(ok, validade || null));
+              if (f)
+                void conf
+                  .conferir(f)
+                  .then((ok) => ok && onEnviar(ok, validade || null));
             }}
           />
           <input
@@ -160,12 +207,28 @@ export function DocumentoRequisitoRow({
             onChange={(e) => {
               const f = e.target.files?.[0];
               e.target.value = "";
-              if (f) void confParte.conferir(f).then((ok) => ok && onEnviar(ok, validade || null, true));
+              if (f)
+                void confParte
+                  .conferir(f)
+                  .then((ok) => ok && onEnviar(ok, validade || null, true));
             }}
           />
-          <Button size="sm" variant="outline" disabled={ocupado} onClick={conf.abrirSeletor}>
-            {ocupado ? <Loader2 className="mr-1 size-4 animate-spin" /> : <Upload className="mr-1 size-4" />}
-            {item.multiplos ? "Adicionar arquivo" : temArquivo ? "Substituir" : "Anexar"}
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={ocupado}
+            onClick={conf.abrirSeletor}
+          >
+            {ocupado ? (
+              <Loader2 className="mr-1 size-4 animate-spin" />
+            ) : (
+              <Upload className="mr-1 size-4" />
+            )}
+            {item.multiplos
+              ? "Adicionar arquivo"
+              : temArquivo
+                ? "Substituir"
+                : "Anexar"}
           </Button>
           {temArquivo && !item.multiplos && (
             <Button
@@ -179,7 +242,11 @@ export function DocumentoRequisitoRow({
             </Button>
           )}
           {!somenteEnvio && item.status !== "dispensado" && (
-            <Button size="sm" variant="ghost" onClick={() => setDispensaAberta(true)}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setDispensaAberta(true)}
+            >
               <Ban className="mr-1 size-4" /> Dispensar
             </Button>
           )}
@@ -190,9 +257,13 @@ export function DocumentoRequisitoRow({
         <ul className="mt-3 space-y-2 border-t border-border pt-3">
           {anexos.map((anexo) => {
             const doc = anexo.dp_documentos;
-            const aguardaAceite = !!anexo.aceite_solicitado_em && !anexo.aceito_em;
+            const aguardaAceite =
+              !!anexo.aceite_solicitado_em && !anexo.aceito_em;
             return (
-              <li key={anexo.id} className="flex flex-wrap items-center justify-between gap-2">
+              <li
+                key={anexo.id}
+                className="flex flex-wrap items-center justify-between gap-2"
+              >
                 <div className="min-w-0 space-y-0.5">
                   <p className="flex items-center gap-1 truncate text-sm">
                     <FileText className="size-3.5 shrink-0 text-muted-foreground" />
@@ -204,7 +275,10 @@ export function DocumentoRequisitoRow({
                     {doc?.file_name ?? "Arquivo"}
                     <Badge
                       variant="outline"
-                      className={cn("border-0 text-[10px]", STATUS_STYLE[(anexo.status ?? "enviado") as StatusItem])}
+                      className={cn(
+                        "border-0 text-[10px]",
+                        STATUS_STYLE[(anexo.status ?? "enviado") as StatusItem],
+                      )}
                     >
                       {STATUS_LABEL[(anexo.status ?? "enviado") as StatusItem]}
                     </Badge>
@@ -215,37 +289,59 @@ export function DocumentoRequisitoRow({
                     </p>
                   ) : aguardaAceite ? (
                     <p className="text-xs text-amber-600 dark:text-amber-400">
-                      Aguardando aceite do colaborador desde {dtHora(anexo.aceite_solicitado_em!)}
+                      Aguardando aceite do colaborador desde{" "}
+                      {dtHora(anexo.aceite_solicitado_em!)}
                     </p>
                   ) : null}
                   {doc?.motivo_recusao && (
-                    <p className="text-xs text-destructive">Recusa: {doc.motivo_recusao}</p>
+                    <p className="text-xs text-destructive">
+                      Recusa: {doc.motivo_recusao}
+                    </p>
                   )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-1">
-                  <Button size="sm" variant="ghost" onClick={() => onAbrir(anexo)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onAbrir(anexo)}
+                  >
                     <Eye className="mr-1 size-4" /> Ver
                   </Button>
                   {somenteEnvio && aguardaAceite && (
-                    <Button size="sm" disabled={ocupado} onClick={() => onAceitar?.(anexo)}>
+                    <Button
+                      size="sm"
+                      disabled={ocupado}
+                      onClick={() => onAceitar?.(anexo)}
+                    >
                       <Check className="mr-1 size-4" /> Li e aceito
                     </Button>
                   )}
                   {!somenteEnvio && (
                     <>
                       {anexo.status !== "aprovado" && (
-                        <Button size="sm" onClick={() => onAprovar?.(anexo, validade || null)}>
+                        <Button
+                          size="sm"
+                          onClick={() => onAprovar?.(anexo, validade || null)}
+                        >
                           <Check className="mr-1 size-4" /> Aprovar
                         </Button>
                       )}
                       {anexo.status !== "recusado" && (
-                        <Button size="sm" variant="ghost" onClick={() => setRecusaAlvo(anexo)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setRecusaAlvo(anexo)}
+                        >
                           <X className="mr-1 size-4" /> Recusar
                         </Button>
                       )}
                       {onPedirAceite && !anexo.aceito_em && !aguardaAceite && (
-                        <Button size="sm" variant="ghost" onClick={() => onPedirAceite(anexo)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onPedirAceite(anexo)}
+                        >
                           <PenLine className="mr-1 size-4" /> Enviar para aceite
                         </Button>
                       )}
@@ -276,15 +372,26 @@ export function DocumentoRequisitoRow({
         </ul>
       )}
 
-      <Dialog open={!!recusaAlvo} onOpenChange={(o) => !o && setRecusaAlvo(null)}>
+      <Dialog
+        open={!!recusaAlvo}
+        onOpenChange={(o) => !o && setRecusaAlvo(null)}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>Recusar documento</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Recusar documento</DialogTitle>
+          </DialogHeader>
           <div className="space-y-2">
             <Label>Motivo da recusa</Label>
-            <Textarea value={motivo} maxLength={500} onChange={(e) => setMotivo(e.target.value)} />
+            <Textarea
+              value={motivo}
+              maxLength={500}
+              onChange={(e) => setMotivo(e.target.value)}
+            />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setRecusaAlvo(null)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setRecusaAlvo(null)}>
+              Cancelar
+            </Button>
             <Button
               disabled={!motivo.trim()}
               onClick={() => {
@@ -301,16 +408,28 @@ export function DocumentoRequisitoRow({
 
       <Dialog open={dispensaAberta} onOpenChange={setDispensaAberta}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Dispensar documento</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Dispensar documento</DialogTitle>
+          </DialogHeader>
           <div className="space-y-2">
             <Label>Justificativa</Label>
-            <Textarea value={motivo} maxLength={500} onChange={(e) => setMotivo(e.target.value)} />
+            <Textarea
+              value={motivo}
+              maxLength={500}
+              onChange={(e) => setMotivo(e.target.value)}
+            />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDispensaAberta(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setDispensaAberta(false)}>
+              Cancelar
+            </Button>
             <Button
               disabled={!motivo.trim()}
-              onClick={() => { onDispensar?.(motivo.trim()); setDispensaAberta(false); setMotivo(""); }}
+              onClick={() => {
+                onDispensar?.(motivo.trim());
+                setDispensaAberta(false);
+                setMotivo("");
+              }}
             >
               Dispensar
             </Button>

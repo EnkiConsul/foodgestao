@@ -47,7 +47,12 @@ export const DpFilePicker = forwardRef<HTMLInputElement, DpFilePickerProps>(
             void conferir(f).then((ok) => ok && onFileChange(ok));
           }}
         />
-        <Button type="button" variant="outline" className="min-h-11 shrink-0 sm:min-h-10" onClick={abrirSeletor}>
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11 shrink-0 sm:min-h-10"
+          onClick={abrirSeletor}
+        >
           <Paperclip className="mr-2 size-4" />
           Selecionar arquivo
         </Button>

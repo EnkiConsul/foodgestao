@@ -1,5 +1,8 @@
 import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
-import { DicaEnquadramento, useConferenciaDigitalizacao } from "@/components/dp/documentos/ConferenciaDigitalizacao";
+import {
+  DicaEnquadramento,
+  useConferenciaDigitalizacao,
+} from "@/components/dp/documentos/ConferenciaDigitalizacao";
 import { useId, useRef, useState } from "react";
 import {
   BadgeCheck,
@@ -45,7 +48,11 @@ import {
   validarQuitacao,
   type ComprovanteModalidade,
 } from "@/lib/dp/comprovante-quitacao";
-import { frasesLeitura, lerComprovante, type LeituraComprovante } from "@/lib/dp/comprovante-leitura";
+import {
+  frasesLeitura,
+  lerComprovante,
+  type LeituraComprovante,
+} from "@/lib/dp/comprovante-leitura";
 import {
   emitirReciboEspecieParaAssinatura,
   reciboEspeciePdf,
@@ -54,7 +61,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { conferirFavorecido } from "@/lib/dp/comprovante-favorecido";
-import { useDpComprovantePagamento, type ComprovanteAlvo } from "@/hooks/useDpComprovantePagamento";
+import {
+  useDpComprovantePagamento,
+  type ComprovanteAlvo,
+} from "@/hooks/useDpComprovantePagamento";
 import {
   conferirValor,
   fraseConferenciaValor,
@@ -80,7 +90,8 @@ function useValorLiquido(documentoId: string, enabled = true) {
         .eq("id", documentoId)
         .maybeSingle();
       if (error) throw error;
-      return ((data as { valor_liquido_cents: number | null } | null)?.valor_liquido_cents ?? null) as number | null;
+      return ((data as { valor_liquido_cents: number | null } | null)
+        ?.valor_liquido_cents ?? null) as number | null;
     },
   });
 }
@@ -96,7 +107,10 @@ function validar(file: File): boolean {
 }
 
 async function baixarComprovante(documentoId: string) {
-  const ok = await abrirDocumento(documentoId, { variante: "comprovante", download: true });
+  const ok = await abrirDocumento(documentoId, {
+    variante: "comprovante",
+    download: true,
+  });
   if (!ok) toast.error("Sem permissão para abrir este comprovante");
 }
 
@@ -105,7 +119,11 @@ async function baixarComprovante(documentoId: string) {
  * instalado) abrir outra aba é bloqueado, então nada aparecia.
  */
 function useVerComprovante() {
-  const [aberto, setAberto] = useState<{ url: string; nome: string | null; mime: string | null } | null>(null);
+  const [aberto, setAberto] = useState<{
+    url: string;
+    nome: string | null;
+    mime: string | null;
+  } | null>(null);
   const ver = async (documentoId: string) => {
     const link = await linkDocumentoAssinado(documentoId, 300, "comprovante");
     if (!link) {
@@ -117,7 +135,9 @@ function useVerComprovante() {
   const visualizador = (
     <DocumentPreview
       open={!!aberto}
-      onOpenChange={(v) => { if (!v) setAberto(null); }}
+      onOpenChange={(v) => {
+        if (!v) setAberto(null);
+      }}
       title={aberto?.nome ?? "Comprovante de pagamento"}
       url={aberto?.url}
       mime={aberto?.mime ?? undefined}
@@ -130,9 +150,15 @@ function useVerComprovante() {
  * Recibo do valor pago em dinheiro: baixar para assinar à mão ou guardar no
  * acervo do colaborador pedindo assinatura no portal.
  */
-function ReciboEspecieAcoes(props: { documentoId: string; jaEmitido: boolean }) {
+function ReciboEspecieAcoes(props: {
+  documentoId: string;
+  jaEmitido: boolean;
+}) {
   const [ocupado, setOcupado] = useState<"baixar" | "assinar" | null>(null);
-  const [previa, setPrevia] = useState<{ url: string; revogar: () => void } | null>(null);
+  const [previa, setPrevia] = useState<{
+    url: string;
+    revogar: () => void;
+  } | null>(null);
 
   const baixar = async () => {
     setOcupado("baixar");
@@ -170,7 +196,12 @@ function ReciboEspecieAcoes(props: { documentoId: string; jaEmitido: boolean }) 
           : "Pagamento em dinheiro precisa de recibo assinado pelo colaborador (CLT, art. 464)."}
       </p>
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" disabled={ocupado !== null} onClick={() => void baixar()}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={ocupado !== null}
+          onClick={() => void baixar()}
+        >
           {ocupado === "baixar" ? (
             <Loader2 className="mr-1 size-4 animate-spin" />
           ) : (
@@ -178,7 +209,11 @@ function ReciboEspecieAcoes(props: { documentoId: string; jaEmitido: boolean }) 
           )}
           Baixar Para Assinar à Mão
         </Button>
-        <Button size="sm" disabled={ocupado !== null} onClick={() => void pedirAssinatura()}>
+        <Button
+          size="sm"
+          disabled={ocupado !== null}
+          onClick={() => void pedirAssinatura()}
+        >
           {ocupado === "assinar" ? (
             <Loader2 className="mr-1 size-4 animate-spin" />
           ) : (
@@ -242,10 +277,14 @@ export function ComprovanteAnexarDialog(props: {
     (props.modalidadeAtual as ComprovanteModalidade) ?? "bancario",
   );
   const [bancario, setBancario] = useState(
-    props.valorBancarioAtual ? centsParaBRL(props.valorBancarioAtual).replace("R$", "").trim() : "",
+    props.valorBancarioAtual
+      ? centsParaBRL(props.valorBancarioAtual).replace("R$", "").trim()
+      : "",
   );
   const [especie, setEspecie] = useState(
-    props.valorEspecieAtual ? centsParaBRL(props.valorEspecieAtual).replace("R$", "").trim() : "",
+    props.valorEspecieAtual
+      ? centsParaBRL(props.valorEspecieAtual).replace("R$", "").trim()
+      : "",
   );
   const [confirmado, setConfirmado] = useState(false);
   const [cienteFavorecido, setCienteFavorecido] = useState(false);
@@ -274,7 +313,8 @@ export function ComprovanteAnexarDialog(props: {
     props.alvo.colaboradorId,
   );
   const favorecidoDivergente =
-    conferencia.status === "outro_colaborador" || conferencia.status === "terceiro";
+    conferencia.status === "outro_colaborador" ||
+    conferencia.status === "terceiro";
   const [erro, setErro] = useState<string | null>(null);
   const { anexar, ocupado: ocupadoPrincipal } = useDpComprovantePagamento();
   const extra = useDpComprovanteComplementarAcoes();
@@ -284,16 +324,20 @@ export function ComprovanteAnexarDialog(props: {
     liquidoTexto !== null ? brlParaCents(liquidoTexto) : (liquido.data ?? null);
   const confValor = conferirValor(
     esperadoCents,
-    (modalidade === "especie" ? 0 : brlParaCents(bancario) ?? 0) + jaComprovado,
+    (modalidade === "especie" ? 0 : (brlParaCents(bancario) ?? 0)) +
+      jaComprovado,
     modalidade === "bancario" ? null : brlParaCents(especie),
   );
-  const valorDivergente = confValor.status === "menor" || confValor.status === "maior";
+  const valorDivergente =
+    confValor.status === "menor" || confValor.status === "maior";
   const fraseValor = fraseConferenciaValor(confValor);
   const hoje = hojeISO();
 
   const divergente = competenciaDivergente(pagoEm, props.competencia);
   const aviso =
-    divergente && props.competencia ? avisoCompetenciaDivergente(pagoEm, props.competencia) : null;
+    divergente && props.competencia
+      ? avisoCompetenciaDivergente(pagoEm, props.competencia)
+      : null;
   const fraseLida = leitura ? frasesLeitura(leitura) : null;
 
   const limpar = () => {
@@ -351,15 +395,26 @@ export function ComprovanteAnexarDialog(props: {
       return;
     }
     if (favorecidoDivergente && !cienteFavorecido) {
-      setErro("Confirme a ciência sobre o favorecido do comprovante antes de importar.");
+      setErro(
+        "Confirme a ciência sobre o favorecido do comprovante antes de importar.",
+      );
       return;
     }
-    if (liquidoTexto !== null && liquidoTexto.trim() && !brlParaCents(liquidoTexto)) {
+    if (
+      liquidoTexto !== null &&
+      liquidoTexto.trim() &&
+      !brlParaCents(liquidoTexto)
+    ) {
       setErro("Valor líquido do documento inválido.");
       return;
     }
-    if (valorDivergente && (!cienteValor || justValor.trim().length < JUSTIFICATIVA_VALOR_MIN)) {
-      setErro(`O valor pago não bate com o documento: marque a ciência e justifique (mín. ${JUSTIFICATIVA_VALOR_MIN} caracteres).`);
+    if (
+      valorDivergente &&
+      (!cienteValor || justValor.trim().length < JUSTIFICATIVA_VALOR_MIN)
+    ) {
+      setErro(
+        `O valor pago não bate com o documento: marque a ciência e justifique (mín. ${JUSTIFICATIVA_VALOR_MIN} caracteres).`,
+      );
       return;
     }
     if (divergente && !confirmado) {
@@ -368,25 +423,35 @@ export function ComprovanteAnexarDialog(props: {
     }
     setErro(null);
     const quitacaoFinal = {
-          modalidade: quitacao.modalidade,
-          valorBancarioCents: quitacao.bancarioCents,
-          valorEspecieCents: quitacao.especieCents,
-          leitura: {
-            ...((leitura?.bruto as object | null) ?? {}),
-            conferencia_favorecido: conferencia.status,
-            ciente_favorecido: favorecidoDivergente ? cienteFavorecido : null,
-            conferencia_valor: confValor.status,
-            valor_esperado_cents: confValor.esperadoCents,
-            valor_comprovado_cents: confValor.comprovadoCents,
-            diferenca_cents: confValor.diferencaCents,
-            justificativa_valor: valorDivergente ? justValor.trim() : null,
-            complementar: true,
-          },
-        };
+      modalidade: quitacao.modalidade,
+      valorBancarioCents: quitacao.bancarioCents,
+      valorEspecieCents: quitacao.especieCents,
+      leitura: {
+        ...((leitura?.bruto as object | null) ?? {}),
+        conferencia_favorecido: conferencia.status,
+        ciente_favorecido: favorecidoDivergente ? cienteFavorecido : null,
+        conferencia_valor: confValor.status,
+        valor_esperado_cents: confValor.esperadoCents,
+        valor_comprovado_cents: confValor.comprovadoCents,
+        diferenca_cents: confValor.diferencaCents,
+        justificativa_valor: valorDivergente ? justValor.trim() : null,
+        complementar: true,
+      },
+    };
     if (props.complementar) {
       extra.adicionar.mutate(
-        { alvo: props.alvo, file: arquivo, pagoEm: check.valor, quitacao: quitacaoFinal },
-        { onSuccess: () => { limpar(); props.onOpenChange(false); } },
+        {
+          alvo: props.alvo,
+          file: arquivo,
+          pagoEm: check.valor,
+          quitacao: quitacaoFinal,
+        },
+        {
+          onSuccess: () => {
+            limpar();
+            props.onOpenChange(false);
+          },
+        },
       );
       return;
     }
@@ -414,13 +479,20 @@ export function ComprovanteAnexarDialog(props: {
       },
       {
         onSuccess: async () => {
-          const novo = liquidoTexto !== null ? brlParaCents(liquidoTexto) : undefined;
+          const novo =
+            liquidoTexto !== null ? brlParaCents(liquidoTexto) : undefined;
           if (novo !== undefined && novo !== (liquido.data ?? null)) {
-            const { error } = await supabase.rpc("dp_documento_definir_valor_liquido", {
-              p_documento_id: props.alvo.documentoId,
-              p_valor_cents: novo,
-            });
-            if (error) toast.error("Comprovante salvo, mas o valor líquido do documento não foi atualizado.");
+            const { error } = await supabase.rpc(
+              "dp_documento_definir_valor_liquido",
+              {
+                p_documento_id: props.alvo.documentoId,
+                p_valor_cents: novo,
+              },
+            );
+            if (error)
+              toast.error(
+                "Comprovante salvo, mas o valor líquido do documento não foi atualizado.",
+              );
           }
           void liquido.refetch();
           props.onOpenChange(false);
@@ -440,7 +512,11 @@ export function ComprovanteAnexarDialog(props: {
       <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {props.complementar ? "Adicionar Comprovante Complementar" : props.substituir ? "Substituir Comprovante de Pagamento" : "Anexar Comprovante de Pagamento"}
+            {props.complementar
+              ? "Adicionar Comprovante Complementar"
+              : props.substituir
+                ? "Substituir Comprovante de Pagamento"
+                : "Anexar Comprovante de Pagamento"}
           </DialogTitle>
           <DialogDescription>
             Escolha o arquivo: o sistema lê a data e o valor para você conferir.
@@ -450,15 +526,21 @@ export function ComprovanteAnexarDialog(props: {
         <div className="grid gap-3 rounded-md border bg-muted/30 p-3 sm:grid-cols-3">
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Colaborador</p>
-            <p className="break-words text-sm font-medium">{props.colaboradorNome ?? "Não informado"}</p>
+            <p className="break-words text-sm font-medium">
+              {props.colaboradorNome ?? "Não informado"}
+            </p>
           </div>
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Tipo</p>
-            <p className="break-words text-sm font-medium">{docTipoLabel(props.alvo.tipo)}</p>
+            <p className="break-words text-sm font-medium">
+              {docTipoLabel(props.alvo.tipo)}
+            </p>
           </div>
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Competência</p>
-            <p className="text-sm font-medium">{props.competencia ?? "Não informada"}</p>
+            <p className="text-sm font-medium">
+              {props.competencia ?? "Não informada"}
+            </p>
           </div>
         </div>
 
@@ -481,7 +563,12 @@ export function ComprovanteAnexarDialog(props: {
         <div className="grid gap-1.5">
           <Label className="text-xs">Arquivo do comprovante</Label>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={abrirSeletorFoto} disabled={ocupado}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={abrirSeletorFoto}
+              disabled={ocupado}
+            >
               <Upload className="mr-1 size-4" /> Escolher Arquivo
             </Button>
             <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
@@ -496,7 +583,9 @@ export function ComprovanteAnexarDialog(props: {
         </div>
 
         <div className="grid gap-1.5">
-          <Label htmlFor={campoId} className="text-xs">Data do pagamento</Label>
+          <Label htmlFor={campoId} className="text-xs">
+            Data do pagamento
+          </Label>
           <Input
             id={campoId}
             type="date"
@@ -511,10 +600,13 @@ export function ComprovanteAnexarDialog(props: {
               setErro(null);
             }}
           />
-          {fraseLida ? <p className="text-xs text-primary">{fraseLida}</p> : null}
+          {fraseLida ? (
+            <p className="text-xs text-primary">{fraseLida}</p>
+          ) : null}
           {!pagoEm && arquivo && !lendo ? (
             <p className="text-xs text-amber-700">
-              Não foi possível ler a data no comprovante. Informe a data do pagamento.
+              Não foi possível ler a data no comprovante. Informe a data do
+              pagamento.
             </p>
           ) : null}
         </div>
@@ -537,14 +629,18 @@ export function ComprovanteAnexarDialog(props: {
               </Button>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">{MODALIDADE_AJUDA[modalidade]}</p>
+          <p className="text-xs text-muted-foreground">
+            {MODALIDADE_AJUDA[modalidade]}
+          </p>
         </div>
 
         {modalidade !== "bancario" ? (
           <div className="grid gap-3 sm:grid-cols-2">
             {modalidade === "misto" ? (
               <div className="grid gap-1.5">
-                <Label htmlFor={`${campoId}-banco`} className="text-xs">Valor pago na conta (R$)</Label>
+                <Label htmlFor={`${campoId}-banco`} className="text-xs">
+                  Valor pago na conta (R$)
+                </Label>
                 <Input
                   id={`${campoId}-banco`}
                   inputMode="decimal"
@@ -558,7 +654,9 @@ export function ComprovanteAnexarDialog(props: {
               </div>
             ) : null}
             <div className="grid gap-1.5">
-              <Label htmlFor={`${campoId}-especie`} className="text-xs">Valor pago em dinheiro (R$)</Label>
+              <Label htmlFor={`${campoId}-especie`} className="text-xs">
+                Valor pago em dinheiro (R$)
+              </Label>
               <Input
                 id={`${campoId}-especie`}
                 inputMode="decimal"
@@ -575,18 +673,26 @@ export function ComprovanteAnexarDialog(props: {
 
         {modalidade !== "bancario" ? (
           <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
-            Depois de importar, o sistema gera o recibo do valor em dinheiro para assinatura no portal
-            do colaborador — ou para você baixar e colher a assinatura à mão.
+            Depois de importar, o sistema gera o recibo do valor em dinheiro
+            para assinatura no portal do colaborador — ou para você baixar e
+            colher a assinatura à mão.
           </p>
         ) : null}
 
         <div className="grid gap-1.5">
-          <Label htmlFor={`${campoId}-liquido`} className="text-xs">Valor líquido do documento (R$)</Label>
+          <Label htmlFor={`${campoId}-liquido`} className="text-xs">
+            Valor líquido do documento (R$)
+          </Label>
           <Input
             id={`${campoId}-liquido`}
             inputMode="decimal"
             placeholder={liquido.isLoading ? "Carregando…" : "Não informado"}
-            value={liquidoTexto ?? (liquido.data ? centsParaBRL(liquido.data).replace("R$", "").trim() : "")}
+            value={
+              liquidoTexto ??
+              (liquido.data
+                ? centsParaBRL(liquido.data).replace("R$", "").trim()
+                : "")
+            }
             onChange={(e) => {
               setLiquidoTexto(e.target.value);
               setCienteValor(false);
@@ -606,13 +712,16 @@ export function ComprovanteAnexarDialog(props: {
 
         {jaComprovado > 0 ? (
           <p className="text-xs text-muted-foreground">
-            Já comprovado em outros comprovantes: {centsParaBRL(jaComprovado)}. A conferência soma este novo valor.
+            Já comprovado em outros comprovantes: {centsParaBRL(jaComprovado)}.
+            A conferência soma este novo valor.
           </p>
         ) : null}
         {valorDivergente ? (
           <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
             <p>
-              Documento: <strong>{centsParaBRL(confValor.esperadoCents)}</strong> · Comprovado:{" "}
+              Documento:{" "}
+              <strong>{centsParaBRL(confValor.esperadoCents)}</strong> ·
+              Comprovado:{" "}
               <strong>{centsParaBRL(confValor.comprovadoCents)}</strong>
             </p>
             <p className="font-medium">{fraseValor}</p>
@@ -626,7 +735,9 @@ export function ComprovanteAnexarDialog(props: {
                   setErro(null);
                 }}
               />
-              <span>Estou ciente da diferença de valor e quero importar mesmo assim.</span>
+              <span>
+                Estou ciente da diferença de valor e quero importar mesmo assim.
+              </span>
             </label>
             {cienteValor ? (
               <Textarea
@@ -644,23 +755,26 @@ export function ComprovanteAnexarDialog(props: {
 
         {conferencia.status === "confere" ? (
           <p className="flex items-center gap-1.5 text-xs text-emerald-700">
-            <BadgeCheck className="size-3.5" /> Favorecido confere: {conferencia.favorecido.toUpperCase()}
+            <BadgeCheck className="size-3.5" /> Favorecido confere:{" "}
+            {conferencia.favorecido.toUpperCase()}
           </p>
         ) : null}
         {favorecidoDivergente ? (
           <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
             {conferencia.status === "outro_colaborador" ? (
               <p>
-                <strong>Provável troca de arquivo:</strong> este comprovante está em nome de{" "}
-                {conferencia.outroNome.toUpperCase()}, outro colaborador da empresa. Confira se escolheu o
-                arquivo certo.
+                <strong>Provável troca de arquivo:</strong> este comprovante
+                está em nome de {conferencia.outroNome.toUpperCase()}, outro
+                colaborador da empresa. Confira se escolheu o arquivo certo.
               </p>
             ) : (
               <p>
-                O comprovante está em nome de <strong>{conferencia.favorecido.toUpperCase()}</strong>, diferente
-                do colaborador ({(props.colaboradorNome ?? "").toUpperCase()}). Pagamento a terceiro só vale com
-                autorização escrita do colaborador (Art. 464 da CLT): importe o Termo de Autorização nos
-                documentos dele.
+                O comprovante está em nome de{" "}
+                <strong>{conferencia.favorecido.toUpperCase()}</strong>,
+                diferente do colaborador (
+                {(props.colaboradorNome ?? "").toUpperCase()}). Pagamento a
+                terceiro só vale com autorização escrita do colaborador (Art.
+                464 da CLT): importe o Termo de Autorização nos documentos dele.
               </p>
             )}
             <label className="flex items-start gap-2 text-foreground">
@@ -683,7 +797,13 @@ export function ComprovanteAnexarDialog(props: {
         ) : null}
 
         {erro ? (
-          <p id={`${campoId}-erro`} role="alert" className="text-xs text-destructive">{erro}</p>
+          <p
+            id={`${campoId}-erro`}
+            role="alert"
+            className="text-xs text-destructive"
+          >
+            {erro}
+          </p>
         ) : null}
 
         {aviso ? (
@@ -702,7 +822,11 @@ export function ComprovanteAnexarDialog(props: {
         ) : null}
 
         <DialogFooter className="gap-2 sm:gap-2">
-          <Button variant="outline" onClick={() => props.onOpenChange(false)} disabled={ocupado}>
+          <Button
+            variant="outline"
+            onClick={() => props.onOpenChange(false)}
+            disabled={ocupado}
+          >
             Cancelar
           </Button>
           <Button onClick={importar} disabled={ocupado || !arquivo || lendo}>
@@ -766,10 +890,20 @@ export function ComprovanteAcaoBotao(props: {
         variant="ghost"
         className={props.className}
         disabled={ocupado}
-        aria-label={props.temComprovante ? "Ver comprovante de pagamento" : "Importar comprovante de pagamento"}
-        title={props.temComprovante ? "Comprovante de pagamento anexado" : "Importar comprovante de pagamento"}
+        aria-label={
+          props.temComprovante
+            ? "Ver comprovante de pagamento"
+            : "Importar comprovante de pagamento"
+        }
+        title={
+          props.temComprovante
+            ? "Comprovante de pagamento anexado"
+            : "Importar comprovante de pagamento"
+        }
         onClick={() =>
-          props.temComprovante ? void ver(props.alvo.documentoId) : setAnexarOpen(true)
+          props.temComprovante
+            ? void ver(props.alvo.documentoId)
+            : setAnexarOpen(true)
         }
       >
         {anexar.isPending ? (
@@ -821,14 +955,21 @@ export function ComprovantePagamentoPanel(props: {
   const [anexarOpen, setAnexarOpen] = useState(false);
   const { remover, ocupado } = useDpComprovantePagamento();
   const { ver, visualizador } = useVerComprovante();
-  const liquido = useValorLiquido(props.alvo.documentoId, aceitaComprovante(props.alvo.tipo));
+  const liquido = useValorLiquido(
+    props.alvo.documentoId,
+    aceitaComprovante(props.alvo.tipo),
+  );
   const extras = useComprovantesComplementares(
     props.alvo.documentoId,
     aceitaComprovante(props.alvo.tipo) && !props.somenteLeitura,
   );
   const extraAcoes = useDpComprovanteComplementarAcoes();
   const [complementarOpen, setComplementarOpen] = useState(false);
-  const [extraPreview, setExtraPreview] = useState<{ url: string; nome: string; mime: string | null } | null>(null);
+  const [extraPreview, setExtraPreview] = useState<{
+    url: string;
+    nome: string;
+    mime: string | null;
+  } | null>(null);
   if (!aceitaComprovante(props.alvo.tipo)) return null;
 
   const { comprovante } = props;
@@ -848,11 +989,16 @@ export function ComprovantePagamentoPanel(props: {
           <Receipt className="size-3.5" /> Comprovante de Pagamento
         </div>
         {comprovante.tem ? (
-          <Badge variant="outline" className="border-emerald-300 text-emerald-700">
+          <Badge
+            variant="outline"
+            className="border-emerald-300 text-emerald-700"
+          >
             <BadgeCheck className="mr-1 size-3" /> Anexado
           </Badge>
         ) : (
-          <Badge variant="outline" className="border-amber-300 text-amber-700">Sem comprovante</Badge>
+          <Badge variant="outline" className="border-amber-300 text-amber-700">
+            Sem comprovante
+          </Badge>
         )}
       </div>
 
@@ -860,21 +1006,35 @@ export function ComprovantePagamentoPanel(props: {
         <div className="space-y-2 text-sm">
           <p className="break-words text-muted-foreground">
             {comprovante.file_name ?? "Comprovante"}
-            {comprovante.pago_em ? ` · pago em ${comprovante.pago_em.split("-").reverse().join("/")}` : ""}
+            {comprovante.pago_em
+              ? ` · pago em ${comprovante.pago_em.split("-").reverse().join("/")}`
+              : ""}
           </p>
-          <p className="break-words text-xs text-muted-foreground">{quitacao}</p>
+          <p className="break-words text-xs text-muted-foreground">
+            {quitacao}
+          </p>
           {(extras.data ?? []).length > 0 ? (
             <ul className="space-y-1 rounded-md border bg-muted/30 p-2 text-xs">
               <li className="text-muted-foreground">
-                Comprovante 1: {centsParaBRL(
-                  Number(comprovante.modalidade === "especie" ? 0 : comprovante.valor_bancario_cents ?? 0) +
-                    Number(comprovante.modalidade === "bancario" ? 0 : comprovante.valor_especie_cents ?? 0),
+                Comprovante 1:{" "}
+                {centsParaBRL(
+                  Number(
+                    comprovante.modalidade === "especie"
+                      ? 0
+                      : (comprovante.valor_bancario_cents ?? 0),
+                  ) +
+                    Number(
+                      comprovante.modalidade === "bancario"
+                        ? 0
+                        : (comprovante.valor_especie_cents ?? 0),
+                    ),
                 )}
               </li>
               {(extras.data ?? []).map((e, i) => (
                 <li key={e.id} className="flex flex-wrap items-center gap-2">
                   <span className="min-w-0 flex-1 break-words">
-                    Comprovante {i + 2}: {resumoQuitacao(e)} · pago em {e.pago_em.split("-").reverse().join("/")}
+                    Comprovante {i + 2}: {resumoQuitacao(e)} · pago em{" "}
+                    {e.pago_em.split("-").reverse().join("/")}
                   </span>
                   <Button
                     size="sm"
@@ -882,8 +1042,15 @@ export function ComprovantePagamentoPanel(props: {
                     className="h-7 px-2"
                     onClick={async () => {
                       const url = await linkComplementar(e.file_path);
-                      if (!url) return toast.error("Sem permissão para abrir este comprovante");
-                      setExtraPreview({ url, nome: e.file_name, mime: e.mime_type });
+                      if (!url)
+                        return toast.error(
+                          "Sem permissão para abrir este comprovante",
+                        );
+                      setExtraPreview({
+                        url,
+                        nome: e.file_name,
+                        mime: e.mime_type,
+                      });
                     }}
                   >
                     <Eye className="size-3.5" />
@@ -906,47 +1073,66 @@ export function ComprovantePagamentoPanel(props: {
           ) : null}
           {(() => {
             const extraCents = (extras.data ?? []).reduce(
-              (t, e) => t + Number(e.valor_bancario_cents ?? 0) + Number(e.valor_especie_cents ?? 0),
+              (t, e) =>
+                t +
+                Number(e.valor_bancario_cents ?? 0) +
+                Number(e.valor_especie_cents ?? 0),
               0,
             );
             const c = consolidarQuitacao({
               liquidoCents: liquido.data ?? null,
               temPrincipal: true,
-              principalBancarioCents: comprovante.modalidade === "especie" ? null : comprovante.valor_bancario_cents,
-              principalEspecieCents: comprovante.modalidade === "bancario" ? null : comprovante.valor_especie_cents,
+              principalBancarioCents:
+                comprovante.modalidade === "especie"
+                  ? null
+                  : comprovante.valor_bancario_cents,
+              principalEspecieCents:
+                comprovante.modalidade === "bancario"
+                  ? null
+                  : comprovante.valor_especie_cents,
               extraQtd: (extras.data ?? []).length,
               extraCents,
             });
             if (c.status === "sem_referencia") return null;
             return (
               <>
-              {c.status === "menor" && !props.somenteLeitura ? (
-                <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
-                  <p>Quitação parcial: {fraseConferenciaValor(c)}.</p>
-                  <Button size="sm" disabled={extraAcoes.ocupado} onClick={() => setComplementarOpen(true)}>
-                    <Upload className="mr-1 size-4" /> Adicionar Comprovante Complementar
-                  </Button>
-                  <ComprovanteAnexarDialog
-                    open={complementarOpen}
-                    onOpenChange={setComplementarOpen}
-                    alvo={props.alvo}
-                    documentoTitulo={props.documentoTitulo}
-                    colaboradorNome={props.colaboradorNome}
-                    competencia={props.competencia}
-                    complementar={{ jaComprovadoCents: c.comprovadoCents }}
-                  />
-                </div>
-              ) : null}
-              <p
-                className={
-                  c.status === "exato"
-                    ? "flex flex-wrap items-center gap-1 text-xs text-emerald-700"
-                    : "flex flex-wrap items-center gap-1 text-xs text-amber-700"
-                }
-              >
-                Líquido: {centsParaBRL(c.esperadoCents)} | Comprovado: {centsParaBRL(c.comprovadoCents)}
-                {c.status === "exato" ? (c.qtd > 1 ? ` (${c.qtd} comprovantes) ✓` : " ✓") : ` · ${fraseConferenciaValor(c)}`}
-              </p>
+                {c.status === "menor" && !props.somenteLeitura ? (
+                  <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+                    <p>Quitação parcial: {fraseConferenciaValor(c)}.</p>
+                    <Button
+                      size="sm"
+                      disabled={extraAcoes.ocupado}
+                      onClick={() => setComplementarOpen(true)}
+                    >
+                      <Upload className="mr-1 size-4" /> Adicionar Comprovante
+                      Complementar
+                    </Button>
+                    <ComprovanteAnexarDialog
+                      open={complementarOpen}
+                      onOpenChange={setComplementarOpen}
+                      alvo={props.alvo}
+                      documentoTitulo={props.documentoTitulo}
+                      colaboradorNome={props.colaboradorNome}
+                      competencia={props.competencia}
+                      complementar={{ jaComprovadoCents: c.comprovadoCents }}
+                    />
+                  </div>
+                ) : null}
+                <p
+                  className={
+                    c.status === "exato"
+                      ? "flex flex-wrap items-center gap-1 text-xs text-emerald-700"
+                      : "flex flex-wrap items-center gap-1 text-xs text-amber-700"
+                  }
+                >
+                  Líquido: {centsParaBRL(c.esperadoCents)} | Comprovado:{" "}
+                  {centsParaBRL(c.comprovadoCents)}
+                  {c.status === "exato"
+                    ? c.qtd > 1
+                      ? ` (${c.qtd} comprovantes) ✓`
+                      : " ✓"
+                    : ` · ${fraseConferenciaValor(c)}`}
+                </p>
               </>
             );
           })()}
@@ -956,15 +1142,28 @@ export function ComprovantePagamentoPanel(props: {
             </p>
           )}
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => void ver(props.alvo.documentoId)}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void ver(props.alvo.documentoId)}
+            >
               <Eye className="mr-1 size-4" /> Ver
             </Button>
-            <Button size="sm" variant="outline" onClick={() => void baixarComprovante(props.alvo.documentoId)}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void baixarComprovante(props.alvo.documentoId)}
+            >
               <Download className="mr-1 size-4" /> Baixar
             </Button>
             {!props.somenteLeitura && (
               <>
-                <Button size="sm" variant="outline" disabled={ocupado} onClick={() => setAnexarOpen(true)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={ocupado}
+                  onClick={() => setAnexarOpen(true)}
+                >
                   <Upload className="mr-1 size-4" /> Substituir
                 </Button>
                 <Button
@@ -993,10 +1192,14 @@ export function ComprovantePagamentoPanel(props: {
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Escolha o arquivo do comprovante: o sistema lê a data e o valor, e você informa como o
-            pagamento foi feito.
+            Escolha o arquivo do comprovante: o sistema lê a data e o valor, e
+            você informa como o pagamento foi feito.
           </p>
-          <Button size="sm" disabled={ocupado} onClick={() => setAnexarOpen(true)}>
+          <Button
+            size="sm"
+            disabled={ocupado}
+            onClick={() => setAnexarOpen(true)}
+          >
             <Upload className="mr-1 size-4" /> Anexar Comprovante
           </Button>
         </div>
@@ -1017,7 +1220,9 @@ export function ComprovantePagamentoPanel(props: {
       {visualizador}
       <DocumentPreview
         open={!!extraPreview}
-        onOpenChange={(v) => { if (!v) setExtraPreview(null); }}
+        onOpenChange={(v) => {
+          if (!v) setExtraPreview(null);
+        }}
         title={extraPreview?.nome ?? "Comprovante complementar"}
         url={extraPreview?.url}
         mime={extraPreview?.mime ?? undefined}

@@ -45,27 +45,42 @@ export function ViaAssinadaBotao({
       const file = await prepararUpload(DP_DOCUMENTOS_BUCKET, escolhido);
       const path = `${companyId}/${colaboradorId ?? "geral"}/vias-assinadas/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
       await comRetentativa(async () => {
-        const up = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(path, file, { contentType: file.type, upsert: true });
+        const up = await supabase.storage
+          .from(DP_DOCUMENTOS_BUCKET)
+          .upload(path, file, { contentType: file.type, upsert: true });
         if (up.error) throw up.error;
       });
-      const { error } = await (supabase.rpc as any)("dp_documento_anexar_via_assinada", {
-        _documento_id: documentoId,
-        _file_path: path,
-        _file_name: file.name,
-        _mime_type: file.type,
-      });
+      const { error } = await (supabase.rpc as any)(
+        "dp_documento_anexar_via_assinada",
+        {
+          _documento_id: documentoId,
+          _file_path: path,
+          _file_name: file.name,
+          _mime_type: file.type,
+        },
+      );
       if (error) {
-        await supabase.storage.from(DP_DOCUMENTOS_BUCKET).remove([path]).catch(() => undefined);
+        await supabase.storage
+          .from(DP_DOCUMENTOS_BUCKET)
+          .remove([path])
+          .catch(() => undefined);
         throw error;
       }
     },
     onSuccess: () => {
-      toast.success(temVia ? "Via assinada substituída" : "Via assinada anexada");
+      toast.success(
+        temVia ? "Via assinada substituída" : "Via assinada anexada",
+      );
       qc.invalidateQueries({ queryKey: ["dp_historico_documentos"] });
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
       onDone?.();
     },
-    onError: (e) => notifyError(e, { surface: "Documentos", action: "anexar a via assinada", fallback: "Erro" }),
+    onError: (e) =>
+      notifyError(e, {
+        surface: "Documentos",
+        action: "anexar a via assinada",
+        fallback: "Erro",
+      }),
   });
 
   const titulo = temVia ? "Substituir Via Assinada" : "Importar Via Assinada";
@@ -96,7 +111,13 @@ export function ViaAssinadaBotao({
         {anexar.isPending ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
-          <FileCheck2 className={cn("h-4 w-4", temVia ? "text-emerald-600" : "text-primary", rotulo && "mr-1")} />
+          <FileCheck2
+            className={cn(
+              "h-4 w-4",
+              temVia ? "text-emerald-600" : "text-primary",
+              rotulo && "mr-1",
+            )}
+          />
         )}
         {rotulo && (temVia ? "Via assinada" : "Via assinada")}
       </Button>

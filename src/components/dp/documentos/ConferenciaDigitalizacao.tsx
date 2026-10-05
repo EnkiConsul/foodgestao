@@ -1,10 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, Camera, CheckCircle2, Loader2, RotateCw, ScanLine, XCircle } from "lucide-react";
+import {
+  AlertTriangle,
+  Camera,
+  CheckCircle2,
+  Loader2,
+  RotateCw,
+  ScanLine,
+  XCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
-import { avaliarQualidadeImagem, type ResultadoQualidade } from "@/lib/storage/qualidadeDigitalizacao";
+import {
+  avaliarQualidadeImagem,
+  type ResultadoQualidade,
+} from "@/lib/storage/qualidadeDigitalizacao";
 import { cn } from "@/lib/utils";
 
 export const DICAS_ENQUADRAMENTO = [
@@ -34,9 +50,13 @@ async function girarImagem(arquivo: File, graus: number): Promise<File> {
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.rotate((g * Math.PI) / 180);
     ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
-    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.92));
+    const blob = await new Promise<Blob | null>((r) =>
+      canvas.toBlob(r, "image/jpeg", 0.92),
+    );
     if (!blob) return arquivo;
-    return new File([blob], arquivo.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+    return new File([blob], arquivo.name.replace(/\.[^.]+$/, "") + ".jpg", {
+      type: "image/jpeg",
+    });
   } finally {
     URL.revokeObjectURL(url);
   }
@@ -51,7 +71,10 @@ type Pendente = { arquivo: File; resolve: (f: File | null) => void };
  * Uso: `const { conferir, dialogo } = useConferenciaDigitalizacao();`
  * `const final = await conferir(arquivo); if (!final) return;` e renderize `{dialogo}`.
  */
-export function useConferenciaDigitalizacao(opcoes?: { onTirarOutra?: () => void; onSelecionarArquivo?: () => void }) {
+export function useConferenciaDigitalizacao(opcoes?: {
+  onTirarOutra?: () => void;
+  onSelecionarArquivo?: () => void;
+}) {
   const [pendente, setPendente] = useState<Pendente | null>(null);
   const [orientacaoAberta, setOrientacaoAberta] = useState(false);
   const [resultado, setResultado] = useState<ResultadoQualidade | null>(null);
@@ -74,19 +97,33 @@ export function useConferenciaDigitalizacao(opcoes?: { onTirarOutra?: () => void
   useEffect(() => {
     setResultado(null);
     setErro(null);
-    if (!pendente) { setUrl(null); return; }
+    if (!pendente) {
+      setUrl(null);
+      return;
+    }
     const u = URL.createObjectURL(pendente.arquivo);
     setUrl(u);
     let vivo = true;
     avaliarQualidadeImagem(pendente.arquivo)
       .then((r) => vivo && setResultado(r))
-      .catch(() => vivo && setErro("Não foi possível avaliar a foto. Confira a imagem antes de enviar."));
-    return () => { vivo = false; URL.revokeObjectURL(u); };
+      .catch(
+        () =>
+          vivo &&
+          setErro(
+            "Não foi possível avaliar a foto. Confira a imagem antes de enviar.",
+          ),
+      );
+    return () => {
+      vivo = false;
+      URL.revokeObjectURL(u);
+    };
   }, [pendente]);
 
   const [graus, setGraus] = useState(0);
   const [preparando, setPreparando] = useState(false);
-  useEffect(() => { setGraus(0); }, [pendente]);
+  useEffect(() => {
+    setGraus(0);
+  }, [pendente]);
 
   const fechar = (f: File | null) => {
     pendente?.resolve(f);
@@ -119,75 +156,144 @@ export function useConferenciaDigitalizacao(opcoes?: { onTirarOutra?: () => void
             </DialogDescription>
           </DialogHeader>
           <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
-            {DICAS_ENQUADRAMENTO.map((d) => <li key={d}>{d}</li>)}
+            {DICAS_ENQUADRAMENTO.map((d) => (
+              <li key={d}>{d}</li>
+            ))}
           </ul>
           <DialogFooter className="flex-col gap-2 sm:flex-row">
-            <Button variant="outline" onClick={() => setOrientacaoAberta(false)}>Cancelar</Button>
-            <Button onClick={() => {
-              setOrientacaoAberta(false);
-              selecionarArquivoRef.current?.();
-            }}>
+            <Button
+              variant="outline"
+              onClick={() => setOrientacaoAberta(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                setOrientacaoAberta(false);
+                selecionarArquivoRef.current?.();
+              }}
+            >
               Escolher Arquivo ou Tirar Foto
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <Dialog open={!!pendente} onOpenChange={(v) => { if (!v) fechar(null); }}>
+      <Dialog
+        open={!!pendente}
+        onOpenChange={(v) => {
+          if (!v) fechar(null);
+        }}
+      >
         <DialogContent className="max-w-md max-h-[92dvh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><ScanLine className="size-5 text-primary" /> Confira a Digitalização</DialogTitle>
-          <DialogDescription>Uma foto ruim pode perder o valor de prova. Veja se a assinatura e os números estão legíveis.</DialogDescription>
-        </DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ScanLine className="size-5 text-primary" /> Confira a
+              Digitalização
+            </DialogTitle>
+            <DialogDescription>
+              Uma foto ruim pode perder o valor de prova. Veja se a assinatura e
+              os números estão legíveis.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="rounded-md border bg-muted/40 grid place-items-center overflow-hidden h-56">
-          {url && <img src={url} alt="Foto escolhida" className="max-h-56 max-w-full object-contain transition-transform" style={{ transform: `rotate(${graus}deg)` }} />}
-        </div>
-
-        {!resultado && !erro && (
-          <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Avaliando a qualidade da foto…</p>
-        )}
-        {erro && <p className="text-sm text-muted-foreground">{erro}</p>}
-        {resultado && (
-          <div className={cn(
-            "rounded-md border p-3 text-sm space-y-2",
-            resultado.nota === "boa" && "border-primary/30 bg-primary/5",
-            resultado.nota === "aceitavel" && "border-accent bg-accent/30",
-            ruim && "border-destructive/40 bg-destructive/5",
-          )}>
-            <p className="flex items-center gap-2 font-medium">
-              {resultado.nota === "boa" && <><CheckCircle2 className="size-4 text-primary" /> Boa qualidade</>}
-              {resultado.nota === "aceitavel" && <><AlertTriangle className="size-4" /> Aceitável, mas pode melhorar</>}
-              {ruim && <><XCircle className="size-4 text-destructive" /> Qualidade ruim — recomendamos fotografar de novo</>}
-            </p>
-            {resultado.problemas.map((p) => (
-              <div key={p.titulo}>
-                <p className={cn("font-medium", p.nivel === "grave" && "text-destructive")}>{p.titulo}</p>
-                <p className="text-muted-foreground">{p.dica}</p>
-              </div>
-            ))}
+          <div className="rounded-md border bg-muted/40 grid place-items-center overflow-hidden h-56">
+            {url && (
+              <img
+                src={url}
+                alt="Foto escolhida"
+                className="max-h-56 max-w-full object-contain transition-transform"
+                style={{ transform: `rotate(${graus}deg)` }}
+              />
+            )}
           </div>
-        )}
 
-        <details className="text-xs text-muted-foreground">
-          <summary className="cursor-pointer font-medium text-foreground">Como fotografar bem</summary>
-          <ul className="mt-1 list-disc pl-5 space-y-0.5">{DICAS_ENQUADRAMENTO.map((d) => <li key={d}>{d}</li>)}</ul>
-        </details>
+          {!resultado && !erro && (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" /> Avaliando a qualidade
+              da foto…
+            </p>
+          )}
+          {erro && <p className="text-sm text-muted-foreground">{erro}</p>}
+          {resultado && (
+            <div
+              className={cn(
+                "rounded-md border p-3 text-sm space-y-2",
+                resultado.nota === "boa" && "border-primary/30 bg-primary/5",
+                resultado.nota === "aceitavel" && "border-accent bg-accent/30",
+                ruim && "border-destructive/40 bg-destructive/5",
+              )}
+            >
+              <p className="flex items-center gap-2 font-medium">
+                {resultado.nota === "boa" && (
+                  <>
+                    <CheckCircle2 className="size-4 text-primary" /> Boa
+                    qualidade
+                  </>
+                )}
+                {resultado.nota === "aceitavel" && (
+                  <>
+                    <AlertTriangle className="size-4" /> Aceitável, mas pode
+                    melhorar
+                  </>
+                )}
+                {ruim && (
+                  <>
+                    <XCircle className="size-4 text-destructive" /> Qualidade
+                    ruim — recomendamos fotografar de novo
+                  </>
+                )}
+              </p>
+              {resultado.problemas.map((p) => (
+                <div key={p.titulo}>
+                  <p
+                    className={cn(
+                      "font-medium",
+                      p.nivel === "grave" && "text-destructive",
+                    )}
+                  >
+                    {p.titulo}
+                  </p>
+                  <p className="text-muted-foreground">{p.dica}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
-        <DialogFooter className="flex-col gap-2 sm:flex-row">
-          <Button variant={ruim ? "default" : "outline"} onClick={() => { fechar(null); tirarOutraRef.current?.(); }}>
-            Fotografar de Novo
-          </Button>
-          <Button variant="outline" onClick={() => setGraus((g) => (g + 90) % 360)}>
-            <RotateCw className="mr-2 size-4" /> Girar
-          </Button>
-          <Button
-            variant={ruim ? "outline" : "default"}
-            disabled={(!resultado && !erro) || preparando}
-            onClick={() => void enviar()}
-          >
-            {ruim ? "Enviar Mesmo Assim" : "Está Legível, Enviar"}
-          </Button>
-        </DialogFooter>
+          <details className="text-xs text-muted-foreground">
+            <summary className="cursor-pointer font-medium text-foreground">
+              Como fotografar bem
+            </summary>
+            <ul className="mt-1 list-disc pl-5 space-y-0.5">
+              {DICAS_ENQUADRAMENTO.map((d) => (
+                <li key={d}>{d}</li>
+              ))}
+            </ul>
+          </details>
+
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button
+              variant={ruim ? "default" : "outline"}
+              onClick={() => {
+                fechar(null);
+                tirarOutraRef.current?.();
+              }}
+            >
+              Fotografar de Novo
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setGraus((g) => (g + 90) % 360)}
+            >
+              <RotateCw className="mr-2 size-4" /> Girar
+            </Button>
+            <Button
+              variant={ruim ? "outline" : "default"}
+              disabled={(!resultado && !erro) || preparando}
+              onClick={() => void enviar()}
+            >
+              {ruim ? "Enviar Mesmo Assim" : "Está Legível, Enviar"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
