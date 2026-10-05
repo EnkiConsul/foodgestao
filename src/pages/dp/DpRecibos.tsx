@@ -264,6 +264,7 @@ export default function DpRecibos() {
 
   /** Baixa o PDF com nome "Tipo - Nome - MM-AAAA.pdf" (funciona no celular). */
   async function abrirPdf(id: string, info?: { natureza: string; nome: string; competencia: string }) {
+    setBaixandoId(id);
     try {
       const url = await reciboPdfUrl(id);
       const r = info ?? (() => {
@@ -283,6 +284,9 @@ export default function DpRecibos() {
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (e) {
       toast.error((e as Error).message);
+    } finally {
+      // Pequeno atraso para o rótulo "Baixando…" ser perceptível mesmo com resposta rápida.
+      window.setTimeout(() => setBaixandoId((cur) => (cur === id ? null : cur)), 600);
     }
   }
 
