@@ -569,7 +569,12 @@ export default function DpMeuTrocas() {
       />
       <AssinaturaConfirmarDialog
         open={!!assinarTermo}
-        onOpenChange={(v) => !v && setAssinarTermo(null)}
+        onOpenChange={(v) => {
+          if (!v) {
+            setAssinarTermo(null);
+            limparParamAssinar();
+          }
+        }}
         titulo="Termo de troca de folga — sua assinatura digital fica registrada no termo."
         nome={(meRef.data as any)?.nome ?? ""}
         enviando={assinandoTermo}
@@ -579,7 +584,10 @@ export default function DpMeuTrocas() {
             await assinarTroca(assinarTermo!, png);
             toast.success("Termo assinado digitalmente com sucesso");
             qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+            // A pendência "Assinar Termo de Troca" some da tela inicial na hora.
+            qc.invalidateQueries({ queryKey: ["dp_pendencias_colaborador", user?.id] });
             setAssinarTermo(null);
+            limparParamAssinar();
           } catch (e: any) {
             notifyError(e, { surface: "Trocas de folga", action: "assinar o termo", fallback: "Não foi possível assinar o termo. Tente novamente." });
           } finally {
