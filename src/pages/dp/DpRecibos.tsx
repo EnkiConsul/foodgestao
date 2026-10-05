@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Download, Eye, Link2, MessageCircle, Pencil, Receipt, UserPlus, XCircle } from "lucide-react";
+import { CheckCircle2, Download, Eye, Link2, Loader2, MessageCircle, Pencil, Receipt, UserPlus, XCircle } from "lucide-react";
 import { ViaAssinadaBotao } from "@/components/dp/documentos/ViaAssinadaBotao";
 import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { DP_DOCUMENTOS_BUCKET } from "@/lib/documentoArquivo";
@@ -104,6 +104,9 @@ export default function DpRecibos() {
   const [detalhe, setDetalhe] = useState<ReciboDetalhado | null>(null);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [substituiId, setSubstituiId] = useState<string | null>(null);
+  // Feedback de abertura: Visualizar/Baixar buscam ou geram PDF no servidor e podem demorar.
+  const [visualizandoId, setVisualizandoId] = useState<string | null>(null);
+  const [baixandoId, setBaixandoId] = useState<string | null>(null);
   const rescisao = natureza === "rescisao";
   useEffect(() => { if (rescisao && canal !== "fisico") setCanal("fisico"); }, [rescisao, canal]);
   const veioDePendencia = params.has("colaborador") && params.has("competencia");
@@ -261,6 +264,7 @@ export default function DpRecibos() {
 
   /** Baixa o PDF com nome "Tipo - Nome - MM-AAAA.pdf" (funciona no celular). */
   async function abrirPdf(id: string, info?: { natureza: string; nome: string; competencia: string }) {
+    setBaixandoId(id);
     try {
       const url = await reciboPdfUrl(id);
       const r = info ?? (() => {
@@ -280,6 +284,9 @@ export default function DpRecibos() {
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (e) {
       toast.error((e as Error).message);
+    } finally {
+      // Pequeno atraso para o rótulo "Baixando…" ser perceptível mesmo com resposta rápida.
+      window.setTimeout(() => setBaixandoId((cur) => (cur === id ? null : cur)), 600);
     }
   }
 
@@ -311,6 +318,7 @@ export default function DpRecibos() {
   }
 
   async function visualizar(r: ReciboDetalhado) {
+    setVisualizandoId(r.id);
     try {
       if (r.assinado_em && r.documento_id) return await abrirCertificado(r.documento_id);
       if (r.via_assinada_path) {
@@ -323,6 +331,10 @@ export default function DpRecibos() {
       window.open(url, "_blank", "noopener");
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (e) { toast.error((e as Error).message); }
+    finally {
+      // Pequeno atraso para o rótulo "Abrindo…" ser perceptível mesmo com resposta rápida.
+      window.setTimeout(() => setVisualizandoId((cur) => (cur === r.id ? null : cur)), 600);
+    }
   }
 
   function acoesCard(r: ReciboDetalhado) {
@@ -330,8 +342,14 @@ export default function DpRecibos() {
     const ativo = !r.cancelado_em && !r.substituido_em;
     return (
       <>
-        <Button size="sm" variant="outline" className="rounded-full" onClick={() => visualizar(r)}><Eye className="h-4 w-4 mr-1" />Visualizar</Button>
-        <Button size="sm" variant="outline" className="rounded-full" onClick={() => abrirPdf(r.id)}><Download className="h-4 w-4 mr-1" />Baixar</Button>
+        <Button size="sm" variant="outline" className="rounded-full" disabled={visualizandoId === r.id} onClick={() => visualizar(r)}>
+          {visualizandoId === r.id ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Eye className="h-4 w-4 mr-1" />}
+          {visualizandoId === r.id ? "Abrindo…" : "Visualizar"}
+        </Button>
+        <Button size="sm" variant="outline" className="rounded-full" disabled={baixandoId === r.id} onClick={() => abrirPdf(r.id)}>
+          {baixandoId === r.id ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+          {baixandoId === r.id ? "Baixando…" : "Baixar"}
+        </Button>
         {ativo && !assinado && (
           <Button size="sm" variant="outline" className="rounded-full" onClick={() => carregarNoFormulario(r, "editar")}><Pencil className="h-4 w-4 mr-1" />Editar</Button>
         )}
