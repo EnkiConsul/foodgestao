@@ -3,14 +3,15 @@ import type { DpTrocaRow } from "@/hooks/useDpTrocas";
 import { dataComDiaSemana } from "@/lib/dp/troca-apresentacao";
 import { TEXTO_CIENCIA_FALTA_TROCA } from "@/components/dp/CienciaFaltaTrocaBox";
 import { maskCpf } from "@/lib/cpf";
-import logoAveto from "@/assets/aveto360-horizontal-light.png.asset.json";
+import { AVETO_LOGO_DATA_URL } from "@/lib/dp/aveto-logo-data";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 export const TEXTO_CIENCIA_DSR_TROCA =
   "Os colaboradores declaram que esta troca foi pedida e aceita por livre e espontânea vontade, no interesse pessoal de cada um, e não por determinação da empresa. Estão cientes de que, em razão da troca, poderá haver mais de 6 (seis) dias consecutivos de trabalho antes do descanso, situação que concordam por sua própria conveniência (Art. 67 da CLT e Lei 605/1949).";
 
 const cpfFmt = (v?: string | null) => (v && v.replace(/\D/g, "").length === 11 ? maskCpf(v) : "Não informado");
-const logoUrl = () => (typeof window !== "undefined" ? `${window.location.origin}${logoAveto.url}` : logoAveto.url);
+/** Logo embutida (data URL): não depende de rede nem do domínio de hospedagem. */
+const logoUrl = () => AVETO_LOGO_DATA_URL;
 
 function dh(iso: string | null) {
   if (!iso) return "—";
@@ -97,7 +98,9 @@ export async function termoTrocaPdf(t: DpTrocaRow, empresa: { nome: string; cnpj
   const s = t.solicitante, d = t.destino;
   const x = t as unknown as Record<string, string | null>;
   try {
-    const bytes = new Uint8Array(await (await fetch(logoUrl())).arrayBuffer());
+    const bin = atob(AVETO_LOGO_DATA_URL.split(",")[1]);
+    const bytes = new Uint8Array(bin.length);
+    for (let k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
     const logo = await pdf.embedPng(bytes);
     const esc = 34 / logo.height;
     page.drawImage(logo, { x: M, y: y - 34, width: logo.width * esc, height: 34 });
