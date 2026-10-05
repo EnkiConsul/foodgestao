@@ -20,6 +20,23 @@ describe("competência do comprovante", () => {
     expect(competenciaDivergente("2026-09-15", "09/2026")).toBe(false);
   });
 
+  it("contracheque pago no mês seguinte à competência não é divergência (Art. 459, §1º CLT)", () => {
+    expect(competenciaDivergente("2026-10-06", "09/2026", "contracheque")).toBe(false);
+    expect(competenciaDivergente("2027-01-05", "12/2026", "contracheque")).toBe(false);
+    expect(competenciaDivergente("2026-10-05", "09/2026", "pro_labore")).toBe(false);
+    expect(competenciaDivergente("2026-10-05", "09/2026", "gorjeta")).toBe(false);
+  });
+
+  it("folha paga dois meses depois ou mais continua divergente", () => {
+    expect(competenciaDivergente("2026-11-05", "09/2026", "contracheque")).toBe(true);
+  });
+
+  it("adiantamento e rescisão pagos no mês seguinte continuam divergentes", () => {
+    expect(competenciaDivergente("2026-10-05", "09/2026", "adiantamento")).toBe(true);
+    expect(competenciaDivergente("2026-10-05", "09/2026", "trct")).toBe(true);
+    expect(competenciaDivergente("2026-10-05", "09/2026")).toBe(true);
+  });
+
   it("não aponta divergência sem data ou sem competência", () => {
     expect(competenciaDivergente("", "08/2026")).toBe(false);
     expect(competenciaDivergente("2026-09-15", null)).toBe(false);

@@ -9,7 +9,7 @@ import { competenciaDe, limiteMesSeguinte, limiteNoMes } from "./pendencias-docu
  */
 
 /** Documentos de folha mensal: o pagamento cai no mês seguinte à competência. */
-const TIPOS_FOLHA_MES_SEGUINTE = new Set<string>([
+export const TIPOS_FOLHA_MES_SEGUINTE = new Set<string>([
   "contracheque",
   "contracheque_13",
   "pro_labore",

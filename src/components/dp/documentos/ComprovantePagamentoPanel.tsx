@@ -333,7 +333,11 @@ export function ComprovanteAnexarDialog(props: {
   const fraseValor = fraseConferenciaValor(confValor);
   const hoje = hojeISO();
 
-  const divergente = competenciaDivergente(pagoEm, props.competencia);
+  const divergente = competenciaDivergente(
+    pagoEm,
+    props.competencia,
+    props.alvo.tipo,
+  );
   const aviso =
     divergente && props.competencia
       ? avisoCompetenciaDivergente(pagoEm, props.competencia)

@@ -1,3 +1,5 @@
+import { TIPOS_FOLHA_MES_SEGUINTE } from "./comprovante-prazo";
+
 /**
  * Data do pagamento informada ao anexar o comprovante.
  * Vazia é aceita (campo opcional); data futura é recusada.
@@ -45,15 +47,29 @@ export function competenciaParaAnoMes(competencia?: string | null): string | nul
  * Verdadeiro quando o pagamento informado está em um mês diferente da
  * competência do documento — nesse caso a tela pede confirmação antes de
  * anexar (o servidor também recusa sem confirmação).
+ *
+ * Exceção legal (Art. 459, §1º CLT): documentos de folha mensal
+ * (contracheque, 13º, pró-labore, PLR, gorjeta etc.) podem ser pagos até o
+ * 5º dia útil do mês seguinte à competência. Pagamento no mês imediatamente
+ * seguinte, portanto, NÃO é divergência — só meses além disso pedem
+ * confirmação.
  */
 export function competenciaDivergente(
   pagoEm?: string | null,
   competencia?: string | null,
+  tipo?: string | null,
 ): boolean {
   const anoMes = competenciaParaAnoMes(competencia);
   const data = (pagoEm ?? "").trim();
   if (!anoMes || !/^\d{4}-\d{2}-\d{2}$/.test(data)) return false;
-  return data.slice(0, 7) !== anoMes;
+  const mesPagamento = data.slice(0, 7);
+  if (mesPagamento === anoMes) return false;
+  if (tipo && TIPOS_FOLHA_MES_SEGUINTE.has(tipo)) {
+    const [ano, mes] = anoMes.split("-").map(Number);
+    const seguinte = mes === 12 ? `${ano + 1}-01` : `${ano}-${String(mes + 1).padStart(2, "0")}`;
+    if (mesPagamento === seguinte) return false;
+  }
+  return true;
 }
 
 /** Frase de aviso da divergência, em linguagem de negócio. */
