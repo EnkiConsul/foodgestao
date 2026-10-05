@@ -377,7 +377,7 @@ export default function DpHistoricoCompleto() {
     setCertStatus("carregando");
     certificadoValidacaoPdf(preview.id.slice(4))
       .then((c) => { if (cancelado) c.revogar(); else { atual = c; setCertPreview(c); setCertStatus("idle"); } })
-      .catch(() => { if (!cancelado) setCertStatus("falhou"); });
+      .catch((e) => { if (!cancelado) { setCertStatus("falhou"); toast.warning(e instanceof Error ? e.message : "Não foi possível carregar a validação digital. Mostrando o documento original."); } });
     return () => { cancelado = true; atual?.revogar(); setCertPreview(null); };
   }, [preview]);
   const [detalhe, setDetalhe] = useState<UnifiedDoc | null>(null);

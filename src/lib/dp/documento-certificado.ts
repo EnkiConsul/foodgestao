@@ -35,9 +35,23 @@ export async function certificadoValidacaoPdf(
 }
 
 async function gerarCertificadoBlob(documentoId: string): Promise<Blob> {
-  const { data, error } = await supabase.functions.invoke("dp-documento-certificado", {
-    body: { documento_id: documentoId },
-  });
+  const controle = new AbortController();
+  const limite = setTimeout(() => controle.abort(), 45_000);
+  let resposta;
+  try {
+    resposta = await supabase.functions.invoke("dp-documento-certificado", {
+      body: { documento_id: documentoId },
+      signal: controle.signal,
+    });
+  } catch {
+    throw new Error("A validação digital demorou demais. Mostrando o documento original; tente abrir novamente.");
+  } finally {
+    clearTimeout(limite);
+  }
+  const { data, error } = resposta;
+  if (controle.signal.aborted) {
+    throw new Error("A validação digital demorou demais. Mostrando o documento original; tente abrir novamente.");
+  }
   if (error) {
     let frase = "";
     const ctx = (error as { context?: Response }).context;
