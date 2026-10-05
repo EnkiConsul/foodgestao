@@ -123,6 +123,14 @@ export function DocumentoAssinaturaGate() {
               </Badge>
             )}
 
+            {bloqueado && (
+              <p className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
+                {documentos.length >= TRAVA_QTD_DOCUMENTOS
+                  ? `Você tem ${documentos.length} documentos sem assinatura. Assine para continuar usando o portal.`
+                  : `Este documento está há ${diasAtraso} dias sem assinatura. Assine para continuar usando o portal.`}
+              </p>
+            )}
+
             <p className="text-xs text-muted-foreground">{DOCUMENTO_CONFIRMACAO_TEXTO}</p>
 
             {!podeAssinar && (
@@ -160,9 +168,15 @@ export function DocumentoAssinaturaGate() {
             >
               <PenLine className="h-4 w-4 mr-1" /> Assinar documento
             </Button>
-            <Button variant="ghost" className="w-full min-h-10" onClick={adiar}>
-              Ver depois
-            </Button>
+            {bloqueado ? (
+              <p className="text-xs text-center text-muted-foreground">
+                O portal fica liberado assim que você assinar os documentos pendentes.
+              </p>
+            ) : (
+              <Button variant="ghost" className="w-full min-h-10" onClick={adiar}>
+                Ver depois
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
