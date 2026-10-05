@@ -21,7 +21,7 @@ import { mesclarConfidencial } from "@/lib/dp/confidencial";
 import { TIPOS_COM_COMPROVANTE } from "@/lib/dp/documentoTipos";
 
 import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
-import { prazoComprovante } from "@/lib/dp/comprovante-prazo";
+import { prazoComprovante, TIPOS_RESCISORIOS } from "@/lib/dp/comprovante-prazo";
 import {
   atrasoEmDias,
   competenciaDe,
@@ -1614,6 +1614,17 @@ export function useDpPendencias() {
           const nomePorColab = new Map(colaboradoresDocs.map((c) => [c.id, c.nome]));
           const nomeUnidade = new Map(unidades.map((u) => [u.id, u.nome]));
           const diaAdiantPorUnidade = new Map(unidades.map((u) => [u.id, u.dia_adiantamento ?? null]));
+          const idsResc = [...new Set(((docsPagto ?? []) as any[])
+            .filter((d) => TIPOS_RESCISORIOS.has(String(d.tipo)) && d.colaborador_id)
+            .map((d) => d.colaborador_id as string))];
+          const deslPorColab = new Map<string, string | null>();
+          if (idsResc.length) {
+            const { data: desl } = await supabase
+              .from("dp_colaboradores")
+              .select("id, data_desligamento")
+              .in("id", idsResc);
+            for (const r of (desl ?? []) as any[]) deslPorColab.set(r.id, r.data_desligamento ?? null);
+          }
           for (const d of (docsPagto ?? []) as any[]) {
             const referencia = String(d.referencia_data ?? d.created_at ?? "").slice(0, 10);
             if (!referencia || referencia < inicio) continue;
@@ -1627,6 +1638,7 @@ export function useDpPendencias() {
               referencia,
               diaAdiantamento: unidadeId ? diaAdiantPorUnidade.get(unidadeId) ?? null : null,
               diaPagamentoFolha: cfg.alerta_contracheque_dia_mes,
+              dataDesligamento: d.colaborador_id ? deslPorColab.get(d.colaborador_id) ?? null : null,
               toleranciaDias: cfg.alerta_comprovante_dias,
             });
             results.push({
