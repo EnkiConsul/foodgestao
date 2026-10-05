@@ -34,7 +34,10 @@ export function ViaAssinadaBotao({
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
-  const { conferir, dialogo } = useConferenciaDigitalizacao({ onTirarOutra: () => ref.current?.click() });
+  const { abrirSeletor, conferir, dialogo } = useConferenciaDigitalizacao({
+    onSelecionarArquivo: () => ref.current?.click(),
+    onTirarOutra: () => ref.current?.click(),
+  });
 
   const anexar = useMutation({
     mutationFn: async (escolhido: File) => {
@@ -88,7 +91,7 @@ export function ViaAssinadaBotao({
         title={titulo}
         className={cn(className)}
         disabled={anexar.isPending}
-        onClick={() => ref.current?.click()}
+        onClick={abrirSeletor}
       >
         {anexar.isPending ? (
           <Loader2 className="h-4 w-4 animate-spin" />

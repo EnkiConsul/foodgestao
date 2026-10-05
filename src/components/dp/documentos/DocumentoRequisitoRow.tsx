@@ -56,8 +56,14 @@ export function DocumentoRequisitoRow({
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inputParteRef = useRef<HTMLInputElement | null>(null);
-  const conf = useConferenciaDigitalizacao({ onTirarOutra: () => inputRef.current?.click() });
-  const confParte = useConferenciaDigitalizacao({ onTirarOutra: () => inputParteRef.current?.click() });
+  const conf = useConferenciaDigitalizacao({
+    onSelecionarArquivo: () => inputRef.current?.click(),
+    onTirarOutra: () => inputRef.current?.click(),
+  });
+  const confParte = useConferenciaDigitalizacao({
+    onSelecionarArquivo: () => inputParteRef.current?.click(),
+    onTirarOutra: () => inputParteRef.current?.click(),
+  });
   const [validade, setValidade] = useState<string>(item.validade ?? "");
   const [recusaAlvo, setRecusaAlvo] = useState<Anexo | null>(null);
   const [dispensaAberta, setDispensaAberta] = useState(false);
@@ -157,7 +163,7 @@ export function DocumentoRequisitoRow({
               if (f) void confParte.conferir(f).then((ok) => ok && onEnviar(ok, validade || null, true));
             }}
           />
-          <Button size="sm" variant="outline" disabled={ocupado} onClick={() => inputRef.current?.click()}>
+          <Button size="sm" variant="outline" disabled={ocupado} onClick={conf.abrirSeletor}>
             {ocupado ? <Loader2 className="mr-1 size-4 animate-spin" /> : <Upload className="mr-1 size-4" />}
             {item.multiplos ? "Adicionar arquivo" : temArquivo ? "Substituir" : "Anexar"}
           </Button>
@@ -166,7 +172,7 @@ export function DocumentoRequisitoRow({
               size="sm"
               variant="outline"
               disabled={ocupado}
-              onClick={() => inputParteRef.current?.click()}
+              onClick={confParte.abrirSeletor}
             >
               <Upload className="mr-1 size-4" />
               {anexos.length === 1 ? "Anexar verso" : "Anexar outra foto"}

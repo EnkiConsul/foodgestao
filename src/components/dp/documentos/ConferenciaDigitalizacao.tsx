@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, Loader2, RotateCw, ScanLine, XCircle } from "lucide-react";
+import { AlertTriangle, Camera, CheckCircle2, Loader2, RotateCw, ScanLine, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -51,13 +51,18 @@ type Pendente = { arquivo: File; resolve: (f: File | null) => void };
  * Uso: `const { conferir, dialogo } = useConferenciaDigitalizacao();`
  * `const final = await conferir(arquivo); if (!final) return;` e renderize `{dialogo}`.
  */
-export function useConferenciaDigitalizacao(opcoes?: { onTirarOutra?: () => void }) {
+export function useConferenciaDigitalizacao(opcoes?: { onTirarOutra?: () => void; onSelecionarArquivo?: () => void }) {
   const [pendente, setPendente] = useState<Pendente | null>(null);
+  const [orientacaoAberta, setOrientacaoAberta] = useState(false);
   const [resultado, setResultado] = useState<ResultadoQualidade | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const tirarOutraRef = useRef(opcoes?.onTirarOutra);
   tirarOutraRef.current = opcoes?.onTirarOutra;
+  const selecionarArquivoRef = useRef(opcoes?.onSelecionarArquivo);
+  selecionarArquivoRef.current = opcoes?.onSelecionarArquivo;
+
+  const abrirSeletor = useCallback(() => setOrientacaoAberta(true), []);
 
   const conferir = useCallback((arquivo: File): Promise<File | null> => {
     if (!arquivo.type.startsWith("image/") || /heic|heif/i.test(arquivo.type)) {
@@ -102,8 +107,33 @@ export function useConferenciaDigitalizacao(opcoes?: { onTirarOutra?: () => void
 
   const ruim = resultado?.nota === "ruim";
   const dialogo = (
-    <Dialog open={!!pendente} onOpenChange={(v) => { if (!v) fechar(null); }}>
-      <DialogContent className="max-w-md max-h-[92dvh] overflow-y-auto">
+    <>
+      <Dialog open={orientacaoAberta} onOpenChange={setOrientacaoAberta}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Camera className="size-5 text-primary" /> Antes de Fotografar
+            </DialogTitle>
+            <DialogDescription>
+              Prepare o documento para que a foto fique completa e legível.
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+            {DICAS_ENQUADRAMENTO.map((d) => <li key={d}>{d}</li>)}
+          </ul>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button variant="outline" onClick={() => setOrientacaoAberta(false)}>Cancelar</Button>
+            <Button onClick={() => {
+              setOrientacaoAberta(false);
+              selecionarArquivoRef.current?.();
+            }}>
+              Escolher Arquivo ou Tirar Foto
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!pendente} onOpenChange={(v) => { if (!v) fechar(null); }}>
+        <DialogContent className="max-w-md max-h-[92dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><ScanLine className="size-5 text-primary" /> Confira a Digitalização</DialogTitle>
           <DialogDescription>Uma foto ruim pode perder o valor de prova. Veja se a assinatura e os números estão legíveis.</DialogDescription>
@@ -158,11 +188,12 @@ export function useConferenciaDigitalizacao(opcoes?: { onTirarOutra?: () => void
             {ruim ? "Enviar Mesmo Assim" : "Está Legível, Enviar"}
           </Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 
-  return { conferir, dialogo };
+  return { abrirSeletor, conferir, dialogo };
 }
 
 /** Orientação curta exibida junto ao botão de envio. */

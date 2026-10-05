@@ -225,7 +225,14 @@ export function ComprovanteAnexarDialog(props: {
   complementar?: { jaComprovadoCents: number };
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { conferir: conferirFoto, dialogo: dialogoFoto } = useConferenciaDigitalizacao({ onTirarOutra: () => inputRef.current?.click() });
+  const {
+    abrirSeletor: abrirSeletorFoto,
+    conferir: conferirFoto,
+    dialogo: dialogoFoto,
+  } = useConferenciaDigitalizacao({
+    onSelecionarArquivo: () => inputRef.current?.click(),
+    onTirarOutra: () => inputRef.current?.click(),
+  });
   const campoId = useId();
   const [pagoEm, setPagoEm] = useState(props.pagoEmAtual ?? "");
   const [arquivo, setArquivo] = useState<File | null>(null);
@@ -322,7 +329,7 @@ export function ComprovanteAnexarDialog(props: {
 
   const importar = () => {
     if (!arquivo) {
-      inputRef.current?.click();
+      abrirSeletorFoto();
       return;
     }
     const check = validarDataPagamento(pagoEm, hoje);
@@ -474,7 +481,7 @@ export function ComprovanteAnexarDialog(props: {
         <div className="grid gap-1.5">
           <Label className="text-xs">Arquivo do comprovante</Label>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => inputRef.current?.click()} disabled={ocupado}>
+            <Button size="sm" variant="outline" onClick={abrirSeletorFoto} disabled={ocupado}>
               <Upload className="mr-1 size-4" /> Escolher Arquivo
             </Button>
             <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
