@@ -33,6 +33,8 @@ export default function DpBloqueios() {
   const [aplicacaoFiltro, setAplicacaoFiltro] = useState<string>("all");
   const [unidadeFiltro, setUnidadeFiltro] = useState<string>("all");
   const [showPast, setShowPast] = useState(false);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const filtrosSecundarios = [mesFiltro, aplicacaoFiltro, unidadeFiltro].filter((v) => v !== "all").length + (showPast ? 1 : 0);
   // (regeneração manual removida — regras valem em runtime)
 
   // Dialogs
