@@ -47,7 +47,6 @@ export function FolhaPagamentoAlerta() {
   const q = useQuery({
     queryKey: ["dp_pagamentos_pendentes_alerta", selectedCompanyId],
     enabled: !!selectedCompanyId,
-    staleTime: 60_000,
     queryFn: async (): Promise<Grupo[]> => {
       const { data, error } = await supabase
         .from("dp_documentos")
