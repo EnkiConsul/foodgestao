@@ -33,6 +33,8 @@ import { extrairCpfValido, extrairNomePessoa, isCpfValido, pareceRazaoSocial } f
 import { tipoCanonicoPorVinculo } from "@/lib/dp/documento-tipo-por-vinculo";
 import { useNormalizarTipoPorVinculo } from "./useNormalizarTipoPorVinculo";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { useDpIntermitenteConfirmacoes } from "@/hooks/useDpIntermitenteConfirmacoes";
+import { isIntermitente } from "@/lib/dp/contrato-policy";
 import { notifyError } from "@/lib/notifyError";
 
 // Setup pdfjs worker once
@@ -57,6 +59,10 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
 
   const [rendering, setRendering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const aprovandoRef = useRef(false);
+  const [redrawTick, setRedrawTick] = useState(0);
+  const { confirmacoes: confirmacoesIntermitente, responder: responderIntermitente, desfazer: desfazerIntermitente } =
+    useDpIntermitenteConfirmacoes();
   const [savingTotal, setSavingTotal] = useState(0);
   /** Âncora do quadro "Salvando documentos": a tela desce até ele ao aprovar. */
   const savingBannerRef = useRef<HTMLDivElement | null>(null);
@@ -171,7 +177,18 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
       }
     })();
     return () => { cancelled = true; };
-  }, [open, current?.page_file_path, current?.id, boxWidth]);
+  }, [open, current?.page_file_path, current?.id, boxWidth, redrawTick]);
+
+  // Celular descarta o desenho da prévia ao trocar de app: redesenha ao voltar.
+  useEffect(() => {
+    const h = () => { if (document.visibilityState === "visible") setRedrawTick((t) => t + 1); };
+    document.addEventListener("visibilitychange", h);
+    window.addEventListener("pageshow", h);
+    return () => {
+      document.removeEventListener("visibilitychange", h);
+      window.removeEventListener("pageshow", h);
+    };
+  }, []);
 
 
   const setColab = useMutation({
@@ -283,6 +300,12 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
       qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_items"] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+      qc.invalidateQueries({ queryKey: ["dp_bulk_batch_info", batchId] });
+      // O lote vira "Importado" no servidor logo após a gravação: confere de novo em instantes.
+      setTimeout(() => {
+        qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+        qc.invalidateQueries({ queryKey: ["dp_bulk_batch_info", batchId] });
+      }, 2500);
       qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
@@ -305,6 +328,16 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
   }
 
   async function handleApproveClick() {
+    if (aprovandoRef.current || isSaving) return;
+    aprovandoRef.current = true;
+    try {
+      await handleApproveClickInner();
+    } finally {
+      aprovandoRef.current = false;
+    }
+  }
+
+  async function handleApproveClickInner() {
     if (coverage.unidadeIndefinida && !semUnidadeOkRef.current) {
       setConfirmSemUnidade(true);
       return;
@@ -384,6 +417,13 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
     unidadeIds: unidadesLote,
     tipo: (batchInfo.data as any)?.tipo ?? null,
   });
+  const compMes = competenciaLote ? competenciaLote.slice(0, 7) : null;
+  const dispensadosSet = new Set(
+    confirmacoesIntermitente
+      .filter((x) => !x.trabalhou && x.competencia?.slice(0, 7) === compMes)
+      .map((x) => x.colaborador_id),
+  );
+  const faltantesVisiveis = coverage.faltantes.filter((c) => !dispensadosSet.has(c.id));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -425,8 +465,8 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
           <>
         <div className="px-4 pt-2">
           <ColaboradoresFaltantesPanel
-            faltantes={coverage.faltantes}
-            totalEsperados={coverage.esperados.length}
+            faltantes={faltantesVisiveis}
+            totalEsperados={coverage.esperados.length - (coverage.faltantes.length - faltantesVisiveis.length)}
             competencia={competenciaLote}
             unidadeIndefinida={coverage.unidadeIndefinida}
             unidadeSlot={
@@ -435,6 +475,15 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
                 companyId={(batchInfo.data as any)?.company_id ?? null}
               />
             }
+            podeDispensar={(c) => !!compMes && isIntermitente((c as any).regime ?? (c as any).regime_trabalho)}
+            dispensandoId={responderIntermitente.isPending ? (responderIntermitente.variables?.colaboradorId ?? null) : null}
+            onNaoTrabalhou={(c) =>
+              compMes &&
+              responderIntermitente.mutate({ colaboradorId: c.id, competencia: `${compMes}-01`, trabalhou: false })
+            }
+            dispensados={coverage.faltantes.filter((c) => dispensadosSet.has(c.id)).map((c) => ({ id: c.id, nome: c.nome }))}
+            desfazendoId={desfazerIntermitente.isPending ? (desfazerIntermitente.variables?.colaboradorId ?? null) : null}
+            onDesfazer={(id) => compMes && desfazerIntermitente.mutate({ colaboradorId: id, competencia: `${compMes}-01` })}
           />
         </div>
         <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-0 overflow-y-auto lg:overflow-hidden">

@@ -86,7 +86,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
   const savingBannerRef = useRef<HTMLDivElement | null>(null);
   const aprovandoRef = useRef(false);
   const [redrawTick, setRedrawTick] = useState(0);
-  const { confirmacoes: confirmacoesIntermitente, responder: responderIntermitente } =
+  const { confirmacoes: confirmacoesIntermitente, responder: responderIntermitente, desfazer: desfazerIntermitente } =
     useDpIntermitenteConfirmacoes();
 
   const batchInfo = useQuery({
@@ -753,6 +753,9 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
               compMes &&
               responderIntermitente.mutate({ colaboradorId: c.id, competencia: `${compMes}-01`, trabalhou: false })
             }
+            dispensados={coverage.faltantes.filter((c) => dispensados.has(c.id)).map((c) => ({ id: c.id, nome: c.nome }))}
+            desfazendoId={desfazerIntermitente.isPending ? (desfazerIntermitente.variables?.colaboradorId ?? null) : null}
+            onDesfazer={(id) => compMes && desfazerIntermitente.mutate({ colaboradorId: id, competencia: `${compMes}-01` })}
           />
         )}
         {!ocrInProgress && !isSaving && (() => {

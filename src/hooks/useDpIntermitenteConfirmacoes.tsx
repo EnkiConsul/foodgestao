@@ -96,5 +96,40 @@ export function useDpIntermitenteConfirmacoes() {
     },
   });
 
-  return { confirmacoes: query.data ?? [], isLoading: query.isLoading, responder };
+  /** Desfaz a resposta: a competência volta a ser cobrada normalmente. */
+  const desfazer = useMutation({
+    mutationFn: async (args: { colaboradorId: string; competencia: string }) => {
+      const { error } = await supabase
+        .from("dp_intermitente_competencia_confirmacoes" as any)
+        .delete()
+        .eq("company_id", selectedCompanyId!)
+        .eq("colaborador_id", args.colaboradorId)
+        .eq("competencia", args.competencia);
+      if (error) throw error;
+    },
+    onSuccess: (_d, args) => {
+      qc.setQueryData<IntermitenteConfirmacao[]>(
+        ["dp_intermitente_confirmacoes", selectedCompanyId],
+        (atuais) =>
+          (atuais ?? []).filter(
+            (i) => i.colaborador_id !== args.colaboradorId || i.competencia.slice(0, 7) !== args.competencia.slice(0, 7),
+          ),
+      );
+      qc.invalidateQueries({ queryKey: ["dp_intermitente_confirmacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_doc_consistencia_janela"] });
+      toast.success("Desfeito: o documento do mês volta a ser cobrado.");
+    },
+    onError: (e: unknown) => {
+      void reportError({
+        source: "database",
+        surface: "Pendências de documentos",
+        action: "desfazer dispensa de intermitente",
+        error: e,
+        userMessage: "Não foi possível desfazer. Tente novamente.",
+      });
+      toast.error("Não foi possível desfazer. Tente novamente.");
+    },
+  });
+
+  return { confirmacoes: query.data ?? [], isLoading: query.isLoading, responder, desfazer };
 }

@@ -1,3 +1,4 @@
+import { maskPhone } from "@/lib/phone";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { KeyRound, Copy, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
@@ -119,7 +120,7 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
                         <Input inputMode="numeric" placeholder="CPF (apenas números)" maxLength={14} value={e.cpf ?? ""} onChange={(ev) => set("cpf", ev.target.value)} />
                       ) : <div className="text-xs text-muted-foreground self-center">CPF ok</div>}
                       {!wppOk(i.whatsapp) ? (
-                        <Input inputMode="tel" placeholder="WhatsApp com DDD" maxLength={16} value={e.whatsapp ?? ""} onChange={(ev) => set("whatsapp", ev.target.value)} />
+                        <Input inputMode="tel" placeholder="WhatsApp com DDD" maxLength={15} value={e.whatsapp ?? ""} onChange={(ev) => set("whatsapp", maskPhone(ev.target.value))} />
                       ) : <div className="text-xs text-muted-foreground self-center">WhatsApp ok</div>}
                     </div>
                     {erros[i.id] && <p className="mt-1 text-xs text-destructive">{erros[i.id]}</p>}

@@ -18,13 +18,46 @@ export interface ColaboradoresFaltantesPanelProps {
   onNaoTrabalhou?: (c: CoverageColaborador) => void;
   podeDispensar?: (c: CoverageColaborador) => boolean;
   dispensandoId?: string | null;
+  /** Intermitentes já dispensados nesta competência (permite desfazer). */
+  dispensados?: { id: string; nome: string }[];
+  onDesfazer?: (id: string) => void;
+  desfazendoId?: string | null;
 }
 
 export function ColaboradoresFaltantesPanel({
   faltantes, totalEsperados, competencia, unidadeIndefinida, unidadeSlot, className,
-  onNaoTrabalhou, podeDispensar, dispensandoId,
+  onNaoTrabalhou, podeDispensar, dispensandoId, dispensados = [], onDesfazer, desfazendoId,
 }: ColaboradoresFaltantesPanelProps) {
   const [open, setOpen] = useState(false);
+
+  const rodape = dispensados.length > 0 ? (
+    <div className="mt-2 space-y-1 border-t border-border/60 pt-2 text-muted-foreground">
+      <p>
+        {dispensados.length === 1
+          ? "1 colaborador intermitente dispensado nesta competência:"
+          : `${dispensados.length} colaboradores intermitentes dispensados nesta competência:`}
+      </p>
+      <ul className="space-y-1">
+        {dispensados.map((d) => (
+          <li key={d.id} className="flex items-center gap-2">
+            <span className="min-w-0 flex-1 truncate">{d.nome}</span>
+            {onDesfazer && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-[11px]"
+                disabled={desfazendoId === d.id}
+                onClick={() => onDesfazer(d.id)}
+              >
+                {desfazendoId === d.id ? "Desfazendo…" : "Desfazer"}
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  ) : null;
 
   if (unidadeIndefinida) {
     return (
@@ -49,7 +82,9 @@ export function ColaboradoresFaltantesPanel({
     );
   }
 
-  if (totalEsperados === 0) return null;
+  if (totalEsperados === 0) {
+    return rodape ? <div className={cn("rounded-md border p-2.5 text-xs", className)}>{rodape}</div> : null;
+  }
 
   const cobertos = totalEsperados - faltantes.length;
   const compLabel = competencia
@@ -66,6 +101,7 @@ export function ColaboradoresFaltantesPanel({
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           Todos os {totalEsperados} colaboradores têm documento ({compLabel})
         </p>
+        {rodape}
       </div>
     );
   }
@@ -126,6 +162,7 @@ export function ColaboradoresFaltantesPanel({
               ))}
             </ul>
           )}
+          {rodape}
         </div>
       </div>
     </div>
