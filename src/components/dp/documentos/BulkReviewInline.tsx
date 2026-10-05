@@ -86,9 +86,8 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
   const savingBannerRef = useRef<HTMLDivElement | null>(null);
   const aprovandoRef = useRef(false);
   const [redrawTick, setRedrawTick] = useState(0);
-  const { confirmacoes: confirmacoesIntermitente, responder: responderIntermitente } =
+  const { confirmacoes: confirmacoesIntermitente, responder: responderIntermitente, desfazer: desfazerIntermitente } =
     useDpIntermitenteConfirmacoes();
-  const desfazerIntermitente = useDpIntermitenteConfirmacoes().desfazer;
 
   const batchInfo = useQuery({
     queryKey: ["dp_bulk_batch_info", batchId],
