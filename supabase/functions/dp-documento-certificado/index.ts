@@ -403,6 +403,26 @@ Deno.serve(async (req) => {
       admin.from("dp_colaboradores").select("nome, nome_social").eq("id", registro.colaborador_id).maybeSingle(),
     ]);
 
+    // Certificado consolidado fica guardado: reabrir é instantâneo. A chave muda
+    // quando entra/atualiza o comprovante ou uma nova aprovação, e aí é refeito.
+    const chaveCache = [
+      registro.company_id,
+      "certificados",
+      `${documentoId}-${aceite.id}-${encodeURIComponent(String(comp?.file_path ?? "sem-comprovante")).replace(/%/g, "")}-${String(registro.comprovante_pago_em ?? "").slice(0, 10)}-${String(registro.versao ?? 1)}.pdf`,
+    ].join("/");
+    const pronto = await admin.storage.from(BUCKET).download(chaveCache);
+    if (pronto.data && !pronto.error) {
+      return new Response(await pronto.data.arrayBuffer(), {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `inline; filename="certificado-validacao.pdf"`,
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+
     const pdf = await PDFDocument.create();
     const fonte = await pdf.embedFont(StandardFonts.Helvetica);
     const negrito = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -555,6 +575,10 @@ Deno.serve(async (req) => {
     if (imgAssinatura) rubricarPaginas(pdf, imgAssinatura, fonte, 44);
 
     const bytes = await pdf.save();
+    await admin.storage.from(BUCKET).upload(chaveCache, bytes, {
+      contentType: "application/pdf",
+      upsert: true,
+    }).catch(() => null);
     return new Response(bytes as unknown as BodyInit, {
       status: 200,
       headers: {
