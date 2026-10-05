@@ -134,17 +134,17 @@ export function MinhaJornadaAcoesCard() {
 
   const enviar = () => {
     if (!aberta || !opcao) return;
+    if (!motivo.trim()) return void toast.error("Informe a justificativa para enviar.");
     if (aberta === "atestado") return void enviarAtestado();
 
     const tipo = tipoOcorrenciaPortal(aberta, quando, momento);
     const ocorrido = quando === "ocorrido";
-    const informado =
-      aberta === "atraso" ? horario || (entrada && minutos ? somarMinutos(entrada, minutos) : "") : horario;
+    const informado = horario;
 
     registrar.mutate(
       {
         tipo,
-        justificativa: motivo || null,
+        justificativa: motivo.trim(),
         horarioReal: ocorrido ? informado || null : null,
         horarioEstimado: ocorrido ? null : informado || null,
         marcacaoAlvo: opcao.pedeMomento ? marcacaoDoMomento(momento) : null,
@@ -153,17 +153,25 @@ export function MinhaJornadaAcoesCard() {
     );
   };
 
+  // Minutos de atraso derivados do horário informado (só para o aviso de assiduidade).
+  const minutosAtraso = (() => {
+    if (aberta !== "atraso" || !entrada || !horario) return null;
+    const [eh, em] = entrada.split(":").map(Number);
+    const [hh, hm] = horario.split(":").map(Number);
+    const d = hh * 60 + hm - (eh * 60 + em);
+    return d > 0 ? d : null;
+  })();
+
   // Aviso antes de enviar: usa a mesma regra que o servidor aplica depois.
   const riscoPrevio = (() => {
     if (!aberta || !opcao || aberta === "esquecimento" || aberta === "problema_ponto") return null;
     const tipo = tipoOcorrenciaPortal(aberta, quando, momento);
-    const min = aberta === "atraso" ? minutos : null;
-    const r = avaliarRiscoAssiduidade(regraAssiduidade, tipo, min);
+    const r = avaliarRiscoAssiduidade(regraAssiduidade, tipo, minutosAtraso);
     return r.risco ? r.motivo : null;
   })();
 
-  const faltaHorario = !!opcao?.pedeHorario && aberta !== "outro" && aberta !== "atraso" && !horario;
-  const faltaAtraso = aberta === "atraso" && !horario && !minutos;
+  const faltaHorario = !!opcao?.pedeHorario && aberta !== "outro" && !horario;
+  const faltaAtraso = false;
 
   return (
     <section className="rounded-2xl border-2 border-[hsl(var(--dp-border))] bg-card p-5">
@@ -289,57 +297,24 @@ export function MinhaJornadaAcoesCard() {
               </div>
             )}
 
-            {aberta === "atraso" && (
-              <div className="space-y-2">
-                <Label>
-                  {quando === "ocorrido" ? "Quanto tempo você atrasou?" : "Quanto você acredita que irá atrasar?"}
-                </Label>
-                <div className="flex flex-wrap gap-2">
-                  {ATRASOS.map((m) => (
-                    <Button
-                      key={m}
-                      size="sm"
-                      variant={minutos === m && !horario ? "default" : "outline"}
-                      onClick={() => {
-                        setMinutos(m);
-                        setHorario("");
-                      }}
-                    >
-                      {m === 60 ? "1 hora" : `${m} min`}
-                    </Button>
-                  ))}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Ou informe o horário do fato</Label>
-                  <Input
-                    type="time"
-                    value={horario}
-                    onChange={(e) => {
-                      setHorario(e.target.value);
-                      setMinutos(null);
-                    }}
-                  />
-                </div>
-                {entrada && (
-                  <p className="text-xs text-muted-foreground">
-                    Entrada prevista {entrada}
-                    {minutos ? ` · chegada estimada ${somarMinutos(entrada, minutos)}` : ""}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {opcao?.pedeHorario && aberta !== "atraso" && (
+            {opcao?.pedeHorario && (
               <div className="space-y-1.5">
                 <Label>
-                  {aberta === "saida_antecipada"
+                  {aberta === "atraso"
                     ? quando === "ocorrido"
-                      ? "Saí às"
-                      : "Pretendo sair às"
-                    : "Horário em que o fato aconteceu"}
+                      ? "Horário em que cheguei"
+                      : "Horário previsto de chegada"
+                    : aberta === "saida_antecipada"
+                      ? quando === "ocorrido"
+                        ? "Saí às"
+                        : "Pretendo sair às"
+                      : "Horário em que o fato aconteceu"}
                   {aberta === "outro" ? " (opcional)" : ""}
                 </Label>
                 <Input type="time" value={horario} onChange={(e) => setHorario(e.target.value)} />
+                {aberta === "atraso" && entrada && (
+                  <p className="text-xs text-muted-foreground">Entrada prevista {entrada}</p>
+                )}
                 {aberta === "saida_antecipada" && saida && (
                   <p className="text-xs text-muted-foreground">Saída prevista {saida}</p>
                 )}
@@ -369,10 +344,16 @@ export function MinhaJornadaAcoesCard() {
             )}
 
             <div className="space-y-1.5">
-              <Label>
-                Justificativa {motivoObrigatorio ? "" : "(opcional)"}
-              </Label>
-              <Textarea rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+              <Label>Justificativa *</Label>
+              <Textarea
+                rows={3}
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                placeholder="Explique o que aconteceu."
+              />
+              {!motivo.trim() && (
+                <p className="text-xs text-muted-foreground">Obrigatória para enviar.</p>
+              )}
             </div>
           </div>
 

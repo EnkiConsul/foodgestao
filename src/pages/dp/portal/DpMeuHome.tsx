@@ -24,14 +24,11 @@ import { useMinhaProximaFolga } from "@/hooks/useMinhaProximaFolga";
 import { textoProximaFolga } from "@/lib/dp/proxima-folga";
 import { toProperName } from "@/lib/text/properName";
 import { InstalarAppCard } from "@/components/dp/portal/InstalarAppCard";
-import { PortalMenusPrincipaisCards } from "@/components/dp/home/PortalMenusPrincipaisCards";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 
 export default function DpMeuHome() {
   const { user } = useAuth();
   const meu = useDpMeuResumo();
-  const isMobile = useIsMobile();
 
   const colabId = useQuery({
     queryKey: ["colab_of", user?.id],
@@ -131,17 +128,8 @@ export default function DpMeuHome() {
         </div>
       </header>
 
-      {/* Convite para instalar o app, no primeiro acesso pelo celular. */}
-      <InstalarAppCard />
-
-      {/* Atalhos dos menus principais, no topo do Início no celular. */}
-      {isMobile && <PortalMenusPrincipaisCards />}
-
-      {/* Pendências em destaque, logo depois da saudação. */}
-      <MinhasPendenciasCard />
-
-      {/* Resumo compacto: próxima folga · últimos docs · mensagens */}
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* Resumo compacto logo abaixo da saudação: 2 por linha no celular. */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3">
         <ResumoCard
           icon={Calendar}
           label="Próxima folga"
@@ -149,7 +137,7 @@ export default function DpMeuHome() {
           hint={
             proximaFolga
               ? `${new Date(proximaFolga.data + "T00:00:00").toLocaleDateString("pt-BR", {
-                  weekday: "long",
+                  weekday: "short",
                   day: "2-digit",
                   month: "2-digit",
                 })} · ${proximaFolga.label}`
@@ -159,9 +147,9 @@ export default function DpMeuHome() {
         />
         <ResumoCard
           icon={FileText}
-          label="Últimos documentos"
+          label="Documentos"
           value={String(ultimosDocs.data?.length ?? 0)}
-          hint={ultimosDocs.data?.[0]?.titulo ?? "Nenhum documento recente"}
+          hint={ultimosDocs.data?.[0]?.titulo ?? "Nenhum recente"}
           to="/dp/meu/documentos"
           loading={ultimosDocs.isLoading || colabId.isLoading}
         />
@@ -169,11 +157,17 @@ export default function DpMeuHome() {
           icon={MessageSquare}
           label="Avisos do Mural"
           value={String(msgs.data ?? 0)}
-          hint={(msgs.data ?? 0) > 0 ? "Você tem avisos não lidos" : "Nenhum aviso novo"}
+          hint={(msgs.data ?? 0) > 0 ? "Avisos não lidos" : "Nenhum aviso novo"}
           to="/dp/meu/mural"
           loading={msgs.isLoading}
         />
       </div>
+
+      {/* Convite para instalar o app, no primeiro acesso pelo celular. */}
+      <InstalarAppCard />
+
+      {/* Pendências em destaque. */}
+      <MinhasPendenciasCard />
 
 
       <MinhaJornadaAcoesCard />
@@ -236,26 +230,26 @@ function ResumoCard({
   return (
     <Link
       to={to}
-      className="rounded-2xl border border-[hsl(var(--dp-border))] bg-card p-4 hover:shadow-sm transition-shadow flex items-center gap-3"
+      className="min-w-0 rounded-xl sm:rounded-2xl border border-[hsl(var(--dp-border))] bg-card p-2.5 sm:p-4 hover:shadow-sm transition-shadow flex items-center gap-2 sm:gap-3"
     >
-      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-        <Icon className="h-5 w-5 text-primary" />
+      <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+        <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-[11px] sm:text-xs text-muted-foreground truncate">{label}</p>
         {loading ? (
           <div className="space-y-1.5 py-1">
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-3 w-20" />
           </div>
         ) : (
           <>
-            <p className="text-lg font-semibold leading-tight">{value}</p>
-            <p className="text-[11px] text-muted-foreground truncate">{hint}</p>
+            <p className="text-sm sm:text-lg font-semibold leading-tight truncate">{value}</p>
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate">{hint}</p>
           </>
         )}
       </div>
-      <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+      <ArrowRight className="hidden sm:block h-4 w-4 text-muted-foreground shrink-0" />
     </Link>
   );
 }
