@@ -64,7 +64,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { definirLimiteDoDia, salvarDataBloqueada, excluirDataBloqueada } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
-import { useDpFolgaReserva } from "@/hooks/useDpFolgaReserva";
 import { useAuth } from "@/hooks/useAuth";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpFolgasQueries } from "@/hooks/useDpFolgasQueries";
@@ -72,6 +71,8 @@ import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
 import {
   origemLimiteLabel,
   resolverLimiteFolga,
+  cotasPorCargoNoDia,
+  type CotaCargoDia,
   type LimiteResolvido,
 } from "@/lib/dp/folga-limites";
 
@@ -164,6 +165,26 @@ const STAT_DESCRICAO: Record<StatKey, string> = {
   capacidade: "Limite de folgas de cada dia do mês.",
 };
 
+/** Ocupação de cada cota de cargo do dia: deixa claro de quem é a vaga livre. */
+function CotasCargoLista({ cotas }: { cotas: CotaCargoDia[] }) {
+  return (
+    <ul className="space-y-1">
+      {cotas.map((c) => {
+        const livres = Math.max(0, c.maximo - c.ocupados);
+        return (
+          <li key={c.regraId} className="flex flex-wrap items-center justify-between gap-1 rounded-lg border px-2.5 py-1.5 text-xs">
+            <span className="font-semibold">{c.rotulo}</span>
+            <span className={livres > 0 ? "text-primary" : "text-destructive"}>
+              {livres > 0 ? `${livres} vaga(s) livre(s)` : "Lotado"} ({c.ocupados}/{c.maximo})
+              {c.nomes.length > 0 ? ` · ${c.nomes.join(", ")}` : ""}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export default function DpFolgas() {
 
   const embedded = useDpEmbedded();
@@ -207,10 +228,11 @@ export default function DpFolgas() {
   /** Card de indicador aberto no detalhamento do mês. */
   const [statDetalhe, setStatDetalhe] = useState<StatKey | null>(null);
   /** Indisponibilidades de convocáveis: contagem e nomes, já na unidade filtrada. */
-  const { reservasByDay, pessoasByDay } = useDpFolgaReserva(
-
-    cursor,
-    unidadeFilter === "todas" ? null : unidadeFilter,
+  // Indisponibilidade de convocáveis fica só em Convocações: não ocupa vaga de folga dos mensalistas.
+  const reservasByDay = useMemo(() => new Map<string, number>(), []);
+  const pessoasByDay = useMemo(
+    () => new Map<string, Array<{ id: string; nome: string; vinculo?: string | null }>>(),
+    [],
   );
 
   // Reaplica preferências ao trocar de empresa
@@ -561,6 +583,31 @@ export default function DpFolgas() {
     return map;
   }, [limiteByDay]);
 
+  /** Cotas por cargo do dia (só com uma unidade filtrada e regras separadas por cargo). */
+  const cotasByDay = useMemo(() => {
+    const map = new Map<string, CotaCargoDia[]>();
+    if (unidadeFilter === "todas") return map;
+    const lista = (colabs.data ?? []) as any[];
+    const byId = new Map(lista.map((c) => [c.id as string, c]));
+    const cargoNomeById = new Map<string, string>();
+    for (const c of lista) if (c.cargo_id && c.cargo_nome) cargoNomeById.set(c.cargo_id, c.cargo_nome);
+    for (const d of days) {
+      const key = format(d, "yyyy-MM-dd");
+      const ocupantes = (eventsByDay.get(key) ?? [])
+        .filter((e) => e.status === "aprovada" && e.tipo === "folga")
+        .map((e) => {
+          const c = byId.get(e.colaborador_id);
+          return { nome: c?.nome ?? (e as any).dp_colaboradores?.nome ?? "—", cargoId: c?.cargo_id ?? null, setorId: c?.setor_id ?? null };
+        });
+      const cotas = cotasPorCargoNoDia({
+        data: key, unidadeId: unidadeFilter, regras: regrasLimite,
+        diaConfig: diaConfigQuery.data ?? [], ocupantes, cargoNomeById,
+      });
+      if (cotas.length > 0) map.set(key, cotas);
+    }
+    return map;
+  }, [days, unidadeFilter, regrasLimite, diaConfigQuery.data, colabs.data, eventsByDay]);
+
   const [verLimitesLojas, setVerLimitesLojas] = useState(false);
 
   /** Na visão "Todas as lojas", limite de cada unidade para o dia aberto. */
@@ -710,6 +757,7 @@ export default function DpFolgas() {
     let lotados = 0;
     let semLimite = 0;
     let reservas = 0;
+    let livres = 0;
     for (const d of eachDayOfInterval({ start: monthStart, end: monthEnd })) {
       const key = format(d, "yyyy-MM-dd");
       const evs = eventsByDay.get(key) ?? [];
@@ -723,6 +771,12 @@ export default function DpFolgas() {
         continue;
       }
       capacidade += cap;
+      const cotas = cotasByDay.get(key);
+      if (cotas) {
+        livres += cotas.reduce((s, c) => s + Math.max(0, c.maximo - c.ocupados), 0);
+      } else {
+        livres += Math.max(0, cap - aprov - reserva);
+      }
       if (aprov + reserva >= cap && cap > 0) lotados += 1;
     }
     return {
@@ -731,9 +785,9 @@ export default function DpFolgas() {
       lotados,
       semLimite,
       reservas,
-      restantes: Math.max(0, capacidade - marcadas - reservas),
+      restantes: livres,
     };
-  }, [eventsByDay, capacityByDay, reservasByDay, monthStart, monthEnd]);
+  }, [eventsByDay, capacityByDay, reservasByDay, cotasByDay, monthStart, monthEnd]);
 
 
   const selectedEvents = selectedDay
@@ -766,7 +820,6 @@ export default function DpFolgas() {
 
   const statCards: Array<{ key: StatKey; label: string; value: number; icon: typeof Users; tone: string }> = [
     { key: "marcadas", label: "FOLGAS MARCADAS", value: stats.marcadas, icon: CheckCircle2, tone: "text-emerald-600" },
-    { key: "reservas", label: "RESERVAS", value: stats.reservas, icon: Users, tone: "text-amber-600" },
     { key: "restantes", label: "VAGAS RESTANTES", value: stats.restantes, icon: Users, tone: "text-blue-600" },
     { key: "lotados", label: "DIAS LOTADOS", value: stats.lotados, icon: AlertTriangle, tone: "text-red-600" },
     { key: "capacidade", label: "CAPACIDADE TOTAL", value: stats.capacidade, icon: CalendarIcon, tone: "text-primary" },
@@ -784,6 +837,7 @@ export default function DpFolgas() {
       reserva: number;
       nomes: string[];
       reservados: string[];
+      cotas: CotaCargoDia[];
     }> = [];
     for (const d of eachDayOfInterval({ start: monthStart, end: monthEnd })) {
       const key = format(d, "yyyy-MM-dd");
@@ -800,16 +854,20 @@ export default function DpFolgas() {
         reserva,
         nomes: aprovEvs.map((e) => (e as any).dp_colaboradores?.nome ?? "—"),
         reservados,
+        cotas: cotasByDay.get(key) ?? [],
       };
       if (statDetalhe === "marcadas" && item.aprov === 0) continue;
       if (statDetalhe === "reservas" && reserva === 0) continue;
       if (statDetalhe === "lotados" && !(cap != null && cap > 0 && item.aprov + reserva >= cap)) continue;
-      if (statDetalhe === "restantes" && !(cap != null && cap - item.aprov - reserva > 0)) continue;
+      const livresDia = item.cotas.length > 0
+        ? item.cotas.reduce((s, c) => s + Math.max(0, c.maximo - c.ocupados), 0)
+        : cap != null ? cap - item.aprov - reserva : 0;
+      if (statDetalhe === "restantes" && !(livresDia > 0)) continue;
       if (statDetalhe === "capacidade" && cap == null) continue;
       out.push(item);
     }
     return out;
-  }, [statDetalhe, monthStart, monthEnd, eventsByDay, reservasByDay, pessoasByDay, capacityByDay]);
+  }, [statDetalhe, monthStart, monthEnd, eventsByDay, reservasByDay, pessoasByDay, capacityByDay, cotasByDay]);
 
 
   return (
@@ -1332,6 +1390,15 @@ export default function DpFolgas() {
                 </div>
               )}
 
+              {selectedIso && (cotasByDay.get(selectedIso)?.length ?? 0) > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                    Vagas por cargo
+                  </h3>
+                  <CotasCargoLista cotas={cotasByDay.get(selectedIso)!} />
+                </div>
+              )}
+
               <div className="space-y-3">
                 <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
                   Escala do dia
@@ -1827,11 +1894,19 @@ export default function DpFolgas() {
                       {statDetalhe === "capacidade"
                         ? `Limite ${d.cap}`
                         : statDetalhe === "restantes"
-                          ? `${Math.max(0, (d.cap ?? 0) - d.aprov - d.reserva)} vaga(s)`
+                          ? (() => {
+                              if (d.cotas.length === 0) return `${Math.max(0, (d.cap ?? 0) - d.aprov - d.reserva)} vaga(s)`;
+                              const livres = d.cotas.filter((c) => c.maximo - c.ocupados > 0);
+                              const n = livres.reduce((s, c) => s + (c.maximo - c.ocupados), 0);
+                              return `${n} vaga(s) · ${livres.map((c) => c.rotulo).join(", ")}`;
+                            })()
                           : `${d.aprov + d.reserva}${d.cap != null ? `/${d.cap}` : ""}`}
                     </Badge>
                   </div>
-                  {statDetalhe !== "reservas" && d.nomes.length > 0 && (
+                  {d.cotas.length > 0 && (statDetalhe === "restantes" || statDetalhe === "lotados" || statDetalhe === "capacidade") && (
+                    <CotasCargoLista cotas={d.cotas} />
+                  )}
+                  {statDetalhe !== "reservas" && d.cotas.length === 0 && d.nomes.length > 0 && (
                     <p className="text-xs text-muted-foreground break-words">
                       De folga: {d.nomes.join(", ")}
                     </p>
