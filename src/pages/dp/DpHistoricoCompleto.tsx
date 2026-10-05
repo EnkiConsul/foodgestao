@@ -1,3 +1,4 @@
+import { aceitaComprovante } from "@/lib/dp/documentoTipos";
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
 import { DpDocumentosAbas } from "@/components/dp/documentos/DpDocumentosAbas";
 import { useEffect, useMemo, useState } from "react";
@@ -361,6 +362,7 @@ export default function DpHistoricoCompleto() {
   const [mes, setMes] = useState("all");
   const [ano, setAno] = useState("all");
   const [busca, setBusca] = useState("");
+  const [pendencia, setPendencia] = useState<"all" | "assinatura" | "comprovante">("all");
   const [preview, setPreviewRaw] = useState<UnifiedDoc | null>(null);
   const extrasQuery = useComprovantesComplementares(
     preview?.id?.startsWith("doc:") && (preview?.quitacao?.qtd ?? 0) > 1 ? preview.id.slice(4) : null,
@@ -415,7 +417,7 @@ export default function DpHistoricoCompleto() {
     defaultSortDir: "desc",
   });
 
-  const filtrosAtivos = [grupo, tipo, unidadeId, colabId, mes, ano].filter((v) => v !== "all").length
+  const filtrosAtivos = [grupo, tipo, unidadeId, colabId, mes, ano, pendencia].filter((v) => v !== "all").length
     + (busca.trim() ? 1 : 0);
 
   // A ordem escolhida no celular reaproveita a ordenação da tabela.
@@ -695,13 +697,15 @@ export default function DpHistoricoCompleto() {
       if (colabId !== "all" && r.colaborador_id !== colabId) return false;
       if (ano !== "all" && !r.competencia_sort.startsWith(ano)) return false;
       if (mes !== "all" && r.competencia_sort.slice(5, 7) !== mes) return false;
+      if (pendencia === "assinatura" && !(r.aceite === false || (r.viaFisica && !r.viaFisica.path))) return false;
+      if (pendencia === "comprovante" && (r.tem_comprovante || !aceitaComprovante(r.tipo_key))) return false;
       if (q) {
         const hay = `${r.colaborador_nome} ${r.tipo_label} ${r.unidade_nome} ${r.titulo}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [query.data, tipo, grupo, unidadeId, colabId, mes, ano, busca]);
+  }, [query.data, tipo, grupo, unidadeId, colabId, mes, ano, busca, pendencia]);
 
 
   const filtered = useMemo(() => {
@@ -989,6 +993,17 @@ export default function DpHistoricoCompleto() {
         </div>
 
         <div className={`${filtrosAbertos ? "grid" : "hidden md:grid"} gap-3 md:grid-cols-3 lg:grid-cols-5`}>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Pendência</Label>
+            <Select value={pendencia} onValueChange={(v) => setPendencia(v as typeof pendencia)}>
+              <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="assinatura">Falta Assinar / Via Assinada</SelectItem>
+                <SelectItem value="comprovante">Falta Comprovante</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Tipo</Label>
             <Select value={tipo} onValueChange={setTipo}>
