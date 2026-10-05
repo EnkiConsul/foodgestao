@@ -1,3 +1,4 @@
+import { abrirDocumento as abrirDocumentoArquivo } from "@/lib/documentoArquivo";
 import { aceitaComprovante } from "@/lib/dp/documentoTipos";
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
 import { DpDocumentosAbas } from "@/components/dp/documentos/DpDocumentosAbas";
@@ -792,6 +793,14 @@ export default function DpHistoricoCompleto() {
   };
 
 
+  const baixarComprovante = async (row: UnifiedDoc) => {
+    try {
+      const ok = await abrirDocumentoArquivo(row.id.slice(4), { download: true, variante: "comprovante" });
+      if (!ok) toast.error("Comprovante não encontrado. Confira se ele foi anexado ou anexe novamente.");
+    } catch {
+      toast.error("Não foi possível baixar o comprovante agora. Verifique a conexão e tente de novo.");
+    }
+  };
   const download = async (row: UnifiedDoc) => {
     const caminho = row.viaFisica?.path ?? row.file_path;
     if (!caminho) return toast.error("Arquivo indisponível");
@@ -1123,6 +1132,11 @@ export default function DpHistoricoCompleto() {
                       <Button aria-label="Baixar documento" size="icon" variant="ghost" className="h-8 w-8" title="Baixar" onClick={() => download(r)} disabled={!r.file_path}>
                         <Download className="h-4 w-4" />
                       </Button>
+                      {r.id.startsWith("doc:") && r.tem_comprovante && (
+                        <Button aria-label="Baixar comprovante de pagamento" size="icon" variant="ghost" className="h-8 w-8" title="Baixar Comprovante" onClick={() => baixarComprovante(r)}>
+                          <Receipt className="h-4 w-4 text-primary" />
+                        </Button>
+                      )}
                       <Button aria-label="Substituir arquivo documento" size="icon" variant="ghost" className="h-8 w-8" title="Substituir arquivo" onClick={() => abrirSubstituir(r)}>
                         <Replace className="h-4 w-4" />
                       </Button>
@@ -1217,6 +1231,11 @@ export default function DpHistoricoCompleto() {
                   <Download className="h-4 w-4 mr-1" /> Baixar
                 </Button>
               </div>
+              {r.id.startsWith("doc:") && r.tem_comprovante && (
+                <Button size="sm" variant="outline" className="min-h-11 w-full" onClick={() => baixarComprovante(r)}>
+                  <Receipt className="h-4 w-4 mr-1" /> Baixar Comprovante
+                </Button>
+              )}
               {r.id.startsWith("doc:") && r.viaFisica && (
                 <ViaAssinadaBotao rotulo documentoId={r.id.slice(4)} companyId={selectedCompanyId ?? null} colaboradorId={r.colaborador_id} temVia={!!r.viaFisica.path} className="min-h-11 w-full" onDone={recarregar} />
               )}
@@ -1280,20 +1299,31 @@ export default function DpHistoricoCompleto() {
         acaoRodape={(() => {
           const lista = Array.isArray(query.data) ? (query.data as UnifiedDoc[]) : [];
           const atual = preview ? lista.find((r) => r.id === preview.id) ?? preview : null;
-          if (!atual || !atual.id.startsWith("doc:") || !aceitaComprovante(atual.tipo_key) || atual.tem_comprovante) return null;
+          if (!atual || !atual.id.startsWith("doc:") || !aceitaComprovante(atual.tipo_key)) return null;
+          if (atual.tem_comprovante) {
+            return (
+              <Button size="sm" variant="outline" onClick={() => baixarComprovante(atual)}>
+                <Download className="h-4 w-4 mr-2" /> Baixar Comprovante
+              </Button>
+            );
+          }
           return (
             <Button size="sm" onClick={() => setAnexarDoPreview(true)}>
               <Upload className="h-4 w-4 mr-2" /> Importar Comprovante
             </Button>
           );
         })()}
-        aguardando={certStatus === "carregando" && !certPreview ? "Carregando validação digital..." : null}
+        // O original aparece na hora; o certificado substitui quando ficar pronto.
+        aguardando={null}
         // O certificado já traz o comprovante de pagamento; não repetir ao final.
         comprovanteDocumentoId={!certPreview && preview?.comprovante_path && preview.id.startsWith("doc:") ? preview.id.slice(4) : null}
         comprovantesExtras={certPreview ? [] : extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null }))}
         toolbar={preview && (preview.aceite !== null || preview.aceiteDispensado || preview.viaFisica || preview.quitacao) ? (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <AssinaturaSelo r={preview} longo />
+            {certStatus === "carregando" && !certPreview && (
+              <span className="text-xs text-muted-foreground">Preparando validação digital… o documento já pode ser conferido.</span>
+            )}
             <QuitacaoSelo q={preview.quitacao} />
           </div>
         ) : null}
