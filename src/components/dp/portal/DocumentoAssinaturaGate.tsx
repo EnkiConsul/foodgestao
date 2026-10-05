@@ -20,6 +20,9 @@ import { AssinaturaCaptura } from "@/components/dp/AssinaturaCaptura";
 const BUCKET = "dp-documentos";
 /** Se o colaborador fechar sem assinar, o aviso volta depois deste intervalo. */
 export const REABRIR_APOS_MS = 10 * 60 * 1000;
+/** Trava o portal (sem "Ver depois") a partir destes limites. */
+export const TRAVA_DIAS_ATRASO = 7;
+export const TRAVA_QTD_DOCUMENTOS = 2;
 
 /**
  * Aviso global do portal: enquanto houver documento esperando assinatura,
@@ -37,7 +40,12 @@ export function DocumentoAssinaturaGate() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const atual = documentos[0] ?? null;
-  const open = !!atual && !adiado;
+  const diasAtraso = atual
+    ? Math.floor((Date.now() - new Date(atual.created_at).getTime()) / 86_400_000)
+    : 0;
+  const bloqueado =
+    documentos.length >= TRAVA_QTD_DOCUMENTOS || diasAtraso >= TRAVA_DIAS_ATRASO;
+  const open = !!atual && (bloqueado || !adiado);
 
   // Ao trocar de documento, exige nova visualização.
   useEffect(() => {
@@ -47,6 +55,7 @@ export function DocumentoAssinaturaGate() {
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   const adiar = () => {
+    if (bloqueado) return;
     setAdiado(true);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setAdiado(false), REABRIR_APOS_MS);
@@ -114,6 +123,14 @@ export function DocumentoAssinaturaGate() {
               </Badge>
             )}
 
+            {bloqueado && (
+              <p className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
+                {documentos.length >= TRAVA_QTD_DOCUMENTOS
+                  ? `Você tem ${documentos.length} documentos sem assinatura. Assine para continuar usando o portal.`
+                  : `Este documento está há ${diasAtraso} dias sem assinatura. Assine para continuar usando o portal.`}
+              </p>
+            )}
+
             <p className="text-xs text-muted-foreground">{DOCUMENTO_CONFIRMACAO_TEXTO}</p>
 
             {!podeAssinar && (
@@ -151,9 +168,15 @@ export function DocumentoAssinaturaGate() {
             >
               <PenLine className="h-4 w-4 mr-1" /> Assinar documento
             </Button>
-            <Button variant="ghost" className="w-full min-h-10" onClick={adiar}>
-              Ver depois
-            </Button>
+            {bloqueado ? (
+              <p className="text-xs text-center text-muted-foreground">
+                O portal fica liberado assim que você assinar os documentos pendentes.
+              </p>
+            ) : (
+              <Button variant="ghost" className="w-full min-h-10" onClick={adiar}>
+                Ver depois
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
