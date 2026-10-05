@@ -4,6 +4,7 @@ import { sugerirPushContextual } from "@/components/dp/PushSoftPrompt";
 import { DpFormFooter } from "@/components/dp/DpFormFooter";
 import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
+import type { DpTrocaRow } from "@/hooks/useDpTrocas";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
