@@ -781,7 +781,7 @@ export default function DpHistoricoCompleto() {
 
   const limpar = () => {
     setTipo("all"); setGrupo("all"); setUnidadeId("all"); setColabId("all");
-    setMes("all"); setAno("all"); setBusca("");
+    setMes("all"); setAno("all"); setBusca(""); setPendencia("all");
     setColFilters({ colaborador: [], tipo: [], competencia: [], unidade: [], aceite: [] });
   };
 
