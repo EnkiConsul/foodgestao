@@ -35,12 +35,18 @@ describe("prazo do comprovante de pagamento", () => {
     ).toBe("2026-02-28");
   });
 
-  it("férias e rescisão usam a data do próprio documento", () => {
+  it("férias usa a data do documento; rescisão sem desligamento parte da data do documento", () => {
     expect(
       pagamentoPrevisto({ tipo: "recibo_ferias", referencia: "2026-09-22", diaPagamentoFolha: 5 }),
     ).toBe("2026-09-22");
     expect(
       pagamentoPrevisto({ tipo: "trct", referencia: "2026-09-09", diaPagamentoFolha: 5 }),
-    ).toBe("2026-09-09");
+    ).toBe("2026-09-19");
+  });
+
+  it("rescisão vence 10 dias corridos após o desligamento", () => {
+    expect(
+      pagamentoPrevisto({ tipo: "acerto_rescisorio", referencia: "2026-09-30", dataDesligamento: "2026-09-25", diaPagamentoFolha: 5 }),
+    ).toBe("2026-10-05");
   });
 });
