@@ -4,6 +4,7 @@ import { sugerirPushContextual } from "@/components/dp/PushSoftPrompt";
 import { DpFormFooter } from "@/components/dp/DpFormFooter";
 import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
+import type { DpTrocaRow } from "@/hooks/useDpTrocas";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -37,7 +38,7 @@ import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { avaliarRiscoDsrTroca, avisoDsr, descansosDoColaborador } from "@/lib/dp/dsr-consecutivo";
 import { diasFixosDoColaborador, registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
-import { imprimirTermoTroca } from "@/lib/dp/troca-certificado";
+import { TermoTrocaPreviewDialog } from "@/components/dp/trocas/TermoTrocaPreviewDialog";
 
 const statusLabel: Record<string, string> = {
   pendente_colega: "Aguardando colega",
@@ -125,6 +126,8 @@ export default function DpMeuTrocas() {
       return (data ?? []).filter((f: any) => f.status !== "cancelada");
     },
   });
+
+  const [termo, setTermo] = useState<DpTrocaRow | null>(null);
 
   const empresaRef = useQuery({
     queryKey: ["dp_minha_empresa_termo", meRef.data?.company_id],
@@ -328,6 +331,7 @@ export default function DpMeuTrocas() {
         <DpContentCard><DpEmptyState icon={Repeat}>Sem trocas.</DpEmptyState></DpContentCard>
 
       ) : (
+        <>
         <div className="grid gap-3">
           {filtered.map((t: any) => {
             const meId = meRef.data?.id;
@@ -465,9 +469,7 @@ export default function DpMeuTrocas() {
                         size="sm"
                         variant="outline"
                         disabled={empresaRef.isLoading}
-                        onClick={() =>
-                          imprimirTermoTroca(t, { nome: empresaRef.data?.nome ?? "Empresa" })
-                        }
+                        onClick={() => setTermo(t)}
                       >
                         <FileText className="h-4 w-4 mr-1" /> Ver termo da troca
                       </Button>
@@ -478,6 +480,12 @@ export default function DpMeuTrocas() {
             );
           })}
         </div>
+        <TermoTrocaPreviewDialog
+          troca={termo}
+          empresa={{ nome: empresaRef.data?.nome ?? "Empresa" }}
+          onOpenChange={(v) => !v && setTermo(null)}
+        />
+        </>
       )}
     <AssinaturaConfirmarDialog
         open={assinarPedido}

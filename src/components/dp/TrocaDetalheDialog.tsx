@@ -1,7 +1,8 @@
 import { format } from "date-fns";
 import { ArrowLeftRight, Ban, Check, FileText, X } from "lucide-react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { imprimirTermoTroca } from "@/lib/dp/troca-certificado";
+import { useState } from "react";
+import { TermoTrocaPreviewDialog } from "@/components/dp/trocas/TermoTrocaPreviewDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DpDialogShell } from "@/components/dp/DpDialogShell";
@@ -61,8 +62,10 @@ export function TrocaDetalheDialog({
   onCancelar,
 }: TrocaDetalheDialogProps) {
   const { companies, selectedCompanyId } = useCompanyContext();
+  const [termo, setTermo] = useState<DpTrocaRow | null>(null);
   if (!troca) return null;
   const empresa = companies.find((c) => c.id === selectedCompanyId);
+  const empresaTermo = { nome: empresa ? empresa.trade_name || empresa.name : "Empresa", cnpj: empresa?.cnpj };
   const podeTermo = troca.status === "aprovada" && !trocaInconsistente(troca);
 
   const meta = metaStatusTroca(troca.status);
@@ -76,6 +79,8 @@ export function TrocaDetalheDialog({
         : "Nesta unidade a troca precisa da aprovação do gestor.";
 
   return (
+    <>
+    <TermoTrocaPreviewDialog troca={termo} empresa={empresaTermo} onOpenChange={(v) => !v && setTermo(null)} />
     <DpDialogShell
       open={!!troca}
       onOpenChange={onOpenChange}
@@ -89,12 +94,7 @@ export function TrocaDetalheDialog({
               <Button
                 variant="outline"
                 className="min-h-11"
-                onClick={() =>
-                  imprimirTermoTroca(troca, {
-                    nome: empresa ? empresa.trade_name || empresa.name : "Empresa",
-                    cnpj: empresa?.cnpj,
-                  })
-                }
+                onClick={() => setTermo(troca)}
               >
                 <FileText className="mr-1 h-4 w-4" /> Emitir termo da troca
               </Button>
@@ -196,5 +196,6 @@ export function TrocaDetalheDialog({
         </div>
       </div>
     </DpDialogShell>
+    </>
   );
 }

@@ -307,6 +307,29 @@ export function FolgaRegrasFormDialog({
       toast.error("O dia de encerramento precisa ser igual ou depois do dia de abertura.");
       return false;
     }
+    // Trava anti-duplicidade: duas regras ativas com o mesmo escopo somariam as cotas.
+    const chave = (r: RegraLimiteInput) =>
+      [
+        r.tipo,
+        r.dia_semana ?? "*",
+        r.vigencia_inicio ?? "",
+        r.vigencia_fim ?? "",
+        [...r.cargo_ids].sort().join(","),
+        [...r.setor_ids].sort().join(","),
+        [...r.colaborador_ids].sort().join(","),
+      ].join("|");
+    const vistos = new Set<string>();
+    for (const r of regrasRascunho.filter((x) => x.ativo)) {
+      const k = chave(r);
+      if (vistos.has(k)) {
+        toast.error("Existem duas regras iguais nesta unidade.", {
+          description:
+            "Elas somariam as vagas do dia. Exclua uma delas (lixeira) ou altere dias/cargos antes de salvar.",
+        });
+        return false;
+      }
+      vistos.add(k);
+    }
     return true;
   };
 

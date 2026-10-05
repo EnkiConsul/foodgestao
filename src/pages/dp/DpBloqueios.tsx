@@ -2,7 +2,7 @@ import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { Helmet } from "react-helmet-async";
 import { useState } from "react";
 import {
-  Plus, Calendar, CalendarX, Eye, EyeOff,
+  Plus, Calendar, CalendarX, Eye, EyeOff, Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,8 @@ export default function DpBloqueios() {
   const [aplicacaoFiltro, setAplicacaoFiltro] = useState<string>("all");
   const [unidadeFiltro, setUnidadeFiltro] = useState<string>("all");
   const [showPast, setShowPast] = useState(false);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const filtrosSecundarios = [mesFiltro, aplicacaoFiltro, unidadeFiltro].filter((v) => v !== "all").length + (showPast ? 1 : 0);
   // (regeneração manual removida — regras valem em runtime)
 
   // Dialogs
@@ -96,11 +98,20 @@ export default function DpBloqueios() {
 
       <DpContentCard contentClassName="space-y-4 p-4 md:p-5">
         {/* Filtros + ações: valem para as duas listas */}
-        <div className="flex flex-wrap items-end gap-4">
+        <div className="flex flex-wrap items-end gap-2 md:gap-4">
           <div className="space-y-2">
             <Label className="text-xs font-medium text-muted-foreground">Ano</Label>
-            <Input type="number" value={anoFiltro} onChange={(e) => setAnoFiltro(Number(e.target.value))} className="w-full sm:w-[120px]" />
+            <Input type="number" value={anoFiltro} onChange={(e) => setAnoFiltro(Number(e.target.value))} className="w-[96px] md:w-[120px]" />
           </div>
+          <Button
+            variant="outline"
+            className="relative md:hidden"
+            aria-expanded={filtrosAbertos}
+            onClick={() => setFiltrosAbertos((v) => !v)}
+          >
+            <Filter className="size-4 mr-1" /> Filtros{filtrosSecundarios > 0 ? ` (${filtrosSecundarios})` : ""}
+          </Button>
+          <div className={`${filtrosAbertos ? "grid" : "hidden"} w-full grid-cols-2 gap-2 md:contents`}>
           <div className="space-y-2">
             <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
             <select value={mesFiltro} onChange={(e) => setMesFiltro(e.target.value)}
@@ -131,11 +142,12 @@ export default function DpBloqueios() {
             {showPast ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
             {showPast ? "Ocultar passadas" : "Mostrar passadas"}
           </Button>
-          <div className="flex flex-1 flex-wrap justify-end gap-2">
-            <Button className="rounded-full px-6" onClick={openNovaRegra}>
+          </div>
+          <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:flex-1 md:flex-wrap md:justify-end">
+            <Button className="rounded-full px-3 md:px-6" onClick={openNovaRegra}>
               <Plus className="size-4 mr-2" /> Nova Regra
             </Button>
-            <Button variant="outline" className="rounded-full px-6" onClick={openNovaData}>
+            <Button variant="outline" className="rounded-full px-3 md:px-6" onClick={openNovaData}>
               <CalendarX className="size-4 mr-2" /> Bloquear Data
             </Button>
           </div>

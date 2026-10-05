@@ -1,4 +1,7 @@
-import { AlertTriangle, ArrowLeftRight, Ban, Building2, Check, MessageSquare, X } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, ArrowLeftRight, Ban, Building2, Check, FileText, MessageSquare, X } from "lucide-react";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { TermoTrocaPreviewDialog } from "@/components/dp/trocas/TermoTrocaPreviewDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TextoExpansivel } from "@/components/dp/TextoExpansivel";
@@ -48,8 +51,15 @@ export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar, ale
   const acoes = acoesGestorTroca(troca.status, troca.modo);
   const unidade = troca.destino?.unidade?.nome ?? troca.solicitante?.unidade?.nome ?? null;
   const inconsistente = trocaInconsistente(troca);
+  const { companies, selectedCompanyId } = useCompanyContext();
+  const [termoAberto, setTermoAberto] = useState(false);
+  const empresa = companies.find((c) => c.id === selectedCompanyId);
+  const empresaTermo = { nome: empresa ? empresa.trade_name || empresa.name : "Empresa", cnpj: empresa?.cnpj };
+  const podeTermo = troca.status === "aprovada" && !inconsistente;
 
   return (
+    <>
+    <TermoTrocaPreviewDialog troca={termoAberto ? troca : null} empresa={empresaTermo} onOpenChange={setTermoAberto} />
     <div
       role="button"
       tabIndex={0}
@@ -112,11 +122,16 @@ export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar, ale
         </div>
       )}
 
-      {(acoes.aprovar || acoes.recusar || acoes.cancelar) && (
+      {(acoes.aprovar || acoes.recusar || acoes.cancelar || podeTermo) && (
         <div
           className="grid grid-cols-1 gap-2 pt-1 sm:flex sm:flex-wrap sm:items-center"
           onClick={(e) => e.stopPropagation()}
         >
+          {podeTermo && (
+            <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => setTermoAberto(true)}>
+              <FileText className="mr-1 h-4 w-4" /> Termo de Troca
+            </Button>
+          )}
           {acoes.aprovar && (
             <Button size="sm" className="min-h-11 w-full sm:w-auto" onClick={onAprovar}>
               <Check className="mr-1 h-4 w-4" /> Aprovar troca
@@ -135,5 +150,6 @@ export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar, ale
         </div>
       )}
     </div>
+    </>
   );
 }

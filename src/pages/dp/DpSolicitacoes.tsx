@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Check, X, FileText, ClipboardList, AlertTriangle } from "lucide-react";
+import { Plus, Check, X, FileText, ClipboardList, AlertTriangle, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -46,6 +46,21 @@ const STATUS_META: Record<Status, { label: string; className: string }> = {
   recusada: { label: "Recusada", className: "bg-destructive/20 text-destructive" },
   cancelada: { label: "Cancelada", className: "bg-muted text-muted-foreground" },
 };
+
+const MESES_CURTOS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+/** Tipo em português legível, mesmo para valores fora da lista (ex.: mudanca_de_folga). */
+function tipoLabel(tipo: string): string {
+  const conhecido = TIPOS.find((t) => t.value === tipo)?.label;
+  if (conhecido) return conhecido;
+  const t = tipo.toLowerCase().replace(/_/g, " ").replace(/\bmudanca\b/, "mudança").replace(/\blicenca\b/, "licença");
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+/** Data de referência para ordenar/filtrar: dia do evento ou, sem ele, a criação. */
+function dataRef(r: { data_alvo: string | null; created_at: string }): string {
+  return r.data_alvo ?? r.created_at.slice(0, 10);
+}
 
 function formatBR(iso: string | null): string {
   if (!iso) return "—";
@@ -109,7 +124,40 @@ export default function DpSolicitacoes() {
 
   const rows = list.data ?? [];
   const pendentes = useMemo(() => rows.filter((r) => r.status === "pendente"), [rows]);
-  const historico = useMemo(() => rows.filter((r) => r.status !== "pendente"), [rows]);
+  const [fMes, setFMes] = useState("todos");
+  const [fColab, setFColab] = useState("todos");
+  const [fTipo, setFTipo] = useState("todos");
+  const [fStatus, setFStatus] = useState("todos");
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const historicoBase = useMemo(
+    () =>
+      rows
+        .filter((r) => r.status !== "pendente")
+        .sort((a, b) => dataRef(b).localeCompare(dataRef(a)) || b.created_at.localeCompare(a.created_at)),
+    [rows],
+  );
+  const mesesDisponiveis = useMemo(
+    () => Array.from(new Set(historicoBase.map((r) => dataRef(r).slice(0, 7)))),
+    [historicoBase],
+  );
+  const colabsHistorico = useMemo(() => {
+    const m = new Map<string, string>();
+    historicoBase.forEach((r) => m.set(r.colaborador_id, r.dp_colaboradores?.nome ?? "—"));
+    return Array.from(m.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [historicoBase]);
+  const tiposHistorico = useMemo(() => Array.from(new Set(historicoBase.map((r) => r.tipo as string))), [historicoBase]);
+  const historico = useMemo(
+    () =>
+      historicoBase.filter(
+        (r) =>
+          (fMes === "todos" || dataRef(r).startsWith(fMes)) &&
+          (fColab === "todos" || r.colaborador_id === fColab) &&
+          (fTipo === "todos" || r.tipo === fTipo) &&
+          (fStatus === "todos" || r.status === fStatus),
+      ),
+    [historicoBase, fMes, fColab, fTipo, fStatus],
+  );
+  const filtrosAtivos = [fMes, fColab, fTipo, fStatus].filter((v) => v !== "todos").length;
 
   const create = useMutation({
     mutationFn: async () => {
@@ -316,7 +364,51 @@ export default function DpSolicitacoes() {
 
       {/* Histórico */}
       <section className="space-y-3">
-        <h2 className="font-semibold">Histórico</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-semibold">Histórico</h2>
+          <Button variant="outline" size="sm" className="md:hidden" onClick={() => setFiltrosAbertos((v) => !v)}>
+            <Filter className="mr-1 h-4 w-4" /> Filtros{filtrosAtivos > 0 ? ` (${filtrosAtivos})` : ""}
+          </Button>
+        </div>
+        <div className={`${filtrosAbertos ? "grid" : "hidden"} grid-cols-2 gap-2 md:grid md:grid-cols-5`}>
+          <Select value={fMes} onValueChange={setFMes}>
+            <SelectTrigger aria-label="Mês"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os meses</SelectItem>
+              {mesesDisponiveis.map((m) => (
+                <SelectItem key={m} value={m}>{MESES_CURTOS[Number(m.slice(5, 7)) - 1]}/{m.slice(0, 4)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={fColab} onValueChange={setFColab}>
+            <SelectTrigger aria-label="Colaborador"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os colaboradores</SelectItem>
+              {colabsHistorico.map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={fTipo} onValueChange={setFTipo}>
+            <SelectTrigger aria-label="Tipo"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os tipos</SelectItem>
+              {tiposHistorico.map((t) => <SelectItem key={t} value={t}>{tipoLabel(t)}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={fStatus} onValueChange={setFStatus}>
+            <SelectTrigger aria-label="Status"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os status</SelectItem>
+              <SelectItem value="aprovada">Aprovada</SelectItem>
+              <SelectItem value="recusada">Recusada</SelectItem>
+              <SelectItem value="cancelada">Cancelada</SelectItem>
+            </SelectContent>
+          </Select>
+          {filtrosAtivos > 0 && (
+            <Button variant="ghost" size="sm" onClick={() => { setFMes("todos"); setFColab("todos"); setFTipo("todos"); setFStatus("todos"); }}>
+              Limpar filtros
+            </Button>
+          )}
+        </div>
         <div className="bg-card border border-border rounded-xl divide-y divide-border">
           {list.isLoading && (
             <div className="p-4 text-sm text-muted-foreground">Carregando...</div>
@@ -327,7 +419,7 @@ export default function DpSolicitacoes() {
             </div>
           )}
           {!list.isLoading && !list.isError && historico.length === 0 && (
-            <div className="p-4 text-sm text-muted-foreground">Sem registros.</div>
+            <div className="p-4 text-sm text-muted-foreground">{filtrosAtivos > 0 ? "Nenhum registro com esses filtros." : "Sem registros."}</div>
           )}
           {historico.map((s) => {
             const meta = STATUS_META[s.status];
@@ -341,10 +433,11 @@ export default function DpSolicitacoes() {
                 className="p-4 text-sm flex items-start justify-between gap-3 cursor-pointer hover:bg-muted/30 transition-colors"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="font-medium truncate">
-                    {s.dp_colaboradores?.nome ?? "—"} <span className="text-muted-foreground">• {formatBR(s.data_alvo)}</span>
-                    <span className="capitalize text-muted-foreground"> • {s.tipo}</span>
+                  <div className="font-bold">
+                    {formatBR(dataRef(s))}
+                    <span className="ml-2 text-xs font-medium text-muted-foreground">{tipoLabel(s.tipo)}</span>
                   </div>
+                  <div className="truncate text-muted-foreground">{s.dp_colaboradores?.nome ?? "—"}</div>
                   {s.motivo && <div className="text-muted-foreground mt-0.5 line-clamp-1 md:line-clamp-none">{s.motivo}</div>}
                   {s.resposta_admin && (
                     <div className="text-xs text-muted-foreground mt-1 line-clamp-1 md:line-clamp-none">
