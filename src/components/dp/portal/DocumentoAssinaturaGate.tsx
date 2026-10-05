@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
@@ -100,6 +100,11 @@ export function DocumentoAssinaturaGate() {
             <DialogTitle className="flex items-center gap-2">
               <PenLine className="h-5 w-5 text-primary" /> Documento para assinar
             </DialogTitle>
+            <DialogDescription>
+              {bloqueado
+                ? "Sua assinatura é obrigatória para continuar usando o portal."
+                : "Abra o documento, confira o conteúdo e assine para registrar sua ciência."}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3">
