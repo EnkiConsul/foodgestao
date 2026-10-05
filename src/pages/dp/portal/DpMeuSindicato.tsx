@@ -27,7 +27,18 @@ type Negociacao = {
 
 function dataBr(iso?: string | null) {
   if (!iso) return null;
-  return new Date(iso + "T00:00:00").toLocaleDateString("pt-BR");
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("pt-BR");
+}
+
+/** Data-base como "MM/AAAA"; devolve null se o valor não for uma data válida. */
+function dataBaseBr(iso?: string | null) {
+  const br = dataBr(iso);
+  if (!br) return null;
+  const partes = br.split("/");
+  if (partes.length !== 3) return null;
+  return `${partes[1]}/${partes[2]}`;
 }
 
 /** Tela do colaborador com o sindicato dele e os acordos/convenções vigentes. */
@@ -135,9 +146,9 @@ export default function DpMeuSindicato() {
             {sindicato.data.cnpj ? (
               <p className="text-sm text-muted-foreground">CNPJ {sindicato.data.cnpj}</p>
             ) : null}
-            {sindicato.data.data_base ? (
+            {dataBaseBr(sindicato.data.data_base) ? (
               <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <CalendarDays className="h-4 w-4" /> Data-base: {dataBr(sindicato.data.data_base).slice(0, 5)}
+                <CalendarDays className="h-4 w-4" /> Data-base: {dataBaseBr(sindicato.data.data_base)}
               </p>
             ) : null}
             {sindicato.data.contato_telefone ? (

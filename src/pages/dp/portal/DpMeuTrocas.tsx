@@ -356,10 +356,10 @@ export default function DpMeuTrocas() {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {souSolicitante ? "Você" : t.solicitante?.nome} folga em{" "}
-                    {format(new Date(t.data_proposta + "T00:00:00"), "dd/MM", { locale: ptBR })}
+                    {format(new Date(t.data_proposta + "T00:00:00"), "dd/MM (EEE)", { locale: ptBR })}
                     {" · "}
                     {souDestino ? "você" : t.destino?.nome} folga em{" "}
-                    {format(new Date(t.data_original + "T00:00:00"), "dd/MM", { locale: ptBR })}
+                    {format(new Date(t.data_original + "T00:00:00"), "dd/MM (EEE)", { locale: ptBR })}
                   </p>
                   {trocaDireta ? (
                     t.status === "aprovada" && (
