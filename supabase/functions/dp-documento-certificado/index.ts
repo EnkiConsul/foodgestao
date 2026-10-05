@@ -17,6 +17,7 @@ import { callerClient, requireUser, serviceClient } from "../_shared/authz.ts";
 import { recordEdgeError } from "../_shared/error-log.ts";
 import { resumoQuitacao } from "../_shared/quitacao.ts";
 import { desenharAssinatura, embutirAssinatura, rubricarPaginas } from "../_shared/assinatura-pdf.ts";
+import { montarReciboPdf, reciboDaLinha } from "../_shared/recibo-pdf.ts";
 import type { PDFImage } from "npm:pdf-lib@1.17.1";
 import {
   MARCA_ASSINATURA,
@@ -408,7 +409,7 @@ Deno.serve(async (req) => {
     const chaveCache = [
       registro.company_id,
       "certificados",
-      `${documentoId}-${aceite.id}-${encodeURIComponent(String(comp?.file_path ?? "sem-comprovante")).replace(/%/g, "")}-${String(registro.comprovante_pago_em ?? "").slice(0, 10)}-${String(registro.versao ?? 1)}.pdf`,
+      `${documentoId}-${aceite.id}-${encodeURIComponent(String(comp?.file_path ?? "sem-comprovante")).replace(/%/g, "")}-${String(registro.comprovante_pago_em ?? "").slice(0, 10)}-${String(registro.versao ?? 1)}-r2.pdf`,
     ].join("/");
     const pronto = await admin.storage.from(BUCKET).download(chaveCache);
     if (pronto.data && !pronto.error) {
@@ -514,6 +515,20 @@ Deno.serve(async (req) => {
     // Página 1 depois dos avisos conhecidos do download.
     let docBytes: Uint8Array | null = null;
     if (baixarDoc.data) docBytes = new Uint8Array(await baixarDoc.data.arrayBuffer());
+
+    // Recibo: a página anexada é refeita com a assinatura estampada na linha do recebedor.
+    try {
+      const { data: reciboRow } = await admin.from("dp_recibos").select("*")
+        .eq("documento_id", documentoId).maybeSingle();
+      if (reciboRow && aceite.assinatura_imagem) {
+        const { data: empRecibo } = await admin.from("companies").select("name, trade_name, cnpj")
+          .eq("id", registro.company_id).maybeSingle();
+        const linha = { ...reciboRow, assinado_em: reciboRow.assinado_em ?? aceite.aceito_em, assinado_ip: reciboRow.assinado_ip ?? aceite.ip };
+        docBytes = await montarReciboPdf(reciboDaLinha(linha, empRecibo, aceite.assinatura_imagem as string));
+      }
+    } catch {
+      // mantém o arquivo original se a remontagem falhar
+    }
 
     const pendentes: string[] = [];
 
