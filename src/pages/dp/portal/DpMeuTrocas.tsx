@@ -79,6 +79,14 @@ export default function DpMeuTrocas() {
   const [assinarTermo, setAssinarTermo] = useState<string | null>(
     () => new URLSearchParams(window.location.search).get("assinar"),
   );
+  /** Remove o ?assinar=ID da URL ao fechar/assinar, para um recarregamento não reabrir o modal. */
+  const limparParamAssinar = () => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("assinar")) return;
+    url.searchParams.delete("assinar");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  };
   const [assinandoTermo, setAssinandoTermo] = useState(false);
   const [assinarAceite, setAssinarAceite] = useState<null | { id: string; risco: boolean; sequencia: number; data: string }>(null);
   const [form, setForm] = useState<{
