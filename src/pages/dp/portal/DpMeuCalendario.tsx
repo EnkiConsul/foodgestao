@@ -795,12 +795,10 @@ export default function DpMeuCalendario() {
         });
         if (janela.estado === "antes") {
           negarRegra(
-            `A escolha das folgas de ${alvo} abre em ${formatBR(janela.abreEm)}. Até lá, use "Solicitar exceção".`,
+            `A escolha das folgas de ${alvo} é liberada em ${formatBR(janela.abreEm).slice(0, 5)} e finaliza em ${formatBR(janela.fechaEm).slice(0, 5)}.`,
           );
         }
-        negarRegra(
-          `Agora você escolhe as folgas de ${alvo}. Para folgar neste dia, use "Solicitar exceção".`,
-        );
+        negarRegra(`Agora você escolhe as folgas de ${alvo}.`);
       }
 
       // 2b) folga dominical automática (padrão CLT): definida pelo sistema
