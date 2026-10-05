@@ -79,6 +79,14 @@ export default function DpMeuTrocas() {
   const [assinarTermo, setAssinarTermo] = useState<string | null>(
     () => new URLSearchParams(window.location.search).get("assinar"),
   );
+  /** Remove o ?assinar=ID da URL ao fechar/assinar, para um recarregamento não reabrir o modal. */
+  const limparParamAssinar = () => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("assinar")) return;
+    url.searchParams.delete("assinar");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  };
   const [assinandoTermo, setAssinandoTermo] = useState(false);
   const [assinarAceite, setAssinarAceite] = useState<null | { id: string; risco: boolean; sequencia: number; data: string }>(null);
   const [form, setForm] = useState<{
@@ -561,7 +569,12 @@ export default function DpMeuTrocas() {
       />
       <AssinaturaConfirmarDialog
         open={!!assinarTermo}
-        onOpenChange={(v) => !v && setAssinarTermo(null)}
+        onOpenChange={(v) => {
+          if (!v) {
+            setAssinarTermo(null);
+            limparParamAssinar();
+          }
+        }}
         titulo="Termo de troca de folga — sua assinatura digital fica registrada no termo."
         nome={(meRef.data as any)?.nome ?? ""}
         enviando={assinandoTermo}
@@ -571,7 +584,10 @@ export default function DpMeuTrocas() {
             await assinarTroca(assinarTermo!, png);
             toast.success("Termo assinado digitalmente com sucesso");
             qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+            // A pendência "Assinar Termo de Troca" some da tela inicial na hora.
+            qc.invalidateQueries({ queryKey: ["dp_pendencias_colaborador", user?.id] });
             setAssinarTermo(null);
+            limparParamAssinar();
           } catch (e: any) {
             notifyError(e, { surface: "Trocas de folga", action: "assinar o termo", fallback: "Não foi possível assinar o termo. Tente novamente." });
           } finally {
