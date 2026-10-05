@@ -386,6 +386,21 @@ export function BulkImportPanel({
     onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao descartar lote" }),
   });
 
+  const reprocessBatch = useMutation({
+    mutationFn: async (batch_id: string) => {
+      const { data, error } = await supabase.rpc("dp_bulk_reprocessar_lote" as any, { _batch_id: batch_id });
+      if (error) throw error;
+      return Number(data ?? 0);
+    },
+    onSuccess: (n) => {
+      toast.success(`Reprocessamento iniciado: ${n} página(s) voltaram para a leitura automática. Acompanhe o progresso no lote.`);
+      qc.invalidateQueries({ queryKey: ["dp_bulk_items"] });
+      qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+      qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
+    },
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "reprocessar o lote", fallback: "Não foi possível reprocessar o lote. Tente novamente em alguns minutos." }),
+  });
+
   const openPage = async (path: string) => {
     const { data } = await supabase.storage.from("dp-bulk-import").createSignedUrl(path, 300);
     if (!data?.signedUrl) return;
@@ -607,6 +622,7 @@ export function BulkImportPanel({
             const processed = b.processed_pages ?? 0;
             const importadas = bItems.filter((i) => i.status === "imported").length;
             const isProcessing = b.status === "processing" || b.status === "queued";
+            const falhas = bItems.filter((i) => (i.status === "failed" || i.status === "dead") && !i.imported_documento_id).length;
             const canDiscard = importadas === 0 && b.status !== "imported" && b.status !== "partially_imported";
             return (
               <div key={b.id} id={`lote-${b.id}`} className="border rounded-md scroll-mt-20">
@@ -655,6 +671,22 @@ export function BulkImportPanel({
                       >
                         <Eye className="h-4 w-4 md:mr-1" />
                         <span className="hidden md:inline">Revisar</span>
+                      </Button>
+                    )}
+                    {!isProcessing && falhas > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        aria-label="Reprocessar lote"
+                        title="Reprocessar"
+                        className="h-9 w-9 md:w-auto md:px-3 p-0 md:p-2"
+                        disabled={reprocessBatch.isPending}
+                        onClick={(e) => { e.stopPropagation(); reprocessBatch.mutate(b.id); }}
+                      >
+                        {reprocessBatch.isPending && reprocessBatch.variables === b.id
+                          ? <Loader2 className="h-4 w-4 md:mr-1 animate-spin" />
+                          : <RefreshCw className="h-4 w-4 md:mr-1" />}
+                        <span className="hidden md:inline">Reprocessar</span>
                       </Button>
                     )}
                     {canDiscard && (
