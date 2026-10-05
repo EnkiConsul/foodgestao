@@ -73,7 +73,7 @@ export default function DpMeuSindicato() {
         .select(
           "id, tipo_documento, ano, mes, vigencia_inicio, vigencia_fim, reajuste_pct, pdf_path, arquivo_nome, observacoes",
         )
-        .eq("sindicato_id", sindicatoId!)
+        .or(`sindicato_id.eq.${sindicatoId},sindicato_laboral_id.eq.${sindicatoId}`)
         .order("vigencia_inicio", { ascending: false, nullsFirst: false });
       return (data ?? []) as Negociacao[];
     },
