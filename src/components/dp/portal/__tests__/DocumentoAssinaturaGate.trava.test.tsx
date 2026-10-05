@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { render as renderBase, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 /**
  * A trava do portal remove o "Ver depois" quando há muitos documentos parados
@@ -54,6 +56,11 @@ function doc(diasAtraso: number) {
     mime_type: "application/pdf",
     created_at: new Date(Date.now() - diasAtraso * 86_400_000).toISOString(),
   };
+}
+
+function render(ui: ReactElement) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return renderBase(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>);
 }
 
 const fechar = () => screen.queryByRole("button", { name: "Close" });
