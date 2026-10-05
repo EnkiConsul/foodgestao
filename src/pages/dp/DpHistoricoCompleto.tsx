@@ -9,6 +9,7 @@ import {
   FileText, Eye, Download, Search, ArrowUp, ArrowDown, ChevronsUpDown,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Trash2, Replace,
   History as HistoryIcon, ChevronDown, ArrowDownUp,
+  Upload,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
