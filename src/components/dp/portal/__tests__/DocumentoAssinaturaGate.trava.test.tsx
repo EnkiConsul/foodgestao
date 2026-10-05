@@ -65,6 +65,12 @@ function render(ui: ReactElement) {
 
 const fechar = () => screen.queryByRole("button", { name: "Close" });
 
+/** Texto que o leitor de tela anuncia ao abrir o diálogo. */
+function descricao() {
+  const id = screen.getByRole("dialog").getAttribute("aria-describedby");
+  return (id && document.getElementById(id)?.textContent) || "";
+}
+
 beforeEach(() => {
   pendentes.current = [];
 });
@@ -75,6 +81,7 @@ describe("Trava de assinatura do portal", () => {
     render(<DocumentoAssinaturaGate />);
 
     expect(screen.getByText("Documento para assinar")).toBeInTheDocument();
+    expect(descricao()).toMatch(/assin/i);
     expect(fechar()).toBeNull();
     expect(screen.queryByText("Ver depois")).toBeNull();
     expect(screen.getByText(/2 documentos sem assinatura/i)).toBeInTheDocument();
@@ -84,6 +91,7 @@ describe("Trava de assinatura do portal", () => {
     pendentes.current = [doc(9)];
     render(<DocumentoAssinaturaGate />);
 
+    expect(descricao()).toMatch(/assin/i);
     expect(fechar()).toBeNull();
     expect(screen.queryByText("Ver depois")).toBeNull();
     expect(screen.getByText(/há 9 dias sem assinatura/i)).toBeInTheDocument();
@@ -93,6 +101,7 @@ describe("Trava de assinatura do portal", () => {
     pendentes.current = [doc(1)];
     render(<DocumentoAssinaturaGate />);
 
+    expect(descricao()).toMatch(/assin/i);
     expect(fechar()).not.toBeNull();
     expect(screen.getByText("Ver depois")).toBeInTheDocument();
     expect(screen.queryByText(/sem assinatura\. Assine para continuar/i)).toBeNull();
