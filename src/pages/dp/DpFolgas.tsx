@@ -207,6 +207,7 @@ export default function DpFolgas() {
   const [unidadeFilter, setUnidadeFilter] = useState<string>(initialPrefs.unidade ?? "todas");
   const [colabFilter, setColabFilter] = useState<string>(initialPrefs.colaborador ?? "todos");
   const [tipoFilter, setTipoFilter] = useState<Tipo | "todos">(initialPrefs.tipo ?? "todos");
+  const [maisFiltros, setMaisFiltros] = useState(false);
   /** Cards sem número ficam ocultos até o gestor pedir para ver; a escolha é lembrada. */
   const [mostrarZerados, setMostrarZerados] = useState<boolean>(() => {
     try {
@@ -954,17 +955,32 @@ export default function DpFolgas() {
             <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
               <Building2 className="h-3.5 w-3.5" /> Unidade
             </label>
-            <Select value={unidadeFilter} onValueChange={setUnidadeFilter}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas as Unidades</SelectItem>
-                {(unidadesQuery.data ?? []).map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={unidadeFilter} onValueChange={setUnidadeFilter}>
+                <SelectTrigger className="min-w-0 flex-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas as Unidades</SelectItem>
+                  {(unidadesQuery.data ?? []).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                className="relative shrink-0 sm:hidden"
+                aria-label="Mais filtros"
+                aria-expanded={maisFiltros}
+                onClick={() => setMaisFiltros((v) => !v)}
+              >
+                <Filter className="h-4 w-4" />
+                {(colabFilter !== "todos" || tipoFilter !== "todos") && (
+                  <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-primary" />
+                )}
+              </Button>
+            </div>
           </div>
-          <div className="space-y-1.5">
+          <div className={cn("space-y-1.5 sm:block", !maisFiltros && "hidden")}>
             <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
               <UserIcon className="h-3.5 w-3.5" /> Colaborador
             </label>
@@ -978,7 +994,7 @@ export default function DpFolgas() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
+          <div className={cn("space-y-1.5 sm:block", !maisFiltros && "hidden")}>
             <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
               <Filter className="h-3.5 w-3.5" /> Tipo de Folga
             </label>
@@ -992,7 +1008,7 @@ export default function DpFolgas() {
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className={cn("sm:block", !maisFiltros && "hidden")}>
             <Button
               variant="ghost"
               onClick={clearFilters}
