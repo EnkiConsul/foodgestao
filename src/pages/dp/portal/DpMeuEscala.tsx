@@ -173,7 +173,7 @@ export default function DpMeuEscala() {
   return (
     <DpPage narrow>
       <Helmet>
-        <title>Minha Escala | Aveto 360</title>
+        <title>Rotina | Aveto 360</title>
         <meta name="description" content="Veja seus dias confirmados de trabalho, horários e convocações que ainda pode responder." />
       </Helmet>
 

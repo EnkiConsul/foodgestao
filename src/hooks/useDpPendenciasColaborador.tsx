@@ -487,6 +487,6 @@ export function useDpPendenciasColaborador() {
       }
 
       return results.sort((a, b) => b.atrasoDias - a.atrasoDias);
-    },
-  });
+      }
+  }
 }

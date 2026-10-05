@@ -1481,7 +1481,7 @@ export default function DpMeuCalendario() {
             <strong> não pode trabalhar</strong>. Os dias de trabalho chegam por convocação (Art. 452-A da CLT).
           </p>
           <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate("/dp/meu/escala")}>
-            <CalendarDays className="size-4 mr-2" /> Ver Minha Escala e Convocações
+            <CalendarDays className="size-4 mr-2" /> Ver Rotina e Convocações
           </Button>
         </div>
       )}
