@@ -752,7 +752,13 @@ export default function DpHistoricoCompleto() {
     arr.sort((a, b) => {
       const av = get(a);
       const bv = get(b);
-      if (av === bv) return 0;
+      if (av === bv) {
+        // Na ordenação por Competência, desempata pelo nome do colaborador (A–Z).
+        if (sortKey === "competencia_sort") {
+          return (a.colaborador_nome || "").localeCompare(b.colaborador_nome || "", "pt-BR");
+        }
+        return 0;
+      }
       const cmp = av > bv ? 1 : -1;
       return sortDir === "asc" ? cmp : -cmp;
     });
