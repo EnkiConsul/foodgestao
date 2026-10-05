@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Download, Eye, Link2, MessageCircle, Pencil, Receipt, UserPlus, XCircle } from "lucide-react";
+import { CheckCircle2, Download, Eye, Link2, Loader2, MessageCircle, Pencil, Receipt, UserPlus, XCircle } from "lucide-react";
 import { ViaAssinadaBotao } from "@/components/dp/documentos/ViaAssinadaBotao";
 import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { DP_DOCUMENTOS_BUCKET } from "@/lib/documentoArquivo";
@@ -104,6 +104,9 @@ export default function DpRecibos() {
   const [detalhe, setDetalhe] = useState<ReciboDetalhado | null>(null);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [substituiId, setSubstituiId] = useState<string | null>(null);
+  // Feedback de abertura: Visualizar/Baixar buscam ou geram PDF no servidor e podem demorar.
+  const [visualizandoId, setVisualizandoId] = useState<string | null>(null);
+  const [baixandoId, setBaixandoId] = useState<string | null>(null);
   const rescisao = natureza === "rescisao";
   useEffect(() => { if (rescisao && canal !== "fisico") setCanal("fisico"); }, [rescisao, canal]);
   const veioDePendencia = params.has("colaborador") && params.has("competencia");
