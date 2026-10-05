@@ -331,6 +331,7 @@ export default function DpMeuTrocas() {
         <DpContentCard><DpEmptyState icon={Repeat}>Sem trocas.</DpEmptyState></DpContentCard>
 
       ) : (
+        <>
         <div className="grid gap-3">
           {filtered.map((t: any) => {
             const meId = meRef.data?.id;
