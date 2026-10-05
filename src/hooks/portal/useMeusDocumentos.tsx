@@ -253,7 +253,7 @@ export function useMeusDocumentos() {
           origem: "meu_envio",
           tipo_key: "atestado",
           tipo_label: TIPO_LABEL.atestado,
-          titulo: `Atestado ${comp.label}`,
+          titulo: `Atestado ${s.data_alvo ? String(s.data_alvo).slice(0, 10).split("-").reverse().join("/") : comp.label}`,
           competencia_label: comp.label,
           competencia_sort: comp.sort,
           status_key,

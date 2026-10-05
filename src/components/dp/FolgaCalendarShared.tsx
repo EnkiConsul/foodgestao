@@ -37,6 +37,8 @@ export interface FolgaCalendarSharedProps {
   onSelectDay?: (iso: string, info?: { status: DateStatusKind; reason?: string }) => void;
   locked?: { unlockDateBR: string } | null;
   variant?: "chunky" | "compact";
+  /** Marcadores próprios do colaborador por dia (ex.: Atestado, Falta). */
+  marcadoresPorDia?: Map<string, string[]>;
 }
 
 type Cell =
@@ -88,6 +90,7 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
     isAdmin = false,
     diasElegiveis,
     tetoMensal,
+    marcadoresPorDia,
     onPrev,
     onNext,
     onSelectDay,
@@ -235,6 +238,11 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                         Minha Folga
                       </Badge>
                     )}
+                    {marcadoresPorDia?.get(c.iso)?.map((m) => (
+                      <Badge key={m} variant="outline" className="h-5 border-destructive/30 bg-destructive/10 px-1.5 py-0 text-[9px] text-destructive">
+                        {m}
+                      </Badge>
+                    ))}
                   </div>
                   {c.occupants.length > 0 && (
                     <div className="mt-1 flex flex-wrap gap-1">
@@ -338,6 +346,11 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                       Minha Folga
                     </span>
                   )}
+                  {marcadoresPorDia?.get(c.iso)?.map((m) => (
+                    <span key={m} className="rounded-md border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[9px] font-black text-destructive">
+                      {m}
+                    </span>
+                  ))}
                 </div>
                 <div className="flex flex-col items-end gap-0.5">
                   {c.status === "available" && !isAdmin && <LockOpen className="h-3.5 w-3.5 text-emerald-500" />}

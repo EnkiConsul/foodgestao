@@ -25,6 +25,12 @@ export async function assinarDocumento(documentoId: string, assinatura: string):
     const { salvarAssinaturaNaConta } = await import("@/components/dp/AssinaturaCaptura");
     await salvarAssinaturaNaConta(assinatura);
   } catch { /* segue */ }
+  // Já consolida o documento assinado com o certificado no servidor, para a
+  // visualização abrir na hora (falha não impede o aceite).
+  void import("@/lib/dp/documento-certificado")
+    .then((m) => m.certificadoValidacaoPdf(documentoId))
+    .then((r) => r.revogar())
+    .catch(() => null);
   return aceiteId;
 }
 

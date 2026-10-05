@@ -75,19 +75,16 @@ export function podeMarcarNormal(janela: JanelaResolvida, data: Date): boolean {
   return mesKey(data) === janela.competenciaKey;
 }
 
-/** Texto curto do estado da janela para o colaborador. */
+/**
+ * Texto curto do estado da janela para o colaborador. Só aparece no mês
+ * anterior ao mês-alvo, antes e durante a escolha; depois de encerrada, some.
+ */
 export function mensagemJanela(janela: JanelaResolvida, formatar: (d: Date) => string): string {
-  const alvo = janela.competencia.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-  switch (janela.estado) {
-    case "antes":
-      return `A escolha das folgas de ${alvo} abre em ${formatar(janela.abreEm)}. Até lá você pode apenas solicitar exceção.`;
-    case "aberta":
-      return `Escolha suas folgas de ${alvo} até ${formatar(janela.fechaEm)}.`;
-    case "encerrada":
-      return `O período de escolha das folgas de ${alvo} encerrou em ${formatar(janela.fechaEm)}. Você ainda pode marcar ou mudar folgas em datas futuras, pedir troca com um colega ou solicitar exceção.`;
-    default:
-      return "";
-  }
+  if (janela.estado !== "antes" && janela.estado !== "aberta") return "";
+  const mesNome = janela.competencia.toLocaleDateString("pt-BR", { month: "long" });
+  const alvo = `${mesNome.charAt(0).toUpperCase()}${mesNome.slice(1)}/${janela.competencia.getFullYear()}`;
+  const curta = (d: Date) => formatar(d).slice(0, 5);
+  return `A escolha das folgas de ${alvo} é liberada em ${curta(janela.abreEm)} e finaliza em ${curta(janela.fechaEm)}.`;
 }
 
 // ---------------------------------------------------------------------------

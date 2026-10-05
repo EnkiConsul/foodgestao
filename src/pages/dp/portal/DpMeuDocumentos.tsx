@@ -412,6 +412,11 @@ export default function DpMeuDocumentos() {
                             <CheckCircle2 className="h-3 w-3 mr-1" /> Aprovado por você
                           </Badge>
                         )}
+                        {d.origem === "dp" && d.meta?.comprovante && (
+                          <Badge variant="outline" className="border-emerald-300 text-emerald-700 text-[11px]">
+                            <CheckCircle2 className="h-3 w-3 mr-1" /> Pagamento
+                          </Badge>
+                        )}
                         {d.aceite === false && (
                           <Badge variant="outline" className="border-amber-300 text-amber-700 text-[11px]">
                             <Clock className="h-3 w-3 mr-1" /> Aguardando sua aprovação
@@ -444,16 +449,6 @@ export default function DpMeuDocumentos() {
                         <Button size="sm" variant="outline" onClick={() => download(d)} disabled={!d.file_path} className="min-h-9 flex-1 sm:flex-none">
                           <Download className="h-4 w-4 mr-1" /> Baixar
                         </Button>
-                        {d.origem === "dp" && d.meta?.comprovante && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="min-h-9 flex-1 sm:flex-none"
-                            onClick={() => void verComprovante(d)}
-                          >
-                            <Receipt className="h-4 w-4 mr-1 text-emerald-600" /> Comprovante de pagamento
-                          </Button>
-                        )}
                         {d.aceite === false && (
                           <Button
                             size="sm"
@@ -462,18 +457,6 @@ export default function DpMeuDocumentos() {
                             className="min-h-9 flex-1 sm:flex-none"
                           >
                             <PenLine className="h-4 w-4 mr-1" /> Ler e assinar
-                          </Button>
-                        )}
-                        {d.aceite === true && d.aceiteInfo && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => void certificado(d)}
-                            disabled={gerando === d.id}
-                            className="min-h-9 flex-1 sm:flex-none"
-                          >
-                            <Printer className="h-4 w-4 mr-1" />
-                            {gerando === d.id ? "Gerando…" : "Certificado"}
                           </Button>
                         )}
                         {d.origem === "meu_envio" && d.status_key === "pendente" && (
