@@ -735,21 +735,16 @@ export default function DpHistoricoCompleto() {
   const sorted = useMemo(() => {
     const arr = [...filtered];
     if (sortKey === "default") {
+      // "Mais recentes/antigos": ordena pela data/hora em que o documento foi
+      // anexado no sistema (created_at), desempatando pelo nome do colaborador.
       arr.sort((a, b) => {
-        // 1) competência decrescente
-        const compA = a.competencia_sort || "";
-        const compB = b.competencia_sort || "";
-        if (compA !== compB) return compB.localeCompare(compA, "pt-BR");
-        // 2) unidade crescente
-        const unidA = a.unidade_nome || "";
-        const unidB = b.unidade_nome || "";
-        if (unidA !== unidB) return unidA.localeCompare(unidB, "pt-BR");
-        // 3) colaborador crescente
-        const nomeA = a.colaborador_nome || "";
-        const nomeB = b.colaborador_nome || "";
-        if (nomeA !== nomeB) return nomeA.localeCompare(nomeB, "pt-BR");
-        // 4) tipo crescente
-        return a.tipo_label.localeCompare(b.tipo_label, "pt-BR");
+        const dataA = a.data || "";
+        const dataB = b.data || "";
+        if (dataA !== dataB) {
+          const cmp = dataA.localeCompare(dataB);
+          return sortDir === "asc" ? cmp : -cmp;
+        }
+        return (a.colaborador_nome || "").localeCompare(b.colaborador_nome || "", "pt-BR");
       });
       return arr;
     }
