@@ -223,6 +223,37 @@ export function useDpPendenciasColaborador() {
         console.warn("pendencias-colab/trocas:", e);
       }
 
+      // 3b. Termos de troca aprovados aguardando a minha assinatura digital.
+      try {
+        const corte = new Date(today);
+        corte.setDate(corte.getDate() - 30);
+        const { data: aprovadas } = await (supabase.from("dp_trocas") as any)
+          .select("id, solicitante_id, destino_id, data_original, data_proposta, created_at, solicitante_assinatura, destino_assinatura, solicitante:solicitante_id(nome), destino:destino_id(nome)")
+          .or(`solicitante_id.eq.${colabId},destino_id.eq.${colabId}`)
+          .eq("status", "aprovada")
+          .gte("data_original", ymd(corte))
+          .limit(20);
+        (aprovadas ?? []).forEach((t: any) => {
+          const souSolic = t.solicitante_id === colabId;
+          if (souSolic ? t.solicitante_assinatura : t.destino_assinatura) return;
+          const colega = souSolic ? t.destino?.nome : t.solicitante?.nome;
+          const f = (d: string | null) => (d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" }) : "—");
+          results.push({
+            id: `troca-assinar-${t.id}`,
+            icon: Repeat2,
+            titulo: "Assinar Termo de Troca",
+            subtitulo: `Troca ${f(t.data_original)} ⇄ ${f(t.data_proposta)} com ${colega ?? "colega"} — aguardando sua assinatura digital`,
+            tipo: "Troca",
+            vencimento: null as any,
+            atrasoDias: -1,
+            url: `/dp/meu/trocas?assinar=${t.id}`,
+          });
+        });
+      } catch (e) {
+        console.warn("pendencias-colab/termo-troca:", e);
+      }
+
+
       // 4. Férias disponíveis com limite concessivo se aproximando.
       try {
         if (regimeTemFeriasLegais(regimeAtual)) {
