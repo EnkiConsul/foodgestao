@@ -76,6 +76,8 @@ export default function DpMeuTrocas() {
   const [open, setOpen] = useState(false);
   const [cienteFalta, setCienteFalta] = useState(false);
   const [assinarPedido, setAssinarPedido] = useState(false);
+  const [assinarTermo, setAssinarTermo] = useState<string | null>(null);
+  const [assinandoTermo, setAssinandoTermo] = useState(false);
   const [assinarAceite, setAssinarAceite] = useState<null | { id: string; risco: boolean; sequencia: number; data: string }>(null);
   const [form, setForm] = useState<{
     destino_id: string;
@@ -491,6 +493,22 @@ export default function DpMeuTrocas() {
                       {t.cancelamento_motivo && <div className="mt-1">Motivo: {t.cancelamento_motivo}</div>}
                     </div>
                   )}
+                  {t.status === "aprovada" && (() => {
+                    const meId = meRef.data?.id;
+                    const minhaPendente = (t.solicitante_id === meId && !t.solicitante_assinatura) || (t.destino_id === meId && !t.destino_assinatura);
+                    const colegaPendente = (t.solicitante_id === meId && !t.destino_assinatura) || (t.destino_id === meId && !t.solicitante_assinatura);
+                    const colegaNome = t.solicitante_id === meId ? t.destino?.nome : t.solicitante?.nome;
+                    if (minhaPendente) return (
+                      <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 space-y-2">
+                        <div>Sua assinatura digital está pendente no termo desta troca.</div>
+                        <Button size="sm" onClick={() => setAssinarTermo(t.id)}>Assinar Termo de Troca</Button>
+                      </div>
+                    );
+                    if (colegaPendente) return (
+                      <div className="text-xs text-muted-foreground">Aguardando assinatura de {colegaNome ?? "seu colega"}.</div>
+                    );
+                    return null;
+                  })()}
                   {t.status === "aprovada" && (
                     <div className="flex flex-wrap gap-2 pt-1">
                       <Button
@@ -538,6 +556,26 @@ export default function DpMeuTrocas() {
         nome={(meRef.data as any)?.nome ?? ""}
         enviando={criar.isPending}
         onConfirmar={(png) => criar.mutate(png)}
+      />
+      <AssinaturaConfirmarDialog
+        open={!!assinarTermo}
+        onOpenChange={(v) => !v && setAssinarTermo(null)}
+        titulo="Termo de troca de folga — sua assinatura digital fica registrada no termo."
+        nome={(meRef.data as any)?.nome ?? ""}
+        enviando={assinandoTermo}
+        onConfirmar={async (png) => {
+          setAssinandoTermo(true);
+          try {
+            await assinarTroca(assinarTermo!, png);
+            toast.success("Termo assinado digitalmente com sucesso");
+            qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+            setAssinarTermo(null);
+          } catch (e: any) {
+            notifyError(e, { surface: "Trocas de folga", action: "assinar o termo", fallback: "Não foi possível assinar o termo. Tente novamente." });
+          } finally {
+            setAssinandoTermo(false);
+          }
+        }}
       />
       <AssinaturaConfirmarDialog
         open={!!assinarAceite}
