@@ -357,6 +357,17 @@ export default function DpRecibos() {
           <ViaAssinadaBotao documentoId={r.documento_id} companyId={selectedCompanyId ?? null} colaboradorId={r.colaborador_id} temVia={false} rotulo className="rounded-full border" onDone={() => qc.invalidateQueries({ queryKey: ["dp_recibos"] })} />
         )}
         {assinado && ativo && (
+          <ConfirmarAcaoDialog
+            titulo="Corrigir este recibo?"
+            descricao="O recibo assinado fica arquivado como Substituído e o formulário abre preenchido para emitir a nova via, que precisará de nova assinatura."
+            confirmar="Corrigir"
+            destrutivo={false}
+            onConfirm={() => carregarNoFormulario(r, "nova_via")}
+          >
+            <Button size="sm" variant="outline" className="rounded-full"><Pencil className="h-4 w-4 mr-1" />Corrigir</Button>
+          </ConfirmarAcaoDialog>
+        )}
+        {assinado && ativo && (
           <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600"><CheckCircle2 className="h-4 w-4" />Assinado</span>
         )}
         {ativo && !assinado && (
