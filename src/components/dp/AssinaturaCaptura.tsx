@@ -5,17 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { toProperName } from "@/lib/text/properName";
 
 /** Estilos cursivos oferecidos quando a pessoa prefere não desenhar. */
 export const ESTILOS_ASSINATURA = [
   { id: "classica", label: "Clássica", font: "Great Vibes" },
-  { id: "rapida", label: "Rápida", font: "Dancing Script" },
-  { id: "fluida", label: "Fluida", font: "Allura" },
-  { id: "formal", label: "Formal", font: "Sacramento" },
+  { id: "manuscrita", label: "Manuscrita", font: "Homemade Apple" },
+  { id: "natural", label: "Natural", font: "Cedarville Cursive" },
+  { id: "moderna", label: "Moderna", font: "Caveat" },
 ] as const;
 
 const FONTES_URL =
-  "https://fonts.googleapis.com/css2?family=Allura&family=Dancing+Script:wght@600&family=Great+Vibes&family=Sacramento&display=swap";
+  "https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Cedarville+Cursive&family=Great+Vibes&family=Homemade+Apple&display=swap";
 
 function carregarFontes() {
   if (document.getElementById("aveto-fontes-assinatura")) return;
@@ -100,7 +101,7 @@ export function AssinaturaCaptura({ nomePadrao, onChange: emitir }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [modo, setModo] = useState<"desenhar" | "digitar">("desenhar");
-  const [nome, setNome] = useState(nomePadrao);
+  const [nome, setNome] = useState(() => toProperName(nomePadrao));
   const [estilo, setEstilo] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const desenhando = useRef(false);
@@ -108,7 +109,7 @@ export function AssinaturaCaptura({ nomePadrao, onChange: emitir }: Props) {
   const [temTraco, setTemTraco] = useState(false);
 
   useEffect(() => { carregarFontes(); }, []);
-  useEffect(() => { setNome(nomePadrao); }, [nomePadrao]);
+  useEffect(() => { setNome(toProperName(nomePadrao)); }, [nomePadrao]);
 
   // Canvas com resolução real do aparelho para o traço sair nítido.
   useEffect(() => {
