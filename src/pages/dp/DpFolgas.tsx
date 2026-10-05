@@ -64,7 +64,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { definirLimiteDoDia, salvarDataBloqueada, excluirDataBloqueada } from "@/lib/dp/regras-oficial";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
-import { useDpFolgaReserva } from "@/hooks/useDpFolgaReserva";
 import { useAuth } from "@/hooks/useAuth";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpFolgasQueries } from "@/hooks/useDpFolgasQueries";
@@ -207,10 +206,11 @@ export default function DpFolgas() {
   /** Card de indicador aberto no detalhamento do mês. */
   const [statDetalhe, setStatDetalhe] = useState<StatKey | null>(null);
   /** Indisponibilidades de convocáveis: contagem e nomes, já na unidade filtrada. */
-  const { reservasByDay, pessoasByDay } = useDpFolgaReserva(
-
-    cursor,
-    unidadeFilter === "todas" ? null : unidadeFilter,
+  // Indisponibilidade de convocáveis fica só em Convocações: não ocupa vaga de folga dos mensalistas.
+  const reservasByDay = useMemo(() => new Map<string, number>(), []);
+  const pessoasByDay = useMemo(
+    () => new Map<string, Array<{ id: string; nome: string; vinculo?: string | null }>>(),
+    [],
   );
 
   // Reaplica preferências ao trocar de empresa
@@ -766,7 +766,6 @@ export default function DpFolgas() {
 
   const statCards: Array<{ key: StatKey; label: string; value: number; icon: typeof Users; tone: string }> = [
     { key: "marcadas", label: "FOLGAS MARCADAS", value: stats.marcadas, icon: CheckCircle2, tone: "text-emerald-600" },
-    { key: "reservas", label: "RESERVAS", value: stats.reservas, icon: Users, tone: "text-amber-600" },
     { key: "restantes", label: "VAGAS RESTANTES", value: stats.restantes, icon: Users, tone: "text-blue-600" },
     { key: "lotados", label: "DIAS LOTADOS", value: stats.lotados, icon: AlertTriangle, tone: "text-red-600" },
     { key: "capacidade", label: "CAPACIDADE TOTAL", value: stats.capacidade, icon: CalendarIcon, tone: "text-primary" },
