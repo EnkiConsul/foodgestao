@@ -18464,6 +18464,13 @@ export type Database = {
         Args: { p_aceito: boolean; p_id: string; p_observacao?: string }
         Returns: Json
       }
+      dp_troca_termo_cpfs: {
+        Args: { _troca_id: string }
+        Returns: {
+          destino_cpf: string
+          solicitante_cpf: string
+        }[]
+      }
       dp_turno_colaboradores: {
         Args: { p_turno_id: string }
         Returns: {
