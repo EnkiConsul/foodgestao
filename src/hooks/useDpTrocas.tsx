@@ -37,6 +37,9 @@ export type DpTrocaRow = {
   gestor_resposta: string | null;
   gestor_respondido_em: string | null;
   created_at: string;
+  cancelamento_solicitado_em?: string | null;
+  cancelamento_solicitado_por?: string | null;
+  cancelamento_motivo?: string | null;
   solicitante: DpTrocaPessoa;
   destino: DpTrocaPessoa;
   /** Modo de troca resolvido pelas regras de folga da unidade do destinatário. */
@@ -150,7 +153,21 @@ export function useDpTrocas(filtros: TrocaFiltros = FILTROS_TROCA_PADRAO) {
     onError: (e: unknown) => toast.error((e as Error)?.message ?? "Erro"),
   });
 
+  /** Recusa o pedido de cancelamento feito por um colaborador; a troca segue valendo. */
+  const recusarCancelamento = useMutation({
+    mutationFn: async ({ id, motivo }: { id: string; motivo: string }) => {
+      const { error } = await supabase.rpc("dp_recusar_cancelamento_troca", { _troca_id: id, _motivo: motivo });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success("Pedido recusado", { description: "A troca continua valendo e os dois colaboradores foram avisados." });
+    },
+    onError: (e: unknown) => toast.error((e as Error)?.message ?? "Não foi possível recusar o pedido. Tente de novo."),
+  });
+
   return {
+    recusarCancelamento,
     rows: filtered,
     total: (list.data ?? []).length,
     isLoading: list.isLoading,

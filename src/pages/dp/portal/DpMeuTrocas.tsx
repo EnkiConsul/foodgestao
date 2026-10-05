@@ -39,6 +39,7 @@ import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { avaliarRiscoDsrTroca, avisoDsr, descansosDoColaborador } from "@/lib/dp/dsr-consecutivo";
 import { diasFixosDoColaborador, registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
 import { TermoTrocaPreviewDialog } from "@/components/dp/trocas/TermoTrocaPreviewDialog";
+import { MotivoDialog } from "@/components/dp/MotivoDialog";
 
 const statusLabel: Record<string, string> = {
   pendente_colega: "Aguardando colega",
@@ -235,6 +236,20 @@ export default function DpMeuTrocas() {
       void resolverPendencias(qc, { companyId: meRef.data?.company_id ?? null });
     },
     onError: (e: any) => notifyError(e, { surface: "Trocas de folga", action: "concluir a ação", fallback: "Erro" }),
+  });
+
+  const [pedirCancel, setPedirCancel] = useState<string | null>(null);
+  const solicitarCancel = useMutation({
+    mutationFn: async ({ id, motivo }: { id: string; motivo: string }) => {
+      const { error } = await supabase.rpc("dp_solicitar_cancelamento_troca", { _troca_id: id, _motivo: motivo });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast.success("Solicitação enviada ao gestor", { description: "Seu colega também foi avisado." });
+      setPedirCancel(null);
+      qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+    },
+    onError: (e: any) => notifyError(e, { surface: "Trocas de folga", action: "solicitar o cancelamento", fallback: "Não foi possível enviar. Tente de novo em instantes." }),
   });
 
   const validation = useMemo(() => {
@@ -463,8 +478,17 @@ export default function DpMeuTrocas() {
                     </div>
                   )}
 
+                  {t.status === "aprovada" && t.cancelamento_solicitado_em && (
+                    <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                      Cancelamento solicitado ao gestor em{" "}
+                      {format(new Date(t.cancelamento_solicitado_em), "dd/MM/yyyy 'às' HH:mm")}
+                      {" "}por {t.cancelamento_solicitado_por === meRef.data?.id ? "você" : (t.cancelamento_solicitado_por === t.solicitante_id ? t.solicitante?.nome : t.destino?.nome) ?? "seu colega"}
+                      {" "}— aguardando análise.
+                      {t.cancelamento_motivo && <div className="mt-1">Motivo: {t.cancelamento_motivo}</div>}
+                    </div>
+                  )}
                   {t.status === "aprovada" && (
-                    <div className="pt-1">
+                    <div className="flex flex-wrap gap-2 pt-1">
                       <Button
                         size="sm"
                         variant="outline"
@@ -473,6 +497,11 @@ export default function DpMeuTrocas() {
                       >
                         <FileText className="h-4 w-4 mr-1" /> Ver termo da troca
                       </Button>
+                      {!t.cancelamento_solicitado_em && (
+                        <Button size="sm" variant="ghost" onClick={() => setPedirCancel(t.id)}>
+                          <Ban className="h-4 w-4 mr-1" /> Solicitar Cancelamento da Troca
+                        </Button>
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -484,6 +513,17 @@ export default function DpMeuTrocas() {
           troca={termo}
           empresa={{ nome: empresaRef.data?.nome ?? "Empresa" }}
           onOpenChange={(v) => !v && setTermo(null)}
+        />
+        <MotivoDialog
+          open={!!pedirCancel}
+          onOpenChange={(v) => !v && setPedirCancel(null)}
+          title="Solicitar Cancelamento da Troca"
+          description="O gestor decide se a troca será desfeita. Seu colega será avisado agora do seu pedido. Até a decisão, a troca continua valendo."
+          label="Motivo do cancelamento"
+          confirmLabel="Enviar Solicitação"
+          minLength={10}
+          loading={solicitarCancel.isPending}
+          onConfirm={(motivo) => solicitarCancel.mutate({ id: pedirCancel!, motivo })}
         />
         </>
       )}

@@ -12406,6 +12406,9 @@ export type Database = {
       }
       dp_trocas: {
         Row: {
+          cancelamento_motivo: string | null
+          cancelamento_solicitado_em: string | null
+          cancelamento_solicitado_por: string | null
           colega_respondido_em: string | null
           colega_resposta: string | null
           company_id: string
@@ -12428,6 +12431,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cancelamento_motivo?: string | null
+          cancelamento_solicitado_em?: string | null
+          cancelamento_solicitado_por?: string | null
           colega_respondido_em?: string | null
           colega_resposta?: string | null
           company_id: string
@@ -12450,6 +12456,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cancelamento_motivo?: string | null
+          cancelamento_solicitado_em?: string | null
+          cancelamento_solicitado_por?: string | null
           colega_respondido_em?: string | null
           colega_resposta?: string | null
           company_id?: string
@@ -12472,6 +12481,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "dp_trocas_cancelamento_solicitado_por_fkey"
+            columns: ["cancelamento_solicitado_por"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_trocas_cancelamento_solicitado_por_fkey"
+            columns: ["cancelamento_solicitado_por"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "dp_trocas_company_id_fkey"
             columns: ["company_id"]
@@ -18233,6 +18256,10 @@ export type Database = {
         }
         Returns: string
       }
+      dp_recusar_cancelamento_troca: {
+        Args: { _motivo: string; _troca_id: string }
+        Returns: Json
+      }
       dp_refresh_document_pending: {
         Args: { p_company_id: string }
         Returns: undefined
@@ -18405,6 +18432,10 @@ export type Database = {
           p_resposta?: string
           p_status: Database["public"]["Enums"]["dp_solicitacao_status"]
         }
+        Returns: Json
+      }
+      dp_solicitar_cancelamento_troca: {
+        Args: { _motivo: string; _troca_id: string }
         Returns: Json
       }
       dp_timezone_resolvido: {

@@ -12,6 +12,8 @@ interface RecusaDialogProps {
   motivoObrigatorio?: boolean;
   onConfirm: (motivo: string) => void;
   loading?: boolean;
+  textoInicial?: string;
+  confirmLabel?: string;
 }
 
 /**
@@ -25,12 +27,14 @@ export function RecusaDialog({
   motivoObrigatorio = false,
   onConfirm,
   loading = false,
+  textoInicial = "",
+  confirmLabel = "Confirmar recusa",
 }: RecusaDialogProps) {
   const [motivo, setMotivo] = useState("");
 
   useEffect(() => {
-    if (open) setMotivo("");
-  }, [open]);
+    if (open) setMotivo(textoInicial);
+  }, [open, textoInicial]);
 
   const canConfirm = motivoObrigatorio ? motivo.trim().length >= 3 : true;
 
@@ -60,7 +64,7 @@ export function RecusaDialog({
             disabled={!canConfirm || loading}
             onClick={() => onConfirm(motivo.trim())}
           >
-            {loading ? "Enviando..." : "Confirmar recusa"}
+            {loading ? "Enviando..." : confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

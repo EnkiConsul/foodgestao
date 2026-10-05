@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Save,
@@ -150,6 +150,7 @@ export function FolgaRegrasFormDialog({
   const hookLimitesOrigem = useDpFolgaLimites(copiarDeSelecionado);
 
   const [regrasRascunho, setRegrasRascunho] = useState<RegraLimiteInput[]>([]);
+  const rascunhoCarregadoRef = useRef<string | null>(null);
 
   // Reseta o estado quando o diálogo abre.
   useEffect(() => {
@@ -160,12 +161,16 @@ export function FolgaRegrasFormDialog({
     setForm(configInicial);
     setAlertas([]);
     setRegrasRascunho([]);
+    rascunhoCarregadoRef.current = null;
   }, [open, modo, unidadeIdProp, configInicial, copiarDe]);
 
   // Preenche o rascunho de particularidades: edição = regras da unidade; criação com cópia = regras da origem.
+  // Na edição carrega uma única vez por abertura, para que o que foi excluído não volte à tela.
   useEffect(() => {
     if (etapa !== "formulario") return;
     if (modo === "editar" && unidadeEfetiva) {
+      if (hookLimites.isLoading || rascunhoCarregadoRef.current === unidadeEfetiva) return;
+      rascunhoCarregadoRef.current = unidadeEfetiva;
       setRegrasRascunho(
         hookLimites.regras.map((r) => ({
           id: r.id,
@@ -348,6 +353,17 @@ export function FolgaRegrasFormDialog({
         cienciaConfirmada,
         justificativa: justificativa || null,
       });
+
+      // Exclui no banco as particularidades removidas (lixeira) do rascunho.
+      if (modo === "editar") {
+        const mantidos = new Set(regrasRascunho.map((r) => r.id).filter(Boolean));
+        const removidos = hookLimites.regras.filter(
+          (r) => r.unidade_id === unidadeEfetiva && !mantidos.has(r.id),
+        );
+        for (const r of removidos) {
+          await hookLimites.excluir.mutateAsync(r.id);
+        }
+      }
 
       // Grava as particularidades de folga mantidas no rascunho.
       await hookLimites.salvarMuitas.mutateAsync(
