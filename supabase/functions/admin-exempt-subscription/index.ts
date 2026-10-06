@@ -56,12 +56,27 @@ Deno.serve(async (req) => {
       .from("subscriptions").select("*").eq("id", subscriptionId).maybeSingle();
     if (subErr || !sub) return json({ error: "Subscription not found" }, 404);
 
-    // Cancel on Asaas if exists
+    // Cliente pagante: cancelar no Asaas ANTES de isentar; falha aborta a isenção.
     if (sub.external_subscription_id) {
+      let asaasOk = false; let asaasErro: string | null = null; let asaasResp: unknown = null;
       try {
-        await asaasFetch(`/subscriptions/${sub.external_subscription_id}`, { method: "DELETE" });
+        const r: any = await asaasFetch(`/subscriptions/${sub.external_subscription_id}`, { method: "DELETE" });
+        asaasResp = { deleted: r?.deleted ?? null, id: r?.id ?? sub.external_subscription_id };
+        asaasOk = true;
       } catch (e) {
-        console.warn("[admin-exempt] Asaas cancel failed:", (e as Error).message);
+        asaasErro = (e as Error).message?.slice(0, 300) ?? "erro desconhecido";
+      }
+      await admin.from("audit_logs").insert({
+        user_id: u.user.id,
+        action: asaasOk ? "asaas_subscription_canceled_for_exemption" : "asaas_subscription_cancel_failed",
+        entity_type: "subscription",
+        entity_id: subscriptionId,
+        details: { external_subscription_id: sub.external_subscription_id, resposta: asaasResp, erro: asaasErro },
+      });
+      if (!asaasOk) {
+        return json({
+          error: `Não foi possível cancelar a cobrança no Asaas (${asaasErro}). A isenção não foi aplicada; tente novamente ou cancele a assinatura no Asaas e repita.`,
+        }, 502);
       }
     }
 
