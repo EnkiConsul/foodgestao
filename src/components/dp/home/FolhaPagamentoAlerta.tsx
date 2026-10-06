@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Banknote, ArrowRight, X } from "lucide-react";
@@ -63,6 +63,10 @@ export function FolhaPagamentoAlerta() {
   const [adiados, setAdiados] = useState<Record<string, number>>(() =>
     selectedCompanyId ? lerAdiados(selectedCompanyId) : {},
   );
+  // Ao trocar de empresa no seletor, carrega os adiamentos da empresa nova.
+  useEffect(() => {
+    setAdiados(selectedCompanyId ? lerAdiados(selectedCompanyId) : {});
+  }, [selectedCompanyId]);
 
   const q = useQuery({
     queryKey: ["dp_pagamentos_pendentes_alerta", selectedCompanyId],

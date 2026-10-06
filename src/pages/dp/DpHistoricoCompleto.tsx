@@ -1317,7 +1317,13 @@ export default function DpHistoricoCompleto() {
         // Documento aprovado: aguarda o certificado; o original só entra se ele falhar.
         aguardando={certStatus === "carregando" && !certPreview ? "Carregando validação digital..." : null}
         // O comprovante fica sempre visível abaixo do documento.
-        comprovanteDocumentoId={preview?.comprovante_path && preview.id.startsWith("doc:") ? preview.id.slice(4) : null}
+        // Usa a versão mais recente da lista: o comprovante recém-importado aparece sem reabrir.
+        comprovanteDocumentoId={(() => {
+          if (!preview || !preview.id.startsWith("doc:")) return null;
+          const lista = Array.isArray(query.data) ? (query.data as UnifiedDoc[]) : [];
+          const atual = lista.find((r) => r.id === preview.id) ?? preview;
+          return atual.comprovante_path ? preview.id.slice(4) : null;
+        })()}
         comprovantesExtras={extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null }))}
         toolbar={preview && (preview.aceite !== null || preview.aceiteDispensado || preview.viaFisica || preview.quitacao) ? (
           <div className="mt-2 flex flex-wrap items-center gap-2">
