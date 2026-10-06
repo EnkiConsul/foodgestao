@@ -100,6 +100,11 @@ export default defineConfig(({ mode }) => (aplicarEnvHomologacao(mode), {
     // visualizador de PDF em branco.
     dedupe: ["react", "react-dom", "react/jsx-runtime", "pdfjs-dist"],
   },
+  optimizeDeps: {
+    // Pré-empacota o pdfjs em módulo único: sem isso os módulos internos dele
+    // são servidos separados e os campos privados quebram no visualizador.
+    include: ["pdfjs-dist"],
+  },
   build: {
     rollupOptions: {
       output: {
