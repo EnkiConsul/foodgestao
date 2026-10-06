@@ -1,6 +1,7 @@
 // Validação fail-closed do ambiente ANTES de qualquer outro módulo (inclusive
 // do cliente do banco, importado indiretamente por App).
 import "./bootstrap/ambiente";
+import "./lib/polyfills";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { supabase } from "./integrations/supabase/client";
