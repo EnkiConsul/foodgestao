@@ -139,13 +139,13 @@ export function useMeusDocumentos() {
       if (!data) return null;
       const { data: empresa } = await supabase
         .from("companies")
-        .select("razao_social, nome_fantasia")
+        .select("name, trade_name")
         .eq("id", (data as any).company_id)
         .maybeSingle();
       return {
         ...(data as any),
         empresa_nome:
-          (empresa as any)?.razao_social ?? (empresa as any)?.nome_fantasia ?? "",
+          (empresa as any)?.name ?? (empresa as any)?.trade_name ?? "",
       };
     },
   });
