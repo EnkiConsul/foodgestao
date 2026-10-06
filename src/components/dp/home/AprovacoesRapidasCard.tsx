@@ -126,7 +126,7 @@ export function AprovacoesRapidasCard() {
             </div>
             <div className="flex flex-wrap gap-2">
               {it.arquivo?.file_path && (
-                <Button size="sm" variant="outline" onClick={() => abrirDocumento(it.arquivo as any)}>
+                <Button size="sm" variant="outline" onClick={() => abrirDocumento(it.arquivo.id)}>
                   <Eye className="h-4 w-4 mr-1" /> Ver
                 </Button>
               )}
