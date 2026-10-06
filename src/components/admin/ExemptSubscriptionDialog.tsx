@@ -32,6 +32,7 @@ export function ExemptSubscriptionDialog({ open, onOpenChange, subscriptionId, u
   const [mode, setMode] = useState<"permanent" | "until">("permanent");
   const [until, setUntil] = useState<string>("");
   const [reason, setReason] = useState("");
+  const [motivoCodigo, setMotivoCodigo] = useState<string>("outro");
 
   // Resolve subscription if only userId was provided
   const { data: resolved } = useQuery({
@@ -58,6 +59,7 @@ export function ExemptSubscriptionDialog({ open, onOpenChange, subscriptionId, u
     setMode("permanent");
     setUntil("");
     setReason("");
+    setMotivoCodigo("outro");
   }, [open, defaultPlanId, resolved?.plan_id]);
 
   const handleSubmit = () => {
@@ -68,6 +70,9 @@ export function ExemptSubscriptionDialog({ open, onOpenChange, subscriptionId, u
     if (!planId) {
       toast.error("Selecione um plano");
       return;
+    }
+    if (mode === "permanent" && motivoCodigo !== "base_anterior") {
+      return toast.error("Cortesia permanente só com o motivo \"Base anterior\". Escolha uma data fim.");
     }
     if (mode === "until") {
       if (!until) return toast.error("Informe a data fim");
@@ -81,6 +86,7 @@ export function ExemptSubscriptionDialog({ open, onOpenChange, subscriptionId, u
         mode,
         exemptUntil: mode === "until" ? new Date(until).toISOString() : null,
         reason: reason.trim() || null,
+        motivoCodigo,
       },
       { onSuccess: () => onOpenChange(false) },
     );
@@ -127,6 +133,21 @@ export function ExemptSubscriptionDialog({ open, onOpenChange, subscriptionId, u
               <Input type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
             </div>
           )}
+
+          <div className="space-y-1.5">
+            <Label>Tipo de motivo</Label>
+            <Select value={motivoCodigo} onValueChange={setMotivoCodigo}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="parceria">Parceria</SelectItem>
+                <SelectItem value="piloto">Piloto</SelectItem>
+                <SelectItem value="compensacao">Compensação</SelectItem>
+                <SelectItem value="comercial">Comercial</SelectItem>
+                <SelectItem value="base_anterior">Base anterior</SelectItem>
+                <SelectItem value="outro">Outro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="space-y-1.5">
             <Label>Motivo (opcional)</Label>
