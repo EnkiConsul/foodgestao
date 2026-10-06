@@ -77,7 +77,7 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
     if (res.erros.length) toast.warning(`${res.erros.length} cadastro(s) com erro. Confira abaixo.`);
   };
 
-  const semConta = useMemo(() => itens.filter((i) => !i.tem_conta && cpfOk(i.cpf)), [itens]);
+  const semConta = useMemo(() => itens.filter((i) => !i.tem_conta && cpfOk(i.cpf) && wppOk(i.whatsapp)), [itens]);
   const [criando, setCriando] = useState<{ feitos: number; total: number } | null>(null);
 
   const criarEmMassa = async () => {
@@ -143,7 +143,7 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
               <span className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5"><AlertTriangle className="h-4 w-4 text-destructive" />{pendentes.length} faltando dados</span>
             )}
             {semConta.length > 0 && (
-              <span className="flex items-center gap-1.5 rounded-md bg-muted px-3 py-1.5"><KeyRound className="h-4 w-4" />{semConta.length} sem acesso criado</span>
+              <span className="flex items-center gap-1.5 rounded-md bg-muted px-3 py-1.5"><KeyRound className="h-4 w-4" />{semConta.length} com CPF e WhatsApp sem acesso criado</span>
             )}
           </div>
           {comErro.length > 0 && (
