@@ -92,7 +92,14 @@ export default function DpMeuFerias() {
   const [adiantar13, setAdiantar13] = useState(false);
   const [observacao, setObservacao] = useState("");
 
-  const comSaldo = useMemo(() => periodos.filter((p) => p.dias_saldo > 0), [periodos]);
+  // FIFO: o mais antigo com saldo vem primeiro (férias saem sempre dele).
+  const comSaldo = useMemo(
+    () =>
+      periodos
+        .filter((p) => p.dias_saldo > 0)
+        .sort((a, b) => a.inicio_aquisitivo.localeCompare(b.inicio_aquisitivo)),
+    [periodos],
+  );
   const pedidosPendentes = useMemo(
     () => pedidos.filter((p) => p.status === "pendente"),
     [pedidos],
@@ -441,16 +448,18 @@ export default function DpMeuFerias() {
             <div className="space-y-2">
               <Label>Período</Label>
               {modo === "novo" ? (
-                <Select value={periodoId} onValueChange={setPeriodoId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o período" /></SelectTrigger>
-                  <SelectContent>
-                    {comSaldo.map((p) => (
-                      <SelectItem key={p.periodo_id} value={p.periodo_id}>
-                        {fmt(p.inicio_aquisitivo)} a {fmt(p.fim_aquisitivo)} · saldo {p.dias_saldo} dias
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <p className="rounded-xl bg-muted/40 p-3 text-sm">
+                    {periodoSel
+                      ? `Período aquisitivo: ${fmt(periodoSel.inicio_aquisitivo)} a ${fmt(periodoSel.fim_aquisitivo)} · Saldo disponível: ${periodoSel.dias_saldo} dias${periodoSel.limite_concessivo ? ` (limite até ${fmt(periodoSel.limite_concessivo)})` : ""}`
+                      : "Nenhum período com saldo."}
+                  </p>
+                  {comSaldo.length > 1 && (
+                    <p className="text-xs text-muted-foreground">
+                      Próximo período ({fmt(comSaldo[1].inicio_aquisitivo)} a {fmt(comSaldo[1].fim_aquisitivo)}) será liberado assim que o saldo deste período for zerado.
+                    </p>
+                  )}
+                </div>
               ) : (
                 <p className="rounded-xl bg-muted/40 p-3 text-sm">
                   {periodoSel
