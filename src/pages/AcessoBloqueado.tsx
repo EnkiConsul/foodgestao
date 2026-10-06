@@ -27,6 +27,11 @@ const TEXTOS: Record<MotivoBloqueio, { titulo: string; descricao: string }> = {
     descricao:
       "A pendência passou de 30 dias e o contrato foi encerrado. Seus dados ficam guardados por 90 dias contados do vencimento e você pode exportá-los abaixo.",
   },
+  carencia_expirada: {
+    titulo: "Período de carência encerrado",
+    descricao:
+      "Sua cortesia chegou ao fim e o período de carência expirou. Escolha um plano para reativar seu acesso na hora — seus dados continuam guardados.",
+  },
   expirado_definitivo: {
     titulo: "Prazo de guarda dos dados encerrado",
     descricao:

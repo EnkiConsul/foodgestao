@@ -61,7 +61,7 @@ export function AdminSubscriptions() {
   const { displayName, realName } = useUserNames();
   
   const update = useUpdateSubscription();
-  const removeExemption = useRemoveExemption();
+  const [revokeId, setRevokeId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("all");
   const [hideTest, setHideTest] = useState(true);
   const [clientSortDir, setClientSortDir] = useState<"asc" | "desc" | null>(null);
@@ -246,12 +246,8 @@ export function AdminSubscriptions() {
                       )}
                       {exempt ? (
                         <Button size="sm" variant="ghost"
-                          onClick={() => {
-                            if (confirm("Remover isenção? O cliente voltará ao fluxo normal de cobrança.")) {
-                              removeExemption.mutate(s.id);
-                            }
-                          }}>
-                          Remover isenção
+                          onClick={() => setRevokeId(s.id)}>
+                          Revogar cortesia
                         </Button>
                       ) : (
                         <Button size="sm" variant="ghost"
@@ -347,8 +343,8 @@ export function AdminSubscriptions() {
                   )}
                   {exempt ? (
                     <Button size="sm" variant="outline" className="flex-1 min-h-9"
-                      onClick={() => { if (confirm("Remover isenção?")) removeExemption.mutate(s.id); }}>
-                      Remover isenção
+                      onClick={() => setRevokeId(s.id)}>
+                      Revogar cortesia
                     </Button>
                   ) : (
                     <Button size="sm" variant="outline" className="flex-1 min-h-9"

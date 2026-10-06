@@ -14,6 +14,7 @@ import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { MfaNudgeDialog } from "@/components/security/MfaNudgeDialog";
 import { TrialCountdownBanner } from "@/components/billing/TrialCountdownBanner";
 import { AtrasoPagamentoBanner } from "@/components/billing/AtrasoPagamentoBanner";
+import { CarenciaBanner } from "@/components/billing/CarenciaBanner";
 
 export function AppLayout() {
   useBillingRealtime();
@@ -29,6 +30,7 @@ export function AppLayout() {
           <AppHeader />
           <TrialCountdownBanner />
           <AtrasoPagamentoBanner />
+          <CarenciaBanner />
           <main className="flex-1 p-3 md:p-6 pb-22 md:pb-6">
             <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
               <PermissionRouteGuard><Outlet /></PermissionRouteGuard>

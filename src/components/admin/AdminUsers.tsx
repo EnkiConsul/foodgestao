@@ -42,7 +42,7 @@ type AdminUserRow = {
 export function AdminUsers() {
   const [search, setSearch] = useState("");
   const [exemptTarget, setExemptTarget] = useState<{ userId: string; planId: string | null } | null>(null);
-  const removeExemption = useRemoveExemption();
+  const [revokeId, setRevokeId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -208,12 +208,9 @@ export function AdminUsers() {
                         <DropdownMenuContent align="end">
                           {exempt ? (
                             <DropdownMenuItem
-                              onClick={() => {
-                                if (confirm("Remover isenção? O cliente voltará ao fluxo normal de cobrança."))
-                                  removeExemption.mutate(sub.id);
-                              }}
+                              onClick={() => setRevokeId(sub.id)}
                             >
-                              Remover isenção
+                              Revogar cortesia
                             </DropdownMenuItem>
                           ) : (
                             <DropdownMenuItem
@@ -264,10 +261,8 @@ export function AdminUsers() {
                     <DropdownMenuContent align="end">
                       {exempt ? (
                         <DropdownMenuItem
-                          onClick={() => {
-                            if (confirm("Remover isenção?")) removeExemption.mutate(sub.id);
-                          }}
-                        >Remover isenção</DropdownMenuItem>
+                          onClick={() => setRevokeId(sub.id)}
+                        >Revogar cortesia</DropdownMenuItem>
                       ) : (
                         <DropdownMenuItem
                           disabled={!sub}
