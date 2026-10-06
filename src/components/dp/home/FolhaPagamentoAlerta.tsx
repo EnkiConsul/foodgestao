@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Banknote, ArrowRight } from "lucide-react";
+import { Banknote, ArrowRight, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,10 @@ const TITULO_POR_TIPO: Record<string, string> = {
   pro_labore: "Pró-Labore",
 };
 
+/** "Resolver Depois" adia o aviso por 12 horas (por empresa e por grupo). */
+const SNOOZE_MS = 12 * 60 * 60 * 1000;
+const SNOOZE_KEY_PREFIX = "dp_pagto_alerta_adiado:";
+
 function tituloDoTipo(tipo: string) {
   if (TITULO_POR_TIPO[tipo]) return TITULO_POR_TIPO[tipo];
   if (/resc|trct|acerto/i.test(tipo)) return "Rescisão";
@@ -36,13 +41,28 @@ function listarNomes(nomes: string[]) {
   return resto > 0 ? `${n.join(", ")} e mais ${resto}` : base;
 }
 
+function lerAdiados(companyId: string): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(SNOOZE_KEY_PREFIX + companyId);
+    if (!raw) return {};
+    const obj = JSON.parse(raw) as Record<string, number>;
+    return obj && typeof obj === "object" ? obj : {};
+  } catch {
+    return {};
+  }
+}
+
 /**
- * Aviso em destaque para quem paga: documentos de pagamento ainda sem
- * comprovante, agrupados por tipo e competência. Some quando o último
- * comprovante do grupo é importado.
+ * Aviso para quem paga: documentos de pagamento ainda sem comprovante,
+ * agrupados por tipo e competência. Cada cartão pode ser adiado com
+ * "Resolver Depois" (volta a aparecer depois de 12h) e some de vez quando
+ * o último comprovante do grupo é importado.
  */
 export function FolhaPagamentoAlerta() {
   const { selectedCompanyId } = useCompanyContext();
+  const [adiados, setAdiados] = useState<Record<string, number>>(() =>
+    selectedCompanyId ? lerAdiados(selectedCompanyId) : {},
+  );
 
   const q = useQuery({
     queryKey: ["dp_pagamentos_pendentes_alerta", selectedCompanyId],
@@ -92,8 +112,20 @@ export function FolhaPagamentoAlerta() {
     },
   });
 
-  const grupos = q.data ?? [];
+  const agora = Date.now();
+  const grupos = (q.data ?? []).filter((g) => (adiados[g.chave] ?? 0) <= agora);
   if (!grupos.length) return null;
+
+  const resolverDepois = (chave: string) => {
+    if (!selectedCompanyId) return;
+    const proximo = { ...lerAdiados(selectedCompanyId), [chave]: agora + SNOOZE_MS };
+    try {
+      localStorage.setItem(SNOOZE_KEY_PREFIX + selectedCompanyId, JSON.stringify(proximo));
+    } catch {
+      /* armazenamento indisponível: adia só nesta sessão */
+    }
+    setAdiados(proximo);
+  };
 
   return (
     <div className="space-y-2">
@@ -114,11 +146,22 @@ export function FolhaPagamentoAlerta() {
               </p>
             </div>
           </div>
-          <Button asChild size="sm" className="shrink-0">
-            <Link to={`/dp/documentos/historico?pendencia=comprovante&mes=${g.mes}&ano=${g.ano}`}>
-              Ver Documentos Para Pagar <ArrowRight className="h-4 w-4 ml-1" />
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button asChild size="sm">
+              <Link to={`/dp/documentos/historico?pendencia=comprovante&mes=${g.mes}&ano=${g.ano}`}>
+                Ver Documentos Para Pagar <ArrowRight className="h-4 w-4 ml-1" />
+              </Link>
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => resolverDepois(g.chave)}
+              aria-label="Resolver depois"
+            >
+              <X className="h-4 w-4 mr-1" /> Resolver Depois
+            </Button>
+          </div>
         </section>
       ))}
     </div>
