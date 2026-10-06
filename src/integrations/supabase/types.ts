@@ -8394,6 +8394,7 @@ export type Database = {
       dp_ferias_gozos: {
         Row: {
           adiantar_13: boolean
+          ajustado_pelo_gestor: boolean
           aprovado_em: string | null
           aprovado_por: string | null
           aviso_em: string | null
@@ -8405,6 +8406,7 @@ export type Database = {
           aviso_retroativo_declarado_por: string | null
           cancelado_em: string | null
           cancelado_por: string | null
+          ciencia_assinatura_imagem: string | null
           ciente_em: string | null
           ciente_fora_prazo: boolean
           ciente_por: string | null
@@ -8430,6 +8432,7 @@ export type Database = {
         }
         Insert: {
           adiantar_13?: boolean
+          ajustado_pelo_gestor?: boolean
           aprovado_em?: string | null
           aprovado_por?: string | null
           aviso_em?: string | null
@@ -8441,6 +8444,7 @@ export type Database = {
           aviso_retroativo_declarado_por?: string | null
           cancelado_em?: string | null
           cancelado_por?: string | null
+          ciencia_assinatura_imagem?: string | null
           ciente_em?: string | null
           ciente_fora_prazo?: boolean
           ciente_por?: string | null
@@ -8466,6 +8470,7 @@ export type Database = {
         }
         Update: {
           adiantar_13?: boolean
+          ajustado_pelo_gestor?: boolean
           aprovado_em?: string | null
           aprovado_por?: string | null
           aviso_em?: string | null
@@ -8477,6 +8482,7 @@ export type Database = {
           aviso_retroativo_declarado_por?: string | null
           cancelado_em?: string | null
           cancelado_por?: string | null
+          ciencia_assinatura_imagem?: string | null
           ciente_em?: string | null
           ciente_fora_prazo?: boolean
           ciente_por?: string | null
@@ -8713,6 +8719,7 @@ export type Database = {
       dp_ferias_solicitacao_detalhes: {
         Row: {
           adiantar_13: boolean
+          ajuste_gestor_de: Json | null
           colaborador_id: string
           company_id: string
           created_at: string
@@ -8724,10 +8731,14 @@ export type Database = {
           observacao: string | null
           periodo_id: string
           solicitacao_id: string
+          termo_assinado_em: string | null
+          termo_assinatura_imagem: string | null
+          termo_hash: string | null
           updated_at: string
         }
         Insert: {
           adiantar_13?: boolean
+          ajuste_gestor_de?: Json | null
           colaborador_id: string
           company_id: string
           created_at?: string
@@ -8739,10 +8750,14 @@ export type Database = {
           observacao?: string | null
           periodo_id: string
           solicitacao_id: string
+          termo_assinado_em?: string | null
+          termo_assinatura_imagem?: string | null
+          termo_hash?: string | null
           updated_at?: string
         }
         Update: {
           adiantar_13?: boolean
+          ajuste_gestor_de?: Json | null
           colaborador_id?: string
           company_id?: string
           created_at?: string
@@ -8754,6 +8769,9 @@ export type Database = {
           observacao?: string | null
           periodo_id?: string
           solicitacao_id?: string
+          termo_assinado_em?: string | null
+          termo_assinatura_imagem?: string | null
+          termo_hash?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -17194,6 +17212,16 @@ export type Database = {
         }
         Returns: string
       }
+      dp_ferias_aprovar_ajustado: {
+        Args: {
+          _data_fim: string
+          _data_inicio: string
+          _justificativa?: string
+          _motivo: string
+          _solicitacao_id: string
+        }
+        Returns: string
+      }
       dp_ferias_bloqueio_excluir: {
         Args: { p_id: string; p_motivo?: string }
         Returns: undefined
@@ -17367,7 +17395,7 @@ export type Database = {
         Returns: undefined
       }
       dp_ferias_registrar_ciencia: {
-        Args: { _gozo_id: string }
+        Args: { _assinatura?: string; _gozo_id: string }
         Returns: undefined
       }
       dp_ferias_regra_excluir: {
@@ -17387,6 +17415,10 @@ export type Database = {
         }
         Returns: string
       }
+      dp_ferias_solicitacao_assinar: {
+        Args: { _assinatura: string; _solicitacao_id: string }
+        Returns: undefined
+      }
       dp_ferias_solicitar: {
         Args: {
           _adiantar_13?: boolean
@@ -17397,6 +17429,10 @@ export type Database = {
           _periodo_id: string
         }
         Returns: string
+      }
+      dp_ferias_termo_obter: {
+        Args: { _gozo_id?: string; _solicitacao_id?: string }
+        Returns: Json
       }
       dp_ferias_validar_programacao: {
         Args: {
