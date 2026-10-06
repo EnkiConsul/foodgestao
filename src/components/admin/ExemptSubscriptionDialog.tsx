@@ -23,11 +23,9 @@ interface Props {
   /** Used when opening from the Users screen — we will resolve the active subscription for this user. */
   userId?: string | null;
   defaultPlanId?: string | null;
-  /** Restringe os planos listados ao módulo da assinatura. */
-  module?: string | null;
 }
 
-export function ExemptSubscriptionDialog({ open, onOpenChange, subscriptionId, userId, defaultPlanId, module }: Props) {
+export function ExemptSubscriptionDialog({ open, onOpenChange, subscriptionId, userId, defaultPlanId }: Props) {
   const { data: plans = [] } = usePlans();
   const exempt = useExemptSubscription();
   const [planId, setPlanId] = useState<string>("");
@@ -104,7 +102,7 @@ export function ExemptSubscriptionDialog({ open, onOpenChange, subscriptionId, u
             <Select value={planId} onValueChange={setPlanId}>
               <SelectTrigger><SelectValue placeholder="Selecione um plano" /></SelectTrigger>
               <SelectContent>
-                {plans.filter((p: any) => !module || !p.module || p.module === module).map((p: any) => (
+                {plans.map((p: any) => (
                   <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                 ))}
               </SelectContent>

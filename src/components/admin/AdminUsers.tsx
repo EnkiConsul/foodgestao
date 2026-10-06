@@ -41,7 +41,7 @@ type AdminUserRow = {
 
 export function AdminUsers() {
   const [search, setSearch] = useState("");
-  const [exemptTarget, setExemptTarget] = useState<{ userId: string; planId: string | null; subscriptionId: string; module: string } | null>(null);
+  const [exemptTarget, setExemptTarget] = useState<{ userId: string; planId: string | null } | null>(null);
   const removeExemption = useRemoveExemption();
 
   const queryClient = useQueryClient();
@@ -63,59 +63,17 @@ export function AdminUsers() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("subscriptions")
-        .select("id, user_id, plan_id, module, status, is_exempt, exempt_until, created_at, plan:plans(name, price_cents)")
+        .select("id, user_id, plan_id, status, is_exempt, exempt_until, created_at, plan:plans(name)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
   });
 
-  const { data: vinculos } = useQuery({
-    queryKey: ["admin-users-vinculos"],
-    queryFn: async () => {
-      const [comp, mem, roles] = await Promise.all([
-        supabase.from("companies").select("id, user_id, name, trade_name"),
-        supabase.from("company_members").select("user_id, company_id, role, status"),
-        supabase.from("user_roles").select("user_id, role").eq("role", "super_admin"),
-      ]);
-      if (comp.error) throw comp.error;
-      if (mem.error) throw mem.error;
-      return { companies: comp.data ?? [], members: mem.data ?? [], superAdmins: roles.data ?? [] };
-    },
-  });
-
-  /** Clientes = dono de empresa, administrador de empresa ou super admin. */
-  const vinculoByUser = useMemo(() => {
-    const map = new Map<string, { papel: string; empresas: string[] }>();
-    if (!vinculos) return map;
-    const nomeEmp = new Map<string, string>();
-    for (const c of vinculos.companies as any[]) nomeEmp.set(c.id, c.trade_name || c.name || "—");
-    const add = (uid: string, papel: string, emp?: string) => {
-      const cur = map.get(uid) ?? { papel, empresas: [] };
-      if (papel === "Dono") cur.papel = "Dono";
-      if (emp && !cur.empresas.includes(emp)) cur.empresas.push(emp);
-      map.set(uid, cur);
-    };
-    for (const c of vinculos.companies as any[]) if (c.user_id) add(c.user_id, "Dono", nomeEmp.get(c.id));
-    for (const m of vinculos.members as any[]) {
-      if (m.status && m.status !== "active") continue;
-      if (m.role === "owner") add(m.user_id, "Dono", nomeEmp.get(m.company_id));
-      else if (m.role === "admin") add(m.user_id, map.get(m.user_id)?.papel ?? "Administrador", nomeEmp.get(m.company_id));
-    }
-    for (const r of vinculos.superAdmins as any[]) if (!map.has(r.user_id)) add(r.user_id, "Super Admin");
-    return map;
-  }, [vinculos]);
-
-  /** Assinatura mais recente por usuário e módulo. */
-  const subsByUser = useMemo(() => {
-    const map = new Map<string, Record<string, any>>();
+  const subByUser = useMemo(() => {
+    const map = new Map<string, any>();
     for (const s of subs as any[]) {
-      const mod = s.module ?? "financeiro";
-      const cur = map.get(s.user_id) ?? {};
-      const prev = cur[mod];
-      const vivo = (x: any) => x && (isExempt(x) || ["active", "trialing", "past_due", "pending"].includes(x.status));
-      if (!prev || (!vivo(prev) && vivo(s))) cur[mod] = s;
-      map.set(s.user_id, cur);
+      if (!map.has(s.user_id)) map.set(s.user_id, s);
     }
     return map;
   }, [subs]);
@@ -146,11 +104,8 @@ export function AdminUsers() {
   });
 
   const filtered = users.filter((u) => {
-    if (!vinculoByUser.has(u.user_id)) return false;
     const term = search.toLowerCase();
-    const emp = vinculoByUser.get(u.user_id)!.empresas.join(" ").toLowerCase();
     return (
-      emp.includes(term) ||
       (u.full_name?.toLowerCase().includes(term) ?? false) ||
       (u.document?.toLowerCase().includes(term) ?? false) ||
       (u.phone?.toLowerCase().includes(term) ?? false) ||
@@ -159,76 +114,12 @@ export function AdminUsers() {
     );
   });
 
-  const STATUS: Record<string, string> = {
-    active: "Ativo", trialing: "Em teste", past_due: "Em atraso", pending: "Pendente",
-    canceled: "Cancelado", cancelled: "Cancelado", expired: "Expirado",
-  };
-  const MODULOS = [
-    { key: "financeiro", label: "Financeiro 360°" },
-    { key: "pessoas", label: "Pessoas 360°" },
-  ];
-
-  const ModulosCell = ({ userId }: { userId: string }) => {
-    const m = subsByUser.get(userId) ?? {};
-    return (
-      <div className="flex flex-col gap-1.5">
-        {MODULOS.map(({ key, label }) => {
-          const s = m[key];
-          const exempt = isExempt(s);
-          return (
-            <div key={key} className="flex flex-wrap items-center gap-1 text-xs">
-              <span className="font-medium">{label}:</span>
-              {s ? (
-                <>
-                  <span className="text-muted-foreground">{s.plan?.name ?? "—"}</span>
-                  {exempt ? (
-                    <Badge variant="secondary" className="text-[10px]">{exemptionLabel(s)}</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-[10px]">{STATUS[s.status] ?? s.status}</Badge>
-                  )}
-                </>
-              ) : (
-                <span className="text-muted-foreground">Não contratado</span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  const MenuModulos = ({ userId }: { userId: string }) => {
-    const m = subsByUser.get(userId) ?? {};
-    return (
-      <>
-        {MODULOS.map(({ key, label }) => {
-          const s = m[key];
-          if (!s) return <DropdownMenuItem key={key} disabled>{label}: sem assinatura</DropdownMenuItem>;
-          return isExempt(s) ? (
-            <DropdownMenuItem
-              key={key}
-              onClick={() => {
-                if (confirm(`Remover isenção do ${label}? O cliente voltará ao fluxo normal de cobrança deste módulo.`))
-                  removeExemption.mutate(s.id);
-              }}
-            >Remover isenção — {label}</DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem
-              key={key}
-              onClick={() => setExemptTarget({ userId, planId: s.plan_id, subscriptionId: s.id, module: key })}
-            >Isentar — {label}</DropdownMenuItem>
-          );
-        })}
-      </>
-    );
-  };
-
   return (
     <div className="space-y-4">
       <div className="relative w-full sm:max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar por nome, empresa, e-mail, documento ou telefone..."
+          placeholder="Buscar por nome, e-mail, documento ou telefone..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -243,8 +134,8 @@ export function AdminUsers() {
               <TableHead>Nome</TableHead>
               <TableHead>E-mail</TableHead>
               <TableHead>WhatsApp</TableHead>
-              <TableHead>Empresa / Papel</TableHead>
-              <TableHead>Módulos / Isenção</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Plano / Isenção</TableHead>
               <TableHead>Onboarding</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Cadastro</TableHead>
@@ -263,24 +154,29 @@ export function AdminUsers() {
             ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                  Nenhum cliente encontrado
+                  Nenhum usuário encontrado
                 </TableCell>
               </TableRow>
             ) : (
               filtered.map((user) => {
-                const vinc = vinculoByUser.get(user.user_id);
+                const sub = subByUser.get(user.user_id);
+                const exempt = isExempt(sub);
                 return (
                   <TableRow key={user.id} className={!user.is_active ? "opacity-60" : ""}>
                     <TableCell className="font-medium">{user.full_name || "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{user.auth?.email ?? "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{user.phone || user.auth?.phone || "—"}</TableCell>
                     <TableCell>
+                      <Badge variant="outline" className="capitalize">{user.profile_type}</Badge>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex flex-col gap-1">
-                        <Badge variant="outline" className="w-fit text-[10px]">{vinc?.papel}</Badge>
-                        <span className="text-xs text-muted-foreground">{vinc?.empresas.join(", ") || "—"}</span>
+                        <span className="text-xs">{sub?.plan?.name ?? "—"}</span>
+                        {exempt && (
+                          <Badge variant="secondary" className="w-fit text-[10px]">{exemptionLabel(sub)}</Badge>
+                        )}
                       </div>
                     </TableCell>
-                    <TableCell><ModulosCell userId={user.user_id} /></TableCell>
                     <TableCell>
                       <Badge variant={user.onboarding_completed ? "default" : "secondary"}>
                         {user.onboarding_completed ? "Completo" : "Pendente"}
@@ -310,7 +206,23 @@ export function AdminUsers() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <MenuModulos userId={user.user_id} />
+                          {exempt ? (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                if (confirm("Remover isenção? O cliente voltará ao fluxo normal de cobrança."))
+                                  removeExemption.mutate(sub.id);
+                              }}
+                            >
+                              Remover isenção
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              disabled={!sub}
+                              onClick={() => setExemptTarget({ userId: user.user_id, planId: sub?.plan_id ?? null })}
+                            >
+                              Isentar mensalidade
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -329,10 +241,11 @@ export function AdminUsers() {
             <div key={i} className="rounded-md border p-3"><Skeleton className="h-16 w-full" /></div>
           ))
         ) : filtered.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-8">Nenhum cliente encontrado</p>
+          <p className="text-center text-sm text-muted-foreground py-8">Nenhum usuário encontrado</p>
         ) : (
           filtered.map((user) => {
-            const vinc = vinculoByUser.get(user.user_id);
+            const sub = subByUser.get(user.user_id);
+            const exempt = isExempt(sub);
             return (
               <div key={user.id} className={`rounded-md border p-3 space-y-2 ${!user.is_active ? "opacity-60" : ""}`}>
                 <div className="flex items-start justify-between gap-2">
@@ -349,18 +262,29 @@ export function AdminUsers() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <MenuModulos userId={user.user_id} />
+                      {exempt ? (
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (confirm("Remover isenção?")) removeExemption.mutate(sub.id);
+                          }}
+                        >Remover isenção</DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem
+                          disabled={!sub}
+                          onClick={() => setExemptTarget({ userId: user.user_id, planId: sub?.plan_id ?? null })}
+                        >Isentar mensalidade</DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  <Badge variant="outline" className="text-[10px]">{vinc?.papel}</Badge>
-                  {vinc?.empresas.length ? <Badge variant="outline" className="text-[10px]">{vinc.empresas.join(", ")}</Badge> : null}
+                  <Badge variant="outline" className="capitalize text-[10px]">{user.profile_type}</Badge>
                   <Badge variant={user.onboarding_completed ? "default" : "secondary"} className="text-[10px]">
                     {user.onboarding_completed ? "Onboarding OK" : "Onboarding pendente"}
                   </Badge>
+                  {sub?.plan?.name && <Badge variant="outline" className="text-[10px]">{sub.plan.name}</Badge>}
+                  {exempt && <Badge variant="secondary" className="text-[10px]">{exemptionLabel(sub)}</Badge>}
                 </div>
-                <ModulosCell userId={user.user_id} />
                 <div className="flex items-center justify-between pt-1 border-t">
                   <span className="text-xs text-muted-foreground">{user.is_active ? "Ativo" : "Inativo"}</span>
                   <Switch
@@ -379,10 +303,9 @@ export function AdminUsers() {
       <ExemptSubscriptionDialog
         open={!!exemptTarget}
         onOpenChange={(o) => !o && setExemptTarget(null)}
-        subscriptionId={exemptTarget?.subscriptionId ?? null}
+        subscriptionId={null}
         userId={exemptTarget?.userId ?? null}
         defaultPlanId={exemptTarget?.planId ?? null}
-        module={exemptTarget?.module ?? null}
       />
     </div>
   );
