@@ -92,7 +92,18 @@ export function useDpFeriasSolicitacoes(status: SolicitacaoStatus[] = ["pendente
   });
 
   const aprovar = useMutation({
-    mutationFn: async (input: { id: string; justificativa?: string | null; resposta?: string | null }) => {
+    mutationFn: async (input: {
+      id: string; justificativa?: string | null; resposta?: string | null;
+      ajuste?: { inicio: string; fim: string; motivo: string } | null;
+    }) => {
+      if (input.ajuste) {
+        const { error } = await supabase.rpc("dp_ferias_aprovar_ajustado" as never, {
+          _solicitacao_id: input.id, _data_inicio: input.ajuste.inicio, _data_fim: input.ajuste.fim,
+          _motivo: input.ajuste.motivo.trim(), _justificativa: input.justificativa?.trim() || null,
+        } as never);
+        if (error) throw error;
+        return;
+      }
       const { error } = await supabase.rpc("dp_ferias_aprovar", {
         _solicitacao_id: input.id,
         _justificativa: input.justificativa?.trim() || null,
@@ -101,7 +112,9 @@ export function useDpFeriasSolicitacoes(status: SolicitacaoStatus[] = ["pendente
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
-      toast.success("Férias aprovadas e programadas");
+      toast.success(vars.ajuste ? "Férias programadas com novas datas" : "Férias aprovadas e programadas", {
+        description: "O colaborador recebe o aviso para assinar a ciência.",
+      });
       invalidate(vars.id);
     },
     onError: (e: any) => toast.error(textoErroFerias(e?.message)),

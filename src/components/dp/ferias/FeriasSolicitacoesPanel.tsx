@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { parseISO, differenceInCalendarDays } from "date-fns";
-import { Check, X } from "lucide-react";
+import { Check, X, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { FeriasTermoDialog } from "@/components/dp/ferias/FeriasTermo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -24,6 +26,12 @@ export function FeriasSolicitacoesPanel() {
   const [recusando, setRecusando] = useState<FeriasSolicitacao | null>(null);
   const [justificativa, setJustificativa] = useState("");
   const [motivo, setMotivo] = useState("");
+  const [ajustar, setAjustar] = useState(false);
+  const [ajInicio, setAjInicio] = useState("");
+  const [ajFim, setAjFim] = useState("");
+  const [ajMotivo, setAjMotivo] = useState("");
+  const [termoId, setTermoId] = useState<string | null>(null);
+  const ajusteInvalido = ajustar && (!ajInicio || !ajFim || ajFim < ajInicio || ajMotivo.trim().length < 10);
 
   const antecedencia = (s: FeriasSolicitacao) =>
     differenceInCalendarDays(parseISO(s.data_inicio), new Date());
@@ -67,9 +75,15 @@ export function FeriasSolicitacoesPanel() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setTermoId(s.id)}>
+                    <FileText className="mr-1 size-3.5" /> Ver Termo
+                  </Button>
                   <Button
                     size="sm"
-                    onClick={() => { setJustificativa(""); setAprovando(s); }}
+                    onClick={() => {
+                      setJustificativa(""); setAjustar(false); setAjInicio(s.data_inicio);
+                      setAjFim(s.data_fim); setAjMotivo(""); setAprovando(s);
+                    }}
                   >
                     <Check className="mr-1 size-3.5" /> Aprovar
                   </Button>
@@ -128,17 +142,38 @@ export function FeriasSolicitacoesPanel() {
             </div>
           )}
 
+          <div className="space-y-2 rounded-xl border p-3">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input type="checkbox" checked={ajustar} onChange={(e) => setAjustar(e.target.checked)} />
+              Ajustar as datas antes de aprovar
+            </label>
+            {ajustar && (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label>Início</Label><Input type="date" value={ajInicio} onChange={(e) => setAjInicio(e.target.value)} /></div>
+                  <div><Label>Fim</Label><Input type="date" value={ajFim} onChange={(e) => setAjFim(e.target.value)} /></div>
+                </div>
+                <Label>Motivo do ajuste (mín. 10 caracteres)</Label>
+                <Textarea rows={2} value={ajMotivo} onChange={(e) => setAjMotivo(e.target.value)}
+                  placeholder="Ex.: Período de maior movimento na unidade." />
+                <p className="text-xs text-muted-foreground">
+                  A época das férias é decisão da empresa (Art. 136 da CLT): o colaborador recebe o aviso para assinar a ciência, sem opção de recusar.
+                </p>
+              </>
+            )}
+          </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setAprovando(null)}>Voltar</Button>
             <Button
               disabled={
-                aprovar.isPending ||
+                aprovar.isPending || ajusteInvalido ||
                 (!!aprovando && emCimaDaHora(aprovando) && justificativa.trim().length < 3)
               }
               onClick={() =>
                 aprovando &&
                 aprovar.mutate(
-                  { id: aprovando.id, justificativa },
+                  { id: aprovando.id, justificativa, ajuste: ajustar ? { inicio: ajInicio, fim: ajFim, motivo: ajMotivo } : null },
                   { onSuccess: () => setAprovando(null) },
                 )
               }
@@ -188,6 +223,7 @@ export function FeriasSolicitacoesPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <FeriasTermoDialog open={!!termoId} onOpenChange={(v) => { if (!v) setTermoId(null); }} solicitacaoId={termoId} />
     </>
   );
 }
