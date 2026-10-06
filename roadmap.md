@@ -53,3 +53,8 @@
 - [x] Barra inferior: gestor e colaborador com Documentos e Folgas por padrão, para todos os usuários
 - [x] Calendário do intermitente/freelancer diarista-horista segue o vínculo (rótulo "Calendário")
 - [x] Documentos do gestor com abas Importar, Histórico e Recibos
+
+## Histórico de Documentos (06/10)
+- [x] Documentos cadastrais (identidade/CNH/residência/bancário/CRLV/seguro/dependente) fora do Histórico — ficam só na aba Documentos da ficha
+- [x] Documento arquivado/excluído some da listagem na hora, sem recarregar
+- [x] Filtro de tipos cadastrais enviado entre parênteses (sem eles a consulta abortava e a tela ficava vazia) + descarte em memória

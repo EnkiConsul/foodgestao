@@ -115,6 +115,10 @@ function QuitacaoSelo({ q }: { q?: QuitacaoConsolidada | null }) {
 
 /** Documentos pessoais/cadastrais: ficam só na aba Documentos da ficha do colaborador. */
 const TIPOS_CADASTRAIS = "identidade,cnh,residencia,bancario,crlv,seguro_veiculo,dependente";
+/** A API do banco exige parênteses na lista do operador "in". */
+const TIPOS_CADASTRAIS_FILTRO = `(${TIPOS_CADASTRAIS})`;
+/** Mesmos tipos, para descartar em memória caso algum escapie do filtro do banco. */
+const TIPOS_CADASTRAIS_SET = new Set(TIPOS_CADASTRAIS.split(","));
 
 const TIPO_OPTIONS = [
   ...DP_DOC_TIPOS.filter((t) => t.value !== "sindicato").map((t) => ({ value: t.value as string, label: t.label })),
@@ -475,7 +479,7 @@ export default function DpHistoricoCompleto() {
             // Excluídos (arquivados) saem da tela na hora; o banco preserva o histórico.
             .is("arquivado_em", null)
             // Documentos pessoais/cadastrais ficam só na aba Documentos da ficha do colaborador.
-            .not("tipo", "in", TIPOS_CADASTRAIS)
+            .not("tipo", "in", TIPOS_CADASTRAIS_FILTRO)
             .order("id", { ascending: true })
             .range(from, to)),
         fetchAllPages<any>((from, to) =>
@@ -513,7 +517,11 @@ export default function DpHistoricoCompleto() {
 
       const rows: UnifiedDoc[] = [];
 
-      (docsRes.data ?? []).forEach((d: any) => {
+      // Rede de segurança: se algum tipo cadastral escapar do filtro do banco,
+      // é descartado aqui e a tela continua funcionando.
+      (docsRes.data ?? [])
+        .filter((d: any) => !TIPOS_CADASTRAIS_SET.has(String(d.tipo ?? "")))
+        .forEach((d: any) => {
         const c = d.colaborador_id ? colabMap.get(d.colaborador_id) : null;
         const comp = fmtCompetencia(d.referencia_data);
         const statusKey = d.aprovacao_status ?? "aprovado";
