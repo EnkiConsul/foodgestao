@@ -383,7 +383,13 @@ export default function DpHistoricoCompleto() {
     preview?.id?.startsWith("doc:") && (preview?.quitacao?.qtd ?? 0) > 1 ? preview.id.slice(4) : null,
   );
   const extrasPreview = extrasQuery.data ?? [];
-  const setPreview = (r: UnifiedDoc | null) => { setPreviewRaw(r); };
+  // Documento assinado já abre em modo "aguardando validação" de forma
+  // síncrona: sem isso o preview buscaria o arquivo bruto antes do efeito
+  // do certificado rodar, e a tela ficava presa no ícone de carregamento.
+  const setPreview = (r: UnifiedDoc | null) => {
+    setPreviewRaw(r);
+    setCertStatus(r && r.aceite === true && r.id.startsWith("doc:") ? "carregando" : "idle");
+  };
   // Documento assinado abre já com o certificado completo de validação.
   const [certPreview, setCertPreview] = useState<{ url: string; revogar: () => void } | null>(null);
   const [certStatus, setCertStatus] = useState<"idle" | "carregando" | "falhou">("idle");
@@ -1247,11 +1253,6 @@ export default function DpHistoricoCompleto() {
                   <Download className="h-4 w-4 mr-1" /> Baixar
                 </Button>
               </div>
-              {r.id.startsWith("doc:") && r.tem_comprovante && (
-                <Button size="sm" variant="outline" className="min-h-11 w-full" onClick={() => baixarComprovante(r)}>
-                  <Receipt className="h-4 w-4 mr-1" /> Baixar Comprovante
-                </Button>
-              )}
               {r.id.startsWith("doc:") && r.viaFisica && (
                 <ViaAssinadaBotao rotulo documentoId={r.id.slice(4)} companyId={selectedCompanyId ?? null} colaboradorId={r.colaborador_id} temVia={!!r.viaFisica.path} className="min-h-11 w-full" onDone={recarregar} />
               )}

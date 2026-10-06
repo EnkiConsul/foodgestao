@@ -80,12 +80,22 @@ export function DocumentPreview({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open || aguardando) return;
-    if (url) {
-      setResolvedUrl(url);
+    if (!open || aguardando) {
+      // Esperando validação digital (ou fechado): nada de busca concorrente e
+      // o carregamento anterior é limpo para não prender o ícone girando.
+      setLoading(false);
       return;
     }
-    if (!bucket || !path) return;
+    if (url) {
+      setResolvedUrl(url);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    if (!bucket || !path) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
