@@ -71,6 +71,13 @@ type ScanRow = {
   modulo: string | null;
 };
 
+function nomeModulo(m: string | null): string | undefined {
+  if (!m) return undefined;
+  if (m === 'financeiro' || m === 'financial') return 'Financeiro 360°';
+  if (m === 'dp' || m === 'pessoas') return 'Pessoas 360°';
+  return undefined;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -155,6 +162,7 @@ Deno.serve(async (req) => {
       link: row.payment_url ?? link,
       linkExportacao: `${SITE_URL}/acesso-bloqueado`,
       linkPlanos: `${SITE_URL}/planos`,
+      modulo: nomeModulo(row.modulo),
     };
   }
 
