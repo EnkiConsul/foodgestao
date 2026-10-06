@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
 
     // ---------- 2) drenagem da fila ---------------------------------------
     const { data: fila, error: filaErr } = await admin.from("billing_notifications")
-      .select("id, stage, recipient, invoice_id, payload, attempts")
+      .select("id, stage, recipient, invoice_id, subscription_id, payload, attempts")
       .eq("status", "pending")
       .lte("scheduled_at", new Date().toISOString())
       .lt("attempts", 5)
@@ -212,6 +212,19 @@ Deno.serve(async (req) => {
         if (fat && !["open", "overdue"].includes(String(fat.status))) {
           await admin.from("billing_notifications")
             .update({ status: "cancelled", last_error: "fatura quitada antes do envio" })
+            .eq("id", item.id);
+          cancelados++;
+          continue;
+        }
+      }
+
+      // carência: só envia se a assinatura continua em carência
+      if (String(item.stage).startsWith("grace_") && item.subscription_id) {
+        const { data: sub } = await admin.from("subscriptions").select("status")
+          .eq("id", item.subscription_id).maybeSingle();
+        if (!sub || String(sub.status) !== "grace") {
+          await admin.from("billing_notifications")
+            .update({ status: "cancelled", last_error: "carência encerrada antes do envio" })
             .eq("id", item.id);
           cancelados++;
           continue;
