@@ -1460,6 +1460,81 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_account_companies: {
+        Row: {
+          added_at: string
+          billing_account_id: string
+          company_id: string
+          id: string
+          removed_at: string | null
+        }
+        Insert: {
+          added_at?: string
+          billing_account_id: string
+          company_id: string
+          id?: string
+          removed_at?: string | null
+        }
+        Update: {
+          added_at?: string
+          billing_account_id?: string
+          company_id?: string
+          id?: string
+          removed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_account_companies_billing_account_id_fkey"
+            columns: ["billing_account_id"]
+            isOneToOne: false
+            referencedRelation: "billing_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_account_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_accounts: {
+        Row: {
+          asaas_customer_id: string | null
+          created_at: string
+          documento_pagador: string | null
+          email_cobranca: string | null
+          id: string
+          nome: string
+          tipo: Database["public"]["Enums"]["billing_account_type"]
+          titular_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          asaas_customer_id?: string | null
+          created_at?: string
+          documento_pagador?: string | null
+          email_cobranca?: string | null
+          id?: string
+          nome: string
+          tipo: Database["public"]["Enums"]["billing_account_type"]
+          titular_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          asaas_customer_id?: string | null
+          created_at?: string
+          documento_pagador?: string | null
+          email_cobranca?: string | null
+          id?: string
+          nome?: string
+          tipo?: Database["public"]["Enums"]["billing_account_type"]
+          titular_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       billing_notifications: {
         Row: {
           attempts: number
@@ -13242,9 +13317,61 @@ export type Database = {
           },
         ]
       }
+      invoice_items: {
+        Row: {
+          created_at: string
+          desconto_cents: number
+          id: string
+          invoice_id: string
+          module: string | null
+          quantity: number
+          subscription_id: string | null
+          total_cents: number
+          unit_price_cents: number
+        }
+        Insert: {
+          created_at?: string
+          desconto_cents?: number
+          id?: string
+          invoice_id: string
+          module?: string | null
+          quantity?: number
+          subscription_id?: string | null
+          total_cents?: number
+          unit_price_cents?: number
+        }
+        Update: {
+          created_at?: string
+          desconto_cents?: number
+          id?: string
+          invoice_id?: string
+          module?: string | null
+          quantity?: number
+          subscription_id?: string | null
+          total_cents?: number
+          unit_price_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_items_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           amount_cents: number
+          billing_account_id: string | null
           boleto_url: string | null
           coupon_id: string | null
           created_at: string
@@ -13275,6 +13402,7 @@ export type Database = {
         }
         Insert: {
           amount_cents: number
+          billing_account_id?: string | null
           boleto_url?: string | null
           coupon_id?: string | null
           created_at?: string
@@ -13305,6 +13433,7 @@ export type Database = {
         }
         Update: {
           amount_cents?: number
+          billing_account_id?: string | null
           boleto_url?: string | null
           coupon_id?: string | null
           created_at?: string
@@ -13334,6 +13463,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "invoices_billing_account_id_fkey"
+            columns: ["billing_account_id"]
+            isOneToOne: false
+            referencedRelation: "billing_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoices_subscription_id_fkey"
             columns: ["subscription_id"]
@@ -13945,6 +14081,41 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      plan_volume_tiers: {
+        Row: {
+          created_at: string
+          id: string
+          max_quantity: number | null
+          min_quantity: number
+          plan_id: string
+          unit_price_cents: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_quantity?: number | null
+          min_quantity: number
+          plan_id: string
+          unit_price_cents: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_quantity?: number | null
+          min_quantity?: number
+          plan_id?: string
+          unit_price_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_volume_tiers_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plans: {
         Row: {
@@ -14683,8 +14854,106 @@ export type Database = {
           },
         ]
       }
+      subscription_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          id: string
+          payload: Json
+          status_anterior: string | null
+          status_novo: string | null
+          subscription_id: string
+          tipo_evento: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json
+          status_anterior?: string | null
+          status_novo?: string | null
+          subscription_id: string
+          tipo_evento: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json
+          status_anterior?: string | null
+          status_novo?: string | null
+          subscription_id?: string
+          tipo_evento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_grants: {
+        Row: {
+          ends_at: string | null
+          granted_at: string
+          granted_by: string | null
+          id: string
+          motivo_codigo: Database["public"]["Enums"]["subscription_grant_reason"]
+          motivo_texto: string | null
+          percentual: number | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          starts_at: string
+          subscription_id: string
+          tipo: Database["public"]["Enums"]["subscription_grant_type"]
+        }
+        Insert: {
+          ends_at?: string | null
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          motivo_codigo: Database["public"]["Enums"]["subscription_grant_reason"]
+          motivo_texto?: string | null
+          percentual?: number | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          starts_at?: string
+          subscription_id: string
+          tipo: Database["public"]["Enums"]["subscription_grant_type"]
+        }
+        Update: {
+          ends_at?: string | null
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          motivo_codigo?: Database["public"]["Enums"]["subscription_grant_reason"]
+          motivo_texto?: string | null
+          percentual?: number | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          starts_at?: string
+          subscription_id?: string
+          tipo?: Database["public"]["Enums"]["subscription_grant_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_grants_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
+          billing_account_id: string | null
           billing_variant: string
           cancel_at_period_end: boolean
           canceled_at: string | null
@@ -14717,13 +14986,16 @@ export type Database = {
           notes: string | null
           paid_months_count: number
           plan_id: string
+          quantity: number
           started_at: string
           status: Database["public"]["Enums"]["subscription_status"]
           trial_ends_at: string | null
+          unit_price_cents: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          billing_account_id?: string | null
           billing_variant?: string
           cancel_at_period_end?: boolean
           canceled_at?: string | null
@@ -14756,13 +15028,16 @@ export type Database = {
           notes?: string | null
           paid_months_count?: number
           plan_id: string
+          quantity?: number
           started_at?: string
           status?: Database["public"]["Enums"]["subscription_status"]
           trial_ends_at?: string | null
+          unit_price_cents?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          billing_account_id?: string | null
           billing_variant?: string
           cancel_at_period_end?: boolean
           canceled_at?: string | null
@@ -14795,13 +15070,22 @@ export type Database = {
           notes?: string | null
           paid_months_count?: number
           plan_id?: string
+          quantity?: number
           started_at?: string
           status?: Database["public"]["Enums"]["subscription_status"]
           trial_ends_at?: string | null
+          unit_price_cents?: number | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "subscriptions_billing_account_id_fkey"
+            columns: ["billing_account_id"]
+            isOneToOne: false
+            referencedRelation: "billing_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "subscriptions_company_id_fkey"
             columns: ["company_id"]
@@ -15691,6 +15975,10 @@ export type Database = {
       auto_promote_open_finance_raw: {
         Args: { _connection_id: string }
         Returns: Json
+      }
+      billing_account_can_read: {
+        Args: { _account_id: string }
+        Returns: boolean
       }
       billing_dunning_historico: {
         Args: { _busca?: string; _limite?: number; _status?: string }
@@ -19393,6 +19681,7 @@ export type Database = {
         | "folha"
       app_role: "super_admin" | "admin" | "user" | "dp_colaborador"
       bill_status: "em_dia" | "vence_em_breve" | "atrasado" | "pago" | "parcial"
+      billing_account_type: "empresa" | "grupo"
       billing_period: "monthly" | "yearly"
       company_role: "owner" | "admin" | "member" | "viewer" | "contabilidade"
       contact_type: "cliente" | "fornecedor" | "ambos"
@@ -19678,6 +19967,17 @@ export type Database = {
         | "trimestral"
         | "semestral"
         | "anual"
+      subscription_grant_reason:
+        | "base_anterior"
+        | "parceria"
+        | "piloto"
+        | "compensacao"
+        | "comercial"
+        | "outro"
+      subscription_grant_type:
+        | "cortesia_total"
+        | "desconto_percentual"
+        | "carencia"
       subscription_status:
         | "trialing"
         | "active"
@@ -19841,6 +20141,7 @@ export const Constants = {
       ],
       app_role: ["super_admin", "admin", "user", "dp_colaborador"],
       bill_status: ["em_dia", "vence_em_breve", "atrasado", "pago", "parcial"],
+      billing_account_type: ["empresa", "grupo"],
       billing_period: ["monthly", "yearly"],
       company_role: ["owner", "admin", "member", "viewer", "contabilidade"],
       contact_type: ["cliente", "fornecedor", "ambos"],
@@ -20154,6 +20455,19 @@ export const Constants = {
         "trimestral",
         "semestral",
         "anual",
+      ],
+      subscription_grant_reason: [
+        "base_anterior",
+        "parceria",
+        "piloto",
+        "compensacao",
+        "comercial",
+        "outro",
+      ],
+      subscription_grant_type: [
+        "cortesia_total",
+        "desconto_percentual",
+        "carencia",
       ],
       subscription_status: [
         "trialing",
