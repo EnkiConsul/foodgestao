@@ -24,3 +24,4 @@
 - Folga dominical diferenciada: exceção do colaborador (`dp_colaboradores.domingos_folga_mes`) > regra do cargo na unidade (`dp_folga_domingo_cargos`) > regra da unidade (homens/mulheres), via `domingosDiferenciados`; gravada só por RPC com ciência de isonomia (`folga-isonomia.ts`) — sem diferenciação sem registro.
 - Desligamento: Aviso, Documentos e Acerto Rescisório com pendências próprias; sem assinatura digital; Acerto só baixa assinado ou com comprovante — emitir não quita.
 - Restrição de um dia: colaborador → `dp_bloqueios` (início=fim); cargo/setor → `dp_folga_limite_regras` com vigência de um dia (máximo 0 = ninguém) — reaproveita validações oficiais.
+- pdfjs 6.x exige recursos ES2025 (`Map#getOrInsertComputed`, `Math.sumPrecise`): os polyfills vivem em `src/lib/polyfills.ts`, importado no `main.tsx` antes de tudo — sem eles o visualizador de PDF fica em branco em navegadores mais antigos.
