@@ -96,12 +96,19 @@ export function PdfCanvasViewer({ url, title }: Props) {
         const ctx = canvas.getContext("2d");
         if (!ctx) continue;
         novo.appendChild(canvas);
-        await page.render({
-          canvasContext: ctx,
-          viewport,
-          canvas,
-          transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
-        } as Parameters<typeof page.render>[0]).promise;
+        try {
+          await page.render({
+            canvasContext: ctx,
+            viewport,
+            canvas,
+            transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
+          } as Parameters<typeof page.render>[0]).promise;
+        } catch (e) {
+          // Troca de documento ou de zoom cancela a renderização em andamento:
+          // é esperado, não é erro.
+          if (e instanceof Error && e.name === "RenderingCancelledException") return;
+          throw e;
+        }
       }
       if (cancelado) return;
       container.replaceChildren(...Array.from(novo.children));

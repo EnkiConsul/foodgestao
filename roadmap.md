@@ -58,3 +58,9 @@
 - [x] Documentos cadastrais (identidade/CNH/residência/bancário/CRLV/seguro/dependente) fora do Histórico — ficam só na aba Documentos da ficha
 - [x] Documento arquivado/excluído some da listagem na hora, sem recarregar
 - [x] Filtro de tipos cadastrais enviado entre parênteses (sem eles a consulta abortava e a tela ficava vazia) + descarte em memória
+
+## Visualizador de PDF e Histórico (06/10)
+- [x] Preview de documento assinado não trava mais no "Carregando validação digital" (loading resetado ao chegar o certificado; espera síncrona na abertura)
+- [x] Botão largo "Baixar Comprovante" removido dos cards — comprovante acessível pelo botão "Comprovante" e na visualização interna
+- [x] PDF em branco por falta de Map#getOrInsertComputed/Math.sumPrecise (ES2025) — polyfills em src/lib/polyfills.ts; pdfjs atualizado para 6.4.299
+- [x] Cancelamento de renderização de PDF tratado (troca de documento/zoom)

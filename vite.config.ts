@@ -95,7 +95,15 @@ export default defineConfig(({ mode }) => (aplicarEnvHomologacao(mode), {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ["react", "react-dom", "react/jsx-runtime"],
+    // pdfjs-dist: sem dedupe o Vite serve duas cópias do módulo e os campos
+    // privados quebram ("getOrInsertComputed is not a function"), deixando o
+    // visualizador de PDF em branco.
+    dedupe: ["react", "react-dom", "react/jsx-runtime", "pdfjs-dist"],
+  },
+  optimizeDeps: {
+    // Pré-empacota o pdfjs em módulo único: sem isso os módulos internos dele
+    // são servidos separados e os campos privados quebram no visualizador.
+    include: ["pdfjs-dist"],
   },
   build: {
     rollupOptions: {
