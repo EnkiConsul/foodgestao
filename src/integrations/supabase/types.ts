@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_limit_overrides: {
+        Row: {
+          billing_account_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          limite: number
+          module: string
+          recurso: string
+          updated_at: string
+        }
+        Insert: {
+          billing_account_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          limite: number
+          module: string
+          recurso: string
+          updated_at?: string
+        }
+        Update: {
+          billing_account_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          limite?: number
+          module?: string
+          recurso?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_limit_overrides_billing_account_id_fkey"
+            columns: ["billing_account_id"]
+            isOneToOne: false
+            referencedRelation: "billing_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accounts: {
         Row: {
           account_number: string | null
@@ -14044,11 +14085,13 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          inclui: Json
           is_active: boolean
           max_quantity: number | null
           module: string
           name: string
           price_cents: number
+          recurso: string | null
           sort_order: number
           updated_at: string
         }
@@ -14058,11 +14101,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          inclui?: Json
           is_active?: boolean
           max_quantity?: number | null
           module: string
           name: string
           price_cents?: number
+          recurso?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -14072,15 +14117,87 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          inclui?: Json
           is_active?: boolean
           max_quantity?: number | null
           module?: string
           name?: string
           price_cents?: number
+          recurso?: string | null
           sort_order?: number
           updated_at?: string
         }
         Relationships: []
+      }
+      plan_features: {
+        Row: {
+          created_at: string
+          feature: string
+          id: string
+          plan_id: string
+        }
+        Insert: {
+          created_at?: string
+          feature: string
+          id?: string
+          plan_id: string
+        }
+        Update: {
+          created_at?: string
+          feature?: string
+          id?: string
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_features_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_limits: {
+        Row: {
+          created_at: string
+          id: string
+          incluido: number
+          max_adicional: number | null
+          permite_adicional: boolean
+          plan_id: string
+          recurso: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          incluido?: number
+          max_adicional?: number | null
+          permite_adicional?: boolean
+          plan_id: string
+          recurso: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          incluido?: number
+          max_adicional?: number | null
+          permite_adicional?: boolean
+          plan_id?: string
+          recurso?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_limits_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plan_volume_tiers: {
         Row: {
@@ -14132,9 +14249,12 @@ export type Database = {
           is_public: boolean
           module: string
           name: string
+          price_annual_cents: number | null
           price_cents: number
+          price_monthly_cents: number | null
           slug: string
           sort_order: number
+          tier: string | null
           trial_days: number
           updated_at: string
         }
@@ -14152,9 +14272,12 @@ export type Database = {
           is_public?: boolean
           module?: string
           name: string
+          price_annual_cents?: number | null
           price_cents?: number
+          price_monthly_cents?: number | null
           slug: string
           sort_order?: number
+          tier?: string | null
           trial_days?: number
           updated_at?: string
         }
@@ -14172,9 +14295,12 @@ export type Database = {
           is_public?: boolean
           module?: string
           name?: string
+          price_annual_cents?: number | null
           price_cents?: number
+          price_monthly_cents?: number | null
           slug?: string
           sort_order?: number
+          tier?: string | null
           trial_days?: number
           updated_at?: string
         }
@@ -14694,13 +14820,16 @@ export type Database = {
           canceled_at: string | null
           created_at: string
           created_by: string | null
+          ends_at: string | null
           id: string
           is_exempt: boolean
           notes: string | null
+          origem: string
           price_cents: number
           prorata_billed_at: string | null
           prorata_cents: number
           quantity: number
+          starts_at: string
           status: string
           subscription_id: string
           updated_at: string
@@ -14710,13 +14839,16 @@ export type Database = {
           canceled_at?: string | null
           created_at?: string
           created_by?: string | null
+          ends_at?: string | null
           id?: string
           is_exempt?: boolean
           notes?: string | null
+          origem?: string
           price_cents?: number
           prorata_billed_at?: string | null
           prorata_cents?: number
           quantity?: number
+          starts_at?: string
           status?: string
           subscription_id: string
           updated_at?: string
@@ -14726,18 +14858,28 @@ export type Database = {
           canceled_at?: string | null
           created_at?: string
           created_by?: string | null
+          ends_at?: string | null
           id?: string
           is_exempt?: boolean
           notes?: string | null
+          origem?: string
           price_cents?: number
           prorata_billed_at?: string | null
           prorata_cents?: number
           quantity?: number
+          starts_at?: string
           status?: string
           subscription_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "subscription_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addon_catalog"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "subscription_addons_addon_id_fkey"
             columns: ["addon_id"]
@@ -14797,6 +14939,48 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "subscription_cards_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_companies: {
+        Row: {
+          added_at: string
+          company_id: string
+          id: string
+          module: string
+          removed_at: string | null
+          subscription_id: string
+        }
+        Insert: {
+          added_at?: string
+          company_id: string
+          id?: string
+          module: string
+          removed_at?: string | null
+          subscription_id: string
+        }
+        Update: {
+          added_at?: string
+          company_id?: string
+          id?: string
+          module?: string
+          removed_at?: string | null
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_companies_subscription_id_fkey"
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "subscriptions"
@@ -14954,6 +15138,7 @@ export type Database = {
       subscriptions: {
         Row: {
           billing_account_id: string | null
+          billing_cycle: string
           billing_variant: string
           cancel_at_period_end: boolean
           canceled_at: string | null
@@ -14985,6 +15170,7 @@ export type Database = {
           next_free_month: number | null
           notes: string | null
           paid_months_count: number
+          pending_plan_change: Json | null
           plan_id: string
           quantity: number
           started_at: string
@@ -14996,6 +15182,7 @@ export type Database = {
         }
         Insert: {
           billing_account_id?: string | null
+          billing_cycle?: string
           billing_variant?: string
           cancel_at_period_end?: boolean
           canceled_at?: string | null
@@ -15027,6 +15214,7 @@ export type Database = {
           next_free_month?: number | null
           notes?: string | null
           paid_months_count?: number
+          pending_plan_change?: Json | null
           plan_id: string
           quantity?: number
           started_at?: string
@@ -15038,6 +15226,7 @@ export type Database = {
         }
         Update: {
           billing_account_id?: string | null
+          billing_cycle?: string
           billing_variant?: string
           cancel_at_period_end?: boolean
           canceled_at?: string | null
@@ -15069,6 +15258,7 @@ export type Database = {
           next_free_month?: number | null
           notes?: string | null
           paid_months_count?: number
+          pending_plan_change?: Json | null
           plan_id?: string
           quantity?: number
           started_at?: string
@@ -15634,6 +15824,66 @@ export type Database = {
           },
         ]
       }
+      trial_usage: {
+        Row: {
+          cnpj_empresa: string | null
+          created_at: string
+          documento_titular: string | null
+          email: string | null
+          ends_at: string | null
+          id: string
+          module: string
+          origem: string
+          plan_id: string | null
+          started_at: string
+          subscription_id: string | null
+          titular_user_id: string | null
+        }
+        Insert: {
+          cnpj_empresa?: string | null
+          created_at?: string
+          documento_titular?: string | null
+          email?: string | null
+          ends_at?: string | null
+          id?: string
+          module: string
+          origem?: string
+          plan_id?: string | null
+          started_at?: string
+          subscription_id?: string | null
+          titular_user_id?: string | null
+        }
+        Update: {
+          cnpj_empresa?: string | null
+          created_at?: string
+          documento_titular?: string | null
+          email?: string | null
+          ends_at?: string | null
+          id?: string
+          module?: string
+          origem?: string
+          plan_id?: string | null
+          started_at?: string
+          subscription_id?: string | null
+          titular_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trial_usage_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trial_usage_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usage_counters: {
         Row: {
           ai_requests: number
@@ -15693,6 +15943,33 @@ export type Database = {
       }
     }
     Views: {
+      addon_catalog: {
+        Row: {
+          id: string | null
+          inclui: Json | null
+          is_active: boolean | null
+          module: string | null
+          price_monthly_cents: number | null
+          recurso: string | null
+        }
+        Insert: {
+          id?: string | null
+          inclui?: Json | null
+          is_active?: boolean | null
+          module?: string | null
+          price_monthly_cents?: number | null
+          recurso?: string | null
+        }
+        Update: {
+          id?: string | null
+          inclui?: Json | null
+          is_active?: boolean | null
+          module?: string | null
+          price_monthly_cents?: number | null
+          recurso?: string | null
+        }
+        Relationships: []
+      }
       company_member_profiles: {
         Row: {
           avatar_url: string | null
@@ -15831,6 +16108,24 @@ export type Database = {
       }
     }
     Functions: {
+      _billing_v2_limits: {
+        Args: { _sub: string }
+        Returns: {
+          adicional: number
+          incluido: number
+          limite: number
+          max_adicional: number
+          override: number
+          permite_adicional: boolean
+          recurso: string
+          saldo: number
+          uso: number
+        }[]
+      }
+      _billing_v2_usage: {
+        Args: { _recurso: string; _sub: string }
+        Returns: number
+      }
       adjust_account_balance: {
         Args: {
           _account_id: string
@@ -16029,6 +16324,11 @@ export type Database = {
         Returns: undefined
       }
       billing_v2_actor: { Args: never; Returns: string }
+      billing_v2_add_company_to_account: {
+        Args: { _account: string; _actor: string; _company: string }
+        Returns: string
+      }
+      billing_v2_digits: { Args: { _t: string }; Returns: string }
       billing_v2_ensure_company_account: {
         Args: { _company_id: string }
         Returns: string
@@ -18941,6 +19241,20 @@ export type Database = {
         }
         Returns: string
       }
+      effective_limits: {
+        Args: { _subscription_id: string }
+        Returns: {
+          adicional: number
+          incluido: number
+          limite: number
+          max_adicional: number
+          override: number
+          permite_adicional: boolean
+          recurso: string
+          saldo: number
+          uso: number
+        }[]
+      }
       enqueue_open_finance_scheduled_syncs: { Args: never; Returns: number }
       enqueue_uncategorized_for_ai: {
         Args: { p_company_id?: string; p_context?: string; p_limit?: number }
@@ -19208,6 +19522,14 @@ export type Database = {
           _notes?: string
           _payment_account_id: string
           _payment_date?: string
+        }
+        Returns: Json
+      }
+      plan_rule_check: {
+        Args: {
+          _qtd_desejada: number
+          _recurso: string
+          _subscription_id: string
         }
         Returns: Json
       }
