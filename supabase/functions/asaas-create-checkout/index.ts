@@ -1,6 +1,6 @@
 // supabase/functions/asaas-create-checkout/index.ts
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { asaasFetch, cycleFromBillingPeriod, centsToBrl, AsaasBillingType } from "../_shared/asaas.ts";
+import { asaasFetch, requireAsaasId, cycleFromBillingPeriod, centsToBrl, AsaasBillingType } from "../_shared/asaas.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -239,7 +239,7 @@ Deno.serve(async (req) => {
         method: "POST",
         body: JSON.stringify(customerPayload),
       });
-      asaasCustomerId = created.id;
+      asaasCustomerId = requireAsaasId(created, "o cliente");
     }
     if (!profile?.asaas_customer_id) {
       await admin.from("profiles").update({ asaas_customer_id: asaasCustomerId }).eq("user_id", user.id);
@@ -289,6 +289,7 @@ Deno.serve(async (req) => {
       method: "POST",
       body: JSON.stringify(subscriptionPayload),
     });
+    requireAsaasId(asaasSub, "a assinatura");
 
     // First payment of the subscription
     const payments = await asaasFetch(`/subscriptions/${asaasSub.id}/payments`).catch(() => null);
