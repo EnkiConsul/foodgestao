@@ -48,3 +48,5 @@ project_id = "grtxmbffgmgnkawlvqhm"
     verify_jwt = false
   [functions.billing-dunning]
     verify_jwt = false
+  [functions.admin-start-grace]
+    verify_jwt = true
