@@ -297,6 +297,9 @@ export default function DpMeuFerias() {
                 <Badge className={PEDIDO_STATUS_TONE.pendente}>
                   {PEDIDO_STATUS_LABEL.pendente}
                 </Badge>
+                <Button size="sm" variant="ghost" onClick={() => setTermo({ solicitacaoId: pd.solicitacao_id })}>
+                  <FileText className="mr-1 size-3.5" /> Ver Termo
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => abrirEdicao(pd)}>
                   <Pencil className="mr-1 size-3.5" /> Editar
                 </Button>
@@ -324,9 +327,14 @@ export default function DpMeuFerias() {
                   <p className="text-xs text-muted-foreground">{pd.resposta_admin}</p>
                 )}
               </div>
-              <Badge className={PEDIDO_STATUS_TONE[pd.status] ?? "bg-muted text-muted-foreground"}>
-                {PEDIDO_STATUS_LABEL[pd.status] ?? pd.status}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge className={PEDIDO_STATUS_TONE[pd.status] ?? "bg-muted text-muted-foreground"}>
+                  {PEDIDO_STATUS_LABEL[pd.status] ?? pd.status}
+                </Badge>
+                <Button size="sm" variant="ghost" onClick={() => setTermo({ solicitacaoId: pd.solicitacao_id })}>
+                  <FileText className="mr-1 size-3.5" /> Ver Termo
+                </Button>
+              </div>
             </div>
           ))}
         </DpContentCard>
