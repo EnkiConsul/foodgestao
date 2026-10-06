@@ -1,5 +1,4 @@
-import { AprovacoesRapidasCard } from "@/components/dp/home/AprovacoesRapidasCard";
-import { FolhaPagamentoAlerta } from "@/components/dp/home/FolhaPagamentoAlerta";
+import { AvisosGestorGate } from "@/components/dp/home/AvisosGestorGate";
 import { Helmet } from "react-helmet-async";
 import { Bell, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -41,8 +40,7 @@ export default function DpHome() {
         }
       />
 
-      <AprovacoesRapidasCard />
-      <FolhaPagamentoAlerta />
+      <AvisosGestorGate />
       <PontoConformidadeAlerta />
 
       {isMobile && <MenusPrincipaisCards />}

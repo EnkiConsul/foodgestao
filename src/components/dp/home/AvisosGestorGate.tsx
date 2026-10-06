@@ -280,7 +280,7 @@ export function AvisosGestorGate() {
         title="Recusar Documento"
         description="Informe o motivo. O colaborador verá e poderá enviar novamente."
         motivoObrigatorio
-        motivoInicial={recusando?.motivo}
+        textoInicial={recusando?.motivo ?? ""}
         loading={ocupado}
         onConfirm={(m) => recusando && decidir(recusando.item, "recusado", m)}
       />
