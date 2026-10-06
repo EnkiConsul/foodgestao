@@ -44,7 +44,10 @@ export function CarenciaBanner() {
         <div className="flex-1 space-y-0.5">
           {itens.map((i) => {
             const fim = new Date(i.grace_ends_at);
-            const dias = Math.max(0, Math.ceil((fim.getTime() - Date.now()) / 86400000));
+            const diaBR = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+            const dias = Math.max(0, Math.round(
+              (Date.parse(diaBR(fim)) - Date.parse(diaBR(new Date()))) / 86400000,
+            ));
             const data = fim.toLocaleDateString("pt-BR", {
               timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit",
             });
