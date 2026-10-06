@@ -10,6 +10,8 @@ import {
 import { AssinaturaCaptura } from "@/components/dp/AssinaturaCaptura";
 import { dataBr as fmt } from "@/lib/dp/formato";
 import { textoErroFerias } from "@/lib/dp/ferias-direito";
+import { AVETO_LOGO_DATA_URL } from "@/lib/dp/aveto-logo-data";
+import { imprimirHtmlEmQuadro } from "@/lib/print/imprimirHtml";
 
 export type TermoDados = {
   empresa: string | null;
@@ -111,8 +113,12 @@ export function FeriasTermoDialog({
           <>
           <div className="print:hidden"><ModoImpressaoEscolha manual={manual} onChange={setManual} /></div>
           <div id="termo-ferias-print" className="space-y-6 text-sm">
+            <div style={{ borderBottom: "3px solid #EB6119", paddingBottom: 10, marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <img src={AVETO_LOGO_DATA_URL} alt="AVETO 360" style={{ height: 36 }} />
+              <span style={{ fontSize: 12, fontWeight: 600, textAlign: "right" }}>{t.empresa}</span>
+            </div>
             <p className="text-xs text-muted-foreground">
-              {t.empresa} · Colaborador: <b>{t.colaborador_nome}</b> · CPF {cpfMask(t.colaborador_cpf)}
+              Colaborador: <b>{t.colaborador_nome}</b> · CPF {cpfMask(t.colaborador_cpf)}
             </p>
             {s && (
               <section className="rounded-xl border p-4">
@@ -178,12 +184,7 @@ export function FeriasTermoDialog({
 function imprimir() {
   const el = document.getElementById("termo-ferias-print");
   if (!el) return;
-  const w = window.open("", "_blank");
-  if (!w) return;
-  w.document.write(`<html><head><title>Termos de Férias</title><style>body{font-family:Arial,sans-serif;font-size:13px;padding:24px;color:#111}section{border:1px solid #ccc;border-radius:8px;padding:16px;margin-bottom:16px}img{max-height:64px}.text-center{text-align:center}</style></head><body>${el.innerHTML}</body></html>`);
-  w.document.close();
-  w.focus();
-  setTimeout(() => w.print(), 300);
+  imprimirHtmlEmQuadro(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/><title>Termos de Férias</title><style>body{font-family:Arial,sans-serif;font-size:13px;padding:24px;color:#0F1B3D}section{border:1px solid #ccc;border-radius:8px;padding:16px;margin-bottom:16px;page-break-inside:avoid}h3{color:#EB6119;margin:0 0 8px}p{margin:0 0 4px}img{max-height:64px}</style></head><body>${el.innerHTML}</body></html>`);
 }
 
 /** Captura de assinatura com o texto do termo, usada no pedido e na ciência. */
