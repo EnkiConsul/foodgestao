@@ -5,6 +5,11 @@ import { toast } from "sonner";
 import { reportError } from "@/lib/errorLog";
 import { porIds, resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
+/** O banco guarda a competência como 'AAAA-MM'; aceita também 'AAAA-MM-DD'. */
+function normalizarCompetencia(c: string): string {
+  return c.slice(0, 7);
+}
+
 export type IntermitenteConfirmacao = {
   id: string;
   colaborador_id: string;
@@ -37,6 +42,7 @@ export function useDpIntermitenteConfirmacoes() {
 
   const responder = useMutation({
     mutationFn: async (args: { colaboradorId: string; competencia: string; trabalhou: boolean }) => {
+      args = { ...args, competencia: normalizarCompetencia(args.competencia) };
       const { data: auth } = await supabase.auth.getUser();
       const { error } = await supabase
         .from("dp_intermitente_competencia_confirmacoes" as any)
@@ -44,7 +50,7 @@ export function useDpIntermitenteConfirmacoes() {
           {
             company_id: selectedCompanyId!,
             colaborador_id: args.colaboradorId,
-            competencia: args.competencia,
+            competencia: normalizarCompetencia(args.competencia),
             trabalhou: args.trabalhou,
             respondido_por: auth.user?.id ?? null,
           } as any,
@@ -59,14 +65,14 @@ export function useDpIntermitenteConfirmacoes() {
         (atuais) => {
           const semCompetenciaRespondida = (atuais ?? []).filter(
             (item) =>
-              item.colaborador_id !== args.colaboradorId || item.competencia !== args.competencia,
+              item.colaborador_id !== args.colaboradorId || item.competencia.slice(0, 7) !== args.competencia.slice(0, 7),
           );
           return [
             ...semCompetenciaRespondida,
             {
               id: pendenciaId,
               colaborador_id: args.colaboradorId,
-              competencia: args.competencia,
+              competencia: normalizarCompetencia(args.competencia),
               trabalhou: args.trabalhou,
             },
           ];
@@ -104,7 +110,7 @@ export function useDpIntermitenteConfirmacoes() {
         .delete()
         .eq("company_id", selectedCompanyId!)
         .eq("colaborador_id", args.colaboradorId)
-        .eq("competencia", args.competencia);
+        .eq("competencia", normalizarCompetencia(args.competencia));
       if (error) throw error;
     },
     onSuccess: (_d, args) => {
@@ -117,6 +123,7 @@ export function useDpIntermitenteConfirmacoes() {
       );
       qc.invalidateQueries({ queryKey: ["dp_intermitente_confirmacoes"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_consistencia_janela"] });
+      void resolverPendencias(qc, { companyId: selectedCompanyId });
       toast.success("Desfeito: o documento do mês volta a ser cobrado.");
     },
     onError: (e: unknown) => {
