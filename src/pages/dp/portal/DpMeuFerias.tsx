@@ -35,6 +35,8 @@ import {
   FRACIONAMENTO_PADRAO,
 } from "@/lib/dp/ferias-fracionamento";
 import { dataBr as fmt } from "@/lib/dp/formato";
+import { FeriasAssinarDialog, FeriasTermoDialog, textoSolicitacao } from "@/components/dp/ferias/FeriasTermo";
+import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 
 const FRACIONAMENTO_TEXTO: Record<string, string> = {
   FERIAS_FRACIONAMENTO_LIMITE: `As férias podem ser divididas em até ${FRACIONAMENTO_PADRAO.maxFracoes} períodos.`,
@@ -91,6 +93,11 @@ export default function DpMeuFerias() {
   const [abonoTexto, setAbonoTexto] = useState("");
   const [adiantar13, setAdiantar13] = useState(false);
   const [observacao, setObservacao] = useState("");
+  const vinculo = useMeuVinculoPortal();
+  const meuNome = vinculo.data?.nome ?? "";
+  const [assinandoPedido, setAssinandoPedido] = useState(false);
+  const [cienciaGozo, setCienciaGozo] = useState<{ id: string; inicio: string; fim: string; ajustado?: boolean } | null>(null);
+  const [termo, setTermo] = useState<{ solicitacaoId?: string | null; gozoId?: string | null } | null>(null);
 
   // FIFO: o mais antigo com saldo vem primeiro (férias saem sempre dele).
   const comSaldo = useMemo(
@@ -236,8 +243,13 @@ export default function DpMeuFerias() {
         fechar,
       );
     }
-    return solicitar.mutate(
+    setAssinandoPedido(true);
+  };
+
+  const enviarAssinado = (assinatura: string) =>
+    solicitar.mutate(
       {
+        assinatura,
         periodoId,
         dataInicio: inicio,
         dataFim: fim,
@@ -245,9 +257,8 @@ export default function DpMeuFerias() {
         adiantar13: adiantar13 && !jaAdiantou13,
         observacao,
       },
-      fechar,
+      { onSuccess: () => { setAssinandoPedido(false); setAberto(false); } },
     );
-  };
 
 
   return (
@@ -376,9 +387,9 @@ export default function DpMeuFerias() {
                                 size="sm"
                                 variant="outline"
                                 disabled={registrarCiencia.isPending}
-                                onClick={() => registrarCiencia.mutate(g.id)}
+                                onClick={() => setCienciaGozo({ id: g.id, inicio: g.data_inicio, fim: g.data_fim })}
                               >
-                                Estou ciente
+                                Assinar Ciência
                               </Button>
                             )
                           )}
@@ -402,6 +413,10 @@ export default function DpMeuFerias() {
                           {g.aviso_justificativa ? ` · ${g.aviso_justificativa}` : ""}
                         </p>
                       )}
+
+                      <Button size="sm" variant="ghost" onClick={() => setTermo({ gozoId: g.id })}>
+                        <FileText className="mr-1 size-3.5" /> Ver Termos
+                      </Button>
 
                       {g.documentos.length > 0 && (
                         <div className="flex flex-wrap gap-2">
@@ -613,6 +628,37 @@ export default function DpMeuFerias() {
 
         </DialogContent>
       </Dialog>
+
+      <FeriasAssinarDialog
+        open={assinandoPedido}
+        onOpenChange={setAssinandoPedido}
+        titulo="Termo de Solicitação de Férias"
+        nome={meuNome}
+        paragrafos={inicio && fim ? textoSolicitacao({ nome: meuNome, inicio, fim, abono, adiantar13: adiantar13 && !jaAdiantou13 }) : []}
+        confirmarTexto="Assinar e Enviar Pedido"
+        enviando={solicitar.isPending}
+        onConfirmar={enviarAssinado}
+      />
+      <FeriasAssinarDialog
+        open={!!cienciaGozo}
+        onOpenChange={(v) => { if (!v) setCienciaGozo(null); }}
+        titulo="Aviso de Férias"
+        nome={meuNome}
+        paragrafos={cienciaGozo ? [
+          `A empresa comunica que suas férias serão de ${fmt(cienciaGozo.inicio)} a ${fmt(cienciaGozo.fim)} (Art. 135 da CLT).`,
+          "A época das férias é definida pela empresa (Art. 136 da CLT). Sua assinatura registra apenas a ciência do período.",
+        ] : []}
+        confirmarTexto="Assinar Ciência"
+        enviando={registrarCiencia.isPending}
+        onConfirmar={(assinatura) => cienciaGozo && registrarCiencia.mutate(
+          { gozoId: cienciaGozo.id, assinatura }, { onSuccess: () => setCienciaGozo(null) })}
+      />
+      <FeriasTermoDialog
+        open={!!termo}
+        onOpenChange={(v) => { if (!v) setTermo(null); }}
+        solicitacaoId={termo?.solicitacaoId}
+        gozoId={termo?.gozoId}
+      />
     </DpPage>
   );
 }

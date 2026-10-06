@@ -128,8 +128,8 @@ export function useDpMinhasFerias() {
   });
 
   const solicitar = useMutation({
-    mutationFn: async (input: SolicitarFeriasInput) => {
-      const { error } = await supabase.rpc("dp_ferias_solicitar", {
+    mutationFn: async (input: SolicitarFeriasInput & { assinatura: string }) => {
+      const { data, error } = await supabase.rpc("dp_ferias_solicitar", {
         _periodo_id: input.periodoId,
         _data_inicio: input.dataInicio,
         _data_fim: input.dataFim,
@@ -138,6 +138,10 @@ export function useDpMinhasFerias() {
         _observacao: input.observacao?.trim() || null,
       });
       if (error) throw error;
+      const { error: e2 } = await supabase.rpc("dp_ferias_solicitacao_assinar" as never, {
+        _solicitacao_id: data, _assinatura: input.assinatura,
+      } as never);
+      if (e2) throw e2;
     },
     onSuccess: () => {
       toast.success("Pedido de férias enviado para aprovação"); sugerirPushContextual("Ative os avisos para saber na hora quando suas férias forem aprovadas.");
@@ -221,12 +225,12 @@ export function useDpMinhasFerias() {
 
 
   const registrarCiencia = useMutation({
-    mutationFn: async (gozoId: string) => {
-      const { error } = await supabase.rpc("dp_ferias_registrar_ciencia", { _gozo_id: gozoId });
+    mutationFn: async ({ gozoId, assinatura }: { gozoId: string; assinatura: string }) => {
+      const { error } = await supabase.rpc("dp_ferias_registrar_ciencia", { _gozo_id: gozoId, _assinatura: assinatura } as never);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Ciência registrada");
+      toast.success("Ciência assinada", { description: "O aviso de férias fica no seu histórico." });
       invalidate();
     },
     onError: (e: any) => toast.error(textoErroFerias(e?.message)),
