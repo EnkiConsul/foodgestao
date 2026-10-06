@@ -113,6 +113,9 @@ function QuitacaoSelo({ q }: { q?: QuitacaoConsolidada | null }) {
   );
 }
 
+/** Documentos pessoais/cadastrais: ficam só na aba Documentos da ficha do colaborador. */
+const TIPOS_CADASTRAIS = "identidade,cnh,residencia,bancario,crlv,seguro_veiculo,dependente";
+
 const TIPO_OPTIONS = [
   ...DP_DOC_TIPOS.filter((t) => t.value !== "sindicato").map((t) => ({ value: t.value as string, label: t.label })),
 ];
