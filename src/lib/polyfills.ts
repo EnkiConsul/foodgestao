@@ -30,4 +30,21 @@ if (!Map.prototype.getOrInsertComputed) {
   };
 }
 
+// Math.sumPrecise (ES2025): soma exata usada pelo pdfjs 6.4 ao compor cores
+// e transparências. Sem ele cada página renderizada loga aviso e pode sair
+// com cores erradas em navegadores mais antigos.
+declare global {
+  interface Math {
+    sumPrecise(values: Iterable<number>): number;
+  }
+}
+
+if (!Math.sumPrecise) {
+  Math.sumPrecise = (values: Iterable<number>): number => {
+    let total = 0;
+    for (const v of values) total += v;
+    return total;
+  };
+}
+
 export {};
