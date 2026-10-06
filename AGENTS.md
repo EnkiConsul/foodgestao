@@ -21,3 +21,4 @@
 - Desligamento: Aviso, Documentos e Acerto Rescisório com pendências próprias; sem assinatura digital; Acerto só baixa assinado ou com comprovante — emitir não quita.
 - Restrição de um dia: colaborador → `dp_bloqueios` (início=fim); cargo/setor → `dp_folga_limite_regras` com vigência de um dia (máximo 0 = ninguém) — reaproveita validações oficiais.
 - pdfjs 6.x exige recursos ES2025 (`Map#getOrInsertComputed`, `Math.sumPrecise`): os polyfills vivem em `src/lib/polyfills.ts`, importado no `main.tsx` antes de tudo — sem eles o visualizador de PDF fica em branco em navegadores mais antigos.
+- Revogar cortesia nunca ativa o cliente: `admin-remove-exemption` põe a assinatura em `grace` com `grace_ends_at` (dias em `system_parameters`); `company_access_status` bloqueia com `carencia_expirada` após o prazo — evita acesso gratuito sem fim.
