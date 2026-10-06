@@ -479,7 +479,7 @@ export default function DpHistoricoCompleto() {
             // Excluídos (arquivados) saem da tela na hora; o banco preserva o histórico.
             .is("arquivado_em", null)
             // Documentos pessoais/cadastrais ficam só na aba Documentos da ficha do colaborador.
-            .not("tipo", "in", TIPOS_CADASTRAIS)
+            .not("tipo", "in", TIPOS_CADASTRAIS_FILTRO)
             .order("id", { ascending: true })
             .range(from, to)),
         fetchAllPages<any>((from, to) =>
