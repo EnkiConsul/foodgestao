@@ -68,6 +68,8 @@ const Editar = z.object({
 const PorId = z.object({
   acao: z.enum(["link", "pdf", "cancelar"]),
   recibo_id: z.string().uuid(),
+  /** Via limpa para assinar à mão (sem carimbos nem data de emissão). */
+  manual: z.boolean().optional(),
 });
 const Body = z.union([Emitir, Editar, PorId]);
 const MAX_DIAS_FUTURO = 60;
@@ -168,7 +170,10 @@ Deno.serve(async (req) => {
             .order("aceito_em", { ascending: false }).limit(1).maybeSingle();
           imgAceite = (ac?.assinatura_imagem as string | null) ?? null;
         }
-        const bytes = await montarReciboPdf(reciboDaLinha(row, empresa, imgAceite));
+        const dados = reciboDaLinha(row, empresa, imgAceite);
+        const bytes = await montarReciboPdf(
+          "manual" in b && b.manual ? { ...dados, assinatura: null, assinaturaImagem: null, canal: "fisico", manual: true } : dados,
+        );
         return new Response(bytes as unknown as BodyInit, {
           status: 200,
           headers: {

@@ -109,6 +109,8 @@ export type ReciboPdf = {
   assinaturaImagem?: string | null;
   /** Canal escolhido na emissão; "fisico" gera 2 vias na mesma folha. */
   canal?: string | null;
+  /** Via limpa pedida pelo gestor: omite código e data de emissão. */
+  manual?: boolean;
 };
 
 export async function montarReciboPdf(r: ReciboPdf): Promise<Uint8Array> {
@@ -321,15 +323,22 @@ async function montarDuasVias(r: ReciboPdf): Promise<Uint8Array> {
       page.drawText(l, { x: margem, y, size: 8.5, font: fonte, color: CINZA });
       y -= 11;
     }
-    // Assinatura
+    // Local e data em branco + assinaturas lado a lado (Pagador e Recebedor)
     const baseAss = topo - meio + 58;
     const ya = Math.max(baseAss, y - 50);
-    page.drawLine({ start: { x: margem, y: ya }, end: { x: margem + 240, y: ya }, thickness: 0.8, color: rgb(0.5, 0.5, 0.5) });
-    page.drawText(limpar(r.beneficiario).slice(0, 50), { x: margem, y: ya - 11, size: 8.5, font: negrito, color: rgb(0.1, 0.1, 0.1) });
-    page.drawText(limpar(`CPF ${r.beneficiarioCpf} · Assinatura do recebedor`), { x: margem, y: ya - 21, size: 7.5, font: fonte, color: CLARO });
     const local = "Local e data: ____________________, ___/___/_____";
-    page.drawText(local, { x: width - margem - fonte.widthOfTextAtSize(local, 8), y: ya, size: 8, font: fonte, color: CINZA });
-    page.drawText(limpar(`Código ${r.codigo} · Emitido em ${r.emitidoEm}`), { x: margem, y: topo - meio + 16, size: 6, font: fonte, color: CLARO });
+    page.drawText(local, { x: margem, y: ya + 30, size: 8, font: fonte, color: CINZA });
+    const colA = (largura - 30) / 2;
+    const bloco = (x: number, nome: string, doc: string, papel: string) => {
+      page.drawLine({ start: { x, y: ya }, end: { x: x + colA, y: ya }, thickness: 0.8, color: rgb(0.5, 0.5, 0.5) });
+      page.drawText(limpar(nome).slice(0, 45), { x, y: ya - 11, size: 8.5, font: negrito, color: rgb(0.1, 0.1, 0.1) });
+      page.drawText(limpar(`${doc} · ${papel}`).slice(0, 70), { x, y: ya - 21, size: 7.5, font: fonte, color: CLARO });
+    };
+    bloco(margem, r.empresa, `CNPJ ${r.empresaCnpj}`, "Assinatura do pagador");
+    bloco(margem + colA + 30, r.beneficiario, `CPF ${r.beneficiarioCpf}`, "Assinatura do recebedor");
+    if (!r.manual) {
+      page.drawText(limpar(`Código ${r.codigo} · Emitido em ${r.emitidoEm}`), { x: margem, y: topo - meio + 16, size: 6, font: fonte, color: CLARO });
+    }
   };
 
   via(height, "1ª Via — Empregador");
