@@ -142,9 +142,21 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
             {pendentes.length > 0 && (
               <span className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5"><AlertTriangle className="h-4 w-4 text-destructive" />{pendentes.length} faltando dados</span>
             )}
+            {semConta.length > 0 && (
+              <span className="flex items-center gap-1.5 rounded-md bg-muted px-3 py-1.5"><KeyRound className="h-4 w-4" />{semConta.length} sem acesso criado</span>
+            )}
           </div>
+          {comErro.length > 0 && (
+            <div className="space-y-1 rounded-md border border-destructive/40 p-3">
+              {comErro.map((i) => <p key={i.id} className="text-xs"><span className="font-medium">{i.nome}:</span> <span className="text-destructive">{erros[i.id]}</span></p>)}
+            </div>
+          )}
           {pendentes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Todos os colaboradores ativos têm CPF e WhatsApp. Copie a mensagem e envie para a equipe.</p>
+            <p className="text-sm text-muted-foreground">
+              {semConta.length > 0
+                ? "Clique em Criar Acessos para liberar todos de uma vez. Depois copie a mensagem e envie para a equipe."
+                : "Todos os colaboradores ativos já têm acesso. Copie a mensagem e envie para a equipe."}
+            </p>
           ) : (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Preencha só o que falta e clique em Salvar Dados.</p>
