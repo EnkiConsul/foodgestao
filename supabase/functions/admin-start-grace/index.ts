@@ -52,8 +52,9 @@ Deno.serve(async (req) => {
     const anterior = { status: sub.status, grace_ends_at: sub.grace_ends_at };
     const novo = { status: "grace", grace_ends_at: graceEndsAt };
 
-    const { error: updErr } = await admin.from("subscriptions")
-      .update({ ...novo, dunning_stage: 0 }).eq("id", subscriptionId).eq("status", "active");
+    const { error: updErr } = await admin.rpc("billing_v2_start_grace", {
+      _sub: subscriptionId, _grace_ends: graceEndsAt, _reason: reason, _actor: u.user.id,
+    });
     if (updErr) return json({ error: `Não foi possível iniciar a carência: ${updErr.message}` }, 500);
 
     const { emailEnviado, emailErro } = await avisarDono(admin, sub, graceEndsAt);

@@ -16028,6 +16028,49 @@ export type Database = {
         Args: { _stage: number; _subscription_id: string }
         Returns: undefined
       }
+      billing_v2_actor: { Args: never; Returns: string }
+      billing_v2_ensure_company_account: {
+        Args: { _company_id: string }
+        Returns: string
+      }
+      billing_v2_exempt: {
+        Args: {
+          _actor: string
+          _motivo: Database["public"]["Enums"]["subscription_grant_reason"]
+          _plan: string
+          _sub: string
+          _texto: string
+          _until: string
+        }
+        Returns: undefined
+      }
+      billing_v2_reconciliation: {
+        Args: never
+        Returns: {
+          company_id: string
+          detalhe: string
+          subscription_id: string
+          tipo: string
+        }[]
+      }
+      billing_v2_revoke_exemption: {
+        Args: {
+          _actor: string
+          _grace_ends: string
+          _reason: string
+          _sub: string
+        }
+        Returns: undefined
+      }
+      billing_v2_start_grace: {
+        Args: {
+          _actor: string
+          _grace_ends: string
+          _reason: string
+          _sub: string
+        }
+        Returns: undefined
+      }
       can_use_module: {
         Args: {
           p_company_id: string

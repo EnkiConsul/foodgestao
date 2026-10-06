@@ -74,6 +74,7 @@ export function useExemptSubscription() {
       mode: "permanent" | "until";
       exemptUntil?: string | null;
       reason?: string | null;
+      motivoCodigo?: string;
     }) => {
       const { data, error } = await supabase.functions.invoke("admin-exempt-subscription", { body: payload });
       if (error) throw error;

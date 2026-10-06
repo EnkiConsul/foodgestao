@@ -9,6 +9,7 @@ const BodySchema = z.object({
   mode: z.enum(["permanent", "until"]),
   exemptUntil: z.string().datetime().optional().nullable(),
   reason: z.string().max(500).optional().nullable(),
+  motivoCodigo: z.enum(["base_anterior","parceria","piloto","compensacao","comercial","outro"]).default("outro"),
 });
 
 function json(b: unknown, s = 200) {
@@ -39,7 +40,10 @@ Deno.serve(async (req) => {
 
     const parsed = BodySchema.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) return json({ error: parsed.error.flatten() }, 400);
-    const { subscriptionId, planId, mode, exemptUntil, reason } = parsed.data;
+    const { subscriptionId, planId, mode, exemptUntil, reason, motivoCodigo } = parsed.data;
+    if (mode === "permanent" && motivoCodigo !== "base_anterior") {
+      return json({ error: "Cortesia permanente só é permitida com o motivo \"Base anterior\". Escolha uma data fim." }, 400);
+    }
 
     if (mode === "until") {
       if (!exemptUntil) return json({ error: "exemptUntil required" }, 400);
@@ -63,17 +67,10 @@ Deno.serve(async (req) => {
 
     const exempt_until = mode === "until" ? exemptUntil : null;
 
-    const { error: updErr } = await admin.from("subscriptions").update({
-      is_exempt: true,
-      exempt_until,
-      exempt_reason: reason ?? null,
-      exempted_by: u.user.id,
-      exempted_at: new Date().toISOString(),
-      plan_id: planId,
-      status: "active",
-      external_subscription_id: null,
-      canceled_at: null,
-    }).eq("id", subscriptionId);
+    const { error: updErr } = await admin.rpc("billing_v2_exempt", {
+      _sub: subscriptionId, _plan: planId, _until: exempt_until, _motivo: motivoCodigo,
+      _texto: reason ?? null, _actor: u.user.id,
+    });
     if (updErr) return json({ error: updErr.message }, 500);
 
     await admin.from("audit_logs").insert({
@@ -81,7 +78,7 @@ Deno.serve(async (req) => {
       action: "subscription_exempted",
       entity_type: "subscription",
       entity_id: subscriptionId,
-      details: { target_user_id: sub.user_id, plan_id: planId, mode, exempt_until, reason: reason ?? null },
+      details: { target_user_id: sub.user_id, plan_id: planId, mode, exempt_until, motivo_codigo: motivoCodigo, reason: reason ?? null },
     });
 
     return json({ ok: true });
