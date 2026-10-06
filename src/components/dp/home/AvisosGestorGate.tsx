@@ -1,3 +1,4 @@
+import { exigeFrenteVerso } from "@/lib/dp/documento-frente-verso";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -30,7 +31,6 @@ const SNOOZE_MS = 12 * 60 * 60 * 1000;
 /** Fechar no X esconde só por 10 minutos (igual ao aviso do portal). */
 const FECHAR_MS = 10 * 60 * 1000;
 const KEY = "dp_avisos_gestor_adiado:";
-const DOC_FRENTE_VERSO = /\b(rg|cnh|identidade|habilita|conselho|crm|coren|crn|ctps|carteira)\b/i;
 
 function primeiroNome(n: string) {
   const p = (n || "").trim().split(/\s+/)[0] ?? "";
@@ -74,7 +74,7 @@ function useAprovacoes() {
         ...g,
         semVerso:
           g.partes.length === 1 &&
-          DOC_FRENTE_VERSO.test(g.requisito) &&
+          exigeFrenteVerso(g.requisito) &&
           (g.partes[0].mime ?? "").startsWith("image/"),
       }));
     },
@@ -143,7 +143,14 @@ export function AvisosGestorGate() {
           status === "aprovado" ? { status, validade: item.validade } : ({ status, motivo_dispensa: motivo } as any),
         );
       }
-      toast.success(status === "aprovado" ? "Documento Aprovado" : "Documento Recusado — o colaborador foi avisado");
+      const pediuVerso = status === "recusado" && /verso/i.test(motivo ?? "");
+      toast.success(
+        status === "aprovado"
+          ? "Documento Aprovado"
+          : pediuVerso
+            ? `Pedido do Verso Enviado Para ${primeiroNome(item.colaborador)}`
+            : "Documento Recusado — o colaborador foi avisado",
+      );
       setRecusando(null);
       setVendo(null);
       qc.invalidateQueries({ queryKey: ["dp_aprovacoes_rapidas"] });

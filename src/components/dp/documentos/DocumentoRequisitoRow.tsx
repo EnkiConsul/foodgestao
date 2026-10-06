@@ -1,3 +1,4 @@
+import { exigeFrenteVerso } from "@/lib/dp/documento-frente-verso";
 import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
 import { acionarInput, useConferenciaDigitalizacao } from "@/components/dp/documentos/ConferenciaDigitalizacao";
 import { useRef, useState } from "react";
@@ -107,6 +108,9 @@ export function DocumentoRequisitoRow({
     if (i === 1) return "Verso";
     return `Foto ${i + 1}`;
   };
+  const frenteVerso =
+    !item.multiplos && exigeFrenteVerso(item.requisito.nome, item.requisito.descricao);
+  const faltaVerso = frenteVerso && anexos.length === 1 && item.status !== "aprovado";
   const precisaValidade =
     item.requisito.periodicidade === "vencimento" ||
     item.requisito.periodicidade === "anual";
@@ -230,10 +234,20 @@ export function DocumentoRequisitoRow({
                 ? "Substituir"
                 : "Anexar"}
           </Button>
+          {frenteVerso && !temArquivo && (
+            <p className="w-full text-xs text-muted-foreground">
+              Documento com foto: envie a frente e o verso.
+            </p>
+          )}
+          {faltaVerso && (
+            <p className="w-full rounded-md border border-warning/40 bg-warning/10 px-2 py-1.5 text-xs font-medium text-foreground">
+              Falta o verso! Toque em "Anexar Verso" para concluir.
+            </p>
+          )}
           {temArquivo && !item.multiplos && (
             <Button
               size="sm"
-              variant="outline"
+              variant={faltaVerso ? "default" : "outline"}
               disabled={ocupado}
               onClick={confParte.abrirSeletor}
             >
