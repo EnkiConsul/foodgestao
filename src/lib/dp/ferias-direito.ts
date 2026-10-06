@@ -269,6 +269,8 @@ export const FERIAS_ERRO_TEXTO: Record<string, string> = {
   FERIAS_FALTAS_INVALIDAS: "Informe um número de faltas válido.",
   FERIAS_PERIODO_NAO_ENCONTRADO: "Este período de férias não foi encontrado.",
   FERIAS_SEM_PERMISSAO: "Você não tem acesso às férias desta empresa.",
+  FERIAS_ASSINATURA_INVALIDA: "Desenhe ou escolha sua assinatura para continuar.",
+  FERIAS_AJUSTE_MOTIVO_OBRIGATORIO: "Explique o motivo do ajuste das datas (mínimo 10 caracteres).",
   FERIAS_FALTAS_MOTIVO_OBRIGATORIO: "Explique o motivo da alteração das faltas.",
   FERIAS_FALTAS_CONFLITO_SALDO:
     "Com essas faltas o direito fica menor do que os dias de férias já marcados. Ajuste as férias primeiro.",
