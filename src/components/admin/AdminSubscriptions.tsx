@@ -64,6 +64,8 @@ export function AdminSubscriptions() {
   
   const update = useUpdateSubscription();
   const [revokeId, setRevokeId] = useState<string | null>(null);
+  const [graceId, setGraceId] = useState<string | null>(null);
+  const podeCarencia = (s: any) => s.status === "active" && !s.is_exempt && !s.external_subscription_id;
   const [filter, setFilter] = useState<string>("all");
   const [hideTest, setHideTest] = useState(true);
   const [clientSortDir, setClientSortDir] = useState<"asc" | "desc" | null>(null);
@@ -246,6 +248,11 @@ export function AdminSubscriptions() {
                           +7d trial
                         </Button>
                       )}
+                      {podeCarencia(s) && (
+                        <Button size="sm" variant="ghost" onClick={() => setGraceId(s.id)}>
+                          Iniciar carência
+                        </Button>
+                      )}
                       {exempt ? (
                         <Button size="sm" variant="ghost"
                           onClick={() => setRevokeId(s.id)}>
@@ -343,6 +350,11 @@ export function AdminSubscriptions() {
                       +7d trial
                     </Button>
                   )}
+                  {podeCarencia(s) && (
+                    <Button size="sm" variant="outline" className="flex-1 min-h-9" onClick={() => setGraceId(s.id)}>
+                      Iniciar carência
+                    </Button>
+                  )}
                   {exempt ? (
                     <Button size="sm" variant="outline" className="flex-1 min-h-9"
                       onClick={() => setRevokeId(s.id)}>
@@ -363,6 +375,7 @@ export function AdminSubscriptions() {
 
       <CarenciaParametroCard />
       <RevokeExemptionDialog subscriptionId={revokeId} onOpenChange={(o) => !o && setRevokeId(null)} />
+      <RevokeExemptionDialog mode="iniciar" subscriptionId={graceId} onOpenChange={(o) => !o && setGraceId(null)} />
       <ExemptSubscriptionDialog
         open={!!exemptTarget}
         onOpenChange={(o) => !o && setExemptTarget(null)}
