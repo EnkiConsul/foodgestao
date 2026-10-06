@@ -1314,17 +1314,14 @@ export default function DpHistoricoCompleto() {
             </Button>
           );
         })()}
-        // O original aparece na hora; o certificado substitui quando ficar pronto.
-        aguardando={null}
-        // O certificado já traz o comprovante de pagamento; não repetir ao final.
-        comprovanteDocumentoId={!certPreview && preview?.comprovante_path && preview.id.startsWith("doc:") ? preview.id.slice(4) : null}
-        comprovantesExtras={certPreview ? [] : extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null }))}
+        // Documento aprovado: aguarda o certificado; o original só entra se ele falhar.
+        aguardando={certStatus === "carregando" && !certPreview ? "Carregando validação digital..." : null}
+        // O comprovante fica sempre visível abaixo do documento.
+        comprovanteDocumentoId={preview?.comprovante_path && preview.id.startsWith("doc:") ? preview.id.slice(4) : null}
+        comprovantesExtras={extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null }))}
         toolbar={preview && (preview.aceite !== null || preview.aceiteDispensado || preview.viaFisica || preview.quitacao) ? (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <AssinaturaSelo r={preview} longo />
-            {certStatus === "carregando" && !certPreview && (
-              <span className="text-xs text-muted-foreground">Preparando validação digital… o documento já pode ser conferido.</span>
-            )}
             <QuitacaoSelo q={preview.quitacao} />
           </div>
         ) : null}
