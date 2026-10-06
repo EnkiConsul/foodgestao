@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useRemoveExemption } from "@/hooks/useBilling";
+import { useRemoveExemption, useStartGrace } from "@/hooks/useBilling";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 interface Props {
   subscriptionId: string | null;
   onOpenChange: (open: boolean) => void;
+  /** "revogar" (padrão) revoga cortesia; "iniciar" abre carência em assinatura ativa sem Asaas */
+  mode?: "revogar" | "iniciar";
 }
 
 export function useCarenciaDias() {
@@ -26,8 +28,11 @@ export function useCarenciaDias() {
   });
 }
 
-export function RevokeExemptionDialog({ subscriptionId, onOpenChange }: Props) {
-  const remove = useRemoveExemption();
+export function RevokeExemptionDialog({ subscriptionId, onOpenChange, mode = "revogar" }: Props) {
+  const revogar = useRemoveExemption();
+  const iniciar = useStartGrace();
+  const remove = mode === "iniciar" ? iniciar : revogar;
+  const ini = mode === "iniciar";
   const { data: dias = 10 } = useCarenciaDias();
   const [reason, setReason] = useState("");
   const open = !!subscriptionId;
@@ -40,14 +45,14 @@ export function RevokeExemptionDialog({ subscriptionId, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Revogar Cortesia</DialogTitle>
+          <DialogTitle>{ini ? "Iniciar Carência" : "Revogar Cortesia"}</DialogTitle>
           <DialogDescription>
-            O cliente não é ativado de graça: entra em carência de {dias} dias e recebe um e-mail com o
+            {ini ? "Esta assinatura está ativa sem cobrança no Asaas. O cliente" : "O cliente não é ativado de graça:"} entra em carência de {dias} dias (até 23:59 do último dia, horário de Brasília) e recebe um e-mail com o
             prazo e o link para escolher um plano. Depois do prazo, o acesso é bloqueado.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-1.5 py-2">
-          <Label>Motivo da revogação</Label>
+          <Label>{ini ? "Motivo interno (não vai no e-mail)" : "Motivo da revogação (não vai no e-mail)"}</Label>
           <Textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
@@ -70,7 +75,7 @@ export function RevokeExemptionDialog({ subscriptionId, onOpenChange }: Props) {
               )
             }
           >
-            {remove.isPending ? "Revogando..." : "Revogar e iniciar carência"}
+            {remove.isPending ? "Salvando..." : ini ? "Iniciar carência" : "Revogar e iniciar carência"}
           </Button>
         </DialogFooter>
       </DialogContent>

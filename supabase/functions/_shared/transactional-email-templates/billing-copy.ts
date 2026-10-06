@@ -14,6 +14,7 @@ export interface BillingCopyData {
   link?: string
   linkExportacao?: string
   linkPlanos?: string
+  modulo?: string
 }
 
 export interface BillingCopy {
@@ -28,6 +29,7 @@ export interface BillingCopy {
 
 const nome = (d: BillingCopyData) => d.nome || 'tudo bem'
 const empresa = (d: BillingCopyData) => d.empresa || 'sua empresa'
+const modulo = (d: BillingCopyData) => (d.modulo ? ` do ${d.modulo}` : '')
 const valor = (d: BillingCopyData) => d.valor || 'em aberto'
 
 export const BILLING_STAGES = [
@@ -304,10 +306,10 @@ export function billingCopy(stage: string, d: BillingCopyData): BillingCopy {
       }
     case 'cortesia_encerrada':
       return {
-        subject: 'Sua cortesia no Aveto 360 foi encerrada',
+        subject: `Sua cortesia${modulo(d)} no Aveto 360 foi encerrada`,
         heading: 'Sua cortesia foi encerrada',
         paragraphs: [
-          `Olá, ${nome(d)}! A cortesia da ${empresa(d)} no Aveto 360 foi encerrada.`,
+          `Olá, ${nome(d)}! A cortesia${modulo(d)} da ${empresa(d)} no Aveto 360 foi encerrada.`,
           `Para você não perder o acesso, liberamos um período de carência até ${d.data ?? 'os próximos dias'}. Escolha um plano até essa data para continuar usando o sistema sem interrupção.`,
           'Seus dados continuam guardados. Se tiver dúvidas, basta responder este e-mail.',
         ],
@@ -320,7 +322,7 @@ export function billingCopy(stage: string, d: BillingCopyData): BillingCopy {
         subject: 'Faltam 3 dias para o fim da carência no Aveto 360',
         heading: 'Faltam 3 dias para o fim da carência',
         paragraphs: [
-          `Olá, ${nome(d)}! O período de carência da ${empresa(d)} termina em ${d.data ?? 'breve'}.`,
+          `Olá, ${nome(d)}! O período de carência${modulo(d)} da ${empresa(d)} termina em ${d.data ?? 'breve'}.`,
           'Escolha um plano para manter o acesso ao sistema sem interrupção.',
         ],
         ctaLabel: 'Escolher plano',
@@ -331,7 +333,7 @@ export function billingCopy(stage: string, d: BillingCopyData): BillingCopy {
         subject: 'Amanhã termina a carência no Aveto 360',
         heading: 'Amanhã é o último dia da carência',
         paragraphs: [
-          `${nome(d)}, o período de carência da ${empresa(d)} termina amanhã, ${d.data ?? ''}.`,
+          `${nome(d)}, o período de carência${modulo(d)} da ${empresa(d)} termina amanhã, ${d.data ?? ''}.`,
           'Depois dessa data o acesso fica suspenso até a contratação de um plano.',
         ],
         ctaLabel: 'Escolher plano',
@@ -343,7 +345,7 @@ export function billingCopy(stage: string, d: BillingCopyData): BillingCopy {
         subject: 'Seu período de carência no Aveto 360 termina hoje',
         heading: 'Sua carência termina hoje',
         paragraphs: [
-          `${nome(d)}, hoje é o último dia da carência da ${empresa(d)}.`,
+          `${nome(d)}, hoje é o último dia da carência${modulo(d)} da ${empresa(d)}.`,
           'A partir de amanhã o acesso fica suspenso até a contratação de um plano. Seus dados continuam guardados.',
         ],
         ctaLabel: 'Escolher plano',
