@@ -15973,6 +15973,14 @@ export type Database = {
           valor_pendente_cents: number
         }[]
       }
+      company_grace_subscriptions: {
+        Args: { _company_id: string }
+        Returns: {
+          grace_ends_at: string
+          module: string
+          subscription_id: string
+        }[]
+      }
       consume_recovery_reset: {
         Args: { p_challenge_id: string; p_reset_token_hash: string }
         Returns: string
