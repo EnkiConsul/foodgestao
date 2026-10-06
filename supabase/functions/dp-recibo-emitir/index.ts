@@ -171,8 +171,8 @@ Deno.serve(async (req) => {
           imgAceite = (ac?.assinatura_imagem as string | null) ?? null;
         }
         const dados = reciboDaLinha(row, empresa, imgAceite);
-        // Sem assinatura digital: sempre a via limpa de duas vias para caneta.
-        const manual = ("manual" in b && b.manual) || !row.assinado_em;
+        // Canal físico já sai em duas vias; digital pendente mantém o modelo digital.
+        const manual = "manual" in b && !!b.manual;
         const bytes = await montarReciboPdf(
           manual ? { ...dados, assinatura: null, assinaturaImagem: null, canal: "fisico", manual: true } : dados,
         );
@@ -241,6 +241,7 @@ Deno.serve(async (req) => {
             file_size: bytes.byteLength,
             referencia_data: `${b.competencia}-01`,
             descricao: `Recibo emitido pelo sistema: ${centsParaBRL(b.valor_cents)}, pago em ${b.pago_em.split("-").reverse().join("/")}.`,
+            ...(trocaCanal ? { exige_aceite: canalNovo === "portal", assinatura_fisica: canalNovo === "fisico" } : {}),
             updated_at: new Date().toISOString(),
           }).eq("id", nova.documento_id);
         }
