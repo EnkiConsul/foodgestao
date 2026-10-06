@@ -297,6 +297,8 @@ export const FERIAS_ERRO_TEXTO: Record<string, string> = {
   FERIAS_SOLICITACAO_JA_RESPONDIDA: "Este pedido já foi respondido.",
   FERIAS_SOLICITACAO_SEM_DETALHES: "Este pedido está incompleto e não pode ser aprovado.",
   FERIAS_SOLICITACAO_DUPLICADA: "Você já tem um pedido em análise para essas datas.",
+  FERIAS_PERIODO_ANTERIOR_COM_SALDO:
+    "Ainda há saldo no período aquisitivo mais antigo. Use primeiro esses dias; o próximo período é liberado quando ele zerar.",
   FERIAS_MOTIVO_OBRIGATORIO: "Escreva o motivo para continuar.",
   FERIAS_NAO_ENCONTRADA: "Estas férias não foram encontradas.",
   FERIAS_JA_CONCLUIDA: "Férias já concluídas não podem ser canceladas.",
