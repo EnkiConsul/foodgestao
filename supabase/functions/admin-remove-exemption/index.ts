@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
       ...novo,
       exempted_by: null,
       exempted_at: null,
-      dunning_stage: null,
+      dunning_stage: 0,
     }).eq("id", subscriptionId);
     if (updErr) return json({ error: `Não foi possível revogar: ${updErr.message}` }, 500);
 
