@@ -77,6 +77,40 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
     if (res.erros.length) toast.warning(`${res.erros.length} cadastro(s) com erro. Confira abaixo.`);
   };
 
+  const semConta = useMemo(() => itens.filter((i) => !i.tem_conta && cpfOk(i.cpf)), [itens]);
+  const [criando, setCriando] = useState<{ feitos: number; total: number } | null>(null);
+
+  const criarEmMassa = async () => {
+    const fila = [...semConta];
+    if (!fila.length) return;
+    let ok = 0; let feitos = 0;
+    const map: Record<string, string> = {};
+    setCriando({ feitos: 0, total: fila.length });
+    const worker = async () => {
+      while (fila.length) {
+        const i = fila.shift()!;
+        const { data, error } = await supabase.functions.invoke("dp-criar-acesso-colaborador", { body: { colaborador_id: i.id } });
+        const msg = (data as { error?: string } | null)?.error;
+        if (error || msg) {
+          let motivo = msg;
+          try { motivo = motivo || (await (error as { context?: Response })?.context?.json())?.error; } catch { /* ignora */ }
+          map[i.id] = motivo || "Não foi possível criar o acesso. Tente novamente pela ficha.";
+        } else ok++;
+        feitos++;
+        setCriando({ feitos, total: semConta.length });
+      }
+    };
+    await Promise.all([worker(), worker(), worker()]);
+    setCriando(null);
+    await carregar();
+    setErros(map);
+    if (ok) toast.success(`${ok} acesso(s) criado(s). Agora envie a mensagem do portal para a equipe.`);
+    const falhas = Object.keys(map).length;
+    if (falhas) toast.warning(`${falhas} acesso(s) não foram criados. Veja o motivo na lista.`);
+  };
+
+  const comErro = itens.filter((i) => erros[i.id] && !pendentes.includes(i));
+
   const copiar = async () => {
     await navigator.clipboard.writeText(MENSAGEM.replace("{Nome da Empresa}", empresaNome || "nossa empresa"));
     toast.success("Mensagem copiada. Cole no grupo ou lista de transmissão da empresa.");
@@ -90,7 +124,12 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
       footer={<>
         <Button variant="outline" onClick={copiar} disabled={loading}><Copy className="mr-2 h-4 w-4" />Copiar Mensagem do Portal</Button>
         {pendentes.length > 0 && (
-          <Button onClick={salvar} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar Dados</Button>
+          <Button variant="outline" onClick={salvar} disabled={saving || !!criando}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar Dados</Button>
+        )}
+        {semConta.length > 0 && (
+          <Button onClick={criarEmMassa} disabled={loading || !!criando}>
+            {criando ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Criando {criando.feitos}/{criando.total}</> : <>Criar {semConta.length} Acesso(s)</>}
+          </Button>
         )}
       </>}
     >
@@ -103,9 +142,21 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
             {pendentes.length > 0 && (
               <span className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5"><AlertTriangle className="h-4 w-4 text-destructive" />{pendentes.length} faltando dados</span>
             )}
+            {semConta.length > 0 && (
+              <span className="flex items-center gap-1.5 rounded-md bg-muted px-3 py-1.5"><KeyRound className="h-4 w-4" />{semConta.length} sem acesso criado</span>
+            )}
           </div>
+          {comErro.length > 0 && (
+            <div className="space-y-1 rounded-md border border-destructive/40 p-3">
+              {comErro.map((i) => <p key={i.id} className="text-xs"><span className="font-medium">{i.nome}:</span> <span className="text-destructive">{erros[i.id]}</span></p>)}
+            </div>
+          )}
           {pendentes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Todos os colaboradores ativos têm CPF e WhatsApp. Copie a mensagem e envie para a equipe.</p>
+            <p className="text-sm text-muted-foreground">
+              {semConta.length > 0
+                ? "Clique em Criar Acessos para liberar todos de uma vez. Depois copie a mensagem e envie para a equipe."
+                : "Todos os colaboradores ativos já têm acesso. Copie a mensagem e envie para a equipe."}
+            </p>
           ) : (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Preencha só o que falta e clique em Salvar Dados.</p>
