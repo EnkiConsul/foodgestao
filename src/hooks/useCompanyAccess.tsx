@@ -17,7 +17,8 @@ export type MotivoBloqueio =
   | "trial_expirado"
   | "inadimplente_suspenso"
   | "rescindido"
-  | "expirado_definitivo";
+  | "expirado_definitivo"
+  | "carencia_expirada";
 
 export interface CompanyAccess {
   companyId: string | null;
@@ -33,6 +34,8 @@ export interface CompanyAccess {
   canExport: boolean;
   valorPendenteCents: number | null;
   faturaPendenteId: string | null;
+  /** fim da carência pós-cortesia (status grace) */
+  graceEndsAt: string | null;
 }
 
 /**
@@ -70,6 +73,7 @@ export function useCompanyAccess() {
         canExport: row.can_export !== false,
         valorPendenteCents: row.valor_pendente_cents ?? null,
         faturaPendenteId: row.fatura_pendente_id ?? null,
+        graceEndsAt: row.grace_ends_at ?? null,
       };
     },
   });

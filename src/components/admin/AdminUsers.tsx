@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { RevokeExemptionDialog } from "@/components/admin/RevokeExemptionDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,6 @@ import {
 import { formatDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { isExempt, exemptionLabel } from "@/lib/billing";
-import { useRemoveExemption } from "@/hooks/useBilling";
 import { ExemptSubscriptionDialog } from "./ExemptSubscriptionDialog";
 
 type AdminUserRow = {
@@ -42,7 +42,7 @@ type AdminUserRow = {
 export function AdminUsers() {
   const [search, setSearch] = useState("");
   const [exemptTarget, setExemptTarget] = useState<{ userId: string; planId: string | null } | null>(null);
-  const removeExemption = useRemoveExemption();
+  const [revokeId, setRevokeId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -208,12 +208,9 @@ export function AdminUsers() {
                         <DropdownMenuContent align="end">
                           {exempt ? (
                             <DropdownMenuItem
-                              onClick={() => {
-                                if (confirm("Remover isenção? O cliente voltará ao fluxo normal de cobrança."))
-                                  removeExemption.mutate(sub.id);
-                              }}
+                              onClick={() => setRevokeId(sub.id)}
                             >
-                              Remover isenção
+                              Revogar cortesia
                             </DropdownMenuItem>
                           ) : (
                             <DropdownMenuItem
@@ -264,10 +261,8 @@ export function AdminUsers() {
                     <DropdownMenuContent align="end">
                       {exempt ? (
                         <DropdownMenuItem
-                          onClick={() => {
-                            if (confirm("Remover isenção?")) removeExemption.mutate(sub.id);
-                          }}
-                        >Remover isenção</DropdownMenuItem>
+                          onClick={() => setRevokeId(sub.id)}
+                        >Revogar cortesia</DropdownMenuItem>
                       ) : (
                         <DropdownMenuItem
                           disabled={!sub}
@@ -300,6 +295,7 @@ export function AdminUsers() {
         )}
       </div>
 
+      <RevokeExemptionDialog subscriptionId={revokeId} onOpenChange={(o) => !o && setRevokeId(null)} />
       <ExemptSubscriptionDialog
         open={!!exemptTarget}
         onOpenChange={(o) => !o && setExemptTarget(null)}

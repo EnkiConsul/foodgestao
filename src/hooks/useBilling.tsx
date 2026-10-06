@@ -94,20 +94,26 @@ export function useExemptSubscription() {
 export function useRemoveExemption() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (subscriptionId: string) => {
+    mutationFn: async ({ subscriptionId, reason }: { subscriptionId: string; reason: string }) => {
       const { data, error } = await supabase.functions.invoke("admin-remove-exemption", {
-        body: { subscriptionId },
+        body: { subscriptionId, reason },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["admin-subscriptions"] });
       qc.invalidateQueries({ queryKey: ["admin-users"] });
       qc.invalidateQueries({ queryKey: ["current-subscription"] });
       qc.invalidateQueries({ queryKey: ["admin-audit-logs"] });
-      toast.success("Isenção removida");
+      const d = data as any;
+      const ate = d?.graceEndsAt ? new Date(d.graceEndsAt).toLocaleDateString("pt-BR") : null;
+      toast.success(`Cortesia revogada. Carência de ${d?.dias ?? ""} dias${ate ? ` (até ${ate})` : ""}.`, {
+        description: d?.emailEnviado
+          ? "O dono foi avisado por e-mail."
+          : `O e-mail ao dono não foi enviado${d?.emailErro ? ` (${d.emailErro})` : ""}. Avise o cliente manualmente.`,
+      });
     },
     onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao remover isenção" }),
   });

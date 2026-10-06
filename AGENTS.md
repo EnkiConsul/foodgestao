@@ -17,7 +17,8 @@
 - Importação de ficha: regime, forma de pagamento, cargo (com CBO), salário padrão da unidade/convenção e dependentes são sugeridos pela própria ficha e gravados só quando o gestor aprova.
 - Ponto (Art. 74 CLT) é decisão da unidade: `dp_unidade_definir_ponto` liga/desliga com cascata nos colaboradores e exige justificativa da unidade acima de 20 ativos; a ficha só pede justificativa individual quando a unidade tem ponto; unidade 20+ sem ponto e sem justificativa vira pendência e alerta no início.
 - Divergência com a Ficha de Registro: qualquer cargo, salário, vínculo, forma de pagamento ou horário gravado diferente da ficha de origem exige justificativa (mín. 15) e ciência, registradas via `registrarCienciaRegra` (`src/lib/dp/ficha-registro/divergencia.ts`) — a ficha é registro contábil (CTPS/eSocial).
-- Folga dominical diferenciada: exceção do colaborador (`dp_colaboradores.domingos_folga_mes`) > regra do cargo na unidade (`dp_folga_domingo_cargos`) > regra da unidade (homens/mulheres), via `domingosDiferenciados`; gravada só por RPC com ciência de isonomia (`folga-isonomia.ts`) — sem diferenciação sem registro.
+- Folga dominical: colaborador > cargo na unidade > unidade, via `domingosDiferenciados`; gravada só por RPC com ciência de isonomia — sem diferenciação sem registro.
 - Desligamento: Aviso, Documentos e Acerto Rescisório com pendências próprias; sem assinatura digital; Acerto só baixa assinado ou com comprovante — emitir não quita.
 - Restrição de um dia: colaborador → `dp_bloqueios` (início=fim); cargo/setor → `dp_folga_limite_regras` com vigência de um dia (máximo 0 = ninguém) — reaproveita validações oficiais.
-- pdfjs 6.x exige recursos ES2025 (`Map#getOrInsertComputed`, `Math.sumPrecise`): os polyfills vivem em `src/lib/polyfills.ts`, importado no `main.tsx` antes de tudo — sem eles o visualizador de PDF fica em branco em navegadores mais antigos.
+- pdfjs 6.x exige polyfills ES2025 em `src/lib/polyfills.ts`, importado primeiro no `main.tsx` — sem eles o PDF fica em branco.
+- Revogar cortesia gera carência (`grace`/`grace_ends_at`), nunca ativa; vencida, `company_access_status` bloqueia — evita acesso grátis sem fim.

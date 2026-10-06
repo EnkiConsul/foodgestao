@@ -14705,6 +14705,7 @@ export type Database = {
           external_customer_id: string | null
           external_subscription_id: string | null
           extra_companies: number
+          grace_ends_at: string | null
           id: string
           is_exempt: boolean
           last_payment_status: string | null
@@ -14743,6 +14744,7 @@ export type Database = {
           external_customer_id?: string | null
           external_subscription_id?: string | null
           extra_companies?: number
+          grace_ends_at?: string | null
           id?: string
           is_exempt?: boolean
           last_payment_status?: string | null
@@ -14781,6 +14783,7 @@ export type Database = {
           external_customer_id?: string | null
           external_subscription_id?: string | null
           extra_companies?: number
+          grace_ends_at?: string | null
           id?: string
           is_exempt?: boolean
           last_payment_status?: string | null
@@ -14836,6 +14839,33 @@ export type Database = {
           id?: string
           metadata?: Json | null
           reason?: string
+        }
+        Relationships: []
+      }
+      system_parameters: {
+        Row: {
+          created_at: string
+          description: string | null
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
         }
         Relationships: []
       }
@@ -15935,6 +15965,7 @@ export type Database = {
           company_id: string
           dias_atraso: number
           fatura_pendente_id: string
+          grace_ends_at: string
           is_owner: boolean
           motivo: string
           status: string
@@ -19646,6 +19677,7 @@ export type Database = {
         | "canceled"
         | "expired"
         | "pending"
+        | "grace"
       transaction_status: "pendente" | "confirmado" | "cancelado"
       transaction_type: "entrada" | "saida" | "transferencia" | "parcelamento"
     }
@@ -20122,6 +20154,7 @@ export const Constants = {
         "canceled",
         "expired",
         "pending",
+        "grace",
       ],
       transaction_status: ["pendente", "confirmado", "cancelado"],
       transaction_type: ["entrada", "saida", "transferencia", "parcelamento"],

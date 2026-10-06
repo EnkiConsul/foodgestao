@@ -54,7 +54,14 @@ export const TRIAL_STAGES = [
   'trial_pos_10',
 ] as const
 
-export type BillingStage = (typeof BILLING_STAGES)[number] | (typeof TRIAL_STAGES)[number]
+export const GRACE_STAGES = [
+  'cortesia_encerrada',
+  'grace_d_menos_3',
+  'grace_d_menos_1',
+  'grace_d0',
+] as const
+
+export type BillingStage = (typeof BILLING_STAGES)[number] | (typeof TRIAL_STAGES)[number] | (typeof GRACE_STAGES)[number]
 
 export const STAGE_NUMERO: Record<string, number> = {
   d_menos_3: -3,
@@ -294,6 +301,54 @@ export function billingCopy(stage: string, d: BillingCopyData): BillingCopy {
         ],
         ctaLabel: 'Ver planos',
         ctaKey: 'linkPlanos',
+      }
+    case 'cortesia_encerrada':
+      return {
+        subject: 'Sua cortesia no Aveto 360 foi encerrada',
+        heading: 'Sua cortesia foi encerrada',
+        paragraphs: [
+          `Olá, ${nome(d)}! A cortesia da ${empresa(d)} no Aveto 360 foi encerrada.`,
+          `Para você não perder o acesso, liberamos um período de carência até ${d.data ?? 'os próximos dias'}. Escolha um plano até essa data para continuar usando o sistema sem interrupção.`,
+          'Seus dados continuam guardados. Se tiver dúvidas, basta responder este e-mail.',
+        ],
+        ctaLabel: 'Escolher plano',
+        ctaKey: 'linkPlanos',
+        destaque: 'atencao',
+      }
+    case 'grace_d_menos_3':
+      return {
+        subject: 'Faltam 3 dias para o fim da carência no Aveto 360',
+        heading: 'Faltam 3 dias para o fim da carência',
+        paragraphs: [
+          `Olá, ${nome(d)}! O período de carência da ${empresa(d)} termina em ${d.data ?? 'breve'}.`,
+          'Escolha um plano para manter o acesso ao sistema sem interrupção.',
+        ],
+        ctaLabel: 'Escolher plano',
+        ctaKey: 'linkPlanos',
+      }
+    case 'grace_d_menos_1':
+      return {
+        subject: 'Amanhã termina a carência no Aveto 360',
+        heading: 'Amanhã é o último dia da carência',
+        paragraphs: [
+          `${nome(d)}, o período de carência da ${empresa(d)} termina amanhã, ${d.data ?? ''}.`,
+          'Depois dessa data o acesso fica suspenso até a contratação de um plano.',
+        ],
+        ctaLabel: 'Escolher plano',
+        ctaKey: 'linkPlanos',
+        destaque: 'atencao',
+      }
+    case 'grace_d0':
+      return {
+        subject: 'Seu período de carência no Aveto 360 termina hoje',
+        heading: 'Sua carência termina hoje',
+        paragraphs: [
+          `${nome(d)}, hoje é o último dia da carência da ${empresa(d)}.`,
+          'A partir de amanhã o acesso fica suspenso até a contratação de um plano. Seus dados continuam guardados.',
+        ],
+        ctaLabel: 'Escolher plano',
+        ctaKey: 'linkPlanos',
+        destaque: 'urgente',
       }
     default:
       return {
