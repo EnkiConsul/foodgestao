@@ -1,4 +1,5 @@
 import { maskPhone } from "@/lib/phone";
+import { maskCpf } from "@/lib/cpf";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { KeyRound, Copy, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
@@ -21,8 +22,9 @@ O *Portal do Colaborador da {Nome da Empresa}* está no ar para acompanhar suas 
 
 🔐 *Como fazer o seu primeiro acesso:*
 1. Acesse pelo navegador: *https://www.aveto360.com/login*
-2. Digite o seu *CPF* (apenas números).
-3. No primeiro acesso, você receberá um código de segurança de 6 dígitos no seu WhatsApp cadastrado para criar sua senha exclusiva.
+2. Toque em *"Primeiro acesso"*.
+3. Digite o seu *CPF* (apenas números).
+4. Você receberá um código de segurança de 6 dígitos no seu WhatsApp cadastrado para criar sua senha exclusiva.
 
 👤 *Login:* Seu CPF (apenas números)
 🔑 *Senha:* Você mesmo cria a sua no primeiro acesso. Ninguém da empresa tem acesso ou conhece sua senha.
@@ -118,7 +120,7 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
 
   return (
     <DpDialogShell
-      open={open} onOpenChange={onOpenChange} icon={KeyRound} size="lg"
+      open={open} onOpenChange={(o) => { if (!o && criando) { toast.info("Aguarde terminar a criação dos acessos."); return; } onOpenChange(o); }} icon={KeyRound} size="lg"
       title="Gerar Acessos ao Portal"
       description="Cada colaborador cria a própria senha pelo CPF, com código enviado ao WhatsApp da ficha."
       footer={<>
@@ -168,7 +170,7 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
                     <div className="mb-2 text-sm font-medium">{i.nome}</div>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {!cpfOk(i.cpf) ? (
-                        <Input inputMode="numeric" placeholder="CPF (apenas números)" maxLength={14} value={e.cpf ?? ""} onChange={(ev) => set("cpf", ev.target.value)} />
+                        <Input inputMode="numeric" placeholder="CPF (apenas números)" maxLength={14} value={e.cpf ?? ""} onChange={(ev) => set("cpf", maskCpf(ev.target.value))} />
                       ) : <div className="text-xs text-muted-foreground self-center">CPF ok</div>}
                       {!wppOk(i.whatsapp) ? (
                         <Input inputMode="tel" placeholder="WhatsApp com DDD" maxLength={15} value={e.whatsapp ?? ""} onChange={(ev) => set("whatsapp", maskPhone(ev.target.value))} />
