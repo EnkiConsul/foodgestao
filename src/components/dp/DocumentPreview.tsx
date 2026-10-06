@@ -74,7 +74,14 @@ export function DocumentPreview({
     return () => { cancelado = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, extrasChave, expiresIn, aguardando]);
-  const temAnexos = !!comprovante || extras.length > 0;
+  const listaComprovantes = [
+    ...(comprovante ? [{ id: "principal", url: comprovante.url, mime: comprovante.mime, path: comprovante.nome ?? "" }] : []),
+    ...extras,
+  ];
+  const temAnexos = listaComprovantes.length > 0;
+  const [aba, setAba] = useState(-1);
+  useEffect(() => { if (!open) setAba(-1); }, [open]);
+  const abaComprovante = aba >= 0 ? listaComprovantes[aba] ?? null : null;
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(url ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -165,8 +172,18 @@ export function DocumentPreview({
           <DialogTitle className="truncate text-sm sm:text-base">{title}</DialogTitle>
           {toolbar}
         </DialogHeader>
-        <div className={temAnexos ? "flex-1 min-h-0 overflow-y-auto bg-muted/30" : "flex-1 min-h-0 bg-muted/30"}>
-        <div className={temAnexos ? "h-[75svh] sm:h-[70vh]" : "h-full"}>
+        {temAnexos && (
+          <div className="flex gap-1 overflow-x-auto border-b bg-background p-2">
+            <Button size="sm" variant={aba === -1 ? "default" : "outline"} onClick={() => setAba(-1)}>Documento</Button>
+            {listaComprovantes.map((c, i, arr) => (
+              <Button key={c.id} size="sm" variant={aba === i ? "default" : "outline"} onClick={() => setAba(i)}>
+                {arr.length > 1 ? `Comprovante ${i + 1}` : "Comprovante de Pagamento"}
+              </Button>
+            ))}
+          </div>
+        )}
+        <div className="flex-1 min-h-0 bg-muted/30">
+        <div className={abaComprovante ? "hidden" : "h-full"}>
           {aguardando ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-sm text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin" />
@@ -217,18 +234,15 @@ export function DocumentPreview({
             </div>
           )}
         </div>
-        {[...(comprovante ? [{ id: "principal", url: comprovante.url, mime: comprovante.mime, path: comprovante.nome ?? "" }] : []), ...extras].map((c, i, arr) => (
-          <section key={c.id} className="border-t bg-background">
-            <p className="px-3 py-2 text-sm font-medium">{arr.length > 1 ? `Comprovante de Pagamento ${i + 1}` : "Comprovante de Pagamento"}</p>
-            {(c.mime ?? "").startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(c.path) ? (
-              <img src={c.url} alt="Comprovante de pagamento" className="block w-full h-auto" />
+        {abaComprovante && (
+          <div className="h-full">
+            {(abaComprovante.mime ?? "").startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(abaComprovante.path) ? (
+              <ImagemZoomViewer src={abaComprovante.url} alt="Comprovante de pagamento" />
             ) : (
-              <div className="h-[75svh] sm:h-[70vh]">
-                <PdfCanvasViewer url={c.url} title="Comprovante de pagamento" />
-              </div>
+              <PdfCanvasViewer url={abaComprovante.url} title="Comprovante de pagamento" />
             )}
-          </section>
-        ))}
+          </div>
+        )}
         </div>
         <DialogFooter className="p-2 sm:p-3 border-t flex-row flex-wrap sm:justify-between gap-2">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>
