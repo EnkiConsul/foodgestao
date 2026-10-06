@@ -12,7 +12,6 @@ export default function DpDocumentosHub() {
         title="Documentos"
         description="Advertências, suspensões, elogios e ocorrências disciplinares da equipe."
       />
-      <FolhaPagamentoAlerta />
       <DpGroupCards groupId="documentos" />
     </DpPage>
   );
