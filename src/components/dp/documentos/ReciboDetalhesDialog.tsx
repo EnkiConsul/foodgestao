@@ -1,6 +1,7 @@
 import { ViaAssinadaBotao } from "./ViaAssinadaBotao";
 import { useEffect, useState } from "react";
-import { Copy, Download, Eye, Pencil, EyeOff, FileCheck2, Link2, Loader2, MessageCircle, Receipt, XCircle } from "lucide-react";
+import { Copy, Download, Eye, Pencil, PenLine, EyeOff, FileCheck2, Link2, Loader2, MessageCircle, Receipt, XCircle } from "lucide-react";
+import { toast } from "sonner";
 import { PdfCanvasViewer } from "@/components/dp/PdfCanvasViewer";
 import { Button } from "@/components/ui/button";
 import { DpDialogShell } from "@/components/dp/DpDialogShell";
@@ -76,6 +77,7 @@ export function ReciboDetalhesDialog({
   onViaAnexada?: () => void;
 }) {
   const [avisoAssinado, setAvisoAssinado] = useState(false);
+  const [baixandoManual, setBaixandoManual] = useState(false);
   const [verPdf, setVerPdf] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [carregandoPdf, setCarregandoPdf] = useState(false);
@@ -165,6 +167,21 @@ export function ReciboDetalhesDialog({
             {verPdf ? "Ocultar Recibo" : "Visualizar Recibo"}
           </Button>
           <Button variant="outline" onClick={() => onPdf(recibo)}><Download className="mr-1.5 h-4 w-4" />Baixar PDF</Button>
+          {!recibo.cancelado_em && !recibo.substituido_em && (
+            <Button variant="outline" disabled={baixandoManual} onClick={async () => {
+              setBaixandoManual(true);
+              try {
+                const u = await reciboPdfUrl(recibo.id, true);
+                const a = document.createElement("a");
+                a.href = u; a.download = `recibo-assinar-a-mao-${recibo.competencia.slice(0, 7)}.pdf`; a.click();
+                setTimeout(() => URL.revokeObjectURL(u), 10_000);
+              } catch (e) {
+                toast.error((e as Error).message || "Não foi possível gerar a via. Tente novamente em instantes.");
+              } finally { setBaixandoManual(false); }
+            }}>
+              {baixandoManual ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <PenLine className="mr-1.5 h-4 w-4" />}Baixar Para Assinar à Mão
+            </Button>
+          )}
           {avulso && aberto && recibo.canal_assinatura === "whatsapp" && <Button onClick={() => onWhatsApp(recibo)}><MessageCircle className="mr-1.5 h-4 w-4" />Enviar pelo WhatsApp</Button>}
           {avulso && aberto && recibo.canal_assinatura === "whatsapp" && <Button variant="outline" onClick={() => onCopiarLink(recibo)}><Link2 className="mr-1.5 h-4 w-4" />Copiar Link</Button>}
           {!avulso && recibo.assinado_em && recibo.documento_id && <Button variant="outline" onClick={() => onCertificado(recibo)}><FileCheck2 className="mr-1.5 h-4 w-4" />Abrir Certificado</Button>}

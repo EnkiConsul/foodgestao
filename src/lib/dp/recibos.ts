@@ -119,8 +119,8 @@ export async function cancelarRecibo(reciboId: string): Promise<void> {
   if (error) throw await erroDe(error, "Não foi possível cancelar o recibo.");
 }
 
-export async function reciboPdfUrl(reciboId: string): Promise<string> {
-  const { data, error } = await supabase.functions.invoke("dp-recibo-emitir", { body: { acao: "pdf", recibo_id: reciboId } });
+export async function reciboPdfUrl(reciboId: string, manual = false): Promise<string> {
+  const { data, error } = await supabase.functions.invoke("dp-recibo-emitir", { body: { acao: "pdf", recibo_id: reciboId, ...(manual ? { manual: true } : {}) } });
   if (error) throw await erroDe(error, "Não foi possível abrir o recibo.");
   const blob = data instanceof Blob ? data : new Blob([data as ArrayBuffer], { type: "application/pdf" });
   return URL.createObjectURL(blob);

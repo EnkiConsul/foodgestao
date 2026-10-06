@@ -53,21 +53,23 @@ export function textoSolicitacao(p: {
   ].filter(Boolean);
 }
 
+const LINHA: React.CSSProperties = { width: 260, margin: "0 auto", borderTop: "1px solid #444", paddingTop: 4, fontSize: 12 };
+
 function Assinatura({ img, legenda, manual, nome, cpf }: { img: string | null; legenda: string; manual?: boolean; nome?: string | null; cpf?: string | null }) {
   if (manual) {
     return (
-      <div className="mt-6 text-center">
-        <div className="h-16" />
-        <div className="mx-auto w-64 border-t border-foreground/60 pt-1 text-xs">
+      <div style={{ marginTop: 24, textAlign: "center" }}>
+        <div style={{ height: 56 }} />
+        <div style={LINHA}>
           <b>{nome ?? ""}</b><br />CPF {cpfMask(cpf ?? null)}<br />Data: ____ / ____ / ________
         </div>
       </div>
     );
   }
   return (
-    <div className="mt-4 text-center">
-      {img ? <img src={img} alt="Assinatura" className="mx-auto h-16 object-contain" /> : <div className="h-16" />}
-      <div className="mx-auto w-64 border-t border-foreground/60 pt-1 text-xs">{legenda}</div>
+    <div style={{ marginTop: 16, textAlign: "center" }}>
+      {img ? <img src={img} alt="Assinatura" style={{ margin: "0 auto", height: 64, objectFit: "contain" }} /> : <div style={{ height: 64 }} />}
+      <div style={LINHA}>{legenda}</div>
     </div>
   );
 }
@@ -143,7 +145,22 @@ export function FeriasTermoDialog({
                 </p>
                 {a.ajustado_pelo_gestor && <p className="mt-1">As datas foram definidas pela empresa, conforme o Art. 136 da CLT.</p>}
                 <p className="mt-1">Declaro ciência do período de férias acima.</p>
-                <Assinatura manual={manual} nome={t.colaborador_nome} cpf={t.colaborador_cpf} img={a.assinatura} legenda={`${t.colaborador_nome ?? ""} · ${a.ciente_em ? `Ciente em ${dataHora(a.ciente_em)}` : "Aguardando ciência"}`} />
+                {manual ? (
+                  <div className="assin-par" style={{ display: "flex", gap: 24, justifyContent: "space-between", flexWrap: "wrap" }}>
+                    <div style={{ flex: "1 1 220px", textAlign: "center", marginTop: 48 }}>
+                      <div style={{ borderTop: "1px solid #444", paddingTop: 4, fontSize: 12 }}>
+                        <b>{t.empresa ?? ""}</b><br />Empresa (Empregador)<br />Data: ____ / ____ / ________
+                      </div>
+                    </div>
+                    <div style={{ flex: "1 1 220px", textAlign: "center", marginTop: 48 }}>
+                      <div style={{ borderTop: "1px solid #444", paddingTop: 4, fontSize: 12 }}>
+                        <b>{t.colaborador_nome ?? ""}</b><br />CPF {cpfMask(t.colaborador_cpf)} · Ciência<br />Data: ____ / ____ / ________
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <Assinatura nome={t.colaborador_nome} cpf={t.colaborador_cpf} img={a.assinatura} legenda={`${t.colaborador_nome ?? ""} · ${a.ciente_em ? `Ciente em ${dataHora(a.ciente_em)}` : "Aguardando ciência"}`} />
+                )}
               </section>
             )}
           </div>
