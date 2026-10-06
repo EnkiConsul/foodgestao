@@ -1,3 +1,4 @@
+import { AprovacoesRapidasCard } from "@/components/dp/home/AprovacoesRapidasCard";
 import { FolhaPagamentoAlerta } from "@/components/dp/home/FolhaPagamentoAlerta";
 import { Helmet } from "react-helmet-async";
 import { Bell, Settings } from "lucide-react";
@@ -40,6 +41,7 @@ export default function DpHome() {
         }
       />
 
+      <AprovacoesRapidasCard />
       <FolhaPagamentoAlerta />
       <PontoConformidadeAlerta />
 
