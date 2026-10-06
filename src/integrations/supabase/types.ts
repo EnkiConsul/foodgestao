@@ -16071,6 +16071,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      billing_v2_user_empty_account: {
+        Args: { _create?: boolean; _user: string }
+        Returns: string
+      }
       can_use_module: {
         Args: {
           p_company_id: string
