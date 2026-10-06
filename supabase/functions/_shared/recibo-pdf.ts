@@ -336,9 +336,7 @@ async function montarDuasVias(r: ReciboPdf): Promise<Uint8Array> {
     };
     bloco(margem, r.empresa, `CNPJ ${r.empresaCnpj}`, "Assinatura do pagador");
     bloco(margem + colA + 30, r.beneficiario, `CPF ${r.beneficiarioCpf}`, "Assinatura do recebedor");
-    if (!r.manual) {
-      page.drawText(limpar(`Código ${r.codigo} · Emitido em ${r.emitidoEm}`), { x: margem, y: topo - meio + 16, size: 6, font: fonte, color: CLARO });
-    }
+    // Via física: sem código nem data/hora de emissão do sistema.
   };
 
   via(height, "1ª Via — Empregador");

@@ -171,8 +171,10 @@ Deno.serve(async (req) => {
           imgAceite = (ac?.assinatura_imagem as string | null) ?? null;
         }
         const dados = reciboDaLinha(row, empresa, imgAceite);
+        // Sem assinatura digital: sempre a via limpa de duas vias para caneta.
+        const manual = ("manual" in b && b.manual) || !row.assinado_em;
         const bytes = await montarReciboPdf(
-          "manual" in b && b.manual ? { ...dados, assinatura: null, assinaturaImagem: null, canal: "fisico", manual: true } : dados,
+          manual ? { ...dados, assinatura: null, assinaturaImagem: null, canal: "fisico", manual: true } : dados,
         );
         return new Response(bytes as unknown as BodyInit, {
           status: 200,
