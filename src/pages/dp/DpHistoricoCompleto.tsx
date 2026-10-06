@@ -113,6 +113,9 @@ function QuitacaoSelo({ q }: { q?: QuitacaoConsolidada | null }) {
   );
 }
 
+/** Documentos pessoais/cadastrais: ficam só na aba Documentos da ficha do colaborador. */
+const TIPOS_CADASTRAIS = "identidade,cnh,residencia,bancario,crlv,seguro_veiculo,dependente";
+
 const TIPO_OPTIONS = [
   ...DP_DOC_TIPOS.filter((t) => t.value !== "sindicato").map((t) => ({ value: t.value as string, label: t.label })),
 ];
@@ -469,6 +472,10 @@ export default function DpHistoricoCompleto() {
             .from("dp_documentos")
             .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id, comprovante_file_path, comprovante_mime_type, via_assinada_path, via_assinada_mime, via_assinada_em, assinatura_fisica, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents, comprovantes_extra_qtd, comprovantes_extra_cents, valor_liquido_cents")
             .eq("company_id", cId)
+            // Excluídos (arquivados) saem da tela na hora; o banco preserva o histórico.
+            .is("arquivado_em", null)
+            // Documentos pessoais/cadastrais ficam só na aba Documentos da ficha do colaborador.
+            .not("tipo", "in", TIPOS_CADASTRAIS)
             .order("id", { ascending: true })
             .range(from, to)),
         fetchAllPages<any>((from, to) =>

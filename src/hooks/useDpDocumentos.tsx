@@ -53,6 +53,8 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
           .from("dp_documentos")
           .select("*, dp_colaboradores(nome)")
           .eq("company_id", selectedCompanyId!)
+          // Excluídos (arquivados) saem da listagem na hora; o banco preserva o histórico.
+          .is("arquivado_em", null)
           // Cronológico pela competência do documento; empate pela data de envio e id.
           .order("referencia_data", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
