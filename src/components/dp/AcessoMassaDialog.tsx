@@ -22,9 +22,8 @@ O *Portal do Colaborador da {Nome da Empresa}* está no ar para acompanhar suas 
 
 🔐 *Como fazer o seu primeiro acesso:*
 1. Acesse pelo navegador: *https://www.aveto360.com/login*
-2. Toque em *"Primeiro acesso"*.
-3. Digite o seu *CPF* (apenas números).
-4. Você receberá um código de segurança de 6 dígitos no seu WhatsApp cadastrado para criar sua senha exclusiva.
+2. Toque em *"Primeiro acesso? Crie sua senha pelo CPF"*.
+3. Digite o seu *CPF* (apenas números) para receber o código de 6 dígitos no WhatsApp e definir sua senha pessoal.
 
 👤 *Login:* Seu CPF (apenas números)
 🔑 *Senha:* Você mesmo cria a sua no primeiro acesso. Ninguém da empresa tem acesso ou conhece sua senha.
@@ -140,12 +139,10 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
       ) : (
         <div className="space-y-4">
           <div className="flex flex-wrap gap-3 text-sm">
-            <span className="flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5"><CheckCircle2 className="h-4 w-4 text-primary" />{prontos} pronto(s) para o primeiro acesso</span>
+            <span className="flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5"><CheckCircle2 className="h-4 w-4 text-primary" />{itens.filter((i) => i.tem_conta).length} com acesso já liberado</span>
+            <span className="flex items-center gap-1.5 rounded-md bg-muted px-3 py-1.5"><KeyRound className="h-4 w-4" />{semConta.length} pronto(s) para liberar</span>
             {pendentes.length > 0 && (
-              <span className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5"><AlertTriangle className="h-4 w-4 text-destructive" />{pendentes.length} faltando dados</span>
-            )}
-            {semConta.length > 0 && (
-              <span className="flex items-center gap-1.5 rounded-md bg-muted px-3 py-1.5"><KeyRound className="h-4 w-4" />{semConta.length} com CPF e WhatsApp sem acesso criado</span>
+              <span className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5"><AlertTriangle className="h-4 w-4 text-destructive" />{pendentes.filter((i) => !i.tem_conta).length} com dados incompletos</span>
             )}
           </div>
           {comErro.length > 0 && (
@@ -161,6 +158,11 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
             </p>
           ) : (
             <div className="space-y-2">
+              {semConta.length > 0 && (
+                <p className="rounded-md border border-primary/40 bg-primary/5 p-3 text-sm">
+                  {semConta.length} colaborador(es) já estão prontos. Você já pode clicar em "Criar {semConta.length} Acesso(s)" agora; os {pendentes.length} abaixo você pode completar quando tiver os dados.
+                </p>
+              )}
               <p className="text-sm text-muted-foreground">Preencha só o que falta e clique em Salvar Dados.</p>
               {pendentes.map((i) => {
                 const e = edits[i.id] ?? {};
