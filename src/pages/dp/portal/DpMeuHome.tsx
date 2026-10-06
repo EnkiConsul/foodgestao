@@ -60,18 +60,18 @@ export default function DpMeuHome() {
   const { folga: proximaFolga, hoje: hojeISO } = useMinhaProximaFolga(colabId.data);
 
 
-  // Últimos 3 documentos direcionados ao colaborador.
+  // Total de documentos do colaborador e o título do mais recente.
   const ultimosDocs = useQuery({
     queryKey: ["dp_meu_docs", colabId.data],
     enabled: !!colabId.data,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, count } = await supabase
         .from("dp_documentos")
-        .select("id, tipo, titulo, created_at")
+        .select("id, titulo, created_at", { count: "exact" })
         .eq("colaborador_id", colabId.data!)
         .order("created_at", { ascending: false })
-        .limit(3);
-      return data ?? [];
+        .limit(1);
+      return { total: count ?? data?.length ?? 0, ultimo: data?.[0]?.titulo ?? null };
     },
   });
 
@@ -147,9 +147,13 @@ export default function DpMeuHome() {
         />
         <ResumoCard
           icon={FileText}
-          label="Documentos"
-          value={String(ultimosDocs.data?.length ?? 0)}
-          hint={ultimosDocs.data?.[0]?.titulo ?? "Nenhum recente"}
+          label="Meus Documentos"
+          value={String(ultimosDocs.data?.total ?? 0)}
+          hint={
+            ultimosDocs.data?.ultimo
+              ? `Último: ${ultimosDocs.data.ultimo}`
+              : "Consultar recibos e arquivos"
+          }
           to="/dp/meu/documentos"
           loading={ultimosDocs.isLoading || colabId.isLoading}
         />
