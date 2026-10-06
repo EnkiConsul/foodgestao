@@ -1,3 +1,4 @@
+import { ModoImpressaoEscolha } from "@/components/dp/documentos/ModoImpressaoEscolha";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FileSignature, Printer } from "lucide-react";
@@ -52,7 +53,17 @@ export function textoSolicitacao(p: {
   ].filter(Boolean);
 }
 
-function Assinatura({ img, legenda }: { img: string | null; legenda: string }) {
+function Assinatura({ img, legenda, manual, nome, cpf }: { img: string | null; legenda: string; manual?: boolean; nome?: string | null; cpf?: string | null }) {
+  if (manual) {
+    return (
+      <div className="mt-6 text-center">
+        <div className="h-16" />
+        <div className="mx-auto w-64 border-t border-foreground/60 pt-1 text-xs">
+          <b>{nome ?? ""}</b><br />CPF {cpfMask(cpf ?? null)}<br />Data: ____ / ____ / ________
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="mt-4 text-center">
       {img ? <img src={img} alt="Assinatura" className="mx-auto h-16 object-contain" /> : <div className="h-16" />}
@@ -79,6 +90,7 @@ export function FeriasTermoDialog({
   const t = q.data;
   const s = t?.solicitacao;
   const a = t?.aviso;
+  const [manual, setManual] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -94,6 +106,8 @@ export function FeriasTermoDialog({
             {textoErroFerias((q.error as Error)?.message) || "Não foi possível abrir o termo. Tente novamente em instantes."}
           </p>
         ) : (
+          <>
+          <div className="print:hidden"><ModoImpressaoEscolha manual={manual} onChange={setManual} /></div>
           <div id="termo-ferias-print" className="space-y-6 text-sm">
             <p className="text-xs text-muted-foreground">
               {t.empresa} · Colaborador: <b>{t.colaborador_nome}</b> · CPF {cpfMask(t.colaborador_cpf)}
@@ -108,15 +122,15 @@ export function FeriasTermoDialog({
                   abono: s.dias_abono, adiantar13: s.adiantar_13,
                 }).map((l) => <p key={l} className="mb-1">{l}</p>)}
                 {s.observacao && <p className="mt-1 italic">Observação: “{s.observacao}”</p>}
-                <Assinatura img={s.assinatura} legenda={`${t.colaborador_nome ?? ""} · ${s.assinado_em ? `Assinado em ${dataHora(s.assinado_em)}` : "Pedido anterior sem assinatura"}`} />
-                <div className="mt-4 rounded-lg bg-muted/40 p-3">
+                <Assinatura manual={manual} nome={t.colaborador_nome} cpf={t.colaborador_cpf} img={s.assinatura} legenda={`${t.colaborador_nome ?? ""} · ${s.assinado_em ? `Assinado em ${dataHora(s.assinado_em)}` : "Pedido anterior sem assinatura"}`} />
+                {!manual && <div className="mt-4 rounded-lg bg-muted/40 p-3">
                   <p><b>Decisão do Gestor:</b> {STATUS[s.status] ?? s.status}{s.respondido_em ? ` em ${dataHora(s.respondido_em)}` : ""}</p>
                   {s.ajuste_gestor_de && (
                     <p>Datas ajustadas pela empresa para {fmt(s.data_inicio)} a {fmt(s.data_fim)}. Motivo: {s.ajuste_gestor_de.motivo}</p>
                   )}
                   {s.resposta_admin && !s.ajuste_gestor_de && <p>Resposta: {s.resposta_admin}</p>}
-                </div>
-                {s.hash && <p className="mt-2 break-all text-[10px] text-muted-foreground">Código de integridade: {s.hash}</p>}
+                </div>}
+                {!manual && s.hash && <p className="mt-2 break-all text-[10px] text-muted-foreground">Código de integridade: {s.hash}</p>}
               </section>
             )}
             {a && (
@@ -125,18 +139,19 @@ export function FeriasTermoDialog({
                 <p>
                   Comunicamos que suas férias serão gozadas de <b>{fmt(a.data_inicio)}</b> a <b>{fmt(a.data_fim)}</b> ({dias(a.data_inicio, a.data_fim)} dias)
                   {a.dias_abono > 0 ? `, com ${a.dias_abono} dia(s) de abono pecuniário` : ""}.
-                  {a.aviso_em ? ` Aviso emitido em ${fmt(a.aviso_em)}.` : ""}
+                  {!manual && a.aviso_em ? ` Aviso emitido em ${fmt(a.aviso_em)}.` : ""}
                 </p>
                 {a.ajustado_pelo_gestor && <p className="mt-1">As datas foram definidas pela empresa, conforme o Art. 136 da CLT.</p>}
                 <p className="mt-1">Declaro ciência do período de férias acima.</p>
-                <Assinatura img={a.assinatura} legenda={`${t.colaborador_nome ?? ""} · ${a.ciente_em ? `Ciente em ${dataHora(a.ciente_em)}` : "Aguardando ciência"}`} />
+                <Assinatura manual={manual} nome={t.colaborador_nome} cpf={t.colaborador_cpf} img={a.assinatura} legenda={`${t.colaborador_nome ?? ""} · ${a.ciente_em ? `Ciente em ${dataHora(a.ciente_em)}` : "Aguardando ciência"}`} />
               </section>
             )}
           </div>
+          </>
         )}
         <DialogFooter className="print:hidden">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
-          <Button disabled={!t} onClick={() => imprimir()}><Printer className="mr-1 size-4" /> Imprimir / PDF</Button>
+          <Button disabled={!t} onClick={() => imprimir()}><Printer className="mr-1 size-4" /> {manual ? "Imprimir Para Assinar à Mão" : "Imprimir / PDF"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
