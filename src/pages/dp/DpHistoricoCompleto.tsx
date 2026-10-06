@@ -517,7 +517,11 @@ export default function DpHistoricoCompleto() {
 
       const rows: UnifiedDoc[] = [];
 
-      (docsRes.data ?? []).forEach((d: any) => {
+      // Rede de segurança: se algum tipo cadastral escapar do filtro do banco,
+      // é descartado aqui e a tela continua funcionando.
+      (docsRes.data ?? [])
+        .filter((d: any) => !TIPOS_CADASTRAIS_SET.has(String(d.tipo ?? "")))
+        .forEach((d: any) => {
         const c = d.colaborador_id ? colabMap.get(d.colaborador_id) : null;
         const comp = fmtCompetencia(d.referencia_data);
         const statusKey = d.aprovacao_status ?? "aprovado";
