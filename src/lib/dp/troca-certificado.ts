@@ -19,7 +19,10 @@ function dh(iso: string | null) {
 }
 
 /** Termo de Permuta de Folga: lastro eletrônico + assinaturas digitais dos dois colaboradores. */
-export function termoTrocaHtml(t: DpTrocaRow, empresa: { nome: string; cnpj?: string | null }): string {
+export type ModoTermo = { manual?: boolean };
+
+export function termoTrocaHtml(t: DpTrocaRow, empresa: { nome: string; cnpj?: string | null }, modo: ModoTermo = {}): string {
+  const manual = !!modo.manual;
   const s = t.solicitante;
   const d = t.destino;
   const pessoa = (papel: string, p: DpTrocaRow["solicitante"]) => `
@@ -29,7 +32,9 @@ export function termoTrocaHtml(t: DpTrocaRow, empresa: { nome: string; cnpj?: st
   const x = t as unknown as Record<string, string | null>;
   const img = (v: string | null) =>
     v && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(v) ? `<img src="${v}" alt="Assinatura" style="max-height:60px;max-width:220px"/>` : "";
-  const assinatura = (p: DpTrocaRow["solicitante"], png: string | null, quando: string | null, papel: string) => `
+  const assinatura = (p: DpTrocaRow["solicitante"], png: string | null, quando: string | null, papel: string) => manual ? `
+    <div class="ass"><div style="height:60px"></div><div class="linha"></div><b>${e(p?.nome ?? "—")}</b><br/>
+    <small>CPF: ${e(cpfFmt(p?.cpf))}</small><br/><small>Data: ____ / ____ / ________</small></div>` : `
     <div class="ass">${png ? img(png) : `<div style="height:60px;display:flex;align-items:flex-end;justify-content:center;color:#b00;font-size:10px;padding-bottom:4px">Aguardando assinatura digital (${papel.toLowerCase()})</div>`}<div class="linha"></div><b>${e(p?.nome ?? "—")}</b><br/>
     <small>${png ? `Assinado digitalmente em ${e(dh(quando))}` : "—"}</small></div>`;
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/><title>Termo de Troca de Folga</title>
@@ -53,17 +58,17 @@ table{width:100%;border-collapse:collapse;margin-top:6px}td{border:1px solid #dd
 <p><b>${e(dataComDiaSemana(t.data_original, true))}</b>: era folga de ${e(s?.nome ?? "—")}; passa a ser folga de ${e(d?.nome ?? "—")} e dia de trabalho de ${e(s?.nome ?? "—")}.</p>
 <p><b>${e(dataComDiaSemana(t.data_proposta, true))}</b>: era folga de ${e(d?.nome ?? "—")}; passa a ser folga de ${e(s?.nome ?? "—")} e dia de trabalho de ${e(d?.nome ?? "—")}.</p>
 ${t.motivo ? `<p>Motivo: ${e(t.motivo)}</p>` : ""}</div>
-<div class="lbl" style="margin-top:12px">Registro eletrônico</div>
+${manual ? "" : `<div class="lbl" style="margin-top:12px">Registro eletrônico</div>
 <table>
 <tr><td>Pedido enviado pelo solicitante</td><td>${e(dh(t.created_at))}</td></tr>
 <tr><td>Aceite do colega</td><td>${e(dh(t.colega_respondido_em))}</td></tr>
 <tr><td>Decisão do gestor</td><td>${t.gestor_respondido_em ? e(dh(t.gestor_respondido_em)) : "Não exigida (troca direta pela regra da unidade)"}</td></tr>
 <tr><td>Identificador do registro</td><td>${e(t.id)}</td></tr>
-</table>
+</table>`}
 <div class="aviso"><b>Ciência dos colaboradores:</b> ${e(TEXTO_CIENCIA_FALTA_TROCA)}</div>
 <div class="aviso"><b>Livre solicitação e descanso semanal:</b> ${e(TEXTO_CIENCIA_DSR_TROCA)}</div>
 <div class="asss">${assinatura(s, x.solicitante_assinatura, x.solicitante_assinado_em, "Pedido")}${assinatura(d, x.destino_assinatura, x.destino_assinado_em, "Aceite")}</div>
-<div class="rod">Documento emitido em ${e(dh(new Date().toISOString()))} pelo AVETO 360. As assinaturas acima foram feitas digitalmente pelos próprios colaboradores, logados no portal, no momento do pedido e do aceite (MP 2.200-2/2001, art. 10, §2º, e Lei 14.063/2020). Data, hora e identificador do registro ficam guardados no sistema como lastro.</div>
+<div class="rod">${manual ? "Documento para assinatura à mão pelos colaboradores." : `Documento emitido em ${e(dh(new Date().toISOString()))} pelo AVETO 360. As assinaturas acima foram feitas digitalmente pelos próprios colaboradores, logados no portal, no momento do pedido e do aceite (MP 2.200-2/2001, art. 10, §2º, e Lei 14.063/2020). Data, hora e identificador do registro ficam guardados no sistema como lastro.`}</div>
 </body></html>`;
 }
 
@@ -73,7 +78,8 @@ function w(t: string) {
 }
 
 /** Gera o Termo de Troca em PDF (assinaturas lado a lado, sem quebra vertical). */
-export async function termoTrocaPdf(t: DpTrocaRow, empresa: { nome: string; cnpj?: string | null }): Promise<Uint8Array> {
+export async function termoTrocaPdf(t: DpTrocaRow, empresa: { nome: string; cnpj?: string | null }, modo: ModoTermo = {}): Promise<Uint8Array> {
+  const manual = !!modo.manual;
   const pdf = await PDFDocument.create();
   const f = await pdf.embedFont(StandardFonts.Helvetica);
   const b = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -117,11 +123,13 @@ export async function termoTrocaPdf(t: DpTrocaRow, empresa: { nome: string; cnpj
   par(`${dataComDiaSemana(t.data_original, true)}: era folga de ${s?.nome ?? "-"}; passa a ser folga de ${d?.nome ?? "-"} e dia de trabalho de ${s?.nome ?? "-"}.`);
   par(`${dataComDiaSemana(t.data_proposta, true)}: era folga de ${d?.nome ?? "-"}; passa a ser folga de ${s?.nome ?? "-"} e dia de trabalho de ${d?.nome ?? "-"}.`);
   if (t.motivo) par(`Motivo: ${t.motivo}`);
-  par("Registro eletrônico", b, 11);
-  par(`Pedido enviado: ${dh(t.created_at)}`);
-  par(`Aceite do colega: ${dh(t.colega_respondido_em)}`);
-  par(`Decisão do gestor: ${t.gestor_respondido_em ? dh(t.gestor_respondido_em) : "Não exigida (troca direta pela regra da unidade)"}`);
-  par(`Identificador do registro: ${t.id}`);
+  if (!manual) {
+    par("Registro eletrônico", b, 11);
+    par(`Pedido enviado: ${dh(t.created_at)}`);
+    par(`Aceite do colega: ${dh(t.colega_respondido_em)}`);
+    par(`Decisão do gestor: ${t.gestor_respondido_em ? dh(t.gestor_respondido_em) : "Não exigida (troca direta pela regra da unidade)"}`);
+    par(`Identificador do registro: ${t.id}`);
+  }
   par("Ciência dos colaboradores", b, 11); par(TEXTO_CIENCIA_FALTA_TROCA);
   par("Livre solicitação e descanso semanal", b, 11); par(TEXTO_CIENCIA_DSR_TROCA);
 
@@ -129,7 +137,7 @@ export async function termoTrocaPdf(t: DpTrocaRow, empresa: { nome: string; cnpj
   const col = (L - 30) / 2;
   const bloco = async (i: number, p: DpTrocaRow["solicitante"], png: string | null, quando: string | null, papel: string) => {
     const x0 = M + i * (col + 30);
-    if (png && /^data:image\/png;base64,/.test(png)) {
+    if (manual) { /* espaço em branco para assinar à mão */ } else if (png && /^data:image\/png;base64,/.test(png)) {
       try {
         const bin = atob(png.split(",")[1]); const u = new Uint8Array(bin.length);
         for (let k = 0; k < bin.length; k++) u[k] = bin.charCodeAt(k);
@@ -144,19 +152,20 @@ export async function termoTrocaPdf(t: DpTrocaRow, empresa: { nome: string; cnpj
     page.drawLine({ start: { x: x0, y }, end: { x: x0 + col, y }, thickness: 0.8, color: azul });
     let yy = y - 12;
     for (const l of quebrar(p?.nome ?? "-", b, 9, col)) { page.drawText(l, { x: x0 + (col - b.widthOfTextAtSize(l, 9)) / 2, y: yy, size: 9, font: b, color: azul }); yy -= 11; }
-    const sub = w(png ? `Assinado digitalmente em ${dh(quando)}` : "-");
-    page.drawText(sub, { x: x0 + (col - f.widthOfTextAtSize(sub, 7.5)) / 2, y: yy, size: 7.5, font: f, color: cinza });
+    const subs = manual ? [w(`CPF: ${cpfFmt(p?.cpf)}`), "Data: ____ / ____ / ________"] : [w(png ? `Assinado digitalmente em ${dh(quando)}` : "-")];
+    for (const sub of subs) { page.drawText(sub, { x: x0 + (col - f.widthOfTextAtSize(sub, 7.5)) / 2, y: yy, size: 7.5, font: f, color: cinza }); yy -= 11; }
   };
   await bloco(0, s, x.solicitante_assinatura, x.solicitante_assinado_em, "pedido");
   await bloco(1, d, x.destino_assinatura, x.destino_assinado_em, "aceite");
   y -= 60;
-  par(`Documento emitido em ${dh(new Date().toISOString())} pelo AVETO 360. Assinaturas feitas digitalmente pelos próprios colaboradores, logados no portal (MP 2.200-2/2001, art. 10, §2º, e Lei 14.063/2020).`, f, 7.5, cinza);
+  if (manual) par("Documento para assinatura à mão pelos colaboradores.", f, 7.5, cinza);
+  else par(`Documento emitido em ${dh(new Date().toISOString())} pelo AVETO 360. Assinaturas feitas digitalmente pelos próprios colaboradores, logados no portal (MP 2.200-2/2001, art. 10, §2º, e Lei 14.063/2020).`, f, 7.5, cinza);
   return pdf.save();
 }
 
 /** Gera o PDF e abre na própria tela (visualizador do navegador); a impressão fica a cargo da pessoa. */
-export async function emitirTermoTrocaPdf(t: DpTrocaRow, empresa: { nome: string; cnpj?: string | null }, janela?: Window | null) {
-  const bytes = await termoTrocaPdf(t, empresa);
+export async function emitirTermoTrocaPdf(t: DpTrocaRow, empresa: { nome: string; cnpj?: string | null }, janela?: Window | null, modo: ModoTermo = {}) {
+  const bytes = await termoTrocaPdf(t, empresa, modo);
   const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
   const nome = `Termo de Troca - ${t.solicitante?.nome ?? ""} x ${t.destino?.nome ?? ""}.pdf`;
   if (janela && !janela.closed) janela.location.href = url;

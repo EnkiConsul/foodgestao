@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import type { DpTrocaRow } from "@/hooks/useDpTrocas";
+import { ModoImpressaoEscolha } from "@/components/dp/documentos/ModoImpressaoEscolha";
 import { emitirTermoTrocaPdf, termoTrocaHtml } from "@/lib/dp/troca-certificado";
 
 type Props = {
@@ -54,9 +55,10 @@ export function TermoTrocaPreviewDialog({ troca, empresa, onOpenChange }: Props)
     };
   }, [troca, cpfs.data]);
 
+  const [manual, setManual] = useState(false);
   const html = useMemo(
-    () => (trocaComCpf ? termoTrocaHtml(trocaComCpf, empresa) : ""),
-    [trocaComCpf, empresa],
+    () => (trocaComCpf ? termoTrocaHtml(trocaComCpf, empresa, { manual }) : ""),
+    [trocaComCpf, empresa, manual],
   );
   const [emitindo, setEmitindo] = useState(false);
   const emitir = async () => {
@@ -64,7 +66,7 @@ export function TermoTrocaPreviewDialog({ troca, empresa, onOpenChange }: Props)
     const janela = window.open("", "_blank");
     setEmitindo(true);
     try {
-      await emitirTermoTrocaPdf(trocaComCpf, empresa, janela);
+      await emitirTermoTrocaPdf(trocaComCpf, empresa, janela, { manual });
     } catch {
       janela?.close();
       toast.error("Não foi possível gerar o PDF do termo. Tente novamente; se continuar, recarregue a página.");
@@ -78,6 +80,7 @@ export function TermoTrocaPreviewDialog({ troca, empresa, onOpenChange }: Props)
         <DialogHeader>
           <DialogTitle>Termo de Troca de Folga</DialogTitle>
         </DialogHeader>
+        <ModoImpressaoEscolha manual={manual} onChange={setManual} />
         {cpfs.isError && (
           <p className="rounded-md border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
             Não conseguimos carregar o CPF dos colaboradores agora, então o termo mostra "Não informado".
