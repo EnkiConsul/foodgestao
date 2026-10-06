@@ -152,10 +152,10 @@ export default function DpMeuTrocas() {
     queryFn: async () => {
       const { data } = await supabase
         .from("companies")
-        .select("razao_social, nome_fantasia")
+        .select("name, trade_name")
         .eq("id", meRef.data!.company_id!)
         .maybeSingle();
-      return { nome: (data as any)?.razao_social ?? (data as any)?.nome_fantasia ?? "Empresa" };
+      return { nome: (data as any)?.name ?? (data as any)?.trade_name ?? "Empresa" };
     },
   });
 

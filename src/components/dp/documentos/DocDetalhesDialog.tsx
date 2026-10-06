@@ -128,7 +128,7 @@ export function DocDetalhesDialog(props: {
 
       const { data: empresa } = await supabase
         .from("companies")
-        .select("razao_social, nome_fantasia")
+        .select("name, trade_name")
         .eq("id", companyId!)
         .maybeSingle();
 
