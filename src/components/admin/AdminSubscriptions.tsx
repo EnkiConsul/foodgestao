@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
-import { useAdminSubscriptions, useUpdateSubscription, useRemoveExemption } from "@/hooks/useBilling";
+import { RevokeExemptionDialog } from "@/components/admin/RevokeExemptionDialog";
+import { CarenciaParametroCard } from "@/components/admin/CarenciaParametroCard";
+import { useAdminSubscriptions, useUpdateSubscription } from "@/hooks/useBilling";
 import { usePlans } from "@/hooks/usePlans";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -359,6 +361,8 @@ export function AdminSubscriptions() {
         )}
       </div>
 
+      <CarenciaParametroCard />
+      <RevokeExemptionDialog subscriptionId={revokeId} onOpenChange={(o) => !o && setRevokeId(null)} />
       <ExemptSubscriptionDialog
         open={!!exemptTarget}
         onOpenChange={(o) => !o && setExemptTarget(null)}

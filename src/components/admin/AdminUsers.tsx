@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { RevokeExemptionDialog } from "@/components/admin/RevokeExemptionDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,6 @@ import {
 import { formatDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { isExempt, exemptionLabel } from "@/lib/billing";
-import { useRemoveExemption } from "@/hooks/useBilling";
 import { ExemptSubscriptionDialog } from "./ExemptSubscriptionDialog";
 
 type AdminUserRow = {
@@ -295,6 +295,7 @@ export function AdminUsers() {
         )}
       </div>
 
+      <RevokeExemptionDialog subscriptionId={revokeId} onOpenChange={(o) => !o && setRevokeId(null)} />
       <ExemptSubscriptionDialog
         open={!!exemptTarget}
         onOpenChange={(o) => !o && setExemptTarget(null)}
