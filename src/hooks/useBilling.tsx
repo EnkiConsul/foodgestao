@@ -138,7 +138,7 @@ export function useStartGrace() {
       qc.invalidateQueries({ queryKey: ["admin-audit-logs"] });
       const d = data as any;
       const ate = d?.graceEndsAt ? new Date(d.graceEndsAt).toLocaleDateString("pt-BR") : null;
-      toast.success(`Carência iniciada: de ${d?.dias ?? ""} dias${ate ? ` (até ${ate})` : ""}.`, {
+      toast.success(`Carência de ${d?.dias ?? ""} dias iniciada${ate ? ` (até ${ate})` : ""}.`, {
         description: d?.emailEnviado
           ? "O dono foi avisado por e-mail."
           : `O e-mail ao dono não foi enviado${d?.emailErro ? ` (${d.emailErro})` : ""}. Avise o cliente manualmente.`,
