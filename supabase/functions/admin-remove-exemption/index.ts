@@ -52,9 +52,9 @@ Deno.serve(async (req) => {
     };
     const novo = { status: "grace", is_exempt: false, exempt_until: null, exempt_reason: null, grace_ends_at: graceEndsAt };
 
-    const { error: updErr } = await admin.from("subscriptions").update({
-      ...novo, exempted_by: null, exempted_at: null, dunning_stage: 0,
-    }).eq("id", subscriptionId);
+    const { error: updErr } = await admin.rpc("billing_v2_revoke_exemption", {
+      _sub: subscriptionId, _grace_ends: graceEndsAt, _reason: reason, _actor: u.user.id,
+    });
     if (updErr) return json({ error: `Não foi possível revogar: ${updErr.message}` }, 500);
 
     const { emailEnviado, emailErro } = await avisarDono(admin, sub, graceEndsAt);
