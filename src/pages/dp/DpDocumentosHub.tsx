@@ -1,4 +1,3 @@
-import { FolhaPagamentoAlerta } from "@/components/dp/home/FolhaPagamentoAlerta";
 import { Helmet } from "react-helmet-async";
 import { FileText } from "lucide-react";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
@@ -13,7 +12,6 @@ export default function DpDocumentosHub() {
         title="Documentos"
         description="Advertências, suspensões, elogios e ocorrências disciplinares da equipe."
       />
-      <FolhaPagamentoAlerta />
       <DpGroupCards groupId="documentos" />
     </DpPage>
   );
