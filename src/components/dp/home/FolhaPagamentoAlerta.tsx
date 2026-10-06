@@ -7,7 +7,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Button } from "@/components/ui/button";
 import { TIPOS_COM_COMPROVANTE } from "@/lib/dp/documentoTipos";
 
-type Grupo = {
+export type Grupo = {
   chave: string;
   titulo: string;
   ano: string;
@@ -34,7 +34,7 @@ function tituloDoTipo(tipo: string) {
   return "Pagamento";
 }
 
-function listarNomes(nomes: string[]) {
+export function listarNomes(nomes: string[]) {
   const n = nomes.slice(0, 3);
   const resto = nomes.length - n.length;
   const base = n.length > 1 ? `${n.slice(0, -1).join(", ")} e ${n[n.length - 1]}` : n[0] ?? "";
@@ -58,17 +58,9 @@ function lerAdiados(companyId: string): Record<string, number> {
  * "Resolver Depois" (volta a aparecer depois de 12h) e some de vez quando
  * o último comprovante do grupo é importado.
  */
-export function FolhaPagamentoAlerta() {
+export function usePagamentosPendentes() {
   const { selectedCompanyId } = useCompanyContext();
-  const [adiados, setAdiados] = useState<Record<string, number>>(() =>
-    selectedCompanyId ? lerAdiados(selectedCompanyId) : {},
-  );
-  // Ao trocar de empresa no seletor, carrega os adiamentos da empresa nova.
-  useEffect(() => {
-    setAdiados(selectedCompanyId ? lerAdiados(selectedCompanyId) : {});
-  }, [selectedCompanyId]);
-
-  const q = useQuery({
+  return useQuery({
     queryKey: ["dp_pagamentos_pendentes_alerta", selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async (): Promise<Grupo[]> => {
@@ -115,6 +107,17 @@ export function FolhaPagamentoAlerta() {
       return [...grupos.values()].sort((a, b) => (a.ano + a.mes < b.ano + b.mes ? -1 : 1));
     },
   });
+}
+
+export function FolhaPagamentoAlerta() {
+  const { selectedCompanyId } = useCompanyContext();
+  const [adiados, setAdiados] = useState<Record<string, number>>(() =>
+    selectedCompanyId ? lerAdiados(selectedCompanyId) : {},
+  );
+  useEffect(() => {
+    setAdiados(selectedCompanyId ? lerAdiados(selectedCompanyId) : {});
+  }, [selectedCompanyId]);
+  const q = usePagamentosPendentes();
 
   const agora = Date.now();
   const grupos = (q.data ?? []).filter((g) => (adiados[g.chave] ?? 0) <= agora);
