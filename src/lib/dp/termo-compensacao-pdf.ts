@@ -81,7 +81,7 @@ export async function gerarTermoCompensacaoPdf(d: DadosTermoPdf): Promise<Uint8A
 
   // Partes
   const caixa = (rot: string, linhas: string[]) => {
-    const alt = 18 + linhas.length * 13;
+    const alt = 24 + linhas.length * 13;
     garantir(alt + 8);
     page.drawRectangle({ x: M, y: y - alt, width: L, height: alt, color: ZEBRA });
     texto(rot, M + 10, y - 13, 8, b, LARANJA);
