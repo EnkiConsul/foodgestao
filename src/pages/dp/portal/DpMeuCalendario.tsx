@@ -89,6 +89,7 @@ import { MeusPlantoesTrocaCard } from "@/components/dp/convocacoes/MeusPlantoesT
 import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
 import { notifyError } from "@/lib/notifyError";
 import { negarRegra } from "@/lib/dp/regraAviso";
+const hojeLocalIso = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 
 /** Retorno do cálculo do período de escolha feito no servidor. */
 interface JanelaRemota {
