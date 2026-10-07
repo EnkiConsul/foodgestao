@@ -2,7 +2,7 @@
   "name": "Aveto 360",
   "short_name": "Aveto 360",
   "description": "Gestão financeira para o food service — controle financeiro e de equipe em um só lugar.",
-  "start_url": "/",
+  "start_url": "/?pwa=1",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
