@@ -139,6 +139,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Reenvio em massa: quem já criou a senha pessoal não recebe convite de novo.
+    if (body?.somente_pendentes === true && colab.user_id) {
+      const { data: sec } = await admin.from("auth_user_security_state")
+        .select("must_change_password, password_changed_at").eq("user_id", targetUserId).maybeSingle();
+      if (sec && (sec.must_change_password === false || sec.password_changed_at)) {
+        return jsonResponse(req, 200, { success: true, status: "ja_ativo" });
+      }
+    }
+
     const { error: secErr } = await admin.from("auth_user_security_state").upsert(
       {
         user_id: targetUserId,
@@ -178,12 +187,10 @@ Deno.serve(async (req) => {
         `Seu acesso ao *Portal do Colaborador da ${empresa}* foi liberado.`,
         "Por lá você consulta escalas e folgas, recibos, documentos e comunicados.",
         "",
-        "🔐 *Crie sua senha pelo link abaixo (uso único):*",
+        "🔐 *Toque no link abaixo para criar sua senha pessoal:*",
         activationUrl,
         "",
-        "👤 *Login:* seu CPF (apenas números)",
-        "Depois, entre sempre por *https://www.aveto360.com/login*.",
-        "Se o link expirar, toque em *\"Primeiro acesso\"* na tela de login e informe seu CPF.",
+        "O link abre direto a tela para criar sua senha. Depois de salvar, você já entra no portal.",
       ].join("\n");
       envio = await enviarWhatsappAveto(c?.whatsapp || c?.telefone, msg, {
         admin, companyId: colab.company_id, tipo: "acesso", colaboradorId: colab.id,

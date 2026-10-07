@@ -60,8 +60,12 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
   const [linksFalha, setLinksFalha] = useState<Record<string, string>>({});
   const [criando, setCriando] = useState<{ feitos: number; total: number } | null>(null);
 
-  const criarEmMassa = async () => {
-    const fila = [...semConta];
+  const comConta = useMemo(() => itens.filter((i) => i.tem_conta && cpfOk(i.cpf) && wppOk(i.whatsapp)), [itens]);
+
+  const criarEmMassa = async (origem: Item[] = semConta, reenvio = false) => {
+    const fila = [...origem];
+    const total = fila.length;
+    let jaAtivos = 0;
     if (!fila.length) return;
     let ok = 0; let feitos = 0;
     const map: Record<string, string> = {};
@@ -70,8 +74,8 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
     const worker = async () => {
       while (fila.length) {
         const i = fila.shift()!;
-        const { data, error } = await supabase.functions.invoke("dp-criar-acesso-colaborador", { body: { colaborador_id: i.id, enviar_whatsapp: true } });
-        const resp = data as { error?: string; whatsapp_enviado?: boolean; whatsapp_erro?: string; activation_url?: string } | null;
+        const { data, error } = await supabase.functions.invoke("dp-criar-acesso-colaborador", { body: { colaborador_id: i.id, enviar_whatsapp: true, somente_pendentes: reenvio } });
+        const resp = data as { status?: string; error?: string; whatsapp_enviado?: boolean; whatsapp_erro?: string; activation_url?: string } | null;
         const msg = resp?.error;
         if (error || msg) {
           let motivo = msg;
@@ -80,9 +84,10 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
         } else if (resp?.whatsapp_enviado === false) {
           map[i.id] = `Acesso criado, mas a mensagem não foi enviada: ${resp.whatsapp_erro ?? "tente reenviar pela ficha."}`;
           if (resp.activation_url) links[i.id] = resp.activation_url;
-        } else ok++;
+        } else if (resp?.status === "ja_ativo") jaAtivos++;
+        else ok++;
         feitos++;
-        setCriando({ feitos, total: semConta.length });
+        setCriando({ feitos, total });
       }
     };
     await Promise.all([worker(), worker(), worker()]);
@@ -90,7 +95,8 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
     await carregar();
     setErros(map);
     setLinksFalha(links);
-    if (ok) toast.success(`${ok} acesso(s) criado(s) e convite(s) enviado(s) pelo WhatsApp da Aveto.`);
+    if (ok) toast.success(`${ok} convite(s) enviado(s) pelo WhatsApp da Aveto.`);
+    if (jaAtivos) toast.info(`${jaAtivos} colaborador(es) já criaram a senha e não receberam convite de novo.`);
     const falhas = Object.keys(map).length;
     if (falhas) toast.warning(`${falhas} colaborador(es) com problema. Veja o motivo na lista.`);
   };
@@ -108,8 +114,13 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
           <Button variant="outline" onClick={salvar} disabled={saving || !!criando}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar Dados</Button>
         )}
         {semConta.length > 0 && (
-          <Button onClick={criarEmMassa} disabled={loading || !!criando}>
+          <Button onClick={() => criarEmMassa()} disabled={loading || !!criando}>
             {criando ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando {criando.feitos}/{criando.total}</> : <>Criar e Enviar {semConta.length} Convite(s)</>}
+          </Button>
+        )}
+        {semConta.length === 0 && comConta.length > 0 && (
+          <Button onClick={() => criarEmMassa(comConta, true)} disabled={loading || !!criando}>
+            {criando ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando {criando.feitos}/{criando.total}</> : <>Disparar Convites por WhatsApp ({comConta.length})</>}
           </Button>
         )}
       </>}
@@ -144,7 +155,7 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
             <p className="text-sm text-muted-foreground">
               {semConta.length > 0
                 ? "Clique em Criar e Enviar Convites: cada colaborador recebe a mensagem no WhatsApp da ficha, sem você precisar copiar nada."
-                : "Todos os colaboradores ativos já têm acesso. Para reenviar o convite ou uma nova senha, use a aba Acesso da ficha."}
+                : "Todos os colaboradores ativos já têm acesso. Clique em Disparar Convites por WhatsApp: cada um recebe um link novo que abre direto a tela de criar senha. Quem já criou a senha é pulado automaticamente."}
             </p>
           ) : (
             <div className="space-y-2">

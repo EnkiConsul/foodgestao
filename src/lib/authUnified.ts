@@ -4,6 +4,7 @@ import { FunctionsHttpError } from "@supabase/supabase-js";
 export interface UnifiedSignInResult {
   ok: boolean;
   errorMessage?: string;
+  code?: string;
   passwordChangeRequired?: boolean;
   identifierSource?: "email" | "cpf";
 }
@@ -19,13 +20,15 @@ export async function unifiedSignIn(
     });
     if (error) {
       let msg = "Não foi possível entrar. Tente novamente.";
+      let code: string | undefined;
       if (error instanceof FunctionsHttpError) {
         try {
           const body = await error.context.json();
           if (body?.error) msg = body.error;
+          code = body?.code;
         } catch { /* keep default */ }
       }
-      return { ok: false, errorMessage: msg };
+      return { ok: false, errorMessage: msg, code };
     }
     if (!data?.session?.access_token || !data?.session?.refresh_token) {
       return { ok: false, errorMessage: "Sessão inválida retornada pelo servidor." };
