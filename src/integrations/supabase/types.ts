@@ -5266,6 +5266,55 @@ export type Database = {
           },
         ]
       }
+      dp_colaborador_compensacao: {
+        Row: {
+          colaborador_id: string
+          company_id: string
+          updated_at: string
+          updated_by: string | null
+          usa_banco_horas: boolean | null
+          usa_compensa_feriados: boolean | null
+        }
+        Insert: {
+          colaborador_id: string
+          company_id: string
+          updated_at?: string
+          updated_by?: string | null
+          usa_banco_horas?: boolean | null
+          usa_compensa_feriados?: boolean | null
+        }
+        Update: {
+          colaborador_id?: string
+          company_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          usa_banco_horas?: boolean | null
+          usa_compensa_feriados?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_colaborador_compensacao_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: true
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_compensacao_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: true
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_compensacao_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_colaborador_config_dias: {
         Row: {
           company_id: string
