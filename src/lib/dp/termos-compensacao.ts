@@ -144,6 +144,17 @@ export async function termoCompensacaoExistente(colaboradorId: string, tipo: Ter
 export const TITULO_SEMANAL_BANCO = "Acordo Individual de Compensação Semanal de Horas e Banco de Horas";
 
 /** Cláusulas editáveis da prévia (sem partes nem quadro, que o PDF monta). */
+export const CLAUSULA_ASSINATURA_FISICA = "Assinatura. E, por estarem de acordo, as partes assinam o presente instrumento em 2 (duas) vias de igual teor e forma, ficando uma via com cada parte.";
+
+/** Troca a cláusula de assinatura eletrônica pela de via impressa. */
+export function clausulasParaModo(clausulas: string[], manual: boolean): string[] {
+  return clausulas.map((c) => {
+    const m = c.match(/^(\d+\.\s*)Assinatura(?: eletrônica)?\./);
+    if (!m) return c;
+    return manual ? `${m[1]}${CLAUSULA_ASSINATURA_FISICA}` : c;
+  });
+}
+
 export function clausulasCompensacao(tipo: TermoCompensacaoTipo, opts: { integrarBanco?: boolean } = {}): string[] {
   const assinatura = "Assinatura eletrônica. As partes reconhecem a validade da assinatura eletrônica (MP 2.200-2/2001, art. 10, § 2º, e Lei 14.063/2020). O sistema registra data, hora, endereço de internet, dispositivo e impressão digital do arquivo, e o desenho da assinatura é estampado na via assinada.";
   if (tipo === "semanal") {
@@ -175,7 +186,7 @@ export function clausulasCompensacao(tipo: TermoCompensacaoTipo, opts: { integra
 /** Emite o termo revisado na prévia para assinatura no portal. Idempotente por colaborador e tipo. */
 export async function emitirTermoCompensacao(input: {
   tipo: TermoCompensacaoTipo; companyId: string; colaboradorId: string;
-  titulo: string; bytes: Uint8Array; integrarBanco?: boolean; tipos?: TermoCompensacaoTipo[];
+  titulo: string; bytes: Uint8Array; integrarBanco?: boolean; tipos?: TermoCompensacaoTipo[]; manual?: boolean;
 }): Promise<"emitido" | "ja_existia"> {
   for (const t of input.tipos ?? [input.tipo]) {
     if (await termoCompensacaoExistente(input.colaboradorId, t)) return "ja_existia";
@@ -193,13 +204,15 @@ export async function emitirTermoCompensacao(input: {
     colaborador_id: input.colaboradorId,
     tipo: "termos",
     titulo: input.titulo,
-    descricao: `Versão ${versao}. Assinatura digital do colaborador pelo portal, com leitura prévia obrigatória.`,
+    descricao: input.manual
+      ? `Versão ${versao}. Via impressa para assinatura à mão; anexe a via assinada na ficha.`
+      : `Versão ${versao}. Assinatura digital do colaborador pelo portal, com leitura prévia obrigatória.`,
     file_path: path,
     file_name: nomeArquivo,
     file_size: blob.size,
     mime_type: "application/pdf",
     referencia_data: new Date().toISOString().slice(0, 10),
-    exige_aceite: true,
+    exige_aceite: !input.manual,
   } as never);
   return "emitido";
 }

@@ -25,6 +25,8 @@ export interface DadosTermoPdf {
   cargo?: string | null;
   jornada: LinhaJornada[];
   clausulas: string[];
+  /** Via impressa para assinar à mão: sem chancela eletrônica e com data em branco. */
+  manual?: boolean;
 }
 
 const AZUL = rgb(0.06, 0.11, 0.24);
@@ -124,20 +126,31 @@ export async function gerarTermoCompensacaoPdf(d: DadosTermoPdf): Promise<Uint8A
   garantir(150);
   y -= 10;
   const data = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "long", year: "numeric" });
-  texto(`${d.unidade ? `${d.unidade}, ` : ""}${data}.`, M, y, 10); y -= 70;
+  texto(d.manual ? `${d.unidade ? `${d.unidade}, ` : ""}____ de ____________________ de ________.` : `${d.unidade ? `${d.unidade}, ` : ""}${data}.`, M, y, 10); y -= 70;
   const larg = (L - 30) / 2;
   const bloco = (x: number, linhas: string[]) => {
     page.drawLine({ start: { x, y }, end: { x: x + larg, y }, thickness: 0.8, color: AZUL });
     linhas.forEach((l, i) => texto(l, x, y - 13 - i * 12, i === 0 ? 9.5 : 8.5, i === 0 ? b : f, i === 0 ? AZUL : CINZA));
   };
-  bloco(M, ["EMPREGADOR", d.empresa.slice(0, 48), d.cnpj ? `CNPJ ${d.cnpj}` : ""]);
+  if (d.manual) {
+    bloco(M, ["EMPREGADOR", d.empresa.slice(0, 48), d.cnpj ? `CNPJ ${d.cnpj}` : ""]);
+  } else {
+    // Chancela eletrônica: a emissão pela empresa na plataforma é a manifestação do empregador.
+    const quando = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    const alt = 46;
+    page.drawRectangle({ x: M, y: y - 34, width: larg, height: alt, borderColor: LARANJA, borderWidth: 0.8, color: ZEBRA });
+    texto("EMPREGADOR", M + 6, y - 2, 8, b, LARANJA);
+    texto(d.empresa.slice(0, 48), M + 6, y - 13, 9.5, b);
+    if (d.cnpj) texto(`CNPJ ${d.cnpj}`, M + 6, y - 23, 8.5, f, CINZA);
+    texto(`Emitido e validado eletronicamente em ${quando.replace(",", " às")}`, M + 6, y - 31, 7, f, CINZA);
+  }
   bloco(M + larg + 30, ["EMPREGADO(A)", d.nome.slice(0, 48), [d.cpf ? `CPF ${d.cpf}` : "", d.cargo ?? ""].filter(Boolean).join(" · ")]);
 
   // Rodapé em todas as páginas
   const pags = pdf.getPages();
   const emitido = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
   pags.forEach((p, i) => {
-    p.drawText(limpar(`${d.titulo} · Versão ${d.versao} · Emitido em ${emitido} · Página ${i + 1} de ${pags.length}`), { x: M, y: 24, size: 7, font: f, color: CINZA });
+    p.drawText(limpar(`${d.titulo} · Versão ${d.versao}${d.manual ? "" : ` · Emitido em ${emitido}`} · Página ${i + 1} de ${pags.length}`), { x: M, y: 24, size: 7, font: f, color: CINZA });
   });
   return pdf.save();
 }
