@@ -225,10 +225,9 @@ Deno.serve(async (req) => {
   }
 
   const msg = [
-    "🔐 *Aveto 360 — Primeiro Acesso ao Portal*",
+    `Aveto 360 - *${otp}* é seu código`,
     "",
-    `Seu código de segurança é: *${otp}*`,
-    `Ele expira em ${OTP_TTL_SECONDS / 60} minutos.`,
+    `Primeiro acesso ao portal. Válido por ${OTP_TTL_SECONDS / 60} minutos.`,
     "",
     "Se você não solicitou, ignore esta mensagem.",
   ].join("\n");
