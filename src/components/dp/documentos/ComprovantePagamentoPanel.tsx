@@ -1047,6 +1047,35 @@ export function ComprovanteAnexarDialog(props: {
           </div>
         ) : null}
 
+        {semWhats && exigeRecibo(modalidade) && !props.complementar ? (
+          <p className="text-xs text-muted-foreground">
+            Link pelo WhatsApp indisponível: o colaborador não tem WhatsApp na ficha. Cadastre o número ou use outra forma.
+          </p>
+        ) : null}
+
+        {linkWhats ? (
+          <div className="space-y-2 rounded-md border border-primary/40 bg-primary/5 p-3">
+            <p className="text-sm font-medium">Recibo gerado! Agora envie o link ao colaborador.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild size="sm">
+                <a href={linkWhats.url} target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(linkWhats.link).then(
+                    () => toast.success("Link copiado."),
+                    () => toast.error("Não foi possível copiar. Use a tela de Recibos."),
+                  );
+                }}
+              >
+                Copiar Link
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => props.onOpenChange(false)}>Concluir</Button>
+            </div>
+          </div>
+        ) : (
         <DialogFooter className="gap-2 sm:gap-2">
           <Button
             variant="outline"
