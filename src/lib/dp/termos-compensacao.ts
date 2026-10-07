@@ -133,3 +133,15 @@ export async function emitirTermoCompensacao(input: {
   } as never);
   return "emitido";
 }
+
+/**
+ * Acordos de compensação (semanal, banco de horas, feriados) só valem para
+ * contrato com carteira assinada e jornada fixa: CLT e temporário.
+ * Intermitente (horas por convocação), estágio, PJ, MEI, freelancer e sócio ficam fora.
+ */
+export function vinculoAdmiteCompensacao(regime?: string | null, vinculoLabel?: string | null): boolean {
+  const v = String(vinculoLabel ?? "").trim().toLowerCase();
+  if (v === "socio" || v === "sócio") return false;
+  const r = String(regime ?? "clt").toLowerCase();
+  return r === "clt" || r === "temporario";
+}

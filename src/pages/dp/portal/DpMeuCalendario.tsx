@@ -1,3 +1,4 @@
+import { vinculoAdmiteCompensacao } from "@/lib/dp/termos-compensacao";
 import { MOTIVO_COMPENSACAO_FERIADO, diasDeAntecedencia } from "@/lib/dp/termos-compensacao";
 import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
 import { assinarTroca } from "@/lib/dp/troca-assinatura";
@@ -826,7 +827,8 @@ export default function DpMeuCalendario() {
       return (data ?? null) as { compensa_feriados: boolean; compensacao_feriado_antecedencia_dias: number } | null;
     },
   });
-  const temCompensacao = !!regraUnidade.data?.compensa_feriados;
+  const temCompensacao = !!regraUnidade.data?.compensa_feriados
+    && vinculoAdmiteCompensacao((meRef.data as any)?.regime, (meRef.data as any)?.vinculo_label);
   const antecedenciaMin = regraUnidade.data?.compensacao_feriado_antecedencia_dias ?? 2;
   const modoExtra = temCompensacao ? "compensacao" : "extra";
   useEffect(() => {
