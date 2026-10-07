@@ -81,8 +81,10 @@ export default function DpMeuPerfil() {
     mutationFn: async () => {
       const p = perfil.data as any;
       if (!p) throw new Error("Perfil não encontrado");
+      // Endereço e contato podem ser salvos sem conta/Pix; só valida o pagamento quando ele foi preenchido.
       const problema = erroPagamento(pagamento);
-      if (problema) throw new Error(problema);
+      const pagamentoVazio = problema != null && !JSON.stringify(pagamentoParaBanco(pagamento)).match(/":"[^"]+"/);
+      if (problema && !pagamentoVazio) throw new Error(problema);
       await atualizarMeuCadastro({
         telefone: form.telefone || null,
         whatsapp: form.whatsapp || null,
@@ -90,6 +92,7 @@ export default function DpMeuPerfil() {
         endereco: form.endereco,
         // A empresa é quem define recebimento em espécie; o portal só grava conta/Pix.
         ...(() => {
+          if (pagamentoVazio) return {};
           const { recebe_em_especie: _ignorado, ...resto } = pagamentoParaBanco(pagamento);
           return p.recebe_em_especie === true ? {} : resto;
         })(),

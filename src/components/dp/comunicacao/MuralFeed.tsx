@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useDpMural, MURAL_EMOJIS, type MuralAviso } from "@/hooks/useDpMural";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { notifyError } from "@/lib/notifyError";
+import { DocumentPreview } from "@/components/dp/DocumentPreview";
 
 function AvisoCard({
   aviso,
@@ -29,11 +30,9 @@ function AvisoCard({
   const minhaReacao = reacoesAviso.find((r: any) => r.user_id === mural.userId) as any;
   const comentariosAviso = mural.comentarios.filter((c) => c.aviso_id === aviso.id);
 
-  const abrirAnexo = async (path: string) => {
-    const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60);
-    if (error) return notifyError(error, { surface: "Pessoas 360°", action: "concluir a ação" });
-    window.open(data.signedUrl, "_blank", "noopener");
-  };
+  const [anexoAberto, setAnexoAberto] = useState(false);
+  const abrirAnexo = (_path: string) => setAnexoAberto(true);
+  const anexoMime = /\.pdf$/i.test(aviso.arquivo_path ?? "") ? "application/pdf" : /\.(jpe?g|png|webp|gif|heic)$/i.test(aviso.arquivo_path ?? "") ? "image/*" : null;
 
   return (
     <article className="rounded-lg border bg-card p-4">
@@ -63,9 +62,19 @@ function AvisoCard({
       <p className="mt-2 whitespace-pre-wrap text-sm">{aviso.conteudo}</p>
 
       {aviso.arquivo_path && (
-        <Button size="sm" variant="outline" className="mt-3" onClick={() => abrirAnexo(aviso.arquivo_path!)}>
-          <Paperclip className="mr-1 h-4 w-4" /> Ver anexo
-        </Button>
+        <>
+          <Button size="sm" variant="outline" className="mt-3" onClick={() => abrirAnexo(aviso.arquivo_path!)}>
+            <Paperclip className="mr-1 h-4 w-4" /> Ver anexo
+          </Button>
+          <DocumentPreview
+            open={anexoAberto}
+            onOpenChange={setAnexoAberto}
+            title={aviso.titulo}
+            bucket="dp-documentos"
+            path={aviso.arquivo_path}
+            mime={anexoMime}
+          />
+        </>
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
