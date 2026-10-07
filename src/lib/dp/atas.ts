@@ -268,7 +268,7 @@ export async function enviarAta(ataId: string, onProgresso?: (feitos: number, to
   if (a.publicar_mural && a.status !== "enviada") {
     const texto = (new DOMParser().parseFromString(a.conteudo_html, "text/html").body.textContent ?? "").replace(/\s+/g, " ").trim();
     try {
-      await salvarAviso(a.company_id, { titulo: `Ata — ${a.titulo}`, conteudo: texto.slice(0, 4000), unidade_id: a.unidade_id ?? null } as never);
+      await salvarAviso(a.company_id, { titulo: `Ata — ${a.titulo}`, conteudo: texto.slice(0, 4000), escopo: a.unidade_id ? "unidade" : "empresa", unidade_id: a.unidade_id ?? null } as never);
     } catch { /* a ata segue enviada; o gestor pode publicar no Mural manualmente */ }
   }
   const { data: u } = await supabase.auth.getUser();
