@@ -241,7 +241,8 @@ export async function enviarAta(ataId: string, onProgresso?: (feitos: number, to
     if (d.error || !d.data) throw new Error(`Não foi possível ler o anexo "${an.name}". Remova-o e anexe novamente.`);
     anexos.push({ name: an.name, mime: an.mime, bytes: await d.data.arrayBuffer() });
   }
-  const bytes = await gerarPdfAta({
+  const importada = a.origem && a.origem !== "sistema";
+  const bytes = importada && anexos[0]?.mime === "application/pdf" ? new Uint8Array(anexos[0].bytes) : await gerarPdfAta({
     empresa: ((emp as any)?.name || (emp as any)?.trade_name || "Empresa").toUpperCase(),
     unidade: (uni as any)?.nome ?? null, titulo: a.titulo, dataReuniao: a.data_reuniao, local: a.local,
     html: a.conteudo_html, anexos, condutores: (a.condutores ?? []) as AtaCondutor[],
@@ -256,11 +257,12 @@ export async function enviarAta(ataId: string, onProgresso?: (feitos: number, to
     const up = await supabase.storage.from("dp-documentos").upload(path, blob, { contentType: "application/pdf", upsert: false });
     if (up.error) throw new Error("Não foi possível guardar o arquivo da ata. Tente novamente — quem já recebeu não receberá de novo.");
     const mod = MODALIDADES[p.modalidade as AtaModalidade];
+    const exige = a.origem === "importada_assinada" ? false : mod.exigeAceite;
     const docId = await registrarDocumento({
       company_id: a.company_id, colaborador_id: p.colaborador_id, tipo: "ata_reuniao", titulo: `Ata — ${a.titulo}`,
       descricao: `Reunião de ${String(a.data_reuniao).split("-").reverse().join("/")}. ${mod.descricao}`,
       file_path: path, file_name: nomeArquivo, file_size: blob.size, mime_type: "application/pdf",
-      referencia_data: a.data_reuniao, exige_aceite: mod.exigeAceite,
+      referencia_data: a.data_reuniao, exige_aceite: exige,
     } as never);
     await supabase.from("dp_ata_participantes" as never).update({ documento_id: docId } as never).eq("id", p.id);
     feitos++; onProgresso?.(feitos, pendentes.length);
@@ -274,7 +276,7 @@ export async function enviarAta(ataId: string, onProgresso?: (feitos: number, to
     if (!up.error) {
       for (const p of avulsos) {
         await supabase.from("dp_ata_participantes" as never).update({ arquivo_path: path } as never).eq("id", p.id);
-        if (p.modalidade !== "consulta" && p.avulso_cpf && p.avulso_whatsapp) {
+        if (a.origem !== "importada_assinada" && p.modalidade !== "consulta" && p.avulso_cpf && p.avulso_whatsapp) {
           const r = await enviarLinkAvulso(p.id).catch(() => ({ enviado: false }));
           if (!r.enviado) linksFalhos.push(p.avulso_nome ?? "Participante");
         }

@@ -20,15 +20,17 @@ import { useCompanyUnidades } from "@/hooks/useCompanyUnidades";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { MODALIDADES, MODELOS_ATA, ESTRUTURA_PADRAO_ATA, enviarAta, htmlTemTexto, type AtaAnexo, type AtaCondutor, type AtaModalidade } from "@/lib/dp/atas";
+import { AtaAudioTranscricao } from "@/components/dp/atas/AtaAudioTranscricao";
+import { AtaImportarDialog } from "@/components/dp/atas/AtaImportarDialog";
+import { MODALIDADES, MODELOS_ATA, ESTRUTURA_PADRAO_ATA, enviarAta, enviarLinkAvulso, htmlTemTexto, type AtaAnexo, type AtaCondutor, type AtaModalidade } from "@/lib/dp/atas";
 import { Switch } from "@/components/ui/switch";
 import { abrirArquivoDp } from "@/lib/dp/abrirDocumento";
 
 type Ata = {
   id: string; company_id: string; unidade_id: string | null; titulo: string; data_reuniao: string; local: string | null;
-  conteudo_html: string; anexos: AtaAnexo[]; condutores?: AtaCondutor[]; publicar_mural?: boolean; status: "rascunho" | "enviada"; enviada_em: string | null; created_at: string;
+  conteudo_html: string; anexos: AtaAnexo[]; condutores?: AtaCondutor[]; publicar_mural?: boolean; origem?: "sistema" | "importada" | "importada_assinada"; status: "rascunho" | "enviada"; enviada_em: string | null; created_at: string;
 };
-type Part = { key: string; colaborador_id: string | null; modalidade: AtaModalidade; documento_id?: string | null; nome?: string; avulso_cpf?: string | null; avulso_whatsapp?: string | null };
+type Part = { key: string; colaborador_id: string | null; modalidade: AtaModalidade; documento_id?: string | null; nome?: string; avulso_cpf?: string | null; avulso_whatsapp?: string | null; id?: string; assinado_em?: string | null };
 const soDigitos = (v: string) => v.replace(/\D/g, "");
 
 const hoje = () => new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
@@ -40,6 +42,7 @@ export default function DpAtas() {
   const qc = useQueryClient();
   const [editando, setEditando] = useState<Ata | "nova" | null>(null);
   const [busca, setBusca] = useState("");
+  const [importar, setImportar] = useState(false);
 
   const atas = useQuery({
     queryKey: ["dp_atas", selectedCompanyId],
@@ -74,7 +77,7 @@ export default function DpAtas() {
         icon={NotebookPen}
         title="Atas de Reunião"
         description="Registre as reuniões da equipe e envie a ata para assinatura ou consulta no portal."
-        actions={<Button onClick={() => setEditando("nova")}><Plus className="mr-1 h-4 w-4" />Nova Ata</Button>}
+        actions={<div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setImportar(true)}><Paperclip className="mr-1 h-4 w-4" />Importar Ata</Button><Button onClick={() => setEditando("nova")}><Plus className="mr-1 h-4 w-4" />Nova Ata</Button></div>}
       />
       <DpDocumentosAbas />
       <div className="relative max-w-sm">
@@ -112,6 +115,10 @@ export default function DpAtas() {
             </Card>
           ))}
         </div>
+      )}
+      {importar && selectedCompanyId && (
+        <AtaImportarDialog companyId={selectedCompanyId} onClose={() => setImportar(false)}
+          onCriada={(ata) => { setImportar(false); qc.invalidateQueries({ queryKey: ["dp_atas"] }); setEditando(ata as Ata); }} />
       )}
       {editando && selectedCompanyId && (
         <AtaDialog
@@ -154,8 +161,8 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
     queryKey: ["dp_ata_parts", ata?.id],
     enabled: !!ata?.id,
     queryFn: async () => {
-      const { data } = await supabase.from("dp_ata_participantes" as never).select("id, colaborador_id, modalidade, documento_id, avulso_nome, avulso_cpf, avulso_whatsapp, dp_colaboradores(nome)").eq("ata_id", ata!.id);
-      const lista = ((data ?? []) as any[]).map((p) => ({ key: p.id, colaborador_id: p.colaborador_id, modalidade: p.modalidade, documento_id: p.documento_id, nome: p.dp_colaboradores?.nome ?? p.avulso_nome, avulso_cpf: p.avulso_cpf, avulso_whatsapp: p.avulso_whatsapp }));
+      const { data } = await supabase.from("dp_ata_participantes" as never).select("id, colaborador_id, modalidade, documento_id, avulso_nome, avulso_cpf, avulso_whatsapp, assinado_em, dp_colaboradores(nome)").eq("ata_id", ata!.id);
+      const lista = ((data ?? []) as any[]).map((p) => ({ key: p.id, colaborador_id: p.colaborador_id, modalidade: p.modalidade, documento_id: p.documento_id, nome: p.dp_colaboradores?.nome ?? p.avulso_nome, avulso_cpf: p.avulso_cpf, avulso_whatsapp: p.avulso_whatsapp, id: p.id, assinado_em: p.assinado_em }));
       setParts(lista); setCarregouParts(true);
       return lista;
     },
@@ -237,8 +244,9 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
     if (!atual) return;
     setProgresso("Gerando a ata…");
     try {
-      const n = await enviarAta(atual, (f, t) => setProgresso(`Enviando ${f} de ${t}…`));
-      toast.success(`Ata enviada para ${n} colaborador(es).`, { description: "Quem precisa assinar recebe a pendência no portal." });
+      const r = await enviarAta(atual, (f, t) => setProgresso(`Enviando ${f} de ${t}…`));
+      toast.success(`Ata enviada para ${r.feitos} colaborador(es).`, { description: "Quem precisa assinar recebe a pendência no portal; quem não tem cadastro recebe o link no WhatsApp." });
+      if (r.linksFalhos.length) toast.warning(`Link não enviado para: ${r.linksFalhos.join(", ")}.`, { description: "Abra a ata e use Reenviar Link ou Copiar Link ao lado do nome." });
       onClose();
     } catch (e: any) {
       toast.error(e?.message ?? "Não foi possível enviar a ata.");
@@ -276,6 +284,8 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
               </div>
             </div>
           )}
+          {ata?.origem === "importada_assinada" && <p className="rounded-md border bg-muted/40 p-3 text-xs">Ata importada já assinada no papel: os participantes recebem a via no portal só para consulta, sem nova assinatura.</p>}
+          {ata?.origem === "importada" && <p className="rounded-md border bg-muted/40 p-3 text-xs">Ata importada: o PDF anexado é enviado como está para os participantes assinarem.</p>}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1 sm:col-span-2"><Label>Título da Reunião *</Label><Input value={titulo} disabled={enviada} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Alinhamento da Equipe de Salão" /></div>
             <div className="space-y-1"><Label>Data *</Label><Input type="date" value={data} disabled={enviada} onChange={(e) => setData(e.target.value)} /></div>
@@ -335,7 +345,7 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
           <div className="space-y-1">
             <Label>Conteúdo da Ata *</Label>
             <AtaEditor value={html} onChange={setHtml} disabled={enviada}
-              extra={<Button type="button" size="sm" variant="secondary" className="h-8" disabled={revisando} onClick={revisar}><Sparkles className="mr-1 h-4 w-4" />{revisando ? "Revisando…" : "Revisar Texto"}</Button>} />
+              extra={<div className="flex flex-wrap gap-1"><AtaAudioTranscricao onTexto={(h) => { setHtml(h); toast.success("Transcrição colocada no editor.", { description: "Revise antes de enviar — a IA pode errar nomes e números." }); }} /><Button type="button" size="sm" variant="secondary" className="h-8" disabled={revisando} onClick={revisar}><Sparkles className="mr-1 h-4 w-4" />{revisando ? "Revisando…" : "Revisar Texto"}</Button></div>} />
           </div>
 
           <div className="space-y-2">
@@ -377,7 +387,18 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
                         {enviada ? (
                           <>
                             <Badge variant="outline">{MODALIDADES[p.modalidade].label}</Badge>
-                            {avulso && p.modalidade !== "consulta" ? <Badge variant="secondary">Assina no Papel</Badge>
+                            {avulso && p.modalidade !== "consulta" ? (
+                              p.assinado_em ? <Badge className="bg-primary/15 text-primary hover:bg-primary/15"><CheckCircle2 className="mr-1 h-3 w-3" />Assinado pelo Link</Badge>
+                              : p.avulso_cpf && p.avulso_whatsapp && ata?.origem !== "importada_assinada" ? <>
+                                <Badge variant="secondary"><Clock className="mr-1 h-3 w-3" />Link Pendente</Badge>
+                                <Button size="sm" variant="ghost" className="h-8" onClick={async () => {
+                                  try {
+                                    const r = await enviarLinkAvulso(p.id!);
+                                    if (r.enviado) toast.success("Link reenviado pelo WhatsApp.");
+                                    else { await navigator.clipboard.writeText(r.link ?? "").catch(() => {}); toast.warning("Não foi possível enviar pelo WhatsApp. O link foi copiado.", { description: r.erro ?? "Cole o link na conversa com a pessoa." }); }
+                                  } catch (e: any) { toast.error(e.message); }
+                                }}>Reenviar Link</Button>
+                              </> : <Badge variant="secondary">Assina no Papel</Badge>)
                               : p.modalidade === "consulta" ? <Badge variant="secondary"><Eye className="mr-1 h-3 w-3" />Disponível</Badge>
                               : assinado ? <Badge className="bg-primary/15 text-primary hover:bg-primary/15"><CheckCircle2 className="mr-1 h-3 w-3" />Assinado {new Date(assinado).toLocaleDateString("pt-BR")}</Badge>
                               : <Badge variant="secondary"><Clock className="mr-1 h-3 w-3" />Pendente</Badge>}
@@ -527,6 +548,15 @@ function ParticipantesPicker({ colabs, unidadeId, jaIncluidos, onClose, onAdd }:
   const [fCargo, setFCargo] = useState("todos");
   const [fSetor, setFSetor] = useState("todos");
   const [fRegime, setFRegime] = useState("todos");
+  const [fSind, setFSind] = useState("todos");
+  const sindicatos = useQuery({
+    queryKey: ["dp_sindicatos_nomes", colabs[0]?.company_id],
+    enabled: !!colabs[0]?.company_id,
+    queryFn: async () => {
+      const { data } = await supabase.from("dp_sindicatos").select("id, nome").eq("company_id", colabs[0].company_id);
+      return new Map(((data ?? []) as any[]).map((x) => [x.id, x.nome as string]));
+    },
+  });
   const ativos = colabs.filter((c) => c.status !== "desligado" && !c.data_desligamento && !jaIncluidos.has(c.id));
   const opcoes = (k: string, label: string) => {
     const m = new Map<string, string>();
@@ -537,11 +567,13 @@ function ParticipantesPicker({ colabs, unidadeId, jaIncluidos, onClose, onAdd }:
   const cargos = opcoes("cargo_nome", "cargo_nome");
   const setores = opcoes("setor_nome", "setor_nome");
   const regimes = opcoes("regime", "regime");
+  const sinds = [...new Set(ativos.map((c) => c.sindicato_id).filter(Boolean))].map((id) => [id, sindicatos.data?.get(id) ?? "Sindicato"] as [string, string]);
   const lista = ativos
     .filter((c) => fUnidade === "todos" || c.unidade_id === fUnidade)
     .filter((c) => fCargo === "todos" || c.cargo_nome === fCargo)
     .filter((c) => fSetor === "todos" || c.setor_nome === fSetor)
     .filter((c) => fRegime === "todos" || c.regime === fRegime)
+    .filter((c) => fSind === "todos" || c.sindicato_id === fSind)
     .filter((c) => `${c.nome} ${c.nome_social ?? ""} ${c.cargo_nome ?? ""} ${c.setor_nome ?? ""}`.toLowerCase().includes(busca.toLowerCase()));
   const todos = lista.length > 0 && lista.every((c) => sel.has(c.id));
   const Filtro = ({ v, on, ph, ops }: { v: string; on: (x: string) => void; ph: string; ops: [string, string][] }) => (
@@ -568,6 +600,7 @@ function ParticipantesPicker({ colabs, unidadeId, jaIncluidos, onClose, onAdd }:
             <Filtro v={fCargo} on={setFCargo} ph="Todos os Cargos" ops={cargos} />
             <Filtro v={fSetor} on={setFSetor} ph="Todos os Setores" ops={setores} />
             <Filtro v={fRegime} on={setFRegime} ph="Todos os Vínculos" ops={regimes} />
+            {sinds.length > 0 && <div className="col-span-2"><Filtro v={fSind} on={setFSind} ph="Todos os Sindicatos" ops={sinds} /></div>}
           </div>
           <Input placeholder="Buscar por nome…" value={busca} onChange={(e) => setBusca(e.target.value)} />
           <label className="flex items-center gap-2 text-sm"><Checkbox checked={todos} onCheckedChange={(v) => { const n = new Set(sel); lista.forEach((c) => v ? n.add(c.id) : n.delete(c.id)); setSel(n); }} />Selecionar todos do filtro ({lista.length})</label>
