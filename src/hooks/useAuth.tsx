@@ -72,6 +72,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { resolveLandingTarget } = await import("@/lib/auth/landing");
         const target = await resolveLandingTarget(session.user.id);
+        // Só quem tem os dois perfis precisa saber em qual área entrou.
+        if (!(target.isAdminOrOwner && target.isColaborador)) return;
+        // No máximo um aviso a cada 24h por aparelho, salvo mudança de área.
+        const chave = `aveto_aviso_perfil_${session.user.id}`;
+        try {
+          const ultimo = JSON.parse(localStorage.getItem(chave) || "null") as { kind?: string; em?: number } | null;
+          if (ultimo?.kind === target.kind && ultimo.em && Date.now() - ultimo.em < 86_400_000) return;
+          localStorage.setItem(chave, JSON.stringify({ kind: target.kind, em: Date.now() }));
+        } catch {
+          /* sem armazenamento local: mostra o aviso normalmente */
+        }
         if (target.kind === "portal") {
           toast("👤 Conectado ao Meu Portal", {
             description: "Acesso de colaborador: escalas, folgas, holerites e assinaturas.",
