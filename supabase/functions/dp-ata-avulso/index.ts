@@ -8,7 +8,28 @@
 import { z } from "npm:zod@3";
 import { callerClient, requireUser, serviceClient } from "../_shared/authz.ts";
 import { strictCorsHeaders } from "../_shared/http.ts";
-import { assinaturaValida } from "../_shared/assinatura-pdf.ts";
+import { assinaturaValida, desenharAssinatura, embutirAssinatura, rubricarPaginas } from "../_shared/assinatura-pdf.ts";
+import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
+
+/** Via assinada: página final com o desenho da assinatura e rubrica em todas as páginas. */
+async function estamparAssinatura(bytes: ArrayBuffer, a: { nome: string; img: string; em: string; ip: string | null; hash: string | null }) {
+  const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  const img = await embutirAssinatura(pdf, a.img);
+  if (!img) return new Uint8Array(bytes);
+  const f = await pdf.embedFont(StandardFonts.Helvetica);
+  const fb = await pdf.embedFont(StandardFonts.HelveticaBold);
+  rubricarPaginas(pdf, img, f, 44);
+  const pg = pdf.addPage([595, 842]);
+  const azul = rgb(0.06, 0.1, 0.24);
+  pg.drawText("ASSINATURA ELETRÔNICA DA ATA", { x: 56, y: 780, size: 13, font: fb, color: azul });
+  desenharAssinatura(pg, img, 56, 640, 260, 100);
+  pg.drawLine({ start: { x: 56, y: 634 }, end: { x: 316, y: 634 }, thickness: 0.6, color: azul });
+  pg.drawText(a.nome.toUpperCase(), { x: 56, y: 620, size: 10, font: fb, color: azul });
+  const quando = new Date(a.em).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  const linhas = [`Assinado por link com confirmação de CPF em ${quando} (horário de Brasília).`, `Endereço de internet: ${a.ip ?? "não informado"}`, `Impressão digital do documento (SHA-256): ${a.hash ?? "—"}`];
+  linhas.forEach((t, i) => pg.drawText(t, { x: 56, y: 596 - i * 14, size: 8.5, font: f, color: azul }));
+  return await pdf.save();
+}
 import { clientIp, ipRateLimited, isRateLimited, sha256Hex } from "../_shared/rate-limit.ts";
 import { enviarWhatsappAveto, primeiroNome } from "../_shared/whatsapp-aveto.ts";
 
@@ -73,7 +94,7 @@ Deno.serve(async (req) => {
     if (await ipRateLimited(admin, req, FUNCAO, 120)) return json(429, { error: "Muitas tentativas. Aguarde alguns minutos." });
     if (!b.token) return json(400, { error: "Link inválido." });
     const { data: p } = await admin.from("dp_ata_participantes")
-      .select("id, ata_id, company_id, avulso_nome, avulso_cpf, arquivo_path, link_expira_em, assinado_em, modalidade")
+      .select("id, ata_id, company_id, avulso_nome, avulso_cpf, arquivo_path, link_expira_em, assinado_em, modalidade, assinatura_imagem, assinatura_ip, assinatura_hash")
       .eq("link_token_hash", await sha256Hex(b.token)).maybeSingle();
     if (!p) return json(404, { error: "Este link não é mais válido. Peça um novo link a quem enviou." });
     if (!p.assinado_em && p.link_expira_em && new Date(p.link_expira_em) < new Date()) {
@@ -92,7 +113,10 @@ Deno.serve(async (req) => {
     if (!arq) return json(409, { error: "O arquivo da ata não está disponível. Avise quem enviou." });
     const bytes = await arq.arrayBuffer();
     if (b.acao === "pdf") {
-      return new Response(bytes, { status: 200, headers: { ...cors, "Content-Type": "application/pdf", "Cache-Control": "no-store" } });
+      const saida = p.assinado_em && p.assinatura_imagem
+        ? await estamparAssinatura(bytes, { nome: p.avulso_nome ?? "Participante", img: p.assinatura_imagem, em: p.assinado_em, ip: p.assinatura_ip, hash: p.assinatura_hash }).catch(() => bytes)
+        : bytes;
+      return new Response(saida, { status: 200, headers: { ...cors, "Content-Type": "application/pdf", "Cache-Control": "no-store" } });
     }
 
     // assinar
