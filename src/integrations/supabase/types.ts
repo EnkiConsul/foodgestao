@@ -3835,6 +3835,12 @@ export type Database = {
       }
       dp_ata_participantes: {
         Row: {
+          arquivo_path: string | null
+          assinado_em: string | null
+          assinatura_hash: string | null
+          assinatura_imagem: string | null
+          assinatura_ip: string | null
+          assinatura_user_agent: string | null
           ata_id: string
           avulso_cpf: string | null
           avulso_nome: string | null
@@ -3844,10 +3850,18 @@ export type Database = {
           created_at: string
           documento_id: string | null
           id: string
+          link_expira_em: string | null
+          link_token_hash: string | null
           modalidade: string
           updated_at: string
         }
         Insert: {
+          arquivo_path?: string | null
+          assinado_em?: string | null
+          assinatura_hash?: string | null
+          assinatura_imagem?: string | null
+          assinatura_ip?: string | null
+          assinatura_user_agent?: string | null
           ata_id: string
           avulso_cpf?: string | null
           avulso_nome?: string | null
@@ -3857,10 +3871,18 @@ export type Database = {
           created_at?: string
           documento_id?: string | null
           id?: string
+          link_expira_em?: string | null
+          link_token_hash?: string | null
           modalidade: string
           updated_at?: string
         }
         Update: {
+          arquivo_path?: string | null
+          assinado_em?: string | null
+          assinatura_hash?: string | null
+          assinatura_imagem?: string | null
+          assinatura_ip?: string | null
+          assinatura_user_agent?: string | null
           ata_id?: string
           avulso_cpf?: string | null
           avulso_nome?: string | null
@@ -3870,6 +3892,8 @@ export type Database = {
           created_at?: string
           documento_id?: string | null
           id?: string
+          link_expira_em?: string | null
+          link_token_hash?: string | null
           modalidade?: string
           updated_at?: string
         }
@@ -3924,6 +3948,7 @@ export type Database = {
           enviada_por: string | null
           id: string
           local: string | null
+          origem: string
           publicar_mural: boolean
           status: string
           titulo: string
@@ -3942,6 +3967,7 @@ export type Database = {
           enviada_por?: string | null
           id?: string
           local?: string | null
+          origem?: string
           publicar_mural?: boolean
           status?: string
           titulo: string
@@ -3960,6 +3986,7 @@ export type Database = {
           enviada_por?: string | null
           id?: string
           local?: string | null
+          origem?: string
           publicar_mural?: boolean
           status?: string
           titulo?: string
@@ -13311,6 +13338,7 @@ export type Database = {
       }
       dp_whatsapp_envios: {
         Row: {
+          ata_participante_id: string | null
           colaborador_id: string | null
           company_id: string
           created_at: string
@@ -13328,6 +13356,7 @@ export type Database = {
           tipo: string
         }
         Insert: {
+          ata_participante_id?: string | null
           colaborador_id?: string | null
           company_id: string
           created_at?: string
@@ -13345,6 +13374,7 @@ export type Database = {
           tipo: string
         }
         Update: {
+          ata_participante_id?: string | null
           colaborador_id?: string | null
           company_id?: string
           created_at?: string

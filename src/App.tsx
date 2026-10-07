@@ -108,6 +108,7 @@ const DpDisciplinar = lazyWithRetry(() => import("./pages/dp/DpDisciplinar"));
 const DpRecibos = lazyWithRetry(() => import("./pages/dp/DpRecibos"));
 const DpAtas = lazyWithRetry(() => import("./pages/dp/DpAtas"));
 const ReciboPublico = lazyWithRetry(() => import("./pages/ReciboPublico"));
+const AtaPublica = lazyWithRetry(() => import("./pages/AtaPublica"));
 const DpConfiguracoes = lazyWithRetry(() => import("./pages/dp/DpConfiguracoes"));
 const DpAdminCalendario = lazyWithRetry(() => import("./pages/dp/DpAdminCalendario"));
 const DpModelosMensagem = lazyWithRetry(() => import("./pages/dp/DpModelosMensagem"));
@@ -501,6 +502,7 @@ const AppRoutes = () => (
       </Route>
       <Route path="/pre-admissao" element={<PreAdmissao />} />
       <Route path="/recibo/:token" element={<ReciboPublico />} />
+      <Route path="/ata/:token" element={<AtaPublica />} />
       <Route
         path="/dp"
         element={

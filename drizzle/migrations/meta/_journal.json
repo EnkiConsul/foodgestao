@@ -15,6 +15,20 @@
       "when": 1791395809200,
       "tag": "0001_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791396393118,
+      "tag": "0002_atas_link_avulso_importacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791396436786,
+      "tag": "0003_whatsapp_envios_tipo_ata",
+      "breakpoints": true
     }
   ]
 }
