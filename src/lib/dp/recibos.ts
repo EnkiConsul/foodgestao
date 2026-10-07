@@ -100,6 +100,9 @@ export type EmitirReciboSaida = {
   whatsapp: string | null;
   link?: string;
   expira_em?: string;
+  /** Disparo automático pelo WhatsApp da Aveto (canal WhatsApp). */
+  whatsapp_enviado?: boolean;
+  whatsapp_erro?: string | null;
 };
 
 export async function emitirRecibo(dados: EmitirReciboEntrada): Promise<EmitirReciboSaida> {
@@ -108,10 +111,10 @@ export async function emitirRecibo(dados: EmitirReciboEntrada): Promise<EmitirRe
   return data as EmitirReciboSaida;
 }
 
-export async function gerarLinkRecibo(reciboId: string): Promise<{ link: string; whatsapp: string | null }> {
+export async function gerarLinkRecibo(reciboId: string): Promise<{ link: string; whatsapp: string | null; whatsapp_enviado?: boolean; whatsapp_erro?: string | null }> {
   const { data, error } = await supabase.functions.invoke("dp-recibo-emitir", { body: { acao: "link", recibo_id: reciboId } });
   if (error) throw await erroDe(error, "Não foi possível gerar o link.");
-  return data as { link: string; whatsapp: string | null };
+  return data as { link: string; whatsapp: string | null; whatsapp_enviado?: boolean; whatsapp_erro?: string | null };
 }
 
 export async function cancelarRecibo(reciboId: string): Promise<void> {
