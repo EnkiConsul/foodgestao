@@ -41,7 +41,7 @@ export default function EsqueciSenha() {
   const { siteKey, mode: turnstileMode } = useTurnstileConfig();
 
   const [step, setStep] = useState<Step>("identify");
-  const [identifier, setIdentifier] = useState("");
+  const [identifier, setIdentifier] = useState(() => (searchParams.get("cpf") ?? "").replace(/\D/g, "").slice(0, 11));
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileError, setTurnstileError] = useState<string | null>(null);
   const [turnstileNonce, setTurnstileNonce] = useState(0);

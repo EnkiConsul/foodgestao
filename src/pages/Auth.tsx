@@ -336,7 +336,10 @@ export default function Auth() {
           return;
         }
         const result = await unifiedSignIn(identifier, password, turnstileToken);
-        if (!result.ok) {
+        if (!result.ok && result.code === "first_access") {
+          toast.info("Primeiro acesso", { description: "Vamos te levar para criar sua senha pelo código no WhatsApp." });
+          navigate(`/esqueci-senha?primeiro=1&cpf=${identifier.replace(/\D/g, "")}`, { replace: true });
+        } else if (!result.ok) {
           toast.error("Erro ao entrar", {
             description: result.errorMessage ? translateAuthError(result.errorMessage) : undefined,
           });

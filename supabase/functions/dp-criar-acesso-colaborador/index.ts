@@ -178,12 +178,10 @@ Deno.serve(async (req) => {
         `Seu acesso ao *Portal do Colaborador da ${empresa}* foi liberado.`,
         "Por lá você consulta escalas e folgas, recibos, documentos e comunicados.",
         "",
-        "🔐 *Crie sua senha pelo link abaixo (uso único):*",
+        "🔐 *Toque no link abaixo para criar sua senha pessoal:*",
         activationUrl,
         "",
-        "👤 *Login:* seu CPF (apenas números)",
-        "Depois, entre sempre por *https://www.aveto360.com/login*.",
-        "Se o link expirar, toque em *\"Primeiro acesso\"* na tela de login e informe seu CPF.",
+        "O link abre direto a tela para criar sua senha. Depois de salvar, você já entra no portal.",
       ].join("\n");
       envio = await enviarWhatsappAveto(c?.whatsapp || c?.telefone, msg, {
         admin, companyId: colab.company_id, tipo: "acesso", colaboradorId: colab.id,

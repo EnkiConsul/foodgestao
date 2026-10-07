@@ -117,6 +117,21 @@ Deno.serve(async (req) => {
 
   if (!sessionPayload) {
     console.log(`[auth-login] fail: ${signInError} (source=${resolvedRow?.source ?? "none"})`);
+    // Colaborador (login por CPF) que ainda não criou a senha pessoal: em vez de
+    // "credenciais inválidas", orienta para o fluxo de primeiro acesso.
+    if (resolvedRow?.source === "cpf" && resolvedRow?.user_id) {
+      const { data: sec } = await admin
+        .from("auth_user_security_state")
+        .select("must_change_password, access_blocked, password_changed_at")
+        .eq("user_id", resolvedRow.user_id)
+        .maybeSingle();
+      if (sec?.must_change_password === true && !sec?.access_blocked && !sec?.password_changed_at) {
+        return json(401, {
+          error: "Este é o seu primeiro acesso. Vamos te levar para criar sua senha.",
+          code: "first_access",
+        });
+      }
+    }
     return json(401, { error: GENERIC_ERROR, code: "invalid_credentials" });
   }
 
