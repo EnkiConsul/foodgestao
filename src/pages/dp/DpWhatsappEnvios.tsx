@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { maskPhone } from "@/lib/phone";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 
 type Envio = {
   id: string; tipo: "acesso" | "senha" | "recibo"; destinatario_nome: string | null; telefone: string | null;
@@ -36,6 +37,12 @@ export default function DpWhatsappEnvios() {
   const [busca, setBusca] = useState("");
   const [tipo, setTipo] = useState("todos");
   const [status, setStatus] = useState("todos");
+  const { isSuperAdmin } = useSuperAdmin();
+  const ativarLeitura = async () => {
+    const { data: r, error } = await supabase.functions.invoke("zapi-webhook", { body: { acao: "configurar" } });
+    if (error || !(r as { ok?: boolean })?.ok) toast.error("Não foi possível ativar a confirmação de entrega/leitura.", { description: "Confira se o WhatsApp da Aveto está conectado e tente de novo." });
+    else toast.success("Confirmação de entrega e leitura ativada.");
+  };
   const [reenviando, setReenviando] = useState<string | null>(null);
 
   const { data = [], isLoading, refetch, isFetching } = useQuery({
@@ -88,7 +95,7 @@ export default function DpWhatsappEnvios() {
       <Helmet><title>Envios WhatsApp — Pessoas 360°</title></Helmet>
       <DpPageHeader icon={MessageCircle} title="Envios WhatsApp"
         description="Acompanhe as mensagens enviadas pelo WhatsApp da Aveto: convites de acesso, nova senha e assinatura de recibos."
-        actions={<Button variant="outline" onClick={() => refetch()} disabled={isFetching}><RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />Atualizar</Button>} />
+        actions={<div className="flex gap-2">{isSuperAdmin && <Button variant="outline" onClick={ativarLeitura}>Ativar Entrega/Leitura</Button>}<Button variant="outline" onClick={() => refetch()} disabled={isFetching}><RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />Atualizar</Button></div>} />
 
       <DpContentCard>
         <div className="mb-4 grid gap-3 sm:grid-cols-3">
