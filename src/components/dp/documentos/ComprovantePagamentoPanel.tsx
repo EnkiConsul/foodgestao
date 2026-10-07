@@ -1026,7 +1026,7 @@ export function ComprovanteAnexarDialog(props: {
                   type="button"
                   role="radio"
                   aria-checked={canalRecibo === o.v}
-                  disabled={o.v !== "fisico" && !props.alvo.colaboradorId}
+                  disabled={(o.v !== "fisico" && !props.alvo.colaboradorId) || (o.v === "whatsapp" && semWhats)}
                   onClick={() => setCanalRecibo(o.v)}
                   className={
                     "min-h-10 rounded-md px-2 text-xs font-medium transition-colors disabled:opacity-50 " +
@@ -1098,6 +1098,7 @@ export function ComprovanteAnexarDialog(props: {
             {semArquivoEspecie ? "Registrar e Gerar Recibo" : "Importar Comprovante"}
           </Button>
         </DialogFooter>
+        )}
         {semArquivoEspecie ? (
           <p className="text-xs text-muted-foreground">
             Sem comprovante do banco? Clique em "Registrar e Gerar Recibo": o pagamento fica
