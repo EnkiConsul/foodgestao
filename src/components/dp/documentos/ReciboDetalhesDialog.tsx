@@ -62,6 +62,7 @@ export function ReciboDetalhesDialog({
   onNovaVia,
   companyId = null,
   onViaAnexada,
+  onDuplicar,
 }: {
   recibo: ReciboDetalhado | null;
   onOpenChange: (open: boolean) => void;
