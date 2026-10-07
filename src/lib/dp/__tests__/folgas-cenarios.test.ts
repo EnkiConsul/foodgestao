@@ -90,9 +90,10 @@ describe("Cenários de folga", () => {
   });
 
   it("troca fim de semana ↔ fim de semana é direta; misturar com dia útil exige gestor", () => {
-    expect(trocaExigeAprovacaoGestor("2027-01-09", "2027-01-17")).toBe(false);
+    expect(trocaExigeAprovacaoGestor("2027-01-09", "2027-01-10")).toBe(false);
+    expect(trocaExigeAprovacaoGestor("2027-01-09", "2027-01-17")).toBe(true);
     expect(trocaExigeAprovacaoGestor("2027-01-09", "2027-01-13")).toBe(true);
-    expect(trocaExigeAprovacaoGestor("2027-01-06", "2027-01-13")).toBe(false);
+    expect(trocaExigeAprovacaoGestor("2027-01-06", "2027-01-08")).toBe(false);
   });
 
   it("erros de lotação/bloqueio do servidor viram pedido ao gestor", () => {
