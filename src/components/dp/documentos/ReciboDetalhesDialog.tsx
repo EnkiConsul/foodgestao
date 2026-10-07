@@ -74,6 +74,8 @@ export function ReciboDetalhesDialog({
   onNovaVia: (recibo: ReciboDetalhado) => void;
   companyId?: string | null;
   onViaAnexada?: () => void;
+  /** Cria um recibo novo e independente aproveitando os dados deste. */
+  onDuplicar?: (recibo: ReciboDetalhado) => void;
 }) {
   const [avisoAssinado, setAvisoAssinado] = useState(false);
   const [verPdf, setVerPdf] = useState(false);
@@ -173,6 +175,7 @@ export function ReciboDetalhesDialog({
             <ViaAssinadaBotao documentoId={recibo.documento_id} companyId={companyId} colaboradorId={recibo.colaborador_id} temVia={temVia} rotulo className="border" onDone={onViaAnexada} />
           )}
           {travado && <Button variant="outline" onClick={() => setAvisoAssinado(true)}><Pencil className="mr-1.5 h-4 w-4" />Editar Recibo</Button>}
+          {onDuplicar && <Button variant="outline" onClick={() => onDuplicar(recibo)}><Copy className="mr-1.5 h-4 w-4" />Criar a Partir Deste</Button>}
           {aberto && <ConfirmarAcaoDialog titulo="Cancelar Recibo" descricao="O recibo será cancelado, o documento vinculado será arquivado e a pendência poderá ser reaberta." confirmar="Cancelar Recibo" onConfirm={() => onCancelar(recibo)}><Button variant="outline" className="text-destructive"><XCircle className="mr-1.5 h-4 w-4" />Cancelar</Button></ConfirmarAcaoDialog>}
         </div>
         {avisoAssinado && (
