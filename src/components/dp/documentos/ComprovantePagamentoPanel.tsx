@@ -925,7 +925,7 @@ export function ComprovanteAnexarDialog(props: {
                   type="button"
                   role="radio"
                   aria-checked={canalRecibo === o.v}
-                  disabled={o.v === "portal" && !props.alvo.colaboradorId}
+                  disabled={o.v !== "fisico" && !props.alvo.colaboradorId}
                   onClick={() => setCanalRecibo(o.v)}
                   className={
                     "min-h-10 rounded-md px-2 text-xs font-medium transition-colors disabled:opacity-50 " +
@@ -939,7 +939,9 @@ export function ComprovanteAnexarDialog(props: {
             <p className="text-xs text-muted-foreground">
               {canalRecibo === "portal"
                 ? "Ao salvar, o recibo vai para o acervo e o colaborador recebe a pendência para assinar."
-                : "Ao salvar, o recibo abre na tela para imprimir e colher a assinatura."}
+                : canalRecibo === "whatsapp"
+                  ? "Ao salvar, o WhatsApp abre com o link de assinatura pronto para enviar ao colaborador."
+                  : "Ao salvar, o recibo abre na tela para imprimir e colher a assinatura."}
             </p>
           </div>
         ) : null}
