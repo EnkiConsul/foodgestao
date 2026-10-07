@@ -6,6 +6,7 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { supabase } from "@/integrations/supabase/client";
 import { registrarDocumento } from "@/lib/dp/documentos-oficial";
+import { salvarAviso } from "@/lib/dp/regras-oficial";
 
 export type AtaModalidade = "presente" | "ciencia" | "consulta";
 
@@ -14,6 +15,11 @@ export const MODALIDADES: Record<AtaModalidade, { label: string; descricao: stri
   ciencia: { label: "Ausente — Assina Ciência", descricao: "Não participou, mas assina a ciência da pauta.", exigeAceite: true },
   consulta: { label: "Apenas Consulta", descricao: "Recebe a ata no portal sem precisar assinar.", exigeAceite: false },
 };
+
+export type AtaCondutor = { colaborador_id?: string | null; nome: string; cargo?: string | null };
+
+/** Esqueleto usado quando a ata nova abre sem modelo escolhido. */
+export const ESTRUTURA_PADRAO_ATA = "<h2>Pauta da Reunião</h2><ol><li></li></ol><h2>Discussões e Alinhamentos</h2><p></p><h2>Decisões e Combinados</h2><ul><li></li></ul><h2>Próximos Passos e Responsáveis</h2><ul><li></li></ul>";
 
 export type AtaAnexo = { path: string; name: string; mime: string; size: number };
 
@@ -143,7 +149,7 @@ class Escritor {
 
 export async function gerarPdfAta(input: {
   empresa: string; unidade?: string | null; titulo: string; dataReuniao: string; local?: string | null;
-  html: string; participantes: { nome: string; modalidade: AtaModalidade }[]; anexos: { name: string; mime: string; bytes: ArrayBuffer }[];
+  html: string; condutores?: AtaCondutor[]; participantes: { nome: string; modalidade: AtaModalidade; avulso?: boolean }[]; anexos: { name: string; mime: string; bytes: ArrayBuffer }[];
 }): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   const f: Fontes = {
@@ -156,6 +162,9 @@ export async function gerarPdfAta(input: {
   const data = input.dataReuniao.split("-").reverse().join("/");
   e.bloco([{ text: `${input.empresa}${input.unidade ? ` — ${input.unidade}` : ""}` }], 10);
   e.bloco([{ text: `Data: ${data}${input.local ? `   •   Local: ${input.local}` : ""}` }], 10);
+  if (input.condutores?.length) {
+    e.bloco([{ text: `Conduzida por: ${input.condutores.map((c) => `${c.nome.toUpperCase()}${c.cargo ? ` (${c.cargo})` : ""}`).join("; ")}` }], 10, { bold: true });
+  }
   e.espaco(8);
   e.page.drawLine({ start: { x: e.M, y: e.y + 6 }, end: { x: e.M + e.W, y: e.y + 6 }, thickness: 0.8, color: rgb(0.92, 0.38, 0.1) });
   e.espaco(8);
@@ -173,7 +182,17 @@ export async function gerarPdfAta(input: {
   e.bloco([{ text: "Participantes e Destinatários" }], 13, { bold: true });
   e.espaco(2);
   for (const p of input.participantes) {
-    e.bloco([{ text: p.nome.toUpperCase(), b: true }, { text: `  —  ${MODALIDADES[p.modalidade].label}` }], 10, { indent: 18, prefixo: "•" });
+    e.bloco([{ text: p.nome.toUpperCase(), b: true }, { text: `  —  ${MODALIDADES[p.modalidade].label}${p.avulso ? " (sem cadastro)" : ""}` }], 10, { indent: 18, prefixo: "•" });
+  }
+  const avulsos = input.participantes.filter((p) => p.avulso && MODALIDADES[p.modalidade].exigeAceite);
+  if (avulsos.length) {
+    e.espaco(10);
+    e.bloco([{ text: "Assinaturas de Participantes Sem Cadastro" }], 11.5, { bold: true });
+    for (const p of avulsos) {
+      e.espaco(22); e.garantir(30);
+      e.page.drawLine({ start: { x: e.M, y: e.y + 4 }, end: { x: e.M + 260, y: e.y + 4 }, thickness: 0.6, color: AZUL });
+      e.bloco([{ text: p.nome.toUpperCase() }], 9);
+    }
   }
   e.espaco(8);
   e.bloco([{ text: "As assinaturas eletrônicas são registradas individualmente no portal do colaborador, com data, hora e impressão digital (SHA-256) do documento, e estampadas na via assinada.", i: true }], 8.5);
@@ -209,7 +228,7 @@ export async function enviarAta(ataId: string, onProgresso?: (feitos: number, to
   const a = ata as any;
   if (!htmlTemTexto(a.conteudo_html)) throw new Error("Escreva o conteúdo da ata antes de enviar.");
   const { data: parts } = await supabase.from("dp_ata_participantes" as never)
-    .select("id, colaborador_id, modalidade, documento_id, dp_colaboradores(nome)").eq("ata_id", ataId);
+    .select("id, colaborador_id, modalidade, documento_id, avulso_nome, dp_colaboradores(nome)").eq("ata_id", ataId);
   const lista = ((parts ?? []) as any[]);
   if (!lista.length) throw new Error("Inclua ao menos um participante antes de enviar.");
   const [{ data: emp }, { data: uni }] = await Promise.all([
@@ -225,10 +244,10 @@ export async function enviarAta(ataId: string, onProgresso?: (feitos: number, to
   const bytes = await gerarPdfAta({
     empresa: ((emp as any)?.name || (emp as any)?.trade_name || "Empresa").toUpperCase(),
     unidade: (uni as any)?.nome ?? null, titulo: a.titulo, dataReuniao: a.data_reuniao, local: a.local,
-    html: a.conteudo_html, anexos,
-    participantes: lista.map((p) => ({ nome: p.dp_colaboradores?.nome ?? "Colaborador", modalidade: p.modalidade })),
+    html: a.conteudo_html, anexos, condutores: (a.condutores ?? []) as AtaCondutor[],
+    participantes: lista.map((p) => ({ nome: p.dp_colaboradores?.nome ?? p.avulso_nome ?? "Participante", modalidade: p.modalidade, avulso: !p.colaborador_id })),
   });
-  const pendentes = lista.filter((p) => !p.documento_id);
+  const pendentes = lista.filter((p) => !p.documento_id && p.colaborador_id);
   let feitos = 0;
   for (const p of pendentes) {
     const nomeArquivo = `ata-${slug(a.titulo)}-${slug(p.dp_colaboradores?.nome ?? "colaborador")}.pdf`;
@@ -245,6 +264,12 @@ export async function enviarAta(ataId: string, onProgresso?: (feitos: number, to
     } as never);
     await supabase.from("dp_ata_participantes" as never).update({ documento_id: docId } as never).eq("id", p.id);
     feitos++; onProgresso?.(feitos, pendentes.length);
+  }
+  if (a.publicar_mural && a.status !== "enviada") {
+    const texto = (new DOMParser().parseFromString(a.conteudo_html, "text/html").body.textContent ?? "").replace(/\s+/g, " ").trim();
+    try {
+      await salvarAviso(a.company_id, { titulo: `Ata — ${a.titulo}`, conteudo: texto.slice(0, 4000), unidade_id: a.unidade_id ?? null } as never);
+    } catch { /* a ata segue enviada; o gestor pode publicar no Mural manualmente */ }
   }
   const { data: u } = await supabase.auth.getUser();
   // Marca como enviada (a política só permite alterar rascunhos; já enviada fica como está).

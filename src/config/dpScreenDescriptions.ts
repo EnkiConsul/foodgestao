@@ -14,6 +14,7 @@ export const DP_SCREEN_DESCRIPTIONS: Record<string, string> = {
   "/dp/documentos": "Envie contracheques, folhas de ponto e outros documentos.",
   "/dp/documentos/recibos": "Emita recibos de freelancer, diária e teste, com assinatura digital ou pelo WhatsApp.",
   "/dp/documentos/historico": "Consulte todos os documentos por colaborador e competência.",
+  "/dp/documentos/atas": "Registre reuniões da equipe e colha assinaturas ou ciência dos participantes no portal.",
   "/dp/disciplinar": "Gerencie advertências, suspensões, elogios e o dossiê disciplinar da equipe.",
 
   // Comunicação
