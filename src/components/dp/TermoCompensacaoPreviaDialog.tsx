@@ -1,0 +1,129 @@
+import { useEffect, useMemo, useState } from "react";
+import { Eye, Send } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PdfCanvasViewer } from "@/components/dp/PdfCanvasViewer";
+import { gerarTermoCompensacaoPdf, fmtHoras, type LinhaJornada } from "@/lib/dp/termo-compensacao-pdf";
+import {
+  clausulasCompensacao, emitirTermoCompensacao, TERMOS_COMPENSACAO, TITULO_SEMANAL_BANCO, type TermoCompensacaoTipo,
+} from "@/lib/dp/termos-compensacao";
+
+interface Props {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  tipo: TermoCompensacaoTipo;
+  /** A unidade adota banco de horas: permite o termo único semanal + banco. */
+  bancoDisponivel: boolean;
+  companyId: string;
+  colaboradorId: string;
+  partes: { empresa: string; cnpj?: string | null; unidade?: string | null; nome: string; cpf?: string | null; cargo?: string | null };
+  jornada: LinhaJornada[];
+  onEmitido: () => void;
+}
+
+/** Prévia editável do acordo antes de enviar para assinatura no portal. */
+export function TermoCompensacaoPreviaDialog({ open, onOpenChange, tipo, bancoDisponivel, companyId, colaboradorId, partes, jornada, onEmitido }: Props) {
+  const [integrar, setIntegrar] = useState(bancoDisponivel);
+  const [texto, setTexto] = useState("");
+  const [url, setUrl] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+
+  useEffect(() => {
+    if (open) setIntegrar(bancoDisponivel);
+  }, [open, bancoDisponivel]);
+  useEffect(() => {
+    if (open) setTexto(clausulasCompensacao(tipo, { integrarBanco: tipo === "semanal" && integrar }).join("\n\n"));
+    setUrl(null);
+  }, [open, tipo, integrar]);
+  useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
+
+  const unificado = tipo === "semanal" && integrar;
+  const titulo = unificado ? TITULO_SEMANAL_BANCO : TERMOS_COMPENSACAO[tipo].titulo;
+  const total = useMemo(() => jornada.reduce((a, j) => a + (j.trabalha ? j.minutos : 0), 0), [jornada]);
+
+  const montar = () => gerarTermoCompensacaoPdf({
+    titulo, versao: "v2", ...partes, jornada, clausulas: texto.split(/\n\s*\n/),
+  });
+
+  const visualizar = async () => {
+    try {
+      const bytes = await montar();
+      if (url) URL.revokeObjectURL(url);
+      setUrl(URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" })));
+    } catch (e: any) {
+      toast.error("Não foi possível montar a prévia", { description: e?.message ?? "Revise o texto e tente de novo." });
+    }
+  };
+
+  const enviar = async () => {
+    if (texto.trim().length < 50) { toast.error("O texto do acordo está muito curto. Revise as cláusulas."); return; }
+    setEnviando(true);
+    try {
+      const r = await emitirTermoCompensacao({ tipo, companyId, colaboradorId, titulo, bytes: await montar(), integrarBanco: unificado });
+      toast.success(r === "emitido" ? "Termo enviado para assinatura no portal do colaborador." : "Este termo já foi emitido.");
+      onEmitido();
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error("Não foi possível enviar o termo", { description: e?.message ?? "Tente novamente em instantes." });
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[92vh] w-[calc(100%-1rem)] max-w-3xl flex-col overflow-hidden">
+        <DialogHeader>
+          <DialogTitle>Prévia do Termo</DialogTitle>
+          <DialogDescription className="break-words">{titulo}</DialogDescription>
+        </DialogHeader>
+        <div className="flex-1 space-y-4 overflow-y-auto pr-1">
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/60 text-left">
+                <tr><th className="p-2">Dia</th><th className="p-2">Entrada</th><th className="p-2">Intervalo</th><th className="p-2">Saída</th><th className="p-2">Horas</th></tr>
+              </thead>
+              <tbody>
+                {jornada.map((j) => (
+                  <tr key={j.dia} className="border-t border-border">
+                    <td className="p-2 font-medium">{j.dia}</td>
+                    {j.trabalha ? (<>
+                      <td className="p-2">{j.entrada ?? "—"}</td>
+                      <td className="p-2">{j.intervalo ? `${j.intervalo} min` : "—"}</td>
+                      <td className="p-2">{j.saida ?? "—"}</td>
+                      <td className="p-2">{j.minutos ? fmtHoras(j.minutos) : "—"}</td>
+                    </>) : <td colSpan={4} className="p-2 font-semibold text-primary">{(j.descanso ?? "Folga").toUpperCase()}</td>}
+                  </tr>
+                ))}
+                <tr className="border-t border-border font-semibold"><td className="p-2" colSpan={4}>Total Semanal</td><td className="p-2">{fmtHoras(total)}</td></tr>
+              </tbody>
+            </table>
+          </div>
+          {tipo === "semanal" && bancoDisponivel && (
+            <label className="flex items-start gap-2 rounded-lg bg-muted/40 p-3 text-sm">
+              <Checkbox checked={integrar} onCheckedChange={(v) => setIntegrar(!!v)} className="mt-0.5" />
+              <span>
+                <span className="font-medium">Integrar com Banco de Horas da CCT/Unidade</span>
+                <span className="block text-xs text-muted-foreground">Gera um termo único: as horas não compensadas na semana vão para o banco em vez de serem pagas como extra.</span>
+              </span>
+            </label>
+          )}
+          <div className="space-y-1.5">
+            <Label>Cláusulas (editáveis — separe cada cláusula com uma linha em branco)</Label>
+            <Textarea value={texto} onChange={(e) => { setTexto(e.target.value); setUrl(null); }} rows={12} className="text-sm" />
+            <p className="text-xs text-muted-foreground">Cabeçalho da empresa, partes, quadro da jornada e campos de assinatura são incluídos automaticamente no PDF.</p>
+          </div>
+          {url && <div className="h-[60vh] rounded-lg border border-border"><PdfCanvasViewer url={url} title={titulo} /></div>}
+        </div>
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button type="button" variant="outline" onClick={visualizar}><Eye className="mr-1.5 h-4 w-4" />Visualizar PDF</Button>
+          <Button type="button" disabled={enviando} onClick={enviar}><Send className="mr-1.5 h-4 w-4" />{enviando ? "Enviando..." : "Enviar para Assinatura"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

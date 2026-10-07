@@ -2998,6 +2998,7 @@ export function ColaboradorFormDialog({
               nome={form.nome}
               cpf={form.cpf}
               regime={VINCULO_TO_REGIME[form.tipo_vinculo] ?? null}
+              cargoId={form.cargo_id || null}
               vinculoLabel={form.tipo_vinculo}
               unidade={unidadeSelecionada}
             />
