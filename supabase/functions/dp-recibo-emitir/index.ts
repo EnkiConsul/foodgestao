@@ -275,7 +275,10 @@ Deno.serve(async (req) => {
       const nl = await novoLink(admin, row.id, req);
       const { data: inf } = await admin.from("dp_recibos").select("beneficiario_nome, company_id").eq("id", row.id).maybeSingle();
       const { data: emp } = await admin.from("companies").select("name, trade_name").eq("id", inf?.company_id ?? "").maybeSingle();
-      const env = await enviarWhatsappAveto(row.beneficiario_whatsapp, mensagemRecibo(inf?.beneficiario_nome, emp?.trade_name || emp?.name, nl.link));
+      const env = await enviarWhatsappAveto(row.beneficiario_whatsapp, mensagemRecibo(inf?.beneficiario_nome, emp?.trade_name || emp?.name, nl.link), {
+        admin, companyId: inf?.company_id ?? row.company_id, tipo: "recibo", reciboId: row.id,
+        colaboradorId: row.colaborador_id ?? null, nome: inf?.beneficiario_nome, link: nl.link, enviadoPor: caller.id,
+      });
       return json(200, { ...nl, whatsapp: row.beneficiario_whatsapp, whatsapp_enviado: env.enviado, whatsapp_erro: env.erro ?? null });
     }
 
@@ -408,7 +411,10 @@ Deno.serve(async (req) => {
     let envioWa: EnvioWhatsapp | null = null;
     if (b.canal_assinatura === "whatsapp") {
       link = await novoLink(admin, row.id, req);
-      envioWa = await enviarWhatsappAveto(whatsapp, mensagemRecibo(nome, empresa?.trade_name || empresa?.name, link.link));
+      envioWa = await enviarWhatsappAveto(whatsapp, mensagemRecibo(nome, empresa?.trade_name || empresa?.name, link.link), {
+        admin, companyId, tipo: "recibo", reciboId: row.id, colaboradorId: b.colaborador_id ?? null,
+        nome, link: link.link, enviadoPor: caller.id,
+      });
     }
 
     // Pendências do mês passam a refletir o novo documento.

@@ -13294,6 +13294,82 @@ export type Database = {
           },
         ]
       }
+      dp_whatsapp_envios: {
+        Row: {
+          colaborador_id: string | null
+          company_id: string
+          created_at: string
+          destinatario_nome: string | null
+          entregue_em: string | null
+          enviado_por: string | null
+          erro: string | null
+          id: string
+          lido_em: string | null
+          link: string | null
+          message_id: string | null
+          recibo_id: string | null
+          status: string
+          telefone: string | null
+          tipo: string
+        }
+        Insert: {
+          colaborador_id?: string | null
+          company_id: string
+          created_at?: string
+          destinatario_nome?: string | null
+          entregue_em?: string | null
+          enviado_por?: string | null
+          erro?: string | null
+          id?: string
+          lido_em?: string | null
+          link?: string | null
+          message_id?: string | null
+          recibo_id?: string | null
+          status?: string
+          telefone?: string | null
+          tipo: string
+        }
+        Update: {
+          colaborador_id?: string | null
+          company_id?: string
+          created_at?: string
+          destinatario_nome?: string | null
+          entregue_em?: string | null
+          enviado_por?: string | null
+          erro?: string | null
+          id?: string
+          lido_em?: string | null
+          link?: string | null
+          message_id?: string | null
+          recibo_id?: string | null
+          status?: string
+          telefone?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_whatsapp_envios_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_whatsapp_envios_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_whatsapp_envios_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string

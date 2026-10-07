@@ -112,6 +112,7 @@ const DpConfiguracoes = lazyWithRetry(() => import("./pages/dp/DpConfiguracoes")
 const DpAdminCalendario = lazyWithRetry(() => import("./pages/dp/DpAdminCalendario"));
 const DpModelosMensagem = lazyWithRetry(() => import("./pages/dp/DpModelosMensagem"));
 
+const DpWhatsappEnvios = lazyWithRetry(() => import("./pages/dp/DpWhatsappEnvios"));
 const DpComunicacaoHub = lazyWithRetry(() => import("./pages/dp/DpComunicacaoHub"));
 const DpDocumentosHub = lazyWithRetry(() => import("./pages/dp/DpDocumentosHub"));
 const DpRotinaHub = lazyWithRetry(() => import("./pages/dp/DpRotinaHub"));
@@ -540,6 +541,7 @@ const AppRoutes = () => (
         <Route path="atestados" element={<DpAtestados />} />
         <Route path="avisos" element={<DpAvisos />} />
         <Route path="mensagens" element={<DpMensagens />} />
+        <Route path="whatsapp-envios" element={<DpWhatsappEnvios />} />
         <Route path="modelos-mensagem" element={<DpModelosMensagem />} />
         <Route path="comunicacao" element={<DpComunicacaoHub />} />
         <Route path="notificacoes" element={<DpNotificacoes />} />

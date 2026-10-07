@@ -161,12 +161,14 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       "/dp/modelos-mensagem",
       "/dp/avisos",
       "/dp/notificacoes",
+      "/dp/whatsapp-envios",
     ],
     items: [
       { label: "Mensagens", to: "/dp/mensagens", icon: MessageSquare },
       { label: "Modelos de Mensagem", to: "/dp/modelos-mensagem", icon: LayoutTemplate },
       { label: "Quadro de Avisos", to: "/dp/avisos", icon: Bell },
       { label: "Notificações", to: "/dp/notificacoes", icon: BellRing },
+      { label: "Envios WhatsApp", to: "/dp/whatsapp-envios", icon: MessageSquare },
     ],
   },
   {

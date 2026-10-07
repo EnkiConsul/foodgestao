@@ -20,7 +20,7 @@ import {
   registrarEvento,
   situacaoAcesso,
 } from "../_shared/portal-access.ts";
-import { enviarWhatsappAveto, primeiroNome, type EnvioWhatsapp } from "../_shared/whatsapp-aveto.ts";
+import { enviarWhatsappAveto, primeiroNomeExibicao, type EnvioWhatsapp } from "../_shared/whatsapp-aveto.ts";
 
 const SYNTHETIC_EMAIL_DOMAIN = "portal.360food.local";
 
@@ -168,9 +168,9 @@ Deno.serve(async (req) => {
     const activationUrl = linkDeAcesso(origin, "activation", tokenId, codigo);
     let envio: EnvioWhatsapp | null = null;
     if (body?.enviar_whatsapp === true) {
-      const { data: c } = await admin.from("dp_colaboradores").select("nome, whatsapp, telefone").eq("id", colab.id).maybeSingle();
+      const { data: c } = await admin.from("dp_colaboradores").select("nome, nome_social, whatsapp, telefone").eq("id", colab.id).maybeSingle();
       const { data: emp } = await admin.from("companies").select("name, trade_name").eq("id", colab.company_id).maybeSingle();
-      const p = primeiroNome(c?.nome);
+      const p = primeiroNomeExibicao(c);
       const empresa = emp?.trade_name || emp?.name || "sua empresa";
       const msg = [
         `*Aveto 360* - Olá${p ? `, ${p}` : ""}! 👋`,
@@ -185,7 +185,10 @@ Deno.serve(async (req) => {
         "Depois, entre sempre por *https://www.aveto360.com/login*.",
         "Se o link expirar, toque em *\"Primeiro acesso\"* na tela de login e informe seu CPF.",
       ].join("\n");
-      envio = await enviarWhatsappAveto(c?.whatsapp || c?.telefone, msg);
+      envio = await enviarWhatsappAveto(c?.whatsapp || c?.telefone, msg, {
+        admin, companyId: colab.company_id, tipo: "acesso", colaboradorId: colab.id,
+        nome: c?.nome_social || c?.nome, link: activationUrl, enviadoPor: caller?.id ?? null,
+      });
     }
 
     return jsonResponse(req, 200, {
