@@ -1,4 +1,5 @@
-import { ehCompensacaoFeriado } from "@/lib/dp/termos-compensacao";
+import { diasDeAntecedencia, ehCompensacaoFeriado } from "@/lib/dp/termos-compensacao";
+import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
@@ -96,6 +97,36 @@ export default function DpSolicitacoes() {
       return (data ?? []) as RowWithColab[];
     },
   });
+
+  /** Prazo mínimo de antecedência para compensação de feriado, por unidade. */
+  const unidadesPrazo = useQuery({
+    queryKey: ["dp_unidades_prazo_compensacao", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("dp_unidades")
+        .select("id, compensacao_feriado_antecedencia_dias")
+        .eq("company_id", selectedCompanyId!);
+      if (error) throw error;
+      return new Map<string, number>(
+        ((data ?? []) as { id: string; compensacao_feriado_antecedencia_dias: number | null }[]).map(
+          (u) => [u.id, u.compensacao_feriado_antecedencia_dias ?? 2],
+        ),
+      );
+    },
+  });
+
+  /**
+   * Compensação de feriado pedida com prazo menor que o mínimo da unidade:
+   * o colaborador não é barrado, mas o gestor é avisado (pode recusar).
+   */
+  const prazoCompensacao = (s: Row): { dias: number; minimo: number } | null => {
+    if (s.tipo !== "folga" || !s.data_alvo || !ehCompensacaoFeriado(s.motivo)) return null;
+    const unidadeId = colabs.data?.find((c) => c.id === s.colaborador_id)?.unidade_id ?? null;
+    const minimo = (unidadeId && unidadesPrazo.data?.get(unidadeId)) ?? 2;
+    const dias = diasDeAntecedencia(s.data_alvo, hojeIsoLocal());
+    return dias < minimo ? { dias, minimo } : null;
+  };
 
   /** Ciências de DSR dadas pelo colaborador (mais de 6 dias seguidos sem descanso). */
   const ciencias = useQuery({
@@ -296,6 +327,14 @@ export default function DpSolicitacoes() {
                     {new Date(s.created_at).toLocaleString("pt-BR")}
                   </span>
                 </div>
+
+                {prazoCompensacao(s) && (
+                  <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-xs font-medium text-amber-700 dark:text-amber-400">
+                    <AlertTriangle className="size-4 shrink-0" />
+                    Prazo de antecedência não atendido: pedido feito com {prazoCompensacao(s)!.dias} dia(s)
+                    (mínimo da unidade: {prazoCompensacao(s)!.minimo}). Pode ser recusado conforme a necessidade da escala.
+                  </div>
+                )}
 
                 {s.tipo === "folga" && !s.data_fim && s.fora_da_janela && (
                   <div className="rounded-lg border border-border bg-muted/40 p-2 text-xs text-muted-foreground">
@@ -587,6 +626,10 @@ export default function DpSolicitacoes() {
           { label: "Data alvo", value: formatBR(detailsRow.data_alvo) },
           ...(detailsRow.data_fim ? [{ label: "Data fim", value: formatBR(detailsRow.data_fim) }] : []),
           { label: "Criada em", value: new Date(detailsRow.created_at).toLocaleString("pt-BR") },
+          ...(prazoCompensacao(detailsRow) ? [{
+            label: "Prazo",
+            value: `Antecedência não atendida: ${prazoCompensacao(detailsRow)!.dias} dia(s) (mínimo da unidade: ${prazoCompensacao(detailsRow)!.minimo}). Pode ser recusado conforme a necessidade da escala.`,
+          }] : []),
           ...(detailsRow.motivo ? [{ label: "Motivo", value: detailsRow.motivo }] : []),
           ...(detailsRow.resposta_admin ? [{ label: "Resposta", value: detailsRow.resposta_admin }] : []),
         ] : []}
