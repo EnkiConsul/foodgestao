@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Eye, Send } from "lucide-react";
+import { Eye, Printer, Send } from "lucide-react";
+import { ModoImpressaoEscolha } from "@/components/dp/documentos/ModoImpressaoEscolha";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { PdfCanvasViewer } from "@/components/dp/PdfCanvasViewer";
 import { gerarTermoCompensacaoPdf, fmtHoras, type LinhaJornada } from "@/lib/dp/termo-compensacao-pdf";
 import {
-  clausulasUnificadas, emitirTermoCompensacao, tituloTermoUnificado, TERMOS_COMPENSACAO, type TermoCompensacaoTipo,
+  clausulasParaModo, clausulasUnificadas, emitirTermoCompensacao, tituloTermoUnificado, TERMOS_COMPENSACAO, type TermoCompensacaoTipo,
 } from "@/lib/dp/termos-compensacao";
 
 interface Props {
@@ -30,14 +31,30 @@ export function TermoCompensacaoPreviaDialog({ open, onOpenChange, disponiveis, 
   const [texto, setTexto] = useState("");
   const [url, setUrl] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [manual, setManual] = useState(false);
 
   useEffect(() => {
     if (open) setSel(disponiveis);
   }, [open, disponiveis.join(",")]);
   useEffect(() => {
-    if (open && sel.length) setTexto(clausulasUnificadas(sel).join("\n\n"));
+    if (open && sel.length) setTexto(clausulasParaModo(clausulasUnificadas(sel), manual).join("\n\n"));
     setUrl(null);
   }, [open, sel.join(",")]);
+  const trocarModo = (v: boolean) => {
+    setManual(v);
+    setTexto((t) => {
+      const partes = t.split(/\n\s*\n/);
+      const digital = clausulasUnificadas(sel);
+      return partes.map((c) => {
+        const m = c.match(/^(\d+\.\s*)Assinatura/);
+        if (!m) return c;
+        if (v) return clausulasParaModo([c], true)[0];
+        const orig = digital.find((d) => d.startsWith(m[1]) && d.includes("Assinatura eletrônica"));
+        return orig ?? c;
+      }).join("\n\n");
+    });
+    setUrl(null);
+  };
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
 
   const tipo = sel[0] ?? disponiveis[0];
@@ -45,7 +62,7 @@ export function TermoCompensacaoPreviaDialog({ open, onOpenChange, disponiveis, 
   const total = useMemo(() => jornada.reduce((a, j) => a + (j.trabalha ? j.minutos : 0), 0), [jornada]);
 
   const montar = () => gerarTermoCompensacaoPdf({
-    titulo, versao: "v2", ...partes, jornada, clausulas: texto.split(/\n\s*\n/),
+    titulo, versao: "v2", ...partes, jornada, clausulas: texto.split(/\n\s*\n/), manual,
   });
 
   const visualizar = async () => {
@@ -62,12 +79,21 @@ export function TermoCompensacaoPreviaDialog({ open, onOpenChange, disponiveis, 
     if (!sel.length) { toast.error("Marque ao menos um assunto para o termo."); return; }
     if (texto.trim().length < 50) { toast.error("O texto do acordo está muito curto. Revise as cláusulas."); return; }
     setEnviando(true);
+    const janela = manual ? window.open("", "_blank") : null;
     try {
-      const r = await emitirTermoCompensacao({ tipo, companyId, colaboradorId, titulo, bytes: await montar(), integrarBanco: sel.includes("semanal") && sel.includes("banco_horas"), tipos: sel });
-      toast.success(r === "emitido" ? "Termo enviado para assinatura no portal do colaborador." : "Este termo já foi emitido.");
+      const bytes = await montar();
+      const r = await emitirTermoCompensacao({ tipo, companyId, colaboradorId, titulo, bytes, integrarBanco: sel.includes("semanal") && sel.includes("banco_horas"), tipos: sel, manual });
+      if (manual && r === "emitido") {
+        const u = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
+        if (janela) janela.location.href = u; else window.open(u, "_blank");
+      } else janela?.close();
+      toast.success(r === "emitido"
+        ? (manual ? "Termo gerado para impressão. Depois de assinado, anexe a via na aba Documentos da ficha." : "Termo enviado para assinatura no portal do colaborador.")
+        : "Este termo já foi emitido.");
       onEmitido();
       onOpenChange(false);
     } catch (e: any) {
+      janela?.close();
       toast.error("Não foi possível enviar o termo", { description: e?.message ?? "Tente novamente em instantes." });
     } finally {
       setEnviando(false);
@@ -82,6 +108,12 @@ export function TermoCompensacaoPreviaDialog({ open, onOpenChange, disponiveis, 
           <DialogDescription className="break-words">{titulo}</DialogDescription>
         </DialogHeader>
         <div className="flex-1 space-y-4 overflow-y-auto pr-1">
+          <div className="space-y-1">
+            <ModoImpressaoEscolha manual={manual} onChange={trocarModo} />
+            {!manual && (
+              <p className="text-xs text-muted-foreground">Vai para o portal do colaborador assinar no celular. O campo do empregador sai com a chancela eletrônica da empresa — não precisa assinar.</p>
+            )}
+          </div>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-xs">
               <thead className="bg-muted/60 text-left">
@@ -124,7 +156,7 @@ export function TermoCompensacaoPreviaDialog({ open, onOpenChange, disponiveis, 
         </div>
         <DialogFooter className="gap-2 sm:gap-2">
           <Button type="button" variant="outline" onClick={visualizar}><Eye className="mr-1.5 h-4 w-4" />Visualizar PDF</Button>
-          <Button type="button" disabled={enviando} onClick={enviar}><Send className="mr-1.5 h-4 w-4" />{enviando ? "Enviando..." : "Enviar para Assinatura"}</Button>
+          <Button type="button" disabled={enviando} onClick={enviar}>{manual ? <Printer className="mr-1.5 h-4 w-4" /> : <Send className="mr-1.5 h-4 w-4" />}{enviando ? "Gerando..." : manual ? "Gerar para Imprimir" : "Enviar para Assinatura"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
