@@ -53,8 +53,6 @@ Deno.serve(async (req) => {
       if (p.assinado_em) return json(409, { error: "Este participante já assinou." });
       if (!p.arquivo_path) return json(409, { error: "Envie a ata aos participantes antes de mandar o link." });
       if (String(p.avulso_cpf ?? "").length !== 11) return json(400, { error: "Informe o CPF do participante para enviar o link.", detalhe: "O CPF é pedido na hora de assinar." });
-      const { data: perm } = await admin.rpc("tem_permissao_usuario" as never, {} as never).then(() => ({ data: true })).catch(() => ({ data: true }));
-      void perm;
       const { data: ata } = await admin.from("dp_atas").select("titulo, data_reuniao, company_id").eq("id", p.ata_id).maybeSingle();
       const { data: emp } = await admin.from("companies").select("name, trade_name").eq("id", p.company_id).maybeSingle();
       const token = [...crypto.getRandomValues(new Uint8Array(32))].map((x) => x.toString(16).padStart(2, "0")).join("");
@@ -66,7 +64,7 @@ Deno.serve(async (req) => {
       const empresa = emp?.trade_name || emp?.name || "a empresa";
       const msg = `Aveto 360 - Olá, ${primeiroNome(p.avulso_nome)}!\n\n${empresa} enviou a ata da reunião "${ata?.titulo ?? ""}" para você assinar.\n\nToque no link, confira o documento e confirme com o seu CPF:\n${link}\n\nO link vale por 15 dias.`;
       const r = await enviarWhatsappAveto(p.avulso_whatsapp, msg, {
-        admin, companyId: p.company_id, tipo: "ata" as never, nome: p.avulso_nome, link, enviadoPor: caller.id,
+        admin, companyId: p.company_id, tipo: "ata", nome: p.avulso_nome, link, enviadoPor: caller.id,
       });
       return json(200, { enviado: r.enviado, erro: r.erro ?? null, link });
     }

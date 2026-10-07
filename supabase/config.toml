@@ -52,3 +52,5 @@ project_id = "grtxmbffgmgnkawlvqhm"
     verify_jwt = true
   [functions.zapi-webhook]
     verify_jwt = false
+  [functions.dp-ata-avulso]
+    verify_jwt = false
