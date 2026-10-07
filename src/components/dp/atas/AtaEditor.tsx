@@ -9,7 +9,6 @@ import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Undo2, Redo2, Minus, Pilcrow,
 } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 function Barra({ editor, extra }: { editor: Editor; extra?: React.ReactNode }) {
@@ -79,4 +78,3 @@ export function AtaEditor({ value, onChange, disabled, extra }: {
   );
 }
 
-export { Button as _B };
