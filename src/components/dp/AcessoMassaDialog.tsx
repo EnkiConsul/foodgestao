@@ -90,12 +90,15 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
     const worker = async () => {
       while (fila.length) {
         const i = fila.shift()!;
-        const { data, error } = await supabase.functions.invoke("dp-criar-acesso-colaborador", { body: { colaborador_id: i.id } });
-        const msg = (data as { error?: string } | null)?.error;
+        const { data, error } = await supabase.functions.invoke("dp-criar-acesso-colaborador", { body: { colaborador_id: i.id, enviar_whatsapp: true } });
+        const resp = data as { error?: string; whatsapp_enviado?: boolean; whatsapp_erro?: string } | null;
+        const msg = resp?.error;
         if (error || msg) {
           let motivo = msg;
           try { motivo = motivo || (await (error as { context?: Response })?.context?.json())?.error; } catch { /* ignora */ }
           map[i.id] = motivo || "Não foi possível criar o acesso. Tente novamente pela ficha.";
+        } else if (resp?.whatsapp_enviado === false) {
+          map[i.id] = `Acesso criado, mas a mensagem não foi enviada: ${resp.whatsapp_erro ?? "tente reenviar pela ficha."}`;
         } else ok++;
         feitos++;
         setCriando({ feitos, total: semConta.length });
@@ -105,9 +108,9 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
     setCriando(null);
     await carregar();
     setErros(map);
-    if (ok) toast.success(`${ok} acesso(s) criado(s). Agora envie a mensagem do portal para a equipe.`);
+    if (ok) toast.success(`${ok} acesso(s) criado(s) e convite(s) enviado(s) pelo WhatsApp da Aveto.`);
     const falhas = Object.keys(map).length;
-    if (falhas) toast.warning(`${falhas} acesso(s) não foram criados. Veja o motivo na lista.`);
+    if (falhas) toast.warning(`${falhas} colaborador(es) com problema. Veja o motivo na lista.`);
   };
 
   const comErro = itens.filter((i) => erros[i.id] && !pendentes.includes(i));
@@ -121,15 +124,14 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
     <DpDialogShell
       open={open} onOpenChange={(o) => { if (!o && criando) { toast.info("Aguarde terminar a criação dos acessos."); return; } onOpenChange(o); }} icon={KeyRound} size="lg"
       title="Gerar Acessos ao Portal"
-      description="Cada colaborador cria a própria senha pelo CPF, com código enviado ao WhatsApp da ficha."
+      description="O sistema cria o acesso e envia o convite pelo WhatsApp da Aveto para o número da ficha de cada colaborador."
       footer={<>
-        <Button variant="outline" onClick={copiar} disabled={loading}><Copy className="mr-2 h-4 w-4" />Copiar Mensagem do Portal</Button>
         {pendentes.length > 0 && (
           <Button variant="outline" onClick={salvar} disabled={saving || !!criando}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar Dados</Button>
         )}
         {semConta.length > 0 && (
           <Button onClick={criarEmMassa} disabled={loading || !!criando}>
-            {criando ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Criando {criando.feitos}/{criando.total}</> : <>Criar {semConta.length} Acesso(s)</>}
+            {criando ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando {criando.feitos}/{criando.total}</> : <>Criar e Enviar {semConta.length} Convite(s)</>}
           </Button>
         )}
       </>}
