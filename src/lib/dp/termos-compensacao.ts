@@ -81,6 +81,48 @@ export function termoCompensacaoParagrafos(
   ];
 }
 
+/** Trecho do título que identifica cada assunto, inclusive dentro do termo único. */
+const CHAVE_TITULO: Record<TermoCompensacaoTipo, string> = {
+  semanal: "Compensação Semanal", banco_horas: "Banco de Horas", feriados: "Feriados",
+};
+
+const ORDEM_TIPOS: TermoCompensacaoTipo[] = ["semanal", "banco_horas", "feriados"];
+const ASSUNTO: Record<TermoCompensacaoTipo, string> = {
+  semanal: "Compensação Semanal de Horas", banco_horas: "Banco de Horas", feriados: "Trabalho e Compensação em Feriados",
+};
+
+/** Título do termo: um assunto usa o título próprio; vários viram o termo único. */
+export function tituloTermoUnificado(tipos: TermoCompensacaoTipo[]): string {
+  const t = ORDEM_TIPOS.filter((x) => tipos.includes(x));
+  if (t.length === 1) return TERMOS_COMPENSACAO[t[0]].titulo;
+  const nomes = t.map((x) => ASSUNTO[x]);
+  return `Acordo Individual de ${nomes.slice(0, -1).join(", ")} e ${nomes[nomes.length - 1]}`;
+}
+
+/** Cláusulas do termo único (semanal, banco e feriados em um só instrumento), renumeradas. */
+export function clausulasUnificadas(tipos: TermoCompensacaoTipo[]): string[] {
+  const t = ORDEM_TIPOS.filter((x) => tipos.includes(x));
+  if (t.length === 1) return clausulasCompensacao(t[0], {});
+  const sem = (c: string) => c.replace(/^\d+\.\s*/, "");
+  const corpo: string[] = [];
+  const temSemanal = t.includes("semanal"), temBanco = t.includes("banco_horas");
+  if (temSemanal) {
+    const s = clausulasCompensacao("semanal", { integrarBanco: temBanco });
+    corpo.push(...s.slice(0, temBanco ? 5 : 3).map(sem));
+  } else if (temBanco) {
+    corpo.push(...termoCompensacaoParagrafos("banco_horas", { empresa: "", nome: "" }).slice(2, 7).map(sem));
+  }
+  if (t.includes("feriados")) {
+    corpo.push(...termoCompensacaoParagrafos("feriados", { empresa: "", nome: "" }).slice(2, 6).map(sem)
+      .map((c) => c.startsWith("Objeto.") ? c.replace("Objeto.", "Feriados.") : c));
+  }
+  corpo.push(
+    "Convenção coletiva. Este acordo observa a Convenção ou o Acordo Coletivo de Trabalho vigente da categoria, que prevalece no que for mais favorável.",
+    "Assinatura eletrônica. As partes reconhecem a validade da assinatura eletrônica (MP 2.200-2/2001, art. 10, § 2º, e Lei 14.063/2020). O sistema registra data, hora, endereço de internet, dispositivo e impressão digital do arquivo, e o desenho da assinatura é estampado na via assinada.",
+  );
+  return corpo.map((c, i) => `${i + 1}. ${c}`);
+}
+
 /** Termo do colaborador já emitido (não arquivado) e se já foi assinado. */
 export async function termoCompensacaoExistente(colaboradorId: string, tipo: TermoCompensacaoTipo) {
   const { data } = await supabase
@@ -89,7 +131,7 @@ export async function termoCompensacaoExistente(colaboradorId: string, tipo: Ter
     .eq("colaborador_id", colaboradorId)
     .eq("tipo", "termos")
     .is("arquivado_em", null)
-    .ilike("titulo", `${TERMOS_COMPENSACAO[tipo].titulo}%`)
+    .ilike("titulo", `%${CHAVE_TITULO[tipo]}%`)
     .order("created_at", { ascending: false })
     .limit(1);
   const doc = (data?.[0] as { id: string; titulo: string } | undefined) ?? null;
@@ -133,11 +175,15 @@ export function clausulasCompensacao(tipo: TermoCompensacaoTipo, opts: { integra
 /** Emite o termo revisado na prévia para assinatura no portal. Idempotente por colaborador e tipo. */
 export async function emitirTermoCompensacao(input: {
   tipo: TermoCompensacaoTipo; companyId: string; colaboradorId: string;
-  titulo: string; bytes: Uint8Array; integrarBanco?: boolean;
+  titulo: string; bytes: Uint8Array; integrarBanco?: boolean; tipos?: TermoCompensacaoTipo[];
 }): Promise<"emitido" | "ja_existia"> {
-  if (await termoCompensacaoExistente(input.colaboradorId, input.tipo)) return "ja_existia";
+  for (const t of input.tipos ?? [input.tipo]) {
+    if (await termoCompensacaoExistente(input.colaboradorId, t)) return "ja_existia";
+  }
   const versao = TERMOS_COMPENSACAO[input.tipo].versao.replace("v1", "v2");
-  const nomeArquivo = `acordo-${input.tipo.replace("_", "-")}${input.integrarBanco ? "-banco-horas" : ""}.pdf`;
+  const nomeArquivo = (input.tipos?.length ?? 0) > 1
+    ? `acordo-unico-${input.tipos!.map((t) => t.replace("_", "-")).join("-")}.pdf`
+    : `acordo-${input.tipo.replace("_", "-")}${input.integrarBanco ? "-banco-horas" : ""}.pdf`;
   const path = `${input.companyId}/${input.colaboradorId}/${Date.now()}-${nomeArquivo}`;
   const blob = new Blob([input.bytes as BlobPart], { type: "application/pdf" });
   const up = await supabase.storage.from("dp-documentos").upload(path, blob, { contentType: "application/pdf", upsert: false });

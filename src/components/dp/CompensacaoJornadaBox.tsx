@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileSignature, CheckCircle2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { detalharCargaSemanal, DOW_LABEL, type ConfigTrabalho, type TurnoResolvido } from "@/lib/dp/config-trabalho";
@@ -72,13 +74,38 @@ export function CompensacaoJornadaBox({ companyId, colaboradorId, nome, cpf, reg
       return { dia: DOW_LABEL[dow], trabalha: true, entrada: hm(d.turno?.entrada), saida: hm(d.turno?.saida), intervalo: d.turno?.intervalo_minutos ?? null, minutos: d.minutos };
     });
   }, [detalhes, cfg.vigente]);
-  const [previa, setPrevia] = useState<TermoCompensacaoTipo | null>(null);
+  const [previa, setPrevia] = useState<TermoCompensacaoTipo[] | null>(null);
+
+  const excecao = useQuery({
+    queryKey: ["dp_colaborador_compensacao", colaboradorId],
+    queryFn: async () => {
+      const { data } = await supabase.from("dp_colaborador_compensacao")
+        .select("usa_banco_horas, usa_compensa_feriados").eq("colaborador_id", colaboradorId).maybeSingle();
+      return data;
+    },
+  });
+  const usaBanco = !!unidade?.banco_horas && excecao.data?.usa_banco_horas !== false;
+  const usaFeriados = !!unidade?.compensa_feriados && excecao.data?.usa_compensa_feriados !== false;
+  const [salvando, setSalvando] = useState(false);
+  const definir = async (campo: "usa_banco_horas" | "usa_compensa_feriados", valor: boolean) => {
+    setSalvando(true);
+    const { error } = await supabase.from("dp_colaborador_compensacao").upsert({
+      colaborador_id: colaboradorId, company_id: companyId,
+      usa_banco_horas: excecao.data?.usa_banco_horas ?? null,
+      usa_compensa_feriados: excecao.data?.usa_compensa_feriados ?? null,
+      [campo]: valor ? null : false, updated_at: new Date().toISOString(),
+    } as never);
+    setSalvando(false);
+    if (error) { toast.error("Não foi possível salvar", { description: "Confira se você tem permissão para alterar colaboradores e tente de novo." }); return; }
+    toast.success(valor ? "Colaborador volta a seguir a regra da unidade." : "Colaborador fora desta regra da unidade.");
+    qc.invalidateQueries({ queryKey: ["dp_colaborador_compensacao", colaboradorId] });
+  };
 
   const admite = vinculoAdmiteCompensacao(regime, vinculoLabel);
   const tipos: TermoCompensacaoTipo[] = !admite ? [] : [
     ...(acima.length ? (["semanal"] as const) : []),
-    ...(unidade?.banco_horas ? (["banco_horas"] as const) : []),
-    ...(unidade?.compensa_feriados ? (["feriados"] as const) : []),
+    ...(usaBanco ? (["banco_horas"] as const) : []),
+    ...(usaFeriados ? (["feriados"] as const) : []),
   ];
 
   const status = useQuery({
@@ -87,13 +114,13 @@ export function CompensacaoJornadaBox({ companyId, colaboradorId, nome, cpf, reg
     queryFn: async () => {
       const r: Partial<Record<TermoCompensacaoTipo, { assinado: boolean } | null>> = {};
       for (const t of tipos) r[t] = await termoCompensacaoExistente(colaboradorId, t);
-      const sem = r.semanal as { titulo?: string; assinado: boolean } | null | undefined;
-      if (tipos.includes("banco_horas") && !r.banco_horas && sem?.titulo?.includes("Banco de Horas")) r.banco_horas = sem;
       return r;
     },
   });
 
-  if (!tipos.length) return null;
+  const temRegraUnidade = admite && (!!unidade?.banco_horas || !!unidade?.compensa_feriados);
+  if (!tipos.length && !temRegraUnidade) return null;
+  const pendentes = tipos.filter((t) => !status.data?.[t]);
 
   const motivo: Record<TermoCompensacaoTipo, string> = {
     semanal: `Jornada acima de 8h em ${acima.map((d) => `${DOW_LABEL[d.dow]} (${formatarHoras(d.minutos / 60)})`).join(", ")}. A CLT (art. 59, § 6º) pede acordo de compensação semanal.`,
@@ -106,6 +133,32 @@ export function CompensacaoJornadaBox({ companyId, colaboradorId, nome, cpf, reg
       <p className="flex items-center gap-2 text-sm font-semibold">
         <FileSignature className="h-4 w-4 text-primary" /> Acordos de Compensação
       </p>
+      {temRegraUnidade && (
+        <div className="space-y-2 rounded-lg border border-dashed border-border p-2.5">
+          <p className="text-xs text-muted-foreground">Regras da unidade para este colaborador. Desligue para tirá-lo da regra.</p>
+          {unidade?.banco_horas && (
+            <label className="flex items-center justify-between gap-3 text-sm">
+              <span>Usa Banco de Horas</span>
+              <Switch checked={usaBanco} disabled={salvando || excecao.isLoading} onCheckedChange={(v) => definir("usa_banco_horas", v)} />
+            </label>
+          )}
+          {unidade?.compensa_feriados && (
+            <label className="flex items-center justify-between gap-3 text-sm">
+              <span>Usa Compensação de Feriados</span>
+              <Switch checked={usaFeriados} disabled={salvando || excecao.isLoading} onCheckedChange={(v) => definir("usa_compensa_feriados", v)} />
+            </label>
+          )}
+        </div>
+      )}
+      {pendentes.length > 1 && (
+        <div className="space-y-1.5 rounded-lg bg-primary/5 p-2.5">
+          <p className="text-sm font-medium">Termo Único</p>
+          <p className="text-xs text-muted-foreground">Junte os {pendentes.length} acordos pendentes em um só documento, com uma única assinatura.</p>
+          <Button type="button" size="sm" disabled={status.isLoading || extras.isLoading} onClick={() => setPrevia(pendentes)}>
+            Revisar e Gerar Termo Único
+          </Button>
+        </div>
+      )}
       {tipos.map((t) => {
         const s = status.data?.[t];
         return (
@@ -121,7 +174,7 @@ export function CompensacaoJornadaBox({ companyId, colaboradorId, nome, cpf, reg
                 )}
               </p>
             ) : (
-              <Button type="button" size="sm" disabled={status.isLoading || extras.isLoading} onClick={() => setPrevia(t)}>
+              <Button type="button" size="sm" disabled={status.isLoading || extras.isLoading} variant={pendentes.length > 1 ? "outline" : "default"} onClick={() => setPrevia([t])}>
                 Revisar e Gerar Termo
               </Button>
             )}
@@ -132,8 +185,7 @@ export function CompensacaoJornadaBox({ companyId, colaboradorId, nome, cpf, reg
         <TermoCompensacaoPreviaDialog
           open={!!previa}
           onOpenChange={(v) => { if (!v) setPrevia(null); }}
-          tipo={previa}
-          bancoDisponivel={!!unidade?.banco_horas}
+          disponiveis={previa}
           companyId={companyId}
           colaboradorId={colaboradorId}
           partes={{

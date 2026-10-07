@@ -29,6 +29,13 @@
       "when": 1791396436786,
       "tag": "0003_whatsapp_envios_tipo_ata",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791399512868,
+      "tag": "0004_dp_colaborador_compensacao",
+      "breakpoints": true
     }
   ]
 }
