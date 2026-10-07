@@ -377,7 +377,7 @@ export default function DpRecibos() {
             <Button size="sm" variant="outline" className="rounded-full"><Pencil className="h-4 w-4 mr-1" />Corrigir</Button>
           </ConfirmarAcaoDialog>
         )}
-        <Button size="sm" variant="outline" className="rounded-full" onClick={() => carregarNoFormulario(r, "duplicar")}><Copy className="h-4 w-4 mr-1" />Criar a Partir Deste</Button>
+        <Button size="sm" variant="outline" className="rounded-full" onClick={() => setDuplicarDe(r)}><Copy className="h-4 w-4 mr-1" />Criar a Partir Deste</Button>
         {assinado && ativo && (
           <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600"><CheckCircle2 className="h-4 w-4" />Assinado</span>
         )}
@@ -753,7 +753,7 @@ export default function DpRecibos() {
         onCancelar={cancelar}
         onEditar={(r) => carregarNoFormulario(r, "editar")}
         onNovaVia={(r) => carregarNoFormulario(r, "nova_via")}
-        onDuplicar={(r) => carregarNoFormulario(r, "duplicar")}
+        onDuplicar={(r) => setDuplicarDe(r)}
       />
     </DpPage>
   );
