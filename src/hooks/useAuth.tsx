@@ -95,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (event === "SIGNED_IN") {
         setTimeout(() => void assumirSessao(), 0);
+        setTimeout(() => void sinalizarTipoAcesso(session), 0);
       }
     });
 
