@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
         .select("id")
         .eq("user_id", user.id)
         .eq("module", plan.module ?? "financeiro")
-        .in("status", ["trialing", "active", "past_due", "pending"])
+        .in("status", ["trialing", "active", "past_due", "pending", "grace"])
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
       await admin.from("subscriptions")
         .update({ status: "canceled", canceled_at: now.toISOString() })
         .eq("user_id", user.id)
-        .in("status", ["trialing", "active", "past_due", "pending"]);
+        .in("status", ["trialing", "active", "past_due", "pending", "grace"]);
 
       const { data: sub, error: subErr } = await admin.from("subscriptions").insert({
         user_id: user.id, plan_id: plan.id, status: "active",
@@ -249,7 +249,7 @@ Deno.serve(async (req) => {
     const { data: prevSubs } = await admin
       .from("subscriptions").select("id, external_subscription_id")
       .eq("user_id", user.id)
-      .in("status", ["trialing", "active", "past_due", "pending"]);
+      .in("status", ["trialing", "active", "past_due", "pending", "grace"]);
 
     for (const ps of prevSubs ?? []) {
       if (ps.external_subscription_id) {
