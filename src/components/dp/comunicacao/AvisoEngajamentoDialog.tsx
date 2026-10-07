@@ -30,16 +30,16 @@ export function AvisoEngajamentoDialog({
 
   return (
     <Dialog open={!!avisoId} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="truncate">Engajamento — {titulo}</DialogTitle>
+      <DialogContent className="flex max-h-[90dvh] w-[calc(100vw-1.5rem)] max-w-lg flex-col overflow-hidden p-4 sm:p-6">
+        <DialogHeader className="min-w-0 pr-6">
+          <DialogTitle className="break-words text-left text-base leading-snug">Engajamento — {titulo}</DialogTitle>
         </DialogHeader>
 
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Carregando…</p>
         ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="min-w-0 flex-1 space-y-4 overflow-y-auto">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-md border p-3">
                 <p className="text-xs text-muted-foreground">Confirmações de leitura</p>
                 <p className="text-xl font-semibold">
@@ -72,12 +72,12 @@ export function AvisoEngajamentoDialog({
               {comentarios.length === 0 ? (
                 <p className="text-xs text-muted-foreground">Nenhum comentário.</p>
               ) : (
-                <div className="max-h-64 space-y-2 overflow-y-auto">
+                <div className="space-y-2">
                   {comentarios.map((c) => (
-                    <div key={c.id} className="rounded-md border p-2 text-sm">
+                    <div key={c.id} className="min-w-0 rounded-md border p-2 text-sm">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-medium">{c.autor_nome ?? "Colaborador"}</span>
-                        <div className="flex items-center gap-1">
+                        <span className="min-w-0 truncate text-xs font-medium">{c.autor_nome ?? "Colaborador"}</span>
+                        <div className="flex shrink-0 items-center gap-1">
                           <Badge
                             variant={c.status === "aprovado" ? "default" : c.status === "oculto" ? "destructive" : "outline"}
                             className="text-[10px] capitalize"
@@ -89,8 +89,8 @@ export function AvisoEngajamentoDialog({
                           </span>
                         </div>
                       </div>
-                      <p className="mt-1 whitespace-pre-wrap">{c.conteudo}</p>
-                      <div className="mt-2 flex gap-2">
+                      <p className="mt-1 whitespace-pre-wrap break-words">{c.conteudo}</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
                         {c.status !== "aprovado" && (
                           <Button size="sm" variant="outline" onClick={() => moderar.mutate({ id: c.id, status: "aprovado" })}>
                             <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Aprovar
