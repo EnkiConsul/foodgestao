@@ -21,6 +21,7 @@ export const DP_SCREEN_DESCRIPTIONS: Record<string, string> = {
   "/dp/modelos-mensagem": "Modelos de mensagem da empresa com variáveis.",
   "/dp/avisos": "Quadro de avisos visível no portal do colaborador.",
   "/dp/notificacoes": "Notificações enviadas e recebidas.",
+  "/dp/whatsapp-envios": "Acompanhe convites de acesso, nova senha e links de recibos enviados pelo WhatsApp.",
 
   // Rotina
   "/dp/escalas/mes": "Escala e operação do mês por unidade e turno.",
