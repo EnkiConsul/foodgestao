@@ -41,6 +41,8 @@ export function mensagemErroRegra(erro: unknown, fallback = "Não foi possível 
   if (msg.includes("AVISO_CONTEUDO_INVALIDO")) return "Escreva o conteúdo do aviso.";
   if (msg.includes("AVISO_PRIORIDADE_INVALIDA")) return "Prioridade inválida.";
   if (msg.includes("AVISO_ESCOPO_INVALIDO")) return "Público do aviso inválido.";
+  if (msg.includes("AVISO_PUBLICO_VAZIO")) return "Escolha ao menos um filtro de público (unidade, cargo, setor, sindicato, vínculo ou colaboradores).";
+  if (msg.includes("AVISO_PUBLICO_INVALIDO")) return "Algum item do público não pertence a esta empresa. Revise a seleção e salve de novo.";
   if (msg.includes("AVISO_SEM_COMENTARIOS")) return "Este aviso não aceita comentários.";
   if (msg.includes("COMENTARIO_VAZIO")) return "Escreva o comentário.";
   if (msg.includes("COMENTARIO_LONGO")) return "O comentário está longo demais.";
