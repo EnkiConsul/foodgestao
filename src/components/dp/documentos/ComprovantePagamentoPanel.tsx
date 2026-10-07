@@ -531,6 +531,36 @@ export function ComprovanteAnexarDialog(props: {
               if (canalRecibo === "portal" && props.alvo.colaboradorId) {
                 await emitirReciboEspecieParaAssinatura(props.alvo.documentoId);
                 toast.success("Recibo enviado para o colaborador assinar no Meu Portal.");
+              } else if (canalRecibo === "whatsapp" && props.alvo.colaboradorId && selectedCompanyId) {
+                const saida = await emitirRecibo({
+                  company_id: selectedCompanyId,
+                  colaborador_id: props.alvo.colaboradorId,
+                  natureza: "outros",
+                  descricao: `Quitação em dinheiro — ${props.documentoTitulo ?? "pagamento"}`,
+                  competencia: props.competencia ?? check.valor.slice(0, 7),
+                  pago_em: check.valor,
+                  valor_cents: quitacao.especieCents ?? 0,
+                  modalidade: quitacao.modalidade === "misto" ? "misto" : "especie",
+                  valor_bancario_cents: quitacao.bancarioCents,
+                  valor_especie_cents: quitacao.especieCents,
+                  canal_assinatura: "whatsapp",
+                });
+                if (saida.documento_id) {
+                  await supabase.rpc("dp_comprovante_recibo_vincular", {
+                    p_documento_id: props.alvo.documentoId,
+                    p_recibo_id: saida.documento_id,
+                  });
+                }
+                if (saida.link && saida.whatsapp) {
+                  window.open(
+                    whatsappUrl(saida.whatsapp, props.colaboradorNome ?? "", saida.link),
+                    "_blank",
+                    "noopener",
+                  );
+                  toast.success("Recibo gerado. Envie o link pelo WhatsApp que abriu.");
+                } else {
+                  toast.success("Recibo gerado. O link de assinatura está na tela de Recibos.");
+                }
               } else {
                 setReciboPrevia(await reciboEspeciePdf(props.alvo.documentoId));
               }
