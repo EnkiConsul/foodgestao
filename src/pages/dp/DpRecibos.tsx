@@ -6,6 +6,10 @@ import { CheckCircle2, Copy, Download, Eye, Link2, Loader2, MessageCircle, Penci
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { ViaAssinadaBotao } from "@/components/dp/documentos/ViaAssinadaBotao";
 import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
+import {
+  AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { DP_DOCUMENTOS_BUCKET } from "@/lib/documentoArquivo";
 import { PessoaApoioFormDialog } from "@/components/dp/PessoaApoioFormDialog";
 import { DpDocumentosAbas } from "@/components/dp/documentos/DpDocumentosAbas";
@@ -102,6 +106,7 @@ export default function DpRecibos() {
   const [cadastrado, setCadastrado] = useState(false);
   const apoios = useDpPessoasApoio();
   const [detalhe, setDetalhe] = useState<ReciboDetalhado | null>(null);
+  const [duplicarDe, setDuplicarDe] = useState<ReciboDetalhado | null>(null);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [substituiId, setSubstituiId] = useState<string | null>(null);
   // Feedback de abertura: Visualizar/Baixar buscam ou geram PDF no servidor e podem demorar.
@@ -237,15 +242,24 @@ export default function DpRecibos() {
    * (substitui o original) ou "criar a partir deste" (recibo novo e independente,
    * com data de pagamento hoje e competência atual).
    */
-  function carregarNoFormulario(r: ReciboDetalhado, modo: "editar" | "nova_via" | "duplicar") {
+  function carregarNoFormulario(
+    r: ReciboDetalhado,
+    modo: "editar" | "nova_via" | "duplicar",
+    manterPessoa = true,
+  ) {
     const duplicar = modo === "duplicar";
     setDetalhe(null);
+    setDuplicarDe(null);
     setResultado(null);
     setAba("emitir");
     setUnidadeId((r as { unidade_id?: string | null }).unidade_id ?? "");
-    if (r.colaborador_id) { setColabId(r.colaborador_id); }
-    else { setColabId(AVULSO); setNome(r.beneficiario_nome); setCpf(r.beneficiario_cpf ?? ""); }
-    setWhats(r.beneficiario_whatsapp ?? "");
+    if (!manterPessoa) {
+      setColabId(""); setNome(""); setCpf(""); setWhats("");
+    } else {
+      if (r.colaborador_id) { setColabId(r.colaborador_id); }
+      else { setColabId(AVULSO); setNome(r.beneficiario_nome); setCpf(r.beneficiario_cpf ?? ""); }
+      setWhats(r.beneficiario_whatsapp ?? "");
+    }
     setNatureza(r.natureza as NaturezaRecibo);
     setDescricao(r.descricao ?? "");
     setCompetencia(duplicar ? hoje().slice(0, 7) : r.competencia.slice(0, 7));
@@ -367,7 +381,7 @@ export default function DpRecibos() {
             <Button size="sm" variant="outline" className="rounded-full"><Pencil className="h-4 w-4 mr-1" />Corrigir</Button>
           </ConfirmarAcaoDialog>
         )}
-        <Button size="sm" variant="outline" className="rounded-full" onClick={() => carregarNoFormulario(r, "duplicar")}><Copy className="h-4 w-4 mr-1" />Criar a Partir Deste</Button>
+        <Button size="sm" variant="outline" className="rounded-full" onClick={() => setDuplicarDe(r)}><Copy className="h-4 w-4 mr-1" />Criar a Partir Deste</Button>
         {assinado && ativo && (
           <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600"><CheckCircle2 className="h-4 w-4" />Assinado</span>
         )}
@@ -743,8 +757,32 @@ export default function DpRecibos() {
         onCancelar={cancelar}
         onEditar={(r) => carregarNoFormulario(r, "editar")}
         onNovaVia={(r) => carregarNoFormulario(r, "nova_via")}
-        onDuplicar={(r) => carregarNoFormulario(r, "duplicar")}
+        onDuplicar={(r) => setDuplicarDe(r)}
       />
+      <AlertDialog open={!!duplicarDe} onOpenChange={(o) => !o && setDuplicarDe(null)}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aproveitar Dados do Recibo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Natureza, valor, descrição, forma de pagamento e assinatura serão copiados.
+              Deseja manter {duplicarDe?.beneficiario_nome ?? "a mesma pessoa"} ou escolher outra?
+              {(() => {
+                const c = (colabs.data ?? []).find((x: any) => x.id === duplicarDe?.colaborador_id) as any;
+                return c?.ativo === false ? " Atenção: esta pessoa está desligada." : "";
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col-reverse gap-2 sm:flex-row">
+            <AlertDialogCancel className="min-h-10">Voltar</AlertDialogCancel>
+            <Button variant="outline" className="min-h-10" onClick={() => duplicarDe && carregarNoFormulario(duplicarDe, "duplicar", true)}>
+              Manter a Pessoa
+            </Button>
+            <Button className="min-h-10" onClick={() => duplicarDe && carregarNoFormulario(duplicarDe, "duplicar", false)}>
+              Escolher Outra Pessoa
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DpPage>
   );
 }
