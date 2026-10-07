@@ -66,6 +66,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    // Sinaliza o tipo de acesso logo após o login (gestor x colaborador).
+    const sinalizarTipoAcesso = async (session: Session | null) => {
+      if (!session?.user) return;
+      try {
+        const { resolveLandingTarget } = await import("@/lib/auth/landing");
+        const target = await resolveLandingTarget(session.user.id);
+        if (target.kind === "portal") {
+          toast("👤 Conectado ao Meu Portal", {
+            description: "Acesso de colaborador: escalas, folgas, holerites e assinaturas.",
+            duration: 6000,
+          });
+        } else {
+          toast("🏢 Conectado como Gestor(a)", {
+            description: "Painel administrativo da empresa e módulos de gestão.",
+            duration: 6000,
+          });
+        }
+      } catch {
+        /* sinalização é informativa; não bloqueia a entrada */
+      }
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       applySession(session);
       if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
@@ -73,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (event === "SIGNED_IN") {
         setTimeout(() => void assumirSessao(), 0);
+        setTimeout(() => void sinalizarTipoAcesso(session), 0);
       }
     });
 
