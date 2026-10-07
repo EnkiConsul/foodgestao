@@ -44,7 +44,6 @@ import {
   NATUREZAS_RECIBO,
   reciboPdfUrl,
   statusRecibo,
-  valorSugeridoCents,
   dataSugeridaPagamento,
   whatsappUrl,
   type CanalAssinatura,
@@ -127,13 +126,7 @@ export default function DpRecibos() {
     if (colab && colab.ativo === false) setMostrarInativos(true);
   }, [colab, unidadeId]);
 
-  // Valor sugerido da ficha ao trocar pessoa/natureza (o gestor pode ajustar).
-  // Sem sugestão, o campo fica vazio — nunca herda o valor do recibo anterior.
-  useEffect(() => {
-    if (editandoId || substituiId) return;
-    const sug = valorSugeridoCents(colab ?? null, natureza);
-    setValor(sug ? fmtBRL(sug) : "");
-  }, [colab, natureza, editandoId, substituiId]);
+  // O valor começa vazio: o gestor digita o valor real do pagamento.
   useEffect(() => {
     if (avulso && canal === "portal") setCanal("whatsapp");
     if (colab) setWhats(String(colab.whatsapp || colab.telefone || ""));
@@ -238,8 +231,13 @@ export default function DpRecibos() {
     setPagoEm(hoje()); setPagoEmManual(false); setEditandoId(null); setSubstituiId(null);
   }
 
-  /** Carrega um recibo no formulário (edição de pendente ou nova via de assinado). */
-  function carregarNoFormulario(r: ReciboDetalhado, modo: "editar" | "nova_via") {
+  /**
+   * Carrega um recibo no formulário: edição de pendente, nova via de assinado
+   * (substitui o original) ou "criar a partir deste" (recibo novo e independente,
+   * com data de pagamento hoje e competência atual).
+   */
+  function carregarNoFormulario(r: ReciboDetalhado, modo: "editar" | "nova_via" | "duplicar") {
+    const duplicar = modo === "duplicar";
     setDetalhe(null);
     setResultado(null);
     setAba("emitir");
@@ -249,8 +247,8 @@ export default function DpRecibos() {
     setWhats(r.beneficiario_whatsapp ?? "");
     setNatureza(r.natureza as NaturezaRecibo);
     setDescricao(r.descricao ?? "");
-    setCompetencia(r.competencia.slice(0, 7));
-    setPagoEm(r.pago_em.slice(0, 10));
+    setCompetencia(duplicar ? hoje().slice(0, 7) : r.competencia.slice(0, 7));
+    setPagoEm(duplicar ? hoje() : r.pago_em.slice(0, 10));
     setPagoEmManual(true);
     setValor(fmtBRL(r.valor_cents));
     setModalidade(r.modalidade);
@@ -259,6 +257,7 @@ export default function DpRecibos() {
     setCanal(r.canal_assinatura as CanalAssinatura);
     setEditandoId(modo === "editar" ? r.id : null);
     setSubstituiId(modo === "nova_via" ? r.id : null);
+    if (duplicar) toast.info("Dados copiados para um novo recibo. Confira e emita.");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -367,6 +366,7 @@ export default function DpRecibos() {
             <Button size="sm" variant="outline" className="rounded-full"><Pencil className="h-4 w-4 mr-1" />Corrigir</Button>
           </ConfirmarAcaoDialog>
         )}
+        <Button size="sm" variant="outline" className="rounded-full" onClick={() => carregarNoFormulario(r, "duplicar")}><Copy className="h-4 w-4 mr-1" />Criar a Partir Deste</Button>
         {assinado && ativo && (
           <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600"><CheckCircle2 className="h-4 w-4" />Assinado</span>
         )}
@@ -553,10 +553,7 @@ export default function DpRecibos() {
           </div>
           <div className="space-y-1.5">
             <Label>Valor Total (R$)</Label>
-            <Input value={valor} inputMode="decimal" onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
-            {colab && valorSugeridoCents(colab, natureza) && (
-              <p className="text-xs text-muted-foreground">Sugerido pela ficha; ajuste se precisar.</p>
-            )}
+            <CurrencyInput value={valor} inputMode="numeric" onValueChange={(v) => setValor(v.replace(/^-/, ""))} placeholder="0,00" />
           </div>
           <div className="space-y-1.5 md:col-span-2">
             <Label>Descrição (Opcional)</Label>
@@ -575,8 +572,8 @@ export default function DpRecibos() {
           </RadioGroup>
           {modalidade === "misto" && (
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5"><Label>Parte em Conta (R$)</Label><Input value={valorBanco} inputMode="decimal" onChange={(e) => setValorBanco(e.target.value)} /></div>
-              <div className="space-y-1.5"><Label>Parte em Dinheiro (R$)</Label><Input value={valorEspecie} inputMode="decimal" onChange={(e) => setValorEspecie(e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Parte em Conta (R$)</Label><CurrencyInput value={valorBanco} inputMode="numeric" onValueChange={(v) => setValorBanco(v.replace(/^-/, ""))} placeholder="0,00" /></div>
+              <div className="space-y-1.5"><Label>Parte em Dinheiro (R$)</Label><CurrencyInput value={valorEspecie} inputMode="numeric" onValueChange={(v) => setValorEspecie(v.replace(/^-/, ""))} placeholder="0,00" /></div>
             </div>
           )}
         </div>
@@ -745,6 +742,7 @@ export default function DpRecibos() {
         onCancelar={cancelar}
         onEditar={(r) => carregarNoFormulario(r, "editar")}
         onNovaVia={(r) => carregarNoFormulario(r, "nova_via")}
+        onDuplicar={(r) => carregarNoFormulario(r, "duplicar")}
       />
     </DpPage>
   );
