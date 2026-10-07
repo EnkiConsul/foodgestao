@@ -287,6 +287,11 @@ function RootGate() {
 
   if (loading || (user && !target)) return <PageSpinner />;
   if (user && target) return <Navigate to={target} replace />;
+  // App instalado (PWA) sem sessão: quem abre pelo ícone é cliente/colaborador,
+  // não visitante do site — vai direto para o login em vez da Landing Page.
+  if (isStandalone() || new URLSearchParams(window.location.search).get("pwa") === "1") {
+    return <Navigate to="/login" replace />;
+  }
   return <Landing />;
 }
 
