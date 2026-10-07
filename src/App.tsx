@@ -30,6 +30,7 @@ import { useCompanyAccess } from "@/hooks/useCompanyAccess";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { ProtectedRoute, OnboardingGuard } from "@/routes/onboardingGuards";
 import { resolveLandingTarget } from "@/lib/auth/landing";
+import { isStandalone } from "@/components/pwa/InstallPrompt";
 import { PageSpinner } from "@/components/PageSpinner";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
