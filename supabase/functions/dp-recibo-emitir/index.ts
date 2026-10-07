@@ -28,6 +28,20 @@ import {
   reciboDaLinha,
 } from "../_shared/recibo-pdf.ts";
 import { centsParaBRL } from "../_shared/quitacao.ts";
+import { enviarWhatsappAveto, primeiroNome, type EnvioWhatsapp } from "../_shared/whatsapp-aveto.ts";
+
+function mensagemRecibo(nome: string | null | undefined, empresa: string | null | undefined, link: string): string {
+  const p = primeiroNome(nome);
+  return [
+    `*Aveto 360* - Olá${p ? `, ${p}` : ""}!`,
+    "",
+    `${empresa ? `A *${empresa}*` : "Sua empresa"} enviou um recibo de pagamento para você conferir e assinar digitalmente.`,
+    "",
+    `👉 ${link}`,
+    "",
+    "Para assinar, confirme seu CPF. O link é pessoal e vale por 15 dias.",
+  ].join("\n");
+}
 
 const FUNCAO = "dp-recibo-emitir";
 const BUCKET = "dp-documentos";
@@ -258,7 +272,11 @@ Deno.serve(async (req) => {
       if (row.canal_assinatura !== "whatsapp") {
         return erro(409, "Este recibo não foi emitido para assinatura por link.");
       }
-      return json(200, { ...(await novoLink(admin, row.id, req)), whatsapp: row.beneficiario_whatsapp });
+      const nl = await novoLink(admin, row.id, req);
+      const { data: inf } = await admin.from("dp_recibos").select("beneficiario_nome, company_id").eq("id", row.id).maybeSingle();
+      const { data: emp } = await admin.from("companies").select("name, trade_name").eq("id", inf?.company_id ?? "").maybeSingle();
+      const env = await enviarWhatsappAveto(row.beneficiario_whatsapp, mensagemRecibo(inf?.beneficiario_nome, emp?.trade_name || emp?.name, nl.link));
+      return json(200, { ...nl, whatsapp: row.beneficiario_whatsapp, whatsapp_enviado: env.enviado, whatsapp_erro: env.erro ?? null });
     }
 
     // ---------------- emitir ----------------
@@ -387,7 +405,11 @@ Deno.serve(async (req) => {
     }
 
     let link: { link: string; expira_em: string } | null = null;
-    if (b.canal_assinatura === "whatsapp") link = await novoLink(admin, row.id, req);
+    let envioWa: EnvioWhatsapp | null = null;
+    if (b.canal_assinatura === "whatsapp") {
+      link = await novoLink(admin, row.id, req);
+      envioWa = await enviarWhatsappAveto(whatsapp, mensagemRecibo(nome, empresa?.trade_name || empresa?.name, link.link));
+    }
 
     // Pendências do mês passam a refletir o novo documento.
     if (b.colaborador_id) {
@@ -399,6 +421,7 @@ Deno.serve(async (req) => {
       documento_id: atualiza.documento_id ?? null,
       whatsapp: whatsapp || null,
       ...(link ?? {}),
+      ...(envioWa ? { whatsapp_enviado: envioWa.enviado, whatsapp_erro: envioWa.erro ?? null } : {}),
     });
   } catch (e) {
     await recordEdgeError({ functionName: FUNCAO, action: "emitir recibo", error: e, companyId });
