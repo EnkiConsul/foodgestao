@@ -56,6 +56,7 @@ const TIPO_ICON: Record<UnifiedTipo, any> = {
   desligamento: FileText,
   ferias: FileText,
   recibo_pagamento: Receipt,
+  ata_reuniao: Files,
   outros: Files,
 };
 
@@ -78,6 +79,7 @@ const ALL_TABS: { key: "all" | UnifiedTipo; label: string; requiresPonto?: boole
   { key: "admissao", label: "Admissão" },
   { key: "desligamento", label: "Desligamento" },
   { key: "recibo_pagamento", label: "Recibos de Pagamento" },
+  { key: "ata_reuniao", label: "Atas de Reunião" },
   { key: "outros", label: "Outros", hasEnvio: true },
 ];
 
