@@ -21,7 +21,19 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useDpAvisos, type DpAviso } from "@/hooks/useDpComunicacao";
-import { useDpUnidades } from "@/hooks/useDpCadastros";
+import { useDpUnidades, useDpCargos, useDpSindicatos } from "@/hooks/useDpCadastros";
+import { useDpSetores } from "@/hooks/useDpSetores";
+import { MultiSelectFilter } from "@/components/lancamentos/MultiSelectFilter";
+
+type Publico = {
+  unidades: string[]; cargos: string[]; setores: string[];
+  sindicatos: string[]; regimes: string[]; colaboradores: string[];
+};
+const REGIMES = [
+  { id: "clt", name: "CLT" }, { id: "intermitente", name: "Intermitente" },
+  { id: "freelancer", name: "Freelancer" }, { id: "estagio", name: "Estágio" },
+  { id: "temporario", name: "Temporário" }, { id: "pj", name: "PJ" }, { id: "mei", name: "MEI" },
+];
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,10 +62,21 @@ export function AvisoDialog({
   const [conteudo, setConteudo] = useState(aviso?.conteudo ?? "");
   const [dataInicio, setDataInicio] = useState(aviso?.publicado_em?.slice(0, 10) ?? new Date().toISOString().slice(0, 10));
   const [dataFim, setDataFim] = useState(aviso?.expira_em?.slice(0, 10) ?? "");
-  const [destinatario, setDestinatario] = useState<string>(
-    aviso?.escopo === "unidade" ? `unidade:${aviso.unidade_id}` :
-    (aviso as any)?.escopo === "colaborador" ? `colaborador:${(aviso as any).colaborador_id}` : "todos"
+  const publicoInicial = ((): Publico => {
+    const a = aviso as any;
+    const base: Publico = { unidades: [], cargos: [], setores: [], sindicatos: [], regimes: [], colaboradores: [] };
+    if (!a) return base;
+    if (a.escopo === "segmentado" && a.publico) return { ...base, ...a.publico };
+    if (a.escopo === "unidade" && a.unidade_id) return { ...base, unidades: [a.unidade_id] };
+    if (a.escopo === "cargo" && a.cargo_id) return { ...base, cargos: [a.cargo_id] };
+    if (a.escopo === "colaborador" && a.colaborador_id) return { ...base, colaboradores: [a.colaborador_id] };
+    return base;
+  })();
+  const [modoPublico, setModoPublico] = useState<"todos" | "segmentado">(
+    aviso && aviso.escopo !== "todos" ? "segmentado" : "todos",
   );
+  const [publico, setPublico] = useState<Publico>(publicoInicial);
+  const setP = (k: keyof Publico) => (v: string[]) => setPublico((p) => ({ ...p, [k]: v }));
   const [arquivoPath, setArquivoPath] = useState(aviso?.arquivo_path ?? "");
   const [arquivoMime, setArquivoMime] = useState(aviso?.arquivo_mime ?? "");
   const [uploading, setUploading] = useState(false);
@@ -64,6 +87,28 @@ export function AvisoDialog({
 
   const unidades = useDpUnidades();
   const colaboradores = useDpColaboradores();
+  const cargos = useDpCargos();
+  const sindicatos = useDpSindicatos();
+  const { todos: setores } = useDpSetores();
+
+  const colabsAtivos = useMemo(
+    () => ((colaboradores.data ?? []) as any[]).filter((c) => !c.desligado_em && c.ativo !== false),
+    [colaboradores.data],
+  );
+  const filtrosSegmento = publico.unidades.length + publico.cargos.length + publico.setores.length
+    + publico.sindicatos.length + publico.regimes.length;
+  const alcance = useMemo(() => {
+    if (modoPublico === "todos") return colabsAtivos.length;
+    return colabsAtivos.filter((c) => {
+      if (publico.colaboradores.includes(c.id)) return true;
+      if (filtrosSegmento === 0) return false;
+      const ok = (lista: string[], v: string | null) => lista.length === 0 || (!!v && lista.includes(v));
+      return ok(publico.unidades, c.unidade_id) && ok(publico.cargos, c.cargo_id)
+        && ok(publico.setores, c.setor_id) && ok(publico.sindicatos, c.sindicato_id)
+        && ok(publico.regimes, c.regime);
+    }).length;
+  }, [modoPublico, colabsAtivos, publico, filtrosSegmento]);
+  const publicoVazio = modoPublico === "segmentado" && filtrosSegmento === 0 && publico.colaboradores.length === 0;
 
   const uploadFile = async (escolhido: File) => {
     if (!companyId) return toast.error("Selecione uma empresa");
@@ -90,18 +135,16 @@ export function AvisoDialog({
   };
 
   const parseDest = () => {
-    if (destinatario.startsWith("unidade:")) {
-      return { escopo: "unidade" as const, unidade_id: destinatario.split(":")[1], cargo_id: null, colaborador_id: null };
+    if (modoPublico === "segmentado") {
+      return { escopo: "segmentado" as any, unidade_id: null, cargo_id: null, colaborador_id: null, publico };
     }
-    if (destinatario.startsWith("colaborador:")) {
-      return { escopo: "colaborador" as any, unidade_id: null, cargo_id: null, colaborador_id: destinatario.split(":")[1] };
-    }
-    return { escopo: "todos" as const, unidade_id: null, cargo_id: null, colaborador_id: null };
+    return { escopo: "todos" as const, unidade_id: null, cargo_id: null, colaborador_id: null, publico: null };
   };
+  const ms = "mt-0 h-10 text-sm px-3";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{aviso ? "Editar Aviso" : "Novo Aviso"}</DialogTitle>
         </DialogHeader>
@@ -124,26 +167,67 @@ export function AvisoDialog({
               <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
             </div>
           </div>
-          <div>
-            <Label>Destinatário</Label>
-            <Select value={destinatario} onValueChange={setDestinatario}>
+          <div className="space-y-3">
+            <Label>Público</Label>
+            <Select value={modoPublico} onValueChange={(v) => setModoPublico(v as any)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os Colaboradores</SelectItem>
-                {(unidades.data ?? []).length > 0 && (
-                  <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Unidade Específica</div>
-                )}
-                {(unidades.data ?? []).map((u: any) => (
-                  <SelectItem key={`u-${u.id}`} value={`unidade:${u.id}`}>{u.nome}</SelectItem>
-                ))}
-                {(colaboradores.data ?? []).length > 0 && (
-                  <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Colaborador Específico</div>
-                )}
-                {(colaboradores.data ?? []).map((c: any) => (
-                  <SelectItem key={`c-${c.id}`} value={`colaborador:${c.id}`}>{nomeExibicao(c)}</SelectItem>
-                ))}
+                <SelectItem value="segmentado">Escolher Público (Unidade, Cargo, Setor…)</SelectItem>
               </SelectContent>
             </Select>
+            {modoPublico === "segmentado" && (
+              <div className="space-y-3 rounded-md border p-3">
+                <p className="text-xs text-muted-foreground">
+                  Combine os filtros: o aviso vai para quem atende a todos os filtros marcados. Colaboradores escolhidos na lista sempre recebem.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="min-w-0 space-y-1">
+                    <Label className="text-xs">Unidades</Label>
+                    <MultiSelectFilter triggerClassName={ms} value={publico.unidades} onChange={setP("unidades")}
+                      options={((unidades.data ?? []) as any[]).map((u) => ({ id: u.id, name: u.nome }))} />
+                  </div>
+                  <div className="min-w-0 space-y-1">
+                    <Label className="text-xs">Cargos</Label>
+                    <MultiSelectFilter triggerClassName={ms} allLabel="Todos" itemLabelSingular="selecionado" itemLabelPlural="selecionados"
+                      value={publico.cargos} onChange={setP("cargos")}
+                      options={((cargos.data ?? []) as any[]).map((c) => ({ id: c.id, name: c.nome }))} />
+                  </div>
+                  <div className="min-w-0 space-y-1">
+                    <Label className="text-xs">Setores</Label>
+                    <MultiSelectFilter triggerClassName={ms} allLabel="Todos" itemLabelSingular="selecionado" itemLabelPlural="selecionados"
+                      value={publico.setores} onChange={setP("setores")}
+                      options={setores.filter((s) => s.ativo).map((s) => {
+                        const un = ((unidades.data ?? []) as any[]).find((u) => u.id === s.unidade_id)?.nome;
+                        return { id: s.id, name: un ? `${s.nome} — ${un}` : s.nome };
+                      })} />
+                  </div>
+                  <div className="min-w-0 space-y-1">
+                    <Label className="text-xs">Sindicatos</Label>
+                    <MultiSelectFilter triggerClassName={ms} allLabel="Todos" itemLabelSingular="selecionado" itemLabelPlural="selecionados"
+                      value={publico.sindicatos} onChange={setP("sindicatos")}
+                      options={((sindicatos.data ?? []) as any[]).filter((s) => s.ativo !== false).map((s) => ({ id: s.id, name: s.nome }))} />
+                  </div>
+                  <div className="min-w-0 space-y-1">
+                    <Label className="text-xs">Vínculos</Label>
+                    <MultiSelectFilter triggerClassName={ms} allLabel="Todos" itemLabelSingular="selecionado" itemLabelPlural="selecionados"
+                      value={publico.regimes} onChange={setP("regimes")} options={REGIMES} />
+                  </div>
+                  <div className="min-w-0 space-y-1">
+                    <Label className="text-xs">Colaboradores Específicos</Label>
+                    <MultiSelectFilter triggerClassName={ms} allLabel="Nenhum" itemLabelSingular="selecionado" itemLabelPlural="selecionados"
+                      searchPlaceholder="Buscar colaborador..."
+                      value={publico.colaboradores} onChange={setP("colaboradores")}
+                      options={colabsAtivos.map((c) => ({ id: c.id, name: nomeExibicao(c) }))} />
+                  </div>
+                </div>
+              </div>
+            )}
+            <p className={publicoVazio ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
+              {publicoVazio
+                ? "Escolha ao menos um filtro ou colaborador."
+                : `Alcance estimado: ${alcance} colaborador(es) ativo(s).`}
+            </p>
           </div>
           <div>
             <Label>Anexo (PDF ou Imagem)</Label>
@@ -185,7 +269,7 @@ export function AvisoDialog({
         <DialogFooter>
           <Button variant="outline" disabled={salvando} onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
-            disabled={!titulo || !conteudo || !dataInicio || !dataFim || uploading || salvando}
+            disabled={!titulo || !conteudo || !dataInicio || !dataFim || uploading || salvando || publicoVazio}
             onClick={async () => {
               if (salvando) return;
               const dest = parseDest();
@@ -245,6 +329,7 @@ export default function DpAvisos() {
   const destinoLabel = (a: DpAviso) => {
     if (a.escopo === "unidade") return "Unidade Específica";
     if ((a as any).escopo === "colaborador") return "Colaborador Específico";
+    if ((a as any).escopo === "segmentado") return "Público Segmentado";
     return "Todos os Colaboradores";
   };
 
