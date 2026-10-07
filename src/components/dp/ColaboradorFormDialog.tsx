@@ -2991,9 +2991,9 @@ export function ColaboradorFormDialog({
           {/* forceMount: mantém o horário digitado ao alternar de aba, para que o
               botão único do rodapé grave também esta aba. */}
           <TabsContent value="jornada" className="mt-4 data-[state=inactive]:hidden" forceMount>
-          {(colaborador?.id ?? criadoId) && form.company_id && (
+          {(colaborador?.id ?? criadoId) && selectedCompanyId && (
             <CompensacaoJornadaBox
-              companyId={form.company_id}
+              companyId={selectedCompanyId}
               colaboradorId={(colaborador?.id ?? criadoId)!}
               nome={form.nome}
               cpf={form.cpf}
