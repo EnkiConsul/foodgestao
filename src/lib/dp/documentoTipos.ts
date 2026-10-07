@@ -56,6 +56,7 @@ export type DpDocTipo =
   | "contrato"
   | "ficha_registro"
   | "termos"
+  | "ata_reuniao"
   | "termo_autorizacao"
   | "outros_admissao"
   | "aviso_previo"
@@ -369,6 +370,15 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
   },
 
   // ---------- Outros ----------
+  {
+    value: "ata_reuniao",
+    label: "Ata de Reunião",
+    grupo: "outros",
+    importavel: false,
+    exigeAceite: true,
+    keywords: ["ata de reuniao", "ata"],
+    badgeClass: "border-sky-300 text-sky-700",
+  },
   {
     value: "atestado",
     label: "Atestado",

@@ -106,6 +106,7 @@ const DpAvisos = lazyWithRetry(() => import("./pages/dp/DpAvisos"));
 const DpMensagens = lazyWithRetry(() => import("./pages/dp/DpMensagens"));
 const DpDisciplinar = lazyWithRetry(() => import("./pages/dp/DpDisciplinar"));
 const DpRecibos = lazyWithRetry(() => import("./pages/dp/DpRecibos"));
+const DpAtas = lazyWithRetry(() => import("./pages/dp/DpAtas"));
 const ReciboPublico = lazyWithRetry(() => import("./pages/ReciboPublico"));
 const DpConfiguracoes = lazyWithRetry(() => import("./pages/dp/DpConfiguracoes"));
 const DpAdminCalendario = lazyWithRetry(() => import("./pages/dp/DpAdminCalendario"));
@@ -531,6 +532,7 @@ const AppRoutes = () => (
         <Route path="geral" element={<DpGeralHub />} />
         <Route path="documentos/historico" element={<DpHistoricoCompleto />} />
         <Route path="documentos/recibos" element={<DpRecibos />} />
+        <Route path="documentos/atas" element={<DpAtas />} />
         <Route path="documentos/todos" element={<Navigate to="/dp/documentos/historico" replace />} />
         <Route path="documentos/contracheque" element={<Navigate to="/dp/documentos/historico?tipo=contracheque" replace />} />
         <Route path="documentos/ponto" element={<Navigate to="/dp/documentos/historico?tipo=ponto" replace />} />

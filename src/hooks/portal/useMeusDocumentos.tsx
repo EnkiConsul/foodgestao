@@ -21,6 +21,7 @@ export type UnifiedTipo =
   | "desligamento"
   | "ferias"
   | "recibo_pagamento"
+  | "ata_reuniao"
   | "outros";
 
 export type UnifiedOrigem = "dp" | "meu_envio" | "disciplinar" | "act_cct";
@@ -73,6 +74,7 @@ const TIPO_LABEL: Record<UnifiedTipo, string> = {
   desligamento: "Desligamento",
   ferias: "Férias",
   recibo_pagamento: "Recibo de Pagamento",
+  ata_reuniao: "Ata de Reunião",
   outros: "Outros",
 };
 
@@ -90,6 +92,7 @@ const KNOWN = new Set<string>([
   "desligamento",
   "ferias",
   "recibo_pagamento_especie",
+  "ata_reuniao",
 ]);
 
 function fmtCompetencia(iso?: string | null): { label: string; sort: string } {

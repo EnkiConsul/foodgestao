@@ -32,8 +32,7 @@ import {
   Upload,
   User,
   Users,
-  type LucideIcon,
-} from "lucide-react";
+  type LucideIcon, NotebookPen } from "lucide-react";
 
 
 /**
@@ -119,6 +118,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
         shortLabel: "Histórico",
       },
       { label: "Recibos", to: "/dp/documentos/recibos", icon: Receipt },
+      { label: "Atas de Reunião", to: "/dp/documentos/atas", icon: NotebookPen },
       { label: "Disciplinares", to: "/dp/disciplinar", icon: ShieldAlert },
     ],
   },
@@ -247,6 +247,7 @@ const PORTAL_GROUPS: DpNavGroup[] = [
 
 const PORTAL_DIRECT: DpNavItem[] = [
   { label: "Mural", to: "/dp/meu/mural", icon: Megaphone, shortcut: true },
+  { label: "Atas de Reunião", to: "/dp/meu/documentos?tipo=ata_reuniao", icon: NotebookPen, shortLabel: "Atas" },
   { label: "Meu Cadastro", to: "/dp/meu/perfil", icon: User, shortcut: true, shortLabel: "Perfil" },
 ];
 

@@ -1,11 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { FileUp, ListChecks, Receipt } from "lucide-react";
+import { FileUp, ListChecks, NotebookPen, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ABAS = [
   { to: "/dp/documentos", label: "Importar", icon: FileUp, end: true },
   { to: "/dp/documentos/historico", label: "Histórico", icon: ListChecks, end: false },
   { to: "/dp/documentos/recibos", label: "Recibos", icon: Receipt, end: false },
+  { to: "/dp/documentos/atas", label: "Atas", icon: NotebookPen, end: false },
 ];
 
 /** Atalhos entre as abas de Documentos do gestor (Importar, Histórico e Recibos). */
