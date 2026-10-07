@@ -3,7 +3,7 @@ import {
   DicaEnquadramento,
   acionarInput, useConferenciaDigitalizacao,
 } from "@/components/dp/documentos/ConferenciaDigitalizacao";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   BadgeCheck,
   Banknote,
@@ -460,6 +460,26 @@ export function ComprovanteAnexarDialog(props: {
   } | null>(null);
   const [gerandoRecibo, setGerandoRecibo] = useState(false);
   const [canalRecibo, setCanalRecibo] = useState<"portal" | "fisico" | "whatsapp">("portal");
+  const [linkWhats, setLinkWhats] = useState<{ url: string; link: string } | null>(null);
+  const contatoColab = useQuery({
+    queryKey: ["dp_colab_whatsapp_recibo", props.alvo.colaboradorId],
+    enabled: !!props.alvo.colaboradorId && props.open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("dp_colaboradores")
+        .select("whatsapp, telefone")
+        .eq("id", props.alvo.colaboradorId!)
+        .maybeSingle();
+      return String(data?.whatsapp || data?.telefone || "").replace(/\D+/g, "");
+    },
+  });
+  const semWhats = contatoColab.isSuccess && !contatoColab.data;
+  useEffect(() => {
+    if (semWhats && canalRecibo === "whatsapp") setCanalRecibo("portal");
+  }, [semWhats, canalRecibo]);
+  useEffect(() => {
+    if (!props.open) setLinkWhats(null);
+  }, [props.open]);
 
   const importar = async () => {
     let arquivoFinal = arquivo;
@@ -599,53 +619,59 @@ export function ComprovanteAnexarDialog(props: {
               );
           }
           void liquido.refetch();
-          props.onOpenChange(false);
-          if (exigeRecibo(quitacao.modalidade)) {
-            setGerandoRecibo(true);
-            try {
-              if (canalRecibo === "portal" && props.alvo.colaboradorId) {
-                await emitirReciboEspecieParaAssinatura(props.alvo.documentoId);
-                toast.success("Recibo enviado para o colaborador assinar no Meu Portal.");
-              } else if (canalRecibo === "whatsapp" && props.alvo.colaboradorId && selectedCompanyId) {
-                const saida = await emitirRecibo({
-                  company_id: selectedCompanyId,
-                  colaborador_id: props.alvo.colaboradorId,
-                  natureza: "outros",
-                  descricao: `Quitação em dinheiro — ${props.documentoTitulo ?? "pagamento"}`,
-                  competencia: props.competencia ?? check.valor.slice(0, 7),
-                  pago_em: check.valor,
-                  valor_cents: quitacao.especieCents ?? 0,
-                  modalidade: quitacao.modalidade === "misto" ? "misto" : "especie",
-                  valor_bancario_cents: quitacao.bancarioCents,
-                  valor_especie_cents: quitacao.especieCents,
-                  canal_assinatura: "whatsapp",
+          if (!exigeRecibo(quitacao.modalidade)) {
+            props.onOpenChange(false);
+            return;
+          }
+          // A janela fica aberta até o recibo ficar pronto.
+          setGerandoRecibo(true);
+          try {
+            if (canalRecibo === "portal" && props.alvo.colaboradorId) {
+              await emitirReciboEspecieParaAssinatura(props.alvo.documentoId);
+              toast.success("Recibo enviado para o colaborador assinar no Meu Portal.");
+              props.onOpenChange(false);
+            } else if (canalRecibo === "whatsapp" && props.alvo.colaboradorId && selectedCompanyId) {
+              const saida = await emitirRecibo({
+                company_id: selectedCompanyId,
+                colaborador_id: props.alvo.colaboradorId,
+                natureza: "outros",
+                descricao: `Quitação em dinheiro — ${props.documentoTitulo ?? "pagamento"}`,
+                competencia: props.competencia ?? check.valor.slice(0, 7),
+                pago_em: check.valor,
+                valor_cents: quitacao.especieCents ?? 0,
+                modalidade: quitacao.modalidade === "misto" ? "misto" : "especie",
+                valor_bancario_cents: quitacao.bancarioCents,
+                valor_especie_cents: quitacao.especieCents,
+                canal_assinatura: "whatsapp",
+              });
+              if (saida.documento_id) {
+                const { error } = await supabase.rpc("dp_comprovante_recibo_vincular", {
+                  p_documento_id: props.alvo.documentoId,
+                  p_recibo_id: saida.documento_id,
                 });
-                if (saida.documento_id) {
-                  await supabase.rpc("dp_comprovante_recibo_vincular", {
-                    p_documento_id: props.alvo.documentoId,
-                    p_recibo_id: saida.documento_id,
-                  });
-                }
-                if (saida.link && saida.whatsapp) {
-                  window.open(
-                    whatsappUrl(saida.whatsapp, props.colaboradorNome ?? "", saida.link),
-                    "_blank",
-                    "noopener",
-                  );
-                  toast.success("Recibo gerado. Envie o link pelo WhatsApp que abriu.");
-                } else {
-                  toast.success("Recibo gerado. O link de assinatura está na tela de Recibos.");
-                }
-              } else {
-                setReciboPrevia(await reciboEspeciePdf(props.alvo.documentoId));
+                if (error) toast.error("Recibo gerado, mas não foi ligado ao documento. Confira na tela de Recibos.");
               }
-            } catch (e) {
-              toast.error(
-                `Pagamento registrado, mas o recibo não foi gerado: ${(e as Error).message} Use as ações do recibo no painel do documento.`,
-              );
-            } finally {
-              setGerandoRecibo(false);
+              if (saida.link && saida.whatsapp) {
+                // O celular pode bloquear a abertura automática: o botão fica na tela.
+                setLinkWhats({
+                  url: whatsappUrl(saida.whatsapp, props.colaboradorNome ?? "", saida.link),
+                  link: saida.link,
+                });
+              } else {
+                toast.success("Recibo gerado. O link de assinatura está na tela de Recibos.");
+                props.onOpenChange(false);
+              }
+            } else {
+              setReciboPrevia(await reciboEspeciePdf(props.alvo.documentoId));
+              props.onOpenChange(false);
             }
+          } catch (e) {
+            toast.error(
+              `Pagamento registrado, mas o recibo não foi gerado: ${(e as Error).message} Use as ações do recibo no painel do documento.`,
+            );
+            props.onOpenChange(false);
+          } finally {
+            setGerandoRecibo(false);
           }
         },
       },
@@ -1000,7 +1026,7 @@ export function ComprovanteAnexarDialog(props: {
                   type="button"
                   role="radio"
                   aria-checked={canalRecibo === o.v}
-                  disabled={o.v !== "fisico" && !props.alvo.colaboradorId}
+                  disabled={(o.v !== "fisico" && !props.alvo.colaboradorId) || (o.v === "whatsapp" && semWhats)}
                   onClick={() => setCanalRecibo(o.v)}
                   className={
                     "min-h-10 rounded-md px-2 text-xs font-medium transition-colors disabled:opacity-50 " +
@@ -1021,6 +1047,35 @@ export function ComprovanteAnexarDialog(props: {
           </div>
         ) : null}
 
+        {semWhats && exigeRecibo(modalidade) && !props.complementar ? (
+          <p className="text-xs text-muted-foreground">
+            Link pelo WhatsApp indisponível: o colaborador não tem WhatsApp na ficha. Cadastre o número ou use outra forma.
+          </p>
+        ) : null}
+
+        {linkWhats ? (
+          <div className="space-y-2 rounded-md border border-primary/40 bg-primary/5 p-3">
+            <p className="text-sm font-medium">Recibo gerado! Agora envie o link ao colaborador.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild size="sm">
+                <a href={linkWhats.url} target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(linkWhats.link).then(
+                    () => toast.success("Link copiado."),
+                    () => toast.error("Não foi possível copiar. Use a tela de Recibos."),
+                  );
+                }}
+              >
+                Copiar Link
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => props.onOpenChange(false)}>Concluir</Button>
+            </div>
+          </div>
+        ) : (
         <DialogFooter className="gap-2 sm:gap-2">
           <Button
             variant="outline"
@@ -1043,6 +1098,7 @@ export function ComprovanteAnexarDialog(props: {
             {semArquivoEspecie ? "Registrar e Gerar Recibo" : "Importar Comprovante"}
           </Button>
         </DialogFooter>
+        )}
         {semArquivoEspecie ? (
           <p className="text-xs text-muted-foreground">
             Sem comprovante do banco? Clique em "Registrar e Gerar Recibo": o pagamento fica
