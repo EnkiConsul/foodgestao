@@ -59,6 +59,10 @@ const blank = {
   possui_relogio_ponto: false,
   tem_adiantamento: false,
   dia_adiantamento: "" as string,
+  banco_horas: false,
+  compensa_feriados: false,
+  compensacao_feriado_antecedencia_dias: "2",
+  ciencia_sindical: false,
 };
 
 /** Unidade em edição — o mínimo que o formulário precisa para carregar. */
@@ -81,6 +85,10 @@ export interface UnidadeEdicao {
   relogio_ponto_dispensa_justificativa?: string | null;
   tem_adiantamento?: boolean | null;
   dia_adiantamento?: number | null;
+  banco_horas?: boolean | null;
+  compensa_feriados?: boolean | null;
+  compensacao_feriado_antecedencia_dias?: number | null;
+  compensacao_sindical_ciencia_em?: string | null;
 }
 
 /** Abas do cadastro de unidade. */
@@ -211,6 +219,10 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         possui_relogio_ponto: unidade.possui_relogio_ponto ?? false,
         tem_adiantamento: unidade.tem_adiantamento ?? false,
         dia_adiantamento: unidade.dia_adiantamento != null ? String(unidade.dia_adiantamento) : "",
+        banco_horas: unidade.banco_horas ?? false,
+        compensa_feriados: unidade.compensa_feriados ?? false,
+        compensacao_feriado_antecedencia_dias: String(unidade.compensacao_feriado_antecedencia_dias ?? 2),
+        ciencia_sindical: !!unidade.compensacao_sindical_ciencia_em,
       });
       return;
     }
@@ -244,6 +256,8 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
   });
   const ativosUnidade = lotacao.data ?? 0;
   const pontoObrigatorio = pontoObrigatorioPorLotacao(ativosUnidade);
+  const compensacaoAtiva = form.banco_horas || form.compensa_feriados;
+  const cienciaNova = form.ciencia_sindical && !unidade?.compensacao_sindical_ciencia_em;
   const pontoOriginal = unidade?.possui_relogio_ponto ?? false;
   const pontoAlterado = !!unidade && form.possui_relogio_ponto !== pontoOriginal;
   const justificativaAlterada =
@@ -256,6 +270,12 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
     }
     if (!form.nome.trim()) {
       toast.error("Nome é obrigatório");
+      return;
+    }
+    if (compensacaoAtiva && !form.ciencia_sindical) {
+      toast.error("Confirme a negociação com o sindicato", {
+        description: "Banco de horas e compensação de feriados precisam estar previstos na convenção ou acordo coletivo. Marque a confirmação para salvar.",
+      });
       return;
     }
     if (pontoObrigatorio && !form.possui_relogio_ponto && !justificativaValida(justificativaPonto)) {
@@ -294,6 +314,12 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         ...(unidadeId ? {} : { possui_relogio_ponto: form.possui_relogio_ponto }),
         tem_adiantamento: form.tem_adiantamento,
         dia_adiantamento: form.dia_adiantamento ? Number(form.dia_adiantamento) : null,
+        banco_horas: form.banco_horas,
+        compensa_feriados: form.compensa_feriados,
+        compensacao_feriado_antecedencia_dias: Math.min(60, Math.max(0, Number(form.compensacao_feriado_antecedencia_dias) || 0)),
+        ...(compensacaoAtiva && cienciaNova
+          ? { compensacao_sindical_ciencia_em: new Date().toISOString(), compensacao_sindical_ciencia_por: (await supabase.auth.getUser()).data.user?.id ?? null }
+          : {}),
       } as Parameters<typeof upsert.mutateAsync>[0]);
       if (unidadeId && (pontoAlterado || (!form.possui_relogio_ponto && justificativaAlterada))) {
         const { data: r, error: errPonto } = await supabase.rpc("dp_unidade_definir_ponto" as never, {
@@ -473,6 +499,49 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
                   ? "Ao salvar, a folha de ponto volta a ser exigida dos colaboradores com carteira assinada desta unidade (exceto dispensas individuais justificadas)."
                   : "Ao salvar, a folha de ponto deixa de ser exigida de todos os colaboradores desta unidade."}
               </p>
+            )}
+          </div>
+          <div className="space-y-3 rounded-xl border border-border p-3">
+            <div className="flex items-center space-x-2">
+              <Switch id="banco_horas" checked={form.banco_horas} onCheckedChange={(v) => setForm({ ...form, banco_horas: v })} />
+              <Label htmlFor="banco_horas">Adota banco de horas</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch id="compensa_feriados" checked={form.compensa_feriados} onCheckedChange={(v) => setForm({ ...form, compensa_feriados: v })} />
+              <Label htmlFor="compensa_feriados">Compensação de feriados</Label>
+            </div>
+            {form.compensa_feriados && (
+              <div className="space-y-1.5">
+                <Label htmlFor="comp_antecedencia" className="text-xs">Antecedência mínima para pedir a folga (dias)</Label>
+                <Input
+                  id="comp_antecedencia"
+                  type="number"
+                  min={0}
+                  max={60}
+                  className="w-28"
+                  value={form.compensacao_feriado_antecedencia_dias}
+                  onChange={(e) => setForm({ ...form, compensacao_feriado_antecedencia_dias: e.target.value })}
+                />
+                <p className="text-[11px] text-muted-foreground">Pedidos com prazo menor não são barrados, mas o colaborador é avisado de que podem ser recusados.</p>
+              </div>
+            )}
+            {compensacaoAtiva && (
+              <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5">
+                <p className="text-[11px] leading-relaxed">
+                  Atenção: banco de horas e trabalho/compensação em feriados no comércio e na alimentação dependem de
+                  autorização na Convenção ou no Acordo Coletivo com o sindicato (CLT art. 59 e Lei 10.101/2000, art. 6º-A).
+                  Sem essa negociação, a empresa pode ser autuada e condenada ao pagamento das horas como extras.
+                </p>
+                <label className="flex items-start gap-2 text-xs font-medium">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={form.ciencia_sindical}
+                    onChange={(e) => setForm({ ...form, ciencia_sindical: e.target.checked })}
+                  />
+                  Confirmo que a convenção ou acordo coletivo vigente autoriza essas práticas nesta unidade.
+                </label>
+              </div>
             )}
           </div>
           <div className="flex items-center space-x-2 rounded-xl border border-border p-3">
