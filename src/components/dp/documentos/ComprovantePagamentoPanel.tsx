@@ -914,9 +914,10 @@ export function ComprovanteAnexarDialog(props: {
           <div className="space-y-2 rounded-md border p-3">
             <p className="text-xs font-semibold uppercase text-muted-foreground">Recibo do Valor em Dinheiro</p>
             <p className="text-xs text-muted-foreground">Como o colaborador vai assinar o recibo?</p>
-            <div role="radiogroup" aria-label="Forma de assinatura do recibo" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+            <div role="radiogroup" aria-label="Forma de assinatura do recibo" className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1">
               {([
                 { v: "portal", label: "Digital no Meu Portal" },
+                { v: "whatsapp", label: "Link pelo WhatsApp" },
                 { v: "fisico", label: "Imprimir e Assinar à Mão" },
               ] as const).map((o) => (
                 <button
