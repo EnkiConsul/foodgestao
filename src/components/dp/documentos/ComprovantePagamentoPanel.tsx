@@ -59,7 +59,7 @@ import {
   registroPagamentoEspecieArquivo,
 } from "@/lib/dp/recibo-especie";
 import { emitirRecibo, whatsappUrl } from "@/lib/dp/recibos";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { conferirFavorecido } from "@/lib/dp/comprovante-favorecido";
@@ -1393,7 +1393,7 @@ export function ComprovantePagamentoPanel(props: {
           {!props.somenteLeitura && exigeRecibo(comprovante.modalidade) ? (
             <ReciboEspecieAcoes
               documentoId={props.alvo.documentoId}
-              jaEmitido={!!comprovante.recibo_documento_id}
+              reciboDocumentoId={comprovante.recibo_documento_id ?? null}
             />
           ) : null}
         </div>
