@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { NotebookPen, Plus, Paperclip, Send, Sparkles, Trash2, Users, Search, CheckCircle2, Clock, Eye, X } from "lucide-react";
+import { NotebookPen, Plus, Paperclip, Send, Sparkles, Trash2, Users, Search, CheckCircle2, Clock, Eye, X, FileText } from "lucide-react";
+import { abrirDocumento } from "@/lib/documentoArquivo";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpDocumentosAbas } from "@/components/dp/documentos/DpDocumentosAbas";
 import { AtaEditor } from "@/components/dp/atas/AtaEditor";
@@ -328,6 +329,15 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
                             {p.modalidade === "consulta" ? <Badge variant="secondary"><Eye className="mr-1 h-3 w-3" />Disponível</Badge>
                               : assinado ? <Badge className="bg-primary/15 text-primary hover:bg-primary/15"><CheckCircle2 className="mr-1 h-3 w-3" />Assinado {new Date(assinado).toLocaleDateString("pt-BR")}</Badge>
                               : <Badge variant="secondary"><Clock className="mr-1 h-3 w-3" />Pendente</Badge>}
+                            {p.documento_id && (
+                              <Button size="icon" variant="ghost" className="h-8 w-8" title="Ver PDF da Ata" aria-label="Ver PDF da Ata"
+                                onClick={async () => {
+                                  const ok = await abrirDocumento(p.documento_id!).catch(() => false);
+                                  if (!ok) toast.error("Não foi possível abrir a ata.", { description: "Tente novamente em instantes ou verifique sua permissão em Documentos." });
+                                }}>
+                                <FileText className="h-4 w-4" />
+                              </Button>
+                            )}
                           </>
                         ) : (
                           <>
