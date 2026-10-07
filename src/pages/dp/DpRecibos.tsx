@@ -673,8 +673,6 @@ export default function DpRecibos() {
                   : `Não foi possível enviar pelo WhatsApp da Aveto: ${resultado.erroEnvio ?? "tente reenviar"}. Use os botões acima.`}
               </p>
             )}
-            <div className="hidden">
-            </div>
             {resultado.avulso && !cadastrado && !jaNoBanco(resultado.avulso.cpf, resultado.nome) && (
               <div className="rounded-md border bg-background p-3 space-y-2">
                 <p className="text-sm">

@@ -64,3 +64,8 @@
 - [x] Botão largo "Baixar Comprovante" removido dos cards — comprovante acessível pelo botão "Comprovante" e na visualização interna
 - [x] PDF em branco por falta de Map#getOrInsertComputed/Math.sumPrecise (ES2025) — polyfills em src/lib/polyfills.ts; pdfjs atualizado para 6.4.299
 - [x] Cancelamento de renderização de PDF tratado (troca de documento/zoom)
+
+# Disparo pelo WhatsApp da Aveto
+- [x] Convite de acesso ao portal (lote e ficha) enviado direto pela API.
+- [x] Link de nova senha enviado direto pela API.
+- [x] Link de assinatura de recibos (emitir, reenviar e comprovante) enviado direto pela API.
