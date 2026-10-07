@@ -3,7 +3,7 @@ import {
   DicaEnquadramento,
   acionarInput, useConferenciaDigitalizacao,
 } from "@/components/dp/documentos/ConferenciaDigitalizacao";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   BadgeCheck,
   Banknote,
