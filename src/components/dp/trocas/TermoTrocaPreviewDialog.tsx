@@ -19,10 +19,12 @@ type Props = {
   troca: DpTrocaRow | null;
   empresa: { nome: string; cnpj?: string | null };
   onOpenChange: (open: boolean) => void;
+  /** Quando informado, mostra o botão "Assinar Termo" (assinatura pendente). */
+  onAssinar?: () => void;
 };
 
 /** Mostra o Termo de Troca na tela; a impressão só acontece quando o usuário pede. */
-export function TermoTrocaPreviewDialog({ troca, empresa, onOpenChange }: Props) {
+export function TermoTrocaPreviewDialog({ troca, empresa, onOpenChange, onAssinar }: Props) {
   // CPF é sigiloso: buscado por rotina segura só quando o termo é aberto.
   const cpfs = useQuery({
     queryKey: ["dp_troca_termo_cpfs", troca?.id],
@@ -107,9 +109,13 @@ export function TermoTrocaPreviewDialog({ troca, empresa, onOpenChange }: Props)
           <Button variant="outline" className="min-h-11" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
-          <Button className="min-h-11" disabled={emitindo || cpfs.isLoading} onClick={emitir}>
-            <FileDown className="mr-1 h-4 w-4" /> {emitindo ? "Gerando…" : "Emitir"}
-          </Button>
+          {onAssinar ? (
+            <Button className="min-h-11" onClick={onAssinar}>Assinar Termo</Button>
+          ) : (
+            <Button className="min-h-11" disabled={emitindo || cpfs.isLoading} onClick={emitir}>
+              <FileDown className="mr-1 h-4 w-4" /> {emitindo ? "Gerando…" : "Emitir"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
