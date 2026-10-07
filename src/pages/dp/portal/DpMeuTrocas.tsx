@@ -555,7 +555,7 @@ export default function DpMeuTrocas() {
           empresa={{ nome: empresaRef.data?.nome ?? "Empresa" }}
           onOpenChange={(v) => { if (!v) { setTermo(null); limparParamAssinar(); } }}
           onAssinar={(() => {
-            const meId = meRef.data?.id; const t = termo;
+            const meId = meRef.data?.id; const t = termo as any;
             if (!t || t.status !== "aprovada") return undefined;
             const pend = (t.solicitante_id === meId && !t.solicitante_assinatura) || (t.destino_id === meId && !t.destino_assinatura);
             return pend ? () => { setAssinarTermo(t.id); setTermo(null); } : undefined;
