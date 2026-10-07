@@ -3833,6 +3833,141 @@ export type Database = {
         }
         Relationships: []
       }
+      dp_ata_participantes: {
+        Row: {
+          ata_id: string
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          documento_id: string | null
+          id: string
+          modalidade: string
+          updated_at: string
+        }
+        Insert: {
+          ata_id: string
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          documento_id?: string | null
+          id?: string
+          modalidade: string
+          updated_at?: string
+        }
+        Update: {
+          ata_id?: string
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          documento_id?: string | null
+          id?: string
+          modalidade?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_ata_participantes_ata_id_fkey"
+            columns: ["ata_id"]
+            isOneToOne: false
+            referencedRelation: "dp_atas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ata_participantes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ata_participantes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ata_participantes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ata_participantes_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_atas: {
+        Row: {
+          anexos: Json
+          company_id: string
+          conteudo_html: string
+          created_at: string
+          created_by: string | null
+          data_reuniao: string
+          enviada_em: string | null
+          enviada_por: string | null
+          id: string
+          local: string | null
+          status: string
+          titulo: string
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          anexos?: Json
+          company_id: string
+          conteudo_html?: string
+          created_at?: string
+          created_by?: string | null
+          data_reuniao: string
+          enviada_em?: string | null
+          enviada_por?: string | null
+          id?: string
+          local?: string | null
+          status?: string
+          titulo: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anexos?: Json
+          company_id?: string
+          conteudo_html?: string
+          created_at?: string
+          created_by?: string | null
+          data_reuniao?: string
+          enviada_em?: string | null
+          enviada_por?: string | null
+          id?: string
+          local?: string | null
+          status?: string
+          titulo?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_atas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_atas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_avisos: {
         Row: {
           arquivo_mime: string | null
@@ -20151,6 +20286,7 @@ export type Database = {
         | "gorjeta"
         | "acerto_rescisorio"
         | "termo_autorizacao"
+        | "ata_reuniao"
       dp_elegibilidade_recontratacao: "sim" | "nao" | "com_ressalvas"
       dp_escala_item_origem: "gerado" | "manual" | "troca" | "convocacao"
       dp_escala_item_tipo:
@@ -20614,6 +20750,7 @@ export const Constants = {
         "gorjeta",
         "acerto_rescisorio",
         "termo_autorizacao",
+        "ata_reuniao",
       ],
       dp_elegibilidade_recontratacao: ["sim", "nao", "com_ressalvas"],
       dp_escala_item_origem: ["gerado", "manual", "troca", "convocacao"],
