@@ -56,6 +56,7 @@ import {
 import {
   emitirReciboEspecieParaAssinatura,
   reciboEspeciePdf,
+  registroPagamentoEspecieArquivo,
 } from "@/lib/dp/recibo-especie";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -375,8 +376,30 @@ export function ComprovanteAnexarDialog(props: {
     }
   };
 
-  const importar = () => {
-    if (!arquivo) {
+  const semArquivoEspecie =
+    !arquivo && modalidade === "especie" && !props.complementar;
+  const [reciboPrevia, setReciboPrevia] = useState<{
+    url: string;
+    revogar: () => void;
+  } | null>(null);
+  const [gerandoRecibo, setGerandoRecibo] = useState(false);
+
+  const importar = async () => {
+    let arquivoFinal = arquivo;
+    if (!arquivoFinal && semArquivoEspecie) {
+      const cents = brlParaCents(especie);
+      if (!pagoEm || !cents) {
+        setErro("Informe a data do pagamento e o valor pago em dinheiro.");
+        return;
+      }
+      arquivoFinal = await registroPagamentoEspecieArquivo({
+        colaborador: props.colaboradorNome ?? "Não informado",
+        competencia: props.competencia ?? "Não informada",
+        pagoEm,
+        valorCents: cents,
+      });
+    }
+    if (!arquivoFinal) {
       abrirSeletorFoto();
       return;
     }
@@ -446,7 +469,7 @@ export function ComprovanteAnexarDialog(props: {
       extra.adicionar.mutate(
         {
           alvo: props.alvo,
-          file: arquivo,
+          file: arquivoFinal,
           pagoEm: check.valor,
           quitacao: quitacaoFinal,
         },
@@ -462,7 +485,7 @@ export function ComprovanteAnexarDialog(props: {
     anexar.mutate(
       {
         alvo: props.alvo,
-        file: arquivo,
+        file: arquivoFinal,
         pagoEm: check.valor,
         confirmarCompetencia: divergente && confirmado,
         quitacao: {
@@ -500,12 +523,37 @@ export function ComprovanteAnexarDialog(props: {
           }
           void liquido.refetch();
           props.onOpenChange(false);
+          if (exigeRecibo(quitacao.modalidade)) {
+            setGerandoRecibo(true);
+            try {
+              setReciboPrevia(await reciboEspeciePdf(props.alvo.documentoId));
+            } catch (e) {
+              toast.error(
+                `Pagamento registrado, mas o recibo não abriu: ${(e as Error).message} Use "Baixar Para Assinar à Mão" no painel.`,
+              );
+            } finally {
+              setGerandoRecibo(false);
+            }
+          }
         },
       },
     );
   };
 
   return (
+    <>
+    <DocumentPreview
+      open={!!reciboPrevia}
+      onOpenChange={(v) => {
+        if (!v) {
+          reciboPrevia?.revogar();
+          setReciboPrevia(null);
+        }
+      }}
+      title="Recibo de pagamento em dinheiro"
+      url={reciboPrevia?.url}
+      mime="application/pdf"
+    />
     <Dialog
       open={props.open}
       onOpenChange={(v) => {
@@ -833,17 +881,30 @@ export function ComprovanteAnexarDialog(props: {
           >
             Cancelar
           </Button>
-          <Button onClick={importar} disabled={ocupado || !arquivo || lendo}>
-            {anexar.isPending || extra.adicionar.isPending ? (
+          <Button
+            onClick={() => void importar()}
+            disabled={ocupado || gerandoRecibo || (!arquivo && !semArquivoEspecie) || lendo}
+          >
+            {anexar.isPending || extra.adicionar.isPending || gerandoRecibo ? (
               <Loader2 className="mr-1 size-4 animate-spin" />
+            ) : semArquivoEspecie ? (
+              <FileSignature className="mr-1 size-4" />
             ) : (
               <Upload className="mr-1 size-4" />
             )}
-            Importar Comprovante
+            {semArquivoEspecie ? "Registrar e Gerar Recibo" : "Importar Comprovante"}
           </Button>
         </DialogFooter>
+        {semArquivoEspecie ? (
+          <p className="text-xs text-muted-foreground">
+            Sem comprovante do banco? Clique em "Registrar e Gerar Recibo": o pagamento fica
+            registrado e o recibo abre para imprimir e o colaborador assinar. Também dá para
+            pedir a assinatura no portal depois.
+          </p>
+        ) : null}
       </DialogContent>
     </Dialog>
+    </>
   );
 }
 
