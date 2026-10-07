@@ -82,18 +82,22 @@ export function termoCompensacaoParagrafos(
   ];
 }
 
-/** Termo do colaborador já emitido (qualquer status, exceto arquivado). */
+/** Termo do colaborador já emitido (não arquivado) e se já foi assinado. */
 export async function termoCompensacaoExistente(colaboradorId: string, tipo: TermoCompensacaoTipo) {
   const { data } = await supabase
     .from("dp_documentos")
-    .select("id, aceite_status, created_at")
+    .select("id")
     .eq("colaborador_id", colaboradorId)
     .eq("tipo", "termos")
     .is("arquivado_em", null)
     .ilike("titulo", `${TERMOS_COMPENSACAO[tipo].titulo}%`)
     .order("created_at", { ascending: false })
     .limit(1);
-  return (data?.[0] as { id: string; aceite_status?: string | null } | undefined) ?? null;
+  const doc = (data?.[0] as { id: string } | undefined) ?? null;
+  if (!doc) return null;
+  const { data: ac } = await (supabase as any)
+    .from("dp_documento_aceites").select("aceito_em").eq("documento_id", doc.id).limit(1);
+  return { id: doc.id, assinado: !!ac?.[0]?.aceito_em };
 }
 
 /** Emite o termo para assinatura no portal. Idempotente por colaborador e tipo. */
