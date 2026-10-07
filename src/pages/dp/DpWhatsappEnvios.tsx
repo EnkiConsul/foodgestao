@@ -37,11 +37,13 @@ export default function DpWhatsappEnvios() {
   const [busca, setBusca] = useState("");
   const [tipo, setTipo] = useState("todos");
   const [status, setStatus] = useState("todos");
+  const [periodo, setPeriodo] = useState("todos");
+  const [ativado, setAtivado] = useState(false);
   const { isSuperAdmin } = useSuperAdmin();
   const ativarLeitura = async () => {
     const { data: r, error } = await supabase.functions.invoke("zapi-webhook", { body: { acao: "configurar" } });
     if (error || !(r as { ok?: boolean })?.ok) toast.error("Não foi possível ativar a confirmação de entrega/leitura.", { description: "Confira se o WhatsApp da Aveto está conectado e tente de novo." });
-    else toast.success("Confirmação de entrega e leitura ativada.");
+    else { setAtivado(true); toast.success("Confirmação de entrega e leitura ativada."); }
   };
   const [reenviando, setReenviando] = useState<string | null>(null);
 
@@ -56,13 +58,20 @@ export default function DpWhatsappEnvios() {
     },
   });
 
+  const leituraAtiva = ativado || data.some((e) => e.entregue_em || e.lido_em);
+
   const lista = useMemo(() => {
     const q = busca.trim().toLowerCase();
     const qd = q.replace(/\D/g, "");
+    const agora = new Date();
+    const inicio = periodo === "hoje" ? new Date(agora.getFullYear(), agora.getMonth(), agora.getDate())
+      : periodo === "7d" ? new Date(agora.getTime() - 7 * 864e5)
+      : periodo === "mes" ? new Date(agora.getFullYear(), agora.getMonth(), 1) : null;
     return data.filter((e) =>
+      (!inicio || new Date(e.created_at) >= inicio) &&
       (tipo === "todos" || e.tipo === tipo) && (status === "todos" || e.status === status) &&
       (!q || (e.destinatario_nome ?? "").toLowerCase().includes(q) || (!!qd && (e.telefone ?? "").includes(qd))));
-  }, [data, busca, tipo, status]);
+  }, [data, busca, tipo, status, periodo]);
 
   const copiar = async (link: string) => {
     try { await navigator.clipboard.writeText(link); toast.success("Link copiado. Envie manualmente pelo WhatsApp."); }
@@ -95,11 +104,22 @@ export default function DpWhatsappEnvios() {
       <Helmet><title>Envios WhatsApp — Pessoas 360°</title></Helmet>
       <DpPageHeader icon={MessageCircle} title="Envios WhatsApp"
         description="Acompanhe as mensagens enviadas pelo WhatsApp da Aveto: convites de acesso, nova senha e assinatura de recibos."
-        actions={<div className="flex gap-2">{isSuperAdmin && <Button variant="outline" onClick={ativarLeitura}>Ativar Entrega/Leitura</Button>}<Button variant="outline" onClick={() => refetch()} disabled={isFetching}><RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />Atualizar</Button></div>} />
+        actions={<div className="flex flex-wrap items-center gap-2">{isSuperAdmin && (leituraAtiva
+          ? <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-foreground"><span className="h-2 w-2 rounded-full bg-primary" />Entrega/Leitura Ativa</span>
+          : <Button variant="outline" onClick={ativarLeitura}>Ativar Entrega/Leitura</Button>)}<Button variant="outline" onClick={() => refetch()} disabled={isFetching}><RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />Atualizar</Button></div>} />
 
       <DpContentCard>
-        <div className="mb-4 grid gap-3 sm:grid-cols-3">
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Input placeholder="Buscar por nome ou telefone" value={busca} onChange={(e) => setBusca(e.target.value)} />
+          <Select value={periodo} onValueChange={setPeriodo}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todo o Período</SelectItem>
+              <SelectItem value="hoje">Hoje</SelectItem>
+              <SelectItem value="7d">Últimos 7 Dias</SelectItem>
+              <SelectItem value="mes">Mês Atual</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={tipo} onValueChange={setTipo}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
