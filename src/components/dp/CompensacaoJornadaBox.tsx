@@ -8,7 +8,7 @@ import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTr
 import { detalharCargaSemanal, DOW_LABEL, type ConfigTrabalho, type TurnoResolvido } from "@/lib/dp/config-trabalho";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import {
-  diasAcimaDe8h, emitirTermoCompensacao, termoCompensacaoExistente, TERMOS_COMPENSACAO, type TermoCompensacaoTipo,
+  diasAcimaDe8h, emitirTermoCompensacao, termoCompensacaoExistente, TERMOS_COMPENSACAO, vinculoAdmiteCompensacao, type TermoCompensacaoTipo,
 } from "@/lib/dp/termos-compensacao";
 
 interface Props {
@@ -16,11 +16,13 @@ interface Props {
   colaboradorId: string;
   nome: string;
   cpf?: string | null;
+  regime?: string | null;
+  vinculoLabel?: string | null;
   unidade?: { nome?: string | null; banco_horas?: boolean | null; compensa_feriados?: boolean | null; compensacao_feriado_antecedencia_dias?: number | null } | null;
 }
 
 /** Sugere e emite os acordos de compensação conforme a jornada e as regras da unidade. */
-export function CompensacaoJornadaBox({ companyId, colaboradorId, nome, cpf, unidade }: Props) {
+export function CompensacaoJornadaBox({ companyId, colaboradorId, nome, cpf, regime, vinculoLabel, unidade }: Props) {
   const qc = useQueryClient();
   const cfg = useDpColaboradorConfigTrabalho(colaboradorId);
   const [emitindo, setEmitindo] = useState<TermoCompensacaoTipo | null>(null);
@@ -43,7 +45,8 @@ export function CompensacaoJornadaBox({ companyId, colaboradorId, nome, cpf, uni
     return diasAcimaDe8h(detalharCargaSemanal(config, turnos.data ?? []));
   }, [cfg.vigente, turnos.data]);
 
-  const tipos: TermoCompensacaoTipo[] = [
+  const admite = vinculoAdmiteCompensacao(regime, vinculoLabel);
+  const tipos: TermoCompensacaoTipo[] = !admite ? [] : [
     ...(acima.length ? (["semanal"] as const) : []),
     ...(unidade?.banco_horas ? (["banco_horas"] as const) : []),
     ...(unidade?.compensa_feriados ? (["feriados"] as const) : []),
