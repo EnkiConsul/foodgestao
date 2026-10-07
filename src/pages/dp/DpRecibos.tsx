@@ -102,6 +102,7 @@ export default function DpRecibos() {
   const [cadastrado, setCadastrado] = useState(false);
   const apoios = useDpPessoasApoio();
   const [detalhe, setDetalhe] = useState<ReciboDetalhado | null>(null);
+  const [duplicarDe, setDuplicarDe] = useState<ReciboDetalhado | null>(null);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [substituiId, setSubstituiId] = useState<string | null>(null);
   // Feedback de abertura: Visualizar/Baixar buscam ou geram PDF no servidor e podem demorar.
@@ -237,15 +238,24 @@ export default function DpRecibos() {
    * (substitui o original) ou "criar a partir deste" (recibo novo e independente,
    * com data de pagamento hoje e competência atual).
    */
-  function carregarNoFormulario(r: ReciboDetalhado, modo: "editar" | "nova_via" | "duplicar") {
+  function carregarNoFormulario(
+    r: ReciboDetalhado,
+    modo: "editar" | "nova_via" | "duplicar",
+    manterPessoa = true,
+  ) {
     const duplicar = modo === "duplicar";
     setDetalhe(null);
+    setDuplicarDe(null);
     setResultado(null);
     setAba("emitir");
     setUnidadeId((r as { unidade_id?: string | null }).unidade_id ?? "");
-    if (r.colaborador_id) { setColabId(r.colaborador_id); }
-    else { setColabId(AVULSO); setNome(r.beneficiario_nome); setCpf(r.beneficiario_cpf ?? ""); }
-    setWhats(r.beneficiario_whatsapp ?? "");
+    if (!manterPessoa) {
+      setColabId(""); setNome(""); setCpf(""); setWhats("");
+    } else {
+      if (r.colaborador_id) { setColabId(r.colaborador_id); }
+      else { setColabId(AVULSO); setNome(r.beneficiario_nome); setCpf(r.beneficiario_cpf ?? ""); }
+      setWhats(r.beneficiario_whatsapp ?? "");
+    }
     setNatureza(r.natureza as NaturezaRecibo);
     setDescricao(r.descricao ?? "");
     setCompetencia(duplicar ? hoje().slice(0, 7) : r.competencia.slice(0, 7));
