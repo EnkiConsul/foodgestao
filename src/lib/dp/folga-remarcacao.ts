@@ -57,19 +57,38 @@ export function diasParaRemarcar(input: DiasParaRemarcarInput): DiaRemarcacao[] 
   return dias;
 }
 
-/**
- * A troca mistura folga de fim de semana com dia de semana?
- * Esse caso altera a escala de descanso e sempre depende do gestor,
- * mesmo quando a loja permite troca direta entre colegas.
- * O servidor revalida a mesma regra em `dp_troca_responder_colega`.
- */
-export function trocaExigeAprovacaoGestor(isoA: string, isoB: string): boolean {
-  if (!isoA || !isoB) return false;
-  const fds = (iso: string) => [0, 6].includes(parseYMD(iso).getDay());
-  return fds(isoA) !== fds(isoB);
+/** Segunda-feira (ISO) da semana do dia informado. */
+export function inicioSemanaIso(iso: string): string {
+  const d = parseYMD(iso);
+  const desloc = (d.getDay() + 6) % 7;
+  return ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate() - desloc));
 }
 
+/** Os dois dias estão na mesma semana (segunda a domingo)? */
+export function mesmaSemana(isoA: string, isoB: string): boolean {
+  return inicioSemanaIso(isoA) === inicioSemanaIso(isoB);
+}
 
+/**
+ * Por que a troca depende do gestor (ou null se não depende):
+ * mistura fim de semana com dia de semana, ou muda a folga para outra semana.
+ * Essas trocas alteram a escala de descanso e sempre passam pelo gestor.
+ */
+export function motivoAprovacaoGestor(isoA: string, isoB: string): string | null {
+  if (!isoA || !isoB) return null;
+  const fds = (iso: string) => [0, 6].includes(parseYMD(iso).getDay());
+  const dom = (iso: string) => parseYMD(iso).getDay() === 0;
+  if (fds(isoA) !== fds(isoB))
+    return dom(isoA) || dom(isoB)
+      ? "Esta troca envolve folga dominical e folga de dia de semana."
+      : "Esta troca envolve folga de fim de semana e dia de semana.";
+  if (!mesmaSemana(isoA, isoB)) return "Esta troca muda sua folga para outra semana.";
+  return null;
+}
+
+export function trocaExigeAprovacaoGestor(isoA: string, isoB: string): boolean {
+  return motivoAprovacaoGestor(isoA, isoB) !== null;
+}
 
 /** Mensagem amigável para os erros da remarcação vindos do banco. */
 export function mensagemErroRemarcacao(raw: string): string {

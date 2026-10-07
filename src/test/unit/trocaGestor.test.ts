@@ -9,7 +9,7 @@ describe("trocaExigeAprovacaoGestor", () => {
     expect(trocaExigeAprovacaoGestor("2026-10-29", "2026-10-25")).toBe(true);
   });
   it("não exige em domingo por sábado", () => {
-    expect(trocaExigeAprovacaoGestor("2026-10-25", "2026-10-31")).toBe(false);
+    expect(trocaExigeAprovacaoGestor("2026-10-31", "2026-11-01")).toBe(false);
   });
   it("não exige entre dias de semana", () => {
     expect(trocaExigeAprovacaoGestor("2026-10-27", "2026-10-29")).toBe(false);
