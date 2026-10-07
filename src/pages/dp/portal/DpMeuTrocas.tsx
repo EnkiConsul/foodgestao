@@ -424,6 +424,11 @@ export default function DpMeuTrocas() {
                       } />
                     </div>
                   )}
+                  {t.status === "pendente_gestor" && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Seu colega já aceitou. Agora a troca aguarda a aprovação do gestor.
+                    </p>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {t.motivo && <TextoExpansivel texto={t.motivo} className="text-sm" />}

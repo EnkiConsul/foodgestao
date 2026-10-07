@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { TextoExpansivel } from "@/components/dp/TextoExpansivel";
 import type { DpTrocaRow } from "@/hooks/useDpTrocas";
 import { acoesGestorTroca } from "@/lib/dp/troca-acoes";
+import { motivoAprovacaoGestor } from "@/lib/dp/folga-remarcacao";
 import { dataComDiaSemana, metaStatusTroca, trocaInconsistente } from "@/lib/dp/troca-apresentacao";
 import { cn } from "@/lib/utils";
 
