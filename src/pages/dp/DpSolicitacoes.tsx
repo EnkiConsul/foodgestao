@@ -98,6 +98,36 @@ export default function DpSolicitacoes() {
     },
   });
 
+  /** Prazo mínimo de antecedência para compensação de feriado, por unidade. */
+  const unidadesPrazo = useQuery({
+    queryKey: ["dp_unidades_prazo_compensacao", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("dp_unidades")
+        .select("id, compensacao_feriado_antecedencia_dias")
+        .eq("company_id", selectedCompanyId!);
+      if (error) throw error;
+      return new Map<string, number>(
+        ((data ?? []) as { id: string; compensacao_feriado_antecedencia_dias: number | null }[]).map(
+          (u) => [u.id, u.compensacao_feriado_antecedencia_dias ?? 2],
+        ),
+      );
+    },
+  });
+
+  /**
+   * Compensação de feriado pedida com prazo menor que o mínimo da unidade:
+   * o colaborador não é barrado, mas o gestor é avisado (pode recusar).
+   */
+  const prazoCompensacao = (s: Row): { dias: number; minimo: number } | null => {
+    if (s.tipo !== "folga" || !s.data_alvo || !ehCompensacaoFeriado(s.motivo)) return null;
+    const unidadeId = colabs.data?.find((c) => c.id === s.colaborador_id)?.unidade_id ?? null;
+    const minimo = (unidadeId && unidadesPrazo.data?.get(unidadeId)) ?? 2;
+    const dias = diasDeAntecedencia(s.data_alvo, hojeIsoLocal());
+    return dias < minimo ? { dias, minimo } : null;
+  };
+
   /** Ciências de DSR dadas pelo colaborador (mais de 6 dias seguidos sem descanso). */
   const ciencias = useQuery({
     queryKey: ["dp_dsr_ciencias", selectedCompanyId],
