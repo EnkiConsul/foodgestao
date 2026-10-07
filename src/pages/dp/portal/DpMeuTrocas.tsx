@@ -76,9 +76,7 @@ export default function DpMeuTrocas() {
   const [open, setOpen] = useState(false);
   const [cienteFalta, setCienteFalta] = useState(false);
   const [assinarPedido, setAssinarPedido] = useState(false);
-  const [assinarTermo, setAssinarTermo] = useState<string | null>(
-    () => new URLSearchParams(window.location.search).get("assinar"),
-  );
+  const [assinarTermo, setAssinarTermo] = useState<string | null>(null);
   /** Remove o ?assinar=ID da URL ao fechar/assinar, para um recarregamento não reabrir o modal. */
   const limparParamAssinar = () => {
     if (typeof window === "undefined") return;
@@ -145,6 +143,17 @@ export default function DpMeuTrocas() {
   });
 
   const [termo, setTermo] = useState<DpTrocaRow | null>(null);
+  // Vindo da pendência (?assinar=ID): abre primeiro o termo para leitura, depois a assinatura.
+  const [lerParaAssinar, setLerParaAssinar] = useState<string | null>(
+    () => new URLSearchParams(window.location.search).get("assinar"),
+  );
+  useEffect(() => {
+    if (!lerParaAssinar || !trocas.data) return;
+    const t = (trocas.data as any[]).find((x) => x.id === lerParaAssinar);
+    if (t) setTermo(t);
+    else { setAssinarTermo(lerParaAssinar); }
+    setLerParaAssinar(null);
+  }, [lerParaAssinar, trocas.data]);
 
   const empresaRef = useQuery({
     queryKey: ["dp_minha_empresa_termo", meRef.data?.company_id],
@@ -511,7 +520,7 @@ export default function DpMeuTrocas() {
                     if (minhaPendente) return (
                       <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 space-y-2">
                         <div>Sua assinatura digital está pendente no termo desta troca.</div>
-                        <Button size="sm" onClick={() => setAssinarTermo(t.id)}>Assinar Termo de Troca</Button>
+                        <Button size="sm" onClick={() => setTermo(t)}>Ler e Assinar Termo de Troca</Button>
                       </div>
                     );
                     if (colegaPendente) return (
@@ -544,7 +553,13 @@ export default function DpMeuTrocas() {
         <TermoTrocaPreviewDialog
           troca={termo}
           empresa={{ nome: empresaRef.data?.nome ?? "Empresa" }}
-          onOpenChange={(v) => !v && setTermo(null)}
+          onOpenChange={(v) => { if (!v) { setTermo(null); limparParamAssinar(); } }}
+          onAssinar={(() => {
+            const meId = meRef.data?.id; const t = termo;
+            if (!t || t.status !== "aprovada") return undefined;
+            const pend = (t.solicitante_id === meId && !t.solicitante_assinatura) || (t.destino_id === meId && !t.destino_assinatura);
+            return pend ? () => { setAssinarTermo(t.id); setTermo(null); } : undefined;
+          })()}
         />
         <MotivoDialog
           open={!!pedirCancel}
