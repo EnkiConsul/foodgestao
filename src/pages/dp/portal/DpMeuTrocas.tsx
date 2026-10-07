@@ -148,12 +148,12 @@ export default function DpMeuTrocas() {
     () => new URLSearchParams(window.location.search).get("assinar"),
   );
   useEffect(() => {
-    if (!lerParaAssinar || !trocas.data) return;
-    const t = (trocas.data as any[]).find((x) => x.id === lerParaAssinar);
+    if (!lerParaAssinar || !list.data) return;
+    const t = (list.data as any[]).find((x) => x.id === lerParaAssinar);
     if (t) setTermo(t);
     else { setAssinarTermo(lerParaAssinar); }
     setLerParaAssinar(null);
-  }, [lerParaAssinar, trocas.data]);
+  }, [lerParaAssinar, list.data]);
 
   const empresaRef = useQuery({
     queryKey: ["dp_minha_empresa_termo", meRef.data?.company_id],
