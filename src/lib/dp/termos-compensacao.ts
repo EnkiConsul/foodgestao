@@ -187,9 +187,17 @@ export function clausulasCompensacao(tipo: TermoCompensacaoTipo, opts: { integra
 export async function emitirTermoCompensacao(input: {
   tipo: TermoCompensacaoTipo; companyId: string; colaboradorId: string;
   titulo: string; bytes: Uint8Array; integrarBanco?: boolean; tipos?: TermoCompensacaoTipo[]; manual?: boolean;
+  /** Nova via: arquiva o termo vigente (histórico preservado) antes de emitir. */
+  substituir?: boolean;
 }): Promise<"emitido" | "ja_existia"> {
   for (const t of input.tipos ?? [input.tipo]) {
-    if (await termoCompensacaoExistente(input.colaboradorId, t)) return "ja_existia";
+    const atual = await termoCompensacaoExistente(input.colaboradorId, t);
+    if (!atual) continue;
+    if (!input.substituir) return "ja_existia";
+    const { error } = await supabase.rpc("dp_documento_arquivar", {
+      _documento_id: atual.id, _motivo: "Substituído por nova via",
+    });
+    if (error) throw new Error("Não foi possível arquivar o termo anterior. Tente novamente ou arquive-o pela aba Documentos.");
   }
   const versao = TERMOS_COMPENSACAO[input.tipo].versao.replace("v1", "v2");
   const nomeArquivo = (input.tipos?.length ?? 0) > 1
