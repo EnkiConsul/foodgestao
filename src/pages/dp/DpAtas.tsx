@@ -409,13 +409,11 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
             )}
           </div>
         </div>
-        </div>
         <div className="flex items-start gap-3 border-t px-4 py-3">
           <Switch id="ata-mural" checked={publicarMural} disabled={enviada} onCheckedChange={setPublicarMural} />
           <label htmlFor="ata-mural" className="text-sm"><span className="font-medium">Publicar no Mural</span>
             <span className="block text-xs text-muted-foreground">Opcional. Ao enviar, o resumo da ata vai para o Mural {unidadeId === "todas" ? "da empresa" : "da unidade"}. Deixe desligado em reuniões reservadas.</span></label>
         </div>
-        <div className="hidden">
         <DialogFooter className="flex-col gap-2 border-t p-4 sm:flex-row sm:justify-between">
           {progresso ? <p className="text-sm text-muted-foreground">{progresso}</p> : enviada ? <span /> : (
             <Button variant="ghost" className="text-destructive" onClick={excluir}><Trash2 className="mr-1 h-4 w-4" />Excluir Rascunho</Button>
