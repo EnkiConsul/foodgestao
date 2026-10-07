@@ -66,6 +66,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
+import { CompensacaoJornadaBox } from "@/components/dp/CompensacaoJornadaBox";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { TermoRiscoMensalistaDialog } from "@/components/dp/TermoRiscoMensalistaDialog";
 import { PadraoDivergenciaAviso } from "@/components/dp/PadraoDivergenciaAviso";
@@ -2990,6 +2991,15 @@ export function ColaboradorFormDialog({
           {/* forceMount: mantém o horário digitado ao alternar de aba, para que o
               botão único do rodapé grave também esta aba. */}
           <TabsContent value="jornada" className="mt-4 data-[state=inactive]:hidden" forceMount>
+          {(colaborador?.id ?? criadoId) && selectedCompanyId && (
+            <CompensacaoJornadaBox
+              companyId={selectedCompanyId}
+              colaboradorId={(colaborador?.id ?? criadoId)!}
+              nome={form.nome}
+              cpf={form.cpf}
+              unidade={unidadeSelecionada}
+            />
+          )}
           {/* Folha de ponto (condicional) */}
           {form.unidade_id && !unidadeTemPonto && (
             <div className="mb-4 space-y-2 rounded-xl border border-border p-3">

@@ -1,3 +1,4 @@
+import { MOTIVO_COMPENSACAO_FERIADO, diasDeAntecedencia } from "@/lib/dp/termos-compensacao";
 import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
 import { assinarTroca } from "@/lib/dp/troca-assinatura";
 import { CienciaFaltaTrocaBox, TEXTO_CIENCIA_FALTA_TROCA } from "@/components/dp/CienciaFaltaTrocaBox";
@@ -88,6 +89,7 @@ import { MeusPlantoesTrocaCard } from "@/components/dp/convocacoes/MeusPlantoesT
 import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
 import { notifyError } from "@/lib/notifyError";
 import { negarRegra } from "@/lib/dp/regraAviso";
+const hojeLocalIso = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 
 /** Retorno do cálculo do período de escolha feito no servidor. */
 interface JanelaRemota {
@@ -813,7 +815,23 @@ export default function DpMeuCalendario() {
   }, [tradeOpen?.iso, fixaSugerida?.data]);
 
   /** Exceção ao gestor: folga extra ou troca de um dia da folga semanal. */
-  const [excecaoModo, setExcecaoModo] = useState<"extra" | "troca_semanal">("extra");
+  const [excecaoModo, setExcecaoModo] = useState<"extra" | "troca_semanal" | "compensacao">("extra");
+  const regraUnidade = useQuery({
+    queryKey: ["dp_unidade_compensacao", meRef.data?.unidade_id],
+    enabled: !!meRef.data?.unidade_id,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("dp_unidades").select("compensa_feriados, compensacao_feriado_antecedencia_dias")
+        .eq("id", meRef.data!.unidade_id).maybeSingle();
+      return (data ?? null) as { compensa_feriados: boolean; compensacao_feriado_antecedencia_dias: number } | null;
+    },
+  });
+  const temCompensacao = !!regraUnidade.data?.compensa_feriados;
+  const antecedenciaMin = regraUnidade.data?.compensacao_feriado_antecedencia_dias ?? 2;
+  const modoExtra = temCompensacao ? "compensacao" : "extra";
+  useEffect(() => {
+    if (excecaoModo !== "troca_semanal" && excecaoModo !== modoExtra) setExcecaoModo(modoExtra);
+  }, [modoExtra, excecaoModo]);
   const [excecaoDiaTrabalho, setExcecaoDiaTrabalho] = useState("");
   const fixasParaExcecao = useMemo(() => {
     if (!selectedDay) return [];
@@ -1012,7 +1030,11 @@ export default function DpMeuCalendario() {
       if (troca && !excecaoDiaTrabalho) negarRegra("Escolha qual dia da sua folga semanal você vai trabalhar.");
       const motivo =
         exceptionMotivo.trim() ||
-        (troca ? "Troca da folga semanal solicitada ao gestor" : "Folga extra solicitada ao gestor");
+        (troca
+          ? "Troca da folga semanal solicitada ao gestor"
+          : excecaoModo === "compensacao"
+            ? MOTIVO_COMPENSACAO_FERIADO
+            : "Folga extra solicitada ao gestor");
       const { error } = troca
         ? await supabase.rpc("dp_folga_troca_fds_solicitar", {
             p_data_folga: selectedDay.iso,
@@ -1897,7 +1919,7 @@ export default function DpMeuCalendario() {
               <Select
                 value={excecaoModo}
                 onValueChange={(v) => {
-                  setExcecaoModo(v as "extra" | "troca_semanal");
+                  setExcecaoModo(v as "extra" | "troca_semanal" | "compensacao");
                   setExcecaoDiaTrabalho("");
                 }}
               >
@@ -1908,14 +1930,27 @@ export default function DpMeuCalendario() {
                   <SelectItem value="troca_semanal" disabled={fixasParaExcecao.length === 0}>
                     Troca da folga semanal
                   </SelectItem>
-                  <SelectItem value="extra">Folga extra</SelectItem>
+                  {temCompensacao ? (
+                    <SelectItem value="compensacao">Compensação de Feriado</SelectItem>
+                  ) : (
+                    <SelectItem value="extra">Folga extra</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
                 {excecaoModo === "troca_semanal"
                   ? "Você trabalha em um dia da sua folga semanal e folga neste dia no lugar dele."
-                  : "Um dia de folga a mais, sem mudar sua folga semanal."}
+                  : excecaoModo === "compensacao"
+                    ? `Folga para compensar um feriado trabalhado. Peça com pelo menos ${antecedenciaMin} dia(s) de antecedência.`
+                    : "Um dia de folga a mais, sem mudar sua folga semanal."}
               </p>
+              {excecaoModo === "compensacao" && selectedDay &&
+                diasDeAntecedencia(selectedDay.iso, hojeLocalIso()) < antecedenciaMin && (
+                  <p className="mt-2 rounded-xl border border-amber-300 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-800">
+                    Atenção ao prazo: o recomendado é pedir com no mínimo {antecedenciaMin} dia(s) de antecedência. Você
+                    pode enviar, mas o gestor poderá recusar conforme a escala da unidade.
+                  </p>
+                )}
             </div>
             {excecaoModo === "troca_semanal" && (
               <div>

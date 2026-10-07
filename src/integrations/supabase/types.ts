@@ -12926,10 +12926,15 @@ export type Database = {
         Row: {
           ativo: boolean
           bairro: string | null
+          banco_horas: boolean
           cep: string | null
           cidade: string | null
           cnpj: string | null
           company_id: string
+          compensa_feriados: boolean
+          compensacao_feriado_antecedencia_dias: number
+          compensacao_sindical_ciencia_em: string | null
+          compensacao_sindical_ciencia_por: string | null
           complemento: string | null
           created_at: string
           dia_adiantamento: number | null
@@ -12953,10 +12958,15 @@ export type Database = {
         Insert: {
           ativo?: boolean
           bairro?: string | null
+          banco_horas?: boolean
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
           company_id: string
+          compensa_feriados?: boolean
+          compensacao_feriado_antecedencia_dias?: number
+          compensacao_sindical_ciencia_em?: string | null
+          compensacao_sindical_ciencia_por?: string | null
           complemento?: string | null
           created_at?: string
           dia_adiantamento?: number | null
@@ -12980,10 +12990,15 @@ export type Database = {
         Update: {
           ativo?: boolean
           bairro?: string | null
+          banco_horas?: boolean
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
           company_id?: string
+          compensa_feriados?: boolean
+          compensacao_feriado_antecedencia_dias?: number
+          compensacao_sindical_ciencia_em?: string | null
+          compensacao_sindical_ciencia_por?: string | null
           complemento?: string | null
           created_at?: string
           dia_adiantamento?: number | null

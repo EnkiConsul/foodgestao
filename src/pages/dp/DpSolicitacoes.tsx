@@ -1,3 +1,4 @@
+import { ehCompensacaoFeriado } from "@/lib/dp/termos-compensacao";
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
@@ -284,7 +285,7 @@ export default function DpSolicitacoes() {
                       ) : (
                         <>
                           <span className="capitalize mr-2">
-                            {s.tipo === "folga" && s.fora_da_janela ? "Folga extra (exceção)" : s.tipo}
+                            {s.tipo === "folga" && ehCompensacaoFeriado(s.motivo) ? "Compensação de Feriado" : s.tipo === "folga" && s.fora_da_janela ? "Folga extra (exceção)" : s.tipo}
                           </span>
                           <b>{formatBR(s.data_alvo)}{s.data_fim ? ` → ${formatBR(s.data_fim)}` : ""}</b>
                         </>
