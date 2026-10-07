@@ -20,7 +20,7 @@ interface DocumentPreviewProps {
   mime?: string | null;
   /** Segundos de validade da signed URL (default 300) */
   expiresIn?: number;
-  /** Conteúdo extra abaixo do título (ex.: abas Documento / Comprovante). */
+  /** Conteúdo extra abaixo do título. */
   toolbar?: React.ReactNode;
   /** Documento do DP cujo comprovante de pagamento aparece logo abaixo, na mesma rolagem. */
   comprovanteDocumentoId?: string | null;
