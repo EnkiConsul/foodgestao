@@ -58,6 +58,7 @@ import {
   reciboEspeciePdf,
   registroPagamentoEspecieArquivo,
 } from "@/lib/dp/recibo-especie";
+import { emitirRecibo, whatsappUrl } from "@/lib/dp/recibos";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -383,7 +384,7 @@ export function ComprovanteAnexarDialog(props: {
     revogar: () => void;
   } | null>(null);
   const [gerandoRecibo, setGerandoRecibo] = useState(false);
-  const [canalRecibo, setCanalRecibo] = useState<"portal" | "fisico">("portal");
+  const [canalRecibo, setCanalRecibo] = useState<"portal" | "fisico" | "whatsapp">("portal");
 
   const importar = async () => {
     let arquivoFinal = arquivo;
