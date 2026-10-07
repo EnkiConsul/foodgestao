@@ -3836,7 +3836,10 @@ export type Database = {
       dp_ata_participantes: {
         Row: {
           ata_id: string
-          colaborador_id: string
+          avulso_cpf: string | null
+          avulso_nome: string | null
+          avulso_whatsapp: string | null
+          colaborador_id: string | null
           company_id: string
           created_at: string
           documento_id: string | null
@@ -3846,7 +3849,10 @@ export type Database = {
         }
         Insert: {
           ata_id: string
-          colaborador_id: string
+          avulso_cpf?: string | null
+          avulso_nome?: string | null
+          avulso_whatsapp?: string | null
+          colaborador_id?: string | null
           company_id: string
           created_at?: string
           documento_id?: string | null
@@ -3856,7 +3862,10 @@ export type Database = {
         }
         Update: {
           ata_id?: string
-          colaborador_id?: string
+          avulso_cpf?: string | null
+          avulso_nome?: string | null
+          avulso_whatsapp?: string | null
+          colaborador_id?: string | null
           company_id?: string
           created_at?: string
           documento_id?: string | null
@@ -3906,6 +3915,7 @@ export type Database = {
         Row: {
           anexos: Json
           company_id: string
+          condutores: Json
           conteudo_html: string
           created_at: string
           created_by: string | null
@@ -3914,6 +3924,7 @@ export type Database = {
           enviada_por: string | null
           id: string
           local: string | null
+          publicar_mural: boolean
           status: string
           titulo: string
           unidade_id: string | null
@@ -3922,6 +3933,7 @@ export type Database = {
         Insert: {
           anexos?: Json
           company_id: string
+          condutores?: Json
           conteudo_html?: string
           created_at?: string
           created_by?: string | null
@@ -3930,6 +3942,7 @@ export type Database = {
           enviada_por?: string | null
           id?: string
           local?: string | null
+          publicar_mural?: boolean
           status?: string
           titulo: string
           unidade_id?: string | null
@@ -3938,6 +3951,7 @@ export type Database = {
         Update: {
           anexos?: Json
           company_id?: string
+          condutores?: Json
           conteudo_html?: string
           created_at?: string
           created_by?: string | null
@@ -3946,6 +3960,7 @@ export type Database = {
           enviada_por?: string | null
           id?: string
           local?: string | null
+          publicar_mural?: boolean
           status?: string
           titulo?: string
           unidade_id?: string | null
