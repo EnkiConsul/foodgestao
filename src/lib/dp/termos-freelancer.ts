@@ -67,7 +67,7 @@ function limpar(t: string) {
   return t.replace(/[—–]/g, "-").replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/[^\x20-\xFF]/g, "");
 }
 
-async function gerarPdf(titulo: string, versao: string, paragrafos: string[]): Promise<Uint8Array> {
+export async function gerarPdf(titulo: string, versao: string, paragrafos: string[], rodape?: string): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   const fonte = await pdf.embedFont(StandardFonts.Helvetica);
   const negrito = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -92,11 +92,11 @@ async function gerarPdf(titulo: string, versao: string, paragrafos: string[]): P
   y -= 6;
   for (const p of paragrafos) { quebrar(p); y -= 6; }
   y -= 10;
-  quebrar(`Versão ${versao} - emitido em ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}. A assinatura eletrônica do(a) prestador(a) é registrada no portal e estampada na via assinada.`, fonte, 9);
+  quebrar(`Versão ${versao} - emitido em ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}. ${rodape ?? "A assinatura eletrônica do(a) prestador(a) é registrada no portal e estampada na via assinada."}`, fonte, 9);
   return pdf.save();
 }
 
-function cpfFmt(cpf?: string | null) {
+export function cpfFmt(cpf?: string | null) {
   const d = (cpf ?? "").replace(/\D/g, "");
   return d.length === 11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : d || null;
 }
