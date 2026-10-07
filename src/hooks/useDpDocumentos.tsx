@@ -166,6 +166,7 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
     },
     onSuccess: () => {
       toast.success("Documento arquivado");
+      qc.invalidateQueries({ queryKey: ["dp_termos_compensacao"] });
       invalidateDocs();
     },
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
