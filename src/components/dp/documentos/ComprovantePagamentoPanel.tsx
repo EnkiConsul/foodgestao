@@ -59,7 +59,7 @@ import {
   registroPagamentoEspecieArquivo,
 } from "@/lib/dp/recibo-especie";
 import { emitirRecibo, whatsappUrl } from "@/lib/dp/recibos";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { conferirFavorecido } from "@/lib/dp/comprovante-favorecido";
@@ -154,13 +154,43 @@ function useVerComprovante() {
  */
 function ReciboEspecieAcoes(props: {
   documentoId: string;
-  jaEmitido: boolean;
+  reciboDocumentoId: string | null;
 }) {
-  const [ocupado, setOcupado] = useState<"baixar" | "assinar" | null>(null);
+  const qc = useQueryClient();
+  const [ocupado, setOcupado] = useState<"baixar" | "assinar" | "ver" | null>(null);
+  const [confirmarNovaVia, setConfirmarNovaVia] = useState(false);
   const [previa, setPrevia] = useState<{
     url: string;
     revogar: () => void;
   } | null>(null);
+
+  // Situação real do recibo já emitido: aguardando ou assinado.
+  const situacao = useQuery({
+    queryKey: ["dp_recibo_especie_status", props.reciboDocumentoId],
+    enabled: !!props.reciboDocumentoId,
+    queryFn: async () => {
+      const id = props.reciboDocumentoId!;
+      const [doc, aceite] = await Promise.all([
+        supabase.from("dp_documentos").select("created_at, via_assinada_em").eq("id", id).maybeSingle(),
+        supabase.from("dp_documento_aceites").select("aceito_em").eq("documento_id", id).order("aceito_em", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      return {
+        emitidoEm: (doc.data?.created_at as string | undefined) ?? null,
+        viaFisicaEm: (doc.data?.via_assinada_em as string | null | undefined) ?? null,
+        assinadoEm: (aceite.data?.aceito_em as string | undefined) ?? null,
+      };
+    },
+  });
+  const emitido = !!props.reciboDocumentoId;
+  const s = situacao.data;
+  const fmt = (v: string, hora = false) =>
+    new Date(v).toLocaleString("pt-BR", hora ? { dateStyle: "short", timeStyle: "short" } : { dateStyle: "short" });
+
+  const atualizar = () => {
+    qc.invalidateQueries({ queryKey: ["dp_doc_detalhes"] });
+    qc.invalidateQueries({ queryKey: ["dp_documentos"] });
+    qc.invalidateQueries({ queryKey: ["dp_recibo_especie_status"] });
+  };
 
   const baixar = async () => {
     setOcupado("baixar");
@@ -175,11 +205,14 @@ function ReciboEspecieAcoes(props: {
     }
   };
 
-  const pedirAssinatura = async () => {
-    setOcupado("assinar");
+  const verRecibo = async () => {
+    if (!props.reciboDocumentoId) return;
+    setOcupado("ver");
     try {
-      await emitirReciboEspecieParaAssinatura(props.documentoId);
-      toast.success("Recibo enviado para assinatura no portal do colaborador");
+      const link = await linkDocumentoAssinado(props.reciboDocumentoId, 300);
+      if (!link) throw new Error("Não foi possível abrir o recibo agora. Tente de novo em instantes.");
+      previa?.revogar();
+      setPrevia({ url: link.url, revogar: () => {} });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -187,43 +220,85 @@ function ReciboEspecieAcoes(props: {
     }
   };
 
+  const pedirAssinatura = async () => {
+    setOcupado("assinar");
+    setConfirmarNovaVia(false);
+    try {
+      await emitirReciboEspecieParaAssinatura(props.documentoId);
+      toast.success("Recibo enviado para assinatura no portal do colaborador");
+      atualizar();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setOcupado(null);
+    }
+  };
+
+  const assinado = s?.assinadoEm ?? s?.viaFisicaEm ?? null;
+
   return (
     <div className="rounded-md border border-amber-300 bg-amber-50/70 p-3">
       <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase text-amber-800">
         <Banknote className="size-3.5" /> Recibo do Valor em Dinheiro
       </p>
-      <p className="mb-2 text-xs text-amber-800">
-        {props.jaEmitido
-          ? "O recibo deste pagamento já foi gerado. Você pode emitir outra via quando precisar."
-          : "Pagamento em dinheiro precisa de recibo assinado pelo colaborador (CLT, art. 464)."}
-      </p>
+      {!emitido ? (
+        <p className="mb-2 text-xs text-amber-800">
+          Pagamento em dinheiro precisa de recibo assinado pelo colaborador (CLT, art. 464).
+        </p>
+      ) : situacao.isLoading ? (
+        <p className="mb-2 text-xs text-amber-800">Consultando a situação do recibo…</p>
+      ) : assinado ? (
+        <p className="mb-2 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+          {s?.assinadoEm ? `Assinado digitalmente em ${fmt(s.assinadoEm, true)}` : `Via assinada à mão importada em ${fmt(assinado, true)}`}
+        </p>
+      ) : (
+        <p className="mb-2 text-xs font-medium text-amber-800">
+          Aguardando assinatura do colaborador no portal
+          {s?.emitidoEm ? ` (enviado em ${fmt(s.emitidoEm)})` : ""}.
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={ocupado !== null}
-          onClick={() => void baixar()}
-        >
-          {ocupado === "baixar" ? (
-            <Loader2 className="mr-1 size-4 animate-spin" />
-          ) : (
-            <Download className="mr-1 size-4" />
-          )}
-          Baixar Para Assinar à Mão
-        </Button>
-        <Button
-          size="sm"
-          disabled={ocupado !== null}
-          onClick={() => void pedirAssinatura()}
-        >
-          {ocupado === "assinar" ? (
-            <Loader2 className="mr-1 size-4 animate-spin" />
-          ) : (
-            <FileSignature className="mr-1 size-4" />
-          )}
-          Pedir Assinatura no Portal
-        </Button>
+        {emitido ? (
+          <>
+            <Button size="sm" disabled={ocupado !== null} onClick={() => void verRecibo()}>
+              {ocupado === "ver" ? <Loader2 className="mr-1 size-4 animate-spin" /> : <FileSignature className="mr-1 size-4" />}
+              Ver Recibo
+            </Button>
+            <Button size="sm" variant="outline" disabled={ocupado !== null} onClick={() => setConfirmarNovaVia(true)}>
+              Emitir Nova Via / Retificar
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button size="sm" variant="outline" disabled={ocupado !== null} onClick={() => void baixar()}>
+              {ocupado === "baixar" ? <Loader2 className="mr-1 size-4 animate-spin" /> : <Download className="mr-1 size-4" />}
+              Baixar Para Assinar à Mão
+            </Button>
+            <Button size="sm" disabled={ocupado !== null} onClick={() => void pedirAssinatura()}>
+              {ocupado === "assinar" ? <Loader2 className="mr-1 size-4 animate-spin" /> : <FileSignature className="mr-1 size-4" />}
+              Pedir Assinatura no Portal
+            </Button>
+          </>
+        )}
       </div>
+      {confirmarNovaVia && (
+        <div role="alert" className="mt-3 space-y-2 rounded-md border bg-background p-3 text-xs">
+          <p>
+            Se o valor ou a data estiverem errados, use primeiro "Substituir" no comprovante para corrigir.
+            A nova via usa os dados atuais do pagamento e vai para o colaborador assinar de novo; a via anterior continua no histórico.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" disabled={ocupado !== null} onClick={() => void pedirAssinatura()}>
+              {ocupado === "assinar" && <Loader2 className="mr-1 size-4 animate-spin" />}
+              Emitir Nova Via no Portal
+            </Button>
+            <Button size="sm" variant="outline" disabled={ocupado !== null} onClick={() => void baixar()}>
+              Baixar Para Assinar à Mão
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setConfirmarNovaVia(false)}>Voltar</Button>
+          </div>
+        </div>
+      )}
       <DocumentPreview
         open={!!previa}
         onOpenChange={(v) => {
@@ -1318,7 +1393,7 @@ export function ComprovantePagamentoPanel(props: {
           {!props.somenteLeitura && exigeRecibo(comprovante.modalidade) ? (
             <ReciboEspecieAcoes
               documentoId={props.alvo.documentoId}
-              jaEmitido={!!comprovante.recibo_documento_id}
+              reciboDocumentoId={comprovante.recibo_documento_id ?? null}
             />
           ) : null}
         </div>

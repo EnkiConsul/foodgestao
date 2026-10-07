@@ -20,7 +20,7 @@ interface DocumentPreviewProps {
   mime?: string | null;
   /** Segundos de validade da signed URL (default 300) */
   expiresIn?: number;
-  /** Conteúdo extra abaixo do título (ex.: abas Documento / Comprovante). */
+  /** Conteúdo extra abaixo do título. */
   toolbar?: React.ReactNode;
   /** Documento do DP cujo comprovante de pagamento aparece logo abaixo, na mesma rolagem. */
   comprovanteDocumentoId?: string | null;
@@ -52,13 +52,27 @@ export function DocumentPreview({
   acaoRodape,
 }: DocumentPreviewProps) {
   const [comprovante, setComprovante] = useState<{ url: string; mime: string | null; nome: string | null } | null>(null);
+  const [recibo, setRecibo] = useState<{ url: string; mime: string | null; nome: string | null } | null>(null);
   useEffect(() => {
     setComprovante(null);
+    setRecibo(null);
     if (!open || !comprovanteDocumentoId || aguardando) return;
     let cancelado = false;
     linkDocumentoAssinado(comprovanteDocumentoId, expiresIn, "comprovante")
       .then((l) => { if (!cancelado && l) setComprovante({ url: l.url, mime: l.mimeType, nome: l.fileName }); })
       .catch(() => undefined);
+    // Pagamento em dinheiro/misto: o recibo vinculado entra na mesma rolagem.
+    supabase
+      .from("dp_documentos")
+      .select("comprovante_recibo_documento_id")
+      .eq("id", comprovanteDocumentoId)
+      .maybeSingle()
+      .then(async ({ data }) => {
+        const rid = (data as { comprovante_recibo_documento_id?: string | null } | null)?.comprovante_recibo_documento_id;
+        if (!rid || cancelado) return;
+        const l = await linkDocumentoAssinado(rid, expiresIn).catch(() => null);
+        if (!cancelado && l) setRecibo({ url: l.url, mime: l.mimeType, nome: l.fileName });
+      });
     return () => { cancelado = true; };
   }, [open, comprovanteDocumentoId, expiresIn, aguardando]);
   const extrasChave = (comprovantesExtras ?? []).map((e) => e.path).join("|");
@@ -74,14 +88,12 @@ export function DocumentPreview({
     return () => { cancelado = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, extrasChave, expiresIn, aguardando]);
-  const listaComprovantes = [
+  const listaComprovantes: { id: string; url: string; mime: string | null; path: string; rotulo?: string }[] = [
     ...(comprovante ? [{ id: "principal", url: comprovante.url, mime: comprovante.mime, path: comprovante.nome ?? "" }] : []),
     ...extras,
+    ...(recibo ? [{ id: "recibo", url: recibo.url, mime: recibo.mime, path: recibo.nome ?? "", rotulo: "Recibo do Valor em Dinheiro" }] : []),
   ];
   const temAnexos = listaComprovantes.length > 0;
-  const [aba, setAba] = useState(-1);
-  useEffect(() => { if (!open) setAba(-1); }, [open]);
-  const abaComprovante = aba >= 0 ? listaComprovantes[aba] ?? null : null;
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(url ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -172,18 +184,8 @@ export function DocumentPreview({
           <DialogTitle className="truncate text-sm sm:text-base">{title}</DialogTitle>
           {toolbar}
         </DialogHeader>
-        {temAnexos && (
-          <div className="flex gap-1 overflow-x-auto border-b bg-background p-2">
-            <Button size="sm" variant={aba === -1 ? "default" : "outline"} onClick={() => setAba(-1)}>Documento</Button>
-            {listaComprovantes.map((c, i, arr) => (
-              <Button key={c.id} size="sm" variant={aba === i ? "default" : "outline"} onClick={() => setAba(i)}>
-                {arr.length > 1 ? `Comprovante ${i + 1}` : "Comprovante de Pagamento"}
-              </Button>
-            ))}
-          </div>
-        )}
-        <div className="flex-1 min-h-0 bg-muted/30">
-        <div className={abaComprovante ? "hidden" : "h-full"}>
+        <div className={temAnexos ? "flex-1 min-h-0 overflow-y-auto bg-muted/30" : "flex-1 min-h-0 bg-muted/30"}>
+        <div className={temAnexos ? "h-[70svh] sm:h-[68vh]" : "h-full"}>
           {aguardando ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-sm text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin" />
@@ -234,15 +236,21 @@ export function DocumentPreview({
             </div>
           )}
         </div>
-        {abaComprovante && (
-          <div className="h-full">
-            {(abaComprovante.mime ?? "").startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(abaComprovante.path) ? (
-              <ImagemZoomViewer src={abaComprovante.url} alt="Comprovante de pagamento" />
-            ) : (
-              <PdfCanvasViewer url={abaComprovante.url} title="Comprovante de pagamento" />
-            )}
-          </div>
-        )}
+        {/* Quitação na mesma rolagem: comprovantes bancários e recibo em dinheiro. */}
+        {listaComprovantes.map((c, i, arr) => (
+          <section key={c.id} className="border-t">
+            <p className="sticky top-0 z-10 border-b bg-background px-3 py-2 text-xs font-semibold uppercase text-muted-foreground">
+              {c.rotulo ?? (arr.filter((x) => !x.rotulo).length > 1 ? `Comprovante de Pagamento ${i + 1}` : "Comprovante de Pagamento")}
+            </p>
+            <div className="h-[70svh] sm:h-[68vh]">
+              {(c.mime ?? "").startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(c.path) ? (
+                <ImagemZoomViewer src={c.url} alt={c.rotulo ?? "Comprovante de pagamento"} />
+              ) : (
+                <PdfCanvasViewer url={c.url} title={c.rotulo ?? "Comprovante de pagamento"} />
+              )}
+            </div>
+          </section>
+        ))}
         </div>
         <DialogFooter className="p-2 sm:p-3 border-t flex-row flex-wrap sm:justify-between gap-2">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>
