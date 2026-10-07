@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { TextoExpansivel } from "@/components/dp/TextoExpansivel";
 import type { DpTrocaRow } from "@/hooks/useDpTrocas";
 import { acoesGestorTroca } from "@/lib/dp/troca-acoes";
+import { motivoAprovacaoGestor } from "@/lib/dp/folga-remarcacao";
 import { dataComDiaSemana, metaStatusTroca, trocaInconsistente } from "@/lib/dp/troca-apresentacao";
 import { cn } from "@/lib/utils";
 
@@ -103,6 +104,18 @@ export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar, onM
           <span className="font-semibold text-primary">{dataComDiaSemana(troca.data_proposta)}</span>
         </div>
       )}
+
+      {troca.status === "pendente_gestor" && (() => {
+        const motivo = motivoAprovacaoGestor(troca.data_original, troca.data_proposta);
+        return (
+          <div className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+            <span>
+              {motivo ?? "Esta troca exige aprovação do gestor."} O colega já aceitou — falta só a sua decisão.
+            </span>
+          </div>
+        );
+      })()}
 
       {alertaDsrDias ? (
         <div className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs font-semibold text-destructive">
