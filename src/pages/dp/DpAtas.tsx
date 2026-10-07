@@ -432,13 +432,21 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
         <ParticipantesPicker
           colabs={(colabs.data ?? []) as any[]}
           unidadeId={unidadeId === "todas" ? null : unidadeId}
-          jaIncluidos={new Set(parts.map((p) => p.colaborador_id))}
+          jaIncluidos={new Set(parts.map((p) => p.colaborador_id).filter(Boolean) as string[])}
           onClose={() => setPickerAberto(false)}
           onAdd={(ids, modalidade) => {
-            setParts((x) => [...x, ...ids.map((cid) => ({ colaborador_id: cid, modalidade, nome: (colabs.data ?? []).find((c: any) => c.id === cid)?.nome }))]);
+            setParts((x) => [...x, ...ids.map((cid) => ({ key: cid, colaborador_id: cid, modalidade, nome: (colabs.data ?? []).find((c: any) => c.id === cid)?.nome }))]);
             setPickerAberto(false);
           }}
         />
+      )}
+
+      {avulsoAberto && (
+        <AvulsoDialog onClose={() => setAvulsoAberto(false)} onAdd={(a) => {
+          if (a.cpf && parts.some((p) => p.avulso_cpf === a.cpf)) { toast.error("Esse CPF já está na lista de participantes."); return; }
+          setParts((x) => [...x, { key: crypto.randomUUID(), colaborador_id: null, nome: a.nome, avulso_cpf: a.cpf || null, avulso_whatsapp: a.whatsapp || null, modalidade: a.modalidade }]);
+          setAvulsoAberto(false);
+        }} />
       )}
 
       {revisao && (
@@ -471,24 +479,83 @@ function sanitizar(html: string) {
   return doc.body.innerHTML;
 }
 
+function AvulsoDialog({ onClose, onAdd }: { onClose: () => void; onAdd: (a: { nome: string; cpf: string; whatsapp: string; modalidade: AtaModalidade }) => void }) {
+  const [nome, setNome] = useState(""); const [cpf, setCpf] = useState(""); const [wpp, setWpp] = useState("");
+  const [modalidade, setModalidade] = useState<AtaModalidade>("presente");
+  function confirmar() {
+    if (nome.trim().length < 3) return toast.error("Informe o nome completo (mínimo 3 letras).");
+    const c = soDigitos(cpf); const w = soDigitos(wpp);
+    if (c && c.length !== 11) return toast.error("CPF incompleto.", { description: "Digite os 11 números ou deixe em branco." });
+    if (w && (w.length < 10 || w.length > 13)) return toast.error("WhatsApp inválido.", { description: "Digite DDD + número, ex.: 62 99999-9999." });
+    onAdd({ nome: nome.trim().toUpperCase(), cpf: c, whatsapp: w, modalidade });
+  }
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-md">
+        <DialogHeader>
+          <DialogTitle>Participante Sem Cadastro</DialogTitle>
+          <DialogDescription>Para consultores, terceirizados ou visitantes. Não cria cadastro de colaborador.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1"><Label>Nome Completo *</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} /></div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1"><Label>CPF</Label><Input inputMode="numeric" value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" /></div>
+            <div className="space-y-1"><Label>WhatsApp</Label><Input inputMode="tel" value={wpp} onChange={(e) => setWpp(e.target.value)} placeholder="(62) 99999-9999" /></div>
+          </div>
+          <Select value={modalidade} onValueChange={(v) => setModalidade(v as AtaModalidade)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{(Object.keys(MODALIDADES) as AtaModalidade[]).map((m) => <SelectItem key={m} value={m}>{MODALIDADES[m].label}</SelectItem>)}</SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">Quem não tem cadastro assina no espaço reservado do PDF impresso. CPF e WhatsApp ficam guardados para o envio do link de assinatura.</p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={confirmar}>Incluir</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ParticipantesPicker({ colabs, unidadeId, jaIncluidos, onClose, onAdd }: {
   colabs: any[]; unidadeId: string | null; jaIncluidos: Set<string>; onClose: () => void; onAdd: (ids: string[], m: AtaModalidade) => void;
 }) {
   const [busca, setBusca] = useState("");
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [modalidade, setModalidade] = useState<AtaModalidade>("presente");
-  const [soUnidade, setSoUnidade] = useState(!!unidadeId);
+  const [fUnidade, setFUnidade] = useState<string>(unidadeId ?? "todos");
+  const [fCargo, setFCargo] = useState("todos");
+  const [fSetor, setFSetor] = useState("todos");
+  const [fRegime, setFRegime] = useState("todos");
   const ativos = colabs.filter((c) => c.status !== "desligado" && !c.data_desligamento && !jaIncluidos.has(c.id));
+  const opcoes = (k: string, label: string) => {
+    const m = new Map<string, string>();
+    ativos.forEach((c) => { const v = c[k]; if (v) m.set(String(v), String(c[label] ?? v)); });
+    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  };
+  const unidades = opcoes("unidade_id", "unidade_nome");
+  const cargos = opcoes("cargo_nome", "cargo_nome");
+  const setores = opcoes("setor_nome", "setor_nome");
+  const regimes = opcoes("regime", "regime");
   const lista = ativos
-    .filter((c) => !soUnidade || !unidadeId || c.unidade_id === unidadeId)
-    .filter((c) => `${c.nome} ${c.cargo_nome ?? ""} ${c.setor_nome ?? ""}`.toLowerCase().includes(busca.toLowerCase()));
+    .filter((c) => fUnidade === "todos" || c.unidade_id === fUnidade)
+    .filter((c) => fCargo === "todos" || c.cargo_nome === fCargo)
+    .filter((c) => fSetor === "todos" || c.setor_nome === fSetor)
+    .filter((c) => fRegime === "todos" || c.regime === fRegime)
+    .filter((c) => `${c.nome} ${c.nome_social ?? ""} ${c.cargo_nome ?? ""} ${c.setor_nome ?? ""}`.toLowerCase().includes(busca.toLowerCase()));
   const todos = lista.length > 0 && lista.every((c) => sel.has(c.id));
+  const Filtro = ({ v, on, ph, ops }: { v: string; on: (x: string) => void; ph: string; ops: [string, string][] }) => (
+    <Select value={v} onValueChange={on}>
+      <SelectTrigger className="h-9 min-w-0"><SelectValue /></SelectTrigger>
+      <SelectContent><SelectItem value="todos">{ph}</SelectItem>{ops.map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent>
+    </Select>
+  );
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="flex max-h-[90vh] w-[calc(100%-1rem)] max-w-lg flex-col">
+      <DialogContent className="flex max-h-[90vh] w-[calc(100vw-1rem)] max-w-lg flex-col">
         <DialogHeader>
           <DialogTitle>Adicionar Participantes</DialogTitle>
-          <DialogDescription>Selecione os colaboradores e como cada grupo recebe a ata.</DialogDescription>
+          <DialogDescription>Filtre a equipe, selecione e escolha como esse grupo recebe a ata.</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
           <Select value={modalidade} onValueChange={(v) => setModalidade(v as AtaModalidade)}>
@@ -496,22 +563,25 @@ function ParticipantesPicker({ colabs, unidadeId, jaIncluidos, onClose, onAdd }:
             <SelectContent>{(Object.keys(MODALIDADES) as AtaModalidade[]).map((m) => <SelectItem key={m} value={m}>{MODALIDADES[m].label}</SelectItem>)}</SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">{MODALIDADES[modalidade].descricao}</p>
-          <Input placeholder="Buscar por nome, cargo ou setor…" value={busca} onChange={(e) => setBusca(e.target.value)} />
-          <div className="flex flex-wrap items-center gap-4 text-sm">
-            <label className="flex items-center gap-2"><Checkbox checked={todos} onCheckedChange={(v) => setSel(v ? new Set([...sel, ...lista.map((c) => c.id)]) : new Set())} />Selecionar todos ({lista.length})</label>
-            {unidadeId && <label className="flex items-center gap-2"><Checkbox checked={soUnidade} onCheckedChange={(v) => setSoUnidade(!!v)} />Só da unidade da ata</label>}
+          <div className="grid grid-cols-2 gap-2">
+            <Filtro v={fUnidade} on={setFUnidade} ph="Todas as Unidades" ops={unidades} />
+            <Filtro v={fCargo} on={setFCargo} ph="Todos os Cargos" ops={cargos} />
+            <Filtro v={fSetor} on={setFSetor} ph="Todos os Setores" ops={setores} />
+            <Filtro v={fRegime} on={setFRegime} ph="Todos os Vínculos" ops={regimes} />
           </div>
+          <Input placeholder="Buscar por nome…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+          <label className="flex items-center gap-2 text-sm"><Checkbox checked={todos} onCheckedChange={(v) => { const n = new Set(sel); lista.forEach((c) => v ? n.add(c.id) : n.delete(c.id)); setSel(n); }} />Selecionar todos do filtro ({lista.length})</label>
         </div>
-        <ul className="flex-1 divide-y overflow-y-auto rounded border">
+        <ul className="min-h-[120px] flex-1 divide-y overflow-y-auto rounded border">
           {lista.map((c) => (
             <li key={c.id}>
               <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm">
                 <Checkbox checked={sel.has(c.id)} onCheckedChange={(v) => { const n = new Set(sel); v ? n.add(c.id) : n.delete(c.id); setSel(n); }} />
-                <span className="min-w-0"><span className="block truncate font-medium">{c.nome}</span><span className="block truncate text-xs text-muted-foreground">{[c.cargo_nome, c.unidade_nome].filter(Boolean).join(" • ")}</span></span>
+                <span className="min-w-0"><span className="block truncate font-medium">{c.nome}</span><span className="block truncate text-xs text-muted-foreground">{[c.cargo_nome, c.setor_nome, c.unidade_nome].filter(Boolean).join(" • ")}</span></span>
               </label>
             </li>
           ))}
-          {lista.length === 0 && <li className="px-3 py-6 text-center text-xs text-muted-foreground">Nenhum colaborador encontrado.</li>}
+          {lista.length === 0 && <li className="px-3 py-6 text-center text-xs text-muted-foreground">Nenhum colaborador encontrado com esses filtros.</li>}
         </ul>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
