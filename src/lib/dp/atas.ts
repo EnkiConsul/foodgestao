@@ -228,7 +228,7 @@ export async function enviarAta(ataId: string, onProgresso?: (feitos: number, to
   const a = ata as any;
   if (!htmlTemTexto(a.conteudo_html)) throw new Error("Escreva o conteúdo da ata antes de enviar.");
   const { data: parts } = await supabase.from("dp_ata_participantes" as never)
-    .select("id, colaborador_id, modalidade, documento_id, avulso_nome, dp_colaboradores(nome)").eq("ata_id", ataId);
+    .select("id, colaborador_id, modalidade, documento_id, avulso_nome, avulso_cpf, avulso_whatsapp, dp_colaboradores(nome)").eq("ata_id", ataId);
   const lista = ((parts ?? []) as any[]);
   if (!lista.length) throw new Error("Inclua ao menos um participante antes de enviar.");
   const [{ data: emp }, { data: uni }] = await Promise.all([
@@ -265,6 +265,22 @@ export async function enviarAta(ataId: string, onProgresso?: (feitos: number, to
     await supabase.from("dp_ata_participantes" as never).update({ documento_id: docId } as never).eq("id", p.id);
     feitos++; onProgresso?.(feitos, pendentes.length);
   }
+  // Participantes sem cadastro: uma via única do PDF e link pelo WhatsApp (com CPF).
+  const avulsos = lista.filter((p) => !p.colaborador_id);
+  const linksFalhos: string[] = [];
+  if (avulsos.length) {
+    const path = `${a.company_id}/atas/avulsos/${Date.now()}-ata-${slug(a.titulo)}.pdf`;
+    const up = await supabase.storage.from("dp-documentos").upload(path, new Blob([bytes as BlobPart], { type: "application/pdf" }), { contentType: "application/pdf" });
+    if (!up.error) {
+      for (const p of avulsos) {
+        await supabase.from("dp_ata_participantes" as never).update({ arquivo_path: path } as never).eq("id", p.id);
+        if (p.modalidade !== "consulta" && p.avulso_cpf && p.avulso_whatsapp) {
+          const r = await enviarLinkAvulso(p.id).catch(() => ({ enviado: false }));
+          if (!r.enviado) linksFalhos.push(p.avulso_nome ?? "Participante");
+        }
+      }
+    }
+  }
   if (a.publicar_mural && a.status !== "enviada") {
     const texto = (new DOMParser().parseFromString(a.conteudo_html, "text/html").body.textContent ?? "").replace(/\s+/g, " ").trim();
     try {
@@ -274,5 +290,16 @@ export async function enviarAta(ataId: string, onProgresso?: (feitos: number, to
   const { data: u } = await supabase.auth.getUser();
   // Marca como enviada (a política só permite alterar rascunhos; já enviada fica como está).
   await supabase.from("dp_atas" as never).update({ status: "enviada", enviada_em: new Date().toISOString(), enviada_por: u.user?.id ?? null } as never).eq("id", ataId);
-  return feitos;
+  return { feitos, linksFalhos };
+}
+
+/** Gera e envia (ou reenvia) o link de assinatura pelo WhatsApp para quem não tem cadastro. */
+export async function enviarLinkAvulso(participanteId: string): Promise<{ enviado: boolean; erro?: string | null; link?: string }> {
+  const { data, error } = await supabase.functions.invoke("dp-ata-avulso", { body: { acao: "emitir", participante_id: participanteId } });
+  if (error) {
+    let msg = "Não foi possível gerar o link agora.";
+    try { const j = await (error as any).context?.json(); if (j?.error) msg = j.error; } catch { /* */ }
+    throw new Error(msg);
+  }
+  return data as any;
 }

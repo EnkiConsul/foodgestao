@@ -20,7 +20,7 @@ type Envio = {
   colaborador_id: string | null; recibo_id: string | null; created_at: string; entregue_em: string | null; lido_em: string | null;
 };
 
-const TIPO: Record<Envio["tipo"], string> = { acesso: "Acesso ao Portal", senha: "Nova Senha", recibo: "Assinatura de Recibo" };
+const TIPO: Record<Envio["tipo"], string> = { acesso: "Acesso ao Portal", senha: "Nova Senha", recibo: "Assinatura de Recibo", ata: "Assinatura de Ata" } as Record<string, string>;
 const STATUS: Record<Envio["status"], { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   enviado: { label: "Enviado", variant: "secondary" },
   entregue: { label: "Entregue", variant: "outline" },
