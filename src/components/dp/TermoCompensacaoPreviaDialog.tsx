@@ -9,15 +9,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { PdfCanvasViewer } from "@/components/dp/PdfCanvasViewer";
 import { gerarTermoCompensacaoPdf, fmtHoras, type LinhaJornada } from "@/lib/dp/termo-compensacao-pdf";
 import {
-  clausulasCompensacao, emitirTermoCompensacao, TERMOS_COMPENSACAO, TITULO_SEMANAL_BANCO, type TermoCompensacaoTipo,
+  clausulasUnificadas, emitirTermoCompensacao, tituloTermoUnificado, TERMOS_COMPENSACAO, type TermoCompensacaoTipo,
 } from "@/lib/dp/termos-compensacao";
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  tipo: TermoCompensacaoTipo;
-  /** A unidade adota banco de horas: permite o termo único semanal + banco. */
-  bancoDisponivel: boolean;
+  /** Assuntos pendentes do colaborador; mais de um permite o termo único. */
+  disponiveis: TermoCompensacaoTipo[];
   companyId: string;
   colaboradorId: string;
   partes: { empresa: string; cnpj?: string | null; unidade?: string | null; nome: string; cpf?: string | null; cargo?: string | null };
@@ -26,23 +25,23 @@ interface Props {
 }
 
 /** Prévia editável do acordo antes de enviar para assinatura no portal. */
-export function TermoCompensacaoPreviaDialog({ open, onOpenChange, tipo, bancoDisponivel, companyId, colaboradorId, partes, jornada, onEmitido }: Props) {
-  const [integrar, setIntegrar] = useState(bancoDisponivel);
+export function TermoCompensacaoPreviaDialog({ open, onOpenChange, disponiveis, companyId, colaboradorId, partes, jornada, onEmitido }: Props) {
+  const [sel, setSel] = useState<TermoCompensacaoTipo[]>(disponiveis);
   const [texto, setTexto] = useState("");
   const [url, setUrl] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
-    if (open) setIntegrar(bancoDisponivel);
-  }, [open, bancoDisponivel]);
+    if (open) setSel(disponiveis);
+  }, [open, disponiveis.join(",")]);
   useEffect(() => {
-    if (open) setTexto(clausulasCompensacao(tipo, { integrarBanco: tipo === "semanal" && integrar }).join("\n\n"));
+    if (open && sel.length) setTexto(clausulasUnificadas(sel).join("\n\n"));
     setUrl(null);
-  }, [open, tipo, integrar]);
+  }, [open, sel.join(",")]);
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
 
-  const unificado = tipo === "semanal" && integrar;
-  const titulo = unificado ? TITULO_SEMANAL_BANCO : TERMOS_COMPENSACAO[tipo].titulo;
+  const tipo = sel[0] ?? disponiveis[0];
+  const titulo = sel.length ? tituloTermoUnificado(sel) : "";
   const total = useMemo(() => jornada.reduce((a, j) => a + (j.trabalha ? j.minutos : 0), 0), [jornada]);
 
   const montar = () => gerarTermoCompensacaoPdf({
@@ -60,10 +59,11 @@ export function TermoCompensacaoPreviaDialog({ open, onOpenChange, tipo, bancoDi
   };
 
   const enviar = async () => {
+    if (!sel.length) { toast.error("Marque ao menos um assunto para o termo."); return; }
     if (texto.trim().length < 50) { toast.error("O texto do acordo está muito curto. Revise as cláusulas."); return; }
     setEnviando(true);
     try {
-      const r = await emitirTermoCompensacao({ tipo, companyId, colaboradorId, titulo, bytes: await montar(), integrarBanco: unificado });
+      const r = await emitirTermoCompensacao({ tipo, companyId, colaboradorId, titulo, bytes: await montar(), integrarBanco: sel.includes("semanal") && sel.includes("banco_horas"), tipos: sel });
       toast.success(r === "emitido" ? "Termo enviado para assinatura no portal do colaborador." : "Este termo já foi emitido.");
       onEmitido();
       onOpenChange(false);
@@ -103,14 +103,17 @@ export function TermoCompensacaoPreviaDialog({ open, onOpenChange, tipo, bancoDi
               </tbody>
             </table>
           </div>
-          {tipo === "semanal" && bancoDisponivel && (
-            <label className="flex items-start gap-2 rounded-lg bg-muted/40 p-3 text-sm">
-              <Checkbox checked={integrar} onCheckedChange={(v) => setIntegrar(!!v)} className="mt-0.5" />
-              <span>
-                <span className="font-medium">Integrar com Banco de Horas da CCT/Unidade</span>
-                <span className="block text-xs text-muted-foreground">Gera um termo único: as horas não compensadas na semana vão para o banco em vez de serem pagas como extra.</span>
-              </span>
-            </label>
+          {disponiveis.length > 1 && (
+            <div className="space-y-2 rounded-lg bg-muted/40 p-3 text-sm">
+              <p className="font-medium">Assuntos do Termo Único</p>
+              <p className="text-xs text-muted-foreground">O colaborador assina uma vez só. Desmarque o que deve sair em termo separado.</p>
+              {disponiveis.map((t) => (
+                <label key={t} className="flex items-center gap-2">
+                  <Checkbox checked={sel.includes(t)} onCheckedChange={(v) => setSel((p) => v ? [...p, t] : p.filter((x) => x !== t))} />
+                  <span>{TERMOS_COMPENSACAO[t].titulo}</span>
+                </label>
+              ))}
+            </div>
           )}
           <div className="space-y-1.5">
             <Label>Cláusulas (editáveis — separe cada cláusula com uma linha em branco)</Label>
