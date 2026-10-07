@@ -14,7 +14,6 @@
 // ------------------------------------------------------------------
 import { supabase } from "@/integrations/supabase/client";
 import { registrarDocumento } from "@/lib/dp/documentos-oficial";
-import { cpfFmt, gerarPdf } from "@/lib/dp/termos-freelancer";
 
 export type TermoCompensacaoTipo = "semanal" | "banco_horas" | "feriados";
 
@@ -86,43 +85,68 @@ export function termoCompensacaoParagrafos(
 export async function termoCompensacaoExistente(colaboradorId: string, tipo: TermoCompensacaoTipo) {
   const { data } = await supabase
     .from("dp_documentos")
-    .select("id")
+    .select("id, titulo")
     .eq("colaborador_id", colaboradorId)
     .eq("tipo", "termos")
     .is("arquivado_em", null)
     .ilike("titulo", `${TERMOS_COMPENSACAO[tipo].titulo}%`)
     .order("created_at", { ascending: false })
     .limit(1);
-  const doc = (data?.[0] as { id: string } | undefined) ?? null;
+  const doc = (data?.[0] as { id: string; titulo: string } | undefined) ?? null;
   if (!doc) return null;
   const { data: ac } = await (supabase as any)
     .from("dp_documento_aceites").select("aceito_em").eq("documento_id", doc.id).limit(1);
-  return { id: doc.id, assinado: !!ac?.[0]?.aceito_em };
+  return { id: doc.id, titulo: doc.titulo, assinado: !!ac?.[0]?.aceito_em };
 }
 
-/** Emite o termo para assinatura no portal. Idempotente por colaborador e tipo. */
+export const TITULO_SEMANAL_BANCO = "Acordo Individual de Compensação Semanal de Horas e Banco de Horas";
+
+/** Cláusulas editáveis da prévia (sem partes nem quadro, que o PDF monta). */
+export function clausulasCompensacao(tipo: TermoCompensacaoTipo, opts: { integrarBanco?: boolean } = {}): string[] {
+  const assinatura = "Assinatura eletrônica. As partes reconhecem a validade da assinatura eletrônica (MP 2.200-2/2001, art. 10, § 2º, e Lei 14.063/2020). O sistema registra data, hora, endereço de internet, dispositivo e impressão digital do arquivo, e o desenho da assinatura é estampado na via assinada.";
+  if (tipo === "semanal") {
+    const c = [
+      "1. Objeto. As partes ajustam, por acordo individual escrito, a compensação de horas dentro da mesma semana (art. 59, § 6º, da CLT): o acréscimo de horas em alguns dias é compensado pela redução ou supressão do trabalho em outro dia da mesma semana, conforme o quadro acima.",
+      "2. Limites. A jornada diária não excederá 10 horas e a semanal não ultrapassará 44 horas, respeitados os intervalos legais e o descanso semanal remunerado indicado no quadro (arts. 66, 67 e 71 da CLT).",
+    ];
+    if (opts.integrarBanco) {
+      c.push(
+        "3. Banco de horas. As horas excedentes que não forem compensadas na mesma semana integrarão o banco de horas (art. 59, §§ 2º e 5º, da CLT), em consonância com a Convenção ou o Acordo Coletivo de Trabalho vigente, e serão compensadas com folgas ou redução de jornada no prazo máximo de 6 (seis) meses, ou no prazo menor fixado pela norma coletiva.",
+        "4. Saldo não compensado. O saldo positivo não compensado no prazo, ou existente na rescisão, será pago como hora extra com o adicional legal ou convencional (art. 59, § 3º, da CLT).",
+        "5. Transparência. O(A) empregado(a) poderá consultar o saldo do banco de horas junto ao Departamento Pessoal.",
+        "6. Convenção coletiva. Este acordo observa a norma coletiva vigente da categoria, que prevalece no que for mais favorável.",
+        `7. ${assinatura}`,
+      );
+    } else {
+      c.push(
+        "3. Horas não compensadas. As horas que excederem o limite semanal ou não forem compensadas na mesma semana serão pagas como extras, com o adicional legal ou convencional, salvo se houver banco de horas ajustado por escrito ou previsto em norma coletiva, hipótese em que integrarão o saldo para compensação no prazo convencional.",
+        "4. Convenção coletiva. Este acordo observa a Convenção ou o Acordo Coletivo de Trabalho vigente da categoria, que prevalece no que for mais favorável.",
+        `5. ${assinatura}`,
+      );
+    }
+    return c;
+  }
+  return termoCompensacaoParagrafos(tipo, { empresa: "", nome: "" }).slice(2).map((t) =>
+    t.startsWith("5. Assinatura") || t.startsWith("6. Assinatura") ? `${t.slice(0, 3)}${assinatura}` : t);
+}
+
+/** Emite o termo revisado na prévia para assinatura no portal. Idempotente por colaborador e tipo. */
 export async function emitirTermoCompensacao(input: {
-  tipo: TermoCompensacaoTipo; companyId: string; colaboradorId: string; nome: string; cpf?: string | null; horarios?: string[];
+  tipo: TermoCompensacaoTipo; companyId: string; colaboradorId: string;
+  titulo: string; bytes: Uint8Array; integrarBanco?: boolean;
 }): Promise<"emitido" | "ja_existia"> {
   if (await termoCompensacaoExistente(input.colaboradorId, input.tipo)) return "ja_existia";
-  const { titulo, versao } = TERMOS_COMPENSACAO[input.tipo];
-  const { data: emp } = await supabase.from("companies").select("name, trade_name, cnpj").eq("id", input.companyId).maybeSingle();
-  const empresa = (emp?.name || emp?.trade_name || "Empresa").toUpperCase();
-  const paragrafos = termoCompensacaoParagrafos(input.tipo, {
-    empresa, cnpj: emp?.cnpj ?? null, nome: input.nome.toUpperCase(), cpf: cpfFmt(input.cpf), horarios: input.horarios,
-  });
-  const bytes = await gerarPdf(titulo, versao, paragrafos, "A assinatura eletrônica do(a) empregado(a) é registrada no portal e estampada na via assinada.");
-  const slug = input.nome.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").slice(0, 40);
-  const nomeArquivo = `acordo-${input.tipo.replace("_", "-")}-${slug}.pdf`;
+  const versao = TERMOS_COMPENSACAO[input.tipo].versao.replace("v1", "v2");
+  const nomeArquivo = `acordo-${input.tipo.replace("_", "-")}${input.integrarBanco ? "-banco-horas" : ""}.pdf`;
   const path = `${input.companyId}/${input.colaboradorId}/${Date.now()}-${nomeArquivo}`;
-  const blob = new Blob([bytes as BlobPart], { type: "application/pdf" });
+  const blob = new Blob([input.bytes as BlobPart], { type: "application/pdf" });
   const up = await supabase.storage.from("dp-documentos").upload(path, blob, { contentType: "application/pdf", upsert: false });
   if (up.error) throw new Error("Não foi possível guardar o arquivo do termo. Tente novamente em instantes.");
   await registrarDocumento({
     company_id: input.companyId,
     colaborador_id: input.colaboradorId,
     tipo: "termos",
-    titulo,
+    titulo: input.titulo,
     descricao: `Versão ${versao}. Assinatura digital do colaborador pelo portal, com leitura prévia obrigatória.`,
     file_path: path,
     file_name: nomeArquivo,
