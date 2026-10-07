@@ -3852,6 +3852,7 @@ export type Database = {
           permitir_reacoes: boolean
           prioridade: string
           publicado_em: string
+          publico: Json | null
           titulo: string
           unidade_id: string | null
           updated_at: string
@@ -3874,6 +3875,7 @@ export type Database = {
           permitir_reacoes?: boolean
           prioridade?: string
           publicado_em?: string
+          publico?: Json | null
           titulo: string
           unidade_id?: string | null
           updated_at?: string
@@ -3896,6 +3898,7 @@ export type Database = {
           permitir_reacoes?: boolean
           prioridade?: string
           publicado_em?: string
+          publico?: Json | null
           titulo?: string
           unidade_id?: string | null
           updated_at?: string
