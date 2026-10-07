@@ -506,6 +506,17 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
               <Switch id="banco_horas" checked={form.banco_horas} onCheckedChange={(v) => setForm({ ...form, banco_horas: v })} />
               <Label htmlFor="banco_horas">Adota banco de horas</Label>
             </div>
+            {form.banco_horas && !form.possui_relogio_ponto && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-2.5">
+                <p className="text-[11px] leading-relaxed text-destructive">
+                  Atenção: a unidade adota banco de horas sem relógio de ponto. O banco de horas depende de controle
+                  fiel da jornada (entradas, saídas e intervalos). Sem esse registro, a empresa não consegue comprovar
+                  os saldos e, em fiscalização ou ação trabalhista, o banco pode ser invalidado e as horas cobradas como
+                  extras (mínimo de 50%). Se o controle é feito fora do sistema (livro, folha manual ou outro sistema),
+                  guarde esses registros.
+                </p>
+              </div>
+            )}
             <div className="flex items-center space-x-2">
               <Switch id="compensa_feriados" checked={form.compensa_feriados} onCheckedChange={(v) => setForm({ ...form, compensa_feriados: v })} />
               <Label htmlFor="compensa_feriados">Compensação de feriados</Label>
