@@ -50,3 +50,5 @@ project_id = "grtxmbffgmgnkawlvqhm"
     verify_jwt = false
   [functions.admin-start-grace]
     verify_jwt = true
+  [functions.zapi-webhook]
+    verify_jwt = false

@@ -13,7 +13,7 @@ import {
   registrarEvento,
   situacaoAcesso,
 } from "../_shared/portal-access.ts";
-import { enviarWhatsappAveto, primeiroNome, type EnvioWhatsapp } from "../_shared/whatsapp-aveto.ts";
+import { enviarWhatsappAveto, primeiroNomeExibicao, type EnvioWhatsapp } from "../_shared/whatsapp-aveto.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: strictCorsHeaders(req) });
@@ -65,8 +65,8 @@ Deno.serve(async (req) => {
     const resetUrl = linkDeAcesso(req.headers.get("origin"), "reset", tokenId, codigo);
     let envio: EnvioWhatsapp | null = null;
     if (body?.enviar_whatsapp === true) {
-      const { data: c } = await admin.from("dp_colaboradores").select("nome, whatsapp, telefone").eq("id", colab.id).maybeSingle();
-      const p = primeiroNome(c?.nome);
+      const { data: c } = await admin.from("dp_colaboradores").select("nome, nome_social, whatsapp, telefone").eq("id", colab.id).maybeSingle();
+      const p = primeiroNomeExibicao(c);
       envio = await enviarWhatsappAveto(c?.whatsapp || c?.telefone, [
         `*Aveto 360* - Olá${p ? `, ${p}` : ""}!`,
         "",
@@ -77,7 +77,10 @@ Deno.serve(async (req) => {
         "",
         "👤 *Login:* seu CPF (apenas números)",
         "Se você não pediu, avise o gestor ou RH.",
-      ].join("\n"));
+      ].join("\n"), {
+        admin, companyId: colab.company_id, tipo: "senha", colaboradorId: colab.id,
+        nome: c?.nome_social || c?.nome, link: resetUrl, enviadoPor: caller.id,
+      });
     }
 
     return jsonResponse(req, 200, {
