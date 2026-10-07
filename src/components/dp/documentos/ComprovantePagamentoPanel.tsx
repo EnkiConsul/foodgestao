@@ -383,6 +383,7 @@ export function ComprovanteAnexarDialog(props: {
     revogar: () => void;
   } | null>(null);
   const [gerandoRecibo, setGerandoRecibo] = useState(false);
+  const [canalRecibo, setCanalRecibo] = useState<"portal" | "fisico">("portal");
 
   const importar = async () => {
     let arquivoFinal = arquivo;
@@ -526,10 +527,15 @@ export function ComprovanteAnexarDialog(props: {
           if (exigeRecibo(quitacao.modalidade)) {
             setGerandoRecibo(true);
             try {
-              setReciboPrevia(await reciboEspeciePdf(props.alvo.documentoId));
+              if (canalRecibo === "portal" && props.alvo.colaboradorId) {
+                await emitirReciboEspecieParaAssinatura(props.alvo.documentoId);
+                toast.success("Recibo enviado para o colaborador assinar no Meu Portal.");
+              } else {
+                setReciboPrevia(await reciboEspeciePdf(props.alvo.documentoId));
+              }
             } catch (e) {
               toast.error(
-                `Pagamento registrado, mas o recibo não abriu: ${(e as Error).message} Use "Baixar Para Assinar à Mão" no painel.`,
+                `Pagamento registrado, mas o recibo não foi gerado: ${(e as Error).message} Use as ações do recibo no painel do documento.`,
               );
             } finally {
               setGerandoRecibo(false);
@@ -873,6 +879,39 @@ export function ComprovanteAnexarDialog(props: {
           </label>
         ) : null}
 
+        {exigeRecibo(modalidade) && !props.complementar ? (
+          <div className="space-y-2 rounded-md border p-3">
+            <p className="text-xs font-semibold uppercase text-muted-foreground">Recibo do Valor em Dinheiro</p>
+            <p className="text-xs text-muted-foreground">Como o colaborador vai assinar o recibo?</p>
+            <div role="radiogroup" aria-label="Forma de assinatura do recibo" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+              {([
+                { v: "portal", label: "Digital no Meu Portal" },
+                { v: "fisico", label: "Imprimir e Assinar à Mão" },
+              ] as const).map((o) => (
+                <button
+                  key={o.v}
+                  type="button"
+                  role="radio"
+                  aria-checked={canalRecibo === o.v}
+                  disabled={o.v === "portal" && !props.alvo.colaboradorId}
+                  onClick={() => setCanalRecibo(o.v)}
+                  className={
+                    "min-h-10 rounded-md px-2 text-xs font-medium transition-colors disabled:opacity-50 " +
+                    (canalRecibo === o.v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")
+                  }
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {canalRecibo === "portal"
+                ? "Ao salvar, o recibo vai para o acervo e o colaborador recebe a pendência para assinar."
+                : "Ao salvar, o recibo abre na tela para imprimir e colher a assinatura."}
+            </p>
+          </div>
+        ) : null}
+
         <DialogFooter className="gap-2 sm:gap-2">
           <Button
             variant="outline"
@@ -898,8 +937,7 @@ export function ComprovanteAnexarDialog(props: {
         {semArquivoEspecie ? (
           <p className="text-xs text-muted-foreground">
             Sem comprovante do banco? Clique em "Registrar e Gerar Recibo": o pagamento fica
-            registrado e o recibo abre para imprimir e o colaborador assinar. Também dá para
-            pedir a assinatura no portal depois.
+            registrado e o recibo segue pela forma de assinatura escolhida acima.
           </p>
         ) : null}
       </DialogContent>
