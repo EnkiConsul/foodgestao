@@ -75,6 +75,7 @@ export function CompensacaoJornadaBox({ companyId, colaboradorId, nome, cpf, reg
     });
   }, [detalhes, cfg.vigente]);
   const [previa, setPrevia] = useState<TermoCompensacaoTipo[] | null>(null);
+  const [substituir, setSubstituir] = useState(false);
 
   const excecao = useQuery({
     queryKey: ["dp_colaborador_compensacao", colaboradorId],
@@ -111,6 +112,9 @@ export function CompensacaoJornadaBox({ companyId, colaboradorId, nome, cpf, reg
   const status = useQuery({
     queryKey: ["dp_termos_compensacao", colaboradorId, tipos.join(",")],
     enabled: tipos.length > 0,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const r: Partial<Record<TermoCompensacaoTipo, { assinado: boolean } | null>> = {};
       for (const t of tipos) r[t] = await termoCompensacaoExistente(colaboradorId, t);
@@ -154,7 +158,7 @@ export function CompensacaoJornadaBox({ companyId, colaboradorId, nome, cpf, reg
         <div className="space-y-1.5 rounded-lg bg-primary/5 p-2.5">
           <p className="text-sm font-medium">Termo Único</p>
           <p className="text-xs text-muted-foreground">Junte os {pendentes.length} acordos pendentes em um só documento, com uma única assinatura.</p>
-          <Button type="button" size="sm" disabled={status.isLoading || extras.isLoading} onClick={() => setPrevia(pendentes)}>
+          <Button type="button" size="sm" disabled={status.isLoading || extras.isLoading} onClick={() => { setSubstituir(false); setPrevia(pendentes); }}>
             Revisar e Gerar Termo Único
           </Button>
         </div>
@@ -166,15 +170,20 @@ export function CompensacaoJornadaBox({ companyId, colaboradorId, nome, cpf, reg
             <p className="text-sm font-medium">{TERMOS_COMPENSACAO[t].titulo}</p>
             <p className="text-xs text-muted-foreground">{motivo[t]}</p>
             {s ? (
-              <p className="flex items-center gap-1.5 text-xs font-medium">
-                {s.assinado ? (
-                  <><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Assinado — salvo na aba Documentos.</>
-                ) : (
-                  <><Clock className="h-3.5 w-3.5 text-muted-foreground" /> Aguardando assinatura no portal.</>
-                )}
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="flex items-center gap-1.5 text-xs font-medium">
+                  {s.assinado ? (
+                    <><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Assinado — salvo na aba Documentos.</>
+                  ) : (
+                    <><Clock className="h-3.5 w-3.5 text-muted-foreground" /> Aguardando assinatura.</>
+                  )}
+                </p>
+                <Button type="button" size="sm" variant="outline" disabled={extras.isLoading} onClick={() => { setSubstituir(true); setPrevia([t]); }}>
+                  Emitir Nova Via
+                </Button>
+              </div>
             ) : (
-              <Button type="button" size="sm" disabled={status.isLoading || extras.isLoading} variant={pendentes.length > 1 ? "outline" : "default"} onClick={() => setPrevia([t])}>
+              <Button type="button" size="sm" disabled={status.isLoading || extras.isLoading} variant={pendentes.length > 1 ? "outline" : "default"} onClick={() => { setSubstituir(false); setPrevia([t]); }}>
                 Revisar e Gerar Termo
               </Button>
             )}
@@ -184,7 +193,8 @@ export function CompensacaoJornadaBox({ companyId, colaboradorId, nome, cpf, reg
       {previa && (
         <TermoCompensacaoPreviaDialog
           open={!!previa}
-          onOpenChange={(v) => { if (!v) setPrevia(null); }}
+          onOpenChange={(v) => { if (!v) { setPrevia(null); setSubstituir(false); } }}
+          substituir={substituir}
           disponiveis={previa}
           companyId={companyId}
           colaboradorId={colaboradorId}
@@ -193,7 +203,7 @@ export function CompensacaoJornadaBox({ companyId, colaboradorId, nome, cpf, reg
             nome: toUpperCadastro(nome), cpf: cpfFmt(cpf), cargo: extras.data?.cargo ? toUpperCadastro(extras.data.cargo) : null,
           }}
           jornada={jornada}
-          onEmitido={() => qc.invalidateQueries({ queryKey: ["dp_termos_compensacao", colaboradorId] })}
+          onEmitido={() => { qc.invalidateQueries({ queryKey: ["dp_termos_compensacao", colaboradorId] }); qc.invalidateQueries({ queryKey: ["dp_documentos"] }); }}
         />
       )}
     </div>

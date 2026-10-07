@@ -23,10 +23,12 @@ interface Props {
   partes: { empresa: string; cnpj?: string | null; unidade?: string | null; nome: string; cpf?: string | null; cargo?: string | null };
   jornada: LinhaJornada[];
   onEmitido: () => void;
+  /** Emite nova via arquivando a anterior. */
+  substituir?: boolean;
 }
 
 /** Prévia editável do acordo antes de enviar para assinatura no portal. */
-export function TermoCompensacaoPreviaDialog({ open, onOpenChange, disponiveis, companyId, colaboradorId, partes, jornada, onEmitido }: Props) {
+export function TermoCompensacaoPreviaDialog({ open, onOpenChange, disponiveis, companyId, colaboradorId, partes, jornada, onEmitido, substituir }: Props) {
   const [sel, setSel] = useState<TermoCompensacaoTipo[]>(disponiveis);
   const [texto, setTexto] = useState("");
   const [url, setUrl] = useState<string | null>(null);
