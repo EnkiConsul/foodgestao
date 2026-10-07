@@ -100,7 +100,10 @@ export default function Auth() {
   const { pathname } = useLocation();
   const initialMode: Mode = pathname === "/cadastro" || searchParams.get("tab") === "signup" ? "signup" : "login";
   const [mode, setMode] = useState<Mode>(initialMode);
-  const [identifier, setIdentifier] = useState("");
+  const [identifier, setIdentifier] = useState(() => {
+    const c = (searchParams.get("cpf") ?? "").replace(/\D/g, "");
+    return c.length === 11 ? c : "";
+  });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -683,7 +686,10 @@ export default function Auth() {
                     <button
                       type="button"
                       className="-mr-2 inline-flex min-h-6 md:min-h-11 md:min-w-11 items-center justify-end rounded-md px-2 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      onClick={() => navigate("/esqueci-senha")}
+                      onClick={() => {
+                        const d = identifier.replace(/\D/g, "");
+                        navigate(!identifier.includes("@") && d.length === 11 ? `/esqueci-senha?cpf=${d}` : "/esqueci-senha");
+                      }}
                     >
                       Esqueci minha senha
                     </button>

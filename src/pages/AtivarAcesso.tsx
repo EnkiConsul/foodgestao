@@ -107,7 +107,7 @@ export default function AtivarAcesso() {
         return;
       }
       toast.success("Senha criada!", { description: "Entre com seu CPF e a senha que você acabou de escolher." });
-      navigate("/login", { replace: true });
+      navigate(`/login?cpf=${digitos}`, { replace: true });
     } catch {
       setErro("Não foi possível concluir. Tente de novo ou peça um novo link.");
     } finally {

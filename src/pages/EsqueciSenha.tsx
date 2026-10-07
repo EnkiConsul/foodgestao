@@ -35,7 +35,7 @@ async function mensagemDeErro(err: any, padrao: string): Promise<string> {
 export default function EsqueciSenha() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const primeiro = searchParams.get("primeiro") === "1";
+  const [primeiro, setPrimeiro] = useState(() => searchParams.get("primeiro") === "1");
   const [aviso, setAviso] = useState<string | null>(null);
   const [telefoneMascarado, setTelefoneMascarado] = useState<string | null>(null);
   const { siteKey, mode: turnstileMode } = useTurnstileConfig();
@@ -79,6 +79,16 @@ export default function EsqueciSenha() {
     return () => clearInterval(t);
   }, [step, resendIn]);
 
+  // Quando o CPF já tem senha, o token anti-robô foi gasto na checagem de
+  // primeiro acesso; seguimos a recuperação normal assim que um novo token chegar.
+  const [recuperarPendente, setRecuperarPendente] = useState(false);
+  useEffect(() => {
+    if (!recuperarPendente || !turnstileToken) return;
+    setRecuperarPendente(false);
+    void pedirRecuperacao(identifier.trim(), turnstileToken);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recuperarPendente, turnstileToken]);
+
   async function handleRequest(e: React.FormEvent) {
     e.preventDefault();
     if (!turnstileToken) {
@@ -87,12 +97,15 @@ export default function EsqueciSenha() {
     }
     const raw = identifier.trim();
     setAviso(null);
-    if (primeiro) {
-      if (raw.replace(/\D/g, "").length !== 11) {
+    const soDigitos = raw.replace(/\D/g, "");
+    const pareceCpf = !raw.includes("@") && soDigitos.length === 11;
+    if (primeiro || pareceCpf) {
+      if (soDigitos.length !== 11) {
         setAviso("Digite os 11 números do seu CPF.");
         return;
       }
       setSubmitting(true);
+      let seguirRecuperacao = false;
       try {
         const { data, error } = await supabase.functions.invoke("auth-primeiro-acesso-cpf", {
           body: { cpf: raw, turnstile_token: turnstileToken },
@@ -116,9 +129,19 @@ export default function EsqueciSenha() {
           falha_envio:
             "Não conseguimos enviar o código pelo WhatsApp agora. Tente novamente em alguns minutos ou procure o gestor/RH.",
         };
+        if (data?.status === "ja_possui_senha" && !primeiro) {
+          seguirRecuperacao = true;
+          return;
+        }
         if (data?.status !== "enviado") {
           setAviso(mensagens[data?.status] ?? "Não foi possível enviar o código agora.");
           return;
+        }
+        if (!primeiro) {
+          setPrimeiro(true);
+          toast.success("Bem-vindo! Este é o seu primeiro acesso", {
+            description: "Enviamos um código para o seu WhatsApp para você cadastrar sua senha pessoal.",
+          });
         }
         setChallengeId(data.challenge_id);
         setChallengeToken(data.challenge_token);
@@ -129,7 +152,8 @@ export default function EsqueciSenha() {
       } finally {
         setTurnstileToken(null);
         setTurnstileNonce((nonce) => nonce + 1);
-        setSubmitting(false);
+        if (seguirRecuperacao) setRecuperarPendente(true);
+        else setSubmitting(false);
       }
       return;
     }
@@ -137,10 +161,14 @@ export default function EsqueciSenha() {
       setAviso("Informe seu e-mail ou CPF para receber o código.");
       return;
     }
+    await pedirRecuperacao(raw, turnstileToken);
+  }
+
+  async function pedirRecuperacao(raw: string, token: string) {
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("auth-recovery-request", {
-        body: { identifier: raw, turnstile_token: turnstileToken },
+        body: { identifier: raw, turnstile_token: token },
       });
       if (error) throw error;
       if (!data?.challenge_id || !data?.challenge_token) {
@@ -155,7 +183,6 @@ export default function EsqueciSenha() {
     } catch (err: any) {
       setAviso(await mensagemDeErro(err, "Não foi possível enviar o código agora. Tente novamente."));
     } finally {
-      // Turnstile tokens are single-use, including requests that return an error.
       setTurnstileToken(null);
       setTurnstileNonce((nonce) => nonce + 1);
       setSubmitting(false);
