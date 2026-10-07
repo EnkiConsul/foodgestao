@@ -328,6 +328,14 @@ export default function DpSolicitacoes() {
                   </span>
                 </div>
 
+                {prazoCompensacao(s) && (
+                  <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-xs font-medium text-amber-700 dark:text-amber-400">
+                    <AlertTriangle className="size-4 shrink-0" />
+                    Prazo de antecedência não atendido: pedido feito com {prazoCompensacao(s)!.dias} dia(s)
+                    (mínimo da unidade: {prazoCompensacao(s)!.minimo}). Pode ser recusado conforme a necessidade da escala.
+                  </div>
+                )}
+
                 {s.tipo === "folga" && !s.data_fim && s.fora_da_janela && (
                   <div className="rounded-lg border border-border bg-muted/40 p-2 text-xs text-muted-foreground">
                     Folga adicional: não conta como folga de fim de semana nem substitui a folga semanal fixa.
