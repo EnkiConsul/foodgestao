@@ -2,7 +2,7 @@ import { maskPhone } from "@/lib/phone";
 import { maskCpf } from "@/lib/cpf";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { KeyRound, Copy, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { KeyRound, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Button } from "@/components/ui/button";
@@ -10,28 +10,6 @@ import { Input } from "@/components/ui/input";
 
 type Item = { id: string; nome: string; cpf: string; whatsapp: string; tem_conta: boolean };
 
-const MENSAGEM = `*Olá!* 👋
-
-O *Portal do Colaborador da {Nome da Empresa}* está no ar para acompanhar suas informações e facilitar o seu dia a dia de trabalho!
-
-📌 *O que você pode fazer por lá:*
-✅ Consultar suas Escalas e Folgas
-✅ Solicitar Férias
-✅ Acessar seus Recibos e Documentos de DP
-✅ Acompanhar Comunicados e Avisos da Empresa
-
-🔐 *Como fazer o seu primeiro acesso:*
-1. Acesse pelo navegador: *https://www.aveto360.com/login*
-2. Toque em *"Primeiro acesso? Crie sua senha pelo CPF"*.
-3. Digite o seu *CPF* (apenas números) para receber o código de 6 dígitos no WhatsApp e definir sua senha pessoal.
-
-👤 *Login:* Seu CPF (apenas números)
-🔑 *Senha:* Você mesmo cria a sua no primeiro acesso. Ninguém da empresa tem acesso ou conhece sua senha.
-
-⚠️ *Importante:*
-Caso seu CPF não seja localizado ou você não receba o código, procure o gestor ou RH para conferir o número de WhatsApp cadastrado na sua ficha.
-
-Vamos juntos modernizar nossa comunicação! 🚀`;
 
 const so = (v: string) => v.replace(/\D/g, "");
 const cpfOk = (v: string) => so(v).length === 11;
@@ -115,10 +93,6 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
 
   const comErro = itens.filter((i) => erros[i.id] && !pendentes.includes(i));
 
-  const copiar = async () => {
-    await navigator.clipboard.writeText(MENSAGEM.replace("{Nome da Empresa}", empresaNome || "nossa empresa"));
-    toast.success("Mensagem copiada. Cole no grupo ou lista de transmissão da empresa.");
-  };
 
   return (
     <DpDialogShell
@@ -155,14 +129,14 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
           {pendentes.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               {semConta.length > 0
-                ? "Clique em Criar Acessos para liberar todos de uma vez. Depois copie a mensagem e envie para a equipe."
-                : "Todos os colaboradores ativos já têm acesso. Copie a mensagem e envie para a equipe."}
+                ? "Clique em Criar e Enviar Convites: cada colaborador recebe a mensagem no WhatsApp da ficha, sem você precisar copiar nada."
+                : "Todos os colaboradores ativos já têm acesso. Para reenviar o convite ou uma nova senha, use a aba Acesso da ficha."}
             </p>
           ) : (
             <div className="space-y-2">
               {semConta.length > 0 && (
                 <p className="rounded-md border border-primary/40 bg-primary/5 p-3 text-sm">
-                  {semConta.length} colaborador(es) já estão prontos. Você já pode clicar em "Criar {semConta.length} Acesso(s)" agora; os {pendentes.length} abaixo você pode completar quando tiver os dados.
+                  {semConta.length} colaborador(es) já estão prontos. Você já pode clicar em "Criar e Enviar {semConta.length} Convite(s)" agora; os {pendentes.length} abaixo você pode completar quando tiver os dados.
                 </p>
               )}
               <p className="text-sm text-muted-foreground">Preencha só o que falta e clique em Salvar Dados.</p>
