@@ -94,7 +94,7 @@ export function CompensacaoJornadaBox({ companyId, colaboradorId, nome, cpf, reg
       usa_banco_horas: excecao.data?.usa_banco_horas ?? null,
       usa_compensa_feriados: excecao.data?.usa_compensa_feriados ?? null,
       [campo]: valor ? null : false, updated_at: new Date().toISOString(),
-    });
+    } as never);
     setSalvando(false);
     if (error) { toast.error("Não foi possível salvar", { description: "Confira se você tem permissão para alterar colaboradores e tente de novo." }); return; }
     toast.success(valor ? "Colaborador volta a seguir a regra da unidade." : "Colaborador fora desta regra da unidade.");
