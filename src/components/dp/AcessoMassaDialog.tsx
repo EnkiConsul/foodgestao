@@ -127,7 +127,17 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
           </div>
           {comErro.length > 0 && (
             <div className="space-y-1 rounded-md border border-destructive/40 p-3">
-              {comErro.map((i) => <p key={i.id} className="text-xs"><span className="font-medium">{i.nome}:</span> <span className="text-destructive">{erros[i.id]}</span></p>)}
+              {comErro.map((i) => (
+                <div key={i.id} className="flex flex-wrap items-center gap-2 text-xs">
+                  <p><span className="font-medium">{i.nome}:</span> <span className="text-destructive">{erros[i.id]}</span></p>
+                  {linksFalha[i.id] && (
+                    <Button size="sm" variant="outline" className="h-7" onClick={async () => {
+                      try { await navigator.clipboard.writeText(linksFalha[i.id]); toast.success(`Link de ${i.nome} copiado. Envie manualmente.`); }
+                      catch { toast.error("Não foi possível copiar o link."); }
+                    }}>Copiar Link</Button>
+                  )}
+                </div>
+              ))}
             </div>
           )}
           {pendentes.length === 0 ? (
