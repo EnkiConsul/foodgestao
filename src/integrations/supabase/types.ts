@@ -13338,6 +13338,7 @@ export type Database = {
       }
       dp_whatsapp_envios: {
         Row: {
+          ata_participante_id: string | null
           colaborador_id: string | null
           company_id: string
           created_at: string
@@ -13355,6 +13356,7 @@ export type Database = {
           tipo: string
         }
         Insert: {
+          ata_participante_id?: string | null
           colaborador_id?: string | null
           company_id: string
           created_at?: string
@@ -13372,6 +13374,7 @@ export type Database = {
           tipo: string
         }
         Update: {
+          ata_participante_id?: string | null
           colaborador_id?: string | null
           company_id?: string
           created_at?: string
