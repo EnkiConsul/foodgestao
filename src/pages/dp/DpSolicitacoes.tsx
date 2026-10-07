@@ -1,4 +1,5 @@
-import { ehCompensacaoFeriado } from "@/lib/dp/termos-compensacao";
+import { diasDeAntecedencia, ehCompensacaoFeriado } from "@/lib/dp/termos-compensacao";
+import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
