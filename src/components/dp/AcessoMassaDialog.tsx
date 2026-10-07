@@ -57,6 +57,7 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
   };
 
   const semConta = useMemo(() => itens.filter((i) => !i.tem_conta && cpfOk(i.cpf) && wppOk(i.whatsapp)), [itens]);
+  const [linksFalha, setLinksFalha] = useState<Record<string, string>>({});
   const [criando, setCriando] = useState<{ feitos: number; total: number } | null>(null);
 
   const criarEmMassa = async () => {
@@ -64,12 +65,13 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
     if (!fila.length) return;
     let ok = 0; let feitos = 0;
     const map: Record<string, string> = {};
+    const links: Record<string, string> = {};
     setCriando({ feitos: 0, total: fila.length });
     const worker = async () => {
       while (fila.length) {
         const i = fila.shift()!;
         const { data, error } = await supabase.functions.invoke("dp-criar-acesso-colaborador", { body: { colaborador_id: i.id, enviar_whatsapp: true } });
-        const resp = data as { error?: string; whatsapp_enviado?: boolean; whatsapp_erro?: string } | null;
+        const resp = data as { error?: string; whatsapp_enviado?: boolean; whatsapp_erro?: string; activation_url?: string } | null;
         const msg = resp?.error;
         if (error || msg) {
           let motivo = msg;
@@ -77,6 +79,7 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
           map[i.id] = motivo || "Não foi possível criar o acesso. Tente novamente pela ficha.";
         } else if (resp?.whatsapp_enviado === false) {
           map[i.id] = `Acesso criado, mas a mensagem não foi enviada: ${resp.whatsapp_erro ?? "tente reenviar pela ficha."}`;
+          if (resp.activation_url) links[i.id] = resp.activation_url;
         } else ok++;
         feitos++;
         setCriando({ feitos, total: semConta.length });
@@ -86,6 +89,7 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
     setCriando(null);
     await carregar();
     setErros(map);
+    setLinksFalha(links);
     if (ok) toast.success(`${ok} acesso(s) criado(s) e convite(s) enviado(s) pelo WhatsApp da Aveto.`);
     const falhas = Object.keys(map).length;
     if (falhas) toast.warning(`${falhas} colaborador(es) com problema. Veja o motivo na lista.`);
