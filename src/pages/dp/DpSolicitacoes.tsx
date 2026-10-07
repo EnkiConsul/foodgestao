@@ -626,6 +626,10 @@ export default function DpSolicitacoes() {
           { label: "Data alvo", value: formatBR(detailsRow.data_alvo) },
           ...(detailsRow.data_fim ? [{ label: "Data fim", value: formatBR(detailsRow.data_fim) }] : []),
           { label: "Criada em", value: new Date(detailsRow.created_at).toLocaleString("pt-BR") },
+          ...(prazoCompensacao(detailsRow) ? [{
+            label: "Prazo",
+            value: `Antecedência não atendida: ${prazoCompensacao(detailsRow)!.dias} dia(s) (mínimo da unidade: ${prazoCompensacao(detailsRow)!.minimo}). Pode ser recusado conforme a necessidade da escala.`,
+          }] : []),
           ...(detailsRow.motivo ? [{ label: "Motivo", value: detailsRow.motivo }] : []),
           ...(detailsRow.resposta_admin ? [{ label: "Resposta", value: detailsRow.resposta_admin }] : []),
         ] : []}
