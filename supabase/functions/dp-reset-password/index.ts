@@ -13,6 +13,7 @@ import {
   registrarEvento,
   situacaoAcesso,
 } from "../_shared/portal-access.ts";
+import { enviarWhatsappAveto, primeiroNome, type EnvioWhatsapp } from "../_shared/whatsapp-aveto.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: strictCorsHeaders(req) });
@@ -61,12 +62,31 @@ Deno.serve(async (req) => {
       colaboradorId: colab.id,
     });
 
+    const resetUrl = linkDeAcesso(req.headers.get("origin"), "reset", tokenId, codigo);
+    let envio: EnvioWhatsapp | null = null;
+    if (body?.enviar_whatsapp === true) {
+      const { data: c } = await admin.from("dp_colaboradores").select("nome, whatsapp, telefone").eq("id", colab.id).maybeSingle();
+      const p = primeiroNome(c?.nome);
+      envio = await enviarWhatsappAveto(c?.whatsapp || c?.telefone, [
+        `*Aveto 360* - Olá${p ? `, ${p}` : ""}!`,
+        "",
+        "Foi solicitada a criação de uma nova senha para o seu Portal do Colaborador.",
+        "",
+        "🔐 *Crie a nova senha pelo link abaixo (uso único):*",
+        resetUrl,
+        "",
+        "👤 *Login:* seu CPF (apenas números)",
+        "Se você não pediu, avise o gestor ou RH.",
+      ].join("\n"));
+    }
+
     return jsonResponse(req, 200, {
       success: true,
       status: "reset_solicitado",
       cpf: (colab.cpf ?? "").replace(/\D/g, ""),
-      reset_url: linkDeAcesso(req.headers.get("origin"), "reset", tokenId, codigo),
+      reset_url: resetUrl,
       expires_at: expiresAt,
+      ...(envio ? { whatsapp_enviado: envio.enviado, whatsapp_erro: envio.erro ?? null } : {}),
     });
   } catch (e) {
     return jsonError(req, "internal", e);

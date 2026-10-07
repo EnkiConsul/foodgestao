@@ -20,6 +20,7 @@ import {
   registrarEvento,
   situacaoAcesso,
 } from "../_shared/portal-access.ts";
+import { enviarWhatsappAveto, primeiroNome, type EnvioWhatsapp } from "../_shared/whatsapp-aveto.ts";
 
 const SYNTHETIC_EMAIL_DOMAIN = "portal.360food.local";
 
@@ -164,12 +165,36 @@ Deno.serve(async (req) => {
       colaboradorId: colab.id,
     });
 
+    const activationUrl = linkDeAcesso(origin, "activation", tokenId, codigo);
+    let envio: EnvioWhatsapp | null = null;
+    if (body?.enviar_whatsapp === true) {
+      const { data: c } = await admin.from("dp_colaboradores").select("nome, whatsapp, telefone").eq("id", colab.id).maybeSingle();
+      const { data: emp } = await admin.from("companies").select("name, trade_name").eq("id", colab.company_id).maybeSingle();
+      const p = primeiroNome(c?.nome);
+      const empresa = emp?.trade_name || emp?.name || "sua empresa";
+      const msg = [
+        `*Aveto 360* - Olá${p ? `, ${p}` : ""}! 👋`,
+        "",
+        `Seu acesso ao *Portal do Colaborador da ${empresa}* foi liberado.`,
+        "Por lá você consulta escalas e folgas, recibos, documentos e comunicados.",
+        "",
+        "🔐 *Crie sua senha pelo link abaixo (uso único):*",
+        activationUrl,
+        "",
+        "👤 *Login:* seu CPF (apenas números)",
+        "Depois, entre sempre por *https://www.aveto360.com/login*.",
+        "Se o link expirar, toque em *\"Primeiro acesso\"* na tela de login e informe seu CPF.",
+      ].join("\n");
+      envio = await enviarWhatsappAveto(c?.whatsapp || c?.telefone, msg);
+    }
+
     return jsonResponse(req, 200, {
       success: true,
       status: "pendente_ativacao",
       cpf,
-      activation_url: linkDeAcesso(origin, "activation", tokenId, codigo),
+      activation_url: activationUrl,
       expires_at: expiresAt,
+      ...(envio ? { whatsapp_enviado: envio.enviado, whatsapp_erro: envio.erro ?? null } : {}),
     });
   } catch (e) {
     return jsonError(req, "internal", e);

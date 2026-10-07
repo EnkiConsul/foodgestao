@@ -2,7 +2,7 @@ import { maskPhone } from "@/lib/phone";
 import { maskCpf } from "@/lib/cpf";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { KeyRound, Copy, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { KeyRound, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Button } from "@/components/ui/button";
@@ -10,28 +10,6 @@ import { Input } from "@/components/ui/input";
 
 type Item = { id: string; nome: string; cpf: string; whatsapp: string; tem_conta: boolean };
 
-const MENSAGEM = `*Olá!* 👋
-
-O *Portal do Colaborador da {Nome da Empresa}* está no ar para acompanhar suas informações e facilitar o seu dia a dia de trabalho!
-
-📌 *O que você pode fazer por lá:*
-✅ Consultar suas Escalas e Folgas
-✅ Solicitar Férias
-✅ Acessar seus Recibos e Documentos de DP
-✅ Acompanhar Comunicados e Avisos da Empresa
-
-🔐 *Como fazer o seu primeiro acesso:*
-1. Acesse pelo navegador: *https://www.aveto360.com/login*
-2. Toque em *"Primeiro acesso? Crie sua senha pelo CPF"*.
-3. Digite o seu *CPF* (apenas números) para receber o código de 6 dígitos no WhatsApp e definir sua senha pessoal.
-
-👤 *Login:* Seu CPF (apenas números)
-🔑 *Senha:* Você mesmo cria a sua no primeiro acesso. Ninguém da empresa tem acesso ou conhece sua senha.
-
-⚠️ *Importante:*
-Caso seu CPF não seja localizado ou você não receba o código, procure o gestor ou RH para conferir o número de WhatsApp cadastrado na sua ficha.
-
-Vamos juntos modernizar nossa comunicação! 🚀`;
 
 const so = (v: string) => v.replace(/\D/g, "");
 const cpfOk = (v: string) => so(v).length === 11;
@@ -90,12 +68,15 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
     const worker = async () => {
       while (fila.length) {
         const i = fila.shift()!;
-        const { data, error } = await supabase.functions.invoke("dp-criar-acesso-colaborador", { body: { colaborador_id: i.id } });
-        const msg = (data as { error?: string } | null)?.error;
+        const { data, error } = await supabase.functions.invoke("dp-criar-acesso-colaborador", { body: { colaborador_id: i.id, enviar_whatsapp: true } });
+        const resp = data as { error?: string; whatsapp_enviado?: boolean; whatsapp_erro?: string } | null;
+        const msg = resp?.error;
         if (error || msg) {
           let motivo = msg;
           try { motivo = motivo || (await (error as { context?: Response })?.context?.json())?.error; } catch { /* ignora */ }
           map[i.id] = motivo || "Não foi possível criar o acesso. Tente novamente pela ficha.";
+        } else if (resp?.whatsapp_enviado === false) {
+          map[i.id] = `Acesso criado, mas a mensagem não foi enviada: ${resp.whatsapp_erro ?? "tente reenviar pela ficha."}`;
         } else ok++;
         feitos++;
         setCriando({ feitos, total: semConta.length });
@@ -105,31 +86,26 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
     setCriando(null);
     await carregar();
     setErros(map);
-    if (ok) toast.success(`${ok} acesso(s) criado(s). Agora envie a mensagem do portal para a equipe.`);
+    if (ok) toast.success(`${ok} acesso(s) criado(s) e convite(s) enviado(s) pelo WhatsApp da Aveto.`);
     const falhas = Object.keys(map).length;
-    if (falhas) toast.warning(`${falhas} acesso(s) não foram criados. Veja o motivo na lista.`);
+    if (falhas) toast.warning(`${falhas} colaborador(es) com problema. Veja o motivo na lista.`);
   };
 
   const comErro = itens.filter((i) => erros[i.id] && !pendentes.includes(i));
 
-  const copiar = async () => {
-    await navigator.clipboard.writeText(MENSAGEM.replace("{Nome da Empresa}", empresaNome || "nossa empresa"));
-    toast.success("Mensagem copiada. Cole no grupo ou lista de transmissão da empresa.");
-  };
 
   return (
     <DpDialogShell
       open={open} onOpenChange={(o) => { if (!o && criando) { toast.info("Aguarde terminar a criação dos acessos."); return; } onOpenChange(o); }} icon={KeyRound} size="lg"
       title="Gerar Acessos ao Portal"
-      description="Cada colaborador cria a própria senha pelo CPF, com código enviado ao WhatsApp da ficha."
+      description="O sistema cria o acesso e envia o convite pelo WhatsApp da Aveto para o número da ficha de cada colaborador."
       footer={<>
-        <Button variant="outline" onClick={copiar} disabled={loading}><Copy className="mr-2 h-4 w-4" />Copiar Mensagem do Portal</Button>
         {pendentes.length > 0 && (
           <Button variant="outline" onClick={salvar} disabled={saving || !!criando}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar Dados</Button>
         )}
         {semConta.length > 0 && (
           <Button onClick={criarEmMassa} disabled={loading || !!criando}>
-            {criando ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Criando {criando.feitos}/{criando.total}</> : <>Criar {semConta.length} Acesso(s)</>}
+            {criando ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando {criando.feitos}/{criando.total}</> : <>Criar e Enviar {semConta.length} Convite(s)</>}
           </Button>
         )}
       </>}
@@ -153,14 +129,14 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
           {pendentes.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               {semConta.length > 0
-                ? "Clique em Criar Acessos para liberar todos de uma vez. Depois copie a mensagem e envie para a equipe."
-                : "Todos os colaboradores ativos já têm acesso. Copie a mensagem e envie para a equipe."}
+                ? "Clique em Criar e Enviar Convites: cada colaborador recebe a mensagem no WhatsApp da ficha, sem você precisar copiar nada."
+                : "Todos os colaboradores ativos já têm acesso. Para reenviar o convite ou uma nova senha, use a aba Acesso da ficha."}
             </p>
           ) : (
             <div className="space-y-2">
               {semConta.length > 0 && (
                 <p className="rounded-md border border-primary/40 bg-primary/5 p-3 text-sm">
-                  {semConta.length} colaborador(es) já estão prontos. Você já pode clicar em "Criar {semConta.length} Acesso(s)" agora; os {pendentes.length} abaixo você pode completar quando tiver os dados.
+                  {semConta.length} colaborador(es) já estão prontos. Você já pode clicar em "Criar e Enviar {semConta.length} Convite(s)" agora; os {pendentes.length} abaixo você pode completar quando tiver os dados.
                 </p>
               )}
               <p className="text-sm text-muted-foreground">Preencha só o que falta e clique em Salvar Dados.</p>

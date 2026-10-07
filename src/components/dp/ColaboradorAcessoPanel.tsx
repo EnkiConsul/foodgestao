@@ -136,12 +136,16 @@ export function ColaboradorAcessoPanel({
     setBusy("liberar");
     try {
       const { data, error } = await supabase.functions.invoke("dp-criar-acesso-colaborador", {
-        body: { colaborador_id: colaborador.id },
+        body: { colaborador_id: colaborador.id, enviar_whatsapp: true },
       });
       if (error) throw error;
-      const payload = data as { error?: string; activation_url?: string; expires_at?: string };
+      const payload = data as { error?: string; activation_url?: string; expires_at?: string; whatsapp_enviado?: boolean; whatsapp_erro?: string };
       if (payload?.error) throw new Error(payload.error);
-      if (payload?.activation_url) {
+      if (payload?.whatsapp_enviado) {
+        setLink(null);
+        toast.success("Convite de acesso enviado pelo WhatsApp da Aveto.");
+      } else if (payload?.activation_url) {
+        toast.warning("Acesso criado, mas a mensagem não foi enviada", { description: payload.whatsapp_erro ?? "Envie o link abaixo manualmente." });
         setLink({ url: payload.activation_url, kind: "activation", expires: payload.expires_at ?? null });
       }
       await carregarSituacao();
@@ -159,12 +163,16 @@ export function ColaboradorAcessoPanel({
     setBusy("redefinir");
     try {
       const { data, error } = await supabase.functions.invoke("dp-reset-password", {
-        body: { colaborador_id: colaborador.id },
+        body: { colaborador_id: colaborador.id, enviar_whatsapp: true },
       });
       if (error) throw error;
-      const payload = data as { error?: string; reset_url?: string; expires_at?: string };
+      const payload = data as { error?: string; reset_url?: string; expires_at?: string; whatsapp_enviado?: boolean; whatsapp_erro?: string };
       if (payload?.error) throw new Error(payload.error);
-      if (payload?.reset_url) {
+      if (payload?.whatsapp_enviado) {
+        setLink(null);
+        toast.success("Link de nova senha enviado pelo WhatsApp da Aveto.");
+      } else if (payload?.reset_url) {
+        toast.warning("Não foi possível enviar pelo WhatsApp", { description: payload.whatsapp_erro ?? "Envie o link abaixo manualmente." });
         setLink({ url: payload.reset_url, kind: "reset", expires: payload.expires_at ?? null });
       }
       await carregarSituacao();

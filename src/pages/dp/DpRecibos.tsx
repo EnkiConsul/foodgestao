@@ -101,7 +101,7 @@ export default function DpRecibos() {
   const [valorEspecie, setValorEspecie] = useState("");
   const [canal, setCanal] = useState<CanalAssinatura>("portal");
   const [salvando, setSalvando] = useState(false);
-  const [resultado, setResultado] = useState<{ id: string; link?: string; whatsapp: string | null; nome: string; avulso?: { cpf: string; telefone: string; unidade_id: string; tipo: "teste" | "folguista" } } | null>(null);
+  const [resultado, setResultado] = useState<{ id: string; link?: string; whatsapp: string | null; nome: string; enviado?: boolean; erroEnvio?: string | null; avulso?: { cpf: string; telefone: string; unidade_id: string; tipo: "teste" | "folguista" } } | null>(null);
   const [cadastroAberto, setCadastroAberto] = useState(false);
   const [cadastrado, setCadastrado] = useState(false);
   const apoios = useDpPessoasApoio();
@@ -307,7 +307,11 @@ export default function DpRecibos() {
   async function enviarWhats(id: string, numero: string | null, nomeB: string) {
     try {
       const r = await gerarLinkRecibo(id);
-      window.open(whatsappUrl(r.whatsapp ?? numero, nomeB, r.link), "_blank", "noopener");
+      if (r.whatsapp_enviado) toast.success(`Link de assinatura enviado pelo WhatsApp da Aveto para ${nomeB}.`);
+      else {
+        toast.warning("Não foi possível enviar pelo WhatsApp da Aveto", { description: r.whatsapp_erro ?? "Abrimos o WhatsApp para você enviar manualmente." });
+        window.open(whatsappUrl(r.whatsapp ?? numero, nomeB, r.link), "_blank", "noopener");
+      }
       qc.invalidateQueries({ queryKey: ["dp_recibos"] });
     } catch (e) {
       toast.error((e as Error).message);
@@ -455,7 +459,7 @@ export default function DpRecibos() {
       const nomeB = avulso ? nome.toUpperCase() : String(colab?.nome ?? "");
       setCadastrado(false);
       setResultado({
-        id: r.recibo_id, link: r.link, whatsapp: r.whatsapp, nome: nomeB,
+        id: r.recibo_id, link: r.link, whatsapp: r.whatsapp, nome: nomeB, enviado: r.whatsapp_enviado, erroEnvio: r.whatsapp_erro,
         avulso: avulso
           ? { cpf, telefone: whats, unidade_id: unidadeId, tipo: natureza === "teste_operacional" ? "teste" : "folguista" }
           : undefined,
@@ -646,7 +650,12 @@ export default function DpRecibos() {
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => abrirPdf(resultado.id)}><Download className="h-4 w-4 mr-1" />Baixar PDF</Button>
               {veioDePendencia && <Button variant="outline" onClick={() => navigate("/dp")} >Voltar às Pendências</Button>}
-              {resultado.link && (
+              {resultado.link && resultado.enviado && (
+                <Button variant="outline" onClick={() => enviarWhats(resultado.id, resultado.whatsapp, resultado.nome)}>
+                  <MessageCircle className="h-4 w-4 mr-1" />Reenviar pelo WhatsApp
+                </Button>
+              )}
+              {resultado.link && !resultado.enviado && (
                 <>
                   <Button onClick={() => window.open(whatsappUrl(resultado.whatsapp, resultado.nome, resultado.link!), "_blank", "noopener")}>
                     <MessageCircle className="h-4 w-4 mr-1" />Enviar pelo WhatsApp
@@ -657,6 +666,13 @@ export default function DpRecibos() {
                 </>
               )}
             </div>
+            {resultado.link && (
+              <p className={resultado.enviado ? "text-sm text-primary" : "text-sm text-destructive"}>
+                {resultado.enviado
+                  ? "Link de assinatura enviado automaticamente pelo WhatsApp da Aveto."
+                  : `Não foi possível enviar pelo WhatsApp da Aveto: ${resultado.erroEnvio ?? "tente reenviar"}. Use os botões acima.`}
+              </p>
+            )}
             {resultado.avulso && !cadastrado && !jaNoBanco(resultado.avulso.cpf, resultado.nome) && (
               <div className="rounded-md border bg-background p-3 space-y-2">
                 <p className="text-sm">

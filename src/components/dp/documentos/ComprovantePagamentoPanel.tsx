@@ -651,7 +651,11 @@ export function ComprovanteAnexarDialog(props: {
                 });
                 if (error) toast.error("Recibo gerado, mas não foi ligado ao documento. Confira na tela de Recibos.");
               }
-              if (saida.link && saida.whatsapp) {
+              if (saida.whatsapp_enviado) {
+                toast.success("Recibo gerado e enviado para assinatura pelo WhatsApp da Aveto.");
+                props.onOpenChange(false);
+              } else if (saida.link && saida.whatsapp) {
+                toast.warning("Recibo gerado, mas o WhatsApp da Aveto não entregou", { description: saida.whatsapp_erro ?? "Envie pelo botão abaixo." });
                 // O celular pode bloquear a abertura automática: o botão fica na tela.
                 setLinkWhats({
                   url: whatsappUrl(saida.whatsapp, props.colaboradorNome ?? "", saida.link),
