@@ -59,6 +59,8 @@ import {
   mensagemErroRemarcacao,
   pedirAoDp,
   trocaExigeAprovacaoGestor,
+  motivoAprovacaoGestor,
+  mesmaSemana,
 } from "@/lib/dp/folga-remarcacao";
 
 
@@ -798,6 +800,17 @@ export default function DpMeuCalendario() {
     const fixas = minhasFixasFuturas.filter((f) => f.data !== tradeOpen?.iso);
     return [...avulsas, ...fixas].sort((a, b) => a.data.localeCompare(b.data));
   }, [folgas, meRef.data?.id, hojeIso, tradeOpen?.iso, minhasFixasFuturas, diasEmTrocaPendente]);
+
+  /** Folga semanal fixa da mesma semana do dia pedido, ainda não realizada. */
+  const fixaSugerida = useMemo(
+    () => (tradeOpen ? folgasParaOferecer.find((f) => f.fixa && mesmaSemana(f.data, tradeOpen.iso)) ?? null : null),
+    [folgasParaOferecer, tradeOpen],
+  );
+  // Ao abrir a troca, já deixa a folga fixa da mesma semana escolhida.
+  useEffect(() => {
+    if (tradeOpen && !tradeMyDate && fixaSugerida) setTradeMyDate(fixaSugerida.data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tradeOpen?.iso, fixaSugerida?.data]);
 
   /** Exceção ao gestor: folga extra ou troca de um dia da folga semanal. */
   const [excecaoModo, setExcecaoModo] = useState<"extra" | "troca_semanal">("extra");
@@ -1986,6 +1999,7 @@ export default function DpMeuCalendario() {
                     <SelectItem key={f.id} value={f.data}>
                       {descreverDia(f.data)}
                       {f.fixa ? " — sua folga semanal" : " — folga marcada"}
+                      {tradeOpen && (mesmaSemana(f.data, tradeOpen.iso) ? (f.fixa ? " (sugerida: mesma semana)" : "") : " · outra semana, precisa do gestor")}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1996,10 +2010,15 @@ export default function DpMeuCalendario() {
                   {descreverDia(tradeOpen.iso)} (a folga de {tradeOpen.occupantName}).
                 </p>
               )}
-              {tradeMyDate && tradeOpen && trocaExigeAprovacaoGestor(tradeMyDate, tradeOpen.iso) && (
+              {tradeMyDate && tradeOpen && motivoAprovacaoGestor(tradeMyDate, tradeOpen.iso) && (
                 <p className="mt-2 rounded-xl border border-amber-200 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-800">
-                  Esta troca envolve folga de fim de semana e dia de semana. Por mudar a escala de
-                  descanso, depende da aprovação do gestor depois do aceite do colega.
+                  <b>Depende de aprovação do gestor.</b> {motivoAprovacaoGestor(tradeMyDate, tradeOpen.iso)} Por mudar a
+                  escala de descanso, o gestor precisa aprovar depois do aceite do colega.
+                </p>
+              )}
+              {tradeOpen && !fixaSugerida && !tradeMyDate && folgasParaOferecer.length > 0 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Sua folga semanal desta semana já passou ou já foi usada. Escolha outra folga na lista.
                 </p>
               )}
               {riscoDsrTroca && (
