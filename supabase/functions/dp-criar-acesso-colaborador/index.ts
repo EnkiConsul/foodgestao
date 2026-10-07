@@ -139,6 +139,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Reenvio em massa: quem já criou a senha pessoal não recebe convite de novo.
+    if (body?.somente_pendentes === true && colab.user_id) {
+      const { data: sec } = await admin.from("auth_user_security_state")
+        .select("must_change_password, password_changed_at").eq("user_id", targetUserId).maybeSingle();
+      if (sec && (sec.must_change_password === false || sec.password_changed_at)) {
+        return jsonResponse(req, 200, { success: true, status: "ja_ativo" });
+      }
+    }
+
     const { error: secErr } = await admin.from("auth_user_security_state").upsert(
       {
         user_id: targetUserId,
