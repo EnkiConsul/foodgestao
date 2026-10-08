@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { AlertTriangle, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -33,11 +32,8 @@ const SCOPE_OPTIONS = [
   { key: "companies", label: "Empresas", help: "Empresas que você criou, membros e convites" },
 ];
 
-type ContextFilter = "pf" | "pj" | "both";
-
 export function ResetMyDataCard() {
   const queryClient = useQueryClient();
-  const [contextFilter, setContextFilter] = useState<ContextFilter>("both");
   const [scope, setScope] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -63,7 +59,7 @@ export function ResetMyDataCard() {
     }
     setRunning(true);
     const { data, error } = await supabase.functions.invoke("admin-reset-data", {
-      body: { target: { type: "self" }, scope: Array.from(scope), context: contextFilter },
+      body: { target: { type: "self" }, scope: Array.from(scope), context: "pj" },
     });
     setRunning(false);
 
@@ -100,28 +96,6 @@ export function ResetMyDataCard() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="space-y-2">
-          <Label className="text-sm font-semibold">Contexto</Label>
-          <RadioGroup
-            value={contextFilter}
-            onValueChange={(v) => setContextFilter(v as ContextFilter)}
-            className="flex flex-wrap gap-4"
-          >
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="both" id="r-both" />
-              <Label htmlFor="r-both" className="font-normal">Ambos</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="pf" id="r-pf" />
-              <Label htmlFor="r-pf" className="font-normal">Apenas PF</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="pj" id="r-pj" />
-              <Label htmlFor="r-pj" className="font-normal">Apenas PJ</Label>
-            </div>
-          </RadioGroup>
-        </div>
-
         <Separator />
 
         <div className="space-y-3">
@@ -170,7 +144,7 @@ export function ResetMyDataCard() {
               <div className="space-y-2 text-sm">
                 <p>Você apagará permanentemente seus próprios dados.</p>
                 <p>Itens: <strong>{Array.from(scope).join(", ")}</strong></p>
-                <p>Contexto: <strong>{contextFilter === "both" ? "Ambos (PF e PJ)" : contextFilter.toUpperCase()}</strong></p>
+                <p>Contexto: <strong>Empresarial (PJ)</strong></p>
                 <p className="text-destructive font-medium pt-2">Esta ação não pode ser desfeita.</p>
               </div>
             </AlertDialogDescription>
