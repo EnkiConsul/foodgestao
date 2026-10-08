@@ -69,7 +69,13 @@ export function ResetMyDataCard() {
     else setScope(new Set(allKeys));
   };
 
+  const contasSemLancamentos = scope.has("accounts") && !scope.has("transactions");
+
   const handleExecute = async () => {
+    if (contasSemLancamentos) {
+      toast.error("Marque também Lançamentos para apagar contas financeiras");
+      return;
+    }
     if (confirmText !== "APAGAR") {
       toast.error('Digite "APAGAR" para confirmar');
       return;
@@ -159,10 +165,21 @@ export function ResetMyDataCard() {
           </div>
         </div>
 
+        {contasSemLancamentos && (
+          <div className="flex gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-destructive" />
+            <div className="space-y-1">
+              <p className="font-semibold text-destructive">Não é possível apagar contas financeiras sem apagar os lançamentos</p>
+              <p><strong>Motivo:</strong> todo lançamento está vinculado a uma conta. Apagar a conta e manter os lançamentos deixaria movimentações sem conta, distorcendo saldos, extratos e o fluxo de caixa.</p>
+              <p><strong>Processo correto:</strong> para zerar tudo, marque também <strong>Lançamentos</strong>. Se quiser apenas desativar uma conta e manter o histórico, exclua-a pela tela <strong>Contas Bancárias</strong> — ela será arquivada com os lançamentos preservados.</p>
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-end">
           <Button
             variant="destructive"
-            disabled={scope.size === 0}
+            disabled={scope.size === 0 || contasSemLancamentos}
             onClick={() => setConfirmOpen(true)}
           >
             <Trash2 className="h-4 w-4 mr-2" />
