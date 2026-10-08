@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_shadow_diffs: {
+        Row: {
+          company_id: string
+          created_at: string
+          dia: string
+          id: string
+          legacy_allowed: boolean
+          legacy_motivo: string | null
+          module: string
+          ocorrencias: number
+          updated_at: string
+          v2_allowed: boolean
+          v2_detalhe: Json | null
+          v2_motivo: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          dia?: string
+          id?: string
+          legacy_allowed: boolean
+          legacy_motivo?: string | null
+          module: string
+          ocorrencias?: number
+          updated_at?: string
+          v2_allowed: boolean
+          v2_detalhe?: Json | null
+          v2_motivo?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          dia?: string
+          id?: string
+          legacy_allowed?: boolean
+          legacy_motivo?: string | null
+          module?: string
+          ocorrencias?: number
+          updated_at?: string
+          v2_allowed?: boolean
+          v2_detalhe?: Json | null
+          v2_motivo?: string | null
+        }
+        Relationships: []
+      }
       account_limit_overrides: {
         Row: {
           billing_account_id: string
@@ -16473,6 +16518,28 @@ export type Database = {
         Args: { _recurso: string; _sub: string }
         Returns: number
       }
+      _is_company_member: {
+        Args: { _company_id: string; _uid: string }
+        Returns: boolean
+      }
+      _module_access_core: {
+        Args: { _company_id: string; _module: string }
+        Returns: Json
+      }
+      access_model_mode: { Args: never; Returns: string }
+      access_model_set_mode: { Args: { _mode: string }; Returns: string }
+      access_v2_compare_all: {
+        Args: never
+        Returns: {
+          company_id: string
+          company_name: string
+          legacy_allowed: boolean
+          legacy_motivo: string
+          module: string
+          v2_allowed: boolean
+          v2_motivo: string
+        }[]
+      }
       adjust_account_balance: {
         Args: {
           _account_id: string
@@ -19784,6 +19851,7 @@ export type Database = {
         }
         Returns: number
       }
+      get_company_entitlements: { Args: { _company_id: string }; Returns: Json }
       get_ia_usage_today: {
         Args: { _user_id?: string }
         Returns: {
@@ -19799,6 +19867,10 @@ export type Database = {
         Returns: boolean
       }
       get_user_plan_features: { Args: { _user_id: string }; Returns: Json }
+      has_module_access: {
+        Args: { _company_id: string; _module: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
