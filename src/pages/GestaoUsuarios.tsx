@@ -15,7 +15,7 @@ import { Users, UserPlus, Crown, Shield, User, Eye, Trash2, Clock, Copy, XCircle
 import { formatDate } from "@/lib/date-utils";
 import { InviteUserDialog } from "@/components/users/InviteUserDialog";
 import { EditMemberPermissionsDialog, EditableMember } from "@/components/users/EditMemberPermissionsDialog";
-import { CompanyRole, PERFIL_LABELS, PerfilKey } from "@/lib/permissions";
+import { CompanyRole, PERFIL_LABELS, PerfilKey, MODULOS, MODULOS_TODOS } from "@/lib/permissions";
 import { maskPhone } from "@/lib/phone";
 
 const roleBadge = (role: string) => {
@@ -204,6 +204,13 @@ export default function GestaoUsuarios() {
     const ids: string[] = member.unidades_permitidas ?? [];
     if (!ids.length) return null;
     return ids.map((id) => nomeUnidadePorId.get(id) ?? "Unidade").sort((a, b) => a.localeCompare(b, "pt-BR"));
+  };
+
+  // Módulos liberados ao membro (dono/admin têm todos).
+  const modulosDoMembro = (member: any): string[] | null => {
+    if (member.role === "owner" || member.role === "admin") return null;
+    const m = { ...MODULOS_TODOS, ...(member.modulos ?? {}) };
+    return MODULOS.filter((x) => m[x.key]).map((x) => x.label);
   };
 
   const ListaBadges = ({ itens, vazio }: { itens: string[] | null; vazio: string }) =>
@@ -440,6 +447,7 @@ export default function GestaoUsuarios() {
                   <TableHead>Perfil</TableHead>
                   <TableHead>Empresas</TableHead>
                   <TableHead>Unidades</TableHead>
+                  <TableHead>Módulos</TableHead>
                   <TableHead className="hidden lg:table-cell">Desde</TableHead>
                   {isAdminOrOwner && <TableHead className="text-right">Ações</TableHead>}
                 </TableRow>
@@ -447,7 +455,7 @@ export default function GestaoUsuarios() {
               <TableBody>
                 {loadingMembers ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">Carregando...</TableCell>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">Carregando...</TableCell>
                   </TableRow>
                 ) : members.map((member: any) => (
                   <TableRow key={member.id}>
@@ -463,6 +471,9 @@ export default function GestaoUsuarios() {
                     </TableCell>
                     <TableCell className="max-w-[220px]">
                       <ListaBadges itens={unidadesDoMembro(member)} vazio="Todas as unidades" />
+                    </TableCell>
+                    <TableCell className="max-w-[220px]">
+                      <ListaBadges itens={modulosDoMembro(member)} vazio="Todos os módulos" />
                     </TableCell>
                     <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
                       {formatDate(member.created_at, "dd/MM/yyyy")}
@@ -535,6 +546,10 @@ export default function GestaoUsuarios() {
                       <div className="space-y-1">
                         <p className="text-[11px] font-medium text-muted-foreground">Unidades</p>
                         <ListaBadges itens={unidadesDoMembro(member)} vazio="Todas as unidades" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-medium text-muted-foreground">Módulos</p>
+                        <ListaBadges itens={modulosDoMembro(member)} vazio="Todos os módulos" />
                       </div>
                       <p className="text-[11px] text-muted-foreground">Desde {formatDate(member.created_at, "dd/MM/yyyy")}</p>
                     </div>
