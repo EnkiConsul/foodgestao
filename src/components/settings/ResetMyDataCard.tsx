@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { AlertTriangle, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,8 +40,23 @@ export function ResetMyDataCard() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [running, setRunning] = useState(false);
-
-  const allKeys = useMemo(() => SCOPE_OPTIONS.map((s) => s.key), []);
+  const { companies } = useCompanyContext();
+  const [empresaAlvo, setEmpresaAlvo] = useState<string>("todas");
+  const empresaSel = (companies ?? []).find((c: any) => c.id === empresaAlvo) as any;
+  const empresaNome = empresaSel ? (empresaSel.name || empresaSel.trade_name) : "Todas as minhas empresas";
+  const opcoes = useMemo(
+    () => (empresaAlvo === "todas" ? SCOPE_OPTIONS : SCOPE_OPTIONS.filter((o) => o.key !== "companies")),
+    [empresaAlvo],
+  );
+  const allKeys = useMemo(() => opcoes.map((s) => s.key), [opcoes]);
+  const mudarEmpresa = (v: string) => {
+    setEmpresaAlvo(v);
+    if (v !== "todas") {
+      const next = new Set(scope);
+      next.delete("companies");
+      setScope(next);
+    }
+  };
 
   const toggleScope = (key: string) => {
     const next = new Set(scope);
@@ -59,7 +76,10 @@ export function ResetMyDataCard() {
     }
     setRunning(true);
     const { data, error } = await supabase.functions.invoke("admin-reset-data", {
-      body: { target: { type: "self" }, scope: Array.from(scope), context: "pj" },
+      body: {
+        target: empresaAlvo === "todas" ? { type: "self" } : { type: "company", companyId: empresaAlvo },
+        scope: Array.from(scope), context: "pj",
+      },
     });
     setRunning(false);
 
@@ -98,6 +118,24 @@ export function ResetMyDataCard() {
       <CardContent className="space-y-5">
         <Separator />
 
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold">Empresa</Label>
+          <Select value={empresaAlvo} onValueChange={mudarEmpresa}>
+            <SelectTrigger className="sm:max-w-md"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as minhas empresas</SelectItem>
+              {(companies ?? []).map((c: any) => (
+                <SelectItem key={c.id} value={c.id}>{c.name || c.trade_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {empresaAlvo !== "todas" && (
+            <p className="text-xs text-muted-foreground">
+              Apaga somente os dados desta empresa. Exige ser dono ou administrador dela.
+            </p>
+          )}
+        </div>
+
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <Label className="text-sm font-semibold">O que apagar</Label>
@@ -106,7 +144,7 @@ export function ResetMyDataCard() {
             </Button>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            {SCOPE_OPTIONS.map((opt) => (
+            {opcoes.map((opt) => (
               <label
                 key={opt.key}
                 className="flex items-start gap-2 rounded-md border p-3 cursor-pointer hover:bg-muted/50"
@@ -144,7 +182,7 @@ export function ResetMyDataCard() {
               <div className="space-y-2 text-sm">
                 <p>Você apagará permanentemente seus próprios dados.</p>
                 <p>Itens: <strong>{Array.from(scope).join(", ")}</strong></p>
-                <p>Contexto: <strong>Empresarial (PJ)</strong></p>
+                <p>Empresa: <strong>{empresaNome}</strong></p>
                 <p className="text-destructive font-medium pt-2">Esta ação não pode ser desfeita.</p>
               </div>
             </AlertDialogDescription>
