@@ -279,9 +279,9 @@ export default function GestaoUsuarios() {
       .update({ role: newRole as any })
       .eq("id", memberId);
     if (error) {
-      toast.error("Erro ao alterar papel", { description: error.message });
+      toast.error("Erro ao alterar perfil", { description: error.message });
     } else {
-      toast.success("Papel alterado com sucesso");
+      toast.success("Perfil alterado com sucesso");
       queryClient.invalidateQueries({ queryKey: ["company-members", activeCompanyId] });
     }
   };
@@ -437,7 +437,7 @@ export default function GestaoUsuarios() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead>Papel</TableHead>
+                  <TableHead>Perfil</TableHead>
                   <TableHead>Empresas</TableHead>
                   <TableHead>Unidades</TableHead>
                   <TableHead className="hidden lg:table-cell">Desde</TableHead>
