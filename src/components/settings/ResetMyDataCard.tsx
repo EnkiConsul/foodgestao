@@ -60,7 +60,7 @@ export function ResetMyDataCard() {
     }
     setRunning(true);
     const { data, error } = await supabase.functions.invoke("admin-reset-data", {
-      body: { target: { type: "self" }, scope: Array.from(scope), context: contextFilter },
+      body: { target: { type: "self" }, scope: Array.from(scope), context: "pj" },
     });
     setRunning(false);
 
