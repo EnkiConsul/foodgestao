@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { AlertTriangle, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -33,11 +32,9 @@ const SCOPE_OPTIONS = [
   { key: "companies", label: "Empresas", help: "Empresas que você criou, membros e convites" },
 ];
 
-type ContextFilter = "pf" | "pj" | "both";
-
 export function ResetMyDataCard() {
   const queryClient = useQueryClient();
-  const [contextFilter, setContextFilter] = useState<ContextFilter>("both");
+  const [scope, setScope] = useState<Set<string>>(new Set());
   const [scope, setScope] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
