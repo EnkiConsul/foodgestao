@@ -20,6 +20,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { notifyError } from "@/lib/notifyError";
+import { negarRegra } from "@/lib/dp/regraAviso";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 import { atualizarMeuCadastro } from "@/lib/dp/colaborador-oficial";
 import { COLUNAS_COLABORADOR_PUBLICAS, mesclarConfidencial } from "@/lib/dp/confidencial";
