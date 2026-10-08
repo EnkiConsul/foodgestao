@@ -83,6 +83,12 @@ Deno.serve(async (req) => {
     if (scope.size === 0) {
       return json({ error: "Selecione ao menos um item para apagar" }, 400);
     }
+    if (scope.has("accounts") && !scope.has("transactions")) {
+      return json({
+        error:
+          "Contas financeiras só podem ser apagadas junto com os lançamentos, pois todo lançamento está vinculado a uma conta. Marque também Lançamentos ou, para manter o histórico, exclua a conta pela tela Contas Bancárias (ela será arquivada).",
+      }, 400);
+    }
 
     // Resolve target
     let userIdFilter: string | null = null;
