@@ -511,7 +511,7 @@ const AppRoutes = () => (
         path="/dp"
         element={
           <ProtectedRoute>
-            <SubscriptionGuard>
+            <SubscriptionGuard module="pessoas">
               <ModuleGuard module="dp"><DpLayout /></ModuleGuard>
             </SubscriptionGuard>
           </ProtectedRoute>
