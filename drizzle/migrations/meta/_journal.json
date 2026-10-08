@@ -50,6 +50,13 @@
       "when": 1791493833284,
       "tag": "0006_billing_v2_fase15_ajustes",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791494608064,
+      "tag": "0007_billing_v2_conciliacao_modulo_em_uso",
+      "breakpoints": true
     }
   ]
 }
