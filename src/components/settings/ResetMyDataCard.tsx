@@ -97,28 +97,6 @@ export function ResetMyDataCard() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="space-y-2">
-          <Label className="text-sm font-semibold">Contexto</Label>
-          <RadioGroup
-            value={contextFilter}
-            onValueChange={(v) => setContextFilter(v as ContextFilter)}
-            className="flex flex-wrap gap-4"
-          >
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="both" id="r-both" />
-              <Label htmlFor="r-both" className="font-normal">Ambos</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="pf" id="r-pf" />
-              <Label htmlFor="r-pf" className="font-normal">Apenas PF</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="pj" id="r-pj" />
-              <Label htmlFor="r-pj" className="font-normal">Apenas PJ</Label>
-            </div>
-          </RadioGroup>
-        </div>
-
         <Separator />
 
         <div className="space-y-3">
