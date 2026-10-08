@@ -1,4 +1,5 @@
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
+import { useModuleAccess, MODULO_ROTULO } from "@/hooks/useModuleAccess";
 import { AlertTriangle, CreditCard, LifeBuoy, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,13 +46,40 @@ function formatarValor(cents: number | null) {
 }
 
 export default function AcessoBloqueado() {
-  const { loading, access, blocked } = useCompanyAccess();
+  const legado = useCompanyAccess();
+  const [params] = useSearchParams();
+  const moduloParam = params.get("modulo") === "pessoas" ? "pessoas" : params.get("modulo") === "financeiro" ? "financeiro" : null;
+  const v2 = useModuleAccess(moduloParam ?? "financeiro");
+  const usarV2 = !!moduloParam && v2.mode === "v2";
 
-  if (loading) return <PageSpinner />;
+  if (legado.loading || v2.loading) return <PageSpinner />;
+  const blocked = usarV2 ? v2.blocked : legado.blocked;
   if (!blocked) return <Navigate to="/hub" replace />;
 
-  const motivo: MotivoBloqueio = access?.motivo ?? "sem_assinatura";
-  const { titulo, descricao } = TEXTOS[motivo];
+  const base = legado.access;
+  const access = usarV2 && v2.access
+    ? {
+        ...base,
+        isOwner: base?.isOwner,
+        motivo: v2.access.motivo as MotivoBloqueio | "sem_cobertura",
+        valorPendenteCents: null as number | null,
+        diasAtraso: v2.access.dias_atraso,
+        faturaPendenteId: v2.access.fatura_pendente_id,
+        canExport: v2.access.can_export,
+      }
+    : base;
+
+  const motivoBruto = (access?.motivo ?? "sem_assinatura") as string;
+  const textoBase =
+    motivoBruto === "sem_cobertura"
+      ? {
+          titulo: "Esta empresa não está coberta por um plano deste módulo",
+          descricao:
+            "O plano contratado não inclui esta empresa. Você pode incluí-la na franquia, contratar uma empresa adicional, fazer upgrade ou contratar separadamente.",
+        }
+      : TEXTOS[motivoBruto as MotivoBloqueio] ?? TEXTOS.sem_assinatura;
+  const titulo = usarV2 && moduloParam ? `${MODULO_ROTULO[moduloParam]}: ${textoBase.titulo}` : textoBase.titulo;
+  const { descricao } = textoBase;
   const valor = formatarValor(access?.valorPendenteCents ?? null);
   const dias = access?.diasAtraso ?? null;
   const podeExportar = access?.canExport !== false;

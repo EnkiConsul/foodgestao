@@ -57,6 +57,13 @@
       "when": 1791494608064,
       "tag": "0007_billing_v2_conciliacao_modulo_em_uso",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791503712543,
+      "tag": "0008_fase2_acesso_por_modulo_v2",
+      "breakpoints": true
     }
   ]
 }

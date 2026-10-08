@@ -27,6 +27,7 @@ import { SuperAdminRoute } from "@/components/admin/SuperAdminRoute";
 import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyAccess } from "@/hooks/useCompanyAccess";
+import { useModuleAccess, type ModuloAcesso } from "@/hooks/useModuleAccess";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { ProtectedRoute, OnboardingGuard } from "@/routes/onboardingGuards";
 import { resolveLandingTarget } from "@/lib/auth/landing";
@@ -139,6 +140,7 @@ const DpMeuSindicato = lazyWithRetry(() => import("./pages/dp/portal/DpMeuSindic
 
 // Admin
 const AdminModulos = lazyWithRetry(() => import("./pages/admin/Modulos"));
+const AdminAcessoV2 = lazyWithRetry(() => import("./pages/admin/AcessoV2"));
 const AdminTelasDesenvolvimento = lazyWithRetry(() => import("./pages/admin/TelasDesenvolvimento"));
 const AdminEstatisticas = lazyWithRetry(() => import("./pages/admin/Estatisticas"));
 const AdminClientes = lazyWithRetry(() => import("./pages/admin/Clientes"));
@@ -211,14 +213,17 @@ function isWhitelistedForExpiredTrial(pathname: string) {
   );
 }
 
-function SubscriptionGuard({ children }: { children: React.ReactNode }) {
+function SubscriptionGuard({ children, module = "financeiro" }: { children: React.ReactNode; module?: ModuloAcesso }) {
   const location = useLocation();
   const { isSuperAdmin, loading: roleLoading } = useSuperAdmin();
-  const { loading, hasCompanies, blocked } = useCompanyAccess();
+  const { loading, hasCompanies, blocked: legacyBlocked } = useCompanyAccess();
+  const v2 = useModuleAccess(module);
 
-  if (loading || roleLoading) return <>{children}</>;
+  if (loading || roleLoading || v2.loading) return <>{children}</>;
   if (isSuperAdmin) return <>{children}</>;
   if (isWhitelistedForExpiredTrial(location.pathname)) return <>{children}</>;
+  // Legado e sombra mantêm a decisão atual; v2 decide por empresa + módulo.
+  const blocked = v2.mode === "v2" && v2.access ? !v2.access.allowed : legacyBlocked;
   if (!blocked) return <>{children}</>;
 
   // Bloqueado e sem nenhuma empresa (própria ou por convite): a entrada é a
@@ -227,7 +232,7 @@ function SubscriptionGuard({ children }: { children: React.ReactNode }) {
 
   // Fim do teste, falta de contrato ou atraso acima da tolerância de 10 dias:
   // acesso operacional suspenso, com regularização e exportação liberadas.
-  return <Navigate to="/acesso-bloqueado" replace />;
+  return <Navigate to={v2.mode === "v2" ? `/acesso-bloqueado?modulo=${module}` : "/acesso-bloqueado"} replace />;
 }
 
 
@@ -507,7 +512,7 @@ const AppRoutes = () => (
         path="/dp"
         element={
           <ProtectedRoute>
-            <SubscriptionGuard>
+            <SubscriptionGuard module="pessoas">
               <ModuleGuard module="dp"><DpLayout /></ModuleGuard>
             </SubscriptionGuard>
           </ProtectedRoute>
@@ -639,6 +644,7 @@ const AppRoutes = () => (
         <Route path="/admin/seo-indexacao" element={<AdminSeoIndexacao />} />
         <Route path="/admin/modulos" element={<AdminModulos />} />
         <Route path="/admin/telas" element={<AdminTelasDesenvolvimento />} />
+        <Route path="/admin/acesso-v2" element={<AdminAcessoV2 />} />
         <Route path="/admin/categorizacao-ia" element={<CategorizacaoIA />} />
         <Route path="/admin/mais" element={<Mais />} />
 
