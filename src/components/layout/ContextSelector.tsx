@@ -23,7 +23,7 @@ export function ContextSelector() {
 
   const currentValue = `pj|${selectedCompanyId}`;
   const empresaAtual = companies.find((c) => c.id === selectedCompanyId);
-  const currentLabel = empresaAtual?.trade_name || empresaAtual?.name || "";
+  const currentLabel = empresaAtual?.name || empresaAtual?.trade_name || "";
 
 
   /**
@@ -85,7 +85,7 @@ export function ContextSelector() {
             <span className="flex items-center gap-2">
               <Building2 aria-hidden className="h-3.5 w-3.5 shrink-0" />
               <span className="flex min-w-0 flex-col leading-tight">
-                <span className="truncate max-w-[220px]">{c.trade_name || c.name}</span>
+                <span className="truncate max-w-[220px]">{c.name || c.trade_name}</span>
                 {formatCnpj(c.cnpj ?? null) && (
                   <span className="truncate max-w-[220px] text-[10px] text-muted-foreground">
                     {formatCnpj(c.cnpj ?? null)}
