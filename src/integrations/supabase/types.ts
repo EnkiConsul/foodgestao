@@ -1655,6 +1655,30 @@ export type Database = {
           },
         ]
       }
+      billing_v2_backfill_snapshot: {
+        Row: {
+          acesso: Json | null
+          company_id: string | null
+          created_at: string
+          etapa: string
+          id: number
+        }
+        Insert: {
+          acesso?: Json | null
+          company_id?: string | null
+          created_at?: string
+          etapa: string
+          id?: number
+        }
+        Update: {
+          acesso?: Json | null
+          company_id?: string | null
+          created_at?: string
+          etapa?: string
+          id?: number
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           accounting_behavior: string | null
