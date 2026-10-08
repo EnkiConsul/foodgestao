@@ -84,7 +84,7 @@ export function TermoCompensacaoPreviaDialog({ open, onOpenChange, disponiveis, 
     const janela = manual ? window.open("", "_blank") : null;
     try {
       const bytes = await montar();
-      const r = await emitirTermoCompensacao({ tipo, companyId, colaboradorId, titulo, bytes, integrarBanco: sel.includes("semanal") && sel.includes("banco_horas"), tipos: sel, manual });
+      const r = await emitirTermoCompensacao({ tipo, companyId, colaboradorId, titulo, bytes, integrarBanco: sel.includes("semanal") && sel.includes("banco_horas"), tipos: sel, manual, substituir });
       if (manual && r === "emitido") {
         const u = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
         if (janela) janela.location.href = u; else window.open(u, "_blank");

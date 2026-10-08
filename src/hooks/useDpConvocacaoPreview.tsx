@@ -83,8 +83,7 @@ export function useDpConvocacaoPreview(args: {
         .select(
           "colaborador_id, unidade_id, vigencia_fim, dp_colaborador_config_dias(dow, trabalha, entrada, saida, intervalo_minutos)",
         )
-        .eq("company_id", selectedCompanyId!)
-        .is("removido_em", null);
+        .eq("company_id", selectedCompanyId!);
       if (error) throw error;
       const out: ConfigDiaColaborador[] = [];
       for (const c of (data ?? []) as any[]) {
