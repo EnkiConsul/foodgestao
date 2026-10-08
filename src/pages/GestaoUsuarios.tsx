@@ -160,10 +160,8 @@ export default function GestaoUsuarios() {
     },
   });
 
-  // Empresas que o usuário logado administra (para mostrar o acesso de cada membro).
-  const adminCompanyIds = companies
-    .filter((c: any) => c.role === "owner" || c.role === "admin")
-    .map((c: any) => c.id);
+  // Empresas do usuário logado (o banco só devolve vínculos que ele pode ver).
+  const adminCompanyIds = companies.map((c: any) => c.id);
   const nomeEmpresaPorId = new Map(companies.map((c: any) => [c.id, c.name]));
 
   // Unidades do Pessoas 360° da empresa aberta, para exibir os nomes liberados.
