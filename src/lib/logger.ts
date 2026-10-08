@@ -106,6 +106,8 @@ export function installGlobalErrorHandlers() {
   globalHandlersInstalled = true;
 
   window.addEventListener("error", (event) => {
+    // Aviso benigno do navegador (gráficos/tabelas que se redimensionam): não é defeito.
+    if (/ResizeObserver loop/i.test(String(event.message ?? ""))) return;
     logger.error("Erro não tratado", event.error ?? event.message, {
       scope: "window",
       source: event.filename,
