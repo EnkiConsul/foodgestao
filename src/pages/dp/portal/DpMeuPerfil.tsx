@@ -20,6 +20,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { notifyError } from "@/lib/notifyError";
+import { negarRegra } from "@/lib/dp/regraAviso";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 import { atualizarMeuCadastro } from "@/lib/dp/colaborador-oficial";
 import { COLUNAS_COLABORADOR_PUBLICAS, mesclarConfidencial } from "@/lib/dp/confidencial";
@@ -84,7 +85,7 @@ export default function DpMeuPerfil() {
       // Endereço e contato podem ser salvos sem conta/Pix; só valida o pagamento quando ele foi preenchido.
       const problema = erroPagamento(pagamento);
       const pagamentoVazio = problema != null && !JSON.stringify(pagamentoParaBanco(pagamento)).match(/":"[^"]+"/);
-      if (problema && !pagamentoVazio) throw new Error(problema);
+      if (problema && !pagamentoVazio) negarRegra(problema);
       await atualizarMeuCadastro({
         telefone: form.telefone || null,
         whatsapp: form.whatsapp || null,
