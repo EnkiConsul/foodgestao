@@ -145,7 +145,7 @@ export function ResetMyDataCard() {
               <div className="space-y-2 text-sm">
                 <p>Você apagará permanentemente seus próprios dados.</p>
                 <p>Itens: <strong>{Array.from(scope).join(", ")}</strong></p>
-                <p>Contexto: <strong>{contextFilter === "both" ? "Ambos (PF e PJ)" : contextFilter.toUpperCase()}</strong></p>
+                <p>Contexto: <strong>Empresarial (PJ)</strong></p>
                 <p className="text-destructive font-medium pt-2">Esta ação não pode ser desfeita.</p>
               </div>
             </AlertDialogDescription>
