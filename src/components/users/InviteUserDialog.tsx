@@ -9,11 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { PermissionsEditor } from "@/components/users/PermissionsEditor";
 import { CompanyAccessPicker } from "@/components/users/CompanyAccessPicker";
-import { AccountAccessPicker } from "@/components/users/AccountAccessPicker";
-import { UnitAccessPicker } from "@/components/users/UnitAccessPicker";
+import { CompanyScopedAccessPickers, EscopoPorEmpresa, empresaComListaVazia } from "@/components/users/CompanyScopedAccessPickers";
 import { useAdminCompanies } from "@/hooks/useAdminCompanies";
-import { useCompanyAccounts } from "@/hooks/useCompanyAccounts";
-import { useCompanyUnidades } from "@/hooks/useCompanyUnidades";
 import { CompanyRole, ModulosMap, PERFIS, PerfilKey, PermissionsMap, getPerfil, perfilPadraoDoRole } from "@/lib/permissions";
 import { isValidPhone, maskPhone } from "@/lib/phone";
 import { garantirLimite } from "@/lib/billing/limites";
@@ -42,13 +39,11 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
   const [modulos, setModulos] = useState<ModulosMap>(preset.modulos);
   const [flags, setFlags] = useState({ ver_saldos: preset.ver_saldos, ver_salarios: preset.ver_salarios });
   const [empresas, setEmpresas] = useState<string[]>([companyId]);
-  const [contas, setContas] = useState<string[] | null>(null);
-  const [unidades, setUnidades] = useState<string[] | null>(null);
+  const [contas, setContas] = useState<EscopoPorEmpresa>({});
+  const [unidades, setUnidades] = useState<EscopoPorEmpresa>({});
   const [saving, setSaving] = useState(false);
 
   const { data: adminCompanies = [] } = useAdminCompanies(open);
-  const { data: contasEmpresa = [] } = useCompanyAccounts(companyId, open);
-  const { data: unidadesEmpresa = [] } = useCompanyUnidades(companyId, open);
   const acessoTotal = preset.role === "owner" || preset.role === "admin";
 
   // Só dono pode convidar outro dono.
@@ -58,7 +53,7 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
   }, [adminCompanies, companyId]);
 
   useEffect(() => {
-    if (open) { setEmpresas([companyId]); setContas(null); setUnidades(null); }
+    if (open) { setEmpresas([companyId]); setContas({}); setUnidades({}); }
   }, [open, companyId]);
 
   const applyPerfil = (k: PerfilKey) => {
@@ -76,8 +71,8 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
 
   const waDigits = whatsapp.replace(/\D/g, "");
   const emailOk = !email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const contasOk = acessoTotal || contas === null || contas.length > 0;
-  const unidadesOk = acessoTotal || unidades === null || unidades.length > 0;
+  const contasOk = acessoTotal || !empresaComListaVazia(empresas, contas);
+  const unidadesOk = acessoTotal || !empresaComListaVazia(empresas, unidades);
   const valid = nome.trim().length >= 3 && isValidPhone(whatsapp) && emailOk && empresas.length > 0 && contasOk && unidadesOk;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -107,10 +102,9 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
       modulos: modulos as any,
       ver_saldos: flags.ver_saldos,
       ver_salarios: flags.ver_salarios,
-      // As listas de contas e unidades valem só para a empresa aberta na tela
-      // (os códigos são de cada empresa). Nas outras, o acesso começa com tudo.
-      contas_permitidas: cid === companyId && !acessoTotal && contas?.length ? contas : null,
-      unidades_permitidas: cid === companyId && !acessoTotal && unidades?.length ? unidades : null,
+      // Contas e unidades escolhidas separadamente para cada empresa.
+      contas_permitidas: !acessoTotal && contas[cid]?.length ? contas[cid] : null,
+      unidades_permitidas: !acessoTotal && unidades[cid]?.length ? unidades[cid] : null,
       invited_by: user.id,
       grupo_id: grupoId,
     }));
@@ -208,17 +202,12 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
               onChange={setEmpresas}
             />
 
-            <AccountAccessPicker
-              accounts={contasEmpresa}
-              value={contas}
-              onChange={setContas}
-              bloqueado={acessoTotal}
-            />
-
-            <UnitAccessPicker
-              unidades={unidadesEmpresa}
-              value={unidades}
-              onChange={setUnidades}
+            <CompanyScopedAccessPickers
+              empresas={adminCompanies.filter((c) => empresas.includes(c.id))}
+              contas={contas}
+              unidades={unidades}
+              onContasChange={(id, v) => setContas((p) => ({ ...p, [id]: v }))}
+              onUnidadesChange={(id, v) => setUnidades((p) => ({ ...p, [id]: v }))}
               bloqueado={acessoTotal}
             />
 
