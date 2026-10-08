@@ -43,6 +43,13 @@
       "when": 1791467177637,
       "tag": "0005_company_member_profiles_visible",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791493833284,
+      "tag": "0006_billing_v2_fase15_ajustes",
+      "breakpoints": true
     }
   ]
 }
