@@ -17,11 +17,16 @@ import { RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 
 export function ResetOnboardingCard() {
   const { user } = useAuth();
+  const { isSuperAdmin } = useSuperAdmin();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+
+  if (!isSuperAdmin) return null;
+
 
   const handleReset = async () => {
     if (!user) return;
