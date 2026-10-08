@@ -140,6 +140,7 @@ const DpMeuSindicato = lazyWithRetry(() => import("./pages/dp/portal/DpMeuSindic
 
 // Admin
 const AdminModulos = lazyWithRetry(() => import("./pages/admin/Modulos"));
+const AdminAcessoV2 = lazyWithRetry(() => import("./pages/admin/AcessoV2"));
 const AdminTelasDesenvolvimento = lazyWithRetry(() => import("./pages/admin/TelasDesenvolvimento"));
 const AdminEstatisticas = lazyWithRetry(() => import("./pages/admin/Estatisticas"));
 const AdminClientes = lazyWithRetry(() => import("./pages/admin/Clientes"));
@@ -643,6 +644,7 @@ const AppRoutes = () => (
         <Route path="/admin/seo-indexacao" element={<AdminSeoIndexacao />} />
         <Route path="/admin/modulos" element={<AdminModulos />} />
         <Route path="/admin/telas" element={<AdminTelasDesenvolvimento />} />
+        <Route path="/admin/acesso-v2" element={<AdminAcessoV2 />} />
         <Route path="/admin/categorizacao-ia" element={<CategorizacaoIA />} />
         <Route path="/admin/mais" element={<Mais />} />
 
