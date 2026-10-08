@@ -35,7 +35,6 @@ const SCOPE_OPTIONS = [
 export function ResetMyDataCard() {
   const queryClient = useQueryClient();
   const [scope, setScope] = useState<Set<string>>(new Set());
-  const [scope, setScope] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [running, setRunning] = useState(false);
