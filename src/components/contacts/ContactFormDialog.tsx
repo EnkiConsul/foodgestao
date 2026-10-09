@@ -272,11 +272,13 @@ export function ContactFormDialog({
    * apagar o que o usuário já digitou; o nome é editável normalmente depois.
    */
   const [situacao, setSituacao] = useState<string | null>(null);
+  const [lookupFailed, setLookupFailed] = useState(false);
   const lastLookupRef = useRef<string | null>(null);
 
   const runLookup = useCallback(async (digits: string) => {
     if (digits.length !== 14 || !isValidCnpj(digits)) return;
     lastLookupRef.current = digits;
+    setLookupFailed(false);
     try {
       const d = await cnpjLookup.mutateAsync(digits);
       const fantasia = d.nome_fantasia?.trim() || "";
@@ -293,7 +295,9 @@ export function ContactFormDialog({
       setSituacao(d.situacao ?? null);
       notifyCnpjSuccess(d);
     } catch (e) {
-      lastLookupRef.current = null;
+      // Mantém o CNPJ como já consultado: a busca automática não repete sozinha.
+      // Nova tentativa só pela lupa ou pelo botão do aviso; o cadastro manual segue livre.
+      setLookupFailed(true);
       notifyCnpjError(e, { onRetry: () => { void runLookup(digits); } });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -302,7 +306,7 @@ export function ContactFormDialog({
   // Ao abrir em modo edição, não consulta o documento já salvo automaticamente.
   useEffect(() => {
     if (open && editContact) lastLookupRef.current = normalizeDocumento(editContact.document);
-    if (!open) { lastLookupRef.current = null; setSituacao(null); }
+    if (!open) { lastLookupRef.current = null; setSituacao(null); setLookupFailed(false); }
   }, [open, editContact]);
 
   // Busca automática ao completar um CNPJ válido (debounce na digitação).
@@ -351,10 +355,6 @@ export function ContactFormDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (cnpjLookupPending) {
-      toast.error("Aguarde a consulta do CNPJ finalizar.");
-      return;
-    }
 
     if (selectedCompanyIds.length === 0) {
       toast.error("Selecione ao menos uma empresa para este cliente/fornecedor.", {
@@ -528,7 +528,6 @@ export function ContactFormDialog({
                         placeholder="CPF ou CNPJ"
                         maxLength={18}
                         inputMode="numeric"
-                        disabled={cnpjLookupPending}
                         aria-invalid={invalid}
                         className={cn(invalid && "border-destructive focus-visible:ring-destructive")}
                       />
@@ -560,6 +559,11 @@ export function ContactFormDialog({
 
                     {cnpjLookupPending && (
                       <p className="text-xs text-muted-foreground">Consultando Receita Federal…</p>
+                    )}
+                    {!cnpjLookupPending && lookupFailed && (
+                      <p className="text-xs text-muted-foreground">
+                        Receita Federal indisponível no momento. Preencha os dados manualmente e salve normalmente.
+                      </p>
                     )}
                     {!cnpjLookupPending && situacao && !/^ativa$/i.test(situacao.trim()) && (
                       <p className="text-xs text-warning">
@@ -604,8 +608,8 @@ export function ContactFormDialog({
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anotações sobre o contato..." rows={3} maxLength={500} />
             </div>
           </div>
-          <Button type="submit" className="w-full" disabled={saving || cnpjLookupPending}>
-            {saving ? "Salvando..." : cnpjLookupPending ? "Consultando CNPJ..." : editContact ? "Atualizar" : "Criar Contato"}
+          <Button type="submit" className="w-full" disabled={saving}>
+            {saving ? "Salvando..." : editContact ? "Atualizar" : "Criar Contato"}
           </Button>
         </form>
       </DialogContent>
