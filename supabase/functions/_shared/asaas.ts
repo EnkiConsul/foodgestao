@@ -19,9 +19,12 @@ function normalizeBaseUrl(raw: string | undefined, fallback: string): string {
 
 function credenciais(env: AsaasEnv): { url: string; key: string; nomeKey: string } {
   if (env === "sandbox") {
-    const url = normalizeBaseUrl(Deno.env.get("ASAAS_SANDBOX_API_URL"), "https://api-sandbox.asaas.com/v3");
-    if (!/sandbox/i.test(url)) throw new Error("ASAAS_SANDBOX_API_URL não aponta para o Sandbox do Asaas");
-    return { url, key: (Deno.env.get("ASAAS_SANDBOX_API_KEY") ?? "").trim(), nomeKey: "ASAAS_SANDBOX_API_KEY" };
+    // Endereço configurado só é aceito se for do Sandbox; senão usa o oficial do Sandbox.
+    let url = normalizeBaseUrl(Deno.env.get("ASAAS_SANDBOX_API_URL"), "https://api-sandbox.asaas.com/v3");
+    if (!/sandbox/i.test(url)) url = "https://api-sandbox.asaas.com/v3";
+    const key = (Deno.env.get("ASAAS_SANDBOX_API_KEY") ?? "").trim();
+    if (key.startsWith("$aact_prod_")) throw new Error("ASAAS_SANDBOX_API_KEY contém uma chave de Produção");
+    return { url, key, nomeKey: "ASAAS_SANDBOX_API_KEY" };
   }
   const url = normalizeBaseUrl(Deno.env.get("ASAAS_API_URL"), "https://api.asaas.com/v3");
   return { url, key: (Deno.env.get("ASAAS_API_KEY") ?? "").trim(), nomeKey: "ASAAS_API_KEY" };
