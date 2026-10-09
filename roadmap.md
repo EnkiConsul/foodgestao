@@ -71,11 +71,14 @@
 - [x] Link de assinatura de recibos (emitir, reenviar e comprovante) enviado direto pela API.
 
 ## Fase 3 — último bloco (09/10, checkout 'legado', acesso 'sombra', sem publicar)
-- [ ] Fechar teste o) com espera de 3 min (rodar o caso isolado para não estourar o tempo da bateria)
+- [x] Fechar teste o) com espera de 3 min (caso isolado em duas etapas)
 - [x] Taxas do cartão editáveis pelo super admin (Backoffice → Assinaturas), com data da última alteração
+- [x] Taxas do cartão validadas também no servidor
 - [ ] Checkout novo (só com checkout_v2 = 'v2')
-- [ ] Página "Minha assinatura" (/assinatura)
+- [x] Página "Minha assinatura" (/assinatura), só com checkout_v2 = 'v2'
+- [ ] Pró-rata pequena sem mensalidade em aberto: somar quando o Asaas gerar a próxima cobrança
 - [ ] Colaboradores excedentes no fechamento do ciclo
 - [ ] NFS-e pelo Asaas com parâmetro emitir_nfse (padrão desligado)
 - [ ] Conciliação diária com o Asaas (só aponta)
-- [ ] Testes t–y, inventário do Sandbox e limpeza [TESTE]
+- [x] Testes u e y
+- [ ] Testes t, v, w, x, inventário do Sandbox e limpeza [TESTE]
