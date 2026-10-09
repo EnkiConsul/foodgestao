@@ -133,6 +133,7 @@ export default function AdminCadastros() {
               <TableHead>Nome</TableHead>
               <TableHead>E-mail</TableHead>
               <TableHead>Empresas</TableHead>
+              <TableHead>Módulos</TableHead>
               <TableHead>Documento</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>Confirmação</TableHead>
@@ -164,6 +165,9 @@ export default function AdminCadastros() {
                     <TableCell className="text-muted-foreground">{u.auth?.email ?? "—"}</TableCell>
                     <TableCell className="text-xs">
                       <EmpresasVinculadas companies={u.companies} />
+                    </TableCell>
+                    <TableCell>
+                      <ModulosAcesso companies={u.companies} />
                     </TableCell>
                     <TableCell>{u.document || "—"}</TableCell>
                     <TableCell>{u.phone || "—"}</TableCell>
