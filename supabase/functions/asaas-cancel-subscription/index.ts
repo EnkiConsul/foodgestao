@@ -1,6 +1,6 @@
 // supabase/functions/asaas-cancel-subscription/index.ts
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { asaasFetch } from "../_shared/asaas.ts";
+import { asaasFetch, parseAsaasEnv } from "../_shared/asaas.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     if (!sub || sub.user_id !== u.user.id) return json({ error: "Not found" }, 404);
 
     if (sub.external_subscription_id) {
-      await asaasFetch(`/subscriptions/${sub.external_subscription_id}`, { method: "DELETE" })
+      await asaasFetch(`/subscriptions/${sub.external_subscription_id}`, { method: "DELETE" }, parseAsaasEnv((sub as any).asaas_env))
         .catch((e) => console.warn("Asaas delete failed:", e.message));
     }
 

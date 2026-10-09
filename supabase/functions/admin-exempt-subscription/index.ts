@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
-import { asaasFetch } from "../_shared/asaas.ts";
+import { asaasFetch, parseAsaasEnv } from "../_shared/asaas.ts";
 
 const BodySchema = z.object({
   subscriptionId: z.string().uuid(),
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     if (sub.external_subscription_id) {
       let asaasOk = false; let asaasErro: string | null = null; let asaasResp: unknown = null;
       try {
-        const r: any = await asaasFetch(`/subscriptions/${sub.external_subscription_id}`, { method: "DELETE" });
+        const r: any = await asaasFetch(`/subscriptions/${sub.external_subscription_id}`, { method: "DELETE" }, parseAsaasEnv((sub as any).asaas_env));
         asaasResp = { deleted: r?.deleted ?? null, id: r?.id ?? sub.external_subscription_id };
         asaasOk = true;
       } catch (e) {
