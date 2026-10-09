@@ -213,7 +213,7 @@ function isWhitelistedForExpiredTrial(pathname: string) {
   );
 }
 
-function SubscriptionGuard({ children, module = "financeiro" }: { children: React.ReactNode; module?: ModuloAcesso }) {
+function SubscriptionGuard({ children, module = "qualquer" }: { children: React.ReactNode; module?: ModuloAcesso | "qualquer" }) {
   const location = useLocation();
   const { isSuperAdmin, loading: roleLoading } = useSuperAdmin();
   const { loading, hasCompanies, blocked: legacyBlocked } = useCompanyAccess();
@@ -222,18 +222,17 @@ function SubscriptionGuard({ children, module = "financeiro" }: { children: Reac
   if (loading || roleLoading || v2.loading) return <>{children}</>;
   if (isSuperAdmin) return <>{children}</>;
   if (isWhitelistedForExpiredTrial(location.pathname)) return <>{children}</>;
-  // Legado e sombra mantêm a decisão atual; v2 decide por empresa + módulo.
   const blocked = v2.mode === "v2" && v2.access ? !v2.access.allowed : legacyBlocked;
   if (!blocked) return <>{children}</>;
 
-  // Bloqueado e sem nenhuma empresa (própria ou por convite): a entrada é a
-  // tela de boas-vindas, com convites pendentes e a opção de criar empresa.
   if (!hasCompanies) return <Navigate to="/bem-vindo" replace />;
 
-  // Fim do teste, falta de contrato ou atraso acima da tolerância de 10 dias:
-  // acesso operacional suspenso, com regularização e exportação liberadas.
-  return <Navigate to={v2.mode === "v2" ? `/acesso-bloqueado?modulo=${module}` : "/acesso-bloqueado"} replace />;
+  const destino = v2.mode === "v2" && module !== "qualquer" ? `/acesso-bloqueado?modulo=${module}` : "/acesso-bloqueado";
+  return <Navigate to={destino} replace />;
 }
+
+/** Envolve uma tela do Financeiro 360° com o guard do módulo. */
+const fin = (el: React.ReactNode) => <SubscriptionGuard module="financeiro">{el}</SubscriptionGuard>;
 
 
 
@@ -479,29 +478,29 @@ const AppRoutes = () => (
         }
       >
         <Route path="/hub" element={<Hub />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/lancamentos" element={<Lancamentos />} />
+        <Route path="/dashboard" element={fin(<Dashboard />)} />
+        <Route path="/lancamentos" element={fin(<Lancamentos />)} />
         <Route path="/fluxo-caixa" element={<Navigate to="/dashboard" replace />} />
         <Route path="/orcamento" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/relatorios/contabeis" element={<RelatoriosContabeis />} />
-        <Route path="/relatorios/fluxo-caixa" element={<RelatorioFluxoCaixa />} />
-        <Route path="/contatos" element={<Contatos />} />
-        <Route path="/categorias" element={<Categorias />} />
+        <Route path="/relatorios/contabeis" element={fin(<RelatoriosContabeis />)} />
+        <Route path="/relatorios/fluxo-caixa" element={fin(<RelatorioFluxoCaixa />)} />
+        <Route path="/contatos" element={fin(<Contatos />)} />
+        <Route path="/categorias" element={fin(<Categorias />)} />
         
-        <Route path="/contas-contabeis" element={<ContasContabeis />} />
-        <Route path="/contas-bancarias" element={<ContasBancarias />} />
-        <Route path="/contas-bancarias/conciliacao" element={<ConciliacaoPluggy />} />
-        <Route path="/contas-bancarias/conciliacao/extrato" element={<ExtratoConciliacao />} />
-        <Route path="/contas-bancarias/conexoes" element={<ConexoesPluggy />} />
-        <Route path="/cartoes-credito" element={<CartoesCredito />} />
+        <Route path="/contas-contabeis" element={fin(<ContasContabeis />)} />
+        <Route path="/contas-bancarias" element={fin(<ContasBancarias />)} />
+        <Route path="/contas-bancarias/conciliacao" element={fin(<ConciliacaoPluggy />)} />
+        <Route path="/contas-bancarias/conciliacao/extrato" element={fin(<ExtratoConciliacao />)} />
+        <Route path="/contas-bancarias/conexoes" element={fin(<ConexoesPluggy />)} />
+        <Route path="/cartoes-credito" element={fin(<CartoesCredito />)} />
         
         <Route path="/configuracoes" element={<Configuracoes />} />
         <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
         <Route path="/empresas" element={<Empresas />} />
         <Route path="/assinatura" element={<Assinatura />} />
         <Route path="/planos" element={<Planos />} />
-        <Route path="/formas-pagamento" element={<FormasPagamento />} />
-        <Route path="/centros-custo" element={<CentrosCusto />} />
+        <Route path="/formas-pagamento" element={fin(<FormasPagamento />)} />
+        <Route path="/centros-custo" element={fin(<CentrosCusto />)} />
 
         <Route path="/mais" element={<Mais />} />
       </Route>

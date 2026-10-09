@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ExportMyDataCard } from "@/components/settings/ExportMyDataCard";
 import { useCompanyAccess, type MotivoBloqueio } from "@/hooks/useCompanyAccess";
 import { PageSpinner } from "@/components/PageSpinner";
+import { CoberturaOpcoes } from "@/components/billing/CoberturaOpcoes";
 
 const TEXTOS: Record<MotivoBloqueio, { titulo: string; descricao: string }> = {
   sem_assinatura: {
@@ -128,7 +129,9 @@ export default function AcessoBloqueado() {
               </div>
             )}
 
-            {access?.isOwner === false ? (
+            {usarV2 && moduloParam && motivoBruto === "sem_cobertura" ? (
+              <CoberturaOpcoes modulo={moduloParam} />
+            ) : access?.isOwner === false ? (
               <p className="rounded-lg border bg-muted/40 p-4 text-sm">
                 A regularização do plano é feita pelo responsável pela empresa. Fale com ele para
                 liberar o acesso novamente.

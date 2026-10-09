@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCompanyEntitlements } from "@/hooks/useModuleAccess";
 import { useCompanyAccess } from "@/hooks/useCompanyAccess";
 
 /**
@@ -9,9 +10,10 @@ import { useCompanyAccess } from "@/hooks/useCompanyAccess";
  */
 export function AtrasoPagamentoBanner() {
   const { access, blocked, loading } = useCompanyAccess();
+  const { data: ent } = useCompanyEntitlements();
   const dias = access?.diasAtraso ?? 0;
 
-  if (loading || blocked || dias <= 0) return null;
+  if (loading || blocked || dias <= 0 || ent?.mode === "v2") return null;
 
   const restantes = Math.max(0, 10 - dias);
 

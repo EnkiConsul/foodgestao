@@ -64,6 +64,13 @@
       "when": 1791503712543,
       "tag": "0008_fase2_acesso_por_modulo_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791504790907,
+      "tag": "0009_fase2_1_acesso_modulo_portal_cobertura",
+      "breakpoints": true
     }
   ]
 }

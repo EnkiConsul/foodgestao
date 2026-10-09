@@ -11,10 +11,22 @@ import { MODULES, type ModuleDefinition } from "@/lib/modules";
 import { cn } from "@/lib/utils";
 import { PendingInvitesAlert } from "@/components/invites/PendingInvitesAlert";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
+import { useCompanyEntitlements } from "@/hooks/useModuleAccess";
+import { Lock } from "lucide-react";
 
-function ModuleCard({ def }: { def: ModuleDefinition }) {
+const MOTIVO_TEXTO: Record<string, string> = {
+  sem_cobertura: "Empresa sem cobertura neste módulo",
+  trial_expirado: "Período de teste encerrado",
+  carencia_expirada: "Carência encerrada",
+  inadimplente_suspenso: "Suspenso por atraso",
+  rescindido: "Contrato encerrado",
+  expirado_definitivo: "Prazo de guarda encerrado",
+  sem_assinatura: "Sem plano contratado",
+};
+
+function ModuleCard({ def, bloqueio }: { def: ModuleDefinition; bloqueio?: { modulo: string; motivo: string | null } | null }) {
   const Icon = def.icon;
-  const usable = def.available;
+  const usable = def.available && !bloqueio;
 
 
   return (
@@ -36,6 +48,11 @@ function ModuleCard({ def }: { def: ModuleDefinition }) {
           >
             <Icon className="h-4 w-4 md:h-6 md:w-6" />
           </div>
+          {bloqueio && (
+            <div className="scale-[0.85] origin-top-right md:scale-100">
+              <Badge variant="destructive" className="gap-1"><Lock className="h-3 w-3" /> Bloqueado</Badge>
+            </div>
+          )}
           {!def.available && (
             <div className="scale-[0.85] origin-top-right md:scale-100">
               <Badge variant="secondary" className="gap-1"><Sparkles className="h-3 w-3" /> Em breve</Badge>
@@ -52,6 +69,13 @@ function ModuleCard({ def }: { def: ModuleDefinition }) {
                 Entrar <ArrowRight className="h-3 w-3 md:h-4 md:w-4 ml-1.5 md:ml-2" />
               </Link>
             </Button>
+          ) : bloqueio ? (
+            <div className="space-y-1.5">
+              <p className="text-[11px] md:text-xs text-destructive">{MOTIVO_TEXTO[bloqueio.motivo ?? ""] ?? "Acesso indisponível"}</p>
+              <Button asChild variant="outline" size="sm" className="w-full h-8 md:h-10 text-xs md:text-sm">
+                <Link to={`/acesso-bloqueado?modulo=${bloqueio.modulo}`}>Ver Opções</Link>
+              </Button>
+            </div>
           ) : (
             <Button variant="outline" size="sm" className="w-full h-8 md:h-10 text-xs md:text-sm" disabled>
               Em breve
@@ -67,6 +91,13 @@ export default function Hub() {
   const { companies, selectedCompanyId } = useCompanyContext();
   const { data: catalogo } = useModulosCatalogo();
   const { hasModulo } = useCompanyPermissions();
+  const { data: ent } = useCompanyEntitlements();
+  const bloqueioDe = (slug: string) => {
+    if (ent?.mode !== "v2") return null;
+    const m = slug === "financeiro" ? "financeiro" : slug === "dp" ? "pessoas" : null;
+    const a = m ? ent[m] : null;
+    return m && a && !a.allowed ? { modulo: m, motivo: a.motivo } : null;
+  };
 
   // Somente módulos ativos e marcados para aparecer no Hub (backoffice).
   // Enquanto o catálogo não carrega, mantém a lista padrão.
@@ -111,7 +142,7 @@ export default function Hub() {
 
       <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-3">
         {permittedModules.map((def) => (
-          <ModuleCard key={def.slug} def={def} />
+          <ModuleCard key={def.slug} def={def} bloqueio={bloqueioDe(def.slug)} />
         ))}
       </div>
       {permittedModules.length === 0 && (

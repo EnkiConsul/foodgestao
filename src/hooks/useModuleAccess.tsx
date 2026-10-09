@@ -50,10 +50,16 @@ export function useCompanyEntitlements(companyIdOverride?: string | null) {
   });
 }
 
-export function useModuleAccess(module: ModuloAcesso) {
+/** "qualquer" = rotas compartilhadas: liberado se ao menos um módulo estiver liberado. */
+export function useModuleAccess(module: ModuloAcesso | "qualquer") {
   const q = useCompanyEntitlements();
   const mode: AccessModelMode = q.data?.mode ?? "legado";
-  const access = q.data?.[module] ?? null;
+  const access =
+    module === "qualquer"
+      ? q.data
+        ? q.data.financeiro?.allowed ? q.data.financeiro : q.data.pessoas
+        : null
+      : q.data?.[module] ?? null;
   return {
     loading: q.isLoading,
     mode,
