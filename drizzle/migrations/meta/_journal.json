@@ -113,6 +113,27 @@
       "when": 1791508049406,
       "tag": "0015_fase3_troca_plano_ciclo",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791519403831,
+      "tag": "0016_fase3_contratacao_v2_sandbox",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791519861278,
+      "tag": "0017_fase3_qa_purge_sandbox",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791520470319,
+      "tag": "0018_fase3_conciliacao_sem_teste",
+      "breakpoints": true
     }
   ]
 }

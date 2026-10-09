@@ -1635,6 +1635,7 @@ export type Database = {
           documento_pagador: string | null
           email_cobranca: string | null
           id: string
+          is_test: boolean
           nome: string
           tipo: Database["public"]["Enums"]["billing_account_type"]
           titular_user_id: string
@@ -1647,6 +1648,7 @@ export type Database = {
           documento_pagador?: string | null
           email_cobranca?: string | null
           id?: string
+          is_test?: boolean
           nome: string
           tipo: Database["public"]["Enums"]["billing_account_type"]
           titular_user_id: string
@@ -1659,6 +1661,7 @@ export type Database = {
           documento_pagador?: string | null
           email_cobranca?: string | null
           id?: string
+          is_test?: boolean
           nome?: string
           tipo?: Database["public"]["Enums"]["billing_account_type"]
           titular_user_id?: string
@@ -16569,6 +16572,15 @@ export type Database = {
           uso: number
         }[]
       }
+      _billing_v2_reconciliation_bruta: {
+        Args: never
+        Returns: {
+          company_id: string
+          detalhe: string
+          subscription_id: string
+          tipo: string
+        }[]
+      }
       _billing_v2_usage: {
         Args: { _recurso: string; _sub: string }
         Returns: number
@@ -16797,6 +16809,15 @@ export type Database = {
         Args: { _account: string; _actor: string; _company: string }
         Returns: string
       }
+      billing_v2_apply_change: {
+        Args: {
+          _ciclo: string
+          _origem: string
+          _plan_slug: string
+          _subscription_id: string
+        }
+        Returns: Json
+      }
       billing_v2_apply_scheduled_changes: { Args: never; Returns: number }
       billing_v2_digits: { Args: { _t: string }; Returns: string }
       billing_v2_ensure_company_account: {
@@ -16834,6 +16855,7 @@ export type Database = {
         }
         Returns: Json
       }
+      billing_v2_qa_purge: { Args: { _emails: string[] }; Returns: Json }
       billing_v2_quote: {
         Args: {
           _billing_account_id: string
@@ -16850,6 +16872,15 @@ export type Database = {
           detalhe: string
           subscription_id: string
           tipo: string
+        }[]
+      }
+      billing_v2_renovacoes_devidas: {
+        Args: { _somente_teste?: boolean }
+        Returns: {
+          acao: string
+          asaas_env: string
+          is_test: boolean
+          subscription_id: string
         }[]
       }
       billing_v2_revoke_exemption: {
