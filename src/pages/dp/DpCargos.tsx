@@ -93,13 +93,6 @@ export default function DpCargos() {
     } catch { return v; }
   };
 
-  const rows = useMemo(() => {
-    const all = list.data ?? [];
-    const q = busca.trim().toLowerCase();
-    const base = soSemPiso ? all.filter((c) => semPisoRef.current(c)) : all;
-    if (!q) return base;
-    return base.filter((c) => c.nome.toLowerCase().includes(q));
-  }, [list.data, busca, soSemPiso]);
 
   // Pisos por unidade da empresa (uma consulta só): usados para mostrar
   // "por unidade" na lista quando o cargo tem valores distintos.
@@ -120,6 +113,11 @@ export default function DpCargos() {
     !(pisosPorCargo.get(c.id) ?? []).some((p: any) => !p.removido_em && (!p.vigencia_fim || p.vigencia_fim >= hojeISO)) &&
     !(Number(c.salario_base) > 0);
   const cargosSemPiso = (list.data ?? []).filter(semPiso);
+
+  const q = busca.trim().toLowerCase();
+  const rows = (soSemPiso ? cargosSemPiso : (list.data ?? [])).filter(
+    (c) => !q || c.nome.toLowerCase().includes(q),
+  );
 
 
 
@@ -205,7 +203,7 @@ export default function DpCargos() {
               <tr>
                 <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] w-[34%]">Nome</th>
                 <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden lg:table-cell w-[20%]">Descrição</th>
-                <th className="text-right p-4 font-bold uppercase tracking-wider text-[10px] w-[20%]">Salário base</th>
+                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[20%]">Salário base</th>
                 <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[14%]">Colaboradores</th>
                 <th className="text-right p-4 font-bold uppercase tracking-wider text-[10px] w-[12%]">Ações</th>
               </tr>
@@ -237,7 +235,7 @@ export default function DpCargos() {
                   >
                     <td className="p-4 font-bold uppercase break-words leading-snug" title={c.nome}>{c.nome}</td>
                     <td className="p-4 hidden lg:table-cell text-muted-foreground truncate" title={descricao ?? ""}>{descricao || "—"}</td>
-                    <td className="p-4 text-right align-middle" title={salarioResumo(c).dica}>
+                    <td className="p-4 text-center align-middle" title={salarioResumo(c).dica}>
                       <div className="tabular-nums whitespace-nowrap">{salarioResumo(c).texto}</div>
                       {semPiso(c) && (
                         <button
@@ -249,7 +247,7 @@ export default function DpCargos() {
                         </button>
                       )}
                       {selosRiscoCargo(c as any).length > 0 && (
-                        <div className="mt-1 flex flex-wrap justify-end gap-1">
+                        <div className="mt-1 flex flex-wrap justify-center gap-1">
                           {selosRiscoCargo(c as any).map((selo) => (
                             <span
                               key={selo.tipo}
