@@ -199,6 +199,7 @@ async function processEvent(admin: Admin, env: Env, eventType: string, payload: 
       const { data: subRow } = await admin
         .from("subscriptions")
         .select("id, user_id")
+        .eq("asaas_env", env)
         .eq("external_subscription_id", payment.subscription)
         .maybeSingle();
       if (subRow) {
@@ -216,12 +217,13 @@ async function processEvent(admin: Admin, env: Env, eventType: string, payload: 
           external_invoice_id: payment.id,
           external_payment_url: payment.invoiceUrl ?? null,
           payment_method: method as any,
+          asaas_env: env,
         }).select().single();
         if (insErr && insErr.code !== "23505") throw new Error(`invoice_insert: ${insErr.message}`);
         if (inserted) inv = inserted as any;
         if (!inserted) {
           const { data: again } = await admin
-            .from("invoices").select("*").eq("external_invoice_id", payment.id).maybeSingle();
+            .from("invoices").select("*").eq("asaas_env", env).eq("external_invoice_id", payment.id).maybeSingle();
           inv = again as any;
         }
       }
