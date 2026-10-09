@@ -268,7 +268,11 @@ function AssinaturaCard({ s, onAcao }: { s: Json; onAcao: (a: Acao) => void }) {
             {excedentes.map((e, i) => (
               <div key={i} data-testid="excedente">
                 {String(e.competencia).slice(5, 7)}/{String(e.competencia).slice(0, 4)}: {e.contados} contados de {e.limite} da franquia
-                {e.excedente > 0 ? ` · ${e.excedente} excedente(s) = ${formatCents(e.valor_cents)}${e.forma === "avulsa" ? " (cobrança avulsa)" : e.forma === "cortesia" ? " (cortesia)" : " (na próxima fatura)"}` : " · sem excedente"}
+                {e.excedente > 0
+                  ? e.forma === "cortesia"
+                    ? ` · ${e.excedente} acima da franquia · uso acima da franquia coberto pela cortesia (sem cobrança)`
+                    : ` · ${e.excedente} excedente(s) = ${formatCents(e.valor_cents)}${e.forma === "avulsa" ? " (cobrança avulsa)" : " (na próxima fatura)"}`
+                  : " · sem excedente"}
                 {e.detalhe?.variaveis_fora ? ` · ${e.detalhe.variaveis_fora} intermitente(s)/freelancer(s) sem convocação ou escala não contados` : ""}
               </div>
             ))}
