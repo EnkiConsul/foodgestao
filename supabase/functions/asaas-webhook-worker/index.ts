@@ -10,6 +10,7 @@
 // com fallback para PLUGGY_CRON_SECRET, o segredo compartilhado dos jobs internos).
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { aplicarPendentes, solicitarNfse } from "../_shared/billing-v2-ciclo.ts";
 
 /**
  * Comparação de segredos em tempo constante (inline: o bundler desta função não
@@ -220,7 +221,11 @@ async function processEvent(admin: Admin, env: Env, eventType: string, payload: 
           asaas_env: env,
         }).select().single();
         if (insErr && insErr.code !== "23505") throw new Error(`invoice_insert: ${insErr.message}`);
-        if (inserted) inv = inserted as any;
+        if (inserted) {
+          inv = inserted as any;
+          // Nova mensalidade gerada pelo Asaas: soma pendências (pró-rata pequena, excedentes)
+          try { await aplicarPendentes(admin as any, (subRow as any).id); } catch (e) { console.error("aplicarPendentes", (e as Error).message); }
+        }
         if (!inserted) {
           const { data: again } = await admin
             .from("invoices").select("*").eq("asaas_env", env).eq("external_invoice_id", payment.id).maybeSingle();
@@ -260,6 +265,11 @@ async function processEvent(admin: Admin, env: Env, eventType: string, payload: 
         // Régua de cobrança: o pagamento interrompe tudo e dispara a reativação.
         // Sandbox nunca gera e-mail a cliente.
         if (env === "production") await pararReguaEAvisar(admin, invoice);
+        // NFS-e: só com emitir_nfse ligado (global ou da conta); nunca para valor zero nem cruzando ambientes
+        try {
+          const { data: fresh } = await admin.from("invoices").select("*").eq("id", invoice.id).single();
+          await solicitarNfse(admin as any, fresh, env);
+        } catch (e) { console.error("solicitarNfse", (e as Error).message); }
       } else if (eventType === "PAYMENT_OVERDUE") {
         await admin.from("invoices").update({ status: "overdue" }).eq("id", invoice.id);
         if (invoice.subscription_id) {

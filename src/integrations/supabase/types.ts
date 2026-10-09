@@ -1627,6 +1627,41 @@ export type Database = {
           },
         ]
       }
+      billing_account_events: {
+        Row: {
+          actor_id: string | null
+          billing_account_id: string
+          created_at: string
+          id: string
+          payload: Json
+          tipo_evento: string
+        }
+        Insert: {
+          actor_id?: string | null
+          billing_account_id: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          tipo_evento: string
+        }
+        Update: {
+          actor_id?: string | null
+          billing_account_id?: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          tipo_evento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_account_events_billing_account_id_fkey"
+            columns: ["billing_account_id"]
+            isOneToOne: false
+            referencedRelation: "billing_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_accounts: {
         Row: {
           asaas_customer_id: string | null
@@ -1634,6 +1669,7 @@ export type Database = {
           created_at: string
           documento_pagador: string | null
           email_cobranca: string | null
+          emitir_nfse: boolean | null
           id: string
           is_test: boolean
           nome: string
@@ -1647,6 +1683,7 @@ export type Database = {
           created_at?: string
           documento_pagador?: string | null
           email_cobranca?: string | null
+          emitir_nfse?: boolean | null
           id?: string
           is_test?: boolean
           nome: string
@@ -1660,6 +1697,7 @@ export type Database = {
           created_at?: string
           documento_pagador?: string | null
           email_cobranca?: string | null
+          emitir_nfse?: boolean | null
           id?: string
           is_test?: boolean
           nome?: string
@@ -1771,6 +1809,220 @@ export type Database = {
           id?: number
         }
         Relationships: []
+      }
+      billing_v2_cobrancas_pendentes: {
+        Row: {
+          asaas_env: string
+          cobrado_em: string | null
+          created_at: string
+          descricao: string
+          detalhe: Json
+          id: string
+          invoice_id: string | null
+          origem: string
+          referencia: string
+          subscription_id: string
+          valor_cents: number
+        }
+        Insert: {
+          asaas_env?: string
+          cobrado_em?: string | null
+          created_at?: string
+          descricao: string
+          detalhe?: Json
+          id?: string
+          invoice_id?: string | null
+          origem: string
+          referencia: string
+          subscription_id: string
+          valor_cents: number
+        }
+        Update: {
+          asaas_env?: string
+          cobrado_em?: string | null
+          created_at?: string
+          descricao?: string
+          detalhe?: Json
+          id?: string
+          invoice_id?: string | null
+          origem?: string
+          referencia?: string
+          subscription_id?: string
+          valor_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_v2_cobrancas_pendentes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_v2_cobrancas_pendentes_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_v2_conciliacao_divergencias: {
+        Row: {
+          asaas: Json | null
+          asaas_env: string
+          created_at: string
+          execucao_id: string
+          external_id: string | null
+          id: string
+          invoice_id: string | null
+          local: Json | null
+          subscription_id: string | null
+          tipo: string
+        }
+        Insert: {
+          asaas?: Json | null
+          asaas_env?: string
+          created_at?: string
+          execucao_id: string
+          external_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          local?: Json | null
+          subscription_id?: string | null
+          tipo: string
+        }
+        Update: {
+          asaas?: Json | null
+          asaas_env?: string
+          created_at?: string
+          execucao_id?: string
+          external_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          local?: Json | null
+          subscription_id?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_v2_conciliacao_divergencias_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_v2_conciliacao_divergencias_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_v2_excedentes: {
+        Row: {
+          asaas_env: string
+          competencia: string
+          contados: number
+          created_at: string
+          detalhe: Json
+          excedente: number
+          external_payment_id: string | null
+          forma: string
+          id: string
+          limite: number
+          subscription_id: string
+          valor_cents: number
+          valor_unit_cents: number
+        }
+        Insert: {
+          asaas_env?: string
+          competencia: string
+          contados: number
+          created_at?: string
+          detalhe?: Json
+          excedente: number
+          external_payment_id?: string | null
+          forma: string
+          id?: string
+          limite: number
+          subscription_id: string
+          valor_cents: number
+          valor_unit_cents: number
+        }
+        Update: {
+          asaas_env?: string
+          competencia?: string
+          contados?: number
+          created_at?: string
+          detalhe?: Json
+          excedente?: number
+          external_payment_id?: string | null
+          forma?: string
+          id?: string
+          limite?: number
+          subscription_id?: string
+          valor_cents?: number
+          valor_unit_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_v2_excedentes_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_v2_nfse_solicitacoes: {
+        Row: {
+          asaas_env: string
+          asaas_invoice_id: string | null
+          created_at: string
+          external_payment_id: string | null
+          id: string
+          invoice_id: string
+          resposta: Json | null
+          status: string
+          tomador_documento: string | null
+          valor_cents: number
+        }
+        Insert: {
+          asaas_env?: string
+          asaas_invoice_id?: string | null
+          created_at?: string
+          external_payment_id?: string | null
+          id?: string
+          invoice_id: string
+          resposta?: Json | null
+          status: string
+          tomador_documento?: string | null
+          valor_cents: number
+        }
+        Update: {
+          asaas_env?: string
+          asaas_invoice_id?: string | null
+          created_at?: string
+          external_payment_id?: string | null
+          id?: string
+          invoice_id?: string
+          resposta?: Json | null
+          status?: string
+          tomador_documento?: string | null
+          valor_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_v2_nfse_solicitacoes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: true
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       categories: {
         Row: {
@@ -16827,7 +17079,21 @@ export type Database = {
         Returns: Json
       }
       billing_v2_apply_scheduled_changes: { Args: never; Returns: number }
+      billing_v2_cobrancas_assinatura: {
+        Args: { _subscription_id: string }
+        Returns: Json
+      }
+      billing_v2_colaboradores_competencia: {
+        Args: { _competencia: string; _sub: string }
+        Returns: {
+          contados: number
+          regulares: number
+          variaveis_contados: number
+          variaveis_fora: number
+        }[]
+      }
       billing_v2_digits: { Args: { _t: string }; Returns: string }
+      billing_v2_empresas_gerenciaveis: { Args: never; Returns: Json }
       billing_v2_ensure_company_account: {
         Args: { _company_id: string }
         Returns: string
@@ -16905,6 +17171,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      billing_v2_set_emitir_nfse: { Args: { _valor: string }; Returns: string }
       billing_v2_start_grace: {
         Args: {
           _actor: string

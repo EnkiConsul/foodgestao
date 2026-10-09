@@ -122,6 +122,7 @@ export async function opcoesParcelamento(admin: SupabaseClient, valorCents: numb
 
 export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: string, companyId: string, p: {
   plano: string; ciclo: Ciclo; forma: Forma; parcelas?: number; adicionais?: { code: string; qtd: number }[]; modo?: "empresa" | "grupo";
+  empresas?: string[];
 }, criados: Criados) {
   const { data: plano } = await admin.from("plans").select("id,module,slug,name").eq("slug", p.plano).eq("is_active", true).maybeSingle();
   if (!plano) throw new BillingError(422, "Plano indisponível.");
@@ -132,13 +133,15 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
   if (p.parcelas && p.parcelas > 1 && !(p.ciclo === "anual" && p.forma === "cartao")) {
     throw new BillingError(422, "Parcelamento só no plano anual pago com cartão.");
   }
-  // "grupo": uma assinatura cobre todas as empresas da conta; "empresa": só a empresa informada.
+  // "grupo": uma assinatura cobre as empresas escolhidas da conta; "empresa": só a empresa informada.
   let cobertas = [companyId];
   if (p.modo === "grupo") {
     const { data: ba } = await admin.from("billing_accounts").select("tipo").eq("id", conta.id).single();
     if ((ba as any)?.tipo !== "grupo") throw new BillingError(422, "Esta conta não é de grupo.");
     const { data: vs } = await admin.from("billing_account_companies").select("company_id").eq("billing_account_id", conta.id).is("removed_at", null);
-    cobertas = (vs ?? []).map((v: any) => v.company_id);
+    const naConta = (vs ?? []).map((v: any) => v.company_id as string);
+    cobertas = p.empresas?.length ? p.empresas.filter((e) => naConta.includes(e)) : naConta;
+    if (p.empresas?.length && cobertas.length !== p.empresas.length) throw new BillingError(422, "Empresa escolhida fora da conta de grupo.");
   }
   const q = await cotar(admin, conta.id, [{ plano: p.plano, empresas: cobertas.length, adicionais: p.adicionais ?? [] }], p.ciclo);
   let parc: { parcelas: number; valor_parcela_cents: number; total_cents: number; juros_cents: number } | null = null;
@@ -236,18 +239,15 @@ export async function contratarAdicional(admin: SupabaseClient, sub: any, code: 
       await registrarFatura(admin, sub, pg, "pix", `Pró-rata do adicional ${code}`);
       prorataCobranca = "imediata";
     } else {
-      // abaixo do mínimo do Asaas: soma na próxima mensalidade em aberto
-      const { data: inv } = await admin.from("invoices").select("id,amount_cents,external_invoice_id,notes")
-        .eq("subscription_id", sub.id).eq("status", "open").order("due_date").limit(1).maybeSingle();
-      if (inv?.external_invoice_id) {
-        await asaasFetch(`/payments/${inv.external_invoice_id}`, { method: "POST", body: JSON.stringify({ value: reais(inv.amount_cents + prorata) }) }, env);
-        await admin.from("invoices").update({ amount_cents: inv.amount_cents + prorata, notes: `${inv.notes ?? ""} + pró-rata ${code}`.trim() }).eq("id", inv.id);
-        criados.push({ tipo: "cobrança (pró-rata somada)", id: inv.external_invoice_id, descricao: `+R$ ${reais(prorata).toFixed(2)}` });
-      }
+      // abaixo do mínimo do Asaas: vira pendência somada à próxima mensalidade quando o Asaas gerá-la
+      // (aplicarPendentes marca como cobrada só depois que o Asaas aceitar o novo valor)
+      await admin.from("billing_v2_cobrancas_pendentes").upsert({
+        subscription_id: sub.id, origem: "prorata", referencia: `addon:${row.id}:${Date.now()}`,
+        descricao: `Pró-rata do adicional ${code} (${qtd})`, valor_cents: prorata,
+        detalhe: { addon_row: row.id, code, qtd }, asaas_env: sub.asaas_env,
+      }, { onConflict: "subscription_id,origem,referencia", ignoreDuplicates: true });
       prorataCobranca = "proxima_mensalidade";
-      somadaAgora = !!inv?.external_invoice_id;
     }
-    // sem mensalidade em aberto, a pró-rata fica pendente (prorata_billed_at nulo) até a próxima cobrança
     await admin.from("subscription_addons").update({ prorata_billed_at: prorataCobranca === "imediata" || somadaAgora ? new Date().toISOString() : null, notes: `pró-rata R$ ${reais(prorata).toFixed(2)} — ${prorataCobranca}` }).eq("id", row.id);
     await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "prorata_adicional", payload: { code, qtd, prorata_cents: prorata, cobranca: prorataCobranca } });
   }
