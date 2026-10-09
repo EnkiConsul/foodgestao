@@ -24,6 +24,7 @@ export type Database = {
           legacy_motivo: string | null
           module: string
           ocorrencias: number
+          origem: string
           updated_at: string
           v2_allowed: boolean
           v2_detalhe: Json | null
@@ -38,6 +39,7 @@ export type Database = {
           legacy_motivo?: string | null
           module: string
           ocorrencias?: number
+          origem?: string
           updated_at?: string
           v2_allowed: boolean
           v2_detalhe?: Json | null
@@ -52,6 +54,7 @@ export type Database = {
           legacy_motivo?: string | null
           module?: string
           ocorrencias?: number
+          origem?: string
           updated_at?: string
           v2_allowed?: boolean
           v2_detalhe?: Json | null
@@ -19850,6 +19853,10 @@ export type Database = {
           _user_id: string
         }
         Returns: number
+      }
+      get_company_coverage_options: {
+        Args: { _company_id: string; _module: string }
+        Returns: Json
       }
       get_company_entitlements: { Args: { _company_id: string }; Returns: Json }
       get_ia_usage_today: {
