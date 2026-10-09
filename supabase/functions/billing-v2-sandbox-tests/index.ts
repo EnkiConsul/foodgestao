@@ -151,6 +151,18 @@ Deno.serve(async (req) => {
       return json({ preparado: true, email: emails[0], senha, company_id: U1.id, subscription_id: sid, adicional: u1.j?.resultado ?? u1.j, troca: u2.j?.resultado ?? u2.j,
         pending: so.pending_plan_change, addons: ads, invoices: invs, emails, userIds, companyIds, asaas });
     }
+    if (body.modo === "t_preparar") {
+      // t): duas empresas [TESTE] em Sandbox, sem pagador cadastrado (preenchido no checkout)
+      manter = true;
+      const out: Record<string, string> = {};
+      for (const k of ["T1", "T2"]) {
+        const c = await mkCompany(`EMPRESA ${k}`);
+        const acc = await contaDe(c.id);
+        await admin.from("billing_accounts").update({ asaas_env: "sandbox", is_test: true, nome: `[TESTE] EMPRESA ${k} ${rnd.toUpperCase()}`, documento_pagador: null }).eq("id", acc);
+        out[k] = c.id; out[`${k}_cnpj`] = c.cnpj;
+      }
+      return json({ preparado: true, email: emails[0], senha, ...out, emails, userIds, companyIds });
+    }
     if (body.modo === "o_preparar") {
       manter = true;
       const O1 = await mkCompany("EMPRESA O1");
