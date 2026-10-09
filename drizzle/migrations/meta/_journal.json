@@ -225,6 +225,13 @@
       "when": 1791565722991,
       "tag": "0031_fix_excedente_previa_membro",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791566957104,
+      "tag": "0032_cliente360_backoffice",
+      "breakpoints": true
     }
   ]
 }
