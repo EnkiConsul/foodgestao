@@ -213,7 +213,7 @@ function isWhitelistedForExpiredTrial(pathname: string) {
   );
 }
 
-function SubscriptionGuard({ children, module = "financeiro" }: { children: React.ReactNode; module?: ModuloAcesso }) {
+function SubscriptionGuard({ children, module = "qualquer" }: { children: React.ReactNode; module?: ModuloAcesso | "qualquer" }) {
   const location = useLocation();
   const { isSuperAdmin, loading: roleLoading } = useSuperAdmin();
   const { loading, hasCompanies, blocked: legacyBlocked } = useCompanyAccess();
@@ -222,18 +222,19 @@ function SubscriptionGuard({ children, module = "financeiro" }: { children: Reac
   if (loading || roleLoading || v2.loading) return <>{children}</>;
   if (isSuperAdmin) return <>{children}</>;
   if (isWhitelistedForExpiredTrial(location.pathname)) return <>{children}</>;
-  // Legado e sombra mantêm a decisão atual; v2 decide por empresa + módulo.
+  // Legado e sombra: só o guard compartilhado aplica a decisão atual (sem dupla checagem).
+  if (v2.mode !== "v2" && module !== "qualquer") return <>{children}</>;
   const blocked = v2.mode === "v2" && v2.access ? !v2.access.allowed : legacyBlocked;
   if (!blocked) return <>{children}</>;
 
-  // Bloqueado e sem nenhuma empresa (própria ou por convite): a entrada é a
-  // tela de boas-vindas, com convites pendentes e a opção de criar empresa.
   if (!hasCompanies) return <Navigate to="/bem-vindo" replace />;
 
-  // Fim do teste, falta de contrato ou atraso acima da tolerância de 10 dias:
-  // acesso operacional suspenso, com regularização e exportação liberadas.
-  return <Navigate to={v2.mode === "v2" ? `/acesso-bloqueado?modulo=${module}` : "/acesso-bloqueado"} replace />;
+  const destino = v2.mode === "v2" && module !== "qualquer" ? `/acesso-bloqueado?modulo=${module}` : "/acesso-bloqueado";
+  return <Navigate to={destino} replace />;
 }
+
+/** Envolve uma tela do Financeiro 360° com o guard do módulo. */
+const fin = (el: React.ReactNode) => <SubscriptionGuard module="financeiro">{el}</SubscriptionGuard>;
 
 
 
