@@ -12,6 +12,10 @@ type Json = Record<string, unknown>;
 
 const MENSAGENS: Record<string, string> = {
   UNAUTHENTICATED: "Faça a entrada novamente para continuar.",
+  EXCEDENTE_SEM_PERMISSAO:
+    "Limite do plano atingido. Só o dono ou um administrador pode incluir colaboradores acima da franquia.",
+  EXCEDENTE_CONFIRMACAO_NECESSARIA:
+    "Este cadastro passa da franquia do plano. Salve de novo e confirme o custo do excedente.",
   FORBIDDEN: "Você não tem permissão para esta ação nesta empresa.",
   NOT_FOUND: "Registro não encontrado.",
   COLAB_DADOS_INVALIDOS: "Não foi possível ler os dados enviados.",
