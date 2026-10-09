@@ -204,6 +204,13 @@
       "when": 1791565293149,
       "tag": "0028_guard_limite_colaborador_reativacao",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1791565457165,
+      "tag": "0029_fix_asaas_env_guard_sem_conta",
+      "breakpoints": true
     }
   ]
 }
