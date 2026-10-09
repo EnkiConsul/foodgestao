@@ -403,13 +403,16 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   };
 
   /**
-   * Folha imprimível com tudo que a contabilidade precisa conferir, em nomes
-   * de tela: nenhum código interno de cargo, unidade ou setor aparece.
+   * PDF único com tudo que a contabilidade precisa conferir (dados em nomes de
+   * tela, sem códigos internos) e os documentos anexados em seguida. Não há
+   * envio automático: o gestor baixa e encaminha. Na primeira geração a
+   * pré-admissão avança para a etapa Contabilidade.
    */
-  const imprimirPacote = () => {
+  const [gerando, setGerando] = useState(false);
+  const gerarFicha = async () => {
     if (!data) return;
-    const esc = (v: unknown) =>
-      String(v ?? "").replace(/[<>&]/g, (m) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[m] as string));
+    setGerando(true);
+    try {
     const admDados = (data.preadmissao.admin_dados ?? {}) as Record<string, unknown>;
     const valorAdmin = (campo: string): string => {
       const v = admDados[campo];
@@ -423,87 +426,92 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       return v === null || v === undefined ? "" : String(v);
     };
     const linhaAdmin = ROTULOS_ADMIN
-      .map(([campo, rotulo]) => [rotulo, valorAdmin(campo)] as const)
-      .filter(([, v]) => v.trim() !== "")
-      .map(([rotulo, v]) => `<tr><th>${esc(rotulo)}</th><td>${esc(v)}</td></tr>`)
-      .join("");
+      .map(([campo, rotulo]) => [rotulo, valorAdmin(campo)] as [string, string])
+      .filter(([, v]) => v.trim() !== "");
     const linhaPessoal = CAMPOS_IMPRESSAO
-      .map(([campo, rotulo]) => [rotulo, valorFicha(campo, dados[campo])] as const)
-      .filter(([, v]) => v.trim() !== "")
-      .map(([rotulo, v]) => `<tr><th>${esc(rotulo)}</th><td>${esc(v)}</td></tr>`)
-      .join("");
+      .map(([campo, rotulo]) => [rotulo, valorFicha(campo, dados[campo])] as [string, string])
+      .filter(([, v]) => v.trim() !== "");
     const vaga = [
       cargos.find((c) => c.id === (admDados.cargo_id ?? data.preadmissao.cargo_previsto_id))?.nome,
       unidades.find((u) => u.id === (admDados.unidade_id ?? data.preadmissao.unidade_prevista_id))?.nome,
-    ].filter(Boolean).join(" — ");
-    const listaPessoas = (data.pessoas ?? [])
-      .map((pe) => {
-        const salvas = Array.isArray((pe as { finalidades?: string[] }).finalidades)
-          ? ((pe as { finalidades?: string[] }).finalidades ?? [])
-          : [];
-        const finalidades = (salvas.length ? salvas : [
-          ...(pe.finalidade_dependente ? [FINALIDADE_LEGAL] : []),
-          ...(pe.finalidade_sesc ? ["sesc"] : []),
-        ]).map(nomeFinalidade).join(" e ");
-        const partes = [
-           PARENTESCO_LABEL[(pe.parentesco ?? "").toLowerCase()] ?? pe.parentesco?.replace(/_/g, " ") ?? "",
-          pe.data_nascimento ? `Nascimento: ${pe.data_nascimento}` : null,
-          pe.cpf ? `CPF: ${pe.cpf}` : null,
-          pe.rg ? `RG: ${pe.rg}` : null,
-          finalidades ? `Finalidade: ${finalidades}` : null,
-        ].filter(Boolean).join(" — ");
-        return `<li><strong>${esc(pe.nome)}</strong> — ${esc(partes)}</li>`;
-      })
-      .join("");
+    ].filter(Boolean).join(" - ");
+    const listaPessoas = (data.pessoas ?? []).map((pe) => {
+      const salvas = Array.isArray((pe as { finalidades?: string[] }).finalidades)
+        ? ((pe as { finalidades?: string[] }).finalidades ?? [])
+        : [];
+      const finalidades = (salvas.length ? salvas : [
+        ...(pe.finalidade_dependente ? [FINALIDADE_LEGAL] : []),
+        ...(pe.finalidade_sesc ? ["sesc"] : []),
+      ]).map(nomeFinalidade).join(" e ");
+      const partes = [
+        PARENTESCO_LABEL[(pe.parentesco ?? "").toLowerCase()] ?? pe.parentesco?.replace(/_/g, " ") ?? "",
+        pe.data_nascimento ? `Nascimento: ${pe.data_nascimento}` : null,
+        pe.cpf ? `CPF: ${pe.cpf}` : null,
+        pe.rg ? `RG: ${pe.rg}` : null,
+        finalidades ? `Finalidade: ${finalidades}` : null,
+      ].filter(Boolean).join(" - ");
+      return [pe.nome ?? "", partes] as [string, string];
+    });
     const tituloDoc = (codigo: string) =>
       (data.checklist ?? []).find((c) => c.codigo === codigo)?.titulo ?? codigo.replace(/_/g, " ");
-    const docs = (data.documentos ?? [])
-      .filter((d) => !d.substituido_em)
-      .map((d) => {
-        const titular = d.pessoa_id
-          ? (data.pessoas ?? []).find((p) => p.id === d.pessoa_id)?.nome ?? "Familiar"
-          : data.preadmissao.candidato_nome;
-        const st = STATUS_DOC_LABEL[d.status] ?? d.status;
-        const recusa = d.status === "recusado" && d.motivo_recusa ? ` — Motivo: ${d.motivo_recusa}` : "";
-        return `<li>${esc(tituloDoc(d.requisito_codigo))} — Titular: ${esc(titular)} — ${esc(st)}${esc(recusa)}</li>`;
-      })
-      .join("");
-    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
-<title>Ficha de admissão — ${esc(data.preadmissao.candidato_nome)}</title>
-<style>body{font-family:system-ui,sans-serif;padding:24px;color:#111}h1{font-size:18px}h2{font-size:14px;margin-top:20px}
-table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #ddd;padding:4px 6px;text-align:left}
-th{width:220px;background:#f6f6f6}ul{font-size:12px}p{font-size:12px}</style></head><body>
-<h1>Ficha de admissão para a contabilidade — ${esc(data.preadmissao.candidato_nome)}</h1>
-${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
-<h2>Dados do candidato</h2><table>${linhaPessoal || "<tr><td>Sem dados preenchidos</td></tr>"}</table>
-<h2>Informações administrativas</h2><table>${linhaAdmin || "<tr><td>Sem informações preenchidas</td></tr>"}</table>
-<h2>Dependentes e familiares</h2><ul>${listaPessoas || "<li>Nenhum</li>"}</ul>
-<h2>Documentos recebidos</h2><ul>${docs || "<li>Nenhum</li>"}</ul>
-</body></html>`;
-    // Impressão por quadro interno: não depende de liberar pop-up nem de
-    // gravar HTML na janela, o que falha em janela bloqueada.
-    const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
-    const frame = document.createElement("iframe");
-    frame.style.position = "fixed";
-    frame.style.right = "0";
-    frame.style.bottom = "0";
-    frame.style.width = "0";
-    frame.style.height = "0";
-    frame.style.border = "0";
-    frame.src = url;
-    frame.onload = () => {
-      try {
-        frame.contentWindow?.focus();
-        frame.contentWindow?.print();
-      } catch {
-        toast.error("Não foi possível abrir a impressão. Tente novamente.");
-      }
-      window.setTimeout(() => {
-        frame.remove();
-        URL.revokeObjectURL(url);
-      }, 60_000);
-    };
-    document.body.appendChild(frame);
+    const docsValidos = vigentes.filter((d) => d.status !== "recusado");
+    const linhasDocs = vigentes.map((d) => {
+      const titular = d.pessoa_id
+        ? (data.pessoas ?? []).find((p) => p.id === d.pessoa_id)?.nome ?? "Familiar"
+        : data.preadmissao.candidato_nome;
+      const st = STATUS_DOC_LABEL[d.status] ?? d.status;
+      const recusa = d.status === "recusado" && d.motivo_recusa ? ` - Motivo: ${d.motivo_recusa}` : "";
+      return [`${tituloDoc(d.requisito_codigo)} (${rotuloParte(d)})`, `Titular: ${titular} - ${st}${recusa}`] as [string, string];
+    });
+
+    const anexos = [];
+    for (const d of docsValidos) {
+      const url = await abrirDocumentoPreadmissao(d.id);
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("Não foi possível baixar um dos documentos anexados.");
+      const blob = await r.blob();
+      const mimeBruto = (d as { mime_type?: string | null }).mime_type ?? blob.type;
+      const mime = mimeBruto && mimeBruto !== "application/octet-stream" ? mimeBruto : tipoPelaExtensao(d.file_name);
+      anexos.push({
+        titulo: `${tituloDoc(d.requisito_codigo)} - ${rotuloParte(d)} - ${nomePessoa(d.pessoa_id)}`,
+        blob,
+        mime,
+      });
+    }
+
+    const { bytes, falhas } = await gerarFichaAdmissaoPdf({
+      titulo: `Ficha de Admissão - ${data.preadmissao.candidato_nome}`,
+      subtitulo: [vaga && `Vaga: ${vaga}`, `Gerada em ${new Date().toLocaleString("pt-BR")}`].filter(Boolean).join("   |   "),
+      secoes: [
+        { titulo: "Dados do Candidato", linhas: linhaPessoal },
+        { titulo: "Informações Administrativas", linhas: linhaAdmin },
+        { titulo: "Dependentes e Familiares", linhas: listaPessoas },
+        { titulo: "Documentos Anexados", linhas: linhasDocs },
+      ],
+      anexos,
+    });
+    const nomeArq = data.preadmissao.candidato_nome
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w]+/g, "-").toLowerCase();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+    link.download = `ficha-admissao-${nomeArq}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(link.href), 60_000);
+
+    if (falhas.length) toast.warning(`Ficha gerada, mas não foi possível incluir: ${falhas.join(", ")}. Baixe esses documentos separadamente.`);
+    else toast.success("Ficha gerada com os documentos anexados. Envie o arquivo à contabilidade.");
+
+    if (data.preadmissao.status === "aguardando_revisao") {
+      await acoes.prepararContabilidade.mutateAsync();
+      refetch();
+    }
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "gerar a ficha de admissão" });
+    } finally {
+      setGerando(false);
+    }
   };
 
   const vigentes = useMemo(() => (data?.documentos ?? []).filter((d) => !d.substituido_em), [data?.documentos]);
@@ -946,19 +954,10 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
 
   const acoesRodape = (
     <>
-      <Button variant="outline" className="h-11 sm:h-10" onClick={imprimirPacote}>
-        <Printer className="h-4 w-4 mr-2" /> Gerar Ficha para a Contabilidade
+      <Button variant="outline" className="h-11 sm:h-10" disabled={gerando} onClick={() => void gerarFicha()}>
+        {gerando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Printer className="h-4 w-4 mr-2" />}
+        Gerar Ficha para a Contabilidade
       </Button>
-      {status === "aguardando_revisao" && (
-        <Button
-          variant="secondary"
-          className="h-11 sm:h-10"
-          disabled={acoes.prepararContabilidade.isPending}
-          onClick={() => executar(() => acoes.prepararContabilidade.mutateAsync(), "Ficha pronta para a contabilidade")}
-        >
-          Enviar Para A Contabilidade
-        </Button>
-      )}
       {status === "registro_recebido" && pa.ficha_oficial_conferida_em && (
         <Button
           variant="secondary"
@@ -1059,47 +1058,23 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
 
                 {status === "aguardando_revisao" && (
                   <div className="rounded-lg border p-3 space-y-2">
-                    <p className="text-sm font-semibold">Preparar para a contabilidade</p>
+                    <p className="text-sm font-semibold">Gerar ficha para a contabilidade</p>
                     <p className="text-xs text-muted-foreground">
-                      A ficha é conferida e fica pronta para envio. O cadastro do colaborador só é criado no
+                      Gera um PDF com todos os dados cadastrados e os documentos anexados. Você mesmo envia o
+                      arquivo à contabilidade (e-mail ou WhatsApp). O cadastro do colaborador só é criado no
                       final, depois do retorno da contabilidade.
                     </p>
-                    <Button
-                      disabled={acoes.prepararContabilidade.isPending}
-                      onClick={() =>
-                        executar(() => acoes.prepararContabilidade.mutateAsync(), "Ficha pronta para a contabilidade")}
-                    >
-                      Preparar Para A Contabilidade
+                    <Button disabled={gerando} onClick={() => void gerarFicha()}>
+                      {gerando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Printer className="h-4 w-4 mr-2" />}
+                      Gerar Ficha para a Contabilidade
                     </Button>
                   </div>
-                )}
-
-                {status === "pronto_contabilidade" && (
-                  <Button
-                    onClick={() =>
-                      executar(() => acoes.marcarStatus.mutateAsync("enviado_contabilidade"), "Envio registrado")}
-                  >
-                    Marcar Como Enviada à Contabilidade
-                  </Button>
-                )}
-
-                {status === "enviado_contabilidade" && (
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      executar(
-                        () => acoes.marcarStatus.mutateAsync("aguardando_retorno_contabilidade"),
-                        "Aguardando o retorno da contabilidade",
-                      )}
-                  >
-                    Aguardando Retorno da Contabilidade
-                  </Button>
                 )}
 
                 {/* "Registro recebido" também entra aqui: quando a contabilidade
                     envia uma versão nova, a conferência anterior deixa de valer e
                     o gestor precisa poder anexar e conferir novamente. */}
-                {["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(status) && (
+                {["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(status) && (
                   <div className="rounded-lg border p-3 space-y-2">
                     <p className="text-sm font-semibold">Ficha oficial devolvida pela contabilidade</p>
                     <p className="text-xs text-muted-foreground">
