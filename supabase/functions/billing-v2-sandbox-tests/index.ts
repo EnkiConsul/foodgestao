@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
     const c = await call(dono.token, { acao: "adicional", company_id: A1.id, subscription_id: subA, code: "usuarios", qtd: 1 });
     const rc = c.j?.resultado ?? {};
     reg("c", c.status === 200 && rc.novo_valor_cents === 31980 && rc.prorata_cents > 0,
-      `HTTP ${c.status}; novo valor R$ ${(rc.novo_valor_cents ?? 0) / 100}; pró-rata R$ ${(rc.prorata_cents ?? 0) / 100} (cobrado uma vez na próxima fatura) ${c.j.error ?? ""}`);
+      `HTTP ${c.status}; novo valor R$ ${(rc.novo_valor_cents ?? 0) / 100}; pró-rata R$ ${(rc.prorata_cents ?? 0) / 100} (${rc.prorata_cobranca}) ${c.j.error ?? ""}`);
 
     // d) upgrade com cobrança da diferença
     const d = await call(dono.token, { acao: "trocar_plano", company_id: A1.id, subscription_id: subA, plano: "financeiro-multiempresa", ciclo: "mensal", forma: "pix" });
@@ -209,6 +209,106 @@ Deno.serve(async (req) => {
     const vaz = ((rec ?? []) as any[]).filter((x) => companyIds.includes(x.company_id) || JSON.stringify(x).includes(accA)).slice(0, 5);
     const okL = l1.status === 403 && l2.status === 403 && l3.status === 403 && l4.status === 409 && !vazouRec && antesProd === depoisProd;
     reg("l", okL, `estranho: ${l1.status}; empresa real: ${l2.status}; assinatura de outra conta: ${l3.status}; sandbox sem marca de teste: ${l4.status}; conciliação de produção sem registros de teste: ${!vazouRec} ${vazouRec ? JSON.stringify(vaz) : ""}; assinaturas de produção inalteradas: ${antesProd === depoisProd}`);
+
+    // ---------- m) a s) ----------
+    const mk = async (n: string) => mkCompany(n);
+    const M1 = await mk("M1"), M2 = await mk("M2"), G1 = await mk("G1"), G2 = await mk("G2"), E1 = await mk("E1"), E2 = await mk("E2");
+    const N1 = await mk("N1"), P1 = await mk("P1"), Q1 = await mk("Q1"), R1 = await mk("R1"), S1 = await mk("S1");
+    const accQ = await contaDe(Q1.id);
+    await admin.from("billing_accounts").update({ asaas_env: "sandbox", is_test: true }).eq("titular_user_id", dono.id).neq("id", accQ);
+    for (const c of [M1, M2, G1, G2, E1, E2, N1, P1, R1, S1]) {
+      await admin.from("billing_accounts").update({ nome: `[TESTE] ${c.id.slice(0, 4).toUpperCase()} ${rnd.toUpperCase()}`, documento_pagador: c.cnpj }).eq("id", await contaDe(c.id));
+    }
+    const grupo = async (c1: any, c2: any) => {
+      const acc = await contaDe(c1.id);
+      const { error } = await admin.rpc("billing_v2_add_company_to_account", { _account: acc, _company: c2.id, _actor: dono.id });
+      if (error) throw new Error("grupo: " + error.message);
+      return acc;
+    };
+
+    // m) por empresa x grupo
+    const m1 = await call(dono.token, { acao: "contratar", company_id: M1.id, plano: "financeiro-gestao", ciclo: "mensal", forma: "pix" });
+    const m2 = await call(dono.token, { acao: "contratar", company_id: M2.id, plano: "financeiro-gestao", ciclo: "mensal", forma: "pix" });
+    const accM = new Set([await contaDe(M1.id), await contaDe(M2.id)]);
+    const accG = await grupo(G1, G2);
+    const mg = await call(dono.token, { acao: "contratar", company_id: G1.id, plano: "financeiro-gestao", ciclo: "mensal", forma: "pix", modo: "grupo" });
+    const { count: subsG } = await admin.from("subscriptions").select("id", { count: "exact", head: true }).eq("billing_account_id", accG);
+    const { count: cobG } = await admin.from("subscription_companies").select("id", { count: "exact", head: true }).eq("subscription_id", mg.j?.subscription_id ?? "00000000-0000-0000-0000-000000000000");
+    await grupo(E1, E2);
+    const me = await call(dono.token, { acao: "contratar", company_id: E1.id, plano: "financeiro-essencial", ciclo: "mensal", forma: "pix", modo: "grupo" });
+    reg("m", m1.status === 200 && m2.status === 200 && accM.size === 2 && mg.status === 200 && mg.j.total_cents === 29990 && subsG === 1 && cobG === 2 && me.status === 422,
+      `por empresa: ${m1.status}/${m2.status}, ${accM.size} contas e 2 assinaturas; grupo Gestão: HTTP ${mg.status}, ${subsG} assinatura cobrindo ${cobG} empresas, R$ ${(mg.j.total_cents ?? 0) / 100}; grupo Essencial: HTTP ${me.status} (${JSON.stringify(me.j.detalhes ?? me.j.error)})`);
+
+    // n) cortesia integral: nada no Asaas
+    const accN = await contaDe(N1.id);
+    const { data: pg } = await admin.from("plans").select("id").eq("slug", "financeiro-gestao").single();
+    const { data: subN, error: eN } = await admin.from("subscriptions").insert({ user_id: dono.id, plan_id: pg!.id, module: "financeiro", status: "active", company_id: N1.id,
+      billing_account_id: accN, billing_cycle: "mensal", asaas_env: "sandbox", monthly_price_cents: 0,
+      current_period_start: new Date(Date.now() - 10 * 86400000).toISOString(), current_period_end: new Date(Date.now() + 20 * 86400000).toISOString() }).select("id").single();
+    if (eN) throw new Error("n: criar assinatura " + eN.message);
+    await admin.from("subscription_companies").insert({ subscription_id: subN!.id, company_id: N1.id });
+    const { error: eG } = await admin.from("subscription_grants").insert({ subscription_id: subN!.id, tipo: "cortesia_total", percentual: 100, motivo_codigo: "outro", motivo_texto: "[TESTE] cortesia", starts_at: new Date(Date.now() - 86400000).toISOString(), ends_at: new Date(Date.now() + 365 * 86400000).toISOString(), granted_by: dono.id });
+    if (eG) throw new Error("n: grant " + eG.message);
+    const n1 = await call(dono.token, { acao: "adicional", company_id: N1.id, subscription_id: subN!.id, code: "usuarios", qtd: 1 });
+    const n2 = await call(dono.token, { acao: "trocar_plano", company_id: N1.id, subscription_id: subN!.id, plano: "financeiro-multiempresa", ciclo: "mensal" });
+    const { count: invN } = await admin.from("invoices").select("id", { count: "exact", head: true }).eq("subscription_id", subN!.id);
+    reg("n", n1.status === 200 && n2.status === 200 && !(n1.j.asaas ?? []).length && !(n2.j.asaas ?? []).length && invN === 0 && !(await sub(subN!.id)).external_subscription_id,
+      `adicional HTTP ${n1.status}, troca HTTP ${n2.status}; itens no Asaas: ${(n1.j.asaas ?? []).length + (n2.j.asaas ?? []).length}; faturas: ${invN}; assinatura no Asaas: nenhuma`);
+
+    // p) valor do navegador ignorado
+    const pp = await call(dono.token, { acao: "contratar", company_id: P1.id, plano: "financeiro-gestao", ciclo: "mensal", forma: "pix", valor_cents: 100 });
+    const sp = pp.j?.subscription_id ? await sub(pp.j.subscription_id) : null;
+    let vAs = 0; try { vAs = (await asaasFetch(`/subscriptions/${sp?.external_subscription_id}`, {}, "sandbox"))?.value ?? 0; } catch (_) { /* */ }
+    reg("p", pp.status === 200 && pp.j.total_cents === 29990 && Math.round(vAs * 100) === 29990,
+      `navegador enviou R$ 1,00; servidor gravou R$ ${(pp.j.total_cents ?? 0) / 100}; Asaas R$ ${vAs}`);
+
+    // q) checkout em legado: produção recusada pelas funções novas
+    const { data: modo } = await admin.rpc("checkout_v2_mode");
+    const qq = await call(dono.token, { acao: "contratar", company_id: Q1.id, plano: "financeiro-gestao", ciclo: "mensal", forma: "pix" });
+    reg("q", modo === "legado" && qq.status === 409 && !(qq.j.asaas ?? []).length,
+      `modo ${modo}; conta de Produção nas funções novas: HTTP ${qq.status} "${qq.j.error}"; nada criado no Asaas`);
+
+    // r) mensal -> anual com adicional
+    const r0 = await call(dono.token, { acao: "contratar", company_id: R1.id, plano: "financeiro-gestao", ciclo: "mensal", forma: "pix" });
+    const subR = r0.j.subscription_id; await ativar(subR);
+    await admin.from("subscriptions").update({ current_period_start: new Date(Date.now() - 15 * 86400000).toISOString(), current_period_end: new Date(Date.now() + 15 * 86400000).toISOString() }).eq("id", subR);
+    const r1 = await call(dono.token, { acao: "adicional", company_id: R1.id, subscription_id: subR, code: "usuarios", qtd: 1 });
+    await ativar(subR);
+    const r2 = await call(dono.token, { acao: "trocar_plano", company_id: R1.id, subscription_id: subR, plano: "financeiro-multiempresa", ciclo: "anual", forma: "pix" });
+    const qr = r2.j?.resultado?.quote ?? {};
+    const esperadoCred = Math.round(31980 * qr.fracao_restante);
+    reg("r", r2.status === 200 && qr.valor_ciclo_atual_cents === 31980 && qr.valor_ciclo_novo_cents === 547008 && Math.abs(qr.credito_cents - esperadoCred) <= 1 && qr.cobrar_agora_cents === 547008 - qr.credito_cents && r2.j.resultado.novo_valor_cents === 547008,
+      `adicional: pró-rata R$ ${(r1.j?.resultado?.prorata_cents ?? 0) / 100} (${r1.j?.resultado?.prorata_cobranca}); ciclo atual R$ ${(qr.valor_ciclo_atual_cents ?? 0) / 100} (plano + adicional); crédito R$ ${(qr.credito_cents ?? 0) / 100}; novo ciclo R$ ${(qr.valor_ciclo_novo_cents ?? 0) / 100}; cobrado agora R$ ${(qr.cobrar_agora_cents ?? 0) / 100}; Asaas anual R$ ${(r2.j?.resultado?.novo_valor_cents ?? 0) / 100} ${r2.j.error ?? ""}`);
+
+    // s) adicional em conta anual: pró-rata cobrada na hora
+    const s0 = await call(dono.token, { acao: "contratar", company_id: S1.id, plano: "financeiro-gestao", ciclo: "anual", forma: "pix" });
+    const subS = s0.j.subscription_id; await ativar(subS);
+    await admin.from("subscriptions").update({ current_period_start: new Date(Date.now() - 182 * 86400000).toISOString(), current_period_end: new Date(Date.now() + 183 * 86400000).toISOString() }).eq("id", subS);
+    const s1 = await call(dono.token, { acao: "adicional", company_id: S1.id, subscription_id: subS, code: "usuarios", qtd: 1 });
+    const rs = s1.j?.resultado ?? {};
+    reg("s", s1.status === 200 && rs.prorata_cobranca === "imediata" && rs.prorata_cents > 0 && (s1.j.asaas ?? []).some((x: any) => x.tipo === "cobrança avulsa (pró-rata)"),
+      `pró-rata R$ ${(rs.prorata_cents ?? 0) / 100} cobrada ${rs.prorata_cobranca}; novo valor anual R$ ${(rs.novo_valor_cents ?? 0) / 100}; ${(s1.j.asaas ?? []).map((x: any) => x.tipo).join(", ")} ${s1.j.error ?? ""}`);
+
+    // o) webhook de pagamento confirmado reenviado 2 vezes
+    const { data: invO } = await admin.from("invoices").select("id,external_invoice_id,amount_cents").eq("subscription_id", pp.j.subscription_id).limit(1).single();
+    const evId = `evt_teste_${rnd}`;
+    const corpo = JSON.stringify({ id: evId, event: "PAYMENT_CONFIRMED", payment: { id: invO!.external_invoice_id, subscription: sp?.external_subscription_id, value: invO!.amount_cents / 100, status: "CONFIRMED", billingType: "PIX", externalReference: pp.j.subscription_id } });
+    const hook = () => fetch(`${url}/functions/v1/asaas-webhook`, { method: "POST", headers: { "asaas-access-token": Deno.env.get("ASAAS_SANDBOX_WEBHOOK_TOKEN")!, "Content-Type": "application/json" }, body: corpo }).then(async (r) => ({ s: r.status, j: await r.json().catch(() => ({})) }));
+    const pausa = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    await pausa(3000); const o1 = await hook(); await pausa(2000); const o2 = await hook(); await pausa(2000);
+    const wk = await fetch(`${url}/functions/v1/asaas-webhook-worker`, { method: "POST", headers: { "x-worker-secret": cron, "Content-Type": "application/json" }, body: "{}" }).then((r) => r.status);
+    let evs: any[] | null = null;
+    for (let i = 0; i < 16; i++) { // aguarda o processamento (worker acionado + rodada do minuto)
+      ({ data: evs } = await admin.from("asaas_webhook_events").select("status,processed_at,asaas_env").eq("event_id", evId));
+      if (evs?.[0]?.processed_at) break;
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+    await pausa(2000); const o3 = await hook();
+    console.log("teste o: worker", wk, JSON.stringify(evs));
+    const { data: invO2 } = await admin.from("invoices").select("status").eq("id", invO!.id).single();
+    reg("o", (evs ?? []).length === 1 && evs![0].asaas_env === "sandbox" && !!evs![0].processed_at && invO2?.status === "paid",
+      `envios: ${o1.s}, ${o2.s}, ${o3.s} (${JSON.stringify(o2.j)}); eventos gravados: ${(evs ?? []).length}; status ${evs?.[0]?.status} (${evs?.[0]?.asaas_env}); fatura ${invO2?.status}`);
+    await admin.from("asaas_webhook_events").delete().eq("event_id", evId);
   } catch (e) {
     testes["erro"] = { status: "reprovado", observado: String((e as Error).message ?? e) };
   } finally {
@@ -243,5 +343,7 @@ Deno.serve(async (req) => {
       limpeza.push(`usuário de teste: ${error ? "ERRO " + error.message : "removido"}`);
     }
   }
+  console.log("RESULTADO", JSON.stringify({ testes, limpeza }));
+  console.log("INVENTARIO", JSON.stringify(((globalThis as any).__inv ?? []).map((e: any) => ({ c: e.cliente?.id, s: (e.assinaturas ?? []).map((a: any) => a.id), p: (e.cobrancas ?? []).filter((x: any) => !String(x.descricao).startsWith("Parcela ") || String(x.descricao).startsWith("Parcela 1 ")).map((x: any) => `${x.id} ${x.valor} ${x.status}`) }))));
   return json({ testes, asaas_sandbox_criado: asaas, inventario_sandbox: (globalThis as any).__inv, limpeza });
 });

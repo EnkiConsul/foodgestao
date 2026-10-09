@@ -16581,6 +16581,10 @@ export type Database = {
           tipo: string
         }[]
       }
+      _billing_v2_sub_valor: {
+        Args: { _ciclo: string; _plan_slug: string; _subscription_id: string }
+        Returns: number
+      }
       _billing_v2_usage: {
         Args: { _recurso: string; _sub: string }
         Returns: number
@@ -16835,6 +16839,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      billing_v2_parcelamento: { Args: { _valor_cents: number }; Returns: Json }
       billing_v2_plan_change_cancel: {
         Args: { _subscription_id: string }
         Returns: undefined
