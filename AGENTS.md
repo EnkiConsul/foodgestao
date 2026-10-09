@@ -5,7 +5,7 @@
 - Recontratação preserva identidade, documentos atuais e histórico; cargo, salário, benefícios e jornada são novos — evita condições defasadas.
 - Rotina de banco só recebe `GRANT EXECUTE ... TO authenticated` quando o frontend a chama via `supabase.rpc`, quando uma RLS policy a referencia ou quando um gatilho `SECURITY INVOKER` a usa; as demais ficam só com `service_role` — menor privilégio sem quebrar tela.
 - `dp_ficha_aplicar` é `SECURITY DEFINER` autorizada por `tem_permissao(company_id, 'dp.colaboradores', 'inclusao')`; `dp_colaboradores` segue sem gravação direta para `authenticated` — aplicação atômica sem reabrir acesso amplo.
-- Filtros `in`/`not.in` do PostgREST vão sempre entre parênteses ("(a,b)") — sem eles a consulta aborta (PGRST100) e a tela fica vazia.
+- Filtros `in`/`not.in` do PostgREST vão entre parênteses ("(a,b)") — sem eles a consulta aborta (PGRST100).
 - O portal não lê `dp_colaboradores` de colegas: `dp_portal_equipe_unidade()` expõe só nome, função e folga fixa da unidade — preserva privacidade.
 - Na pré-admissão, o checklist compartilhado governa leitura e envio; desativar requisitos preserva anexos históricos — evita divergência na validação.
 - Imagem da assinatura (PNG em data URL) é gravada só pelo servidor em `assinatura_imagem` (dp_recibos/dp_documento_aceites), imutável, e estampada no PDF com rubrica em todas as páginas — reimpressão fiel.
@@ -22,4 +22,4 @@
 - Revogar cortesia gera carência (`grace`, fim 23:59:59 BRT via `_shared/grace.ts`), nunca ativa; vencida, `company_access_status` bloqueia; banner lê `company_grace_subscriptions` por módulo — evita acesso grátis sem fim.
 - Cobrança v2: `billing_accounts` agrupa empresas; painel grava legado + grants só via RPCs `billing_v2_*` (ator explícito); ativar encerra carência; conferência em `billing_v2_reconciliation` — rollback seguro.
 - Acesso por módulo (Fase 2): `get_company_entitlements`/`has_module_access` decidem por empresa coberta em `subscription_companies`; a flag `access_model_v2` (legado|sombra|v2, só super admin via `access_model_set_mode`) define se o app usa o v2 ou o legado `company_access_status` — virada reversível sem deploy.
-- Preço de contratação v2 vem só de `billing_v2_quote` (tela, fatura e Asaas); a flag `checkout_v2` (legado|v2, só super admin via `checkout_v2_set_mode`) decide qual checkout roda — valor nunca vem do navegador.
+- Preço v2 só por `billing_v2_quote`; flag `checkout_v2` (legado|v2, só super admin) escolhe o checkout — valor nunca vem do navegador.
