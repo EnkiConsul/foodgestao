@@ -268,3 +268,21 @@ export function descreverTabelaSalarioFamilia(config: SalarioFamiliaConfig): str
   }
   return `Vigência ${config.vigencia.slice(0, 4)} — cota por dependente e teto de baixa renda cadastrados`;
 }
+
+export interface SalarioFamiliaTabela {
+  id: string;
+  vigencia_inicio: string;
+  cota: number;
+  teto: number;
+}
+
+/** Tabela que vale na data: a de maior início já alcançado; sem nenhuma, null. */
+export function tabelaSalarioFamiliaVigente(
+  tabelas: readonly SalarioFamiliaTabela[],
+  referencia = hojeIso(),
+): SalarioFamiliaTabela | null {
+  const validas = tabelas
+    .filter((t) => t.vigencia_inicio.slice(0, 10) <= referencia)
+    .sort((a, b) => b.vigencia_inicio.localeCompare(a.vigencia_inicio));
+  return validas[0] ?? null;
+}

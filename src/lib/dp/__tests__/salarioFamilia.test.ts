@@ -98,3 +98,22 @@ describe("alertas e vigência", () => {
     expect(tabelaSalarioFamiliaVencida(config, "2026-08-18")).toBe(false);
   });
 });
+
+import { tabelaSalarioFamiliaVigente } from "../salarioFamilia";
+
+describe("tabelaSalarioFamiliaVigente", () => {
+  const tabelas = [
+    { id: "2025", vigencia_inicio: "2025-01-01", cota: 65, teto: 1900 },
+    { id: "2026", vigencia_inicio: "2026-01-01", cota: 67.54, teto: 1980.38 },
+    { id: "2027", vigencia_inicio: "2027-01-01", cota: 70, teto: 2050 },
+  ];
+  it("usa a tabela de maior início já alcançado", () => {
+    expect(tabelaSalarioFamiliaVigente(tabelas, "2026-10-09")?.id).toBe("2026");
+  });
+  it("tabela futura só vale a partir da data de início", () => {
+    expect(tabelaSalarioFamiliaVigente(tabelas, "2027-01-01")?.id).toBe("2027");
+  });
+  it("antes da primeira tabela não há valor", () => {
+    expect(tabelaSalarioFamiliaVigente(tabelas, "2024-12-31")).toBeNull();
+  });
+});
