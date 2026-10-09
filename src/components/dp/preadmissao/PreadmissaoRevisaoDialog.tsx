@@ -495,7 +495,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     const nomeArq = data.preadmissao.candidato_nome
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w]+/g, "-").toLowerCase();
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+    link.href = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
     link.download = `ficha-admissao-${nomeArq}.pdf`;
     document.body.appendChild(link);
     link.click();
