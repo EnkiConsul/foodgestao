@@ -63,7 +63,10 @@ Deno.serve(async (req) => {
   let antesProd = "";
   try {
     antesProd = await snapProd();
-    if (body.modo === "o_verificar") {
+    if (body.modo === "limpar") {
+      emails.push(...(body.emails ?? [])); userIds.push(...(body.userIds ?? [])); companyIds.push(...(body.companyIds ?? []));
+      reg("limpeza", true, "massa removida");
+    } else if (body.modo === "o_verificar") {
       // fase 2 do teste o): confere após o processador rodar e limpa a massa
       emails.push(...(body.emails ?? [])); userIds.push(...(body.userIds ?? [])); companyIds.push(...(body.companyIds ?? []));
       const { data: evs } = await admin.from("asaas_webhook_events").select("status,processed_at,asaas_env,attempt_count").eq("event_id", body.evId);
@@ -130,6 +133,24 @@ Deno.serve(async (req) => {
     };
     const sub = async (id: string) => (await admin.from("subscriptions").select("*, plans:plan_id(slug)").eq("id", id).single()).data as any;
 
+    if (body.modo === "u_preparar") {
+      manter = true;
+      const U1 = await mkCompany("EMPRESA U1");
+      const accU = await contaDe(U1.id);
+      await admin.from("billing_accounts").update({ asaas_env: "sandbox", is_test: true, nome: `[TESTE] EMPRESA U1 ${rnd.toUpperCase()}`, documento_pagador: U1.cnpj }).eq("id", accU);
+      const u0 = await call(dono.token, { acao: "contratar", company_id: U1.id, plano: "financeiro-multiempresa", ciclo: "mensal", forma: "pix" });
+      const sid = u0.j?.subscription_id; if (!sid) throw new Error("u: contratar " + JSON.stringify(u0.j));
+      await ativar(sid);
+      await admin.from("subscriptions").update({ current_period_start: new Date(Date.now() - 29 * 86400000).toISOString(), current_period_end: new Date(Date.now() + 1 * 86400000).toISOString() }).eq("id", sid);
+      const u1 = await call(dono.token, { acao: "adicional", company_id: U1.id, subscription_id: sid, code: "usuarios", qtd: 1 });
+      const u2 = await call(dono.token, { acao: "trocar_plano", company_id: U1.id, subscription_id: sid, plano: "financeiro-gestao", ciclo: "mensal" });
+      const so = await sub(sid);
+      const { data: ads } = await admin.from("subscription_addons").select("prorata_cents,prorata_billed_at").eq("subscription_id", sid);
+      const { data: invs } = await admin.from("invoices").select("status,amount_cents,due_date").eq("subscription_id", sid);
+      // usuário dono com senha conhecida só para o navegador de teste
+      return json({ preparado: true, email: emails[0], senha, company_id: U1.id, subscription_id: sid, adicional: u1.j?.resultado ?? u1.j, troca: u2.j?.resultado ?? u2.j,
+        pending: so.pending_plan_change, addons: ads, invoices: invs, emails, userIds, companyIds, asaas });
+    }
     if (body.modo === "o_preparar") {
       manter = true;
       const O1 = await mkCompany("EMPRESA O1");
