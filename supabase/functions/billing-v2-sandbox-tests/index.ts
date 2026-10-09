@@ -567,6 +567,12 @@ Deno.serve(async (req) => {
       } catch (e) { inventario.push({ erro: String((e as Error).message) }); }
     }
     (globalThis as any).__inv = inventario;
+    if (userIds.length) {
+      // itens de fatura (excedentes/pendências) saem antes da limpeza das faturas de teste
+      const { data: accs } = await admin.from("billing_accounts").select("id").in("titular_user_id", userIds).eq("is_test", true);
+      const { data: ss } = accs?.length ? await admin.from("subscriptions").select("id").in("billing_account_id", accs.map((a: any) => a.id)) : { data: [] };
+      if (ss?.length) await admin.from("invoice_items").delete().in("subscription_id", ss.map((x: any) => x.id));
+    }
     if (emails.length) {
       const { data: pr, error: ep } = await admin.rpc("billing_v2_qa_purge", { _emails: emails });
       limpeza.push(`cobrança de teste: ${ep ? "ERRO " + ep.message : JSON.stringify(pr)}`);
