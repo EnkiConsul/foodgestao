@@ -176,6 +176,13 @@
       "when": 1791542881707,
       "tag": "0024_fase3_minha_assinatura_fix_status",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791543031186,
+      "tag": "0025_fase3_uso_assinatura_rpc",
+      "breakpoints": true
     }
   ]
 }

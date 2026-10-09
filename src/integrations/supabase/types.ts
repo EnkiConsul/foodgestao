@@ -16918,6 +16918,10 @@ export type Database = {
         Args: { _create?: boolean; _user: string }
         Returns: string
       }
+      billing_v2_uso_assinatura: {
+        Args: { _subscription_id: string }
+        Returns: Json
+      }
       can_use_module: {
         Args: {
           p_company_id: string
