@@ -23,4 +23,3 @@
 - Acesso por módulo (Fase 2): `get_company_entitlements`/`has_module_access` decidem por empresa coberta em `subscription_companies`; a flag `access_model_v2` (legado|sombra|v2, só super admin via `access_model_set_mode`) define se o app usa o v2 ou o legado `company_access_status` — virada reversível sem deploy.
 - Preço v2 só por `billing_v2_quote`; flag `checkout_v2` (legado|v2, só super admin) escolhe o checkout — valor nunca vem do navegador.
 - Troca de plano/ciclo só por `billing_v2_plan_change_quote/schedule/cancel`: upgrade e mensal→anual são imediatos com crédito proporcional; downgrade e anual→mensal ficam em `pending_plan_change` e `billing_v2_apply_scheduled_changes` revalida uso na renovação — valor calculado no banco.
-- Testes e simulações nunca chamam rotinas em modo produção: usam só Sandbox e contas `[TESTE]`, e rotinas com dados reais só rodam com `simular: true` após confirmar a versão publicada da função — histórico de cobrança é imutável.
