@@ -232,6 +232,13 @@
       "when": 1791566957104,
       "tag": "0032_cliente360_backoffice",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791567659878,
+      "tag": "0033_cliente360_fix_added_at",
+      "breakpoints": true
     }
   ]
 }
