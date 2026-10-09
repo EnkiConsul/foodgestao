@@ -37,6 +37,8 @@ Deno.serve(async (req) => {
   const userIds: string[] = [];
   const emails: string[] = [];
   const companyIds: string[] = [];
+  const body = await req.json().catch(() => ({})) as Record<string, any>;
+  let manter = false; // o_preparar: mantém a massa para a verificação posterior
   const reg = (k: string, ok: boolean, obs: string) => { testes[k] = { status: ok ? "aprovado" : "reprovado", observado: obs }; };
 
   const call = async (token: string, body: unknown) => {
@@ -61,6 +63,21 @@ Deno.serve(async (req) => {
   let antesProd = "";
   try {
     antesProd = await snapProd();
+    if (body.modo === "o_verificar") {
+      // fase 2 do teste o): confere após o processador rodar e limpa a massa
+      emails.push(...(body.emails ?? [])); userIds.push(...(body.userIds ?? [])); companyIds.push(...(body.companyIds ?? []));
+      const { data: evs } = await admin.from("asaas_webhook_events").select("status,processed_at,asaas_env,attempt_count").eq("event_id", body.evId);
+      const { data: inv } = await admin.from("invoices").select("status,paid_at").eq("id", body.invoice_id).single();
+      const { data: s } = await admin.from("subscriptions").select("status,grace_ends_at").eq("id", body.subscription_id).single();
+      const { data: gr } = await admin.from("subscription_grants").select("tipo,ends_at,revoked_at").eq("subscription_id", body.subscription_id).eq("tipo", "carencia");
+      const hook = () => fetch(`${url}/functions/v1/asaas-webhook`, { method: "POST", headers: { "asaas-access-token": Deno.env.get("ASAAS_SANDBOX_WEBHOOK_TOKEN")!, "Content-Type": "application/json" }, body: body.corpo }).then((r) => r.status);
+      const o3 = await hook();
+      const { count: n2 } = await admin.from("asaas_webhook_events").select("id", { count: "exact", head: true }).eq("event_id", body.evId);
+      const carenciaFim = (gr ?? []).every((g: any) => g.revoked_at || (g.ends_at && new Date(g.ends_at) <= new Date()));
+      reg("o", (evs ?? []).length === 1 && n2 === 1 && !!evs![0].processed_at && evs![0].asaas_env === "sandbox" && inv?.status === "paid" && s?.status === "active" && carenciaFim,
+        `eventos gravados: ${(evs ?? []).length} (após 3º envio: ${n2}, HTTP ${o3}); status ${evs?.[0]?.status}, tentativas ${evs?.[0]?.attempt_count}, processado ${evs?.[0]?.processed_at}; fatura ${inv?.status} em ${inv?.paid_at}; assinatura ${s?.status}; carência ${carenciaFim ? "encerrada" : "ainda vigente"} ${JSON.stringify(gr)}`);
+      await admin.from("asaas_webhook_events").delete().eq("event_id", body.evId);
+    } else {
     // ---------- 1. massa de teste ----------
     const senha = crypto.randomUUID() + "Aa1!";
     const mkUser = async (papel: string) => {
@@ -113,6 +130,26 @@ Deno.serve(async (req) => {
     };
     const sub = async (id: string) => (await admin.from("subscriptions").select("*, plans:plan_id(slug)").eq("id", id).single()).data as any;
 
+    if (body.modo === "o_preparar") {
+      manter = true;
+      const O1 = await mkCompany("EMPRESA O1");
+      const accO = await contaDe(O1.id);
+      await admin.from("billing_accounts").update({ asaas_env: "sandbox", is_test: true, nome: `[TESTE] EMPRESA O1 ${rnd.toUpperCase()}`, documento_pagador: O1.cnpj }).eq("id", accO);
+      const c0 = await call(dono.token, { acao: "contratar", company_id: O1.id, plano: "financeiro-gestao", ciclo: "mensal", forma: "pix" });
+      const sid = c0.j?.subscription_id; if (!sid) throw new Error("o: contratar " + JSON.stringify(c0.j));
+      const so = await sub(sid);
+      // assinatura em carência aguardando o pagamento
+      await admin.from("subscriptions").update({ status: "grace", grace_ends_at: new Date(Date.now() + 3 * 86400000).toISOString() }).eq("id", sid);
+      await admin.from("subscription_grants").insert({ subscription_id: sid, tipo: "carencia", motivo_codigo: "outro", motivo_texto: "[TESTE] carência o)", ends_at: new Date(Date.now() + 3 * 86400000).toISOString(), granted_by: dono.id });
+      const { data: invO } = await admin.from("invoices").select("id,external_invoice_id,amount_cents").eq("subscription_id", sid).limit(1).single();
+      try { await asaasFetch(`/payments/${invO!.external_invoice_id}/receiveInCash`, { method: "POST", body: JSON.stringify({ paymentDate: new Date().toISOString().slice(0, 10), value: invO!.amount_cents / 100, notifyCustomer: false }) }, "sandbox"); } catch (_) { /* */ }
+      const evId = `evt_teste_${rnd}`;
+      const corpo = JSON.stringify({ id: evId, event: "PAYMENT_CONFIRMED", payment: { id: invO!.external_invoice_id, subscription: so?.external_subscription_id, value: invO!.amount_cents / 100, status: "CONFIRMED", billingType: "PIX", externalReference: sid } });
+      const hook = () => fetch(`${url}/functions/v1/asaas-webhook`, { method: "POST", headers: { "asaas-access-token": Deno.env.get("ASAAS_SANDBOX_WEBHOOK_TOKEN")!, "Content-Type": "application/json" }, body: corpo }).then((r) => r.status);
+      const h1 = await hook(); await new Promise((r) => setTimeout(r, 1500)); const h2 = await hook();
+      const { count } = await admin.from("asaas_webhook_events").select("id", { count: "exact", head: true }).eq("event_id", evId);
+      return json({ preparado: true, envios: [h1, h2], gravados: count, evId, corpo, invoice_id: invO!.id, subscription_id: sid, emails, userIds, companyIds, asaas });
+    }
     // a) contratar mensal Pix
     const a = await call(dono.token, { acao: "contratar", company_id: A1.id, plano: "financeiro-gestao", ciclo: "mensal", forma: "pix" });
     const subA = a.j?.subscription_id as string;
@@ -309,9 +346,11 @@ Deno.serve(async (req) => {
     reg("o", (evs ?? []).length === 1 && evs![0].asaas_env === "sandbox" && !!evs![0].processed_at && invO2?.status === "paid",
       `envios: ${o1.s}, ${o2.s}, ${o3.s} (${JSON.stringify(o2.j)}); eventos gravados: ${(evs ?? []).length}; status ${evs?.[0]?.status} (${evs?.[0]?.asaas_env}); fatura ${invO2?.status}`);
     await admin.from("asaas_webhook_events").delete().eq("event_id", evId);
+    }
   } catch (e) {
     testes["erro"] = { status: "reprovado", observado: String((e as Error).message ?? e) };
   } finally {
+    if (manter) { /* massa mantida para o_verificar */ } else {
     // ---------- limpeza local ----------
     const del = async (t: string, col: string, ids: string[]) => {
       if (!ids.length) return;
@@ -341,6 +380,7 @@ Deno.serve(async (req) => {
     for (const u of userIds) {
       const { error } = await admin.auth.admin.deleteUser(u);
       limpeza.push(`usuário de teste: ${error ? "ERRO " + error.message : "removido"}`);
+    }
     }
   }
   console.log("RESULTADO", JSON.stringify({ testes, limpeza }));
