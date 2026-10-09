@@ -98,8 +98,9 @@ function buildProdDeps(): RefreshDeps {
     },
     fetchInvoice: async (id) => {
       const { data } = await admin.from("invoices")
-        .select("id,user_id,payment_method,external_invoice_id,subscription_id")
+        .select("id,user_id,payment_method,external_invoice_id,subscription_id,asaas_env")
         .eq("id", id).maybeSingle();
+      envDaFatura = parseAsaasEnv((data as any)?.asaas_env);
       return (data as InvoiceRow | null) ?? null;
     },
     fetchSubscriptionAsaasId: async (subscriptionId) => {
@@ -108,11 +109,11 @@ function buildProdDeps(): RefreshDeps {
       return (data?.external_subscription_id as string | null) ?? null;
     },
     fetchFirstPaymentId: async (asaasSubId) => {
-      const payments = await asaasFetch(`/subscriptions/${asaasSubId}/payments`).catch(() => null);
+      const payments = await asaasFetch(`/subscriptions/${asaasSubId}/payments`, {}, envDaFatura).catch(() => null);
       return payments?.data?.[0]?.id ?? null;
     },
     fetchPixQrCode: async (paymentId) => {
-      const qr = await asaasFetch(`/payments/${paymentId}/pixQrCode`);
+      const qr = await asaasFetch(`/payments/${paymentId}/pixQrCode`, {}, envDaFatura);
       if (!qr?.encodedImage || !qr?.payload) return null;
       return { encodedImage: qr.encodedImage, payload: qr.payload };
     },
