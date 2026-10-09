@@ -69,3 +69,13 @@
 - [x] Convite de acesso ao portal (lote e ficha) enviado direto pela API.
 - [x] Link de nova senha enviado direto pela API.
 - [x] Link de assinatura de recibos (emitir, reenviar e comprovante) enviado direto pela API.
+
+## Fase 3 — último bloco (09/10, checkout 'legado', acesso 'sombra', sem publicar)
+- [ ] Fechar teste o) com espera de 3 min (rodar o caso isolado para não estourar o tempo da bateria)
+- [x] Taxas do cartão editáveis pelo super admin (Backoffice → Assinaturas), com data da última alteração
+- [ ] Checkout novo (só com checkout_v2 = 'v2')
+- [ ] Página "Minha assinatura" (/assinatura)
+- [ ] Colaboradores excedentes no fechamento do ciclo
+- [ ] NFS-e pelo Asaas com parâmetro emitir_nfse (padrão desligado)
+- [ ] Conciliação diária com o Asaas (só aponta)
+- [ ] Testes t–y, inventário do Sandbox e limpeza [TESTE]
