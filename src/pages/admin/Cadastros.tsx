@@ -13,6 +13,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
 } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Mail, Pencil, MailCheck, Copy } from "lucide-react";
 import { formatDate } from "@/lib/date-utils";
 import { toast } from "sonner";
@@ -58,15 +59,42 @@ export default function AdminCadastros() {
     retry: false,
   });
 
+  const [fConf, setFConf] = useState("todos");
+  const [fMod, setFMod] = useState("todos");
+  const [fPapel, setFPapel] = useState("todos");
+  const [fEmpresa, setFEmpresa] = useState("todas");
+  const [fAtivo, setFAtivo] = useState("todos");
+
+  const empresas = useMemo(() => {
+    const m = new Map<string, string>();
+    (data ?? []).forEach((u) => (u.companies ?? []).forEach((c) => m.set(c.id, c.name)));
+    return [...m].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [data]);
+
   const filtered = useMemo(() => {
     const t = search.toLowerCase().trim();
-    if (!t) return data ?? [];
-    return (data ?? []).filter((u) =>
-      [u.full_name, u.document, u.phone, u.auth?.email, ...(u.companies ?? []).map((c) => c.name)]
+    return (data ?? []).filter((u) => {
+      const cs = (u.companies ?? []) as CompanyLink[];
+      if (fConf === "confirmado" && !u.auth?.email_confirmed_at) return false;
+      if (fConf === "pendente" && u.auth?.email_confirmed_at) return false;
+      if (fAtivo === "ativo" && !u.is_active) return false;
+      if (fAtivo === "inativo" && u.is_active) return false;
+      if (fEmpresa === "sem" && cs.length > 0) return false;
+      if (fEmpresa !== "todas" && fEmpresa !== "sem" && !cs.some((c) => c.id === fEmpresa)) return false;
+      if (fPapel !== "todos" && !cs.some((c) => c.role === fPapel)) return false;
+      if (fMod !== "todos") {
+        const mods = cs.flatMap((c) => c.modulos ?? []);
+        if (fMod === "nenhum" ? mods.length > 0 : !mods.some((m) => m.key === fMod)) return false;
+      }
+      if (!t) return true;
+      return [u.full_name, u.document, u.phone, u.auth?.email, ...cs.map((c) => c.name)]
         .filter(Boolean)
-        .some((v) => v!.toLowerCase().includes(t)),
-    );
-  }, [data, search]);
+        .some((v) => v!.toLowerCase().includes(t));
+    });
+  }, [data, search, fConf, fMod, fPapel, fEmpresa, fAtivo]);
+
+  const temFiltro = fConf !== "todos" || fMod !== "todos" || fPapel !== "todos" || fEmpresa !== "todas" || fAtivo !== "todos" || !!search;
+  const limpar = () => { setFConf("todos"); setFMod("todos"); setFPapel("todos"); setFEmpresa("todas"); setFAtivo("todos"); setSearch(""); };
 
   const saveProfile = useMutation({
     mutationFn: async (payload: Partial<Row> & { id: string }) => {
@@ -116,14 +144,59 @@ export default function AdminCadastros() {
         description="Gestão completa dos dados cadastrais dos clientes. Edite informações e reenvie e-mails de confirmação."
       />
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nome, e-mail, documento ou telefone..."
-          className="pl-9"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative w-full md:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome, e-mail, documento, telefone ou empresa..."
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select value={fEmpresa} onValueChange={setFEmpresa}>
+          <SelectTrigger className="w-56"><SelectValue placeholder="Empresa" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas as empresas</SelectItem>
+            <SelectItem value="sem">Sem empresa</SelectItem>
+            {empresas.map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={fMod} onValueChange={setFMod}>
+          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os módulos</SelectItem>
+            <SelectItem value="financeiro">Financeiro</SelectItem>
+            <SelectItem value="pessoas">Pessoas</SelectItem>
+            <SelectItem value="portal">Portal</SelectItem>
+            <SelectItem value="nenhum">Nenhum módulo</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={fPapel} onValueChange={setFPapel}>
+          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os perfis</SelectItem>
+            {Object.entries(PAPEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={fConf} onValueChange={setFConf}>
+          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Toda confirmação</SelectItem>
+            <SelectItem value="confirmado">E-mail confirmado</SelectItem>
+            <SelectItem value="pendente">E-mail pendente</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={fAtivo} onValueChange={setFAtivo}>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todo login</SelectItem>
+            <SelectItem value="ativo">Login ativo</SelectItem>
+            <SelectItem value="inativo">Login inativo</SelectItem>
+          </SelectContent>
+        </Select>
+        {temFiltro && <Button variant="ghost" size="sm" onClick={limpar}>Limpar filtros</Button>}
+        <span className="text-sm text-muted-foreground md:ml-auto">{filtered.length} cadastro(s)</span>
       </div>
 
       <div className="rounded-md border">
