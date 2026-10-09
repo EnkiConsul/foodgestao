@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
       const evIds: string[] = [];
 
       // ---- v) excedentes: 25 CLT + 1 intermitente sem convocação no Pessoas Multiempresa (franquia 20)
-      try {
+      if (!body.so || body.so === "v") try {
         const V = await prep("EMPRESA V1");
         const cols = Array.from({ length: 25 }, (_, i) => ({ company_id: V.id, nome: `[TESTE] COLABORADOR ${i + 1}`, regime: "clt", ativo: true }));
         cols.push({ company_id: V.id, nome: "[TESTE] INTERMITENTE SEM CONVOCACAO", regime: "intermitente", ativo: true });
@@ -234,7 +234,7 @@ Deno.serve(async (req) => {
       } catch (e) { reg("v", false, String((e as Error).message)); }
 
       // ---- pró-rata pequena (< R$ 5,00) somada quando o Asaas gera a próxima mensalidade
-      try {
+      if (!body.so || body.so === "p4") try {
         const P = await prep("EMPRESA P4");
         const p0 = await call(dono.token, { acao: "contratar", company_id: P.id, plano: "pessoas-gestao", ciclo: "mensal", forma: "pix" });
         const sp = p0.j?.subscription_id; if (!sp) throw new Error("p4 contratar " + JSON.stringify(p0.j));
@@ -260,7 +260,7 @@ Deno.serve(async (req) => {
       } catch (e) { reg("p4", false, String((e as Error).message)); }
 
       // ---- w) NFS-e: ligada só para a conta [TESTE] (parâmetro global continua 'desligado')
-      try {
+      if (!body.so || body.so === "w") try {
         const { data: glob } = await admin.from("system_parameters").select("value").eq("key", "emitir_nfse").single();
         const W = await prep("EMPRESA W1");
         await admin.from("billing_accounts").update({ emitir_nfse: true }).eq("id", W.acc);
@@ -287,7 +287,7 @@ Deno.serve(async (req) => {
       } catch (e) { reg("w", false, String((e as Error).message)); }
 
       // ---- x) conciliação: divergência forçada em conta [TESTE], nada é corrigido
-      try {
+      if (!body.so || body.so === "x") try {
         const X = await prep("EMPRESA X1");
         const x0 = await call(dono.token, { acao: "contratar", company_id: X.id, plano: "financeiro-gestao", ciclo: "mensal", forma: "pix" });
         const sx = x0.j?.subscription_id; if (!sx) throw new Error("x contratar " + JSON.stringify(x0.j));
@@ -304,7 +304,7 @@ Deno.serve(async (req) => {
       } catch (e) { reg("x", false, String((e as Error).message)); }
 
       // ---- z1) Grupo com 2 empresas em contas separadas
-      try {
+      if (!body.so || body.so === "z1") try {
         const Z1 = await prep("EMPRESA Z1"); const Z2 = await prep("EMPRESA Z2");
         const cdono = createClient(url, anon, { global: { headers: { Authorization: `Bearer ${dono.token}` } }, auth: { persistSession: false } });
         const { data: ger } = await cdono.rpc("billing_v2_empresas_gerenciaveis");
@@ -324,7 +324,7 @@ Deno.serve(async (req) => {
       } catch (e) { reg("z1", false, String((e as Error).message)); }
 
       // ---- z2) atualizar dados do pagador
-      try {
+      if (!body.so || body.so === "z2") try {
         const Y = await prep("EMPRESA Y1");
         const y0 = await call(dono.token, { acao: "contratar", company_id: Y.id, plano: "financeiro-gestao", ciclo: "mensal", forma: "pix" });
         if (!y0.j?.subscription_id) throw new Error("z2 contratar " + JSON.stringify(y0.j));
