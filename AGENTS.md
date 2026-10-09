@@ -22,3 +22,4 @@
 - Revogar cortesia gera carência (`grace`, fim 23:59:59 BRT via `_shared/grace.ts`), nunca ativa; vencida, `company_access_status` bloqueia; banner lê `company_grace_subscriptions` por módulo — evita acesso grátis sem fim.
 - Cobrança v2: `billing_accounts` agrupa empresas; painel grava legado + grants só via RPCs `billing_v2_*` (ator explícito); ativar encerra carência; conferência em `billing_v2_reconciliation` — rollback seguro.
 - Acesso por módulo (Fase 2): `get_company_entitlements`/`has_module_access` decidem por empresa coberta em `subscription_companies`; a flag `access_model_v2` (legado|sombra|v2, só super admin via `access_model_set_mode`) define se o app usa o v2 ou o legado `company_access_status` — virada reversível sem deploy.
+- Preço de contratação v2 vem só de `billing_v2_quote` (tela, fatura e Asaas); a flag `checkout_v2` (legado|v2, só super admin via `checkout_v2_set_mode`) decide qual checkout roda — valor nunca vem do navegador.
