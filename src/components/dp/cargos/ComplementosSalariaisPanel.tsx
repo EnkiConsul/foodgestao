@@ -289,6 +289,9 @@ export function ComplementosSalariaisPanel({
       toast.error("Informe o percentual por ciclo");
       return;
     }
+    if (!form.vigencia_inicio) return toast.error("Informe a data de início da regra");
+    if (form.vigencia_fim && form.vigencia_fim < form.vigencia_inicio)
+      return toast.error("A data de fim não pode ser antes do início");
     if (form.escopo === "cargo" && !form.cargo_id) return toast.error("Selecione o cargo");
     if (form.escopo === "unidade" && !form.unidade_id) return toast.error("Selecione a unidade");
     if (form.escopo === "sindicato" && !form.sindicato_id)
