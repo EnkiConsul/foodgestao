@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import { RevokeExemptionDialog } from "@/components/admin/RevokeExemptionDialog";
 import { CarenciaParametroCard } from "@/components/admin/CarenciaParametroCard";
 import { TaxasCartaoParametroCard } from "@/components/admin/TaxasCartaoParametroCard";
+import { NfseParametroCard } from "@/components/admin/NfseParametroCard";
+import { ConciliacaoAsaasCard } from "@/components/admin/ConciliacaoAsaasCard";
 import { useAdminSubscriptions, useUpdateSubscription } from "@/hooks/useBilling";
 import { usePlans } from "@/hooks/usePlans";
 import {
@@ -376,6 +378,8 @@ export function AdminSubscriptions() {
 
       <CarenciaParametroCard />
       <TaxasCartaoParametroCard />
+      <NfseParametroCard />
+      <ConciliacaoAsaasCard />
       <RevokeExemptionDialog subscriptionId={revokeId} onOpenChange={(o) => !o && setRevokeId(null)} />
       <RevokeExemptionDialog mode="iniciar" subscriptionId={graceId} onOpenChange={(o) => !o && setGraceId(null)} />
       <ExemptSubscriptionDialog

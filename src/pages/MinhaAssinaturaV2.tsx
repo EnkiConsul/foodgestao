@@ -49,6 +49,7 @@ export default function MinhaAssinaturaV2() {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
   const [acao, setAcao] = useState<Acao | null>(null);
+  const [editPagador, setEditPagador] = useState(false);
 
   const q = useQuery({
     queryKey: ["minha-assinatura-v2", selectedCompanyId],
@@ -99,8 +100,18 @@ export default function MinhaAssinaturaV2() {
           <Campo r="Documento do pagador" v={conta.documento_pagador} />
           <Campo r="E-mail de cobrança" v={conta.email_cobranca} />
           <Campo r="Empresas na conta" v={(conta.empresas ?? []).map((e: Json) => e.nome).join(", ")} />
+          {subs.some((x) => x.pode_gerir) && (
+            <div className="sm:col-span-2">
+              <Button size="sm" variant="outline" data-testid="editar-pagador" onClick={() => setEditPagador(true)}>Alterar Dados do Pagador</Button>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {editPagador && (
+        <PagadorDialog conta={conta} companyId={selectedCompanyId} onClose={() => setEditPagador(false)}
+          onDone={() => { setEditPagador(false); qc.invalidateQueries({ queryKey: ["minha-assinatura-v2"] }); }} />
+      )}
 
       {subs.map((s) => <AssinaturaCard key={s.id} s={s} onAcao={setAcao} />)}
 
@@ -181,6 +192,16 @@ function AssinaturaCard({ s, onAcao }: { s: Json; onAcao: (a: Acao) => void }) {
       return Object.fromEntries(((data ?? []) as Json[]).map((p) => [p.slug, p.name])) as Record<string, string>;
     },
   });
+  const cobr = useQuery({
+    queryKey: ["cobrancas-assinatura-v2", s.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("billing_v2_cobrancas_assinatura", { _subscription_id: s.id });
+      if (error) throw error;
+      return data as Json;
+    },
+  });
+  const pendentes = ((cobr.data?.pendentes ?? []) as Json[]);
+  const excedentes = ((cobr.data?.excedentes ?? []) as Json[]);
   const pendProrata = ((s.proratas_pendentes ?? []) as Json[]).reduce((t, p) => t + (p.valor_cents ?? 0), 0);
   const valorRenovacao = (pend?.plano ? destino.data?.valor_ciclo_novo_cents : null) ?? s.valor_ciclo_cents;
   const ativa = !["canceled", "expired"].includes(s.status);
@@ -230,6 +251,26 @@ function AssinaturaCard({ s, onAcao }: { s: Json; onAcao: (a: Acao) => void }) {
           <Bloco t="Pró-ratas Pendentes">
             {(s.proratas_pendentes as Json[]).map((p, i) => (
               <div key={i} data-testid="prorata">{p.adicional}: {formatCents(p.valor_cents)} · entra na próxima fatura</div>
+            ))}
+          </Bloco>
+        )}
+
+        {!!pendentes.length && (
+          <Bloco t="Itens da Próxima Fatura">
+            {pendentes.map((p, i) => (
+              <div key={i} data-testid="item-pendente">{p.descricao}: {formatCents(p.valor_cents)} · {p.cobrado_em ? `somado à mensalidade em ${data(p.cobrado_em)}` : "aguardando a próxima mensalidade"}</div>
+            ))}
+          </Bloco>
+        )}
+
+        {!!excedentes.length && (
+          <Bloco t="Colaboradores Excedentes">
+            {excedentes.map((e, i) => (
+              <div key={i} data-testid="excedente">
+                {String(e.competencia).slice(5, 7)}/{String(e.competencia).slice(0, 4)}: {e.contados} contados de {e.limite} da franquia
+                {e.excedente > 0 ? ` · ${e.excedente} excedente(s) = ${formatCents(e.valor_cents)}${e.forma === "avulsa" ? " (cobrança avulsa)" : e.forma === "cortesia" ? " (cortesia)" : " (na próxima fatura)"}` : " · sem excedente"}
+                {e.detalhe?.variaveis_fora ? ` · ${e.detalhe.variaveis_fora} intermitente(s)/freelancer(s) sem convocação ou escala não contados` : ""}
+              </div>
             ))}
           </Bloco>
         )}
@@ -377,6 +418,54 @@ function AcaoDialog({ acao, companyId, onClose, onDone }: { acao: Acao; companyI
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Voltar</Button>
           <Button disabled={!podeConfirmar || confirmar.isPending} onClick={() => confirmar.mutate()}>Confirmar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function docValido(d: string): boolean {
+  if (/^(\d)\1+$/.test(d)) return false;
+  if (d.length === 11) {
+    const dv = (n: number) => { const r = (d.slice(0, n).split("").reduce((t, x, i) => t + Number(x) * (n + 1 - i), 0) * 10) % 11; return r === 10 ? 0 : r; };
+    return dv(9) === Number(d[9]) && dv(10) === Number(d[10]);
+  }
+  if (d.length === 14) {
+    const calc = (n: number) => { const w = n === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]; const r = d.slice(0, n).split("").reduce((t, x, i) => t + Number(x) * w[i], 0) % 11; return r < 2 ? 0 : 11 - r; };
+    return calc(12) === Number(d[12]) && calc(13) === Number(d[13]);
+  }
+  return false;
+}
+
+function PagadorDialog({ conta, companyId, onClose, onDone }: { conta: Json; companyId: string; onClose: () => void; onDone: () => void }) {
+  const [doc, setDoc] = useState<string>(conta.documento_pagador ?? "");
+  const [email, setEmail] = useState<string>(conta.email_cobranca ?? "");
+  const limpo = doc.replace(/\D/g, "");
+  const ok = docValido(limpo) && /^\S+@\S+\.\S+$/.test(email.trim());
+  const m = useMutation({
+    mutationFn: () => contratar({ acao: "atualizar_pagador", company_id: companyId, documento: limpo, email: email.trim() }),
+    onSuccess: () => { toast.success("Dados do pagador atualizados."); onDone(); },
+    onError: (e: Error) => toast.error(e.message || "Não foi possível atualizar. Tente novamente."),
+  });
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Alterar Dados do Pagador</DialogTitle>
+          <DialogDescription>As próximas cobranças e notas fiscais saem com estes dados.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1"><label className="text-sm font-medium" htmlFor="pg-doc">CPF ou CNPJ do pagador</label>
+            <Input id="pg-doc" value={doc} onChange={(e) => setDoc(e.target.value)} />
+            {!!limpo && !docValido(limpo) && <p className="text-xs text-destructive">Documento inválido. Confira os números.</p>}
+          </div>
+          <div className="space-y-1"><label className="text-sm font-medium" htmlFor="pg-email">E-mail de cobrança</label>
+            <Input id="pg-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Voltar</Button>
+          <Button disabled={!ok || m.isPending} onClick={() => m.mutate()}>{m.isPending ? "Salvando..." : "Salvar"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

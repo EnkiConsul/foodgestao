@@ -123,8 +123,20 @@ export default function CheckoutV2() {
   const planoSel = planos.find((p) => p.slug === plano);
   const limEmpresas = catalogo.data?.limites.find((l) => l.plan_id === planoSel?.id && l.recurso === "empresas");
   const permiteGrupo = !!planoSel && ((limEmpresas?.incluido ?? 1) > 1 || !!limEmpresas?.permite_adicional);
-  const contaGrupo = conta.data?.tipo === "grupo";
-  const empresasCobertas = modo === "grupo" ? (conta.data?.empresas ?? 1) : 1;
+  const gerenciaveis = useQuery({
+    queryKey: ["checkout-v2-gerenciaveis"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("billing_v2_empresas_gerenciaveis");
+      if (error) throw error;
+      return (data ?? []) as Json[];
+    },
+  });
+  // Grupo: aparece com 2+ empresas gerenciadas e plano multiempresa, mesmo que hoje estejam em contas separadas
+  const empresasGer = (gerenciaveis.data ?? []).filter((e) => !!e.billing_account_id);
+  const contaGrupo = empresasGer.length >= 2;
+  const [selGrupo, setSelGrupo] = useState<string[]>([]);
+  useEffect(() => { if (companyId) setSelGrupo((s) => (s.includes(companyId) ? s : [companyId, ...s])); }, [companyId]);
+  const empresasCobertas = modo === "grupo" ? Math.max(1, selGrupo.length) : 1;
   const addons = (catalogo.data?.addons ?? []).filter((a) => a.module === modulo && a.code !== "empresas"
     && (!a.allowed_plan_slugs || (plano && a.allowed_plan_slugs.includes(plano))));
   const listaAdicionais = Object.entries(adicionais).filter(([, q]) => q > 0).map(([code, qtd]) => ({ code, qtd }));
@@ -168,11 +180,12 @@ export default function CheckoutV2() {
   const docLimpo = doc.replace(/\D/g, "");
   const docOk = docLimpo.length === 11 || docLimpo.length === 14;
   const emailOk = /^\S+@\S+\.\S+$/.test(email.trim());
-  const pronto = !!planoSel && cotacao.data?.ok && docOk && emailOk && aceite;
+  const pronto = !!planoSel && cotacao.data?.ok && docOk && emailOk && aceite && (modo !== "grupo" || selGrupo.length >= 2);
 
   const enviar = useMutation({
     mutationFn: () => chamar({
       acao: "contratar", company_id: companyId, plano, ciclo, forma, modo,
+      empresas: modo === "grupo" ? selGrupo : undefined,
       parcelas: parcelas > 1 ? parcelas : undefined, adicionais: listaAdicionais,
       pagador: { documento: docLimpo, email: email.trim() },
     }),
@@ -252,12 +265,24 @@ export default function CheckoutV2() {
                 </Opcao>
                 {permiteGrupo && contaGrupo && (
                   <Opcao testid="modo-grupo" ativo={modo === "grupo"} onClick={() => setModo("grupo")}>
-                    <p className="font-medium">Grupo</p><p className="text-xs text-muted-foreground">Uma assinatura para as {conta.data.empresas} empresas da conta.</p>
+                    <p className="font-medium">Grupo</p><p className="text-xs text-muted-foreground">Uma assinatura para as empresas que você escolher.</p>
                   </Opcao>
                 )}
               </div>
               {!permiteGrupo && <p className="text-xs text-muted-foreground">Este plano cobre uma única empresa.</p>}
-              {permiteGrupo && !contaGrupo && <p className="text-xs text-muted-foreground">A opção Grupo exige uma conta de cobrança de grupo. Fale com o suporte para agrupar suas empresas.</p>}
+              {modo === "grupo" && (
+                <div className="space-y-1 rounded-lg border p-3" data-testid="grupo-empresas">
+                  <p className="text-sm font-medium">Empresas do grupo</p>
+                  {empresasGer.map((e) => (
+                    <label key={e.id} className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={selGrupo.includes(e.id)} disabled={e.id === companyId}
+                        onChange={(ev) => setSelGrupo((s) => ev.target.checked ? [...s, e.id] : s.filter((x) => x !== e.id))} />
+                      {e.nome}{e.billing_account_id !== conta.data?.id ? " · hoje em conta própria (será agrupada)" : ""}
+                    </label>
+                  ))}
+                  <p className="text-xs text-muted-foreground">Só as empresas marcadas entram no grupo. Nenhuma empresa é juntada sem a sua escolha.</p>
+                </div>
+              )}
               {modo === "grupo" && (
                 <Alert><AlertTriangle className="h-4 w-4" /><AlertDescription>
                   Aviso fiscal: no modo Grupo a cobrança e a nota fiscal saem em nome de um único pagador (o CPF/CNPJ informado abaixo), mesmo cobrindo várias empresas. Confirme com sua contabilidade.

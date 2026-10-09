@@ -76,9 +76,12 @@
 - [x] Taxas do cartão validadas também no servidor
 - [x] Checkout novo (só com checkout_v2 = 'v2') + teste t
 - [x] Página "Minha assinatura" (/assinatura), só com checkout_v2 = 'v2'
-- [ ] Pró-rata pequena sem mensalidade em aberto: somar quando o Asaas gerar a próxima cobrança
-- [ ] Colaboradores excedentes no fechamento do ciclo
-- [ ] NFS-e pelo Asaas com parâmetro emitir_nfse (padrão desligado)
-- [ ] Conciliação diária com o Asaas (só aponta)
+- [x] Pró-rata pequena sem mensalidade em aberto: somar quando o Asaas gerar a próxima cobrança
+- [x] Colaboradores excedentes no fechamento do ciclo
+- [x] NFS-e pelo Asaas com parâmetro emitir_nfse (padrão desligado)
+- [x] Conciliação diária com o Asaas (só aponta)
 - [x] Testes u e y
-- [ ] Testes v, w, x, inventário do Sandbox e limpeza [TESTE]
+- [x] Testes v, w, x, inventário do Sandbox e limpeza [TESTE]
+- [x] Opção Grupo no checkout com 2+ empresas (teste z1)
+- [x] Alterar dados do pagador em Minha assinatura (teste z2)
+- [ ] NFS-e: cadastrar informações fiscais/municipais no Asaas (validação com o contador) antes de ligar

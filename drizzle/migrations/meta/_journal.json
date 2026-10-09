@@ -183,6 +183,13 @@
       "when": 1791543031186,
       "tag": "0025_fase3_uso_assinatura_rpc",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791554808635,
+      "tag": "0026_billing_v2_fase3_final",
+      "breakpoints": true
     }
   ]
 }
