@@ -272,11 +272,13 @@ export function ContactFormDialog({
    * apagar o que o usuário já digitou; o nome é editável normalmente depois.
    */
   const [situacao, setSituacao] = useState<string | null>(null);
+  const [lookupFailed, setLookupFailed] = useState(false);
   const lastLookupRef = useRef<string | null>(null);
 
   const runLookup = useCallback(async (digits: string) => {
     if (digits.length !== 14 || !isValidCnpj(digits)) return;
     lastLookupRef.current = digits;
+    setLookupFailed(false);
     try {
       const d = await cnpjLookup.mutateAsync(digits);
       const fantasia = d.nome_fantasia?.trim() || "";
@@ -293,7 +295,9 @@ export function ContactFormDialog({
       setSituacao(d.situacao ?? null);
       notifyCnpjSuccess(d);
     } catch (e) {
-      lastLookupRef.current = null;
+      // Mantém o CNPJ como já consultado: a busca automática não repete sozinha.
+      // Nova tentativa só pela lupa ou pelo botão do aviso; o cadastro manual segue livre.
+      setLookupFailed(true);
       notifyCnpjError(e, { onRetry: () => { void runLookup(digits); } });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
