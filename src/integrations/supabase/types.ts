@@ -16551,6 +16551,10 @@ export type Database = {
       }
     }
     Functions: {
+      _billing_v2_can_manage_sub: {
+        Args: { _subscription_id: string }
+        Returns: boolean
+      }
       _billing_v2_limits: {
         Args: { _sub: string }
         Returns: {
@@ -16793,6 +16797,7 @@ export type Database = {
         Args: { _account: string; _actor: string; _company: string }
         Returns: string
       }
+      billing_v2_apply_scheduled_changes: { Args: never; Returns: number }
       billing_v2_digits: { Args: { _t: string }; Returns: string }
       billing_v2_ensure_company_account: {
         Args: { _company_id: string }
@@ -16808,6 +16813,26 @@ export type Database = {
           _until: string
         }
         Returns: undefined
+      }
+      billing_v2_plan_change_cancel: {
+        Args: { _subscription_id: string }
+        Returns: undefined
+      }
+      billing_v2_plan_change_quote: {
+        Args: {
+          _billing_cycle: string
+          _plan_slug: string
+          _subscription_id: string
+        }
+        Returns: Json
+      }
+      billing_v2_plan_change_schedule: {
+        Args: {
+          _billing_cycle: string
+          _plan_slug: string
+          _subscription_id: string
+        }
+        Returns: Json
       }
       billing_v2_quote: {
         Args: {
