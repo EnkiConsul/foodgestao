@@ -1,5 +1,5 @@
 import { Link, Navigate, useSearchParams } from "react-router-dom";
-import { useModuleAccess, MODULO_ROTULO } from "@/hooks/useModuleAccess";
+import { useModuleAccess, useCompanyEntitlements, MODULO_ROTULO, type ModuloAcesso } from "@/hooks/useModuleAccess";
 import { AlertTriangle, CreditCard, LifeBuoy, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,14 +46,61 @@ function formatarValor(cents: number | null) {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+const MOTIVO_V2: Record<string, string> = {
+  sem_cobertura: "Esta empresa não está coberta por um plano deste módulo.",
+  sem_acesso: "Sem acesso a este módulo.",
+  sem_assinatura: "Sem plano contratado.",
+  trial_expirado: "Período de teste encerrado.",
+  carencia_expirada: "Carência encerrada.",
+  inadimplente_suspenso: "Suspenso por pagamento em atraso.",
+  rescindido: "Contrato encerrado.",
+  expirado_definitivo: "Prazo de guarda encerrado.",
+};
+
 export default function AcessoBloqueado() {
   const legado = useCompanyAccess();
   const [params] = useSearchParams();
   const moduloParam = params.get("modulo") === "pessoas" ? "pessoas" : params.get("modulo") === "financeiro" ? "financeiro" : null;
   const v2 = useModuleAccess(moduloParam ?? "financeiro");
-  const usarV2 = !!moduloParam && v2.mode === "v2";
+  const ent = useCompanyEntitlements();
+  const modoV2 = v2.mode === "v2";
+  const usarV2 = !!moduloParam && modoV2;
 
-  if (legado.loading || v2.loading) return <PageSpinner />;
+  if (legado.loading || v2.loading || ent.isLoading) return <PageSpinner />;
+
+  // Modo V2 sem módulo: decide pelos dois módulos, nunca pela regra legada (evita loop com /hub).
+  if (modoV2 && !moduloParam) {
+    const mods = (["financeiro", "pessoas"] as ModuloAcesso[]).filter((m) => ent.data?.[m]);
+    if (mods.some((m) => ent.data?.[m]?.allowed)) return <Navigate to="/hub" replace />;
+    return (
+      <div className="min-h-screen bg-background px-4 py-10">
+        <div className="mx-auto w-full max-w-2xl space-y-6">
+          {mods.map((m) => {
+            const motivo = ent.data?.[m]?.motivo ?? "sem_acesso";
+            return (
+              <Card key={m} className="border-destructive/40">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <AlertTriangle className="h-5 w-5 text-destructive" /> {MODULO_ROTULO[m]}
+                  </CardTitle>
+                  <CardDescription>{MOTIVO_V2[motivo] ?? "Acesso indisponível."}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {motivo === "sem_cobertura" ? (
+                    <CoberturaOpcoes modulo={m} />
+                  ) : (
+                    <Button asChild><Link to={`/planos?modulo=${m}`}><Sparkles className="mr-2 h-4 w-4" /> Ver Planos</Link></Button>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+          <ExportMyDataCard />
+        </div>
+      </div>
+    );
+  }
+
   const blocked = usarV2 ? v2.blocked : legado.blocked;
   if (!blocked) return <Navigate to="/hub" replace />;
 
