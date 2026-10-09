@@ -224,6 +224,7 @@ export async function contratarAdicional(admin: SupabaseClient, sub: any, code: 
   // Pró-rata = diferença do ciclo (plano + adicionais) proporcional aos dias restantes.
   const prorata = cortesia ? 0 : Math.max(0, Math.round((v.cents - antes) * fracaoRestante(sub)));
   let prorataCobranca: "imediata" | "proxima_mensalidade" | "nenhuma" = "nenhuma";
+  let somadaAgora = false;
   if (prorata > 0) {
     const env = parseAsaasEnv(sub.asaas_env);
     const mensal = (sub.billing_cycle ?? "mensal") !== "anual";
@@ -244,8 +245,10 @@ export async function contratarAdicional(admin: SupabaseClient, sub: any, code: 
         criados.push({ tipo: "cobrança (pró-rata somada)", id: inv.external_invoice_id, descricao: `+R$ ${reais(prorata).toFixed(2)}` });
       }
       prorataCobranca = "proxima_mensalidade";
+      somadaAgora = !!inv?.external_invoice_id;
     }
-    await admin.from("subscription_addons").update({ prorata_billed_at: new Date().toISOString(), notes: `pró-rata R$ ${reais(prorata).toFixed(2)} — ${prorataCobranca}` }).eq("id", row.id);
+    // sem mensalidade em aberto, a pró-rata fica pendente (prorata_billed_at nulo) até a próxima cobrança
+    await admin.from("subscription_addons").update({ prorata_billed_at: prorataCobranca === "imediata" || somadaAgora ? new Date().toISOString() : null, notes: `pró-rata R$ ${reais(prorata).toFixed(2)} — ${prorataCobranca}` }).eq("id", row.id);
     await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "prorata_adicional", payload: { code, qtd, prorata_cents: prorata, cobranca: prorataCobranca } });
   }
   return { addon_row: row.id, prorata_cents: prorata, prorata_cobranca: prorataCobranca, novo_valor_cents: v.cents };
