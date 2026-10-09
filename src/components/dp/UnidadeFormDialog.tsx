@@ -356,7 +356,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-w-2xl flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-auto sm:max-h-[92vh] sm:rounded-lg">
-        <DialogHeader className="border-b p-4 text-left">
+        <DialogHeader className="shrink-0 border-b p-4 text-left">
           <DialogTitle className="truncate">
             {unidade ? unidade.nome || "Editar unidade" : "Nova unidade"}
           </DialogTitle>
@@ -366,8 +366,8 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
           onValueChange={(v) => setAba(v as UnidadeAba)}
           className="flex min-h-0 flex-1 flex-col gap-0"
         >
-          <div className="max-w-full overflow-x-auto border-b px-4 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <TabsList className="flex h-auto w-max min-w-full justify-start sm:grid sm:w-full sm:grid-cols-5">
+          <div className="max-w-full shrink-0 overflow-x-auto overflow-y-hidden border-b px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <TabsList className="flex h-auto min-h-12 w-max min-w-full shrink-0 justify-start sm:grid sm:w-full sm:grid-cols-5">
               <TabsTrigger value="dados" className="h-10 shrink-0 px-4 sm:px-3">Dados</TabsTrigger>
               <TabsTrigger value="setores" className="h-10 shrink-0 px-4 sm:px-3">Setores</TabsTrigger>
               <TabsTrigger value="funcionamento" className="h-10 shrink-0 px-4 sm:px-3">Funcionamento</TabsTrigger>
