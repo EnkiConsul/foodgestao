@@ -102,7 +102,7 @@ export function TurnosPanel() {
       if (!termo) return true;
       return `${t.nome} ${t.descricao ?? ""}`.toLowerCase().includes(termo);
     });
-  }, [turnos, busca, unidadeFiltro, usoFiltro, usoPorTurno, usoCarregando, usoIndisponivel]);
+  }, [turnos, busca, unidadeFiltro, categoriaFiltro, usoFiltro, usoPorTurno, usoCarregando, usoIndisponivel]);
 
   const candidatosLimpeza = useMemo(
     () =>
@@ -238,6 +238,18 @@ export function TurnosPanel() {
                 <SelectItem value={TODAS}>Todas as unidades</SelectItem>
                 {listaUnidades.map((u) => (
                   <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Categoria</Label>
+            <Select value={categoriaFiltro} onValueChange={setCategoriaFiltro}>
+              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TODAS}>Todas as categorias</SelectItem>
+                {categorias.map((c) => (
+                  <SelectItem key={c.codigo} value={c.codigo}>{c.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
