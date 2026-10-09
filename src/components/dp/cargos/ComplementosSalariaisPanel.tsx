@@ -314,7 +314,7 @@ export function ComplementosSalariaisPanel({
           <h2 className="text-base font-semibold">Salário-Família</h2>
           {config.vigencia ? (
             <Badge variant={vencida ? "destructive" : "secondary"}>
-              Vigência {config.vigencia.slice(0, 4)}
+              Desde {config.vigencia.slice(0, 10).split("-").reverse().join("/")}
             </Badge>
           ) : (
             <Badge variant="destructive">Não configurado</Badge>
@@ -439,6 +439,10 @@ export function ComplementosSalariaisPanel({
                   {r.max_ciclos ? ` · até ${r.max_ciclos} ciclos` : ""}
                   {r.acumula ? "" : " · não acumula"}
                 </p>
+                <p className="text-xs text-muted-foreground">
+                  Início {r.vigencia_inicio.slice(0, 10).split("-").reverse().join("/")}
+                  {r.vigencia_fim ? ` · fim ${r.vigencia_fim.slice(0, 10).split("-").reverse().join("/")}` : " · sem data de fim"}
+                </p>
               </div>
               <Badge variant={r.ativo ? "secondary" : "outline"}>{r.ativo ? "Ativa" : "Inativa"}</Badge>
               <Button aria-label="Editar complemento" size="icon" variant="ghost" onClick={() => setForm({ ...r })}>
@@ -448,7 +452,15 @@ export function ComplementosSalariaisPanel({
                 size="icon"
                 variant="ghost"
                 disabled={removendo}
-                onClick={() => void remover(r.id)}
+                onClick={async () => {
+                  if (!window.confirm(`Excluir a regra "${r.nome}"? Para trocar valores a partir de uma data, prefira criar nova regra com data de início e encerrar esta.`)) return;
+                  try {
+                    await remover(r.id);
+                    toast.success("Regra excluída");
+                  } catch (e) {
+                    toast.error("Erro ao excluir regra", { description: e instanceof Error ? e.message : "Tente novamente." });
+                  }
+                }}
               >
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
