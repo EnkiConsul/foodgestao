@@ -12827,6 +12827,47 @@ export type Database = {
           },
         ]
       }
+      dp_salario_familia_tabelas: {
+        Row: {
+          company_id: string
+          cota: number
+          created_at: string
+          criado_por: string | null
+          id: string
+          removido_em: string | null
+          teto: number
+          vigencia_inicio: string
+        }
+        Insert: {
+          company_id: string
+          cota: number
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          removido_em?: string | null
+          teto: number
+          vigencia_inicio: string
+        }
+        Update: {
+          company_id?: string
+          cota?: number
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          removido_em?: string | null
+          teto?: number
+          vigencia_inicio?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_salario_familia_tabelas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_setores: {
         Row: {
           ativo: boolean

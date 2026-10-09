@@ -239,6 +239,13 @@
       "when": 1791567659878,
       "tag": "0033_cliente360_fix_added_at",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1791587025390,
+      "tag": "0034_dp_salario_familia_tabelas",
+      "breakpoints": true
     }
   ]
 }
