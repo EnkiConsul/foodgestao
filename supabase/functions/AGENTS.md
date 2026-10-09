@@ -5,3 +5,4 @@
 
 - Notificações push (Web Push): fila `dp_push_fila` alimentada por gatilho em `dp_notificacoes`, envio por `dp-push-dispatch` a cada minuto e receptor isolado em `/push/sw.js` (sem cache) — separado do worker de limpeza `/sw.js`.
 - Asaas Produção×Sandbox: `asaas_env` em contas, assinaturas, faturas e eventos; webhook define o ambiente só pelo token, worker nunca cruza ambientes (divergência em `asaas_env_divergencias`) e `asaasFetch` escolhe credencial pelo registro; régua, fiscal, métricas, conciliação e acesso leem só produção — teste nunca afeta cliente real.
+- Contratação v2: `billing-v2-contratar` (dono/admin da empresa) recalcula por `billing_v2_quote`/`billing_v2_plan_change_quote` e recusa produção enquanto `checkout_v2` ≠ v2; renovação diária `billing-v2-renovacao` só atua em produção ou contas `is_test`; testes usam `billing-v2-sandbox-tests` e limpam por `billing_v2_qa_purge` (só e-mails teste.billing.*) — teste nunca vira cliente real.
