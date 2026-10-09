@@ -56,7 +56,29 @@ export async function aplicarPendentes(admin: SupabaseClient, subId: string, cri
   return { aplicadas: pend.length, somado_cents: extra, invoice_id: inv.id, novo_valor_cents: novo };
 }
 
-/** Apura colaboradores da competência e lança o excedente (idempotente por mês). */
+/** Simulação da apuração: só lê, nunca grava nem chama o Asaas. */
+export async function simularExcedentes(admin: SupabaseClient, subId: string, competencia: string) {
+  const comp = competencia.slice(0, 7) + "-01";
+  const { data: sub } = await admin.from("subscriptions").select("*").eq("id", subId).single();
+  if (sub.module !== "pessoas") return { ignorado: "módulo sem franquia de colaboradores" };
+  const { data: ja } = await admin.from("billing_v2_excedentes").select("id").eq("subscription_id", subId).eq("competencia", comp).maybeSingle();
+  const { data: cnt, error } = await admin.rpc("billing_v2_colaboradores_competencia", { _sub: subId, _competencia: comp });
+  if (error) throw new Error(`apuração: ${error.message}`);
+  const c = (cnt as any[])[0];
+  const { data: lims } = await admin.rpc("_billing_v2_limits", { _sub: subId });
+  const limite = Number((lims as any[] ?? []).find((l) => l.recurso === "colaboradores")?.limite ?? 0);
+  const exc = Math.max(0, c.contados - limite);
+  const { data: ad } = await admin.from("plan_addons").select("price_cents").eq("module", "pessoas").eq("code", "colaboradores").single();
+  const unit = ad?.price_cents ?? 0;
+  const cortesia = await cortesiaIntegral(admin, sub);
+  return { competencia: comp, status: sub.status, contados: c.contados, regulares: c.regulares, variaveis_contados: c.variaveis_contados,
+    variaveis_fora: c.variaveis_fora, limite, excedente: exc, cortesia, ja_apurado: !!ja,
+    forma: exc === 0 ? "nenhuma" : cortesia ? "cortesia" : sub.billing_cycle === "anual" ? "avulsa" : "proxima_fatura",
+    valor_informativo_cents: exc * unit, valor_a_cobrar_cents: cortesia ? 0 : exc * unit };
+}
+
+/** Apura colaboradores da competência e lança o excedente (idempotente por mês).
+ *  Com cortesia_total vigente o excedente é só informativo: nunca vira pendência nem cobrança. */
 export async function apurarExcedentes(admin: SupabaseClient, subId: string, competencia: string, criados: Criados | null = null) {
   const comp = competencia.slice(0, 7) + "-01";
   const { data: ja } = await admin.from("billing_v2_excedentes").select("*").eq("subscription_id", subId).eq("competencia", comp).maybeSingle();
