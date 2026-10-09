@@ -383,6 +383,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
         accent: "navy",
         items: [
           { icon: Users, label: "Clientes", to: "/admin/clientes" },
+          { icon: UserCog, label: "Usuários", to: "/admin/usuarios" },
           { icon: UserCog, label: "Cadastros", to: "/admin/cadastros" },
           { icon: Tag, label: "Categorias Padrão", to: "/admin/categorias-padrao" },
           { icon: FileText, label: "Contas Contábeis Padrão", to: "/admin/contas-contabeis-padrao" },
