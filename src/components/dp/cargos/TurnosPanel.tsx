@@ -28,6 +28,7 @@ import {
   type CienciaTurno, type DpTurnoForm, type DpTurnoRow,
 } from "@/hooks/useDpTurnos";
 import { useDpTurnosUso } from "@/hooks/useDpTurnosUso";
+import { useTurnoCategoriaLabels } from "@/hooks/useTurnoCategoriaLabels";
 import { useDpColaboradores, type DpColaborador } from "@/hooks/useDpColaboradores";
 import { TurnoDetalheDialog } from "@/components/dp/TurnoDetalheDialog";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
@@ -48,10 +49,12 @@ export function TurnosPanel() {
     turnos, isLoading, error, criar, atualizar, novaVersao, alternarAtivo, remover, removerEmLote,
   } = useDpTurnos();
   const { usoPorTurno, isLoading: usoCarregando, usoIndisponivel } = useDpTurnosUso();
+  const { categorias } = useTurnoCategoriaLabels();
   const colaboradores = useDpColaboradores();
 
   const [busca, setBusca] = useState("");
   const [unidadeFiltro, setUnidadeFiltro] = useState(TODAS);
+  const [categoriaFiltro, setCategoriaFiltro] = useState(TODAS);
   const [usoFiltro, setUsoFiltro] = useState<UsoFiltro>("todos");
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [limpezaOpen, setLimpezaOpen] = useState(false);
@@ -90,6 +93,7 @@ export function TurnosPanel() {
     const termo = busca.trim().toLowerCase();
     return turnos.filter((t) => {
       if (unidadeFiltro !== TODAS && t.unidade_id !== unidadeFiltro) return false;
+      if (categoriaFiltro !== TODAS && t.categoria !== categoriaFiltro) return false;
       if (usoFiltro !== "todos" && !usoCarregando && !usoIndisponivel) {
         const estado = estadoUsoTurno({ uso: usoPorTurno[t.id] });
         if (usoFiltro === "sem_uso" && estado !== "sem_uso") return false;
@@ -98,7 +102,7 @@ export function TurnosPanel() {
       if (!termo) return true;
       return `${t.nome} ${t.descricao ?? ""}`.toLowerCase().includes(termo);
     });
-  }, [turnos, busca, unidadeFiltro, usoFiltro, usoPorTurno, usoCarregando, usoIndisponivel]);
+  }, [turnos, busca, unidadeFiltro, categoriaFiltro, usoFiltro, usoPorTurno, usoCarregando, usoIndisponivel]);
 
   const candidatosLimpeza = useMemo(
     () =>
@@ -234,6 +238,18 @@ export function TurnosPanel() {
                 <SelectItem value={TODAS}>Todas as unidades</SelectItem>
                 {listaUnidades.map((u) => (
                   <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Categoria</Label>
+            <Select value={categoriaFiltro} onValueChange={setCategoriaFiltro}>
+              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TODAS}>Todas as categorias</SelectItem>
+                {categorias.map((c) => (
+                  <SelectItem key={c.codigo} value={c.codigo}>{c.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
