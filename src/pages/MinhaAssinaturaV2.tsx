@@ -166,6 +166,16 @@ function AssinaturaCard({ s, onAcao }: { s: Json; onAcao: (a: Acao) => void }) {
     },
   });
   const recursos = uso.data ?? [];
+  // valor da renovação: com troca agendada vale o plano destino; pró-ratas pendentes somam
+  const destino = useQuery({
+    queryKey: ["destino-v2", s.id, pend?.plano, pend?.ciclo], enabled: !!pend?.plano && s.pode_gerir,
+    queryFn: async () => {
+      const { data } = await (supabase as any).rpc("billing_v2_plan_change_quote", { _subscription_id: s.id, _plan_slug: pend!.plano, _billing_cycle: pend!.ciclo ?? s.ciclo });
+      return data as Json;
+    },
+  });
+  const pendProrata = ((s.proratas_pendentes ?? []) as Json[]).reduce((t, p) => t + (p.valor_cents ?? 0), 0);
+  const valorRenovacao = (pend?.plano ? destino.data?.valor_ciclo_novo_cents : null) ?? s.valor_ciclo_cents;
   const ativa = !["canceled", "expired"].includes(s.status);
   return (
     <Card data-testid={`assinatura-${s.module}`}>
@@ -231,7 +241,7 @@ function AssinaturaCard({ s, onAcao }: { s: Json; onAcao: (a: Acao) => void }) {
               {formatCents(s.proxima_fatura.valor_cents)} · vence em {data(s.proxima_fatura.vencimento)} · {FATURA[s.proxima_fatura.status] ?? s.proxima_fatura.status}
               {s.proxima_fatura.link && <> · <a className="text-primary underline" href={s.proxima_fatura.link} target="_blank" rel="noreferrer">Pagar</a></>}
             </div>
-          ) : <div data-testid="proxima-fatura">{s.cancel_at_period_end ? "Sem próxima fatura (cancelamento agendado)" : `${formatCents(s.valor_ciclo_cents)} em ${data(s.next_charge_date ?? s.current_period_end)}`}</div>}
+          ) : <div data-testid="proxima-fatura">{s.cancel_at_period_end ? "Sem próxima fatura (cancelamento agendado)" : `${formatCents((valorRenovacao ?? 0) + pendProrata)} em ${data(s.next_charge_date ?? s.current_period_end)}${pend ? " (já com o plano novo)" : ""}${pendProrata ? ` · inclui ${formatCents(pendProrata)} de pró-rata` : ""}`}</div>}
         </Bloco>
 
         {s.pode_gerir && ativa && (
