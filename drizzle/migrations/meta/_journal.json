@@ -134,6 +134,27 @@
       "when": 1791520470319,
       "tag": "0018_fase3_conciliacao_sem_teste",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791521786810,
+      "tag": "0019_fase3_ciclo_adicionais_parcelamento",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791522154669,
+      "tag": "0020_fase3_assinatura_unica_por_conta",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791522812475,
+      "tag": "0021_fase3_qa_purge_grants",
+      "breakpoints": true
     }
   ]
 }

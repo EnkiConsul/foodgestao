@@ -94,10 +94,34 @@ async function registrarFatura(admin: SupabaseClient, sub: any, pg: any, forma: 
 
 export type Criados = { tipo: string; id: string; descricao: string }[];
 
+/** Mínimo aceito pelo Asaas para uma cobrança avulsa (R$ 5,00). */
+export const ASAAS_MINIMO_CENTS = 500;
+
+/** Assinatura com cortesia integral vigente (ou isenta): nada é cobrado no Asaas. */
+export async function cortesiaIntegral(admin: SupabaseClient, sub: any): Promise<boolean> {
+  if (sub.is_exempt) return true;
+  const agora = new Date().toISOString();
+  const { data } = await admin.from("subscription_grants").select("id,ends_at,starts_at")
+    .eq("subscription_id", sub.id).eq("tipo", "cortesia_total").is("revoked_at", null).lte("starts_at", agora);
+  return (data ?? []).some((g: any) => !g.ends_at || g.ends_at > agora);
+}
+
+function fracaoRestante(sub: any): number {
+  const ini = Date.parse(sub.current_period_start ?? ""), fim = Date.parse(sub.current_period_end ?? "");
+  if (!ini || !fim || fim <= ini || fim <= Date.now()) return 0;
+  return (fim - Math.max(Date.now(), ini)) / (fim - ini);
+}
+
+export async function opcoesParcelamento(admin: SupabaseClient, valorCents: number) {
+  const { data, error } = await admin.rpc("billing_v2_parcelamento", { _valor_cents: valorCents });
+  if (error) throw new BillingError(500, "Falha ao calcular o parcelamento.", error.message);
+  return data as { parcelas: number; valor_parcela_cents: number; total_cents: number; juros_cents: number }[];
+}
+
 // ---------- operações ----------
 
 export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: string, companyId: string, p: {
-  plano: string; ciclo: Ciclo; forma: Forma; parcelas?: number; adicionais?: { code: string; qtd: number }[];
+  plano: string; ciclo: Ciclo; forma: Forma; parcelas?: number; adicionais?: { code: string; qtd: number }[]; modo?: "empresa" | "grupo";
 }, criados: Criados) {
   const { data: plano } = await admin.from("plans").select("id,module,slug,name").eq("slug", p.plano).eq("is_active", true).maybeSingle();
   if (!plano) throw new BillingError(422, "Plano indisponível.");
@@ -108,7 +132,20 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
   if (p.parcelas && p.parcelas > 1 && !(p.ciclo === "anual" && p.forma === "cartao")) {
     throw new BillingError(422, "Parcelamento só no plano anual pago com cartão.");
   }
-  const q = await cotar(admin, conta.id, [{ plano: p.plano, empresas: 1, adicionais: p.adicionais ?? [] }], p.ciclo);
+  // "grupo": uma assinatura cobre todas as empresas da conta; "empresa": só a empresa informada.
+  let cobertas = [companyId];
+  if (p.modo === "grupo") {
+    const { data: ba } = await admin.from("billing_accounts").select("tipo").eq("id", conta.id).single();
+    if ((ba as any)?.tipo !== "grupo") throw new BillingError(422, "Esta conta não é de grupo.");
+    const { data: vs } = await admin.from("billing_account_companies").select("company_id").eq("billing_account_id", conta.id).is("removed_at", null);
+    cobertas = (vs ?? []).map((v: any) => v.company_id);
+  }
+  const q = await cotar(admin, conta.id, [{ plano: p.plano, empresas: cobertas.length, adicionais: p.adicionais ?? [] }], p.ciclo);
+  let parc: { parcelas: number; valor_parcela_cents: number; total_cents: number; juros_cents: number } | null = null;
+  if (p.parcelas && p.parcelas > 1) {
+    parc = (await opcoesParcelamento(admin, q.total_ciclo_cents)).find((o) => o.parcelas === p.parcelas) ?? null;
+    if (!parc) throw new BillingError(422, "Número de parcelas inválido.");
+  }
   const cliente = await garantirCliente(admin, conta, userEmail);
 
   const inicio = new Date();
@@ -120,7 +157,7 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
     external_customer_id: cliente,
   }).select("*").single();
   if (error) throw new BillingError(500, "Falha ao registrar a assinatura.", error.message);
-  await admin.from("subscription_companies").insert({ subscription_id: sub.id, company_id: companyId });
+  await admin.from("subscription_companies").insert(cobertas.map((c) => ({ subscription_id: sub.id, company_id: c })));
   for (const a of p.adicionais ?? []) {
     const { data: ad } = await admin.from("plan_addons").select("id,price_cents").eq("module", plano.module).eq("code", a.code).single();
     await admin.from("subscription_addons").insert({ subscription_id: sub.id, addon_id: ad!.id, quantity: a.qtd, price_cents: ad!.price_cents, status: "active", origem: "compra" });
@@ -131,7 +168,7 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
     const pg = await asaasFetch("/payments", {
       method: "POST",
       body: JSON.stringify({ customer: cliente, billingType: "CREDIT_CARD", installmentCount: p.parcelas,
-        totalValue: reais(q.total_ciclo_cents), dueDate: hoje(1), description: `${plano.name} — anual em ${p.parcelas}x`, externalReference: sub.id }),
+        totalValue: reais(parc!.total_cents), dueDate: hoje(1), description: `${plano.name} — anual em ${p.parcelas}x (juros do cartão inclusos)`, externalReference: sub.id }),
     }, conta.asaas_env);
     criados.push({ tipo: "cobrança parcelada", id: requireAsaasId(pg, "a cobrança"), descricao: `${plano.name} anual ${p.parcelas}x` });
     await registrarFatura(admin, sub, pg, "cartao", `Contratação anual ${p.parcelas}x`);
@@ -150,8 +187,8 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
       await registrarFatura(admin, { ...sub, external_subscription_id: asId }, pg, p.forma, "Contratação");
     }
   }
-  await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "contratacao_v2", payload: { quote: q, forma: p.forma, parcelas: p.parcelas ?? 1 } });
-  return { subscription_id: sub.id, total_cents: q.total_ciclo_cents };
+  await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "contratacao_v2", payload: { quote: q, forma: p.forma, parcelas: p.parcelas ?? 1, parcelamento: parc, empresas: cobertas } });
+  return { subscription_id: sub.id, total_cents: q.total_ciclo_cents, empresas_cobertas: cobertas.length, parcelamento: parc };
 }
 
 async function atualizarValorAsaas(admin: SupabaseClient, sub: any, criados: Criados | null, extra: Record<string, unknown> = {}) {
@@ -171,6 +208,8 @@ export async function contratarAdicional(admin: SupabaseClient, sub: any, code: 
   if (!ad) throw new BillingError(422, "Adicional inexistente para este módulo.");
   // valida no motor de preços (plano permite este adicional?)
   const { data: pl } = await admin.from("plans").select("slug").eq("id", sub.plan_id).single();
+  const cortesia = await cortesiaIntegral(admin, sub);
+  const antes = (await valorRecorrente(admin, sub.id)).cents;
   await cotar(admin, sub.billing_account_id, [{ plano: pl!.slug, adicionais: [{ code, qtd }] }], sub.billing_cycle ?? "mensal");
   // um registro por adicional: se já existir, soma a quantidade (pró-rata recalculado pelo gatilho)
   const { data: ex } = await admin.from("subscription_addons").select("id,quantity,status").eq("subscription_id", sub.id).eq("addon_id", ad.id).maybeSingle();
@@ -181,8 +220,35 @@ export async function contratarAdicional(admin: SupabaseClient, sub: any, code: 
         subscription_id: sub.id, addon_id: ad.id, quantity: qtd, price_cents: ad.price_cents, status: "active", origem: "compra",
       }).select("id,prorata_cents").single();
   if (error) throw new BillingError(500, "Falha ao registrar o adicional.", error.message);
-  const v = await atualizarValorAsaas(admin, sub, criados);
-  return { addon_row: row.id, prorata_cents: row.prorata_cents ?? 0, novo_valor_cents: v.cents };
+  const v = await atualizarValorAsaas(admin, sub, cortesia ? null : criados);
+  // Pró-rata = diferença do ciclo (plano + adicionais) proporcional aos dias restantes.
+  const prorata = cortesia ? 0 : Math.max(0, Math.round((v.cents - antes) * fracaoRestante(sub)));
+  let prorataCobranca: "imediata" | "proxima_mensalidade" | "nenhuma" = "nenhuma";
+  if (prorata > 0) {
+    const env = parseAsaasEnv(sub.asaas_env);
+    const mensal = (sub.billing_cycle ?? "mensal") !== "anual";
+    if (!mensal || prorata >= ASAAS_MINIMO_CENTS) {
+      const pg = await asaasFetch("/payments", { method: "POST", body: JSON.stringify({
+        customer: sub.external_customer_id, billingType: "UNDEFINED", value: reais(prorata), dueDate: hoje(1),
+        description: `Pró-rata do adicional ${code} (${qtd})`, externalReference: sub.id }) }, env);
+      criados.push({ tipo: "cobrança avulsa (pró-rata)", id: requireAsaasId(pg, "a cobrança da pró-rata"), descricao: `pró-rata ${code}` });
+      await registrarFatura(admin, sub, pg, "pix", `Pró-rata do adicional ${code}`);
+      prorataCobranca = "imediata";
+    } else {
+      // abaixo do mínimo do Asaas: soma na próxima mensalidade em aberto
+      const { data: inv } = await admin.from("invoices").select("id,amount_cents,external_invoice_id,notes")
+        .eq("subscription_id", sub.id).eq("status", "open").order("due_date").limit(1).maybeSingle();
+      if (inv?.external_invoice_id) {
+        await asaasFetch(`/payments/${inv.external_invoice_id}`, { method: "POST", body: JSON.stringify({ value: reais(inv.amount_cents + prorata) }) }, env);
+        await admin.from("invoices").update({ amount_cents: inv.amount_cents + prorata, notes: `${inv.notes ?? ""} + pró-rata ${code}`.trim() }).eq("id", inv.id);
+        criados.push({ tipo: "cobrança (pró-rata somada)", id: inv.external_invoice_id, descricao: `+R$ ${reais(prorata).toFixed(2)}` });
+      }
+      prorataCobranca = "proxima_mensalidade";
+    }
+    await admin.from("subscription_addons").update({ prorata_billed_at: new Date().toISOString(), notes: `pró-rata R$ ${reais(prorata).toFixed(2)} — ${prorataCobranca}` }).eq("id", row.id);
+    await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "prorata_adicional", payload: { code, qtd, prorata_cents: prorata, cobranca: prorataCobranca } });
+  }
+  return { addon_row: row.id, prorata_cents: prorata, prorata_cobranca: prorataCobranca, novo_valor_cents: v.cents };
 }
 
 export async function trocarPlano(admin: SupabaseClient, sub: any, plano: string, ciclo: Ciclo, forma: Forma, criados: Criados) {
@@ -195,7 +261,8 @@ export async function trocarPlano(admin: SupabaseClient, sub: any, plano: string
     return { agendado: true, quote: q };
   }
   const env = parseAsaasEnv(sub.asaas_env);
-  if (q.cobrar_agora_cents > 0) {
+  const cortesia = await cortesiaIntegral(admin, sub);
+  if (q.cobrar_agora_cents > 0 && !cortesia) {
     const pg = await asaasFetch("/payments", {
       method: "POST",
       body: JSON.stringify({ customer: sub.external_customer_id, billingType: billingType(forma), value: reais(q.cobrar_agora_cents),

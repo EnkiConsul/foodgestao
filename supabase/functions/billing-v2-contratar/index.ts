@@ -6,7 +6,7 @@ import { z } from "npm:zod@3";
 import { requireUser, serviceClient } from "../_shared/authz.ts";
 import {
   BillingError, cancelarAgendamento, cancelarFimCiclo, carregarConta, contratar, contratarAdicional,
-  exigirModoPermitido, trocarPlano, type Criados,
+  cotar, exigirModoPermitido, opcoesParcelamento, trocarPlano, type Criados,
 } from "../_shared/billing-v2.ts";
 
 const json = (b: unknown, status = 200) =>
@@ -16,11 +16,15 @@ const ciclo = z.enum(["mensal", "anual"]);
 const forma = z.enum(["pix", "boleto", "cartao"]);
 const Body = z.discriminatedUnion("acao", [
   z.object({ acao: z.literal("contratar"), company_id: z.string().uuid(), plano: z.string().min(3).max(60), ciclo, forma,
-    parcelas: z.number().int().min(1).max(12).optional(),
+    parcelas: z.number().int().min(1).max(12).optional(), modo: z.enum(["empresa", "grupo"]).optional(),
+    // valor vindo do navegador é ignorado: o servidor sempre recalcula
+    valor_cents: z.number().optional(),
     adicionais: z.array(z.object({ code: z.string().max(40), qtd: z.number().int().min(1).max(500) })).max(10).optional() }),
   z.object({ acao: z.literal("adicional"), company_id: z.string().uuid(), subscription_id: z.string().uuid(), code: z.string().max(40), qtd: z.number().int().min(1).max(500) }),
   z.object({ acao: z.literal("trocar_plano"), company_id: z.string().uuid(), subscription_id: z.string().uuid(), plano: z.string().min(3).max(60), ciclo, forma: forma.default("pix") }),
   z.object({ acao: z.literal("cancelar_agendamento"), company_id: z.string().uuid(), subscription_id: z.string().uuid() }),
+  z.object({ acao: z.literal("parcelamento"), company_id: z.string().uuid(), plano: z.string().min(3).max(60),
+    adicionais: z.array(z.object({ code: z.string().max(40), qtd: z.number().int().min(1).max(500) })).max(10).optional() }),
   z.object({ acao: z.literal("cancelar_fim_ciclo"), company_id: z.string().uuid(), subscription_id: z.string().uuid(), desfazer: z.boolean().optional() }),
 ]);
 
@@ -54,7 +58,12 @@ Deno.serve(async (req) => {
     const { data: au } = await admin.auth.admin.getUserById(user.id);
     const criados: Criados = [];
 
+    if (b.acao === "parcelamento") {
+      const q = await cotar(admin, conta.id, [{ plano: b.plano, empresas: 1, adicionais: b.adicionais ?? [] }], "anual");
+      return json({ ok: true, anual_cents: q.total_ciclo_cents, opcoes: await opcoesParcelamento(admin, q.total_ciclo_cents) });
+    }
     if (b.acao === "contratar") {
+      if (b.valor_cents !== undefined) console.warn("billing-v2-contratar: valor do navegador ignorado", b.valor_cents);
       const r = await contratar(admin, conta, au?.user?.email ?? "", b.company_id, b, criados);
       return json({ ok: true, ...r, asaas: criados });
     }
