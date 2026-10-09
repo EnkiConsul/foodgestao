@@ -60,7 +60,8 @@ export function DocumentosObrigatoriosPanel() {
       <div className="flex flex-col gap-3 rounded-lg border border-dashed bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-muted-foreground">
           Documentos que a empresa cobra dos colaboradores. Vem preenchido com o padrão do sistema e
-          pode ser ajustado.
+          pode ser ajustado. É a mesma lista usada em Pré-Admissões → Regras, na ficha do candidato e
+          no cadastro manual: alterar aqui atualiza todos.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" disabled={semear.isPending} onClick={() => semear.mutate()}>

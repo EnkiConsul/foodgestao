@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useDpColaboradorDocumentos } from "@/hooks/useDpColaboradorDocumentos";
+import { useDpDocumentoRequisitos } from "@/hooks/useDpDocumentoRequisitos";
+import { toast } from "sonner";
 import { CATEGORIA_LABEL, type ItemChecklist } from "@/lib/dp/documentos-requisitos";
 import { DocumentoRequisitoRow } from "./DocumentoRequisitoRow";
 
@@ -23,6 +25,7 @@ export function ColaboradorDocumentosPanel({
   ocultarConfig = false,
 }: Props) {
   const doc = useDpColaboradorDocumentos(colaboradorId, { comoColaborador: somenteEnvio });
+  const reqs = useDpDocumentoRequisitos();
 
   const grupos = useMemo(() => {
     const map = new Map<string, ItemChecklist[]>();
@@ -131,6 +134,11 @@ export function ColaboradorDocumentosPanel({
                   ? {}
                   : {
                       onExcluir: (anexo) => doc.excluirAnexo.mutate({ anexo }),
+                      onTornarPadraoOpcional: () =>
+                        reqs.salvar.mutate(
+                          { id: item.requisito.id, patch: { obrigatoriedade: "opcional" } },
+                          { onSuccess: () => toast.success("Padrão da empresa atualizado: documento agora é opcional") },
+                        ),
                       onPedirAceite: item.requisito.exige_aceite
                         ? (anexo) => doc.pedirAceite.mutate({ anexo })
                         : undefined,

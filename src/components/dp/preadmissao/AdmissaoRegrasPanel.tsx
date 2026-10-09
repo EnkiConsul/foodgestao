@@ -10,6 +10,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ChevronDown, Loader2, Pencil, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -547,6 +548,13 @@ export function AdmissaoRegrasPanel() {
 
   return (
     <div className="space-y-4">
+      <p className="rounded-lg border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground">
+        A lista de documentos é a mesma de Cargos e Salários → Documentos Obrigatórios. Alterar aqui
+        atualiza lá (e vice-versa), além da ficha do candidato e do cadastro manual do colaborador.{" "}
+        <Link to="/dp/cadastros/cargos?aba=documentos" className="font-medium text-primary underline-offset-2 hover:underline">
+          Abrir Documentos Obrigatórios
+        </Link>
+      </p>
       <Card>
         <CardContent className="p-3 sm:p-4 space-y-3">
           {/* No celular os filtros ficam recolhidos; no computador seguem visíveis. */}
