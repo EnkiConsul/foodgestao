@@ -37,7 +37,7 @@ export function DpTabsBar({
   const helpKey = help && value ? help[value] : undefined;
   const ajuda = helpKey ? (
     <span className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-      <span className="hidden sm:inline">{HELP_CONTENT[helpKey].titulo}</span>
+      <span className="sr-only">{HELP_CONTENT[helpKey].titulo}</span>
       <HelpHint helpKey={helpKey} side="bottom" align="end" />
     </span>
   ) : null;
