@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { garantirColaboradorNovo } from "@/lib/billing/excedente-colaboradores";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpsertDpCargo, useUpsertDpCargoSalario } from "@/hooks/useDpCadastros";
