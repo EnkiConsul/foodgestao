@@ -145,6 +145,7 @@ const AdminAcessoV2 = lazyWithRetry(() => import("./pages/admin/AcessoV2"));
 const AdminTelasDesenvolvimento = lazyWithRetry(() => import("./pages/admin/TelasDesenvolvimento"));
 const AdminEstatisticas = lazyWithRetry(() => import("./pages/admin/Estatisticas"));
 const AdminClientes = lazyWithRetry(() => import("./pages/admin/Clientes"));
+const AdminUsuarios = lazyWithRetry(() => import("./pages/admin/Usuarios"));
 const AdminAssinaturas = lazyWithRetry(() => import("./pages/admin/Assinaturas"));
 const AdminPlanos = lazyWithRetry(() => import("./pages/admin/Planos"));
 const AdminFaturamento = lazyWithRetry(() => import("./pages/admin/Faturamento"));
@@ -613,6 +614,7 @@ const AppRoutes = () => (
         <Route path="/admin" element={<Navigate to="/admin/estatisticas" replace />} />
         <Route path="/admin/estatisticas" element={<AdminEstatisticas />} />
         <Route path="/admin/clientes" element={<AdminClientes />} />
+        <Route path="/admin/usuarios" element={<AdminUsuarios />} />
         <Route path="/admin/cadastros" element={<AdminCadastros />} />
         <Route path="/admin/categorias-padrao" element={<AdminCategoriasPadrao />} />
         <Route path="/admin/contas-contabeis-padrao" element={<AdminContasContabeisPadrao />} />
