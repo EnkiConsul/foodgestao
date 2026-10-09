@@ -9,7 +9,6 @@
 - O portal não lê `dp_colaboradores` de colegas: `dp_portal_equipe_unidade()` expõe só nome, função e folga fixa.
 - Pré-admissão: o checklist compartilhado governa leitura e envio; desativar requisito preserva anexos.
 - Imagem da assinatura (PNG em data URL) é gravada só pelo servidor em `assinatura_imagem` (dp_recibos/dp_documento_aceites), imutável, e estampada no PDF com rubrica em todas as páginas — reimpressão fiel.
-- Notificações push (Web Push): fila `dp_push_fila` alimentada por gatilho em `dp_notificacoes`, envio por `dp-push-dispatch` a cada minuto e receptor isolado em `/push/sw.js` (sem cache) — separado do worker de limpeza `/sw.js`.
 - Disciplinar: o portal só lê vias físicas assinadas (`via_assinada_path`, advertência escrita/suspensão) via `dp_portal_meus_disciplinares()`; verbais, observações e minutas ficam no dossiê interno da ficha — evita expor anotações do gestor.
 - Elogio: visibilidade privado/individual/público definida só pela RPC `dp_elogio_divulgar` (notifica o colaborador e, se público, publica no Mural da unidade via `dp_avisos`); verbais e observações nunca notificam o colaborador — reconhecimento sem expor o dossiê.
 - Piso do cargo: com sindicato patronal na unidade grava no patronal (convenção); sem patronal grava direto na unidade (Cargo + Unidade) — o patronal acelera, nunca bloqueia.
@@ -23,5 +22,4 @@
 - Cobrança v2: `billing_accounts` agrupa empresas; painel grava legado + grants só via RPCs `billing_v2_*` (ator explícito); ativar encerra carência; conferência em `billing_v2_reconciliation` — rollback seguro.
 - Acesso por módulo (Fase 2): `get_company_entitlements`/`has_module_access` decidem por empresa coberta em `subscription_companies`; a flag `access_model_v2` (legado|sombra|v2, só super admin via `access_model_set_mode`) define se o app usa o v2 ou o legado `company_access_status` — virada reversível sem deploy.
 - Preço v2 só por `billing_v2_quote`; flag `checkout_v2` (legado|v2, só super admin) escolhe o checkout — valor nunca vem do navegador.
-- Asaas Produção×Sandbox: `asaas_env` em contas, assinaturas, faturas e eventos; webhook define o ambiente só pelo token, worker nunca cruza ambientes (divergência em `asaas_env_divergencias`) e `asaasFetch` escolhe credencial pelo registro; régua, fiscal, métricas, conciliação e acesso leem só produção — teste nunca afeta cliente real.
 - Troca de plano/ciclo só por `billing_v2_plan_change_quote/schedule/cancel`: upgrade e mensal→anual são imediatos com crédito proporcional; downgrade e anual→mensal ficam em `pending_plan_change` e `billing_v2_apply_scheduled_changes` revalida uso na renovação — valor calculado no banco.
