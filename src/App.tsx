@@ -222,8 +222,6 @@ function SubscriptionGuard({ children, module = "qualquer" }: { children: React.
   if (loading || roleLoading || v2.loading) return <>{children}</>;
   if (isSuperAdmin) return <>{children}</>;
   if (isWhitelistedForExpiredTrial(location.pathname)) return <>{children}</>;
-  // Legado e sombra: só o guard compartilhado aplica a decisão atual (sem dupla checagem).
-  if (v2.mode !== "v2" && module !== "qualquer") return <>{children}</>;
   const blocked = v2.mode === "v2" && v2.access ? !v2.access.allowed : legacyBlocked;
   if (!blocked) return <>{children}</>;
 
@@ -480,29 +478,29 @@ const AppRoutes = () => (
         }
       >
         <Route path="/hub" element={<Hub />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/lancamentos" element={<Lancamentos />} />
+        <Route path="/dashboard" element={fin(<Dashboard />)} />
+        <Route path="/lancamentos" element={fin(<Lancamentos />)} />
         <Route path="/fluxo-caixa" element={<Navigate to="/dashboard" replace />} />
         <Route path="/orcamento" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/relatorios/contabeis" element={<RelatoriosContabeis />} />
-        <Route path="/relatorios/fluxo-caixa" element={<RelatorioFluxoCaixa />} />
-        <Route path="/contatos" element={<Contatos />} />
-        <Route path="/categorias" element={<Categorias />} />
+        <Route path="/relatorios/contabeis" element={fin(<RelatoriosContabeis />)} />
+        <Route path="/relatorios/fluxo-caixa" element={fin(<RelatorioFluxoCaixa />)} />
+        <Route path="/contatos" element={fin(<Contatos />)} />
+        <Route path="/categorias" element={fin(<Categorias />)} />
         
-        <Route path="/contas-contabeis" element={<ContasContabeis />} />
-        <Route path="/contas-bancarias" element={<ContasBancarias />} />
-        <Route path="/contas-bancarias/conciliacao" element={<ConciliacaoPluggy />} />
-        <Route path="/contas-bancarias/conciliacao/extrato" element={<ExtratoConciliacao />} />
-        <Route path="/contas-bancarias/conexoes" element={<ConexoesPluggy />} />
-        <Route path="/cartoes-credito" element={<CartoesCredito />} />
+        <Route path="/contas-contabeis" element={fin(<ContasContabeis />)} />
+        <Route path="/contas-bancarias" element={fin(<ContasBancarias />)} />
+        <Route path="/contas-bancarias/conciliacao" element={fin(<ConciliacaoPluggy />)} />
+        <Route path="/contas-bancarias/conciliacao/extrato" element={fin(<ExtratoConciliacao />)} />
+        <Route path="/contas-bancarias/conexoes" element={fin(<ConexoesPluggy />)} />
+        <Route path="/cartoes-credito" element={fin(<CartoesCredito />)} />
         
         <Route path="/configuracoes" element={<Configuracoes />} />
         <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
         <Route path="/empresas" element={<Empresas />} />
         <Route path="/assinatura" element={<Assinatura />} />
         <Route path="/planos" element={<Planos />} />
-        <Route path="/formas-pagamento" element={<FormasPagamento />} />
-        <Route path="/centros-custo" element={<CentrosCusto />} />
+        <Route path="/formas-pagamento" element={fin(<FormasPagamento />)} />
+        <Route path="/centros-custo" element={fin(<CentrosCusto />)} />
 
         <Route path="/mais" element={<Mais />} />
       </Route>
