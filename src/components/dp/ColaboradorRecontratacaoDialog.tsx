@@ -14,6 +14,7 @@ import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/Cargo
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { contratoPolicy, formasPagamentoDoRegime } from "@/lib/dp/contrato-policy";
 import { useRecontratarDpColaborador, type DpColaborador } from "@/hooks/useDpColaboradores";
+import { garantirColaboradorNovo } from "@/lib/billing/excedente-colaboradores";
 
 const REGIMES = ["clt", "intermitente", "estagio", "temporario", "freelancer", "pj", "mei"] as const;
 
@@ -96,6 +97,7 @@ export function ColaboradorRecontratacaoDialog({ colaborador, open, onOpenChange
       return;
     }
     try {
+      await garantirColaboradorNovo(colaborador.company_id, colaborador.nome ?? null);
       await recontratar.mutateAsync({
         id: colaborador.id,
         data_admissao: admissao,

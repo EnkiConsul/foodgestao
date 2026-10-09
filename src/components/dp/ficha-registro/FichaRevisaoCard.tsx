@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { garantirColaboradorNovo } from "@/lib/billing/excedente-colaboradores";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpsertDpCargo, useUpsertDpCargoSalario } from "@/hooks/useDpCadastros";
@@ -517,7 +518,7 @@ export function FichaRevisaoCard({
     executarInterno(camposPermitidos, cargoFinal);
   };
 
-  const executarInterno = (camposPermitidos: string[] | null, cargoAuto: string | null) => {
+  const executarInterno = async (camposPermitidos: string[] | null, cargoAuto: string | null) => {
     if (escolhasPendentes.length > 0) {
       setCompletarAberto(true);
       setTentouCriar(true);
@@ -544,6 +545,14 @@ export function FichaRevisaoCard({
     const dadosEnvio = pontoObrigatorio && possuiFolhaPonto === false
       ? { ...dadosBase, folha_ponto_dispensa_justificativa: justificativaPonto.trim() }
       : dadosBase;
+    if (!(atualizar && !!item.colaborador_existente_id)) {
+      try {
+        await garantirColaboradorNovo(item.company_id, String(dados.nome ?? "") || null);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Inclusão cancelada.");
+        return;
+      }
+    }
     aplicar.mutate(
       {
         item,
