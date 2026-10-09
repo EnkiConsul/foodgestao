@@ -577,6 +577,10 @@ Deno.serve(async (req) => {
       const { data: pr, error: ep } = await admin.rpc("billing_v2_qa_purge", { _emails: emails });
       limpeza.push(`cobrança de teste: ${ep ? "ERRO " + ep.message : JSON.stringify(pr)}`);
     }
+    if (companyIds.length) {
+      await admin.from("dp_colaboradores").delete().in("company_id", companyIds);
+      await admin.from("dp_pendencias_apuracoes").delete().in("company_id", companyIds);
+    }
     await del("companies", "id", companyIds);
     for (const u of userIds) {
       const { error } = await admin.auth.admin.deleteUser(u);
