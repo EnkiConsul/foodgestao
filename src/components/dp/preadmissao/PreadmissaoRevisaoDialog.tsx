@@ -218,6 +218,8 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const [motivo, setMotivo] = useState("");
   const [admin, setAdmin] = useState<Record<string, string>>({});
   const [ficha, setFicha] = useState<Record<string, string>>({});
+  /** Marca de quando a ficha do candidato terminou de carregar (recarrega o formulário). */
+  const [fichaDe, setFichaDe] = useState<string | null>(null);
   const [pessoas, setPessoas] = useState<PessoaEditavel[]>([]);
   const {
     data: cargos = [],
@@ -303,7 +305,14 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     }
     if (!out.nome) out.nome = pa?.candidato_nome ?? "";
     if (!out.cpf && pa?.cpf) out.cpf = mascaraCpf(String(pa.cpf));
+    // O WhatsApp do candidato é o contato oficial da ficha (campo WhatsApp).
+    if (!out.telefone) {
+      const p = (pa ?? {}) as Record<string, unknown>;
+      const extra = d as Record<string, unknown>;
+      out.telefone = String(extra.whatsapp ?? p.whatsapp ?? p.telefone ?? "").trim();
+    }
     setFicha(out);
+    setFichaDe(pa?.id ? `${pa.id}:${JSON.stringify(pa?.dados ?? {}).length}` : null);
   }, [pa?.id, pa?.dados, pa?.candidato_nome, pa?.cpf]);
 
   useEffect(() => {
@@ -1262,7 +1271,7 @@ ${vaga ? `<p><strong>Vaga:</strong> ${esc(vaga)}</p>` : ""}
         open={!!preadmissaoId}
         onOpenChange={(v) => !v && onOpenChange(false)}
         admissao={{
-          chave: `${pa.id}:${(pa as { versao?: number }).versao ?? ""}:${pa.admin_dados ? JSON.stringify(pa.admin_dados).length : 0}`,
+          chave: `${fichaDe ?? "carregando"}:${(pa as { versao?: number }).versao ?? ""}:${pa.admin_dados ? JSON.stringify(pa.admin_dados).length : 0}`,
           form: modo,
           endereco: {
             cep: ficha.cep ?? "", logradouro: ficha.endereco ?? "", numero: ficha.numero ?? "",
