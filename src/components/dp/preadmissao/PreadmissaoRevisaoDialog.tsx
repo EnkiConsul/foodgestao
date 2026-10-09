@@ -26,6 +26,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { notifyError } from "@/lib/notifyError";
+import { gerarFichaAdmissaoPdf } from "@/lib/dp/ficha-admissao-pdf";
+import { tipoPelaExtensao } from "@/lib/dp/abrirDocumento";
 import { PreadmissaoExcluirDialog } from "@/components/dp/preadmissao/PreadmissaoExcluirDialog";
 import {
   ColaboradorFormDialog, type ModoAdmissao, type SalvarAdmissaoEntrada,
