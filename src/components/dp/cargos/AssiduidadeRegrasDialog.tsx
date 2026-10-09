@@ -11,6 +11,7 @@ import { Award } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -43,6 +44,7 @@ export function AssiduidadeRegrasDialog({ open, onOpenChange, unidades, cargos }
   const [cargoId, setCargoId] = useState("");
   const [alcance, setAlcance] = useState<PadraoAlcance>("todos");
   const [form, setForm] = useState<RemuneracaoFormState>(remuneracaoBlank);
+  const [inicio, setInicio] = useState(new Date().toISOString().slice(0, 10));
 
   const alvoUnidade = escopo === "empresa" ? null : unidadeId || null;
   const alvoCargo = escopo === "cargo" ? cargoId || null : null;
@@ -56,6 +58,8 @@ export function AssiduidadeRegrasDialog({ open, onOpenChange, unidades, cargos }
   useEffect(() => {
     if (!open) return;
     setForm(aplicarPadrao(remuneracaoBlank, padraoAtual?.payload));
+    const salvo = (padraoAtual?.payload as Record<string, unknown> | undefined)?.assiduidade_vigencia_inicio;
+    setInicio(typeof salvo === "string" ? salvo : new Date().toISOString().slice(0, 10));
   }, [open, padraoAtual]);
 
   useEffect(() => {
@@ -69,6 +73,10 @@ export function AssiduidadeRegrasDialog({ open, onOpenChange, unidades, cargos }
       toast.error("Escolha a unidade ou o cargo do padrão.");
       return;
     }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio)) {
+      toast.error("Informe a data de início da regra.");
+      return;
+    }
     try {
       await salvarPadrao.mutateAsync({
         unidade_id: alvoUnidade,
@@ -76,6 +84,7 @@ export function AssiduidadeRegrasDialog({ open, onOpenChange, unidades, cargos }
         payload: extrairPadrao(form),
         alcance,
         grupos: ["assiduidade"],
+        assiduidadeVigenciaInicio: inicio,
       });
       toast.success("Regras do prêmio de assiduidade salvas.");
       onOpenChange(false);
@@ -142,6 +151,10 @@ export function AssiduidadeRegrasDialog({ open, onOpenChange, unidades, cargos }
               )}
             </div>
           )}
+          <div className="space-y-2">
+            <Label htmlFor="assid_inicio">Data de início da regra</Label>
+            <Input id="assid_inicio" type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+          </div>
           <div className="space-y-2">
             <Label>Aplicar em</Label>
             <Select value={alcance} onValueChange={(v: PadraoAlcance) => setAlcance(v)}>

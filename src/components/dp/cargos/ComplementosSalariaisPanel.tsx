@@ -37,6 +37,12 @@ const hoje = () => new Date().toISOString().slice(0, 10);
 
 /** Salário fictício usado só na prévia do modo de cálculo. */
 const BASE_PREVIA = 2000;
+
+/** "Início dd/mm/aaaa · " quando o padrão guarda a data de início. */
+const inicioAssid = (payload: unknown): string => {
+  const v = (payload as Record<string, unknown> | undefined)?.assiduidade_vigencia_inicio;
+  return typeof v === "string" ? `Início ${v.split("-").reverse().join("/")} · ` : "Sem data de início · ";
+};
 const ANOS_PREVIA = [3, 5, 9];
 
 const REGRA_VAZIA: RegraTempoServicoInput = {
@@ -98,12 +104,12 @@ export function ComplementosSalariaisPanel({
       {
         chave: "empresa",
         rotulo: "Toda a empresa",
-        resumo: resumoAssiduidade(empresa?.payload as any),
+        resumo: inicioAssid(empresa?.payload) + resumoAssiduidade(empresa?.payload as any),
       },
       ...outros.map((p) => ({
         chave: p.id,
         rotulo: nome(p.unidade_id ?? null, p.cargo_id ?? null),
-        resumo: resumoAssiduidade(p.payload as any),
+        resumo: inicioAssid(p.payload) + resumoAssiduidade(p.payload as any),
       })),
     ];
   }, [padroes, unidades, cargos]);

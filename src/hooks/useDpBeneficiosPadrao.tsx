@@ -67,6 +67,8 @@ export function useSalvarDpBeneficiosPadrao() {
       ignorarColaboradorId?: string | null;
       /** Quais grupos replicar; os demais ficam como já estavam. */
       grupos?: readonly GrupoPadrao[];
+      /** Data de início da regra de assiduidade (guardada no padrão). */
+      assiduidadeVigenciaInicio?: string | null;
     }): Promise<{ id: string; atualizados: number }> => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
 
@@ -87,6 +89,9 @@ export function useSalvarDpBeneficiosPadrao() {
         input.payload,
         grupos,
       );
+      if (input.assiduidadeVigenciaInicio !== undefined)
+        (payloadFinal as Record<string, unknown>).assiduidade_vigencia_inicio =
+          input.assiduidadeVigenciaInicio;
 
       /**
        * Alcance "todos": propaga para os colaboradores ativos do escopo
