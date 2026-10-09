@@ -157,8 +157,15 @@ function Campo({ r, v }: { r: string; v?: string | null }) {
 
 function AssinaturaCard({ s, onAcao }: { s: Json; onAcao: (a: Acao) => void }) {
   const pend = s.pending_plan_change as Json | null;
-  const lim = (s.limites ?? {}) as Json;
-  const recursos = Object.entries((lim.recursos ?? lim) as Json).filter(([, v]) => v && typeof v === "object" && "limite" in (v as Json));
+  const uso = useQuery({
+    queryKey: ["uso-assinatura-v2", s.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("billing_v2_uso_assinatura", { _subscription_id: s.id });
+      if (error) throw error;
+      return (data ?? []) as Json[];
+    },
+  });
+  const recursos = uso.data ?? [];
   const ativa = !["canceled", "expired"].includes(s.status);
   return (
     <Card data-testid={`assinatura-${s.module}`}>
@@ -178,8 +185,11 @@ function AssinaturaCard({ s, onAcao }: { s: Json; onAcao: (a: Acao) => void }) {
         {!!recursos.length && (
           <Bloco t="Uso do Mês">
             <div className="grid gap-1 sm:grid-cols-2">
-              {recursos.map(([k, v]: [string, any]) => (
-                <span key={k}>{RECURSO[k] ?? k}: {v.usado ?? "—"} de {v.limite < 0 ? "ilimitado" : v.limite}</span>
+              {recursos.map((v) => (
+                <span key={v.recurso} data-testid={`uso-${v.recurso}`} className={v.limite != null && v.uso > v.limite ? "text-destructive" : undefined}>
+                  {RECURSO[v.recurso] ?? v.recurso}: {v.uso ?? 0} de {v.limite == null || v.limite < 0 ? "ilimitado" : v.limite}
+                  {v.adicional ? ` (${v.incluido} do plano + ${v.adicional} adicional)` : ""}
+                </span>
               ))}
             </div>
           </Bloco>
@@ -210,8 +220,7 @@ function AssinaturaCard({ s, onAcao }: { s: Json; onAcao: (a: Acao) => void }) {
         {pend && (
           <Bloco t="Troca Agendada">
             <div data-testid="troca-agendada">
-              Para {pend.plano_nome ?? pend.plan_slug ?? pend.plano ?? "outro plano"} ({ciclo(pend.ciclo ?? pend.billing_cycle ?? s.ciclo)}) em {data(pend.efetivo_em ?? pend.effective_at ?? s.current_period_end)}
-              {pend.valor_ciclo_novo_cents ? ` · ${formatCents(pend.valor_ciclo_novo_cents)}` : ""}
+              Para {pend.plano ?? "outro plano"} ({ciclo(pend.ciclo ?? s.ciclo)}) na renovação de {data(pend.efetivo_em ?? s.current_period_end)}
             </div>
           </Bloco>
         )}
@@ -335,7 +344,7 @@ function AcaoDialog({ acao, companyId, onClose, onDone }: { acao: Acao; companyI
             ) : (
               <>
                 <div>Novo valor: {formatCents(c.valor_ciclo_novo_cents)} por {cic === "anual" ? "ano" : "mês"}</div>
-                {c.tipo === "agendada" || c.agendada || c.efetivo_em ? (
+                {!c.imediato ? (
                   <div>Vale a partir de {data(c.efetivo_em ?? s.current_period_end)}, na renovação. Nada é cobrado agora.</div>
                 ) : (
                   <div>Crédito do ciclo atual: {formatCents(c.credito_cents)} · cobrado agora: {formatCents(c.cobrar_agora_cents)}</div>
