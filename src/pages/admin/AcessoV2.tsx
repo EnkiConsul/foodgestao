@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { notifyError } from "@/lib/notifyError";
 
-type Linha = { company_id: string; company_name?: string; module: string; legacy_allowed: boolean; legacy_motivo: string | null; v2_allowed: boolean; v2_motivo: string | null; dia?: string; ocorrencias?: number };
+type Linha = { company_id: string; company_name?: string; module: string; legacy_allowed: boolean; legacy_motivo: string | null; v2_allowed: boolean; v2_motivo: string | null; dia?: string; ocorrencias?: number; origem?: string };
 
 const MODOS = [
   { v: "legado", l: "Legado", d: "Decisão atual; nada é registrado." },
@@ -19,6 +19,7 @@ const MODOS = [
 export default function AdminAcessoV2() {
   const qc = useQueryClient();
   const [motivo, setMotivo] = useState("todos");
+  const [origem, setOrigem] = useState("todas");
 
   const modo = useQuery({
     queryKey: ["access-model-mode"],
@@ -60,7 +61,7 @@ export default function AdminAcessoV2() {
 
   const fonte = simulacao.data ?? diffs.data ?? [];
   const motivos = useMemo(() => Array.from(new Set(fonte.map((l) => l.v2_motivo ?? "liberado"))), [fonte]);
-  const linhas = fonte.filter((l) => motivo === "todos" || (l.v2_motivo ?? "liberado") === motivo);
+  const linhas = fonte.filter((l) => (motivo === "todos" || (l.v2_motivo ?? "liberado") === motivo) && (origem === "todas" || (l.origem ?? "app") === origem));
 
   return (
     <div className="space-y-6">
@@ -87,6 +88,14 @@ export default function AdminAcessoV2() {
             <CardDescription>Legado x V2 — somente leitura.</CardDescription>
           </div>
           <div className="flex gap-2">
+            <Select value={origem} onValueChange={setOrigem}>
+              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as origens</SelectItem>
+                <SelectItem value="app">App Gestão</SelectItem>
+                <SelectItem value="portal">Portal</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={motivo} onValueChange={setMotivo}>
               <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -100,20 +109,21 @@ export default function AdminAcessoV2() {
         <CardContent className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-muted-foreground">
-              <tr><th className="py-2">Empresa</th><th>Módulo</th><th>Legado</th><th>V2</th><th>Motivo V2</th>{!simulacao.data && <th>Dia</th>}</tr>
+              <tr><th className="py-2">Empresa</th><th>Módulo</th><th>Origem</th><th>Legado</th><th>V2</th><th>Motivo V2</th>{!simulacao.data && <th>Dia</th>}</tr>
             </thead>
             <tbody>
               {linhas.map((l, i) => (
                 <tr key={i} className="border-t">
                   <td className="py-2">{l.company_name ?? l.company_id}</td>
                   <td>{l.module === "pessoas" ? "Pessoas" : "Financeiro"}</td>
+                  <td><Badge variant="outline">{l.origem === "portal" ? "Portal" : "App"}</Badge></td>
                   <td><Badge variant={l.legacy_allowed ? "default" : "destructive"}>{l.legacy_allowed ? "Libera" : "Bloqueia"}</Badge></td>
                   <td><Badge variant={l.v2_allowed ? "default" : "destructive"}>{l.v2_allowed ? "Libera" : "Bloqueia"}</Badge></td>
                   <td>{l.v2_motivo ?? "—"}</td>
                   {!simulacao.data && <td>{l.dia}</td>}
                 </tr>
               ))}
-              {!linhas.length && <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">Nenhuma diferença.</td></tr>}
+              {!linhas.length && <tr><td colSpan={7} className="py-6 text-center text-muted-foreground">Nenhuma diferença.</td></tr>}
             </tbody>
           </table>
         </CardContent>

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCompanyEntitlements } from "@/hooks/useModuleAccess";
 import { useMinhasAssinaturas, type Modulo } from "@/hooks/useMinhaAssinatura";
 
 const MODULO_ROTULO: Record<Modulo, string> = {
@@ -24,6 +25,7 @@ function mensagem(rotulo: string, dias: number) {
 /** Aviso no topo do sistema quando o teste grátis está perto do fim. */
 export function TrialCountdownBanner() {
   const { data: assinaturas } = useMinhasAssinaturas();
+  const { data: ent } = useCompanyEntitlements();
   const [dispensado, setDispensado] = useState(
     () => sessionStorage.getItem(CHAVE) === "1",
   );
@@ -37,7 +39,7 @@ export function TrialCountdownBanner() {
     return candidatas[0] ?? null;
   }, [assinaturas]);
 
-  if (dispensado || !alvo) return null;
+  if (dispensado || !alvo || ent?.mode === "v2") return null;
 
   const modulo = (alvo.a.module ?? "financeiro") as Modulo;
   const rotulo = MODULO_ROTULO[modulo] ?? "seu plano";
