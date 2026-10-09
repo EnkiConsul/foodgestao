@@ -124,14 +124,49 @@ function fiscalStatus(eventType: string, invoice: any): string {
   return "processing";
 }
 
+type Env = "production" | "sandbox";
+
+/**
+ * Barreira entre ambientes: se algum id externo do evento pertence a um
+ * registro do OUTRO ambiente, o evento é ignorado e vira divergência.
+ */
+async function cruzaAmbiente(admin: Admin, env: Env, ev: { event_id: string; event_type: string }, payload: any): Promise<boolean> {
+  const outro: Env = env === "sandbox" ? "production" : "sandbox";
+  const payIds = [payload?.payment?.id, payload?.invoice?.payment, payload?.invoice?.paymentId].filter(Boolean).map(String);
+  const subIds = [payload?.subscription?.id, payload?.payment?.subscription].filter(Boolean).map(String);
+  const achados: Array<{ tabela: string; external_id: string }> = [];
+  if (payIds.length) {
+    const { data } = await admin.from("invoices").select("external_invoice_id")
+      .eq("asaas_env", outro).in("external_invoice_id", payIds);
+    for (const r of data ?? []) achados.push({ tabela: "invoices", external_id: String((r as any).external_invoice_id) });
+  }
+  if (subIds.length) {
+    const { data } = await admin.from("subscriptions").select("external_subscription_id")
+      .eq("asaas_env", outro).in("external_subscription_id", subIds);
+    for (const r of data ?? []) achados.push({ tabela: "subscriptions", external_id: String((r as any).external_subscription_id) });
+  }
+  if (!achados.length) return false;
+  for (const a of achados) {
+    await admin.from("asaas_env_divergencias").insert({
+      event_id: ev.event_id, event_type: ev.event_type, evento_env: env, registro_env: outro,
+      tabela: a.tabela, external_id: a.external_id,
+      detalhe: "Evento ignorado: aponta para registro de outro ambiente",
+    });
+  }
+  console.warn(`asaas-webhook-worker: evento ${ev.event_id} (${env}) cruza ambiente — ignorado`);
+  return true;
+}
+
 /** Lógica de negócio de um evento do Asaas. Deve ser idempotente. */
-async function processEvent(admin: Admin, eventType: string, payload: any) {
+async function processEvent(admin: Admin, env: Env, eventType: string, payload: any) {
   const payment = payload?.payment ?? null;
   const subscription = payload?.subscription ?? null;
   const fiscal = payload?.invoice ?? null;
 
   // ---- Nota fiscal de serviço (NFS-e) emitida pelo Asaas ----
   if (eventType.startsWith("INVOICE_") && fiscal?.id) {
+    // Sandbox nunca alimenta o gancho fiscal.
+    if (env === "sandbox") return;
     const paymentId = fiscal.payment ?? fiscal.paymentId ?? null;
     if (paymentId) {
       const patch = {
@@ -145,6 +180,7 @@ async function processEvent(admin: Admin, eventType: string, payload: any) {
       const { error: fiscalErr } = await admin
         .from("invoices")
         .update(patch)
+        .eq("asaas_env", "production")
         .eq("external_invoice_id", String(paymentId));
       if (fiscalErr) throw new Error(`fiscal_update: ${fiscalErr.message}`);
     }
@@ -155,6 +191,7 @@ async function processEvent(admin: Admin, eventType: string, payload: any) {
   if (payment?.id) {
     let { data: inv } = await admin
       .from("invoices").select("*")
+      .eq("asaas_env", env)
       .eq("external_invoice_id", payment.id).maybeSingle();
 
     // Fatura recorrente gerada pelo Asaas: cria a linha local
@@ -162,6 +199,7 @@ async function processEvent(admin: Admin, eventType: string, payload: any) {
       const { data: subRow } = await admin
         .from("subscriptions")
         .select("id, user_id")
+        .eq("asaas_env", env)
         .eq("external_subscription_id", payment.subscription)
         .maybeSingle();
       if (subRow) {
@@ -179,12 +217,13 @@ async function processEvent(admin: Admin, eventType: string, payload: any) {
           external_invoice_id: payment.id,
           external_payment_url: payment.invoiceUrl ?? null,
           payment_method: method as any,
+          asaas_env: env,
         }).select().single();
         if (insErr && insErr.code !== "23505") throw new Error(`invoice_insert: ${insErr.message}`);
         if (inserted) inv = inserted as any;
         if (!inserted) {
           const { data: again } = await admin
-            .from("invoices").select("*").eq("external_invoice_id", payment.id).maybeSingle();
+            .from("invoices").select("*").eq("asaas_env", env).eq("external_invoice_id", payment.id).maybeSingle();
           inv = again as any;
         }
       }
@@ -219,7 +258,8 @@ async function processEvent(admin: Admin, eventType: string, payload: any) {
           }).eq("id", invoice.subscription_id);
         }
         // Régua de cobrança: o pagamento interrompe tudo e dispara a reativação.
-        await pararReguaEAvisar(admin, invoice);
+        // Sandbox nunca gera e-mail a cliente.
+        if (env === "production") await pararReguaEAvisar(admin, invoice);
       } else if (eventType === "PAYMENT_OVERDUE") {
         await admin.from("invoices").update({ status: "overdue" }).eq("id", invoice.id);
         if (invoice.subscription_id) {
@@ -243,7 +283,7 @@ async function processEvent(admin: Admin, eventType: string, payload: any) {
   if (subscription?.id && eventType === "SUBSCRIPTION_DELETED") {
     await admin.from("subscriptions").update({
       status: "canceled", canceled_at: new Date().toISOString(),
-    }).eq("external_subscription_id", subscription.id);
+    }).eq("asaas_env", env).eq("external_subscription_id", subscription.id);
   }
 }
 
@@ -282,7 +322,12 @@ Deno.serve(async (req) => {
       continue;
     }
     try {
-      await processEvent(admin, ev.event_type, ev.payload);
+      const { data: envRow } = await admin.from("asaas_webhook_events")
+        .select("asaas_env").eq("id", ev.id).maybeSingle();
+      const env: Env = (envRow as any)?.asaas_env === "sandbox" ? "sandbox" : "production";
+      if (!(await cruzaAmbiente(admin, env, ev, ev.payload))) {
+        await processEvent(admin, env, ev.event_type, ev.payload);
+      }
       await admin.rpc("asaas_webhook_finalize_success", { _event_id: ev.id, _worker: workerId });
       processed++;
     } catch (e) {

@@ -1,6 +1,6 @@
 // Refresh PIX QR code for an invoice
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { asaasFetch } from "../_shared/asaas.ts";
+import { asaasFetch, parseAsaasEnv, type AsaasEnv } from "../_shared/asaas.ts";
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -87,6 +87,7 @@ function buildProdDeps(): RefreshDeps {
   const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
+  let envDaFatura: AsaasEnv = "production";
   return {
     getUserId: async (authHeader) => {
       const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -98,8 +99,9 @@ function buildProdDeps(): RefreshDeps {
     },
     fetchInvoice: async (id) => {
       const { data } = await admin.from("invoices")
-        .select("id,user_id,payment_method,external_invoice_id,subscription_id")
+        .select("id,user_id,payment_method,external_invoice_id,subscription_id,asaas_env")
         .eq("id", id).maybeSingle();
+      envDaFatura = parseAsaasEnv((data as any)?.asaas_env);
       return (data as InvoiceRow | null) ?? null;
     },
     fetchSubscriptionAsaasId: async (subscriptionId) => {
@@ -108,11 +110,11 @@ function buildProdDeps(): RefreshDeps {
       return (data?.external_subscription_id as string | null) ?? null;
     },
     fetchFirstPaymentId: async (asaasSubId) => {
-      const payments = await asaasFetch(`/subscriptions/${asaasSubId}/payments`).catch(() => null);
+      const payments = await asaasFetch(`/subscriptions/${asaasSubId}/payments`, {}, envDaFatura).catch(() => null);
       return payments?.data?.[0]?.id ?? null;
     },
     fetchPixQrCode: async (paymentId) => {
-      const qr = await asaasFetch(`/payments/${paymentId}/pixQrCode`);
+      const qr = await asaasFetch(`/payments/${paymentId}/pixQrCode`, {}, envDaFatura);
       if (!qr?.encodedImage || !qr?.payload) return null;
       return { encodedImage: qr.encodedImage, payload: qr.payload };
     },

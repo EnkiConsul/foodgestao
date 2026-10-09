@@ -23,9 +23,12 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
   try {
-    const expectedToken = Deno.env.get("ASAAS_WEBHOOK_TOKEN") ?? "";
+    // O ambiente é definido SOMENTE pelo token recebido; token desconhecido é recusado.
     const receivedToken = req.headers.get("asaas-access-token") ?? "";
-    if (!secretMatches(receivedToken, expectedToken)) {
+    let asaasEnv: "production" | "sandbox" | null = null;
+    if (secretMatches(receivedToken, Deno.env.get("ASAAS_WEBHOOK_TOKEN") ?? "")) asaasEnv = "production";
+    else if (secretMatches(receivedToken, Deno.env.get("ASAAS_SANDBOX_WEBHOOK_TOKEN") ?? "")) asaasEnv = "sandbox";
+    if (!asaasEnv) {
       console.warn("asaas-webhook: invalid token");
       return new Response("Forbidden", { status: 403, headers: corsHeaders });
     }
@@ -55,6 +58,7 @@ Deno.serve(async (req) => {
       event_id: eventId,
       event_type: eventType,
       payload,
+      asaas_env: asaasEnv,
       status: "pending",
       next_attempt_at: new Date().toISOString(),
     });
