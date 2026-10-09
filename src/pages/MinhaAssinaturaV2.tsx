@@ -23,7 +23,7 @@ const STATUS: Record<string, string> = {
 };
 const FATURA: Record<string, string> = { draft: "Rascunho", open: "Em aberto", paid: "Paga", overdue: "Vencida", canceled: "Cancelada", refunded: "Estornada" };
 const GRANT: Record<string, string> = { cortesia_total: "Cortesia Integral", desconto_percentual: "Desconto", carencia: "Carência" };
-const RECURSO: Record<string, string> = { empresas: "Empresas", usuarios: "Usuários", colaboradores: "Colaboradores", unidades: "Unidades", open_finance: "Open Finance", contadores: "Contadores" };
+const RECURSO: Record<string, string> = { empresas: "Empresas", usuarios: "Usuários", colaboradores: "Colaboradores", unidades: "Unidades", open_finance: "Open Finance", contadores: "Contadores", usuarios_contador: "Usuários Contador" };
 const data = (v?: string | null) => (v ? new Date(v).toLocaleDateString("pt-BR") : "—");
 const ciclo = (c: string) => (c === "anual" ? "Anual" : "Mensal");
 
@@ -174,6 +174,13 @@ function AssinaturaCard({ s, onAcao }: { s: Json; onAcao: (a: Acao) => void }) {
       return data as Json;
     },
   });
+  const nomes = useQuery({
+    queryKey: ["planos-nomes", s.module],
+    queryFn: async () => {
+      const { data } = await supabase.from("plans").select("slug,name").eq("module", s.module);
+      return Object.fromEntries(((data ?? []) as Json[]).map((p) => [p.slug, p.name])) as Record<string, string>;
+    },
+  });
   const pendProrata = ((s.proratas_pendentes ?? []) as Json[]).reduce((t, p) => t + (p.valor_cents ?? 0), 0);
   const valorRenovacao = (pend?.plano ? destino.data?.valor_ciclo_novo_cents : null) ?? s.valor_ciclo_cents;
   const ativa = !["canceled", "expired"].includes(s.status);
@@ -230,7 +237,7 @@ function AssinaturaCard({ s, onAcao }: { s: Json; onAcao: (a: Acao) => void }) {
         {pend && (
           <Bloco t="Troca Agendada">
             <div data-testid="troca-agendada">
-              Para {pend.plano ?? "outro plano"} ({ciclo(pend.ciclo ?? s.ciclo)}) na renovação de {data(pend.efetivo_em ?? s.current_period_end)}
+              Para {nomes.data?.[pend.plano] ?? pend.plano ?? "outro plano"} ({ciclo(pend.ciclo ?? s.ciclo)}) na renovação de {data(pend.efetivo_em ?? s.current_period_end)}
             </div>
           </Bloco>
         )}
