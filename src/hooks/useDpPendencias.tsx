@@ -1346,12 +1346,16 @@ export function useDpPendencias() {
           .eq("company_id", selectedCompanyId!)
           .is("unidade_id", null)
           .maybeSingle();
-        const sfConfig = {
-          cota: cfgSf?.salario_familia_cota != null ? Number(cfgSf.salario_familia_cota) : null,
-          teto: cfgSf?.salario_familia_teto != null ? Number(cfgSf.salario_familia_teto) : null,
-          vigencia: cfgSf?.salario_familia_vigencia ?? null,
-          confirmadoEm: cfgSf?.salario_familia_confirmado_em ?? null,
-        };
+        const { buscarSalarioFamiliaVigente } = await import("@/lib/dp/salarioFamiliaVigente");
+        const vigSf = await buscarSalarioFamiliaVigente(selectedCompanyId!);
+        const sfConfig = vigSf
+          ? { cota: vigSf.cota, teto: vigSf.teto, vigencia: vigSf.vigencia_inicio, confirmadoEm: vigSf.vigencia_inicio }
+          : {
+              cota: cfgSf?.salario_familia_cota != null ? Number(cfgSf.salario_familia_cota) : null,
+              teto: cfgSf?.salario_familia_teto != null ? Number(cfgSf.salario_familia_teto) : null,
+              vigencia: cfgSf?.salario_familia_vigencia ?? null,
+              confirmadoEm: cfgSf?.salario_familia_confirmado_em ?? null,
+            };
         if (tabelaSalarioFamiliaVencida(sfConfig, ymd(today))) {
           // Prazo prático: primeira folha do ano (fim de janeiro).
           const prazo = new Date(anoVigente, 0, 31);
