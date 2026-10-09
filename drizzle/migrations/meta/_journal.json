@@ -218,6 +218,13 @@
       "when": 1791565569638,
       "tag": "0030_excedente_modo_por_empresa_teste",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1791565722991,
+      "tag": "0031_fix_excedente_previa_membro",
+      "breakpoints": true
     }
   ]
 }
