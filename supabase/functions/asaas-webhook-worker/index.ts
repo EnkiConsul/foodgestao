@@ -258,7 +258,8 @@ async function processEvent(admin: Admin, env: Env, eventType: string, payload: 
           }).eq("id", invoice.subscription_id);
         }
         // Régua de cobrança: o pagamento interrompe tudo e dispara a reativação.
-        await pararReguaEAvisar(admin, invoice);
+        // Sandbox nunca gera e-mail a cliente.
+        if (env === "production") await pararReguaEAvisar(admin, invoice);
       } else if (eventType === "PAYMENT_OVERDUE") {
         await admin.from("invoices").update({ status: "overdue" }).eq("id", invoice.id);
         if (invoice.subscription_id) {
@@ -282,7 +283,7 @@ async function processEvent(admin: Admin, env: Env, eventType: string, payload: 
   if (subscription?.id && eventType === "SUBSCRIPTION_DELETED") {
     await admin.from("subscriptions").update({
       status: "canceled", canceled_at: new Date().toISOString(),
-    }).eq("external_subscription_id", subscription.id);
+    }).eq("asaas_env", env).eq("external_subscription_id", subscription.id);
   }
 }
 
@@ -321,7 +322,12 @@ Deno.serve(async (req) => {
       continue;
     }
     try {
-      await processEvent(admin, ev.event_type, ev.payload);
+      const { data: envRow } = await admin.from("asaas_webhook_events")
+        .select("asaas_env").eq("id", ev.id).maybeSingle();
+      const env: Env = (envRow as any)?.asaas_env === "sandbox" ? "sandbox" : "production";
+      if (!(await cruzaAmbiente(admin, env, ev, ev.payload))) {
+        await processEvent(admin, env, ev.event_type, ev.payload);
+      }
       await admin.rpc("asaas_webhook_finalize_success", { _event_id: ev.id, _worker: workerId });
       processed++;
     } catch (e) {
