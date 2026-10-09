@@ -71,6 +71,13 @@
       "when": 1791504790907,
       "tag": "0009_fase2_1_acesso_modulo_portal_cobertura",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791505734240,
+      "tag": "0010_qa_fase22_testes_temporario",
+      "breakpoints": true
     }
   ]
 }
