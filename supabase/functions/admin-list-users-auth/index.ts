@@ -114,8 +114,12 @@ Deno.serve(async (req) => {
 
     // Classificação: colaborador do portal > dono > administrador/membro > sem empresa
     const { data: colabs } = await admin
-      .from("dp_colaboradores").select("user_id").not("user_id", "is", null);
+      .from("dp_colaboradores").select("user_id, company_id").not("user_id", "is", null);
     const colabSet = new Set((colabs ?? []).map((c: any) => c.user_id));
+    (colabs ?? []).forEach((m: any) => {
+      const c = companyById.get(m.company_id);
+      if (c) push(m.user_id, { id: c.id, name: c.name || c.trade_name, role: "colaborador" });
+    });
     const { data: subsUser } = await admin
       .from("subscriptions").select("user_id, trial_ends_at, status");
     const trialByUser = new Map<string, boolean>();
