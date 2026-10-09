@@ -9,8 +9,8 @@ export function AdminBillingMetrics() {
     queryKey: ["billing-metrics"],
     queryFn: async () => {
       const [{ data: subs }, { data: invoices }] = await Promise.all([
-        supabase.from("subscriptions").select("status, plan:plans(price_cents, billing_period)"),
-        supabase.from("invoices").select("status, amount_cents, paid_at").gte("created_at", new Date(Date.now() - 30 * 86400_000).toISOString()),
+        supabase.from("subscriptions").select("status, plan:plans(price_cents, billing_period)").eq("asaas_env", "production"),
+        supabase.from("invoices").select("status, amount_cents, paid_at").eq("asaas_env", "production").gte("created_at", new Date(Date.now() - 30 * 86400_000).toISOString()),
       ]);
 
       const active = (subs || []).filter((s: any) => ["active", "trialing", "past_due"].includes(s.status));
