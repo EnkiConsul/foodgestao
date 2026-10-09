@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import {
   PERIODICIDADE_LABEL,
@@ -61,6 +62,8 @@ type Props = {
   onAprovar?: (anexo: Anexo, validade: string | null) => void;
   onRecusar?: (anexo: Anexo, motivo: string) => void;
   onDispensar?: (motivo: string) => void;
+  /** Ao dispensar, torna o requisito opcional no padrão da empresa. */
+  onTornarPadraoOpcional?: () => void;
   onExcluir?: (anexo: Anexo) => void;
   onPedirAceite?: (anexo: Anexo) => void;
   onAceitar?: (anexo: Anexo) => void;
@@ -77,6 +80,7 @@ export function DocumentoRequisitoRow({
   onAprovar,
   onRecusar,
   onDispensar,
+  onTornarPadraoOpcional,
   onExcluir,
   onPedirAceite,
   onAceitar,
@@ -94,6 +98,7 @@ export function DocumentoRequisitoRow({
   const [validade, setValidade] = useState<string>(item.validade ?? "");
   const [recusaAlvo, setRecusaAlvo] = useState<Anexo | null>(null);
   const [dispensaAberta, setDispensaAberta] = useState(false);
+  const [virarPadrao, setVirarPadrao] = useState(false);
   const [motivo, setMotivo] = useState("");
 
   const anexos = (item.anexos ?? []).filter((a) => !!a.documento_id) as Anexo[];
@@ -433,6 +438,22 @@ export function DocumentoRequisitoRow({
               onChange={(e) => setMotivo(e.target.value)}
             />
           </div>
+          {onTornarPadraoOpcional && item.requisito.obrigatoriedade === "obrigatorio" && (
+            <label className="flex items-start gap-2 rounded-md border bg-muted/40 p-3 text-sm">
+              <Checkbox
+                checked={virarPadrao}
+                onCheckedChange={(v) => setVirarPadrao(v === true)}
+                className="mt-0.5"
+              />
+              <span>
+                Aplicar Também Como Padrão Da Empresa
+                <span className="block text-xs text-muted-foreground">
+                  O documento passa a ser opcional para todos os próximos candidatos e colaboradores.
+                  Desmarcado, vale só para esta pessoa.
+                </span>
+              </span>
+            </label>
+          )}
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDispensaAberta(false)}>
               Cancelar
@@ -441,8 +462,10 @@ export function DocumentoRequisitoRow({
               disabled={!motivo.trim()}
               onClick={() => {
                 onDispensar?.(motivo.trim());
+                if (virarPadrao) onTornarPadraoOpcional?.();
                 setDispensaAberta(false);
                 setMotivo("");
+                setVirarPadrao(false);
               }}
             >
               Dispensar
