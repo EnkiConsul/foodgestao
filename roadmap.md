@@ -74,11 +74,11 @@
 - [x] Fechar teste o) com espera de 3 min (caso isolado em duas etapas)
 - [x] Taxas do cartão editáveis pelo super admin (Backoffice → Assinaturas), com data da última alteração
 - [x] Taxas do cartão validadas também no servidor
-- [ ] Checkout novo (só com checkout_v2 = 'v2')
+- [x] Checkout novo (só com checkout_v2 = 'v2') + teste t
 - [x] Página "Minha assinatura" (/assinatura), só com checkout_v2 = 'v2'
 - [ ] Pró-rata pequena sem mensalidade em aberto: somar quando o Asaas gerar a próxima cobrança
 - [ ] Colaboradores excedentes no fechamento do ciclo
 - [ ] NFS-e pelo Asaas com parâmetro emitir_nfse (padrão desligado)
 - [ ] Conciliação diária com o Asaas (só aponta)
 - [x] Testes u e y
-- [ ] Testes t, v, w, x, inventário do Sandbox e limpeza [TESTE]
+- [ ] Testes v, w, x, inventário do Sandbox e limpeza [TESTE]
