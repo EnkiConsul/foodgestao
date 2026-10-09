@@ -279,6 +279,7 @@ Deno.serve(async (req) => {
         const N = await prep("EMPRESA W2");
         const { data: zn } = await admin.from("invoices").insert({ user_id: dono.id, billing_account_id: N.acc, amount_cents: 1000, status: "paid", paid_at: new Date().toISOString(), due_date: new Date().toISOString().slice(0, 10), external_invoice_id: `ctrl_${rnd}`, notes: "[TESTE] controle", asaas_env: "sandbox" }).select("*").single();
         const rn = await solicitarNfse(admin, zn, "sandbox");
+        await admin.from("invoices").delete().eq("id", zn!.id);
         const { count: prodNf } = await admin.from("billing_v2_nfse_solicitacoes").select("id", { count: "exact", head: true }).eq("asaas_env", "production");
         reg("w", glob?.value === "desligado" && !!nf && nf.tomador_documento === W.cnpj && nf.valor_cents === invW!.amount_cents && rz.status === "nao_emitida_valor_zero" && rn.status === "desligada" && (prodNf ?? 0) === 0,
           `parâmetro global: ${JSON.stringify(glob?.value)}; aviso processado: ${!!ev?.processed_at}; solicitação para o CNPJ ${nf?.tomador_documento} (pagador ${W.cnpj}), ${brl(nf?.valor_cents ?? 0)}, status "${nf?.status}" ${nf?.asaas_invoice_id ?? ""} ${nf?.resposta ? JSON.stringify(nf.resposta).slice(0, 220) : ""}; fatura zero: ${rz.status}; outra conta sem exceção: ${rn.status}; solicitações em produção: ${prodNf}`);
