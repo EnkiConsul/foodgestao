@@ -92,6 +92,13 @@
       "when": 1791505974714,
       "tag": "0012_qa_fase22_remover_rotina_teste",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791507330370,
+      "tag": "0013_fase3_checkout_v2_flag_e_quote",
+      "breakpoints": true
     }
   ]
 }

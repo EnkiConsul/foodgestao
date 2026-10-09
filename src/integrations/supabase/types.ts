@@ -16761,6 +16761,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      billing_v2_quote: {
+        Args: {
+          _billing_account_id: string
+          _billing_cycle: string
+          _coupon_code?: string
+          _itens: Json
+        }
+        Returns: Json
+      }
       billing_v2_reconciliation: {
         Args: never
         Returns: {
@@ -16975,6 +16984,8 @@ export type Database = {
         }
         Returns: number
       }
+      checkout_v2_mode: { Args: never; Returns: string }
+      checkout_v2_set_mode: { Args: { _mode: string }; Returns: undefined }
       claim_open_finance_sync:
         | {
             Args: {
