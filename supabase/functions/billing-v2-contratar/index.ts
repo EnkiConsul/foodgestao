@@ -19,7 +19,11 @@ const Body = z.discriminatedUnion("acao", [
     parcelas: z.number().int().min(1).max(12).optional(), modo: z.enum(["empresa", "grupo"]).optional(),
     // valor vindo do navegador é ignorado: o servidor sempre recalcula
     valor_cents: z.number().optional(),
-    adicionais: z.array(z.object({ code: z.string().max(40), qtd: z.number().int().min(1).max(500) })).max(10).optional() }),
+    adicionais: z.array(z.object({ code: z.string().max(40), qtd: z.number().int().min(1).max(500) })).max(10).optional(),
+    pagador: z.object({
+      documento: z.string().transform((s) => s.replace(/\D/g, "")).refine((s) => s.length === 11 || s.length === 14, "CPF/CNPJ inválido"),
+      email: z.string().trim().email().max(255),
+    }).optional() }),
   z.object({ acao: z.literal("adicional"), company_id: z.string().uuid(), subscription_id: z.string().uuid(), code: z.string().max(40), qtd: z.number().int().min(1).max(500) }),
   z.object({ acao: z.literal("trocar_plano"), company_id: z.string().uuid(), subscription_id: z.string().uuid(), plano: z.string().min(3).max(60), ciclo, forma: forma.default("pix") }),
   z.object({ acao: z.literal("cancelar_agendamento"), company_id: z.string().uuid(), subscription_id: z.string().uuid() }),
@@ -64,6 +68,11 @@ Deno.serve(async (req) => {
     }
     if (b.acao === "contratar") {
       if (b.valor_cents !== undefined) console.warn("billing-v2-contratar: valor do navegador ignorado", b.valor_cents);
+      // Dados do pagador: gravados só enquanto o cliente ainda não existe no Asaas
+      if (b.pagador && !conta.asaas_customer_id) {
+        await admin.from("billing_accounts").update({ documento_pagador: b.pagador.documento, email_cobranca: b.pagador.email }).eq("id", conta.id);
+        conta.documento_pagador = b.pagador.documento; conta.email_cobranca = b.pagador.email;
+      }
       const r = await contratar(admin, conta, au?.user?.email ?? "", b.company_id, b, criados);
       return json({ ok: true, ...r, asaas: criados });
     }
