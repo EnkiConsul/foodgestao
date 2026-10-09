@@ -7,11 +7,10 @@
  */
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Ban, CalendarClock, Eye, Loader2, RefreshCw, Search, Trash2, UserPlus } from "lucide-react";
+import { Ban, CalendarClock, Eye, Loader2, RefreshCw, Trash2, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -28,6 +27,20 @@ import {
   PREADMISSAO_STATUS_LABEL, useDpPreadmissaoConvite, useDpPreadmissoes,
   type PreadmissaoStatus,
 } from "@/hooks/dp/useDpPreadmissoes";
+import { DpFilters, DpFilterField, type DpFilterChip } from "@/components/dp/DpFilters";
+import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
+import { DpActionsMenu } from "@/components/dp/DpActions";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type ColunaKey = "candidato" | "situacao" | "cargo" | "validade";
+const COLUNAS: { key: ColunaKey; label: string }[] = [
+  { key: "candidato", label: "Candidato" },
+  { key: "situacao", label: "Situação" },
+  { key: "cargo", label: "Cargo / Unidade" },
+  { key: "validade", label: "Link vale até" },
+];
+const COLUNAS_STORAGE = "dp.preadmissoes.colunas_ocultas";
+
 
 const TOM: Partial<Record<PreadmissaoStatus, string>> = {
   aguardando_revisao: "bg-amber-500/10 text-amber-700 border-amber-500/30",
@@ -75,14 +88,40 @@ export function PreadmissoesPanel({
   const nomeCargo = (id: string | null) => cargos.find((c) => c.id === id)?.nome ?? "—";
   const nomeUnidade = (id: string | null) => unidades.find((u) => u.id === id)?.nome ?? "—";
 
+  const [fSituacao, setFSituacao] = useState("todas");
+  const [fUnidade, setFUnidade] = useState("todas");
+  const [fCargo, setFCargo] = useState("todos");
+  const limparFiltros = () => { setFSituacao("todas"); setFUnidade("todas"); setFCargo("todos"); };
+
+  const [ocultas, setOcultas] = useState<ColunaKey[]>(() => {
+    try { return JSON.parse(localStorage.getItem(COLUNAS_STORAGE) ?? "[]"); } catch { return []; }
+  });
+  const salvarOcultas = (v: ColunaKey[]) => {
+    setOcultas(v);
+    try { localStorage.setItem(COLUNAS_STORAGE, JSON.stringify(v)); } catch { /* sem armazenamento */ }
+  };
+  const alternarColuna = (k: ColunaKey) =>
+    salvarOcultas(ocultas.includes(k) ? ocultas.filter((x) => x !== k) : [...ocultas, k]);
+  const ver = (k: ColunaKey) => !ocultas.includes(k);
+
+  const chips: DpFilterChip[] = [
+    fSituacao !== "todas" && { key: "s", label: PREADMISSAO_STATUS_LABEL[fSituacao as PreadmissaoStatus], onRemove: () => setFSituacao("todas") },
+    fUnidade !== "todas" && { key: "u", label: nomeUnidade(fUnidade), onRemove: () => setFUnidade("todas") },
+    fCargo !== "todos" && { key: "c", label: nomeCargo(fCargo), onRemove: () => setFCargo("todos") },
+  ].filter(Boolean) as DpFilterChip[];
+
   const filtradas = useMemo(() => {
     const termo = busca.trim().toLocaleLowerCase("pt-BR");
-    if (!termo) return lista;
-    return lista.filter((p) =>
-      p.candidato_nome.toLocaleLowerCase("pt-BR").includes(termo)
-      || (p.whatsapp ?? "").includes(termo)
-      || (p.cpf ?? "").includes(termo.replace(/\D/g, "")));
-  }, [lista, busca]);
+    const digitos = termo.replace(/\D/g, "");
+    return lista.filter((p) => {
+      if (fSituacao !== "todas" && p.status !== fSituacao) return false;
+      if (fUnidade !== "todas" && p.unidade_prevista_id !== fUnidade) return false;
+      if (fCargo !== "todos" && p.cargo_previsto_id !== fCargo) return false;
+      if (!termo) return true;
+      return p.candidato_nome.toLocaleLowerCase("pt-BR").includes(termo)
+        || (!!digitos && ((p.whatsapp ?? "").includes(digitos) || (p.cpf ?? "").includes(digitos)));
+    });
+  }, [lista, busca, fSituacao, fUnidade, fCargo]);
 
   const gerarNovoLink = async (id: string) => {
     try {
@@ -133,22 +172,48 @@ export function PreadmissoesPanel({
       {aba === "regras" ? <AdmissaoRegrasPanel /> : (
       <Card>
         <CardContent className="p-3 sm:p-4 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative max-w-sm flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-9 h-10"
-                placeholder="Buscar por nome, CPF ou WhatsApp"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-              />
-            </div>
-            {mostrarBotaoConvidar && (
+          {mostrarBotaoConvidar && (
+            <div className="flex justify-end">
               <Button onClick={() => setConvidando(true)}>
                 <UserPlus className="h-4 w-4 mr-2" /> Convidar Candidato
               </Button>
-            )}
-          </div>
+            </div>
+          )}
+          <DpFilters
+            search={{ value: busca, onChange: setBusca, placeholder: "Nome, CPF ou WhatsApp" }}
+            chips={chips}
+            onClear={limparFiltros}
+          >
+            <DpFilterField label="Situação">
+              <Select value={fSituacao} onValueChange={setFSituacao}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas</SelectItem>
+                  {(Object.keys(PREADMISSAO_STATUS_LABEL) as PreadmissaoStatus[]).map((s) => (
+                    <SelectItem key={s} value={s}>{PREADMISSAO_STATUS_LABEL[s]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </DpFilterField>
+            <DpFilterField label="Unidade">
+              <Select value={fUnidade} onValueChange={setFUnidade}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas</SelectItem>
+                  {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </DpFilterField>
+            <DpFilterField label="Cargo">
+              <Select value={fCargo} onValueChange={setFCargo}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </DpFilterField>
+          </DpFilters>
 
           {isLoading ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
@@ -200,88 +265,86 @@ export function PreadmissoesPanel({
                 ))}
               </div>
 
-              {/* Telas maiores */}
-              <div className="hidden md:block overflow-x-auto">
-                <Table>
+              {/* Telas maiores: largura fixa e texto quebrando — nunca rolagem lateral */}
+              <div className="hidden md:block">
+                <div className="mb-2 flex justify-end">
+                  <DpTableColumnsMenu
+                    columns={COLUNAS}
+                    hidden={ocultas}
+                    essentialKeys={["candidato"]}
+                    onToggle={alternarColuna}
+                    onReset={() => salvarOcultas([])}
+                  />
+                </div>
+                <Table className="table-fixed w-full">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Candidato</TableHead>
-                      <TableHead>Situação</TableHead>
-                      <TableHead>Cargo / Unidade</TableHead>
-                      <TableHead>Link vale até</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
+                      {ver("candidato") && <TableHead className="w-[30%]">Candidato</TableHead>}
+                      {ver("situacao") && <TableHead className="w-[18%]">Situação</TableHead>}
+                      {ver("cargo") && <TableHead>Cargo / Unidade</TableHead>}
+                      {ver("validade") && <TableHead className="w-[14%]">Link vale até</TableHead>}
+                      <TableHead className="w-[104px] text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filtradas.map((p) => (
                       <TableRow key={p.id} className="cursor-pointer" onClick={() => setRevisando(p.id)}>
-                        <TableCell className="whitespace-nowrap">
-                          <span className="font-medium">{p.candidato_nome}</span>
-                          <span className="block text-xs text-muted-foreground">{p.whatsapp}</span>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <Badge variant="outline" className={TOM[p.status]}>
-                            {PREADMISSAO_STATUS_LABEL[p.status]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                          {nomeCargo(p.cargo_previsto_id)} · {nomeUnidade(p.unidade_prevista_id)}{p.regime_previsto ? ` · ${REGIMES_ADMISSAO.find((r) => r.value === p.regime_previsto)?.label ?? p.regime_previsto}` : ""}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                          {p.convite_expira_em ? new Date(p.convite_expira_em).toLocaleDateString("pt-BR") : "—"}
-                        </TableCell>
-                        <TableCell className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                          {podeProrrogar(p.status, p.colaborador_id) && (
+                        {ver("candidato") && (
+                          <TableCell className="break-words">
+                            <span className="font-medium">{p.candidato_nome}</span>
+                            <span className="block text-xs text-muted-foreground">{p.whatsapp}</span>
+                          </TableCell>
+                        )}
+                        {ver("situacao") && (
+                          <TableCell>
+                            <Badge variant="outline" className={`${TOM[p.status] ?? ""} whitespace-normal`}>
+                              {PREADMISSAO_STATUS_LABEL[p.status]}
+                            </Badge>
+                          </TableCell>
+                        )}
+                        {ver("cargo") && (
+                          <TableCell className="break-words text-sm text-muted-foreground">
+                            {nomeCargo(p.cargo_previsto_id)} · {nomeUnidade(p.unidade_prevista_id)}{p.regime_previsto ? ` · ${REGIMES_ADMISSAO.find((r) => r.value === p.regime_previsto)?.label ?? p.regime_previsto}` : ""}
+                          </TableCell>
+                        )}
+                        {ver("validade") && (
+                          <TableCell className="text-sm text-muted-foreground">
+                            {p.convite_expira_em ? new Date(p.convite_expira_em).toLocaleDateString("pt-BR") : "—"}
+                          </TableCell>
+                        )}
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1">
                             <Button
                               size="sm"
                               variant="ghost"
-                              title="Prorrogar validade do link atual"
-                              aria-label={`Prorrogar a validade do link de ${p.candidato_nome}`}
-                              disabled={prorrogar.isPending}
-                              onClick={() => prorrogarValidade(p.id)}
+                              title="Revisar"
+                              aria-label={`Revisar a ficha de ${p.candidato_nome}`}
+                              onClick={() => setRevisando(p.id)}
                             >
-                              <CalendarClock className="h-4 w-4" />
+                              <Eye className="h-4 w-4" />
                             </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Gerar novo link"
-                            aria-label={`Gerar novo link de ${p.candidato_nome}`}
-                            onClick={() => gerarNovoLink(p.id)}
-                          >
-                            <RefreshCw className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Revisar"
-                            aria-label={`Revisar a ficha de ${p.candidato_nome}`}
-                            onClick={() => setRevisando(p.id)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title={p.status === "concluido" || p.colaborador_id
-                              ? "Esta admissão já virou cadastro de colaborador"
-                              : "Excluir ficha"}
-                            aria-label={`Excluir a ficha de ${p.candidato_nome}`}
-                            disabled={p.status === "concluido" || !!p.colaborador_id}
-                            onClick={() => setExcluindo({ id: p.id, nome: p.candidato_nome })}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Cancelar link"
-                            aria-label={`Cancelar o link de ${p.candidato_nome}`}
-                            onClick={() => cancelar(p.id)}
-                          >
-                            <Ban className="h-4 w-4 text-destructive" />
-                          </Button>
+                            <DpActionsMenu
+                              vertical
+                              className="min-h-9 min-w-9"
+                              actions={[
+                                {
+                                  key: "prorrogar", label: "Prorrogar Validade", icon: CalendarClock,
+                                  hidden: !podeProrrogar(p.status, p.colaborador_id),
+                                  disabled: prorrogar.isPending, onSelect: () => prorrogarValidade(p.id),
+                                },
+                                { key: "link", label: "Gerar Novo Link", icon: RefreshCw, onSelect: () => gerarNovoLink(p.id) },
+                                {
+                                  key: "cancelar", label: "Cancelar Link", icon: Ban, destructive: true,
+                                  separatorBefore: true, onSelect: () => cancelar(p.id),
+                                },
+                                {
+                                  key: "excluir", label: "Excluir Ficha", icon: Trash2, destructive: true,
+                                  disabled: p.status === "concluido" || !!p.colaborador_id,
+                                  onSelect: () => setExcluindo({ id: p.id, nome: p.candidato_nome }),
+                                },
+                              ]}
+                            />
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
