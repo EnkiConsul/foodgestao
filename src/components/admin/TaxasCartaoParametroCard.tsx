@@ -38,6 +38,7 @@ export function TaxasCartaoParametroCard() {
       if (!Number.isFinite(fixoCents) || fixoCents < 0 || fixoCents > 1000) throw new Error("Valor fixo deve ficar entre R$ 0,00 e R$ 10,00.");
       const ordenadas = [...faixas].sort((a, b) => a.ate - b.ate);
       if (!ordenadas.length || ordenadas[ordenadas.length - 1].ate !== 12) throw new Error("A última faixa precisa ir até 12x.");
+      if (new Set(ordenadas.map((f) => f.ate)).size !== ordenadas.length) throw new Error("Duas faixas com o mesmo número de parcelas.");
       for (const f of ordenadas) {
         if (!Number.isInteger(f.ate) || f.ate < 2 || f.ate > 12) throw new Error("Faixas vão de 2x a 12x.");
         if (!(f.pct >= 0 && f.pct <= 20)) throw new Error("Taxa deve ficar entre 0% e 20%.");
