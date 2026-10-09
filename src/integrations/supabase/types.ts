@@ -490,8 +490,45 @@ export type Database = {
         }
         Relationships: []
       }
+      asaas_env_divergencias: {
+        Row: {
+          created_at: string
+          detalhe: string | null
+          event_id: string | null
+          event_type: string | null
+          evento_env: string
+          external_id: string | null
+          id: string
+          registro_env: string
+          tabela: string
+        }
+        Insert: {
+          created_at?: string
+          detalhe?: string | null
+          event_id?: string | null
+          event_type?: string | null
+          evento_env: string
+          external_id?: string | null
+          id?: string
+          registro_env: string
+          tabela: string
+        }
+        Update: {
+          created_at?: string
+          detalhe?: string | null
+          event_id?: string | null
+          event_type?: string | null
+          evento_env?: string
+          external_id?: string | null
+          id?: string
+          registro_env?: string
+          tabela?: string
+        }
+        Relationships: []
+      }
       asaas_webhook_events: {
         Row: {
+          asaas_env: string
           attempt_count: number
           claim_expires_at: string | null
           created_at: string
@@ -510,6 +547,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          asaas_env?: string
           attempt_count?: number
           claim_expires_at?: string | null
           created_at?: string
@@ -528,6 +566,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          asaas_env?: string
           attempt_count?: number
           claim_expires_at?: string | null
           created_at?: string
@@ -1591,6 +1630,7 @@ export type Database = {
       billing_accounts: {
         Row: {
           asaas_customer_id: string | null
+          asaas_env: string
           created_at: string
           documento_pagador: string | null
           email_cobranca: string | null
@@ -1602,6 +1642,7 @@ export type Database = {
         }
         Insert: {
           asaas_customer_id?: string | null
+          asaas_env?: string
           created_at?: string
           documento_pagador?: string | null
           email_cobranca?: string | null
@@ -1613,6 +1654,7 @@ export type Database = {
         }
         Update: {
           asaas_customer_id?: string | null
+          asaas_env?: string
           created_at?: string
           documento_pagador?: string | null
           email_cobranca?: string | null
@@ -13807,6 +13849,7 @@ export type Database = {
       invoices: {
         Row: {
           amount_cents: number
+          asaas_env: string
           billing_account_id: string | null
           boleto_url: string | null
           coupon_id: string | null
@@ -13838,6 +13881,7 @@ export type Database = {
         }
         Insert: {
           amount_cents: number
+          asaas_env?: string
           billing_account_id?: string | null
           boleto_url?: string | null
           coupon_id?: string | null
@@ -13869,6 +13913,7 @@ export type Database = {
         }
         Update: {
           amount_cents?: number
+          asaas_env?: string
           billing_account_id?: string | null
           boleto_url?: string | null
           coupon_id?: string | null
@@ -15532,6 +15577,7 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          asaas_env: string
           billing_account_id: string | null
           billing_cycle: string
           billing_variant: string
@@ -15576,6 +15622,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          asaas_env?: string
           billing_account_id?: string | null
           billing_cycle?: string
           billing_variant?: string
@@ -15620,6 +15667,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          asaas_env?: string
           billing_account_id?: string | null
           billing_cycle?: string
           billing_variant?: string

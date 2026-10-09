@@ -99,6 +99,13 @@
       "when": 1791507330370,
       "tag": "0013_fase3_checkout_v2_flag_e_quote",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791507768770,
+      "tag": "0014_fase3_asaas_env_separacao",
+      "breakpoints": true
     }
   ]
 }
