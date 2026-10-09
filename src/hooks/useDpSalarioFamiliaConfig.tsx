@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { salvarConfigDp } from "@/lib/dp/regras-oficial";
+import { buscarSalarioFamiliaVigente } from "@/lib/dp/salarioFamiliaVigente";
 import { forcarRecargaPendencias, resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { SalarioFamiliaConfig } from "@/lib/dp/salarioFamilia";
@@ -50,13 +51,14 @@ export function useDpSalarioFamiliaConfig() {
         .is("unidade_id", null)
         .maybeSingle();
       if (error) throw error;
-      if (!data) return VAZIO;
+      const vig = await buscarSalarioFamiliaVigente(selectedCompanyId!);
+      if (!data) return vig ? { ...VAZIO, cota: vig.cota, teto: vig.teto, vigencia: vig.vigencia_inicio, confirmadoEm: vig.vigencia_inicio } : VAZIO;
       return {
         id: data.id,
-        cota: data.salario_familia_cota != null ? Number(data.salario_familia_cota) : null,
-        teto: data.salario_familia_teto != null ? Number(data.salario_familia_teto) : null,
-        vigencia: data.salario_familia_vigencia ?? null,
-        confirmadoEm: data.salario_familia_confirmado_em ?? null,
+        cota: vig ? vig.cota : data.salario_familia_cota != null ? Number(data.salario_familia_cota) : null,
+        teto: vig ? vig.teto : data.salario_familia_teto != null ? Number(data.salario_familia_teto) : null,
+        vigencia: vig ? vig.vigencia_inicio : data.salario_familia_vigencia ?? null,
+        confirmadoEm: data.salario_familia_confirmado_em ?? vig?.vigencia_inicio ?? null,
         adicionalAtivo: !!data.adicional_tempo_servico_ativo,
         adicionalModo:
           data.adicional_tempo_servico_modo === "cumulativo" ? "cumulativo" : "escada",
