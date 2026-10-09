@@ -112,11 +112,29 @@ Deno.serve(async (req) => {
       });
     });
 
-    const users = (profiles ?? []).map((p: any) => ({
-      ...p,
-      auth: authMap.get(p.user_id) ?? null,
-      companies: companiesByUser.get(p.user_id) ?? [],
-    }));
+    // Classificação: colaborador do portal > dono > administrador/membro > sem empresa
+    const { data: colabs } = await admin
+      .from("dp_colaboradores").select("user_id").not("user_id", "is", null);
+    const colabSet = new Set((colabs ?? []).map((c: any) => c.user_id));
+    const { data: subsUser } = await admin
+      .from("subscriptions").select("user_id, trial_ends_at, status");
+    const trialByUser = new Map<string, boolean>();
+    (subsUser ?? []).forEach((s: any) => {
+      if (s.trial_ends_at || s.status === "trialing") trialByUser.set(s.user_id, true);
+    });
+    const ownerSet = new Set((companies ?? []).map((c: any) => c.user_id));
+
+    const users = (profiles ?? []).map((p: any) => {
+      const a = authMap.get(p.user_id) ?? null;
+      const email: string = a?.email ?? "";
+      const comps = companiesByUser.get(p.user_id) ?? [];
+      let tipo: "dono" | "membro" | "colaborador_portal" | "sem_empresa";
+      if (colabSet.has(p.user_id) || email.endsWith("@portal.360food.local")) tipo = "colaborador_portal";
+      else if (ownerSet.has(p.user_id)) tipo = "dono";
+      else if (comps.length > 0) tipo = "membro";
+      else tipo = "sem_empresa";
+      return { ...p, auth: a, companies: comps, tipo, trial_usado: trialByUser.get(p.user_id) ?? false };
+    });
 
 
     return new Response(JSON.stringify({ users }), {

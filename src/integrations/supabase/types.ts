@@ -1671,6 +1671,10 @@ export type Database = {
           email_cobranca: string | null
           emitir_nfse: boolean | null
           id: string
+          internal_marked_at: string | null
+          internal_marked_by: string | null
+          internal_reason: string | null
+          is_internal: boolean
           is_test: boolean
           nome: string
           tipo: Database["public"]["Enums"]["billing_account_type"]
@@ -1685,6 +1689,10 @@ export type Database = {
           email_cobranca?: string | null
           emitir_nfse?: boolean | null
           id?: string
+          internal_marked_at?: string | null
+          internal_marked_by?: string | null
+          internal_reason?: string | null
+          is_internal?: boolean
           is_test?: boolean
           nome: string
           tipo: Database["public"]["Enums"]["billing_account_type"]
@@ -1699,6 +1707,10 @@ export type Database = {
           email_cobranca?: string | null
           emitir_nfse?: boolean | null
           id?: string
+          internal_marked_at?: string | null
+          internal_marked_by?: string | null
+          internal_reason?: string | null
+          is_internal?: boolean
           is_test?: boolean
           nome?: string
           tipo?: Database["public"]["Enums"]["billing_account_type"]
@@ -16856,6 +16868,7 @@ export type Database = {
       }
     }
     Functions: {
+      _admin_c360_mrr: { Args: { _sub: string }; Returns: number }
       _billing_v2_can_manage_sub: {
         Args: { _subscription_id: string }
         Returns: boolean
@@ -16951,6 +16964,12 @@ export type Database = {
           ultimo_acesso: string
           user_id: string
         }[]
+      }
+      admin_cliente360_detalhe: { Args: { _account: string }; Returns: Json }
+      admin_cliente360_lista: { Args: never; Returns: Json }
+      admin_cliente360_marcar_interna: {
+        Args: { _account: string; _interna: boolean; _motivo: string }
+        Returns: undefined
       }
       app_error_log_record: {
         Args: {
