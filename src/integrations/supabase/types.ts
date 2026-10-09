@@ -20311,7 +20311,6 @@ export type Database = {
         Args: { _account_id?: string; _card_id?: string }
         Returns: undefined
       }
-      qa_fase22_testes: { Args: never; Returns: Json }
       read_ai_categorization_queue: {
         Args: { p_batch?: number; p_vt?: number }
         Returns: {
