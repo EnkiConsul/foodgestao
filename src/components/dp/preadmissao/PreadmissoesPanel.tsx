@@ -7,11 +7,10 @@
  */
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Ban, CalendarClock, Eye, Loader2, RefreshCw, Search, Trash2, UserPlus } from "lucide-react";
+import { Ban, CalendarClock, Eye, Loader2, RefreshCw, Trash2, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
