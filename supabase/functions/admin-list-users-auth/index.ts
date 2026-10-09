@@ -128,10 +128,42 @@ Deno.serve(async (req) => {
     });
     const ownerSet = new Set((companies ?? []).map((c: any) => c.user_id));
 
+    // Módulos ativos (ou em teste) por empresa
+    const { data: cmods } = await admin
+      .from("company_modules").select("company_id, module, status")
+      .in("status", ["active", "trial"]).in("module", ["financeiro", "dp"]);
+    const modsByCompany = new Map<string, Map<string, string>>();
+    (cmods ?? []).forEach((m: any) => {
+      const key = m.module === "dp" ? "pessoas" : "financeiro";
+      const mm = modsByCompany.get(m.company_id) ?? new Map<string, string>();
+      if (mm.get(key) !== "active") mm.set(key, m.status);
+      modsByCompany.set(m.company_id, mm);
+    });
+    const memberKey = new Map<string, any>();
+    (members ?? []).forEach((m: any) => memberKey.set(`${m.company_id}:${m.user_id}`, m));
+    const { data: memMods } = await admin.from("company_members").select("company_id, user_id, modulos");
+    (memMods ?? []).forEach((m: any) => {
+      const k = `${m.company_id}:${m.user_id}`;
+      memberKey.set(k, { ...(memberKey.get(k) ?? {}), modulos: m.modulos });
+    });
+
     const users = (profiles ?? []).map((p: any) => {
       const a = authMap.get(p.user_id) ?? null;
       const email: string = a?.email ?? "";
-      const comps = companiesByUser.get(p.user_id) ?? [];
+      const comps = (companiesByUser.get(p.user_id) ?? []).map((c: any) => {
+        const mm = modsByCompany.get(c.id) ?? new Map<string, string>();
+        let modulos: { key: string; status: string }[] = [];
+        if (c.role === "colaborador") {
+          if (mm.has("pessoas")) modulos = [{ key: "portal", status: mm.get("pessoas")! }];
+        } else {
+          const perm = c.role === "owner" ? null : memberKey.get(`${c.id}:${p.user_id}`)?.modulos;
+          for (const [key, status] of mm) {
+            if (perm && perm[key] === false) continue;
+            modulos.push({ key, status });
+          }
+        }
+        return { ...c, modulos };
+      });
       let tipo: "dono" | "membro" | "colaborador_portal" | "sem_empresa";
       if (colabSet.has(p.user_id) || email.endsWith("@portal.360food.local")) tipo = "colaborador_portal";
       else if (ownerSet.has(p.user_id)) tipo = "dono";

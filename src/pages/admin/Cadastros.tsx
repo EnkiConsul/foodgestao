@@ -133,6 +133,7 @@ export default function AdminCadastros() {
               <TableHead>Nome</TableHead>
               <TableHead>E-mail</TableHead>
               <TableHead>Empresas</TableHead>
+              <TableHead>Módulos</TableHead>
               <TableHead>Documento</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>Confirmação</TableHead>
@@ -164,6 +165,9 @@ export default function AdminCadastros() {
                     <TableCell className="text-muted-foreground">{u.auth?.email ?? "—"}</TableCell>
                     <TableCell className="text-xs">
                       <EmpresasVinculadas companies={u.companies} />
+                    </TableCell>
+                    <TableCell>
+                      <ModulosAcesso companies={u.companies} />
                     </TableCell>
                     <TableCell>{u.document || "—"}</TableCell>
                     <TableCell>{u.phone || "—"}</TableCell>
@@ -344,8 +348,11 @@ export default function AdminCadastros() {
 }
 
 const PAPEL: Record<string, string> = { owner: "Dono", admin: "Administrador", member: "Membro", colaborador: "Colaborador" };
+const MOD_LABEL: Record<string, string> = { financeiro: "Financeiro", pessoas: "Pessoas", portal: "Portal" };
 
-function EmpresasVinculadas({ companies }: { companies?: { id: string; name: string; role: string }[] }) {
+type CompanyLink = { id: string; name: string; role: string; modulos?: { key: string; status: string }[] };
+
+function EmpresasVinculadas({ companies }: { companies?: CompanyLink[] }) {
   if (!companies || companies.length === 0) return <span className="text-muted-foreground">Sem empresa</span>;
   return (
     <div className="space-y-1">
@@ -354,6 +361,23 @@ function EmpresasVinculadas({ companies }: { companies?: { id: string; name: str
           <span>{c.name}</span>
           <Badge variant="outline" className="text-[10px]">{PAPEL[c.role] ?? c.role}</Badge>
         </div>
+      ))}
+    </div>
+  );
+}
+
+export function ModulosAcesso({ companies }: { companies?: CompanyLink[] }) {
+  const map = new Map<string, string>();
+  (companies ?? []).forEach((c) => (c.modulos ?? []).forEach((m) => {
+    if (map.get(m.key) !== "active") map.set(m.key, m.status);
+  }));
+  if (map.size === 0) return <span className="text-muted-foreground">Nenhum</span>;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {[...map].map(([k, s]) => (
+        <Badge key={k} variant={s === "active" ? "default" : "secondary"} className="text-[10px]">
+          {MOD_LABEL[k] ?? k}{s === "trial" ? " (Teste)" : ""}
+        </Badge>
       ))}
     </div>
   );
