@@ -6006,6 +6006,56 @@ export type Database = {
           },
         ]
       }
+      dp_colaborador_excedente_ciencias: {
+        Row: {
+          colaborador_id: string | null
+          colaborador_nome: string | null
+          company_id: string
+          created_at: string
+          de_qtd: number
+          id: string
+          limite: number
+          para_qtd: number
+          usado_em: string | null
+          user_id: string
+          valor_unit_cents: number
+        }
+        Insert: {
+          colaborador_id?: string | null
+          colaborador_nome?: string | null
+          company_id: string
+          created_at?: string
+          de_qtd: number
+          id?: string
+          limite: number
+          para_qtd: number
+          usado_em?: string | null
+          user_id: string
+          valor_unit_cents: number
+        }
+        Update: {
+          colaborador_id?: string | null
+          colaborador_nome?: string | null
+          company_id?: string
+          created_at?: string
+          de_qtd?: number
+          id?: string
+          limite?: number
+          para_qtd?: number
+          usado_em?: string | null
+          user_id?: string
+          valor_unit_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_colaborador_excedente_ciencias_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_colaborador_historico_condicoes: {
         Row: {
           base_dias_mes: number | null
@@ -16841,6 +16891,7 @@ export type Database = {
         Args: { _recurso: string; _sub: string }
         Returns: number
       }
+      _dp_excedente_pode_gerir: { Args: { _company: string }; Returns: boolean }
       _is_company_member: {
         Args: { _company_id: string; _uid: string }
         Returns: boolean
@@ -17845,6 +17896,14 @@ export type Database = {
       dp_colaborador_documento_salvar: {
         Args: { p_dados: Json; p_id: string }
         Returns: string
+      }
+      dp_colaborador_excedente_confirmar: {
+        Args: { _colaborador_nome?: string; _company_id: string }
+        Returns: string
+      }
+      dp_colaborador_excedente_previa: {
+        Args: { _company_id: string }
+        Returns: Json
       }
       dp_colaborador_horario_ocupado: {
         Args: {

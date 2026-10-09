@@ -1,3 +1,4 @@
+import { ExcedenteColaboradoresDialog } from "@/components/billing/ExcedenteColaboradoresDialog";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { toast } from "sonner";
@@ -699,6 +700,7 @@ const App = () => (
           <AmbienteBanner />
           <Toaster />
           <Sonner />
+          <ExcedenteColaboradoresDialog />
           <BrowserRouter>
             <CanonicalUrl />
             <AuthProvider>

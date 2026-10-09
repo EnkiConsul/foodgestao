@@ -6,12 +6,16 @@
  * servidor, que confere empresa, vínculo e regras antes de salvar.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { garantirLimite } from "@/lib/billing/limites";
+import { garantirColaboradorNovo } from "@/lib/billing/excedente-colaboradores";
 
 type Json = Record<string, unknown>;
 
 const MENSAGENS: Record<string, string> = {
   UNAUTHENTICATED: "Faça a entrada novamente para continuar.",
+  EXCEDENTE_SEM_PERMISSAO:
+    "Limite do plano atingido. Só o dono ou um administrador pode incluir colaboradores acima da franquia.",
+  EXCEDENTE_CONFIRMACAO_NECESSARIA:
+    "Este cadastro passa da franquia do plano. Salve de novo e confirme o custo do excedente.",
   FORBIDDEN: "Você não tem permissão para esta ação nesta empresa.",
   NOT_FOUND: "Registro não encontrado.",
   COLAB_DADOS_INVALIDOS: "Não foi possível ler os dados enviados.",
@@ -75,7 +79,7 @@ export async function salvarColaborador(input: {
   dados: Json;
 }): Promise<string> {
   if (!input.id) {
-    await garantirLimite(input.companyId, "pessoas", "colaboradores");
+    await garantirColaboradorNovo(input.companyId, (input.dados?.nome as string) ?? null);
   }
   const { data, error } = await (supabase.rpc as any)("dp_colaborador_salvar", {
     p_dados: input.dados,
