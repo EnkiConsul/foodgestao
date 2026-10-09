@@ -16891,6 +16891,7 @@ export type Database = {
         Args: { _recurso: string; _sub: string }
         Returns: number
       }
+      _dp_excedente_modo: { Args: { _company: string }; Returns: string }
       _dp_excedente_pode_gerir: { Args: { _company: string }; Returns: boolean }
       _is_company_member: {
         Args: { _company_id: string; _uid: string }

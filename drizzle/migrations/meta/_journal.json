@@ -211,6 +211,13 @@
       "when": 1791565457165,
       "tag": "0029_fix_asaas_env_guard_sem_conta",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1791565569638,
+      "tag": "0030_excedente_modo_por_empresa_teste",
+      "breakpoints": true
     }
   ]
 }
