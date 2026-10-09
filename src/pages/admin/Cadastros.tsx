@@ -31,6 +31,7 @@ type Row = {
   onboarding_data: any;
   is_active: boolean;
   created_at: string;
+  companies?: { id: string; name: string; role: string }[];
   auth: {
     email: string | null;
     email_confirmed_at: string | null;
@@ -61,7 +62,7 @@ export default function AdminCadastros() {
     const t = search.toLowerCase().trim();
     if (!t) return data ?? [];
     return (data ?? []).filter((u) =>
-      [u.full_name, u.document, u.phone, u.auth?.email]
+      [u.full_name, u.document, u.phone, u.auth?.email, ...(u.companies ?? []).map((c) => c.name)]
         .filter(Boolean)
         .some((v) => v!.toLowerCase().includes(t)),
     );
@@ -131,7 +132,7 @@ export default function AdminCadastros() {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>E-mail</TableHead>
-              <TableHead>Tipo</TableHead>
+              <TableHead>Empresas</TableHead>
               <TableHead>Documento</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>Confirmação</TableHead>
@@ -161,8 +162,8 @@ export default function AdminCadastros() {
                   <TableRow key={u.id} className={!u.is_active ? "opacity-60" : ""}>
                     <TableCell className="font-medium">{u.full_name || "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{u.auth?.email ?? "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="uppercase">{u.profile_type}</Badge>
+                    <TableCell className="text-xs">
+                      <EmpresasVinculadas companies={u.companies} />
                     </TableCell>
                     <TableCell>{u.document || "—"}</TableCell>
                     <TableCell>{u.phone || "—"}</TableCell>
@@ -255,6 +256,11 @@ export default function AdminCadastros() {
                 </div>
               </section>
 
+              <section className="space-y-2">
+                <h3 className="text-sm font-semibold">Empresas vinculadas</h3>
+                <div className="text-sm"><EmpresasVinculadas companies={editing.companies} /></div>
+              </section>
+
               <section className="space-y-3">
                 <h3 className="text-sm font-semibold">Dados cadastrais</h3>
                 <div className="grid gap-3">
@@ -333,6 +339,22 @@ export default function AdminCadastros() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+    </div>
+  );
+}
+
+const PAPEL: Record<string, string> = { owner: "Dono", admin: "Administrador", member: "Membro", colaborador: "Colaborador" };
+
+function EmpresasVinculadas({ companies }: { companies?: { id: string; name: string; role: string }[] }) {
+  if (!companies || companies.length === 0) return <span className="text-muted-foreground">Sem empresa</span>;
+  return (
+    <div className="space-y-1">
+      {companies.map((c) => (
+        <div key={c.id + c.role} className="flex items-center gap-1">
+          <span>{c.name}</span>
+          <Badge variant="outline" className="text-[10px]">{PAPEL[c.role] ?? c.role}</Badge>
+        </div>
+      ))}
     </div>
   );
 }
