@@ -1,24 +1,41 @@
 // Shared Asaas API helper
-function normalizeBaseUrl(raw: string | undefined): string {
+//
+// O ambiente (produção/sandbox) vem SEMPRE do campo `asaas_env` do registro
+// operado (billing_accounts/subscriptions/invoices), nunca do navegador.
+export type AsaasEnv = "production" | "sandbox";
+
+export function parseAsaasEnv(v: unknown): AsaasEnv {
+  return v === "sandbox" ? "sandbox" : "production";
+}
+
+function normalizeBaseUrl(raw: string | undefined, fallback: string): string {
   let url = (raw ?? "").trim().replace(/\/+$/, "");
-  if (!url) return "https://sandbox.asaas.com/api/v3";
+  if (!url) return fallback;
   if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
   // Aceita "https://api.asaas.com" ou ".../api" e completa a versão
   if (!/\/v3$/i.test(url)) url = `${url}/v3`;
   return url;
 }
 
-const ASAAS_API_URL = normalizeBaseUrl(Deno.env.get("ASAAS_API_URL"));
-const ASAAS_API_KEY = (Deno.env.get("ASAAS_API_KEY") ?? "").trim();
+function credenciais(env: AsaasEnv): { url: string; key: string; nomeKey: string } {
+  if (env === "sandbox") {
+    const url = normalizeBaseUrl(Deno.env.get("ASAAS_SANDBOX_API_URL"), "https://api-sandbox.asaas.com/v3");
+    if (!/sandbox/i.test(url)) throw new Error("ASAAS_SANDBOX_API_URL não aponta para o Sandbox do Asaas");
+    return { url, key: (Deno.env.get("ASAAS_SANDBOX_API_KEY") ?? "").trim(), nomeKey: "ASAAS_SANDBOX_API_KEY" };
+  }
+  const url = normalizeBaseUrl(Deno.env.get("ASAAS_API_URL"), "https://api.asaas.com/v3");
+  return { url, key: (Deno.env.get("ASAAS_API_KEY") ?? "").trim(), nomeKey: "ASAAS_API_KEY" };
+}
 
-export async function asaasFetch(path: string, init: RequestInit = {}) {
-  if (!ASAAS_API_KEY) throw new Error("ASAAS_API_KEY not configured");
-  const url = `${ASAAS_API_URL}${path}`;
+export async function asaasFetch(path: string, init: RequestInit = {}, env: AsaasEnv = "production") {
+  const { url: base, key, nomeKey } = credenciais(env);
+  if (!key) throw new Error(`${nomeKey} not configured`);
+  const url = `${base}${path}`;
   const res = await fetch(url, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      "access_token": ASAAS_API_KEY,
+      "access_token": key,
       "User-Agent": "Aveto360/1.0",
       ...(init.headers ?? {}),
     },
@@ -29,12 +46,12 @@ export async function asaasFetch(path: string, init: RequestInit = {}) {
   try { data = text ? JSON.parse(text) : null; } catch { isJson = false; data = { raw: text }; }
   if (!res.ok) {
     const msg = data?.errors?.[0]?.description ?? (isJson ? `HTTP ${res.status}` : `HTTP ${res.status} (resposta não-JSON)`);
-    console.error(`Asaas ${init.method ?? "GET"} ${path} falhou [${res.status}]`, isJson ? JSON.stringify(data).slice(0, 500) : text.slice(0, 200));
+    console.error(`Asaas[${env}] ${init.method ?? "GET"} ${path} falhou [${res.status}]`, isJson ? JSON.stringify(data).slice(0, 500) : text.slice(0, 200));
     throw new Error(`Asaas ${path} [${res.status}]: ${msg}`);
   }
   if (!isJson) {
-    console.error(`Asaas ${path} respondeu não-JSON (base ${ASAAS_API_URL}):`, text.slice(0, 200));
-    throw new Error(`Asaas respondeu em formato inesperado — verifique o endereço da API (ASAAS_API_URL).`);
+    console.error(`Asaas[${env}] ${path} respondeu não-JSON:`, text.slice(0, 200));
+    throw new Error(`Asaas respondeu em formato inesperado — verifique o endereço da API.`);
   }
   return data;
 }
