@@ -7,6 +7,7 @@ import { ExportMyDataCard } from "@/components/settings/ExportMyDataCard";
 import { useCompanyAccess, type MotivoBloqueio } from "@/hooks/useCompanyAccess";
 import { PageSpinner } from "@/components/PageSpinner";
 import { CoberturaOpcoes } from "@/components/billing/CoberturaOpcoes";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 
 const TEXTOS: Record<MotivoBloqueio, { titulo: string; descricao: string }> = {
   sem_assinatura: {
@@ -63,10 +64,36 @@ export default function AcessoBloqueado() {
   const moduloParam = params.get("modulo") === "pessoas" ? "pessoas" : params.get("modulo") === "financeiro" ? "financeiro" : null;
   const v2 = useModuleAccess(moduloParam ?? "financeiro");
   const ent = useCompanyEntitlements();
+  const { selectedCompanyId } = useCompanyContext();
   const modoV2 = v2.mode === "v2";
   const usarV2 = !!moduloParam && modoV2;
 
   if (legado.loading || v2.loading || ent.isLoading) return <PageSpinner />;
+
+  // Sem empresa selecionada ou falha na verificação: nunca deixar a tela vazia.
+  if (ent.isError || !selectedCompanyId) {
+    return (
+      <div className="min-h-screen bg-background px-4 py-10">
+        <Card className="mx-auto w-full max-w-lg border-destructive/40">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <AlertTriangle className="h-5 w-5 text-destructive" /> Não foi possível verificar seu acesso agora
+            </CardTitle>
+            <CardDescription>
+              {!selectedCompanyId
+                ? "Nenhuma empresa está selecionada. Escolha uma empresa para continuar."
+                : "Houve uma falha ao consultar seu acesso. Tente novamente em instantes."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button onClick={() => ent.refetch()} disabled={!selectedCompanyId}>Tentar Novamente</Button>
+            <Button asChild variant="outline"><Link to="/empresas">Ir para Empresas</Link></Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
 
   // Modo V2 sem módulo: decide pelos dois módulos, nunca pela regra legada (evita loop com /hub).
   if (modoV2 && !moduloParam) {
