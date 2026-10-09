@@ -65,6 +65,7 @@ const billingItems = [
   { title: "Cupons", url: "/admin/cupons", icon: Tag },
   { title: "Faturas", url: "/admin/faturas", icon: Receipt },
   { title: "Régua de Cobrança", url: "/admin/regua-cobranca", icon: Mail },
+  { title: "Modelo de Acesso V2", url: "/admin/acesso-v2", icon: ShieldCheck },
   { title: "Webhooks Asaas", url: "/admin/webhooks-asaas", icon: Webhook },
   { title: "Webhook Pluggy", url: "/admin/pluggy-webhook", icon: Webhook },
   { title: "Status Pluggy", url: "/admin/pluggy-status", icon: Webhook },
@@ -118,8 +119,8 @@ export function AdminSidebar() {
             <ShieldCheck className={cn("text-sidebar-primary", collapsed ? "h-6 w-6" : "h-7 w-7 shrink-0")} />
             {!collapsed && (
               <div className="flex items-baseline gap-1">
-                <span className="text-xl font-bold tracking-tight text-sidebar-foreground">Gestor</span>
-                <span className="text-xl font-bold tracking-tight text-sidebar-primary">Plin</span>
+                <span className="text-xl font-bold tracking-tight text-sidebar-foreground">Aveto</span>
+                <span className="text-xl font-bold tracking-tight text-sidebar-primary">360</span>
                 <span className="text-[10px] uppercase tracking-widest text-sidebar-foreground/60 ml-1">
                   Admin
                 </span>
