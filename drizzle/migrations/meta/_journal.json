@@ -162,6 +162,13 @@
       "when": 1791542632148,
       "tag": "0022_fase3_validar_taxas_cartao",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791542797901,
+      "tag": "0023_fase3_minha_assinatura_rpc",
+      "breakpoints": true
     }
   ]
 }

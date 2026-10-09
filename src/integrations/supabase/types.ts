@@ -16813,6 +16813,10 @@ export type Database = {
         Args: { _account: string; _actor: string; _company: string }
         Returns: string
       }
+      billing_v2_addon_quote: {
+        Args: { _code: string; _qtd: number; _subscription_id: string }
+        Returns: Json
+      }
       billing_v2_apply_change: {
         Args: {
           _ciclo: string
@@ -16838,6 +16842,10 @@ export type Database = {
           _until: string
         }
         Returns: undefined
+      }
+      billing_v2_minha_assinatura: {
+        Args: { _company_id: string }
+        Returns: Json
       }
       billing_v2_parcelamento: { Args: { _valor_cents: number }; Returns: Json }
       billing_v2_plan_change_cancel: {
