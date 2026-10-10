@@ -116,6 +116,7 @@ function rotuloCategoriaPessoa(p: PessoaPanorama): string {
     if (p.avulso_tipo === "teste") return "Em teste";
     if (p.origem === "registro_manual") return "Registro manual";
   }
+  if (p.folga_troca && (p.categoria === "folga_padrao" || p.categoria === "folga_extra")) return "Folga por Troca";
   return CATEGORIA_LABEL[p.categoria];
 }
 
@@ -907,7 +908,9 @@ function DetalheDiaOperacao({
                   <Badge variant="outline">
                     {p.categoria === "coberto" && p.coberto_por_nome
                       ? `Coberto por ${p.coberto_por_nome}`
-                      : CATEGORIA_LABEL[p.categoria]}
+                      : p.folga_troca && (p.categoria === "folga_padrao" || p.categoria === "folga_extra")
+                        ? "Folga por Troca"
+                        : CATEGORIA_LABEL[p.categoria]}
                   </Badge>
                 </div>
                 {acoesFolga && (p.categoria === "folga_extra" || p.categoria === "folga_padrao") && acoesFolga(p.colaborador_id, p.categoria === "folga_padrao")}

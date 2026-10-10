@@ -24,7 +24,7 @@ import type { DiaPanorama } from "@/hooks/useDpOperacaoPanorama";
 
 // Mesmas cores do Calendário de Folgas.
 const TOM: Record<TipoAusenciaCalendario, string> = {
-  folga: "border-l-[3px] border-emerald-500 bg-emerald-100 text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-200",
+  folga: "border-l-[3px] border-emerald-700 bg-emerald-900/10 text-emerald-950 dark:bg-emerald-500/15 dark:text-emerald-200",
   ferias: "border-l-[3px] border-sky-500 bg-sky-100 text-sky-900 dark:bg-sky-500/15 dark:text-sky-200",
   falta: "border-l-[3px] border-rose-500 bg-rose-100 text-rose-900 dark:bg-rose-500/15 dark:text-rose-200",
   atestado: "border-l-[3px] border-violet-500 bg-violet-100 text-violet-900 dark:bg-violet-500/15 dark:text-violet-200",
@@ -78,7 +78,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
   const dominical = (a: AusenciaCalendario, iso: string) => a.tipo === "folga" && folgaEhDominical(iso, diasDominicais, a);
   const tomDe = (a: AusenciaCalendario, iso: string) => (dominical(a, iso) ? TOM_DOMINICAL : TOM[a.tipo]);
   const rotulo = (a: AusenciaCalendario, iso: string) =>
-    `${a.nome} · ${dominical(a, iso) ? "Folga dominical" : TIPO_AUSENCIA_LABEL[a.tipo]}${a.troca ? " (troca)" : ""}`;
+    `${a.nome} · ${a.tipo === "folga" ? "Folga" : TIPO_AUSENCIA_LABEL[a.tipo]}${a.troca ? " (troca)" : ""}`;
 
   const ini = diasBrutos[0]?.data, fimMes = diasBrutos[diasBrutos.length - 1]?.data;
   const bloqueiosQuery = useQuery({
@@ -372,7 +372,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
           ))}
           {resumoMes.trocas > 0 && <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground"><Repeat className="h-3 w-3" />Troca</span>}
           {resumoMes.bloqueados > 0 && <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-destructive"><Lock className="h-3 w-3" />Bloqueada</span>}
-          <span className="hidden items-center gap-1 rounded border border-primary/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary md:inline-flex"><Flame className="h-3 w-3" />Pico de operação</span>
+          <span className="hidden items-center gap-1 rounded border border-primary/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary md:inline-flex"><Flame className="h-3 w-3 fill-amber-500 text-amber-500" />Pico de operação</span>
           <span className="ml-auto hidden text-[10px] text-muted-foreground lg:inline">Atalhos: ← → mês · H hoje · Esc fecha</span>
         </div>
       )}
@@ -397,7 +397,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               chips: (
                 <>
                   {d.data === hoje && <Badge className="text-[10px]">Hoje</Badge>}
-                  {pico(d.data, d.feriado_nome) && <Badge variant="outline" className="gap-1 border-primary/50 text-[10px] text-primary"><Flame className="h-3 w-3" />Pico</Badge>}
+                  {pico(d.data, d.feriado_nome) && <Badge variant="outline" className="gap-1 border-primary/50 text-[10px] text-primary"><Flame className="h-3 w-3 fill-amber-500 text-amber-500" />Pico</Badge>}
                   {d.feriado_nome && <Badge variant="outline" className="text-[10px]">Feriado</Badge>}
                   {bloqueios.has(d.data) && <Badge variant="outline" className="gap-1 border-destructive/40 text-[10px] text-destructive"><Lock className="h-3 w-3" />Bloqueada</Badge>}
                   {aus.map((a) => (
@@ -423,7 +423,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                 "flex items-center justify-center gap-1 border-b-2 py-2.5 text-xs font-extrabold uppercase tracking-[0.16em] shadow-sm",
                 dom ? "border-primary bg-primary text-primary-foreground" : "border-primary bg-foreground text-background",
               )}>
-                {d}{pk && <span title="Pico de operação" className="inline-flex"><Flame className="h-3 w-3 opacity-80" aria-label="Pico de operação" /></span>}
+                {d}{pk && <span title="Pico de operação" className="inline-flex"><Flame className="h-3.5 w-3.5 fill-amber-500 text-amber-500" aria-label="Pico de operação" /></span>}
               </div>
             );
           })}
@@ -468,7 +468,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                       <div className="flex min-w-0 items-center gap-1">
                         <span className={cn("flex h-6 min-w-6 items-center justify-center rounded-md px-1 text-sm font-extrabold tabular-nums", ehHoje && "bg-primary text-primary-foreground shadow-md")}>{Number(d.data.slice(8))}</span>
                         {ehHoje && <span className="rounded bg-primary px-1 text-[9px] font-bold uppercase tracking-wider text-primary-foreground">Hoje</span>}
-                        {ehPico && <Flame className="h-3.5 w-3.5 shrink-0 text-primary" aria-label="Pico de operação"><title>Pico de operação</title></Flame>}
+                        {ehPico && <Flame className="h-4 w-4 shrink-0 fill-amber-500 text-amber-500" aria-label="Pico de operação"><title>Pico de operação</title></Flame>}
                         {bloqueio && <Lock className="h-3.5 w-3.5 shrink-0 text-destructive" aria-label="Data bloqueada"><title>{bloqueio}</title></Lock>}
                         {d.feriado_nome && (
                           <span className="truncate rounded bg-primary px-1 text-[9px] font-bold uppercase leading-4 text-primary-foreground" title={d.feriado_nome}>Feriado</span>
