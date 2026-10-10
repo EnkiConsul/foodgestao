@@ -104,7 +104,11 @@ export function CalendarioAusenciasMes({ dias, selecionado, filtros, onFiltros, 
                   <span className="text-sm font-semibold">{Number(d.data.slice(8))}</span>
                   <span className="text-[10px] text-muted-foreground">{d.trabalhando} trab.</span>
                 </div>
-                {d.feriado_nome && <span className="truncate text-[10px] text-primary">{d.feriado_nome}</span>}
+                {d.feriado_nome && (
+                  <Badge variant="outline" className="w-fit max-w-full truncate border-primary/50 bg-primary/10 px-1 py-0 text-[10px] text-primary" title={d.feriado_nome}>
+                    Feriado · {d.feriado_nome}
+                  </Badge>
+                )}
                 {aus.slice(0, 5).map((a) => (
                   <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("truncate rounded border px-1 text-[10px]", TOM[a.tipo])} title={`${a.nome} · ${TIPO_AUSENCIA_LABEL[a.tipo]}`}>
                     {primeiroNome(a.nome)}
