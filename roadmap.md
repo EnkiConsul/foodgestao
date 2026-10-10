@@ -92,3 +92,10 @@
 - [x] Retirar "enviar à contabilidade"; PDF só baixa; etapas Preenchimento › Revisão › Registro › Efetivado.
 - [x] PDF completo e lendo o que está na tela.
 - [x] Atalhos por situação com contadores e filtro de vínculo na lista.
+
+# Efetivação de freelancer/PJ/MEI para CLT
+- [x] Quadro de pendências do registro (PIS, CTPS, título, RG, endereço, reservista) na alteração de vínculo, com lembretes de quitação, ASO e contrato.
+- [x] Botão "Solicitar complemento pelo portal": cria pedido tipo documento + aviso ao colaborador (RPC dp_solicitar_complemento_clt, sem duplicar pedido pendente igual).
+- [x] Portal mostra "Envio de documentos" com atalho para enviar; gestor vê o rótulo na tela de solicitações.
+- [ ] Aviso de diárias/recibos pendentes de quitação até a véspera da vigência (verificar recibos em aberto do vínculo anterior).
+- [ ] Conferir no navegador: ficha da Nathanaelly, PDF completo e efetivação direta.
