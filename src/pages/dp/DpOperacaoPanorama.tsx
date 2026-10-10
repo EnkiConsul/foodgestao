@@ -404,7 +404,7 @@ interface DetalheDiaProps {
   compacto?: boolean;
   regimes?: Map<string, string>;
   periodosHabituais?: Map<string, "dia" | "noite" | "madrugada">;
-  acoesFolga?: (colaboradorId: string) => React.ReactNode;
+  acoesFolga?: (colaboradorId: string, folgaFixa: boolean) => React.ReactNode;
 }
 
 /** Sócio ausente sem obrigação CLT: exibido com tag própria. */
@@ -877,7 +877,7 @@ function DetalheDiaOperacao({
         <Secao title="Fora da Operação" description="Folgas, férias e afastamentos do dia">
           <ul className={cn("divide-y", compacto && foraVisiveis.length >= 4 && "grid gap-x-6 divide-y-0 sm:grid-cols-2")}>
             {foraVisiveis.map((p) => (
-              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2">
+              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2.5">
                 {(() => {
                   const reg = ausReg.find((a) => a.colaborador_id === p.colaborador_id);
                   return (
@@ -903,7 +903,7 @@ function DetalheDiaOperacao({
                       : CATEGORIA_LABEL[p.categoria]}
                   </Badge>
                 </div>
-                {acoesFolga && (p.categoria === "folga_extra" || p.categoria === "folga_padrao") && acoesFolga(p.colaborador_id)}
+                {acoesFolga && (p.categoria === "folga_extra" || p.categoria === "folga_padrao") && acoesFolga(p.colaborador_id, p.categoria === "folga_padrao")}
               </li>
             ))}
           </ul>
@@ -1804,11 +1804,12 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               {...propsSetor}
                 regimes={regimesColab}
                 periodosHabituais={periodosHab}
-                acoesFolga={calendario && companyIdCal ? (id) => (
+                acoesFolga={calendario && companyIdCal ? (id, fixa) => (
                   <FolgasDoDiaPainel
                     companyId={companyIdCal}
                     data={dataPopout}
                     colaboradorId={id}
+                    folgaFixa={fixa}
                     nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
                   />
                 ) : undefined}

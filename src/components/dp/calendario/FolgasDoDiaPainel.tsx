@@ -50,7 +50,7 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, onFeito }: { companyI
   });
   void companyId;
   return (
-    <div className="flex w-full flex-wrap items-center justify-end gap-1">
+    <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
       {aberto ? (
         <>
           <Input type="date" className="h-8 w-40" value={novaData} onChange={(e) => setNovaData(e.target.value)} aria-label="Novo dia de folga" />
@@ -167,7 +167,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
     if (!i && folgaFixa) return <TrocarFolgaFixa companyId={companyId} colaboradorId={colaboradorId} data={data} onFeito={invalidar} />;
     if (!i) return null;
     return (
-      <div className="flex w-full flex-wrap items-center justify-end gap-1">
+      <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
         {acao?.item.key === i.key ? (
           <>
             {acao.tipo === "remarcar" ? (
