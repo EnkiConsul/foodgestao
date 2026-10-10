@@ -1779,6 +1779,47 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
             {calendario && dataPopout && companyIdCal && (
               <BloqueioDoDiaCabecalho companyId={companyIdCal} unidadeId={unidadeId} data={dataPopout} podeEditar={podeRegistrar} />
             )}
+            {calendario && dataPopout && diaPopout && (
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" className="h-8 rounded-lg" disabled={!companyIdCal}>
+                      <CalendarDays className="mr-1 h-4 w-4" /> Marcar folga
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-1" align="center">
+                    <p className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Quem vai folgar?</p>
+                    <div className="max-h-64 overflow-y-auto">
+                      {diaPopout.pessoas
+                        .filter((p) => p.categoria === "fixo" && !p.avulso_id)
+                        .filter((p, i, arr) => arr.findIndex((o) => o.colaborador_id === p.colaborador_id) === i)
+                        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+                        .map((p) => (
+                          <button
+                            key={p.colaborador_id}
+                            type="button"
+                            className="block w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
+                            onClick={() => { setFolgaColab(p.colaborador_id); setFolgaTriagem(true); }}
+                          >
+                            {primeiroNome(p.nome)}
+                            {p.cargo_nome && <span className="ml-1 text-xs text-muted-foreground">· {p.cargo_nome}</span>}
+                          </button>
+                        ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                {podeRegistrar && (
+                  <>
+                    <Button size="sm" variant="outline" className="h-8 rounded-lg" onClick={() => { setAusenciaData(dataPopout); setAusenciaOpen(true); }}>
+                      <Plus className="mr-1 h-4 w-4" /> Registrar ausência
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 rounded-lg" onClick={() => abrirNovaAvulsa(dataPopout)}>
+                      <UserPlus className="mr-1 h-4 w-4" /> Mão de obra extra
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
           </DialogHeader>
           <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
             {dataPopout && diaPopout ? (
