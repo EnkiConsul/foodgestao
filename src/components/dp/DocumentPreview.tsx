@@ -75,11 +75,17 @@ export function DocumentPreview({
       .then(async ({ data }) => {
         const rid = (data as { comprovante_recibo_documento_id?: string | null } | null)?.comprovante_recibo_documento_id;
         if (!rid || cancelado) return;
-        const [l, aceite] = await Promise.all([
+        // Assinado por aceite no portal, link do WhatsApp (dp_recibos) ou via física digitalizada.
+        const [l, aceite, rec, doc] = await Promise.all([
           linkDocumentoAssinado(rid, expiresIn).catch(() => null),
           supabase.from("dp_documento_aceites").select("id").eq("documento_id", rid).limit(1),
+          supabase.from("dp_recibos").select("id").eq("documento_id", rid).not("assinado_em", "is", null).limit(1),
+          supabase.from("dp_documentos").select("via_assinada_path").eq("id", rid).maybeSingle(),
         ]);
-        const assinado = (aceite.data ?? []).length > 0;
+        const assinado =
+          (aceite.data ?? []).length > 0 ||
+          (rec.data ?? []).length > 0 ||
+          !!(doc.data as { via_assinada_path?: string | null } | null)?.via_assinada_path;
         if (!cancelado && l) setRecibo({ url: l.url, mime: l.mimeType, nome: l.fileName, assinado });
       });
     return () => { cancelado = true; };
