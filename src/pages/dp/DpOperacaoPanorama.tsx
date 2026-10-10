@@ -382,6 +382,8 @@ interface DetalheDiaProps {
   onNovaAvulsa: (data: string) => void;
   onEditarAvulsa: (registro: PessoaAvulsaPanorama) => void;
   onExcluirAvulsa: (registro: PessoaAvulsaPanorama) => void;
+  /** Detalhe aberto pelo calendário do mês: sem cartões e sem seção separada de extras. */
+  compacto?: boolean;
 }
 
 /** Sócio ausente sem obrigação CLT: exibido com tag própria. */
@@ -419,6 +421,7 @@ function DetalheDiaOperacao({
   onNovaAvulsa,
   onEditarAvulsa,
   onExcluirAvulsa,
+  compacto = false,
 }: DetalheDiaProps) {
   const navigate = useNavigate();
 
@@ -446,7 +449,7 @@ function DetalheDiaOperacao({
 
   return (
     <div className="space-y-4">
-      <GradeCards
+      {!compacto && <GradeCards
         ordem={ordemCards}
         onReordenar={onReordenarCards}
         valores={valoresCards}
@@ -504,7 +507,7 @@ function DetalheDiaOperacao({
             />
           );
         }}
-      />
+      />}
 
       {dia.avaliacao.situacao !== "sem_padrao" && dia.avaliacao.situacao !== "ok" && (
         <Secao
@@ -660,11 +663,39 @@ function DetalheDiaOperacao({
                               </Badge>
                             )}
                             <Badge
-                              variant={p.categoria === "convocado_pendente" ? "outline" : "secondary"}
-                              className="max-w-full whitespace-normal text-left leading-tight"
+                              variant="outline"
+                              className={cn(
+                                "max-w-full whitespace-normal border-transparent text-left leading-tight",
+                                p.avulso_tipo === "teste"
+                                  ? "bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                                  : p.avulso_tipo === "folguista"
+                                    ? "bg-sky-500/15 text-sky-700 dark:text-sky-300"
+                                    : p.avulso_id
+                                      ? "bg-amber-500/15 text-amber-800 dark:text-amber-300"
+                                      : p.categoria === "convocado_pendente"
+                                        ? "border-border"
+                                        : "bg-primary/10 text-primary",
+                              )}
                             >
-                              {rotuloCategoriaPessoa(p)}
+                              {p.avulso_id && !p.avulso_tipo ? "Mão de obra extra" : rotuloCategoriaPessoa(p)}
                             </Badge>
+                            {compacto && podeRegistrar && p.avulso_id && (() => {
+                              const reg = avulsos.find((a) => a.id === p.avulso_id);
+                              return reg ? (
+                                <>
+                                  <Button variant="ghost" size="sm" className="min-h-9 px-2 text-xs sm:min-h-7" onClick={() => onEditarAvulsa(reg)}>Editar</Button>
+                                  <ConfirmarAcaoDialog
+                                    titulo="Remover do dia?"
+                                    descricao={`${reg.nome ?? "A pessoa"} deixará de constar neste dia.`}
+                                    confirmar="Remover"
+                                    cancelar="Cancelar"
+                                    onConfirm={() => onExcluirAvulsa(reg)}
+                                  >
+                                    <Button variant="ghost" size="sm" className="min-h-9 px-2 text-xs sm:min-h-7">Remover</Button>
+                                  </ConfirmarAcaoDialog>
+                                </>
+                              ) : null;
+                            })()}
                           </div>
                         </li>
                       ))}
@@ -691,7 +722,7 @@ function DetalheDiaOperacao({
         </Secao>
       )}
 
-      <Secao
+      {!compacto && <Secao
         title="Mão de Obra Extra"
         description="Pessoas adicionadas à equipe deste dia: folguistas, pessoas em teste ou colaboradores"
         action={
@@ -778,7 +809,7 @@ function DetalheDiaOperacao({
             Ninguém registrado manualmente neste dia.
           </p>
         )}
-      </Secao>
+      </Secao>}
 
 
 
@@ -1617,52 +1648,60 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
           </DialogHeader>
           <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
             {calendario && dataPopout && diaPopout && (
-              <div className="space-y-3 rounded-lg border bg-card p-3">
-                <p className="text-sm font-medium">Ações do dia</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Select value={folgaColab} onValueChange={setFolgaColab}>
-                    <SelectTrigger className="h-9 w-56"><SelectValue placeholder="Colaborador que trabalha" /></SelectTrigger>
-                    <SelectContent>
-                      {diaPopout.pessoas
-                        .filter((p) => p.categoria === "fixo" && !p.avulso_id)
-                        .filter((p, i, arr) => arr.findIndex((o) => o.colaborador_id === p.colaborador_id) === i)
-                        .map((p) => <SelectItem key={p.colaborador_id} value={p.colaborador_id}>{p.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Button size="sm" disabled={!folgaColab || !companyIdCal} onClick={() => setFolgaTriagem(true)}>
-                    Marcar folga
-                  </Button>
-                </div>
-                {podeRegistrar && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" onClick={() => { setAusenciaData(dataPopout); setAusenciaOpen(true); }}>
-                      <Plus className="mr-1 h-4 w-4" /> Registrar ausência
+              <div className="space-y-4">
+                <section className="rounded-2xl border bg-card p-4 shadow-sm">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Ações do dia</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Select value={folgaColab} onValueChange={setFolgaColab}>
+                      <SelectTrigger className="h-10 w-full rounded-xl sm:w-60"><SelectValue placeholder="Quem vai folgar?" /></SelectTrigger>
+                      <SelectContent>
+                        {diaPopout.pessoas
+                          .filter((p) => p.categoria === "fixo" && !p.avulso_id)
+                          .filter((p, i, arr) => arr.findIndex((o) => o.colaborador_id === p.colaborador_id) === i)
+                          .map((p) => <SelectItem key={p.colaborador_id} value={p.colaborador_id}>{p.nome}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Button className="h-10 rounded-xl" disabled={!folgaColab || !companyIdCal} onClick={() => setFolgaTriagem(true)}>
+                      Marcar folga
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => abrirNovaAvulsa(dataPopout)}>
-                      <UserPlus className="mr-1 h-4 w-4" /> Mão de obra extra
-                    </Button>
+                    {podeRegistrar && (
+                      <>
+                        <Button variant="outline" className="h-10 rounded-xl" onClick={() => { setAusenciaData(dataPopout); setAusenciaOpen(true); }}>
+                          <Plus className="mr-1 h-4 w-4" /> Registrar ausência
+                        </Button>
+                        <Button variant="outline" className="h-10 rounded-xl" onClick={() => abrirNovaAvulsa(dataPopout)}>
+                          <UserPlus className="mr-1 h-4 w-4" /> Mão de obra extra
+                        </Button>
+                      </>
+                    )}
                   </div>
-                )}
+                </section>
                 {companyIdCal && (
-                  <FolgasDoDiaPainel
-                    companyId={companyIdCal}
-                    data={dataPopout}
-                    nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
-                  />
+                  <section className="rounded-2xl border bg-card p-4 shadow-sm">
+                    <FolgasDoDiaPainel
+                      companyId={companyIdCal}
+                      data={dataPopout}
+                      nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
+                    />
+                  </section>
                 )}
                 {companyIdCal && podeRegistrar && (
-                  <RegrasDoDiaPainel
-                    companyId={companyIdCal}
-                    unidadeId={unidadeId}
-                    data={dataPopout}
-                    folgasNoDia={diaPopout.contagens.folga_padrao + diaPopout.contagens.folga_extra}
-                    nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
-                  />
+                  <section className="rounded-2xl border bg-card p-4 shadow-sm">
+                    <RegrasDoDiaPainel
+                      companyId={companyIdCal}
+                      unidadeId={unidadeId}
+                      data={dataPopout}
+                      folgasNoDia={diaPopout.contagens.folga_padrao + diaPopout.contagens.folga_extra}
+                      nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
+                    />
+                  </section>
                 )}
+                <p className="pt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Escala do dia</p>
               </div>
             )}
             {dataPopout && diaPopout ? (
               <DetalheDiaOperacao
+                compacto={calendario}
                 data={dataPopout}
                 dia={diaPopout}
                 blocos={blocosDe(dataPopout, diaPopout)}
