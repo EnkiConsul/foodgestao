@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   AlertTriangle,
+  ArrowLeftRight,
   ArrowRight,
   CalendarClock,
   CalendarDays,
@@ -66,8 +67,8 @@ import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { CalendarioAusenciasMes } from "@/components/dp/calendario/CalendarioAusenciasMes";
 import { FolgasDoDiaPainel } from "@/components/dp/calendario/FolgasDoDiaPainel";
-import { RegrasDoDiaPainel } from "@/components/dp/calendario/RegrasDoDiaPainel";
-import { filtrosSalvos } from "@/lib/dp/calendario-rotina";
+import { RegrasDoDiaPainel, BloqueioDoDiaCabecalho } from "@/components/dp/calendario/RegrasDoDiaPainel";
+import { filtrosSalvos, primeiroNome } from "@/lib/dp/calendario-rotina";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { DpStatCard } from "@/components/dp/DpStatCard";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
@@ -470,6 +471,31 @@ function DetalheDiaOperacao({
   const blocosVisiveis = periodo === "todos" ? blocos : blocos.filter((b) => periodoBloco(b) === periodo);
   const totalPessoas = blocos.reduce((s, b) => s + b.pessoas.length, 0);
 
+  const foraDoPadrao = dia.avaliacao.situacao !== "sem_padrao" && dia.avaliacao.situacao !== "ok" && (
+        <Secao
+          title="Fora do Padrão"
+          description={mensagemAlerta(dia, dia.avaliacao, nomeUnidade)}
+          action={
+            dia.dispensado ? (
+              <Button variant="ghost" size="sm" onClick={() => onReativar(dia)}>
+                <RotateCcw className="mr-1.5 h-4 w-4" />
+                Reativar alerta
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => onDispensar(dia)}>
+                <Check className="mr-1.5 h-4 w-4" />
+                Está ok
+              </Button>
+            )
+          }
+        >
+          <p className="text-sm text-muted-foreground">
+            O padrão vem da mediana das últimas 8 semanas para este dia da semana
+            {unidadeId ? " nesta unidade" : ""}.
+          </p>
+        </Secao>
+      );
+
   return (
     <div className="space-y-4">
       {contagemPeriodos.size > 1 && (
@@ -558,30 +584,7 @@ function DetalheDiaOperacao({
         }}
       />}
 
-      {dia.avaliacao.situacao !== "sem_padrao" && dia.avaliacao.situacao !== "ok" && (
-        <Secao
-          title="Fora do Padrão"
-          description={mensagemAlerta(dia, dia.avaliacao, nomeUnidade)}
-          action={
-            dia.dispensado ? (
-              <Button variant="ghost" size="sm" onClick={() => onReativar(dia)}>
-                <RotateCcw className="mr-1.5 h-4 w-4" />
-                Reativar alerta
-              </Button>
-            ) : (
-              <Button variant="outline" size="sm" onClick={() => onDispensar(dia)}>
-                <Check className="mr-1.5 h-4 w-4" />
-                Está ok
-              </Button>
-            )
-          }
-        >
-          <p className="text-sm text-muted-foreground">
-            O padrão vem da mediana das últimas 8 semanas para este dia da semana
-            {unidadeId ? " nesta unidade" : ""}.
-          </p>
-        </Secao>
-      )}
+      {!compacto && foraDoPadrao}
 
       {usaSetores && onAgrupamento && blocos.length > 0 && (
         <div className="flex items-center gap-2">
@@ -607,8 +610,8 @@ function DetalheDiaOperacao({
         </div>
       )}
 
-      {blocos.length ? (
-        blocos.map((bloco) => {
+      {blocosVisiveis.length ? (
+        blocosVisiveis.map((bloco) => {
           const noite = (bloco.horario ?? "").match(/^(\d{2})/) ? Number((bloco.horario ?? "").slice(0, 2)) >= 15 : false;
           const IconeTurno = noite ? Moon : Sun;
           return (
@@ -648,12 +651,9 @@ function DetalheDiaOperacao({
                             key={`${p.colaborador_id}-${p.categoria}-${p.ocorrencia_id ?? p.avulso_id ?? ""}`}
                             className="flex flex-col items-start gap-2 rounded-xl border border-border bg-background p-3 transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                           >
-                          <div className="flex min-w-0 w-full items-center gap-2.5 sm:w-auto">
-                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold uppercase text-primary">
-                              {p.nome.trim().split(/\s+/).slice(0, 2).map((x) => x[0]).join("")}
-                            </span>
+                          <div className="flex w-full items-center gap-2.5 sm:w-auto sm:min-w-[8rem]">
                             <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold">{p.nome}</p>
+                            <p className="break-words text-sm font-semibold" title={p.nome}>{primeiroNome(p.nome)}</p>
                             <p className="text-xs text-muted-foreground">
                               <span className="whitespace-nowrap">{p.entrada ?? "--:--"} às {p.saida ?? "--:--"}</span>
                               {p.termina_no_dia_seguinte ? " (+1)" : ""} ·{" "}
@@ -680,32 +680,35 @@ function DetalheDiaOperacao({
                           </div>
 
                           <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:shrink-0 sm:flex-nowrap">
-                            {usaSetores && (
-                              <Badge
-                                variant="outline"
-                                className={p.setor_id ? undefined : "text-muted-foreground"}
-                                title={
-                                  p.setor_habitual_nome
-                                    ? `Área habitual: ${p.setor_habitual_nome}`
-                                    : undefined
-                                }
-                              >
-                                {p.setor_nome ?? SETOR_NAO_DEFINIDO_LABEL}
-                                {setorDiaDivergeDoHabitual(p.setor_origem ?? "nenhum", p.setor_id, p.setor_habitual_id)
-                                  ? ` · ${origemSetorSufixo(p.setor_origem ?? "nenhum")}`
-                                  : ""}
-                              </Badge>
-                            )}
-                            {usaSetores && onAlterarSetor && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="min-h-9 px-2 text-xs sm:min-h-7"
-                                onClick={() => onAlterarSetor(p, data)}
-                              >
-                                Alterar setor
-                              </Button>
-                            )}
+                            {usaSetores && (() => {
+                              const alterado = setorDiaDivergeDoHabitual(p.setor_origem ?? "nenhum", p.setor_id, p.setor_habitual_id);
+                              const conteudo = (
+                                <>
+                                  {alterado ? <ArrowLeftRight className="h-3 w-3" /> : !p.setor_id ? <AlertTriangle className="h-3 w-3" /> : null}
+                                  {p.setor_nome ?? SETOR_NAO_DEFINIDO_LABEL}
+                                </>
+                              );
+                              const cls = cn(
+                                "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold",
+                                alterado ? "border-primary/50 bg-primary/10 text-primary" : p.setor_id ? "border-border bg-muted/50" : "border-dashed text-muted-foreground",
+                              );
+                              const dica = alterado
+                                ? `Setor alterado só neste dia${p.setor_habitual_nome ? ` (habitual: ${p.setor_habitual_nome})` : ""}`
+                                : undefined;
+                              return onAlterarSetor ? (
+                                <button
+                                  type="button"
+                                  className={cn(cls, "cursor-pointer transition-colors hover:border-primary hover:bg-primary/15")}
+                                  title={dica ? `${dica} · toque para alterar` : "Toque para alterar o setor deste dia"}
+                                  aria-label={`Setor ${p.setor_nome ?? "não definido"}. Alterar setor deste dia`}
+                                  onClick={() => onAlterarSetor(p, data)}
+                                >
+                                  {conteudo}
+                                </button>
+                              ) : (
+                                <span className={cls} title={dica}>{conteudo}</span>
+                              );
+                            })()}
                             {p.socio && (
                               <Badge variant="outline" className="border-primary/40 text-primary">
                                 Sócio
@@ -868,7 +871,7 @@ function DetalheDiaOperacao({
           <ul className="divide-y">
             {foraDaOperacao.map((p) => (
               <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2">
-                <span className="w-full truncate text-sm sm:w-auto">{p.nome}</span>
+                <span className="w-full text-sm font-medium sm:w-auto" title={p.nome}>{primeiroNome(p.nome)}</span>
                 <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
                   {tagSocio(p) && (
                     <Badge variant="outline" className="border-primary/40 text-primary">
@@ -896,8 +899,8 @@ function DetalheDiaOperacao({
             {ausReg.map((a, i) => (
               <li key={`${a.colaborador_id}-${i}`} className="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:py-2">
                 <div className="min-w-0 w-full sm:w-auto">
-                  <span className="block truncate text-sm">
-                    {nomesColaboradores.get(a.colaborador_id) ?? "—"}
+                  <span className="block text-sm font-medium">
+                    {primeiroNome(nomesColaboradores.get(a.colaborador_id) ?? "—")}
                   </span>
                   {a.motivo && <span className="block text-xs text-muted-foreground">{a.motivo}</span>}
                 </div>
@@ -910,6 +913,8 @@ function DetalheDiaOperacao({
           </ul>
         </Secao>
       )}
+
+      {compacto && foraDoPadrao}
     </div>
   );
 }
@@ -1748,8 +1753,36 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                 </Badge>
               )}
             </DialogDescription>
+            {calendario && dataPopout && companyIdCal && (
+              <BloqueioDoDiaCabecalho companyId={companyIdCal} unidadeId={unidadeId} data={dataPopout} podeEditar={podeRegistrar} />
+            )}
           </DialogHeader>
           <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+            {dataPopout && diaPopout ? (
+              <DetalheDiaOperacao
+                compacto={calendario}
+                data={dataPopout}
+                dia={diaPopout}
+                blocos={blocosDe(dataPopout, diaPopout)}
+                sociosAusentes={sociosDe(diaPopout)}
+                ausenciasRegistradas={panorama.ausenciasRegistradas ?? []}
+                nomesColaboradores={nomesColaboradores}
+                unidadeId={unidadeId}
+                nomeUnidade={nomeUnidade}
+                ordemCards={ordemDia}
+                onReordenarCards={(next) => salvarOrdem("dia", next)}
+                mostrarZerados={mostrarZerados}
+                onAlternarZerados={alternarZerados}
+                onVerCategoria={setDetalheCategoria}
+                onVerSocios={() => setVerSocios(true)}
+                onDispensar={dispensar}
+                onReativar={reativar}
+                {...propsAvulsas}
+              {...propsSetor}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">Sem dados para este dia.</p>
+            )}
             {calendario && dataPopout && diaPopout && (
               <div className="space-y-4">
                 <section className="rounded-2xl border bg-card p-4 shadow-sm">
@@ -1794,38 +1827,13 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                       companyId={companyIdCal}
                       unidadeId={unidadeId}
                       data={dataPopout}
+                      ocultarBloqueio
                       folgasNoDia={diaPopout.contagens.folga_padrao + diaPopout.contagens.folga_extra}
                       nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
                     />
                   </section>
                 )}
-                <p className="pt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Escala do dia</p>
               </div>
-            )}
-            {dataPopout && diaPopout ? (
-              <DetalheDiaOperacao
-                compacto={calendario}
-                data={dataPopout}
-                dia={diaPopout}
-                blocos={blocosDe(dataPopout, diaPopout)}
-                sociosAusentes={sociosDe(diaPopout)}
-                ausenciasRegistradas={panorama.ausenciasRegistradas ?? []}
-                nomesColaboradores={nomesColaboradores}
-                unidadeId={unidadeId}
-                nomeUnidade={nomeUnidade}
-                ordemCards={ordemDia}
-                onReordenarCards={(next) => salvarOrdem("dia", next)}
-                mostrarZerados={mostrarZerados}
-                onAlternarZerados={alternarZerados}
-                onVerCategoria={setDetalheCategoria}
-                onVerSocios={() => setVerSocios(true)}
-                onDispensar={dispensar}
-                onReativar={reativar}
-                {...propsAvulsas}
-              {...propsSetor}
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground">Sem dados para este dia.</p>
             )}
           </div>
           <DialogFooter>
