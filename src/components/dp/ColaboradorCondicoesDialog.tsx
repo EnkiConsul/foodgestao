@@ -686,19 +686,31 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                       férias, 13º e tempo de casa começando na data informada.
                     </p>
                     {ehEfetivacaoClt(regimeAtual, regime) && colaborador ? (
-                      <div className="rounded-md border bg-muted/40 p-2 text-xs">
+                      <div className="rounded-md border bg-muted/40 p-2 text-xs space-y-2">
                         {(() => {
                           const pend = pendenciasEfetivacao(colaborador as never);
                           return pend.length ? (
-                            <p className="font-medium">
-                              Faltam no cadastro para o registro: {pend.map((p) => p.rotulo).join(", ")}.
-                              Peça ao colaborador pelo portal ou complete na ficha.
-                            </p>
+                            <div className="space-y-2">
+                              <p className="font-medium">
+                                Faltam no cadastro para o registro: {pend.map((p) => p.rotulo).join(", ")}.
+                                Peça ao colaborador pelo portal ou complete na ficha.
+                              </p>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={solicitandoComplemento}
+                                onClick={() => solicitarComplemento(pend.map((p) => p.rotulo))}
+                              >
+                                <Send className="h-3.5 w-3.5 mr-1" />
+                                {solicitandoComplemento ? "Enviando pedido..." : "Solicitar complemento pelo portal"}
+                              </Button>
+                            </div>
                           ) : (
                             <p className="font-medium">Cadastro completo para o registro CLT.</p>
                           );
                         })()}
-                        <ul className="mt-1 list-disc pl-4 text-muted-foreground">
+                        <ul className="list-disc pl-4 text-muted-foreground">
                           {LEMBRETES_EFETIVACAO.map((l) => <li key={l}>{l}</li>)}
                         </ul>
                       </div>
