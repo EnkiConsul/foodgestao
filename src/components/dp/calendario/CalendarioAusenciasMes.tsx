@@ -144,6 +144,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     }
     return { ...r, media: dias.length ? Math.round(r.trab / dias.length) : 0 };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dias, filtros, bloqueios, diasDominicais]);
   const cards = [
     { icon: Users, label: "trab./dia", valor: resumoMes.media, tom: "text-primary" },
     { icon: Coffee, label: "semanais", valor: resumoMes.semanal, tom: "text-emerald-600 dark:text-emerald-400" },

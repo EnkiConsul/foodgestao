@@ -1140,6 +1140,24 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
     onVerAvulso: setDetalheAvulso,
   };
 
+  // Atalhos do Calendário: ← → navegam, H volta para hoje.
+  useEffect(() => {
+    if (!calendario) return;
+    const h = (e: KeyboardEvent) => {
+      if (dataPopout || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.closest("input,textarea,select,[contenteditable=true],[role=combobox],[role=dialog],[role=menu]"))) return;
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        const k = e.key === "ArrowLeft" ? -1 : 1;
+        setData(aba === "mes" ? `${somarMeses(competencia, k)}-01` : somarDias(data, k));
+      } else if (e.key === "h" || e.key === "H") setData(hojeIso());
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [calendario, dataPopout, aba, competencia, data, setData]);
+
   if (panorama.error) return <DpErrorState message="Não foi possível carregar a operação." />;
 
 
@@ -1168,24 +1186,6 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
   const tagSocio = (p: PessoaPanorama) =>
     p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria) && !p.socio_integrado;
 
-
-  // Atalhos do Calendário: ← → navegam, H volta para hoje.
-  useEffect(() => {
-    if (!calendario) return;
-    const h = (e: KeyboardEvent) => {
-      if (dataPopout || e.ctrlKey || e.metaKey || e.altKey) return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.closest("input,textarea,select,[contenteditable=true],[role=combobox],[role=dialog],[role=menu]"))) return;
-      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-        const k = e.key === "ArrowLeft" ? -1 : 1;
-        setData(aba === "mes" ? `${somarMeses(competencia, k)}-01` : somarDias(data, k));
-      } else if (e.key === "h" || e.key === "H") setData(hojeIso());
-      else return;
-      e.preventDefault();
-    };
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [calendario, dataPopout, aba, competencia, data, setData]);
 
   return (
     <DpPage>
