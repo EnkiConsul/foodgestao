@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Lock, LockOpen } from "lucide-react";
 import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
-import { origemLimiteLabel, resolverLimiteFolga } from "@/lib/dp/folga-limites";
+import { cotasPorCargoNoDia, origemLimiteLabel, resolverLimiteFolga } from "@/lib/dp/folga-limites";
+import { VagasCargoSetorDia } from "@/components/dp/bloqueios/RestricoesDoDia";
+import { cn } from "@/lib/utils";
 
 interface Props {
   companyId: string;
@@ -20,6 +22,8 @@ interface Props {
   nomes: Map<string, string>;
   /** Bloqueio já exibido no cabeçalho do dia. */
   ocultarBloqueio?: boolean;
+  /** Quem está de folga no dia (para as cotas por cargo/setor). */
+  ocupantes?: { nome: string; cargoId?: string | null; setorId?: string | null }[];
 }
 
 const STATUS_TROCA: Record<string, string> = {
@@ -32,11 +36,19 @@ const STATUS_TROCA: Record<string, string> = {
  * Bloqueio de data, limite de folgas e trocas do dia, pelas mesmas rotinas
  * do Calendário de Folgas (o servidor valida permissões e regras).
  */
-export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nomes, ocultarBloqueio }: Props) {
+export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nomes, ocultarBloqueio, ocupantes }: Props) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [motivo, setMotivo] = useState("");
   const [limite, setLimite] = useState("");
+  const [ajustar, setAjustar] = useState(false);
+  const cargosQ = useQuery({
+    queryKey: ["dp_cargos_nomes", companyId],
+    queryFn: async () => {
+      const { data: l } = await supabase.from("dp_cargos").select("id, nome").eq("company_id", companyId);
+      return (l ?? []).map((c) => [c.id, c.nome] as [string, string]);
+    },
+  });
   const { regras: regrasLimite } = useDpFolgaLimites(unidadeId);
 
   const q = useQuery({
@@ -108,6 +120,7 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
   const { bloqueio, diaConfig, trocas } = q.data;
   const resolvido = resolverLimiteFolga({ data, unidadeId, regras: regrasLimite ?? [], diaConfig });
   const lim = resolvido.limite;
+  const cotas = cotasPorCargoNoDia({ data, unidadeId, regras: regrasLimite ?? [], diaConfig, ocupantes: ocupantes ?? [], cargoNomeById: new Map(cargosQ.data ?? []) });
   const trocasDaUnidade = trocas.filter((t) => nomes.has(t.solicitante_id) || nomes.has(t.destino_id));
 
   return (
@@ -134,18 +147,55 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
         )}
       </div>}
 
-      <div className="space-y-1.5">
-        <p className="text-xs font-medium text-muted-foreground">
-          Limite de folgas: {lim == null ? "sem limite cadastrado" : `${folgasNoDia} de ${lim} usadas (${Math.max(lim - folgasNoDia, 0)} restantes)`}
-          {lim != null && folgasNoDia >= lim && <span className="ml-1 text-destructive">· lotado</span>}
-        </p>
-        {lim != null && <p className="text-[11px] text-muted-foreground">{origemLimiteLabel(resolvido.origem)}</p>}
-        <div className="flex flex-wrap items-center gap-2">
-          <Input type="number" min={0} className="h-8 w-28" placeholder="Novo limite" value={limite} onChange={(e) => setLimite(e.target.value)} />
-          <Button size="sm" variant="outline" disabled={!limite || salvarLimite.isPending} onClick={() => salvarLimite.mutate()}>
-            Salvar limite
-          </Button>
-        </div>
+      <div className="space-y-3 rounded-xl border bg-muted/30 p-3">
+        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground">Vagas de Folga no Dia</p>
+        {lim == null ? (
+          <p className="text-sm text-muted-foreground">Nenhum limite cadastrado para este dia. Cadastre uma regra em Folgas &gt; Regras ou ajuste abaixo.</p>
+        ) : (
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className={cn("text-2xl font-extrabold tabular-nums", folgasNoDia >= lim ? "text-destructive" : "text-primary")}>
+              {folgasNoDia}/{lim}
+            </span>
+            <span className="text-sm font-semibold">
+              {folgasNoDia >= lim ? "Lotado" : `${lim - folgasNoDia} ${lim - folgasNoDia === 1 ? "vaga livre" : "vagas livres"}`}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {resolvido.origem === "regra_recorrente" ? "Regras da unidade" : origemLimiteLabel(resolvido.origem)}
+            </span>
+          </div>
+        )}
+        {cotas.length > 0 && (
+          <ul className="space-y-1">
+            {cotas.map((c) => {
+              const livres = Math.max(0, c.maximo - c.ocupados);
+              return (
+                <li key={c.regraId} className="flex flex-wrap items-center justify-between gap-1 rounded-lg border bg-card px-2.5 py-1.5 text-xs">
+                  <span className="font-semibold">{c.rotulo}</span>
+                  <span className={livres > 0 ? "text-primary" : "text-destructive"}>
+                    {livres > 0 ? `${livres} vaga(s) livre(s)` : "Lotado"} ({c.ocupados}/{c.maximo})
+                    {c.nomes.length > 0 ? ` · ${c.nomes.map((n) => n.split(" ")[0]).join(", ")}` : ""}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <Button variant="outline" size="sm" className="w-full" onClick={() => setAjustar((v) => !v)}>
+          {ajustar ? "Fechar Ajuste de Vagas" : "Ajustar Vagas Deste Dia"}
+        </Button>
+        {ajustar && (
+          <div className="space-y-3">
+            <div className="flex items-end gap-2">
+              <div className="flex-1 space-y-1">
+                <p className="text-[10px] font-bold text-muted-foreground">Exceção só para esta data</p>
+                <Input type="number" min={0} className="h-9" placeholder="Quantidade" value={limite} onChange={(e) => setLimite(e.target.value)} />
+              </div>
+              <Button size="sm" className="h-9" disabled={!limite || salvarLimite.isPending} onClick={() => salvarLimite.mutate()}>Salvar</Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">0 = ninguém pode folgar neste dia.</p>
+            {unidadeId && <VagasCargoSetorDia companyId={companyId} data={data} unidadeId={unidadeId} />}
+          </div>
+        )}
       </div>
 
       <div className="space-y-1.5">

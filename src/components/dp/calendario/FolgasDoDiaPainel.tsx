@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { emitirTermoTrocaGestor, ORIGEM_TROCA_LABEL, type AssinaturaTermo, type OrigemTrocaGestor } from "@/lib/dp/termo-troca-gestor";
+import { emitirTermoTrocaGestor, termoTrocaGestorParagrafos, ORIGEM_TROCA_LABEL, type AssinaturaTermo, type OrigemTrocaGestor } from "@/lib/dp/termo-troca-gestor";
 
 interface Props {
   companyId: string;
@@ -38,6 +38,12 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { co
   const [origem, setOrigem] = useState<OrigemTrocaGestor | "">("");
   const [motivo, setMotivo] = useState("");
   const [assinatura, setAssinatura] = useState<AssinaturaTermo>("digital");
+  const [revisar, setRevisar] = useState(false);
+  const empresaQ = useQuery({
+    queryKey: ["empresa_nome", companyId],
+    enabled: aberto,
+    queryFn: async () => ((await supabase.from("companies").select("name").eq("id", companyId).maybeSingle()).data as { name?: string } | null)?.name ?? "Empresa",
+  });
   const m = useMutation({
     mutationFn: async () => {
       if (!novaData) throw new Error("Escolha o dia em que a pessoa vai folgar.");
@@ -59,7 +65,7 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { co
     },
     onSuccess: () => {
       toast.success(assinatura === "digital" ? "Folga trocada. Termo enviado ao Portal para assinatura." : "Folga trocada. Termo pronto para imprimir.");
-      setAberto(false); setNovaData(""); setOrigem(""); setMotivo("");
+      setAberto(false); setRevisar(false); setNovaData(""); setOrigem(""); setMotivo("");
       qc.invalidateQueries({ queryKey: ["dp_dia_trabalho_excepcional"] });
       onFeito();
     },
@@ -69,13 +75,23 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { co
   });
   return (
     <>
-      <Button size="sm" variant="outline" className="ml-auto h-7 px-2 text-xs" onClick={() => setAberto(true)}>Trocar folga</Button>
-      <Dialog open={aberto} onOpenChange={setAberto}>
+      <Button size="sm" variant="outline" className="ml-auto h-7 px-2 text-xs" onClick={() => setAberto(true)}>Remarcar Folga</Button>
+      <Dialog open={aberto} onOpenChange={(o) => { setAberto(o); if (!o) setRevisar(false); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Trocar folga fixa</DialogTitle>
+            <DialogTitle>{revisar ? "Conferir Termo de Alteração de Folga" : "Remarcar Folga Fixa"}</DialogTitle>
             <DialogDescription>{nome} trabalha neste dia e folga na nova data. Um termo é gerado para assinatura.</DialogDescription>
           </DialogHeader>
+          {revisar && origem ? (
+            <div className="max-h-[50vh] space-y-2 overflow-y-auto rounded-lg border bg-muted/30 p-3 text-sm">
+              {termoTrocaGestorParagrafos({ empresa: empresaQ.data ?? "Empresa", nome, dataFixa: data, dataNova: novaData, origem, motivo: motivo.trim() || null, folgaFixa: true }).map((t, i) => (
+                <p key={i}>{t}</p>
+              ))}
+              <p className="pt-2 text-xs text-muted-foreground">
+                {assinatura === "digital" ? "Após confirmar, o termo vai ao Portal para assinatura digital." : "Após confirmar, o termo abre para impressão e fica pendente a importação da via assinada."}
+              </p>
+            </div>
+          ) : (
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label>Novo dia de folga</Label>
@@ -101,9 +117,23 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { co
               </RadioGroup>
             </div>
           </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setAberto(false)}>Voltar</Button>
-            <Button disabled={m.isPending} onClick={() => m.mutate()}>Confirmar troca</Button>
+            {revisar ? (
+              <>
+                <Button variant="ghost" onClick={() => setRevisar(false)}>Voltar e Editar</Button>
+                <Button disabled={m.isPending} onClick={() => m.mutate()}>{assinatura === "digital" ? "Confirmar e Enviar" : "Confirmar e Imprimir"}</Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => setAberto(false)}>Voltar</Button>
+                <Button onClick={() => {
+                  if (!novaData) return toast.error("Escolha o dia em que a pessoa vai folgar.");
+                  if (!origem) return toast.error("Informe se a troca foi pedida pelo colaborador ou pela empresa.");
+                  setRevisar(true);
+                }}>Ver Termo</Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -227,7 +257,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
           </>
         ) : (
           <>
-            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); }}>Remarcar</Button>
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); }}>Remarcar Folga</Button>
             <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive" onClick={() => { setAcao({ item: i, tipo: "cancelar" }); setMotivo(""); }}>Cancelar</Button>
           </>
         )}
