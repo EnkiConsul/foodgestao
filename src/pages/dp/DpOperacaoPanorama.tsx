@@ -91,6 +91,23 @@ function rotuloFolguista(p: { cobre_nome?: string | null }): string {
   return p.cobre_nome ? `Folguista · Cobrindo ${p.cobre_nome}` : "Folguista Extra";
 }
 
+/** Vínculo exibido na 1ª linha do card do dia. */
+function vinculoPessoa(p: PessoaPanorama, regimes?: Map<string, string>): string {
+  if (p.avulso_tipo === "teste") return "Teste";
+  if (p.avulso_tipo === "folguista") return "Folguista";
+  if (p.avulso_id) return "Extra";
+  if (p.socio) return "Sócio";
+  if (p.categoria === "convocado_aceito" || p.categoria === "convocado_pendente") return "Intermitente";
+  const r = regimes?.get(p.colaborador_id);
+  if (r === "freelancer") return "Freelancer";
+  if (r === "intermitente") return "Intermitente";
+  if (r === "pj") return "PJ";
+  if (r === "mei") return "MEI";
+  if (r === "estagio") return "Estágio";
+  if (r === "temporario") return "Temporário";
+  return "Fixo";
+}
+
 function rotuloCategoriaPessoa(p: PessoaPanorama): string {
   if (p.origem === "avulso" || p.origem === "registro_manual") {
     if (p.avulso_tipo === "folguista") return rotuloFolguista(p);
@@ -423,6 +440,9 @@ function DetalheDiaOperacao({
   onEditarAvulsa,
   onExcluirAvulsa,
   compacto = false,
+  regimes,
+  periodosHabituais,
+  acoesFolga,
 }: DetalheDiaProps) {
   const navigate = useNavigate();
 
@@ -466,8 +486,17 @@ function DetalheDiaOperacao({
     for (const [k, v] of contagemPeriodos) if (v > max) { max = v; melhor = k; }
     return contagemPeriodos.size > 1 ? melhor : "todos";
   }, [contagemPeriodos]);
-  const [periodo, setPeriodo] = useState<"todos" | "dia" | "noite" | "madrugada">(periodoPadrao);
-  useEffect(() => { setPeriodo(periodoPadrao); }, [data, periodoPadrao]);
+  // Escolha do gestor vale para o dia aberto; ao trocar de dia volta ao turno mais cheio.
+  const [escolhaPeriodo, setEscolhaPeriodo] = useState<{ data: string; p: "todos" | "dia" | "noite" | "madrugada" } | null>(null);
+  const periodo = escolhaPeriodo?.data === data ? escolhaPeriodo.p : periodoPadrao;
+  const setPeriodo = (p: "todos" | "dia" | "noite" | "madrugada") => setEscolhaPeriodo({ data, p });
+  const periodoPessoa = (p: PessoaPanorama): "dia" | "noite" | "madrugada" | null => {
+    if (p.entrada) return periodoBloco({ horario: p.entrada });
+    return periodosHabituais?.get(p.colaborador_id) ?? null;
+  };
+  const foraVisiveis = periodo === "todos" || contagemPeriodos.size <= 1
+    ? foraDaOperacao
+    : foraDaOperacao.filter((p) => { const per = periodoPessoa(p); return !per || per === periodo; });
   const blocosVisiveis = periodo === "todos" ? blocos : blocos.filter((b) => periodoBloco(b) === periodo);
   const totalPessoas = blocos.reduce((s, b) => s + b.pessoas.length, 0);
 
@@ -841,10 +870,10 @@ function DetalheDiaOperacao({
 
 
 
-      {foraDaOperacao.length > 0 && (
+      {foraVisiveis.length > 0 && (
         <Secao title="Fora da Operação" description="Folgas, férias e afastamentos do dia">
-          <ul className="divide-y">
-            {foraDaOperacao.map((p) => (
+          <ul className={cn("divide-y", compacto && foraVisiveis.length >= 4 && "grid gap-x-6 divide-y-0 sm:grid-cols-2")}>
+            {foraVisiveis.map((p) => (
               <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2">
                 <span className="w-full text-sm font-medium sm:w-auto" title={p.nome}>{primeiroNome(p.nome)}</span>
                 <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
@@ -859,6 +888,7 @@ function DetalheDiaOperacao({
                       : CATEGORIA_LABEL[p.categoria]}
                   </Badge>
                 </div>
+                {acoesFolga && (p.categoria === "folga_extra" || p.categoria === "folga_padrao") && acoesFolga(p.colaborador_id)}
               </li>
             ))}
           </ul>
@@ -902,7 +932,8 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
   const [unidade, setUnidade] = useState<string>("");
   const [aba, setAba] = useState(() => {
     const a = params.get("aba");
-    return a === "dia" ? "dia" : a === "mes" || calendario ? "mes" : "dia";
+    if (calendario) return "mes";
+    return a === "dia" ? "dia" : a === "mes" ? "mes" : "dia";
   });
   const [detalheCategoria, setDetalheCategoria] = useState<CategoriaDia | null>(null);
   const [detalheAvulso, setDetalheAvulso] = useState<"avulso_teste" | "avulso_folguista" | null>(null);
@@ -1310,14 +1341,9 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <Button variant="secondary" size="sm" className="h-8 rounded-full" onClick={() => setData(hojeIso())}>Hoje</Button>
-          <Input
-            aria-label={aba === "mes" ? "Competência" : "Dia"}
-            className="h-8 w-40 rounded-full"
-            type={aba === "mes" ? "month" : "date"}
-            value={aba === "mes" ? competencia : data}
-            onChange={(e) => setData(aba === "mes" ? `${e.target.value || hojeIso().slice(0, 7)}-01` : e.target.value || hojeIso())}
-          />
+          <Button size="sm" className="h-8 rounded-full" onClick={() => { const h = hojeIso(); setData(h); setDataPopout(h); }}>
+            Rotina de hoje
+          </Button>
           <Select value={unidade && unidade !== "todas" ? unidade : undefined} onValueChange={trocarUnidade}>
             <SelectTrigger className="h-8 w-56 rounded-full" aria-label="Unidade"><SelectValue placeholder="Escolha a unidade" /></SelectTrigger>
             <SelectContent>
@@ -1404,10 +1430,12 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
       )}
 
       <Tabs value={aba} onValueChange={trocarAba} className={calendario ? "space-y-3" : "space-y-4"}>
+        {!calendario && (
         <DpTabsBar value={aba} help={{ dia: "dp.rotinaDia", mes: "dp.rotinaMes" }}>
           <TabsTrigger value="dia">Rotina do Dia</TabsTrigger>
           <TabsTrigger value="mes">Rotina do Mês</TabsTrigger>
         </DpTabsBar>
+        )}
 
         <TabsContent value="dia" className="space-y-4">
           {panorama.isLoading || !dia ? (
@@ -1754,6 +1782,16 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                 onReativar={reativar}
                 {...propsAvulsas}
               {...propsSetor}
+                regimes={regimesColab}
+                periodosHabituais={periodosHab}
+                acoesFolga={calendario && companyIdCal ? (id) => (
+                  <FolgasDoDiaPainel
+                    companyId={companyIdCal}
+                    data={dataPopout}
+                    colaboradorId={id}
+                    nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
+                  />
+                ) : undefined}
               />
             ) : (
               <p className="text-sm text-muted-foreground">Sem dados para este dia.</p>
@@ -1787,15 +1825,6 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                     )}
                   </div>
                 </section>
-                {companyIdCal && (
-                  <section className="rounded-2xl border bg-card p-4 shadow-sm">
-                    <FolgasDoDiaPainel
-                      companyId={companyIdCal}
-                      data={dataPopout}
-                      nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
-                    />
-                  </section>
-                )}
                 {companyIdCal && podeRegistrar && (
                   <section className="rounded-2xl border bg-card p-4 shadow-sm">
                     <RegrasDoDiaPainel
