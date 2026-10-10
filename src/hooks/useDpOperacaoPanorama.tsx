@@ -25,6 +25,7 @@ import {
   type PessoaAvulsaPanorama,
   type PessoaAvulsaTipo,
   type ResultadoDia,
+  ehSobDemanda,
 } from "@/lib/dp/operacao-panorama";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
