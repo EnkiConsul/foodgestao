@@ -9,6 +9,7 @@ import {
   ArrowRight,
   CalendarClock,
   CalendarDays,
+  Pencil,
   Check,
   ChevronLeft,
   ChevronRight,
