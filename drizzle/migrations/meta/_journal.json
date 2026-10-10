@@ -253,6 +253,13 @@
       "when": 1791595365449,
       "tag": "0035_dp_unidade_politica_periodos",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791596170960,
+      "tag": "0036_feriado_ano_inicio",
+      "breakpoints": true
     }
   ]
 }

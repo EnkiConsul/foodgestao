@@ -21,6 +21,8 @@ export type FeriadoRegra = {
   ordinal?: number | null;
   /** Tipo "relativa": 0 = domingo … 6 = sábado. */
   dia_semana?: number | null;
+  /** Tipos "anual" e "relativa": ano a partir do qual o feriado passa a valer (opcional). */
+  ano_inicio?: number | null;
   ativo?: boolean | null;
   observacao?: string | null;
 };
@@ -84,6 +86,8 @@ export function dataDoFeriadoNoAno(regra: FeriadoRegra, ano: number): string | n
     return regra.data.startsWith(`${ano}-`) ? regra.data : null;
   }
 
+  if (regra.ano_inicio != null && ano < regra.ano_inicio) return null;
+
   const mes = regra.mes ?? 0;
   if (mes < 1 || mes > 12) return null;
 
@@ -136,10 +140,11 @@ export function descricaoRegra(regra: FeriadoRegra): string {
     return `Somente em ${d}/${m}/${a}`;
   }
   const mes = MESES[(regra.mes ?? 1) - 1] ?? "";
-  if (regra.tipo === "anual") return `Todo ano em ${regra.dia} de ${mes}`;
+  const desde = regra.ano_inicio ? `, a partir de ${regra.ano_inicio}` : "";
+  if (regra.tipo === "anual") return `Todo ano em ${regra.dia} de ${mes}${desde}`;
   const ord = ORDINAIS.find((o) => o.valor === regra.ordinal)?.label ?? "";
   const dow = DIAS_SEMANA[regra.dia_semana ?? 0] ?? "";
-  return `Todo ano no ${ord} ${dow} de ${mes}`;
+  return `Todo ano no ${ord} ${dow} de ${mes}${desde}`;
 }
 
 /** Feriados nacionais de data fixa, para a unidade não começar vazia. */

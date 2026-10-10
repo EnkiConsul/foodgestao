@@ -17,6 +17,7 @@ export type FeriadoInput = {
   mes?: number | null;
   ordinal?: number | null;
   dia_semana?: number | null;
+  ano_inicio?: number | null;
   ativo?: boolean;
   observacao?: string | null;
 };
@@ -60,7 +61,7 @@ export function useDpFeriados(unidadeId?: string | null) {
     queryFn: async (): Promise<FeriadoRegra[]> => {
       const { data, error } = await supabase
         .from("dp_unidade_feriados")
-        .select("id, nome, tipo, data, dia, mes, ordinal, dia_semana, ativo, observacao")
+        .select("id, nome, tipo, data, dia, mes, ordinal, dia_semana, ano_inicio, ativo, observacao")
         .eq("unidade_id", unidadeId!)
         .order("nome");
       if (error) throw error;
@@ -73,6 +74,7 @@ export function useDpFeriados(unidadeId?: string | null) {
         mes: r.mes,
         ordinal: r.ordinal,
         dia_semana: r.dia_semana,
+        ano_inicio: r.ano_inicio,
         ativo: r.ativo,
         observacao: r.observacao,
       }));
@@ -92,6 +94,7 @@ export function useDpFeriados(unidadeId?: string | null) {
         mes: input.tipo === "especifica" ? null : input.mes ?? null,
         ordinal: input.tipo === "relativa" ? input.ordinal ?? null : null,
         dia_semana: input.tipo === "relativa" ? input.dia_semana ?? null : null,
+        ano_inicio: input.tipo === "especifica" ? null : input.ano_inicio ?? null,
         ativo: input.ativo ?? true,
         observacao: input.observacao?.trim() || null,
       };
@@ -190,6 +193,7 @@ export function useDpFeriados(unidadeId?: string | null) {
         mes: f.tipo === "especifica" ? null : f.mes ?? null,
         ordinal: f.tipo === "relativa" ? f.ordinal ?? null : null,
         dia_semana: f.tipo === "relativa" ? f.dia_semana ?? null : null,
+        ano_inicio: f.tipo === "especifica" ? null : f.ano_inicio ?? null,
         ativo: f.ativo !== false,
         observacao: f.observacao ?? null,
       });
