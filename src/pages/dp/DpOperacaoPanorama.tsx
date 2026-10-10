@@ -63,6 +63,7 @@ import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { CalendarioAusenciasMes } from "@/components/dp/calendario/CalendarioAusenciasMes";
 import { FolgasDoDiaPainel } from "@/components/dp/calendario/FolgasDoDiaPainel";
+import { RegrasDoDiaPainel } from "@/components/dp/calendario/RegrasDoDiaPainel";
 import { filtrosSalvos } from "@/lib/dp/calendario-rotina";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { DpStatCard } from "@/components/dp/DpStatCard";
@@ -1606,15 +1607,21 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                     >
                       <Handshake className="mr-1 h-4 w-4" /> Convocar intermitente
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => navigate("/dp/folgas")}>
-                      Trocas, bloqueios e limites
-                    </Button>
                   </div>
                 )}
                 {companyIdCal && (
                   <FolgasDoDiaPainel
                     companyId={companyIdCal}
                     data={dataPopout}
+                    nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
+                  />
+                )}
+                {companyIdCal && podeRegistrar && (
+                  <RegrasDoDiaPainel
+                    companyId={companyIdCal}
+                    unidadeId={unidadeId}
+                    data={dataPopout}
+                    folgasNoDia={diaPopout.contagens.folga_padrao + diaPopout.contagens.folga_extra}
                     nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
                   />
                 )}
