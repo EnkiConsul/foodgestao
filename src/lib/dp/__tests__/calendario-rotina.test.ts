@@ -35,3 +35,21 @@ describe("atraso não é ausência", () => {
     expect(r).toEqual([]);
   });
 });
+
+import { periodoDoHorario, pessoaNoFiltro } from "@/lib/dp/calendario-rotina";
+
+describe("filtro de turno e setor", () => {
+  it("entrada a partir das 15h é noite", () => {
+    expect(periodoDoHorario("08:30")).toBe("dia");
+    expect(periodoDoHorario("17:00")).toBe("noite");
+  });
+  it("filtro noite esconde quem é do dia", () => {
+    expect(pessoaNoFiltro({ entrada: "08:30", setor_id: "s" }, { periodo: "noite", setores: [] })).toBe(false);
+  });
+  it("sem horário (férias) aparece em qualquer turno", () => {
+    expect(pessoaNoFiltro({ entrada: null, setor_id: "s" }, { periodo: "noite", setores: [] })).toBe(true);
+  });
+  it("filtro de setor esconde outros setores", () => {
+    expect(pessoaNoFiltro({ entrada: "17:00", setor_id: "a" }, { periodo: "todos", setores: ["b"] })).toBe(false);
+  });
+});

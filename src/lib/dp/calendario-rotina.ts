@@ -62,3 +62,31 @@ export function filtrosSalvos(valor: unknown): TipoAusenciaCalendario[] {
 }
 
 export const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] ?? nome;
+
+export type PeriodoTurno = "todos" | "dia" | "noite";
+
+/** Turno que começa a partir das 15h é da noite; antes disso, do dia. */
+export function periodoDoHorario(entrada: string | null | undefined): Exclude<PeriodoTurno, "todos"> | null {
+  if (!entrada) return null;
+  const h = Number(entrada.slice(0, 2));
+  if (Number.isNaN(h)) return null;
+  return h >= 15 ? "noite" : "dia";
+}
+
+export interface FiltrosPessoaCalendario {
+  periodo: PeriodoTurno;
+  setores: string[]; // vazio = todos
+}
+
+/** Pessoa sem horário conhecido (ex.: férias) continua aparecendo em qualquer turno. */
+export function pessoaNoFiltro(
+  p: Pick<PessoaPanorama, "entrada" | "setor_id">,
+  f: FiltrosPessoaCalendario,
+): boolean {
+  if (f.periodo !== "todos") {
+    const per = periodoDoHorario(p.entrada);
+    if (per && per !== f.periodo) return false;
+  }
+  if (f.setores.length && !f.setores.includes(p.setor_id ?? "")) return false;
+  return true;
+}
