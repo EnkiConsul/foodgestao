@@ -50,6 +50,7 @@ const FASE_ENCERRADA =
 const OBRIGATORIOS = [
   "nome", "cpf", "data_nascimento", "email", "estado_civil", "nome_mae",
   "grau_instrucao", "telefone", "cep", "endereco", "cidade", "uf",
+  "emerg1_nome", "emerg1_parentesco", "emerg1_whatsapp",
 ];
 
 /**
@@ -62,6 +63,7 @@ const CAMPOS_DO_FORMULARIO: ReadonlySet<string> = new Set([
   "nacionalidade", "naturalidade", "naturalidade_uf",
   "nome_mae", "nome_pai", "grau_instrucao", "raca_cor", "deficiencia",
   "telefone", "whatsapp_contato",
+  "emerg1_nome", "emerg1_parentesco", "emerg1_whatsapp", "emerg2_nome", "emerg2_parentesco", "emerg2_whatsapp",
   "cep", "endereco", "numero", "complemento", "bairro", "cidade", "uf",
   "rg_numero", "rg_orgao", "rg_uf", "rg_emissao",
   "ctps_numero", "ctps_serie", "ctps_uf", "ctps_expedicao",

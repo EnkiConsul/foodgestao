@@ -336,6 +336,7 @@ interface Estado {
 const OBRIGATORIOS_PADRAO = new Set([
   "nome", "cpf", "data_nascimento", "email", "estado_civil", "nome_mae",
   "grau_instrucao", "telefone", "cep", "endereco", "cidade", "uf",
+  "emerg1_nome", "emerg1_parentesco", "emerg1_whatsapp",
 ]);
 
 /** Erro do servidor com o detalhamento por campo, quando houver. */
