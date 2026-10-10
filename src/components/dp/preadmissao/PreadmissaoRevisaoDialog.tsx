@@ -139,7 +139,7 @@ type CampoFicha = (typeof CAMPOS_FICHA_EDITAVEIS)[number];
 const CAIXA_ALTA: ReadonlySet<string> = new Set([
   "nome", "nome_social", "nome_mae", "nome_pai", "naturalidade", "naturalidade_uf",
   "endereco", "complemento", "bairro", "cidade", "uf", "banco_nome",
-  "rg_orgao", "rg_uf", "ctps_uf", "reservista_categoria", "nacionalidade",
+  "rg_orgao", "rg_uf", "ctps_uf", "reservista_categoria", "nacionalidade", "emerg1_nome", "emerg2_nome",
 ]);
 
 /** Rótulos das informações administrativas, em linguagem de tela. */
