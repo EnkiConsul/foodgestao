@@ -448,6 +448,7 @@ function DetalheDiaOperacao({
   compacto = false,
   regimes,
   periodosHabituais,
+  onContagemTurno,
   acoesFolga,
 }: DetalheDiaProps) {
   const navigate = useNavigate();
