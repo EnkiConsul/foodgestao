@@ -166,7 +166,7 @@ describe("tela de cadastro para na confirmação, sem navegar", () => {
     render(
       comProvedores(
         <HelmetProvider>
-          <MemoryRouter initialEntries={["/auth?mode=signup"]}>
+          <MemoryRouter initialEntries={["/auth?tab=signup"]}>
             <AuthProvider>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
@@ -176,9 +176,6 @@ describe("tela de cadastro para na confirmação, sem navegar", () => {
         </HelmetProvider>,
       ),
     );
-
-    const alternar = await screen.findByRole("button", { name: /cadastre-se/i });
-    await userEvent.click(alternar);
 
     await userEvent.type(screen.getByLabelText(/nome completo/i), "PESSOA TESTE");
     await userEvent.type(screen.getByLabelText(/^e-mail$/i), "novo@exemplo.test");
