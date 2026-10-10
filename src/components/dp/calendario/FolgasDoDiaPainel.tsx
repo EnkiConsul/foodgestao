@@ -158,6 +158,7 @@ function CancelarFolgaFixa({ companyId, colaboradorId, data, nome, passado, data
       const { data: u } = await supabase.auth.getUser();
       const { error } = await supabase.from("dp_dia_trabalho_excepcional").insert({
         company_id: companyId, colaborador_id: colaboradorId, data, origem: "cancelamento_gestor", criado_por: u.user?.id ?? null,
+        motivo: motivo.trim(),
       });
       if (error) throw error;
     },

@@ -8209,6 +8209,7 @@ export type Database = {
           criado_por: string | null
           data: string
           id: string
+          motivo: string | null
           origem: string
           solicitacao_id: string | null
           updated_at: string
@@ -8220,6 +8221,7 @@ export type Database = {
           criado_por?: string | null
           data: string
           id?: string
+          motivo?: string | null
           origem?: string
           solicitacao_id?: string | null
           updated_at?: string
@@ -8231,6 +8233,7 @@ export type Database = {
           criado_por?: string | null
           data?: string
           id?: string
+          motivo?: string | null
           origem?: string
           solicitacao_id?: string | null
           updated_at?: string
