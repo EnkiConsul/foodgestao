@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { normalizarDias, type ConfigTrabalho, type DiaConfig, type TurnoResolvido } from "@/lib/dp/config-trabalho";
 import { TIPOS_AFASTAMENTO } from "@/lib/dp/licencas";
 import { isSocio } from "@/lib/dp/contrato-policy";
+import { ehSobDemanda } from "@/lib/dp/operacao-panorama";
 import type {
   AusenciaPanorama,
   ColaboradorPanorama,
@@ -64,7 +65,7 @@ export async function carregarPanorama(
     supabase
       .from("dp_colaboradores")
       .select(
-        "id, nome, regime, vinculo_label, unidade_id, cargo_id, setor_id, ativo, data_admissao, data_desligamento",
+        "id, nome, regime, vinculo_label, forma_pagamento, unidade_id, cargo_id, setor_id, ativo, data_admissao, data_desligamento",
       )
       .eq("company_id", companyId)
       .order("nome"),
@@ -210,7 +211,7 @@ export async function carregarPanorama(
       nome: c.nome,
       regime: c.regime,
       unidade_id: c.unidade_id,
-      intermitente: c.regime === "intermitente" || c.regime === "freelancer",
+      intermitente: ehSobDemanda(c.regime, (c as { forma_pagamento?: string | null }).forma_pagamento),
       config,
       cargo_id: c.cargo_id,
       cargo_nome: c.cargo_id ? nomeCargo.get(c.cargo_id) ?? null : null,

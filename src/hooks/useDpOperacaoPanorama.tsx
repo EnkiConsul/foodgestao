@@ -25,6 +25,7 @@ import {
   type PessoaAvulsaPanorama,
   type PessoaAvulsaTipo,
   type ResultadoDia,
+  ehSobDemanda,
 } from "@/lib/dp/operacao-panorama";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
@@ -120,7 +121,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           supabase
             .from("dp_colaboradores")
             .select(
-              "id, nome, nome_social, regime, vinculo_label, unidade_id, cargo_id, setor_id, ativo, data_admissao, data_desligamento",
+              "id, nome, nome_social, regime, vinculo_label, forma_pagamento, unidade_id, cargo_id, setor_id, ativo, data_admissao, data_desligamento",
             )
             .eq("company_id", selectedCompanyId!)
             .order("nome"),
@@ -448,7 +449,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           nome: nomeExibicao(c),
           regime: c.regime,
           unidade_id: c.unidade_id,
-          intermitente: c.regime === "intermitente" || c.regime === "freelancer",
+          // Freelancer mensalista tem jornada e folga fixa: faz parte da rotina da loja.
+          intermitente: ehSobDemanda(c.regime, (c as { forma_pagamento?: string | null }).forma_pagamento),
           config,
           cargo_id: c.cargo_id,
           cargo_nome: cargoNome,
