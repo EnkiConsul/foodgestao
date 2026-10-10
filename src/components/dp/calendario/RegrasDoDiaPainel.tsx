@@ -7,7 +7,9 @@ import { definirLimiteDoDia, excluirDataBloqueada, salvarDataBloqueada } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Lock } from "lucide-react";
+import { Lock, LockOpen } from "lucide-react";
+import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
+import { origemLimiteLabel, resolverLimiteFolga } from "@/lib/dp/folga-limites";
 
 interface Props {
   companyId: string;
@@ -35,6 +37,7 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
   const navigate = useNavigate();
   const [motivo, setMotivo] = useState("");
   const [limite, setLimite] = useState("");
+  const { query: regrasQ } = useDpFolgaLimites(unidadeId);
 
   const q = useQuery({
     queryKey: ["dp_regras_do_dia", companyId, unidadeId, data],
@@ -102,7 +105,9 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
   });
 
   if (q.isLoading || !q.data) return null;
-  const { bloqueio, limite: lim, trocas } = q.data;
+  const { bloqueio, diaConfig, trocas } = q.data;
+  const resolvido = resolverLimiteFolga({ data, unidadeId, regras: regrasQ.data ?? [], diaConfig });
+  const lim = resolvido.limite;
   const trocasDaUnidade = trocas.filter((t) => nomes.has(t.solicitante_id) || nomes.has(t.destino_id));
 
   return (
@@ -131,9 +136,10 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
 
       <div className="space-y-1.5">
         <p className="text-xs font-medium text-muted-foreground">
-          Limite de folgas: {lim == null ? "padrão da unidade" : `${folgasNoDia}/${lim} usadas`}
+          Limite de folgas: {lim == null ? "sem limite cadastrado" : `${folgasNoDia} de ${lim} usadas (${Math.max(lim - folgasNoDia, 0)} restantes)`}
           {lim != null && folgasNoDia >= lim && <span className="ml-1 text-destructive">· lotado</span>}
         </p>
+        {lim != null && <p className="text-[11px] text-muted-foreground">{origemLimiteLabel(resolvido.origem)}</p>}
         <div className="flex flex-wrap items-center gap-2">
           <Input type="number" min={0} className="h-8 w-28" placeholder="Novo limite" value={limite} onChange={(e) => setLimite(e.target.value)} />
           <Button size="sm" variant="outline" disabled={!limite || salvarLimite.isPending} onClick={() => salvarLimite.mutate()}>
@@ -194,8 +200,42 @@ export function BloqueioDoDiaCabecalho({
         description: `${e instanceof Error ? e.message : String(e)} Tente de novo em instantes.`,
       }),
   });
+  const [motivo, setMotivo] = useState("");
+  const [abrindo, setAbrindo] = useState(false);
+  const bloquear = useMutation({
+    mutationFn: () => salvarDataBloqueada({ companyId, data, motivo: motivo.trim() || "Bloqueado pelo gestor", unidadeId }),
+    onSuccess: () => {
+      toast.success("Data bloqueada para folgas.");
+      setMotivo(""); setAbrindo(false);
+      for (const k of ["dp_bloqueio_cabecalho", "dp_regras_do_dia", "dp_datas_bloqueadas_geral", "dp_panorama_base"])
+        qc.invalidateQueries({ queryKey: [k] });
+    },
+    onError: (e: unknown) =>
+      toast.error("Não foi possível bloquear a data", {
+        description: `${e instanceof Error ? e.message : String(e)} Tente de novo em instantes.`,
+      }),
+  });
   const b = q.data;
-  if (!b) return null;
+  if (q.isLoading) return null;
+  if (!b) {
+    if (!podeEditar) return null;
+    return (
+      <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-primary"><LockOpen className="h-3.5 w-3.5" /> Liberado para folgas</span>
+        {abrindo ? (
+          <>
+            <Input className="h-8 w-48" placeholder="Motivo do bloqueio" value={motivo} onChange={(e) => setMotivo(e.target.value)} autoFocus />
+            <Button size="sm" variant="destructive" className="h-8" disabled={bloquear.isPending} onClick={() => bloquear.mutate()}>Bloquear</Button>
+            <Button size="sm" variant="ghost" className="h-8" onClick={() => setAbrindo(false)}>Voltar</Button>
+          </>
+        ) : (
+          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setAbrindo(true)}>
+            <Lock className="mr-1 h-3.5 w-3.5" /> Bloquear dia
+          </Button>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="mt-2 flex flex-wrap items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2">
       <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-destructive">
