@@ -147,6 +147,64 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { co
   );
 }
 
+/** Cancela a folga fixa do dia: a pessoa passa a trabalhar nele, sem outra folga. */
+function CancelarFolgaFixa({ companyId, colaboradorId, data, nome, passado, dataBr, onFeito }: { companyId: string; colaboradorId: string; data: string; nome: string; passado: boolean; dataBr: string; onFeito: () => void }) {
+  const qc = useQueryClient();
+  const [aberto, setAberto] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const [ciente, setCiente] = useState(false);
+  const m = useMutation({
+    mutationFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      const { error } = await supabase.from("dp_dia_trabalho_excepcional").insert({
+        company_id: companyId, colaborador_id: colaboradorId, data, origem: "cancelamento_gestor", criado_por: u.user?.id ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(`Folga fixa de ${nome} cancelada. Ela passa a trabalhar em ${dataBr}.`);
+      setAberto(false); setMotivo(""); setCiente(false);
+      qc.invalidateQueries({ queryKey: ["dp_dia_trabalho_excepcional"] });
+      qc.invalidateQueries({ queryKey: ["dp_dia_trabalho_excepcional_panorama"] });
+      onFeito();
+    },
+    onError: (e) => toast.error("Não foi possível cancelar a folga fixa", {
+      description: `${e instanceof Error ? e.message : String(e)} Se o dia já tem registro de troca, use Remarcar Folga.`,
+    }),
+  });
+  return (
+    <>
+      <Button size="icon" variant="outline" className="h-8 w-8 border-destructive/40 text-destructive hover:bg-destructive/10" title="Cancelar Folga" aria-label="Cancelar Folga" onClick={() => setAberto(true)}><X className="h-4 w-4" /></Button>
+      <Dialog open={aberto} onOpenChange={setAberto}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive"><AlertTriangle className="h-5 w-5" />Cancelar a Folga Fixa de {nome}?</DialogTitle>
+            <DialogDescription>
+              Esta é a folga fixa da jornada. Ao cancelar, {nome} trabalha em {dataBr} e fica sem o descanso da semana. Isso pode gerar pagamento em dobro e risco trabalhista. O recomendado é remarcar para outro dia.
+            </DialogDescription>
+          </DialogHeader>
+          {passado && (
+            <p className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive">Esta data já passou ({dataBr}). O cancelamento altera o histórico do colaborador.</p>
+          )}
+          <div className="grid gap-1.5">
+            <Label>Justificativa <span className="text-destructive">*</span></Label>
+            <Textarea rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Por que a folga fixa será cancelada sem outro dia?" />
+            <p className="text-[11px] text-muted-foreground">Mínimo de 5 caracteres.</p>
+          </div>
+          <label className="flex items-start gap-2 text-xs">
+            <input type="checkbox" className="mt-0.5" checked={ciente} onChange={(e) => setCiente(e.target.checked)} />
+            Estou ciente de que {nome} ficará sem folga nesta semana.
+          </label>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button className="w-full" onClick={() => setAberto(false)}><RefreshCw className="mr-2 h-4 w-4" />Prefiro Remarcar para Outro Dia (Recomendado)</Button>
+            <Button variant="destructive" className="w-full" disabled={motivo.trim().length < 5 || !ciente || m.isPending} onClick={() => m.mutate()}>Confirmar Cancelamento da Folga</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 /**
  * Folgas marcadas no dia, com cancelar e remarcar pelas mesmas rotinas do
  * Calendário de Folgas (dp_folga_admin_cancelar / dp_folga_admin_remarcar).
@@ -249,7 +307,15 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
 
   if (colaboradorId) {
     const i = itens.find((x) => x.colaboradorId === colaboradorId);
-    if (!i && folgaFixa) return <TrocarFolgaFixa companyId={companyId} colaboradorId={colaboradorId} data={data} nome={(nomes.get(colaboradorId) ?? "").split(" ")[0] || "Colaborador"} onFeito={invalidar} />;
+    if (!i && folgaFixa) {
+      const nome = (nomes.get(colaboradorId) ?? "").split(" ")[0] || "Colaborador";
+      return (
+        <div className="ml-auto flex items-center gap-1">
+          <TrocarFolgaFixa companyId={companyId} colaboradorId={colaboradorId} data={data} nome={nome} onFeito={invalidar} />
+          <CancelarFolgaFixa companyId={companyId} colaboradorId={colaboradorId} data={data} nome={nome} passado={passado} dataBr={dataBr} onFeito={invalidar} />
+        </div>
+      );
+    }
     if (!i) return null;
     return (
       <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
