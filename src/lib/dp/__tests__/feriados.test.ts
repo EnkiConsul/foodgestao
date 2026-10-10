@@ -90,3 +90,14 @@ describe("feriados locais", () => {
     expect(faltaFeriadoLocal([...nac, { tipo: "anual" as const, dia: 24, mes: 10 }], null)).toBe(false);
   });
 });
+
+describe("ano de início", () => {
+  it("feriado com início em 2024 não existe em 2023 e vale a partir de 2024", () => {
+    const r = regra({ tipo: "anual", dia: 20, mes: 11, ano_inicio: 2024 });
+    expect(dataDoFeriadoNoAno(r, 2023)).toBeNull();
+    expect(dataDoFeriadoNoAno(r, 2024)).toBe("2024-11-20");
+  });
+  it("sem ano de início vale em todos os anos", () => {
+    expect(dataDoFeriadoNoAno(regra({ tipo: "anual", dia: 20, mes: 11 }), 1990)).toBe("1990-11-20");
+  });
+});

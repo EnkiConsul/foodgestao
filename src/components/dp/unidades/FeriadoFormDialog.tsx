@@ -33,6 +33,7 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
   const [ordinal, setOrdinal] = useState("1");
   const [diaSemana, setDiaSemana] = useState("0");
   const [observacao, setObservacao] = useState("");
+  const [anoInicio, setAnoInicio] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -44,8 +45,10 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
     setOrdinal(String(feriado?.ordinal ?? 1));
     setDiaSemana(String(feriado?.dia_semana ?? 0));
     setObservacao(feriado?.observacao ?? "");
+    setAnoInicio(feriado?.ano_inicio ? String(feriado.ano_inicio) : "");
   }, [open, feriado]);
 
+  const anoValido = /^\d{4}$/.test(anoInicio) && Number(anoInicio) >= 1800 && Number(anoInicio) <= 2200;
   const previa = descricaoRegra({
     id: "previa",
     nome,
@@ -55,9 +58,11 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
     mes: Number(mes),
     ordinal: Number(ordinal),
     dia_semana: Number(diaSemana),
+    ano_inicio: anoValido ? Number(anoInicio) : null,
   });
 
-  const invalido = !nome.trim() || (tipo === "especifica" && !data);
+  const invalido =
+    !nome.trim() || (tipo === "especifica" && !data) || (tipo !== "especifica" && anoInicio !== "" && !anoValido);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -160,6 +165,22 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
             </div>
           )}
 
+          {tipo !== "especifica" && (
+            <div className="space-y-1.5">
+              <Label>Ano de início (opcional)</Label>
+              <Input
+                inputMode="numeric"
+                maxLength={4}
+                value={anoInicio}
+                onChange={(e) => setAnoInicio(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="Ex: 2024 — deixe vazio se vale para todos os anos"
+              />
+              <p className="text-xs text-muted-foreground">
+                Antes desse ano o feriado não é considerado nas escalas, folgas e férias.
+              </p>
+            </div>
+          )}
+
           <p className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">{previa}</p>
 
           <div className="space-y-1.5">
@@ -187,6 +208,7 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
                 mes: tipo === "especifica" ? null : Number(mes),
                 ordinal: tipo === "relativa" ? Number(ordinal) : null,
                 dia_semana: tipo === "relativa" ? Number(diaSemana) : null,
+                ano_inicio: tipo !== "especifica" && anoValido ? Number(anoInicio) : null,
                 ativo: feriado?.ativo ?? true,
                 observacao,
               })
