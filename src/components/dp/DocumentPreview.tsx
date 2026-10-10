@@ -1,5 +1,5 @@
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Download, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -190,10 +190,31 @@ export function DocumentPreview({
       <DialogContent className="w-[calc(100%-0.5rem)] sm:w-[95vw] max-w-full sm:max-w-4xl h-[88svh] sm:h-[85vh] flex flex-col p-0 gap-0 overflow-hidden [padding-top:0] [padding-bottom:0] sm:[padding-top:0] sm:[padding-bottom:0]">
         <DialogHeader className="p-3 pr-12 sm:p-4 border-b">
           <DialogTitle className="truncate text-sm sm:text-base">{title}</DialogTitle>
+          {temAnexos && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <button
+                type="button"
+                onClick={() => irPara("documento")}
+                className="rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground hover:bg-accent"
+              >
+                Documento
+              </button>
+              {listaComprovantes.map((c, i) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => irPara(c.id)}
+                  className="rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground hover:bg-accent"
+                >
+                  {rotuloAnexo(c, i)} ↓
+                </button>
+              ))}
+            </div>
+          )}
           {toolbar}
         </DialogHeader>
-        <div className={temAnexos ? "flex-1 min-h-0 overflow-y-auto bg-muted/30" : "flex-1 min-h-0 bg-muted/30"}>
-        <div className={temAnexos ? "h-[70svh] sm:h-[68vh]" : "h-full"}>
+        <div ref={scrollRef} className={temAnexos ? "flex-1 min-h-0 overflow-y-auto bg-muted/30" : "flex-1 min-h-0 bg-muted/30"}>
+        <div data-preview-secao="documento" className={temAnexos ? "h-[70svh] sm:h-[68vh]" : "h-full"}>
           {aguardando ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-sm text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin" />
