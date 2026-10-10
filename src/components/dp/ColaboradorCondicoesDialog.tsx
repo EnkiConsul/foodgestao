@@ -51,6 +51,7 @@ import {
   isSocio,
 } from "@/lib/dp/contrato-policy";
 import { salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
+import { ehEfetivacaoClt, pendenciasEfetivacao, LEMBRETES_EFETIVACAO } from "@/lib/dp/efetivacao-clt";
 import { salarioProporcional, baseHorasMesSugerida } from "@/lib/dp/jornadaParcial";
 import { sugerirModoContinuidade, type ModoContinuidade } from "@/lib/dp/cargoPadrao";
 import { assinaturaSemana } from "@/lib/dp/modeloHorarioRanking";
@@ -678,11 +679,30 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                     sistema vai pedir sua confirmação antes de salvar.
                   </p>
                 ) : exigeNovoContrato(regimeAtual, regime) ? (
-
-                  <p className="text-xs text-muted-foreground">
-                    Efetivação de vínculo sem registro: entra como novo contrato, com a contagem de
-                    férias, 13º e tempo de casa começando na data informada.
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Efetivação de vínculo sem registro: entra como novo contrato, com a contagem de
+                      férias, 13º e tempo de casa começando na data informada.
+                    </p>
+                    {ehEfetivacaoClt(regimeAtual, regime) && colaborador ? (
+                      <div className="rounded-md border bg-muted/40 p-2 text-xs">
+                        {(() => {
+                          const pend = pendenciasEfetivacao(colaborador as never);
+                          return pend.length ? (
+                            <p className="font-medium">
+                              Faltam no cadastro para o registro: {pend.map((p) => p.rotulo).join(", ")}.
+                              Peça ao colaborador pelo portal ou complete na ficha.
+                            </p>
+                          ) : (
+                            <p className="font-medium">Cadastro completo para o registro CLT.</p>
+                          );
+                        })()}
+                        <ul className="mt-1 list-disc pl-4 text-muted-foreground">
+                          {LEMBRETES_EFETIVACAO.map((l) => <li key={l}>{l}</li>)}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
               <div className="space-y-1.5">
