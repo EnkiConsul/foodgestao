@@ -94,6 +94,14 @@ export function DocumentPreview({
     ...(recibo ? [{ id: "recibo", url: recibo.url, mime: recibo.mime, path: recibo.nome ?? "", rotulo: "Recibo do Valor em Dinheiro" }] : []),
   ];
   const temAnexos = listaComprovantes.length > 0;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  /** Rola até o documento principal ou até um anexo, dentro da mesma rolagem. */
+  const irPara = (alvo: string) => {
+    const el = scrollRef.current?.querySelector<HTMLElement>(`[data-preview-secao="${alvo}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const rotuloAnexo = (c: { id: string; rotulo?: string }, i: number) =>
+    c.rotulo ?? (listaComprovantes.filter((x) => !x.rotulo).length > 1 ? `Comprovante ${i + 1}` : "Comprovante");
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(url ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
