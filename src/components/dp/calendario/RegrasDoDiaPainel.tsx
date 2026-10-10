@@ -7,6 +7,7 @@ import { definirLimiteDoDia, excluirDataBloqueada, salvarDataBloqueada } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Lock } from "lucide-react";
 
 interface Props {
   companyId: string;
@@ -15,6 +16,8 @@ interface Props {
   /** Folgas no dia (para mostrar vagas usadas). */
   folgasNoDia: number;
   nomes: Map<string, string>;
+  /** Bloqueio já exibido no cabeçalho do dia. */
+  ocultarBloqueio?: boolean;
 }
 
 const STATUS_TROCA: Record<string, string> = {
@@ -27,7 +30,7 @@ const STATUS_TROCA: Record<string, string> = {
  * Bloqueio de data, limite de folgas e trocas do dia, pelas mesmas rotinas
  * do Calendário de Folgas (o servidor valida permissões e regras).
  */
-export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nomes }: Props) {
+export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nomes, ocultarBloqueio }: Props) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [motivo, setMotivo] = useState("");
@@ -68,6 +71,7 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
 
   const invalidar = () => {
     qc.invalidateQueries({ queryKey: ["dp_regras_do_dia"] });
+    qc.invalidateQueries({ queryKey: ["dp_bloqueio_cabecalho"] });
     qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_geral"] });
     qc.invalidateQueries({ queryKey: ["dp_dia_config"] });
     qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
@@ -103,7 +107,7 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
 
   return (
     <div className="space-y-3">
-      <div className="space-y-1.5">
+      {!(ocultarBloqueio && bloqueio) && <div className="space-y-1.5">
         <p className="text-xs font-medium text-muted-foreground">Bloqueio de folgas</p>
         {bloqueio ? (
           <div className="flex flex-wrap items-center gap-2">
@@ -123,7 +127,7 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
             </Button>
           </div>
         )}
-      </div>
+      </div>}
 
       <div className="space-y-1.5">
         <p className="text-xs font-medium text-muted-foreground">
@@ -156,6 +160,53 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
           <Button size="sm" variant="outline" onClick={() => navigate("/dp/trocas")}>Aprovar ou recusar trocas</Button>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Bloqueio da data em destaque no cabeçalho do dia, com o botão de liberar. */
+export function BloqueioDoDiaCabecalho({
+  companyId, unidadeId, data, podeEditar,
+}: { companyId: string; unidadeId: string | null; data: string; podeEditar: boolean }) {
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: ["dp_bloqueio_cabecalho", companyId, unidadeId, data],
+    queryFn: async () => {
+      const { data: l, error } = await supabase
+        .from("dp_datas_bloqueadas")
+        .select("id, motivo, liberada, unidade_id, regra_id")
+        .eq("company_id", companyId)
+        .eq("data", data);
+      if (error) throw error;
+      const ativos = (l ?? []).filter((b) => !b.liberada);
+      return ativos.find((x) => x.unidade_id === unidadeId) ?? ativos.find((x) => x.unidade_id === null) ?? null;
+    },
+  });
+  const liberar = useMutation({
+    mutationFn: (id: string) => excluirDataBloqueada(id),
+    onSuccess: () => {
+      toast.success("Data liberada para folgas.");
+      for (const k of ["dp_bloqueio_cabecalho", "dp_regras_do_dia", "dp_datas_bloqueadas_geral", "dp_panorama_base"])
+        qc.invalidateQueries({ queryKey: [k] });
+    },
+    onError: (e: unknown) =>
+      toast.error("Não foi possível liberar a data", {
+        description: `${e instanceof Error ? e.message : String(e)} Tente de novo em instantes.`,
+      }),
+  });
+  const b = q.data;
+  if (!b) return null;
+  return (
+    <div className="mt-2 flex flex-wrap items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2">
+      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-destructive">
+        <Lock className="h-4 w-4" /> Bloqueado{b.motivo ? ` · ${b.motivo}` : ""}
+      </span>
+      {podeEditar && !b.regra_id && (
+        <Button size="sm" variant="outline" className="h-8" disabled={liberar.isPending} onClick={() => liberar.mutate(b.id)}>
+          Liberar data
+        </Button>
+      )}
+      {b.regra_id && <span className="text-xs text-muted-foreground">Vem de uma regra; libere em Folgas.</span>}
     </div>
   );
 }
