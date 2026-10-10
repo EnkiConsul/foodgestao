@@ -281,6 +281,13 @@
       "when": 1791605431552,
       "tag": "0039_contatos_emergencia_efetivacao",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1791606404328,
+      "tag": "0040_preadmissao_efetivar_direto",
+      "breakpoints": true
     }
   ]
 }
