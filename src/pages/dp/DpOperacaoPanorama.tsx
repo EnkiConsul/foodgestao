@@ -1860,33 +1860,6 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
             )}
             {calendario && dataPopout && diaPopout && (
               <div className="space-y-4">
-                <section className="rounded-2xl border bg-card p-4 shadow-sm">
-                  <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Ações do dia</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Select value={folgaColab} onValueChange={setFolgaColab}>
-                      <SelectTrigger className="h-10 w-full rounded-xl sm:w-60"><SelectValue placeholder="Quem vai folgar?" /></SelectTrigger>
-                      <SelectContent>
-                        {diaPopout.pessoas
-                          .filter((p) => p.categoria === "fixo" && !p.avulso_id)
-                          .filter((p, i, arr) => arr.findIndex((o) => o.colaborador_id === p.colaborador_id) === i)
-                          .map((p) => <SelectItem key={p.colaborador_id} value={p.colaborador_id}>{p.nome}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Button className="h-10 rounded-xl" disabled={!folgaColab || !companyIdCal} onClick={() => setFolgaTriagem(true)}>
-                      Marcar folga
-                    </Button>
-                    {podeRegistrar && (
-                      <>
-                        <Button variant="outline" className="h-10 rounded-xl" onClick={() => { setAusenciaData(dataPopout); setAusenciaOpen(true); }}>
-                          <Plus className="mr-1 h-4 w-4" /> Registrar ausência
-                        </Button>
-                        <Button variant="outline" className="h-10 rounded-xl" onClick={() => abrirNovaAvulsa(dataPopout)}>
-                          <UserPlus className="mr-1 h-4 w-4" /> Mão de obra extra
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </section>
                 {companyIdCal && podeRegistrar && (
                   <section className="rounded-2xl border bg-card p-4 shadow-sm">
                     <RegrasDoDiaPainel
