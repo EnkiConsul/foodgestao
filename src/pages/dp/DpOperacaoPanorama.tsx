@@ -1556,7 +1556,14 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
             <DialogTitle className="first-letter:uppercase">
               {dataPopout ? dataExtenso(dataPopout) : ""}
             </DialogTitle>
-            <DialogDescription>Rotina prevista para o dia</DialogDescription>
+            <DialogDescription>
+              Rotina prevista para o dia
+              {diaPopout?.feriado_nome && (
+                <Badge variant="outline" className="ml-2 border-primary/40 text-primary">
+                  Feriado · {diaPopout.feriado_nome}
+                </Badge>
+              )}
+            </DialogDescription>
           </DialogHeader>
           <div className="max-h-[70vh] overflow-y-auto pr-1">
             {dataPopout && diaPopout ? (
