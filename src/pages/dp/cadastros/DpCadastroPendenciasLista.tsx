@@ -6,6 +6,8 @@ import { DpFilters, DpFilterField, type DpFilterChip } from "@/components/dp/DpF
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import type { Pendencia } from "@/hooks/useDpPendencias";
 import {
   Select,
   SelectContent,
@@ -61,6 +63,7 @@ export default function DpCadastroPendenciasLista() {
   const [mostrarAdiadas, setMostrarAdiadas] = useState(false);
   const [filtro, setFiltro] = useState<Filtro>(FILTRO_INICIAL);
   const [busca, setBusca] = useState("");
+  const [detalhe, setDetalhe] = useState<Pendencia | null>(null);
 
   const adiamentos = useMemo(
     () => ({ ...prefs.pendencias_adiadas, ...adiadas }),
@@ -304,6 +307,45 @@ export default function DpCadastroPendenciasLista() {
           </section>
         )}
       </div>
+      <Dialog open={!!detalhe} onOpenChange={(o) => !o && setDetalhe(null)}>
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+          {detalhe && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{detalhe.titulo}</DialogTitle>
+                <DialogDescription>{detalhe.subtitulo}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 text-sm">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <span>{detalhe.tipo}</span>
+                  {detalhe.unidadeNome && <span>Unidade: {detalhe.unidadeNome}</span>}
+                  {detalhe.vencimento && <span>Prazo: {new Date(detalhe.vencimento + "T12:00:00").toLocaleDateString("pt-BR")}</span>}
+                </div>
+                {(detalhe.pessoas?.length ?? 0) > 0 ? (
+                  <div className="space-y-1">
+                    <p className="font-medium">Colaboradores ({detalhe.pessoas!.length})</p>
+                    <ul className="divide-y divide-border rounded-lg border border-border">
+                      {detalhe.pessoas!.map((pp, i) => (
+                        <li key={`${pp.nome}-${i}`} className="flex items-center justify-between gap-2 px-3 py-2">
+                          <span className="break-words">{pp.nome}</span>
+                          {pp.desligamento && (
+                            <span className="text-xs text-muted-foreground shrink-0">
+                              Desligado em {new Date(pp.desligamento.slice(0, 10) + "T12:00:00").toLocaleDateString("pt-BR")}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : detalhe.colaboradorNome ? (
+                  <p>Colaborador: <span className="font-medium">{detalhe.colaboradorNome}</span></p>
+                ) : null}
+                <PendenciaAcoes pendencia={detalhe} onNavigate={() => setDetalhe(null)} onResolved={() => setDetalhe(null)} />
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </DpPage>
   );
 }
