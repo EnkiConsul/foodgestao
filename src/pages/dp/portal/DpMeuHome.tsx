@@ -23,6 +23,7 @@ import { MinhaJornadaAcoesCard } from "@/components/dp/ocorrencias/MinhaJornadaA
 import { useMinhaProximaFolga } from "@/hooks/useMinhaProximaFolga";
 import { textoProximaFolga } from "@/lib/dp/proxima-folga";
 import { toProperName } from "@/lib/text/properName";
+import { ConfirmarContatosPortal } from "@/components/dp/contatos/ConfirmarContatosPortal";
 import { InstalarAppCard } from "@/components/dp/portal/InstalarAppCard";
 
 
@@ -110,6 +111,7 @@ export default function DpMeuHome() {
   return (
     <DpPage>
       <Helmet><title>Portal do Colaborador — Aveto 360</title></Helmet>
+      <ConfirmarContatosPortal />
 
       <header className="dp-content-card rounded-2xl bg-card border border-[hsl(var(--dp-border))] p-4 sm:p-5 md:p-6 min-w-0">
         <div className="flex items-center gap-3">

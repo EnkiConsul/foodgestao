@@ -85,3 +85,10 @@
 - [x] Opção Grupo no checkout com 2+ empresas (teste z1)
 - [x] Alterar dados do pagador em Minha assinatura (teste z2)
 - [ ] NFS-e: cadastrar informações fiscais/municipais no Asaas (validação com o contador) antes de ligar
+
+# Pré-admissão e contatos de emergência
+- [x] Contatos de emergência (1 obrigatório, até 2) na ficha do candidato, revisão, PDF e ficha do colaborador.
+- [x] Confirmação semestral no portal (WhatsApp + contatos), pedido antecipado pelo DP.
+- [x] Retirar "enviar à contabilidade"; PDF só baixa; etapas Preenchimento › Revisão › Registro › Efetivado.
+- [x] PDF completo e lendo o que está na tela.
+- [x] Atalhos por situação com contadores e filtro de vínculo na lista.
