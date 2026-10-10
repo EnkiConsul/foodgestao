@@ -579,7 +579,7 @@ export function useDpPendencias() {
         idPrefix: "folha_ponto",
         icludeUnidade: (u) => !!u.possui_relogio_ponto,
         comps: (u) => compsPorUnidade.get(u.id)?.ateAnterior ?? [],
-        vencimentoDe: (_u, comp) => limiteMesSeguinte(comp, cfg.alerta_folha_ponto_dia_mes),
+        vencimentoDe: (_u, comp) => limiteMesSeguinte(comp, DIA_LIMITE_FOLHA_PONTO),
       });
 
       // 5a. Intermitente sem nenhum registro na competência: ALERTA (não falta).
@@ -596,7 +596,7 @@ export function useDpPendencias() {
               elegibilidadeDe("contracheque", { ...c, regime: "clt" }, u, comp) ||
               elegibilidadeDe("ponto", { ...c, regime: "clt" }, u, comp);
             if (!cobraria) continue;
-            const vencimento = limiteMesSeguinte(comp, cfg.alerta_folha_ponto_dia_mes);
+            const vencimento = limiteMesSeguinte(comp, DIA_LIMITE_FOLHA_PONTO);
             results.push({
               id: `intermitente-${c.id}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`,
               icon: Clock,
