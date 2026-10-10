@@ -842,17 +842,22 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
 
   /** Abre já em uma unidade: a última escolhida ou a de maior quadro. */
   useEffect(() => {
-    if (unidade || !panorama.unidades.length) return;
+    if (!panorama.unidades.length) return;
+    // No Calendário só uma unidade por vez: "todas" não é permitido.
+    if (unidade && !(calendario && unidade === "todas")) return;
     const salva = (prefs.extras as Record<string, unknown>)?.[UNIDADE_KEY];
-    if (typeof salva === "string" && (salva === "todas" || panorama.unidades.some((u) => u.id === salva))) {
+    if (
+      typeof salva === "string" &&
+      ((!calendario && salva === "todas") || panorama.unidades.some((u) => u.id === salva))
+    ) {
       setUnidade(salva);
       return;
     }
     const maior = [...panorama.unidades].sort(
       (a, b) => (panorama.contagemPorUnidade.get(b.id) ?? 0) - (panorama.contagemPorUnidade.get(a.id) ?? 0),
     )[0];
-    setUnidade(maior?.id ?? "todas");
-  }, [unidade, panorama.unidades, panorama.contagemPorUnidade, prefs.extras]);
+    setUnidade(maior?.id ?? (calendario ? "" : "todas"));
+  }, [unidade, calendario, panorama.unidades, panorama.contagemPorUnidade, prefs.extras]);
 
   const trocarUnidade = (v: string) => {
     setUnidade(v);
@@ -1207,12 +1212,15 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
           </div>
           <div className="space-y-1.5">
             <Label>Unidade</Label>
-            <Select value={unidade || "todas"} onValueChange={trocarUnidade}>
+            <Select
+              value={calendario ? (unidade && unidade !== "todas" ? unidade : undefined) : unidade || "todas"}
+              onValueChange={trocarUnidade}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="Todas as unidades" />
+                <SelectValue placeholder={calendario ? "Escolha a unidade" : "Todas as unidades"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todas">Todas as unidades</SelectItem>
+                {!calendario && <SelectItem value="todas">Todas as unidades</SelectItem>}
                 {panorama.unidades.map((u) => (
                   <SelectItem key={u.id} value={u.id}>
                     {u.nome}
