@@ -1,4 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { DpEmbeddedProvider } from "@/components/dp/DpPage";
+
+/** Abas do Calendário unificado que reaproveitam as telas existentes (mesmas regras e ações). */
+const ABAS_CALENDARIO_EXTRAS = [
+  { value: "folgas", label: "Folgas", Panel: lazy(() => import("./DpFolgas")) },
+  { value: "trocas", label: "Trocas", Panel: lazy(() => import("./DpTrocas")) },
+  { value: "solicitacoes", label: "Solicitações", Panel: lazy(() => import("./DpSolicitacoes")) },
+  { value: "ferias", label: "Férias", Panel: lazy(() => import("./DpFerias")) },
+] as const;
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -794,7 +804,11 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState(() => params.get("data") || hojeIso());
   const [unidade, setUnidade] = useState<string>("");
-  const [aba, setAba] = useState(params.get("aba") === "dia" ? "dia" : params.get("aba") === "mes" || calendario ? "mes" : "dia");
+  const [aba, setAba] = useState(() => {
+    const a = params.get("aba");
+    if (calendario && ABAS_CALENDARIO_EXTRAS.some((x) => x.value === a)) return a as string;
+    return a === "dia" ? "dia" : a === "mes" || calendario ? "mes" : "dia";
+  });
   const [detalheCategoria, setDetalheCategoria] = useState<CategoriaDia | null>(null);
   const [detalheAvulso, setDetalheAvulso] = useState<"avulso_teste" | "avulso_folguista" | null>(null);
   /** Dia aberto em janela a partir do calendário do mês. */
@@ -1148,6 +1162,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
         onSalvar={salvarAvulsa}
       />
 
+      {(aba === "dia" || aba === "mes") && (
       <DpFilterCard>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
@@ -1217,11 +1232,18 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
           {dia && <SituacaoBadge dia={dia} />}
         </div>
       </DpFilterCard>
+      )}
 
       <Tabs value={aba} onValueChange={trocarAba} className="space-y-4">
         <DpTabsBar value={aba} help={{ dia: "dp.rotinaDia", mes: "dp.rotinaMes" }}>
           <TabsTrigger value="dia">Rotina do Dia</TabsTrigger>
           <TabsTrigger value="mes">Rotina do Mês</TabsTrigger>
+          {calendario &&
+            ABAS_CALENDARIO_EXTRAS.map(({ value, label }) => (
+              <TabsTrigger key={value} value={value}>
+                {label}
+              </TabsTrigger>
+            ))}
         </DpTabsBar>
 
         <TabsContent value="dia" className="space-y-4">
@@ -1499,6 +1521,25 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
             </>
           )}
         </TabsContent>
+
+        {calendario &&
+          ABAS_CALENDARIO_EXTRAS.map(({ value, Panel }) => (
+            <TabsContent key={value} value={value} className="space-y-4">
+              {aba === value && (
+                <DpEmbeddedProvider>
+                  <Suspense
+                    fallback={
+                      <div className="flex justify-center py-16 text-muted-foreground">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      </div>
+                    }
+                  >
+                    <Panel />
+                  </Suspense>
+                </DpEmbeddedProvider>
+              )}
+            </TabsContent>
+          ))}
       </Tabs>
 
       <Dialog open={!!dataPopout} onOpenChange={(o) => !o && setDataPopout(null)}>
