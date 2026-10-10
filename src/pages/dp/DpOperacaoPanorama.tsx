@@ -878,7 +878,19 @@ function DetalheDiaOperacao({
           <ul className={cn("divide-y", compacto && foraVisiveis.length >= 4 && "grid gap-x-6 divide-y-0 sm:grid-cols-2")}>
             {foraVisiveis.map((p) => (
               <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2">
-                <span className="w-full text-sm font-medium sm:w-auto" title={p.nome}>{primeiroNome(p.nome)}</span>
+                {(() => {
+                  const reg = ausReg.find((a) => a.colaborador_id === p.colaborador_id);
+                  return (
+                    <div className="min-w-0 w-full sm:w-auto">
+                      <span className="block text-sm font-medium" title={p.nome}>{primeiroNome(p.nome)}</span>
+                      {reg && (reg.motivo || reg.fim !== reg.inicio) && (
+                        <span className="block text-xs text-muted-foreground">
+                          {[reg.motivo, reg.fim !== reg.inicio ? `até ${reg.fim.split("-").reverse().join("/")}` : null].filter(Boolean).join(" · ")}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
                 <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
                   {tagSocio(p) && (
                     <Badge variant="outline" className="border-primary/40 text-primary">
@@ -898,7 +910,7 @@ function DetalheDiaOperacao({
         </Secao>
       )}
 
-      {ausReg.length > 0 && (
+      {!compacto && ausReg.length > 0 && (
         <Secao
           title="Ausências Registradas"
           description="Afastamentos registrados pelo gestor que cobrem este dia"
