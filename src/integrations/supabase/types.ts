@@ -18225,6 +18225,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      dp_contatos_salvar: {
+        Args: { _colaborador_id: string; _confirmar?: boolean; _contatos: Json }
+        Returns: undefined
+      }
       dp_contatos_solicitar_confirmacao: {
         Args: { _colaborador_id: string }
         Returns: undefined
