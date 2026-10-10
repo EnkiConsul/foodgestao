@@ -210,7 +210,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
         titulo: "Calendário do mês", unidade: nomeUnidade ?? "", competencia: competenciaLabel ?? "",
         celulas, legenda: legenda.map((l) => ({ label: l.label, cor: l.pdf })),
       });
-      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
       const a = document.createElement("a");
       a.href = url; a.download = `calendario-${(dias[0]?.data ?? "").slice(0, 7)}.pdf`; a.click();
       setTimeout(() => URL.revokeObjectURL(url), 2000);
