@@ -27,6 +27,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { notifyError } from "@/lib/notifyError";
 import { gerarFichaAdmissaoPdf } from "@/lib/dp/ficha-admissao-pdf";
+import { PARENTESCOS_EMERGENCIA, contatosDaFicha, rotuloParentescoEmergencia } from "@/lib/dp/contatosEmergencia";
+import { maskPhone } from "@/lib/phone";
 import { tipoPelaExtensao } from "@/lib/dp/abrirDocumento";
 import { PreadmissaoExcluirDialog } from "@/components/dp/preadmissao/PreadmissaoExcluirDialog";
 import {
@@ -152,14 +154,20 @@ const ROTULOS_ADMIN: Array<[string, string]> = [
 
 /** Campos da ficha na folha imprimível da contabilidade. */
 const CAMPOS_IMPRESSAO: Array<[string, string]> = [
-  ["nome", "Nome"], ["cpf", "CPF"], ["data_nascimento", "Nascimento"], ["sexo", "Sexo"],
-  ["estado_civil", "Estado civil"], ["nome_mae", "Nome da mãe"], ["nome_pai", "Nome do pai"],
-  ["grau_instrucao", "Escolaridade"], ["telefone", "Telefone"], ["email", "E-mail"],
-  ["cep", "CEP"], ["endereco", "Endereço"], ["numero", "Número"], ["bairro", "Bairro"],
-  ["cidade", "Cidade"], ["uf", "UF"], ["rg_numero", "RG"], ["pis", "PIS"],
-  ["ctps_numero", "CTPS"], ["titulo_eleitor", "Título de eleitor"], ["reservista", "Reservista"],
-  ["banco_nome", "Banco"], ["agencia", "Agência"], ["conta", "Conta"],
-  ["pix_tipo", "Tipo de chave Pix"], ["pix_chave", "Chave Pix"],
+  ["nome", "Nome"], ["nome_social", "Nome social"], ["cpf", "CPF"], ["data_nascimento", "Nascimento"],
+  ["sexo", "Sexo"], ["estado_civil", "Estado civil"], ["raca_cor", "Raça / cor"], ["deficiencia", "Deficiência"],
+  ["nacionalidade", "Nacionalidade"], ["naturalidade", "Cidade de nascimento"], ["naturalidade_uf", "UF de nascimento"],
+  ["nome_mae", "Nome da mãe"], ["nome_pai", "Nome do pai"], ["grau_instrucao", "Escolaridade"],
+  ["telefone", "WhatsApp"], ["email", "E-mail"],
+  ["cep", "CEP"], ["endereco", "Endereço"], ["numero", "Número"], ["complemento", "Complemento"],
+  ["bairro", "Bairro"], ["cidade", "Cidade"], ["uf", "UF"],
+  ["rg_numero", "RG"], ["rg_orgao", "Órgão emissor"], ["rg_uf", "UF do RG"], ["rg_emissao", "Emissão do RG"],
+  ["pis", "PIS / PASEP / NIS"],
+  ["ctps_numero", "CTPS"], ["ctps_serie", "Série da CTPS"], ["ctps_uf", "UF da CTPS"], ["ctps_expedicao", "Expedição da CTPS"],
+  ["titulo_eleitor", "Título de eleitor"], ["titulo_zona", "Zona"], ["titulo_secao", "Seção"],
+  ["reservista", "Reservista"], ["reservista_categoria", "Categoria da reservista"],
+  ["banco_nome", "Banco"], ["conta_tipo", "Tipo de conta"], ["agencia", "Agência"], ["conta", "Conta"],
+  ["conta_digito", "Dígito"], ["pix_tipo", "Tipo de chave Pix"], ["pix_chave", "Chave Pix"],
 ];
 
 const ROTULOS_OPCOES: Record<string, Record<string, string>> = {
@@ -168,6 +176,8 @@ const ROTULOS_OPCOES: Record<string, Record<string, string>> = {
   grau_instrucao: Object.fromEntries(INSTRUCOES.map((s) => [s.value, s.label])),
   conta_tipo: Object.fromEntries(CONTA_TIPOS.map((s) => [s.value, s.label])),
   pix_tipo: Object.fromEntries(PIX_TIPOS.map((s) => [s.value, s.label])),
+  emerg1_parentesco: Object.fromEntries(PARENTESCOS_EMERGENCIA.map((s) => [s.value, s.label])),
+  emerg2_parentesco: Object.fromEntries(PARENTESCOS_EMERGENCIA.map((s) => [s.value, s.label])),
 };
 
 const valorFicha = (campo: string, valor: unknown): string => {
@@ -314,6 +324,14 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       const extra = d as Record<string, unknown>;
       out.telefone = String(extra.whatsapp ?? p.whatsapp ?? p.telefone ?? "").trim();
     }
+    // Contatos de emergência: fichas antigas trazem só o "recado".
+    if (!out.emerg1_nome && !out.emerg1_whatsapp) {
+      contatosDaFicha(d).forEach((c, i) => {
+        out[`emerg${i + 1}_nome`] = c.nome;
+        out[`emerg${i + 1}_parentesco`] = c.parentesco;
+        out[`emerg${i + 1}_whatsapp`] = c.whatsapp;
+      });
+    }
     setFicha(out);
     setFichaDe(pa?.id ? `${pa.id}:${JSON.stringify(pa?.dados ?? {}).length}` : null);
   }, [pa?.id, pa?.dados, pa?.candidato_nome, pa?.cpf]);
@@ -432,8 +450,10 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       .map(([campo, rotulo]) => [rotulo, valorAdmin(campo)] as [string, string])
       .filter(([, v]) => v.trim() !== "");
     const linhaPessoal = CAMPOS_IMPRESSAO
-      .map(([campo, rotulo]) => [rotulo, valorFicha(campo, dados[campo])] as [string, string])
+      .map(([campo, rotulo]) => [rotulo, valorFicha(campo, ficha[campo] ?? dados[campo])] as [string, string])
       .filter(([, v]) => v.trim() !== "");
+    const linhaEmergencia = contatosDaFicha(ficha as Record<string, unknown>).map((c, i) =>
+      [`Contato ${i + 1}`, [c.nome, rotuloParentescoEmergencia(c.parentesco), c.whatsapp && maskPhone(c.whatsapp)].filter(Boolean).join(" - ")] as [string, string]);
     const vaga = [
       cargos.find((c) => c.id === (admDados.cargo_id ?? data.preadmissao.cargo_previsto_id))?.nome,
       unidades.find((u) => u.id === (admDados.unidade_id ?? data.preadmissao.unidade_prevista_id))?.nome,
@@ -483,10 +503,11 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     }
 
     const { bytes, falhas } = await gerarFichaAdmissaoPdf({
-      titulo: `Ficha de Admissão - ${data.preadmissao.candidato_nome}`,
+      titulo: `Ficha de Admissão - ${ficha.nome || data.preadmissao.candidato_nome}`,
       subtitulo: [vaga && `Vaga: ${vaga}`, `Gerada em ${new Date().toLocaleString("pt-BR")}`].filter(Boolean).join("   |   "),
       secoes: [
         { titulo: "Dados do Candidato", linhas: linhaPessoal },
+        { titulo: "Contatos de Emergência", linhas: linhaEmergencia },
         { titulo: "Informações Administrativas", linhas: linhaAdmin },
         { titulo: "Dependentes e Familiares", linhas: listaPessoas },
         { titulo: "Documentos Anexados", linhas: linhasDocs },
