@@ -406,6 +406,7 @@ interface DetalheDiaProps {
   compacto?: boolean;
   regimes?: Map<string, string>;
   periodosHabituais?: Map<string, "dia" | "noite" | "madrugada">;
+  onContagemTurno?: (c: { n: number; turno: string } | null) => void;
   acoesFolga?: (colaboradorId: string, folgaFixa: boolean) => React.ReactNode;
 }
 
@@ -959,6 +960,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
   const [detalheAvulso, setDetalheAvulso] = useState<"avulso_teste" | "avulso_folguista" | null>(null);
   /** Dia aberto em janela a partir do calendário do mês. */
   const [dataPopout, setDataPopout] = useState<string | null>(null);
+  const [contagemTurno, setContagemTurno] = useState<{ n: number; turno: string } | null>(null);
   const { selectedCompanyId: companyIdCal } = useCompanyContext();
   const [folgaColab, setFolgaColab] = useState<string>("");
   const [folgaTriagem, setFolgaTriagem] = useState(false);
