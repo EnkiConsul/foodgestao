@@ -153,7 +153,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     { icon: Palmtree, label: "férias", valor: resumoMes.ferias, tom: "text-sky-600 dark:text-sky-400" },
     { icon: UserX, label: "faltas", valor: resumoMes.falta, tom: "text-rose-600 dark:text-rose-400" },
     { icon: Stethoscope, label: "atestados", valor: resumoMes.atestado, tom: "text-violet-600 dark:text-violet-400" },
-    { icon: CalendarOff, label: "demais", valor: resumoMes.outras, tom: "text-slate-500" },
+    { icon: CalendarOff, label: "cobertos", valor: resumoMes.outras, tom: "text-slate-500" },
     { icon: Lock, label: "bloqueadas", valor: resumoMes.bloqueados, tom: "text-destructive" },
     { icon: PartyPopper, label: "feriados", valor: resumoMes.feriados, tom: "text-primary" },
     { icon: AlertTriangle, label: "com alerta", valor: resumoMes.alertas, tom: "text-destructive" },
@@ -166,7 +166,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     { label: "Férias", cls: TOM.ferias, n: resumoMes.ferias, pdf: PDF_COR.ferias },
     { label: "Falta", cls: TOM.falta, n: resumoMes.falta, pdf: PDF_COR.falta },
     { label: "Atestado / Licença", cls: TOM.atestado, n: resumoMes.atestado, pdf: PDF_COR.atestado },
-    { label: "Demais", cls: TOM.outras, n: resumoMes.outras, pdf: PDF_COR.outras },
+    { label: "Coberto por folguista", cls: TOM.outras, n: resumoMes.outras, pdf: PDF_COR.outras },
   ].filter((l) => l.n > 0);
 
   const ausOcultas = TIPOS_AUSENCIA.length - filtros.length;
@@ -329,6 +329,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
 
       {legenda.length + resumoMes.trocas + resumoMes.bloqueados > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary"><Users className="h-3 w-3" />Escalados no dia</span>
           {legenda.map((l) => (
             <span key={l.label} className={cn("rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase", l.cls)}>{l.label}</span>
           ))}
@@ -396,7 +397,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
             const ehHoje = d.data === hoje;
             const bloqueio = bloqueios.get(d.data);
             const ehPico = pico(d.data, d.feriado_nome);
-            const compacto = aus.length > 4;
+            const compacto = aus.length >= 4;
             const visiveis = aus.slice(0, compacto ? 12 : 4);
             const extra = aus.length - visiveis.length;
             const trab = d.pessoas.filter((p) => !tipoAusencia(p.categoria));
@@ -434,9 +435,9 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                       </div>
                       <span className={cn("inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums", d.alerta && d.avaliacao.situacao === "abaixo" ? "bg-destructive text-destructive-foreground" : "bg-primary/15 text-primary")} title="Trabalhando"><Users className="h-3 w-3" />{d.trabalhando}</span>
                     </div>
-                    <div className={cn(compacto ? "flex flex-wrap gap-1" : "flex flex-col gap-1")}>
+                    <div className={cn(compacto ? "grid grid-cols-2 gap-1" : "flex flex-col gap-1")}>
                       {visiveis.map((a) => (
-                        <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("inline-flex min-w-0 items-center gap-0.5 truncate rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase shadow-sm", tomDe(a, d.data), compacto && "max-w-full")} title={rotulo(a, d.data)}>
+                        <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("inline-flex min-w-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase shadow-sm", tomDe(a, d.data))} title={rotulo(a, d.data)}>
                           {a.troca && <Repeat className="h-2.5 w-2.5 shrink-0" />}<span className="truncate">{primeiroNome(a.nome)}</span>
                         </span>
                       ))}
