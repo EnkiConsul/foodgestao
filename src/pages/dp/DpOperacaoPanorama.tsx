@@ -1837,7 +1837,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                       <Plus className="mr-1 h-4 w-4" /> Registrar ausência
                     </Button>
                     <Button size="sm" variant="outline" className="h-8 rounded-lg" onClick={() => abrirNovaAvulsa(dataPopout)}>
-                      <UserPlus className="mr-1 h-4 w-4" /> Mão de obra extra
+                      <UserPlus className="mr-1 h-4 w-4" /> Mão de Obra Extra
                     </Button>
                   </>
                 )}
