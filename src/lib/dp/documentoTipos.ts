@@ -172,8 +172,8 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
     label: "Recibo de Pagamento em Dinheiro",
     grupo: "remuneracao",
     importavel: false,
-    // Assinatura física (papel): sem aceite digital.
-    exigeAceite: false,
+    // Emitido pelo sistema: quitação por aceite digital no Portal.
+    exigeAceite: true,
     keywords: ["recibo de pagamento em dinheiro", "recibo em especie", "quitacao em especie"],
     badgeClass: "border-orange-300 text-orange-700",
   },
@@ -464,7 +464,7 @@ export function docTipoExigeAceite(tipo?: string | null): boolean {
  * Tipos assinados à mão além do grupo de desligamento: disciplinar
  * (advertência/suspensão) e recibo de pagamento em dinheiro.
  */
-const TIPOS_ASSINATURA_FISICA_EXTRA = new Set<string>(["disciplinar", "recibo_pagamento_especie"]);
+const TIPOS_ASSINATURA_FISICA_EXTRA = new Set<string>(["disciplinar"]);
 
 /**
  * Documento com assinatura física (papel): sem aceite digital, a minuta pode
