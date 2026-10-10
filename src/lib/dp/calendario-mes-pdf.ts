@@ -35,6 +35,8 @@ const CINZA = rgb(0.6, 0.6, 0.6);
 const VERDE_CLARO = rgb(0.9, 0.97, 0.93);
 const BRANCO = rgb(1, 1, 1);
 
+/** Cor clareada (dias passados) sem transparência, evitando sobreposição visível. */
+const mistura = (v: [number, number, number]): RGB => rgb((v[0] + 255) / 510, (v[1] + 255) / 510, (v[2] + 255) / 510);
 const limpo = (s: string) => s.normalize("NFC").replace(/[^\x20-\x7E\u00A0-\u00FF]/g, "");
 
 function pill(page: PDFPage, x: number, y: number, w: number, h: number, color: RGB, opacity = 1) {
@@ -159,7 +161,6 @@ export async function gerarCalendarioMesPdf(inp: CalendarioPdfInput): Promise<Ui
     page.drawText(badge, { x: x + cw - bw + 1, y: yc + ch - 9.3, size: 7, font: fb, color: FLORESTA });
 
     // Chips de ausência: múltiplos por linha
-    const op = passado ? 0.5 : 1;
     const chipH = 8.5, gap = 2;
     let cx = x + 3, cy = yc + ch - fh - chipH - 3;
     const limiteY = yc + 3;
@@ -170,7 +171,7 @@ export async function gerarCalendarioMesPdf(inp: CalendarioPdfInput): Promise<Ui
       if (cx + w > x + cw - 3) { cx = x + 3; cy -= chipH + gap; }
       if (cy < limiteY + chipH) break;
       w = Math.min(w, x + cw - 3 - cx);
-      pill(page, cx, cy, w, chipH, c(a.cor), op);
+      pill(page, cx, cy, w, chipH, passado ? mistura(a.cor) : c(a.cor));
       page.drawText(cortar(nome, fb, 6, w - 5), { x: cx + 3, y: cy + 2.2, size: 6, font: fb, color: BRANCO, opacity: passado ? 0.85 : 1 });
       cx += w + gap;
       mostrados++;
