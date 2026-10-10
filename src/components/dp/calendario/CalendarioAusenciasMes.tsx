@@ -103,8 +103,27 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
   const alternar = (t: TipoAusenciaCalendario) =>
     onFiltros(filtros.includes(t) ? filtros.filter((x) => x !== t) : [...filtros, t]);
 
-  const [periodo, setPeriodo] = useState<PeriodoTurno>("todos");
-  const [setores, setSetores] = useState<string[]>([]);
+  const chaveFiltro = `cal_rotina_filtros:${selectedCompanyId ?? ""}:${unidadeId ?? ""}`;
+  const lerFiltro = () => {
+    try {
+      const v = JSON.parse(localStorage.getItem(chaveFiltro) ?? "{}");
+      return {
+        periodo: (["todos", "dia", "noite"].includes(v.periodo) ? v.periodo : "todos") as PeriodoTurno,
+        setores: Array.isArray(v.setores) ? (v.setores as string[]) : [],
+      };
+    } catch { return { periodo: "todos" as PeriodoTurno, setores: [] as string[] }; }
+  };
+  const [periodo, setPeriodo] = useState<PeriodoTurno>(() => lerFiltro().periodo);
+  const [setores, setSetores] = useState<string[]>(() => lerFiltro().setores);
+  useEffect(() => {
+    const f = lerFiltro();
+    setPeriodo(f.periodo);
+    setSetores(f.setores);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chaveFiltro]);
+  useEffect(() => {
+    try { localStorage.setItem(chaveFiltro, JSON.stringify({ periodo, setores })); } catch { /* sem armazenamento */ }
+  }, [chaveFiltro, periodo, setores]);
 
   // Turnos e setores que a unidade realmente tem no mês.
   const { temDia, temNoite, setoresDisp } = useMemo(() => {
@@ -386,7 +405,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                 "flex items-center justify-center gap-1 border-b-2 py-2.5 text-xs font-extrabold uppercase tracking-[0.16em] shadow-sm",
                 dom ? "border-amber-600 bg-amber-400 text-amber-950" : "border-primary bg-foreground text-background",
               )}>
-                {d}{pk && <Flame className="h-3 w-3 opacity-80" aria-label="Pico de operação" />}
+                {d}{pk && <span title="Pico de operação" className="inline-flex"><Flame className="h-3 w-3 opacity-80" aria-label="Pico de operação" /></span>}
               </div>
             );
           })}
@@ -457,7 +476,10 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                   <div>
                     <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-primary">Trabalhando ({trab.length})</p>
                     {trab.length ? [...porSetor].map(([s, ns]) => (
-                      <p key={s}><span className="text-muted-foreground">{s}:</span> {ns.join(", ")}</p>
+                      <p key={s} className="line-clamp-2">
+                        <span className="text-muted-foreground">{s} ({ns.length}):</span>{" "}
+                        {ns.slice(0, 6).join(", ")}{ns.length > 6 ? ` +${ns.length - 6}` : ""}
+                      </p>
                     )) : <p className="text-muted-foreground">Ninguém escalado.</p>}
                   </div>
                   {aus.length > 0 && (
