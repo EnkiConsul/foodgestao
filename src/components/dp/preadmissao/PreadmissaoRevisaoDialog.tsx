@@ -456,8 +456,9 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       if (error) throw error;
       toast.success("Colaborador efetivado com os dados, documentos e dependentes da pré-admissão.");
       await queryClient.invalidateQueries();
+      await refetch();
     } catch (e) {
-      notifyError(e, "Não foi possível efetivar o colaborador");
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "efetivar o colaborador" });
     } finally {
       setEfetivando(false);
       setConfirmarClt(false);
