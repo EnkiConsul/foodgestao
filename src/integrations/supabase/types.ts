@@ -13620,6 +13620,54 @@ export type Database = {
           },
         ]
       }
+      dp_unidade_politica_periodos: {
+        Row: {
+          acao: string
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          data_efeito: string
+          id: string
+          politica: string
+          unidade_id: string
+        }
+        Insert: {
+          acao: string
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          data_efeito: string
+          id?: string
+          politica: string
+          unidade_id: string
+        }
+        Update: {
+          acao?: string
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data_efeito?: string
+          id?: string
+          politica?: string
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_unidade_politica_periodos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_unidade_politica_periodos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_unidades: {
         Row: {
           ativo: boolean
