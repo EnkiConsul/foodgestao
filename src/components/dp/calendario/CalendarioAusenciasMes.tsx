@@ -29,7 +29,7 @@ const TOM: Record<TipoAusenciaCalendario, string> = {
   outras: "border-l-[3px] border-slate-400 bg-slate-50 text-slate-700 dark:bg-slate-500/15 dark:text-slate-200",
 };
 // Folga no domingo tem peso diferente na operação: dourado.
-const TOM_DOMINICAL = "border-l-[3px] border-amber-500 bg-amber-200 text-amber-950 dark:bg-amber-500/15 dark:text-amber-200";
+const TOM_DOMINICAL = "border-l-[3px] border-amber-600 bg-amber-500/10 text-amber-900 dark:text-amber-200";
 const PDF_COR: Record<TipoAusenciaCalendario, [number, number, number]> = {
   folga: [16, 185, 129], ferias: [14, 165, 233], falta: [244, 63, 94], atestado: [139, 92, 246], outras: [100, 116, 139],
 };
@@ -445,7 +445,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                     {ehPico && <span className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-primary" aria-hidden="true" />}
                     <div className={cn(
                       "-mx-2 -mt-2 flex items-center justify-between gap-1 border-b border-border/70 px-2 py-1.5",
-                      ehPico ? "bg-primary/10" : "bg-muted/60",
+                      d.feriado_nome ? "bg-primary/10" : "bg-muted/40",
                       ehHoje && "bg-primary/15",
                     )}>
                       <div className="flex min-w-0 items-center gap-1">
