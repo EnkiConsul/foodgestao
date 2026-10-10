@@ -20,9 +20,7 @@ describe("contatos de emergência", () => {
     expect(confirmacaoVencida(null, null, agora)).toBe(true);
     expect(confirmacaoVencida("2026-10-01T00:00:00Z", "2026-10-05T00:00:00Z", agora)).toBe(true);
   });
-  it("recado antigo vira o 1º contato", () => {
-    const l = contatosDaFicha({ whatsapp_contato: "(62) 99999-1111 — Joana" });
-    expect(l[0].whatsapp).toBe("62999991111");
-    expect(l[0].parentesco).toBe("outro_familiar");
+  it("recado antigo NÃO vira contato de emergência", () => {
+    expect(contatosDaFicha({ whatsapp_contato: "62996774111" })).toEqual([]);
   });
 });

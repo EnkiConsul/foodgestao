@@ -58,7 +58,6 @@ const CAMPOS: { chave: string; label: string; grupo: string }[] = [
   { chave: "nome_mae", label: "Nome da mãe", grupo: "Filiação" },
   { chave: "nome_pai", label: "Nome do pai", grupo: "Filiação" },
   { chave: "telefone", label: "Telefone", grupo: "Contato" },
-  { chave: "whatsapp_contato", label: "WhatsApp de recado", grupo: "Contato" },
   { chave: "cep", label: "CEP", grupo: "Endereço" },
   { chave: "endereco", label: "Rua", grupo: "Endereço" },
   { chave: "numero", label: "Número", grupo: "Endereço" },
