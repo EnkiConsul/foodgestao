@@ -11372,13 +11372,17 @@ export type Database = {
         Row: {
           alerta_adiantamento_offset: number
           alerta_aso_dias: number
+          alerta_ata_assinatura_dias: number
           alerta_comprovante_dias: number
+          alerta_contatos_emergencia: boolean
           alerta_contracheque_dia_mes: number
           alerta_epi_dias: number
           alerta_ferias_dias: number
           alerta_folha_ponto_dia_mes: number
           alerta_negociacao_dias: number
           alerta_ocorrencia_horas: number
+          alerta_preadmissao_dias: number
+          alerta_recibo_assinatura_dias: number
           alerta_solicitacao_dias: number
           alerta_treinamento_dias: number
           alerta_troca_dias: number
@@ -11393,13 +11397,17 @@ export type Database = {
         Insert: {
           alerta_adiantamento_offset?: number
           alerta_aso_dias?: number
+          alerta_ata_assinatura_dias?: number
           alerta_comprovante_dias?: number
+          alerta_contatos_emergencia?: boolean
           alerta_contracheque_dia_mes?: number
           alerta_epi_dias?: number
           alerta_ferias_dias?: number
           alerta_folha_ponto_dia_mes?: number
           alerta_negociacao_dias?: number
           alerta_ocorrencia_horas?: number
+          alerta_preadmissao_dias?: number
+          alerta_recibo_assinatura_dias?: number
           alerta_solicitacao_dias?: number
           alerta_treinamento_dias?: number
           alerta_troca_dias?: number
@@ -11414,13 +11422,17 @@ export type Database = {
         Update: {
           alerta_adiantamento_offset?: number
           alerta_aso_dias?: number
+          alerta_ata_assinatura_dias?: number
           alerta_comprovante_dias?: number
+          alerta_contatos_emergencia?: boolean
           alerta_contracheque_dia_mes?: number
           alerta_epi_dias?: number
           alerta_ferias_dias?: number
           alerta_folha_ponto_dia_mes?: number
           alerta_negociacao_dias?: number
           alerta_ocorrencia_horas?: number
+          alerta_preadmissao_dias?: number
+          alerta_recibo_assinatura_dias?: number
           alerta_solicitacao_dias?: number
           alerta_treinamento_dias?: number
           alerta_troca_dias?: number
