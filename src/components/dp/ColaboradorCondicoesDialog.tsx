@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { toast } from "sonner";
-import { History, Calculator, Lock, Users } from "lucide-react";
+import { History, Calculator, Lock, Users, Send } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
