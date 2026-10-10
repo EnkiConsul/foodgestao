@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, CalendarClock, Settings } from "lucide-react";
+import { Building2, CalendarClock, Settings, UserRound } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { DpFilters, DpFilterField, type DpFilterChip } from "@/components/dp/DpFilters";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -18,6 +19,7 @@ import { useDpPendenciasDecisoes } from "@/hooks/useDpPendenciasDecisoes";
 import { PendenciaAcoes } from "@/components/dp/pendencias/PendenciaAcoes";
 import {
   agruparPorColaborador,
+  agruparPorTipo,
   filtrarAbertas,
   opcoesFiltro,
   urgenciaDe,
@@ -32,26 +34,32 @@ type Filtro = {
   colaborador: string;
   unidade: string;
   urgencia: PendenciaUrgencia | "todas";
+  escopo: Escopo;
 };
+type Escopo = "todos" | "pessoa" | "empresa";
 
-const URGENCIA_OP: { value: Filtro["urgencia"]; label: string }[] = [
-  { value: "todas", label: "Todas as urgências" },
-  { value: "atrasada", label: "Atrasadas" },
-  { value: "hoje", label: "Vence hoje" },
-  { value: "proxima", label: "Próximas" },
+const URGENCIA_OP: { value: Filtro["urgencia"]; pill: string }[] = [
+  { value: "todas", pill: "Todas" },
+  { value: "atrasada", pill: "Atrasadas" },
+  { value: "hoje", pill: "Vencem hoje" },
+  { value: "proxima", pill: "Próximas" },
 ];
+
+const FILTRO_INICIAL: Filtro = { tipo: "todos", colaborador: "todos", unidade: "todas", urgencia: "todas", escopo: "todos" };
+
+/** Pendência de pessoa quando tem colaborador; senão é da empresa/unidade. */
+function escopoDe(p: { escopo?: string; colaboradorNome?: string | null }): "pessoa" | "empresa" {
+  if (p.escopo === "pessoa") return "pessoa";
+  if (p.escopo === "unidade") return "empresa";
+  return p.colaboradorNome ? "pessoa" : "empresa";
+}
 
 export default function DpCadastroPendenciasLista() {
   const { data = [], isLoading, isError, error, refetch } = useDpPendencias();
   const { prefs } = useDpUserPrefs();
   const { ignoradas, adiadas, decisaoDe } = useDpPendenciasDecisoes();
   const [mostrarAdiadas, setMostrarAdiadas] = useState(false);
-  const [filtro, setFiltro] = useState<Filtro>({
-    tipo: "todos",
-    colaborador: "todos",
-    unidade: "todas",
-    urgencia: "todas",
-  });
+  const [filtro, setFiltro] = useState<Filtro>(FILTRO_INICIAL);
   const [busca, setBusca] = useState("");
 
   const adiamentos = useMemo(
@@ -59,7 +67,7 @@ export default function DpCadastroPendenciasLista() {
     [prefs.pendencias_adiadas, adiadas],
   );
 
-  const base = useMemo(() => {
+  const semUrgencia = useMemo(() => {
     const semIgnoradas = mostrarAdiadas ? data : data.filter((p) => !ignoradas.has(p.id));
     const visiveis = mostrarAdiadas ? semIgnoradas : filtrarAbertas(semIgnoradas, adiamentos);
     const termo = busca.trim().toLowerCase();
@@ -67,17 +75,73 @@ export default function DpCadastroPendenciasLista() {
       if (filtro.tipo !== "todos" && p.tipo !== filtro.tipo) return false;
       if (filtro.colaborador !== "todos" && (p.colaboradorNome ?? "") !== filtro.colaborador) return false;
       if (filtro.unidade !== "todas" && (p.unidadeNome ?? "") !== filtro.unidade) return false;
-      if (filtro.urgencia !== "todas" && urgenciaDe(p) !== filtro.urgencia) return false;
-      if (termo && !`${p.titulo} ${p.subtitulo}`.toLowerCase().includes(termo)) return false;
+      if (filtro.escopo !== "todos" && escopoDe(p) !== filtro.escopo) return false;
+      if (termo && !`${p.titulo} ${p.subtitulo} ${p.tipo} ${p.colaboradorNome ?? ""} ${p.unidadeNome ?? ""}`.toLowerCase().includes(termo)) return false;
       return true;
     });
   }, [data, mostrarAdiadas, adiamentos, ignoradas, filtro, busca]);
 
-  const opcoes = useMemo(() => opcoesFiltro(data), [data]);
-  const grupos = useMemo(
-    () => agruparPorColaborador(base, { ordenarPorAtraso: true }),
-    [base],
+  const contagem = useMemo(() => {
+    const c = { todas: semUrgencia.length, atrasada: 0, hoje: 0, proxima: 0 } as Record<Filtro["urgencia"], number>;
+    semUrgencia.forEach((p) => { c[urgenciaDe(p)] += 1; });
+    return c;
+  }, [semUrgencia]);
+  const base = useMemo(
+    () => (filtro.urgencia === "todas" ? semUrgencia : semUrgencia.filter((p) => urgenciaDe(p) === filtro.urgencia)),
+    [semUrgencia, filtro.urgencia],
   );
+  const baseEmpresa = useMemo(() => base.filter((p) => escopoDe(p) === "empresa"), [base]);
+  const basePessoa = useMemo(() => base.filter((p) => escopoDe(p) === "pessoa"), [base]);
+  const gruposEmpresa = useMemo(
+    () => agruparPorTipo(baseEmpresa).map((g) => ({ ...g, itens: baseEmpresa.filter((p) => p.tipo === g.tipo) })),
+    [baseEmpresa],
+  );
+
+  const gruposPessoa = useMemo(
+    () => agruparPorColaborador(basePessoa, { ordenarPorAtraso: true }),
+    [basePessoa],
+  );
+
+  const chips: DpFilterChip[] = [
+    filtro.escopo !== "todos" && { key: "escopo", label: filtro.escopo === "pessoa" ? "Colaboradores" : "Empresa e unidades", onRemove: () => setFiltro((f) => ({ ...f, escopo: "todos" })) },
+    filtro.tipo !== "todos" && { key: "tipo", label: filtro.tipo, onRemove: () => setFiltro((f) => ({ ...f, tipo: "todos" })) },
+    filtro.colaborador !== "todos" && { key: "colab", label: filtro.colaborador, onRemove: () => setFiltro((f) => ({ ...f, colaborador: "todos" })) },
+    filtro.unidade !== "todas" && { key: "un", label: filtro.unidade, onRemove: () => setFiltro((f) => ({ ...f, unidade: "todas" })) },
+  ].filter(Boolean) as DpFilterChip[];
+  const limpar = () => { setFiltro(FILTRO_INICIAL); setBusca(""); };
+
+  const opcoes = useMemo(() => opcoesFiltro(data), [data]);
+
+  const renderItem = (p: (typeof base)[number]) => {
+    const adiada = !filtrarAbertas([p], adiamentos).length;
+    const decisao = decisaoDe.get(p.id);
+    return (
+      <div key={p.id} className="flex items-start gap-3 rounded-xl border border-border bg-card p-3">
+        <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+          <p.icon className="h-4 w-4 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0 space-y-1">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm font-medium break-words min-w-0">{p.titulo}</p>
+            <UrgenciaBadge atrasoDias={p.atrasoDias} urgente={p.urgente} />
+          </div>
+          <p className="text-xs text-muted-foreground break-words">{p.subtitulo}</p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+            <span>{p.tipo}</span>
+            {p.unidadeNome && <span>Unidade: {p.unidadeNome}</span>}
+            {p.vencimento && <span>Prazo: {new Date(p.vencimento + "T12:00:00").toLocaleDateString("pt-BR")}</span>}
+            {adiada && adiamentos[p.id] && (
+              <span className="font-medium text-foreground">
+                Adiada até {new Date(adiamentos[p.id]).toLocaleDateString("pt-BR")}
+              </span>
+            )}
+            {decisao?.acao === "ignorar" && <span className="font-medium">Ignorada: {decisao.justificativa}</span>}
+          </div>
+          <PendenciaAcoes pendencia={p} />
+        </div>
+      </div>
+    );
+  };
 
   return (
     <DpPage>
@@ -96,42 +160,74 @@ export default function DpCadastroPendenciasLista() {
         }
       />
 
-      {/* Filtros */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-        <Input
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar…"
-          className="h-9 text-sm col-span-2 sm:col-span-1"
-        />
-        <Select value={filtro.tipo} onValueChange={(v) => setFiltro((f) => ({ ...f, tipo: v }))}>
-          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Tipo" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os tipos</SelectItem>
-            {opcoes.tipos.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filtro.colaborador} onValueChange={(v) => setFiltro((f) => ({ ...f, colaborador: v }))}>
-          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Colaborador" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os colaboradores</SelectItem>
-            {opcoes.colaboradores.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filtro.unidade} onValueChange={(v) => setFiltro((f) => ({ ...f, unidade: v }))}>
-          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Unidade" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas as unidades</SelectItem>
-            {opcoes.unidades.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filtro.urgencia} onValueChange={(v) => setFiltro((f) => ({ ...f, urgencia: v as Filtro["urgencia"] }))}>
-          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Urgência" /></SelectTrigger>
-          <SelectContent>
-            {URGENCIA_OP.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+      {/* Situação rápida */}
+      <div className="flex flex-wrap gap-2">
+        {URGENCIA_OP.map((u) => {
+          const ativo = filtro.urgencia === u.value;
+          return (
+            <button
+              key={u.value}
+              type="button"
+              onClick={() => setFiltro((f) => ({ ...f, urgencia: u.value }))}
+              className={cn(
+                "inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors",
+                ativo ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:bg-muted",
+              )}
+            >
+              {u.pill}
+              <span className={cn("rounded-full px-1.5 text-xs", ativo ? "bg-primary-foreground/20" : "bg-muted")}>
+                {contagem[u.value]}
+              </span>
+            </button>
+          );
+        })}
       </div>
+
+      <DpFilters
+        search={{ value: busca, onChange: setBusca, placeholder: "Buscar por nome, unidade ou assunto…" }}
+        activeCount={chips.length}
+        chips={chips}
+        onClear={limpar}
+        columns={4}
+      >
+        <DpFilterField label="Escopo">
+          <Select value={filtro.escopo} onValueChange={(v) => setFiltro((f) => ({ ...f, escopo: v as Escopo }))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Tudo</SelectItem>
+              <SelectItem value="pessoa">Colaboradores</SelectItem>
+              <SelectItem value="empresa">Empresa e unidades</SelectItem>
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+        <DpFilterField label="Assunto">
+          <Select value={filtro.tipo} onValueChange={(v) => setFiltro((f) => ({ ...f, tipo: v }))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os assuntos</SelectItem>
+              {opcoes.tipos.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+        <DpFilterField label="Colaborador">
+          <Select value={filtro.colaborador} onValueChange={(v) => setFiltro((f) => ({ ...f, colaborador: v }))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os colaboradores</SelectItem>
+              {opcoes.colaboradores.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+        <DpFilterField label="Unidade">
+          <Select value={filtro.unidade} onValueChange={(v) => setFiltro((f) => ({ ...f, unidade: v }))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as unidades</SelectItem>
+              {opcoes.unidades.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+      </DpFilters>
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <p className="text-sm text-muted-foreground">
@@ -144,7 +240,7 @@ export default function DpCadastroPendenciasLista() {
             onChange={(e) => setMostrarAdiadas(e.target.checked)}
             className="accent-primary"
           />
-          Mostrar adiadas
+          Mostrar adiadas e ignoradas
         </label>
       </div>
 
@@ -158,57 +254,38 @@ export default function DpCadastroPendenciasLista() {
         </p>
       )}
 
-      <div className="space-y-5">
-        {grupos.map((sub) => (
-          <div key={sub.colaborador ?? "geral"} className="space-y-2">
-            {sub.colaborador && (
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-semibold">{sub.colaborador}</p>
-                <Badge variant="secondary" className="rounded-full h-5 px-2 text-[11px]">
-                  {sub.itens.length}
-                </Badge>
+      <div className="space-y-8">
+        {gruposEmpresa.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="flex items-center gap-2 text-base font-semibold">
+              <Building2 className="h-4 w-4 text-primary" /> Empresa e unidades
+              <Badge variant="secondary" className="rounded-full">{baseEmpresa.length}</Badge>
+            </h2>
+            {gruposEmpresa.map((g) => (
+              <div key={g.tipo} className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">{g.tipo} · {g.total}</p>
+                <div className="space-y-2">{g.itens.map(renderItem)}</div>
               </div>
-            )}
-            <div className="grid gap-2 lg:grid-cols-2">
-              {sub.itens.map((p) => {
-                const adiada = !filtrarAbertas([p], adiamentos).length;
-                const decisao = decisaoDe.get(p.id);
-                return (
-                  <div
-                    key={p.id}
-                    className="flex items-start gap-3 rounded-xl border border-[hsl(var(--dp-border))] bg-card p-3"
-                  >
-                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <p.icon className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 flex-wrap">
-                        <p className="text-sm font-medium break-words min-w-0">{p.titulo}</p>
-                        <UrgenciaBadge atrasoDias={p.atrasoDias} urgente={p.urgente} />
-                      </div>
-                      <p className="text-xs text-muted-foreground break-words">{p.subtitulo}</p>
-                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-                        <span>{p.tipo}</span>
-                        {p.unidadeNome && <span>Unidade: {p.unidadeNome}</span>}
-                        {adiada && adiamentos[p.id] && (
-                          <span className="text-amber-700 font-medium">
-                            Adiada até {new Date(adiamentos[p.id]).toLocaleDateString("pt-BR")}
-                          </span>
-                        )}
-                        {decisao?.acao === "ignorar" && (
-                          <span className="text-muted-foreground font-medium">
-                            Ignorada: {decisao.justificativa}
-                          </span>
-                        )}
-                      </div>
-                      <PendenciaAcoes pendencia={p} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+            ))}
+          </section>
+        )}
+        {gruposPessoa.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="flex items-center gap-2 text-base font-semibold">
+              <UserRound className="h-4 w-4 text-primary" /> Colaboradores
+              <Badge variant="secondary" className="rounded-full">{basePessoa.length}</Badge>
+            </h2>
+            {gruposPessoa.map((sub) => (
+              <div key={sub.colaborador ?? "sem"} className="space-y-2">
+                <p className="text-sm font-medium">
+                  {sub.colaborador ?? "Sem colaborador"}{" "}
+                  <span className="text-muted-foreground">· {sub.itens.length}</span>
+                </p>
+                <div className="space-y-2">{sub.itens.map(renderItem)}</div>
+              </div>
+            ))}
+          </section>
+        )}
       </div>
     </DpPage>
   );
