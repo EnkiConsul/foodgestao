@@ -20178,6 +20178,10 @@ export type Database = {
         Args: { _motivo: string; _troca_id: string }
         Returns: Json
       }
+      dp_solicitar_complemento_clt: {
+        Args: { p_colaborador_id: string; p_itens: string[] }
+        Returns: string
+      }
       dp_timezone_resolvido: {
         Args: { _company_id: string; _unidade_id?: string }
         Returns: string
@@ -21259,6 +21263,7 @@ export type Database = {
         | "folga_remarcada"
         | "ferias_aviso"
         | "assiduidade_decidida"
+        | "documento_complemento"
       dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
       dp_ocorrencia_cobertura_execucao:
         | "prevista"
@@ -21314,6 +21319,7 @@ export type Database = {
         | "outros"
         | "licenca_maternidade"
         | "licenca_paternidade"
+        | "documento"
       dp_tipo_escala:
         | "6x1"
         | "5x2"
@@ -21731,6 +21737,7 @@ export const Constants = {
         "folga_remarcada",
         "ferias_aviso",
         "assiduidade_decidida",
+        "documento_complemento",
       ],
       dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
       dp_ocorrencia_cobertura_execucao: [
@@ -21796,6 +21803,7 @@ export const Constants = {
         "outros",
         "licenca_maternidade",
         "licenca_paternidade",
+        "documento",
       ],
       dp_tipo_escala: [
         "6x1",
