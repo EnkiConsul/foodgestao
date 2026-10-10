@@ -1,10 +1,14 @@
+import { useMemo, useState } from "react";
+import { SlidersHorizontal, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { cn } from "@/lib/utils";
 import {
-  ausenciasVisiveis, primeiroNome, TIPO_AUSENCIA_LABEL, TIPOS_AUSENCIA, type TipoAusenciaCalendario,
+  ausenciasVisiveis, periodoDoHorario, pessoaNoFiltro, primeiroNome, tipoAusencia,
+  TIPO_AUSENCIA_LABEL, TIPOS_AUSENCIA, type PeriodoTurno, type TipoAusenciaCalendario,
 } from "@/lib/dp/calendario-rotina";
 import type { DiaPanorama } from "@/hooks/useDpOperacaoPanorama";
 
@@ -71,13 +75,110 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     if (f.periodo === "todos" && !setores.length) return diasBrutos;
     return diasBrutos.map((d) => {
       const pessoas = d.pessoas.filter((p) => pessoaNoFiltro(p, f));
-      return { ...d, pessoas, trabalhando: pessoas.filter((p) => !tipoAusencia(p.categoria) && !["atrasado", "saida_antecipada"].includes("") ).filter((p) => !["folga_padrao","folga_extra","ferias","ausente","atestado","coberto"].includes(p.categoria)).length };
+      return { ...d, pessoas, trabalhando: pessoas.filter((p) => !tipoAusencia(p.categoria)).length };
     });
   }, [diasBrutos, periodo, setores, mostraTurno]);
 
   const ausOcultas = TIPOS_AUSENCIA.length - filtros.length;
   const totalAtivos = setores.length + (ausOcultas > 0 ? 1 : 0);
   const nomeSetor = (id: string) => setoresDisp.find(([k]) => k === id)?.[1] ?? "Setor";
+  const alternarSetor = (id: string) =>
+    setSetores((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+
+  const { antes, depois } = diasDePreenchimento(dias);
+  const hoje = isoLocal(new Date());
+  // Dias dos meses vizinhos: clicáveis — levam ao mês correspondente e abrem o dia.
+  const vazio = (iso: string) => (
+    <button
+      key={iso}
+      type="button"
+      onClick={() => onAbrirDia(iso)}
+      className="flex min-h-[112px] flex-col bg-muted/10 p-2 text-left text-muted-foreground transition-colors hover:bg-muted/30"
+      title="Ir para este dia"
+    >
+      <span className="text-sm font-semibold opacity-60">{Number(iso.slice(8))}</span>
+    </button>
+  );
+
+  const chips: { key: string; label: string; onRemove: () => void }[] = [
+    ...setores.map((id) => ({ key: `s-${id}`, label: nomeSetor(id), onRemove: () => alternarSetor(id) })),
+    ...(ausOcultas > 0
+      ? [{ key: "aus", label: `Ausências: ${filtros.length} de ${TIPOS_AUSENCIA.length}`, onRemove: () => onFiltros([...TIPOS_AUSENCIA]) }]
+      : []),
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        {mostraTurno && (
+          <div className="inline-flex rounded-full border bg-card p-0.5" role="group" aria-label="Turno">
+            {(["todos", "dia", "noite"] as PeriodoTurno[]).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPeriodo(p)}
+                aria-pressed={periodo === p}
+                className={cn(
+                  "min-h-8 rounded-full px-3 text-xs font-medium transition-colors",
+                  periodo === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {p === "todos" ? "Todos" : p === "dia" ? "Dia" : "Noite"}
+              </button>
+            ))}
+          </div>
+        )}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button size="sm" variant="outline" className="min-h-8 gap-1.5 rounded-full">
+              <SlidersHorizontal className="h-3.5 w-3.5" /> Filtros
+              {totalAtivos > 0 && <Badge className="h-5 min-w-5 justify-center px-1 text-[11px]">{totalAtivos}</Badge>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-72 space-y-4">
+            {setoresDisp.length > 1 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Setor</p>
+                {setoresDisp.map(([id, nome]) => (
+                  <label key={id} className="flex cursor-pointer items-center gap-2 text-sm">
+                    <Checkbox checked={setores.includes(id)} onCheckedChange={() => alternarSetor(id)} />
+                    {nome}
+                  </label>
+                ))}
+              </div>
+            )}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Ausências mostradas</p>
+              {TIPOS_AUSENCIA.map((t) => (
+                <label key={t} className="flex cursor-pointer items-center gap-2 text-sm">
+                  <Checkbox checked={filtros.includes(t)} onCheckedChange={() => alternar(t)} />
+                  <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", TOM[t])}>{TIPO_AUSENCIA_LABEL[t]}</span>
+                </label>
+              ))}
+            </div>
+            <Button
+              size="sm" variant="ghost" className="w-full"
+              onClick={() => { setSetores([]); onFiltros([...TIPOS_AUSENCIA]); }}
+            >
+              Limpar filtros
+            </Button>
+          </PopoverContent>
+        </Popover>
+        {chips.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            onClick={c.onRemove}
+            className="inline-flex min-h-8 items-center gap-1 rounded-full border bg-muted/50 px-2.5 text-xs"
+          >
+            <span className="max-w-[10rem] truncate">{c.label}</span>
+            <X className="h-3.5 w-3.5 opacity-60" aria-hidden="true" />
+            <span className="sr-only">Remover filtro</span>
+          </button>
+        ))}
+      </div>
+
+
 
 
       {/* Mobile: 1 dia = 1 linha, como no calendário de folgas */}
