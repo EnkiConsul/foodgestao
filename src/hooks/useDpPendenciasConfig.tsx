@@ -57,7 +57,7 @@ export function useDpPendenciasConfig() {
       const { data, error } = await supabase
         .from("dp_pendencias_config")
         .select(
-          "alerta_solicitacao_dias, alerta_troca_dias, alerta_ocorrencia_horas, alerta_contracheque_dia_mes, alerta_adiantamento_offset, alerta_folha_ponto_dia_mes, alerta_negociacao_dias, alerta_ferias_dias, alerta_aso_dias, alerta_epi_dias, alerta_treinamento_dias, dias_carencia_portal, exigir_contracheque_mes_desligamento, exigir_comprovante_pagamento, alerta_comprovante_dias, comprovante_vigencia_inicio, alerta_recibo_assinatura_dias, alerta_ata_assinatura_dias, alerta_preadmissao_dias, alerta_contatos_emergencia",
+          "alerta_solicitacao_dias, alerta_troca_dias, alerta_ocorrencia_horas, alerta_contracheque_dia_mes, alerta_adiantamento_offset, alerta_negociacao_dias, alerta_ferias_dias, dias_carencia_portal, exigir_contracheque_mes_desligamento, exigir_comprovante_pagamento, alerta_comprovante_dias, comprovante_vigencia_inicio, alerta_recibo_assinatura_dias, alerta_ata_assinatura_dias, alerta_preadmissao_dias, alerta_contatos_emergencia",
         )
         .eq("company_id", selectedCompanyId!)
         .maybeSingle();
@@ -73,14 +73,8 @@ export function useDpPendenciasConfig() {
           row.alerta_contracheque_dia_mes ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_contracheque_dia_mes,
         alerta_adiantamento_offset:
           row.alerta_adiantamento_offset ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_adiantamento_offset,
-        alerta_folha_ponto_dia_mes:
-          row.alerta_folha_ponto_dia_mes ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_folha_ponto_dia_mes,
         alerta_negociacao_dias: row.alerta_negociacao_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_negociacao_dias,
-      alerta_ferias_dias: row.alerta_ferias_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_ferias_dias,
-        alerta_aso_dias: row.alerta_aso_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_aso_dias,
-        alerta_epi_dias: row.alerta_epi_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_epi_dias,
-        alerta_treinamento_dias:
-          row.alerta_treinamento_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_treinamento_dias,
+        alerta_ferias_dias: row.alerta_ferias_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_ferias_dias,
         dias_carencia_portal:
           row.dias_carencia_portal ?? DP_PENDENCIAS_CONFIG_DEFAULT.dias_carencia_portal,
         exigir_contracheque_mes_desligamento:
