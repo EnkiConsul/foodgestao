@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NotebookPen, Plus, Paperclip, Send, Sparkles, Trash2, Users, Search, CheckCircle2, Clock, Eye, X, FileText } from "lucide-react";
 import { abrirDocumento } from "@/lib/documentoArquivo";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { DpDocumentosAbas } from "@/components/dp/documentos/DpDocumentosAbas";
 import { AtaEditor } from "@/components/dp/atas/AtaEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,7 +78,6 @@ export default function DpAtas() {
         description="Registre as reuniões da equipe e envie a ata para assinatura ou consulta no portal."
         actions={<div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setImportar(true)}><Paperclip className="mr-1 h-4 w-4" />Importar Ata</Button><Button onClick={() => setEditando("nova")}><Plus className="mr-1 h-4 w-4" />Nova Ata</Button></div>}
       />
-      <DpDocumentosAbas />
       <div className="relative max-w-sm">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input className="pl-8" placeholder="Buscar ata…" value={busca} onChange={(e) => setBusca(e.target.value)} />
