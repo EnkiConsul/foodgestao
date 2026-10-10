@@ -153,6 +153,9 @@ export function DpPessoaAvulsaDialog({
     observacao: "",
   });
   const [horarioTocado, setHorarioTocado] = useState(false);
+  const [escolhido, setEscolhido] = useState(false);
+  useEffect(() => { if (open) setEscolhido(false); }, [open]);
+  const pedirEscolha = !registro && !!onIrParaConvocacao && !escolhido;
   const [cadastroApoioOpen, setCadastroApoioOpen] = useState(false);
   const apoio = useDpPessoasApoio({ apenasAtivos: true });
   const apoioUnidades = useDpApoioUnidades({ apenasAtivas: true });
@@ -407,25 +410,25 @@ export function DpPessoaAvulsaDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{registro ? "Editar Pessoa no Dia" : "Mão de obra extra"}</DialogTitle>
+          <DialogTitle>{registro ? "Editar Pessoa no Dia" : "Mão de Obra Extra"}</DialogTitle>
           <DialogDescription>
-            {registro ? "Ajuste a pessoa na equipe deste dia." : "Escolha se vai só registrar o reforço ou fazer uma convocação formal."}
+            {registro ? "Ajuste a pessoa na equipe deste dia." : (pedirEscolha ? "Escolha se vai registrar agora ou convocar." : "Preencha os dados do reforço do dia.")}
           </DialogDescription>
         </DialogHeader>
-        {!registro && onIrParaConvocacao && (
-          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Tipo de mão de obra extra">
-            <button type="button" role="radio" aria-checked="true" className="rounded-lg border-2 border-primary bg-primary/10 p-2.5 text-left text-xs">
-              <b className="block text-sm">Registrar agora</b>Reforço imediato: entra direto na rotina do dia.
+        {pedirEscolha ? (
+          <div className="grid gap-2 py-2" role="group" aria-label="Como incluir a Mão de Obra Extra">
+            <button type="button" className="rounded-lg border-2 p-3 text-left text-xs hover:border-primary hover:bg-primary/5" onClick={() => setEscolhido(true)}>
+              <b className="block text-sm">Registrar Agora</b>Reforço imediato, folguista ou teste: entra direto na rotina do dia.
             </button>
             <button
-              type="button" role="radio" aria-checked="false"
-              className="rounded-lg border p-2.5 text-left text-xs hover:border-primary"
-              onClick={() => onIrParaConvocacao({ unidadeId: form.unidade_id || unidadePadrao || "", cargoId: form.cargo_id, data: form.data_inicio, colaboradorId: form.colaborador_id })}
+              type="button"
+              className="rounded-lg border-2 p-3 text-left text-xs hover:border-primary hover:bg-primary/5"
+              onClick={() => onIrParaConvocacao!({ unidadeId: form.unidade_id || unidadePadrao || "", cargoId: form.cargo_id, data: form.data_inicio, colaboradorId: form.colaborador_id })}
             >
-              <b className="block text-sm">Convocação formal</b>Intermitente com antecedência e aceite no Portal.
+              <b className="block text-sm">Convocar</b>Convocação formal de intermitente, com antecedência e aceite no Portal. Data e unidade já preenchidas.
             </button>
           </div>
-        )}
+        ) : (<>
         <div className="grid max-h-[65vh] gap-3 overflow-y-auto py-2 pr-1">
           <div className="grid gap-1.5">
             <div className="flex items-center gap-1.5">
@@ -804,6 +807,7 @@ export function DpPessoaAvulsaDialog({
             {salvando ? "Salvando..." : registro ? "Salvar" : "Registrar"}
           </Button>
         </DialogFooter>
+        </>)}
       </DialogContent>
     </Dialog>
     {/* Cadastro oficial completo de folguista/teste — o mesmo da tela de

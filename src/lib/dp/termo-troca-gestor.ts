@@ -95,6 +95,7 @@ export async function emitirTermoTrocaGestor(input: {
     file_path: path, file_name: nome, file_size: blob.size, mime_type: "application/pdf",
     referencia_data: input.dataFixa,
     exige_aceite: !manual,
+    assinatura_fisica: manual,
   } as never);
   return bytes;
 }
