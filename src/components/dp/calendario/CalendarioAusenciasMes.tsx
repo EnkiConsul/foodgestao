@@ -100,15 +100,17 @@ export function CalendarioAusenciasMes({ dias, selecionado, filtros, onFiltros, 
                   d.alerta && d.avaliacao.situacao === "abaixo" && "border-destructive/50",
                 )}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold">{Number(d.data.slice(8))}</span>
-                  <span className="text-[10px] text-muted-foreground">{d.trabalhando} trab.</span>
+                <div className="flex items-center justify-between gap-1">
+                  <div className="flex min-w-0 items-center gap-1">
+                    <span className="text-sm font-semibold">{Number(d.data.slice(8))}</span>
+                    {d.feriado_nome && (
+                      <Badge variant="outline" className="truncate border-primary/50 bg-primary/10 px-1 py-0 text-[10px] text-primary" title={d.feriado_nome}>
+                        Feriado
+                      </Badge>
+                    )}
+                  </div>
+                  <span className="shrink-0 text-[10px] text-muted-foreground">{d.trabalhando} trab.</span>
                 </div>
-                {d.feriado_nome && (
-                  <Badge variant="outline" className="w-fit max-w-full truncate border-primary/50 bg-primary/10 px-1 py-0 text-[10px] text-primary" title={d.feriado_nome}>
-                    Feriado
-                  </Badge>
-                )}
                 {aus.slice(0, 5).map((a) => (
                   <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("truncate rounded border px-1 text-[10px]", TOM[a.tipo])} title={`${a.nome} · ${TIPO_AUSENCIA_LABEL[a.tipo]}`}>
                     {primeiroNome(a.nome)}

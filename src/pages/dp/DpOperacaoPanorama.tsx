@@ -62,6 +62,7 @@ import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { CalendarioAusenciasMes } from "@/components/dp/calendario/CalendarioAusenciasMes";
+import { FolgasDoDiaPainel } from "@/components/dp/calendario/FolgasDoDiaPainel";
 import { filtrosSalvos } from "@/lib/dp/calendario-rotina";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { DpStatCard } from "@/components/dp/DpStatCard";
@@ -1535,11 +1536,32 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
       <Dialog open={!!dataPopout} onOpenChange={(o) => !o && setDataPopout(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle className="first-letter:uppercase">
-              {dataPopout ? dataExtenso(dataPopout) : ""}
-            </DialogTitle>
-            <DialogDescription>
-              Rotina prevista para o dia
+            <div className="flex items-center gap-2 pr-6">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                aria-label="Dia anterior"
+                onClick={() => dataPopout && setDataPopout(somarDias(dataPopout, -1))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <DialogTitle className="flex-1 text-center first-letter:uppercase">
+                {dataPopout ? dataExtenso(dataPopout) : ""}
+              </DialogTitle>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                aria-label="Próximo dia"
+                onClick={() => dataPopout && setDataPopout(somarDias(dataPopout, 1))}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <DialogDescription className="text-center">
+              {diaPopout ? `${diaPopout.trabalhando} trabalhando` : "Rotina prevista para o dia"}
+              {diaPopout && diaPopout.aguardando > 0 ? ` · ${diaPopout.aguardando} aguardando resposta` : ""}
               {diaPopout?.feriado_nome && (
                 <Badge variant="outline" className="ml-2 border-primary/40 text-primary">
                   Feriado · {diaPopout.feriado_nome}
@@ -1549,27 +1571,53 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
           </DialogHeader>
           <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
             {calendario && dataPopout && diaPopout && (
-              <div className="space-y-2 rounded-lg border bg-card p-3">
-                <p className="text-sm font-medium">Folgas e ausências do dia</p>
+              <div className="space-y-3 rounded-lg border bg-card p-3">
+                <p className="text-sm font-medium">Ações do dia</p>
                 <div className="flex flex-wrap items-center gap-2">
                   <Select value={folgaColab} onValueChange={setFolgaColab}>
                     <SelectTrigger className="h-9 w-56"><SelectValue placeholder="Colaborador que trabalha" /></SelectTrigger>
                     <SelectContent>
                       {diaPopout.pessoas
-                        .filter((p) => p.categoria === "fixo")
+                        .filter((p) => p.categoria === "fixo" && !p.avulso_id)
+                        .filter((p, i, arr) => arr.findIndex((o) => o.colaborador_id === p.colaborador_id) === i)
                         .map((p) => <SelectItem key={p.colaborador_id} value={p.colaborador_id}>{p.nome}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Button size="sm" disabled={!folgaColab || !companyIdCal} onClick={() => setFolgaTriagem(true)}>
                     Marcar folga
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => { setAusenciaData(dataPopout); setAusenciaOpen(true); }}>
-                    Registrar ausência
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => navigate("/dp/folgas")}>
-                    Trocas, bloqueios e limites
-                  </Button>
                 </div>
+                {podeRegistrar && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={() => { setAusenciaData(dataPopout); setAusenciaOpen(true); }}>
+                      <Plus className="mr-1 h-4 w-4" /> Registrar ausência
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => abrirNovaAvulsa(dataPopout)}>
+                      <UserPlus className="mr-1 h-4 w-4" /> Teste / folguista / extra
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        navigate("/dp/escalas/convocacoes", {
+                          state: { nova: { unidadeId: unidadeId ?? undefined, datas: [dataPopout] } },
+                        })
+                      }
+                    >
+                      <Handshake className="mr-1 h-4 w-4" /> Convocar intermitente
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => navigate("/dp/folgas")}>
+                      Trocas, bloqueios e limites
+                    </Button>
+                  </div>
+                )}
+                {companyIdCal && (
+                  <FolgasDoDiaPainel
+                    companyId={companyIdCal}
+                    data={dataPopout}
+                    nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
+                  />
+                )}
               </div>
             )}
             {dataPopout && diaPopout ? (
