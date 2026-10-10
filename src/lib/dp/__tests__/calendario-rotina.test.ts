@@ -62,3 +62,17 @@ describe("folga no filtro de turno", () => {
     expect(_pf({ colaborador_id: "a", entrada: null, setor_id: null }, { periodo: "noite", setores: [] }, hab)).toBe(true);
   });
 });
+
+import { folgaEhDominical } from "@/lib/dp/calendario-rotina";
+describe("cor da folga dominical", () => {
+  it("lê os dias dominicais da unidade (sábado habilitado)", () => {
+    expect(folgaEhDominical("2026-10-10", [0, 6], {})).toBe(true); // sábado
+    expect(folgaEhDominical("2026-10-10", [0], {})).toBe(false);
+  });
+  it("troca mantém o tipo da folga original", () => {
+    // folga fixa quarta trocada para domingo continua semanal
+    expect(folgaEhDominical("2026-10-11", [0], { troca: true, folga_fixa_dows: [3] })).toBe(false);
+    // folga fixa domingo trocada para terça continua dominical
+    expect(folgaEhDominical("2026-10-13", [0], { troca: true, folga_fixa_dows: [0] })).toBe(true);
+  });
+});
