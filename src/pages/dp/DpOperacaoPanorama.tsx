@@ -1312,10 +1312,10 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
         icon={CalendarClock}
         actions={
           podeRegistrar ? (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
               <Button
                 variant="outline"
-                className="gap-2"
+                className="min-w-0 gap-2 px-2 sm:px-4"
                 onClick={() => {
                   setAvulsaEditando(null);
                   setAvulsaData(data);
@@ -1325,7 +1325,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                 <UserPlus className="h-4 w-4" /> Mão de Obra Extra
               </Button>
               <Button
-                className="gap-2"
+                className="min-w-0 gap-2 px-2 sm:px-4"
                 onClick={() => {
                   setAusenciaData(null);
                   setAusenciaOpen(true);
@@ -1377,24 +1377,24 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
 
       {calendario && (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border bg-card px-3 py-2 shadow-sm">
-          <div className="inline-flex items-center rounded-full border bg-background p-0.5">
-            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" aria-label="Anterior"
+          <div className="inline-flex min-w-0 flex-1 items-center justify-between rounded-full border bg-background p-0.5 sm:flex-none">
+            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 rounded-full" aria-label="Anterior"
               onClick={() => setData(aba === "mes" ? `${somarMeses(competencia, -1)}-01` : somarDias(data, -1))}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="min-w-[9.5rem] px-1 text-center text-sm font-bold first-letter:uppercase">
+            <span className="min-w-0 truncate px-1 text-center text-sm font-bold first-letter:uppercase sm:min-w-[9.5rem]">
               {aba === "mes" ? competenciaExtenso(competencia) : dataExtenso(data)}
             </span>
-            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" aria-label="Próximo"
+            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 rounded-full" aria-label="Próximo"
               onClick={() => setData(aba === "mes" ? `${somarMeses(competencia, 1)}-01` : somarDias(data, 1))}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <Button size="sm" className="h-8 rounded-full" onClick={() => { const h = hojeIso(); setData(h); setDataPopout(h); }}>
-            Rotina de hoje
+          <Button size="sm" className="h-8 shrink-0 rounded-full" onClick={() => { const h = hojeIso(); setData(h); setDataPopout(h); }}>
+            Hoje
           </Button>
           <Select value={unidade && unidade !== "todas" ? unidade : undefined} onValueChange={trocarUnidade}>
-            <SelectTrigger className="h-8 w-56 rounded-full" aria-label="Unidade"><SelectValue placeholder="Escolha a unidade" /></SelectTrigger>
+            <SelectTrigger className="h-8 w-full rounded-full sm:w-56" aria-label="Unidade"><SelectValue placeholder="Escolha a unidade" /></SelectTrigger>
             <SelectContent>
               {panorama.unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
             </SelectContent>
@@ -1809,11 +1809,11 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               <BloqueioDoDiaCabecalho companyId={companyIdCal} unidadeId={unidadeId} data={dataPopout} podeEditar={podeRegistrar} />
             )}
             {calendario && dataPopout && diaPopout && (
-              <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+              <div className="mt-2 grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-2">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button size="sm" className="h-8 rounded-lg" disabled={!companyIdCal}>
-                      <CalendarDays className="mr-1 h-4 w-4" /> Marcar folga
+                    <Button size="sm" className="h-auto min-h-12 min-w-0 flex-col gap-0.5 whitespace-normal px-1 py-1.5 text-[11px] leading-tight sm:h-8 sm:min-h-0 sm:flex-row sm:gap-0 sm:px-3 sm:text-sm rounded-lg" disabled={!companyIdCal}>
+                      <CalendarDays className="h-4 w-4 sm:mr-1" /> Marcar Folga
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-64 p-1" align="center">
@@ -1839,11 +1839,11 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                 </Popover>
                 {podeRegistrar && (
                   <>
-                    <Button size="sm" variant="outline" className="h-8 rounded-lg" onClick={() => { setAusenciaData(dataPopout); setAusenciaOpen(true); }}>
-                      <Plus className="mr-1 h-4 w-4" /> Registrar ausência
+                    <Button size="sm" variant="outline" className="h-auto min-h-12 min-w-0 flex-col gap-0.5 whitespace-normal px-1 py-1.5 text-[11px] leading-tight sm:h-8 sm:min-h-0 sm:flex-row sm:gap-0 sm:px-3 sm:text-sm rounded-lg" onClick={() => { setAusenciaData(dataPopout); setAusenciaOpen(true); }}>
+                      <Plus className="h-4 w-4 sm:mr-1" /> Registrar Ausência
                     </Button>
-                    <Button size="sm" variant="outline" className="h-8 rounded-lg" onClick={() => abrirNovaAvulsa(dataPopout)}>
-                      <UserPlus className="mr-1 h-4 w-4" /> Mão de Obra Extra
+                    <Button size="sm" variant="outline" className="h-auto min-h-12 min-w-0 flex-col gap-0.5 whitespace-normal px-1 py-1.5 text-[11px] leading-tight sm:h-8 sm:min-h-0 sm:flex-row sm:gap-0 sm:px-3 sm:text-sm rounded-lg" onClick={() => abrirNovaAvulsa(dataPopout)}>
+                      <UserPlus className="h-4 w-4 sm:mr-1" /> Mão de Obra Extra
                     </Button>
                   </>
                 )}

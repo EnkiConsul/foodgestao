@@ -344,9 +344,9 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
         ))}
 
         {/* Métricas em linha — só o que tem valor */}
-        <div className="flex flex-wrap items-center gap-1.5 md:ml-2">
+        <div className="order-last -mx-1 flex w-full min-w-0 items-center gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] md:order-none md:mx-0 md:ml-2 md:w-auto md:flex-wrap md:overflow-visible md:px-0">
           {cards.map((c) => (
-            <span key={c.label} className="inline-flex h-7 items-center gap-1.5 rounded-full border bg-card px-2.5 text-xs shadow-sm">
+            <span key={c.label} className="inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border bg-card px-2.5 text-xs shadow-sm">
               <c.icon className={cn("h-3.5 w-3.5", c.tom)} />
               <span className="font-bold tabular-nums">{c.valor}</span>
               <span className="text-muted-foreground">{c.label}</span>
