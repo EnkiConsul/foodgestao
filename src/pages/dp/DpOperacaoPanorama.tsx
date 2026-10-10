@@ -1144,7 +1144,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
           colaboradorId={folgaColab}
           colaboradorNome={panorama.diaDe(dataPopout)?.pessoas.find((p) => p.colaborador_id === folgaColab)?.nome ?? ""}
           dataIso={dataPopout}
-          onDone={() => { setFolgaTriagem(false); setFolgaColab(""); panorama.refetch?.(); }}
+          onDone={() => { setFolgaTriagem(false); setFolgaColab(""); }}
         />
       )}
 
