@@ -817,14 +817,6 @@ export default function DpHistoricoCompleto() {
   };
 
 
-  const baixarComprovante = async (row: UnifiedDoc) => {
-    try {
-      const ok = await abrirDocumentoArquivo(row.id.slice(4), { download: true, variante: "comprovante" });
-      if (!ok) toast.error("Comprovante não encontrado. Confira se ele foi anexado ou anexe novamente.");
-    } catch {
-      toast.error("Não foi possível baixar o comprovante agora. Verifique a conexão e tente de novo.");
-    }
-  };
   const download = async (row: UnifiedDoc) => {
     const caminho = row.viaFisica?.path ?? row.file_path;
     if (!caminho) return toast.error("Arquivo indisponível");
