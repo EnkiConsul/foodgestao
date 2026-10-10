@@ -553,34 +553,52 @@ function DetalheDiaOperacao({
       )}
 
       {blocos.length ? (
-        blocos.map((bloco) => (
-          <Secao
-            key={bloco.key}
-            title={bloco.titulo}
-            description={[
-              bloco.horario,
-              !unidadeId && bloco.unidade_nome ? bloco.unidade_nome : null,
-              `${bloco.pessoas.length} pessoa(s)`,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-            action={bloco.fechado ? <Badge variant="outline">Fora do funcionamento</Badge> : undefined}
-          >
+        blocos.map((bloco) => {
+          const noite = (bloco.horario ?? "").match(/^(\d{2})/) ? Number((bloco.horario ?? "").slice(0, 2)) >= 15 : false;
+          const IconeTurno = noite ? Moon : Sun;
+          return (
+          <div key={bloco.key} className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <div className={cn("flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3", noite ? "bg-secondary/60" : "bg-primary/10")}>
+              <div className="flex min-w-0 items-center gap-3">
+                <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", noite ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground")}>
+                  <IconeTurno className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="truncate text-sm font-bold">{bloco.titulo}</h2>
+                  <p className="text-xs text-muted-foreground">
+                    {[bloco.horario, !unidadeId && bloco.unidade_nome ? bloco.unidade_nome : null].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {bloco.fechado && <Badge variant="outline">Fora do funcionamento</Badge>}
+                <span className="inline-flex items-center gap-1 rounded-full bg-background px-2.5 py-1 text-xs font-bold tabular-nums shadow-sm">
+                  <Users className="h-3.5 w-3.5" /> {bloco.pessoas.length}
+                </span>
+              </div>
+            </div>
+            <div className="p-4">
             {bloco.pessoas.length ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {bloco.grupos.map((g) => (
                   <div key={g.setor_id ?? g.cargo_id ?? "sem-grupo"}>
-                    <p className="mb-1 text-xs font-semibold text-muted-foreground">
-                      {g.cargo_nome} ({g.pessoas.length})
+                <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      {g.cargo_nome}
+                      <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] tabular-nums">{g.pessoas.length}</span>
                     </p>
-                      <ul className="divide-y">
+                      <ul className="grid gap-2 lg:grid-cols-2">
                         {g.pessoas.map((p) => (
                           <li
                             key={`${p.colaborador_id}-${p.categoria}-${p.ocorrencia_id ?? p.avulso_id ?? ""}`}
-                            className="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2"
+                            className="flex flex-col items-start gap-2 rounded-xl border border-border bg-background p-3 transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                           >
-                          <div className="min-w-0 w-full sm:w-auto">
-                            <p className="truncate text-sm font-medium">{p.nome}</p>
+                          <div className="flex min-w-0 w-full items-center gap-2.5 sm:w-auto">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold uppercase text-primary">
+                              {p.nome.trim().split(/\s+/).slice(0, 2).map((x) => x[0]).join("")}
+                            </span>
+                            <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold">{p.nome}</p>
                             <p className="text-xs text-muted-foreground">
                               <span className="whitespace-nowrap">{p.entrada ?? "--:--"} às {p.saida ?? "--:--"}</span>
                               {p.termina_no_dia_seguinte ? " (+1)" : ""} ·{" "}
@@ -603,6 +621,7 @@ function DetalheDiaOperacao({
                                 </Button>
                               </div>
                             ) : null}
+                            </div>
                           </div>
 
                           <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:shrink-0 sm:flex-nowrap">
@@ -657,8 +676,10 @@ function DetalheDiaOperacao({
                   : "Ninguém previsto neste período."}
               </p>
             )}
-          </Secao>
-        ))
+            </div>
+          </div>
+          );
+        })
       ) : (
         <Secao title="Ninguém na Operação Neste Dia">
           <p className="text-sm text-muted-foreground">
