@@ -51,6 +51,7 @@ import {
 import { ColaboradorOcorrenciasCard } from "@/components/dp/ocorrencias/ColaboradorOcorrenciasCard";
 import { ColaboradorDossieDisciplinarCard } from "@/components/dp/disciplinar/ColaboradorDossieDisciplinarCard";
 import { FichaImportadaLink } from "@/components/dp/FichaImportadaLink";
+import { ColaboradorDadosPessoaisCard } from "@/components/dp/contatos/ColaboradorDadosPessoaisCard";
 import { maskCpf } from "@/lib/cpf";
 import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
@@ -491,6 +492,8 @@ ul{list-style:none;padding:0;margin:0}li{border-bottom:1px solid #ddd;padding:4p
           </Section>
 
           <FichaImportadaLink colaboradorId={colaborador?.id} />
+
+          <ColaboradorDadosPessoaisCard colaboradorId={colaborador?.id} />
 
 
           {/* Documentos e filiação — só aparece quando há algo preenchido. */}
