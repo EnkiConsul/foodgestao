@@ -260,6 +260,13 @@
       "when": 1791596170960,
       "tag": "0036_feriado_ano_inicio",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791603346032,
+      "tag": "0037_acesso_massa_status_uso",
+      "breakpoints": true
     }
   ]
 }

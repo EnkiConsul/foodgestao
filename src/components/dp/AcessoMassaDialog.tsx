@@ -8,7 +8,7 @@ import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type Item = { id: string; nome: string; cpf: string; whatsapp: string; tem_conta: boolean };
+type Item = { id: string; nome: string; cpf: string; whatsapp: string; tem_conta: boolean; ja_acessou?: boolean; bloqueado?: boolean };
 
 
 const so = (v: string) => v.replace(/\D/g, "");
@@ -60,7 +60,10 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
   const [linksFalha, setLinksFalha] = useState<Record<string, string>>({});
   const [criando, setCriando] = useState<{ feitos: number; total: number } | null>(null);
 
-  const comConta = useMemo(() => itens.filter((i) => i.tem_conta && cpfOk(i.cpf) && wppOk(i.whatsapp)), [itens]);
+  const aguardando = useMemo(() => itens.filter((i) => i.tem_conta && !i.ja_acessou && !i.bloqueado && cpfOk(i.cpf) && wppOk(i.whatsapp)), [itens]);
+  const ativos = useMemo(() => itens.filter((i) => i.tem_conta && (i.ja_acessou || i.bloqueado)), [itens]);
+  const [verAtivos, setVerAtivos] = useState(false);
+  const [confirmar, setConfirmar] = useState<null | "novos" | "reenvio">(null);
 
   const criarEmMassa = async (origem: Item[] = semConta, reenvio = false) => {
     const fila = [...origem];
@@ -101,6 +104,13 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
     if (falhas) toast.warning(`${falhas} colaborador(es) com problema. Veja o motivo na lista.`);
   };
 
+
+  const Linha = ({ i, acao }: { i: Item; acao?: React.ReactNode }) => (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
+      <span className="min-w-0 truncate font-medium">{i.nome}</span>{acao}
+    </div>
+  );
+
   const comErro = itens.filter((i) => erros[i.id] && !pendentes.includes(i));
 
 
@@ -113,15 +123,19 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
         {pendentes.length > 0 && (
           <Button variant="outline" onClick={salvar} disabled={saving || !!criando}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar Dados</Button>
         )}
-        {semConta.length > 0 && (
-          <Button onClick={() => criarEmMassa()} disabled={loading || !!criando}>
-            {criando ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando {criando.feitos}/{criando.total}</> : <>Criar e Enviar {semConta.length} Convite(s)</>}
-          </Button>
-        )}
-        {semConta.length === 0 && comConta.length > 0 && (
-          <Button onClick={() => criarEmMassa(comConta, true)} disabled={loading || !!criando}>
-            {criando ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando {criando.feitos}/{criando.total}</> : <>Disparar Convites por WhatsApp ({comConta.length})</>}
-          </Button>
+        {criando ? (
+          <Button disabled><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando {criando.feitos}/{criando.total}</Button>
+        ) : confirmar ? (
+          <>
+            <Button variant="ghost" onClick={() => setConfirmar(null)}>Voltar</Button>
+            <Button onClick={() => { const c = confirmar; setConfirmar(null); void (c === "novos" ? criarEmMassa(semConta) : criarEmMassa(aguardando, true)); }}>
+              Confirmar Envio para {confirmar === "novos" ? semConta.length : aguardando.length}
+            </Button>
+          </>
+        ) : semConta.length > 0 ? (
+          <Button onClick={() => setConfirmar("novos")} disabled={loading}>Liberar e Enviar para {semConta.length} Novo(s)</Button>
+        ) : (
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
         )}
       </>}
     >
@@ -129,13 +143,40 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
         <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : (
         <div className="space-y-4">
-          <div className="flex flex-wrap gap-3 text-sm">
-            <span className="flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5"><CheckCircle2 className="h-4 w-4 text-primary" />{itens.filter((i) => i.tem_conta).length} com acesso já liberado</span>
-            <span className="flex items-center gap-1.5 rounded-md bg-muted px-3 py-1.5"><KeyRound className="h-4 w-4" />{semConta.length} pronto(s) para liberar</span>
-            {pendentes.length > 0 && (
-              <span className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5"><AlertTriangle className="h-4 w-4 text-destructive" />{pendentes.filter((i) => !i.tem_conta).length} com dados incompletos</span>
-            )}
-          </div>
+          {confirmar && (
+            <p className="rounded-md border border-primary/40 bg-primary/5 p-3 text-sm">
+              {confirmar === "novos"
+                ? `Confirma o envio do convite pelo WhatsApp para ${semConta.length} colaborador(es) que ainda não têm acesso?`
+                : `Confirma o reenvio do convite para ${aguardando.length} colaborador(es) que ainda não fizeram o 1º acesso? Quem já usa o portal não recebe nada.`}
+            </p>
+          )}
+          {semConta.length > 0 && (
+            <section className="space-y-2">
+              <h4 className="flex items-center gap-1.5 text-sm font-semibold"><KeyRound className="h-4 w-4" />Prontos para liberar ({semConta.length})</h4>
+              {semConta.map((i) => <Linha key={i.id} i={i} acao={<Button size="sm" variant="outline" disabled={!!criando} onClick={() => criarEmMassa([i])}>Liberar e Enviar</Button>} />)}
+            </section>
+          )}
+          {aguardando.length > 0 && (
+            <section className="space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h4 className="flex items-center gap-1.5 text-sm font-semibold"><AlertTriangle className="h-4 w-4 text-amber-600" />Aguardando 1º acesso ({aguardando.length})</h4>
+                {aguardando.length > 1 && !confirmar && (
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={!!criando} onClick={() => setConfirmar("reenvio")}>Reenviar para Todos</Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">Já têm acesso liberado, mas ainda não entraram no portal.</p>
+              {aguardando.map((i) => <Linha key={i.id} i={i} acao={<Button size="sm" variant="outline" disabled={!!criando} onClick={() => criarEmMassa([i], true)}>Reenviar Convite</Button>} />)}
+            </section>
+          )}
+          <section className="space-y-2">
+            <button type="button" className="flex items-center gap-1.5 text-sm font-semibold" onClick={() => setVerAtivos((v) => !v)}>
+              <CheckCircle2 className="h-4 w-4 text-primary" />Já usam o portal ({ativos.length}) <span className="text-xs font-normal text-muted-foreground">{verAtivos ? "ocultar" : "ver nomes"}</span>
+            </button>
+            {verAtivos && ativos.map((i) => <Linha key={i.id} i={i} acao={i.bloqueado ? <span className="text-xs text-destructive">Bloqueado</span> : <span className="text-xs text-muted-foreground">Ativo</span>} />)}
+          </section>
+          {semConta.length === 0 && aguardando.length === 0 && pendentes.length === 0 && (
+            <p className="text-sm text-muted-foreground">Todos os colaboradores ativos já usam o portal. Não há convites para enviar.</p>
+          )}
           {comErro.length > 0 && (
             <div className="space-y-1 rounded-md border border-destructive/40 p-3">
               {comErro.map((i) => (
@@ -151,19 +192,9 @@ export function AcessoMassaDialog({ open, onOpenChange, companyId, empresaNome }
               ))}
             </div>
           )}
-          {pendentes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {semConta.length > 0
-                ? "Clique em Criar e Enviar Convites: cada colaborador recebe a mensagem no WhatsApp da ficha, sem você precisar copiar nada."
-                : "Todos os colaboradores ativos já têm acesso. Clique em Disparar Convites por WhatsApp: cada um recebe um link novo que abre direto a tela de criar senha. Quem já criou a senha é pulado automaticamente."}
-            </p>
-          ) : (
+          {pendentes.length > 0 && (
             <div className="space-y-2">
-              {semConta.length > 0 && (
-                <p className="rounded-md border border-primary/40 bg-primary/5 p-3 text-sm">
-                  {semConta.length} colaborador(es) já estão prontos. Você já pode clicar em "Criar e Enviar {semConta.length} Convite(s)" agora; os {pendentes.length} abaixo você pode completar quando tiver os dados.
-                </p>
-              )}
+              <h4 className="flex items-center gap-1.5 text-sm font-semibold"><AlertTriangle className="h-4 w-4 text-destructive" />Dados incompletos ({pendentes.length})</h4>
               <p className="text-sm text-muted-foreground">Preencha só o que falta e clique em Salvar Dados.</p>
               {pendentes.map((i) => {
                 const e = edits[i.id] ?? {};
