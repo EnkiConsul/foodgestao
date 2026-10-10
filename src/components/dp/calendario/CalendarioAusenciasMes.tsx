@@ -52,10 +52,17 @@ export function CalendarioAusenciasMes({ dias, selecionado, filtros, onFiltros, 
 
   const { antes, depois } = diasDePreenchimento(dias);
   const hoje = isoLocal(new Date());
+  // Dias dos meses vizinhos: clicáveis — levam ao mês correspondente e abrem o dia.
   const vazio = (iso: string) => (
-    <div key={iso} className="flex min-h-[112px] flex-col bg-muted/10 p-2 text-muted-foreground">
+    <button
+      key={iso}
+      type="button"
+      onClick={() => onAbrirDia(iso)}
+      className="flex min-h-[112px] flex-col bg-muted/10 p-2 text-left text-muted-foreground transition-colors hover:bg-muted/30"
+      title="Ir para este dia"
+    >
       <span className="text-sm font-semibold opacity-60">{Number(iso.slice(8))}</span>
-    </div>
+    </button>
   );
 
   return (
