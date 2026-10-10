@@ -86,6 +86,7 @@ type UnifiedDoc = {
   rescisao_grupo_id?: string | null;
   /** Comprovante de pagamento anexado a este documento. */
   tem_comprovante?: boolean;
+  comprovante_recibo_id?: string | null;
   comprovante_path?: string | null;
   comprovante_mime?: string | null;
   /** Soma consolidada dos comprovantes (lida do banco, sem nova leitura). */
