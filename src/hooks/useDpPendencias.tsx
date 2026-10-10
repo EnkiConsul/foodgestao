@@ -18,6 +18,7 @@ import { alertaPendenciaFerias, periodosComAcumulo, regimeTemFeriasLegais } from
 import { AVISO_FERIAS_PRAZO_DIAS } from "@/lib/dp/ferias-aviso";
 import { compararUrgencia } from "@/lib/dp/pendencias";
 import { mesclarConfidencial } from "@/lib/dp/confidencial";
+import { confirmacaoVencida } from "@/lib/dp/contatosEmergencia";
 import { TIPOS_COM_COMPROVANTE } from "@/lib/dp/documentoTipos";
 
 import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
@@ -1593,13 +1594,115 @@ export function useDpPendencias() {
             subtitulo: acao,
             tipo: "Pré-Admissão",
             colaboradorNome: pa.candidato_nome,
-            vencimento: null,
-            atrasoDias: desde ? Math.max(0, differenceInCalendarDays(today, new Date(desde))) : 0,
+            vencimento: desde ? ymd(addDays(new Date(desde), cfg.alerta_preadmissao_dias)) : null,
+            atrasoDias: desde ? differenceInCalendarDays(today, addDays(new Date(desde), cfg.alerta_preadmissao_dias)) : 0,
             url: "/dp/colaboradores/pre-admissoes",
           });
         }
       } catch (e) {
         console.warn("pendencias/preadmissao:", e);
+      }
+
+      // Recibos aguardando assinatura do colaborador além do prazo configurado.
+      try {
+        const { data: recs } = await supabase
+          .from("dp_recibos")
+          .select("id, beneficiario_nome, created_at, link_enviado_em, colaborador_id")
+          .eq("company_id", selectedCompanyId!)
+          .is("assinado_em", null)
+          .is("cancelado_em", null)
+          .is("substituido_em" as never, null)
+          .limit(300);
+        for (const r of (recs ?? []) as any[]) {
+          const base = new Date(r.link_enviado_em || r.created_at);
+          const venc = addDays(base, cfg.alerta_recibo_assinatura_dias);
+          results.push({
+            id: `recibo-assinatura-${r.id}`,
+            icon: FileText,
+            titulo: `Recibo sem assinatura — ${r.beneficiario_nome ?? "colaborador"}`,
+            subtitulo: "Reenvie o link ou colete a assinatura do recibo.",
+            tipo: "Assinaturas",
+            colaboradorNome: r.beneficiario_nome ?? null,
+            colaboradorId: r.colaborador_id ?? null,
+            escopo: "pessoa",
+            vencimento: ymd(venc),
+            atrasoDias: differenceInCalendarDays(today, venc),
+            url: "/dp/documentos/recibos",
+          });
+        }
+      } catch (e) {
+        console.warn("pendencias/recibos-assinatura:", e);
+      }
+
+      // Atas enviadas com participantes que ainda não assinaram.
+      try {
+        const { data: atas } = await supabase
+          .from("dp_atas")
+          .select("id, titulo, enviada_em, created_at")
+          .eq("company_id", selectedCompanyId!)
+          .eq("status", "enviada")
+          .limit(200);
+        const ids = ((atas ?? []) as any[]).map((a) => a.id);
+        if (ids.length) {
+          const { data: parts } = await supabase
+            .from("dp_ata_participantes")
+            .select("ata_id")
+            .in("ata_id", ids)
+            .is("assinado_em", null);
+          const faltam = new Map<string, number>();
+          ((parts ?? []) as any[]).forEach((p) => faltam.set(p.ata_id, (faltam.get(p.ata_id) ?? 0) + 1));
+          for (const a of (atas ?? []) as any[]) {
+            const n = faltam.get(a.id);
+            if (!n) continue;
+            const venc = addDays(new Date(a.enviada_em || a.created_at), cfg.alerta_ata_assinatura_dias);
+            results.push({
+              id: `ata-assinatura-${a.id}`,
+              icon: ClipboardList,
+              titulo: `Ata sem todas as assinaturas — ${a.titulo}`,
+              subtitulo: `${n} participante(s) ainda não assinaram.`,
+              tipo: "Assinaturas",
+              escopo: "unidade",
+              vencimento: ymd(venc),
+              atrasoDias: differenceInCalendarDays(today, venc),
+              url: "/dp/atas",
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("pendencias/atas-assinatura:", e);
+      }
+
+      // Contatos de emergência sem confirmação semestral.
+      if (cfg.alerta_contatos_emergencia) {
+        try {
+          const { data: cs } = await supabase
+            .from("dp_colaboradores")
+            .select("id, nome, status, data_desligamento, contatos_confirmados_em, contatos_solicitado_em")
+            .eq("company_id", selectedCompanyId!)
+            .is("data_desligamento", null)
+            .neq("status", "desligado")
+            .limit(1000);
+          for (const c of (cs ?? []) as any[]) {
+            if (!confirmacaoVencida(c.contatos_confirmados_em, c.contatos_solicitado_em, today)) continue;
+            results.push({
+              id: `contatos-emergencia-${c.id}`,
+              icon: Users,
+              titulo: `Contatos de emergência a confirmar — ${c.nome}`,
+              subtitulo: c.contatos_confirmados_em
+                ? "Última confirmação há mais de 6 meses. O aviso aparece no portal do colaborador."
+                : "Nunca confirmados. O aviso aparece no portal do colaborador.",
+              tipo: "Cadastro de Colaborador",
+              colaboradorNome: c.nome,
+              colaboradorId: c.id,
+              escopo: "pessoa",
+              vencimento: null,
+              atrasoDias: -1,
+              url: `/dp/colaboradores/${c.id}`,
+            });
+          }
+        } catch (e) {
+          console.warn("pendencias/contatos-emergencia:", e);
+        }
       }
 
       // Comprovante de pagamento em falta nos documentos de pagamento.
