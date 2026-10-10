@@ -13,6 +13,8 @@ interface Props {
   nomes: Map<string, string>;
   /** Só as ações desta pessoa, embutidas na linha de "Fora da Operação". */
   colaboradorId?: string;
+  /** A folga do dia é a fixa da jornada (sem registro): oferece "Trocar". */
+  folgaFixa?: boolean;
 }
 
 interface FolgaDia {
@@ -23,12 +25,51 @@ interface FolgaDia {
   origem: string | null;
 }
 
+/** Troca da folga fixa pelo gestor: a pessoa trabalha neste dia e folga no novo. */
+function TrocarFolgaFixa({ companyId, colaboradorId, data, onFeito }: { companyId: string; colaboradorId: string; data: string; onFeito: () => void }) {
+  const qc = useQueryClient();
+  const [aberto, setAberto] = useState(false);
+  const [novaData, setNovaData] = useState("");
+  const m = useMutation({
+    mutationFn: async () => {
+      if (!novaData) throw new Error("Escolha o dia em que a pessoa vai folgar.");
+      const { error } = await supabase.rpc("dp_folga_admin_trocar_fixa" as never, {
+        p_colaborador: colaboradorId, p_data_fixa: data, p_data_nova: novaData,
+      } as never);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Folga fixa trocada.");
+      setAberto(false); setNovaData("");
+      qc.invalidateQueries({ queryKey: ["dp_dia_trabalho_excepcional"] });
+      onFeito();
+    },
+    onError: (e) => toast.error("Não foi possível trocar a folga", {
+      description: `${e instanceof Error ? e.message : String(e)} Confira a data e tente de novo.`,
+    }),
+  });
+  void companyId;
+  return (
+    <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
+      {aberto ? (
+        <>
+          <Input type="date" className="h-8 w-40" value={novaData} onChange={(e) => setNovaData(e.target.value)} aria-label="Novo dia de folga" />
+          <Button size="sm" className="h-8" disabled={m.isPending} onClick={() => m.mutate()}>Confirmar</Button>
+          <Button size="sm" variant="ghost" className="h-8" onClick={() => setAberto(false)}>Voltar</Button>
+        </>
+      ) : (
+        <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setAberto(true)}>Trocar folga</Button>
+      )}
+    </div>
+  );
+}
+
 /**
  * Folgas marcadas no dia, com cancelar e remarcar pelas mesmas rotinas do
  * Calendário de Folgas (dp_folga_admin_cancelar / dp_folga_admin_remarcar).
- * A folga fixa da jornada não é registro e muda só por troca.
+ * A folga fixa da jornada é trocada por dp_folga_admin_trocar_fixa.
  */
-export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId }: Props) {
+export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folgaFixa }: Props) {
   const qc = useQueryClient();
   const [acao, setAcao] = useState<{ item: FolgaDia; tipo: "cancelar" | "remarcar" } | null>(null);
   const [motivo, setMotivo] = useState("");
@@ -123,9 +164,10 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId }: Pro
 
   if (colaboradorId) {
     const i = itens.find((x) => x.colaboradorId === colaboradorId);
+    if (!i && folgaFixa) return <TrocarFolgaFixa companyId={companyId} colaboradorId={colaboradorId} data={data} onFeito={invalidar} />;
     if (!i) return null;
     return (
-      <div className="flex w-full flex-wrap items-center justify-end gap-1">
+      <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
         {acao?.item.key === i.key ? (
           <>
             {acao.tipo === "remarcar" ? (

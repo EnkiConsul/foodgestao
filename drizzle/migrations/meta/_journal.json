@@ -302,6 +302,13 @@
       "when": 1791608827660,
       "tag": "0042_pendencias_novas_regras",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1791670546464,
+      "tag": "0043_dp_folga_admin_trocar_fixa",
+      "breakpoints": true
     }
   ]
 }

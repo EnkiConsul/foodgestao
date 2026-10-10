@@ -19208,6 +19208,15 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_folga_admin_trocar_fixa: {
+        Args: {
+          p_colaborador: string
+          p_data_fixa: string
+          p_data_nova: string
+          p_motivo?: string
+        }
+        Returns: Json
+      }
       dp_folga_atribuir_admin: {
         Args: { p_colaborador: string; p_data: string; p_motivo?: string }
         Returns: Json

@@ -9,6 +9,7 @@ import {
   ArrowRight,
   CalendarClock,
   CalendarDays,
+  Pencil,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -69,6 +70,7 @@ import { CalendarioAusenciasMes } from "@/components/dp/calendario/CalendarioAus
 import { FolgasDoDiaPainel } from "@/components/dp/calendario/FolgasDoDiaPainel";
 import { RegrasDoDiaPainel, BloqueioDoDiaCabecalho } from "@/components/dp/calendario/RegrasDoDiaPainel";
 import { filtrosSalvos, periodoHabitual, primeiroNome } from "@/lib/dp/calendario-rotina";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { DpStatCard } from "@/components/dp/DpStatCard";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
@@ -404,7 +406,7 @@ interface DetalheDiaProps {
   compacto?: boolean;
   regimes?: Map<string, string>;
   periodosHabituais?: Map<string, "dia" | "noite" | "madrugada">;
-  acoesFolga?: (colaboradorId: string) => React.ReactNode;
+  acoesFolga?: (colaboradorId: string, folgaFixa: boolean) => React.ReactNode;
 }
 
 /** Sócio ausente sem obrigação CLT: exibido com tag própria. */
@@ -717,6 +719,7 @@ function DetalheDiaOperacao({
                                     onClick={() => onAlterarSetor(p, data)}
                                   >
                                     {conteudo}
+                                    <Pencil className="h-3 w-3 shrink-0 opacity-60" aria-hidden="true" />
                                   </button>
                                 ) : (
                                   <span className={cls}>{conteudo}</span>
@@ -877,7 +880,7 @@ function DetalheDiaOperacao({
         <Secao title="Fora da Operação" description="Folgas, férias e afastamentos do dia">
           <ul className={cn("divide-y", compacto && foraVisiveis.length >= 4 && "grid gap-x-6 divide-y-0 sm:grid-cols-2")}>
             {foraVisiveis.map((p) => (
-              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2">
+              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2.5">
                 {(() => {
                   const reg = ausReg.find((a) => a.colaborador_id === p.colaborador_id);
                   return (
@@ -903,7 +906,7 @@ function DetalheDiaOperacao({
                       : CATEGORIA_LABEL[p.categoria]}
                   </Badge>
                 </div>
-                {acoesFolga && (p.categoria === "folga_extra" || p.categoria === "folga_padrao") && acoesFolga(p.colaborador_id)}
+                {acoesFolga && (p.categoria === "folga_extra" || p.categoria === "folga_padrao") && acoesFolga(p.colaborador_id, p.categoria === "folga_padrao")}
               </li>
             ))}
           </ul>
@@ -1237,6 +1240,21 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [calendario, dataPopout, aba, competencia, data, setData]);
+
+  // Dia aberto: ← → trocam de dia (Esc fecha pela própria janela).
+  useEffect(() => {
+    if (!dataPopout) return;
+    const h = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input,textarea,select,[contenteditable=true],[role=combobox],[role=menu],[role=listbox]")) return;
+      e.preventDefault();
+      setDataPopout((d) => (d ? somarDias(d, e.key === "ArrowLeft" ? -1 : 1) : d));
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [dataPopout]);
 
   if (panorama.error) return <DpErrorState message="Não foi possível carregar a operação." />;
 
@@ -1779,6 +1797,47 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
             {calendario && dataPopout && companyIdCal && (
               <BloqueioDoDiaCabecalho companyId={companyIdCal} unidadeId={unidadeId} data={dataPopout} podeEditar={podeRegistrar} />
             )}
+            {calendario && dataPopout && diaPopout && (
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" className="h-8 rounded-lg" disabled={!companyIdCal}>
+                      <CalendarDays className="mr-1 h-4 w-4" /> Marcar folga
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-1" align="center">
+                    <p className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Quem vai folgar?</p>
+                    <div className="max-h-64 overflow-y-auto">
+                      {diaPopout.pessoas
+                        .filter((p) => p.categoria === "fixo" && !p.avulso_id)
+                        .filter((p, i, arr) => arr.findIndex((o) => o.colaborador_id === p.colaborador_id) === i)
+                        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+                        .map((p) => (
+                          <button
+                            key={p.colaborador_id}
+                            type="button"
+                            className="block w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
+                            onClick={() => { setFolgaColab(p.colaborador_id); setFolgaTriagem(true); }}
+                          >
+                            {primeiroNome(p.nome)}
+                            {p.cargo_nome && <span className="ml-1 text-xs text-muted-foreground">· {p.cargo_nome}</span>}
+                          </button>
+                        ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                {podeRegistrar && (
+                  <>
+                    <Button size="sm" variant="outline" className="h-8 rounded-lg" onClick={() => { setAusenciaData(dataPopout); setAusenciaOpen(true); }}>
+                      <Plus className="mr-1 h-4 w-4" /> Registrar ausência
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 rounded-lg" onClick={() => abrirNovaAvulsa(dataPopout)}>
+                      <UserPlus className="mr-1 h-4 w-4" /> Mão de obra extra
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
           </DialogHeader>
           <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
             {dataPopout && diaPopout ? (
@@ -1804,11 +1863,12 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               {...propsSetor}
                 regimes={regimesColab}
                 periodosHabituais={periodosHab}
-                acoesFolga={calendario && companyIdCal ? (id) => (
+                acoesFolga={calendario && companyIdCal ? (id, fixa) => (
                   <FolgasDoDiaPainel
                     companyId={companyIdCal}
                     data={dataPopout}
                     colaboradorId={id}
+                    folgaFixa={fixa}
                     nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
                   />
                 ) : undefined}
@@ -1818,33 +1878,6 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
             )}
             {calendario && dataPopout && diaPopout && (
               <div className="space-y-4">
-                <section className="rounded-2xl border bg-card p-4 shadow-sm">
-                  <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Ações do dia</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Select value={folgaColab} onValueChange={setFolgaColab}>
-                      <SelectTrigger className="h-10 w-full rounded-xl sm:w-60"><SelectValue placeholder="Quem vai folgar?" /></SelectTrigger>
-                      <SelectContent>
-                        {diaPopout.pessoas
-                          .filter((p) => p.categoria === "fixo" && !p.avulso_id)
-                          .filter((p, i, arr) => arr.findIndex((o) => o.colaborador_id === p.colaborador_id) === i)
-                          .map((p) => <SelectItem key={p.colaborador_id} value={p.colaborador_id}>{p.nome}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Button className="h-10 rounded-xl" disabled={!folgaColab || !companyIdCal} onClick={() => setFolgaTriagem(true)}>
-                      Marcar folga
-                    </Button>
-                    {podeRegistrar && (
-                      <>
-                        <Button variant="outline" className="h-10 rounded-xl" onClick={() => { setAusenciaData(dataPopout); setAusenciaOpen(true); }}>
-                          <Plus className="mr-1 h-4 w-4" /> Registrar ausência
-                        </Button>
-                        <Button variant="outline" className="h-10 rounded-xl" onClick={() => abrirNovaAvulsa(dataPopout)}>
-                          <UserPlus className="mr-1 h-4 w-4" /> Mão de obra extra
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </section>
                 {companyIdCal && podeRegistrar && (
                   <section className="rounded-2xl border bg-card p-4 shadow-sm">
                     <RegrasDoDiaPainel
