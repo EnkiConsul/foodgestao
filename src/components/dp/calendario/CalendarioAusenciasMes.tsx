@@ -46,40 +46,39 @@ interface Props {
   onAbrirDia: (iso: string) => void;
 }
 
-export function CalendarioAusenciasMes({ dias, selecionado, filtros, onFiltros, onAbrirDia }: Props) {
+export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros, onFiltros, onAbrirDia }: Props) {
   const alternar = (t: TipoAusenciaCalendario) =>
     onFiltros(filtros.includes(t) ? filtros.filter((x) => x !== t) : [...filtros, t]);
 
-  const { antes, depois } = diasDePreenchimento(dias);
-  const hoje = isoLocal(new Date());
-  // Dias dos meses vizinhos: clicáveis — levam ao mês correspondente e abrem o dia.
-  const vazio = (iso: string) => (
-    <button
-      key={iso}
-      type="button"
-      onClick={() => onAbrirDia(iso)}
-      className="flex min-h-[112px] flex-col bg-muted/10 p-2 text-left text-muted-foreground transition-colors hover:bg-muted/30"
-      title="Ir para este dia"
-    >
-      <span className="text-sm font-semibold opacity-60">{Number(iso.slice(8))}</span>
-    </button>
-  );
+  const [periodo, setPeriodo] = useState<PeriodoTurno>("todos");
+  const [setores, setSetores] = useState<string[]>([]);
 
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border bg-card p-3">
-        <span className="text-xs font-medium text-muted-foreground">Mostrar:</span>
-        {TIPOS_AUSENCIA.map((t) => (
-          <label key={t} className="flex cursor-pointer items-center gap-1.5 text-sm">
-            <Checkbox checked={filtros.includes(t)} onCheckedChange={() => alternar(t)} />
-            <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", TOM[t])}>{TIPO_AUSENCIA_LABEL[t]}</span>
-          </label>
-        ))}
-        <div className="ml-auto flex gap-1">
-          <Button size="sm" variant="ghost" onClick={() => onFiltros([...TIPOS_AUSENCIA])}>Marcar todos</Button>
-          <Button size="sm" variant="ghost" onClick={() => onFiltros([])}>Desmarcar</Button>
-        </div>
-      </div>
+  // Turnos e setores que a unidade realmente tem no mês.
+  const { temDia, temNoite, setoresDisp } = useMemo(() => {
+    let dia = false, noite = false;
+    const s = new Map<string, string>();
+    for (const d of diasBrutos) for (const p of d.pessoas) {
+      const per = periodoDoHorario(p.entrada);
+      if (per === "dia") dia = true; else if (per === "noite") noite = true;
+      if (p.setor_id && p.setor_nome) s.set(p.setor_id, p.setor_nome);
+    }
+    return { temDia: dia, temNoite: noite, setoresDisp: [...s].sort((a, b) => a[1].localeCompare(b[1], "pt-BR")) };
+  }, [diasBrutos]);
+  const mostraTurno = temDia && temNoite;
+
+  const dias = useMemo(() => {
+    const f = { periodo: mostraTurno ? periodo : "todos" as PeriodoTurno, setores };
+    if (f.periodo === "todos" && !setores.length) return diasBrutos;
+    return diasBrutos.map((d) => {
+      const pessoas = d.pessoas.filter((p) => pessoaNoFiltro(p, f));
+      return { ...d, pessoas, trabalhando: pessoas.filter((p) => !tipoAusencia(p.categoria) && !["atrasado", "saida_antecipada"].includes("") ).filter((p) => !["folga_padrao","folga_extra","ferias","ausente","atestado","coberto"].includes(p.categoria)).length };
+    });
+  }, [diasBrutos, periodo, setores, mostraTurno]);
+
+  const ausOcultas = TIPOS_AUSENCIA.length - filtros.length;
+  const totalAtivos = setores.length + (ausOcultas > 0 ? 1 : 0);
+  const nomeSetor = (id: string) => setoresDisp.find(([k]) => k === id)?.[1] ?? "Setor";
+
 
       {/* Mobile: 1 dia = 1 linha, como no calendário de folgas */}
       <div className="md:hidden">
