@@ -211,7 +211,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
 
   if (colaboradorId) {
     const i = itens.find((x) => x.colaboradorId === colaboradorId);
-    if (!i && folgaFixa) return <TrocarFolgaFixa companyId={companyId} colaboradorId={colaboradorId} data={data} onFeito={invalidar} />;
+    if (!i && folgaFixa) return <TrocarFolgaFixa companyId={companyId} colaboradorId={colaboradorId} data={data} nome={(nomes.get(colaboradorId) ?? "").split(" ")[0] || "Colaborador"} onFeito={invalidar} />;
     if (!i) return null;
     return (
       <div className="ml-auto flex flex-wrap items-center justify-end gap-1">

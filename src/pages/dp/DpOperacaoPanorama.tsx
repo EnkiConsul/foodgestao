@@ -489,7 +489,7 @@ function DetalheDiaOperacao({
     let melhor: "dia" | "noite" | "madrugada" | "todos" = "todos";
     let max = -1;
     for (const [k, v] of contagemPeriodos) if (v > max) { max = v; melhor = k; }
-    return contagemPeriodos.size > 1 ? melhor : "todos";
+    void melhor; return "todos";
   }, [contagemPeriodos]);
   // Escolha do gestor vale para o dia aberto; ao trocar de dia volta ao turno mais cheio.
   const [escolhaPeriodo, setEscolhaPeriodo] = useState<{ data: string; p: "todos" | "dia" | "noite" | "madrugada" } | null>(null);
@@ -650,9 +650,9 @@ function DetalheDiaOperacao({
           const IconeTurno = noite ? Moon : Sun;
           return (
           <div key={bloco.key} className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-            <div className={cn("flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3", noite ? "bg-secondary/60" : "bg-primary/10")}>
+            <div className={cn("flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3", noite ? "bg-slate-900 text-slate-50 dark:bg-slate-950" : "bg-primary/10")}>
               <div className="flex min-w-0 items-center gap-3">
-                <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", noite ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground")}>
+                <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", noite ? "bg-slate-700 text-indigo-100" : "bg-primary text-primary-foreground")}>
                   <IconeTurno className="h-5 w-5" />
                 </span>
                 <div className="min-w-0">
