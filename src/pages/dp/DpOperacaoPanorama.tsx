@@ -29,6 +29,8 @@ import { useDpOperacaoPanorama, type DiaPanorama } from "@/hooks/useDpOperacaoPa
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { DpRegistrarAusenciaDialog } from "@/components/dp/DpRegistrarAusenciaDialog";
+import { AtribuirFolgaTriagemDialog } from "@/components/dp/AtribuirFolgaTriagemDialog";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
   DndContext,
   closestCenter,
@@ -802,6 +804,9 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
   const [detalheAvulso, setDetalheAvulso] = useState<"avulso_teste" | "avulso_folguista" | null>(null);
   /** Dia aberto em janela a partir do calendário do mês. */
   const [dataPopout, setDataPopout] = useState<string | null>(null);
+  const { selectedCompanyId: companyIdCal } = useCompanyContext();
+  const [folgaColab, setFolgaColab] = useState<string>("");
+  const [folgaTriagem, setFolgaTriagem] = useState(false);
 
   const [verSocios, setVerSocios] = useState(false);
   const { role } = useCompanyPermissions();
@@ -1130,6 +1135,18 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
           ) : undefined
         }
       />
+
+      {companyIdCal && dataPopout && folgaColab && (
+        <AtribuirFolgaTriagemDialog
+          open={folgaTriagem}
+          onOpenChange={setFolgaTriagem}
+          companyId={companyIdCal}
+          colaboradorId={folgaColab}
+          colaboradorNome={panorama.diaDe(dataPopout)?.pessoas.find((p) => p.colaborador_id === folgaColab)?.nome ?? ""}
+          dataIso={dataPopout}
+          onDone={() => { setFolgaTriagem(false); setFolgaColab(""); panorama.refetch?.(); }}
+        />
+      )}
 
       <DpRegistrarAusenciaDialog
         open={ausenciaOpen}
@@ -1530,7 +1547,31 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               )}
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-[70vh] overflow-y-auto pr-1">
+          <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+            {calendario && dataPopout && diaPopout && (
+              <div className="space-y-2 rounded-lg border bg-card p-3">
+                <p className="text-sm font-medium">Folgas e ausências do dia</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select value={folgaColab} onValueChange={setFolgaColab}>
+                    <SelectTrigger className="h-9 w-56"><SelectValue placeholder="Colaborador que trabalha" /></SelectTrigger>
+                    <SelectContent>
+                      {diaPopout.pessoas
+                        .filter((p) => p.categoria === "fixo")
+                        .map((p) => <SelectItem key={p.colaborador_id} value={p.colaborador_id}>{p.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" disabled={!folgaColab || !companyIdCal} onClick={() => setFolgaTriagem(true)}>
+                    Marcar folga
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => { setAusenciaData(dataPopout); setAusenciaOpen(true); }}>
+                    Registrar ausência
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => navigate("/dp/folgas")}>
+                    Trocas, bloqueios e limites
+                  </Button>
+                </div>
+              </div>
+            )}
             {dataPopout && diaPopout ? (
               <DetalheDiaOperacao
                 data={dataPopout}
