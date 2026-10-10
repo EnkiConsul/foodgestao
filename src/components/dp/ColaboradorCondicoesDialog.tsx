@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { toast } from "sonner";
-import { History, Calculator, Lock, Users, Send } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { History, Calculator, Lock, Users, Send, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -146,6 +147,23 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
 
   const [aba, setAba] = useState("contrato");
   const [solicitandoComplemento, setSolicitandoComplemento] = useState(false);
+
+  /** Recibos/diárias emitidos e ainda não assinados nem cancelados (pendentes de quitação). */
+  const recibosPendentes = useQuery({
+    queryKey: ["dp_recibos_pendentes", colaborador?.id],
+    enabled: !!colaborador?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_recibos")
+        .select("id, valor_cents, competencia, descricao")
+        .eq("colaborador_id", colaborador!.id)
+        .is("assinado_em", null)
+        .is("cancelado_em", null)
+        .is("substituido_em", null);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   /** Pede ao colaborador, pelo portal, os documentos/dados que faltam para o registro CLT. */
   const solicitarComplemento = async (itens: string[]) => {
