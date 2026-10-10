@@ -804,7 +804,11 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState(() => params.get("data") || hojeIso());
   const [unidade, setUnidade] = useState<string>("");
-  const [aba, setAba] = useState(params.get("aba") === "dia" ? "dia" : params.get("aba") === "mes" || calendario ? "mes" : "dia");
+  const [aba, setAba] = useState(() => {
+    const a = params.get("aba");
+    if (calendario && ABAS_CALENDARIO_EXTRAS.some((x) => x.value === a)) return a as string;
+    return a === "dia" ? "dia" : a === "mes" || calendario ? "mes" : "dia";
+  });
   const [detalheCategoria, setDetalheCategoria] = useState<CategoriaDia | null>(null);
   const [detalheAvulso, setDetalheAvulso] = useState<"avulso_teste" | "avulso_folguista" | null>(null);
   /** Dia aberto em janela a partir do calendário do mês. */
