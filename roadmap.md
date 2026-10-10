@@ -99,4 +99,4 @@
 - [x] Portal mostra "Envio de documentos" com atalho para enviar; gestor vê o rótulo na tela de solicitações.
 - [x] Aviso de diárias/recibos pendentes de quitação até a véspera da vigência (recibos emitidos sem assinatura, com total em R$).
 - [x] Conferido no navegador: quadro de efetivação CLT com pendências, botão de complemento e aviso de recibos (ficha da Cristiane).
-- [ ] Conferir no navegador: ficha da Nathanaelly, PDF completo e efetivação direta.
+- [x] Conferido no navegador: ficha da Nathanaelly abre com nome/CPF/WhatsApp e contatos de emergência; PDF de 16 páginas com dados, dependentes e anexos; seção administrativa passou a usar os dados previstos da vaga quando o gestor ainda não preencheu; subtítulo da tela sem menção à contabilidade.
