@@ -68,7 +68,7 @@ import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/
 import { CalendarioAusenciasMes } from "@/components/dp/calendario/CalendarioAusenciasMes";
 import { FolgasDoDiaPainel } from "@/components/dp/calendario/FolgasDoDiaPainel";
 import { RegrasDoDiaPainel, BloqueioDoDiaCabecalho } from "@/components/dp/calendario/RegrasDoDiaPainel";
-import { filtrosSalvos, primeiroNome } from "@/lib/dp/calendario-rotina";
+import { filtrosSalvos, periodoHabitual, primeiroNome } from "@/lib/dp/calendario-rotina";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { DpStatCard } from "@/components/dp/DpStatCard";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
@@ -402,6 +402,9 @@ interface DetalheDiaProps {
   onExcluirAvulsa: (registro: PessoaAvulsaPanorama) => void;
   /** Detalhe aberto pelo calendário do mês: sem cartões e sem seção separada de extras. */
   compacto?: boolean;
+  regimes?: Map<string, string>;
+  periodosHabituais?: Map<string, "dia" | "noite" | "madrugada">;
+  acoesFolga?: (colaboradorId: string) => React.ReactNode;
 }
 
 /** Sócio ausente sem obrigação CLT: exibido com tag própria. */
@@ -1066,6 +1069,11 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
   const sociosAusentes = useMemo(() => sociosDe(dia), [dia]);
 
   const diaPopout = dataPopout ? panorama.diaDe(dataPopout) : undefined;
+  const regimesColab = useMemo(
+    () => new Map(((panorama.colaboradores ?? []) as { id: string; regime?: string | null }[]).map((c) => [c.id, c.regime ?? ""])),
+    [panorama.colaboradores],
+  );
+  const periodosHab = useMemo(() => periodoHabitual(panorama.dias ?? []), [panorama.dias]);
   const nomesColaboradores = useMemo(
     () => new Map(panorama.colaboradores.map((c) => [c.id, c.nome])),
     [panorama.colaboradores],
