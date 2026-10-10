@@ -15,6 +15,7 @@ export type FolgaEfetivadaRow = {
   data: string;
   tipo: string;
   status: string;
+  origem?: string | null;
   observacao: string | null;
   dp_colaboradores: { nome: string; unidade_id: string | null } | null;
 };
@@ -133,7 +134,7 @@ export function useDpFolgasQueries({
     queryFn: async () => {
       let q = supabase
         .from("dp_folgas")
-        .select("id, colaborador_id, data, tipo, status, observacao, dp_colaboradores!inner(nome, unidade_id)")
+        .select("id, colaborador_id, data, tipo, status, origem, observacao, dp_colaboradores!inner(nome, unidade_id)")
         .eq("company_id", selectedCompanyId!)
         .neq("status", "cancelada")
         .gte("data", fromISO)
@@ -141,7 +142,7 @@ export function useDpFolgasQueries({
       if (colabFilter !== "todos") q = q.eq("colaborador_id", colabFilter);
       const { data, error } = await q;
       if (error) throw error;
-      let rows = (data ?? []) as FolgaEfetivadaRow[];
+      let rows = (data ?? []) as unknown as FolgaEfetivadaRow[];
       if (unidadeFilter !== "todas") {
         rows = rows.filter((r) => r.dp_colaboradores?.unidade_id === unidadeFilter);
       }
@@ -149,5 +150,21 @@ export function useDpFolgasQueries({
     },
   });
 
-  return { unidadesQuery, diaConfigQuery, regrasBloqueioQuery, datasBloqueadasQuery, query, folgasQuery };
+  // Dias em que o colaborador cedeu a folga fixa (troca) e vai trabalhar.
+  const trabalhoExcepcionalQuery = useQuery({
+    queryKey: ["dp_dia_trabalho_excepcional", selectedCompanyId, mesKey],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_dia_trabalho_excepcional")
+        .select("colaborador_id, data")
+        .eq("company_id", selectedCompanyId!)
+        .gte("data", fromISO)
+        .lte("data", toISO);
+      if (error) throw error;
+      return new Set((data ?? []).map((r: any) => `${r.colaborador_id}:${r.data}`));
+    },
+  });
+
+  return { unidadesQuery, diaConfigQuery, regrasBloqueioQuery, datasBloqueadasQuery, query, folgasQuery, trabalhoExcepcionalQuery };
 }

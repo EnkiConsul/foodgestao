@@ -445,6 +445,7 @@ export default function DpFolgas() {
     datasBloqueadasQuery,
     query,
     folgasQuery,
+    trabalhoExcepcionalQuery,
   } = useDpFolgasQueries({ cursor, rangeStart, rangeEnd, unidadeFilter, colabFilter, tipoFilter });
 
   const { regras: regrasLimite } = useDpFolgaLimites(
@@ -505,13 +506,14 @@ export default function DpFolgas() {
         status: "aprovada" as Status,
         data_alvo: f.data,
         data_fim: null,
-        motivo: f.observacao,
+        motivo: f.origem === "troca" ? `Troca de folga${f.observacao ? ` — ${f.observacao}` : ""}` : f.observacao,
         dp_colaboradores: f.dp_colaboradores,
       } as unknown as Row);
       map.set(key, list);
     }
 
     if (tipoFilter === "todos" || tipoFilter === "folga") {
+      const cedidos = trabalhoExcepcionalQuery.data ?? new Set<string>();
       const eligibleColabs = (colabs.data ?? [])
         .filter((c) => c.ativo !== false)
         .filter((c) => (unidadeFilter === "todas" ? true : c.unidade_id === unidadeFilter))
@@ -525,6 +527,8 @@ export default function DpFolgas() {
         for (const c of eligibleColabs) {
           const fixedWeekday = normalizeWeekday(c.folga_fixa_semana);
           if (fixedWeekday == null || fixedWeekday !== weekday) continue;
+          // Cedeu a folga fixa deste dia numa troca: trabalha, não folga.
+          if (cedidos.has(`${c.id}:${key}`)) continue;
 
           const alreadyHasApprovedFolga = list.some(
             (e) => e.colaborador_id === c.id && e.tipo === "folga" && e.status === "aprovada",
@@ -550,7 +554,7 @@ export default function DpFolgas() {
       }
     }
     return map;
-  }, [query.data, folgasQuery.data, tipoFilter, colabs.data, unidadeFilter, colabFilter, days, rangeStart, rangeEnd]);
+  }, [query.data, folgasQuery.data, trabalhoExcepcionalQuery.data, tipoFilter, colabs.data, unidadeFilter, colabFilter, days, rangeStart, rangeEnd]);
 
   /** Limite efetivo de pessoas em folga por dia: exceção da data ou regra fixa cadastrada. */
   const limiteByDay = useMemo(() => {
