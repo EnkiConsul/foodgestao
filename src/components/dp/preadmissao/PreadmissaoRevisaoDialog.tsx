@@ -879,10 +879,11 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     </>
   );
 
+  // Não-CLT não tem ficha de registro: a etapa "Registro" some e a aprovação já libera a efetivação.
   const ETAPAS: Array<{ rotulo: string; status: PreadmissaoStatus[] }> = [
     { rotulo: "Preenchimento", status: ["aguardando_preenchimento", "em_preenchimento", "correcao_solicitada", "aguardando_nova_versao"] as PreadmissaoStatus[] },
-    { rotulo: "Revisão", status: ["aguardando_revisao"] as PreadmissaoStatus[] },
-    { rotulo: "Registro", status: ["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"] as PreadmissaoStatus[] },
+    { rotulo: "Revisão", status: (isClt ? ["aguardando_revisao"] : ["aguardando_revisao", "pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"]) as PreadmissaoStatus[] },
+    ...(isClt ? [{ rotulo: "Registro", status: ["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"] as PreadmissaoStatus[] }] : []),
     { rotulo: "Efetivado", status: ["concluido"] as PreadmissaoStatus[] },
   ];
   const etapaAtual = Math.max(0, ETAPAS.findIndex((e) => e.status.includes(status)));
@@ -985,15 +986,27 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           Aprovar Ficha
         </Button>
       )}
-      {status === "registro_recebido" && pa.ficha_oficial_conferida_em && (
-        <Button
-          variant="secondary"
-          className="h-11 sm:h-10"
-          onClick={() => navigate(`/dp/colaboradores/importar-ficha?preadmissao=${pa.id}`)}
-        >
+      {podeEfetivar && (
+        <Button className="h-11 sm:h-10" disabled={efetivando} onClick={pedirEfetivacao}>
+          {efetivando && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Efetivar Colaborador
         </Button>
       )}
+      <AlertDialog open={confirmarClt} onOpenChange={setConfirmarClt}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Efetivar sem ficha de registro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este colaborador é CLT. Ele será cadastrado com base exclusiva nos dados e documentos conferidos nesta
+              pré-admissão, sem a ficha de registro da contabilidade. A confirmação fica registrada no histórico.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void efetivarDireto(true)}>Confirmar e Efetivar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 
@@ -1093,7 +1106,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                 {/* "Registro recebido" também entra aqui: quando a contabilidade
                     envia uma versão nova, a conferência anterior deixa de valer e
                     o gestor precisa poder anexar e conferir novamente. */}
-                {["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(status) && (
+                {isClt && ["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(status) && (
                   <div className="rounded-lg border p-3 space-y-2">
                     <p className="text-sm font-semibold">Ficha de registro oficial</p>
                     <p className="text-xs text-muted-foreground">
@@ -1139,27 +1152,15 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                   </div>
                 )}
 
-                {status === "registro_recebido" && (
+                {podeEfetivar && (
                   <div className="rounded-lg border border-primary/40 p-3 space-y-2">
                     <p className="text-sm font-semibold">Concluir a admissão</p>
-                    {pa.ficha_oficial_conferida_em ? (
-                      <>
-                        <p className="text-xs text-muted-foreground">
-                          Confira os dados da ficha oficial e crie o cadastro. Esta pré-admissão é concluída na
-                          mesma operação, com os dependentes e documentos já enviados.
-                        </p>
-                        <Button onClick={() => navigate(`/dp/colaboradores/importar-ficha?preadmissao=${pa.id}`)}>
-                          Efetivar Colaborador
-                        </Button>
-                      </>
-                    ) : (
-                      /* Versão nova recebida: a conferência anterior não vale mais
-                         e a conclusão fica bloqueada até a nova conferência. */
-                      <p className="text-xs text-amber-600">
-                        A ficha oficial foi substituída. Abra a versão mais recente e registre a conferência acima
-                        para liberar a criação do cadastro.
-                      </p>
-                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {isClt && !pa.ficha_oficial_conferida_em
+                        ? "A ficha de registro é opcional: você pode efetivar agora com os dados conferidos nesta pré-admissão (pede confirmação)."
+                        : "O cadastro é criado com os dados conferidos, dependentes e documentos já enviados."}
+                    </p>
+                    <Button disabled={efetivando} onClick={pedirEfetivacao}>Efetivar Colaborador</Button>
                   </div>
                 )}
 
