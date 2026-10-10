@@ -27,6 +27,7 @@ import { maskCpf } from "@/lib/cpf";
 import { maskPhone } from "@/lib/phone";
 import { CONTA_TIPOS, PIX_TIPOS } from "@/lib/dp/dadosPagamento";
 import { rotuloSalvoEm } from "@/lib/dp/admissao-rascunho";
+import { PARENTESCOS_EMERGENCIA } from "@/lib/dp/contatosEmergencia";
 import { ConferirFotoDialog } from "@/components/dp/preadmissao/ConferirFotoDialog";
 
 type Opcao = { value: string; label: string };
@@ -96,21 +97,25 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?:
     campos: [
       {
         nome: "telefone",
-        rotulo: "Telefone com DDD",
+        rotulo: "Seu WhatsApp com DDD",
         tipo: "tel",
         inputMode: "tel",
         autoComplete: "tel",
         mask: "telefone",
       },
-      {
-        nome: "whatsapp_contato",
-        rotulo: "WhatsApp de recado",
-        tipo: "tel",
-        inputMode: "tel",
-        mask: "telefone",
-        ajuda: "Número de alguém que possa avisar você, se precisar.",
-      },
       { nome: "email", rotulo: "E-mail", tipo: "email", inputMode: "email", autoComplete: "email" },
+    ],
+  },
+  {
+    titulo: "Contatos de Emergência",
+    ajuda: "Quem devemos avisar se algo acontecer com você. O 1º contato é obrigatório; o 2º é opcional.",
+    campos: [
+      { nome: "emerg1_nome", rotulo: "1º contato — nome completo", upper: true },
+      { nome: "emerg1_parentesco", rotulo: "1º contato — parentesco", opcoes: PARENTESCOS_EMERGENCIA },
+      { nome: "emerg1_whatsapp", rotulo: "1º contato — WhatsApp com DDD", tipo: "tel", inputMode: "tel", mask: "telefone" },
+      { nome: "emerg2_nome", rotulo: "2º contato — nome completo (opcional)", upper: true },
+      { nome: "emerg2_parentesco", rotulo: "2º contato — parentesco", opcoes: PARENTESCOS_EMERGENCIA },
+      { nome: "emerg2_whatsapp", rotulo: "2º contato — WhatsApp com DDD", tipo: "tel", inputMode: "tel", mask: "telefone" },
     ],
   },
   {
@@ -336,6 +341,7 @@ interface Estado {
 const OBRIGATORIOS_PADRAO = new Set([
   "nome", "cpf", "data_nascimento", "email", "estado_civil", "nome_mae",
   "grau_instrucao", "telefone", "cep", "endereco", "cidade", "uf",
+  "emerg1_nome", "emerg1_parentesco", "emerg1_whatsapp",
 ]);
 
 /** Erro do servidor com o detalhamento por campo, quando houver. */

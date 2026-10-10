@@ -39,6 +39,21 @@ const COLUNAS: { key: ColunaKey; label: string }[] = [
   { key: "cargo", label: "Cargo / Unidade" },
   { key: "validade", label: "Link vale até" },
 ];
+type GrupoKey = "todas" | "candidato" | "revisao" | "registro" | "efetivadas";
+const GRUPOS: { key: GrupoKey; label: string }[] = [
+  { key: "todas", label: "Todas" },
+  { key: "candidato", label: "Aguardando Candidato" },
+  { key: "revisao", label: "Prontas para Revisão" },
+  { key: "registro", label: "Aguardando Registro" },
+  { key: "efetivadas", label: "Efetivadas" },
+];
+export function grupoDoStatus(s: string): GrupoKey | null {
+  if (["aguardando_preenchimento", "em_preenchimento", "correcao_solicitada", "aguardando_nova_versao"].includes(s)) return "candidato";
+  if (s === "aguardando_revisao") return "revisao";
+  if (["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(s)) return "registro";
+  if (s === "concluido") return "efetivadas";
+  return null;
+}
 const COLUNAS_STORAGE = "dp.preadmissoes.colunas_ocultas";
 
 
@@ -91,7 +106,11 @@ export function PreadmissoesPanel({
   const [fSituacao, setFSituacao] = useState("todas");
   const [fUnidade, setFUnidade] = useState("todas");
   const [fCargo, setFCargo] = useState("todos");
-  const limparFiltros = () => { setFSituacao("todas"); setFUnidade("todas"); setFCargo("todos"); };
+  const [fRegime, setFRegime] = useState("todos");
+  const [grupo, setGrupo] = useState<GrupoKey>("todas");
+  const limparFiltros = () => {
+    setFSituacao("todas"); setFUnidade("todas"); setFCargo("todos"); setFRegime("todos"); setGrupo("todas");
+  };
 
   const [ocultas, setOcultas] = useState<ColunaKey[]>(() => {
     try { return JSON.parse(localStorage.getItem(COLUNAS_STORAGE) ?? "[]"); } catch { return []; }
@@ -108,20 +127,33 @@ export function PreadmissoesPanel({
     fSituacao !== "todas" && { key: "s", label: PREADMISSAO_STATUS_LABEL[fSituacao as PreadmissaoStatus], onRemove: () => setFSituacao("todas") },
     fUnidade !== "todas" && { key: "u", label: nomeUnidade(fUnidade), onRemove: () => setFUnidade("todas") },
     fCargo !== "todos" && { key: "c", label: nomeCargo(fCargo), onRemove: () => setFCargo("todos") },
+    fRegime !== "todos" && { key: "r", label: REGIMES_ADMISSAO.find((r) => r.value === fRegime)?.label ?? fRegime, onRemove: () => setFRegime("todos") },
   ].filter(Boolean) as DpFilterChip[];
+
+  const regimeDe = (p: unknown) => (p as { regime_previsto?: string | null }).regime_previsto ?? null;
+  const contagem = useMemo(() => {
+    const c: Record<GrupoKey, number> = { todas: lista.length, candidato: 0, revisao: 0, registro: 0, efetivadas: 0 };
+    for (const p of lista) {
+      const g = grupoDoStatus(p.status);
+      if (g) c[g] += 1;
+    }
+    return c;
+  }, [lista]);
 
   const filtradas = useMemo(() => {
     const termo = busca.trim().toLocaleLowerCase("pt-BR");
     const digitos = termo.replace(/\D/g, "");
     return lista.filter((p) => {
+      if (grupo !== "todas" && grupoDoStatus(p.status) !== grupo) return false;
       if (fSituacao !== "todas" && p.status !== fSituacao) return false;
+      if (fRegime !== "todos" && regimeDe(p) !== fRegime) return false;
       if (fUnidade !== "todas" && p.unidade_prevista_id !== fUnidade) return false;
       if (fCargo !== "todos" && p.cargo_previsto_id !== fCargo) return false;
       if (!termo) return true;
       return p.candidato_nome.toLocaleLowerCase("pt-BR").includes(termo)
         || (!!digitos && ((p.whatsapp ?? "").includes(digitos) || (p.cpf ?? "").includes(digitos)));
     });
-  }, [lista, busca, fSituacao, fUnidade, fCargo]);
+  }, [lista, busca, fSituacao, fUnidade, fCargo, fRegime, grupo]);
 
   const gerarNovoLink = async (id: string) => {
     try {
@@ -179,6 +211,22 @@ export function PreadmissoesPanel({
               </Button>
             </div>
           )}
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Situação das fichas">
+            {GRUPOS.map((g) => (
+              <Button
+                key={g.key}
+                size="sm"
+                role="tab"
+                aria-selected={grupo === g.key}
+                variant={grupo === g.key ? "default" : "outline"}
+                className="shrink-0 rounded-full"
+                onClick={() => setGrupo(g.key)}
+              >
+                {g.label}
+                <span className="ml-1.5 rounded-full bg-background/20 px-1.5 text-xs tabular-nums">{contagem[g.key]}</span>
+              </Button>
+            ))}
+          </div>
           <DpFilters
             search={{ value: busca, onChange: setBusca, placeholder: "Nome, CPF ou WhatsApp" }}
             chips={chips}
@@ -210,6 +258,15 @@ export function PreadmissoesPanel({
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </DpFilterField>
+            <DpFilterField label="Vínculo">
+              <Select value={fRegime} onValueChange={setFRegime}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {REGIMES_ADMISSAO.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </DpFilterField>
