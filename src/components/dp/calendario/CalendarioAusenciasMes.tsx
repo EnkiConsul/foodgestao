@@ -228,6 +228,8 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
       const bytes = await gerarCalendarioMesPdf({
         titulo: "Calendário do mês", unidade: nomeUnidade ?? "", competencia: competenciaLabel ?? "",
         celulas, legenda: legenda.map((l) => ({ label: l.label, cor: l.pdf })),
+        metricas: cards.map((c) => ({ label: c.label, valor: c.valor })),
+        hoje, diasDominicais,
       });
       const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
       const a = document.createElement("a");

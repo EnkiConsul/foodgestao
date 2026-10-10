@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb, type RGB } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type RGB, type PDFPage, type PDFFont } from "pdf-lib";
 
 export interface CelulaPdf {
   iso: string;
@@ -17,17 +17,55 @@ export interface CalendarioPdfInput {
   competencia: string;
   celulas: CelulaPdf[]; // semanas completas, domingo→sábado
   legenda: { label: string; cor: [number, number, number] }[];
+  metricas?: { label: string; valor: number }[];
+  hoje?: string;
+  diasDominicais?: number[];
 }
 
 const DOW = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 const c = (v: [number, number, number]): RGB => rgb(v[0] / 255, v[1] / 255, v[2] / 255);
+// Identidade AVETO 360
 const VERDE = rgb(39 / 255, 174 / 255, 96 / 255);
 const FLORESTA = rgb(21 / 255, 128 / 255, 61 / 255);
+const PRETO = rgb(11 / 255, 13 / 255, 11 / 255);
 const GRAFITE = rgb(51 / 255, 51 / 255, 51 / 255);
+const OFF = rgb(242 / 255, 242 / 255, 242 / 255);
+const BORDA = rgb(0.86, 0.88, 0.86);
 const CINZA = rgb(0.6, 0.6, 0.6);
+const VERDE_CLARO = rgb(0.9, 0.97, 0.93);
+const BRANCO = rgb(1, 1, 1);
 
-/** Remove caracteres fora do WinAnsi (emoji etc.) para não quebrar a fonte padrão. */
+/** Cor clareada (dias passados) sem transparência, evitando sobreposição visível. */
+const mistura = (v: [number, number, number]): RGB => rgb((v[0] + 255) / 510, (v[1] + 255) / 510, (v[2] + 255) / 510);
 const limpo = (s: string) => s.normalize("NFC").replace(/[^\x20-\x7E\u00A0-\u00FF]/g, "");
+
+function pill(page: PDFPage, x: number, y: number, w: number, h: number, color: RGB, opacity = 1) {
+  const r = Math.min(h / 2, 3);
+  page.drawRectangle({ x: x + r, y, width: Math.max(0, w - 2 * r), height: h, color, opacity });
+  page.drawRectangle({ x, y: y + r, width: w, height: Math.max(0, h - 2 * r), color, opacity });
+  page.drawCircle({ x: x + r, y: y + r, size: r, color, opacity });
+  page.drawCircle({ x: x + w - r, y: y + r, size: r, color, opacity });
+  page.drawCircle({ x: x + r, y: y + h - r, size: r, color, opacity });
+  page.drawCircle({ x: x + w - r, y: y + h - r, size: r, color, opacity });
+}
+
+function cortar(t: string, font: PDFFont, size: number, max: number) {
+  let s = t;
+  while (s.length > 1 && font.widthOfTextAtSize(s, size) > max) s = s.slice(0, -1);
+  return s;
+}
+
+/** Chama simples (pico de operação) desenhada em vetor. */
+function chama(page: PDFPage, x: number, y: number) {
+  page.drawCircle({ x, y: y + 2.2, size: 2.4, color: VERDE });
+  page.drawSvgPath("M 0 0 L 2.4 4.5 L -2.4 4.5 Z", { x, y: y + 7.5, color: VERDE, scale: 1 });
+}
+
+/** Cadeado simples desenhado em vetor. */
+function cadeado(page: PDFPage, x: number, y: number, cor: RGB) {
+  page.drawRectangle({ x, y, width: 6, height: 4.5, color: cor });
+  page.drawEllipse({ x: x + 3, y: y + 4.5, xScale: 2, yScale: 2.2, borderColor: cor, borderWidth: 0.9 });
+}
 
 export async function gerarCalendarioMesPdf(inp: CalendarioPdfInput): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
@@ -35,68 +73,113 @@ export async function gerarCalendarioMesPdf(inp: CalendarioPdfInput): Promise<Ui
   const page = doc.addPage([W, H]);
   const f = await doc.embedFont(StandardFonts.Helvetica);
   const fb = await doc.embedFont(StandardFonts.HelveticaBold);
-  const M = 24;
+  const M = 22;
+  const dom = new Set(inp.diasDominicais ?? [0]);
 
-  page.drawRectangle({ x: 0, y: H - 54, width: W, height: 54, color: rgb(11 / 255, 13 / 255, 11 / 255) });
-  page.drawText("AVETO 360", { x: M, y: H - 34, size: 14, font: fb, color: VERDE });
-  page.drawText(limpo(`${inp.titulo} · ${inp.competencia}`), { x: M + 95, y: H - 34, size: 14, font: fb, color: rgb(1, 1, 1) });
+  page.drawRectangle({ x: 0, y: 0, width: W, height: H, color: BRANCO });
+
+  // Cabeçalho
+  page.drawRectangle({ x: 0, y: H - 50, width: W, height: 50, color: PRETO });
+  page.drawRectangle({ x: 0, y: H - 52, width: W, height: 2, color: VERDE });
+  page.drawText("AVETO", { x: M, y: H - 31, size: 15, font: fb, color: BRANCO });
+  page.drawText("360", { x: M + fb.widthOfTextAtSize("AVETO ", 15), y: H - 31, size: 15, font: fb, color: VERDE });
+  const tit = limpo(`${inp.titulo}  |  ${inp.competencia}`);
+  page.drawText(tit, { x: M + 110, y: H - 30, size: 12, font: fb, color: BRANCO });
   const un = limpo(inp.unidade);
-  page.drawText(un, { x: W - M - f.widthOfTextAtSize(un, 11), y: H - 33, size: 11, font: f, color: rgb(0.9, 0.9, 0.9) });
+  page.drawText(un, { x: W - M - f.widthOfTextAtSize(un, 10), y: H - 30, size: 10, font: f, color: OFF });
 
-  // Legenda
-  let lx = M; const ly = H - 72;
-  for (const l of inp.legenda) {
-    page.drawRectangle({ x: lx, y: ly, width: 9, height: 9, color: c(l.cor) });
-    const t = limpo(l.label);
-    page.drawText(t, { x: lx + 13, y: ly + 1, size: 8, font: f, color: GRAFITE });
-    lx += 22 + f.widthOfTextAtSize(t, 8);
+  // Métricas (só valores > 0, já filtradas na tela)
+  let y = H - 74;
+  let mx = M;
+  for (const m of inp.metricas ?? []) {
+    const v = String(m.valor), l = limpo(m.label);
+    const w = fb.widthOfTextAtSize(v, 10) + f.widthOfTextAtSize(l, 7.5) + 16;
+    page.drawRectangle({ x: mx, y: y - 3, width: w, height: 15, color: OFF, borderColor: BORDA, borderWidth: 0.5 });
+    page.drawText(v, { x: mx + 5, y: y + 1, size: 10, font: fb, color: FLORESTA });
+    page.drawText(l, { x: mx + 9 + fb.widthOfTextAtSize(v, 10), y: y + 2, size: 7.5, font: f, color: GRAFITE });
+    mx += w + 5;
   }
 
-  const top = H - 86, gridH = top - M - 14;
-  const cw = (W - 2 * M) / 7, hh = 16;
+  // Legenda (só o que existe no mês)
+  let lx = W - M;
+  const itens = [...inp.legenda.map((l) => ({ label: limpo(l.label), cor: c(l.cor) }))];
+  const larguras = itens.map((i) => 14 + f.widthOfTextAtSize(i.label, 7.5) + 10);
+  const extra = 14 + f.widthOfTextAtSize("Escalados no dia (N)", 7.5);
+  lx -= larguras.reduce((a, b) => a + b, 0) + extra;
+  const ly = y + 1;
+  itens.forEach((i, k) => {
+    pill(page, lx, ly, 9, 8, i.cor);
+    page.drawText(i.label, { x: lx + 12, y: ly + 1.5, size: 7.5, font: f, color: GRAFITE });
+    lx += larguras[k];
+  });
+  pill(page, lx, ly, 10, 8, OFF);
+  page.drawText("N", { x: lx + 3, y: ly + 1.5, size: 6.5, font: fb, color: FLORESTA });
+  page.drawText("Escalados no dia", { x: lx + 13, y: ly + 1.5, size: 7.5, font: f, color: GRAFITE });
+
+  // Grade
+  const top = H - 90;
+  const cw = (W - 2 * M) / 7, hh = 18;
   const semanas = Math.ceil(inp.celulas.length / 7);
-  const ch = (gridH - hh) / semanas;
+  const ch = (top - hh - M - 12) / semanas;
 
   DOW.forEach((d, i) => {
-    const pico = i >= 5 || i === 0;
-    page.drawRectangle({ x: M + i * cw, y: top - hh, width: cw, height: hh, color: pico ? rgb(1, 0.93, 0.8) : rgb(0.93, 0.97, 0.94) });
-    const lbl = limpo(pico ? `${d} · PICO` : d);
-    page.drawText(lbl, { x: M + i * cw + (cw - fb.widthOfTextAtSize(lbl, 8)) / 2, y: top - hh + 5, size: 8, font: fb, color: pico ? rgb(0.55, 0.3, 0) : FLORESTA });
+    const x = M + i * cw;
+    page.drawRectangle({ x, y: top - hh, width: cw, height: hh, color: rgb(0.2, 0.2, 0.2) });
+    const t = limpo(d);
+    page.drawText(t, { x: x + (cw - fb.widthOfTextAtSize(t, 8.5)) / 2, y: top - hh + 6, size: 8.5, font: fb, color: dom.has(i) ? VERDE : BRANCO });
   });
+  page.drawRectangle({ x: M, y: top - hh - 1.5, width: W - 2 * M, height: 1.5, color: VERDE });
 
   inp.celulas.forEach((cel, idx) => {
     const col = idx % 7, row = Math.floor(idx / 7);
-    const x = M + col * cw, y = top - hh - (row + 1) * ch;
-    const bg = !cel.dentroMes ? rgb(0.97, 0.97, 0.97) : cel.feriado ? rgb(0.92, 0.97, 0.93) : cel.dominical ? rgb(1, 0.97, 0.9) : rgb(1, 1, 1);
-    page.drawRectangle({ x, y, width: cw, height: ch, color: bg, borderColor: rgb(0.85, 0.85, 0.85), borderWidth: 0.5 });
-    if (cel.pico && cel.dentroMes) page.drawRectangle({ x, y: y + ch - 2.5, width: cw, height: 2.5, color: rgb(0.96, 0.6, 0.1) });
+    const x = M + col * cw, yc = top - hh - 1.5 - (row + 1) * ch;
+    const ehHoje = cel.iso === inp.hoje;
+    const passado = !!inp.hoje && cel.iso < inp.hoje;
+    page.drawRectangle({ x, y: yc, width: cw, height: ch, color: cel.dentroMes ? BRANCO : rgb(0.975, 0.975, 0.975), borderColor: BORDA, borderWidth: 0.5 });
+
+    // Faixa do dia
+    const fh = 14;
+    const faixa = ehHoje ? VERDE : cel.feriado ? VERDE_CLARO : OFF;
+    if (cel.dentroMes) page.drawRectangle({ x: x + 0.5, y: yc + ch - fh, width: cw - 1, height: fh - 0.5, color: faixa });
+    if (ehHoje) page.drawRectangle({ x, y: yc, width: cw, height: ch, borderColor: VERDE, borderWidth: 1.4 });
+
     const n = String(Number(cel.iso.slice(8)));
-    page.drawText(n, { x: x + 4, y: y + ch - 13, size: 10, font: fb, color: cel.dentroMes ? GRAFITE : CINZA });
+    const corNum = !cel.dentroMes ? CINZA : ehHoje ? BRANCO : passado ? CINZA : PRETO;
+    page.drawText(n, { x: x + 4, y: yc + ch - 10.5, size: 9.5, font: fb, color: corNum });
     if (!cel.dentroMes) return;
-    let hx = x + 8 + fb.widthOfTextAtSize(n, 10);
-    if (cel.bloqueado) { page.drawText("BLOQ.", { x: hx, y: y + ch - 12, size: 6.5, font: fb, color: rgb(0.8, 0.1, 0.1) }); hx += 24; }
+
+    let hx = x + 8 + fb.widthOfTextAtSize(n, 9.5);
+    if (cel.pico) { chama(page, hx + 2.5, yc + ch - 11.5); hx += 8; }
+    if (cel.bloqueado) { cadeado(page, hx, yc + ch - 10.5, ehHoje ? BRANCO : rgb(0.75, 0.15, 0.15)); hx += 10; }
+    const badge = String(cel.trabalhando);
+    const bw = fb.widthOfTextAtSize(badge, 7) + 8;
     if (cel.feriado) {
-      const fe = limpo(cel.feriado).slice(0, 16);
-      page.drawText(fe, { x: hx, y: y + ch - 12, size: 6.5, font: fb, color: FLORESTA });
+      const fe = cortar(limpo(cel.feriado).toUpperCase(), fb, 6, x + cw - bw - 8 - hx);
+      page.drawText(fe, { x: hx, y: yc + ch - 10, size: 6, font: fb, color: ehHoje ? BRANCO : FLORESTA });
     }
-    const tr = `${cel.trabalhando} trab.`;
-    page.drawText(tr, { x: x + cw - 4 - f.widthOfTextAtSize(tr, 7), y: y + 4, size: 7, font: f, color: GRAFITE });
-    const linhaH = 9, maxLinhas = Math.max(1, Math.floor((ch - 26) / linhaH));
-    const meio = cel.ausencias.length > maxLinhas;
-    const largura = meio ? cw / 2 - 5 : cw - 8;
-    const cap = meio ? maxLinhas * 2 : maxLinhas;
-    cel.ausencias.slice(0, cap).forEach((a, i) => {
-      const cx = x + 4 + (meio ? (i % 2) * (cw / 2 - 1) : 0);
-      const cy = y + ch - 26 - (meio ? Math.floor(i / 2) : i) * linhaH;
-      page.drawRectangle({ x: cx, y: cy, width: largura, height: 8, color: c(a.cor), opacity: 0.9 });
-      let nome = limpo(`${a.troca ? "<> " : ""}${a.nome}`).toUpperCase();
-      while (nome.length > 1 && fb.widthOfTextAtSize(nome, 6.5) > largura - 4) nome = nome.slice(0, -1);
-      page.drawText(nome, { x: cx + 2, y: cy + 1.8, size: 6.5, font: fb, color: rgb(1, 1, 1) });
-    });
-    const resto = cel.ausencias.length - cap;
-    if (resto > 0) page.drawText(`+${resto}`, { x: x + 4, y: y + 4, size: 7, font: fb, color: GRAFITE });
+    pill(page, x + cw - bw - 3, yc + ch - 11.5, bw, 9, ehHoje ? BRANCO : rgb(0.85, 0.94, 0.88));
+    page.drawText(badge, { x: x + cw - bw + 1, y: yc + ch - 9.3, size: 7, font: fb, color: FLORESTA });
+
+    // Chips de ausência: múltiplos por linha
+    const chipH = 8.5, gap = 2;
+    let cx = x + 3, cy = yc + ch - fh - chipH - 3;
+    const limiteY = yc + 3;
+    let mostrados = 0;
+    for (const a of cel.ausencias) {
+      const nome = limpo(`${a.troca ? "<> " : ""}${a.nome}`).toUpperCase();
+      let w = Math.min(fb.widthOfTextAtSize(nome, 6) + 6, cw - 6);
+      if (cx + w > x + cw - 3) { cx = x + 3; cy -= chipH + gap; }
+      if (cy < limiteY + chipH) break;
+      w = Math.min(w, x + cw - 3 - cx);
+      pill(page, cx, cy, w, chipH, passado ? mistura(a.cor) : c(a.cor));
+      page.drawText(cortar(nome, fb, 6, w - 5), { x: cx + 3, y: cy + 2.2, size: 6, font: fb, color: BRANCO, opacity: passado ? 0.85 : 1 });
+      cx += w + gap;
+      mostrados++;
+    }
+    const resto = cel.ausencias.length - mostrados;
+    if (resto > 0) page.drawText(`+${resto}`, { x: x + cw - 14, y: yc + 3, size: 7, font: fb, color: GRAFITE });
   });
 
-  page.drawText(limpo(`Gerado em ${new Date().toLocaleString("pt-BR")} · Pessoas 360°`), { x: M, y: 10, size: 7, font: f, color: CINZA });
+  page.drawText(limpo(`Gerado em ${new Date().toLocaleString("pt-BR")}  |  Pessoas 360`), { x: M, y: 9, size: 7, font: f, color: CINZA });
   return doc.save();
 }
