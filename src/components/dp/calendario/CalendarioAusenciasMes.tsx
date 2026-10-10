@@ -439,7 +439,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                       </div>
                       <span className={cn("inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums", d.alerta && d.avaliacao.situacao === "abaixo" ? "bg-destructive text-destructive-foreground" : "bg-primary/15 text-primary")} title="Trabalhando"><Users className="h-3 w-3" />{d.trabalhando}</span>
                     </div>
-                    <div className={cn(compacto ? "grid grid-cols-2 gap-1" : "flex flex-col gap-1")}>
+                    <div className={cn("mt-0.5", compacto ? "grid grid-cols-2 gap-1" : "flex flex-col gap-1")}>
                       {visiveis.map((a) => (
                         <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("inline-flex min-w-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase shadow-sm", tomDe(a, d.data))} title={rotulo(a, d.data)}>
                           {a.troca && <Repeat className="h-2.5 w-2.5 shrink-0" />}<span className="truncate">{primeiroNome(a.nome)}</span>
