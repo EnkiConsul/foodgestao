@@ -1764,7 +1764,7 @@ export function useDpPendencias() {
               icon: Coins,
               titulo: `Quitar diárias antes do CLT — ${nome}`,
               subtitulo: `${abertos.length} recibo(s) do período autônomo sem assinatura (${total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}). Quite até a véspera da vigência CLT.`,
-              tipo: "Rescisão",
+              tipo: "Assinaturas",
               colaboradorNome: nome,
               colaboradorId: c.colaborador_id,
               escopo: "pessoa",
