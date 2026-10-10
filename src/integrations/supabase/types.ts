@@ -6332,6 +6332,10 @@ export type Database = {
           conta: string | null
           conta_digito: string | null
           conta_tipo: string | null
+          contatos_confirmados_em: string | null
+          contatos_confirmados_por: string | null
+          contatos_emergencia: Json
+          contatos_solicitado_em: string | null
           cpf: string | null
           created_at: string
           ctps_expedicao: string | null
@@ -6469,6 +6473,10 @@ export type Database = {
           conta?: string | null
           conta_digito?: string | null
           conta_tipo?: string | null
+          contatos_confirmados_em?: string | null
+          contatos_confirmados_por?: string | null
+          contatos_emergencia?: Json
+          contatos_solicitado_em?: string | null
           cpf?: string | null
           created_at?: string
           ctps_expedicao?: string | null
@@ -6606,6 +6614,10 @@ export type Database = {
           conta?: string | null
           conta_digito?: string | null
           conta_tipo?: string | null
+          contatos_confirmados_em?: string | null
+          contatos_confirmados_por?: string | null
+          contatos_emergencia?: Json
+          contatos_solicitado_em?: string | null
           cpf?: string | null
           created_at?: string
           ctps_expedicao?: string | null
@@ -16996,6 +17008,7 @@ export type Database = {
         Args: { _recurso: string; _sub: string }
         Returns: number
       }
+      _dp_contatos_emergencia_validos: { Args: { _c: Json }; Returns: boolean }
       _dp_excedente_modo: { Args: { _company: string }; Returns: string }
       _dp_excedente_pode_gerir: { Args: { _company: string }; Returns: boolean }
       _is_company_member: {
@@ -18211,6 +18224,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      dp_contatos_solicitar_confirmacao: {
+        Args: { _colaborador_id: string }
+        Returns: undefined
       }
       dp_conv_ocor_valida_alvo: {
         Args: {
@@ -19696,6 +19713,10 @@ export type Database = {
           status: string
         }[]
       }
+      dp_portal_confirmar_contatos: {
+        Args: { _contatos: Json; _whatsapp: string }
+        Returns: undefined
+      }
       dp_portal_equipe_unidade: {
         Args: never
         Returns: {
@@ -19709,6 +19730,7 @@ export type Database = {
           unidade_id: string
         }[]
       }
+      dp_portal_meus_contatos: { Args: never; Returns: Json }
       dp_portal_meus_disciplinares: {
         Args: never
         Returns: {
