@@ -244,7 +244,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
       key={iso}
       type="button"
       onClick={() => onAbrirDia(iso)}
-      className="flex min-h-[112px] flex-col bg-muted/20 p-2 text-left text-muted-foreground transition-colors hover:bg-muted/40"
+      className="flex min-h-[136px] flex-col bg-muted/20 p-2 text-left text-muted-foreground transition-colors hover:bg-muted/40"
       title="Ir para este dia"
     >
       <span className="text-sm font-semibold opacity-50">{Number(iso.slice(8))}</span>
