@@ -399,8 +399,14 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           // ter sido convocado — nada de cobrança, só o alerta em Pendências.
           const intermitenteSemTrabalho =
             regimeComp === "intermitente" && !pontoNaComp.has(`${c.id}::${comp}`);
+          // Freelancer mensalista: o recibo de Acerto Mensal emitido no sistema
+          // faz o papel do contracheque (mesma regra de elegivelDocumento).
+          const freelaMensalistaComp =
+            regimeComp === "freelancer" &&
+            String(c.forma_pagamento ?? "").toLowerCase() === "mensalista" &&
+            !socio;
           const cobraContracheque =
-            assalariadoComp &&
+            (assalariadoComp || freelaMensalistaComp) &&
             !intermitenteSemTrabalho &&
             (!desligadoNoMes || exigirContrachequeMesDesligamento);
           const optanteAdiantamento = optanteNaCompetencia(
