@@ -770,7 +770,8 @@ function DetalheDiaOperacao({
                   )}
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         ) : (
           <p className="text-sm text-muted-foreground">
