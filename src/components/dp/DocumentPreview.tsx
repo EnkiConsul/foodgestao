@@ -100,7 +100,7 @@ export function DocumentPreview({
   const listaComprovantes: { id: string; url: string; mime: string | null; path: string; rotulo?: string }[] = [
     ...(comprovante ? [{ id: "principal", url: comprovante.url, mime: comprovante.mime, path: comprovante.nome ?? "" }] : []),
     ...extras,
-    ...(recibo ? [{ id: "recibo", url: recibo.url, mime: recibo.mime, path: recibo.nome ?? "", rotulo: "Recibo do Valor em Dinheiro" }] : []),
+    ...(recibo ? [{ id: "recibo", url: recibo.url, mime: recibo.mime, path: recibo.nome ?? "", rotulo: recibo.assinado ? "Recibo do Valor em Dinheiro · Assinado" : "Recibo do Valor em Dinheiro · Aguardando assinatura" }] : []),
   ];
   const temAnexos = listaComprovantes.length > 0;
   const scrollRef = useRef<HTMLDivElement>(null);
