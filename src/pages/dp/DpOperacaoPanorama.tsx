@@ -1809,7 +1809,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               <BloqueioDoDiaCabecalho companyId={companyIdCal} unidadeId={unidadeId} data={dataPopout} podeEditar={podeRegistrar} />
             )}
             {calendario && dataPopout && diaPopout && (
-              <div className="mt-2 grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-2 [&_button]:min-w-0 [&_button]:px-2 [&_button]:text-xs sm:[&_button]:px-3 sm:[&_button]:text-sm">
+              <div className="mt-2 grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-2 max-sm:[&>button]:h-auto max-sm:[&>button]:min-h-12 max-sm:[&>button]:min-w-0 max-sm:[&>button]:flex-col max-sm:[&>button]:gap-0.5 max-sm:[&>button]:whitespace-normal max-sm:[&>button]:px-1 max-sm:[&>button]:py-1.5 max-sm:[&>button]:text-[11px] max-sm:[&>button]:leading-tight max-sm:[&_svg]:mr-0">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button size="sm" className="h-8 rounded-lg" disabled={!companyIdCal}>
