@@ -1672,6 +1672,112 @@ export function useDpPendencias() {
         console.warn("pendencias/atas-assinatura:", e);
       }
 
+      // Termos de compensação emitidos e ainda sem assinatura do colaborador.
+      try {
+        const { data: termos } = await supabase
+          .from("dp_documentos")
+          .select("id, titulo, created_at, colaborador_id")
+          .eq("company_id", selectedCompanyId!)
+          .eq("tipo", "termos")
+          .is("arquivado_em", null)
+          .ilike("titulo", "%compensa%")
+          .limit(300);
+        const lista = ((termos ?? []) as any[]).filter((t) => t.colaborador_id);
+        if (lista.length) {
+          const { data: aceites } = await (supabase as any)
+            .from("dp_documento_aceites")
+            .select("documento_id")
+            .in("documento_id", lista.map((t) => t.id));
+          const assinados = new Set(((aceites ?? []) as any[]).map((a) => a.documento_id));
+          const pend = lista.filter((t) => !assinados.has(t.id));
+          const colIds = [...new Set(pend.map((t) => t.colaborador_id))];
+          const nomes = new Map<string, { nome: string; desligado: boolean }>();
+          if (colIds.length) {
+            const { data: cols } = await supabase
+              .from("dp_colaboradores")
+              .select("id, nome, data_desligamento")
+              .in("id", colIds);
+            ((cols ?? []) as any[]).forEach((c) => nomes.set(c.id, { nome: c.nome, desligado: !!c.data_desligamento }));
+          }
+          for (const t of pend) {
+            const col = nomes.get(t.colaborador_id);
+            if (!col || col.desligado) continue;
+            const venc = addDays(new Date(t.created_at), cfg.alerta_recibo_assinatura_dias);
+            results.push({
+              id: `termo-compensacao-${t.id}`,
+              icon: Scale,
+              titulo: `Termo de compensação sem assinatura — ${col.nome}`,
+              subtitulo: `${t.titulo}. Colete a assinatura no portal ou anexe a via impressa assinada.`,
+              tipo: "Assinaturas",
+              colaboradorNome: col.nome,
+              colaboradorId: t.colaborador_id,
+              escopo: "pessoa",
+              vencimento: ymd(venc),
+              atrasoDias: differenceInCalendarDays(today, venc),
+              url: `/dp/colaboradores/${t.colaborador_id}`,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("pendencias/termos-compensacao:", e);
+      }
+
+      // Efetivação CLT: recibos/diárias do período autônomo ainda sem quitação.
+      try {
+        const desde = ymd(addDays(today, -60));
+        const { data: conds } = await supabase
+          .from("dp_colaborador_historico_condicoes")
+          .select("colaborador_id, regime, vigencia_inicio")
+          .eq("company_id", selectedCompanyId!)
+          .in("regime", ["clt", "intermitente"])
+          .gte("vigencia_inicio", desde)
+          .limit(300);
+        const lista = (conds ?? []) as any[];
+        if (lista.length) {
+          const colIds = [...new Set(lista.map((c) => c.colaborador_id))];
+          const { data: anteriores } = await supabase
+            .from("dp_colaborador_historico_condicoes")
+            .select("colaborador_id, regime, vigencia_inicio")
+            .in("colaborador_id", colIds)
+            .in("regime", ["freelancer", "pj", "mei"]);
+          const { data: recs } = await supabase
+            .from("dp_recibos")
+            .select("colaborador_id, beneficiario_nome, valor_cents, created_at")
+            .in("colaborador_id", colIds)
+            .is("assinado_em", null)
+            .is("cancelado_em", null)
+            .is("substituido_em" as never, null);
+          for (const c of lista) {
+            const veioDeAutonomo = ((anteriores ?? []) as any[]).some(
+              (a) => a.colaborador_id === c.colaborador_id && a.vigencia_inicio < c.vigencia_inicio,
+            );
+            if (!veioDeAutonomo) continue;
+            const abertos = ((recs ?? []) as any[]).filter(
+              (r) => r.colaborador_id === c.colaborador_id && String(r.created_at).slice(0, 10) < c.vigencia_inicio,
+            );
+            if (!abertos.length) continue;
+            const total = abertos.reduce((s, r) => s + Number(r.valor_cents ?? 0), 0) / 100;
+            const venc = addDays(new Date(`${c.vigencia_inicio}T00:00:00`), -1);
+            const nome = abertos[0].beneficiario_nome ?? "colaborador";
+            results.push({
+              id: `quitacao-clt-${c.colaborador_id}-${c.vigencia_inicio}`,
+              icon: Coins,
+              titulo: `Quitar diárias antes do CLT — ${nome}`,
+              subtitulo: `${abertos.length} recibo(s) do período autônomo sem assinatura (${total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}). Quite até a véspera da vigência CLT.`,
+              tipo: "Rescisão",
+              colaboradorNome: nome,
+              colaboradorId: c.colaborador_id,
+              escopo: "pessoa",
+              vencimento: ymd(venc),
+              atrasoDias: differenceInCalendarDays(today, venc),
+              url: "/dp/documentos/recibos",
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("pendencias/quitacao-clt:", e);
+      }
+
       // Contatos de emergência sem confirmação semestral.
       if (cfg.alerta_contatos_emergencia) {
         try {
