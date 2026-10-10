@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
-import { Moon, SlidersHorizontal, Sun, Users, UserX, AlertTriangle, X } from "lucide-react";
+import { Moon, SlidersHorizontal, Sun, Users, AlertTriangle, X, Lock, CalendarHeart, Palmtree, Stethoscope, UserX, Repeat, CalendarOff, PartyPopper, Coffee } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useDpConfigDp } from "@/hooks/useDpConfigDp";
+import { diasElegiveisDaConfig } from "@/lib/dp/dsr-rules";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -7,8 +12,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { cn } from "@/lib/utils";
 import {
-  ausenciasVisiveis, periodoDoHorario, periodoHabitual, pessoaNoFiltro, primeiroNome, tipoAusencia,
-  TIPO_AUSENCIA_LABEL, TIPOS_AUSENCIA, type PeriodoTurno, type TipoAusenciaCalendario,
+  ausenciasVisiveis, folgaEhDominical, periodoDoHorario, periodoHabitual, pessoaNoFiltro, primeiroNome, tipoAusencia,
+  TIPO_AUSENCIA_LABEL, TIPOS_AUSENCIA, type AusenciaCalendario, type PeriodoTurno, type TipoAusenciaCalendario,
 } from "@/lib/dp/calendario-rotina";
 import type { DiaPanorama } from "@/hooks/useDpOperacaoPanorama";
 
@@ -22,8 +27,6 @@ const TOM: Record<TipoAusenciaCalendario, string> = {
 };
 // Folga no domingo tem peso diferente na operação: dourado.
 const TOM_DOMINICAL = "border-l-[3px] border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-500/15 dark:text-amber-200";
-const ehDomingo = (iso: string) => new Date(`${iso}T12:00:00`).getDay() === 0;
-const tomDe = (tipo: TipoAusenciaCalendario, iso: string) => (tipo === "folga" && ehDomingo(iso) ? TOM_DOMINICAL : TOM[tipo]);
 const LEGENDA: { label: string; cls: string }[] = [
   { label: "Folga semanal", cls: TOM.folga },
   { label: "Folga dominical", cls: TOM_DOMINICAL },
@@ -60,9 +63,42 @@ interface Props {
   filtros: TipoAusenciaCalendario[];
   onFiltros: (f: TipoAusenciaCalendario[]) => void;
   onAbrirDia: (iso: string) => void;
+  unidadeId?: string | null;
 }
 
-export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros, onFiltros, onAbrirDia }: Props) {
+export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros, onFiltros, onAbrirDia, unidadeId = null }: Props) {
+  const { selectedCompanyId } = useCompanyContext();
+  const { config } = useDpConfigDp(unidadeId);
+  // Dias de descanso dominical habilitados na regra da unidade.
+  const diasDominicais = useMemo(() => (config ? diasElegiveisDaConfig(config) : [0]), [config]);
+  const ehDiaDominical = (iso: string) => diasDominicais.includes(new Date(`${iso}T12:00:00`).getDay());
+  const dominical = (a: AusenciaCalendario, iso: string) => a.tipo === "folga" && folgaEhDominical(iso, diasDominicais, a);
+  const tomDe = (a: AusenciaCalendario, iso: string) => (dominical(a, iso) ? TOM_DOMINICAL : TOM[a.tipo]);
+  const rotulo = (a: AusenciaCalendario, iso: string) =>
+    `${a.nome} · ${dominical(a, iso) ? "Folga dominical" : TIPO_AUSENCIA_LABEL[a.tipo]}${a.troca ? " (troca)" : ""}`;
+
+  const ini = diasBrutos[0]?.data, fimMes = diasBrutos[diasBrutos.length - 1]?.data;
+  const bloqueiosQuery = useQuery({
+    queryKey: ["cal_rotina_bloqueios", selectedCompanyId, unidadeId, ini, fimMes],
+    enabled: !!selectedCompanyId && !!ini,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_datas_bloqueadas")
+        .select("data, motivo, liberada, unidade_id")
+        .eq("company_id", selectedCompanyId!)
+        .gte("data", ini!)
+        .lte("data", fimMes!);
+      if (error) throw error;
+      const m = new Map<string, string>();
+      for (const b of data ?? []) {
+        if (b.liberada) continue;
+        if (b.unidade_id && unidadeId && b.unidade_id !== unidadeId) continue;
+        m.set(b.data, b.motivo ?? "Data bloqueada");
+      }
+      return m;
+    },
+  });
+  const bloqueios = bloqueiosQuery.data ?? new Map<string, string>();
   const alternar = (t: TipoAusenciaCalendario) =>
     onFiltros(filtros.includes(t) ? filtros.filter((x) => x !== t) : [...filtros, t]);
 
@@ -92,11 +128,35 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     });
   }, [diasBrutos, periodo, setores, mostraTurno, habitual]);
 
+  const hoje = isoLocal(new Date());
   const resumoMes = useMemo(() => {
-    let aus = 0, alertas = 0, trab = 0;
-    for (const d of dias) { aus += ausenciasVisiveis(d.pessoas, filtros).length; trab += d.trabalhando; if (d.alerta) alertas++; }
-    return { aus, alertas, media: dias.length ? Math.round(trab / dias.length) : 0 };
-  }, [dias, filtros]);
+    const r = { trab: 0, semanal: 0, dominical: 0, ferias: 0, falta: 0, atestado: 0, outras: 0, trocas: 0, alertas: 0, feriados: 0, bloqueados: 0 };
+    for (const d of dias) {
+      r.trab += d.trabalhando;
+      if (d.alerta) r.alertas++;
+      if (d.feriado_nome) r.feriados++;
+      if (bloqueios.has(d.data)) r.bloqueados++;
+      for (const a of ausenciasVisiveis(d.pessoas, filtros)) {
+        if (a.tipo === "folga") { if (dominical(a, d.data)) r.dominical++; else r.semanal++; if (a.troca) r.trocas++; }
+        else r[a.tipo]++;
+      }
+    }
+    return { ...r, media: dias.length ? Math.round(r.trab / dias.length) : 0 };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dias, filtros, bloqueios, diasDominicais]);
+  const cards = [
+    { icon: Users, label: "Média trabalhando/dia", valor: resumoMes.media, tom: "bg-primary text-primary-foreground" },
+    { icon: Coffee, label: "Folgas semanais", valor: resumoMes.semanal, tom: "bg-emerald-600 text-white" },
+    { icon: CalendarHeart, label: "Folgas dominicais", valor: resumoMes.dominical, tom: "bg-amber-500 text-white" },
+    { icon: Repeat, label: "Folgas por troca", valor: resumoMes.trocas, tom: "bg-teal-600 text-white" },
+    { icon: Palmtree, label: "Dias de férias", valor: resumoMes.ferias, tom: "bg-sky-600 text-white" },
+    { icon: UserX, label: "Faltas", valor: resumoMes.falta, tom: "bg-rose-600 text-white" },
+    { icon: Stethoscope, label: "Atestados / licenças", valor: resumoMes.atestado, tom: "bg-violet-600 text-white" },
+    { icon: CalendarOff, label: "Demais ausências", valor: resumoMes.outras, tom: "bg-slate-500 text-white" },
+    { icon: Lock, label: "Datas bloqueadas", valor: resumoMes.bloqueados, tom: "bg-destructive text-destructive-foreground" },
+    { icon: PartyPopper, label: "Feriados", valor: resumoMes.feriados, tom: "bg-primary/80 text-primary-foreground" },
+    { icon: AlertTriangle, label: "Dias com alerta", valor: resumoMes.alertas, tom: "bg-destructive text-destructive-foreground" },
+  ].filter((c) => c.valor > 0);
 
   const ausOcultas = TIPOS_AUSENCIA.length - filtros.length;
   const totalAtivos = setores.length + (ausOcultas > 0 ? 1 : 0);
@@ -105,7 +165,6 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     setSetores((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
   const { antes, depois } = diasDePreenchimento(dias);
-  const hoje = isoLocal(new Date());
   // Dias dos meses vizinhos: clicáveis — levam ao mês correspondente e abrem o dia.
   const vazio = (iso: string) => (
     <button
@@ -204,26 +263,26 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
 
 
 
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          { icon: Users, label: "Média trabalhando/dia", valor: resumoMes.media, tom: "bg-primary text-primary-foreground" },
-          { icon: UserX, label: "Ausências no mês", valor: resumoMes.aus, tom: "bg-amber-500 text-white" },
-          { icon: AlertTriangle, label: "Dias com alerta", valor: resumoMes.alertas, tom: resumoMes.alertas ? "bg-destructive text-destructive-foreground" : "bg-muted text-muted-foreground" },
-        ].map((c) => (
-          <div key={c.label} className="flex items-center gap-3 rounded-2xl border bg-gradient-to-br from-card to-primary/5 p-3 shadow-sm">
-            <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", c.tom)}><c.icon className="h-4 w-4" /></span>
-            <div className="min-w-0">
-              <p className="text-lg font-bold leading-none tabular-nums">{c.valor}</p>
-              <p className="mt-0.5 line-clamp-2 text-[10px] leading-tight text-muted-foreground sm:text-[11px]">{c.label}</p>
+      {cards.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+          {cards.map((c) => (
+            <div key={c.label} className="flex items-center gap-3 rounded-2xl border bg-gradient-to-br from-card to-primary/5 p-3 shadow-sm">
+              <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", c.tom)}><c.icon className="h-4 w-4" /></span>
+              <div className="min-w-0">
+                <p className="text-lg font-bold leading-none tabular-nums">{c.valor}</p>
+                <p className="mt-0.5 line-clamp-2 text-[10px] leading-tight text-muted-foreground sm:text-[11px]">{c.label}</p>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-1.5">
         {LEGENDA.map((l) => (
           <span key={l.label} className={cn("rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", l.cls)}>{l.label}</span>
         ))}
+        <span className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground"><Repeat className="h-3 w-3" />Troca</span>
+        <span className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase text-destructive"><Lock className="h-3 w-3" />Bloqueada</span>
       </div>
 
       {/* Mobile: 1 dia = 1 linha, como no calendário de folgas */}
@@ -235,6 +294,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               iso: d.data,
               selecionado: d.data === selecionado,
               tom: d.alerta ? (d.avaliacao.situacao === "abaixo" ? ("critico" as const) : ("atencao" as const)) : undefined,
+              desabilitado: false,
               onSelect: () => onAbrirDia(d.data),
               resumo: (
                 <span>
@@ -244,10 +304,12 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               ),
               chips: (
                 <>
+                  {d.data === hoje && <Badge className="text-[10px]">Hoje</Badge>}
                   {d.feriado_nome && <Badge variant="outline" className="text-[10px]">Feriado</Badge>}
+                  {bloqueios.has(d.data) && <Badge variant="outline" className="gap-1 border-destructive/40 text-[10px] text-destructive"><Lock className="h-3 w-3" />Bloqueada</Badge>}
                   {aus.map((a) => (
-                    <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", tomDe(a.tipo, d.data))}>
-                      {primeiroNome(a.nome)}
+                    <span key={`${a.colaborador_id}-${a.tipo}`} title={rotulo(a, d.data)} className={cn("inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", tomDe(a, d.data), d.data < hoje && "opacity-60")}>
+                      {a.troca && <Repeat className="h-2.5 w-2.5" />}{primeiroNome(a.nome)}
                     </span>
                   ))}
                 </>
@@ -261,12 +323,18 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
       <div className="hidden md:block">
         <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-border bg-border shadow-sm">
           {DOW.map((d) => (
-            <div key={d} className={cn("py-2.5 text-center text-[11px] font-bold uppercase tracking-wider", d === "Dom" ? "bg-amber-500/15 text-amber-800 dark:text-amber-300" : "bg-primary/10 text-primary")}>{d}</div>
+            <div key={d} className={cn("py-2.5 text-center text-[11px] font-bold uppercase tracking-wider", diasDominicais.includes(DOW.indexOf(d)) ? "bg-amber-500/15 text-amber-800 dark:text-amber-300" : "bg-primary/10 text-primary")}>{d}</div>
           ))}
           {antes.map(vazio)}
           {dias.map((d) => {
             const aus = ausenciasVisiveis(d.pessoas, filtros);
-            const extra = aus.length - 5;
+            const passado = d.data < hoje;
+            const ehHoje = d.data === hoje;
+            const bloqueio = bloqueios.get(d.data);
+            // Até 4 em linhas; acima disso, várias pessoas por linha.
+            const compacto = aus.length > 4;
+            const visiveis = aus.slice(0, compacto ? 12 : 4);
+            const extra = aus.length - visiveis.length;
             return (
               <button
                 key={d.data}
@@ -274,15 +342,20 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                 onClick={() => onAbrirDia(d.data)}
                 className={cn(
                   "group flex min-h-[120px] flex-col gap-1.5 bg-card p-2 text-left transition-all hover:z-10 hover:bg-accent/40 hover:shadow-md",
-                  ehDomingo(d.data) && "bg-amber-500/[0.04]",
+                  ehDiaDominical(d.data) && "bg-amber-500/[0.04]",
                   d.feriado_nome && "bg-primary/[0.06]",
-                  d.data === selecionado && "ring-2 ring-inset ring-primary",
+                  bloqueio && "bg-destructive/[0.04]",
                   d.alerta && d.avaliacao.situacao === "abaixo" && "bg-destructive/5",
+                  passado && "bg-muted/30 opacity-60 hover:opacity-100",
+                  ehHoje && "z-[1] bg-primary/[0.08] shadow-md ring-2 ring-inset ring-primary",
+                  d.data === selecionado && !ehHoje && "ring-2 ring-inset ring-primary/60",
                 )}
               >
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex min-w-0 items-center gap-1">
-                    <span className={cn("flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-sm font-bold tabular-nums", d.data === hoje && "bg-primary text-primary-foreground shadow")}>{Number(d.data.slice(8))}</span>
+                    <span className={cn("flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-sm font-bold tabular-nums", ehHoje && "bg-primary text-primary-foreground shadow")}>{Number(d.data.slice(8))}</span>
+                    {ehHoje && <span className="rounded bg-primary/15 px-1 text-[9px] font-bold uppercase tracking-wider text-primary">Hoje</span>}
+                    {bloqueio && <Lock className="h-3.5 w-3.5 shrink-0 text-destructive" aria-label="Data bloqueada"><title>{bloqueio}</title></Lock>}
                     {d.feriado_nome && (
                       <Badge variant="outline" className="truncate border-transparent bg-primary px-1.5 py-0 text-[10px] text-primary-foreground" title={d.feriado_nome}>
                         Feriado
@@ -291,11 +364,13 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                   </div>
                   <span className={cn("inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums", d.alerta && d.avaliacao.situacao === "abaixo" ? "bg-destructive/15 text-destructive" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300")} title="Trabalhando"><Users className="h-3 w-3" />{d.trabalhando}</span>
                 </div>
-                {aus.slice(0, 5).map((a) => (
-                  <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("truncate rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", tomDe(a.tipo, d.data))} title={`${a.nome} · ${a.tipo === "folga" && ehDomingo(d.data) ? "Folga dominical" : TIPO_AUSENCIA_LABEL[a.tipo]}`}>
-                    {primeiroNome(a.nome)}
-                  </span>
-                ))}
+                <div className={cn(compacto ? "flex flex-wrap gap-1" : "flex flex-col gap-1")}>
+                  {visiveis.map((a) => (
+                    <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("inline-flex min-w-0 items-center gap-0.5 truncate rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase", tomDe(a, d.data), compacto && "max-w-full")} title={rotulo(a, d.data)}>
+                      {a.troca && <Repeat className="h-2.5 w-2.5 shrink-0" />}<span className="truncate">{primeiroNome(a.nome)}</span>
+                    </span>
+                  ))}
+                </div>
                 {extra > 0 && <span className="text-[10px] text-muted-foreground">+{extra}</span>}
               </button>
             );

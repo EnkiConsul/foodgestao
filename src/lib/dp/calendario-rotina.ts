@@ -32,11 +32,13 @@ export interface AusenciaCalendario {
   colaborador_id: string;
   nome: string;
   tipo: TipoAusenciaCalendario;
+  troca?: boolean;
+  folga_fixa_dows?: number[];
 }
 
 /** Ausências do dia visíveis com os filtros ativos, ordenadas por tipo e nome. */
 export function ausenciasVisiveis(
-  pessoas: Pick<PessoaPanorama, "colaborador_id" | "nome" | "categoria">[],
+  pessoas: (Pick<PessoaPanorama, "colaborador_id" | "nome" | "categoria"> & Partial<Pick<PessoaPanorama, "folga_troca" | "folga_fixa_dows">>)[],
   ativos: TipoAusenciaCalendario[],
 ): AusenciaCalendario[] {
   const set = new Set(ativos);
@@ -48,7 +50,7 @@ export function ausenciasVisiveis(
     const k = `${p.colaborador_id}:${tipo}`;
     if (vistos.has(k)) continue;
     vistos.add(k);
-    out.push({ colaborador_id: p.colaborador_id, nome: p.nome, tipo });
+    out.push({ colaborador_id: p.colaborador_id, nome: p.nome, tipo, troca: !!p.folga_troca, folga_fixa_dows: p.folga_fixa_dows });
   }
   return out.sort(
     (a, b) => TIPOS_AUSENCIA.indexOf(a.tipo) - TIPOS_AUSENCIA.indexOf(b.tipo) || a.nome.localeCompare(b.nome, "pt-BR"),
@@ -110,4 +112,18 @@ export function periodoHabitual(
   const out = new Map<string, Exclude<PeriodoTurno, "todos">>();
   for (const [id, c] of cont) out.set(id, c.noite > c.dia ? "noite" : "dia");
   return out;
+}
+
+/**
+ * Tipo da folga: dominical quando cai num dia de descanso dominical da unidade.
+ * Em troca, vale o tipo da folga original (dias de folga fixa da jornada),
+ * para o gestor ver que a pessoa trocou semanal por dominical e vice-versa.
+ */
+export function folgaEhDominical(
+  iso: string,
+  diasDominicais: number[],
+  a: { troca?: boolean; folga_fixa_dows?: number[] },
+): boolean {
+  if (a.troca && a.folga_fixa_dows?.length) return a.folga_fixa_dows.some((d) => diasDominicais.includes(d));
+  return diasDominicais.includes(new Date(`${iso}T12:00:00`).getDay());
 }

@@ -1364,6 +1364,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
           {calendario && !panorama.isLoading ? (
             <CalendarioAusenciasMes
               dias={panorama.dias}
+              unidadeId={unidadeId}
               selecionado={data}
               filtros={filtrosCal}
               onFiltros={(f) => save({ extras: { ...(prefs.extras ?? {}), [CAL_FILTROS_KEY]: f } })}

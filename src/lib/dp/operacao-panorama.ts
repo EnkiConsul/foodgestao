@@ -87,6 +87,8 @@ export interface FolgaPanorama {
   /** tipo do registro em dp_folgas: normal | extra | ferias | abono | licenca */
   tipo: string;
   extra?: boolean | null;
+  /** Origem do registro (ex.: "troca"). */
+  origem?: string | null;
 }
 
 export interface AusenciaPanorama {
@@ -186,6 +188,10 @@ export interface PessoaPanorama {
   /** Setor habitual do cadastro, para comparar com o setor da data. */
   setor_habitual_id?: string | null;
   setor_habitual_nome?: string | null;
+  /** Folga vinda de troca aprovada. */
+  folga_troca?: boolean;
+  /** Dias da semana (0=dom) de folga fixa na jornada. */
+  folga_fixa_dows?: number[];
   socio: boolean;
   /** Sócio vinculado a uma unidade e com jornada: conta como parte do quadro. */
   socio_integrado?: boolean;
@@ -458,6 +464,10 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       setor_habitual_nome: colab.setor_id ? nomeSetor.get(colab.setor_id) ?? null : null,
       socio: !!colab.socio,
       socio_integrado: socioIntegrado,
+      folga_troca:
+        categoria === "folga_padrao" &&
+        (folgasPor.get(colab.id) ?? []).some((f) => f.origem === "troca"),
+      folga_fixa_dows: (colab.config?.dias ?? []).filter((d) => !d.trabalha).map((d) => d.dow),
       origem: horario?.origem ?? "jornada",
       ...extrasSemSetor,
     });
