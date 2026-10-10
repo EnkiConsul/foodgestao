@@ -983,6 +983,27 @@ export interface RegrasAdmissao {
 
 const EXIGENCIAS = new Set<string>(["obrigatorio", "opcional", "nao_pedir"]);
 
+const CAMPOS_SO_CLT = [
+  "pis", "pis_nit", "ctps_numero", "ctps_serie", "ctps_uf", "ctps_emissao",
+  "titulo_eleitor", "titulo_zona", "titulo_secao", "reservista", "reservista_categoria",
+];
+const DOCS_SO_CLT = ["ctps", "carteira_trabalho", "pis", "titulo_eleitor", "reservista"];
+
+/** Padrão nativo por vínculo: fora de CLT/intermitente não pede dados de carteira. */
+export function padraoPorVinculo(regime?: string | null): {
+  campos: Record<string, Exigencia>;
+  documentos: Record<string, Exigencia>;
+} {
+  const campos: Record<string, Exigencia> = {};
+  const documentos: Record<string, Exigencia> = {};
+  const r = String(regime ?? "clt").toLowerCase();
+  if (r !== "clt" && r !== "intermitente") {
+    for (const c of CAMPOS_SO_CLT) campos[c] = "nao_pedir";
+    for (const d of DOCS_SO_CLT) documentos[d] = "nao_pedir";
+  }
+  return { campos, documentos };
+}
+
 /**
  * Lê as regras já resolvidas pela especificidade (cargo > vínculo > unidade >
  * empresa). Falha de leitura devolve regras vazias: o padrão do sistema
