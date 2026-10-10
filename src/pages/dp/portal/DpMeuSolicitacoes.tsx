@@ -608,6 +608,14 @@ export default function DpMeuSolicitacoes() {
                 )}
                 {s.status === "pendente" && (
                   <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {s.tipo === "documento" && (
+                      <Button
+                        size="sm"
+                        onClick={() => navigate("/dp/meu/documentos")}
+                      >
+                        <Upload className="h-4 w-4 mr-1" /> Enviar documentos
+                      </Button>
+                    )}
                     {s.tipo === "ferias" && (
                       <Button
                         size="sm"
