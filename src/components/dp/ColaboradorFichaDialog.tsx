@@ -132,6 +132,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit }: ColaboradorFichaDialogProps) {
+  const corpoRef = useRef<HTMLDivElement>(null);
   const { atribuicoes } = useDpBeneficios(colaborador?.id ?? "todos");
   const enquadramento = useSindicatoDoCargo(
     (colaborador as any)?.cargo_id ?? null,
