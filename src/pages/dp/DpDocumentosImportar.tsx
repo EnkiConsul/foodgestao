@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
 import { FileUp, Info, X } from "lucide-react";
-import { DpDocumentosAbas } from "@/components/dp/documentos/DpDocumentosAbas";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { BulkImportPanel } from "@/components/dp/documentos/BulkImportPanel";
@@ -85,7 +84,6 @@ export default function DpDocumentosImportar() {
         title="Importar"
         description="Envie o PDF do escritório contábil. O sistema identifica a natureza, a competência e o colaborador de cada página."
       />
-      <DpDocumentosAbas />
 
       {mostrarAviso && (
         <Alert className="relative pr-10">
