@@ -5,6 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { emitirTermoTrocaGestor, ORIGEM_TROCA_LABEL, type AssinaturaTermo, type OrigemTrocaGestor } from "@/lib/dp/termo-troca-gestor";
 
 interface Props {
   companyId: string;
@@ -25,42 +30,84 @@ interface FolgaDia {
   origem: string | null;
 }
 
-/** Troca da folga fixa pelo gestor: a pessoa trabalha neste dia e folga no novo. */
-function TrocarFolgaFixa({ companyId, colaboradorId, data, onFeito }: { companyId: string; colaboradorId: string; data: string; onFeito: () => void }) {
+/** Troca da folga fixa pelo gestor: a pessoa trabalha neste dia e folga no novo, com termo. */
+function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { companyId: string; colaboradorId: string; data: string; nome: string; onFeito: () => void }) {
   const qc = useQueryClient();
   const [aberto, setAberto] = useState(false);
   const [novaData, setNovaData] = useState("");
+  const [origem, setOrigem] = useState<OrigemTrocaGestor | "">("");
+  const [motivo, setMotivo] = useState("");
+  const [assinatura, setAssinatura] = useState<AssinaturaTermo>("digital");
   const m = useMutation({
     mutationFn: async () => {
       if (!novaData) throw new Error("Escolha o dia em que a pessoa vai folgar.");
+      if (!origem) throw new Error("Informe se a troca foi pedida pelo colaborador ou pela empresa.");
+      const texto = `${ORIGEM_TROCA_LABEL[origem]}${motivo.trim() ? `: ${motivo.trim()}` : ""}`;
       const { error } = await supabase.rpc("dp_folga_admin_trocar_fixa" as never, {
-        p_colaborador: colaboradorId, p_data_fixa: data, p_data_nova: novaData,
+        p_colaborador: colaboradorId, p_data_fixa: data, p_data_nova: novaData, p_motivo: texto,
       } as never);
       if (error) throw error;
+      const { data: emp } = await supabase.from("companies").select("name").eq("id", companyId).maybeSingle();
+      const bytes = await emitirTermoTrocaGestor({
+        companyId, colaboradorId, empresa: (emp as { name?: string } | null)?.name ?? "Empresa", nome,
+        dataFixa: data, dataNova: novaData, origem, motivo: motivo.trim() || null, folgaFixa: true, assinatura,
+      });
+      if (assinatura === "manual") {
+        const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
+        window.open(url, "_blank");
+      }
     },
     onSuccess: () => {
-      toast.success("Folga fixa trocada.");
-      setAberto(false); setNovaData("");
+      toast.success(assinatura === "digital" ? "Folga trocada. Termo enviado ao Portal para assinatura." : "Folga trocada. Termo pronto para imprimir.");
+      setAberto(false); setNovaData(""); setOrigem(""); setMotivo("");
       qc.invalidateQueries({ queryKey: ["dp_dia_trabalho_excepcional"] });
       onFeito();
     },
-    onError: (e) => toast.error("Não foi possível trocar a folga", {
-      description: `${e instanceof Error ? e.message : String(e)} Confira a data e tente de novo.`,
+    onError: (e) => toast.error("Não foi possível concluir a troca", {
+      description: `${e instanceof Error ? e.message : String(e)} Confira os dados e tente de novo.`,
     }),
   });
-  void companyId;
   return (
-    <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
-      {aberto ? (
-        <>
-          <Input type="date" className="h-8 w-40" value={novaData} onChange={(e) => setNovaData(e.target.value)} aria-label="Novo dia de folga" />
-          <Button size="sm" className="h-8" disabled={m.isPending} onClick={() => m.mutate()}>Confirmar</Button>
-          <Button size="sm" variant="ghost" className="h-8" onClick={() => setAberto(false)}>Voltar</Button>
-        </>
-      ) : (
-        <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setAberto(true)}>Trocar folga</Button>
-      )}
-    </div>
+    <>
+      <Button size="sm" variant="outline" className="ml-auto h-7 px-2 text-xs" onClick={() => setAberto(true)}>Trocar folga</Button>
+      <Dialog open={aberto} onOpenChange={setAberto}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Trocar folga fixa</DialogTitle>
+            <DialogDescription>{nome} trabalha neste dia e folga na nova data. Um termo é gerado para assinatura.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Novo dia de folga</Label>
+              <Input type="date" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Quem pediu a troca?</Label>
+              <RadioGroup value={origem} onValueChange={(v) => setOrigem(v as OrigemTrocaGestor)}>
+                {(["colaborador", "empresa"] as const).map((o) => (
+                  <label key={o} className="flex items-center gap-2 text-sm"><RadioGroupItem value={o} /> {ORIGEM_TROCA_LABEL[o]}</label>
+                ))}
+              </RadioGroup>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Motivo (opcional)</Label>
+              <Textarea rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Assinatura do termo</Label>
+              <RadioGroup value={assinatura} onValueChange={(v) => setAssinatura(v as AssinaturaTermo)}>
+                <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="digital" /> Digital pelo Portal</label>
+                <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="manual" /> Impressa, assinatura à mão</label>
+              </RadioGroup>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAberto(false)}>Voltar</Button>
+            <Button disabled={m.isPending} onClick={() => m.mutate()}>Confirmar troca</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
