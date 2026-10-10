@@ -295,6 +295,13 @@
       "when": 1791607365162,
       "tag": "0041_complemento_clt_solicitacao",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1791608827660,
+      "tag": "0042_pendencias_novas_regras",
+      "breakpoints": true
     }
   ]
 }
