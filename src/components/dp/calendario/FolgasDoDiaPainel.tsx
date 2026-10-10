@@ -11,6 +11,8 @@ interface Props {
   data: string;
   /** Nomes de quem pertence à unidade do dia (filtra a lista). */
   nomes: Map<string, string>;
+  /** Só as ações desta pessoa, embutidas na linha de "Fora da Operação". */
+  colaboradorId?: string;
 }
 
 interface FolgaDia {
@@ -26,7 +28,7 @@ interface FolgaDia {
  * Calendário de Folgas (dp_folga_admin_cancelar / dp_folga_admin_remarcar).
  * A folga fixa da jornada não é registro e muda só por troca.
  */
-export function FolgasDoDiaPainel({ companyId, data, nomes }: Props) {
+export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId }: Props) {
   const qc = useQueryClient();
   const [acao, setAcao] = useState<{ item: FolgaDia; tipo: "cancelar" | "remarcar" } | null>(null);
   const [motivo, setMotivo] = useState("");
@@ -118,6 +120,31 @@ export function FolgasDoDiaPainel({ companyId, data, nomes }: Props) {
 
   const itens = (q.data ?? []).filter((i) => nomes.has(i.colaboradorId));
   if (q.isLoading) return null;
+
+  if (colaboradorId) {
+    const i = itens.find((x) => x.colaboradorId === colaboradorId);
+    if (!i) return null;
+    return (
+      <div className="flex w-full flex-wrap items-center justify-end gap-1">
+        {acao?.item.key === i.key ? (
+          <>
+            {acao.tipo === "remarcar" ? (
+              <Input type="date" className="h-8 w-40" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
+            ) : (
+              <Input className="h-8 w-48" placeholder="Motivo (opcional)" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+            )}
+            <Button size="sm" className="h-8" disabled={executar.isPending} onClick={() => executar.mutate()}>Confirmar</Button>
+            <Button size="sm" variant="ghost" className="h-8" onClick={() => setAcao(null)}>Voltar</Button>
+          </>
+        ) : (
+          <>
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); }}>Remarcar</Button>
+            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive" onClick={() => { setAcao({ item: i, tipo: "cancelar" }); setMotivo(""); }}>Cancelar</Button>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
