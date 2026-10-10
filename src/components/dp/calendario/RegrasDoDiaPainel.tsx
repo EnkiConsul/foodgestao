@@ -37,7 +37,7 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
   const navigate = useNavigate();
   const [motivo, setMotivo] = useState("");
   const [limite, setLimite] = useState("");
-  const { query: regrasQ } = useDpFolgaLimites(unidadeId);
+  const { regras: regrasLimite } = useDpFolgaLimites(unidadeId);
 
   const q = useQuery({
     queryKey: ["dp_regras_do_dia", companyId, unidadeId, data],
@@ -106,7 +106,7 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
 
   if (q.isLoading || !q.data) return null;
   const { bloqueio, diaConfig, trocas } = q.data;
-  const resolvido = resolverLimiteFolga({ data, unidadeId, regras: regrasQ.data ?? [], diaConfig });
+  const resolvido = resolverLimiteFolga({ data, unidadeId, regras: regrasLimite ?? [], diaConfig });
   const lim = resolvido.limite;
   const trocasDaUnidade = trocas.filter((t) => nomes.has(t.solicitante_id) || nomes.has(t.destino_id));
 
