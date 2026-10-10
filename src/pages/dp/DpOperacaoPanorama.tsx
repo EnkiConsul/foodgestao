@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   AlertTriangle,
+  ArrowRight,
   CalendarClock,
   CalendarDays,
   Check,
@@ -702,27 +703,44 @@ function DetalheDiaOperacao({
         }
       >
         {avulsosDoDia.length ? (
-          <ul className="divide-y">
-            {avulsosDoDia.map((a) => (
-              <li key={a.id} className="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2">
-                <div className="min-w-0 w-full sm:w-auto">
-                  <p className="truncate text-sm font-medium">
-                    {a.nome ??
-                      (a.colaborador_id ? nomesColaboradores.get(a.colaborador_id) ?? "Colaborador" : "Sem nome")}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {[
-                      a.cargo_nome,
-                      `${a.entrada ?? "--:--"} às ${a.saida ?? "--:--"}${a.termina_no_dia_seguinte ? " (+1)" : ""}`,
-                      a.cobre_nome
-                        ? `Cobrindo ${a.cobre_nome}${a.cobre_motivo ? ` · ${COBRE_MOTIVO_LABEL[a.cobre_motivo] ?? a.cobre_motivo}` : ""}`
-                        : null,
-                      a.data_fim !== a.data_inicio ? `até ${a.data_fim}` : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                  {a.observacao && <p className="text-xs text-muted-foreground">{a.observacao}</p>}
+          <ul className="grid gap-2 lg:grid-cols-2">
+            {avulsosDoDia.map((a) => {
+              const nomeAvulso =
+                a.nome ??
+                (a.colaborador_id ? nomesColaboradores.get(a.colaborador_id) ?? "Colaborador" : "Sem nome");
+              const iniciais = nomeAvulso.trim().split(/\s+/).slice(0, 2).map((x) => x[0]).join("");
+              return (
+              <li
+                key={a.id}
+                className="flex flex-col items-start gap-2 rounded-xl border border-border bg-background p-3 transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+              >
+                <div className="flex min-w-0 w-full items-center gap-2.5 sm:w-auto">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold uppercase text-primary">
+                    {iniciais}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{nomeAvulso}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {[
+                        a.cargo_nome,
+                        `${a.entrada ?? "--:--"} às ${a.saida ?? "--:--"}${a.termina_no_dia_seguinte ? " (+1)" : ""}`,
+                        a.data_fim !== a.data_inicio ? `até ${a.data_fim}` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                    {a.cobre_nome ? (
+                      <p className="mt-1.5 inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-lg bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                        <span className="truncate">{nomeAvulso.split(" ")[0]}</span>
+                        <ArrowRight className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">cobrindo {a.cobre_nome}</span>
+                        <span className="rounded-full bg-background px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                          {a.cobre_motivo ? COBRE_MOTIVO_LABEL[a.cobre_motivo] ?? a.cobre_motivo : "cobertura"}
+                        </span>
+                      </p>
+                    ) : null}
+                    {a.observacao && <p className="mt-1 text-xs text-muted-foreground">{a.observacao}</p>}
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
                   <Badge variant="secondary" className="max-w-full whitespace-normal text-left leading-tight">
@@ -752,7 +770,8 @@ function DetalheDiaOperacao({
                   )}
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         ) : (
           <p className="text-sm text-muted-foreground">
