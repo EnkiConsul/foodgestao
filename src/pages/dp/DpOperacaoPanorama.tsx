@@ -1499,6 +1499,25 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
             </>
           )}
         </TabsContent>
+
+        {calendario &&
+          ABAS_CALENDARIO_EXTRAS.map(({ value, Panel }) => (
+            <TabsContent key={value} value={value} className="space-y-4">
+              {aba === value && (
+                <DpEmbeddedProvider>
+                  <Suspense
+                    fallback={
+                      <div className="flex justify-center py-16 text-muted-foreground">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      </div>
+                    }
+                  >
+                    <Panel />
+                  </Suspense>
+                </DpEmbeddedProvider>
+              )}
+            </TabsContent>
+          ))}
       </Tabs>
 
       <Dialog open={!!dataPopout} onOpenChange={(o) => !o && setDataPopout(null)}>
