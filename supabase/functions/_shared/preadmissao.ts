@@ -1025,8 +1025,9 @@ export async function regrasAdmissao(
       .eq("ativo", true)
       .order("nome"),
   ]);
-  const campos: Record<string, Exigencia> = {};
-  const documentos: Record<string, Exigencia> = {};
+  // Padrão nativo por vínculo: sem CLT não há CTPS/PIS/título/reservista.
+  // Regras configuradas pela empresa (abaixo) sempre prevalecem.
+  const { campos, documentos } = padraoPorVinculo(regime);
   if (resolvidas.error) logFalha("regras de admissão não lidas", resolvidas.error);
   for (const r of (resolvidas.data ?? []) as { tipo: string; chave: string; exigencia: string }[]) {
     if (!EXIGENCIAS.has(r.exigencia)) continue;
