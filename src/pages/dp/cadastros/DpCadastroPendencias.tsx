@@ -31,7 +31,6 @@ const PRAZO_FIELDS: Array<{
 
   { key: "alerta_contracheque_dia_mes", label: "Contracheque (dia limite do mês)", helper: "A partir desse dia do mês, cobra o contracheque do mês anterior por unidade.", min: 1, max: 31 },
   { key: "alerta_adiantamento_offset", label: "Adiantamento (dias após o dia de pagamento)", helper: "Somado ao 'dia_adiantamento' da unidade. Ex.: 5 → cobra 5 dias após.", min: 1, max: 31 },
-  { key: "alerta_folha_ponto_dia_mes", label: "Folha de ponto recebida (dia limite do mês)", helper: "A partir desse dia, cobra a folha de ponto do mês anterior (vinda da contabilidade) nas unidades com relógio de ponto.", min: 1, max: 31 },
   { key: "alerta_ferias_dias", label: "Férias (dias antes do limite concessivo)", helper: "Janela para alertar sobre períodos aquisitivos com saldo prestes a vencer.", min: 1, max: 365 },
   { key: "alerta_negociacao_dias", label: "Negociação coletiva (dias antes do vencimento)", helper: "Janela para começar a alertar antes do vencimento anual da última negociação.", min: 1, max: 180 },
   { key: "alerta_comprovante_dias", label: "Comprovante de pagamento (dias após o documento)", helper: "Dias após a data do documento de pagamento até a falta do comprovante virar pendência atrasada.", min: 1, max: 60 },

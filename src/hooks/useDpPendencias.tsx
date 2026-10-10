@@ -18,6 +18,10 @@ import { alertaPendenciaFerias, periodosComAcumulo, regimeTemFeriasLegais } from
 import { AVISO_FERIAS_PRAZO_DIAS } from "@/lib/dp/ferias-aviso";
 import { compararUrgencia } from "@/lib/dp/pendencias";
 import { mesclarConfidencial } from "@/lib/dp/confidencial";
+
+// Dia limite fixo para cobrar a folha de ponto da contabilidade (rotina
+// interna; removido da tela de prazos por não ser configurável pela empresa).
+const DIA_LIMITE_FOLHA_PONTO = 10;
 import { confirmacaoVencida } from "@/lib/dp/contatosEmergencia";
 import { TIPOS_COM_COMPROVANTE } from "@/lib/dp/documentoTipos";
 
@@ -575,7 +579,7 @@ export function useDpPendencias() {
         idPrefix: "folha_ponto",
         icludeUnidade: (u) => !!u.possui_relogio_ponto,
         comps: (u) => compsPorUnidade.get(u.id)?.ateAnterior ?? [],
-        vencimentoDe: (_u, comp) => limiteMesSeguinte(comp, cfg.alerta_folha_ponto_dia_mes),
+        vencimentoDe: (_u, comp) => limiteMesSeguinte(comp, DIA_LIMITE_FOLHA_PONTO),
       });
 
       // 5a. Intermitente sem nenhum registro na competência: ALERTA (não falta).
@@ -592,7 +596,7 @@ export function useDpPendencias() {
               elegibilidadeDe("contracheque", { ...c, regime: "clt" }, u, comp) ||
               elegibilidadeDe("ponto", { ...c, regime: "clt" }, u, comp);
             if (!cobraria) continue;
-            const vencimento = limiteMesSeguinte(comp, cfg.alerta_folha_ponto_dia_mes);
+            const vencimento = limiteMesSeguinte(comp, DIA_LIMITE_FOLHA_PONTO);
             results.push({
               id: `intermitente-${c.id}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`,
               icon: Clock,
