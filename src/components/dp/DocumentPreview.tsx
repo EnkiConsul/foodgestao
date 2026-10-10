@@ -24,6 +24,8 @@ interface DocumentPreviewProps {
   toolbar?: React.ReactNode;
   /** Documento do DP cujo comprovante de pagamento aparece logo abaixo, na mesma rolagem. */
   comprovanteDocumentoId?: string | null;
+  /** Documento assinado: o comprovante bancário já está no certificado; mostra só o recibo em dinheiro vinculado. */
+  somenteReciboVinculado?: boolean;
   /** Comprovantes complementares (bucket dp-documentos), exibidos na mesma rolagem. */
   comprovantesExtras?: { id: string; path: string; mime: string | null }[];
   /** Mensagem de espera: nada é carregado enquanto estiver definida. */
@@ -47,20 +49,23 @@ export function DocumentPreview({
   expiresIn = 300,
   toolbar,
   comprovanteDocumentoId,
+  somenteReciboVinculado = false,
   comprovantesExtras,
   aguardando,
   acaoRodape,
 }: DocumentPreviewProps) {
   const [comprovante, setComprovante] = useState<{ url: string; mime: string | null; nome: string | null } | null>(null);
-  const [recibo, setRecibo] = useState<{ url: string; mime: string | null; nome: string | null } | null>(null);
+  const [recibo, setRecibo] = useState<{ url: string; mime: string | null; nome: string | null; assinado: boolean } | null>(null);
   useEffect(() => {
     setComprovante(null);
     setRecibo(null);
     if (!open || !comprovanteDocumentoId || aguardando) return;
     let cancelado = false;
-    linkDocumentoAssinado(comprovanteDocumentoId, expiresIn, "comprovante")
-      .then((l) => { if (!cancelado && l) setComprovante({ url: l.url, mime: l.mimeType, nome: l.fileName }); })
-      .catch(() => undefined);
+    if (!somenteReciboVinculado) {
+      linkDocumentoAssinado(comprovanteDocumentoId, expiresIn, "comprovante")
+        .then((l) => { if (!cancelado && l) setComprovante({ url: l.url, mime: l.mimeType, nome: l.fileName }); })
+        .catch(() => undefined);
+    }
     // Pagamento em dinheiro/misto: o recibo vinculado entra na mesma rolagem.
     supabase
       .from("dp_documentos")
@@ -70,11 +75,15 @@ export function DocumentPreview({
       .then(async ({ data }) => {
         const rid = (data as { comprovante_recibo_documento_id?: string | null } | null)?.comprovante_recibo_documento_id;
         if (!rid || cancelado) return;
-        const l = await linkDocumentoAssinado(rid, expiresIn).catch(() => null);
-        if (!cancelado && l) setRecibo({ url: l.url, mime: l.mimeType, nome: l.fileName });
+        const [l, aceite] = await Promise.all([
+          linkDocumentoAssinado(rid, expiresIn).catch(() => null),
+          supabase.from("dp_documento_aceites").select("id").eq("documento_id", rid).limit(1),
+        ]);
+        const assinado = (aceite.data ?? []).length > 0;
+        if (!cancelado && l) setRecibo({ url: l.url, mime: l.mimeType, nome: l.fileName, assinado });
       });
     return () => { cancelado = true; };
-  }, [open, comprovanteDocumentoId, expiresIn, aguardando]);
+  }, [open, comprovanteDocumentoId, somenteReciboVinculado, expiresIn, aguardando]);
   const extrasChave = (comprovantesExtras ?? []).map((e) => e.path).join("|");
   const [extras, setExtras] = useState<{ id: string; url: string; mime: string | null; path: string }[]>([]);
   useEffect(() => {
@@ -91,7 +100,7 @@ export function DocumentPreview({
   const listaComprovantes: { id: string; url: string; mime: string | null; path: string; rotulo?: string }[] = [
     ...(comprovante ? [{ id: "principal", url: comprovante.url, mime: comprovante.mime, path: comprovante.nome ?? "" }] : []),
     ...extras,
-    ...(recibo ? [{ id: "recibo", url: recibo.url, mime: recibo.mime, path: recibo.nome ?? "", rotulo: "Recibo do Valor em Dinheiro" }] : []),
+    ...(recibo ? [{ id: "recibo", url: recibo.url, mime: recibo.mime, path: recibo.nome ?? "", rotulo: recibo.assinado ? "Recibo do Valor em Dinheiro · Assinado" : "Recibo do Valor em Dinheiro · Aguardando assinatura" }] : []),
   ];
   const temAnexos = listaComprovantes.length > 0;
   const scrollRef = useRef<HTMLDivElement>(null);

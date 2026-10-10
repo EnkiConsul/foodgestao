@@ -700,7 +700,7 @@ export default function DpHistoricoCompleto() {
       label: "Aceite", sortKey: "aceite_label", center: true,
       value: (r) => aceiteLabel(r),
       render: (r) => (
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-1">
           {r.aceite === null
             ? (r.aceiteDispensado
                 ? <Badge variant="outline" className="border-sky-300 text-sky-700 text-[11px]">Dispensado</Badge>
@@ -708,6 +708,7 @@ export default function DpHistoricoCompleto() {
             : r.aceite
               ? <Badge variant="outline" className="border-emerald-300 text-emerald-700 text-[11px]">Aceito</Badge>
               : <Badge variant="outline" className="border-amber-300 text-amber-700 text-[11px]">Aguardando</Badge>}
+          <QuitacaoSelo q={r.quitacao} />
         </div>
       ),
       cellClass: "whitespace-normal align-top text-center",
@@ -1164,7 +1165,6 @@ export default function DpHistoricoCompleto() {
                           className="h-8 w-8 p-0"
                         />
                       )}
-                      <QuitacaoSelo q={r.quitacao} />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -1317,12 +1317,13 @@ export default function DpHistoricoCompleto() {
         // Usa a versão mais recente da lista: o comprovante recém-importado aparece sem reabrir.
         comprovanteDocumentoId={(() => {
           if (!preview || !preview.id.startsWith("doc:")) return null;
-          // Assinado: o comprovante já vem dentro do certificado de validação.
-          if (certPreview) return null;
           const lista = Array.isArray(query.data) ? (query.data as UnifiedDoc[]) : [];
           const atual = lista.find((r) => r.id === preview.id) ?? preview;
           return atual.tem_comprovante ? preview.id.slice(4) : null;
         })()}
+        // Assinado: o comprovante bancário já vem dentro do certificado; o recibo em
+        // dinheiro é outro documento e continua aparecendo abaixo.
+        somenteReciboVinculado={!!certPreview}
         comprovantesExtras={extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null }))}
         toolbar={preview && (preview.aceite !== null || preview.aceiteDispensado || preview.viaFisica || preview.quitacao) ? (
           <div className="mt-2 flex flex-wrap items-center gap-2">
