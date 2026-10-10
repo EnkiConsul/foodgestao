@@ -28,6 +28,7 @@ import {
   justificativaValida,
   pontoObrigatorioPorLotacao,
 } from "@/lib/dp/ponto-conformidade";
+import { POLITICA_LABEL, politicaPedeData, registrarPeriodosPolitica, type PoliticaUnidade } from "@/lib/dp/unidadePoliticas";
 import { forcarRecargaPendencias } from "@/lib/dp/pendencias-resolver";
 
 
@@ -263,6 +264,34 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
   const justificativaAlterada =
     justificativaPonto.trim() !== (unidade?.relogio_ponto_dispensa_justificativa ?? "").trim();
 
+  // Data de início (ao ligar) ou de fim (ao desligar) de cada política da unidade.
+  const [datasPolitica, setDatasPolitica] = useState<Partial<Record<PoliticaUnidade, string>>>({});
+  useEffect(() => { if (open) setDatasPolitica({}); }, [open, unidade?.id]);
+  const unidadeNova = !unidade && !criadaId;
+  const politicasForm: { politica: PoliticaUnidade; original: boolean | null | undefined; atual: boolean }[] = [
+    { politica: "relogio_ponto", original: unidade?.possui_relogio_ponto, atual: form.possui_relogio_ponto },
+    { politica: "banco_horas", original: unidade?.banco_horas, atual: form.banco_horas },
+    { politica: "compensa_feriados", original: unidade?.compensa_feriados, atual: form.compensa_feriados },
+    { politica: "adiantamento", original: unidade?.tem_adiantamento, atual: form.tem_adiantamento },
+  ];
+  const politicasPendentes = politicasForm.filter((p) => politicaPedeData(p.original, p.atual, unidadeNova));
+  const campoData = (politica: PoliticaUnidade, ativo: boolean) => {
+    if (!politicasPendentes.some((p) => p.politica === politica)) return null;
+    const id = `data_${politica}`;
+    return (
+      <div className="space-y-1">
+        <Label htmlFor={id} className="text-xs">{ativo ? "Data de Início *" : "Data de Fim *"}</Label>
+        <Input
+          id={id}
+          type="date"
+          className="w-44"
+          value={datasPolitica[politica] ?? ""}
+          onChange={(e) => setDatasPolitica((d) => ({ ...d, [politica]: e.target.value }))}
+        />
+      </div>
+    );
+  };
+
   const save = async () => {
     if (!form.company_id) {
       toast.error("Selecione a empresa vinculada");
@@ -282,6 +311,14 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
       setAba("dados");
       toast.error("Justifique a dispensa do relógio de ponto", {
         description: `A unidade tem mais de 20 colaboradores ativos (Art. 74 da CLT). Escreva pelo menos ${MIN_JUSTIFICATIVA_PONTO} letras.`,
+      });
+      return;
+    }
+    const semData = politicasPendentes.find((p) => !datasPolitica[p.politica]);
+    if (semData) {
+      setAba("dados");
+      toast.error(`Informe a data ${semData.atual ? "de início" : "de fim"}: ${POLITICA_LABEL[semData.politica]}`, {
+        description: "A data garante que ponto, banco de horas, feriados e adiantamento sejam calculados no período correto.",
       });
       return;
     }
@@ -337,6 +374,12 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
         forcarRecargaPendencias(form.company_id);
       }
+      await registrarPeriodosPolitica(
+        form.company_id,
+        salva.id,
+        politicasPendentes.map((p) => ({ politica: p.politica, ativo: p.atual, data: datasPolitica[p.politica]! })),
+      );
+      setDatasPolitica({});
       if (salvarFuncionamento.current) await salvarFuncionamento.current();
       onSaved?.(salva);
       if (unidade || criadaId) {
