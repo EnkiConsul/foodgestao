@@ -407,11 +407,25 @@ export function DpPessoaAvulsaDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{registro ? "Editar Pessoa no Dia" : "Adicionar Pessoa no Dia"}</DialogTitle>
+          <DialogTitle>{registro ? "Editar Pessoa no Dia" : "Mão de obra extra"}</DialogTitle>
           <DialogDescription>
-            Adicione uma pessoa à equipe deste dia. Ela aparece na rotina e conta no quadro.
+            {registro ? "Ajuste a pessoa na equipe deste dia." : "Escolha se vai só registrar o reforço ou fazer uma convocação formal."}
           </DialogDescription>
         </DialogHeader>
+        {!registro && onIrParaConvocacao && (
+          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Tipo de mão de obra extra">
+            <button type="button" role="radio" aria-checked="true" className="rounded-lg border-2 border-primary bg-primary/10 p-2.5 text-left text-xs">
+              <b className="block text-sm">Registrar agora</b>Reforço imediato: entra direto na rotina do dia.
+            </button>
+            <button
+              type="button" role="radio" aria-checked="false"
+              className="rounded-lg border p-2.5 text-left text-xs hover:border-primary"
+              onClick={() => onIrParaConvocacao({ unidadeId: form.unidade_id || unidadePadrao || "", cargoId: form.cargo_id, data: form.data_inicio, colaboradorId: form.colaborador_id })}
+            >
+              <b className="block text-sm">Convocação formal</b>Intermitente com antecedência e aceite no Portal.
+            </button>
+          </div>
+        )}
         <div className="grid max-h-[65vh] gap-3 overflow-y-auto py-2 pr-1">
           <div className="grid gap-1.5">
             <div className="flex items-center gap-1.5">

@@ -406,6 +406,7 @@ interface DetalheDiaProps {
   compacto?: boolean;
   regimes?: Map<string, string>;
   periodosHabituais?: Map<string, "dia" | "noite" | "madrugada">;
+  onContagemTurno?: (c: { n: number; turno: string } | null) => void;
   acoesFolga?: (colaboradorId: string, folgaFixa: boolean) => React.ReactNode;
 }
 
@@ -447,6 +448,7 @@ function DetalheDiaOperacao({
   compacto = false,
   regimes,
   periodosHabituais,
+  onContagemTurno,
   acoesFolga,
 }: DetalheDiaProps) {
   const navigate = useNavigate();
@@ -489,7 +491,7 @@ function DetalheDiaOperacao({
     let melhor: "dia" | "noite" | "madrugada" | "todos" = "todos";
     let max = -1;
     for (const [k, v] of contagemPeriodos) if (v > max) { max = v; melhor = k; }
-    return contagemPeriodos.size > 1 ? melhor : "todos";
+    void melhor; return "todos";
   }, [contagemPeriodos]);
   // Escolha do gestor vale para o dia aberto; ao trocar de dia volta ao turno mais cheio.
   const [escolhaPeriodo, setEscolhaPeriodo] = useState<{ data: string; p: "todos" | "dia" | "noite" | "madrugada" } | null>(null);
@@ -504,6 +506,8 @@ function DetalheDiaOperacao({
     : foraDaOperacao.filter((p) => { const per = periodoPessoa(p); return !per || per === periodo; });
   const blocosVisiveis = periodo === "todos" ? blocos : blocos.filter((b) => periodoBloco(b) === periodo);
   const totalPessoas = blocos.reduce((s, b) => s + b.pessoas.length, 0);
+  const qtdTurno = periodo === "todos" ? null : blocosVisiveis.reduce((s, b) => s + b.pessoas.length, 0);
+  useEffect(() => { onContagemTurno?.(qtdTurno == null ? null : { n: qtdTurno, turno: periodo }); }, [qtdTurno, periodo, onContagemTurno]);
 
   const foraDoPadrao = dia.avaliacao.situacao !== "sem_padrao" && dia.avaliacao.situacao !== "ok" && (
         <Secao
@@ -650,9 +654,9 @@ function DetalheDiaOperacao({
           const IconeTurno = noite ? Moon : Sun;
           return (
           <div key={bloco.key} className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-            <div className={cn("flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3", noite ? "bg-secondary/60" : "bg-primary/10")}>
+            <div className={cn("flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3", noite ? "bg-slate-900 text-slate-50 dark:bg-slate-950" : "bg-primary/10")}>
               <div className="flex min-w-0 items-center gap-3">
-                <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", noite ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground")}>
+                <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", noite ? "bg-slate-700 text-indigo-100" : "bg-primary text-primary-foreground")}>
                   <IconeTurno className="h-5 w-5" />
                 </span>
                 <div className="min-w-0">
@@ -957,6 +961,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
   const [detalheAvulso, setDetalheAvulso] = useState<"avulso_teste" | "avulso_folguista" | null>(null);
   /** Dia aberto em janela a partir do calendário do mês. */
   const [dataPopout, setDataPopout] = useState<string | null>(null);
+  const [contagemTurno, setContagemTurno] = useState<{ n: number; turno: string } | null>(null);
   const { selectedCompanyId: companyIdCal } = useCompanyContext();
   const [folgaColab, setFolgaColab] = useState<string>("");
   const [folgaTriagem, setFolgaTriagem] = useState(false);
@@ -1786,7 +1791,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               </Button>
             </div>
             <DialogDescription className="text-center">
-              {diaPopout ? `${diaPopout.trabalhando} trabalhando` : "Rotina prevista para o dia"}
+              {diaPopout ? (contagemTurno ? `${contagemTurno.n} trabalhando no turno ${({ dia: "Dia", noite: "Noite", madrugada: "Madrugada" } as Record<string, string>)[contagemTurno.turno] ?? ""}` : `${diaPopout.trabalhando} trabalhando`) : "Rotina prevista para o dia"}
               {diaPopout && diaPopout.aguardando > 0 ? ` · ${diaPopout.aguardando} aguardando resposta` : ""}
               {diaPopout?.feriado_nome && (
                 <Badge variant="outline" className="ml-2 border-primary/40 text-primary">
@@ -1863,6 +1868,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               {...propsSetor}
                 regimes={regimesColab}
                 periodosHabituais={periodosHab}
+                onContagemTurno={setContagemTurno}
                 acoesFolga={calendario && companyIdCal ? (id, fixa) => (
                   <FolgasDoDiaPainel
                     companyId={companyIdCal}
