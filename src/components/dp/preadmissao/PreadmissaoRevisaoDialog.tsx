@@ -11,6 +11,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   AlertTriangle, CheckCircle2, Clock, Download, Eye, FileUp, Loader2, Plus, Printer, Trash2, XCircle,
 } from "lucide-react";
@@ -429,6 +435,38 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
    * envio automático: o gestor baixa e encaminha. Na primeira geração a
    * pré-admissão avança para a etapa Contabilidade.
    */
+  const queryClient = useQueryClient();
+  const [efetivando, setEfetivando] = useState(false);
+  const [confirmarClt, setConfirmarClt] = useState(false);
+  const regimeAtual = admin.regime_trabalho || data?.preadmissao?.regime_previsto || "clt";
+  const isClt = regimeAtual === "clt" || regimeAtual === "intermitente";
+  const statusAtual = data?.preadmissao?.status as string | undefined;
+  const podeEfetivar = ["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"]
+    .includes(statusAtual ?? "");
+  const efetivarDireto = async (confirmado: boolean) => {
+    const id = data?.preadmissao?.id;
+    if (!id) return;
+    setEfetivando(true);
+    try {
+      const { error } = await supabase.rpc("dp_preadmissao_efetivar_direto", {
+        p_preadmissao_id: id,
+        p_data_admissao: admin.data_admissao || undefined,
+        p_confirmo_sem_ficha: confirmado,
+      });
+      if (error) throw error;
+      toast.success("Colaborador efetivado com os dados, documentos e dependentes da pré-admissão.");
+      await queryClient.invalidateQueries();
+    } catch (e) {
+      notifyError(e, "Não foi possível efetivar o colaborador");
+    } finally {
+      setEfetivando(false);
+      setConfirmarClt(false);
+    }
+  };
+  const pedirEfetivacao = () => {
+    if (isClt && !data?.preadmissao?.ficha_oficial_conferida_em) setConfirmarClt(true);
+    else void efetivarDireto(false);
+  };
   const [gerando, setGerando] = useState(false);
   const gerarFicha = async () => {
     if (!data) return;
