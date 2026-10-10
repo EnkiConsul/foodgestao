@@ -309,6 +309,13 @@
       "when": 1791670546464,
       "tag": "0043_dp_folga_admin_trocar_fixa",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1791674295538,
+      "tag": "0044_motivo_dia_trabalho_excepcional",
+      "breakpoints": true
     }
   ]
 }
