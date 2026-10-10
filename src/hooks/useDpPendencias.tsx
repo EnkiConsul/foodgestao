@@ -18,6 +18,10 @@ import { alertaPendenciaFerias, periodosComAcumulo, regimeTemFeriasLegais } from
 import { AVISO_FERIAS_PRAZO_DIAS } from "@/lib/dp/ferias-aviso";
 import { compararUrgencia } from "@/lib/dp/pendencias";
 import { mesclarConfidencial } from "@/lib/dp/confidencial";
+
+// Dia limite fixo para cobrar a folha de ponto da contabilidade (rotina
+// interna; removido da tela de prazos por não ser configurável pela empresa).
+const DIA_LIMITE_FOLHA_PONTO = 10;
 import { confirmacaoVencida } from "@/lib/dp/contatosEmergencia";
 import { TIPOS_COM_COMPROVANTE } from "@/lib/dp/documentoTipos";
 
