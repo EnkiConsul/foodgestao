@@ -6,6 +6,8 @@ import { DpFilters, DpFilterField, type DpFilterChip } from "@/components/dp/DpF
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import type { Pendencia } from "@/hooks/useDpPendencias";
 import {
   Select,
   SelectContent,
@@ -61,6 +63,7 @@ export default function DpCadastroPendenciasLista() {
   const [mostrarAdiadas, setMostrarAdiadas] = useState(false);
   const [filtro, setFiltro] = useState<Filtro>(FILTRO_INICIAL);
   const [busca, setBusca] = useState("");
+  const [detalhe, setDetalhe] = useState<Pendencia | null>(null);
 
   const adiamentos = useMemo(
     () => ({ ...prefs.pendencias_adiadas, ...adiadas }),
@@ -115,8 +118,19 @@ export default function DpCadastroPendenciasLista() {
   const renderItem = (p: (typeof base)[number]) => {
     const adiada = !filtrarAbertas([p], adiamentos).length;
     const decisao = decisaoDe.get(p.id);
+    const qtdPessoas = p.escopo === "unidade" ? p.pessoas?.length ?? 0 : 0;
     return (
-      <div key={p.id} className="flex items-start gap-3 rounded-xl border border-border bg-card p-3">
+      <div
+        key={p.id}
+        role="button"
+        tabIndex={0}
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest("button,a,[role=dialog]")) return;
+          setDetalhe(p);
+        }}
+        onKeyDown={(e) => { if (e.key === "Enter" && e.target === e.currentTarget) setDetalhe(p); }}
+        className="flex items-start gap-3 rounded-xl border border-border bg-card p-3 cursor-pointer hover:bg-muted/40 transition-colors"
+      >
         <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
           <p.icon className="h-4 w-4 text-primary" />
         </div>
@@ -128,6 +142,12 @@ export default function DpCadastroPendenciasLista() {
           <p className="text-xs text-muted-foreground break-words">{p.subtitulo}</p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
             <span>{p.tipo}</span>
+            {qtdPessoas > 0 && (
+              <Badge variant="secondary" className="text-[11px] gap-1">
+                <UserRound className="h-3 w-3" />
+                {qtdPessoas} colaborador{qtdPessoas === 1 ? "" : "es"}
+              </Badge>
+            )}
             {p.unidadeNome && <span>Unidade: {p.unidadeNome}</span>}
             {p.vencimento && <span>Prazo: {new Date(p.vencimento + "T12:00:00").toLocaleDateString("pt-BR")}</span>}
             {adiada && adiamentos[p.id] && (
@@ -287,6 +307,45 @@ export default function DpCadastroPendenciasLista() {
           </section>
         )}
       </div>
+      <Dialog open={!!detalhe} onOpenChange={(o) => !o && setDetalhe(null)}>
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+          {detalhe && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{detalhe.titulo}</DialogTitle>
+                <DialogDescription>{detalhe.subtitulo}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 text-sm">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <span>{detalhe.tipo}</span>
+                  {detalhe.unidadeNome && <span>Unidade: {detalhe.unidadeNome}</span>}
+                  {detalhe.vencimento && <span>Prazo: {new Date(detalhe.vencimento + "T12:00:00").toLocaleDateString("pt-BR")}</span>}
+                </div>
+                {(detalhe.pessoas?.length ?? 0) > 0 ? (
+                  <div className="space-y-1">
+                    <p className="font-medium">Colaboradores ({detalhe.pessoas!.length})</p>
+                    <ul className="divide-y divide-border rounded-lg border border-border">
+                      {detalhe.pessoas!.map((pp, i) => (
+                        <li key={`${pp.nome}-${i}`} className="flex items-center justify-between gap-2 px-3 py-2">
+                          <span className="break-words">{pp.nome}</span>
+                          {pp.desligamento && (
+                            <span className="text-xs text-muted-foreground shrink-0">
+                              Desligado em {new Date(pp.desligamento.slice(0, 10) + "T12:00:00").toLocaleDateString("pt-BR")}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : detalhe.colaboradorNome ? (
+                  <p>Colaborador: <span className="font-medium">{detalhe.colaboradorNome}</span></p>
+                ) : null}
+                <PendenciaAcoes pendencia={detalhe} onNavigate={() => setDetalhe(null)} onResolved={() => setDetalhe(null)} />
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </DpPage>
   );
 }
