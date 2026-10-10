@@ -69,6 +69,7 @@ import { CalendarioAusenciasMes } from "@/components/dp/calendario/CalendarioAus
 import { FolgasDoDiaPainel } from "@/components/dp/calendario/FolgasDoDiaPainel";
 import { RegrasDoDiaPainel, BloqueioDoDiaCabecalho } from "@/components/dp/calendario/RegrasDoDiaPainel";
 import { filtrosSalvos, periodoHabitual, primeiroNome } from "@/lib/dp/calendario-rotina";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { DpStatCard } from "@/components/dp/DpStatCard";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";

@@ -47,7 +47,7 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
           .eq("data", data),
         supabase
           .from("dp_dia_config")
-          .select("limite_folgas, unidade_id")
+          .select("data, limite_folgas, unidade_id")
           .eq("company_id", companyId)
           .eq("data", data),
         supabase
@@ -63,7 +63,7 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
         l.find((x) => x.unidade_id === unidadeId) ?? l.find((x) => x.unidade_id === null) ?? null;
       return {
         bloqueio: daUnidade((bloq.data ?? []).filter((b) => !b.liberada)),
-        limite: daUnidade(cfg.data ?? [])?.limite_folgas ?? null,
+        diaConfig: cfg.data ?? [],
         trocas: trocas.error ? [] : trocas.data ?? [],
       };
     },
@@ -107,7 +107,7 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
 
   return (
     <div className="space-y-3">
-      {!(ocultarBloqueio && bloqueio) && <div className="space-y-1.5">
+      {!ocultarBloqueio && <div className="space-y-1.5">
         <p className="text-xs font-medium text-muted-foreground">Bloqueio de folgas</p>
         {bloqueio ? (
           <div className="flex flex-wrap items-center gap-2">
