@@ -1169,6 +1169,24 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
     p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria) && !p.socio_integrado;
 
 
+  // Atalhos do Calendário: ← → navegam, H volta para hoje.
+  useEffect(() => {
+    if (!calendario) return;
+    const h = (e: KeyboardEvent) => {
+      if (dataPopout || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.closest("input,textarea,select,[contenteditable=true],[role=combobox],[role=dialog],[role=menu]"))) return;
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        const k = e.key === "ArrowLeft" ? -1 : 1;
+        setData(aba === "mes" ? `${somarMeses(competencia, k)}-01` : somarDias(data, k));
+      } else if (e.key === "h" || e.key === "H") setData(hojeIso());
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [calendario, dataPopout, aba, competencia, data, setData]);
+
   return (
     <DpPage>
       <Helmet>
@@ -1181,7 +1199,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
 
       <DpPageHeader
         title={calendario ? "Calendário" : "Operação"}
-        description={calendario ? "Folgas, férias, faltas, convocações e setores da loja em um só lugar." : "Quantas pessoas a operação tem em cada dia — sem precisar gerar escala."}
+        description={calendario ? undefined : "Quantas pessoas a operação tem em cada dia — sem precisar gerar escala."}
         icon={CalendarClock}
         actions={
           podeRegistrar ? (
@@ -1248,7 +1266,40 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
         onSalvar={salvarAvulsa}
       />
 
-      {(aba === "dia" || aba === "mes") && (
+      {calendario && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border bg-card px-3 py-2 shadow-sm">
+          <div className="inline-flex items-center rounded-full border bg-background p-0.5">
+            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" aria-label="Anterior"
+              onClick={() => setData(aba === "mes" ? `${somarMeses(competencia, -1)}-01` : somarDias(data, -1))}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="min-w-[9.5rem] px-1 text-center text-sm font-bold first-letter:uppercase">
+              {aba === "mes" ? competenciaExtenso(competencia) : dataExtenso(data)}
+            </span>
+            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" aria-label="Próximo"
+              onClick={() => setData(aba === "mes" ? `${somarMeses(competencia, 1)}-01` : somarDias(data, 1))}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button variant="secondary" size="sm" className="h-8 rounded-full" onClick={() => setData(hojeIso())}>Hoje</Button>
+          <Input
+            aria-label={aba === "mes" ? "Competência" : "Dia"}
+            className="h-8 w-40 rounded-full"
+            type={aba === "mes" ? "month" : "date"}
+            value={aba === "mes" ? competencia : data}
+            onChange={(e) => setData(aba === "mes" ? `${e.target.value || hojeIso().slice(0, 7)}-01` : e.target.value || hojeIso())}
+          />
+          <Select value={unidade && unidade !== "todas" ? unidade : undefined} onValueChange={trocarUnidade}>
+            <SelectTrigger className="h-8 w-56 rounded-full" aria-label="Unidade"><SelectValue placeholder="Escolha a unidade" /></SelectTrigger>
+            <SelectContent>
+              {panorama.unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {aba === "dia" && dia && <SituacaoBadge dia={dia} />}
+        </div>
+      )}
+
+      {!calendario && (aba === "dia" || aba === "mes") && (
       <DpFilterCard>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
@@ -1323,7 +1374,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
       </DpFilterCard>
       )}
 
-      <Tabs value={aba} onValueChange={trocarAba} className="space-y-4">
+      <Tabs value={aba} onValueChange={trocarAba} className={calendario ? "space-y-3" : "space-y-4"}>
         <DpTabsBar value={aba} help={{ dia: "dp.rotinaDia", mes: "dp.rotinaMes" }}>
           <TabsTrigger value="dia">Rotina do Dia</TabsTrigger>
           <TabsTrigger value="mes">Rotina do Mês</TabsTrigger>
@@ -1365,6 +1416,8 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
             <CalendarioAusenciasMes
               dias={panorama.dias}
               unidadeId={unidadeId}
+              nomeUnidade={nomeUnidade ?? ""}
+              competenciaLabel={competenciaExtenso(competencia)}
               selecionado={data}
               filtros={filtrosCal}
               onFiltros={(f) => save({ extras: { ...(prefs.extras ?? {}), [CAL_FILTROS_KEY]: f } })}
