@@ -13490,6 +13490,7 @@ export type Database = {
       }
       dp_unidade_feriados: {
         Row: {
+          ano_inicio: number | null
           ativo: boolean
           company_id: string
           created_at: string
@@ -13507,6 +13508,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ano_inicio?: number | null
           ativo?: boolean
           company_id: string
           created_at?: string
@@ -13524,6 +13526,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ano_inicio?: number | null
           ativo?: boolean
           company_id?: string
           created_at?: string
