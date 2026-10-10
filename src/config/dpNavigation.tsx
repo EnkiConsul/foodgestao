@@ -1,4 +1,5 @@
 import {
+  CalendarDays,
   BarChart3,
   Bell,
   BellRing,
