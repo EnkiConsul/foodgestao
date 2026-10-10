@@ -9,6 +9,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RefreshCw, X, AlertTriangle } from "lucide-react";
+import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
+import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { emitirTermoTrocaGestor, termoTrocaGestorParagrafos, ORIGEM_TROCA_LABEL, type AssinaturaTermo, type OrigemTrocaGestor } from "@/lib/dp/termo-troca-gestor";
 
 interface Props {
@@ -75,9 +78,12 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { co
   });
   return (
     <>
-      <Button size="sm" variant="outline" className="ml-auto h-7 px-2 text-xs" onClick={() => setAberto(true)}>Remarcar Folga</Button>
+      <Button size="icon" variant="outline" className="ml-auto h-8 w-8" title="Remarcar Folga" aria-label="Remarcar Folga" onClick={() => setAberto(true)}><RefreshCw className="h-4 w-4" /></Button>
       <Dialog open={aberto} onOpenChange={(o) => { setAberto(o); if (!o) setRevisar(false); }}>
         <DialogContent className="max-w-md">
+          {data < hojeIsoLocal() && (
+            <p className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs text-amber-900 dark:text-amber-200"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />Esta data já passou ({data.split("-").reverse().join("/")}). A alteração muda o histórico do colaborador.</p>
+          )}
           <DialogHeader>
             <DialogTitle>{revisar ? "Conferir Termo de Alteração de Folga" : "Remarcar Folga Fixa"}</DialogTitle>
             <DialogDescription>{nome} trabalha neste dia e folga na nova data. Um termo é gerado para assinatura.</DialogDescription>
@@ -236,6 +242,8 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
       }),
   });
 
+  const passado = data < hojeIsoLocal();
+  const dataBr = data.split("-").reverse().join("/");
   const itens = (q.data ?? []).filter((i) => nomes.has(i.colaboradorId));
   if (q.isLoading) return null;
 
@@ -245,22 +253,46 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
     if (!i) return null;
     return (
       <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
-        {acao?.item.key === i.key ? (
+        {acao?.item.key === i.key && acao.tipo === "remarcar" ? (
           <>
-            {acao.tipo === "remarcar" ? (
-              <Input type="date" className="h-8 w-40" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
+            <Input type="date" className="h-8 w-40" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
+            {passado ? (
+              <ConfirmarAcaoDialog destrutivo={false} titulo="Data já passou" descricao={`A folga de ${dataBr} já passou. Remarcar vai alterar o histórico do colaborador. Deseja continuar?`} confirmar="Sim, Remarcar" onConfirm={() => executar.mutate()} disabled={executar.isPending || !novaData}>
+                <Button size="sm" className="h-8" disabled={executar.isPending || !novaData}>Confirmar</Button>
+              </ConfirmarAcaoDialog>
             ) : (
-              <Input className="h-8 w-48" placeholder="Motivo (opcional)" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+              <Button size="sm" className="h-8" disabled={executar.isPending || !novaData} onClick={() => executar.mutate()}>Confirmar</Button>
             )}
-            <Button size="sm" className="h-8" disabled={executar.isPending} onClick={() => executar.mutate()}>Confirmar</Button>
             <Button size="sm" variant="ghost" className="h-8" onClick={() => setAcao(null)}>Voltar</Button>
           </>
         ) : (
           <>
-            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); }}>Remarcar Folga</Button>
-            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive" onClick={() => { setAcao({ item: i, tipo: "cancelar" }); setMotivo(""); }}>Cancelar</Button>
+            <Button size="icon" variant="outline" className="h-8 w-8" title="Remarcar Folga" aria-label="Remarcar Folga" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); }}><RefreshCw className="h-4 w-4" /></Button>
+            <Button size="icon" variant="outline" className="h-8 w-8 border-destructive/40 text-destructive hover:bg-destructive/10" title="Cancelar Folga" aria-label="Cancelar Folga" onClick={() => { setAcao({ item: i, tipo: "cancelar" }); setMotivo(""); }}><X className="h-4 w-4" /></Button>
           </>
         )}
+        <Dialog open={acao?.item.key === i.key && acao.tipo === "cancelar"} onOpenChange={(o) => { if (!o) setAcao(null); }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive"><AlertTriangle className="h-5 w-5" />Cancelar Folga?</DialogTitle>
+              <DialogDescription>
+                O colaborador precisa do descanso. Cancelar sem dar outro dia pode deixá-lo sem folga na semana e gerar pagamento em dobro. O recomendado é remarcar a folga para outro dia.
+              </DialogDescription>
+            </DialogHeader>
+            {passado && (
+              <p className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs text-amber-900 dark:text-amber-200">Esta data já passou ({dataBr}). O cancelamento altera o histórico do colaborador.</p>
+            )}
+            <div className="grid gap-1.5">
+              <Label>Justificativa <span className="text-destructive">*</span></Label>
+              <Textarea rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Por que a folga será cancelada sem outro dia?" />
+              <p className="text-[11px] text-muted-foreground">Mínimo de 5 caracteres. Fica registrada no histórico.</p>
+            </div>
+            <DialogFooter className="flex-col gap-2 sm:flex-col">
+              <Button className="w-full" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); }}><RefreshCw className="mr-2 h-4 w-4" />Prefiro Remarcar para Outro Dia (Recomendado)</Button>
+              <Button variant="destructive" className="w-full" disabled={motivo.trim().length < 5 || executar.isPending} onClick={() => executar.mutate()}>Confirmar Cancelamento da Folga</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
