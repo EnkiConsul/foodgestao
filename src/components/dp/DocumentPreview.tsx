@@ -266,10 +266,17 @@ export function DocumentPreview({
           )}
         </div>
         {/* Quitação na mesma rolagem: comprovantes bancários e recibo em dinheiro. */}
-        {listaComprovantes.map((c, i, arr) => (
-          <section key={c.id} className="border-t">
-            <p className="sticky top-0 z-10 border-b bg-background px-3 py-2 text-xs font-semibold uppercase text-muted-foreground">
-              {c.rotulo ?? (arr.filter((x) => !x.rotulo).length > 1 ? `Comprovante de Pagamento ${i + 1}` : "Comprovante de Pagamento")}
+        {listaComprovantes.map((c, i) => (
+          <section key={c.id} data-preview-secao={c.id} className="border-t">
+            <p className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b bg-background px-3 py-2 text-xs font-semibold uppercase text-muted-foreground">
+              <span>{c.rotulo ?? (listaComprovantes.filter((x) => !x.rotulo).length > 1 ? `Comprovante de Pagamento ${i + 1}` : "Comprovante de Pagamento")}</span>
+              <button
+                type="button"
+                onClick={() => irPara("documento")}
+                className="normal-case font-medium text-primary hover:underline"
+              >
+                Voltar ao documento ↑
+              </button>
             </p>
             <div className="h-[70svh] sm:h-[68vh]">
               {(c.mime ?? "").startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(c.path) ? (
