@@ -1664,7 +1664,7 @@ export function useDpPendencias() {
               escopo: "unidade",
               vencimento: ymd(venc),
               atrasoDias: differenceInCalendarDays(today, venc),
-              url: "/dp/atas",
+              url: "/dp/documentos/atas",
             });
           }
         }
@@ -1697,7 +1697,7 @@ export function useDpPendencias() {
               escopo: "pessoa",
               vencimento: null,
               atrasoDias: -1,
-              url: `/dp/colaboradores/${c.id}`,
+              url: `/dp/colaboradores?editar=${c.id}`,
             });
           }
         } catch (e) {
