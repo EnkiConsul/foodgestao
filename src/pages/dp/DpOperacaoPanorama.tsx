@@ -649,106 +649,81 @@ function DetalheDiaOperacao({
                         {g.pessoas.map((p) => (
                           <li
                             key={`${p.colaborador_id}-${p.categoria}-${p.ocorrencia_id ?? p.avulso_id ?? ""}`}
-                            className="flex flex-col items-start gap-2 rounded-xl border border-border bg-background p-3 transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+                            className="min-w-0 space-y-1 rounded-xl border border-border bg-background p-3 transition-shadow hover:shadow-md"
                           >
-                          <div className="flex w-full items-center gap-2.5 sm:w-auto sm:min-w-[8rem]">
-                            <div className="min-w-0">
-                            <p className="break-words text-sm font-semibold" title={p.nome}>{primeiroNome(p.nome)}</p>
-                            <p className="text-xs text-muted-foreground">
-                              <span className="whitespace-nowrap">{p.entrada ?? "--:--"} às {p.saida ?? "--:--"}</span>
-                              {p.termina_no_dia_seguinte ? " (+1)" : ""} ·{" "}
-                              <span className="whitespace-nowrap">{formatarHoras(p.carga_prevista_horas)}</span>
-                            </p>
+                            {/* Linha 1: nome + vínculo */}
+                            <div className="flex min-w-0 items-center justify-between gap-2">
+                              <p className="min-w-0 truncate text-sm font-bold" title={p.nome}>{primeiroNome(p.nome)}</p>
+                              <span className={cn(
+                                "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                                vinculoPessoa(p, regimes) === "Fixo" ? "bg-primary/10 text-primary" : "bg-foreground text-background",
+                              )}>
+                                {vinculoPessoa(p, regimes)}
+                              </span>
+                            </div>
+                            {/* Linha 2: cargo + setor do dia */}
+                            <div className="flex min-w-0 items-center justify-between gap-2">
+                              <p className="min-w-0 truncate text-xs text-muted-foreground">{p.cargo_nome ?? "Sem cargo"}</p>
+                              {usaSetores && (() => {
+                                const alterado = setorDiaDivergeDoHabitual(p.setor_origem ?? "nenhum", p.setor_id, p.setor_habitual_id);
+                                const cls = cn(
+                                  "inline-flex max-w-[55%] shrink-0 items-center gap-1 truncate rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                                  alterado ? "border-primary/50 bg-primary/10 text-primary" : p.setor_id ? "border-border bg-muted/50" : "border-dashed text-muted-foreground",
+                                );
+                                const conteudo = (
+                                  <>
+                                    {alterado ? <ArrowLeftRight className="h-3 w-3 shrink-0" /> : !p.setor_id ? <AlertTriangle className="h-3 w-3 shrink-0" /> : null}
+                                    <span className="truncate">{p.setor_nome ?? SETOR_NAO_DEFINIDO_LABEL}</span>
+                                  </>
+                                );
+                                return onAlterarSetor ? (
+                                  <button
+                                    type="button"
+                                    className={cn(cls, "cursor-pointer hover:border-primary hover:bg-primary/15")}
+                                    title="Toque para alterar o setor deste dia"
+                                    aria-label={`Setor ${p.setor_nome ?? "não definido"}. Alterar setor deste dia`}
+                                    onClick={() => onAlterarSetor(p, data)}
+                                  >
+                                    {conteudo}
+                                  </button>
+                                ) : (
+                                  <span className={cls}>{conteudo}</span>
+                                );
+                              })()}
+                            </div>
+                            {/* Linha 3: horário (carga) */}
+                            <div className="flex min-w-0 flex-wrap items-center justify-between gap-1">
+                              <p className="text-xs font-medium tabular-nums">
+                                {p.entrada ?? "--:--"} – {p.saida ?? "--:--"}{" "}
+                                <span className="text-muted-foreground">({formatarHoras(p.carga_prevista_horas)})</span>
+                              </p>
+                              {compacto && podeRegistrar && p.avulso_id && (() => {
+                                const reg = avulsos.find((a) => a.id === p.avulso_id);
+                                return reg ? (
+                                  <span className="flex gap-1">
+                                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onEditarAvulsa(reg)}>Editar</Button>
+                                    <ConfirmarAcaoDialog
+                                      titulo="Remover do dia?"
+                                      descricao={`${reg.nome ?? "A pessoa"} deixará de constar neste dia.`}
+                                      confirmar="Remover"
+                                      cancelar="Cancelar"
+                                      onConfirm={() => onExcluirAvulsa(reg)}
+                                    >
+                                      <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">Remover</Button>
+                                    </ConfirmarAcaoDialog>
+                                  </span>
+                                ) : null;
+                              })()}
+                            </div>
                             {p.ocorrencias?.length ? (
-                              <div className="mt-1 flex flex-wrap items-center gap-1">
+                              <div className="flex flex-wrap items-center gap-1">
                                 <OcorrenciaBadges ocorrencias={p.ocorrencias} />
-                                <Button
-                                  variant="link"
-                                  size="sm"
-                                  className="h-auto p-0 text-xs"
-                                  onClick={() =>
-                                    navigate(
-                                      `/dp/ocorrencias?colaborador=${p.colaborador_id}&data=${data}`,
-                                    )
-                                  }
-                                >
+                                <Button variant="link" size="sm" className="h-auto p-0 text-xs"
+                                  onClick={() => navigate(`/dp/ocorrencias?colaborador=${p.colaborador_id}&data=${data}`)}>
                                   Ver ocorrências
                                 </Button>
                               </div>
                             ) : null}
-                            </div>
-                          </div>
-
-                          <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:shrink-0 sm:flex-nowrap">
-                            {usaSetores && (() => {
-                              const alterado = setorDiaDivergeDoHabitual(p.setor_origem ?? "nenhum", p.setor_id, p.setor_habitual_id);
-                              const conteudo = (
-                                <>
-                                  {alterado ? <ArrowLeftRight className="h-3 w-3" /> : !p.setor_id ? <AlertTriangle className="h-3 w-3" /> : null}
-                                  {p.setor_nome ?? SETOR_NAO_DEFINIDO_LABEL}
-                                </>
-                              );
-                              const cls = cn(
-                                "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold",
-                                alterado ? "border-primary/50 bg-primary/10 text-primary" : p.setor_id ? "border-border bg-muted/50" : "border-dashed text-muted-foreground",
-                              );
-                              const dica = alterado
-                                ? `Setor alterado só neste dia${p.setor_habitual_nome ? ` (habitual: ${p.setor_habitual_nome})` : ""}`
-                                : undefined;
-                              return onAlterarSetor ? (
-                                <button
-                                  type="button"
-                                  className={cn(cls, "cursor-pointer transition-colors hover:border-primary hover:bg-primary/15")}
-                                  title={dica ? `${dica} · toque para alterar` : "Toque para alterar o setor deste dia"}
-                                  aria-label={`Setor ${p.setor_nome ?? "não definido"}. Alterar setor deste dia`}
-                                  onClick={() => onAlterarSetor(p, data)}
-                                >
-                                  {conteudo}
-                                </button>
-                              ) : (
-                                <span className={cls} title={dica}>{conteudo}</span>
-                              );
-                            })()}
-                            {p.socio && (
-                              <Badge variant="outline" className="border-primary/40 text-primary">
-                                Sócio
-                              </Badge>
-                            )}
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "max-w-full whitespace-normal border-transparent text-left leading-tight",
-                                p.avulso_tipo === "teste"
-                                  ? "bg-violet-500/15 text-violet-700 dark:text-violet-300"
-                                  : p.avulso_tipo === "folguista"
-                                    ? "bg-sky-500/15 text-sky-700 dark:text-sky-300"
-                                    : p.avulso_id
-                                      ? "bg-amber-500/15 text-amber-800 dark:text-amber-300"
-                                      : p.categoria === "convocado_pendente"
-                                        ? "border-border"
-                                        : "bg-primary/10 text-primary",
-                              )}
-                            >
-                              {p.avulso_id && !p.avulso_tipo ? "Mão de obra extra" : rotuloCategoriaPessoa(p)}
-                            </Badge>
-                            {compacto && podeRegistrar && p.avulso_id && (() => {
-                              const reg = avulsos.find((a) => a.id === p.avulso_id);
-                              return reg ? (
-                                <>
-                                  <Button variant="ghost" size="sm" className="min-h-9 px-2 text-xs sm:min-h-7" onClick={() => onEditarAvulsa(reg)}>Editar</Button>
-                                  <ConfirmarAcaoDialog
-                                    titulo="Remover do dia?"
-                                    descricao={`${reg.nome ?? "A pessoa"} deixará de constar neste dia.`}
-                                    confirmar="Remover"
-                                    cancelar="Cancelar"
-                                    onConfirm={() => onExcluirAvulsa(reg)}
-                                  >
-                                    <Button variant="ghost" size="sm" className="min-h-9 px-2 text-xs sm:min-h-7">Remover</Button>
-                                  </ConfirmarAcaoDialog>
-                                </>
-                              ) : null;
-                            })()}
-                          </div>
                         </li>
                       ))}
                     </ul>
