@@ -48,6 +48,10 @@ export function EnderecoFields({
   const [buscando, setBuscando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const ultimoCep = useRef<string>("");
+  // Sempre com o valor mais recente, para a busca do CEP enxergar o que já
+  // foi digitado à mão mesmo com a resposta chegando depois.
+  const valorRef = useRef(valor);
+  valorRef.current = valor;
   const semNumero = String(valor.numero ?? "").trim().toUpperCase() === SEM_NUMERO;
 
   const caixa = (v: string) => (upper ? v.toLocaleUpperCase("pt-BR") : v);
@@ -68,12 +72,15 @@ export function EnderecoFields({
           return;
         }
         setAviso(null);
-        onChange({
-          logradouro: caixa(achado.logradouro),
-          bairro: caixa(achado.bairro),
-          cidade: caixa(achado.cidade),
-          uf: achado.uf,
-        });
+        // Regra: o CEP só preenche o que está vazio. Nada do que a pessoa já
+        // digitou (rua, bairro, cidade ou UF) é apagado ou substituído.
+        const atual = valorRef.current;
+        const patch: EnderecoValor = {};
+        if (!String(atual.logradouro ?? "").trim()) patch.logradouro = caixa(achado.logradouro);
+        if (!String(atual.bairro ?? "").trim()) patch.bairro = caixa(achado.bairro);
+        if (!String(atual.cidade ?? "").trim()) patch.cidade = caixa(achado.cidade);
+        if (!String(atual.uf ?? "").trim()) patch.uf = achado.uf;
+        if (Object.keys(patch).length > 0) onChange(patch);
       })
       .finally(() => vivo && setBuscando(false));
     return () => { vivo = false; };
