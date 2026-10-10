@@ -1275,10 +1275,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               selecionado={data}
               filtros={filtrosCal}
               onFiltros={(f) => save({ extras: { ...(prefs.extras ?? {}), [CAL_FILTROS_KEY]: f } })}
-              onAbrirDia={(iso) => {
-                setData(iso);
-                trocarAba("dia");
-              }}
+              onAbrirDia={(iso) => setDataPopout(iso)}
             />
           ) : panorama.isLoading ? (
             <Skeleton className="h-64 w-full" />

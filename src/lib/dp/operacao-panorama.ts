@@ -66,6 +66,8 @@ export interface ColaboradorPanorama {
   ativo?: boolean;
   data_admissao?: string | null;
   data_desligamento?: string | null;
+  /** Datas em que cedeu a folga fixa numa troca e trabalha (dp_dia_trabalho_excepcional). */
+  trabalho_excepcional?: string[];
 }
 
 export interface ConvocacaoPanorama {
@@ -568,7 +570,12 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     }
 
     if (!colab.config) continue;
-    const dia = colab.config.dias.find((d) => d.dow === dow);
+    const diaCfg = colab.config.dias.find((d) => d.dow === dow);
+    const cedeuFolga = !!colab.trabalho_excepcional?.includes(data);
+    const dia =
+      cedeuFolga && (!diaCfg || !diaCfg.trabalha)
+        ? { ...(diaCfg ?? { dow, turno_id: null, setor_id: null }), trabalha: true }
+        : diaCfg;
     if (!dia || !dia.trabalha) {
       registrar(colab, "folga_padrao");
       continue;

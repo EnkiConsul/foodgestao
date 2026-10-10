@@ -376,6 +376,24 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
 
 
 
+  // Dias em que o colaborador cedeu a folga fixa numa troca e vai trabalhar.
+  const excepcionais = useQuery({
+    queryKey: ["dp_dia_trabalho_excepcional_panorama", selectedCompanyId, janelaInicio, fim],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_dia_trabalho_excepcional")
+        .select("colaborador_id, data")
+        .eq("company_id", selectedCompanyId!)
+        .gte("data", janelaInicio)
+        .lte("data", fim);
+      if (error) throw error;
+      const m = new Map<string, string[]>();
+      for (const r of data ?? []) m.set(r.colaborador_id, [...(m.get(r.colaborador_id) ?? []), r.data]);
+      return m;
+    },
+  });
+
   const turnos: TurnoResolvido[] = useMemo(
     () =>
       (base.data?.turnos ?? [])
@@ -439,9 +457,10 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           ativo: c.ativo !== false,
           data_admissao: c.data_admissao,
           data_desligamento: c.data_desligamento,
+          trabalho_excepcional: excepcionais.data?.get(c.id) ?? [],
         };
       });
-  }, [base.data, unidadeId, fim, janelaInicio]);
+  }, [base.data, unidadeId, fim, janelaInicio, excepcionais.data]);
 
   const ausencias: AusenciaPanorama[] = useMemo(() => {
     const d = base.data;
