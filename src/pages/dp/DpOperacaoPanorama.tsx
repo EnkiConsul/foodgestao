@@ -1238,6 +1238,21 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
     return () => window.removeEventListener("keydown", h);
   }, [calendario, dataPopout, aba, competencia, data, setData]);
 
+  // Dia aberto: ← → trocam de dia (Esc fecha pela própria janela).
+  useEffect(() => {
+    if (!dataPopout) return;
+    const h = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input,textarea,select,[contenteditable=true],[role=combobox],[role=menu],[role=listbox]")) return;
+      e.preventDefault();
+      setDataPopout((d) => (d ? somarDias(d, e.key === "ArrowLeft" ? -1 : 1) : d));
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [dataPopout]);
+
   if (panorama.error) return <DpErrorState message="Não foi possível carregar a operação." />;
 
 
