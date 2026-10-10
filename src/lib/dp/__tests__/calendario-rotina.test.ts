@@ -22,3 +22,16 @@ describe("calendário da rotina", () => {
     expect(ausenciasVisiveis(pessoas, TIPOS_AUSENCIA).some((a) => a.nome === "Nord")).toBe(false);
   });
 });
+
+describe("atraso não é ausência", () => {
+  it("atrasado e saída antecipada não entram no calendário de ausências", () => {
+    const r = ausenciasVisiveis(
+      [
+        { colaborador_id: "5", nome: "Herick", categoria: "atrasado" as const },
+        { colaborador_id: "6", nome: "Ana", categoria: "saida_antecipada" as const },
+      ],
+      TIPOS_AUSENCIA,
+    );
+    expect(r).toEqual([]);
+  });
+});

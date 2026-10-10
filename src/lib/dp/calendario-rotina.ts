@@ -21,8 +21,7 @@ const MAPA: Partial<Record<CategoriaDia, TipoAusenciaCalendario>> = {
   ausente: "falta",
   atestado: "atestado",
   coberto: "outras",
-  atrasado: "outras",
-  saida_antecipada: "outras",
+  // Atraso e saída antecipada não são ausência: a pessoa trabalhou.
 };
 
 export function tipoAusencia(categoria: CategoriaDia): TipoAusenciaCalendario | null {
