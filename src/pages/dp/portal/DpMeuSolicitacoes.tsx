@@ -579,7 +579,9 @@ export default function DpMeuSolicitacoes() {
                       ? "Troca de folga"
                       : s.tipo === "folga" && (s as any).fora_da_janela
                         ? "Folga extra (exceção)"
-                        : s.tipo}
+                        : s.tipo === "documento"
+                          ? "Envio de documentos"
+                          : s.tipo}
                   </CardTitle>
                   <DpStatusBadge tone={statusToneFor(s.status)}>
                     {STATUS_LABEL[s.status] ?? s.status}

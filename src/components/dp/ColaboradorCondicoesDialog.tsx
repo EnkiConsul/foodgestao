@@ -145,6 +145,25 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
   );
 
   const [aba, setAba] = useState("contrato");
+  const [solicitandoComplemento, setSolicitandoComplemento] = useState(false);
+
+  /** Pede ao colaborador, pelo portal, os documentos/dados que faltam para o registro CLT. */
+  const solicitarComplemento = async (itens: string[]) => {
+    if (!colaborador?.id || itens.length === 0) return;
+    setSolicitandoComplemento(true);
+    try {
+      const { error } = await supabase.rpc("dp_solicitar_complemento_clt" as never, {
+        p_colaborador_id: colaborador.id,
+        p_itens: itens,
+      } as never);
+      if (error) throw error;
+      toast.success("Pedido enviado. O colaborador verá o aviso no portal dele.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível enviar o pedido. Tente novamente.");
+    } finally {
+      setSolicitandoComplemento(false);
+    }
+  };
   const [vigencia, setVigencia] = useState(hoje());
   const [regime, setRegime] = useState<string>("clt");
   const [forma, setForma] = useState<string>("mensalista");
