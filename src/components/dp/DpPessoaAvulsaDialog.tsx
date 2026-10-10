@@ -807,6 +807,7 @@ export function DpPessoaAvulsaDialog({
             {salvando ? "Salvando..." : registro ? "Salvar" : "Registrar"}
           </Button>
         </DialogFooter>
+        </>)}
       </DialogContent>
     </Dialog>
     {/* Cadastro oficial completo de folguista/teste — o mesmo da tela de
