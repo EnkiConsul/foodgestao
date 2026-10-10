@@ -22,14 +22,14 @@ import type { DiaPanorama } from "@/hooks/useDpOperacaoPanorama";
 
 // Mesmas cores do Calendário de Folgas.
 const TOM: Record<TipoAusenciaCalendario, string> = {
-  folga: "border-l-[3px] border-emerald-500 bg-emerald-50 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200",
-  ferias: "border-l-[3px] border-sky-500 bg-sky-50 text-sky-800 dark:bg-sky-500/15 dark:text-sky-200",
-  falta: "border-l-[3px] border-rose-500 bg-rose-50 text-rose-800 dark:bg-rose-500/15 dark:text-rose-200",
-  atestado: "border-l-[3px] border-violet-500 bg-violet-50 text-violet-800 dark:bg-violet-500/15 dark:text-violet-200",
+  folga: "border-l-[3px] border-emerald-500 bg-emerald-100 text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-200",
+  ferias: "border-l-[3px] border-sky-500 bg-sky-100 text-sky-900 dark:bg-sky-500/15 dark:text-sky-200",
+  falta: "border-l-[3px] border-rose-500 bg-rose-100 text-rose-900 dark:bg-rose-500/15 dark:text-rose-200",
+  atestado: "border-l-[3px] border-violet-500 bg-violet-100 text-violet-900 dark:bg-violet-500/15 dark:text-violet-200",
   outras: "border-l-[3px] border-slate-400 bg-slate-50 text-slate-700 dark:bg-slate-500/15 dark:text-slate-200",
 };
 // Folga no domingo tem peso diferente na operação: dourado.
-const TOM_DOMINICAL = "border-l-[3px] border-amber-600 bg-amber-500/10 text-amber-900 dark:text-amber-200";
+const TOM_DOMINICAL = "border-l-[3px] border-amber-600 bg-amber-100 text-amber-900 ring-1 ring-inset ring-amber-300 dark:bg-amber-500/25 dark:text-amber-100";
 const PDF_COR: Record<TipoAusenciaCalendario, [number, number, number]> = {
   folga: [16, 185, 129], ferias: [14, 165, 233], falta: [244, 63, 94], atestado: [139, 92, 246], outras: [100, 116, 139],
 };
@@ -435,7 +435,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                     onClick={() => onAbrirDia(d.data)}
                     className={cn(
                       "group relative flex min-h-[136px] flex-col gap-2 bg-card p-2 text-left transition-all hover:z-10 hover:-translate-y-px hover:shadow-xl",
-                      ehDiaDominical(d.data) && "bg-primary/[0.05]",
+                      ehDiaDominical(d.data) && "bg-muted/30",
                       d.feriado_nome && "bg-primary/[0.08]",
                       bloqueio && "bg-destructive/[0.06]",
                       d.alerta && d.avaliacao.situacao === "abaixo" && "bg-destructive/10",
@@ -444,11 +444,10 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                       d.data === selecionado && !ehHoje && "ring-2 ring-inset ring-primary/60",
                     )}
                   >
-                    {ehPico && <span className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-primary" aria-hidden="true" />}
                     <div className={cn(
-                      "-mx-2 -mt-2 flex items-center justify-between gap-1 border-b border-border/70 px-2 py-1.5",
-                      d.feriado_nome ? "bg-primary/10" : "bg-muted/40",
-                      ehHoje && "bg-primary/15",
+                      "-mx-2 -mt-2 flex items-center justify-between gap-1 border-b-2 border-primary/25 px-2 py-1.5",
+                      d.feriado_nome ? "bg-primary/20" : "bg-primary/[0.09]",
+                      ehHoje && "bg-primary/30",
                     )}>
                       <div className="flex min-w-0 items-center gap-1">
                         <span className={cn("flex h-6 min-w-6 items-center justify-center rounded-md px-1 text-sm font-extrabold tabular-nums", ehHoje && "bg-primary text-primary-foreground shadow-md")}>{Number(d.data.slice(8))}</span>
