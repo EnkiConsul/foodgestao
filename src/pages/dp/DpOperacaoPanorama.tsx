@@ -1809,11 +1809,11 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               <BloqueioDoDiaCabecalho companyId={companyIdCal} unidadeId={unidadeId} data={dataPopout} podeEditar={podeRegistrar} />
             )}
             {calendario && dataPopout && diaPopout && (
-              <div className="mt-2 grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-2 max-sm:[&>button]:h-auto max-sm:[&>button]:min-h-12 max-sm:[&>button]:min-w-0 max-sm:[&>button]:flex-col max-sm:[&>button]:gap-0.5 max-sm:[&>button]:whitespace-normal max-sm:[&>button]:px-1 max-sm:[&>button]:py-1.5 max-sm:[&>button]:text-[11px] max-sm:[&>button]:leading-tight max-sm:[&_svg]:mr-0">
+              <div className="mt-2 grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-2">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button size="sm" className="h-8 rounded-lg" disabled={!companyIdCal}>
-                      <CalendarDays className="mr-1 h-4 w-4" /> Marcar folga
+                    <Button size="sm" className="h-auto min-h-12 min-w-0 flex-col gap-0.5 whitespace-normal px-1 py-1.5 text-[11px] leading-tight sm:h-8 sm:min-h-0 sm:flex-row sm:gap-0 sm:px-3 sm:text-sm rounded-lg" disabled={!companyIdCal}>
+                      <CalendarDays className="h-4 w-4 sm:mr-1" /> Marcar Folga
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-64 p-1" align="center">
@@ -1839,11 +1839,11 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                 </Popover>
                 {podeRegistrar && (
                   <>
-                    <Button size="sm" variant="outline" className="h-8 rounded-lg" onClick={() => { setAusenciaData(dataPopout); setAusenciaOpen(true); }}>
-                      <Plus className="mr-1 h-4 w-4" /> Registrar ausência
+                    <Button size="sm" variant="outline" className="h-auto min-h-12 min-w-0 flex-col gap-0.5 whitespace-normal px-1 py-1.5 text-[11px] leading-tight sm:h-8 sm:min-h-0 sm:flex-row sm:gap-0 sm:px-3 sm:text-sm rounded-lg" onClick={() => { setAusenciaData(dataPopout); setAusenciaOpen(true); }}>
+                      <Plus className="h-4 w-4 sm:mr-1" /> Registrar Ausência
                     </Button>
-                    <Button size="sm" variant="outline" className="h-8 rounded-lg" onClick={() => abrirNovaAvulsa(dataPopout)}>
-                      <UserPlus className="mr-1 h-4 w-4" /> Mão de Obra Extra
+                    <Button size="sm" variant="outline" className="h-auto min-h-12 min-w-0 flex-col gap-0.5 whitespace-normal px-1 py-1.5 text-[11px] leading-tight sm:h-8 sm:min-h-0 sm:flex-row sm:gap-0 sm:px-3 sm:text-sm rounded-lg" onClick={() => abrirNovaAvulsa(dataPopout)}>
+                      <UserPlus className="h-4 w-4 sm:mr-1" /> Mão de Obra Extra
                     </Button>
                   </>
                 )}
