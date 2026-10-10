@@ -747,6 +747,16 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                             <p className="font-medium">Cadastro completo para o registro CLT.</p>
                           );
                         })()}
+                        {(recibosPendentes.data?.length ?? 0) > 0 ? (
+                          <p className="flex items-start gap-1.5 text-amber-700 dark:text-amber-400 font-medium">
+                            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                            Há {recibosPendentes.data!.length} recibo(s)/diária(s) emitidos e ainda não
+                            assinados (total de{" "}
+                            {(recibosPendentes.data!.reduce((s, r) => s + (r.valor_cents ?? 0), 0) / 100)
+                              .toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}).
+                            Quite e colha as assinaturas até a véspera da vigência do CLT.
+                          </p>
+                        ) : null}
                         <ul className="list-disc pl-4 text-muted-foreground">
                           {LEMBRETES_EFETIVACAO.map((l) => <li key={l}>{l}</li>)}
                         </ul>
