@@ -1198,3 +1198,13 @@ export function blocosPorFuncionamento(input: {
 
   return out;
 }
+
+/**
+ * Quem só entra na operação quando convocado: intermitente e freelancer
+ * diarista/horista. Freelancer mensalista tem jornada fixa e folga semanal.
+ */
+export function ehSobDemanda(regime?: string | null, formaPagamento?: string | null): boolean {
+  if (regime === "intermitente") return true;
+  if (regime === "freelancer") return String(formaPagamento ?? "").toLowerCase() !== "mensalista";
+  return false;
+}

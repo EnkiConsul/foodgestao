@@ -210,7 +210,7 @@ export async function carregarPanorama(
       nome: c.nome,
       regime: c.regime,
       unidade_id: c.unidade_id,
-      intermitente: c.regime === "intermitente" || c.regime === "freelancer",
+      intermitente: ehSobDemanda(c.regime, (c as { forma_pagamento?: string | null }).forma_pagamento),
       config,
       cargo_id: c.cargo_id,
       cargo_nome: c.cargo_id ? nomeCargo.get(c.cargo_id) ?? null : null,
