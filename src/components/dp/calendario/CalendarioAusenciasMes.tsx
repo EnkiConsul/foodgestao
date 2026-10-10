@@ -445,7 +445,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                     {ehPico && <span className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-primary" aria-hidden="true" />}
                     <div className={cn(
                       "-mx-2 -mt-2 flex items-center justify-between gap-1 border-b border-border/70 px-2 py-1.5",
-                      feriado ? "bg-primary/10" : "bg-muted/40",
+                      d.feriado_nome ? "bg-primary/10" : "bg-muted/40",
                       ehHoje && "bg-primary/15",
                     )}>
                       <div className="flex min-w-0 items-center gap-1">
