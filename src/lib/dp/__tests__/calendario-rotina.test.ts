@@ -53,3 +53,12 @@ describe("filtro de turno e setor", () => {
     expect(pessoaNoFiltro({ entrada: "17:00", setor_id: "a" }, { periodo: "todos", setores: ["b"] })).toBe(false);
   });
 });
+
+import { periodoHabitual as _ph, pessoaNoFiltro as _pf } from "@/lib/dp/calendario-rotina";
+describe("folga no filtro de turno", () => {
+  it("folga de quem trabalha à noite some no filtro Dia", () => {
+    const hab = _ph([{ pessoas: [{ colaborador_id: "a", entrada: "17:00" }] }]);
+    expect(_pf({ colaborador_id: "a", entrada: null, setor_id: null }, { periodo: "dia", setores: [] }, hab)).toBe(false);
+    expect(_pf({ colaborador_id: "a", entrada: null, setor_id: null }, { periodo: "noite", setores: [] }, hab)).toBe(true);
+  });
+});
