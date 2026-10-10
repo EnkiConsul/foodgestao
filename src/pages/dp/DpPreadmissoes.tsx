@@ -26,7 +26,7 @@ export default function DpPreadmissoes() {
       <DpPageHeader
         icon={UserSquare2}
         title="Pré-Admissões"
-        description="O candidato preenche a ficha e envia os documentos pelo celular. Você revisa, envia à contabilidade e cria o cadastro depois de conferir a ficha oficial."
+        description="O candidato preenche a ficha e envia os documentos pelo celular. Você revisa, baixa a ficha em PDF e cria o cadastro."
         actions={
           <Button onClick={() => setConvidando(true)}>
             <UserPlus className="h-4 w-4 mr-2" /> Convidar Candidato
