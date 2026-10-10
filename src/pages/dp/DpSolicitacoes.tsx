@@ -53,6 +53,7 @@ const MESES_CURTOS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "S
 
 /** Tipo em português legível, mesmo para valores fora da lista (ex.: mudanca_de_folga). */
 function tipoLabel(tipo: string): string {
+  if (tipo === "documento") return "Envio de documentos";
   const conhecido = TIPOS.find((t) => t.value === tipo)?.label;
   if (conhecido) return conhecido;
   const t = tipo.toLowerCase().replace(/_/g, " ").replace(/\bmudanca\b/, "mudança").replace(/\blicenca\b/, "licença");

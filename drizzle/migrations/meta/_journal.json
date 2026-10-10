@@ -288,6 +288,13 @@
       "when": 1791606404328,
       "tag": "0040_preadmissao_efetivar_direto",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1791607365162,
+      "tag": "0041_complemento_clt_solicitacao",
+      "breakpoints": true
     }
   ]
 }

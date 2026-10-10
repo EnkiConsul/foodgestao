@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, ClipboardList, Ban, AlertTriangle, Pencil } from "lucide-react";
+import { Plus, ClipboardList, Ban, AlertTriangle, Pencil, Upload } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -579,7 +579,9 @@ export default function DpMeuSolicitacoes() {
                       ? "Troca de folga"
                       : s.tipo === "folga" && (s as any).fora_da_janela
                         ? "Folga extra (exceção)"
-                        : s.tipo}
+                        : s.tipo === "documento"
+                          ? "Envio de documentos"
+                          : s.tipo}
                   </CardTitle>
                   <DpStatusBadge tone={statusToneFor(s.status)}>
                     {STATUS_LABEL[s.status] ?? s.status}
@@ -606,6 +608,14 @@ export default function DpMeuSolicitacoes() {
                 )}
                 {s.status === "pendente" && (
                   <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {s.tipo === "documento" && (
+                      <Button
+                        size="sm"
+                        onClick={() => navigate("/dp/meu/documentos")}
+                      >
+                        <Upload className="h-4 w-4 mr-1" /> Enviar documentos
+                      </Button>
+                    )}
                     {s.tipo === "ferias" && (
                       <Button
                         size="sm"
