@@ -1019,7 +1019,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
   }) => {
     setAvulsaOpen(false);
     setAvulsaEditando(null);
-    navigate("/dp/escalas/convocacoes", {
+    navigate("/dp/convocacoes", {
       state: {
         nova: {
           unidadeId: alvo.unidadeId,
@@ -1594,18 +1594,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                       <Plus className="mr-1 h-4 w-4" /> Registrar ausência
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => abrirNovaAvulsa(dataPopout)}>
-                      <UserPlus className="mr-1 h-4 w-4" /> Teste / folguista / extra
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        navigate("/dp/escalas/convocacoes", {
-                          state: { nova: { unidadeId: unidadeId ?? undefined, datas: [dataPopout] } },
-                        })
-                      }
-                    >
-                      <Handshake className="mr-1 h-4 w-4" /> Convocar intermitente
+                      <UserPlus className="mr-1 h-4 w-4" /> Mão de obra extra
                     </Button>
                   </div>
                 )}
