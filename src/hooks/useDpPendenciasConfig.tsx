@@ -24,6 +24,10 @@ export type DpPendenciasConfig = {
   alerta_comprovante_dias: number;
   /** Só cobra comprovante de documentos a partir desta data (YYYY-MM-DD). */
   comprovante_vigencia_inicio: string;
+  alerta_recibo_assinatura_dias: number;
+  alerta_ata_assinatura_dias: number;
+  alerta_preadmissao_dias: number;
+  alerta_contatos_emergencia: boolean;
 };
 
 export const DP_PENDENCIAS_CONFIG_DEFAULT: DpPendenciasConfig = {
@@ -43,6 +47,10 @@ export const DP_PENDENCIAS_CONFIG_DEFAULT: DpPendenciasConfig = {
   exigir_comprovante_pagamento: true,
   alerta_comprovante_dias: 5,
   comprovante_vigencia_inicio: "2026-09-01",
+  alerta_recibo_assinatura_dias: 5,
+  alerta_ata_assinatura_dias: 7,
+  alerta_preadmissao_dias: 3,
+  alerta_contatos_emergencia: true,
 };
 
 
@@ -57,7 +65,7 @@ export function useDpPendenciasConfig() {
       const { data, error } = await supabase
         .from("dp_pendencias_config")
         .select(
-          "alerta_solicitacao_dias, alerta_troca_dias, alerta_ocorrencia_horas, alerta_contracheque_dia_mes, alerta_adiantamento_offset, alerta_folha_ponto_dia_mes, alerta_negociacao_dias, alerta_ferias_dias, alerta_aso_dias, alerta_epi_dias, alerta_treinamento_dias, dias_carencia_portal, exigir_contracheque_mes_desligamento, exigir_comprovante_pagamento, alerta_comprovante_dias, comprovante_vigencia_inicio",
+          "alerta_solicitacao_dias, alerta_troca_dias, alerta_ocorrencia_horas, alerta_contracheque_dia_mes, alerta_adiantamento_offset, alerta_folha_ponto_dia_mes, alerta_negociacao_dias, alerta_ferias_dias, alerta_aso_dias, alerta_epi_dias, alerta_treinamento_dias, dias_carencia_portal, exigir_contracheque_mes_desligamento, exigir_comprovante_pagamento, alerta_comprovante_dias, comprovante_vigencia_inicio, alerta_recibo_assinatura_dias, alerta_ata_assinatura_dias, alerta_preadmissao_dias, alerta_contatos_emergencia",
         )
         .eq("company_id", selectedCompanyId!)
         .maybeSingle();
@@ -94,6 +102,10 @@ export function useDpPendenciasConfig() {
         comprovante_vigencia_inicio:
           row.comprovante_vigencia_inicio ??
           DP_PENDENCIAS_CONFIG_DEFAULT.comprovante_vigencia_inicio,
+        alerta_recibo_assinatura_dias: row.alerta_recibo_assinatura_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_recibo_assinatura_dias,
+        alerta_ata_assinatura_dias: row.alerta_ata_assinatura_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_ata_assinatura_dias,
+        alerta_preadmissao_dias: row.alerta_preadmissao_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_preadmissao_dias,
+        alerta_contatos_emergencia: row.alerta_contatos_emergencia ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_contatos_emergencia,
       };
     },
   });
