@@ -447,8 +447,57 @@ function DetalheDiaOperacao({
 
   const zeradosOcultos = ordemCards.filter((k) => (valoresCards[k] ?? 0) === 0).length;
 
+  // Turnos do dia: Dia / Noite (a partir das 15h) / Madrugada (antes das 5h).
+  const periodoBloco = (b: { horario?: string | null }): "dia" | "noite" | "madrugada" => {
+    const h = Number((b.horario ?? "").slice(0, 2));
+    if (Number.isNaN(h) || !(b.horario ?? "").match(/^\d{2}/)) return "dia";
+    if (h < 5) return "madrugada";
+    return h >= 15 ? "noite" : "dia";
+  };
+  const contagemPeriodos = useMemo(() => {
+    const m = new Map<"dia" | "noite" | "madrugada", number>();
+    for (const b of blocos) m.set(periodoBloco(b), (m.get(periodoBloco(b)) ?? 0) + b.pessoas.length);
+    return m;
+  }, [blocos]);
+  const periodoPadrao = useMemo(() => {
+    let melhor: "dia" | "noite" | "madrugada" | "todos" = "todos";
+    let max = -1;
+    for (const [k, v] of contagemPeriodos) if (v > max) { max = v; melhor = k; }
+    return contagemPeriodos.size > 1 ? melhor : "todos";
+  }, [contagemPeriodos]);
+  const [periodo, setPeriodo] = useState<"todos" | "dia" | "noite" | "madrugada">(periodoPadrao);
+  useEffect(() => { setPeriodo(periodoPadrao); }, [data, periodoPadrao]);
+  const blocosVisiveis = periodo === "todos" ? blocos : blocos.filter((b) => periodoBloco(b) === periodo);
+  const totalPessoas = blocos.reduce((s, b) => s + b.pessoas.length, 0);
+
   return (
     <div className="space-y-4">
+      {contagemPeriodos.size > 1 && (
+        <div className="inline-flex flex-wrap gap-1 rounded-full border bg-muted/40 p-1" role="tablist" aria-label="Turno do dia">
+          {([
+            ["todos", "Todos", Users, totalPessoas],
+            ["dia", "Dia", Sun, contagemPeriodos.get("dia")],
+            ["noite", "Noite", Moon, contagemPeriodos.get("noite")],
+            ["madrugada", "Madrugada", Moon, contagemPeriodos.get("madrugada")],
+          ] as const)
+            .filter(([k, , , n]) => k === "todos" || n != null)
+            .map(([k, rot, Icone, n]) => (
+              <button
+                key={k}
+                role="tab"
+                aria-selected={periodo === k}
+                onClick={() => setPeriodo(k)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                  periodo === k ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-background",
+                )}
+              >
+                <Icone className="h-3.5 w-3.5" /> {rot}
+                <span className="tabular-nums opacity-80">({n ?? 0})</span>
+              </button>
+            ))}
+        </div>
+      )}
       {!compacto && <GradeCards
         ordem={ordemCards}
         onReordenar={onReordenarCards}
