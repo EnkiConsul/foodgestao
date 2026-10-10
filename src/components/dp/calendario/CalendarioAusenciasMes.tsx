@@ -66,7 +66,7 @@ export function CalendarioAusenciasMes({ dias, selecionado, filtros, onFiltros, 
               ),
               chips: (
                 <>
-                  {d.feriado_nome && <Badge variant="outline" className="text-[10px]">Feriado · {d.feriado_nome}</Badge>}
+                  {d.feriado_nome && <Badge variant="outline" className="text-[10px]">Feriado</Badge>}
                   {aus.map((a) => (
                     <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("rounded border px-1.5 text-[10px]", TOM[a.tipo])}>
                       {primeiroNome(a.nome)}
@@ -106,7 +106,7 @@ export function CalendarioAusenciasMes({ dias, selecionado, filtros, onFiltros, 
                 </div>
                 {d.feriado_nome && (
                   <Badge variant="outline" className="w-fit max-w-full truncate border-primary/50 bg-primary/10 px-1 py-0 text-[10px] text-primary" title={d.feriado_nome}>
-                    Feriado · {d.feriado_nome}
+                    Feriado
                   </Badge>
                 )}
                 {aus.slice(0, 5).map((a) => (
