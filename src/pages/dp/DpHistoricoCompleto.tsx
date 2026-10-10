@@ -1,4 +1,3 @@
-import { abrirDocumento as abrirDocumentoArquivo } from "@/lib/documentoArquivo";
 import { aceitaComprovante } from "@/lib/dp/documentoTipos";
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
 import { DpDocumentosAbas } from "@/components/dp/documentos/DpDocumentosAbas";
