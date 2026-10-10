@@ -1677,10 +1677,9 @@ export function useDpPendencias() {
         try {
           const { data: cs } = await supabase
             .from("dp_colaboradores")
-            .select("id, nome, status, data_desligamento, contatos_confirmados_em, contatos_solicitado_em")
+            .select("id, nome, data_desligamento, contatos_confirmados_em, contatos_solicitado_em")
             .eq("company_id", selectedCompanyId!)
             .is("data_desligamento", null)
-            .neq("status", "desligado")
             .limit(1000);
           for (const c of (cs ?? []) as any[]) {
             if (!confirmacaoVencida(c.contatos_confirmados_em, c.contatos_solicitado_em, today)) continue;
