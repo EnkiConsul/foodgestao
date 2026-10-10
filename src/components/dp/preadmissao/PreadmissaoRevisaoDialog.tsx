@@ -473,7 +473,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     if (!data) return;
     setGerando(true);
     try {
-    const admDados = (data.preadmissao.admin_dados ?? {}) as Record<string, unknown>;
+    const admDados = { ...((data.preadmissao.admin_dados ?? {}) as Record<string, unknown>), ...(admin as Record<string, unknown>) };
     const valorAdmin = (campo: string): string => {
       const v = admDados[campo];
       if (campo === "cargo_id") return cargos.find((c) => c.id === v)?.nome ?? "";
