@@ -357,7 +357,7 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
                 {anexos.map((a) => (
                   <li key={a.path} className="flex items-center justify-between gap-2 rounded border px-2 py-1 text-sm">
                     <button type="button" className="truncate text-left hover:underline" onClick={() => abrirArquivoDp({ bucket: "dp-documentos", path: a.path, mimeType: a.mime, fileName: a.name })}>{a.name}</button>
-                    {!enviada && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setAnexos((x) => x.filter((y) => y.path !== a.path))}><X className="h-4 w-4" /></Button>}
+                    {!enviada && <Button size="icon" variant="ghost" aria-label="Remover anexo" className="h-7 w-7" onClick={() => setAnexos((x) => x.filter((y) => y.path !== a.path))}><X className="h-4 w-4" /></Button>}
                   </li>
                 ))}
               </ul>
@@ -416,7 +416,7 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
                               <SelectTrigger className="h-8 min-w-0 flex-1 sm:w-[210px] sm:flex-none"><SelectValue /></SelectTrigger>
                               <SelectContent>{(Object.keys(MODALIDADES) as AtaModalidade[]).map((m) => <SelectItem key={m} value={m}>{MODALIDADES[m].label}</SelectItem>)}</SelectContent>
                             </Select>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setParts((x) => x.filter((y) => y.key !== p.key))}><Trash2 className="h-4 w-4" /></Button>
+                            <Button size="icon" variant="ghost" aria-label="Remover participante" className="h-8 w-8" onClick={() => setParts((x) => x.filter((y) => y.key !== p.key))}><Trash2 className="h-4 w-4" /></Button>
                           </>
                         )}
                       </div>
