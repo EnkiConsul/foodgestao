@@ -86,6 +86,7 @@ type UnifiedDoc = {
   rescisao_grupo_id?: string | null;
   /** Comprovante de pagamento anexado a este documento. */
   tem_comprovante?: boolean;
+  comprovante_recibo_id?: string | null;
   comprovante_path?: string | null;
   comprovante_mime?: string | null;
   /** Soma consolidada dos comprovantes (lida do banco, sem nova leitura). */
@@ -480,7 +481,7 @@ export default function DpHistoricoCompleto() {
         fetchAllPages<any>((from, to) =>
           supabase
             .from("dp_documentos")
-            .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id, comprovante_file_path, comprovante_mime_type, via_assinada_path, via_assinada_mime, via_assinada_em, assinatura_fisica, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents, comprovantes_extra_qtd, comprovantes_extra_cents, valor_liquido_cents")
+            .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id, comprovante_file_path, comprovante_mime_type, via_assinada_path, via_assinada_mime, via_assinada_em, assinatura_fisica, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents, comprovantes_extra_qtd, comprovantes_extra_cents, valor_liquido_cents, comprovante_recibo_documento_id")
             .eq("company_id", cId)
             // Excluídos (arquivados) saem da tela na hora; o banco preserva o histórico.
             .is("arquivado_em", null)
@@ -555,7 +556,8 @@ export default function DpHistoricoCompleto() {
             ? { path: d.via_assinada_path ?? null, mime: d.via_assinada_mime ?? null, em: d.via_assinada_em ?? null }
             : null,
            rescisao_grupo_id: d.rescisao_grupo_id ?? null,
-          tem_comprovante: !!d.comprovante_file_path,
+          tem_comprovante: !!d.comprovante_file_path || !!d.comprovante_recibo_documento_id,
+          comprovante_recibo_id: d.comprovante_recibo_documento_id ?? null,
           comprovante_path: d.comprovante_file_path ?? null,
           comprovante_mime: d.comprovante_mime_type ?? null,
           quitacao: d.comprovante_file_path
@@ -1154,11 +1156,6 @@ export default function DpHistoricoCompleto() {
                       <Button aria-label="Baixar documento" size="icon" variant="ghost" className="h-8 w-8" title="Baixar" onClick={() => download(r)} disabled={!r.file_path}>
                         <Download className="h-4 w-4" />
                       </Button>
-                      {r.id.startsWith("doc:") && r.tem_comprovante && (
-                        <Button aria-label="Baixar comprovante de pagamento" size="icon" variant="ghost" className="h-8 w-8" title="Baixar Comprovante" onClick={() => baixarComprovante(r)}>
-                          <Receipt className="h-4 w-4 text-primary" />
-                        </Button>
-                      )}
                       <Button aria-label="Substituir arquivo documento" size="icon" variant="ghost" className="h-8 w-8" title="Substituir arquivo" onClick={() => abrirSubstituir(r)}>
                         <Replace className="h-4 w-4" />
                       </Button>
@@ -1317,13 +1314,8 @@ export default function DpHistoricoCompleto() {
           const lista = Array.isArray(query.data) ? (query.data as UnifiedDoc[]) : [];
           const atual = preview ? lista.find((r) => r.id === preview.id) ?? preview : null;
           if (!atual || !atual.id.startsWith("doc:") || !aceitaComprovante(atual.tipo_key)) return null;
-          if (atual.tem_comprovante) {
-            return (
-              <Button size="sm" variant="outline" onClick={() => baixarComprovante(atual)}>
-                <Download className="h-4 w-4 mr-2" /> Baixar Comprovante
-              </Button>
-            );
-          }
+          // Com comprovante, ele já aparece na própria visualização (certificado ou abaixo do documento).
+          if (atual.tem_comprovante) return null;
           return (
             <Button size="sm" onClick={() => setAnexarDoPreview(true)}>
               <Upload className="h-4 w-4 mr-2" /> Importar Comprovante
@@ -1336,9 +1328,11 @@ export default function DpHistoricoCompleto() {
         // Usa a versão mais recente da lista: o comprovante recém-importado aparece sem reabrir.
         comprovanteDocumentoId={(() => {
           if (!preview || !preview.id.startsWith("doc:")) return null;
+          // Assinado: o comprovante já vem dentro do certificado de validação.
+          if (certPreview) return null;
           const lista = Array.isArray(query.data) ? (query.data as UnifiedDoc[]) : [];
           const atual = lista.find((r) => r.id === preview.id) ?? preview;
-          return atual.comprovante_path ? preview.id.slice(4) : null;
+          return atual.tem_comprovante ? preview.id.slice(4) : null;
         })()}
         comprovantesExtras={extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null }))}
         toolbar={preview && (preview.aceite !== null || preview.aceiteDispensado || preview.viaFisica || preview.quitacao) ? (
