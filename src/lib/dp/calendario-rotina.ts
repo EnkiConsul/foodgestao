@@ -80,13 +80,34 @@ export interface FiltrosPessoaCalendario {
 
 /** Pessoa sem horário conhecido (ex.: férias) continua aparecendo em qualquer turno. */
 export function pessoaNoFiltro(
-  p: Pick<PessoaPanorama, "entrada" | "setor_id">,
+  p: Pick<PessoaPanorama, "entrada" | "setor_id"> & { colaborador_id?: string },
   f: FiltrosPessoaCalendario,
+  habitual?: Map<string, Exclude<PeriodoTurno, "todos">>,
 ): boolean {
   if (f.periodo !== "todos") {
-    const per = periodoDoHorario(p.entrada);
+    const per = periodoDoHorario(p.entrada) ?? (p.colaborador_id ? habitual?.get(p.colaborador_id) : undefined) ?? null;
     if (per && per !== f.periodo) return false;
   }
   if (f.setores.length && !f.setores.includes(p.setor_id ?? "")) return false;
   return true;
+}
+
+/**
+ * Turno habitual de cada pessoa no período: o mais frequente nos dias em que
+ * ela tem horário. Usado para encaixar folgas/férias (sem horário) no turno certo.
+ */
+export function periodoHabitual(
+  dias: { pessoas: Pick<PessoaPanorama, "colaborador_id" | "entrada">[] }[],
+): Map<string, Exclude<PeriodoTurno, "todos">> {
+  const cont = new Map<string, { dia: number; noite: number }>();
+  for (const d of dias) for (const p of d.pessoas) {
+    const per = periodoDoHorario(p.entrada);
+    if (!per) continue;
+    const c = cont.get(p.colaborador_id) ?? { dia: 0, noite: 0 };
+    c[per]++;
+    cont.set(p.colaborador_id, c);
+  }
+  const out = new Map<string, Exclude<PeriodoTurno, "todos">>();
+  for (const [id, c] of cont) out.set(id, c.noite > c.dia ? "noite" : "dia");
+  return out;
 }

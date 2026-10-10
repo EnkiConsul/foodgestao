@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { SlidersHorizontal, X } from "lucide-react";
+import { Moon, SlidersHorizontal, Sun, Users, UserX, AlertTriangle, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { cn } from "@/lib/utils";
 import {
-  ausenciasVisiveis, periodoDoHorario, pessoaNoFiltro, primeiroNome, tipoAusencia,
+  ausenciasVisiveis, periodoDoHorario, periodoHabitual, pessoaNoFiltro, primeiroNome, tipoAusencia,
   TIPO_AUSENCIA_LABEL, TIPOS_AUSENCIA, type PeriodoTurno, type TipoAusenciaCalendario,
 } from "@/lib/dp/calendario-rotina";
 import type { DiaPanorama } from "@/hooks/useDpOperacaoPanorama";
@@ -70,14 +70,21 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
   }, [diasBrutos]);
   const mostraTurno = temDia && temNoite;
 
+  const habitual = useMemo(() => periodoHabitual(diasBrutos), [diasBrutos]);
   const dias = useMemo(() => {
     const f = { periodo: mostraTurno ? periodo : "todos" as PeriodoTurno, setores };
     if (f.periodo === "todos" && !setores.length) return diasBrutos;
     return diasBrutos.map((d) => {
-      const pessoas = d.pessoas.filter((p) => pessoaNoFiltro(p, f));
+      const pessoas = d.pessoas.filter((p) => pessoaNoFiltro(p, f, habitual));
       return { ...d, pessoas, trabalhando: pessoas.filter((p) => !tipoAusencia(p.categoria)).length };
     });
-  }, [diasBrutos, periodo, setores, mostraTurno]);
+  }, [diasBrutos, periodo, setores, mostraTurno, habitual]);
+
+  const resumoMes = useMemo(() => {
+    let aus = 0, alertas = 0, trab = 0;
+    for (const d of dias) { aus += ausenciasVisiveis(d.pessoas, filtros).length; trab += d.trabalhando; if (d.alerta) alertas++; }
+    return { aus, alertas, media: dias.length ? Math.round(trab / dias.length) : 0 };
+  }, [dias, filtros]);
 
   const ausOcultas = TIPOS_AUSENCIA.length - filtros.length;
   const totalAtivos = setores.length + (ausOcultas > 0 ? 1 : 0);
@@ -123,7 +130,11 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                   periodo === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {p === "todos" ? "Todos" : p === "dia" ? "Dia" : "Noite"}
+                <span className="inline-flex items-center gap-1">
+                  {p === "dia" && <Sun className="h-3.5 w-3.5" />}
+                  {p === "noite" && <Moon className="h-3.5 w-3.5" />}
+                  {p === "todos" ? "Todos" : p === "dia" ? "Dia" : "Noite"}
+                </span>
               </button>
             ))}
           </div>
@@ -181,6 +192,22 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
 
 
 
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { icon: Users, label: "Média trabalhando/dia", valor: resumoMes.media, tom: "bg-primary/10 text-primary" },
+          { icon: UserX, label: "Ausências no mês", valor: resumoMes.aus, tom: "bg-blue-500/10 text-blue-600 dark:text-blue-300" },
+          { icon: AlertTriangle, label: "Dias com alerta", valor: resumoMes.alertas, tom: resumoMes.alertas ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground" },
+        ].map((c) => (
+          <div key={c.label} className="flex items-center gap-2.5 rounded-xl border bg-card p-2.5 shadow-sm">
+            <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", c.tom)}><c.icon className="h-4 w-4" /></span>
+            <div className="min-w-0">
+              <p className="text-lg font-bold leading-none tabular-nums">{c.valor}</p>
+              <p className="mt-0.5 line-clamp-2 text-[10px] leading-tight text-muted-foreground sm:text-[11px]">{c.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Mobile: 1 dia = 1 linha, como no calendário de folgas */}
       <div className="md:hidden">
         <DiasEmLista
@@ -214,9 +241,9 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
 
       {/* Desktop: grade mensal com ausentes em cada dia */}
       <div className="hidden md:block">
-        <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-[hsl(var(--dp-border))] bg-[hsl(var(--dp-border))]">
+        <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-border bg-border shadow-sm">
           {DOW.map((d) => (
-            <div key={d} className="bg-muted/40 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{d}</div>
+            <div key={d} className={cn("bg-muted/60 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider", d === "Dom" || d === "Sáb" ? "text-primary" : "text-muted-foreground")}>{d}</div>
           ))}
           {antes.map(vazio)}
           {dias.map((d) => {
@@ -228,24 +255,26 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                 type="button"
                 onClick={() => onAbrirDia(d.data)}
                 className={cn(
-                  "flex min-h-[112px] flex-col gap-1.5 bg-card p-2 text-left transition-colors hover:bg-muted/30",
+                  "group flex min-h-[120px] flex-col gap-1.5 bg-card p-2 text-left transition-all hover:z-10 hover:bg-accent/40 hover:shadow-md",
+                  [0, 6].includes(new Date(`${d.data}T12:00:00`).getDay()) && "bg-muted/20",
+                  d.feriado_nome && "bg-primary/5",
                   d.data === selecionado && "ring-2 ring-inset ring-primary",
                   d.alerta && d.avaliacao.situacao === "abaixo" && "bg-destructive/5",
                 )}
               >
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex min-w-0 items-center gap-1">
-                    <span className={cn("text-sm font-semibold", d.data === hoje && "text-primary")}>{Number(d.data.slice(8))}</span>
+                    <span className={cn("flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-sm font-bold tabular-nums", d.data === hoje && "bg-primary text-primary-foreground")}>{Number(d.data.slice(8))}</span>
                     {d.feriado_nome && (
                       <Badge variant="outline" className="truncate border-primary/50 bg-primary/10 px-1 py-0 text-[10px] text-primary" title={d.feriado_nome}>
                         Feriado
                       </Badge>
                     )}
                   </div>
-                  <span className="shrink-0 text-[10px] text-muted-foreground">{d.trabalhando} trab.</span>
+                  <span className={cn("inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums", d.alerta && d.avaliacao.situacao === "abaixo" ? "bg-destructive/15 text-destructive" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300")} title="Trabalhando"><Users className="h-3 w-3" />{d.trabalhando}</span>
                 </div>
                 {aus.slice(0, 5).map((a) => (
-                  <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("truncate rounded-full px-2 py-0.5 text-center text-[10px] font-semibold uppercase", TOM[a.tipo])} title={`${a.nome} · ${TIPO_AUSENCIA_LABEL[a.tipo]}`}>
+                  <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("truncate rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase shadow-sm", TOM[a.tipo])} title={`${a.nome} · ${TIPO_AUSENCIA_LABEL[a.tipo]}`}>
                     {primeiroNome(a.nome)}
                   </span>
                 ))}
