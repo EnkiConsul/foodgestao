@@ -9,12 +9,8 @@ export type DpPendenciasConfig = {
 
   alerta_contracheque_dia_mes: number;
   alerta_adiantamento_offset: number;
-  alerta_folha_ponto_dia_mes: number;
   alerta_negociacao_dias: number;
   alerta_ferias_dias: number;
-  alerta_aso_dias: number;
-  alerta_epi_dias: number;
-  alerta_treinamento_dias: number;
   dias_carencia_portal: number;
   /** Empresa emite contracheque separado também no mês do desligamento. */
   exigir_contracheque_mes_desligamento: boolean;
