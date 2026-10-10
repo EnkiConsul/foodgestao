@@ -17011,6 +17011,14 @@ export type Database = {
       _dp_contatos_emergencia_validos: { Args: { _c: Json }; Returns: boolean }
       _dp_excedente_modo: { Args: { _company: string }; Returns: string }
       _dp_excedente_pode_gerir: { Args: { _company: string }; Returns: boolean }
+      _dp_preadmissao_concluir: {
+        Args: {
+          p_admissao: string
+          p_colaborador_id: string
+          p_preadmissao_id: string
+        }
+        Returns: Json
+      }
       _is_company_member: {
         Args: { _company_id: string; _uid: string }
         Returns: boolean
@@ -19848,6 +19856,14 @@ export type Database = {
           p_setor_id?: string
           p_turno_id?: string
           p_unidade_id?: string
+        }
+        Returns: Json
+      }
+      dp_preadmissao_efetivar_direto: {
+        Args: {
+          p_confirmo_sem_ficha?: boolean
+          p_data_admissao?: string
+          p_preadmissao_id: string
         }
         Returns: Json
       }
