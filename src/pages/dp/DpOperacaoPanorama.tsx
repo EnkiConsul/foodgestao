@@ -59,6 +59,8 @@ import { previsaoNoDia, type PrevisaoNoDia } from "@/lib/dp/operacao-extra";
 import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
+import { CalendarioAusenciasMes } from "@/components/dp/calendario/CalendarioAusenciasMes";
+import { filtrosSalvos } from "@/lib/dp/calendario-rotina";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { DpStatCard } from "@/components/dp/DpStatCard";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
@@ -204,6 +206,7 @@ const CARDS_MES = ["dias_mes", "media_pessoas", "dias_fora_padrao", "dias_sem_ni
 type CardMesKey = (typeof CARDS_MES)[number];
 
 const PREFS_KEY = "operacao_cards";
+const CAL_FILTROS_KEY = "calendario_rotina_filtros";
 const AGRUP_KEY = "operacao_agrupamento";
 const UNIDADE_KEY = "operacao_unidade";
 const ZERADOS_KEY = "operacao_cards_zerados";
@@ -785,12 +788,13 @@ function DetalheDiaOperacao({
   );
 }
 
-export default function DpOperacaoPanorama() {
+export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "operacao" | "calendario" } = {}) {
+  const calendario = modo === "calendario";
 
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState(() => params.get("data") || hojeIso());
   const [unidade, setUnidade] = useState<string>("");
-  const [aba, setAba] = useState(params.get("aba") === "mes" ? "mes" : "dia");
+  const [aba, setAba] = useState(params.get("aba") === "dia" ? "dia" : params.get("aba") === "mes" || calendario ? "mes" : "dia");
   const [detalheCategoria, setDetalheCategoria] = useState<CategoriaDia | null>(null);
   const [detalheAvulso, setDetalheAvulso] = useState<"avulso_teste" | "avulso_folguista" | null>(null);
   /** Dia aberto em janela a partir do calendário do mês. */
@@ -817,6 +821,7 @@ export default function DpOperacaoPanorama() {
   }, [params, setParams]);
 
   const { prefs, save } = useDpUserPrefs();
+  const filtrosCal = filtrosSalvos((prefs.extras as Record<string, unknown>)?.[CAL_FILTROS_KEY]);
   const unidadeId = !unidade || unidade === "todas" ? null : unidade;
   const competencia = data.slice(0, 7);
   const panorama = useDpOperacaoPanorama(competencia, unidadeId);
@@ -1087,8 +1092,8 @@ export default function DpOperacaoPanorama() {
       </Helmet>
 
       <DpPageHeader
-        title="Operação"
-        description="Quantas pessoas a operação tem em cada dia — sem precisar gerar escala."
+        title={calendario ? "Calendário" : "Operação"}
+        description={calendario ? "Folgas, férias, faltas, convocações e setores da loja em um só lugar." : "Quantas pessoas a operação tem em cada dia — sem precisar gerar escala."}
         icon={CalendarClock}
         actions={
           podeRegistrar ? (
@@ -1251,7 +1256,15 @@ export default function DpOperacaoPanorama() {
 
 
         <TabsContent value="mes" className="space-y-4">
-          {panorama.isLoading ? (
+          {calendario && !panorama.isLoading ? (
+            <CalendarioAusenciasMes
+              dias={panorama.dias}
+              selecionado={data}
+              filtros={filtrosCal}
+              onFiltros={(f) => save({ extras: { ...(prefs.extras ?? {}), [CAL_FILTROS_KEY]: f } })}
+              onAbrirDia={setDataPopout}
+            />
+          ) : panorama.isLoading ? (
             <Skeleton className="h-64 w-full" />
           ) : (
             <>

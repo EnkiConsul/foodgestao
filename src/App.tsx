@@ -99,6 +99,7 @@ const DpCadastroPendenciasLista = lazyWithRetry(() => import("./pages/dp/cadastr
 
 const DpEscalas = lazyWithRetry(() => import("./pages/dp/DpEscalas"));
 const DpOperacaoPanorama = lazyWithRetry(() => import("./pages/dp/DpOperacaoPanorama"));
+const DpCalendarioRotina = lazyWithRetry(() => import("./pages/dp/DpCalendarioRotina"));
 const DpConvocacoes = lazyWithRetry(() => import("./pages/dp/DpConvocacoes"));
 const DpOcorrencias = lazyWithRetry(() => import("./pages/dp/DpOcorrencias"));
 
@@ -573,6 +574,7 @@ const AppRoutes = () => (
         <Route path="conformidade-dsr" element={<Navigate to="/dp/folgas?aba=conformidade" replace />} />
         <Route path="escalas" element={<DpEscalas />} />
         <Route path="escalas/mes" element={<DpOperacaoPanorama />} />
+        <Route path="rotina/calendario" element={<DpCalendarioRotina />} />
         <Route path="operacao" element={<Navigate to="/dp/escalas/mes" replace />} />
         <Route path="convocacoes" element={<DpConvocacoes />} />
         <Route path="ocorrencias" element={<DpOcorrencias />} />

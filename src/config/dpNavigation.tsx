@@ -1,4 +1,5 @@
 import {
+  CalendarDays,
   BarChart3,
   Bell,
   BellRing,
@@ -142,6 +143,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       "/dp/atestados",
     ],
     items: [
+      { label: "Calendário", to: "/dp/rotina/calendario", icon: CalendarDays },
       { label: "Operação", to: "/dp/escalas/mes", icon: CalendarClock, shortcut: true },
       { label: "Ocorrências", to: "/dp/ocorrencias", icon: ClipboardList, shortcut: true },
       { label: "Convocações", to: "/dp/convocacoes", icon: BellRing, shortcut: true },
