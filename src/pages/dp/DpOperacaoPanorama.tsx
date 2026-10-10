@@ -718,6 +718,7 @@ function DetalheDiaOperacao({
                                     onClick={() => onAlterarSetor(p, data)}
                                   >
                                     {conteudo}
+                                    <Pencil className="h-3 w-3 shrink-0 opacity-60" aria-hidden="true" />
                                   </button>
                                 ) : (
                                   <span className={cls}>{conteudo}</span>
