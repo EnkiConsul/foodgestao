@@ -519,17 +519,23 @@ export function useDpPendencias() {
               const desligado = c.data_desligamento
                 ? ` · desligado em ${format(new Date(`${String(c.data_desligamento).slice(0, 10)}T12:00:00`), "dd/MM")}`
                 : "";
+              // Freelancer mensalista não tem contracheque: o pagamento do mês
+              // é o recibo de Acerto Mensal emitido no sistema.
+              const freelaMensal =
+                opts.tipo === "contracheque" &&
+                String(c.regime ?? "").toLowerCase() === "freelancer" &&
+                String(c.forma_pagamento ?? "").toLowerCase() === "mensalista";
               results.push({
                 id: `${opts.idPrefix}-${c.id}-${compId}`,
                 icon: opts.icon,
-                titulo: opts.titulo,
+                titulo: freelaMensal ? "Recibo de acerto mensal não emitido" : opts.titulo,
                 subtitulo: `${c.nome} · ${u.nome} — ${competenciaLabel(comp)}${desligado}`,
                 tipo: opts.rotuloTipo,
                 colaboradorNome: c.nome,
                 unidadeNome: u.nome,
                 vencimento,
                 atrasoDias,
-                url,
+                url: freelaMensal ? "/dp/documentos/recibos" : url,
                 docTipo: opts.tipo,
                 unidadeId: u.id,
                 colaboradorId: c.id,
