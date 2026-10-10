@@ -76,10 +76,14 @@ export const DOC_TIPO_LABEL: Record<string, string> = {
   outros: "Documento",
 };
 
-/** Documentos assinados à mão: só assinatura física, nunca aceite digital. */
+/**
+ * Documentos assinados à mão: só assinatura física, nunca aceite digital.
+ * O recibo de pagamento em dinheiro NÃO entra aqui: é emitido pelo sistema
+ * com aceite digital (quitação pelo Portal).
+ */
 export const TIPOS_DESLIGAMENTO_SEM_DIGITAL = new Set([
   "aviso_previo", "desligamento", "trct", "demonstrativo_rescisorio", "outros_desligamento", "acerto_rescisorio",
-  "disciplinar", "recibo_pagamento_especie",
+  "disciplinar",
 ]);
 
 /** Tipos que pedem aceite digital do colaborador. */
