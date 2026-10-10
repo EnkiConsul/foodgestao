@@ -31,7 +31,12 @@ export function contatosValidos(lista: Array<Partial<ContatoEmergencia>>): boole
   return preenchidos.length >= 1 && preenchidos.length <= 2 && preenchidos.every(contatoValido);
 }
 
-/** Converte os campos da pré-admissão em lista (o recado antigo vira o 1º contato). */
+/**
+ * Converte os campos da pré-admissão em lista. O antigo "WhatsApp de recado"
+ * NÃO vira contato de emergência: não tem nome nem parentesco e muitas vezes
+ * é o próprio número do candidato. Fichas antigas ficam sem contato e o
+ * colaborador informa os reais na confirmação do portal.
+ */
 export function contatosDaFicha(d: Record<string, unknown>): ContatoEmergencia[] {
   const out: ContatoEmergencia[] = [];
   for (const i of [1, 2]) {
@@ -41,11 +46,6 @@ export function contatosDaFicha(d: Record<string, unknown>): ContatoEmergencia[]
       whatsapp: digitos(d[`emerg${i}_whatsapp`]),
     };
     if (c.nome || c.whatsapp) out.push(c);
-  }
-  if (!out.length && digitos(d.whatsapp_contato).length >= 10) {
-    const bruto = String(d.whatsapp_contato);
-    const nome = bruto.replace(/[\d()+\-\s]+/g, " ").replace(/[—–-]/g, " ").trim();
-    out.push({ nome: nome.toUpperCase(), parentesco: "outro_familiar", whatsapp: digitos(bruto).slice(0, 13) });
   }
   return out;
 }

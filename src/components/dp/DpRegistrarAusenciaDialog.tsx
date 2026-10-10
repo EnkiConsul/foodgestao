@@ -30,6 +30,7 @@ const TIPO_LABEL: Record<Tipo, string> = {
   licenca_maternidade: "Licença-maternidade",
   licenca_paternidade: "Licença-paternidade",
   adiantamento: "Adiantamento",
+  documento: "Envio de documentos",
   outros: "Outros",
 };
 
