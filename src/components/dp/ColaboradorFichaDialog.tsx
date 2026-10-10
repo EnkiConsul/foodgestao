@@ -1,5 +1,9 @@
 import { DOCUMENTOS_PESSOAIS } from "@/lib/dp/documentos-pessoais";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
+import { Printer } from "lucide-react";
+import { toast } from "sonner";
+import { escapeHtml, imprimirHtmlEmQuadro } from "@/lib/print/imprimirHtml";
+import { ColaboradorDossieJornadaCard } from "@/components/dp/jornada/ColaboradorDossieJornadaCard";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -347,6 +351,20 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
   }, [vaDiasOrigem, vaDiasBase, vaDiasPelaJornada]);
 
 
+  const imprimirFicha = () => {
+    const corpo = corpoRef.current?.cloneNode(true) as HTMLElement | undefined;
+    if (!corpo) return;
+    corpo.querySelectorAll("button, svg").forEach((n) => n.remove());
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Ficha - ${escapeHtml(colaborador?.nome ?? "")}</title>
+<style>body{font-family:Arial,sans-serif;font-size:10pt;margin:24px;color:#111}h1{font-size:15pt;margin:0 0 4px}
+.rounded-xl{border:1px solid #bbb;border-radius:6px;padding:10px;margin:10px 0;page-break-inside:avoid}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.col-span-full,.sm\\:col-span-2{grid-column:1/-1}
+ul{list-style:none;padding:0;margin:0}li{border-bottom:1px solid #ddd;padding:4px 0}
+.uppercase{text-transform:uppercase;font-size:8pt;color:#555}.font-semibold{font-weight:bold;font-size:11pt}</style></head>
+<body><h1>${escapeHtml(colaborador?.nome ?? "Colaborador")}</h1><div style="font-size:9pt;color:#555">Ficha e dossiê emitidos em ${new Date().toLocaleString("pt-BR")}</div>${corpo.innerHTML}</body></html>`;
+    imprimirHtmlEmQuadro(html, () => toast.error("Não foi possível abrir a impressão. Tente novamente."));
+  };
+
   if (!colaborador) return null;
 
   return (
@@ -396,6 +414,9 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
               </DialogDescription>
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              <Button size="sm" variant="outline" onClick={imprimirFicha}>
+                <Printer className="mr-2 h-4 w-4" aria-hidden="true" /> PDF
+              </Button>
               <Button
                 size="sm"
                 onClick={() => { onOpenChange(false); onEdit(); }}
@@ -415,7 +436,7 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
           </div>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6 pt-4">
+        <div ref={corpoRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6 pt-4">
           {faltandoFicha.length > 0 && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
               <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
@@ -779,6 +800,15 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
           {/* Dossiê disciplinar (interno) */}
           <Section icon={Shield} title="Dossiê Disciplinar">
             <ColaboradorDossieDisciplinarCard
+              colaboradorId={colaborador?.id ?? null}
+              colaboradorNome={colaborador?.nome ?? null}
+              colaboradorCpf={colaborador?.cpf ? maskCpf(colaborador.cpf) : null}
+            />
+          </Section>
+
+          {/* Dossiê de jornada: trocas, férias e termos aceitos */}
+          <Section icon={Clock} title="Dossiê de Jornada">
+            <ColaboradorDossieJornadaCard
               colaboradorId={colaborador?.id ?? null}
               colaboradorNome={colaborador?.nome ?? null}
               colaboradorCpf={colaborador?.cpf ? maskCpf(colaborador.cpf) : null}
