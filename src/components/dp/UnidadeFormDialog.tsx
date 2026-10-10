@@ -519,6 +519,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
               />
               <Label htmlFor="possui_relogio_ponto">Possui relógio de ponto</Label>
             </div>
+            {campoData("relogio_ponto", form.possui_relogio_ponto)}
             {pontoObrigatorio && !form.possui_relogio_ponto && (
               <div className="space-y-1.5 rounded-lg border border-destructive/40 bg-destructive/5 p-2.5">
                 <p className="text-[11px] leading-relaxed text-destructive">
@@ -549,6 +550,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
               <Switch id="banco_horas" checked={form.banco_horas} onCheckedChange={(v) => setForm({ ...form, banco_horas: v })} />
               <Label htmlFor="banco_horas">Adota banco de horas</Label>
             </div>
+            {campoData("banco_horas", form.banco_horas)}
             {form.banco_horas && !form.possui_relogio_ponto && (
               <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-2.5">
                 <p className="text-[11px] leading-relaxed text-destructive">
@@ -564,6 +566,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
               <Switch id="compensa_feriados" checked={form.compensa_feriados} onCheckedChange={(v) => setForm({ ...form, compensa_feriados: v })} />
               <Label htmlFor="compensa_feriados">Compensação de feriados</Label>
             </div>
+            {campoData("compensa_feriados", form.compensa_feriados)}
             {form.compensa_feriados && (
               <div className="space-y-1.5">
                 <Label htmlFor="comp_antecedencia" className="text-xs">Antecedência mínima para pedir a folga (dias)</Label>
@@ -608,6 +611,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
             />
             <Label htmlFor="tem_adiantamento">Tem adiantamento salarial</Label>
           </div>
+          {campoData("adiantamento", form.tem_adiantamento)}
           {form.tem_adiantamento && (
             <div className="space-y-2">
               <Label>Dia do Adiantamento</Label>
