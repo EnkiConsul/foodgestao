@@ -31,13 +31,13 @@ const PRAZO_FIELDS: Array<{
 
   { key: "alerta_contracheque_dia_mes", label: "Contracheque (dia limite do mês)", helper: "A partir desse dia do mês, cobra o contracheque do mês anterior por unidade.", min: 1, max: 31 },
   { key: "alerta_adiantamento_offset", label: "Adiantamento (dias após o dia de pagamento)", helper: "Somado ao 'dia_adiantamento' da unidade. Ex.: 5 → cobra 5 dias após.", min: 1, max: 31 },
-  { key: "alerta_folha_ponto_dia_mes", label: "Folha de ponto (dia limite do mês)", helper: "A partir desse dia do mês, cobra a folha de ponto do mês anterior por unidade com relógio.", min: 1, max: 31 },
+  { key: "alerta_folha_ponto_dia_mes", label: "Folha de ponto recebida (dia limite do mês)", helper: "A partir desse dia, cobra a folha de ponto do mês anterior (vinda da contabilidade) nas unidades com relógio de ponto.", min: 1, max: 31 },
   { key: "alerta_ferias_dias", label: "Férias (dias antes do limite concessivo)", helper: "Janela para alertar sobre períodos aquisitivos com saldo prestes a vencer.", min: 1, max: 365 },
-  { key: "alerta_aso_dias", label: "Exames ASO (dias antes do vencimento)", helper: "Janela para alertar exames ocupacionais prestes a vencer.", min: 1, max: 180 },
-  { key: "alerta_epi_dias", label: "EPIs (dias antes da troca prevista)", helper: "Janela para alertar EPIs que precisam ser trocados.", min: 1, max: 180 },
-  { key: "alerta_treinamento_dias", label: "Treinamentos (dias antes do vencimento)", helper: "Janela para alertar treinamentos que precisam ser renovados.", min: 1, max: 365 },
   { key: "alerta_negociacao_dias", label: "Negociação coletiva (dias antes do vencimento)", helper: "Janela para começar a alertar antes do vencimento anual da última negociação.", min: 1, max: 180 },
   { key: "alerta_comprovante_dias", label: "Comprovante de pagamento (dias após o documento)", helper: "Dias após a data do documento de pagamento até a falta do comprovante virar pendência atrasada.", min: 1, max: 60 },
+  { key: "alerta_recibo_assinatura_dias", label: "Recibos sem assinatura (dias após o envio)", helper: "Dias após o envio do recibo até a falta de assinatura do colaborador virar pendência atrasada.", min: 1, max: 60 },
+  { key: "alerta_ata_assinatura_dias", label: "Atas sem todas as assinaturas (dias após o envio)", helper: "Dias após o envio da ata até os participantes que não assinaram virarem pendência atrasada.", min: 1, max: 60 },
+  { key: "alerta_preadmissao_dias", label: "Pré-admissão parada (dias para revisar)", helper: "Dias após o candidato enviar a ficha até a revisão virar pendência atrasada.", min: 1, max: 30 },
   { key: "dias_carencia_portal", label: "Acesso ao portal após desligamento (dias)", helper: "Dias após a data de demissão em que o colaborador ainda pode acessar o portal apenas para baixar documentos.", min: 0, max: 180 },
 
 ];
@@ -83,7 +83,7 @@ export default function DpCadastroPendencias() {
         <div className="mb-4 flex items-start gap-2 rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <p>
-            Os prazos abaixo se aplicam à empresa selecionada no contexto ativo (PF/PJ).
+            Os prazos abaixo se aplicam à empresa selecionada.
             Alterações reagem imediatamente no quadro de pendências e nos alertas do painel.
           </p>
         </div>
@@ -118,6 +118,20 @@ export default function DpCadastroPendencias() {
             onCheckedChange={(v) =>
               setForm({ ...form, exigir_contracheque_mes_desligamento: v })
             }
+          />
+        </div>
+
+        <div className="mt-6 flex items-start justify-between gap-4 rounded-md border p-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Cobrar confirmação dos contatos de emergência</Label>
+            <p className="text-[11px] text-muted-foreground">
+              Ligado por padrão: lista quem nunca confirmou ou está há mais de 6 meses sem confirmar
+              os contatos de emergência e o próprio WhatsApp. O colaborador confirma pelo portal.
+            </p>
+          </div>
+          <Switch
+            checked={form.alerta_contatos_emergencia}
+            onCheckedChange={(v) => setForm({ ...form, alerta_contatos_emergencia: v })}
           />
         </div>
 
