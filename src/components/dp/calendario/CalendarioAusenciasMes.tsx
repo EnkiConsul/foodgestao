@@ -14,12 +14,24 @@ import type { DiaPanorama } from "@/hooks/useDpOperacaoPanorama";
 
 // Mesmas cores do Calendário de Folgas.
 const TOM: Record<TipoAusenciaCalendario, string> = {
-  folga: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300",
-  ferias: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300",
-  falta: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
-  atestado: "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300",
-  outras: "bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300",
+  folga: "border-l-[3px] border-emerald-500 bg-emerald-50 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200",
+  ferias: "border-l-[3px] border-sky-500 bg-sky-50 text-sky-800 dark:bg-sky-500/15 dark:text-sky-200",
+  falta: "border-l-[3px] border-rose-500 bg-rose-50 text-rose-800 dark:bg-rose-500/15 dark:text-rose-200",
+  atestado: "border-l-[3px] border-violet-500 bg-violet-50 text-violet-800 dark:bg-violet-500/15 dark:text-violet-200",
+  outras: "border-l-[3px] border-slate-400 bg-slate-50 text-slate-700 dark:bg-slate-500/15 dark:text-slate-200",
 };
+// Folga no domingo tem peso diferente na operação: dourado.
+const TOM_DOMINICAL = "border-l-[3px] border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-500/15 dark:text-amber-200";
+const ehDomingo = (iso: string) => new Date(`${iso}T12:00:00`).getDay() === 0;
+const tomDe = (tipo: TipoAusenciaCalendario, iso: string) => (tipo === "folga" && ehDomingo(iso) ? TOM_DOMINICAL : TOM[tipo]);
+const LEGENDA: { label: string; cls: string }[] = [
+  { label: "Folga semanal", cls: TOM.folga },
+  { label: "Folga dominical", cls: TOM_DOMINICAL },
+  { label: "Férias", cls: TOM.ferias },
+  { label: "Falta", cls: TOM.falta },
+  { label: "Atestado / Licença", cls: TOM.atestado },
+  { label: "Demais", cls: TOM.outras },
+];
 
 const isoLocal = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -194,17 +206,23 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
 
       <div className="grid grid-cols-3 gap-2">
         {[
-          { icon: Users, label: "Média trabalhando/dia", valor: resumoMes.media, tom: "bg-primary/10 text-primary" },
-          { icon: UserX, label: "Ausências no mês", valor: resumoMes.aus, tom: "bg-blue-500/10 text-blue-600 dark:text-blue-300" },
-          { icon: AlertTriangle, label: "Dias com alerta", valor: resumoMes.alertas, tom: resumoMes.alertas ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground" },
+          { icon: Users, label: "Média trabalhando/dia", valor: resumoMes.media, tom: "bg-primary text-primary-foreground" },
+          { icon: UserX, label: "Ausências no mês", valor: resumoMes.aus, tom: "bg-amber-500 text-white" },
+          { icon: AlertTriangle, label: "Dias com alerta", valor: resumoMes.alertas, tom: resumoMes.alertas ? "bg-destructive text-destructive-foreground" : "bg-muted text-muted-foreground" },
         ].map((c) => (
-          <div key={c.label} className="flex items-center gap-2.5 rounded-xl border bg-card p-2.5 shadow-sm">
+          <div key={c.label} className="flex items-center gap-3 rounded-2xl border bg-gradient-to-br from-card to-primary/5 p-3 shadow-sm">
             <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", c.tom)}><c.icon className="h-4 w-4" /></span>
             <div className="min-w-0">
               <p className="text-lg font-bold leading-none tabular-nums">{c.valor}</p>
               <p className="mt-0.5 line-clamp-2 text-[10px] leading-tight text-muted-foreground sm:text-[11px]">{c.label}</p>
             </div>
           </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {LEGENDA.map((l) => (
+          <span key={l.label} className={cn("rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", l.cls)}>{l.label}</span>
         ))}
       </div>
 
@@ -228,7 +246,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                 <>
                   {d.feriado_nome && <Badge variant="outline" className="text-[10px]">Feriado</Badge>}
                   {aus.map((a) => (
-                    <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase", TOM[a.tipo])}>
+                    <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", tomDe(a.tipo, d.data))}>
                       {primeiroNome(a.nome)}
                     </span>
                   ))}
@@ -243,7 +261,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
       <div className="hidden md:block">
         <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-border bg-border shadow-sm">
           {DOW.map((d) => (
-            <div key={d} className={cn("bg-muted/60 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider", d === "Dom" || d === "Sáb" ? "text-primary" : "text-muted-foreground")}>{d}</div>
+            <div key={d} className={cn("py-2.5 text-center text-[11px] font-bold uppercase tracking-wider", d === "Dom" ? "bg-amber-500/15 text-amber-800 dark:text-amber-300" : "bg-primary/10 text-primary")}>{d}</div>
           ))}
           {antes.map(vazio)}
           {dias.map((d) => {
@@ -256,17 +274,17 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                 onClick={() => onAbrirDia(d.data)}
                 className={cn(
                   "group flex min-h-[120px] flex-col gap-1.5 bg-card p-2 text-left transition-all hover:z-10 hover:bg-accent/40 hover:shadow-md",
-                  [0, 6].includes(new Date(`${d.data}T12:00:00`).getDay()) && "bg-muted/20",
-                  d.feriado_nome && "bg-primary/5",
+                  ehDomingo(d.data) && "bg-amber-500/[0.04]",
+                  d.feriado_nome && "bg-primary/[0.06]",
                   d.data === selecionado && "ring-2 ring-inset ring-primary",
                   d.alerta && d.avaliacao.situacao === "abaixo" && "bg-destructive/5",
                 )}
               >
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex min-w-0 items-center gap-1">
-                    <span className={cn("flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-sm font-bold tabular-nums", d.data === hoje && "bg-primary text-primary-foreground")}>{Number(d.data.slice(8))}</span>
+                    <span className={cn("flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-sm font-bold tabular-nums", d.data === hoje && "bg-primary text-primary-foreground shadow")}>{Number(d.data.slice(8))}</span>
                     {d.feriado_nome && (
-                      <Badge variant="outline" className="truncate border-primary/50 bg-primary/10 px-1 py-0 text-[10px] text-primary" title={d.feriado_nome}>
+                      <Badge variant="outline" className="truncate border-transparent bg-primary px-1.5 py-0 text-[10px] text-primary-foreground" title={d.feriado_nome}>
                         Feriado
                       </Badge>
                     )}
@@ -274,7 +292,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                   <span className={cn("inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums", d.alerta && d.avaliacao.situacao === "abaixo" ? "bg-destructive/15 text-destructive" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300")} title="Trabalhando"><Users className="h-3 w-3" />{d.trabalhando}</span>
                 </div>
                 {aus.slice(0, 5).map((a) => (
-                  <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("truncate rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase shadow-sm", TOM[a.tipo])} title={`${a.nome} · ${TIPO_AUSENCIA_LABEL[a.tipo]}`}>
+                  <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("truncate rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", tomDe(a.tipo, d.data))} title={`${a.nome} · ${a.tipo === "folga" && ehDomingo(d.data) ? "Folga dominical" : TIPO_AUSENCIA_LABEL[a.tipo]}`}>
                     {primeiroNome(a.nome)}
                   </span>
                 ))}
