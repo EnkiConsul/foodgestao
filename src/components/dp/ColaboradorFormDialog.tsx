@@ -2290,7 +2290,7 @@ export function ColaboradorFormDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) { tentarFechar(); return; } onOpenChange(true); }}>
       <DialogContent
         ref={contentRef}
-        className="flex h-[100dvh] w-full max-w-none flex-col gap-0 overflow-hidden p-0 sm:h-auto sm:max-h-[92vh] sm:max-w-4xl sm:rounded-lg"
+        className="flex h-[100dvh] w-full max-w-none flex-col gap-0 overflow-hidden p-0 sm:h-[92vh] sm:max-h-[92vh] sm:max-w-4xl sm:rounded-lg"
       >
         <Tabs
           value={tab}
