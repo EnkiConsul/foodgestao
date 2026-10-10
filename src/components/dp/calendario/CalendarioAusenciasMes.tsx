@@ -383,8 +383,8 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
             const pk = i === 0 || i >= 5;
             return (
               <div key={d} className={cn(
-                "flex items-center justify-center gap-1 py-2 text-[11px] font-extrabold uppercase tracking-[0.14em]",
-                dom ? "bg-amber-400 text-amber-950" : "bg-foreground text-background",
+                "flex items-center justify-center gap-1 border-b-2 py-2.5 text-xs font-extrabold uppercase tracking-[0.16em] shadow-sm",
+                dom ? "border-amber-600 bg-amber-400 text-amber-950" : "border-primary bg-foreground text-background",
               )}>
                 {d}{pk && <Flame className="h-3 w-3 opacity-80" aria-label="Pico de operação" />}
               </div>
@@ -424,7 +424,11 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                     )}
                   >
                     {ehPico && <span className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-orange-400 to-amber-500" aria-hidden="true" />}
-                    <div className="flex items-center justify-between gap-1">
+                    <div className={cn(
+                      "-mx-2 -mt-2 flex items-center justify-between gap-1 border-b border-border/70 px-2 py-1.5",
+                      ehPico ? "bg-orange-500/15" : "bg-muted/70",
+                      ehHoje && "bg-primary/15",
+                    )}>
                       <div className="flex min-w-0 items-center gap-1">
                         <span className={cn("flex h-6 min-w-6 items-center justify-center rounded-md px-1 text-sm font-extrabold tabular-nums", ehHoje && "bg-primary text-primary-foreground shadow-md")}>{Number(d.data.slice(8))}</span>
                         {ehHoje && <span className="rounded bg-primary px-1 text-[9px] font-bold uppercase tracking-wider text-primary-foreground">Hoje</span>}
@@ -435,7 +439,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                       </div>
                       <span className={cn("inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums", d.alerta && d.avaliacao.situacao === "abaixo" ? "bg-destructive text-destructive-foreground" : "bg-primary/15 text-primary")} title="Trabalhando"><Users className="h-3 w-3" />{d.trabalhando}</span>
                     </div>
-                    <div className={cn(compacto ? "grid grid-cols-2 gap-1" : "flex flex-col gap-1")}>
+                    <div className={cn("mt-0.5", compacto ? "grid grid-cols-2 gap-1" : "flex flex-col gap-1")}>
                       {visiveis.map((a) => (
                         <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("inline-flex min-w-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase shadow-sm", tomDe(a, d.data))} title={rotulo(a, d.data)}>
                           {a.troca && <Repeat className="h-2.5 w-2.5 shrink-0" />}<span className="truncate">{primeiroNome(a.nome)}</span>
