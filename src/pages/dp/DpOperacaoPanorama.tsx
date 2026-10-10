@@ -504,6 +504,8 @@ function DetalheDiaOperacao({
     : foraDaOperacao.filter((p) => { const per = periodoPessoa(p); return !per || per === periodo; });
   const blocosVisiveis = periodo === "todos" ? blocos : blocos.filter((b) => periodoBloco(b) === periodo);
   const totalPessoas = blocos.reduce((s, b) => s + b.pessoas.length, 0);
+  const qtdTurno = periodo === "todos" ? null : blocosVisiveis.reduce((s, b) => s + b.pessoas.length, 0);
+  useEffect(() => { onContagemTurno?.(qtdTurno == null ? null : { n: qtdTurno, turno: periodo }); }, [qtdTurno, periodo, onContagemTurno]);
 
   const foraDoPadrao = dia.avaliacao.situacao !== "sem_padrao" && dia.avaliacao.situacao !== "ok" && (
         <Secao
@@ -1786,7 +1788,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               </Button>
             </div>
             <DialogDescription className="text-center">
-              {diaPopout ? `${diaPopout.trabalhando} trabalhando` : "Rotina prevista para o dia"}
+              {diaPopout ? (contagemTurno ? `${contagemTurno.n} trabalhando no turno ${({ dia: "Dia", noite: "Noite", madrugada: "Madrugada" } as Record<string, string>)[contagemTurno.turno] ?? ""}` : `${diaPopout.trabalhando} trabalhando`) : "Rotina prevista para o dia"}
               {diaPopout && diaPopout.aguardando > 0 ? ` · ${diaPopout.aguardando} aguardando resposta` : ""}
               {diaPopout?.feriado_nome && (
                 <Badge variant="outline" className="ml-2 border-primary/40 text-primary">
@@ -1863,6 +1865,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               {...propsSetor}
                 regimes={regimesColab}
                 periodosHabituais={periodosHab}
+                onContagemTurno={setContagemTurno}
                 acoesFolga={calendario && companyIdCal ? (id, fixa) => (
                   <FolgasDoDiaPainel
                     companyId={companyIdCal}
