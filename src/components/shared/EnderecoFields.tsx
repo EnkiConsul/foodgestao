@@ -4,7 +4,8 @@
  *
  * Regras que valem em qualquer tela:
  * - o CEP é a primeira informação e, ao completar, preenche rua, bairro,
- *   cidade e UF automaticamente;
+ *   cidade e UF automaticamente — mas só os campos vazios: nada do que já
+ *   foi digitado à mão é apagado ou substituído;
  * - falha na consulta não trava nada: dá para digitar tudo à mão;
  * - a UF é sempre escolhida numa lista com os 27 estados;
  * - "Sem número" dispensa o campo número e grava S/N.
