@@ -5,7 +5,7 @@
  * oficial antes da efetivação.
  *
  * O gestor corrige o que o candidato preencheu, gera a ficha para a
- * contabilidade, aguarda o retorno e só então conclui a admissão. Toda
+ * registro oficial e só então conclui a admissão. Toda
  * gravação passa pelo servidor, que revalida campos e permissões.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -525,12 +525,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     window.setTimeout(() => URL.revokeObjectURL(link.href), 60_000);
 
     if (falhas.length) toast.warning(`Ficha gerada, mas não foi possível incluir: ${falhas.join(", ")}. Baixe esses documentos separadamente.`);
-    else toast.success("Ficha gerada com os documentos anexados. Envie o arquivo à contabilidade.");
-
-    if (data.preadmissao.status === "aguardando_revisao") {
-      await acoes.prepararContabilidade.mutateAsync();
-      refetch();
-    }
+    else toast.success("Ficha de admissão baixada com os documentos anexados.");
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "gerar a ficha de admissão" });
     } finally {
@@ -887,8 +882,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const ETAPAS: Array<{ rotulo: string; status: PreadmissaoStatus[] }> = [
     { rotulo: "Preenchimento", status: ["aguardando_preenchimento", "em_preenchimento", "correcao_solicitada", "aguardando_nova_versao"] as PreadmissaoStatus[] },
     { rotulo: "Revisão", status: ["aguardando_revisao"] as PreadmissaoStatus[] },
-    { rotulo: "Contabilidade", status: ["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade"] as PreadmissaoStatus[] },
-    { rotulo: "Retorno", status: ["registro_recebido"] as PreadmissaoStatus[] },
+    { rotulo: "Registro", status: ["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"] as PreadmissaoStatus[] },
     { rotulo: "Efetivado", status: ["concluido"] as PreadmissaoStatus[] },
   ];
   const etapaAtual = Math.max(0, ETAPAS.findIndex((e) => e.status.includes(status)));
@@ -980,15 +974,24 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     <>
       <Button variant="outline" className="h-11 sm:h-10" disabled={gerando} onClick={() => void gerarFicha()}>
         {gerando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Printer className="h-4 w-4 mr-2" />}
-        Gerar Ficha para a Contabilidade
+        Baixar Ficha de Admissão (PDF)
       </Button>
+      {status === "aguardando_revisao" && (
+        <Button
+          className="h-11 sm:h-10"
+          disabled={acoes.prepararContabilidade.isPending}
+          onClick={() => executar(() => acoes.prepararContabilidade.mutateAsync(), "Ficha aprovada. Anexe a ficha de registro na aba Documentos.")}
+        >
+          Aprovar Ficha
+        </Button>
+      )}
       {status === "registro_recebido" && pa.ficha_oficial_conferida_em && (
         <Button
           variant="secondary"
           className="h-11 sm:h-10"
           onClick={() => navigate(`/dp/colaboradores/importar-ficha?preadmissao=${pa.id}`)}
         >
-          Efetivar Admissão
+          Efetivar Colaborador
         </Button>
       )}
     </>
@@ -1063,7 +1066,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       </div>
       <Separator />
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold">Admissão e Contabilidade</h3>
+        <h3 className="text-sm font-semibold">Admissão</h3>
                 {["aguardando_revisao", "aguardando_nova_versao", "em_preenchimento"].includes(status) && (
                   <div className="space-y-2">
                     <Label className="text-xs">Pedir correção ao candidato</Label>
@@ -1081,18 +1084,10 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                 )}
 
                 {status === "aguardando_revisao" && (
-                  <div className="rounded-lg border p-3 space-y-2">
-                    <p className="text-sm font-semibold">Gerar ficha para a contabilidade</p>
-                    <p className="text-xs text-muted-foreground">
-                      Gera um PDF com todos os dados cadastrados e os documentos anexados. Você mesmo envia o
-                      arquivo à contabilidade (e-mail ou WhatsApp). O cadastro do colaborador só é criado no
-                      final, depois do retorno da contabilidade.
-                    </p>
-                    <Button disabled={gerando} onClick={() => void gerarFicha()}>
-                      {gerando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Printer className="h-4 w-4 mr-2" />}
-                      Gerar Ficha para a Contabilidade
-                    </Button>
-                  </div>
+                  <p className="rounded-lg border p-3 text-xs text-muted-foreground">
+                    Confira os dados e os documentos e clique em <span className="font-medium text-foreground">Aprovar Ficha</span>.
+                    Depois anexe aqui a ficha de registro oficial e efetive o colaborador.
+                  </p>
                 )}
 
                 {/* "Registro recebido" também entra aqui: quando a contabilidade
@@ -1100,7 +1095,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                     o gestor precisa poder anexar e conferir novamente. */}
                 {["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(status) && (
                   <div className="rounded-lg border p-3 space-y-2">
-                    <p className="text-sm font-semibold">Ficha oficial devolvida pela contabilidade</p>
+                    <p className="text-sm font-semibold">Ficha de registro oficial</p>
                     <p className="text-xs text-muted-foreground">
                       Primeiro anexe o arquivo recebido. Depois abra, confira e registre a conferência: são
                       dois atos distintos, e o cadastro só é criado após a conferência.
@@ -1154,7 +1149,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                           mesma operação, com os dependentes e documentos já enviados.
                         </p>
                         <Button onClick={() => navigate(`/dp/colaboradores/importar-ficha?preadmissao=${pa.id}`)}>
-                          Concluir Como Colaborador
+                          Efetivar Colaborador
                         </Button>
                       </>
                     ) : (
@@ -1207,7 +1202,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
    */
   const complementaresNode = (
     <div className="space-y-3 rounded-lg border p-3">
-      <p className="text-sm font-semibold">Informações para a contabilidade</p>
+      <p className="text-sm font-semibold">Informações complementares</p>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label>Estado civil</Label>
@@ -1251,15 +1246,45 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
             disabled={encerrada}
           />
         </div>
-        <div className="space-y-2 md:col-span-2">
-          <Label>Contato de recado (WhatsApp)</Label>
-          <Input
-            value={ficha.whatsapp_contato ?? ""}
-            onChange={(e) => mudarFicha("whatsapp_contato", e.target.value)}
-            placeholder="(62) 99999-9999 — Nome do contato"
-            disabled={encerrada}
-          />
-        </div>
+        {[1, 2].map((n) => (
+          <div key={n} className="md:col-span-2 grid gap-3 rounded-md border p-3 md:grid-cols-3">
+            <p className="md:col-span-3 text-xs font-medium text-muted-foreground">
+              Contato de emergência {n}{n === 1 ? " (obrigatório)" : " (opcional)"}
+            </p>
+            <div className="space-y-1">
+              <Label className="text-xs">Nome</Label>
+              <Input
+                value={ficha[`emerg${n}_nome`] ?? ""}
+                onChange={(e) => mudarFicha(`emerg${n}_nome` as CampoFicha, e.target.value)}
+                disabled={encerrada}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Parentesco</Label>
+              <Select
+                value={ficha[`emerg${n}_parentesco`] || "none"}
+                onValueChange={(v) => mudarFicha(`emerg${n}_parentesco` as CampoFicha, v === "none" ? "" : v)}
+                disabled={encerrada}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Não informado</SelectItem>
+                  {PARENTESCOS_EMERGENCIA.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">WhatsApp</Label>
+              <Input
+                value={maskPhone(ficha[`emerg${n}_whatsapp`] ?? "")}
+                onChange={(e) => mudarFicha(`emerg${n}_whatsapp` as CampoFicha, e.target.value.replace(/\D/g, "").slice(0, 11))}
+                placeholder="(62) 99999-9999"
+                inputMode="tel"
+                disabled={encerrada}
+              />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
