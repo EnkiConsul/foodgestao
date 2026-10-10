@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
+import { resolverLimiteFolga } from "@/lib/dp/folga-limites";
 import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { cn } from "@/lib/utils";
 import {
@@ -100,6 +102,20 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     },
   });
   const bloqueios = bloqueiosQuery.data ?? new Map<string, string>();
+  // Limite de folgas pelas mesmas regras e tabelas do Calendário de Folgas.
+  const { regras: regrasLimite } = useDpFolgaLimites(unidadeId);
+  const diaConfigQuery = useQuery({
+    queryKey: ["dp_dia_config", selectedCompanyId, ini, fimMes],
+    enabled: !!selectedCompanyId && !!ini,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("dp_dia_config").select("data, limite_folgas, unidade_id")
+        .eq("company_id", selectedCompanyId!).gte("data", ini!).lte("data", fimMes!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const limiteDoDia = (iso: string) =>
+    unidadeId ? resolverLimiteFolga({ data: iso, unidadeId, regras: regrasLimite ?? [], diaConfig: diaConfigQuery.data ?? [] }).limite : null;
   const alternar = (t: TipoAusenciaCalendario) =>
     onFiltros(filtros.includes(t) ? filtros.filter((x) => x !== t) : [...filtros, t]);
 
@@ -445,7 +461,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                     )}
                   >
                     <div className={cn(
-                      "-mx-2 -mt-2 flex items-center justify-between gap-1 border-b-2 border-primary/25 px-2 py-1.5",
+                      "-mx-2 -mt-2 flex h-9 shrink-0 items-center justify-between gap-1 overflow-hidden border-b-2 border-primary/25 px-2",
                       d.feriado_nome ? "bg-primary/20" : "bg-primary/[0.09]",
                       ehHoje && "bg-primary/30",
                     )}>
@@ -455,7 +471,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                         {ehPico && <Flame className="h-3.5 w-3.5 shrink-0 text-primary" aria-label="Pico de operação"><title>Pico de operação</title></Flame>}
                         {bloqueio && <Lock className="h-3.5 w-3.5 shrink-0 text-destructive" aria-label="Data bloqueada"><title>{bloqueio}</title></Lock>}
                         {d.feriado_nome && (
-                          <Badge variant="outline" className="truncate border-transparent bg-primary px-1.5 py-0 text-[10px] text-primary-foreground" title={d.feriado_nome}>Feriado</Badge>
+                          <span className="truncate rounded bg-primary px-1 text-[9px] font-bold uppercase leading-4 text-primary-foreground" title={d.feriado_nome}>Feriado</span>
                         )}
                       </div>
                       <span className={cn("inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums", d.alerta && d.avaliacao.situacao === "abaixo" ? "bg-destructive text-destructive-foreground" : "bg-primary/15 text-primary")} title="Trabalhando"><Users className="h-3 w-3" />{d.trabalhando}</span>
@@ -468,6 +484,16 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                       ))}
                     </div>
                     {extra > 0 && <span className="text-[10px] font-semibold text-muted-foreground">+{extra}</span>}
+                    {(() => {
+                      const lim = limiteDoDia(d.data);
+                      if (lim == null) return null;
+                      const usadas = aus.filter((a) => a.tipo === "folga").length;
+                      return (
+                        <span className={cn("mt-auto inline-flex w-fit items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums", usadas >= lim ? "border-destructive/40 text-destructive" : "border-border text-muted-foreground")} title="Vagas de folga da unidade neste dia">
+                          Folgas {usadas}/{lim}
+                        </span>
+                      );
+                    })()}
                   </button>
                 </HoverCardTrigger>
                 <HoverCardContent side="top" className="w-64 space-y-2 p-3 text-xs">

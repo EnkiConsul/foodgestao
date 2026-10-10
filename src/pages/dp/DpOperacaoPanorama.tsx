@@ -661,14 +661,14 @@ function DetalheDiaOperacao({
                 </span>
                 <div className="min-w-0">
                   <h2 className="truncate text-sm font-bold">{bloco.titulo}</h2>
-                  <p className="text-xs text-muted-foreground">
+                  <p className={cn("text-xs", noite ? "text-slate-300" : "text-muted-foreground")}>
                     {[bloco.horario, !unidadeId && bloco.unidade_nome ? bloco.unidade_nome : null].filter(Boolean).join(" · ")}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {bloco.fechado && <Badge variant="outline">Fora do funcionamento</Badge>}
-                <span className="inline-flex items-center gap-1 rounded-full bg-background px-2.5 py-1 text-xs font-bold tabular-nums shadow-sm">
+                <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold tabular-nums shadow-sm", noite ? "border border-slate-600 bg-slate-800 text-slate-50" : "bg-background text-foreground")}>
                   <Users className="h-3.5 w-3.5" /> {bloco.pessoas.length}
                 </span>
               </div>
@@ -1892,6 +1892,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                       data={dataPopout}
                       ocultarBloqueio
                       folgasNoDia={diaPopout.contagens.folga_padrao + diaPopout.contagens.folga_extra}
+                      ocupantes={diaPopout.pessoas.filter((p) => String(p.categoria).startsWith("folga")).map((p) => ({ nome: p.nome, cargoId: p.cargo_id ?? null, setorId: p.setor_id ?? null }))}
                       nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
                     />
                   </section>
