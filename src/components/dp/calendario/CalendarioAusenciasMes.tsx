@@ -378,21 +378,23 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
         ))}
 
         {/* Métricas em linha — só o que tem valor */}
-        <div className="order-last grid w-full min-w-0 grid-cols-2 items-stretch gap-1.5 md:order-none md:ml-2 md:flex md:w-auto md:flex-wrap">
+        <div className="order-last grid w-full min-w-0 grid-cols-3 items-stretch gap-1.5 md:order-none md:ml-2 md:flex md:w-auto md:flex-wrap">
           {cards.map((c) => {
             const Icone = c.icon;
             const conteudo = (
               <>
-                {c.emoji ? (
-                  <span aria-hidden="true" className="text-[13px] leading-none">{c.emoji}</span>
-                ) : Icone ? (
-                  <Icone className={cn("h-3.5 w-3.5", c.tom)} />
-                ) : null}
-                <span className="font-bold tabular-nums">{c.valor}</span>
-                <span className="min-w-0 truncate text-muted-foreground">{c.label}</span>
+                <span className="flex items-center gap-1.5">
+                  {c.emoji ? (
+                    <span aria-hidden="true" className="text-[13px] leading-none">{c.emoji}</span>
+                  ) : Icone ? (
+                    <Icone className={cn("h-3.5 w-3.5", c.tom)} />
+                  ) : null}
+                  <span className="font-bold tabular-nums">{c.valor}</span>
+                </span>
+                <span className="min-w-0 truncate text-center text-[11px] leading-tight text-muted-foreground md:text-left md:text-xs">{c.label}</span>
               </>
             );
-            const cls = "flex h-7 w-full min-w-0 items-center gap-1.5 rounded-full border bg-card px-2.5 text-xs shadow-sm md:inline-flex md:w-auto md:shrink-0 md:whitespace-nowrap";
+            const cls = "flex h-11 w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg border bg-card px-1.5 py-1 text-xs shadow-sm md:h-7 md:w-auto md:shrink-0 md:flex-row md:justify-start md:gap-1.5 md:rounded-full md:px-2.5 md:whitespace-nowrap";
             return c.chave ? (
               <button key={c.label} type="button" onClick={() => setCardAberto({ chave: c.chave!, label: c.label })} className={cn(cls, "transition-colors hover:bg-muted active:bg-muted")} title={`Ver quem: ${c.label}`}>
                 {conteudo}
