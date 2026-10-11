@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +22,7 @@ import { sugestaoDataFim, duracaoPadrao, TIPOS_LICENCA_CURTA, TIPO_AFASTAMENTO_L
 import { FundamentoLegalCard } from "@/components/dp/licencas/FundamentoLegalCard";
 import { DpFilePicker } from "@/components/dp/DpFilePicker";
 import { AtribuirFolgaTriagemDialog } from "@/components/dp/AtribuirFolgaTriagemDialog";
+import { SuspensaoNovoModal } from "@/components/dp/disciplinar/SuspensaoNovoModal";
 import { FeriasNovoModal } from "@/components/dp/ferias/FeriasNovoModal";
 import { OcorrenciaFormDialog } from "@/components/dp/ocorrencias/OcorrenciaFormDialog";
 import { textoErroOcorrencia } from "@/lib/dp/ocorrencias";
@@ -68,7 +68,6 @@ interface Props {
 export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, motivoInicial }: Props) {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
-  const navigate = useNavigate();
   const colabs = useDpColaboradores();
   const ativos = (colabs.data ?? []).filter((c) => c.ativo !== false);
 
@@ -77,6 +76,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
   const [folgaOpen, setFolgaOpen] = useState(false);
   const [faltaOpen, setFaltaOpen] = useState(false);
   const [feriasOpen, setFeriasOpen] = useState(false);
+  const [suspOpen, setSuspOpen] = useState(false);
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [form, setForm] = useState({
     colaborador_id: "",
@@ -111,7 +111,6 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
   const continuar = () => {
     if (!form.colaborador_id) return toast.error("Selecione o colaborador");
     if (!form.data_alvo) return toast.error("Informe a data");
-    const q = new URLSearchParams({ colaborador: form.colaborador_id });
     switch (motivo) {
       case "folga":
         onOpenChange(false);
@@ -126,13 +125,8 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         setFeriasOpen(true);
         break;
       case "suspensao":
-        q.set("tipo", "suspensao");
-        q.set("data", form.data_alvo);
         onOpenChange(false);
-        navigate(`/dp/disciplinar?${q}`);
-        toast.info(`Suspensão de ${nomeColab || "colaborador"} pronta para registro`, {
-          description: "Gere o modelo, colha a assinatura e importe a via assinada.",
-        });
+        setSuspOpen(true);
         break;
       case "afastamento":
         setEtapa("afastamento");
@@ -338,6 +332,14 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         onOpenChange={setFeriasOpen}
         colaboradorId={form.colaborador_id}
         dataInicio={form.data_alvo}
+      />
+      <SuspensaoNovoModal
+        open={suspOpen}
+        onOpenChange={setSuspOpen}
+        colaboradorId={form.colaborador_id}
+        colaboradorNome={nomeColab}
+        regime={ativos.find((c) => c.id === form.colaborador_id)?.regime ?? null}
+        data={form.data_alvo}
       />
       <OcorrenciaFormDialog
         open={faltaOpen}
