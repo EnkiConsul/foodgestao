@@ -1,4 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
+
+/** Tipos assinados só à mão, na via impressa (o servidor recusa a assinatura digital). */
+const SO_ASSINATURA_FISICA = new Set([
+  "aviso_previo", "desligamento", "trct", "demonstrativo_rescisorio", "outros_desligamento", "acerto_rescisorio", "disciplinar",
+]);
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { tituloDocumento } from "@/lib/dp/documento-titulo";
@@ -52,6 +57,7 @@ export function selecionarPendentesAssinatura(
         !!d.exige_aceite &&
         !d.submetido_por_colaborador &&
         !d.assinatura_fisica &&
+        !SO_ASSINATURA_FISICA.has(String(d.tipo ?? "")) &&
         (d.aprovacao_status ?? "aprovado") === "aprovado" &&
         !aceitos.has(d.id),
     )
