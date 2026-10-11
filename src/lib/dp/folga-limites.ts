@@ -349,6 +349,7 @@ export function limiteComFolgaFixaDiaUtil(
   fixosPorDow: Map<number, number> | undefined,
 ): LimiteResolvido {
   const wd = new Date(`${iso}T12:00:00`).getDay();
-  if (!fixosPorDow || wd < 1 || wd > 5 || res.origem === "excecao_data") return res;
+  // Limite configurado pelo gestor (exceção da data ou regra) tem prioridade — igual ao backend.
+  if (!fixosPorDow || wd < 1 || wd > 5 || res.origem !== "sem_limite") return res;
   return { ...res, limite: fixosPorDow.get(wd) ?? 0, origem: "folga_fixa" };
 }
