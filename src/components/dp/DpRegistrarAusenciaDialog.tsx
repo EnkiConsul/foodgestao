@@ -7,6 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { elegiveisParaAusencia } from "@/lib/dp/ausencia-elegibilidade";
 import { AlertTriangle } from "lucide-react";
+import { AssiduidadePergunta, validarDecisaoAssiduidade, type DecisaoAssiduidade } from "@/components/dp/AssiduidadePergunta";
+import { textoErroAssiduidade } from "@/lib/dp/assiduidade-risco";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -91,6 +93,15 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
   const [feriasOpen, setFeriasOpen] = useState(false);
   const [suspOpen, setSuspOpen] = useState(false);
   const [arquivo, setArquivo] = useState<File | null>(null);
+  const [assid, setAssid] = useState<DecisaoAssiduidade | null>(null);
+  const gravarAssiduidade = async (resp: unknown, decisao: DecisaoAssiduidade | null) => {
+    const id = (resp as { solicitacao_id?: string } | null)?.solicitacao_id;
+    if (!decisao || !id) return;
+    const { error } = await supabase.rpc("dp_solicitacao_assiduidade_definir", {
+      p_id: id, p_perde: decisao.perde, p_justificativa: decisao.justificativa || null,
+    } as never);
+    if (error) toast.error("Ausência salva, mas a decisão do prêmio ficou pendente em Ocorrências", { description: textoErroAssiduidade(error.message) });
+  };
   const [form, setForm] = useState({
     colaborador_id: "",
     tipo: "atestado" as Tipo,
