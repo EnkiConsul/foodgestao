@@ -192,7 +192,19 @@ export default function DpOcorrencias() {
         const cards: CardInd[] = [
           { key: "falta", label: "Faltas", valor: indicadores.porTipo.falta ?? 0, aplicar: { tipo: "falta" } },
           { key: "previsao_falta", label: "Previsões de falta", valor: indicadores.porTipo.previsao_falta ?? 0, aplicar: { tipo: "previsao_falta" } },
-          { key: "atraso", label: "Atrasos", valor: indicadores.porTipo.atraso ?? 0, aplicar: { tipo: "atraso" } },
+          {
+            key: "atraso",
+            label: "Atrasos",
+            valor: indicadores.porTipo.atraso ?? 0,
+            detalhe: indicadores.atraso_minutos
+              ? (() => {
+                  const m = indicadores.atraso_minutos;
+                  const h = Math.floor(m / 60);
+                  return h ? `${h}h${String(m % 60).padStart(2, "0")} somados` : `${m} min somados`;
+                })()
+              : undefined,
+            aplicar: { tipo: "atraso" },
+          },
           { key: "previsao_atraso", label: "Previsões de atraso", valor: indicadores.porTipo.previsao_atraso ?? 0, aplicar: { tipo: "previsao_atraso" } },
           { key: "saida_antecipada", label: "Saídas antecipadas", valor: indicadores.porTipo.saida_antecipada ?? 0, aplicar: { tipo: "saida_antecipada" } },
           { key: "previsao_saida_antecipada", label: "Previsões de saída", valor: indicadores.porTipo.previsao_saida_antecipada ?? 0, aplicar: { tipo: "previsao_saida_antecipada" } },
