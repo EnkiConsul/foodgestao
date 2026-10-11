@@ -349,7 +349,10 @@ export function limiteComFolgaFixaDiaUtil(
   fixosPorDow: Map<number, number> | undefined,
 ): LimiteResolvido {
   const wd = new Date(`${iso}T12:00:00`).getDay();
-  // Limite configurado pelo gestor (exceção da data ou regra) tem prioridade — igual ao backend.
-  if (!fixosPorDow || wd < 1 || wd > 5 || res.origem !== "sem_limite") return res;
-  return { ...res, limite: fixosPorDow.get(wd) ?? 0, origem: "folga_fixa" };
+  if (!fixosPorDow || wd < 1 || wd > 5) return res;
+  const fixos = fixosPorDow.get(wd) ?? 0;
+  if (res.origem === "sem_limite") return { ...res, limite: fixos, origem: "folga_fixa" };
+  // Com limite configurado, as folgas fixas cadastradas no dia são o piso: o teto nunca fica abaixo delas.
+  if (res.limite != null && res.limite < fixos) return { ...res, limite: fixos, origem: "folga_fixa" };
+  return res;
 }
