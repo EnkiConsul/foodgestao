@@ -15,7 +15,8 @@ type Janela = {
 
 const fmt = (iso: string) => {
   const [y, m, d] = iso.slice(0, 10).split("-");
-  return `${d}/${m}${y ? "" : ""}`;
+  void y;
+  return `${d}/${m}`;
 };
 
 /**
