@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { normalizarDias, type ConfigTrabalho, type DiaConfig, type TurnoResolvido } from "@/lib/dp/config-trabalho";
 import { TIPOS_AFASTAMENTO } from "@/lib/dp/licencas";
 import { isSocio } from "@/lib/dp/contrato-policy";
-import { ehSobDemanda } from "@/lib/dp/operacao-panorama";
+import { ehSobDemanda, somarDias } from "@/lib/dp/operacao-panorama";
 import type {
   AusenciaPanorama,
   ColaboradorPanorama,
@@ -264,6 +264,12 @@ export async function carregarPanorama(
         fim: a.data_fim ?? a.data_alvo!,
         tipo: "atestado" as const,
       })),
+    ...(suspensoes.data ?? []).map((s) => ({
+      colaborador_id: s.colaborador_id,
+      inicio: s.data,
+      fim: somarDias(s.data, Math.max(s.suspensao_dias ?? 1, 1) - 1),
+      tipo: "suspensao" as const,
+    })),
   ];
 
   return {
