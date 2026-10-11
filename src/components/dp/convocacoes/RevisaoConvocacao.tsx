@@ -533,7 +533,7 @@ export function RevisaoConvocacao(props: Props) {
                     return av.apto ? (
                       av.indisponivel ? (
                         <span className="w-full text-[11px] text-amber-700 dark:text-amber-400">
-                          Marcou indisponibilidade neste dia. A convocação será enviada mesmo assim e ela decide se aceita.
+                          ⚠️ Indisponível no dia — risco de recusa. A convocação será enviada mesmo assim e a pessoa decide se aceita.
                         </span>
                       ) : (
                         <Badge variant="secondary" className="text-[10px]">Apta</Badge>
