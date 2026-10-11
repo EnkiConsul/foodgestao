@@ -109,7 +109,7 @@ export default function DpMeuSolicitacoes() {
       const { data } = await supabase.rpc("dp_meu_colaborador");
       if (!data) return null;
       const colunas =
-        "id, company_id, unidade_id, cargo_id, sexo, regime, forma_pagamento, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, nome";
+        "id, company_id, unidade_id, cargo_id, setor_id, sexo, regime, forma_pagamento, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, nome";
       const tentativa = await supabase.from("dp_colaboradores").select(colunas).eq("id", data).single();
       if (!tentativa.error) return tentativa.data as unknown as MeuVinculoSol;
       // Se uma coluna nova ainda não tem permissão de leitura, refaz sem ela.
