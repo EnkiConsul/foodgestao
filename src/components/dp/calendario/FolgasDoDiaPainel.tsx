@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { RefreshCw, X, AlertTriangle } from "lucide-react";
-import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { emitirTermoTrocaGestor, termoTrocaGestorParagrafos, ORIGEM_TROCA_LABEL, type AssinaturaTermo, type OrigemTrocaGestor } from "@/lib/dp/termo-troca-gestor";
 
@@ -381,7 +380,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
               <p className="text-[11px] text-muted-foreground">Mínimo de 5 caracteres. Fica registrada no histórico.</p>
             </div>
             <DialogFooter className="flex-col gap-2 sm:flex-col">
-              <Button className="w-full" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); }}><RefreshCw className="mr-2 h-4 w-4" />Prefiro Remarcar para Outro Dia (Recomendado)</Button>
+              <Button className="w-full" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConfRemarcar(""); }}><RefreshCw className="mr-2 h-4 w-4" />Prefiro Remarcar para Outro Dia (Recomendado)</Button>
               <Button variant="destructive" className="w-full" disabled={motivo.trim().length < 5 || executar.isPending} onClick={() => executar.mutate()}>Confirmar Cancelamento da Folga</Button>
             </DialogFooter>
           </DialogContent>
@@ -423,7 +422,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
                 {i.origem === "troca" && <Badge variant="outline" className="ml-2 text-[10px]">Troca</Badge>}
               </span>
               <div className="flex gap-1">
-                <Button size="sm" variant="outline" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); }}>
+                <Button size="sm" variant="outline" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConfRemarcar(""); }}>
                   Remarcar
                 </Button>
                 <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { setAcao({ item: i, tipo: "cancelar" }); setMotivo(""); }}>
