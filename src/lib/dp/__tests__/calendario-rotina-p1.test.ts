@@ -30,13 +30,13 @@ describe("limite em dia útil", () => {
     const r = limiteComFolgaFixaDiaUtil("2026-10-12", { limite: null, origem: "sem_limite" } as never, new Map([[1, 3]]));
     expect(r.limite).toBe(3);
   });
-  it("exceção da data prevalece", () => {
+  it("folgas fixas do dia são o piso mesmo com exceção da data", () => {
     const r = limiteComFolgaFixaDiaUtil("2026-10-12", { limite: 1, origem: "excecao_data" } as never, new Map([[1, 3]]));
-    expect(r.limite).toBe(1);
+    expect(r.limite).toBe(3);
   });
-  it("regra configurada pelo gestor prevalece sobre o cálculo automático", () => {
-    const r = limiteComFolgaFixaDiaUtil("2026-10-12", { limite: 2, origem: "regra_recorrente" } as never, new Map([[1, 5]]));
-    expect(r.limite).toBe(2);
+  it("regra do gestor acima das fixas prevalece; abaixo, sobe para as fixas", () => {
+    expect(limiteComFolgaFixaDiaUtil("2026-10-12", { limite: 6, origem: "regra_recorrente" } as never, new Map([[1, 5]])).limite).toBe(6);
+    expect(limiteComFolgaFixaDiaUtil("2026-10-12", { limite: 2, origem: "regra_recorrente" } as never, new Map([[1, 5]])).limite).toBe(5);
   });
 });
 
