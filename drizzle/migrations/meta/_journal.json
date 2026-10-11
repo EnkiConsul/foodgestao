@@ -323,6 +323,13 @@
       "when": 1791685767013,
       "tag": "0045_folgas_limites_unidade_concorrencia",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1791687552839,
+      "tag": "0046_dp_troca_bloqueia_folga_em_afastamento",
+      "breakpoints": true
     }
   ]
 }

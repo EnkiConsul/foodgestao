@@ -35,6 +35,7 @@ import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
 import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
 import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
+import { dataEmAfastamento, type PeriodoAfastamento } from "@/lib/dp/troca-oferta";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { avaliarRiscoDsrTroca, avisoDsr, descansosDoColaborador } from "@/lib/dp/dsr-consecutivo";
 import { diasFixosDoColaborador, registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
@@ -170,11 +171,35 @@ export default function DpMeuTrocas() {
 
   const minhaUnidade = (meRef.data as { unidade_id?: string | null } | undefined)?.unidade_id ?? null;
 
-  /** Minhas folgas futuras — o que eu tenho para oferecer. */
+  /**
+   * Períodos de afastamento (atestado, licença, suspensão, férias) da empresa:
+   * folga coberta por esses eventos não pode ser oferecida nem pedida em troca.
+   */
+  const afastamentos = useQuery({
+    queryKey: ["dp_trocas_afastamentos", meRef.data?.company_id],
+    enabled: !!meRef.data?.company_id,
+    queryFn: async () => {
+      const de = hojeIsoLocal();
+      const fim = new Date();
+      fim.setDate(fim.getDate() + 180);
+      const { data, error } = await supabase.rpc("dp_trocas_afastamentos", {
+        _de: de,
+        _ate: format(fim, "yyyy-MM-dd"),
+      });
+      if (error) throw error;
+      return (data ?? []) as PeriodoAfastamento[];
+    },
+  });
+
+  /** Minhas folgas futuras — o que eu tenho para oferecer (fora de afastamentos). */
   const minhasFolgas = useMemo(
     () =>
-      (folgasFuturas.data ?? []).filter((f: any) => f.colaborador_id === meRef.data?.id),
-    [folgasFuturas.data, meRef.data?.id],
+      (folgasFuturas.data ?? []).filter(
+        (f: any) =>
+          f.colaborador_id === meRef.data?.id &&
+          !dataEmAfastamento(afastamentos.data, meRef.data?.id, f.data),
+      ),
+    [folgasFuturas.data, meRef.data?.id, afastamentos.data],
   );
 
   /** Meus dias fixos de folga na semana (para avaliar dias seguidos sem descanso). */
@@ -195,7 +220,7 @@ export default function DpMeuTrocas() {
     [minhasFolgas, meusFixos.data],
   );
 
-  /** Folgas de colegas da minha loja, agrupadas por data. */
+  /** Folgas de colegas da minha loja, agrupadas por data (fora de afastamentos). */
   const folgasDeColegasPorData = useMemo(() => {
     const m = new Map<string, { id: string; nome: string }[]>();
     for (const f of (folgasFuturas.data ?? []) as any[]) {
@@ -203,6 +228,7 @@ export default function DpMeuTrocas() {
       const colega = f.dp_colaboradores ?? {};
       if (colega.ativo === false) continue;
       if (minhaUnidade && colega.unidade_id && colega.unidade_id !== minhaUnidade) continue;
+      if (dataEmAfastamento(afastamentos.data, f.colaborador_id, f.data)) continue;
       const lista = m.get(f.data) ?? [];
       if (!lista.some((c) => c.id === f.colaborador_id)) {
         lista.push({ id: f.colaborador_id, nome: colega.nome ?? "Colega" });
@@ -210,7 +236,7 @@ export default function DpMeuTrocas() {
       m.set(f.data, lista);
     }
     return m;
-  }, [folgasFuturas.data, meRef.data?.id, minhaUnidade]);
+  }, [folgasFuturas.data, meRef.data?.id, minhaUnidade, afastamentos.data]);
 
   const datasPropostas = useMemo(
     () => Array.from(folgasDeColegasPorData.keys()).sort(),

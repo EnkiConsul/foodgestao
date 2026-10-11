@@ -6,6 +6,29 @@ export type FolgaOfertavel = {
   status: string | null;
 };
 
+/** Período de afastamento (atestado, licença, suspensão ou férias) vindo da RPC dp_trocas_afastamentos. */
+export type PeriodoAfastamento = {
+  colaborador_id: string;
+  inicio: string;
+  fim: string;
+};
+
+/**
+ * Verdadeiro quando a data cai num período de afastamento da pessoa.
+ * Folga nesse período não é negociável: nem o próprio colaborador oferece,
+ * nem o colega pode pedir (a RPC dp_troca_propor também barra no servidor).
+ */
+export function dataEmAfastamento(
+  periodos: PeriodoAfastamento[] | null | undefined,
+  colaboradorId: string | null | undefined,
+  dataIso: string,
+): boolean {
+  if (!colaboradorId || !periodos?.length) return false;
+  return periodos.some(
+    (p) => p.colaborador_id === colaboradorId && p.inicio <= dataIso && dataIso <= p.fim,
+  );
+}
+
 /**
  * Folgas que o colaborador pode oferecer numa troca: apenas as dele, ativas,
  * de hoje em diante e **nunca** o próprio dia que ele está pedindo — trocar um

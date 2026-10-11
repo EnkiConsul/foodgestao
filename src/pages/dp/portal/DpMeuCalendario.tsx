@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/select";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { resumoEscolhaFolgas, folgaDominicalAutomatica, podeTrocarFolga, domingosFolgaNoPeriodo } from "@/lib/dp/dsr-rules";
-import { folgasOfertaveis } from "@/lib/dp/troca-oferta";
+import { folgasOfertaveis, dataEmAfastamento, type PeriodoAfastamento } from "@/lib/dp/troca-oferta";
 import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
 import { avaliarRiscoDsrTroca, avisoDsr } from "@/lib/dp/dsr-consecutivo";
 import { registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
@@ -464,6 +464,26 @@ export default function DpMeuCalendario() {
     },
   });
 
+  /**
+   * Períodos de afastamento (atestado, licença, suspensão, férias) da empresa:
+   * folga coberta por esses eventos não pode ser oferecida nem pedida em troca.
+   */
+  const afastamentosQuery = useQuery({
+    queryKey: ["dp_trocas_afastamentos", companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const de = ymd(new Date());
+      const fim = new Date();
+      fim.setDate(fim.getDate() + 180);
+      const { data, error } = await supabase.rpc("dp_trocas_afastamentos", {
+        _de: de,
+        _ate: ymd(fim),
+      });
+      if (error) throw error;
+      return (data ?? []) as PeriodoAfastamento[];
+    },
+  });
+
   // Realtime — invalida queries quando qualquer fonte muda
   useEffect(() => {
     if (!companyId) return;
@@ -763,9 +783,11 @@ export default function DpMeuCalendario() {
   const minhasFolgasFuturas = useMemo(
     () =>
       folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso }).filter(
-        (f) => !diasEmTrocaPendente.has(f.data as string),
+        (f) =>
+          !diasEmTrocaPendente.has(f.data as string) &&
+          !dataEmAfastamento(afastamentosQuery.data, meRef.data?.id, f.data as string),
       ),
-    [folgas, meRef.data?.id, hojeIso, diasEmTrocaPendente],
+    [folgas, meRef.data?.id, hojeIso, diasEmTrocaPendente, afastamentosQuery.data],
   );
 
   /**
@@ -792,8 +814,10 @@ export default function DpMeuCalendario() {
       .filter((iso) => !trabalhoExcepcionalQuery.data?.has(`${meRef.data!.id}|${iso}`))
       // Folga já oferecida numa troca pendente.
       .filter((iso) => !diasEmTrocaPendente.has(iso))
+      // Folga coberta por atestado, licença, suspensão ou férias não é negociável.
+      .filter((iso) => !dataEmAfastamento(afastamentosQuery.data, meRef.data!.id, iso))
       .map((iso) => ({ id: `fixa-${iso}`, data: iso, fixa: true as const }));
-  }, [meRef.data, meusDiasFixosQuery.data, folgas, range.startDate, range.endDate, hojeIso, trabalhoExcepcionalQuery.data, diasEmTrocaPendente]);
+  }, [meRef.data, meusDiasFixosQuery.data, folgas, range.startDate, range.endDate, hojeIso, trabalhoExcepcionalQuery.data, diasEmTrocaPendente, afastamentosQuery.data]);
 
   /** Folgas ofertáveis para o dia aberto no diálogo (sem o próprio dia pedido). */
   const folgasParaOferecer = useMemo(() => {
@@ -1622,7 +1646,9 @@ export default function DpMeuCalendario() {
                   {dayInfo.occupants.map((occ) => {
                     const isMe = occ.colaboradorId === meRef.data?.id;
                     const showTrade =
-                      !isMe && dayInfo.canTrade && !["blocked", "past", "mine", "fixed"].includes(selectedDay.status);
+                      !isMe && dayInfo.canTrade && !["blocked", "past", "mine", "fixed"].includes(selectedDay.status)
+                      // Folga do colega coberta por atestado, licença, suspensão ou férias não é negociável.
+                      && !dataEmAfastamento(afastamentosQuery.data, occ.colaboradorId, selectedDay.iso);
                     return (
                       <div
                         key={occ.key}
