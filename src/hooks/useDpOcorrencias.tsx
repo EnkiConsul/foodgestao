@@ -125,7 +125,7 @@ const COLS = `
   assiduidade_risco, assiduidade_risco_motivo, assiduidade_observacao, assiduidade_decidido_em,
   relevancia_operacional, analise_status, analisado_em, tratativa_ponto, tratativa_status,
   tratativa_decisao, tratativa_observacao, marcacao_alvo, documento_id, informada_em,
-  antecedencia_minutos, motivo_cancelamento, created_at,
+  antecedencia_minutos, motivo_cancelamento, created_at, troca_id,
   colaborador:dp_colaboradores!dp_ocorrencias_colaborador_id_fkey(nome, cargo),
   unidade:dp_unidades!dp_ocorrencias_unidade_id_fkey(nome),
   setor:dp_setores!dp_ocorrencias_setor_id_fkey(nome)
