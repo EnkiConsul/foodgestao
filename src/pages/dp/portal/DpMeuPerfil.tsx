@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { FotoColaborador } from "@/components/dp/FotoColaborador";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -131,7 +132,10 @@ export default function DpMeuPerfil() {
       ) : (
         <>
           <Card className="dp-content-card">
-            <CardHeader><CardTitle>{p.nome}</CardTitle></CardHeader>
+            <CardHeader className="flex-row items-center gap-3 space-y-0">
+              <FotoColaborador colaboradorId={colaboradorId} nome={p.nome} className="w-16" />
+              <CardTitle className="min-w-0 break-words">{p.nome}</CardTitle>
+            </CardHeader>
             <CardContent className="grid gap-3 sm:grid-cols-2 text-sm">
               <Field label="Matrícula" value={p.matricula} />
               <Field label="CPF" value={p.cpf} />
