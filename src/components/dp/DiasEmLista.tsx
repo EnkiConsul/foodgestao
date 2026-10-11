@@ -106,7 +106,7 @@ export function DiasEmLista({
             "flex w-full items-center gap-3 px-3 py-3 text-left",
             TOM[d.tom ?? "neutro"],
             d.dominical && !d.tom && "bg-amber-500/10",
-            isToday && !d.tom && !d.dominical && "bg-primary/5",
+            isToday && "bg-primary/20 shadow-[inset_4px_0_0_hsl(var(--primary))]",
             d.selecionado && "ring-1 ring-inset ring-primary",
           );
 
