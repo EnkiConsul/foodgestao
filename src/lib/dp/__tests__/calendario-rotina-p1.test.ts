@@ -34,6 +34,10 @@ describe("limite em dia útil", () => {
     const r = limiteComFolgaFixaDiaUtil("2026-10-12", { limite: 1, origem: "excecao_data" } as never, new Map([[1, 3]]));
     expect(r.limite).toBe(1);
   });
+  it("regra configurada pelo gestor prevalece sobre o cálculo automático", () => {
+    const r = limiteComFolgaFixaDiaUtil("2026-10-12", { limite: 2, origem: "regra_recorrente" } as never, new Map([[1, 5]]));
+    expect(r.limite).toBe(2);
+  });
 });
 
 describe("folga fixa no domingo", () => {
