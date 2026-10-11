@@ -616,15 +616,22 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               const pad = d.avaliacao.padrao;
               const abaixo = d.alerta && pad != null && d.trabalhando < pad;
               const acima = d.alerta && pad != null && d.trabalhando > pad;
+              const ausentes = ausenciasVisiveis(d.pessoas, TIPOS_AUSENCIA).length;
               return (
                 <li key={d.data} className="flex items-center gap-2">
-                  <button type="button" onClick={() => { setCardAberto(null); onAbrirDia(d.data, mostraTurno ? periodo : "todos"); }} className="flex min-w-0 flex-1 items-center justify-between gap-2 py-2 text-left hover:bg-muted">
-                    <span className="text-sm font-semibold">
+                  <button type="button" disabled={abrindoDia === d.data} onClick={() => { setAbrindoDia(d.data); setCardAberto(null); onAbrirDia(d.data, mostraTurno ? periodo : "todos"); }} className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-md px-1 py-2 text-left transition hover:bg-muted active:scale-[0.98] active:bg-primary/10 disabled:opacity-60">
+                    <span className="flex items-center gap-1 text-sm font-semibold">
+                      {abrindoDia === d.data && <Loader2 className="h-3 w-3 animate-spin" aria-hidden />}
                       {fmtDiaSemana(d.data)}{d.feriado_nome ? " 🎉" : ""}{bloqueios.has(d.data) ? " 🔒" : ""}
                     </span>
-                    <span className={cn("text-xs tabular-nums", abaixo ? "font-semibold text-destructive" : acima ? "font-semibold text-amber-600 dark:text-amber-400" : "text-muted-foreground")}>
-                      {d.trabalhando} trabalhando
-                      {d.alerta && d.avaliacao.padrao != null ? ` (padrão ${d.avaliacao.padrao}) — ${abaixo ? "abaixo" : "acima"} do padrão` : ""}
+                    <span className="flex flex-col items-end text-xs tabular-nums">
+                      <span className={cn(abaixo ? "font-semibold text-destructive" : acima ? "font-semibold text-amber-600 dark:text-amber-400" : "text-muted-foreground")}>
+                        {d.trabalhando} trabalhando
+                        {d.alerta && d.avaliacao.padrao != null ? ` (padrão ${d.avaliacao.padrao}) — ${abaixo ? "abaixo" : "acima"} do padrão` : ""}
+                      </span>
+                      <span className={cn(ausentes > 0 ? "text-rose-600 dark:text-rose-400" : "text-muted-foreground")}>
+                        {ausentes} {ausentes === 1 ? "ausente" : "ausentes"}
+                      </span>
                     </span>
                   </button>
                   {cardAberto?.chave === "dias_alerta" && onMarcarOk && d.alerta && (
