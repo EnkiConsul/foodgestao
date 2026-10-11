@@ -451,7 +451,6 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               ),
               chips: (
                 <>
-                  {d.data === hoje && <Badge className="text-[10px]">Hoje</Badge>}
                   {aus.slice(0, 3).map((a) => (
                     <span key={`${a.colaborador_id}-${a.tipo}`} title={rotulo(a, d.data)} className={cn("inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", tomDe(a, d.data), d.data < hoje && "opacity-60")}>
                       {a.troca && <Repeat className="h-2.5 w-2.5" />}{primeiroNome(a.nome)}
