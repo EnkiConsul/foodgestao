@@ -183,7 +183,7 @@ export function OcorrenciaCard({
       {detalhes && (
         <div className="mt-3 space-y-2 border-t border-border pt-2 text-xs">
           <p className="text-muted-foreground">
-            {TIPO_LABEL[o.tipo]} · {ESTADO_LABEL[o.estado]} · {ORIGEM_LABEL[o.origem]}
+            {rotuloTipoOcorrencia(o)} · {ESTADO_LABEL[o.estado]} · {ORIGEM_LABEL[o.origem]}
             {o.unidade?.nome ? ` · ${o.unidade.nome}` : ""}
             {o.setor?.nome ? ` · ${o.setor.nome}` : ""}
             {(o.previsto_entrada || o.previsto_saida) &&

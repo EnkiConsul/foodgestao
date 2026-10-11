@@ -133,14 +133,21 @@ export const COR_BADGE: Record<OcorrenciaCor, string> = {
 };
 
 /** Texto curto para a rotina, deixando claro previsto x confirmado. */
+/** Rótulo do tipo; ocorrência gerada por troca de folga aparece como "Troca de folga". */
+export function rotuloTipoOcorrencia(o: { tipo: OcorrenciaTipo; troca_id?: string | null }): string {
+  return o.troca_id ? "Troca de folga" : TIPO_LABEL[o.tipo];
+}
+
 export function resumoOperacional(o: {
   tipo: OcorrenciaTipo;
   estado: OcorrenciaEstado;
   minutos: number | null;
   horario_estimado: string | null;
   horario_real: string | null;
+  troca_id?: string | null;
 }): string {
   const hora = (v: string | null) => (v ? v.slice(0, 5) : "");
+  if (o.troca_id) return "⇄ Troca de folga";
   switch (o.tipo) {
     case "previsao_atraso":
       return `Atraso previsto ~${o.minutos ?? 0} min`;
