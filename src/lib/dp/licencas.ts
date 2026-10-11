@@ -15,20 +15,148 @@ export const TIPOS_LICENCA: readonly TipoLicenca[] = [
   "licenca_paternidade",
 ];
 
+/** Licenças curtas da CLT (art. 473) — faltas abonadas por lei. */
+export const TIPOS_LICENCA_CURTA = [
+  "licenca_luto",
+  "licenca_casamento",
+  "doacao_sangue",
+  "alistamento_eleitoral",
+  "servico_militar",
+  "vestibular",
+  "comparecimento_judicial",
+  "acompanhamento_consulta",
+  "exame_preventivo",
+] as const;
+export type TipoLicencaCurta = (typeof TIPOS_LICENCA_CURTA)[number];
+
 /** Tipos de solicitação tratados como afastamento (atestado + licenças). */
-export const TIPOS_AFASTAMENTO = ["atestado", ...TIPOS_LICENCA] as const;
+export const TIPOS_AFASTAMENTO = ["atestado", ...TIPOS_LICENCA, ...TIPOS_LICENCA_CURTA] as const;
 export type TipoAfastamento = (typeof TIPOS_AFASTAMENTO)[number];
 
 export const TIPO_AFASTAMENTO_LABEL: Record<TipoAfastamento, string> = {
   atestado: "Atestado",
   licenca_maternidade: "Licença-maternidade",
   licenca_paternidade: "Licença-paternidade",
+  licenca_luto: "Licença luto / falecimento",
+  licenca_casamento: "Licença casamento",
+  doacao_sangue: "Doação de sangue",
+  alistamento_eleitoral: "Alistamento eleitoral",
+  servico_militar: "Serviço militar",
+  vestibular: "Vestibular / Enem",
+  comparecimento_judicial: "Comparecimento à Justiça",
+  acompanhamento_consulta: "Acompanhamento em consulta",
+  exame_preventivo: "Exame preventivo de câncer",
 };
 
-/** Duração legal padrão (editável no cadastro). */
-export const DURACAO_PADRAO_DIAS: Record<TipoLicenca, number> = {
+/** Duração legal padrão em dias (editável no cadastro). */
+export const DURACAO_PADRAO_DIAS: Record<TipoLicenca, number> & Partial<Record<TipoLicencaCurta, number>> = {
   licenca_maternidade: 120,
   licenca_paternidade: 5,
+  licenca_luto: 2,
+  licenca_casamento: 3,
+  doacao_sangue: 1,
+  alistamento_eleitoral: 2,
+  vestibular: 1,
+  comparecimento_judicial: 1,
+  acompanhamento_consulta: 1,
+  exame_preventivo: 1,
+};
+
+export interface FundamentoLegal {
+  artigo: string;
+  prazo: string;
+  contagem: string;
+  /** Boa prática: oferecer outra folga se a licença cair sobre a folga (inclusive de fim de semana). */
+  remarcarFolga: boolean;
+  observacao: string;
+}
+
+/** Embasamento legal exibido ao gestor no cadastro da ausência. */
+export const FUNDAMENTO_LEGAL: Record<TipoAfastamento, FundamentoLegal> = {
+  atestado: {
+    artigo: "Lei 605/1949, art. 6º, §1º, f; CLT art. 473",
+    prazo: "Conforme o atestado (até 15 dias pela empresa; depois, INSS)",
+    contagem: "Dias corridos",
+    remarcarFolga: false,
+    observacao: "Folga que coincide com o atestado não gera nova folga; o DSR é mantido.",
+  },
+  licenca_maternidade: {
+    artigo: "CF art. 7º, XVIII; CLT art. 392",
+    prazo: "120 dias (180 em empresa do Empresa Cidadã)",
+    contagem: "Dias corridos",
+    remarcarFolga: false,
+    observacao: "Folgas dentro do período são absorvidas pela licença.",
+  },
+  licenca_paternidade: {
+    artigo: "CF art. 7º, XIX; ADCT art. 10, §1º",
+    prazo: "5 dias (20 em empresa do Empresa Cidadã)",
+    contagem: "Dias corridos a partir do nascimento",
+    remarcarFolga: true,
+    observacao: "Por ser curta, a boa prática é remarcar a folga que cair no período.",
+  },
+  licenca_luto: {
+    artigo: "CLT art. 473, I",
+    prazo: "2 dias consecutivos (cônjuge, pais, filhos, irmãos ou dependente)",
+    contagem: "Dias consecutivos a partir do óbito",
+    remarcarFolga: true,
+    observacao: "Convenção coletiva pode ampliar o prazo — confira a da unidade.",
+  },
+  licenca_casamento: {
+    artigo: "CLT art. 473, II",
+    prazo: "3 dias consecutivos",
+    contagem: "Dias consecutivos a partir do casamento",
+    remarcarFolga: true,
+    observacao: "Convenção coletiva pode ampliar o prazo — confira a da unidade.",
+  },
+  doacao_sangue: {
+    artigo: "CLT art. 473, IV",
+    prazo: "1 dia a cada 12 meses",
+    contagem: "Dia da doação, com comprovante",
+    remarcarFolga: true,
+    observacao: "Exija o comprovante do hemocentro.",
+  },
+  alistamento_eleitoral: {
+    artigo: "CLT art. 473, V",
+    prazo: "Até 2 dias, consecutivos ou não",
+    contagem: "Dias do alistamento",
+    remarcarFolga: true,
+    observacao: "Vale para alistamento ou transferência de título.",
+  },
+  servico_militar: {
+    artigo: "CLT art. 473, VI; Lei 4.375/1964, art. 65",
+    prazo: "Período das exigências do serviço militar",
+    contagem: "Dias de convocação comprovados",
+    remarcarFolga: true,
+    observacao: "Exija o documento da junta militar.",
+  },
+  vestibular: {
+    artigo: "CLT art. 473, VII",
+    prazo: "Dias de prova",
+    contagem: "Dias de exame, com comprovante",
+    remarcarFolga: true,
+    observacao: "Vale para vestibular e Enem para ingresso no ensino superior.",
+  },
+  comparecimento_judicial: {
+    artigo: "CLT art. 473, VIII e IX",
+    prazo: "Tempo necessário para comparecer em juízo",
+    contagem: "Dia da audiência, com comprovante",
+    remarcarFolga: true,
+    observacao: "Inclui testemunha, jurado e representante sindical em reunião oficial.",
+  },
+  acompanhamento_consulta: {
+    artigo: "CLT art. 473, X e XI",
+    prazo: "Até 6 consultas da gestante; 1 dia por ano por filho até 6 anos",
+    contagem: "Dia da consulta, com comprovante",
+    remarcarFolga: true,
+    observacao: "Acompanhar esposa/companheira grávida ou filho pequeno.",
+  },
+  exame_preventivo: {
+    artigo: "CLT art. 473, XII",
+    prazo: "Até 3 dias a cada 12 meses",
+    contagem: "Dias de exame, com comprovante",
+    remarcarFolga: true,
+    observacao: "Exames preventivos de câncer devidamente comprovados.",
+  },
 };
 
 /** Dias de antecedência do lembrete de retorno. */
@@ -47,15 +175,36 @@ export function labelAfastamento(tipo: string | null | undefined): string {
   return tipo ?? "Afastamento";
 }
 
+/** Duração padrão do tipo, quando existir. */
+export function duracaoPadrao(tipo: string | null | undefined): number | null {
+  if (!tipo) return null;
+  return (DURACAO_PADRAO_DIAS as Record<string, number | undefined>)[tipo] ?? null;
+}
+
 /**
  * Sugere a data final a partir do início e da duração padrão da licença.
  * Retorna null quando o tipo não tem duração padrão ou o início é inválido.
  */
 export function sugestaoDataFim(tipo: string, dataInicioISO: string): string | null {
-  if (!isTipoLicenca(tipo) || !dataInicioISO) return null;
+  const dias = duracaoPadrao(tipo);
+  if (!dias || !dataInicioISO) return null;
   const inicio = parseISO(dataInicioISO);
   if (Number.isNaN(inicio.getTime())) return null;
-  return format(addDays(inicio, DURACAO_PADRAO_DIAS[tipo] - 1), "yyyy-MM-dd");
+  return format(addDays(inicio, dias - 1), "yyyy-MM-dd");
+}
+
+/** Datas (ISO) do período que caem em sábado ou domingo. */
+export function fimDeSemanaNoPeriodo(inicioISO: string, fimISO: string | null | undefined): string[] {
+  if (!inicioISO) return [];
+  const ini = parseISO(inicioISO);
+  const fim = parseISO(fimISO || inicioISO);
+  if (Number.isNaN(ini.getTime()) || Number.isNaN(fim.getTime()) || fim < ini) return [];
+  const out: string[] = [];
+  for (let d = ini, i = 0; d <= fim && i < 400; d = addDays(d, 1), i++) {
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) out.push(format(d, "yyyy-MM-dd"));
+  }
+  return out;
 }
 
 export interface LicencaAtiva {
