@@ -60,11 +60,61 @@ export function avaliarRiscoAssiduidade(
   if (tipo === "atestado") {
     return { risco: true, motivo: "Atestado apresentado — por padrão perde o prêmio de assiduidade; o gestor pode abonar." };
   }
-  if (TIPOS_ATRASO.includes(tipo)) {
-    const base = minutos === null || minutos === undefined ? "Atraso registrado" : `Atraso de ${inteiro(minutos)} minuto(s)`;
-    return { risco: true, motivo: `${base} — por padrão perde o prêmio de assiduidade; o gestor decide.` };
+  if (tipo === "saida_antecipada" || tipo === "previsao_saida_antecipada") {
+    return { risco: true, motivo: "Saída antecipada — por padrão perde o prêmio de assiduidade; o gestor decide." };
   }
+  void minutos;
+  // Atrasos de entrada/intervalo dependem da apuração do mês (apurarAtrasosMes).
   return SEM_RISCO;
+}
+
+export const TIPOS_ATRASO_TOLERANCIA: OcorrenciaTipo[] = [
+  "atraso",
+  "previsao_atraso",
+  "atraso_intervalo",
+  "previsao_atraso_intervalo",
+];
+
+export interface AtrasoDia {
+  data: string;
+  totalMin: number;
+  acimaTolerancia: boolean;
+  ordem: number; // posição entre os dias acima da tolerância (0 se dentro)
+  risco: boolean;
+}
+
+/**
+ * Espelho de private.dp_assiduidade_recalcular_atrasos: soma entrada + retorno do
+ * intervalo por dia; só conta o dia que passou da tolerância; vai ao gestor
+ * a partir do dia que estoura o máximo do mês.
+ */
+export function apurarAtrasosMes(
+  regra: RegraAssiduidade | null | undefined,
+  ocorrencias: { data_operacional: string; tipo: OcorrenciaTipo; minutos?: number | null; estado?: string | null }[],
+): AtrasoDia[] {
+  const tol = Math.max(0, inteiroOu(regra?.assiduidade_tolerancia_min, 10));
+  const max = Math.max(0, inteiroOu(regra?.assiduidade_max_atrasos, 2));
+  const aplica = premioAssiduidadeAplicavel(regra);
+  const porDia = new Map<string, { total: number; semMin: boolean }>();
+  for (const o of ocorrencias) {
+    if (o.estado === "cancelada" || !TIPOS_ATRASO_TOLERANCIA.includes(o.tipo)) continue;
+    const d = porDia.get(o.data_operacional) ?? { total: 0, semMin: false };
+    if (o.minutos === null || o.minutos === undefined) d.semMin = true;
+    else d.total += inteiro(o.minutos);
+    porDia.set(o.data_operacional, d);
+  }
+  let ordem = 0;
+  return [...porDia.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([data, d]) => {
+      const acima = aplica && (d.semMin || d.total > tol);
+      if (acima) ordem += 1;
+      return { data, totalMin: d.total, acimaTolerancia: acima, ordem: acima ? ordem : 0, risco: acima && ordem > max };
+    });
+}
+
+function inteiroOu(valor: number | null | undefined, padrao: number): number {
+  return valor === null || valor === undefined ? padrao : inteiro(valor);
 }
 
 /** Eventos que podem chegar ao gestor; cada um tem um padrão do sistema. */
