@@ -360,15 +360,15 @@ export default function DpAtestados() {
         p_data_fim: dataFim as any,
         p_motivo: (observacao || null) as any,
         p_arquivo_path: path as any,
-        // Licença registrada pelo gestor já entra aprovada e vale na Operação,
-        // mesmo com data de início no passado.
-        p_aprovada: licenca,
+        // Afastamento registrado pelo gestor já entra aprovado e vale na
+        // Operação, mesmo com data de início no passado.
+        p_aprovada: true,
       });
       if (error) throw error;
       return licenca;
     },
     onSuccess: (licenca) => {
-      toast.success(licenca ? "Licença registrada e já aprovada" : "Atestado importado com sucesso");
+      toast.success(licenca ? "Licença registrada e já aprovada" : "Atestado registrado e já aprovado");
       setUnidadeId(""); setColaboradorId(""); setTipoDoc("atestado"); setDataDoc(""); setDias(""); setObservacao(""); setPendingFile(null);
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
@@ -512,7 +512,6 @@ export default function DpAtestados() {
                     const c = (colabs.data ?? []).find((x) => x.id === v);
                     if (c?.unidade_id) setUnidadeId(c.unidade_id);
                   }}
-                  disabled={!unidadeId}
                 >
                   <SelectTrigger id="colaborador-2"><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
                   <SelectContent>
