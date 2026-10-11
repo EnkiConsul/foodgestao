@@ -309,3 +309,58 @@ export function bloqueiosEfetivosUnidade(params: {
   });
   return out;
 }
+
+/** Bloqueio parcial (regra direcionada) que cobre uma data. */
+export type BloqueioParcial = {
+  regraId: string;
+  nome: string;
+  alvoTipo: Exclude<AlvoTipo, "todos">;
+  ids: string[];
+  /** Regra de um único dia (criada no botão "Bloquear dia") — pode ser editada/liberada no dia. */
+  pontual: boolean;
+  regra: RegraRow;
+  unidades: string[];
+};
+
+/** Ids do público de uma regra direcionada (lista + campo único legado). */
+export function idsDoAlvo(regra: Pick<RegraRow, "regra_json">): string[] {
+  const c = regra.regra_json ?? {};
+  const t = c.alvo_tipo ?? "todos";
+  const [lista, unico] = t === "cargo" ? [c.cargo_ids, c.cargo_id] : t === "setor" ? [c.setor_ids, c.setor_id] : t === "colaborador" ? [c.colaborador_ids, c.colaborador_id] : [[], null];
+  const s = new Set<string>(lista ?? []);
+  if (unico) s.add(unico);
+  return [...s];
+}
+
+/** Regra que cobre exatamente um dia de um ano. */
+export function regraEhPontual(regra: RegraRow): boolean {
+  const c = regra.regra_json ?? {};
+  return regra.tipo === "fixa_anual" && c.aplicacao === "unica" && (c.meses ?? []).length === 1 && (c.dias ?? []).length === 1;
+}
+
+/** Bloqueios parciais por data na unidade (regras direcionadas ativas). */
+export function bloqueiosParciaisUnidade(params: {
+  regras: RegraRow[];
+  vinculos: RegraUnidadeLink[];
+  unidadeId: string | null;
+  from: Date;
+  to: Date;
+}): Map<string, BloqueioParcial[]> {
+  const { regras, vinculos, unidadeId, from, to } = params;
+  const out = new Map<string, BloqueioParcial[]>();
+  for (const r of regras) {
+    if (!regraEhDirecionada(r)) continue;
+    const unidades = vinculos.filter((v) => v.regra_id === r.id).map((v) => v.unidade_id);
+    if (unidades.length > 0 && unidadeId && !unidades.includes(unidadeId)) continue;
+    const info: BloqueioParcial = {
+      regraId: r.id, nome: r.nome, alvoTipo: r.regra_json!.alvo_tipo as BloqueioParcial["alvoTipo"],
+      ids: idsDoAlvo(r), pontual: regraEhPontual(r), regra: r, unidades,
+    };
+    for (const iso of expandRegraNoIntervalo(r, from, to)) {
+      const l = out.get(iso) ?? [];
+      l.push(info);
+      out.set(iso, l);
+    }
+  }
+  return out;
+}
