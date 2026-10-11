@@ -132,6 +132,8 @@ export function CalendarioMobileLista({
           const block = manualBlocked.get(iso);
           const blocked = block && !block.liberada;
           const isToday = isSameDay(d, today);
+          const status = statusByDate?.get(iso);
+          const wknd = d.getDay() === 0 || d.getDay() === 6;
           const hasEvents = occupants.length > 0 || blocked;
           const wd = WEEKDAY_SHORT[d.getDay()];
           const dayNum = d.getDate();
