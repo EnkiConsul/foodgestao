@@ -32,6 +32,19 @@ interface FolgaDia {
   origem: string | null;
 }
 
+/** Pergunta ao gestor se a folga no novo dia ocupa vaga do limite (padrão: sim). */
+function ImpactoLimite({ valor, onChange }: { valor: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <Label>Impacto no limite de folgas do novo dia</Label>
+      <RadioGroup value={valor ? "sim" : "nao"} onValueChange={(v) => onChange(v === "sim")}>
+        <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="sim" /> Sim, consumir vaga e liberar a do dia anterior</label>
+        <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="nao" /> Não impactar o limite (folga excepcional)</label>
+      </RadioGroup>
+    </div>
+  );
+}
+
 /** Troca da folga fixa pelo gestor: a pessoa trabalha neste dia e folga no novo, com termo. */
 function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { companyId: string; colaboradorId: string; data: string; nome: string; onFeito: () => void }) {
   const qc = useQueryClient();
@@ -41,6 +54,7 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { co
   const [motivo, setMotivo] = useState("");
   const [assinatura, setAssinatura] = useState<AssinaturaTermo>("digital");
   const [revisar, setRevisar] = useState(false);
+  const [consome, setConsome] = useState(true);
   const empresaQ = useQuery({
     queryKey: ["empresa_nome", companyId],
     enabled: aberto,
@@ -51,14 +65,14 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { co
       if (!novaData) throw new Error("Escolha o dia em que a pessoa vai folgar.");
       if (!origem) throw new Error("Informe se a troca foi pedida pelo colaborador ou pela empresa.");
       const texto = `${ORIGEM_TROCA_LABEL[origem]}${motivo.trim() ? `: ${motivo.trim()}` : ""}`;
-      const { error } = await supabase.rpc("dp_folga_admin_trocar_fixa" as never, {
-        p_colaborador: colaboradorId, p_data_fixa: data, p_data_nova: novaData, p_motivo: texto,
+      const { error } = await supabase.rpc("dp_folga_admin_trocar_fixa_limite" as never, {
+        p_colaborador: colaboradorId, p_data_fixa: data, p_data_nova: novaData, p_motivo: texto, p_consome_vaga: consome,
       } as never);
       if (error) throw error;
       const { data: emp } = await supabase.from("companies").select("name").eq("id", companyId).maybeSingle();
       const bytes = await emitirTermoTrocaGestor({
         companyId, colaboradorId, empresa: (emp as { name?: string } | null)?.name ?? "Empresa", nome,
-        dataFixa: data, dataNova: novaData, origem, motivo: motivo.trim() || null, folgaFixa: true, assinatura,
+        dataFixa: data, dataNova: novaData, origem, motivo: motivo.trim() || null, folgaFixa: true, consomeVaga: consome, assinatura,
       });
       if (assinatura === "manual") {
         const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
@@ -67,7 +81,7 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { co
     },
     onSuccess: () => {
       toast.success(assinatura === "digital" ? "Folga trocada. Termo enviado ao Portal para assinatura." : "Folga trocada. Termo pronto para imprimir.");
-      setAberto(false); setRevisar(false); setNovaData(""); setOrigem(""); setMotivo("");
+      setAberto(false); setRevisar(false); setNovaData(""); setOrigem(""); setMotivo(""); setConsome(true);
       qc.invalidateQueries({ queryKey: ["dp_dia_trabalho_excepcional"] });
       qc.invalidateQueries({ queryKey: ["dp_dia_trabalho_excepcional_panorama"] });
       onFeito();
@@ -90,7 +104,7 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { co
           </DialogHeader>
           {revisar && origem ? (
             <div className="max-h-[50vh] space-y-2 overflow-y-auto rounded-lg border bg-muted/30 p-3 text-sm">
-              {termoTrocaGestorParagrafos({ empresa: empresaQ.data ?? "Empresa", nome, dataFixa: data, dataNova: novaData, origem, motivo: motivo.trim() || null, folgaFixa: true }).map((t, i) => (
+              {termoTrocaGestorParagrafos({ empresa: empresaQ.data ?? "Empresa", nome, dataFixa: data, dataNova: novaData, origem, motivo: motivo.trim() || null, folgaFixa: true, consomeVaga: consome }).map((t, i) => (
                 <p key={i}>{t}</p>
               ))}
               <p className="pt-2 text-xs text-muted-foreground">
@@ -111,6 +125,7 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { co
                 ))}
               </RadioGroup>
             </div>
+            <ImpactoLimite valor={consome} onChange={setConsome} />
             <div className="space-y-1.5">
               <Label>Motivo (opcional)</Label>
               <Textarea rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
@@ -218,6 +233,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
   const [novaData, setNovaData] = useState("");
   /** Confirmação digitada para a sobrescrita da folga no remarcar. */
   const [confRemarcar, setConfRemarcar] = useState("");
+  const [consome, setConsome] = useState(true);
   const remarcarConfirmado = confRemarcar.trim().toUpperCase() === "REMARCAR";
 
   const q = useQuery({
@@ -300,13 +316,14 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
         if (error) throw error;
       } else {
         if (!novaData) throw new Error("Escolha a nova data.");
-        const { error } = await supabase.rpc("dp_folga_admin_remarcar", {
+        const { error } = await supabase.rpc("dp_folga_admin_remarcar_limite" as never, {
           p_folga_id: item.folgaId,
           p_solicitacao_id: item.solicitacaoId,
           p_colaborador: item.colaboradorId,
           p_data_atual: data,
           p_data_nova: novaData,
-        });
+          p_consome_vaga: consome,
+        } as never);
         if (error) throw error;
       }
     },
@@ -349,6 +366,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
               <Input type="date" className="h-8 w-40" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
               <Input className="h-8 w-44" placeholder='Digite REMARCAR' value={confRemarcar} onChange={(e) => setConfRemarcar(e.target.value)} />
             </div>
+            <ImpactoLimite valor={consome} onChange={setConsome} />
             {passado && (
               <p className="text-[11px] text-amber-700 dark:text-amber-300">Esta data já passou ({dataBr}). Remarcar altera o histórico do colaborador.</p>
             )}
@@ -359,7 +377,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
           </div>
         ) : (
           <>
-            <Button size="icon" variant="outline" className="h-8 w-8" title="Remarcar Folga" aria-label="Remarcar Folga" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConfRemarcar(""); }}><RefreshCw className="h-4 w-4" /></Button>
+            <Button size="icon" variant="outline" className="h-8 w-8" title="Remarcar Folga" aria-label="Remarcar Folga" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConfRemarcar(""); setConsome(true); }}><RefreshCw className="h-4 w-4" /></Button>
             <Button size="icon" variant="outline" className="h-8 w-8 border-destructive/40 text-destructive hover:bg-destructive/10" title="Cancelar Folga" aria-label="Cancelar Folga" onClick={() => { setAcao({ item: i, tipo: "cancelar" }); setMotivo(""); }}><X className="h-4 w-4" /></Button>
           </>
         )}
@@ -380,7 +398,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
               <p className="text-[11px] text-muted-foreground">Mínimo de 5 caracteres. Fica registrada no histórico.</p>
             </div>
             <DialogFooter className="flex-col gap-2 sm:flex-col">
-              <Button className="w-full" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConfRemarcar(""); }}><RefreshCw className="mr-2 h-4 w-4" />Prefiro Remarcar para Outro Dia (Recomendado)</Button>
+              <Button className="w-full" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConfRemarcar(""); setConsome(true); }}><RefreshCw className="mr-2 h-4 w-4" />Prefiro Remarcar para Outro Dia (Recomendado)</Button>
               <Button variant="destructive" className="w-full" disabled={motivo.trim().length < 5 || executar.isPending} onClick={() => executar.mutate()}>Confirmar Cancelamento da Folga</Button>
             </DialogFooter>
           </DialogContent>
@@ -422,7 +440,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
                 {i.origem === "troca" && <Badge variant="outline" className="ml-2 text-[10px]">Troca</Badge>}
               </span>
               <div className="flex gap-1">
-                <Button size="sm" variant="outline" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConfRemarcar(""); }}>
+                <Button size="sm" variant="outline" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConfRemarcar(""); setConsome(true); }}>
                   Remarcar
                 </Button>
                 <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { setAcao({ item: i, tipo: "cancelar" }); setMotivo(""); }}>
@@ -436,6 +454,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
                   <>
                     <Input type="date" className="h-8 w-44" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
                     <Input className="h-8 w-44" placeholder='Digite REMARCAR' value={confRemarcar} onChange={(e) => setConfRemarcar(e.target.value)} />
+                    <div className="w-full"><ImpactoLimite valor={consome} onChange={setConsome} /></div>
                     <Button size="sm" disabled={executar.isPending || !novaData || !remarcarConfirmado} onClick={() => executar.mutate()}>
                       Confirmar
                     </Button>
