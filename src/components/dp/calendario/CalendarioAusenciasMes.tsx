@@ -263,10 +263,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     return () => window.removeEventListener("keydown", h);
   }, [foco]);
 
-  const pico = (iso: string, feriado?: string | null) => {
-    const dw = new Date(`${iso}T12:00:00`).getDay();
-    return dw === 0 || dw >= 5 || !!feriado;
-  };
+  const pico = diaEhPico;
 
   const { antes, depois } = diasDePreenchimento(dias);
 
