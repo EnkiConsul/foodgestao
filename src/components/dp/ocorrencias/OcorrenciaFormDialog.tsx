@@ -266,6 +266,7 @@ export function OcorrenciaFormDialog({
               placeholder="O que foi informado sobre o ocorrido"
             />
           </div>
+          <AssiduidadePergunta colaboradorId={colaboradorId} evento={eventoDoTipo(tipo)} value={assid} onChange={setAssid} />
         </div>
 
         <DialogFooter>
