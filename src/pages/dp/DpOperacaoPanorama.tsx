@@ -1778,8 +1778,8 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
       </Tabs>
 
       <Dialog open={!!dataPopout} onOpenChange={(o) => !o && setDataPopout(null)}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[92dvh] max-w-3xl flex-col gap-3 overflow-hidden p-4 sm:p-6">
+          <DialogHeader className="shrink-0">
             <div className="flex items-center gap-2 pr-6">
               <Button
                 variant="outline"
@@ -1857,7 +1857,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               </div>
             )}
           </DialogHeader>
-          <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
             {dataPopout && diaPopout ? (
               <DetalheDiaOperacao
                 compacto={calendario}

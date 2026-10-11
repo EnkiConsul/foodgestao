@@ -20,6 +20,10 @@ export interface DiaEmLista {
   desabilitado?: boolean;
   onSelect?: () => void;
   titulo?: string;
+  /** Dia de descanso dominical da unidade: fundo e rótulo destacados. */
+  dominical?: boolean;
+  /** Chips em uma única linha (altura igual entre os dias). */
+  chipsLinhaUnica?: boolean;
 }
 
 const WEEKDAY = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -64,6 +68,7 @@ export function DiasEmLista({
                 <div
                   className={cn(
                     "text-[11px] font-semibold uppercase leading-none tracking-wide text-muted-foreground",
+                    d.dominical && "text-amber-700 dark:text-amber-400",
                     d.desabilitado && "text-muted-foreground/60",
                   )}
                 >
@@ -85,7 +90,7 @@ export function DiasEmLista({
 
               <div className="min-w-0 flex-1 space-y-1">
                 {d.resumo ? <div className="text-sm leading-snug">{d.resumo}</div> : null}
-                {d.chips ? <div className="flex flex-wrap gap-1.5">{d.chips}</div> : null}
+                {d.chips ? <div className={cn("flex gap-1.5", d.chipsLinhaUnica ? "flex-nowrap overflow-hidden" : "flex-wrap")}>{d.chips}</div> : null}
               </div>
 
               {d.onSelect && !d.desabilitado ? (
@@ -97,7 +102,8 @@ export function DiasEmLista({
           const base = cn(
             "flex w-full items-center gap-3 px-3 py-3 text-left",
             TOM[d.tom ?? "neutro"],
-            isToday && !d.tom && "bg-primary/5",
+            d.dominical && !d.tom && "bg-amber-500/10",
+            isToday && !d.tom && !d.dominical && "bg-primary/5",
             d.selecionado && "ring-1 ring-inset ring-primary",
           );
 
