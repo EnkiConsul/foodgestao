@@ -30,6 +30,19 @@ export const FORMAS_PAGAMENTO_CONVOCAVEIS = ["horista", "diarista"] as const;
  * parte da rotina da loja e não é convocado — espelha o bloqueio do backend
  * (REMUNERACAO_MENSALISTA_NAO_ELEGIVEL em dp_convocacao_remuneracao_snapshot).
  */
+/**
+ * Quem pode ter "Indisponibilidade de Convocação" registrada: intermitente
+ * ou freelancer sob demanda (qualquer forma, exceto mensalista — este segue
+ * a rotina do CLT fixo).
+ */
+export function aceitaIndisponibilidadeConvocacao(p: {
+  regime?: string | null;
+  forma_pagamento?: string | null;
+}): boolean {
+  if (p.regime === "intermitente") return true;
+  return p.regime === "freelancer" && !!p.forma_pagamento && p.forma_pagamento !== "mensalista";
+}
+
 export function pessoaConvocavel(p: {
   regime?: string | null | undefined;
   forma_pagamento?: string | null | undefined;
