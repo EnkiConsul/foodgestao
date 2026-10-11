@@ -1,5 +1,9 @@
-import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { podeConvocar } from "@/lib/dp/convocacoes";
+import { emitirNotificacaoDescumprimento, PERCENTUAL_MULTA_CONVOCACAO } from "@/lib/dp/termo-descumprimento-convocacao";
+import { Switch } from "@/components/ui/switch";
+import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -107,6 +111,33 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
   }, [form.data_alvo, form.data_fim]);
 
   const nomeColab = ativos.find((c) => c.id === form.colaborador_id)?.nome ?? "";
+  const regimeColab = ativos.find((c) => c.id === form.colaborador_id)?.regime ?? null;
+  const convocavel = podeConvocar(regimeColab as any);
+
+  // Intermitente com convocação aceita no dia: a ausência é falta.
+  const convAceita = useQuery({
+    queryKey: ["dp_convocacao_aceita_dia", selectedCompanyId, form.colaborador_id, form.data_alvo],
+    enabled: open && !!selectedCompanyId && !!form.colaborador_id && !!form.data_alvo && convocavel,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("dp_convocacoes")
+        .select("id, data, entrada, saida, status, respondida_em, updated_at")
+        .eq("company_id", selectedCompanyId!)
+        .eq("colaborador_id", form.colaborador_id)
+        .eq("data", form.data_alvo)
+        .eq("status", "aceita")
+        .limit(1)
+        .maybeSingle();
+      if (error) return null;
+      return data as { entrada: string | null; saida: string | null; respondida_em?: string | null } | null;
+    },
+  });
+  const conv = convocavel ? convAceita.data ?? null : null;
+  const [notificar, setNotificar] = useState(false);
+  const [assinaturaNotif, setAssinaturaNotif] = useState<"digital" | "manual">("digital");
+  useEffect(() => { if (conv) setMotivo("falta"); }, [conv]);
+  useEffect(() => { if (open) { setNotificar(false); setAssinaturaNotif("digital"); } }, [open]);
+  const pendenteNotif = useRef<{ data: string; entrada: string | null; saida: string | null; aceitaEm: string | null } | null>(null);
 
   const continuar = () => {
     if (!form.colaborador_id) return toast.error("Selecione o colaborador");
@@ -117,6 +148,9 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         setFolgaOpen(true);
         break;
       case "falta":
+        pendenteNotif.current = conv && notificar
+          ? { data: form.data_alvo, entrada: conv.entrada, saida: conv.saida, aceitaEm: conv.respondida_em ?? null }
+          : null;
         onOpenChange(false);
         setFaltaOpen(true);
         break;
