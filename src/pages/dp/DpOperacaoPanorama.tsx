@@ -1904,7 +1904,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                       unidadeId={unidadeId}
                       data={dataPopout}
                       ocultarBloqueio
-                      folgasNoDia={diaPopout.contagens.folga_padrao + diaPopout.contagens.folga_extra}
+                      folgasNoDia={diaPopout.pessoas.filter((p) => String(p.categoria).startsWith("folga") && !(diaDominicalPopout && folgaFixaDoDia(diaPopout.data, { troca: !!p.folga_troca, folga_fixa_dows: p.folga_fixa_dows }))).length}
                       ocupantes={diaPopout.pessoas.filter((p) => String(p.categoria).startsWith("folga") && !(diaDominicalPopout && folgaFixaDoDia(diaPopout.data, { troca: !!p.folga_troca, folga_fixa_dows: p.folga_fixa_dows }))).map((p) => ({ nome: p.nome, cargoId: p.cargo_id ?? null, setorId: p.setor_id ?? null }))}
                       nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
                     />
