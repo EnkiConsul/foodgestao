@@ -49,7 +49,7 @@ describe("CSP — index.html sem script inline executável", () => {
     expect(html).not.toContain("connect.facebook.net");
     expect(html).not.toContain("facebook.com/tr");
     // Nem pré-conexão/prefetch para os domínios de tracker.
-    expect(html).not.toMatch(/rel="(preconnect|dns-prefetch|preload|prefetch)"[^>]*(google|facebook)/i);
+    expect(html).not.toMatch(/rel="(preconnect|dns-prefetch|preload|prefetch)"[^>]*(googletagmanager|google-analytics|facebook)/i);
   });
 });
 

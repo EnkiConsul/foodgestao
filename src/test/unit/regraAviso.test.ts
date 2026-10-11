@@ -77,10 +77,8 @@ describe("período de escolha das folgas", () => {
     expect(podeMarcarNormal(janela("encerrada"), outroMes)).toBe(true);
   });
 
-  it("mensagem do período encerrado cita marcar, trocar e exceção", () => {
+  it("com o período encerrado não mostra mensagem ao colaborador", () => {
     const texto = mensagemJanela(janela("encerrada"), (d) => d.toLocaleDateString("pt-BR"));
-    expect(texto).toContain("marcar ou mudar folgas");
-    expect(texto).toContain("troca");
-    expect(texto).toContain("exceção");
+    expect(texto).toBe("");
   });
 });

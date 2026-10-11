@@ -4,6 +4,8 @@ import { AvisoDialog } from "@/pages/dp/DpAvisos";
 
 vi.mock("@/hooks/useDpCadastros", () => ({
   useDpUnidades: () => ({ data: [] }),
+  useDpCargos: () => ({ data: [] }),
+  useDpSindicatos: () => ({ data: [] }),
 }));
 vi.mock("@/hooks/useDpColaboradores", () => ({
   useDpColaboradores: () => ({ data: [] }),

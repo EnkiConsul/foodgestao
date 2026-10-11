@@ -12,7 +12,7 @@ describe("Naturezas unificadas de Admissão e Desligamento", () => {
   it("oferece apenas um tipo de admissão e um de desligamento", () => {
     const admissao = DP_DOC_TIPOS_IMPORTAVEIS.filter((t) => t.grupo === "admissao").map((t) => t.value);
     const desligamento = DP_DOC_TIPOS_IMPORTAVEIS.filter((t) => t.grupo === "desligamento").map((t) => t.value);
-    expect(admissao).toEqual(["admissao", "aso_admissional"]);
+    expect(admissao).toEqual(["admissao", "termo_autorizacao", "aso_admissional"]);
     expect(desligamento).toEqual(["aviso_previo", "desligamento", "aso_demissional"]);
   });
 
@@ -21,13 +21,13 @@ describe("Naturezas unificadas de Admissão e Desligamento", () => {
     expect(detectarTipoDocumento("Ficha de registro")).toBe("admissao");
   });
 
-  it("reconhece TRCT como Desligamento, mantendo Aviso Prévio", () => {
+  it("reconhece TRCT como Documentos Rescisórios, mantendo Aviso Prévio", () => {
     expect(detectarTipoDocumento("TRCT assinado")).toBe("desligamento");
     expect(detectarTipoDocumento("Aviso prévio indenizado")).toBe("aviso_previo");
   });
 
   it("mantém rótulo das naturezas antigas e as inclui nos filtros do grupo", () => {
-    expect(docTipoLabel("trct")).toContain("Desligamento");
+    expect(docTipoLabel("trct")).toContain("Documentos Rescisórios");
     expect(tiposDoGrupo("admissao")).toContain("contrato");
     expect(tiposDoGrupo("desligamento")).toContain("demonstrativo_rescisorio");
   });
