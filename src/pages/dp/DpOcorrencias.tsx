@@ -288,18 +288,59 @@ export default function DpOcorrencias() {
         columns={4}
       >
         <DpFilterField label="Período">
-          <Select value={filtros.periodo} onValueChange={(v) => set("periodo", v as OcorrenciaPeriodo)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PERIODOS.map((p) => (
-                <SelectItem key={p.value} value={p.value}>
-                  {p.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-1.5">
+            <Select
+              value={filtros.periodo}
+              onValueChange={(v) => setFiltros((f) => ({ ...f, periodo: v as OcorrenciaPeriodo, data: null }))}
+            >
+              <SelectTrigger className="flex-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PERIODOS.map((p) => (
+                  <SelectItem key={p.value} value={p.value}>
+                    {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant={filtros.periodo === "personalizado" ? "default" : "outline"}
+                  size="icon"
+                  aria-label="Escolher período no calendário"
+                >
+                  <CalendarIcon className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="range"
+                  locale={ptBR}
+                  selected={{
+                    from: new Date(intervalo.inicio + "T00:00:00"),
+                    to: new Date(intervalo.fim + "T00:00:00"),
+                  }}
+                  defaultMonth={new Date(
+                    (filtros.periodo === "todas" ? format(new Date(), "yyyy-MM-dd") : intervalo.inicio) + "T00:00:00",
+                  )}
+                  onSelect={(r) => {
+                    if (!r?.from) return;
+                    setFiltros((f) => ({
+                      ...f,
+                      periodo: "personalizado",
+                      data: null,
+                      periodoInicio: format(r.from!, "yyyy-MM-dd"),
+                      periodoFim: format(r.to ?? r.from!, "yyyy-MM-dd"),
+                    }));
+                  }}
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </DpFilterField>
 
         <DpFilterField label="Colaborador">
