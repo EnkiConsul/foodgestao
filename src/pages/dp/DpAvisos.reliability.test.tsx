@@ -1,12 +1,18 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AvisoDialog } from "@/pages/dp/DpAvisos";
 
 vi.mock("@/hooks/useDpCadastros", () => ({
   useDpUnidades: () => ({ data: [] }),
+  useDpCargos: () => ({ data: [] }),
+  useDpSindicatos: () => ({ data: [] }),
 }));
 vi.mock("@/hooks/useDpColaboradores", () => ({
   useDpColaboradores: () => ({ data: [] }),
+}));
+vi.mock("@/hooks/useCompanyContext", () => ({
+  useCompanyContext: () => ({ selectedCompanyId: "c1", companies: [] }),
 }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { storage: { from: () => ({ upload: vi.fn() }) } },
@@ -18,13 +24,15 @@ const aviso = {
   conteudo: "Conteúdo do aviso",
   publicado_em: "2026-09-01T00:00:00.000Z",
   expira_em: "2026-09-30T00:00:00.000Z",
-  escopo: "empresa",
+  escopo: "todos",
 } as any;
 
 function renderDialog(onSave: (v: any) => Promise<void>) {
   const onOpenChange = vi.fn();
   render(
-    <AvisoDialog aviso={aviso} open onOpenChange={onOpenChange} onSave={onSave} companyId="empresa-1" />,
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <AvisoDialog aviso={aviso} open onOpenChange={onOpenChange} onSave={onSave} companyId="empresa-1" />
+    </QueryClientProvider>,
   );
   return { onOpenChange };
 }
