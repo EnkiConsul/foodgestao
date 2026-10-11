@@ -429,6 +429,12 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               dominical: ehDiaDominical(d.data),
               chipsLinhaUnica: true,
               onSelect: () => onAbrirDia(d.data),
+              icones: pico(d.data, d.feriado_nome) || bloqueios.has(d.data) ? (
+                <>
+                  {pico(d.data, d.feriado_nome) && <Flame className="h-3.5 w-3.5 fill-amber-500 text-amber-500" aria-label="Pico de operação" />}
+                  {bloqueios.has(d.data) && <Lock className="h-3.5 w-3.5 text-destructive" aria-label="Folgas bloqueadas" />}
+                </>
+              ) : undefined,
               resumo: (
                 <span>
                   <span className="font-semibold text-foreground">{d.trabalhando}</span> trabalham
@@ -438,9 +444,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               chips: (
                 <>
                   {d.data === hoje && <Badge className="text-[10px]">Hoje</Badge>}
-                  {pico(d.data, d.feriado_nome) && <Flame className="h-4 w-4 shrink-0 self-center fill-amber-500 text-amber-500" aria-label="Pico de operação" />}
                   {d.feriado_nome && <Badge variant="outline" className="text-[10px]">Feriado</Badge>}
-                  {bloqueios.has(d.data) && <Lock className="h-4 w-4 shrink-0 self-center text-destructive" aria-label="Folgas bloqueadas" />}
                   {aus.slice(0, 3).map((a) => (
                     <span key={`${a.colaborador_id}-${a.tipo}`} title={rotulo(a, d.data)} className={cn("inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", tomDe(a, d.data), d.data < hoje && "opacity-60")}>
                       {a.troca && <Repeat className="h-2.5 w-2.5" />}{primeiroNome(a.nome)}
@@ -578,7 +582,14 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               <li key={p.nome + p.datas[0]} className="py-2">
                 <p className="text-sm font-semibold">{p.nome}</p>
                 <p className="text-xs text-muted-foreground">
-                  {p.datas.sort().map((iso) => `${iso.slice(8)}/${iso.slice(5, 7)}`).join(" · ")}
+                  {p.datas.sort().map((iso) => {
+                    const base = fmtDiaSemana(iso);
+                    if (cardAberto?.chave === "trocas") {
+                      const orig = dataOriginalTroca.get(`${p.id}:${iso}`);
+                      if (orig) return `${base} (era ${fmtDiaSemana(orig)})`;
+                    }
+                    return base;
+                  }).join(" · ")}
                 </p>
               </li>
             ))}
