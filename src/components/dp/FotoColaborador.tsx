@@ -27,7 +27,11 @@ export function useFotoColaborador(colaboradorId?: string | null) {
         .eq("colaborador_id", colaboradorId!)
         .in("dp_documento_requisitos.codigo", CODIGOS_FOTO)
         .is("dependente_id", null);
-      if (error) return null;
+      if (error) {
+        // Foto indisponível (permissão/consulta): registra internamente, mostra iniciais.
+        console.warn("[FotoColaborador] foto indisponível", error.message);
+        return null;
+      }
       const docs = (data ?? [])
         .map((r: any) => r.dp_documentos)
         .filter((d: any) => d?.file_path && String(d.mime_type ?? "").startsWith("image/")
@@ -35,7 +39,8 @@ export function useFotoColaborador(colaboradorId?: string | null) {
         .sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at)));
       const path = docs[0]?.file_path;
       if (!path) return null;
-      const { data: s } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 300);
+      const { data: s, error: e2 } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 300);
+      if (e2) console.warn("[FotoColaborador] arquivo da foto indisponível", e2.message);
       return s?.signedUrl ?? null;
     },
   });

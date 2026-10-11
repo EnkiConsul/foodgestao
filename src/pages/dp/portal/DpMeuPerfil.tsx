@@ -132,9 +132,20 @@ export default function DpMeuPerfil() {
       ) : (
         <>
           <Card className="dp-content-card">
-            <CardHeader className="flex-row items-center gap-3 space-y-0">
-              <FotoColaborador colaboradorId={colaboradorId} nome={p.nome} className="w-16" />
-              <CardTitle className="min-w-0 break-words">{p.nome}</CardTitle>
+            <CardHeader className="flex-row items-start gap-4 space-y-0">
+              <FotoColaborador
+                colaboradorId={colaboradorId}
+                nome={p.nome_social || p.nome}
+                className="w-16 sm:w-20"
+              />
+              <div className="min-w-0 flex-1 space-y-1">
+                <CardTitle className="break-words text-lg leading-tight">{p.nome}</CardTitle>
+                {p.nome_social && String(p.nome_social).trim() !== String(p.nome ?? "").trim() && (
+                  <p className="text-sm text-muted-foreground">
+                    Nome social: <span className="font-medium text-foreground">{p.nome_social}</span>
+                  </p>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="grid gap-3 sm:grid-cols-2 text-sm">
               <Field label="Matrícula" value={p.matricula} />
