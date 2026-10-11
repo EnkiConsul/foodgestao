@@ -486,7 +486,8 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     }
 
     if (ausencia) {
-      registrar(colab, ausencia.tipo);
+      // Suspensão disciplinar aparece na faixa de atestados/afastamentos.
+      registrar(colab, ausencia.tipo === "suspensao" ? "atestado" : ausencia.tipo);
       continue;
     }
 
