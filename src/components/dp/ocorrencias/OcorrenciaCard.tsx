@@ -29,7 +29,7 @@ import {
   ORIGEM_LABEL,
   TIPOS_COBRIVEIS,
   TIPOS_PREVISAO,
-  TIPO_LABEL,
+  rotuloTipoOcorrencia,
   TRATATIVA_LABEL,
   corOcorrencia,
   resumoOperacional,
