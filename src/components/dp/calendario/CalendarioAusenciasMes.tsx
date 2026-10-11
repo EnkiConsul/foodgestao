@@ -414,7 +414,6 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
           {legenda.map((l) => (
             <span key={l.label} className={cn("rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase", l.cls)}>{l.label}</span>
           ))}
-          <span
           <span className="hidden items-center gap-1 rounded border border-primary/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary md:inline-flex"><Flame className="h-3 w-3 fill-amber-500 text-amber-500" />Pico de operação</span>
           <span className="ml-auto hidden text-[10px] text-muted-foreground lg:inline">Atalhos: ← → mês · H hoje · Esc fecha</span>
         </div>
