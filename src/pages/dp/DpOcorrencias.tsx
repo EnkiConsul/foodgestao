@@ -158,6 +158,7 @@ export default function DpOcorrencias() {
     ];
     return (
       chaves.filter((k) => filtros[k] !== "all").length +
+      (filtros.periodo !== "todas" ? 1 : 0) +
       (filtros.somentePendentes ? 1 : 0) +
       (filtros.data ? 1 : 0)
     );
@@ -186,8 +187,8 @@ export default function DpOcorrencias() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        {[
+      {(() => {
+        const cards = [
           { label: "Faltas no mês", valor: indicadores.faltas },
           { label: "Ausências justificadas", valor: indicadores.ausencias_justificadas },
           {
@@ -199,19 +200,25 @@ export default function DpOcorrencias() {
           {
             label: "Ausências cobertas",
             valor: indicadores.ausencias_cobertas,
-            detalhe: `${indicadores.ausencias_descobertas} sem cobertura`,
+            detalhe: indicadores.ausencias_descobertas ? `${indicadores.ausencias_descobertas} sem cobertura` : undefined,
           },
           { label: "Aguardando decisão", valor: indicadores.pendentes },
-        ].map((c) => (
-          <div key={c.label} className="rounded-lg border bg-card p-3">
-            <p className="text-xs text-muted-foreground">{c.label}</p>
-            <p className="text-xl font-semibold">{c.valor}</p>
-            {c.detalhe && <p className="text-[11px] text-muted-foreground">{c.detalhe}</p>}
+        ].filter((c) => Number(c.valor) > 0);
+        if (cards.length === 0) return null;
+        return (
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2 lg:grid-cols-6">
+            {cards.map((c) => (
+              <div key={c.label} className="rounded-md border bg-card px-2 py-1.5 sm:rounded-lg sm:p-3">
+                <p className="truncate text-[10px] leading-tight text-muted-foreground sm:text-xs">{c.label}</p>
+                <p className="text-base font-semibold leading-tight sm:text-xl">{c.valor}</p>
+                {c.detalhe && <p className="truncate text-[10px] text-muted-foreground sm:text-[11px]">{c.detalhe}</p>}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        );
+      })()}
 
-      {filtros.data ? (
+      {filtros.data && (
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="text-muted-foreground">Mostrando apenas o dia</span>
           <span className="font-medium">{filtros.data.split("-").reverse().join("/")}</span>
@@ -219,16 +226,6 @@ export default function DpOcorrencias() {
             Ver o período todo
           </Button>
         </div>
-      ) : (
-        <Tabs value={filtros.periodo} onValueChange={(v) => set("periodo", v as OcorrenciaPeriodo)}>
-          <TabsList>
-            {PERIODOS.map((p) => (
-              <TabsTrigger key={p.value} value={p.value}>
-                {p.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
       )}
 
       <DpFilters
@@ -238,9 +235,24 @@ export default function DpOcorrencias() {
           placeholder: "Buscar colaborador...",
         }}
         activeCount={activeCount}
-        onClear={() => setFiltros({ ...FILTROS_PADRAO, periodo: filtros.periodo, somentePendentes: false })}
+        onClear={() => setFiltros(FILTROS_PADRAO)}
         columns={4}
       >
+        <DpFilterField label="Período">
+          <Select value={filtros.periodo} onValueChange={(v) => set("periodo", v as OcorrenciaPeriodo)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PERIODOS.map((p) => (
+                <SelectItem key={p.value} value={p.value}>
+                  {p.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+
         <DpFilterField label="Colaborador">
           <Select value={filtros.colaboradorId} onValueChange={(v) => set("colaboradorId", v)}>
             <SelectTrigger>
