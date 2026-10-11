@@ -442,6 +442,13 @@
       "when": 1791736613700,
       "tag": "0062_liberacao_gestor_desfazer",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1791736968156,
+      "tag": "0063_trocas_folga_em_ocorrencias",
+      "breakpoints": true
     }
   ]
 }

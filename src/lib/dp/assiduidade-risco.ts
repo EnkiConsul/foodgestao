@@ -189,3 +189,27 @@ export function textoErroAssiduidade(message?: string | null): string {
 export function ocorrenciasQuePerdemPremio<T extends OcorrenciaAssiduidade>(lista: T[]): T[] {
   return lista.filter((o) => estadoAssiduidade(o) === "perde");
 }
+
+/**
+ * Aviso ao colaborador antes de enviar um atraso: simula a apuração do mês
+ * com o novo atraso e diz se ele passa da tolerância ou estoura o limite.
+ */
+export function avisoAtrasoAntesDeEnviar(
+  regra: RegraAssiduidade | null | undefined,
+  ocorrenciasMes: { data_operacional: string; tipo: OcorrenciaTipo; minutos?: number | null; estado?: string | null }[],
+  novo: { data: string; tipo: OcorrenciaTipo; minutos: number | null },
+): string | null {
+  if (!premioAssiduidadeAplicavel(regra) || !TIPOS_ATRASO_TOLERANCIA.includes(novo.tipo)) return null;
+  const tol = Math.max(0, inteiroOu(regra?.assiduidade_tolerancia_min, 10));
+  const max = Math.max(0, inteiroOu(regra?.assiduidade_max_atrasos, 2));
+  const dias = apurarAtrasosMes(regra, [
+    ...ocorrenciasMes,
+    { data_operacional: novo.data, tipo: novo.tipo, minutos: novo.minutos, estado: "informada" },
+  ]);
+  const dia = dias.find((d) => d.data === novo.data);
+  if (!dia || !dia.acimaTolerancia) return null;
+  if (dia.risco) {
+    return `Este atraso passa da tolerância diária (${tol} min) e é o ${dia.ordem}º do mês acima dela (limite: ${max}). Você pode perder o prêmio de assiduidade.`;
+  }
+  return `Este atraso passa da tolerância diária (${tol} min) e conta como ${dia.ordem} de ${max} permitidos no mês. Acima disso, você pode perder o prêmio de assiduidade.`;
+}

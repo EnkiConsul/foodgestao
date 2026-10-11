@@ -27,6 +27,7 @@ import { mensagemErro } from "@/lib/dp/mensagemErro";
 import { registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
 import { avisoDsrGestor } from "@/lib/dp/dsr-consecutivo";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AtestadoAprovarDialog } from "@/components/dp/AtestadoAprovarDialog";
 import { LiberacaoDesfazerDialog, ehLiberacaoGestor } from "@/components/dp/LiberacaoDesfazerDialog";
 
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
@@ -222,6 +223,7 @@ export default function DpSolicitacoes() {
   });
 
   const [desfazer, setDesfazer] = useState<{ id: string; nome?: string | null } | null>(null);
+  const [aprovarAtestado, setAprovarAtestado] = useState<{ id: string; colaborador_id: string; nome?: string | null; resposta: string } | null>(null);
 
   const respond = useMutation({
     mutationFn: async ({ id, status, resposta }: { id: string; status: Status; resposta?: string }) => {
@@ -263,6 +265,10 @@ export default function DpSolicitacoes() {
     if (dias) {
       setGestorCiente(false);
       setConfirmDsr({ row: r, dias });
+      return;
+    }
+    if (approve && r.tipo === "atestado") {
+      setAprovarAtestado({ id: r.id, colaborador_id: r.colaborador_id, nome: r.dp_colaboradores?.nome, resposta });
       return;
     }
     if (approve && r.tipo === "adiantamento") {
@@ -657,6 +663,16 @@ export default function DpSolicitacoes() {
             <X className="size-4 mr-1" /> Desfazer Liberação
           </Button>
         ) : null}
+      />
+      <AtestadoAprovarDialog
+        solicitacao={aprovarAtestado}
+        saving={respond.isPending}
+        onOpenChange={(o) => !o && setAprovarAtestado(null)}
+        onAprovar={() => {
+          if (!aprovarAtestado) return;
+          respond.mutate({ id: aprovarAtestado.id, status: "aprovada", resposta: aprovarAtestado.resposta });
+          setAprovarAtestado(null);
+        }}
       />
       <LiberacaoDesfazerDialog solicitacao={desfazer} onOpenChange={(o) => !o && setDesfazer(null)} />
     </DpPage>
