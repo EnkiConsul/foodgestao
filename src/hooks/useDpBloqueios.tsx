@@ -136,9 +136,10 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
       if (unidadeAlvo && unidadeAlvo !== "__global__" && linked.length > 0 && !linked.includes(unidadeAlvo)) continue;
       const isGlobal = linked.length === 0;
       const set = expandRegraNoIntervalo(r, from, to);
+      const parcial = (r.regra_json?.alvo_tipo ?? "todos") !== "todos";
       for (const iso of set) {
         if (!autoMap.has(iso)) {
-          autoMap.set(iso, r.nome);
+          autoMap.set(iso, parcial ? `${r.nome} · bloqueio parcial` : r.nome);
           regraByIso.set(iso, r.id);
         }
         if (isGlobal) globalRuleByIso.set(iso, true);
