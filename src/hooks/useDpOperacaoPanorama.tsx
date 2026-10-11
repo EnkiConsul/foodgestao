@@ -107,6 +107,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         folgas,
         convocacoes,
         atestados,
+        suspensoes,
         folgasAprovadas,
 
         registradas,
@@ -235,6 +236,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         folgas,
         convocacoes,
         atestados,
+        suspensoes,
         folgasAprovadas,
 
         registradas,
