@@ -533,8 +533,7 @@ ul{list-style:none;padding:0;margin:0}li{border-bottom:1px solid #ddd;padding:4p
           {/* Contato e vínculo */}
           <Section icon={Mail} title="Contato e Vínculo">
             <Field label="E-mail" value={(colaborador as any)?.email || (colaborador as any)?.email_contato} />
-            {(colaborador as any)?.telefone && <Field label="Telefone" value={(colaborador as any).telefone} />}
-            <Field label="WhatsApp" value={(colaborador as any)?.whatsapp} />
+            <Field label="WhatsApp" value={(colaborador as any)?.whatsapp || (colaborador as any)?.telefone} />
             <Field label="Cargo" value={colaborador?.cargo_nome ?? (colaborador as any)?.cargo} />
             <Field label="Unidade" value={colaborador?.unidade_nome} />
             <Field label="Data de Admissão" value={fmtDate((colaborador as any)?.data_admissao)} />
