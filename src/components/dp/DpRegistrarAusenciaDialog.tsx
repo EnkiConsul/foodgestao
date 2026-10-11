@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { podeConvocar } from "@/lib/dp/convocacoes";
+import { aceitaIndisponibilidadeConvocacao } from "@/lib/dp/convocacoes-planejamento";
 import { emitirNotificacaoDescumprimento, PERCENTUAL_MULTA_CONVOCACAO } from "@/lib/dp/termo-descumprimento-convocacao";
 import { Switch } from "@/components/ui/switch";
 import { AlertTriangle } from "lucide-react";
@@ -36,7 +37,7 @@ import { sanitizeStorageFilename } from "@/lib/storage";
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 
 /** Motivos do roteador: cada um abre o fluxo oficial da sua área. */
-export type Motivo = "folga" | "ferias" | "afastamento" | "falta" | "suspensao";
+export type Motivo = "folga" | "ferias" | "afastamento" | "falta" | "suspensao" | "indisponibilidade";
 
 const MOTIVO_LABEL: Record<Motivo, string> = {
   folga: "Folga (compensatória, extra ou troca)",
@@ -44,6 +45,7 @@ const MOTIVO_LABEL: Record<Motivo, string> = {
   afastamento: "Atestado médico ou licença",
   falta: "Falta",
   suspensao: "Suspensão disciplinar",
+  indisponibilidade: "Indisponibilidade de Convocação",
 };
 
 /** Somente afastamentos reais (sem folga, adiantamento ou envio de documentos). */
@@ -112,7 +114,10 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
 
   const nomeColab = ativos.find((c) => c.id === form.colaborador_id)?.nome ?? "";
   const regimeColab = ativos.find((c) => c.id === form.colaborador_id)?.regime ?? null;
+  const colabSel = ativos.find((c) => c.id === form.colaborador_id) as any;
   const convocavel = podeConvocar(regimeColab as any);
+  const indispElegivel = aceitaIndisponibilidadeConvocacao({ regime: colabSel?.regime, forma_pagamento: colabSel?.forma_pagamento });
+  useEffect(() => { if (motivo === "indisponibilidade" && !indispElegivel) setMotivo("afastamento"); }, [motivo, indispElegivel]);
 
   // Intermitente com convocação aceita no dia: a ausência é falta.
   const convAceita = useQuery({
@@ -165,6 +170,9 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
       case "afastamento":
         setEtapa("afastamento");
         break;
+      case "indisponibilidade":
+        indisp.mutate();
+        break;
     }
   };
 
@@ -208,6 +216,34 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
       onOpenChange(false);
     },
     onError: (e) => toast.error("Não foi possível registrar", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
+  const indisp = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("dp_indisponibilidade_registrar_gestor", {
+        p_colaborador: form.colaborador_id,
+        p_inicio: form.data_alvo,
+        p_fim: form.data_fim || form.data_alvo,
+        p_motivo: form.motivo.trim() || null,
+      });
+      if (error) throw error;
+      return data as { criadas: number; existentes: number };
+    },
+    onSuccess: (r) => {
+      toast.success("Indisponibilidade registrada", {
+        description: r?.existentes ? `${r.criadas} dia(s) novo(s); ${r.existentes} já estava(m) registrado(s).` : "Aparece no calendário e na tela de Convocações.",
+      });
+      qc.invalidateQueries({ predicate: (q) => /indisp|conv_prev|panorama|disponibilidade/.test(String(q.queryKey[0] ?? "")) });
+      onOpenChange(false);
+    },
+    onError: (e: any) => {
+      const m = String(e?.message ?? e);
+      toast.error("Não foi possível registrar", {
+        description: m.includes("CONVOCACAO_ACEITA") ? "Já há convocação aceita no período. Registre como falta."
+          : m.includes("REGIME_NAO_CONVOCAVEL") ? "Esse vínculo segue a rotina de folgas."
+          : m.includes("FORBIDDEN") ? "Você não tem permissão para isso." : m,
+      });
+    },
   });
 
   const falta = useMutation({
@@ -293,12 +329,29 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
                 <Select value={motivo} onValueChange={(v) => setMotivo(v as Motivo)} disabled={!!conv}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(Object.keys(MOTIVO_LABEL) as Motivo[]).map((m) => (
+                    {(Object.keys(MOTIVO_LABEL) as Motivo[]).filter((m) => m !== "indisponibilidade" || indispElegivel).map((m) => (
                       <SelectItem key={m} value={m}>{MOTIVO_LABEL[m]}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+              {motivo === "indisponibilidade" && !conv && (
+                <div className="grid gap-3 rounded-md border border-border bg-muted/40 p-3">
+                  <p className="text-xs text-muted-foreground">
+                    Apenas informativo: não gera falta nem desconto. A pessoa continua podendo ser convocada; o gestor só verá o aviso de possível recusa.
+                  </p>
+                  <div className="grid gap-1.5">
+                    <Label>Até (opcional)</Label>
+                    <Input type="date" min={form.data_alvo || undefined} value={form.data_fim}
+                      onChange={(e) => setForm({ ...form, data_fim: e.target.value })} />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Observação</Label>
+                    <Textarea rows={2} maxLength={500} placeholder="Ex.: prova na faculdade, viagem"
+                      value={form.motivo} onChange={(e) => setForm({ ...form, motivo: e.target.value })} />
+                  </div>
+                </div>
+              )}
               {conv && (
                 <div className="grid gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-3">
                   <div className="flex gap-2 text-sm">
@@ -394,7 +447,9 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
             ) : (
               <>
                 <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                <Button onClick={continuar}>Continuar</Button>
+                <Button onClick={continuar} disabled={indisp.isPending}>
+                  {motivo === "indisponibilidade" ? (indisp.isPending ? "Salvando..." : "Registrar") : "Continuar"}
+                </Button>
               </>
             )}
           </DialogFooter>
