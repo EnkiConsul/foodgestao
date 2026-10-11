@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   ESTADO_ASSIDUIDADE_LABEL,
   avaliarRiscoAssiduidade,
+  exigeJustificativaAssiduidade,
+  padraoAssiduidade,
+  premioAssiduidadeAplicavel,
   estadoAssiduidade,
   ocorrenciasQuePerdemPremio,
   textoErroAssiduidade,
@@ -25,29 +28,34 @@ describe("risco de perder o prêmio de assiduidade", () => {
     expect(avaliarRiscoAssiduidade(null, "falta").risco).toBe(false);
   });
 
-  it("avisa na falta e no atestado quando a regra considera atestado", () => {
+  it("com prêmio, falta, atestado e atraso vão para decisão do gestor", () => {
     expect(avaliarRiscoAssiduidade(REGRA, "falta").risco).toBe(true);
     expect(avaliarRiscoAssiduidade(REGRA, "atestado").risco).toBe(true);
-    expect(
-      avaliarRiscoAssiduidade({ ...REGRA, assiduidade_considera_atestado: false }, "atestado").risco,
-    ).toBe(false);
-  });
-
-  it("atraso dentro da tolerância não avisa e acima avisa com os minutos", () => {
-    expect(avaliarRiscoAssiduidade(REGRA, "atraso", 8).risco).toBe(false);
-    const acima = avaliarRiscoAssiduidade(REGRA, "atraso", 25);
-    expect(acima.risco).toBe(true);
-    expect(acima.motivo).toContain("25");
-  });
-
-  it("horário ainda não informado avisa por precaução", () => {
+    expect(avaliarRiscoAssiduidade(REGRA, "atraso", 3).risco).toBe(true);
     expect(avaliarRiscoAssiduidade(REGRA, "previsao_atraso", null).risco).toBe(true);
   });
 
-  it("critério sem_faltas ignora atraso", () => {
-    expect(
-      avaliarRiscoAssiduidade({ ...REGRA, assiduidade_criterio: "sem_faltas" }, "atraso", 60).risco,
-    ).toBe(false);
+  it("sócio nunca tem pergunta de assiduidade", () => {
+    expect(premioAssiduidadeAplicavel({ ...REGRA, vinculo_label: "socio" })).toBe(false);
+  });
+
+  it("padrão do sistema por evento", () => {
+    expect(padraoAssiduidade("falta")).toBe(true);
+    expect(padraoAssiduidade("atestado")).toBe(true);
+    expect(padraoAssiduidade("licenca")).toBe(true);
+    expect(padraoAssiduidade("liberacao")).toBe(false);
+    expect(padraoAssiduidade("folga")).toBeNull();
+    expect(padraoAssiduidade("ferias")).toBeNull();
+    expect(padraoAssiduidade("troca_folga")).toBeNull();
+    expect(padraoAssiduidade("indisponibilidade")).toBeNull();
+    expect(padraoAssiduidade("socio")).toBeNull();
+  });
+
+  it("mudar o padrão exige justificativa", () => {
+    expect(exigeJustificativaAssiduidade("atestado", false)).toBe(true);
+    expect(exigeJustificativaAssiduidade("atestado", true)).toBe(false);
+    expect(exigeJustificativaAssiduidade("liberacao", true)).toBe(true);
+    expect(exigeJustificativaAssiduidade("liberacao", false)).toBe(false);
   });
 
   it("estado da ocorrência reflete a decisão do gestor", () => {
