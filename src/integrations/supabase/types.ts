@@ -21356,6 +21356,15 @@ export type Database = {
         | "licenca_maternidade"
         | "licenca_paternidade"
         | "documento"
+        | "licenca_luto"
+        | "licenca_casamento"
+        | "doacao_sangue"
+        | "alistamento_eleitoral"
+        | "servico_militar"
+        | "vestibular"
+        | "comparecimento_judicial"
+        | "acompanhamento_consulta"
+        | "exame_preventivo"
       dp_tipo_escala:
         | "6x1"
         | "5x2"
@@ -21840,6 +21849,15 @@ export const Constants = {
         "licenca_maternidade",
         "licenca_paternidade",
         "documento",
+        "licenca_luto",
+        "licenca_casamento",
+        "doacao_sangue",
+        "alistamento_eleitoral",
+        "servico_militar",
+        "vestibular",
+        "comparecimento_judicial",
+        "acompanhamento_consulta",
+        "exame_preventivo",
       ],
       dp_tipo_escala: [
         "6x1",
