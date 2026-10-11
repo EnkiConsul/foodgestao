@@ -37,54 +37,71 @@ function inteiro(valor: number | null | undefined): number {
   return Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0;
 }
 
-/** Avalia se a ocorrência pode custar o prêmio de assiduidade do colaborador. */
+/** Prêmio de assiduidade cadastrado para a pessoa (sócio nunca tem). */
+export function premioAssiduidadeAplicavel(
+  regra: (RegraAssiduidade & { vinculo_label?: string | null }) | null | undefined,
+): boolean {
+  if (!regra || !regra.premio_assiduidade) return false;
+  if (Number(regra.premio_assiduidade_valor ?? 0) <= 0) return false;
+  const v = String(regra.vinculo_label ?? "").toLowerCase();
+  return v !== "socio" && v !== "sócio";
+}
+
+/** Avalia se a ocorrência vai para decisão do gestor sobre o prêmio (espelho do servidor). */
 export function avaliarRiscoAssiduidade(
   regra: RegraAssiduidade | null | undefined,
   tipo: OcorrenciaTipo,
   minutos?: number | null,
 ): RiscoAssiduidade {
-  if (!regra || !regra.premio_assiduidade) return SEM_RISCO;
-  if (Number(regra.premio_assiduidade_valor ?? 0) <= 0) return SEM_RISCO;
-
+  if (!premioAssiduidadeAplicavel(regra)) return SEM_RISCO;
   if (TIPOS_FALTA.includes(tipo)) {
-    return { risco: true, motivo: "Falta registrada — pode custar o prêmio de assiduidade." };
+    return { risco: true, motivo: "Falta registrada — por padrão perde o prêmio de assiduidade; o gestor decide." };
   }
-
   if (tipo === "atestado") {
-    if (regra.assiduidade_considera_atestado === false) return SEM_RISCO;
-    const maxAtestados = inteiro(regra.assiduidade_max_atestados);
-    return {
-      risco: true,
-      motivo:
-        maxAtestados > 0
-          ? `Atestado apresentado — a regra tolera ${maxAtestados} atestado(s) no mês antes de perder o prêmio de assiduidade.`
-          : "Atestado apresentado — a regra não tolera atestado, pode custar o prêmio de assiduidade.",
-    };
+    return { risco: true, motivo: "Atestado apresentado — por padrão perde o prêmio de assiduidade; o gestor pode abonar." };
   }
-
   if (TIPOS_ATRASO.includes(tipo)) {
-    const criterio = regra.assiduidade_criterio ?? "sem_faltas_sem_atrasos";
-    if (criterio === "sem_faltas") return SEM_RISCO;
-    const tolerancia = inteiro(regra.assiduidade_tolerancia_min);
-    if (minutos === null || minutos === undefined) {
-      return {
-        risco: true,
-        motivo: "Horário ainda não informado — se passar da tolerância, pode custar o prêmio de assiduidade.",
-      };
-    }
-    const min = inteiro(minutos);
-    if (min > tolerancia) {
-      const maxAtrasos = inteiro(regra.assiduidade_max_atrasos);
-      const complemento = maxAtrasos > 0 ? ` (a regra tolera ${maxAtrasos} no mês)` : "";
-      return {
-        risco: true,
-        motivo: `Atraso de ${min} minuto(s) acima da tolerância de ${tolerancia} minuto(s)${complemento} — pode custar o prêmio de assiduidade.`,
-      };
-    }
-    return SEM_RISCO;
+    const base = minutos === null || minutos === undefined ? "Atraso registrado" : `Atraso de ${inteiro(minutos)} minuto(s)`;
+    return { risco: true, motivo: `${base} — por padrão perde o prêmio de assiduidade; o gestor decide.` };
   }
-
   return SEM_RISCO;
+}
+
+/** Eventos que podem chegar ao gestor; cada um tem um padrão do sistema. */
+export type EventoAssiduidade =
+  | "falta"
+  | "atestado"
+  | "licenca"
+  | "liberacao"
+  | "atraso"
+  | "socio"
+  | "folga"
+  | "ferias"
+  | "troca_folga"
+  | "indisponibilidade";
+
+/**
+ * Padrão sugerido ao gestor: true = perde o prêmio, false = mantém,
+ * null = o evento não pergunta sobre assiduidade.
+ */
+export function padraoAssiduidade(evento: EventoAssiduidade): boolean | null {
+  switch (evento) {
+    case "falta":
+    case "atestado":
+    case "licenca":
+    case "atraso":
+      return true;
+    case "liberacao":
+      return false;
+    default:
+      return null;
+  }
+}
+
+/** Mudar o padrão do sistema exige justificativa do gestor. */
+export function exigeJustificativaAssiduidade(evento: EventoAssiduidade, perde: boolean): boolean {
+  const padrao = padraoAssiduidade(evento);
+  return padrao !== null && padrao !== perde;
 }
 
 export interface OcorrenciaAssiduidade {
