@@ -898,6 +898,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     dias: diasPanorama,
     turnos,
     ausenciasRegistradas,
+    nomesColaboradores: new Map((base.data?.colaboradores ?? []).map((c: any) => [c.id as string, c.nome as string])),
     avulsos,
     cargos: base.data?.cargos ?? [],
     setores,

@@ -78,9 +78,11 @@ interface Props {
   competenciaLabel?: string;
   /** Dispensa o alerta do dia ("Marcar como OK"). */
   onMarcarOk?: (dia: DiaPanorama) => void;
+  /** Indisponibilidades de Convocação (rótulo compacto "Indisponibilidade"). */
+  indisponiveis?: { colaborador_id: string; nome: string; inicio: string; fim: string }[];
 }
 
-export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros, onFiltros, onAbrirDia, unidadeId = null, nomeUnidade, competenciaLabel, onMarcarOk }: Props) {
+export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros, onFiltros, onAbrirDia, unidadeId = null, nomeUnidade, competenciaLabel, onMarcarOk, indisponiveis = [] }: Props) {
   const { selectedCompanyId } = useCompanyContext();
   const { config } = useDpConfigDp(unidadeId);
   // Dias de descanso dominical habilitados na regra da unidade.
@@ -88,8 +90,17 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
   const ehDiaDominical = (iso: string) => diasDominicais.includes(new Date(`${iso}T12:00:00`).getDay());
   const dominical = (a: AusenciaCalendario, iso: string) => a.tipo === "folga" && folgaEhDominical(iso, diasDominicais, a);
   const tomDe = (a: AusenciaCalendario, iso: string) => (dominical(a, iso) ? TOM_DOMINICAL : TOM[a.tipo]);
+  const ausDo = (d: DiaPanorama): AusenciaCalendario[] => {
+    const base = ausenciasVisiveis(d.pessoas, filtros);
+    if (!filtros.includes("outras")) return base;
+    const ja = new Set(base.map((a) => a.colaborador_id));
+    const extra = indisponiveis
+      .filter((i) => i.inicio <= d.data && i.fim >= d.data && !ja.has(i.colaborador_id))
+      .map((i) => ({ colaborador_id: i.colaborador_id, nome: i.nome, tipo: "outras" as const, rotulo: "Indisponibilidade" }));
+    return [...base, ...extra];
+  };
   const rotulo = (a: AusenciaCalendario, iso: string) =>
-    `${a.nome} · ${a.tipo === "folga" ? "Folga" : TIPO_AUSENCIA_LABEL[a.tipo]}${a.troca ? " (troca)" : ""}`;
+    `${a.nome} · ${a.rotulo ?? (a.tipo === "folga" ? "Folga" : TIPO_AUSENCIA_LABEL[a.tipo])}${a.troca ? " (troca)" : ""}`;
 
   const ini = diasBrutos[0]?.data, fimMes = diasBrutos[diasBrutos.length - 1]?.data;
   const bloqueiosQuery = useBloqueiosEfetivos(selectedCompanyId, unidadeId, ini, fimMes);
@@ -209,7 +220,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
         const motivo = bloqueios.get(d.data);
         add("bloqueados", `b-${d.data}`, motivo ? `Bloqueio · ${motivo}` : "Dia bloqueado", d.data);
       }
-      for (const a of ausenciasVisiveis(d.pessoas, filtros)) {
+      for (const a of ausDo(d)) {
         if (a.tipo === "folga") {
           const k = dominical(a, d.data) ? "dominical" : "semanal"; r[k]++; add(k, a.colaborador_id, a.nome, d.data);
           if (a.troca) { r.trocas++; add("trocas", a.colaborador_id, a.nome, d.data); }
@@ -277,7 +288,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
         ...dias.map((d) => ({
           iso: d.data, dentroMes: true, trabalhando: d.trabalhando, feriado: d.feriado_nome,
           bloqueado: bloqueios.has(d.data), pico: pico(d.data, d.feriado_nome), dominical: ehDiaDominical(d.data),
-          ausencias: ausenciasVisiveis(d.pessoas, filtros).map((a) => ({
+          ausencias: ausDo(d).map((a) => ({
             nome: primeiroNome(a.nome), troca: a.troca, cor: dominical(a, d.data) ? PDF_DOMINICAL : PDF_COR[a.tipo],
           })),
         })),
@@ -438,7 +449,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
       <div className="md:hidden">
         <DiasEmLista
           dias={dias.map((d) => {
-            const aus = ausenciasVisiveis(d.pessoas, filtros);
+            const aus = ausDo(d);
             return {
               iso: d.data,
               selecionado: false,
@@ -503,7 +514,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
           })}
           {antes.map(vazio)}
           {dias.map((d) => {
-            const aus = ausenciasVisiveis(d.pessoas, filtros);
+            const aus = ausDo(d);
             const passado = d.data < hoje;
             const ehHoje = d.data === hoje;
             const bloqueio = bloqueios.get(d.data);
