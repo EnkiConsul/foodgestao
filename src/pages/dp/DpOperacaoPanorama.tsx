@@ -1349,7 +1349,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
             <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
               <Button
                 variant="outline"
-                className="min-w-0 gap-2 px-2 sm:px-4"
+                className="min-w-0 gap-2 border-emerald-500/40 bg-emerald-500/10 px-2 text-emerald-700 hover:bg-emerald-500/20 hover:text-emerald-800 dark:text-emerald-300 sm:px-4"
                 onClick={() => {
                   setAvulsaEditando(null);
                   setAvulsaData(data);
@@ -1359,7 +1359,8 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                 <UserPlus className="h-4 w-4" /> Mão de Obra Extra
               </Button>
               <Button
-                className="min-w-0 gap-2 px-2 sm:px-4"
+                variant="outline"
+                className="min-w-0 gap-2 border-rose-500/40 bg-rose-500/10 px-2 text-rose-700 hover:bg-rose-500/20 hover:text-rose-800 dark:text-rose-300 sm:px-4"
                 onClick={() => {
                   setAusenciaData(null);
                   setAusenciaMotivo(undefined);
@@ -1430,12 +1431,12 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
             Hoje
           </Button>
           <Select value={unidade && unidade !== "todas" ? unidade : undefined} onValueChange={trocarUnidade}>
-            <SelectTrigger className="h-8 w-full rounded-full sm:w-56" aria-label="Unidade"><SelectValue placeholder="Escolha a unidade" /></SelectTrigger>
+            <SelectTrigger className="h-8 w-[42%] min-w-0 shrink rounded-full sm:w-56" aria-label="Unidade"><SelectValue placeholder="Escolha a unidade" /></SelectTrigger>
             <SelectContent>
               {panorama.unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
             </SelectContent>
           </Select>
-          {aba === "dia" && dia && <SituacaoBadge dia={dia} />}
+          {aba === "dia" && dia && <span className="hidden sm:inline-flex"><SituacaoBadge dia={dia} /></span>}
         </div>
       )}
 
@@ -1856,10 +1857,10 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               <div className="mt-2 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-2">
                 {podeRegistrar && (
                   <>
-                    <Button size="sm" variant="outline" className="h-9 min-w-0 gap-1 whitespace-nowrap px-1.5 text-xs font-medium rounded-lg sm:h-8 sm:px-3 sm:text-sm" onClick={() => { setAusenciaData(dataPopout); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}>
+                    <Button size="sm" variant="outline" className="h-9 min-w-0 gap-1 whitespace-nowrap px-1.5 text-xs font-medium rounded-lg border-rose-500/40 bg-rose-500/10 text-rose-700 hover:bg-rose-500/20 dark:text-rose-300 sm:h-8 sm:px-3 sm:text-sm" onClick={() => { setAusenciaData(dataPopout); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}>
                       <Plus className="h-4 w-4 shrink-0" /> Registrar Ausência
                     </Button>
-                    <Button size="sm" variant="outline" className="h-9 min-w-0 gap-1 whitespace-nowrap px-1.5 text-xs font-medium rounded-lg sm:h-8 sm:px-3 sm:text-sm" onClick={() => abrirNovaAvulsa(dataPopout)}>
+                    <Button size="sm" variant="outline" className="h-9 min-w-0 gap-1 whitespace-nowrap px-1.5 text-xs font-medium rounded-lg border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300 sm:h-8 sm:px-3 sm:text-sm" onClick={() => abrirNovaAvulsa(dataPopout)}>
                       <UserPlus className="h-4 w-4 shrink-0" /> Mão de Obra Extra
                     </Button>
                   </>
