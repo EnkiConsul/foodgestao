@@ -133,3 +133,9 @@ export function folgaFixaDoDia(iso: string, a: { troca?: boolean; folga_fixa_dow
   if (a.troca || !a.folga_fixa_dows?.length) return false;
   return a.folga_fixa_dows.includes(new Date(`${iso}T12:00:00`).getDay());
 }
+
+/** Pico de operação: sexta, sábado, domingo ou feriado. */
+export function diaEhPico(iso: string, feriado?: string | null): boolean {
+  const dw = new Date(`${iso}T12:00:00`).getDay();
+  return dw === 0 || dw >= 5 || !!feriado;
+}

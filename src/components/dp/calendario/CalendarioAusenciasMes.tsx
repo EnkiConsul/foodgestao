@@ -17,7 +17,7 @@ import { resolverLimiteFolga, limiteComFolgaFixaDiaUtil } from "@/lib/dp/folga-l
 import { useBloqueiosParciais } from "@/hooks/useBloqueiosParciais";
 import { useBloqueiosEfetivos } from "@/hooks/useBloqueiosEfetivos";
 import { useFixosPorDiaSemana } from "@/hooks/useFixosPorDiaSemana";
-import { folgaFixaDoDia } from "@/lib/dp/calendario-rotina";
+import { diaEhPico, folgaFixaDoDia } from "@/lib/dp/calendario-rotina";
 import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -263,10 +263,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     return () => window.removeEventListener("keydown", h);
   }, [foco]);
 
-  const pico = (iso: string, feriado?: string | null) => {
-    const dw = new Date(`${iso}T12:00:00`).getDay();
-    return dw === 0 || dw >= 5 || !!feriado;
-  };
+  const pico = diaEhPico;
 
   const { antes, depois } = diasDePreenchimento(dias);
 

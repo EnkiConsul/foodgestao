@@ -18,6 +18,7 @@ import {
   Clock,
   Eye,
   EyeOff,
+  Flame,
   GripVertical,
   Handshake,
   HeartPulse,
@@ -73,7 +74,7 @@ import { AvisoAutoatribuicaoExcedida } from "@/components/dp/calendario/AvisoAut
 import { CalendarioAusenciasMes } from "@/components/dp/calendario/CalendarioAusenciasMes";
 import { FolgasDoDiaPainel } from "@/components/dp/calendario/FolgasDoDiaPainel";
 import { RegrasDoDiaPainel, BloqueioDoDiaCabecalho } from "@/components/dp/calendario/RegrasDoDiaPainel";
-import { filtrosSalvos, periodoHabitual, primeiroNome, folgaFixaDoDia } from "@/lib/dp/calendario-rotina";
+import { diaEhPico, filtrosSalvos, periodoHabitual, primeiroNome, folgaFixaDoDia } from "@/lib/dp/calendario-rotina";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { DpStatCard } from "@/components/dp/DpStatCard";
@@ -545,6 +546,11 @@ function DetalheDiaOperacao({
 
   return (
     <div className="space-y-4">
+      {diaEhPico(data, dia.feriado_nome) && (
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
+          <Flame className="h-3.5 w-3.5" /> Pico de operação
+        </div>
+      )}
       {contagemPeriodos.size > 1 && (
         <div className="inline-flex flex-wrap gap-1 rounded-full border bg-muted/40 p-1" role="tablist" aria-label="Turno do dia">
           {([
