@@ -509,7 +509,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     () =>
       (base.data?.registradas ?? [])
         .filter((a) => !!a.data_alvo)
-        .map((a) => ({
+        .map((a): AusenciaRegistrada => ({
           colaborador_id: a.colaborador_id,
           tipo: a.tipo,
           inicio: a.data_alvo!,
@@ -518,7 +518,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         }))
         .concat(
           // Indisponibilidade de Convocação (informativa): não conta como falta.
-          (conflitosQuery.data ?? []).map((c) => ({
+          (conflitosQuery.data ?? []).map((c): AusenciaRegistrada => ({
             colaborador_id: c.colaborador_id,
             tipo: "indisponibilidade",
             inicio: c.data,
