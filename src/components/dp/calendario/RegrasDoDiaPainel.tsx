@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Lock, LockOpen } from "lucide-react";
 import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
-import { cotasPorCargoNoDia, origemLimiteLabel, resolverLimiteFolga } from "@/lib/dp/folga-limites";
+import { cotasPorCargoNoDia, origemLimiteLabel, resolverLimiteFolga, limiteComFolgaFixaDiaUtil } from "@/lib/dp/folga-limites";
+import { useBloqueiosEfetivos } from "@/hooks/useBloqueiosEfetivos";
+import { useFixosPorDiaSemana } from "@/hooks/useFixosPorDiaSemana";
 import { VagasCargoSetorDia } from "@/components/dp/bloqueios/RestricoesDoDia";
 import { cn } from "@/lib/utils";
 
@@ -50,6 +52,8 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
     },
   });
   const { regras: regrasLimite } = useDpFolgaLimites(unidadeId);
+  const efetivos = useBloqueiosEfetivos(companyId, unidadeId, data, data);
+  const fixosPorDow = useFixosPorDiaSemana(companyId, unidadeId);
 
   const q = useQuery({
     queryKey: ["dp_regras_do_dia", companyId, unidadeId, data],
@@ -86,6 +90,7 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
 
   const invalidar = () => {
     qc.invalidateQueries({ queryKey: ["dp_regras_do_dia"] });
+    qc.invalidateQueries({ queryKey: ["dp_bloqueios_efetivos"] });
     qc.invalidateQueries({ queryKey: ["dp_bloqueio_cabecalho"] });
     qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_geral"] });
     qc.invalidateQueries({ queryKey: ["dp_dia_config"] });
@@ -117,8 +122,9 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
   });
 
   if (q.isLoading || !q.data) return null;
-  const { bloqueio, diaConfig, trocas } = q.data;
-  const resolvido = resolverLimiteFolga({ data, unidadeId, regras: regrasLimite ?? [], diaConfig });
+  const { diaConfig, trocas } = q.data;
+  const bloqueio = efetivos.data?.get(data) ?? null;
+  const resolvido = limiteComFolgaFixaDiaUtil(data, resolverLimiteFolga({ data, unidadeId, regras: regrasLimite ?? [], diaConfig }), fixosPorDow.data);
   const lim = resolvido.limite;
   const cotas = cotasPorCargoNoDia({ data, unidadeId, regras: regrasLimite ?? [], diaConfig, ocupantes: ocupantes ?? [], cargoNomeById: new Map(cargosQ.data ?? []) });
   const trocasDaUnidade = trocas.filter((t) => nomes.has(t.solicitante_id) || nomes.has(t.destino_id));
@@ -131,7 +137,7 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className="border-destructive/50 text-destructive">Bloqueado · {bloqueio.motivo}</Badge>
             {!bloqueio.regra_id && (
-              <Button size="sm" variant="outline" disabled={liberar.isPending} onClick={() => liberar.mutate(bloqueio.id)}>
+              <Button size="sm" variant="outline" disabled={liberar.isPending} onClick={() => bloqueio.id && liberar.mutate(bloqueio.id)}>
                 Liberar data
               </Button>
             )}
@@ -225,24 +231,13 @@ export function BloqueioDoDiaCabecalho({
   companyId, unidadeId, data, podeEditar,
 }: { companyId: string; unidadeId: string | null; data: string; podeEditar: boolean }) {
   const qc = useQueryClient();
-  const q = useQuery({
-    queryKey: ["dp_bloqueio_cabecalho", companyId, unidadeId, data],
-    queryFn: async () => {
-      const { data: l, error } = await supabase
-        .from("dp_datas_bloqueadas")
-        .select("id, motivo, liberada, unidade_id, regra_id")
-        .eq("company_id", companyId)
-        .eq("data", data);
-      if (error) throw error;
-      const ativos = (l ?? []).filter((b) => !b.liberada);
-      return ativos.find((x) => x.unidade_id === unidadeId) ?? ativos.find((x) => x.unidade_id === null) ?? null;
-    },
-  });
+  const efetivos = useBloqueiosEfetivos(companyId, unidadeId, data, data);
+  const q = { isLoading: efetivos.isLoading, data: efetivos.data?.get(data) ?? null };
   const liberar = useMutation({
     mutationFn: (id: string) => excluirDataBloqueada(id),
     onSuccess: () => {
       toast.success("Data liberada para folgas.");
-      for (const k of ["dp_bloqueio_cabecalho", "dp_regras_do_dia", "dp_datas_bloqueadas_geral", "dp_panorama_base"])
+      for (const k of ["dp_bloqueios_efetivos", "dp_bloqueio_cabecalho", "dp_regras_do_dia", "dp_datas_bloqueadas_geral", "dp_panorama_base"])
         qc.invalidateQueries({ queryKey: [k] });
     },
     onError: (e: unknown) =>
@@ -257,7 +252,7 @@ export function BloqueioDoDiaCabecalho({
     onSuccess: () => {
       toast.success("Data bloqueada para folgas.");
       setMotivo(""); setAbrindo(false);
-      for (const k of ["dp_bloqueio_cabecalho", "dp_regras_do_dia", "dp_datas_bloqueadas_geral", "dp_panorama_base"])
+      for (const k of ["dp_bloqueios_efetivos", "dp_bloqueio_cabecalho", "dp_regras_do_dia", "dp_datas_bloqueadas_geral", "dp_panorama_base"])
         qc.invalidateQueries({ queryKey: [k] });
     },
     onError: (e: unknown) =>
@@ -292,7 +287,7 @@ export function BloqueioDoDiaCabecalho({
         <Lock className="h-4 w-4" /> Bloqueado{b.motivo ? ` · ${b.motivo}` : ""}
       </span>
       {podeEditar && !b.regra_id && (
-        <Button size="sm" variant="outline" className="h-8" disabled={liberar.isPending} onClick={() => liberar.mutate(b.id)}>
+        <Button size="sm" variant="outline" className="h-8" disabled={liberar.isPending} onClick={() => b.id && liberar.mutate(b.id)}>
           Liberar data
         </Button>
       )}
