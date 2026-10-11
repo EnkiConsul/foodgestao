@@ -1002,6 +1002,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
   }, [params, setParams]);
 
   const { prefs, save } = useDpUserPrefs();
+  const [periodoPopout, setPeriodoPopout] = useState<"todos" | "dia" | "noite" | "madrugada">("todos");
   const filtrosCal = filtrosSalvos((prefs.extras as Record<string, unknown>)?.[CAL_FILTROS_KEY]);
   const unidadeId = !unidade || unidade === "todas" ? null : unidade;
   const competencia = data.slice(0, 7);
@@ -1551,7 +1552,8 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               selecionado={data}
               filtros={filtrosCal}
               onFiltros={(f) => save({ extras: { ...(prefs.extras ?? {}), [CAL_FILTROS_KEY]: f } })}
-              onAbrirDia={(iso) => {
+              onAbrirDia={(iso, per) => {
+                setPeriodoPopout(per ?? "todos");
                 if (iso.slice(0, 7) !== competencia) setData(iso);
                 setDataPopout(iso);
               }}
@@ -1851,7 +1853,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
             {dataPopout && diaPopout ? (
               <DetalheDiaOperacao
-                periodoInicial={calendario ? (filtrosCal.periodo as "todos" | "dia" | "noite" | "madrugada") : undefined}
+                periodoInicial={calendario ? periodoPopout : undefined}
                 compacto={calendario}
                 data={dataPopout}
                 dia={diaPopout}

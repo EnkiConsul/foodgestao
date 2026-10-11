@@ -72,7 +72,7 @@ interface Props {
   selecionado: string;
   filtros: TipoAusenciaCalendario[];
   onFiltros: (f: TipoAusenciaCalendario[]) => void;
-  onAbrirDia: (iso: string) => void;
+  onAbrirDia: (iso: string, periodo?: PeriodoTurno) => void;
   unidadeId?: string | null;
   nomeUnidade?: string;
   competenciaLabel?: string;
@@ -302,7 +302,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     <button
       key={iso}
       type="button"
-      onClick={() => onAbrirDia(iso)}
+      onClick={() => onAbrirDia(iso, mostraTurno ? periodo : "todos")}
       className="flex min-h-[136px] flex-col bg-muted/20 p-2 text-left text-muted-foreground transition-colors hover:bg-muted/40"
       title="Ir para este dia"
     >
@@ -445,7 +445,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               desabilitado: false,
               dominical: ehDiaDominical(d.data),
               chipsLinhaUnica: true,
-              onSelect: () => onAbrirDia(d.data),
+              onSelect: () => onAbrirDia(d.data, mostraTurno ? periodo : "todos"),
               icones: d.alerta || pico(d.data, d.feriado_nome) || bloqueios.has(d.data) || temParcial(d.data) || d.feriado_nome ? (
                 <>
                   {d.alerta && <AlertTriangle className="h-3.5 w-3.5 text-destructive" aria-label="Alerta do dia" />}
@@ -521,7 +521,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                 <HoverCardTrigger asChild>
                   <button
                     type="button"
-                    onClick={() => onAbrirDia(d.data)}
+                    onClick={() => onAbrirDia(d.data, mostraTurno ? periodo : "todos")}
                     className={cn(
                       "group relative flex min-h-[136px] min-w-0 flex-col gap-2 bg-card p-2 text-left transition-all hover:z-10 hover:-translate-y-px hover:shadow-xl",
                       ehDiaDominical(d.data) && "bg-muted/30",
@@ -613,7 +613,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               const acima = d.alerta && d.avaliacao.situacao === "acima";
               return (
                 <li key={d.data}>
-                  <button type="button" onClick={() => { setCardAberto(null); onAbrirDia(d.data); }} className="flex w-full items-center justify-between gap-2 py-2 text-left hover:bg-muted">
+                  <button type="button" onClick={() => { setCardAberto(null); onAbrirDia(d.data, mostraTurno ? periodo : "todos"); }} className="flex w-full items-center justify-between gap-2 py-2 text-left hover:bg-muted">
                     <span className="text-sm font-semibold">
                       {fmtDiaSemana(d.data)}{d.feriado_nome ? " 🎉" : ""}{bloqueios.has(d.data) ? " 🔒" : ""}
                     </span>
