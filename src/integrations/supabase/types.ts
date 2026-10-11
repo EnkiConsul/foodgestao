@@ -20243,6 +20243,14 @@ export type Database = {
           solicitante_cpf: string
         }[]
       }
+      dp_trocas_afastamentos: {
+        Args: { _ate: string; _de: string }
+        Returns: {
+          colaborador_id: string
+          fim: string
+          inicio: string
+        }[]
+      }
       dp_turno_colaboradores: {
         Args: { p_turno_id: string }
         Returns: {
