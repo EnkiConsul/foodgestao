@@ -1646,7 +1646,9 @@ export default function DpMeuCalendario() {
                   {dayInfo.occupants.map((occ) => {
                     const isMe = occ.colaboradorId === meRef.data?.id;
                     const showTrade =
-                      !isMe && dayInfo.canTrade && !["blocked", "past", "mine", "fixed"].includes(selectedDay.status);
+                      !isMe && dayInfo.canTrade && !["blocked", "past", "mine", "fixed"].includes(selectedDay.status)
+                      // Folga do colega coberta por atestado, licença, suspensão ou férias não é negociável.
+                      && !dataEmAfastamento(afastamentosQuery.data, occ.colaboradorId, selectedDay.iso);
                     return (
                       <div
                         key={occ.key}
