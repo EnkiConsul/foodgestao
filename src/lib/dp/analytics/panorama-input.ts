@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { normalizarDias, type ConfigTrabalho, type DiaConfig, type TurnoResolvido } from "@/lib/dp/config-trabalho";
 import { TIPOS_AFASTAMENTO } from "@/lib/dp/licencas";
 import { isSocio } from "@/lib/dp/contrato-policy";
-import { ehSobDemanda } from "@/lib/dp/operacao-panorama";
+import { ehSobDemanda, somarDias } from "@/lib/dp/operacao-panorama";
 import type {
   AusenciaPanorama,
   ColaboradorPanorama,
@@ -61,6 +61,7 @@ export async function carregarPanorama(
     cargos,
     setoresRes,
     avulsasRes,
+    suspensoes,
   ] = await Promise.all([
     supabase
       .from("dp_colaboradores")
@@ -137,6 +138,14 @@ export async function carregarPanorama(
       .eq("company_id", companyId)
       .lte("data_inicio", fim)
       .gte("data_fim", inicio),
+    // Suspensões disciplinares vigentes também afastam a pessoa da operação.
+    supabase
+      .from("dp_registros_disciplinares")
+      .select("colaborador_id, data, suspensao_dias")
+      .eq("company_id", companyId)
+      .eq("tipo", "suspensao")
+      .is("removido_em", null)
+      .lte("data", fim),
   ]);
 
   const respostas = [
@@ -153,6 +162,7 @@ export async function carregarPanorama(
     cargos,
     setoresRes,
     avulsasRes,
+    suspensoes,
   ];
   const err = respostas.find((r) => r.error);
   if (err?.error) throw err.error;
@@ -254,6 +264,12 @@ export async function carregarPanorama(
         fim: a.data_fim ?? a.data_alvo!,
         tipo: "atestado" as const,
       })),
+    ...(suspensoes.data ?? []).map((s) => ({
+      colaborador_id: s.colaborador_id,
+      inicio: s.data,
+      fim: somarDias(s.data, Math.max(s.suspensao_dias ?? 1, 1) - 1),
+      tipo: "suspensao" as const,
+    })),
   ];
 
   return {
