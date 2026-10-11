@@ -414,6 +414,13 @@
       "when": 1791729409189,
       "tag": "0058_dp_indisponibilidade_gestor",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1791733880242,
+      "tag": "0059_dp_ausencias_espelham_ocorrencias",
+      "breakpoints": true
     }
   ]
 }
