@@ -95,7 +95,8 @@ export interface AusenciaPanorama {
   colaborador_id: string;
   inicio: string;
   fim: string;
-  tipo: "ferias" | "atestado";
+  /** Suspensão disciplinar entra como ausência do dia (mesma faixa do atestado). */
+  tipo: "ferias" | "atestado" | "suspensao";
 }
 
 export interface OcorrenciaPanorama {
