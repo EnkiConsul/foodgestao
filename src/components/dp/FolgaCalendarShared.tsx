@@ -394,22 +394,31 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
 }
 
 function Legend() {
-  return (
-    <div className="mt-6 flex flex-wrap gap-6 border-t pt-5">
-      <LegendItem color="bg-emerald-500" label="Disponível" />
-      <LegendItem color="bg-blue-500" label="Folga Semanal" />
-      <LegendItem color="bg-primary" label="Folga Mensal" />
-      <LegendItem color="bg-violet-500" label="Pendente" />
-      <LegendItem color="bg-destructive" label="Bloqueado" />
-    </div>
-  );
+  return <LegendaFolgas className="mt-5 border-t pt-4" />;
 }
 
-function LegendItem({ color, label }: { color: string; label: string }) {
+/**
+ * Legenda compacta do calendário de folgas (portal e DP). Só explica o que já
+ * aparece nos dias — os indicadores continuam visíveis em cada data.
+ */
+export function LegendaFolgas({ className }: { className?: string }) {
+  const itens = [
+    { cls: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300", label: "Disponível", icon: <LockOpen className="h-3 w-3" /> },
+    { cls: "border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300", label: "Minha folga / troca", icon: <CheckCircle2 className="h-3 w-3" /> },
+    { cls: "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300", label: "Folga semanal", icon: null },
+    { cls: "border-primary/30 bg-primary/15 text-primary", label: "Folga mensal", icon: null },
+    { cls: "border-violet-500/40 bg-violet-500/15 text-violet-700 dark:text-violet-300", label: "Pendente", icon: <AlertCircle className="h-3 w-3" /> },
+    { cls: "border-destructive/30 bg-destructive/10 text-destructive", label: "Lotado", icon: <Users className="h-3 w-3" /> },
+    { cls: "border-destructive/40 bg-destructive/15 text-destructive", label: "Bloqueado", icon: <Lock className="h-3 w-3" /> },
+  ];
   return (
-    <div className="flex items-center gap-2">
-      <span className={cn("h-2.5 w-2.5 rounded-full", color)} />
-      <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{label}</span>
+    <div className={cn("flex flex-wrap items-center gap-1.5", className)} aria-label="Legenda">
+      {itens.map((i) => (
+        <span key={i.label} className={cn("inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase", i.cls)}>
+          {i.icon}
+          {i.label}
+        </span>
+      ))}
     </div>
   );
 }
