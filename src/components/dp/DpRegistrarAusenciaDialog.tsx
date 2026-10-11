@@ -23,6 +23,7 @@ import { sugestaoDataFim, duracaoPadrao, TIPOS_LICENCA_CURTA, TIPO_AFASTAMENTO_L
 import { FundamentoLegalCard } from "@/components/dp/licencas/FundamentoLegalCard";
 import { DpFilePicker } from "@/components/dp/DpFilePicker";
 import { AtribuirFolgaTriagemDialog } from "@/components/dp/AtribuirFolgaTriagemDialog";
+import { FeriasNovoModal } from "@/components/dp/ferias/FeriasNovoModal";
 import { OcorrenciaFormDialog } from "@/components/dp/ocorrencias/OcorrenciaFormDialog";
 import { textoErroOcorrencia } from "@/lib/dp/ocorrencias";
 import { prepararUpload } from "@/lib/storage/uploadPolicy";
@@ -75,6 +76,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
   const [motivo, setMotivo] = useState<Motivo>("afastamento");
   const [folgaOpen, setFolgaOpen] = useState(false);
   const [faltaOpen, setFaltaOpen] = useState(false);
+  const [feriasOpen, setFeriasOpen] = useState(false);
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [form, setForm] = useState({
     colaborador_id: "",
@@ -120,10 +122,8 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         setFaltaOpen(true);
         break;
       case "ferias":
-        q.set("novo", "1");
-        q.set("data", form.data_alvo);
         onOpenChange(false);
-        navigate(`/dp/ferias?${q}`);
+        setFeriasOpen(true);
         break;
       case "suspensao":
         q.set("tipo", "suspensao");
@@ -333,6 +333,12 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         />
       )}
 
+      <FeriasNovoModal
+        open={feriasOpen}
+        onOpenChange={setFeriasOpen}
+        colaboradorId={form.colaborador_id}
+        dataInicio={form.data_alvo}
+      />
       <OcorrenciaFormDialog
         open={faltaOpen}
         onOpenChange={setFaltaOpen}
