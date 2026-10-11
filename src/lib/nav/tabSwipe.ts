@@ -120,6 +120,8 @@ export function instalarSwipeAbas(onTrocar?: () => void) {
     const dialogAlvo = dialogoDoToque(e.target);
     // Diálogo aberto, mas o toque começou fora dele: gesto ignorado.
     if (overlay && !dialogAlvo) return;
+    // Janela com navegação própria por arrasto (ex.: dia anterior/próximo).
+    if (dialogAlvo?.hasAttribute("data-swipe-proprio")) return;
 
     const w = window.innerWidth;
     if (t.clientX <= EDGE_PX || t.clientX >= w - EDGE_PX) return;
