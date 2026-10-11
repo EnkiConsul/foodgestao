@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -205,7 +206,7 @@ export default function DpOcorrencias() {
         ].filter((c) => Number(c.valor) > 0);
         if (cards.length === 0) return null;
         return (
-          <div className="grid grid-cols-3 gap-1.5 sm:gap-2 lg:grid-cols-6">
+          <div className={cn("grid gap-1.5 sm:gap-2", cards.length === 1 ? "grid-cols-1" : cards.length === 2 || cards.length === 4 ? "grid-cols-2" : "grid-cols-3", cards.length === 4 ? "lg:grid-cols-4" : cards.length === 5 ? "lg:grid-cols-5" : cards.length >= 6 ? "lg:grid-cols-6" : "")}>
             {cards.map((c) => (
               <div key={c.label} className="rounded-md border bg-card px-2 py-1.5 sm:rounded-lg sm:p-3">
                 <p className="truncate text-[10px] leading-tight text-muted-foreground sm:text-xs">{c.label}</p>

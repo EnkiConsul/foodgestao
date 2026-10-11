@@ -114,7 +114,7 @@ export interface Ocorrencia {
   motivo_cancelamento: string | null;
   troca_id?: string | null;
   created_at: string;
-  colaborador: { nome: string; cargo: string | null } | null;
+  colaborador: { nome: string; nome_social?: string | null; cargo: string | null } | null;
   unidade: { nome: string } | null;
   setor: { nome: string } | null;
 }
@@ -127,7 +127,7 @@ const COLS = `
   relevancia_operacional, analise_status, analisado_em, tratativa_ponto, tratativa_status,
   tratativa_decisao, tratativa_observacao, marcacao_alvo, documento_id, informada_em,
   antecedencia_minutos, motivo_cancelamento, created_at, troca_id,
-  colaborador:dp_colaboradores!dp_ocorrencias_colaborador_id_fkey(nome, cargo),
+  colaborador:dp_colaboradores!dp_ocorrencias_colaborador_id_fkey(nome, nome_social, cargo),
   unidade:dp_unidades!dp_ocorrencias_unidade_id_fkey(nome),
   setor:dp_setores!dp_ocorrencias_setor_id_fkey(nome)
 `;
@@ -287,7 +287,7 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
         if (filtros.assiduidadeDecisao === "perde" && estado !== "perde") return false;
         if (filtros.assiduidadeDecisao === "mantem" && estado !== "mantem") return false;
       }
-      if (termo && !(o.colaborador?.nome ?? "").toLowerCase().includes(termo)) return false;
+      if (termo && !`${o.colaborador?.nome ?? ""} ${o.colaborador?.nome_social ?? ""}`.toLowerCase().includes(termo)) return false;
       return true;
     });
     // Não tratadas primeiro; dentro de cada grupo mantém a ordem (mais recentes primeiro).

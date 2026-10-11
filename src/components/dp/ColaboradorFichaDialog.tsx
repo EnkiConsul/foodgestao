@@ -358,13 +358,15 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
     const corpo = corpoRef.current?.cloneNode(true) as HTMLElement | undefined;
     if (!corpo) return;
     corpo.querySelectorAll("button, svg").forEach((n) => n.remove());
+    const fotoSrc = (document.querySelector('[role="dialog"] img[alt^="Foto de"]') as HTMLImageElement | null)?.src ?? "";
+    const social = String((colaborador as any)?.nome_social ?? "").trim();
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Ficha - ${escapeHtml(colaborador?.nome ?? "")}</title>
 <style>body{font-family:Arial,sans-serif;font-size:10pt;margin:24px;color:#111}h1{font-size:15pt;margin:0 0 4px}
 .rounded-xl{border:1px solid #bbb;border-radius:6px;padding:10px;margin:10px 0;page-break-inside:avoid}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.col-span-full,.sm\\:col-span-2{grid-column:1/-1}
 ul{list-style:none;padding:0;margin:0}li{border-bottom:1px solid #ddd;padding:4px 0}
 .uppercase{text-transform:uppercase;font-size:8pt;color:#555}.font-semibold{font-weight:bold;font-size:11pt}</style></head>
-<body><h1>${escapeHtml(colaborador?.nome ?? "Colaborador")}</h1><div style="font-size:9pt;color:#555">Ficha e dossiê emitidos em ${new Date().toLocaleString("pt-BR")}</div>${corpo.innerHTML}</body></html>`;
+<body><div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:8px">${fotoSrc ? `<img src="${escapeHtml(fotoSrc)}" style="width:72px;height:96px;object-fit:cover;border:1px solid #bbb;border-radius:4px">` : ""}<div><h1>${escapeHtml(colaborador?.nome ?? "Colaborador")}</h1>${social && social !== String(colaborador?.nome ?? "").trim() ? `<div style="font-size:10pt">Nome social: <b>${escapeHtml(social)}</b></div>` : ""}<div style="font-size:9pt;color:#555">Ficha e dossiê emitidos em ${new Date().toLocaleString("pt-BR")}</div></div></div>${corpo.innerHTML}</body></html>`;
     imprimirHtmlEmQuadro(html, () => toast.error("Não foi possível abrir a impressão. Tente novamente."));
   };
 

@@ -1,3 +1,4 @@
+import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 import { useState } from "react";
 import {
   AlertTriangle,
@@ -88,7 +89,7 @@ export function OcorrenciaCard({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-medium">{o.colaborador?.nome ?? "Colaborador"}</span>
+            <span className="font-medium">{nomeExibicao(o.colaborador) || "Colaborador"}</span>
             <Badge variant="outline" className="text-xs">
               {data}
             </Badge>
