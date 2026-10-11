@@ -119,6 +119,7 @@ export default function AtivarAcesso() {
       }
       if (corpo?.error) {
         if (corpo?.code === "token_usado") setLinkUsado(true);
+        else if (/expirado|inválido/i.test(corpo.error)) setEstadoLink("expirado");
         setErro(corpo.error);
         return;
       }
@@ -136,6 +137,66 @@ export default function AtivarAcesso() {
   // bate e, na ativação, o termo de primeiro acesso está aceito.
   const senhaAprovada = avaliarSenha(senha, { cpf }).valida;
   const termoOk = !exigeTermo || termoAceito;
+
+  if (estadoLink === "verificando") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (estadoLink !== "valido" || linkUsado) {
+    const usado = estadoLink === "usado" || linkUsado;
+    const digitosCpf = cpf.replace(/\D/g, "");
+    const cpfOk = digitosCpf.length === 11;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Helmet><title>Link indisponível — Aveto 360</title></Helmet>
+        <Card className="w-full max-w-md shadow-lg">
+          <CardHeader className="space-y-2 text-center">
+            <CardTitle className="text-2xl font-bold">
+              {usado ? "Este link já foi usado" : estadoLink === "expirado" ? "Este link expirou" : "Link inválido"}
+            </CardTitle>
+            <CardDescription>
+              {usado
+                ? "Sua senha já foi cadastrada anteriormente através deste link."
+                : estadoLink === "expirado"
+                  ? "Este link de acesso venceu o prazo de validade. Não se preocupe, você resolve agora mesmo."
+                  : "Este link está incompleto ou não é mais válido. Você ainda pode entrar ou receber um código."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <Button className="min-h-11 w-full" onClick={() => navigate(cpfOk ? `/login?cpf=${digitosCpf}` : "/login", { replace: true })}>
+              Entrar com meu CPF e Senha
+            </Button>
+            <div className="space-y-3 rounded-xl border bg-muted/40 p-4">
+              <p className="text-sm font-semibold">Não lembra sua senha ou ainda não criou?</p>
+              <p className="text-xs text-muted-foreground">
+                Informe seu CPF e enviaremos um código no WhatsApp cadastrado na sua ficha.
+              </p>
+              <Input
+                inputMode="numeric"
+                value={cpf}
+                onChange={(e) => setCpf(maskCpf(e.target.value.replace(/\D/g, "").slice(0, 11)))}
+                placeholder="000.000.000-00"
+                aria-label="Seu CPF"
+              />
+              <Button
+                variant="outline"
+                className="min-h-11 w-full"
+                disabled={!cpfOk}
+                onClick={() => navigate(`/esqueci-senha?cpf=${digitosCpf}`)}
+              >
+                Receber código no WhatsApp
+              </Button>
+              <p className="text-xs text-muted-foreground">Sem WhatsApp na ficha? Procure o gestor ou o RH para incluir seu celular com DDD.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
