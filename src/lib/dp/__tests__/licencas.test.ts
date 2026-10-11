@@ -61,3 +61,24 @@ describe("licenças (maternidade/paternidade)", () => {
     expect(situacaoRetorno(lic, new Date(2026, 0, 20))).toBeNull();
   });
 });
+
+import { FUNDAMENTO_LEGAL, TIPOS_LICENCA_CURTA, duracaoPadrao, fimDeSemanaNoPeriodo } from "@/lib/dp/licencas";
+
+describe("licenças curtas da CLT (art. 473)", () => {
+  it("todas contam como afastamento e têm embasamento legal", () => {
+    for (const t of TIPOS_LICENCA_CURTA) {
+      expect(isTipoAfastamento(t)).toBe(true);
+      expect(FUNDAMENTO_LEGAL[t].artigo).toContain("473");
+    }
+  });
+  it("prazos: luto 2, casamento 3, doação de sangue 1", () => {
+    expect(duracaoPadrao("licenca_luto")).toBe(2);
+    expect(duracaoPadrao("licenca_casamento")).toBe(3);
+    expect(duracaoPadrao("doacao_sangue")).toBe(1);
+    expect(sugestaoDataFim("licenca_casamento", "2026-10-09")).toBe("2026-10-11");
+  });
+  it("detecta sábado/domingo no período", () => {
+    expect(fimDeSemanaNoPeriodo("2026-10-09", "2026-10-11")).toEqual(["2026-10-10", "2026-10-11"]);
+    expect(fimDeSemanaNoPeriodo("2026-10-12", "2026-10-13")).toEqual([]);
+  });
+});

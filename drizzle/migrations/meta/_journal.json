@@ -330,6 +330,13 @@
       "when": 1791687552839,
       "tag": "0046_dp_troca_bloqueia_folga_em_afastamento",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1791689229627,
+      "tag": "0047_dp_licencas_curtas_clt",
+      "breakpoints": true
     }
   ]
 }
