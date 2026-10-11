@@ -167,7 +167,7 @@ export default function DpOcorrencias() {
     ];
     return (
       chaves.filter((k) => filtros[k] !== "all").length +
-      (filtros.periodo !== "todas" ? 1 : 0) +
+      (filtros.periodo !== "mes" ? 1 : 0) +
       (filtros.somentePendentes ? 1 : 0) +
       (filtros.data ? 1 : 0)
     );
@@ -234,17 +234,17 @@ export default function DpOcorrencias() {
         ].filter((c) => Number(c.valor) > 0);
         if (cards.length === 0) return null;
         const ativo = (c: CardInd) =>
-          Object.entries(c.aplicar).every(([k, v]) => filtros[k as keyof OcorrenciaFiltros] === v) && filtros.periodo === "mes";
+          Object.entries(c.aplicar).every(([k, v]) => filtros[k as keyof OcorrenciaFiltros] === v);
         const clicar = (c: CardInd) => {
           if (ativo(c)) {
-            setFiltros((f) => ({ ...f, tipo: "all", cobertura: "all", somentePendentes: false, periodo: "todas" }));
+            setFiltros((f) => ({ ...f, tipo: "all", cobertura: "all", somentePendentes: false }));
           } else {
-            setFiltros((f) => ({ ...f, tipo: "all", cobertura: "all", somentePendentes: false, periodo: "mes", data: null, ...c.aplicar }));
+            setFiltros((f) => ({ ...f, tipo: "all", cobertura: "all", somentePendentes: false, ...c.aplicar }));
           }
         };
         return (
           <div>
-            <p className="mb-1.5 text-xs text-muted-foreground">Neste mês · toque para filtrar</p>
+            <p className="mb-1.5 text-xs text-muted-foreground">{textoPeriodo} · toque para filtrar</p>
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8">
               {cards.map((c) => (
                 <button
