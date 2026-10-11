@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/select";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { resumoEscolhaFolgas, folgaDominicalAutomatica, podeTrocarFolga, domingosFolgaNoPeriodo } from "@/lib/dp/dsr-rules";
-import { folgasOfertaveis } from "@/lib/dp/troca-oferta";
+import { folgasOfertaveis, dataEmAfastamento, type PeriodoAfastamento } from "@/lib/dp/troca-oferta";
 import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
 import { avaliarRiscoDsrTroca, avisoDsr } from "@/lib/dp/dsr-consecutivo";
 import { registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
@@ -461,6 +461,26 @@ export default function DpMeuCalendario() {
         .in("status", ["pendente_colega", "pendente_gestor"]);
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  /**
+   * Períodos de afastamento (atestado, licença, suspensão, férias) da empresa:
+   * folga coberta por esses eventos não pode ser oferecida nem pedida em troca.
+   */
+  const afastamentosQuery = useQuery({
+    queryKey: ["dp_trocas_afastamentos", companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const de = ymd(new Date());
+      const fim = new Date();
+      fim.setDate(fim.getDate() + 180);
+      const { data, error } = await supabase.rpc("dp_trocas_afastamentos", {
+        _de: de,
+        _ate: ymd(fim),
+      });
+      if (error) throw error;
+      return (data ?? []) as PeriodoAfastamento[];
     },
   });
 
