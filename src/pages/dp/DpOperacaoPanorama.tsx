@@ -1,3 +1,5 @@
+import { useDpConfigDp } from "@/hooks/useDpConfigDp";
+import { diasElegiveisDaConfig } from "@/lib/dp/dsr-rules";
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
@@ -997,6 +999,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
   const unidadeId = !unidade || unidade === "todas" ? null : unidade;
   const competencia = data.slice(0, 7);
   const panorama = useDpOperacaoPanorama(competencia, unidadeId);
+  const configDominical = useDpConfigDp(unidadeId);
 
   /** Abre já em uma unidade: a última escolhida ou a de maior quadro. */
   useEffect(() => {
@@ -1095,6 +1098,8 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
   const sociosAusentes = useMemo(() => sociosDe(dia), [dia]);
 
   const diaPopout = dataPopout ? panorama.diaDe(dataPopout) : undefined;
+  const diasDominicaisPopout = configDominical.config ? diasElegiveisDaConfig(configDominical.config) : [0];
+  const diaDominicalPopout = !!diaPopout && diasDominicaisPopout.includes(new Date(`${diaPopout.data}T12:00:00`).getDay());
   const regimesColab = useMemo(
     () => new Map(((panorama.colaboradores ?? []) as { id: string; regime?: string | null }[]).map((c) => [c.id, c.regime ?? ""])),
     [panorama.colaboradores],
