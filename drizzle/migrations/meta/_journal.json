@@ -393,6 +393,13 @@
       "when": 1791720217628,
       "tag": "0055_dp_folga_lembretes_escalonados",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1791724261006,
+      "tag": "0056_dp_documento_registrar_assinatura_fisica",
+      "breakpoints": true
     }
   ]
 }
