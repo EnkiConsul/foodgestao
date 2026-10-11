@@ -363,6 +363,26 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     },
   });
 
+  /**
+   * Colaboradores com disponibilidade cadastrada na unidade filtrada
+   * (atuação em outras unidades): a indisponibilidade deles também vale aqui.
+   */
+  const apoioUnidadeQuery = useQuery({
+    queryKey: ["dp_panorama_apoio_unidade", selectedCompanyId, unidadeId],
+    enabled: !!selectedCompanyId && !!unidadeId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_apoio_unidades")
+        .select("colaborador_id")
+        .eq("company_id", selectedCompanyId!)
+        .eq("unidade_id", unidadeId!)
+        .eq("ativo", true)
+        .not("colaborador_id", "is", null);
+      if (error) throw error;
+      return new Set((data ?? []).map((r) => r.colaborador_id as string));
+    },
+  });
+
   /** Pessoas na rotina do dia (teste/folguista/registro manual) na competência. */
   const avulsasQuery = useQuery({
     queryKey: ["dp_pessoas_avulsas", selectedCompanyId, competencia, unidadeId],
@@ -506,8 +526,13 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
 
   /** Ausências registradas pelo gestor (adiantamento/outros) que cruzam a competência. */
   const ausenciasRegistradas: AusenciaRegistrada[] = useMemo(
-    () =>
-      (base.data?.registradas ?? [])
+    () => {
+      // Indisponibilidade só entra no dia se a pessoa pertence à unidade
+      // filtrada ou atua nela por disponibilidade (a consulta traz a empresa
+      // inteira). Sem filtro de unidade, vale a empresa toda.
+      const idsNaUnidade = new Set(colaboradores.map((c) => c.id));
+      for (const id of apoioUnidadeQuery.data ?? []) idsNaUnidade.add(id);
+      return (base.data?.registradas ?? [])
         .filter((a) => !!a.data_alvo)
         .map((a): AusenciaRegistrada => ({
           colaborador_id: a.colaborador_id,
@@ -518,15 +543,18 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         }))
         .concat(
           // Indisponibilidade de Convocação (informativa): não conta como falta.
-          (conflitosQuery.data ?? []).map((c): AusenciaRegistrada => ({
-            colaborador_id: c.colaborador_id,
-            tipo: "indisponibilidade",
-            inicio: c.data,
-            fim: c.data,
-            motivo: c.motivo ?? null,
-          })),
-        ),
-    [base.data, conflitosQuery.data],
+          (conflitosQuery.data ?? [])
+            .filter((c) => idsNaUnidade.has(c.colaborador_id))
+            .map((c): AusenciaRegistrada => ({
+              colaborador_id: c.colaborador_id,
+              tipo: "indisponibilidade",
+              inicio: c.data,
+              fim: c.data,
+              motivo: c.motivo ?? null,
+            })),
+        );
+    },
+    [base.data, conflitosQuery.data, colaboradores, apoioUnidadeQuery.data],
   );
 
   const folgas: FolgaPanorama[] = useMemo(() => {
