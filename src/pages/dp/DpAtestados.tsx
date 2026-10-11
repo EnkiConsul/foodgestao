@@ -104,8 +104,13 @@ export default function DpAtestados() {
   // form
   const fileRef = useRef<HTMLInputElement>(null);
   const [unidadeId, setUnidadeId] = useState<string>("");
-  const [colaboradorId, setColaboradorId] = useState<string>("");
-  const [tipoDoc, setTipoDoc] = useState<TipoAfastamento>("atestado");
+  const [colaboradorId, setColaboradorId] = useState<string>(
+    () => new URLSearchParams(window.location.search).get("colaborador") ?? "",
+  );
+  const [tipoDoc, setTipoDoc] = useState<TipoAfastamento>(() => {
+    const t = new URLSearchParams(window.location.search).get("tipo");
+    return t && (TIPOS_AFASTAMENTO as readonly string[]).includes(t) ? (t as TipoAfastamento) : "atestado";
+  });
   const [dataDoc, setDataDoc] = useState<string>("");
   const [dias, setDias] = useState<string>("");
   const [observacao, setObservacao] = useState<string>("");
@@ -450,7 +455,7 @@ export default function DpAtestados() {
       <DpPageHeader
         icon={FileWarning}
         title="Atestados e Licenças"
-        description="Gerencie atestados médicos e licenças (maternidade, paternidade) dos colaboradores."
+        description="Atestados médicos e licenças legais (maternidade, paternidade, luto, casamento e outras) com comprovante e base legal."
         actions={
           <>
             {pendentesCount > 0 && (
@@ -527,9 +532,16 @@ export default function DpAtestados() {
                 >
                   <SelectTrigger id="tipo-de-afastamento-3"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {TIPOS_AFASTAMENTO.map((t) => (
-                      <SelectItem key={t} value={t}>{TIPO_AFASTAMENTO_LABEL[t]}</SelectItem>
-                    ))}
+                    <SelectGroup>
+                      <SelectLabel>Saúde</SelectLabel>
+                      <SelectItem value="atestado">{TIPO_AFASTAMENTO_LABEL.atestado}</SelectItem>
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel>Licenças legais</SelectLabel>
+                      {TIPOS_AFASTAMENTO.filter((t) => t !== "atestado").map((t) => (
+                        <SelectItem key={t} value={t}>{TIPO_AFASTAMENTO_LABEL[t]}</SelectItem>
+                      ))}
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
                 {isTipoLicenca(tipoDoc) && (
