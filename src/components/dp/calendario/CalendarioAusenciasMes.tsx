@@ -62,6 +62,10 @@ function diasDePreenchimento(dias: DiaPanorama[]) {
 
 const DOW = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
+/** "Qui 15/10" — data com a abreviação do dia da semana. */
+const fmtDiaSemana = (iso: string) =>
+  `${DOW[new Date(`${iso}T12:00:00`).getDay()]} ${iso.slice(8)}/${iso.slice(5, 7)}`;
+
 interface Props {
   dias: DiaPanorama[];
   selecionado: string;
