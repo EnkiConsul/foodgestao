@@ -668,9 +668,11 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                       <button
                         key={iso}
                         type="button"
-                        onClick={() => { setCardAberto(null); onAbrirDia(iso, mostraTurno ? periodo : "todos"); }}
-                        className="rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-medium text-foreground hover:bg-primary/10 hover:border-primary/40"
+                        disabled={abrindoDia === iso}
+                        onClick={() => { setAbrindoDia(iso); setCardAberto(null); onAbrirDia(iso, mostraTurno ? periodo : "todos"); }}
+                        className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-medium text-foreground transition hover:bg-primary/10 hover:border-primary/40 active:scale-95 disabled:opacity-60"
                       >
+                        {abrindoDia === iso && <Loader2 className="h-3 w-3 animate-spin" aria-hidden />}
                         {txt}
                       </button>
                     );
