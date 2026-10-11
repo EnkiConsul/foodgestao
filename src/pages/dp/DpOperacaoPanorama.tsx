@@ -128,6 +128,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useSwipeHorizontal } from "@/hooks/useSwipeHorizontal";
 
 function OcorrenciaBadges({ ocorrencias }: { ocorrencias: PessoaPanorama["ocorrencias"] }) {
   if (!ocorrencias?.length) return null;
@@ -1273,6 +1274,14 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
     return () => window.removeEventListener("keydown", h);
   }, [dataPopout]);
 
+  const swipeMes = useSwipeHorizontal(
+    () => setData(`${somarMeses(competencia, 1)}-01`),
+    () => setData(`${somarMeses(competencia, -1)}-01`),
+  );
+  const swipeDia = useSwipeHorizontal(
+    () => setDataPopout((d) => (d ? somarDias(d, 1) : d)),
+    () => setDataPopout((d) => (d ? somarDias(d, -1) : d)),
+  );
   if (panorama.error) return <DpErrorState message="Não foi possível carregar a operação." />;
 
 
@@ -1526,6 +1535,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
         <TabsContent value="mes" className="space-y-4">
           {calendario && <AvisoAutoatribuicaoExcedida companyId={companyIdCal} />}
           {calendario && !panorama.isLoading ? (
+            <div {...swipeMes}>
             <CalendarioAusenciasMes
               dias={panorama.dias}
               unidadeId={unidadeId}
@@ -1539,6 +1549,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                 setDataPopout(iso);
               }}
             />
+            </div>
           ) : panorama.isLoading ? (
             <Skeleton className="h-64 w-full" />
           ) : (
@@ -1778,7 +1789,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
       </Tabs>
 
       <Dialog open={!!dataPopout} onOpenChange={(o) => !o && setDataPopout(null)}>
-        <DialogContent className="flex max-h-[92dvh] max-w-3xl flex-col gap-3 overflow-hidden p-4 sm:p-6">
+        <DialogContent {...swipeDia} className="flex max-h-[92dvh] max-w-3xl flex-col gap-3 overflow-hidden p-4 sm:p-6">
           <DialogHeader className="shrink-0">
             <div className="flex items-center gap-2 pr-6">
               <Button

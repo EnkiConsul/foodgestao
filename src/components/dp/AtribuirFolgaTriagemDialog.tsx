@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-type Modo = "substituir_fds" | "troca_semanal" | "extra";
+type Modo = "substituir_fds" | "troca_semanal" | "extra" | "compensatoria";
 
 interface Props {
   open: boolean;
@@ -131,13 +131,20 @@ export function AtribuirFolgaTriagemDialog({
     queryFn: async () => {
       const { data } = await supabase
         .from("dp_colaboradores")
-        .select("regime_trabalho")
+        .select("regime_trabalho, unidade_id")
         .eq("id", colaboradorId)
         .maybeSingle();
-      return (data as { regime_trabalho?: string } | null)?.regime_trabalho ?? null;
+      const row = data as { regime_trabalho?: string; unidade_id?: string } | null;
+      let compensa = false;
+      if (row?.unidade_id) {
+        const { data: u } = await supabase.from("dp_unidades").select("compensa_feriados").eq("id", row.unidade_id).maybeSingle();
+        compensa = !!(u as { compensa_feriados?: boolean } | null)?.compensa_feriados;
+      }
+      return { regime: row?.regime_trabalho ?? null, compensa };
     },
   });
-  const intermitente = regimeQuery.data === "intermitente";
+  const intermitente = regimeQuery.data?.regime === "intermitente";
+  const temCompensacao = !!regimeQuery.data?.compensa && !intermitente;
 
   const [limiteMsg, setLimiteMsg] = useState<string | null>(null);
   const [justificativa, setJustificativa] = useState("");
@@ -165,10 +172,13 @@ export function AtribuirFolgaTriagemDialog({
       const { data, error } = await supabase.rpc("dp_folga_atribuir_admin_v2" as any, {
         p_colaborador: colaboradorId,
         p_data: dataIso,
-        p_modo: modo,
+        p_modo: modo === "compensatoria" ? "extra" : modo,
         p_folga_substituir_id: modo === "substituir_fds" ? folgaSubstituir : null,
         p_data_trabalho: modo === "troca_semanal" ? dataTrabalho : null,
-        p_motivo: motivo.trim() || null,
+        p_motivo:
+          modo === "compensatoria"
+            ? `FOLGA COMPENSATÓRIA${motivo.trim() ? ` — ${motivo.trim()}` : ""}`
+            : motivo.trim() || null,
         p_autorizar_excedente: autorizar,
         p_justificativa_excedente: autorizar ? justificativa.trim() : null,
       });
@@ -257,6 +267,7 @@ export function AtribuirFolgaTriagemDialog({
                     Troca da folga semanal da semana
                   </SelectItem>
                 )}
+                {!intermitente && <SelectItem value="compensatoria">Folga compensatória</SelectItem>}
                 <SelectItem value="extra">Folga extra</SelectItem>
               </SelectContent>
             </Select>
@@ -265,8 +276,15 @@ export function AtribuirFolgaTriagemDialog({
                 ? "A folga escolhida abaixo é cancelada e esta entra no lugar dela."
                 : modo === "troca_semanal"
                   ? "O colaborador trabalha no dia da folga semanal e folga neste dia no lugar dele."
-                  : "Folga adicional: a folga semanal e as folgas já marcadas continuam como estão."}
+                  : modo === "compensatoria"
+                    ? "Compensa feriado trabalhado ou horas negociadas. Fica registrada como folga compensatória."
+                    : "Folga adicional: a folga semanal e as folgas já marcadas continuam como estão."}
             </p>
+            {modo === "extra" && temCompensacao && (
+              <p className="mt-2 rounded-lg border border-warning/40 bg-warning/10 p-2 text-xs">
+                Este colaborador pode ter folga compensatória (a unidade compensa feriados trabalhados). Confirme se não é o caso antes de lançar como folga extra.
+              </p>
+            )}
           </div>
 
           {modo === "substituir_fds" && (
