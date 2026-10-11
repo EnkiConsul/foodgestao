@@ -69,7 +69,7 @@ import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/
 import { CalendarioAusenciasMes } from "@/components/dp/calendario/CalendarioAusenciasMes";
 import { FolgasDoDiaPainel } from "@/components/dp/calendario/FolgasDoDiaPainel";
 import { RegrasDoDiaPainel, BloqueioDoDiaCabecalho } from "@/components/dp/calendario/RegrasDoDiaPainel";
-import { filtrosSalvos, periodoHabitual, primeiroNome } from "@/lib/dp/calendario-rotina";
+import { filtrosSalvos, periodoHabitual, primeiroNome, folgaFixaDoDia } from "@/lib/dp/calendario-rotina";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { DpStatCard } from "@/components/dp/DpStatCard";
@@ -1820,7 +1820,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                     <p className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Quem vai folgar?</p>
                     <div className="max-h-64 overflow-y-auto">
                       {diaPopout.pessoas
-                        .filter((p) => !p.avulso_id && ["fixo", "convocado_aceito", "convocado_pendente", "atraso", "saida_antecipada"].includes(String(p.categoria)))
+                        .filter((p) => !p.avulso_id && ["fixo", "convocado_aceito", "convocado_pendente", "atrasado", "saida_antecipada"].includes(String(p.categoria)))
                         .filter((p, i, arr) => arr.findIndex((o) => o.colaborador_id === p.colaborador_id) === i)
                         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
                         .map((p) => (
