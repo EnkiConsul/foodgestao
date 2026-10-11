@@ -63,6 +63,24 @@ Deno.serve(async (req) => {
     }
     const purpose = purposeBruto as Purpose;
 
+    // Conferência prévia ao abrir a tela: só diz se o link ainda vale, sem
+    // reservar nem consumir e sem revelar de quem é.
+    if (body?.acao === "verificar") {
+      if (!tokenId || codigo.length < 8) return jsonResponse(req, 200, { estado: "invalido" });
+      const { data: t } = await admin
+        .from("dp_portal_access_tokens")
+        .select("user_id, token_hash, purpose, expires_at, consumed_at")
+        .eq("id", tokenId)
+        .maybeSingle();
+      if (!t || t.purpose !== purpose || t.token_hash !== (await hashCodigo(t.user_id, codigo))) {
+        return jsonResponse(req, 200, { estado: "invalido" });
+      }
+      if (t.consumed_at) return jsonResponse(req, 200, { estado: "usado" });
+      if (new Date(t.expires_at).getTime() <= Date.now()) return jsonResponse(req, 200, { estado: "expirado" });
+      return jsonResponse(req, 200, { estado: "valido" });
+    }
+
+
     if (cpf.length !== 11 || !tokenId || codigo.length < 8) {
       return jsonError(req, "invalid_input", "payload incompleto");
     }
