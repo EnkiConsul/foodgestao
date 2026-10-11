@@ -282,6 +282,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         folgas: folgas.data ?? [],
         convocacoes: convocacoes.data ?? [],
         atestados: atestados.data ?? [],
+        suspensoes: suspensoes.data ?? [],
         folgasAprovadas: folgasAprovadas.data ?? [],
 
         registradas: registradas.data ?? [],
@@ -494,7 +495,14 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         fim: a.data_fim ?? a.data_alvo!,
         tipo: "atestado" as const,
       }));
-    return [...deFerias, ...deAtestado];
+    // Suspensão disciplinar: afastamento de `data` até data + (dias - 1).
+    const deSuspensao: AusenciaPanorama[] = (d.suspensoes ?? []).map((s) => ({
+      colaborador_id: s.colaborador_id,
+      inicio: s.data,
+      fim: somarDias(s.data, Math.max(s.suspensao_dias ?? 1, 1) - 1),
+      tipo: "suspensao" as const,
+    }));
+    return [...deFerias, ...deAtestado, ...deSuspensao];
   }, [base.data]);
 
   /** Ausências registradas pelo gestor (adiantamento/outros) que cruzam a competência. */
