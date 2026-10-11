@@ -87,6 +87,9 @@ export default function DpMeuPerfil() {
       const problema = erroPagamento(pagamento);
       const pagamentoVazio = problema != null && !JSON.stringify(pagamentoParaBanco(pagamento)).match(/":"[^"]+"/);
       if (problema && !pagamentoVazio) negarRegra(problema);
+      if (pagamento.pix_tipo && !pixTipoRecomendado(pagamento.pix_tipo)) {
+        negarRegra("Só é aceita chave Pix de CPF ou celular. Troque o tipo da chave ou deixe o Pix em branco e use a conta bancária.");
+      }
       await atualizarMeuCadastro({
         telefone: form.telefone || null,
         whatsapp: form.whatsapp || null,
@@ -105,7 +108,11 @@ export default function DpMeuPerfil() {
       qc.invalidateQueries({ queryKey: ["dp_meu_perfil"] });
       setEditing(false);
     },
-    onError: (e: any) => notifyError(e, { surface: "Meu perfil", action: "concluir a ação", fallback: "Erro" }),
+    onError: (e: any) => notifyError(e, {
+      surface: "Meu perfil",
+      action: "salvar seus dados",
+      fallback: e?.message?.trim() || "Não foi possível salvar seus dados. Tente novamente — se continuar, relate o problema.",
+    }),
   });
 
   const p = perfil.data as any;
@@ -248,7 +255,7 @@ export default function DpMeuPerfil() {
                         <SelectTrigger id="perfil-pix-tipo"><SelectValue placeholder="Selecione" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">Não informado</SelectItem>
-                          {PIX_TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                          {PIX_TIPOS.filter((t) => pixTipoRecomendado(t.value)).map((t) => <SelectItem key={t.value} value={t.value}>{t.label.replace(" (recomendado)", "")}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
@@ -257,8 +264,8 @@ export default function DpMeuPerfil() {
                       <Input id="perfil-pix-chave" value={pagamento.pix_chave}
                         onChange={(e) => setPagamento({ ...pagamento, pix_chave: e.target.value })} />
                       {pagamento.pix_tipo && !pixTipoRecomendado(pagamento.pix_tipo) && (
-                        <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                          O recomendado é a chave de CPF ou de celular.
+                        <p className="mt-1 text-xs text-destructive">
+                          Só é aceita chave Pix de CPF ou celular. Troque o tipo ou deixe a chave em branco e use a conta bancária.
                         </p>
                       )}
                     </div>
