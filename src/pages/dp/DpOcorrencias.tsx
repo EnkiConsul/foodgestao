@@ -190,18 +190,18 @@ export default function DpOcorrencias() {
       {(() => {
         type CardInd = { key: string; label: string; valor: number; detalhe?: string; aplicar: Partial<OcorrenciaFiltros> };
         const cards: CardInd[] = [
-          { key: "falta", label: "Faltas", valor: indicadores.faltas, aplicar: { tipo: "falta" } },
-          { key: "ausencia_justificada", label: "Ausências justificadas", valor: indicadores.ausencias_justificadas, aplicar: { tipo: "ausencia_justificada" } },
-          {
-            key: "atraso",
-            label: "Atrasos",
-            valor: indicadores.atrasos,
-            detalhe: indicadores.atraso_minutos ? `${indicadores.atraso_minutos} min` : undefined,
-            aplicar: { tipo: "atraso" },
-          },
-          { key: "saida_antecipada", label: "Saídas antecipadas", valor: indicadores.saidas_antecipadas, aplicar: { tipo: "saida_antecipada" } },
-          { key: "esquecimento_marcacao", label: "Esquecimentos", valor: indicadores.esquecimentos, aplicar: { tipo: "esquecimento_marcacao" } },
-          { key: "divergencia_jornada", label: "Erros de jornada", valor: indicadores.divergencias, aplicar: { tipo: "divergencia_jornada" } },
+          { key: "falta", label: "Faltas", valor: indicadores.porTipo.falta ?? 0, aplicar: { tipo: "falta" } },
+          { key: "previsao_falta", label: "Previsões de falta", valor: indicadores.porTipo.previsao_falta ?? 0, aplicar: { tipo: "previsao_falta" } },
+          { key: "atraso", label: "Atrasos", valor: indicadores.porTipo.atraso ?? 0, aplicar: { tipo: "atraso" } },
+          { key: "previsao_atraso", label: "Previsões de atraso", valor: indicadores.porTipo.previsao_atraso ?? 0, aplicar: { tipo: "previsao_atraso" } },
+          { key: "saida_antecipada", label: "Saídas antecipadas", valor: indicadores.porTipo.saida_antecipada ?? 0, aplicar: { tipo: "saida_antecipada" } },
+          { key: "previsao_saida_antecipada", label: "Previsões de saída", valor: indicadores.porTipo.previsao_saida_antecipada ?? 0, aplicar: { tipo: "previsao_saida_antecipada" } },
+          { key: "atraso_intervalo", label: "Atrasos no intervalo", valor: indicadores.porTipo.atraso_intervalo ?? 0, aplicar: { tipo: "atraso_intervalo" } },
+          { key: "previsao_atraso_intervalo", label: "Previsões no intervalo", valor: indicadores.porTipo.previsao_atraso_intervalo ?? 0, aplicar: { tipo: "previsao_atraso_intervalo" } },
+          { key: "atestado", label: "Atestados", valor: indicadores.porTipo.atestado ?? 0, aplicar: { tipo: "atestado" } },
+          { key: "ausencia_justificada", label: "Ausências justificadas", valor: indicadores.porTipo.ausencia_justificada ?? 0, aplicar: { tipo: "ausencia_justificada" } },
+          { key: "esquecimento_marcacao", label: "Esquecimentos", valor: indicadores.porTipo.esquecimento_marcacao ?? 0, aplicar: { tipo: "esquecimento_marcacao" } },
+          { key: "divergencia_jornada", label: "Erros de jornada", valor: indicadores.porTipo.divergencia_jornada ?? 0, aplicar: { tipo: "divergencia_jornada" } },
           {
             key: "cobertas",
             label: "Ausências cobertas",
