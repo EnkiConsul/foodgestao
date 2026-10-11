@@ -112,6 +112,27 @@ export default function DpOcorrencias() {
   const set = <K extends keyof OcorrenciaFiltros>(k: K, v: OcorrenciaFiltros[K]) =>
     setFiltros((f) => ({ ...f, [k]: v }));
 
+  const mesDe = (ini: string, fim: string) => {
+    const [a, m] = ini.split("-").map(Number);
+    const ultimo = new Date(a, m, 0).getDate();
+    return ini.endsWith("-01") && fim === `${ini.slice(0, 7)}-${String(ultimo).padStart(2, "0")}` ? ini.slice(0, 7) : null;
+  };
+  const compAtual = filtros.data ? null : mesDe(intervalo.inicio, intervalo.fim);
+  const baseMes = compAtual ?? (filtros.data ?? intervalo.inicio).slice(0, 7);
+  const irMes = (n: number) => {
+    const [a, m] = (filtros.periodo === "todas" ? format(new Date(), "yyyy-MM") : baseMes).split("-").map(Number);
+    const d = new Date(a, m - 1 + n, 1);
+    const fim = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    setFiltros((f) => ({
+      ...f,
+      data: null,
+      periodo: "personalizado",
+      periodoInicio: format(d, "yyyy-MM-dd"),
+      periodoFim: format(fim, "yyyy-MM-dd"),
+    }));
+  };
+  const swipeMes = useSwipeHorizontal(() => irMes(1), () => irMes(-1));
+
   const acoes = useDpOcorrencias(filtros);
   const { data: colaboradores = [] } = useDpColaboradores();
   const { data: unidades = [] } = useDpUnidades();
