@@ -1549,6 +1549,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                 setDataPopout(iso);
               }}
             />
+            </div>
           ) : panorama.isLoading ? (
             <Skeleton className="h-64 w-full" />
           ) : (
