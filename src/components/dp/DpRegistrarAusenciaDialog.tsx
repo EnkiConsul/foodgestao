@@ -19,7 +19,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { Database } from "@/integrations/supabase/types";
-import { isTipoLicenca, sugestaoDataFim, DURACAO_PADRAO_DIAS } from "@/lib/dp/licencas";
+import { sugestaoDataFim, duracaoPadrao, TIPOS_LICENCA_CURTA, TIPO_AFASTAMENTO_LABEL } from "@/lib/dp/licencas";
+import { FundamentoLegalCard } from "@/components/dp/licencas/FundamentoLegalCard";
 
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 
@@ -29,6 +30,7 @@ const TIPO_LABEL: Record<Tipo, string> = {
   atestado: "Atestado",
   licenca_maternidade: "Licença-maternidade",
   licenca_paternidade: "Licença-paternidade",
+  ...(Object.fromEntries(TIPOS_LICENCA_CURTA.map((t) => [t, TIPO_AFASTAMENTO_LABEL[t]])) as Record<(typeof TIPOS_LICENCA_CURTA)[number], string>),
   adiantamento: "Adiantamento",
   documento: "Envio de documentos",
   outros: "Outros",
@@ -159,7 +161,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: P
               onValueChange={(v) => {
                 const tipo = v as Tipo;
                 setForm({ ...form, tipo });
-                if (isTipoLicenca(tipo) && form.data_alvo) sugerirDuracao(tipo, form.data_alvo);
+                if (duracaoPadrao(tipo) && form.data_alvo) sugerirDuracao(tipo, form.data_alvo);
               }}
             >
               <SelectTrigger>
@@ -183,7 +185,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: P
                 onChange={(e) => {
                   const inicio = e.target.value;
                   setForm({ ...form, data_alvo: inicio });
-                  if (isTipoLicenca(form.tipo) && inicio) sugerirDuracao(form.tipo, inicio);
+                  if (duracaoPadrao(form.tipo) && inicio) sugerirDuracao(form.tipo, inicio);
                 }}
               />
             </div>
@@ -195,13 +197,14 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: P
                 value={form.data_fim}
                 onChange={(e) => setForm({ ...form, data_fim: e.target.value })}
               />
-              {isTipoLicenca(form.tipo) && (
+              {duracaoPadrao(form.tipo) && (
                 <p className="text-[10px] text-muted-foreground">
-                  Padrão legal: {DURACAO_PADRAO_DIAS[form.tipo as "licenca_maternidade" | "licenca_paternidade"]} dias — ajuste se necessário.
+                  Padrão legal: {duracaoPadrao(form.tipo)} dia(s) — ajuste se necessário.
                 </p>
               )}
             </div>
           </div>
+          <FundamentoLegalCard tipo={form.tipo} inicio={form.data_alvo} fim={form.data_fim} />
           <div className="grid gap-1.5">
             <Label>Justificativa</Label>
             <Textarea

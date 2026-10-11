@@ -10,7 +10,7 @@ import {
   type ProgramacaoDados,
 } from "@/lib/dp/ferias-programacao";
 
-const TIPOS_AFASTAMENTO = ["atestado", "licenca_maternidade", "licenca_paternidade"] as const;
+import { TIPOS_AFASTAMENTO } from "@/lib/dp/licencas";
 
 export type FiltroProgramacao = { unidadeId: string | null; incluirDesligados: boolean };
 

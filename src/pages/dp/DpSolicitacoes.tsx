@@ -1,3 +1,4 @@
+import { TIPOS_LICENCA_CURTA, TIPO_AFASTAMENTO_LABEL } from "@/lib/dp/licencas";
 import { diasDeAntecedencia, ehCompensacaoFeriado } from "@/lib/dp/termos-compensacao";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { useMemo, useState } from "react";
@@ -38,6 +39,7 @@ const TIPOS: { value: Tipo; label: string }[] = [
   { value: "atestado", label: "Atestado" },
   { value: "licenca_maternidade", label: "Licença-maternidade" },
   { value: "licenca_paternidade", label: "Licença-paternidade" },
+  ...TIPOS_LICENCA_CURTA.map((t) => ({ value: t as Tipo, label: TIPO_AFASTAMENTO_LABEL[t] })),
   { value: "adiantamento", label: "Adiantamento" },
   { value: "outros", label: "Outros" },
 ];

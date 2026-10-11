@@ -1,3 +1,4 @@
+import { TIPOS_LICENCA_CURTA, TIPO_AFASTAMENTO_LABEL } from "@/lib/dp/licencas";
 import { Link } from "react-router-dom";
 import { VagasCargoSetorDia, ImpedimentosDoDia } from "@/components/dp/bloqueios/RestricoesDoDia";
 import { useEffect, useMemo, useState } from "react";
@@ -109,6 +110,7 @@ const TIPO_LABEL: Record<Tipo, string> = {
   atestado: "Atestado",
   licenca_maternidade: "Licença-maternidade",
   licenca_paternidade: "Licença-paternidade",
+  ...(Object.fromEntries(TIPOS_LICENCA_CURTA.map((t) => [t, TIPO_AFASTAMENTO_LABEL[t]])) as Record<(typeof TIPOS_LICENCA_CURTA)[number], string>),
   adiantamento: "Adiantamento",
   documento: "Envio de documentos",
   outros: "Outros",

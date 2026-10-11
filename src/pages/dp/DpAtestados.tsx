@@ -4,6 +4,7 @@ import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FileWarning, Download, Upload, History, FileText, Trash2, Pencil, FileImage, FileUp } from "lucide-react";
+import { FundamentoLegalCard } from "@/components/dp/licencas/FundamentoLegalCard";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -36,6 +37,7 @@ import {
   TIPO_AFASTAMENTO_LABEL,
   isTipoLicenca,
   labelAfastamento,
+  duracaoPadrao,
   type TipoAfastamento,
 } from "@/lib/dp/licencas";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
@@ -520,7 +522,7 @@ export default function DpAtestados() {
                   onValueChange={(v) => {
                     const t = v as TipoAfastamento;
                     setTipoDoc(t);
-                    if (isTipoLicenca(t)) setDias(String(DURACAO_PADRAO_DIAS[t]));
+                    { const d = duracaoPadrao(t); if (d) setDias(String(d)); }
                   }}
                 >
                   <SelectTrigger id="tipo-de-afastamento-3"><SelectValue /></SelectTrigger>
@@ -546,7 +548,7 @@ export default function DpAtestados() {
                     value={dataDoc}
                     onChange={(e) => {
                       setDataDoc(e.target.value);
-                      if (isTipoLicenca(tipoDoc) && !dias) setDias(String(DURACAO_PADRAO_DIAS[tipoDoc as "licenca_maternidade" | "licenca_paternidade"]));
+                      { const d = duracaoPadrao(tipoDoc); if (d && !dias) setDias(String(d)); }
                     }}
                   />
                 </div>
@@ -554,13 +556,14 @@ export default function DpAtestados() {
                 <div className="space-y-2">
                   <Label htmlFor="dias-de-afastamento-4">Dias de Afastamento *</Label>
                   <Input id="dias-de-afastamento-4" type="number" min={0} placeholder="Ex: 3" value={dias} onChange={(e) => setDias(e.target.value)} />
-                  {isTipoLicenca(tipoDoc) && (
+                  {duracaoPadrao(tipoDoc) && (
                     <p className="text-[10px] text-muted-foreground">
-                      Padrão legal: {DURACAO_PADRAO_DIAS[tipoDoc as "licenca_maternidade" | "licenca_paternidade"]} dias — ajuste se necessário.
+                      Padrão legal: {duracaoPadrao(tipoDoc)} dia(s) — ajuste se necessário.
                     </p>
                   )}
                 </div>
               </div>
+              <FundamentoLegalCard tipo={tipoDoc} inicio={dataDoc} fim={dataDoc && Number(dias) > 1 ? sugestaoFimDias(dataDoc, Number(dias)) : dataDoc} />
 
 
               {dataDoc && dias && parseInt(dias) > 0 && (
@@ -883,4 +886,10 @@ export default function DpAtestados() {
       </AlertDialog>
     </DpPage>
   );
+}
+
+function sugestaoFimDias(inicio: string, dias: number) {
+  const d = new Date(`${inicio}T12:00:00`);
+  d.setDate(d.getDate() + dias - 1);
+  return d.toISOString().slice(0, 10);
 }
