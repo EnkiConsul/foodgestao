@@ -1342,17 +1342,6 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                 <UserPlus className="h-4 w-4" /> Mão de Obra Extra
               </Button>
               <Button
-                variant="outline"
-                className="min-w-0 gap-2 px-2 sm:px-4"
-                onClick={() => {
-                  setAusenciaData(null);
-                  setAusenciaMotivo("folga");
-                  setAusenciaOpen(true);
-                }}
-              >
-                <CalendarPlus className="h-4 w-4" /> Atribuir Folga
-              </Button>
-              <Button
                 className="col-span-2 min-w-0 gap-2 px-2 sm:col-span-1 sm:px-4"
                 onClick={() => {
                   setAusenciaData(null);
@@ -1843,33 +1832,6 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
             )}
             {calendario && dataPopout && diaPopout && (
               <div className="mt-2 grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button size="sm" className="h-auto min-h-12 min-w-0 flex-col gap-0.5 whitespace-normal px-1 py-1.5 text-[11px] leading-tight sm:h-8 sm:min-h-0 sm:flex-row sm:gap-0 sm:px-3 sm:text-sm rounded-lg" disabled={!companyIdCal}>
-                      <CalendarDays className="h-4 w-4 sm:mr-1" /> Marcar Folga
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 p-1" align="center">
-                    <p className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Quem vai folgar?</p>
-                    <div className="max-h-64 overflow-y-auto">
-                      {diaPopout.pessoas
-                        .filter((p) => !p.avulso_id && ["fixo", "convocado_aceito", "convocado_pendente", "atrasado", "saida_antecipada"].includes(String(p.categoria)))
-                        .filter((p, i, arr) => arr.findIndex((o) => o.colaborador_id === p.colaborador_id) === i)
-                        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
-                        .map((p) => (
-                          <button
-                            key={p.colaborador_id}
-                            type="button"
-                            className="block w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
-                            onClick={() => { setFolgaColab(p.colaborador_id); setFolgaTriagem(true); }}
-                          >
-                            {primeiroNome(p.nome)}
-                            {p.cargo_nome && <span className="ml-1 text-xs text-muted-foreground">· {p.cargo_nome}</span>}
-                          </button>
-                        ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
                 {podeRegistrar && (
                   <>
                     <Button size="sm" variant="outline" className="h-auto min-h-12 min-w-0 flex-col gap-0.5 whitespace-normal px-1 py-1.5 text-[11px] leading-tight sm:h-8 sm:min-h-0 sm:flex-row sm:gap-0 sm:px-3 sm:text-sm rounded-lg" onClick={() => { setAusenciaData(dataPopout); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}>

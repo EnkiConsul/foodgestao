@@ -186,8 +186,16 @@ export default function DpDisciplinar() {
     const lista = unidades.data ?? [];
     if (!unidadeId && lista.length === 1) setUnidadeId(lista[0].id);
   }, [unidades.data, unidadeId]);
-  const [dataDoc, setDataDoc] = useState("");
-  const [tipo, setTipo] = useState<string>("");
+  const [dataDoc, setDataDoc] = useState(() => new URLSearchParams(window.location.search).get("data") ?? "");
+  const [tipo, setTipo] = useState<string>(() => {
+    const t = new URLSearchParams(window.location.search).get("tipo") ?? "";
+    return TIPOS.some((x) => x.value === t) ? t : "";
+  });
+  useEffect(() => {
+    if (!colaboradorId || unidadeId) return;
+    const c = (colabs.data ?? []).find((x) => x.id === colaboradorId);
+    if (c?.unidade_id) setUnidadeId(c.unidade_id);
+  }, [colabs.data, colaboradorId, unidadeId]);
   const [dias, setDias] = useState<string>("0");
   const regimeSel = useMemo(
     () => (colabs.data ?? []).find((c) => c.id === colaboradorId)?.regime ?? null,
