@@ -293,33 +293,12 @@ export function premioAssiduidadeDevido(
   const valor = num(cfg.premio_assiduidade_valor);
   if (!cfg.premio_assiduidade || valor <= 0) return 0;
 
+  // A decisão é do gestor em cada evento: só chegam aqui as ocorrências
+  // que ele decidiu descontar. Qualquer uma delas tira o prêmio do mês.
   const faltas = Math.max(0, num(oc.faltas));
   const atrasos = Math.max(0, num(oc.atrasos));
-  const criterio = (cfg.assiduidade_criterio ?? "sem_faltas_sem_atrasos") as AssiduidadeCriterio;
-
-  // Atestado: conta como ocorrência quando a convenção assim exige, descontando
-  // os casos que a empresa decidiu abonar (liberalidade, caso a caso).
-  const consideraAtestado = cfg.assiduidade_considera_atestado !== false;
-  const abonados = Math.max(0, num(oc.atestadosAbonados));
-  const apresentados = Math.max(0, num(oc.atestados));
-  const atestados = consideraAtestado ? Math.max(0, apresentados - abonados) : 0;
-  const maxAtestados = Math.max(0, num(cfg.assiduidade_max_atestados));
-  const atestadosExcedentes = Math.max(0, atestados - maxAtestados);
-
-  if (criterio === "sem_faltas") {
-    return faltas > 0 || atestadosExcedentes > 0 ? 0 : valor;
-  }
-  if (criterio === "proporcional") {
-    const dias = Math.max(1, num(oc.diasPrevistos) || 22);
-    const ocorrencias = faltas + atrasos + atestadosExcedentes;
-    if (ocorrencias <= 0) return valor;
-    const proporcao = Math.max(0, 1 - ocorrencias / dias);
-    return round2(valor * proporcao);
-  }
-  // sem_faltas_sem_atrasos — respeita o máximo de atrasos tolerados.
-  const maxAtrasos = Math.max(0, num(cfg.assiduidade_max_atrasos));
-  if (faltas > 0 || atestadosExcedentes > 0) return 0;
-  return atrasos > maxAtrasos ? 0 : valor;
+  const atestados = Math.max(0, num(oc.atestados) - num(oc.atestadosAbonados));
+  return faltas + atrasos + atestados > 0 ? 0 : valor;
 }
 
 
