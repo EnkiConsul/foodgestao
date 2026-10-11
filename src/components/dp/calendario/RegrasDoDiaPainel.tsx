@@ -321,7 +321,6 @@ export function BloqueioDoDiaCabecalho({
       <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
         <span className="inline-flex items-center gap-1 text-xs font-medium text-primary"><LockOpen className="h-3.5 w-3.5" /> Liberado para folgas</span>
         {abrindo ? (
-          <>
           <div className="w-full space-y-2 rounded-lg border p-3 text-left">
             <label className="text-xs font-medium">Quem não poderá folgar</label>
             <select
