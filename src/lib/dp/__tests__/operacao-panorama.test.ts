@@ -47,6 +47,21 @@ const DOMINGO = "2026-08-23";
 describe("contarDia", () => {
   const vazio = { convocacoes: [], folgas: [], ausencias: [] };
 
+  it("suspensão disciplinar tira a pessoa da escala como ausente", () => {
+    const colaboradores = [fixo("a"), fixo("b")];
+    const r = contarDia({
+      data: SEGUNDA,
+      colaboradores,
+      turnos,
+      convocacoes: [],
+      folgas: [],
+      ausencias: [{ colaborador_id: "a", inicio: SEGUNDA, fim: SEGUNDA, tipo: "suspensao" }],
+    });
+    expect(r.contagens.atestado).toBe(1);
+    expect(r.trabalhando).toBe(1);
+    expect(r.pessoas.find((p) => p.colaborador_id === "a")?.categoria).toBe("atestado");
+  });
+
   it("conta fixo com jornada prevista e folga padrão no domingo", () => {
     const colaboradores = [fixo("a"), fixo("b")];
     const seg = contarDia({ data: SEGUNDA, colaboradores, turnos, ...vazio });
