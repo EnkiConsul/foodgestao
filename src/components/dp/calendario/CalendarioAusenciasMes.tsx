@@ -108,6 +108,29 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     unidadeId
       ? limiteComFolgaFixaDiaUtil(iso, resolverLimiteFolga({ data: iso, unidadeId, regras: regrasLimite ?? [], diaConfig: diaConfigQuery.data ?? [] }), fixosPorDow.data).limite
       : null;
+  // Trocas aprovadas do mês: data_original por colaborador/data nova (para "era Seg 12/10").
+  const trocasMesQuery = useQuery({
+    queryKey: ["dp_trocas_mes_cal", selectedCompanyId, ini, fimMes],
+    enabled: !!selectedCompanyId && !!ini,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_trocas")
+        .select("destino_id, data_original, data_proposta")
+        .eq("company_id", selectedCompanyId!)
+        .eq("status", "aprovada")
+        .gte("data_proposta", ini!)
+        .lte("data_proposta", fimMes!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const dataOriginalTroca = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const t of trocasMesQuery.data ?? []) {
+      if (t.data_proposta) m.set(`${t.destino_id}:${t.data_proposta}`, t.data_original);
+    }
+    return m;
+  }, [trocasMesQuery.data]);
   const alternar = (t: TipoAusenciaCalendario) =>
     onFiltros(filtros.includes(t) ? filtros.filter((x) => x !== t) : [...filtros, t]);
 
