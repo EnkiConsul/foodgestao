@@ -70,6 +70,7 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { co
       toast.success(assinatura === "digital" ? "Folga trocada. Termo enviado ao Portal para assinatura." : "Folga trocada. Termo pronto para imprimir.");
       setAberto(false); setRevisar(false); setNovaData(""); setOrigem(""); setMotivo("");
       qc.invalidateQueries({ queryKey: ["dp_dia_trabalho_excepcional"] });
+      qc.invalidateQueries({ queryKey: ["dp_dia_trabalho_excepcional_panorama"] });
       onFeito();
     },
     onError: (e) => toast.error("Não foi possível concluir a troca", {
