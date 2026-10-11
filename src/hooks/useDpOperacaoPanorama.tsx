@@ -1,3 +1,4 @@
+import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -373,13 +374,20 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_apoio_unidades")
-        .select("colaborador_id")
+        .select("colaborador_id, created_at")
         .eq("company_id", selectedCompanyId!)
         .eq("unidade_id", unidadeId!)
         .eq("ativo", true)
         .not("colaborador_id", "is", null);
       if (error) throw error;
-      return new Set((data ?? []).map((r) => r.colaborador_id as string));
+      // Vigência: a disponibilidade só vale a partir da data em que foi cadastrada.
+      const m = new Map<string, string>();
+      for (const r of data ?? []) {
+        const ini = String((r as any).created_at ?? "").slice(0, 10);
+        const atual = m.get(r.colaborador_id as string);
+        if (!atual || ini < atual) m.set(r.colaborador_id as string, ini);
+      }
+      return m;
     },
   });
 
@@ -524,16 +532,29 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     return [...deFerias, ...deAtestado, ...deSuspensao];
   }, [base.data]);
 
+  /**
+   * Pertencimento à unidade filtrada numa data: colaborador da unidade ou com
+   * disponibilidade de atuação nela vigente na data. Sem filtro, vale a empresa.
+   */
+  const pertenceNaData = useMemo(() => {
+    const daUnidade = new Set(colaboradores.map((c) => c.id));
+    const apoio = apoioUnidadeQuery.data ?? new Map<string, string>();
+    return (id: string, data: string) => {
+      if (!unidadeId) return true;
+      if (daUnidade.has(id)) return true;
+      const ini = apoio.get(id);
+      return !!ini && data >= ini;
+    };
+  }, [colaboradores, apoioUnidadeQuery.data, unidadeId]);
+
   /** Ausências registradas pelo gestor (adiantamento/outros) que cruzam a competência. */
   const ausenciasRegistradas: AusenciaRegistrada[] = useMemo(
     () => {
       // Indisponibilidade só entra no dia se a pessoa pertence à unidade
       // filtrada ou atua nela por disponibilidade (a consulta traz a empresa
       // inteira). Sem filtro de unidade, vale a empresa toda.
-      const idsNaUnidade = new Set(colaboradores.map((c) => c.id));
-      for (const id of apoioUnidadeQuery.data ?? []) idsNaUnidade.add(id);
       return (base.data?.registradas ?? [])
-        .filter((a) => !!a.data_alvo)
+        .filter((a) => !!a.data_alvo && pertenceNaData(a.colaborador_id, a.data_fim ?? a.data_alvo!))
         .map((a): AusenciaRegistrada => ({
           colaborador_id: a.colaborador_id,
           tipo: a.tipo,
@@ -544,7 +565,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         .concat(
           // Indisponibilidade de Convocação (informativa): não conta como falta.
           (conflitosQuery.data ?? [])
-            .filter((c) => idsNaUnidade.has(c.colaborador_id))
+            .filter((c) => pertenceNaData(c.colaborador_id, c.data))
             .map((c): AusenciaRegistrada => ({
               colaborador_id: c.colaborador_id,
               tipo: "indisponibilidade",
@@ -554,7 +575,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
             })),
         );
     },
-    [base.data, conflitosQuery.data, colaboradores, apoioUnidadeQuery.data],
+    [base.data, conflitosQuery.data, pertenceNaData],
   );
 
   const folgas: FolgaPanorama[] = useMemo(() => {
@@ -626,7 +647,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
 
   const ocorrencias: OcorrenciaPanorama[] = useMemo(
     () => [
-      ...(conflitosQuery.data ?? []).filter((c) => c.conflito).map((c) => ({
+      ...(conflitosQuery.data ?? []).filter((c) => c.conflito && pertenceNaData(c.colaborador_id, c.data)).map((c) => ({
         id: `indisp:${c.id}`,
         colaborador_id: c.colaborador_id,
         data: c.data,
@@ -649,7 +670,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           horario_real: o.horario_real ? o.horario_real.slice(0, 5) : null,
         })),
     ],
-    [base.data?.ocorrencias, conflitosQuery.data, unidadeId],
+    [base.data?.ocorrencias, conflitosQuery.data, unidadeId, pertenceNaData],
   );
 
   /** Conta um dia respeitando admissão/desligamento do colaborador. */
@@ -926,7 +947,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     dias: diasPanorama,
     turnos,
     ausenciasRegistradas,
-    nomesColaboradores: new Map((base.data?.colaboradores ?? []).map((c: any) => [c.id as string, c.nome as string])),
+    nomesColaboradores: new Map((base.data?.colaboradores ?? []).map((c: any) => [c.id as string, nomeExibicao(c)])),
     avulsos,
     cargos: base.data?.cargos ?? [],
     setores,

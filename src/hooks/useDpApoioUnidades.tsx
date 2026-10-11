@@ -118,7 +118,10 @@ export function useSalvarDpApoioUnidade() {
         ...(input.id ? { id: input.id } : {}),
       } as Record<string, unknown>);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_apoio_unidades"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_apoio_unidades"] });
+      qc.invalidateQueries({ queryKey: ["dp_panorama_apoio_unidade"] });
+    },
   });
 }
 
@@ -132,6 +135,9 @@ export function useExcluirDpApoioUnidade() {
     mutationFn: async (id: string) => {
       await excluirApoioUnidade(id);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_apoio_unidades"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_apoio_unidades"] });
+      qc.invalidateQueries({ queryKey: ["dp_panorama_apoio_unidade"] });
+    },
   });
 }
