@@ -18,6 +18,7 @@ import {
   Clock,
   Eye,
   EyeOff,
+  Flame,
   GripVertical,
   Handshake,
   HeartPulse,
