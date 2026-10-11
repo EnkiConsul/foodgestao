@@ -178,6 +178,23 @@ export function CalendarioMobileLista({
                     </span>
                   )}
 
+                  {!blocked && status === "available" && wknd && (
+                    <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
+                      Disponível
+                    </span>
+                  )}
+                  {!blocked && status === "fixed" && (
+                    <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-600">
+                      Semanal
+                    </span>
+                  )}
+                  {!blocked && status === "pending" && (
+                    <span className="inline-flex items-center rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[11px] font-semibold text-violet-600">
+                      Pendente
+                    </span>
+                  )}
+
+
                   {occupants.map((o) => {
                     const isMe = myColaboradorId && o.colaboradorId === myColaboradorId;
                     return (
