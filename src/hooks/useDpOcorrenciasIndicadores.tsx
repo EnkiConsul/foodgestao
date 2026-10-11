@@ -15,6 +15,8 @@ export interface OcorrenciasIndicadores {
   coberturas_nao_realizadas: number;
   pendentes: number;
   total: number;
+  esquecimentos: number;
+  divergencias: number;
 }
 
 const VAZIO: OcorrenciasIndicadores = {
@@ -30,6 +32,8 @@ const VAZIO: OcorrenciasIndicadores = {
   coberturas_nao_realizadas: 0,
   pendentes: 0,
   total: 0,
+  esquecimentos: 0,
+  divergencias: 0,
 };
 
 /** Indicadores das ocorrências em um intervalo (padrão: mês corrente). */
@@ -45,14 +49,31 @@ export function useDpOcorrenciasIndicadores(params: {
     queryKey: ["dp_ocorrencias_indicadores", selectedCompanyId, params.inicio, params.fim, unidadeId],
     enabled: !!selectedCompanyId && !!params.inicio && !!params.fim,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("dp_ocorrencias_indicadores", {
-        _company_id: selectedCompanyId!,
-        _inicio: params.inicio,
-        _fim: params.fim,
-        _unidade_id: unidadeId,
-      });
+      const contar = async (tipos: string[]) => {
+        let q = supabase
+          .from("dp_ocorrencias")
+          .select("id", { count: "exact", head: true })
+          .eq("company_id", selectedCompanyId!)
+          .gte("data_operacional", params.inicio)
+          .lte("data_operacional", params.fim)
+          .neq("estado", "cancelada")
+          .in("tipo", tipos as never);
+        if (unidadeId) q = q.eq("unidade_id", unidadeId);
+        const { count } = await q;
+        return count ?? 0;
+      };
+      const [{ data, error }, esquecimentos, divergencias] = await Promise.all([
+        supabase.rpc("dp_ocorrencias_indicadores", {
+          _company_id: selectedCompanyId!,
+          _inicio: params.inicio,
+          _fim: params.fim,
+          _unidade_id: unidadeId,
+        }),
+        contar(["esquecimento_marcacao"]),
+        contar(["divergencia_jornada", "atraso_intervalo", "previsao_atraso_intervalo"]),
+      ]);
       if (error) throw error;
-      return { ...VAZIO, ...((data ?? {}) as Partial<OcorrenciasIndicadores>) };
+      return { ...VAZIO, ...((data ?? {}) as Partial<OcorrenciasIndicadores>), esquecimentos, divergencias };
     },
   });
 
