@@ -217,6 +217,7 @@ export default function DpOcorrencias() {
         }
       />
 
+      <div {...swipeMes}>
       {(() => {
         const rotulo = compAtual
           ? new Date(`${compAtual}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
@@ -606,6 +607,7 @@ export default function DpOcorrencias() {
           </div>
         )}
       </DpContentCard>
+      </div>
 
       <OcorrenciaFormDialog
         open={novaOpen}
