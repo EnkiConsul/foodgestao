@@ -333,6 +333,12 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         />
       )}
 
+      <FeriasNovoModal
+        open={feriasOpen}
+        onOpenChange={setFeriasOpen}
+        colaboradorId={form.colaborador_id}
+        dataInicio={form.data_alvo}
+      />
       <OcorrenciaFormDialog
         open={faltaOpen}
         onOpenChange={setFaltaOpen}
