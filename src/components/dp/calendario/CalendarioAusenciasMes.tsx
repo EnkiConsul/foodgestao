@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { gerarCalendarioMesPdf, type CelulaPdf } from "@/lib/dp/calendario-mes-pdf";
-import { Moon, SlidersHorizontal, Sun, Users, AlertTriangle, X, Lock, CalendarHeart, Palmtree, Stethoscope, UserX, Repeat, CalendarOff, Coffee, Flame, FileDown, Maximize2, Minimize2 } from "lucide-react";
+import { Moon, SlidersHorizontal, Sun, Users, AlertTriangle, X, Lock, CalendarHeart, Palmtree, Stethoscope, UserX, Repeat, CalendarOff, Coffee, Flame, FileDown, Maximize2, Minimize2, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -233,6 +233,8 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     { icon: AlertTriangle, chave: "dias_alerta", label: "com alerta", valor: resumoMes.alertas, tom: "text-destructive" },
   ].filter((c) => c.valor > 0) as { icon?: typeof Users; emoji?: string; label: string; valor: number; tom: string; chave?: string }[];
   const [cardAberto, setCardAberto] = useState<{ chave: string; label: string } | null>(null);
+  const [abrindoDia, setAbrindoDia] = useState<string | null>(null);
+  useEffect(() => { if (!cardAberto) setAbrindoDia(null); }, [cardAberto]);
   const pessoasCard = cardAberto
     ? [...(resumoMes.quem.get(cardAberto.chave)?.values() ?? [])].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
     : [];

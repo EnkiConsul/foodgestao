@@ -347,7 +347,14 @@ export function BloqueioDoDiaCabecalho({
       }),
   });
   const formBloqueio = (
-          <div className="w-full space-y-2 rounded-lg border p-3 text-left">
+           <div className={deTotal
+             ? "w-full space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-left"
+             : "w-full space-y-2 rounded-lg border p-3 text-left"}>
+            {deTotal && (
+              <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-300">
+                <Lock className="h-4 w-4" /> Definir quem continua sem folga
+              </p>
+            )}
             <label className="text-xs font-medium">{deTotal ? "Quem continua sem folga" : "Quem não poderá folgar"}</label>
             <select
               value={alvoTipo}
