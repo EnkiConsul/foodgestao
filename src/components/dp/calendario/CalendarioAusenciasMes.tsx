@@ -612,8 +612,8 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               const abaixo = d.alerta && d.avaliacao.situacao === "abaixo";
               const acima = d.alerta && d.avaliacao.situacao === "acima";
               return (
-                <li key={d.data}>
-                  <button type="button" onClick={() => { setCardAberto(null); onAbrirDia(d.data, mostraTurno ? periodo : "todos"); }} className="flex w-full items-center justify-between gap-2 py-2 text-left hover:bg-muted">
+                <li key={d.data} className="flex items-center gap-2">
+                  <button type="button" onClick={() => { setCardAberto(null); onAbrirDia(d.data, mostraTurno ? periodo : "todos"); }} className="flex min-w-0 flex-1 items-center justify-between gap-2 py-2 text-left hover:bg-muted">
                     <span className="text-sm font-semibold">
                       {fmtDiaSemana(d.data)}{d.feriado_nome ? " 🎉" : ""}{bloqueios.has(d.data) ? " 🔒" : ""}
                     </span>
@@ -622,6 +622,11 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                       {d.alerta && d.avaliacao.padrao != null ? ` (padrão ${d.avaliacao.padrao}) — ${abaixo ? "abaixo" : "acima"} do padrão` : ""}
                     </span>
                   </button>
+                  {cardAberto?.chave === "dias_alerta" && onMarcarOk && d.alerta && (
+                    <Button size="sm" variant="outline" className="h-7 shrink-0 px-2 text-xs" onClick={() => onMarcarOk(d)}>
+                      Marcar como OK
+                    </Button>
+                  )}
                 </li>
               );
             })}
