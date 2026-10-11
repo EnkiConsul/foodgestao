@@ -65,7 +65,7 @@ export default function DpMeuPerfil() {
     if (!p) return;
     setForm({
       telefone: p.telefone ?? "",
-      whatsapp: p.whatsapp ?? "",
+      whatsapp: p.whatsapp || p.telefone || "",
       email_contato: p.email_contato ?? "",
       endereco: {
         logradouro: p.endereco?.logradouro ?? "",
@@ -175,10 +175,7 @@ export default function DpMeuPerfil() {
             <CardContent className="space-y-3">
               {editing ? (
                 <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><Label htmlFor="telefone-1">Telefone</Label><Input id="telefone-1" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></div>
-                    <div><Label htmlFor="whatsapp-2">WhatsApp</Label><Input id="whatsapp-2" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} /></div>
-                  </div>
+                  <div><Label htmlFor="whatsapp-2">WhatsApp (com DDD)</Label><Input id="whatsapp-2" inputMode="tel" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} /></div>
                   <div><Label htmlFor="e-mail-pessoal-3">E-mail pessoal</Label><Input id="e-mail-pessoal-3" type="email" value={form.email_contato} onChange={(e) => setForm({ ...form, email_contato: e.target.value })} /></div>
                   <EnderecoFields
                     idPrefix="perfil"
@@ -194,8 +191,7 @@ export default function DpMeuPerfil() {
                 </>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 text-sm">
-                  <Field label="Telefone" value={p.telefone} />
-                  <Field label="WhatsApp" value={p.whatsapp} />
+                  <Field label="WhatsApp" value={p.whatsapp || p.telefone} />
                   <Field label="E-mail pessoal" value={p.email_contato} />
                   <Field label="Endereço" value={
                     p.endereco ? [p.endereco.logradouro, p.endereco.numero, p.endereco.complemento, p.endereco.bairro, p.endereco.cidade, p.endereco.uf, p.endereco.cep].filter(Boolean).join(", ") : null
