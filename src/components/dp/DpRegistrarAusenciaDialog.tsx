@@ -4,6 +4,8 @@ import { podeConvocar } from "@/lib/dp/convocacoes";
 import { aceitaIndisponibilidadeConvocacao } from "@/lib/dp/convocacoes-planejamento";
 import { emitirNotificacaoDescumprimento, PERCENTUAL_MULTA_CONVOCACAO } from "@/lib/dp/termo-descumprimento-convocacao";
 import { Switch } from "@/components/ui/switch";
+import { isSocio } from "@/lib/dp/contrato-policy";
+import { elegiveisParaAusencia } from "@/lib/dp/ausencia-elegibilidade";
 import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +39,7 @@ import { sanitizeStorageFilename } from "@/lib/storage";
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 
 /** Motivos do roteador: cada um abre o fluxo oficial da sua área. */
-export type Motivo = "folga" | "ferias" | "afastamento" | "falta" | "suspensao" | "indisponibilidade";
+export type Motivo = "folga" | "ferias" | "afastamento" | "falta" | "suspensao" | "indisponibilidade" | "liberacao" | "socio";
 
 const MOTIVO_LABEL: Record<Motivo, string> = {
   folga: "Folga (compensatória, extra ou troca)",
@@ -46,7 +48,12 @@ const MOTIVO_LABEL: Record<Motivo, string> = {
   falta: "Falta",
   suspensao: "Suspensão disciplinar",
   indisponibilidade: "Indisponibilidade de Convocação",
+  liberacao: "Liberação do Gestor",
+  socio: "Ausência do Sócio",
 };
+
+/** Sócio não tem falta, suspensão nem férias celetistas. */
+const MOTIVOS_SOCIO: Motivo[] = ["socio", "folga", "afastamento"];
 
 /** Somente afastamentos reais (sem folga, adiantamento ou envio de documentos). */
 const TIPO_AFAST_LABEL: Partial<Record<Tipo, string>> = {
@@ -75,7 +82,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
   const colabs = useDpColaboradores();
-  const ativos = (colabs.data ?? []).filter((c) => c.ativo !== false);
+  const todos = (colabs.data ?? []).filter((c: any) => !c.deleted_at);
 
   const [etapa, setEtapa] = useState<"escolha" | "afastamento">("escolha");
   const [motivo, setMotivo] = useState<Motivo>("afastamento");
@@ -112,12 +119,47 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
       setForm((f) => ({ ...f, data_fim: f.data_alvo }));
   }, [form.data_alvo, form.data_fim]);
 
-  const nomeColab = ativos.find((c) => c.id === form.colaborador_id)?.nome ?? "";
-  const regimeColab = ativos.find((c) => c.id === form.colaborador_id)?.regime ?? null;
-  const colabSel = ativos.find((c) => c.id === form.colaborador_id) as any;
+  // Quem já tem ausência na data não aparece de novo.
+  const ausDia = useQuery({
+    queryKey: ["dp_ausencias_do_dia", selectedCompanyId, form.data_alvo],
+    enabled: open && !!selectedCompanyId && !!form.data_alvo,
+    queryFn: async () => {
+      const d = form.data_alvo, c = selectedCompanyId!;
+      const sb = supabase as any;
+      const ids = new Set<string>();
+      const add = (r: { data: any[] | null }) => (r.data ?? []).forEach((x) => ids.add(x.colaborador_id));
+      const [sol, oc, ind, fol, fer] = await Promise.all([
+        sb.from("dp_solicitacoes").select("colaborador_id").eq("company_id", c).in("status", ["aprovada", "pendente"])
+          .neq("tipo", "adiantamento").lte("data_alvo", d).or(`data_fim.gte.${d},and(data_fim.is.null,data_alvo.eq.${d})`),
+        sb.from("dp_ocorrencias").select("colaborador_id").eq("company_id", c).eq("data_operacional", d)
+          .in("tipo", ["falta", "atestado", "ausencia_justificada"]).is("cancelado_em", null),
+        sb.from("dp_indisponibilidades").select("colaborador_id").eq("company_id", c).eq("data", d).is("cancelada_em", null),
+        sb.from("dp_folgas").select("colaborador_id").eq("company_id", c).eq("data", d).neq("status", "cancelada"),
+        sb.from("dp_ferias_gozos").select("colaborador_id").eq("company_id", c).lte("data_inicio", d).gte("data_fim", d).neq("status", "cancelado"),
+      ]);
+      [sol, oc, ind, fol, fer].forEach(add);
+      return ids;
+    },
+  });
+  const ativos = elegiveisParaAusencia(todos as any[], form.data_alvo, ausDia.data ?? new Set<string>()) as typeof todos;
+  useEffect(() => {
+    if (form.colaborador_id && ausDia.data && !ativos.some((c) => c.id === form.colaborador_id))
+      setForm((f) => ({ ...f, colaborador_id: "" }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.data_alvo, ausDia.data]);
+  const nomeColab = todos.find((c) => c.id === form.colaborador_id)?.nome ?? "";
+  const regimeColab = todos.find((c) => c.id === form.colaborador_id)?.regime ?? null;
+  const colabSel = todos.find((c) => c.id === form.colaborador_id) as any;
   const convocavel = podeConvocar(regimeColab as any);
   const indispElegivel = aceitaIndisponibilidadeConvocacao({ regime: colabSel?.regime, forma_pagamento: colabSel?.forma_pagamento });
+  const socio = !!colabSel && (isSocio(colabSel.vinculo_label) || colabSel.regime === "socio");
   useEffect(() => { if (motivo === "indisponibilidade" && !indispElegivel) setMotivo("afastamento"); }, [motivo, indispElegivel]);
+  useEffect(() => {
+    if (socio && !MOTIVOS_SOCIO.includes(motivo)) setMotivo("socio");
+    if (!socio && motivo === "socio") setMotivo("afastamento");
+  }, [socio, motivo]);
+  const motivosDisponiveis = (Object.keys(MOTIVO_LABEL) as Motivo[]).filter((m) =>
+    socio ? MOTIVOS_SOCIO.includes(m) : m !== "socio" && (m !== "indisponibilidade" || indispElegivel));
 
   // Intermitente com convocação aceita no dia: a ausência é falta.
   const convAceita = useQuery({
@@ -173,6 +215,10 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
       case "indisponibilidade":
         indisp.mutate();
         break;
+      case "liberacao":
+      case "socio":
+        dispensa.mutate(motivo);
+        break;
     }
   };
 
@@ -213,6 +259,33 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
       qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
       qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
       qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
+      onOpenChange(false);
+    },
+    onError: (e) => toast.error("Não foi possível registrar", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
+  // Liberação do Gestor (dispensa remunerada) e Ausência do Sócio: gravadas aprovadas, sem anexo.
+  const dispensa = useMutation({
+    mutationFn: async (m: "liberacao" | "socio") => {
+      if (form.motivo.length > 450) throw new Error("Observações muito longas (máx. 450)");
+      const rotulo = MOTIVO_LABEL[m];
+      const obs = form.motivo.trim();
+      const { error } = await supabase.rpc("dp_solicitacao_criar_admin", {
+        p_colaborador: form.colaborador_id,
+        p_tipo: "outros",
+        p_data_alvo: form.data_alvo,
+        p_data_fim: (form.data_fim || null) as any,
+        p_motivo: obs ? `${rotulo} · ${obs}` : rotulo,
+        p_arquivo_path: null as any,
+        p_aprovada: true,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, m) => {
+      toast.success(`${MOTIVO_LABEL[m]} registrada`, { description: "Já aparece no calendário." });
+      qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
+      qc.invalidateQueries({ queryKey: ["dp_ausencias_do_dia"] });
       onOpenChange(false);
     },
     onError: (e) => toast.error("Não foi possível registrar", { description: e instanceof Error ? e.message : String(e) }),
@@ -309,11 +382,13 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
                     {ativos.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome}{c.data_desligamento ? ` · Desligado em ${c.data_desligamento.split("-").reverse().join("/")}` : ""}
+                      </SelectItem>
                     ))}
                     {ativos.length === 0 && (
                       <div className="px-3 py-2 text-xs text-muted-foreground">
-                        Nenhum colaborador ativo. Cadastre em Colaboradores.
+                        {todos.length ? "Todos os colaboradores disponíveis já possuem ausência registrada nesta data." : "Nenhum colaborador ativo. Cadastre em Colaboradores."}
                       </div>
                     )}
                   </SelectContent>
@@ -329,12 +404,33 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
                 <Select value={motivo} onValueChange={(v) => setMotivo(v as Motivo)} disabled={!!conv}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(Object.keys(MOTIVO_LABEL) as Motivo[]).filter((m) => m !== "indisponibilidade" || indispElegivel).map((m) => (
+                    {motivosDisponiveis.map((m) => (
                       <SelectItem key={m} value={m}>{MOTIVO_LABEL[m]}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+              {(motivo === "liberacao" || motivo === "socio") && (
+                <div className="grid gap-3 rounded-md border border-border bg-muted/40 p-3">
+                  {motivo === "liberacao" ? (
+                    <p className="text-xs text-muted-foreground">
+                      <strong className="text-foreground">Dispensa remunerada:</strong> o colaborador é liberado sem desconto e sem falta.
+                      Se for folga extra, folga compensatória ou troca de folga, use o motivo <strong>Folga</strong>, que tem os fluxos próprios.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Ausência do sócio: não gera falta, desconto nem reflexo trabalhista.</p>
+                  )}
+                  <div className="grid gap-1.5">
+                    <Label>Data final (opcional)</Label>
+                    <Input type="date" min={form.data_alvo || undefined} value={form.data_fim}
+                      onChange={(e) => setForm({ ...form, data_fim: e.target.value })} />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Observação</Label>
+                    <Textarea rows={2} maxLength={450} value={form.motivo} onChange={(e) => setForm({ ...form, motivo: e.target.value })} />
+                  </div>
+                </div>
+              )}
               {motivo === "indisponibilidade" && !conv && (
                 <div className="grid gap-3 rounded-md border border-border bg-muted/40 p-3">
                   <p className="text-xs text-muted-foreground">
