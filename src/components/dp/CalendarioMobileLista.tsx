@@ -65,6 +65,7 @@ export function CalendarioMobileLista({
   onNext,
   onSelectDay,
   counterLabel,
+  statusByDate,
 }: Props) {
   const today = new Date();
 
