@@ -27,6 +27,9 @@ export type RegraRow = {
     cargo_id?: string | null;
     setor_id?: string | null;
     colaborador_id?: string | null;
+    cargo_ids?: string[] | null;
+    setor_ids?: string[] | null;
+    colaborador_ids?: string[] | null;
   } | null;
   ativo: boolean;
 };
@@ -47,9 +50,11 @@ export function regraAplicaPessoa(regra: Pick<RegraRow, "regra_json">, pessoa?: 
   const alvo = cfg.alvo_tipo ?? "todos";
   if (alvo === "todos") return true;
   if (!pessoa) return false;
-  if (alvo === "colaborador") return !!pessoa.colaboradorId && cfg.colaborador_id === pessoa.colaboradorId;
-  if (alvo === "cargo") return !!pessoa.cargoId && cfg.cargo_id === pessoa.cargoId;
-  if (alvo === "setor") return !!pessoa.setorId && cfg.setor_id === pessoa.setorId;
+  const casa = (id: string | null | undefined, unico?: string | null, lista?: string[] | null) =>
+    !!id && (unico === id || (lista ?? []).includes(id));
+  if (alvo === "colaborador") return casa(pessoa.colaboradorId, cfg.colaborador_id, cfg.colaborador_ids);
+  if (alvo === "cargo") return casa(pessoa.cargoId, cfg.cargo_id, cfg.cargo_ids);
+  if (alvo === "setor") return casa(pessoa.setorId, cfg.setor_id, cfg.setor_ids);
   return false;
 }
 
