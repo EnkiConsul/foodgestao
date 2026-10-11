@@ -8,6 +8,7 @@ import {
   parseYMD,
   type Regra, type DataBloq, type Unidade,
   type RegraFormState, type DataFormState, type RegraJson,
+  alvoParaRegraJson,
 } from "@/lib/dp/bloqueios";
 import { expandRegraNoIntervalo, type RegraRow, type RegraUnidadeLink } from "@/lib/dp/bloqueio-rules";
 import { notifyError } from "@/lib/notifyError";
