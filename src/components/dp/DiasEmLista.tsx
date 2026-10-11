@@ -88,6 +88,7 @@ export function DiasEmLista({
                     {MES_CURTO[data.getMonth()]}
                   </span>
                 </div>
+                {d.icones ? <div className="mt-1 flex items-center gap-1">{d.icones}</div> : null}
               </div>
 
               <div className="min-w-0 flex-1 space-y-1">
