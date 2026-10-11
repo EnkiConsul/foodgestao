@@ -1,3 +1,4 @@
+import { useSwipeHorizontal } from "@/hooks/useSwipeHorizontal";
 import { vinculoAdmiteCompensacao } from "@/lib/dp/termos-compensacao";
 import { MOTIVO_COMPENSACAO_FERIADO, diasDeAntecedencia } from "@/lib/dp/termos-compensacao";
 import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
