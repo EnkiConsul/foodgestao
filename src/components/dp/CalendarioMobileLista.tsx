@@ -10,7 +10,7 @@ import {
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ymd, type OccupantType } from "@/lib/dp/folga-rules";
+import { ymd, type DateStatusKind, type OccupantType } from "@/lib/dp/folga-rules";
 
 export type MobileOccupant = {
   key: string;
@@ -32,6 +32,8 @@ type Props = {
   onSelectDay: (iso: string) => void;
   /** Rótulo do contador exibido à direita do header (ex: "8 dias úteis"). Se omitido, mostra total do mês. */
   counterLabel?: string;
+  /** Status calculado por dia (portal): exibe selos Disponível/Semanal/Pendente como no desktop. */
+  statusByDate?: Map<string, DateStatusKind>;
 };
 
 const WEEKDAY_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -63,6 +65,7 @@ export function CalendarioMobileLista({
   onNext,
   onSelectDay,
   counterLabel,
+  statusByDate,
 }: Props) {
   const today = new Date();
 
@@ -129,6 +132,8 @@ export function CalendarioMobileLista({
           const block = manualBlocked.get(iso);
           const blocked = block && !block.liberada;
           const isToday = isSameDay(d, today);
+          const status = statusByDate?.get(iso);
+          const wknd = d.getDay() === 0 || d.getDay() === 6;
           const hasEvents = occupants.length > 0 || blocked;
           const wd = WEEKDAY_SHORT[d.getDay()];
           const dayNum = d.getDate();
@@ -172,6 +177,23 @@ export function CalendarioMobileLista({
                       <span>Bloqueado</span>
                     </span>
                   )}
+
+                  {!blocked && status === "available" && wknd && (
+                    <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
+                      Disponível
+                    </span>
+                  )}
+                  {!blocked && status === "fixed" && (
+                    <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-600">
+                      Semanal
+                    </span>
+                  )}
+                  {!blocked && status === "pending" && (
+                    <span className="inline-flex items-center rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[11px] font-semibold text-violet-600">
+                      Pendente
+                    </span>
+                  )}
+
 
                   {occupants.map((o) => {
                     const isMe = myColaboradorId && o.colaboradorId === myColaboradorId;
