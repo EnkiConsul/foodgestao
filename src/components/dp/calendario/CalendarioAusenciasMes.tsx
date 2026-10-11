@@ -181,17 +181,21 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
 
   const hoje = isoLocal(new Date());
   const resumoMes = useMemo(() => {
-    const quem = new Map<string, Map<string, { nome: string; datas: string[] }>>();
+    const quem = new Map<string, Map<string, { id: string; nome: string; datas: string[] }>>();
     const add = (k: string, id: string, nome: string, iso: string) => {
       const m = quem.get(k) ?? new Map(); quem.set(k, m);
-      const e = m.get(id) ?? { nome, datas: [] }; if (!e.datas.includes(iso)) e.datas.push(iso); m.set(id, e);
+      const e = m.get(id) ?? { id, nome, datas: [] }; if (!e.datas.includes(iso)) e.datas.push(iso); m.set(id, e);
     };
     const r = { trab: 0, semanal: 0, dominical: 0, ferias: 0, falta: 0, atestado: 0, outras: 0, trocas: 0, alertas: 0, feriados: 0, bloqueados: 0 };
     for (const d of dias) {
       r.trab += d.trabalhando;
       if (d.alerta) r.alertas++;
-      if (d.feriado_nome) r.feriados++;
-      if (bloqueios.has(d.data)) r.bloqueados++;
+      if (d.feriado_nome) { r.feriados++; add("feriados", `f-${d.data}`, `Feriado · ${d.feriado_nome}`, d.data); }
+      if (bloqueios.has(d.data)) {
+        r.bloqueados++;
+        const motivo = bloqueios.get(d.data);
+        add("bloqueados", `b-${d.data}`, motivo ? `Bloqueio · ${motivo}` : "Dia bloqueado", d.data);
+      }
       for (const a of ausenciasVisiveis(d.pessoas, filtros)) {
         if (a.tipo === "folga") {
           const k = dominical(a, d.data) ? "dominical" : "semanal"; r[k]++; add(k, a.colaborador_id, a.nome, d.data);
@@ -211,8 +215,8 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     { icon: UserX, chave: "falta", label: "faltas", valor: resumoMes.falta, tom: "text-rose-600 dark:text-rose-400" },
     { icon: Stethoscope, chave: "atestado", label: "atestados", valor: resumoMes.atestado, tom: "text-violet-600 dark:text-violet-400" },
     { icon: CalendarOff, chave: "outras", label: "cobertos", valor: resumoMes.outras, tom: "text-slate-500" },
-    { icon: Lock, label: "bloqueadas", valor: resumoMes.bloqueados, tom: "text-destructive" },
-    { icon: PartyPopper, label: "feriados", valor: resumoMes.feriados, tom: "text-primary" },
+    { icon: Lock, chave: "bloqueados", label: "bloqueadas", valor: resumoMes.bloqueados, tom: "text-destructive" },
+    { icon: PartyPopper, chave: "feriados", label: "feriados", valor: resumoMes.feriados, tom: "text-primary" },
     { icon: AlertTriangle, label: "com alerta", valor: resumoMes.alertas, tom: "text-destructive" },
   ].filter((c) => c.valor > 0) as { icon: typeof Users; label: string; valor: number; tom: string; chave?: string }[];
   const [cardAberto, setCardAberto] = useState<{ chave: string; label: string } | null>(null);
@@ -402,13 +406,11 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
 
       {legenda.length + resumoMes.trocas + resumoMes.bloqueados > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary"><Users className="h-3 w-3" />Escalados no dia</span>
+          <span className="hidden items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary md:inline-flex"><Users className="h-3 w-3" />Escalados no dia</span>
           {legenda.map((l) => (
             <span key={l.label} className={cn("rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase", l.cls)}>{l.label}</span>
           ))}
-          {resumoMes.trocas > 0 && <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground"><Repeat className="h-3 w-3" />Troca</span>}
-          {resumoMes.bloqueados > 0 && <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-destructive"><Lock className="h-3 w-3" />Bloqueada</span>}
-          <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary md:hidden"><Flame className="h-3 w-3 fill-amber-500 text-amber-500" />Pico</span>
+          <span
           <span className="hidden items-center gap-1 rounded border border-primary/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary md:inline-flex"><Flame className="h-3 w-3 fill-amber-500 text-amber-500" />Pico de operação</span>
           <span className="ml-auto hidden text-[10px] text-muted-foreground lg:inline">Atalhos: ← → mês · H hoje · Esc fecha</span>
         </div>
