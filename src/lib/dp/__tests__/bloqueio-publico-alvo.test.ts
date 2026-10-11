@@ -36,3 +36,14 @@ describe("quem vê o card de escolha de folga", () => {
     expect(podeEscolherFolgaFds("clt", null, "Sócio")).toBe(false);
   });
 });
+
+describe("público-alvo com vários itens", () => {
+  const regra = { regra_json: { alvo_tipo: "cargo" as const, cargo_ids: ["gerente", "subgerente"] } };
+  it("bloqueia gerente e subgerente", () => {
+    expect(regraAplicaPessoa(regra, { cargoId: "gerente" })).toBe(true);
+    expect(regraAplicaPessoa(regra, { cargoId: "subgerente" })).toBe(true);
+  });
+  it("não bloqueia garçom", () => {
+    expect(regraAplicaPessoa(regra, { cargoId: "garcom" })).toBe(false);
+  });
+});

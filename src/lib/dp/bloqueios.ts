@@ -73,8 +73,8 @@ export type RegraFormState = {
   ativo: boolean;
   unidades: string[];
   alvo_tipo: AlvoRegra;
-  /** cargo_id, setor_id ou colaborador_id conforme `alvo_tipo`. */
-  alvo_id: string;
+  /** cargos, setores ou colaboradores conforme `alvo_tipo` (seleção múltipla). */
+  alvo_ids: string[];
 };
 
 export type DataFormState = {
@@ -188,7 +188,7 @@ export const emptyRegraForm: RegraFormState = {
   ativo: true,
   unidades: [],
   alvo_tipo: "todos",
-  alvo_id: "",
+  alvo_ids: [],
 };
 
 export const regraToFormState = (r: Regra): RegraFormState => {
@@ -207,10 +207,30 @@ export const regraToFormState = (r: Regra): RegraFormState => {
     ativo: r.ativo,
     unidades: (r.unidades ?? []).map((u) => u.id),
     alvo_tipo: (cfg.alvo_tipo as AlvoRegra) ?? "todos",
-    alvo_id:
-      cfg.alvo_tipo === "cargo" ? cfg.cargo_id ?? ""
-      : cfg.alvo_tipo === "setor" ? cfg.setor_id ?? ""
-      : cfg.alvo_tipo === "colaborador" ? cfg.colaborador_id ?? ""
-      : "",
+    alvo_ids: alvoIdsDaRegra(cfg),
   };
 };
+
+/** Lista de alvos da regra (aceita formato antigo com um único id). */
+export function alvoIdsDaRegra(cfg: Record<string, any> | null | undefined): string[] {
+  const c = cfg ?? {};
+  const t = c.alvo_tipo;
+  const [lista, unico] = t === "cargo" ? [c.cargo_ids, c.cargo_id]
+    : t === "setor" ? [c.setor_ids, c.setor_id]
+    : t === "colaborador" ? [c.colaborador_ids, c.colaborador_id] : [null, null];
+  const out = Array.isArray(lista) ? [...lista] : [];
+  if (unico && !out.includes(unico)) out.push(unico);
+  return out;
+}
+
+/** Campos do público-alvo gravados no regra_json. */
+export function alvoParaRegraJson(tipo: AlvoRegra, ids: string[]) {
+  const ou = (t: AlvoRegra) => (tipo === t ? ids : []);
+  return {
+    alvo_tipo: tipo,
+    cargo_ids: ou("cargo"), setor_ids: ou("setor"), colaborador_ids: ou("colaborador"),
+    cargo_id: tipo === "cargo" ? ids[0] ?? null : null,
+    setor_id: tipo === "setor" ? ids[0] ?? null : null,
+    colaborador_id: tipo === "colaborador" ? ids[0] ?? null : null,
+  };
+}

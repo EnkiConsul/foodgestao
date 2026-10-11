@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { AlvoMultiSelect } from "./AlvoMultiSelect";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +24,7 @@ function validarForm(form: RegraFormState): Set<CampoErro> {
   if (form.meses.length === 0) erros.add("meses");
   if (form.tipo === "fixa_anual" && form.dias.length === 0) erros.add("dias");
   if (form.tipo === "dinamica" && (form.ordinal == null || form.dia_semana == null)) erros.add("dinamica");
-  if (form.alvo_tipo !== "todos" && !form.alvo_id) erros.add("alvo");
+  if (form.alvo_tipo !== "todos" && form.alvo_ids.length === 0) erros.add("alvo");
   return erros;
 }
 
@@ -45,28 +44,6 @@ export function RegraDialog({
 }: Props) {
   const [tentouSalvar, setTentouSalvar] = useState(false);
   const { selectedCompanyId } = useCompanyContext();
-  const opcoesAlvo = useQuery({
-    queryKey: ["dp_bloqueio_alvo_opcoes", selectedCompanyId, form.alvo_tipo],
-    enabled: open && !!selectedCompanyId && form.alvo_tipo !== "todos",
-    queryFn: async (): Promise<{ id: string; nome: string }[]> => {
-      if (form.alvo_tipo === "cargo") {
-        const { data, error } = await supabase.from("dp_cargos").select("id, nome")
-          .eq("company_id", selectedCompanyId!).eq("ativo", true).is("removido_em", null).order("nome");
-        if (error) throw error;
-        return data ?? [];
-      }
-      if (form.alvo_tipo === "setor") {
-        const { data, error } = await supabase.from("dp_setores").select("id, nome")
-          .eq("company_id", selectedCompanyId!).eq("ativo", true).order("nome");
-        if (error) throw error;
-        return data ?? [];
-      }
-      const { data, error } = await supabase.from("dp_colaboradores").select("id, nome")
-        .eq("company_id", selectedCompanyId!).eq("ativo", true).is("deleted_at", null).order("nome");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
   const erros = tentouSalvar ? validarForm(form) : new Set<CampoErro>();
 
   const handleSubmit = () => {
@@ -131,7 +108,7 @@ export function RegraDialog({
               value={form.alvo_tipo}
               onChange={(e) => {
                 const alvo_tipo = e.target.value as AlvoRegra;
-                onChange((p) => ({ ...p, alvo_tipo, alvo_id: "" }));
+                onChange((p) => ({ ...p, alvo_tipo, alvo_ids: [] }));
               }}
               className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
@@ -139,21 +116,13 @@ export function RegraDialog({
                 <option key={k} value={k}>{ALVO_LABEL[k]}</option>
               ))}
             </select>
-            {form.alvo_tipo !== "todos" && (
-              <select
-                value={form.alvo_id}
-                onChange={(e) => onChange((p) => ({ ...p, alvo_id: e.target.value }))}
-                className={cn(
-                  "flex w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  erros.has("alvo") ? "border-destructive" : "border-input",
-                )}
-              >
-                <option value="">
-                  {opcoesAlvo.isLoading ? "Carregando..." : form.alvo_tipo === "cargo" ? "Selecione o cargo" : form.alvo_tipo === "setor" ? "Selecione o setor" : "Selecione o colaborador"}
-                </option>
-                {(opcoesAlvo.data ?? []).map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
-              </select>
-            )}
+            <AlvoMultiSelect
+              companyId={selectedCompanyId}
+              tipo={form.alvo_tipo}
+              value={form.alvo_ids}
+              onChange={(ids) => onChange((p) => ({ ...p, alvo_ids: ids }))}
+              erro={erros.has("alvo")}
+            />
             {erros.has("alvo") ? (
               <p className="text-xs text-destructive">Escolha para quem a regra vale.</p>
             ) : (
