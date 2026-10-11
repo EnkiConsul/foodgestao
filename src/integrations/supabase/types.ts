@@ -19226,10 +19226,12 @@ export type Database = {
       }
       dp_folga_atribuir_admin_v2: {
         Args: {
+          p_autorizar_excedente?: boolean
           p_colaborador: string
           p_data: string
           p_data_trabalho?: string
           p_folga_substituir_id?: string
+          p_justificativa_excedente?: string
           p_modo: string
           p_motivo?: string
         }
@@ -19274,10 +19276,12 @@ export type Database = {
       }
       dp_folga_criar_admin: {
         Args: {
+          p_autorizar_excedente?: boolean
           p_colaborador_id: string
           p_confirmar_deficit?: boolean
           p_data: string
           p_extra?: boolean
+          p_justificativa_excedente?: string
           p_observacao?: string
           p_substituir_ids?: string[]
           p_tipo?: string

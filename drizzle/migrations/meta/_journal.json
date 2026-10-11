@@ -316,6 +316,13 @@
       "when": 1791674295538,
       "tag": "0044_motivo_dia_trabalho_excepcional",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1791685767013,
+      "tag": "0045_folgas_limites_unidade_concorrencia",
+      "breakpoints": true
     }
   ]
 }
