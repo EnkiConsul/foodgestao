@@ -434,14 +434,22 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
             {acao?.item.key === i.key && (
               <div className="flex flex-wrap items-center gap-2">
                 {acao.tipo === "remarcar" ? (
-                  <Input type="date" className="h-8 w-44" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
+                  <>
+                    <Input type="date" className="h-8 w-44" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
+                    <Input className="h-8 w-44" placeholder='Digite REMARCAR' value={confRemarcar} onChange={(e) => setConfRemarcar(e.target.value)} />
+                    <Button size="sm" disabled={executar.isPending || !novaData || !remarcarConfirmado} onClick={() => executar.mutate()}>
+                      Confirmar
+                    </Button>
+                  </>
                 ) : (
-                  <Input className="h-8 w-64" placeholder="Motivo (opcional)" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+                  <>
+                    <Input className="h-8 w-64" placeholder="Motivo (opcional)" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+                    <Button size="sm" disabled={executar.isPending} onClick={() => executar.mutate()}>
+                      Confirmar
+                    </Button>
+                  </>
                 )}
-                <Button size="sm" disabled={executar.isPending} onClick={() => executar.mutate()}>
-                  Confirmar
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setAcao(null)}>Voltar</Button>
+                <Button size="sm" variant="ghost" onClick={() => { setAcao(null); setConfRemarcar(""); }}>Voltar</Button>
               </div>
             )}
           </li>
