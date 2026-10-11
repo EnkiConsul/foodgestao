@@ -386,6 +386,13 @@
       "when": 1791719492541,
       "tag": "0054_dp_folga_janela_lembretes",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1791720217628,
+      "tag": "0055_dp_folga_lembretes_escalonados",
+      "breakpoints": true
     }
   ]
 }
