@@ -353,9 +353,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_indisponibilidades")
-        .select("id, colaborador_id, data, motivo")
+        .select("id, colaborador_id, data, motivo, conflito")
         .eq("company_id", selectedCompanyId!)
-        .eq("conflito", true)
         .is("cancelada_em", null)
         .gte("data", inicio)
         .lte("data", fim);
@@ -516,8 +515,18 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           inicio: a.data_alvo!,
           fim: a.data_fim ?? a.data_alvo!,
           motivo: a.motivo ?? null,
-        })),
-    [base.data],
+        }))
+        .concat(
+          // Indisponibilidade de Convocação (informativa): não conta como falta.
+          (conflitosQuery.data ?? []).map((c) => ({
+            colaborador_id: c.colaborador_id,
+            tipo: "indisponibilidade",
+            inicio: c.data,
+            fim: c.data,
+            motivo: c.motivo ?? null,
+          })),
+        ),
+    [base.data, conflitosQuery.data],
   );
 
   const folgas: FolgaPanorama[] = useMemo(() => {
@@ -589,7 +598,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
 
   const ocorrencias: OcorrenciaPanorama[] = useMemo(
     () => [
-      ...(conflitosQuery.data ?? []).map((c) => ({
+      ...(conflitosQuery.data ?? []).filter((c) => c.conflito).map((c) => ({
         id: `indisp:${c.id}`,
         colaborador_id: c.colaborador_id,
         data: c.data,

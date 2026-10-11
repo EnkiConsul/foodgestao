@@ -469,7 +469,7 @@ function DetalheDiaOperacao({
     ),
   );
   const ausReg = ausenciasRegistradas.filter((a) => a.inicio <= data && a.fim >= data);
-  const rotuloAus = (t: string) => (t === "adiantamento" ? "Adiantamento" : t === "outros" ? "Ausência" : t);
+  const rotuloAus = (t: string) => (t === "adiantamento" ? "Adiantamento" : t === "outros" ? "Ausência" : t === "indisponibilidade" ? "Indisponibilidade" : t);
   const avulsosDoDia = avulsos.filter((a) => a.data_inicio <= data && a.data_fim >= data);
 
   // Valor de cada card, para esconder os que estão zerados.
