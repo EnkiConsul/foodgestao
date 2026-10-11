@@ -375,7 +375,10 @@ ul{list-style:none;padding:0;margin:0}li{border-bottom:1px solid #ddd;padding:4p
       <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
         <DialogHeader className="shrink-0 space-y-3 border-b border-border bg-background p-4 pb-3 text-left sm:p-6 sm:pb-4">
           <div className="flex items-start justify-between gap-3">
-            <FotoColaborador colaboradorId={colaborador?.id} nome={colaborador?.nome} />
+            <FotoColaborador
+              colaboradorId={colaborador?.id}
+              nome={String((colaborador as any)?.nome_social || colaborador?.nome || "")}
+            />
             <div className="min-w-0 flex-1">
               <DialogTitle className="break-words text-lg font-bold leading-tight sm:text-xl">
                 {colaborador?.nome || "Colaborador"}
