@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ESTADO_ASSIDUIDADE_LABEL,
+  apurarAtrasosMes,
   avaliarRiscoAssiduidade,
   exigeJustificativaAssiduidade,
   padraoAssiduidade,
@@ -31,8 +32,28 @@ describe("risco de perder o prêmio de assiduidade", () => {
   it("com prêmio, falta, atestado e atraso vão para decisão do gestor", () => {
     expect(avaliarRiscoAssiduidade(REGRA, "falta").risco).toBe(true);
     expect(avaliarRiscoAssiduidade(REGRA, "atestado").risco).toBe(true);
-    expect(avaliarRiscoAssiduidade(REGRA, "atraso", 3).risco).toBe(true);
-    expect(avaliarRiscoAssiduidade(REGRA, "previsao_atraso", null).risco).toBe(true);
+    expect(avaliarRiscoAssiduidade(REGRA, "saida_antecipada").risco).toBe(true);
+    // Atraso isolado depende da apuração mensal.
+    expect(avaliarRiscoAssiduidade(REGRA, "atraso", 3).risco).toBe(false);
+  });
+
+  it("soma entrada e retorno do intervalo e só conta o dia acima da tolerância", () => {
+    const dias = apurarAtrasosMes(REGRA, [
+      { data_operacional: "2026-10-01", tipo: "atraso", minutos: 6 },
+      { data_operacional: "2026-10-01", tipo: "atraso_intervalo", minutos: 6 },
+      { data_operacional: "2026-10-02", tipo: "atraso", minutos: 10 },
+    ]);
+    expect(dias[0]).toMatchObject({ totalMin: 12, acimaTolerancia: true, risco: false });
+    expect(dias[1]).toMatchObject({ totalMin: 10, acimaTolerancia: false, risco: false });
+  });
+
+  it("vai ao gestor só a partir do atraso que estoura o máximo do mês", () => {
+    const dias = apurarAtrasosMes(REGRA, [
+      { data_operacional: "2026-10-01", tipo: "atraso", minutos: 15 },
+      { data_operacional: "2026-10-05", tipo: "atraso", minutos: 20 },
+      { data_operacional: "2026-10-06", tipo: "atraso", minutos: 5, estado: "cancelada" },
+    ]);
+    expect(dias.map((d) => d.risco)).toEqual([false, true]);
   });
 
   it("sócio nunca tem pergunta de assiduidade", () => {

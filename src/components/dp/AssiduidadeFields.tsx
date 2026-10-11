@@ -102,9 +102,33 @@ export function AssiduidadeFields({
               </p>
             )}
           </div>
+          <div className="space-y-2">
+            <Label>Tolerância diária de atraso (min)</Label>
+            <Input
+              inputMode="numeric"
+              value={value.assiduidade_tolerancia_min}
+              onChange={(e) => onChange({ assiduidade_tolerancia_min: e.target.value.replace(/\D/g, "") })}
+              placeholder="Ex: 10"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Soma o atraso da entrada e do retorno do intervalo no mesmo dia.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label>Máximo de atrasos no mês</Label>
+            <Input
+              inputMode="numeric"
+              value={value.assiduidade_max_atrasos}
+              onChange={(e) => onChange({ assiduidade_max_atrasos: e.target.value.replace(/\D/g, "") })}
+              placeholder="Ex: 2"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Só contam os dias acima da tolerância. Passou do máximo, vai para decisão do gestor.
+            </p>
+          </div>
           <p className="text-[11px] text-muted-foreground md:col-span-2">
-            Não há regra fixa de perda: em cada falta, atestado, licença ou atraso o
-            gestor decide se mantém ou perde o prêmio, partindo do padrão do sistema.
+            Em cada falta, atestado, licença ou atraso acima do limite o gestor decide se
+            mantém ou perde o prêmio, partindo do padrão do sistema.
           </p>
         </div>
       )}
@@ -120,6 +144,8 @@ export function resumoAssiduidade(v: Partial<AssiduidadeFormState> | undefined |
   void unidade;
   const partes = [
     v.premio_assiduidade_tipo === "percentual" ? `${valor}% do salário` : `R$ ${valor}/mês`,
+    `tolerância ${v.assiduidade_tolerancia_min || "10"} min/dia`,
+    `até ${v.assiduidade_max_atrasos || "2"} atraso(s)`,
   ];
   return partes.join(" · ") + " · decisão do gestor por evento";
 }

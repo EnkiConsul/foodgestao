@@ -27,6 +27,7 @@ import { mensagemErro } from "@/lib/dp/mensagemErro";
 import { registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
 import { avisoDsrGestor } from "@/lib/dp/dsr-consecutivo";
 import { Checkbox } from "@/components/ui/checkbox";
+import { LiberacaoDesfazerDialog, ehLiberacaoGestor } from "@/components/dp/LiberacaoDesfazerDialog";
 
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
@@ -220,6 +221,8 @@ export default function DpSolicitacoes() {
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
   });
 
+  const [desfazer, setDesfazer] = useState<{ id: string; nome?: string | null } | null>(null);
+
   const respond = useMutation({
     mutationFn: async ({ id, status, resposta }: { id: string; status: Status; resposta?: string }) => {
       const { error } = await supabase.rpc("dp_solicitacao_responder", {
@@ -251,6 +254,10 @@ export default function DpSolicitacoes() {
   };
 
   const decide = (r: RowWithColab, approve: boolean) => {
+    if (!approve && ehLiberacaoGestor(r.motivo)) {
+      setDesfazer({ id: r.id, nome: r.dp_colaboradores?.nome });
+      return;
+    }
     const resposta = (respostas[r.id] ?? "").trim() || (approve ? "Aprovado" : "Recusado");
     const dias = approve ? riscoDsr(r) : null;
     if (dias) {
@@ -645,8 +652,13 @@ export default function DpSolicitacoes() {
               <Check className="size-4 mr-1" /> Aprovar
             </Button>
           </div>
+        ) : detailsRow && detailsRow.status === "aprovada" && ehLiberacaoGestor(detailsRow.motivo) ? (
+          <Button variant="outline" className="w-full" onClick={() => { setDesfazer({ id: detailsRow.id, nome: detailsRow.dp_colaboradores?.nome }); setDetailsRow(null); }}>
+            <X className="size-4 mr-1" /> Desfazer Liberação
+          </Button>
         ) : null}
       />
+      <LiberacaoDesfazerDialog solicitacao={desfazer} onOpenChange={(o) => !o && setDesfazer(null)} />
     </DpPage>
   );
 }
