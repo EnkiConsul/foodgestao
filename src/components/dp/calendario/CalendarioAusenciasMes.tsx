@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { gerarCalendarioMesPdf, type CelulaPdf } from "@/lib/dp/calendario-mes-pdf";
-import { Moon, SlidersHorizontal, Sun, Users, AlertTriangle, X, Lock, CalendarHeart, Palmtree, Stethoscope, UserX, Repeat, CalendarOff, Coffee, Flame, FileDown, Maximize2, Minimize2 } from "lucide-react";
+import { Moon, SlidersHorizontal, Sun, Users, AlertTriangle, X, Lock, CalendarHeart, Palmtree, Stethoscope, UserX, Repeat, CalendarOff, Coffee, Flame, FileDown, Maximize2, Minimize2, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -233,6 +233,8 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     { icon: AlertTriangle, chave: "dias_alerta", label: "com alerta", valor: resumoMes.alertas, tom: "text-destructive" },
   ].filter((c) => c.valor > 0) as { icon?: typeof Users; emoji?: string; label: string; valor: number; tom: string; chave?: string }[];
   const [cardAberto, setCardAberto] = useState<{ chave: string; label: string } | null>(null);
+  const [abrindoDia, setAbrindoDia] = useState<string | null>(null);
+  useEffect(() => { if (!cardAberto) setAbrindoDia(null); }, [cardAberto]);
   const pessoasCard = cardAberto
     ? [...(resumoMes.quem.get(cardAberto.chave)?.values() ?? [])].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
     : [];
@@ -640,7 +642,13 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
         <DialogContent className="flex max-h-[85dvh] max-w-md flex-col">
           <DialogHeader className="shrink-0">
             <DialogTitle className="first-letter:uppercase">{cardAberto?.label}</DialogTitle>
-            <DialogDescription>{pessoasCard.length} colaborador(es) no mês</DialogDescription>
+            <DialogDescription>
+              {cardAberto?.chave === "feriados"
+                ? `${pessoasCard.length} feriado(s) no mês`
+                : cardAberto?.chave === "bloqueados"
+                  ? `${pessoasCard.length} dia(s) com bloqueio no mês`
+                  : `${pessoasCard.length} colaborador(es) no mês`}
+            </DialogDescription>
           </DialogHeader>
           <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
             {pessoasCard.map((p) => (
@@ -662,9 +670,11 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                       <button
                         key={iso}
                         type="button"
-                        onClick={() => { setCardAberto(null); onAbrirDia(iso, mostraTurno ? periodo : "todos"); }}
-                        className="rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-medium text-foreground hover:bg-primary/10 hover:border-primary/40"
+                        disabled={abrindoDia === iso}
+                        onClick={() => { setAbrindoDia(iso); setCardAberto(null); onAbrirDia(iso, mostraTurno ? periodo : "todos"); }}
+                        className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-medium text-foreground transition hover:bg-primary/10 hover:border-primary/40 active:scale-95 disabled:opacity-60"
                       >
+                        {abrindoDia === iso && <Loader2 className="h-3 w-3 animate-spin" aria-hidden />}
                         {txt}
                       </button>
                     );
