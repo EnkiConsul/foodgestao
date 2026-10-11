@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { gerarCalendarioMesPdf, type CelulaPdf } from "@/lib/dp/calendario-mes-pdf";
-import { Moon, SlidersHorizontal, Sun, Users, AlertTriangle, X, Lock, CalendarHeart, Palmtree, Stethoscope, UserX, Repeat, CalendarOff, PartyPopper, Coffee, Flame, FileDown, Maximize2, Minimize2 } from "lucide-react";
+import { Moon, SlidersHorizontal, Sun, Users, AlertTriangle, X, Lock, CalendarHeart, Palmtree, Stethoscope, UserX, Repeat, CalendarOff, Coffee, Flame, FileDown, Maximize2, Minimize2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -220,9 +220,9 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     { icon: Stethoscope, chave: "atestado", label: "atestados", valor: resumoMes.atestado, tom: "text-violet-600 dark:text-violet-400" },
     { icon: CalendarOff, chave: "outras", label: "cobertos", valor: resumoMes.outras, tom: "text-slate-500" },
     { icon: Lock, chave: "bloqueados", label: "bloqueadas", valor: resumoMes.bloqueados, tom: "text-destructive" },
-    { icon: PartyPopper, chave: "feriados", label: "feriados", valor: resumoMes.feriados, tom: "text-primary" },
+    { emoji: "🎉", chave: "feriados", label: "feriados", valor: resumoMes.feriados, tom: "text-primary" },
     { icon: AlertTriangle, label: "com alerta", valor: resumoMes.alertas, tom: "text-destructive" },
-  ].filter((c) => c.valor > 0) as { icon: typeof Users; label: string; valor: number; tom: string; chave?: string }[];
+  ].filter((c) => c.valor > 0) as { icon?: typeof Users; emoji?: string; label: string; valor: number; tom: string; chave?: string }[];
   const [cardAberto, setCardAberto] = useState<{ chave: string; label: string } | null>(null);
   const pessoasCard = cardAberto
     ? [...(resumoMes.quem.get(cardAberto.chave)?.values() ?? [])].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
@@ -380,9 +380,14 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
         {/* Métricas em linha — só o que tem valor */}
         <div className="order-last flex w-full min-w-0 flex-wrap items-center gap-1.5 md:order-none md:ml-2 md:w-auto">
           {cards.map((c) => {
+            const Icone = c.icon;
             const conteudo = (
               <>
-                <c.icon className={cn("h-3.5 w-3.5", c.tom)} />
+                {c.emoji ? (
+                  <span aria-hidden="true" className="text-[13px] leading-none">{c.emoji}</span>
+                ) : Icone ? (
+                  <Icone className={cn("h-3.5 w-3.5", c.tom)} />
+                ) : null}
                 <span className="font-bold tabular-nums">{c.valor}</span>
                 <span className="text-muted-foreground">{c.label}</span>
               </>
@@ -437,8 +442,13 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                   {bloqueios.has(d.data) && <Lock className="h-3.5 w-3.5 text-destructive" aria-label="Folgas bloqueadas" />}
                   {pico(d.data, d.feriado_nome) && <Flame className="h-3.5 w-3.5 fill-amber-500 text-amber-500" aria-label="Pico de operação" />}
                   {d.feriado_nome && (
-                    <span title={`Feriado · ${d.feriado_nome}`} className="inline-flex">
-                      <PartyPopper className="h-3.5 w-3.5 text-primary" aria-label={`Feriado: ${d.feriado_nome}`} />
+                    <span
+                      title={`Feriado · ${d.feriado_nome}`}
+                      role="img"
+                      aria-label={`Feriado: ${d.feriado_nome}`}
+                      className="text-[13px] leading-none"
+                    >
+                      🎉
                     </span>
                   )}
                 </>
@@ -586,7 +596,11 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
           <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
             {pessoasCard.map((p) => (
               <li key={p.nome + p.datas[0]} className="py-2">
-                <p className="text-sm font-semibold">{p.nome}</p>
+                <p className="text-sm font-semibold">
+                  {cardAberto?.chave === "feriados"
+                    ? `🎉 ${p.nome.replace(/^Feriado · /, "")}`
+                    : p.nome}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {p.datas.sort().map((iso) => {
                     const base = fmtDiaSemana(iso);
