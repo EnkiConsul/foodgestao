@@ -68,6 +68,7 @@ import { previsaoNoDia, type PrevisaoNoDia } from "@/lib/dp/operacao-extra";
 import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
+import { AvisoAutoatribuicaoExcedida } from "@/components/dp/calendario/AvisoAutoatribuicaoExcedida";
 import { CalendarioAusenciasMes } from "@/components/dp/calendario/CalendarioAusenciasMes";
 import { FolgasDoDiaPainel } from "@/components/dp/calendario/FolgasDoDiaPainel";
 import { RegrasDoDiaPainel, BloqueioDoDiaCabecalho } from "@/components/dp/calendario/RegrasDoDiaPainel";
@@ -1523,6 +1524,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
 
 
         <TabsContent value="mes" className="space-y-4">
+          {calendario && <AvisoAutoatribuicaoExcedida companyId={companyIdCal} />}
           {calendario && !panorama.isLoading ? (
             <CalendarioAusenciasMes
               dias={panorama.dias}
