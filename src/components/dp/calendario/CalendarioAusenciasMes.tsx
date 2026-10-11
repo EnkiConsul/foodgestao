@@ -33,12 +33,13 @@ const TOM: Record<TipoAusenciaCalendario, string> = {
   ferias: "border-l-[3px] border-sky-500 bg-sky-100 text-sky-900 dark:bg-sky-500/15 dark:text-sky-200",
   falta: "border-l-[3px] border-rose-500 bg-rose-100 text-rose-900 dark:bg-rose-500/15 dark:text-rose-200",
   atestado: "border-l-[3px] border-violet-500 bg-violet-100 text-violet-900 dark:bg-violet-500/15 dark:text-violet-200",
+  indisponibilidade: "border-l-[3px] border-dashed border-orange-500 bg-orange-50 text-orange-900 dark:bg-orange-500/15 dark:text-orange-200",
   outras: "border-l-[3px] border-slate-400 bg-slate-50 text-slate-700 dark:bg-slate-500/15 dark:text-slate-200",
 };
 // Folga no domingo tem peso diferente na operação: dourado.
 const TOM_DOMINICAL = "border-l-[3px] border-amber-600 bg-amber-100 text-amber-900 ring-1 ring-inset ring-amber-300 dark:bg-amber-500/25 dark:text-amber-100";
 const PDF_COR: Record<TipoAusenciaCalendario, [number, number, number]> = {
-  folga: [16, 185, 129], ferias: [14, 165, 233], falta: [244, 63, 94], atestado: [139, 92, 246], outras: [100, 116, 139],
+  folga: [16, 185, 129], ferias: [14, 165, 233], falta: [244, 63, 94], atestado: [139, 92, 246], indisponibilidade: [249, 115, 22], outras: [100, 116, 139],
 };
 const PDF_DOMINICAL: [number, number, number] = [245, 158, 11];
 
@@ -92,11 +93,11 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
   const tomDe = (a: AusenciaCalendario, iso: string) => (dominical(a, iso) ? TOM_DOMINICAL : TOM[a.tipo]);
   const ausDo = (d: DiaPanorama): AusenciaCalendario[] => {
     const base = ausenciasVisiveis(d.pessoas, filtros);
-    if (!filtros.includes("outras")) return base;
+    if (!filtros.includes("indisponibilidade")) return base;
     const ja = new Set(base.map((a) => a.colaborador_id));
     const extra = indisponiveis
       .filter((i) => i.inicio <= d.data && i.fim >= d.data && !ja.has(i.colaborador_id))
-      .map((i) => ({ colaborador_id: i.colaborador_id, nome: i.nome, tipo: "outras" as const, rotulo: "Indisponibilidade" }));
+      .map((i) => ({ colaborador_id: i.colaborador_id, nome: i.nome, tipo: "indisponibilidade" as const, rotulo: "Indisponibilidade" }));
     return [...base, ...extra];
   };
   const rotulo = (a: AusenciaCalendario, iso: string) =>

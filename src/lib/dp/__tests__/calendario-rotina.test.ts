@@ -76,3 +76,10 @@ describe("cor da folga dominical", () => {
     expect(folgaEhDominical("2026-10-13", [0], { troca: true, folga_fixa_dows: [0] })).toBe(true);
   });
 });
+
+describe("indisponibilidade separada", () => {
+  it("é um filtro próprio, fora de Demais ausências", () => {
+    expect(TIPOS_AUSENCIA).toContain("indisponibilidade");
+    expect(TIPOS_AUSENCIA.filter((t) => t === "outras")).toHaveLength(1);
+  });
+});

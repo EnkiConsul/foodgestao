@@ -2,15 +2,16 @@
 // tipo e aplica os filtros de visibilidade escolhidos pelo gestor.
 import type { CategoriaDia, PessoaPanorama } from "@/lib/dp/operacao-panorama";
 
-export type TipoAusenciaCalendario = "folga" | "ferias" | "falta" | "atestado" | "outras";
+export type TipoAusenciaCalendario = "folga" | "ferias" | "falta" | "atestado" | "indisponibilidade" | "outras";
 
-export const TIPOS_AUSENCIA: TipoAusenciaCalendario[] = ["folga", "ferias", "falta", "atestado", "outras"];
+export const TIPOS_AUSENCIA: TipoAusenciaCalendario[] = ["folga", "ferias", "falta", "atestado", "indisponibilidade", "outras"];
 
 export const TIPO_AUSENCIA_LABEL: Record<TipoAusenciaCalendario, string> = {
   folga: "Folgas",
   ferias: "Férias",
   falta: "Faltas",
   atestado: "Atestados / Licenças",
+  indisponibilidade: "Indisponibilidade de Convocação",
   outras: "Demais ausências",
 };
 
