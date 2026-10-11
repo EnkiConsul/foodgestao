@@ -783,9 +783,11 @@ export default function DpMeuCalendario() {
   const minhasFolgasFuturas = useMemo(
     () =>
       folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso }).filter(
-        (f) => !diasEmTrocaPendente.has(f.data as string),
+        (f) =>
+          !diasEmTrocaPendente.has(f.data as string) &&
+          !dataEmAfastamento(afastamentosQuery.data, meRef.data?.id, f.data as string),
       ),
-    [folgas, meRef.data?.id, hojeIso, diasEmTrocaPendente],
+    [folgas, meRef.data?.id, hojeIso, diasEmTrocaPendente, afastamentosQuery.data],
   );
 
   /**
@@ -812,8 +814,10 @@ export default function DpMeuCalendario() {
       .filter((iso) => !trabalhoExcepcionalQuery.data?.has(`${meRef.data!.id}|${iso}`))
       // Folga já oferecida numa troca pendente.
       .filter((iso) => !diasEmTrocaPendente.has(iso))
+      // Folga coberta por atestado, licença, suspensão ou férias não é negociável.
+      .filter((iso) => !dataEmAfastamento(afastamentosQuery.data, meRef.data!.id, iso))
       .map((iso) => ({ id: `fixa-${iso}`, data: iso, fixa: true as const }));
-  }, [meRef.data, meusDiasFixosQuery.data, folgas, range.startDate, range.endDate, hojeIso, trabalhoExcepcionalQuery.data, diasEmTrocaPendente]);
+  }, [meRef.data, meusDiasFixosQuery.data, folgas, range.startDate, range.endDate, hojeIso, trabalhoExcepcionalQuery.data, diasEmTrocaPendente, afastamentosQuery.data]);
 
   /** Folgas ofertáveis para o dia aberto no diálogo (sem o próprio dia pedido). */
   const folgasParaOferecer = useMemo(() => {
