@@ -100,6 +100,8 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
       .map((i) => ({ colaborador_id: i.colaborador_id, nome: i.nome, tipo: "indisponibilidade" as const, rotulo: "Indisponibilidade" }));
     return [...base, ...extra];
   };
+  const iconeAus = (a: AusenciaCalendario) =>
+    a.tipo === "indisponibilidade" ? "⚠️" : a.tipo === "falta" || a.tipo === "atestado" ? "❌" : null;
   const rotulo = (a: AusenciaCalendario, iso: string) =>
     `${a.nome} · ${a.rotulo ?? (a.tipo === "folga" ? "Folga" : TIPO_AUSENCIA_LABEL[a.tipo])}${a.troca ? " (troca)" : ""}`;
 
@@ -225,6 +227,9 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
         if (a.tipo === "folga") {
           const k = dominical(a, d.data) ? "dominical" : "semanal"; r[k]++; add(k, a.colaborador_id, a.nome, d.data);
           if (a.troca) { r.trocas++; add("trocas", a.colaborador_id, a.nome, d.data); }
+        } else if (a.tipo === "falta" || a.tipo === "indisponibilidade") {
+          // Card único "indisponíveis": falta (❌) e indisponibilidade de convocação (⚠️).
+          r.falta++; add("falta", `${a.tipo}:${a.colaborador_id}`, `${a.tipo === "falta" ? "❌ Falta" : "⚠️ Indisponível"} · ${a.nome}`, d.data);
         } else { r[a.tipo]++; add(a.tipo, a.colaborador_id, a.nome, d.data); }
       }
     }
@@ -237,7 +242,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     { icon: CalendarHeart, chave: "dominical", label: "dominicais", valor: resumoMes.dominical, tom: "text-amber-600 dark:text-amber-400" },
     { icon: Repeat, chave: "trocas", label: "trocas", valor: resumoMes.trocas, tom: "text-teal-600 dark:text-teal-400" },
     { icon: Palmtree, chave: "ferias", label: "férias", valor: resumoMes.ferias, tom: "text-sky-600 dark:text-sky-400" },
-    { icon: UserX, chave: "falta", label: "faltas", valor: resumoMes.falta, tom: "text-rose-600 dark:text-rose-400" },
+    { emoji: "❌", chave: "falta", label: "indisponíveis", valor: resumoMes.falta, tom: "text-rose-600 dark:text-rose-400" },
     { icon: Stethoscope, chave: "atestado", label: "atestados", valor: resumoMes.atestado, tom: "text-violet-600 dark:text-violet-400" },
     { icon: CalendarOff, chave: "outras", label: "cobertos", valor: resumoMes.outras, tom: "text-slate-500" },
     { icon: Lock, chave: "bloqueados", label: "bloqueadas", valor: resumoMes.bloqueados, tom: "text-destructive" },
@@ -487,7 +492,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                 <>
                   {aus.slice(0, 3).map((a) => (
                     <span key={`${a.colaborador_id}-${a.tipo}`} title={rotulo(a, d.data)} className={cn("inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", tomDe(a, d.data), d.data < hoje && "opacity-60")}>
-                      {a.troca && <Repeat className="h-2.5 w-2.5" />}{primeiroNome(a.nome)}
+                      {iconeAus(a) && <span aria-hidden="true" className="text-[9px] leading-none">{iconeAus(a)}</span>}{a.troca && <Repeat className="h-2.5 w-2.5" />}{primeiroNome(a.nome)}
                     </span>
                   ))}
                   {aus.length > 3 && <span className="shrink-0 self-center text-[10px] font-semibold text-muted-foreground">+{aus.length - 3}</span>}
@@ -566,7 +571,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                     <div className={cn("mt-0.5", compacto ? "grid grid-cols-2 gap-1" : "flex flex-col gap-1")}>
                       {visiveis.map((a) => (
                         <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("inline-flex min-w-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase shadow-sm", tomDe(a, d.data))} title={rotulo(a, d.data)}>
-                          {a.troca && <Repeat className="h-2.5 w-2.5 shrink-0" />}<span className="truncate">{primeiroNome(a.nome)}</span>
+                          {iconeAus(a) && <span aria-hidden="true" className="shrink-0 text-[9px] leading-none">{iconeAus(a)}</span>}{a.troca && <Repeat className="h-2.5 w-2.5 shrink-0" />}<span className="truncate">{primeiroNome(a.nome)}</span>
                         </span>
                       ))}
                     </div>
