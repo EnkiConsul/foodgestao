@@ -217,10 +217,12 @@ export function AtribuirFolgaTriagemDialog({
       onOpenChange(false);
       onDone?.();
     },
-    onError: (e: any) =>
+    onError: (e: any) => {
+      if (e instanceof Error && e.message === "LIMITE_SILENCIOSO") return;
       toast.error("Erro ao atribuir folga", {
         description: e instanceof Error ? e.message : String(e),
-      }),
+      });
+    },
   });
 
   return (
@@ -242,15 +244,19 @@ export function AtribuirFolgaTriagemDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem
-                  value="substituir_fds"
-                  disabled={(folgasQuery.data ?? []).length === 0}
-                >
-                  Troca de uma folga já marcada
-                </SelectItem>
-                <SelectItem value="troca_semanal" disabled={diasSemanaFixos.length === 0}>
-                  Troca da folga semanal da semana
-                </SelectItem>
+                {!intermitente && (
+                  <SelectItem
+                    value="substituir_fds"
+                    disabled={(folgasQuery.data ?? []).length === 0}
+                  >
+                    Troca de uma folga já marcada
+                  </SelectItem>
+                )}
+                {!intermitente && (
+                  <SelectItem value="troca_semanal" disabled={diasSemanaFixos.length === 0}>
+                    Troca da folga semanal da semana
+                  </SelectItem>
+                )}
                 <SelectItem value="extra">Folga extra</SelectItem>
               </SelectContent>
             </Select>
@@ -313,6 +319,37 @@ export function AtribuirFolgaTriagemDialog({
               onChange={(e) => setMotivo(e.target.value)}
             />
           </div>
+
+          {intermitente && (
+            <p className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+              Intermitente não participa de folga fixa, troca semanal nem escolha de fim de semana.
+            </p>
+          )}
+
+          {limiteMsg && (
+            <div className="space-y-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3">
+              <p className="text-sm font-semibold text-destructive">{limiteMsg}</p>
+              <p className="text-xs text-muted-foreground">
+                Só Dono ou Administrador pode autorizar acima do limite. A justificativa fica registrada na
+                auditoria.
+              </p>
+              <Textarea
+                rows={2}
+                className="rounded-xl"
+                placeholder="Justificativa da exceção (mínimo 15 caracteres)"
+                value={justificativa}
+                onChange={(e) => setJustificativa(e.target.value)}
+              />
+              <Button
+                variant="destructive"
+                className="min-h-10 w-full"
+                disabled={atribuir.isPending || justificativa.trim().length < 15}
+                onClick={() => atribuir.mutate(true)}
+              >
+                Autorizar Acima do Limite
+              </Button>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
