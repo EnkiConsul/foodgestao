@@ -378,7 +378,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
         ))}
 
         {/* Métricas em linha — só o que tem valor */}
-        <div className="order-last flex w-full min-w-0 flex-wrap items-center gap-1.5 md:order-none md:ml-2 md:w-auto">
+        <div className="order-last grid w-full min-w-0 grid-cols-2 items-stretch gap-1.5 md:order-none md:ml-2 md:flex md:w-auto md:flex-wrap">
           {cards.map((c) => {
             const Icone = c.icon;
             const conteudo = (
@@ -389,10 +389,10 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                   <Icone className={cn("h-3.5 w-3.5", c.tom)} />
                 ) : null}
                 <span className="font-bold tabular-nums">{c.valor}</span>
-                <span className="text-muted-foreground">{c.label}</span>
+                <span className="min-w-0 truncate text-muted-foreground">{c.label}</span>
               </>
             );
-            const cls = "inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border bg-card px-2.5 text-xs shadow-sm";
+            const cls = "flex h-7 w-full min-w-0 items-center gap-1.5 rounded-full border bg-card px-2.5 text-xs shadow-sm md:inline-flex md:w-auto md:shrink-0 md:whitespace-nowrap";
             return c.chave ? (
               <button key={c.label} type="button" onClick={() => setCardAberto({ chave: c.chave!, label: c.label })} className={cn(cls, "transition-colors hover:bg-muted active:bg-muted")} title={`Ver quem: ${c.label}`}>
                 {conteudo}
