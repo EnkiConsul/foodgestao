@@ -358,6 +358,13 @@
       "when": 1791701410326,
       "tag": "0050_dp_folga_marcar_tipo_notificacao",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1791701442055,
+      "tag": "0051_dp_bloqueio_alvo_revoke",
+      "breakpoints": true
     }
   ]
 }
