@@ -202,7 +202,7 @@ export default function DpMeuCalendario() {
       const { data } = await supabase.rpc("dp_meu_colaborador");
       if (!data) return null;
       const colunas =
-        "id, company_id, nome, sexo, regime, forma_pagamento, cargo_id, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, unidade_id, vinculo_label";
+        "id, company_id, nome, sexo, regime, forma_pagamento, cargo_id, setor_id, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, unidade_id, vinculo_label";
       const tentativa = await supabase.from("dp_colaboradores").select(colunas).eq("id", data).single();
       if (!tentativa.error) return tentativa.data as unknown as MeuVinculo;
       // Se uma coluna nova ainda não tem permissão de leitura, refaz a consulta
@@ -672,9 +672,23 @@ export default function DpMeuCalendario() {
       fromRegras.forEach((motivo, iso) => {
         if (!m.has(iso)) m.set(iso, { reason: motivo, liberada: false });
       });
+      // Regras direcionadas (cargo/setor/pessoa): texto neutro, sem expor a regra.
+      const me = meRef.data as { id?: string; cargo_id?: string | null; setor_id?: string | null } | undefined;
+      if (me?.id) {
+        buildBloqueiosDeRegras({
+          regras: regrasData.regras,
+          vinculos: regrasData.vinculos,
+          unidadeId: myUnidade,
+          from: range.startDate,
+          to: range.endDate,
+          pessoa: { colaboradorId: me.id, cargoId: me.cargo_id ?? null, setorId: me.setor_id ?? null },
+        }).forEach((_motivo, iso) => {
+          if (!m.has(iso)) m.set(iso, { reason: "Data indisponível para folga", liberada: false });
+        });
+      }
     }
     return m;
-  }, [bloqueiosQuery.data, regrasBloqueioQuery.data, myUnidade, range.startDate, range.endDate]);
+  }, [bloqueiosQuery.data, regrasBloqueioQuery.data, myUnidade, range.startDate, range.endDate, meRef.data]);
 
   const { regras: regrasLimite } = useDpFolgaLimites(myUnidade);
 

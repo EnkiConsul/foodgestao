@@ -241,7 +241,17 @@ export default function DpMeuSolicitacoes() {
       from: form.data_alvo,
       to: form.data_alvo,
     });
-    return map.get(dataAlvoIso) ?? null;
+    if (map.has(dataAlvoIso)) return map.get(dataAlvoIso) ?? null;
+    const me = meRef.data as { id?: string; cargo_id?: string | null; setor_id?: string | null } | undefined;
+    const direcionada = buildBloqueiosDeRegras({
+      regras: regrasBloqueio.data.regras,
+      vinculos: regrasBloqueio.data.vinculos,
+      unidadeId: meRef.data?.unidade_id ?? null,
+      from: form.data_alvo,
+      to: form.data_alvo,
+      pessoa: { colaboradorId: me?.id ?? null, cargoId: me?.cargo_id ?? null, setorId: me?.setor_id ?? null },
+    });
+    return direcionada.has(dataAlvoIso) ? "Data indisponível para folga" : null;
   }, [bloqueios.data, dataAlvoIso, form.data_alvo, meRef.data?.unidade_id, regrasBloqueio.data]);
 
   // Capacidade do dia (só relevante quando tipo = folga)
