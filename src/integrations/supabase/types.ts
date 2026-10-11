@@ -19454,6 +19454,10 @@ export type Database = {
         Args: { p_colaborador: string; p_data: string }
         Returns: Json
       }
+      dp_liberacao_desfazer: {
+        Args: { p_id: string; p_justificativa: string; p_trabalhou: boolean }
+        Returns: undefined
+      }
       dp_licenca_retorno_registrar: {
         Args: {
           p_acao: string

@@ -435,6 +435,13 @@
       "when": 1791736476977,
       "tag": "0061_assiduidade_tolerancia_diaria_atrasos",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1791736613700,
+      "tag": "0062_liberacao_gestor_desfazer",
+      "breakpoints": true
     }
   ]
 }
