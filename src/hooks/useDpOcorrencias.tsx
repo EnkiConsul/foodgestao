@@ -156,6 +156,24 @@ export interface RegistrarOcorrenciaInput {
   horarioEstimado?: string | null;
   horarioReal?: string | null;
   marcacaoAlvo?: OcorrenciaMarcacao | null;
+  /** Decisão do prêmio de assiduidade tomada no cadastro (só quando há prêmio). */
+  assiduidade?: { perde: boolean; justificativa: string } | null;
+}
+
+/** Aplica a decisão do prêmio logo após registrar; se falhar, fica pendente na tela de Ocorrências. */
+export async function decidirAssiduidadeNoCadastro(
+  ocorrenciaId: string | null | undefined,
+  decisao: { perde: boolean; justificativa: string } | null | undefined,
+) {
+  if (!ocorrenciaId || !decisao) return;
+  const { error } = await supabase.rpc("dp_ocorrencia_assiduidade_decidir", {
+    p_ocorrencia_id: ocorrenciaId,
+    p_perde: decisao.perde,
+    p_observacao: decisao.justificativa || null,
+  } as never);
+  if (error && !error.message.includes("ASSIDUIDADE_SEM_RISCO")) {
+    toast.error("Ocorrência salva, mas a decisão do prêmio ficou pendente.", { description: textoErroAssiduidade(error.message) });
+  }
 }
 
 export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
@@ -310,6 +328,7 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
         _marcacao_alvo: input.marcacaoAlvo ?? null,
       });
       if (error) throw error;
+      await decidirAssiduidadeNoCadastro(data as string, input.assiduidade);
       return data as string;
     },
     onSuccess: () => {

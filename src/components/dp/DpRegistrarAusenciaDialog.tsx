@@ -8,6 +8,7 @@ import { isSocio } from "@/lib/dp/contrato-policy";
 import { elegiveisParaAusencia } from "@/lib/dp/ausencia-elegibilidade";
 import { AlertTriangle } from "lucide-react";
 import { AssiduidadePergunta, validarDecisaoAssiduidade, type DecisaoAssiduidade } from "@/components/dp/AssiduidadePergunta";
+import { decidirAssiduidadeNoCadastro } from "@/hooks/useDpOcorrencias";
 import { textoErroAssiduidade } from "@/lib/dp/assiduidade-risco";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -336,7 +337,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
 
   const falta = useMutation({
     mutationFn: async (input: Parameters<React.ComponentProps<typeof OcorrenciaFormDialog>["onSubmit"]>[0]) => {
-      const { error } = await supabase.rpc("dp_ocorrencia_registrar", {
+      const { data, error } = await supabase.rpc("dp_ocorrencia_registrar", {
         _colaborador_id: input.colaboradorId,
         _data: input.data,
         _tipo: input.tipo,
@@ -346,6 +347,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         _marcacao_alvo: input.marcacaoAlvo ?? null,
       });
       if (error) throw error;
+      await decidirAssiduidadeNoCadastro(data as string, input.assiduidade);
     },
     onSuccess: async (_d, input) => {
       toast.success("Falta registrada", { description: "Também aparece nas ocorrências do colaborador." });
