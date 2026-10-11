@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { ClipboardList, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, ClipboardList, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -197,6 +197,55 @@ export default function DpOcorrencias() {
       />
 
       {(() => {
+        const mesDe = (ini: string, fim: string) => {
+          const [a, m] = ini.split("-").map(Number);
+          const ultimo = new Date(a, m, 0).getDate();
+          return ini.endsWith("-01") && fim === `${ini.slice(0, 7)}-${String(ultimo).padStart(2, "0")}` ? ini.slice(0, 7) : null;
+        };
+        const comp = filtros.data ? null : mesDe(intervalo.inicio, intervalo.fim);
+        const rotulo = comp
+          ? new Date(`${comp}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+          : textoPeriodo;
+        const base = comp ?? (filtros.data ?? intervalo.inicio).slice(0, 7);
+        const irMes = (n: number) => {
+          const [a, m] = (filtros.periodo === "todas" ? format(new Date(), "yyyy-MM") : base).split("-").map(Number);
+          const d = new Date(a, m - 1 + n, 1);
+          const fim = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+          setFiltros((f) => ({
+            ...f,
+            data: null,
+            periodo: "personalizado",
+            periodoInicio: format(d, "yyyy-MM-dd"),
+            periodoFim: format(fim, "yyyy-MM-dd"),
+          }));
+        };
+        return (
+          <div className="sticky top-14 z-20 flex flex-wrap items-center gap-2 rounded-2xl border bg-card/95 px-3 py-2 shadow-sm backdrop-blur md:static md:bg-card">
+            <div className="inline-flex min-w-0 flex-1 items-center justify-between rounded-full border bg-background p-0.5 sm:flex-none">
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 rounded-full" aria-label="Mês anterior" onClick={() => irMes(-1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="min-w-0 truncate px-1 text-center text-sm font-bold first-letter:uppercase sm:min-w-[9.5rem]">{rotulo}</span>
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 rounded-full" aria-label="Próximo mês" onClick={() => irMes(1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button size="sm" className="h-8 shrink-0 rounded-full"
+              onClick={() => setFiltros((f) => ({ ...f, data: null, periodo: "mes", periodoInicio: null, periodoFim: null }))}>
+              Hoje
+            </Button>
+            <Select value={filtros.unidadeId} onValueChange={(v) => setFiltros((f) => ({ ...f, unidadeId: v, setorId: "all" }))}>
+              <SelectTrigger className="h-8 w-full rounded-full sm:w-56" aria-label="Unidade"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as unidades</SelectItem>
+                {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        );
+      })()}
+
+      {(() => {
         type CardInd = { key: string; label: string; valor: number; detalhe?: string; aplicar: Partial<OcorrenciaFiltros> };
         const cards: CardInd[] = [
           { key: "falta", label: "Faltas", valor: indicadores.porTipo.falta ?? 0, aplicar: { tipo: "falta" } },
@@ -359,27 +408,6 @@ export default function DpOcorrencias() {
           </Select>
         </DpFilterField>
 
-        <DpFilterField label="Unidade">
-          <Select
-            value={filtros.unidadeId}
-            onValueChange={(v) => {
-              set("unidadeId", v);
-              set("setorId", "all");
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              {unidades.map((u) => (
-                <SelectItem key={u.id} value={u.id}>
-                  {u.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </DpFilterField>
 
         <DpFilterField label="Setor">
           <Select value={filtros.setorId} onValueChange={(v) => set("setorId", v)}>
