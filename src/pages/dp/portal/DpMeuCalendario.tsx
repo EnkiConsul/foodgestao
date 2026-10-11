@@ -1151,14 +1151,14 @@ export default function DpMeuCalendario() {
       const trocaId = (res as { troca_id?: string } | null)?.troca_id;
       if (!trocaId) throw new Error("A troca não foi registrada. Atualize a tela e tente de novo.");
       await assinarTroca(trocaId, assinatura);
-      return trocaId;
+      return { trocaId, exigeGestor: !!(res as { exige_gestor?: boolean } | null)?.exige_gestor };
     },
-    onSuccess: (trocaId) => {
+    onSuccess: ({ trocaId, exigeGestor }) => {
       if (riscoDsrTroca)
         void registrarCienciaDsr({ papel: "solicitante", tabela: "dp_trocas", referenciaId: trocaId, data: riscoDsrTroca.data, dias: riscoDsrTroca.sequencia });
       toast.success(
-        tradeMyDate && tradeOpen && trocaExigeAprovacaoGestor(tradeMyDate, tradeOpen.iso)
-          ? "Troca enviada ao colega. Depois do aceite, o gestor precisa aprovar."
+        exigeGestor || (tradeMyDate && tradeOpen && trocaExigeAprovacaoGestor(tradeMyDate, tradeOpen.iso))
+          ? "Troca enviada ao colega. Depois do aceite, a troca depende da aprovação do gestor."
           : "Solicitação de troca enviada ao colega.",
       );
       setTradeOpen(null);
