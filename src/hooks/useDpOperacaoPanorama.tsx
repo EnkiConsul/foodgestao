@@ -506,8 +506,11 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
 
   /** Ausências registradas pelo gestor (adiantamento/outros) que cruzam a competência. */
   const ausenciasRegistradas: AusenciaRegistrada[] = useMemo(
-    () =>
-      (base.data?.registradas ?? [])
+    () => {
+      // Indisponibilidade só entra no dia se a pessoa pertence à unidade
+      // filtrada (a consulta traz a empresa inteira).
+      const idsNaUnidade = new Set(colaboradores.map((c) => c.id));
+      return (base.data?.registradas ?? [])
         .filter((a) => !!a.data_alvo)
         .map((a): AusenciaRegistrada => ({
           colaborador_id: a.colaborador_id,
@@ -518,15 +521,18 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         }))
         .concat(
           // Indisponibilidade de Convocação (informativa): não conta como falta.
-          (conflitosQuery.data ?? []).map((c): AusenciaRegistrada => ({
-            colaborador_id: c.colaborador_id,
-            tipo: "indisponibilidade",
-            inicio: c.data,
-            fim: c.data,
-            motivo: c.motivo ?? null,
-          })),
-        ),
-    [base.data, conflitosQuery.data],
+          (conflitosQuery.data ?? [])
+            .filter((c) => idsNaUnidade.has(c.colaborador_id))
+            .map((c): AusenciaRegistrada => ({
+              colaborador_id: c.colaborador_id,
+              tipo: "indisponibilidade",
+              inicio: c.data,
+              fim: c.data,
+              motivo: c.motivo ?? null,
+            })),
+        );
+    },
+    [base.data, conflitosQuery.data, colaboradores],
   );
 
   const folgas: FolgaPanorama[] = useMemo(() => {
