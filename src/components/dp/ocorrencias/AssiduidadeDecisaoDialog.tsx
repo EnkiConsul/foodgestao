@@ -30,6 +30,8 @@ export function AssiduidadeDecisaoDialog({ ocorrencia, saving, onOpenChange, onD
     if (ocorrencia) setObservacao("");
   }, [ocorrencia?.id]);
 
+  // Liberação do Gestor mantém por padrão; os demais eventos perdem por padrão.
+  const padraoMantem = !!ocorrencia?.assiduidade_risco_motivo?.startsWith("Liberação do Gestor");
   const data = ocorrencia
     ? new Date(`${ocorrencia.data_operacional}T12:00:00`).toLocaleDateString("pt-BR")
     : "";
@@ -56,7 +58,7 @@ export function AssiduidadeDecisaoDialog({ ocorrencia, saving, onOpenChange, onD
         )}
 
         <div className="space-y-1.5">
-          <Label>Motivo (obrigatório para manter o prêmio)</Label>
+          <Label>Justificativa (obrigatória ao mudar o padrão: {padraoMantem ? "manter" : "perder"})</Label>
           <Textarea
             rows={3}
             value={observacao}
@@ -74,13 +76,13 @@ export function AssiduidadeDecisaoDialog({ ocorrencia, saving, onOpenChange, onD
           </Button>
           <Button
             variant="outline"
-            disabled={saving || !observacao.trim()}
+            disabled={saving || (!padraoMantem && !observacao.trim())}
             onClick={() => onDecidir({ perde: false, observacao: observacao.trim() })}
           >
             Mantém o prêmio
           </Button>
           <Button
-            disabled={saving}
+            disabled={saving || (padraoMantem && !observacao.trim())}
             onClick={() => onDecidir({ perde: true, observacao: observacao.trim() || null })}
           >
             Perde o prêmio
