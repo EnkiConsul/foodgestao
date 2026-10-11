@@ -1413,7 +1413,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
       />
 
       {calendario && (
-        <div className="sticky top-14 z-20 flex flex-nowrap items-center gap-1.5 rounded-2xl border bg-card/95 px-2 py-2 shadow-sm backdrop-blur sm:flex-wrap sm:gap-2 sm:px-3 md:static md:bg-card">
+        <div className="sticky top-14 z-20 flex flex-wrap items-center gap-2 rounded-2xl border bg-card/95 px-3 py-2 shadow-sm backdrop-blur md:static md:bg-card">
           <div className="inline-flex min-w-0 flex-1 items-center justify-between rounded-full border bg-background p-0.5 sm:flex-none">
             <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 rounded-full" aria-label="Anterior"
               onClick={() => setData(aba === "mes" ? `${somarMeses(competencia, -1)}-01` : somarDias(data, -1))}>
@@ -1431,7 +1431,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
             Hoje
           </Button>
           <Select value={unidade && unidade !== "todas" ? unidade : undefined} onValueChange={trocarUnidade}>
-            <SelectTrigger className="h-8 w-[42%] min-w-0 shrink rounded-full sm:w-56" aria-label="Unidade"><SelectValue placeholder="Escolha a unidade" /></SelectTrigger>
+            <SelectTrigger className="h-8 w-full rounded-full sm:w-56" aria-label="Unidade"><SelectValue placeholder="Escolha a unidade" /></SelectTrigger>
             <SelectContent>
               {panorama.unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
             </SelectContent>
