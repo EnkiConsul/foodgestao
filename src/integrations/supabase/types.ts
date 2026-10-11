@@ -19211,9 +19211,30 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_folga_admin_remarcar_limite: {
+        Args: {
+          p_colaborador: string
+          p_consome_vaga?: boolean
+          p_data_atual: string
+          p_data_nova: string
+          p_folga_id: string
+          p_solicitacao_id: string
+        }
+        Returns: Json
+      }
       dp_folga_admin_trocar_fixa: {
         Args: {
           p_colaborador: string
+          p_data_fixa: string
+          p_data_nova: string
+          p_motivo?: string
+        }
+        Returns: Json
+      }
+      dp_folga_admin_trocar_fixa_limite: {
+        Args: {
+          p_colaborador: string
+          p_consome_vaga?: boolean
           p_data_fixa: string
           p_data_nova: string
           p_motivo?: string

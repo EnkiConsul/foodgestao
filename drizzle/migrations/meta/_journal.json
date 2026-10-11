@@ -400,6 +400,13 @@
       "when": 1791724261006,
       "tag": "0056_dp_documento_registrar_assinatura_fisica",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1791725193855,
+      "tag": "0057_dp_folga_troca_impacto_limite",
+      "breakpoints": true
     }
   ]
 }
