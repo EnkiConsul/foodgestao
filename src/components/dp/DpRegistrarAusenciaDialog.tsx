@@ -121,6 +121,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         break;
       case "ferias":
         q.set("novo", "1");
+        q.set("data", form.data_alvo);
         onOpenChange(false);
         navigate(`/dp/ferias?${q}`);
         break;
