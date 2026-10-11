@@ -1,5 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
 import { Palmtree, Plus, Pencil, ClipboardList, AlertTriangle, History, Scale } from "lucide-react";
@@ -71,6 +72,7 @@ export default function DpFerias() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<FeriasGozo | null>(null);
   const [defaultPeriodoId, setDefaultPeriodoId] = useState<string | null>(null);
+  const [defaultDataInicio, setDefaultDataInicio] = useState<string | null>(null);
   const [faltasPeriodo, setFaltasPeriodo] = useState<FeriasPeriodo | null>(null);
   const [saldoPeriodo, setSaldoPeriodo] = useState<FeriasPeriodo | null>(null);
   const [incluirDesligados, setIncluirDesligados] = useState(false);
@@ -139,14 +141,16 @@ export default function DpFerias() {
     return map;
   }, [gozos]);
 
-  const abrirNovo = (periodoId?: string) => {
+  const abrirNovo = (periodoId?: string, dataInicio?: string | null) => {
     setEditing(null);
     setDefaultPeriodoId(periodoId ?? null);
+    setDefaultDataInicio(dataInicio ?? null);
     setDialogOpen(true);
   };
   const abrirEdicao = (g: FeriasGozo) => {
     setEditing(g);
     setDefaultPeriodoId(g.periodo_id);
+    setDefaultDataInicio(null);
     setDialogOpen(true);
   };
 
@@ -165,14 +169,21 @@ export default function DpFerias() {
   /** Atalho do calendário ("Registrar Ausência" → Férias): abre o agendamento do colaborador. */
   const novoParam = params.get("novo");
   const colabParam = params.get("colaborador");
+  const dataParam = params.get("data");
   useEffect(() => {
     if (novoParam !== "1" || periodosLoading) return;
     const doColab = periodos
       .filter((p) => p.colaborador_id === colabParam && (p.dias_saldo ?? 0) > 0 && p.status !== "concluido")
       .sort((a, b) => String(a.inicio_aquisitivo).localeCompare(String(b.inicio_aquisitivo)));
-    abrirNovo(doColab[0]?.id);
+    if (doColab.length === 0) {
+      toast.info("Colaborador sem período aquisitivo com saldo disponível", {
+        description: "Verifique os períodos abertos antes de agendar as férias.",
+      });
+    }
+    abrirNovo(doColab[0]?.id, dataParam);
     const next = new URLSearchParams(params);
     next.delete("novo");
+    next.delete("data");
     setParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [novoParam, periodosLoading, periodos]);
@@ -458,6 +469,7 @@ export default function DpFerias() {
         periodos={periodos}
         editing={editing}
         defaultPeriodoId={defaultPeriodoId}
+        defaultDataInicio={defaultDataInicio}
         antecedenciaDias={feriasConfig.avisoAntecedenciaDias}
         fracionamento={{
           maxFracoes: feriasConfig.fracionamentoMax,

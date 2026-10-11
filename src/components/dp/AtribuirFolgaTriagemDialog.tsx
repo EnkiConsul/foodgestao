@@ -235,8 +235,17 @@ export function AtribuirFolgaTriagemDialog({
     },
   });
 
+  /** Fechar com preenchimento em andamento pede confirmação para não perder dados. */
+  const handleOpenChange = (v: boolean) => {
+    if (!v && !atribuir.isPending) {
+      const sujo = modo !== "extra" || !!folgaSubstituir || !!dataTrabalho || !!motivo.trim() || !!justificativa.trim();
+      if (sujo && !window.confirm("Descartar o preenchimento desta folga?")) return;
+    }
+    onOpenChange(v);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md max-h-[90svh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-black">Atribuir folga</DialogTitle>

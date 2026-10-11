@@ -1342,7 +1342,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                 <UserPlus className="h-4 w-4" /> Mão de Obra Extra
               </Button>
               <Button
-                className="col-span-2 min-w-0 gap-2 px-2 sm:col-span-1 sm:px-4"
+                className="min-w-0 gap-2 px-2 sm:px-4"
                 onClick={() => {
                   setAusenciaData(null);
                   setAusenciaMotivo(undefined);
@@ -1831,7 +1831,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               <BloqueioDoDiaCabecalho companyId={companyIdCal} unidadeId={unidadeId} data={dataPopout} podeEditar={podeRegistrar} />
             )}
             {calendario && dataPopout && diaPopout && (
-              <div className="mt-2 grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-2">
+              <div className="mt-2 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-2">
                 {podeRegistrar && (
                   <>
                     <Button size="sm" variant="outline" className="h-auto min-h-12 min-w-0 flex-col gap-0.5 whitespace-normal px-1 py-1.5 text-[11px] leading-tight sm:h-8 sm:min-h-0 sm:flex-row sm:gap-0 sm:px-3 sm:text-sm rounded-lg" onClick={() => { setAusenciaData(dataPopout); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}>

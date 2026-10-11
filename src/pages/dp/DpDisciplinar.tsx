@@ -202,8 +202,11 @@ export default function DpDisciplinar() {
     [colabs.data, colaboradorId],
   );
   useEffect(() => {
+    // Só zera o tipo depois que os colaboradores carregaram e o regime é conhecido;
+    // caso contrário o "suspensao" vindo da URL seria apagado na montagem.
+    if (colabs.isLoading || !regimeSel) return;
     if (tipo && colaboradorId && !tiposPara(regimeSel).some((t) => t.value === tipo)) setTipo("");
-  }, [regimeSel, colaboradorId, tipo]);
+  }, [regimeSel, colaboradorId, tipo, colabs.isLoading]);
   const [observacao, setObservacao] = useState("");
   const [motivoSel, setMotivoSel] = useState("");
   const [caminho, setCaminho] = useState<"gerar" | "importar">("gerar");
