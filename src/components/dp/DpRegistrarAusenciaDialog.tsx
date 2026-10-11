@@ -233,6 +233,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
       if (form.motivo.length > 500) throw new Error("Observações muito longas (máx. 500)");
       const licenca = form.tipo !== "atestado";
       if (!arquivo && !licenca) throw new Error("Anexe o arquivo do atestado");
+      const decisao = validarDecisaoAssiduidade(licenca ? "licenca" : "atestado", assid);
       let path: string | null = null;
       if (arquivo) {
         const envio = await prepararUpload("dp-documentos", arquivo);
@@ -240,7 +241,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         const up = await supabase.storage.from("dp-documentos").upload(path, envio, { upsert: false });
         if (up.error) throw up.error;
       }
-      const { error } = await supabase.rpc("dp_solicitacao_criar_admin", {
+      const { data, error } = await supabase.rpc("dp_solicitacao_criar_admin", {
         p_colaborador: form.colaborador_id,
         p_tipo: form.tipo,
         p_data_alvo: form.data_alvo,
@@ -253,6 +254,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         if (path) await supabase.storage.from("dp-documentos").remove([path]).catch(() => undefined);
         throw error;
       }
+      await gravarAssiduidade(data, decisao);
     },
     onSuccess: () => {
       toast.success("Ausência registrada", { description: "Já aparece no calendário e em Atestados." });
@@ -268,9 +270,10 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
   const dispensa = useMutation({
     mutationFn: async (m: "liberacao" | "socio") => {
       if (form.motivo.length > 450) throw new Error("Observações muito longas (máx. 450)");
+      const decisao = m === "liberacao" ? validarDecisaoAssiduidade("liberacao", assid) : null;
       const rotulo = MOTIVO_LABEL[m];
       const obs = form.motivo.trim();
-      const { error } = await supabase.rpc("dp_solicitacao_criar_admin", {
+      const { data, error } = await supabase.rpc("dp_solicitacao_criar_admin", {
         p_colaborador: form.colaborador_id,
         p_tipo: "outros",
         p_data_alvo: form.data_alvo,
@@ -280,6 +283,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         p_aprovada: true,
       });
       if (error) throw error;
+      await gravarAssiduidade(data, decisao);
     },
     onSuccess: (_d, m) => {
       toast.success(`${MOTIVO_LABEL[m]} registrada`, { description: "Já aparece no calendário." });
@@ -429,6 +433,9 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
                     <Label>Observação</Label>
                     <Textarea rows={2} maxLength={450} value={form.motivo} onChange={(e) => setForm({ ...form, motivo: e.target.value })} />
                   </div>
+                  {motivo === "liberacao" && (
+                    <AssiduidadePergunta colaboradorId={form.colaborador_id} evento="liberacao" value={assid} onChange={setAssid} />
+                  )}
                 </div>
               )}
               {motivo === "indisponibilidade" && !conv && (
@@ -529,6 +536,12 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
                 <Textarea rows={3} maxLength={500} placeholder="Contexto ou observação (opcional)"
                   value={form.motivo} onChange={(e) => setForm({ ...form, motivo: e.target.value })} />
               </div>
+              <AssiduidadePergunta
+                colaboradorId={form.colaborador_id}
+                evento={form.tipo === "atestado" ? "atestado" : "licenca"}
+                value={assid}
+                onChange={setAssid}
+              />
             </div>
           )}
 
