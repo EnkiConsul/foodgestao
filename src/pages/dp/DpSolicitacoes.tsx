@@ -223,7 +223,7 @@ export default function DpSolicitacoes() {
   });
 
   const [desfazer, setDesfazer] = useState<{ id: string; nome?: string | null } | null>(null);
-  const [aprovarAtestado, setAprovarAtestado] = useState<{ id: string; colaborador_id: string; nome?: string | null; resposta: string } | null>(null);
+  const [aprovarAtestado, setAprovarAtestado] = useState<{ id: string; colaborador_id: string; nome?: string | null; resposta: string; evento: "atestado" | "licenca" } | null>(null);
 
   const respond = useMutation({
     mutationFn: async ({ id, status, resposta }: { id: string; status: Status; resposta?: string }) => {
@@ -267,8 +267,14 @@ export default function DpSolicitacoes() {
       setConfirmDsr({ row: r, dias });
       return;
     }
-    if (approve && r.tipo === "atestado") {
-      setAprovarAtestado({ id: r.id, colaborador_id: r.colaborador_id, nome: r.dp_colaboradores?.nome, resposta });
+    if (approve && (r.tipo === "atestado" || String(r.tipo).startsWith("licenca"))) {
+      setAprovarAtestado({
+        id: r.id,
+        colaborador_id: r.colaborador_id,
+        nome: r.dp_colaboradores?.nome,
+        resposta,
+        evento: r.tipo === "atestado" ? "atestado" : "licenca",
+      });
       return;
     }
     if (approve && r.tipo === "adiantamento") {
