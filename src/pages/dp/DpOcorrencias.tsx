@@ -188,32 +188,60 @@ export default function DpOcorrencias() {
       />
 
       {(() => {
-        const cards = [
-          { label: "Faltas no mês", valor: indicadores.faltas },
-          { label: "Ausências justificadas", valor: indicadores.ausencias_justificadas },
+        type CardInd = { key: string; label: string; valor: number; detalhe?: string; aplicar: Partial<OcorrenciaFiltros> };
+        const cards: CardInd[] = [
+          { key: "falta", label: "Faltas", valor: indicadores.faltas, aplicar: { tipo: "falta" } },
+          { key: "ausencia_justificada", label: "Ausências justificadas", valor: indicadores.ausencias_justificadas, aplicar: { tipo: "ausencia_justificada" } },
           {
-            label: "Atrasos no mês",
+            key: "atraso",
+            label: "Atrasos",
             valor: indicadores.atrasos,
             detalhe: indicadores.atraso_minutos ? `${indicadores.atraso_minutos} min` : undefined,
+            aplicar: { tipo: "atraso" },
           },
-          { label: "Saídas antecipadas", valor: indicadores.saidas_antecipadas },
+          { key: "saida_antecipada", label: "Saídas antecipadas", valor: indicadores.saidas_antecipadas, aplicar: { tipo: "saida_antecipada" } },
+          { key: "esquecimento_marcacao", label: "Esquecimentos", valor: indicadores.esquecimentos, aplicar: { tipo: "esquecimento_marcacao" } },
+          { key: "divergencia_jornada", label: "Erros de jornada", valor: indicadores.divergencias, aplicar: { tipo: "divergencia_jornada" } },
           {
+            key: "cobertas",
             label: "Ausências cobertas",
             valor: indicadores.ausencias_cobertas,
             detalhe: indicadores.ausencias_descobertas ? `${indicadores.ausencias_descobertas} sem cobertura` : undefined,
+            aplicar: { cobertura: "aprovada" },
           },
-          { label: "Aguardando decisão", valor: indicadores.pendentes },
+          { key: "pendentes", label: "Aguardando decisão", valor: indicadores.pendentes, aplicar: { somentePendentes: true } },
         ].filter((c) => Number(c.valor) > 0);
         if (cards.length === 0) return null;
+        const ativo = (c: CardInd) =>
+          Object.entries(c.aplicar).every(([k, v]) => filtros[k as keyof OcorrenciaFiltros] === v) && filtros.periodo === "mes";
+        const clicar = (c: CardInd) => {
+          if (ativo(c)) {
+            setFiltros((f) => ({ ...f, tipo: "all", cobertura: "all", somentePendentes: false, periodo: "todas" }));
+          } else {
+            setFiltros((f) => ({ ...f, tipo: "all", cobertura: "all", somentePendentes: false, periodo: "mes", data: null, ...c.aplicar }));
+          }
+        };
         return (
-          <div className={cn("grid gap-1.5 sm:gap-2", cards.length === 1 ? "grid-cols-1" : cards.length === 2 || cards.length === 4 ? "grid-cols-2" : "grid-cols-3", cards.length === 4 ? "lg:grid-cols-4" : cards.length === 5 ? "lg:grid-cols-5" : cards.length >= 6 ? "lg:grid-cols-6" : "")}>
-            {cards.map((c) => (
-              <div key={c.label} className="rounded-md border bg-card px-2 py-1.5 sm:rounded-lg sm:p-3">
-                <p className="truncate text-[10px] leading-tight text-muted-foreground sm:text-xs">{c.label}</p>
-                <p className="text-base font-semibold leading-tight sm:text-xl">{c.valor}</p>
-                {c.detalhe && <p className="truncate text-[10px] text-muted-foreground sm:text-[11px]">{c.detalhe}</p>}
-              </div>
-            ))}
+          <div>
+            <p className="mb-1.5 text-xs text-muted-foreground">Neste mês · toque para filtrar</p>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+              {cards.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() => clicar(c)}
+                  aria-pressed={ativo(c)}
+                  className={cn(
+                    "rounded-lg border bg-card p-2 text-center shadow-sm transition-colors hover:border-primary/50 hover:bg-muted/40 sm:p-3",
+                    ativo(c) && "border-primary bg-primary/10",
+                  )}
+                >
+                  <p className="truncate text-[10px] leading-tight text-muted-foreground sm:text-xs">{c.label}</p>
+                  <p className="text-base font-bold leading-tight sm:text-lg">{c.valor}</p>
+                  {c.detalhe && <p className="truncate text-[10px] text-muted-foreground">{c.detalhe}</p>}
+                </button>
+              ))}
+            </div>
           </div>
         );
       })()}
