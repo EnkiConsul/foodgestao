@@ -33,11 +33,17 @@ import {
 } from "@/lib/dp/ocorrencias";
 import {
   FILTROS_PADRAO,
+  intervaloDe,
   useDpOcorrencias,
   type Ocorrencia,
   type OcorrenciaFiltros,
   type OcorrenciaPeriodo,
 } from "@/hooks/useDpOcorrencias";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
@@ -47,15 +53,6 @@ import { OcorrenciaHistoricoDialog } from "@/components/dp/ocorrencias/Ocorrenci
 import { useDpOcorrenciasIndicadores } from "@/hooks/useDpOcorrenciasIndicadores";
 import type { SubstitutoOpcao } from "@/components/dp/ocorrencias/SubstitutoPicker";
 
-function mesCorrente(): { inicio: string; fim: string } {
-  const hoje = new Date();
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
-  return {
-    inicio: iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1)),
-    fim: iso(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)),
-  };
-}
-
 const COBERTURAS: { value: string; label: string }[] = [
   { value: "all", label: "Todas" },
   { value: "sem", label: "Sem cobertura" },
@@ -64,12 +61,12 @@ const COBERTURAS: { value: string; label: string }[] = [
   { value: "realizada", label: "Cobertura realizada" },
 ];
 
-
 const PERIODOS: { value: OcorrenciaPeriodo; label: string }[] = [
   { value: "hoje", label: "Hoje" },
   { value: "semana", label: "Semana" },
-  { value: "mes", label: "Mês" },
+  { value: "mes", label: "Mês vigente" },
   { value: "todas", label: "Todas" },
+  { value: "personalizado", label: "Personalizado" },
 ];
 
 export default function DpOcorrencias() {
@@ -96,8 +93,20 @@ export default function DpOcorrencias() {
   const [cobrir, setCobrir] = useState<Ocorrencia | null>(null);
   const [historico, setHistorico] = useState<Ocorrencia | null>(null);
   const [decidirPremio, setDecidirPremio] = useState<Ocorrencia | null>(null);
-  const mes = useMemo(() => mesCorrente(), []);
-
+  const intervalo = useMemo(() => {
+    if (filtros.data) return { inicio: filtros.data, fim: filtros.data };
+    const r = intervaloDe(filtros.periodo, { inicio: filtros.periodoInicio, fim: filtros.periodoFim });
+    return { inicio: r.inicio ?? "2000-01-01", fim: r.fim ?? "2099-12-31" };
+  }, [filtros.data, filtros.periodo, filtros.periodoInicio, filtros.periodoFim]);
+  const textoPeriodo = useMemo(() => {
+    const br = (s: string) => s.split("-").reverse().join("/");
+    if (filtros.data) return `Dia ${br(filtros.data)}`;
+    if (filtros.periodo === "todas") return "Todo o histórico";
+    if (filtros.periodo === "hoje") return "Hoje";
+    if (filtros.periodo === "semana") return "Nesta semana";
+    if (filtros.periodo === "mes") return "Neste mês";
+    return `${br(intervalo.inicio)} a ${br(intervalo.fim)}`;
+  }, [filtros.data, filtros.periodo, intervalo]);
 
   const set = <K extends keyof OcorrenciaFiltros>(k: K, v: OcorrenciaFiltros[K]) =>
     setFiltros((f) => ({ ...f, [k]: v }));
@@ -108,8 +117,8 @@ export default function DpOcorrencias() {
   const { setores } = useDpSetores(filtros.unidadeId === "all" ? null : filtros.unidadeId);
   const { data: pessoasApoio = [] } = useDpPessoasApoio({ apenasAtivos: true });
   const { indicadores } = useDpOcorrenciasIndicadores({
-    inicio: mes.inicio,
-    fim: mes.fim,
+    inicio: intervalo.inicio,
+    fim: intervalo.fim,
     unidadeId: filtros.unidadeId,
   });
 
