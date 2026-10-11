@@ -162,6 +162,15 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
             .eq("company_id", selectedCompanyId!)
             .in("tipo", [...TIPOS_AFASTAMENTO])
             .eq("status", "aprovada"),
+          // Suspensões disciplinares vigentes: o colaborador suspenso está
+          // ausente do dia e não entra na escala nem na contagem.
+          supabase
+            .from("dp_registros_disciplinares")
+            .select("colaborador_id, data, suspensao_dias")
+            .eq("company_id", selectedCompanyId!)
+            .eq("tipo", "suspensao")
+            .is("removido_em", null)
+            .lte("data", fim),
           // Pedidos de folga já aprovados contam como folga do dia, mesmo antes
           // de serem efetivados em dp_folgas (mesma regra do calendário de folgas).
           supabase
