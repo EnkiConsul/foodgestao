@@ -981,6 +981,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
   const podeRegistrar = role === "owner" || role === "admin";
   const [ausenciaOpen, setAusenciaOpen] = useState(false);
   const [ausenciaData, setAusenciaData] = useState<string | null>(null);
+  const [ausenciaMotivo, setAusenciaMotivo] = useState<"folga" | undefined>(undefined);
   const [avulsaOpen, setAvulsaOpen] = useState(false);
   const [avulsaData, setAvulsaData] = useState<string | null>(null);
   const [avulsaEditando, setAvulsaEditando] = useState<PessoaAvulsaPanorama | null>(null);
@@ -1340,9 +1341,21 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                 <UserPlus className="h-4 w-4" /> Mão de Obra Extra
               </Button>
               <Button
+                variant="outline"
                 className="min-w-0 gap-2 px-2 sm:px-4"
                 onClick={() => {
                   setAusenciaData(null);
+                  setAusenciaMotivo("folga");
+                  setAusenciaOpen(true);
+                }}
+              >
+                <CalendarPlus className="h-4 w-4" /> Atribuir Folga
+              </Button>
+              <Button
+                className="col-span-2 min-w-0 gap-2 px-2 sm:col-span-1 sm:px-4"
+                onClick={() => {
+                  setAusenciaData(null);
+                  setAusenciaMotivo(undefined);
                   setAusenciaOpen(true);
                 }}
               >
@@ -1369,6 +1382,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
         open={ausenciaOpen}
         onOpenChange={setAusenciaOpen}
         dataInicial={ausenciaData}
+        motivoInicial={ausenciaMotivo}
       />
 
       <DpPessoaAvulsaDialog
@@ -1857,7 +1871,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                 </Popover>
                 {podeRegistrar && (
                   <>
-                    <Button size="sm" variant="outline" className="h-auto min-h-12 min-w-0 flex-col gap-0.5 whitespace-normal px-1 py-1.5 text-[11px] leading-tight sm:h-8 sm:min-h-0 sm:flex-row sm:gap-0 sm:px-3 sm:text-sm rounded-lg" onClick={() => { setAusenciaData(dataPopout); setAusenciaOpen(true); }}>
+                    <Button size="sm" variant="outline" className="h-auto min-h-12 min-w-0 flex-col gap-0.5 whitespace-normal px-1 py-1.5 text-[11px] leading-tight sm:h-8 sm:min-h-0 sm:flex-row sm:gap-0 sm:px-3 sm:text-sm rounded-lg" onClick={() => { setAusenciaData(dataPopout); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}>
                       <Plus className="h-4 w-4 sm:mr-1" /> Registrar Ausência
                     </Button>
                     <Button size="sm" variant="outline" className="h-auto min-h-12 min-w-0 flex-col gap-0.5 whitespace-normal px-1 py-1.5 text-[11px] leading-tight sm:h-8 sm:min-h-0 sm:flex-row sm:gap-0 sm:px-3 sm:text-sm rounded-lg" onClick={() => abrirNovaAvulsa(dataPopout)}>

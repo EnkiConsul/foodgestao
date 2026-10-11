@@ -31,7 +31,7 @@ import { sanitizeStorageFilename } from "@/lib/storage";
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 
 /** Motivos do roteador: cada um abre o fluxo oficial da sua área. */
-type Motivo = "folga" | "ferias" | "afastamento" | "falta" | "suspensao";
+export type Motivo = "folga" | "ferias" | "afastamento" | "falta" | "suspensao";
 
 const MOTIVO_LABEL: Record<Motivo, string> = {
   folga: "Folga (compensatória, extra ou troca)",
@@ -55,6 +55,8 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   /** Data inicial sugerida (AAAA-MM-DD), ex.: vinda do calendário. */
   dataInicial?: string | null;
+  /** Motivo já escolhido (ex.: botão "Atribuir Folga"). */
+  motivoInicial?: Motivo;
 }
 
 /**
@@ -62,7 +64,7 @@ interface Props {
  * colaborador, data e motivo, e o sistema abre o formulário oficial já
  * preenchido. Só atestados/licenças e faltas são gravados aqui mesmo.
  */
-export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: Props) {
+export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, motivoInicial }: Props) {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -85,7 +87,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: P
   useEffect(() => {
     if (!open) return;
     setEtapa("escolha");
-    setMotivo("afastamento");
+    setMotivo(motivoInicial ?? "afastamento");
     setArquivo(null);
     const hoje = new Date().toISOString().slice(0, 10);
     setForm({
@@ -95,7 +97,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: P
       data_fim: dataInicial ?? hoje,
       motivo: "",
     });
-  }, [open, dataInicial]);
+  }, [open, dataInicial, motivoInicial]);
 
   useEffect(() => {
     if (form.data_fim && form.data_alvo && form.data_fim < form.data_alvo)
