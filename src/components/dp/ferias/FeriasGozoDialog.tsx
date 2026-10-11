@@ -25,6 +25,8 @@ type Props = {
   periodos: FeriasPeriodo[];
   editing: FeriasGozo | null;
   defaultPeriodoId?: string | null;
+  /** Data inicial sugerida (ex.: vinda do calendário de rotina). */
+  defaultDataInicio?: string | null;
   saving: boolean;
   /** Antecedência mínima do aviso definida pela empresa (dias). */
   antecedenciaDias: number;
@@ -48,7 +50,7 @@ const emptyForm: GozoInput = {
 };
 
 export function FeriasGozoDialog({
-  open, onOpenChange, periodos, editing, defaultPeriodoId, saving, antecedenciaDias,
+  open, onOpenChange, periodos, editing, defaultPeriodoId, defaultDataInicio, saving, antecedenciaDias,
   fracionamento = FRACIONAMENTO_PADRAO, fracoesPorPeriodo = {}, onSubmit,
 }: Props) {
   const [form, setForm] = useState<GozoInput>(emptyForm);
@@ -77,8 +79,9 @@ export function FeriasGozoDialog({
       ...emptyForm,
       periodo_id: p?.id ?? "",
       colaborador_id: p?.colaborador_id ?? "",
+      data_inicio: defaultDataInicio ?? "",
     });
-  }, [open, editing, defaultPeriodoId, periodos]);
+  }, [open, editing, defaultPeriodoId, defaultDataInicio, periodos]);
 
   const periodoSel = useMemo(
     () => periodos.find((p) => p.id === form.periodo_id) ?? null,
