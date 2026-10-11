@@ -294,9 +294,16 @@ export function BloqueioDoDiaCabecalho({
   const [abrindo, setAbrindo] = useState(false);
   const [alvoTipo, setAlvoTipo] = useState<AlvoRegra>("todos");
   const [alvoIds, setAlvoIds] = useState<string[]>([]);
+  const [deTotal, setDeTotal] = useState(false);
   const bloquear = useMutation({
     mutationFn: async () => {
       const m = motivo.trim() || "Bloqueado pelo gestor";
+      if (deTotal) {
+        if (alvoIds.length === 0) throw new Error("Escolha ao menos um item que continua sem folga.");
+        const bt = efetivos.data?.get(data) ?? null;
+        if (bt?.id && !bt.global && !bt.regra_id) await excluirDataBloqueada(bt.id);
+        else await salvarDataBloqueada({ companyId, data, unidadeId, liberada: true, motivo: "Desbloqueio parcial pelo gestor" });
+      }
       if (alvoTipo === "todos") return salvarDataBloqueada({ companyId, data, motivo: m, unidadeId });
       if (alvoIds.length === 0) throw new Error("Escolha ao menos um item do público.");
       const [y, mo, d] = data.split("-").map(Number);
@@ -317,7 +324,8 @@ export function BloqueioDoDiaCabecalho({
     },
     onSuccess: () => {
       toast.success(alvoTipo === "todos" ? "Data bloqueada para folgas." : editId ? "Bloqueio parcial atualizado." : "Bloqueio parcial salvo para o público escolhido.");
-      setMotivo(""); setAbrindo(false); setAlvoTipo("todos"); setAlvoIds([]); setEditId(null);
+      setMotivo(""); setAbrindo(false); setAlvoTipo("todos"); setAlvoIds([]); setEditId(null); setDeTotal(false);
+      qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
       for (const k of ["dp_bloqueios_efetivos", "dp_bloqueio_cabecalho", "dp_regras_do_dia", "dp_datas_bloqueadas_geral", "dp_panorama_base", "dp_bloqueio_regras"])
         qc.invalidateQueries({ queryKey: [k] });
     },
@@ -338,6 +346,28 @@ export function BloqueioDoDiaCabecalho({
         description: `${e instanceof Error ? e.message : String(e)} Tente de novo em instantes.`,
       }),
   });
+  const formBloqueio = (
+          <div className="w-full space-y-2 rounded-lg border p-3 text-left">
+            <label className="text-xs font-medium">{deTotal ? "Quem continua sem folga" : "Quem não poderá folgar"}</label>
+            <select
+              value={alvoTipo}
+              disabled={!!editId}
+              onChange={(e) => { setAlvoTipo(e.target.value as AlvoRegra); setAlvoIds([]); }}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            >
+              {(Object.keys(ALVO_LABEL) as AlvoRegra[]).filter((k) => !deTotal || k !== "todos").map((k) => <option key={k} value={k}>{ALVO_LABEL[k]}</option>)}
+            </select>
+            <AlvoMultiSelect companyId={companyId} tipo={alvoTipo} value={alvoIds} onChange={setAlvoIds} unidadeIds={unidadeId ? [unidadeId] : null} data={data} />
+            <Input className="h-9" placeholder="Motivo do bloqueio" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+            <p className="text-xs text-muted-foreground">
+              {deTotal ? "O dia fica liberado para a equipe; só o público escolhido continua sem folga." : alvoTipo === "todos" ? "Ninguém da unidade folga neste dia." : "Bloqueio parcial: só o público escolhido fica sem folga; o limite do dia continua valendo para todos."}
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" variant="destructive" className="h-8 flex-1" disabled={bloquear.isPending || (alvoTipo !== "todos" && alvoIds.length === 0)} onClick={() => bloquear.mutate()}>{deTotal ? "Desbloquear parcial" : "Bloquear"}</Button>
+              <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAbrindo(false); setEditId(null); setDeTotal(false); }}>Voltar</Button>
+            </div>
+          </div>
+  );
   const b = q.data;
   if (q.isLoading) return null;
   if (!b) {
@@ -345,7 +375,7 @@ export function BloqueioDoDiaCabecalho({
     return (
       <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
         {parciais.length > 0 ? (
-          <div className="w-full space-y-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-left">
+          <div className="w-full max-w-full space-y-2 overflow-hidden break-words rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-left">
             <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-300">
               <Lock className="h-4 w-4" /> Bloqueio parcial
             </span>
@@ -376,26 +406,7 @@ export function BloqueioDoDiaCabecalho({
           <span className="inline-flex items-center gap-1 text-xs font-medium text-primary"><LockOpen className="h-3.5 w-3.5" /> Liberado para folgas</span>
         )}
         {!podeEditar ? null : abrindo ? (
-          <div className="w-full space-y-2 rounded-lg border p-3 text-left">
-            <label className="text-xs font-medium">Quem não poderá folgar</label>
-            <select
-              value={alvoTipo}
-              disabled={!!editId}
-              onChange={(e) => { setAlvoTipo(e.target.value as AlvoRegra); setAlvoIds([]); }}
-              className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
-            >
-              {(Object.keys(ALVO_LABEL) as AlvoRegra[]).map((k) => <option key={k} value={k}>{ALVO_LABEL[k]}</option>)}
-            </select>
-            <AlvoMultiSelect companyId={companyId} tipo={alvoTipo} value={alvoIds} onChange={setAlvoIds} unidadeIds={unidadeId ? [unidadeId] : null} data={data} />
-            <Input className="h-9" placeholder="Motivo do bloqueio" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
-            <p className="text-xs text-muted-foreground">
-              {alvoTipo === "todos" ? "Ninguém da unidade folga neste dia." : "Bloqueio parcial: só o público escolhido fica sem folga; o limite do dia continua valendo para todos."}
-            </p>
-            <div className="flex gap-2">
-              <Button size="sm" variant="destructive" className="h-8 flex-1" disabled={bloquear.isPending || (alvoTipo !== "todos" && alvoIds.length === 0)} onClick={() => bloquear.mutate()}>Bloquear</Button>
-              <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAbrindo(false); setEditId(null); }}>Voltar</Button>
-            </div>
-          </div>
+          formBloqueio
         ) : (
           <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { setEditId(null); setAbrindo(true); }}>
             <Lock className="mr-1 h-3.5 w-3.5" /> {parciais.length ? "Bloquear mais" : "Bloquear dia"}
@@ -405,8 +416,8 @@ export function BloqueioDoDiaCabecalho({
     );
   }
   return (
-    <div className="mt-2 flex flex-wrap items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2">
-      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-destructive">
+    <div className="mt-2 flex w-full max-w-full flex-wrap items-center justify-center gap-2 overflow-hidden rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2">
+      <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 break-words text-sm font-semibold text-destructive">
         <Lock className="h-4 w-4" /> Bloqueado{b.motivo ? ` · ${b.motivo}` : ""}
       </span>
       {podeEditar && (
@@ -423,6 +434,12 @@ export function BloqueioDoDiaCabecalho({
           <LockOpen className="mr-1 h-3.5 w-3.5" /> Liberar Data
         </Button>
       )}
+      {podeEditar && !abrindo && (
+        <Button size="sm" variant="outline" className="h-8" onClick={() => { setDeTotal(true); setEditId(null); setAlvoTipo("cargo"); setAlvoIds([]); setMotivo(b.motivo ?? ""); setAbrindo(true); }}>
+          <LockOpen className="mr-1 h-3.5 w-3.5" /> Desbloquear parcial
+        </Button>
+      )}
+      {podeEditar && abrindo && deTotal && formBloqueio}
       <LiberarEscopoDialog
         open={escopoOpen}
         onOpenChange={setEscopoOpen}

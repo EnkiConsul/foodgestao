@@ -1840,11 +1840,11 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               <div className="mt-2 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-2">
                 {podeRegistrar && (
                   <>
-                    <Button size="sm" variant="outline" className="h-auto min-h-12 min-w-0 flex-col gap-0.5 whitespace-normal px-1 py-1.5 text-[11px] leading-tight sm:h-8 sm:min-h-0 sm:flex-row sm:gap-0 sm:px-3 sm:text-sm rounded-lg" onClick={() => { setAusenciaData(dataPopout); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}>
-                      <Plus className="h-4 w-4 sm:mr-1" /> Registrar Ausência
+                    <Button size="sm" variant="outline" className="h-9 min-w-0 gap-1 whitespace-nowrap px-1.5 text-xs font-medium rounded-lg sm:h-8 sm:px-3 sm:text-sm" onClick={() => { setAusenciaData(dataPopout); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}>
+                      <Plus className="h-4 w-4 shrink-0" /> Registrar Ausência
                     </Button>
-                    <Button size="sm" variant="outline" className="h-auto min-h-12 min-w-0 flex-col gap-0.5 whitespace-normal px-1 py-1.5 text-[11px] leading-tight sm:h-8 sm:min-h-0 sm:flex-row sm:gap-0 sm:px-3 sm:text-sm rounded-lg" onClick={() => abrirNovaAvulsa(dataPopout)}>
-                      <UserPlus className="h-4 w-4 sm:mr-1" /> Mão de Obra Extra
+                    <Button size="sm" variant="outline" className="h-9 min-w-0 gap-1 whitespace-nowrap px-1.5 text-xs font-medium rounded-lg sm:h-8 sm:px-3 sm:text-sm" onClick={() => abrirNovaAvulsa(dataPopout)}>
+                      <UserPlus className="h-4 w-4 shrink-0" /> Mão de Obra Extra
                     </Button>
                   </>
                 )}

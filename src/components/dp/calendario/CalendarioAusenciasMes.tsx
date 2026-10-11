@@ -650,16 +650,26 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                     ? `🎉 ${p.nome.replace(/^Feriado · /, "")}`
                     : p.nome}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <div className="mt-1 flex flex-wrap gap-1.5">
                   {p.datas.sort().map((iso) => {
                     const base = fmtDiaSemana(iso);
+                    let txt = base;
                     if (cardAberto?.chave === "trocas") {
                       const orig = dataOriginalTroca.get(`${p.id}:${iso}`);
-                      if (orig) return `${base} (era ${fmtDiaSemana(orig)})`;
+                      if (orig) txt = `${base} (era ${fmtDiaSemana(orig)})`;
                     }
-                    return base;
-                  }).join(" · ")}
-                </p>
+                    return (
+                      <button
+                        key={iso}
+                        type="button"
+                        onClick={() => { setCardAberto(null); onAbrirDia(iso, mostraTurno ? periodo : "todos"); }}
+                        className="rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-medium text-foreground hover:bg-primary/10 hover:border-primary/40"
+                      >
+                        {txt}
+                      </button>
+                    );
+                  })}
+                </div>
               </li>
             ))}
           </ul>
