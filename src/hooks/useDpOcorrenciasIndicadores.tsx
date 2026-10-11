@@ -54,7 +54,7 @@ export function useDpOcorrenciasIndicadores(params: {
     queryFn: async () => {
       let q = supabase
         .from("dp_ocorrencias")
-        .select("tipo")
+        .select("tipo, minutos")
         .eq("company_id", selectedCompanyId!)
         .gte("data_operacional", params.inicio)
         .lte("data_operacional", params.fim)
@@ -71,11 +71,15 @@ export function useDpOcorrenciasIndicadores(params: {
         q,
       ]);
       const porTipo: Record<string, number> = {};
-      for (const r of (tipos.data ?? []) as { tipo: string }[]) porTipo[r.tipo] = (porTipo[r.tipo] ?? 0) + 1;
+      let atraso_minutos = 0;
+      for (const r of (tipos.data ?? []) as { tipo: string; minutos: number | null }[]) {
+        porTipo[r.tipo] = (porTipo[r.tipo] ?? 0) + 1;
+        if (r.tipo === "atraso") atraso_minutos += Number(r.minutos ?? 0);
+      }
       const esquecimentos = porTipo.esquecimento_marcacao ?? 0;
       const divergencias = porTipo.divergencia_jornada ?? 0;
       if (error) throw error;
-      return { ...VAZIO, ...((data ?? {}) as Partial<OcorrenciasIndicadores>), esquecimentos, divergencias, porTipo };
+      return { ...VAZIO, ...((data ?? {}) as Partial<OcorrenciasIndicadores>), atraso_minutos, esquecimentos, divergencias, porTipo };
     },
   });
 
