@@ -156,7 +156,13 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
 
       <div className="space-y-3 rounded-xl border bg-muted/30 p-3">
         <p className="text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground">Vagas de Folga no Dia</p>
-        {lim == null ? (
+        {bloqueio ? (
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className="text-2xl font-extrabold tabular-nums text-destructive">{folgasNoDia}/0</span>
+            <span className="text-sm font-semibold">Dia bloqueado · sem vagas livres</span>
+            <span className="text-xs text-muted-foreground">Folgas já aprovadas continuam valendo.</span>
+          </div>
+        ) : lim == null ? (
           <p className="text-sm text-muted-foreground">Nenhum limite cadastrado para este dia. Cadastre uma regra em Folgas &gt; Regras ou ajuste abaixo.</p>
         ) : (
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -171,7 +177,7 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
             </span>
           </div>
         )}
-        {cotas.length > 0 && (
+        {!bloqueio && cotas.length > 0 && (
           <ul className="space-y-1">
             {cotas.map((c) => {
               const livres = Math.max(0, c.maximo - c.ocupados);

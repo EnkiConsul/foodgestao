@@ -108,8 +108,9 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     },
   });
   const fixosPorDow = useFixosPorDiaSemana(selectedCompanyId, unidadeId);
+  // Dia bloqueado não tem vaga de folga: limite zero.
   const limiteDoDia = (iso: string) =>
-    unidadeId
+    bloqueios.has(iso) ? 0 : unidadeId
       ? limiteComFolgaFixaDiaUtil(iso, resolverLimiteFolga({ data: iso, unidadeId, regras: regrasLimite ?? [], diaConfig: diaConfigQuery.data ?? [] }), fixosPorDow.data).limite
       : null;
   // Trocas aprovadas do mês: data_original por colaborador/data nova (para "era Seg 12/10").
