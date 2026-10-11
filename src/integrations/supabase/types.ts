@@ -21300,6 +21300,7 @@ export type Database = {
         | "ferias_aviso"
         | "assiduidade_decidida"
         | "documento_complemento"
+        | "folga_acima_limite"
       dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
       dp_ocorrencia_cobertura_execucao:
         | "prevista"
@@ -21783,6 +21784,7 @@ export const Constants = {
         "ferias_aviso",
         "assiduidade_decidida",
         "documento_complemento",
+        "folga_acima_limite",
       ],
       dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
       dp_ocorrencia_cobertura_execucao: [
