@@ -449,6 +449,13 @@
       "when": 1791736968156,
       "tag": "0063_trocas_folga_em_ocorrencias",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1791752769199,
+      "tag": "0064_pix_aceita_tipo_telefone",
+      "breakpoints": true
     }
   ]
 }
