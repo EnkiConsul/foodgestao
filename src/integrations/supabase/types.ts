@@ -21301,6 +21301,8 @@ export type Database = {
         | "assiduidade_decidida"
         | "documento_complemento"
         | "folga_acima_limite"
+        | "folga_janela_lembrete"
+        | "folga_pendentes_gestor"
       dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
       dp_ocorrencia_cobertura_execucao:
         | "prevista"
@@ -21785,6 +21787,8 @@ export const Constants = {
         "assiduidade_decidida",
         "documento_complemento",
         "folga_acima_limite",
+        "folga_janela_lembrete",
+        "folga_pendentes_gestor",
       ],
       dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
       dp_ocorrencia_cobertura_execucao: [

@@ -122,6 +122,7 @@ export function RegraDialog({
               value={form.alvo_ids}
               onChange={(ids) => onChange((p) => ({ ...p, alvo_ids: ids }))}
               erro={erros.has("alvo")}
+              unidadeIds={form.unidades}
             />
             {erros.has("alvo") ? (
               <p className="text-xs text-destructive">Escolha para quem a regra vale.</p>

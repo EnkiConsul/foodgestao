@@ -372,6 +372,20 @@
       "when": 1791702524550,
       "tag": "0052_dp_bloqueio_alvo_multiplo",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1791719253359,
+      "tag": "0053_dp_troca_restricao_exige_gestor",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1791719492541,
+      "tag": "0054_dp_folga_janela_lembretes",
+      "breakpoints": true
     }
   ]
 }

@@ -386,7 +386,7 @@ export function BloqueioDoDiaCabecalho({
             >
               {(Object.keys(ALVO_LABEL) as AlvoRegra[]).map((k) => <option key={k} value={k}>{ALVO_LABEL[k]}</option>)}
             </select>
-            <AlvoMultiSelect companyId={companyId} tipo={alvoTipo} value={alvoIds} onChange={setAlvoIds} />
+            <AlvoMultiSelect companyId={companyId} tipo={alvoTipo} value={alvoIds} onChange={setAlvoIds} unidadeIds={unidadeId ? [unidadeId] : null} data={data} />
             <Input className="h-9" placeholder="Motivo do bloqueio" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
             <p className="text-xs text-muted-foreground">
               {alvoTipo === "todos" ? "Ninguém da unidade folga neste dia." : "Bloqueio parcial: só o público escolhido fica sem folga; o limite do dia continua valendo para todos."}

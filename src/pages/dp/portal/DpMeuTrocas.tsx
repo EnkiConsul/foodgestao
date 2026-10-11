@@ -325,9 +325,10 @@ export default function DpMeuTrocas() {
       if (error) throw new Error(mensagemErroTroca(error.message));
       const trocaId = (data as { troca_id?: string } | null)?.troca_id;
       if (trocaId) await assinarTroca(trocaId, assinatura);
+      return !!(data as { exige_gestor?: boolean } | null)?.exige_gestor;
     },
-    onSuccess: () => {
-      toast.success("Troca proposta enviada");
+    onSuccess: (exigeGestor) => {
+      toast.success(exigeGestor ? "Troca enviada. Depois do aceite do colega, ela depende da aprovação do gestor." : "Troca proposta enviada");
       sugerirPushContextual("Ative os avisos para saber na hora quando seu colega e o gestor responderem a troca.");
       qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
       void resolverPendencias(qc, { companyId: meRef.data?.company_id ?? null });
