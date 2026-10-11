@@ -245,13 +245,13 @@ export default function DpOcorrencias() {
       })()}
 
       {(() => {
-        type CardInd = { key: string; label: string; valor: number; detalhe?: string; aplicar: Partial<OcorrenciaFiltros> };
+        type CardInd = { key: string; emoji: string; label: string; valor: number; detalhe?: string; aplicar: Partial<OcorrenciaFiltros> };
         const cards: CardInd[] = [
-          { key: "falta", label: "Faltas", valor: indicadores.porTipo.falta ?? 0, aplicar: { tipo: "falta" } },
-          { key: "previsao_falta", label: "Previsões de falta", valor: indicadores.porTipo.previsao_falta ?? 0, aplicar: { tipo: "previsao_falta" } },
+          { key: "falta", emoji: "❌", label: "Faltas", valor: indicadores.porTipo.falta ?? 0, aplicar: { tipo: "falta" } },
+          { key: "previsao_falta", emoji: "⚠️", label: "Prev. falta", valor: indicadores.porTipo.previsao_falta ?? 0, aplicar: { tipo: "previsao_falta" } },
           {
             key: "atraso",
-            label: "Atrasos",
+            emoji: "⏰", label: "Atrasos",
             valor: indicadores.porTipo.atraso ?? 0,
             detalhe: indicadores.atraso_minutos
               ? (() => {
@@ -262,23 +262,23 @@ export default function DpOcorrencias() {
               : undefined,
             aplicar: { tipo: "atraso" },
           },
-          { key: "previsao_atraso", label: "Previsões de atraso", valor: indicadores.porTipo.previsao_atraso ?? 0, aplicar: { tipo: "previsao_atraso" } },
-          { key: "saida_antecipada", label: "Saídas antecipadas", valor: indicadores.porTipo.saida_antecipada ?? 0, aplicar: { tipo: "saida_antecipada" } },
-          { key: "previsao_saida_antecipada", label: "Previsões de saída", valor: indicadores.porTipo.previsao_saida_antecipada ?? 0, aplicar: { tipo: "previsao_saida_antecipada" } },
-          { key: "atraso_intervalo", label: "Atrasos no intervalo", valor: indicadores.porTipo.atraso_intervalo ?? 0, aplicar: { tipo: "atraso_intervalo" } },
-          { key: "previsao_atraso_intervalo", label: "Previsões no intervalo", valor: indicadores.porTipo.previsao_atraso_intervalo ?? 0, aplicar: { tipo: "previsao_atraso_intervalo" } },
-          { key: "atestado", label: "Atestados", valor: indicadores.porTipo.atestado ?? 0, aplicar: { tipo: "atestado" } },
-          { key: "ausencia_justificada", label: "Ausências justificadas", valor: indicadores.porTipo.ausencia_justificada ?? 0, aplicar: { tipo: "ausencia_justificada" } },
-          { key: "esquecimento_marcacao", label: "Esquecimentos", valor: indicadores.porTipo.esquecimento_marcacao ?? 0, aplicar: { tipo: "esquecimento_marcacao" } },
-          { key: "divergencia_jornada", label: "Erros de jornada", valor: indicadores.porTipo.divergencia_jornada ?? 0, aplicar: { tipo: "divergencia_jornada" } },
+          { key: "previsao_atraso", emoji: "⚠️", label: "Prev. atraso", valor: indicadores.porTipo.previsao_atraso ?? 0, aplicar: { tipo: "previsao_atraso" } },
+          { key: "saida_antecipada", emoji: "🚪", label: "Saídas", valor: indicadores.porTipo.saida_antecipada ?? 0, aplicar: { tipo: "saida_antecipada" } },
+          { key: "previsao_saida_antecipada", emoji: "⚠️", label: "Prev. saída", valor: indicadores.porTipo.previsao_saida_antecipada ?? 0, aplicar: { tipo: "previsao_saida_antecipada" } },
+          { key: "atraso_intervalo", emoji: "⏳", label: "Intervalo", valor: indicadores.porTipo.atraso_intervalo ?? 0, aplicar: { tipo: "atraso_intervalo" } },
+          { key: "previsao_atraso_intervalo", emoji: "⚠️", label: "Prev. intervalo", valor: indicadores.porTipo.previsao_atraso_intervalo ?? 0, aplicar: { tipo: "previsao_atraso_intervalo" } },
+          { key: "atestado", emoji: "🩺", label: "Atestados", valor: indicadores.porTipo.atestado ?? 0, aplicar: { tipo: "atestado" } },
+          { key: "ausencia_justificada", emoji: "📋", label: "Ausências", valor: indicadores.porTipo.ausencia_justificada ?? 0, aplicar: { tipo: "ausencia_justificada" } },
+          { key: "esquecimento_marcacao", emoji: "💭", label: "Esquecimentos", valor: indicadores.porTipo.esquecimento_marcacao ?? 0, aplicar: { tipo: "esquecimento_marcacao" } },
+          { key: "divergencia_jornada", emoji: "⏱️", label: "Erros", valor: indicadores.porTipo.divergencia_jornada ?? 0, aplicar: { tipo: "divergencia_jornada" } },
           {
             key: "cobertas",
-            label: "Ausências cobertas",
+            emoji: "🔁", label: "Cobertas",
             valor: indicadores.ausencias_cobertas,
             detalhe: indicadores.ausencias_descobertas ? `${indicadores.ausencias_descobertas} sem cobertura` : undefined,
             aplicar: { cobertura: "aprovada" },
           },
-          { key: "pendentes", label: "Aguardando decisão", valor: indicadores.pendentes, aplicar: { somentePendentes: true } },
+          { key: "pendentes", emoji: "⚖️", label: "A Tratar", valor: indicadores.pendentes, aplicar: { somentePendentes: true } },
         ].filter((c) => Number(c.valor) > 0);
         if (cards.length === 0) return null;
         const ativo = (c: CardInd) =>
@@ -301,11 +301,11 @@ export default function DpOcorrencias() {
                   onClick={() => clicar(c)}
                   aria-pressed={ativo(c)}
                   className={cn(
-                    "rounded-lg border bg-card p-2 text-center shadow-sm transition-colors hover:border-primary/50 hover:bg-muted/40 sm:p-3",
+                    "flex flex-col items-stretch justify-start rounded-lg border bg-card p-2 text-center shadow-sm transition-colors hover:border-primary/50 hover:bg-muted/40 sm:p-3",
                     ativo(c) && "border-primary bg-primary/10",
                   )}
                 >
-                  <p className="truncate text-[10px] leading-tight text-muted-foreground sm:text-xs">{c.label}</p>
+                  <p className="flex min-h-[1.5em] items-start justify-center gap-1 truncate text-xs font-semibold leading-tight text-foreground sm:text-sm"><span aria-hidden>{c.emoji}</span><span className="truncate">{c.label}</span></p>
                   <p className="text-base font-bold leading-tight sm:text-lg">{c.valor}</p>
                   {c.detalhe && <p className="truncate text-[10px] text-muted-foreground">{c.detalhe}</p>}
                 </button>
