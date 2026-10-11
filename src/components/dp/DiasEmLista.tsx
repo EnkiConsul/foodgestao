@@ -24,6 +24,8 @@ export interface DiaEmLista {
   dominical?: boolean;
   /** Chips em uma única linha (altura igual entre os dias). */
   chipsLinhaUnica?: boolean;
+  /** Ícones do dia (pico, bloqueio) abaixo da data — não disputam espaço com os nomes. */
+  icones?: ReactNode;
 }
 
 const WEEKDAY = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
