@@ -937,7 +937,7 @@ export function mensagemAlerta(
 ): string {
   const base = dia.feriado_nome ? "feriados" : DOW_PLURAL[dia.dow];
   const alvo = `${base}${unidade ? ` na ${unidade}` : ""}`;
-  const rotulo = avaliacao.situacao === "abaixo" ? "abaixo do padrão" : "acima do padrão";
+  const rotulo = avaliacao.padrao != null && dia.trabalhando < avaliacao.padrao ? "abaixo do padrão" : "acima do padrão";
   return `Previsto ${dia.trabalhando}, padrão ${avaliacao.padrao} para ${alvo} — ${rotulo}.`;
 }
 

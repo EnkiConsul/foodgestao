@@ -1799,7 +1799,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
       </Tabs>
 
       <Dialog open={!!dataPopout} onOpenChange={(o) => !o && setDataPopout(null)}>
-        <DialogContent {...swipeDia} className="flex max-h-[92dvh] max-w-3xl flex-col gap-3 overflow-hidden p-4 sm:p-6">
+        <DialogContent {...swipeDia} data-swipe-proprio="" className="flex max-h-[92dvh] max-w-3xl flex-col gap-3 overflow-hidden p-4 sm:p-6">
           <DialogHeader className="shrink-0">
             <div className="flex items-center gap-2 pr-6">
               <Button
