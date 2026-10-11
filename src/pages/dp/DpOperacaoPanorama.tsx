@@ -905,7 +905,7 @@ function DetalheDiaOperacao({
         const indisp = ausReg.filter((a) => a.tipo === "indisponibilidade" && !escalados.has(a.colaborador_id) && !jaFora.has(a.colaborador_id));
         if (!foraVisiveis.length && !indisp.length) return null;
         const ICONE: Record<string, string> = {
-          folga_padrao: "🛌", folga_extra: "🛌", ferias: "🏖️", atestado: "🩺", ausente: "❌",
+          folga_padrao: "🏠", folga_extra: "🏠", ferias: "🏖️", atestado: "🩺", ausente: "❌",
           coberto: "🔁", atrasado: "⏰", saida_antecipada: "🚪",
         };
         return (
