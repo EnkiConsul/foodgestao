@@ -118,5 +118,8 @@ export function resumoAssiduidade(v: Partial<AssiduidadeFormState> | undefined |
   const unidade = v.premio_assiduidade_tipo === "percentual" ? "%" : "R$";
   const valor = v.premio_assiduidade_valor || "0";
   void unidade;
+  const partes = [
+    v.premio_assiduidade_tipo === "percentual" ? `${valor}% do salário` : `R$ ${valor}/mês`,
+  ];
   return partes.join(" · ") + " · decisão do gestor por evento";
 }
