@@ -432,10 +432,15 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               dominical: ehDiaDominical(d.data),
               chipsLinhaUnica: true,
               onSelect: () => onAbrirDia(d.data),
-              icones: pico(d.data, d.feriado_nome) || bloqueios.has(d.data) ? (
+              icones: pico(d.data, d.feriado_nome) || bloqueios.has(d.data) || d.feriado_nome ? (
                 <>
-                  {pico(d.data, d.feriado_nome) && <Flame className="h-3.5 w-3.5 fill-amber-500 text-amber-500" aria-label="Pico de operação" />}
                   {bloqueios.has(d.data) && <Lock className="h-3.5 w-3.5 text-destructive" aria-label="Folgas bloqueadas" />}
+                  {pico(d.data, d.feriado_nome) && <Flame className="h-3.5 w-3.5 fill-amber-500 text-amber-500" aria-label="Pico de operação" />}
+                  {d.feriado_nome && (
+                    <span title={`Feriado · ${d.feriado_nome}`} className="inline-flex">
+                      <PartyPopper className="h-3.5 w-3.5 text-primary" aria-label={`Feriado: ${d.feriado_nome}`} />
+                    </span>
+                  )}
                 </>
               ) : undefined,
               resumo: (
@@ -447,7 +452,6 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               chips: (
                 <>
                   {d.data === hoje && <Badge className="text-[10px]">Hoje</Badge>}
-                  {d.feriado_nome && <Badge variant="outline" className="text-[10px]">Feriado</Badge>}
                   {aus.slice(0, 3).map((a) => (
                     <span key={`${a.colaborador_id}-${a.tipo}`} title={rotulo(a, d.data)} className={cn("inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", tomDe(a, d.data), d.data < hoje && "opacity-60")}>
                       {a.troca && <Repeat className="h-2.5 w-2.5" />}{primeiroNome(a.nome)}
