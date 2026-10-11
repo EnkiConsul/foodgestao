@@ -33,7 +33,7 @@ const TOM: Record<TipoAusenciaCalendario, string> = {
   ferias: "border-l-[3px] border-sky-500 bg-sky-100 text-sky-900 dark:bg-sky-500/15 dark:text-sky-200",
   falta: "border-l-[3px] border-rose-500 bg-rose-100 text-rose-900 dark:bg-rose-500/15 dark:text-rose-200",
   atestado: "border-l-[3px] border-violet-500 bg-violet-100 text-violet-900 dark:bg-violet-500/15 dark:text-violet-200",
-  indisponibilidade: "border-l-[3px] border-dashed border-orange-500 bg-orange-50 text-orange-900 dark:bg-orange-500/15 dark:text-orange-200",
+  indisponibilidade: "border-l-[3px] border-orange-500 bg-orange-50 text-orange-900 dark:bg-orange-500/15 dark:text-orange-200",
   outras: "border-l-[3px] border-slate-400 bg-slate-50 text-slate-700 dark:bg-slate-500/15 dark:text-slate-200",
 };
 // Folga no domingo tem peso diferente na operação: dourado.
@@ -261,7 +261,6 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     { label: "Folga semanal", cls: TOM.folga, n: resumoMes.semanal, pdf: PDF_COR.folga },
     { label: "Folga dominical", cls: TOM_DOMINICAL, n: resumoMes.dominical, pdf: PDF_DOMINICAL },
     { label: "Férias", cls: TOM.ferias, n: resumoMes.ferias, pdf: PDF_COR.ferias },
-    { label: "Falta", cls: TOM.falta, n: resumoMes.falta, pdf: PDF_COR.falta },
     { label: "Atestado / Licença", cls: TOM.atestado, n: resumoMes.atestado, pdf: PDF_COR.atestado },
     { label: "Coberto por folguista", cls: TOM.outras, n: resumoMes.outras, pdf: PDF_COR.outras },
   ].filter((l) => l.n > 0);
