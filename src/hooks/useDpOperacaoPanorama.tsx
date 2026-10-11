@@ -363,6 +363,26 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     },
   });
 
+  /**
+   * Colaboradores com disponibilidade cadastrada na unidade filtrada
+   * (atuação em outras unidades): a indisponibilidade deles também vale aqui.
+   */
+  const apoioUnidadeQuery = useQuery({
+    queryKey: ["dp_panorama_apoio_unidade", selectedCompanyId, unidadeId],
+    enabled: !!selectedCompanyId && !!unidadeId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_apoio_unidades")
+        .select("colaborador_id")
+        .eq("company_id", selectedCompanyId!)
+        .eq("unidade_id", unidadeId!)
+        .eq("ativo", true)
+        .not("colaborador_id", "is", null);
+      if (error) throw error;
+      return new Set((data ?? []).map((r) => r.colaborador_id as string));
+    },
+  });
+
   /** Pessoas na rotina do dia (teste/folguista/registro manual) na competência. */
   const avulsasQuery = useQuery({
     queryKey: ["dp_pessoas_avulsas", selectedCompanyId, competencia, unidadeId],
