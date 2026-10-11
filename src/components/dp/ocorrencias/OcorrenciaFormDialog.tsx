@@ -21,6 +21,16 @@ import {
   type OcorrenciaTipo,
 } from "@/lib/dp/ocorrencias";
 import type { RegistrarOcorrenciaInput } from "@/hooks/useDpOcorrencias";
+import { AssiduidadePergunta, validarDecisaoAssiduidade, type DecisaoAssiduidade } from "@/components/dp/AssiduidadePergunta";
+import type { EventoAssiduidade } from "@/lib/dp/assiduidade-risco";
+
+/** Evento de assiduidade do tipo registrado; os demais não perguntam. */
+function eventoDoTipo(t: OcorrenciaTipo): EventoAssiduidade {
+  if (t === "falta" || t === "previsao_falta") return "falta";
+  if (t === "atestado") return "atestado";
+  if (["atraso", "previsao_atraso", "atraso_intervalo", "previsao_atraso_intervalo", "saida_antecipada", "previsao_saida_antecipada"].includes(t)) return "atraso";
+  return "folga";
+}
 
 interface Props {
   open: boolean;
@@ -81,6 +91,7 @@ export function OcorrenciaFormDialog({
   const [horarioReal, setHorarioReal] = useState("");
   const [justificativa, setJustificativa] = useState("");
   const [motivo, setMotivo] = useState<string>(MOTIVOS_AUSENCIA[0]);
+  const [assid, setAssid] = useState<DecisaoAssiduidade | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -111,6 +122,13 @@ export function OcorrenciaFormDialog({
       toast.error("Descreva o motivo da ausência.");
       return;
     }
+    let decisao: DecisaoAssiduidade | null;
+    try {
+      decisao = validarDecisaoAssiduidade(eventoDoTipo(tipo), assid);
+    } catch (e) {
+      toast.error((e as Error).message);
+      return;
+    }
     const detalhe = justificativa.trim();
     const textoFinal = pedeMotivo
       ? [motivo, detalhe].filter(Boolean).join(" — ")
@@ -123,6 +141,7 @@ export function OcorrenciaFormDialog({
       horarioEstimado: pedeEstimado ? horarioEstimado || null : null,
       horarioReal: pedeReal ? horarioReal || null : null,
       marcacaoAlvo: tipo === "esquecimento_marcacao" ? marcacao : null,
+      assiduidade: decisao,
     });
   };
 
@@ -247,6 +266,7 @@ export function OcorrenciaFormDialog({
               placeholder="O que foi informado sobre o ocorrido"
             />
           </div>
+          <AssiduidadePergunta colaboradorId={colaboradorId} evento={eventoDoTipo(tipo)} value={assid} onChange={setAssid} />
         </div>
 
         <DialogFooter>

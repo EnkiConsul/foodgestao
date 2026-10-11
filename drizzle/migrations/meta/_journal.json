@@ -421,6 +421,13 @@
       "when": 1791733880242,
       "tag": "0059_dp_ausencias_espelham_ocorrencias",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1791735296944,
+      "tag": "0060_assiduidade_decisao_por_evento",
+      "breakpoints": true
     }
   ]
 }

@@ -29,22 +29,10 @@ describe("prêmio de assiduidade", () => {
     expect(premioAssiduidadeDevido({ premio_assiduidade: false, premio_assiduidade_valor: 150 }, { faltas: 0, atrasos: 0 })).toBe(0);
   });
 
-  it("sem faltas e sem atrasos respeita o máximo tolerado", () => {
-    const cfg = { ...base, assiduidade_criterio: "sem_faltas_sem_atrasos", assiduidade_max_atrasos: 2 };
-    expect(premioAssiduidadeDevido(cfg, { faltas: 0, atrasos: 2 })).toBe(150);
-    expect(premioAssiduidadeDevido(cfg, { faltas: 0, atrasos: 3 })).toBe(0);
-    expect(premioAssiduidadeDevido(cfg, { faltas: 1, atrasos: 0 })).toBe(0);
-  });
-
-  it("critério sem faltas ignora atrasos", () => {
-    const cfg = { ...base, assiduidade_criterio: "sem_faltas" };
-    expect(premioAssiduidadeDevido(cfg, { faltas: 0, atrasos: 5 })).toBe(150);
-    expect(premioAssiduidadeDevido(cfg, { faltas: 1, atrasos: 0 })).toBe(0);
-  });
-
-  it("critério proporcional desconta por ocorrência", () => {
-    const cfg = { ...base, assiduidade_criterio: "proporcional" };
-    expect(premioAssiduidadeDevido(cfg, { faltas: 1, atrasos: 1, diasPrevistos: 20 })).toBe(135);
-    expect(premioAssiduidadeDevido(cfg, { faltas: 0, atrasos: 0, diasPrevistos: 20 })).toBe(150);
+  it("qualquer ocorrência que o gestor decidiu descontar tira o prêmio do mês", () => {
+    expect(premioAssiduidadeDevido(base, { faltas: 0, atrasos: 0 })).toBe(150);
+    expect(premioAssiduidadeDevido(base, { faltas: 0, atrasos: 1 })).toBe(0);
+    expect(premioAssiduidadeDevido(base, { faltas: 1, atrasos: 0 })).toBe(0);
+    expect(premioAssiduidadeDevido(base, { faltas: 0, atrasos: 0, atestados: 1, atestadosAbonados: 1 })).toBe(150);
   });
 });
