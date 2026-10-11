@@ -112,6 +112,7 @@ export interface Ocorrencia {
   informada_em: string;
   antecedencia_minutos: number | null;
   motivo_cancelamento: string | null;
+  troca_id?: string | null;
   created_at: string;
   colaborador: { nome: string; cargo: string | null } | null;
   unidade: { nome: string } | null;
