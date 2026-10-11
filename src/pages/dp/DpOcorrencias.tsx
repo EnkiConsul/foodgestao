@@ -51,6 +51,7 @@ import { useDpPessoasApoio } from "@/hooks/useDpPessoasApoio";
 import { OcorrenciaCoberturaDialog } from "@/components/dp/ocorrencias/OcorrenciaCoberturaDialog";
 import { OcorrenciaHistoricoDialog } from "@/components/dp/ocorrencias/OcorrenciaHistoricoDialog";
 import { useDpOcorrenciasIndicadores } from "@/hooks/useDpOcorrenciasIndicadores";
+import { useSwipeHorizontal } from "@/hooks/useSwipeHorizontal";
 import type { SubstitutoOpcao } from "@/components/dp/ocorrencias/SubstitutoPicker";
 
 const COBERTURAS: { value: string; label: string }[] = [
@@ -110,6 +111,27 @@ export default function DpOcorrencias() {
 
   const set = <K extends keyof OcorrenciaFiltros>(k: K, v: OcorrenciaFiltros[K]) =>
     setFiltros((f) => ({ ...f, [k]: v }));
+
+  const mesDe = (ini: string, fim: string) => {
+    const [a, m] = ini.split("-").map(Number);
+    const ultimo = new Date(a, m, 0).getDate();
+    return ini.endsWith("-01") && fim === `${ini.slice(0, 7)}-${String(ultimo).padStart(2, "0")}` ? ini.slice(0, 7) : null;
+  };
+  const compAtual = filtros.data ? null : mesDe(intervalo.inicio, intervalo.fim);
+  const baseMes = compAtual ?? (filtros.data ?? intervalo.inicio).slice(0, 7);
+  const irMes = (n: number) => {
+    const [a, m] = (filtros.periodo === "todas" ? format(new Date(), "yyyy-MM") : baseMes).split("-").map(Number);
+    const d = new Date(a, m - 1 + n, 1);
+    const fim = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    setFiltros((f) => ({
+      ...f,
+      data: null,
+      periodo: "personalizado",
+      periodoInicio: format(d, "yyyy-MM-dd"),
+      periodoFim: format(fim, "yyyy-MM-dd"),
+    }));
+  };
+  const swipeMes = useSwipeHorizontal(() => irMes(1), () => irMes(-1));
 
   const acoes = useDpOcorrencias(filtros);
   const { data: colaboradores = [] } = useDpColaboradores();
@@ -195,29 +217,11 @@ export default function DpOcorrencias() {
         }
       />
 
+      <div {...swipeMes}>
       {(() => {
-        const mesDe = (ini: string, fim: string) => {
-          const [a, m] = ini.split("-").map(Number);
-          const ultimo = new Date(a, m, 0).getDate();
-          return ini.endsWith("-01") && fim === `${ini.slice(0, 7)}-${String(ultimo).padStart(2, "0")}` ? ini.slice(0, 7) : null;
-        };
-        const comp = filtros.data ? null : mesDe(intervalo.inicio, intervalo.fim);
-        const rotulo = comp
-          ? new Date(`${comp}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+        const rotulo = compAtual
+          ? new Date(`${compAtual}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
           : textoPeriodo;
-        const base = comp ?? (filtros.data ?? intervalo.inicio).slice(0, 7);
-        const irMes = (n: number) => {
-          const [a, m] = (filtros.periodo === "todas" ? format(new Date(), "yyyy-MM") : base).split("-").map(Number);
-          const d = new Date(a, m - 1 + n, 1);
-          const fim = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-          setFiltros((f) => ({
-            ...f,
-            data: null,
-            periodo: "personalizado",
-            periodoInicio: format(d, "yyyy-MM-dd"),
-            periodoFim: format(fim, "yyyy-MM-dd"),
-          }));
-        };
         return (
           <div className="sticky top-14 z-20 flex flex-wrap items-center gap-2 rounded-2xl border bg-card/95 px-3 py-2 shadow-sm backdrop-blur md:static md:bg-card">
             <div className="inline-flex min-w-0 flex-1 items-center justify-between rounded-full border bg-background p-0.5 sm:flex-none">
@@ -603,6 +607,7 @@ export default function DpOcorrencias() {
           </div>
         )}
       </DpContentCard>
+      </div>
 
       <OcorrenciaFormDialog
         open={novaOpen}
