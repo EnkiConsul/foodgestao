@@ -61,6 +61,24 @@ export function useMinhasOcorrencias() {
     },
   });
 
+  // Atrasos do mês corrente: base do aviso de tolerância antes de enviar.
+  const inicioMes = `${hoje.slice(0, 7)}-01`;
+  const mes = useQuery({
+    queryKey: ["minhas_ocorrencias_mes", colaborador.data, inicioMes],
+    enabled: !!colaborador.data,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_ocorrencias")
+        .select("data_operacional, tipo, minutos, estado")
+        .eq("colaborador_id", colaborador.data!)
+        .neq("estado", "cancelada")
+        .gte("data_operacional", inicioMes)
+        .lte("data_operacional", hoje);
+      if (error) throw error;
+      return (data ?? []) as { data_operacional: string; tipo: OcorrenciaTipo; minutos: number | null; estado: string }[];
+    },
+  });
+
   // Regra do próprio colaborador: só para avisar na tela antes de enviar.
   const regra = useQuery({
     queryKey: ["minha_regra_assiduidade", colaborador.data],
@@ -101,6 +119,7 @@ export function useMinhasOcorrencias() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["minhas_ocorrencias"] });
+      qc.invalidateQueries({ queryKey: ["minhas_ocorrencias_mes"] });
       qc.invalidateQueries({ queryKey: ["dp_ocorrencias"] });
       toast.success("Avisamos a rotina do dia. Obrigado por informar.");
     },
@@ -113,6 +132,7 @@ export function useMinhasOcorrencias() {
     previsto: previsto.data,
     minhas: minhas.data ?? [],
     regraAssiduidade: regra.data ?? null,
+    ocorrenciasMes: mes.data ?? [],
     loading: colaborador.isLoading || previsto.isLoading,
     registrar,
   };

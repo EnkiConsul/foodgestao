@@ -37,6 +37,7 @@ import { useMinhasOcorrencias } from "@/hooks/useMinhasOcorrencias";
 import {
   ESTADO_ASSIDUIDADE_LABEL,
   avaliarRiscoAssiduidade,
+  avisoAtrasoAntesDeEnviar,
   estadoAssiduidade,
 } from "@/lib/dp/assiduidade-risco";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
@@ -57,7 +58,7 @@ const ICONE: Record<PortalOpcaoId, typeof Clock> = {
 /** Ações rápidas do colaborador sobre a jornada de hoje. */
 export function MinhaJornadaAcoesCard() {
   const { user } = useAuth();
-  const { previsto, minhas, hoje, registrar, colaboradorId, regraAssiduidade } =
+  const { previsto, minhas, hoje, registrar, colaboradorId, regraAssiduidade, ocorrenciasMes } =
     useMinhasOcorrencias();
   const { data: vinculo } = useMeuVinculoPortal();
   const { folga } = useMinhaProximaFolga(colaboradorId);
@@ -164,6 +165,12 @@ export function MinhaJornadaAcoesCard() {
   const riscoPrevio = (() => {
     if (!aberta || !opcao || aberta === "esquecimento" || aberta === "problema_ponto") return null;
     const tipo = tipoOcorrenciaPortal(aberta, quando, momento);
+    const aviso = avisoAtrasoAntesDeEnviar(regraAssiduidade, ocorrenciasMes, {
+      data: hoje,
+      tipo,
+      minutos: minutosAtraso ?? null,
+    });
+    if (aviso) return aviso;
     const r = avaliarRiscoAssiduidade(regraAssiduidade, tipo, minutosAtraso);
     return r.risco ? r.motivo : null;
   })();
