@@ -129,6 +129,9 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
   const lim = resolvido.limite;
   const cotas = cotasPorCargoNoDia({ data, unidadeId, regras: regrasLimite ?? [], diaConfig, ocupantes: ocupantes ?? [], cargoNomeById: new Map(cargosQ.data ?? []) });
   const trocasDaUnidade = trocas.filter((t) => nomes.has(t.solicitante_id) || nomes.has(t.destino_id));
+  // Teto do dia bloqueado = folgas fixas cadastradas nesse dia da semana
+  // (elas continuam valendo); vagas extras ficam zeradas.
+  const fixosBloqueio = fixosPorDow.data?.get(new Date(`${data}T12:00:00`).getDay()) ?? 0;
 
   return (
     <div className="space-y-3">
@@ -158,9 +161,11 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
         <p className="text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground">Vagas de Folga no Dia</p>
         {bloqueio ? (
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="text-2xl font-extrabold tabular-nums text-destructive">{folgasNoDia}/0</span>
-            <span className="text-sm font-semibold">Dia bloqueado · sem vagas livres</span>
-            <span className="text-xs text-muted-foreground">Folgas já aprovadas continuam valendo.</span>
+            <span className="text-2xl font-extrabold tabular-nums text-destructive">{folgasNoDia}/{fixosBloqueio}</span>
+            <span className="text-sm font-semibold">Dia bloqueado · sem vagas extras</span>
+            <span className="text-xs text-muted-foreground">
+              {fixosBloqueio > 0 ? "Folgas fixas cadastradas continuam valendo." : "Nenhuma folga fixa neste dia da semana."}
+            </span>
           </div>
         ) : lim == null ? (
           <p className="text-sm text-muted-foreground">Nenhum limite cadastrado para este dia. Cadastre uma regra em Folgas &gt; Regras ou ajuste abaixo.</p>

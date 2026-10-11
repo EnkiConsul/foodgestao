@@ -108,11 +108,14 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     },
   });
   const fixosPorDow = useFixosPorDiaSemana(selectedCompanyId, unidadeId);
-  // Dia bloqueado não tem vaga de folga: limite zero.
-  const limiteDoDia = (iso: string) =>
-    bloqueios.has(iso) ? 0 : unidadeId
+  // Dia bloqueado: sem vagas extras, mas as folgas fixas cadastradas no dia da semana
+  // continuam valendo — o teto do dia passa a ser a própria quantidade de fixos.
+  const limiteDoDia = (iso: string) => {
+    if (bloqueios.has(iso)) return fixosPorDow.data?.get(new Date(`${iso}T12:00:00`).getDay()) ?? 0;
+    return unidadeId
       ? limiteComFolgaFixaDiaUtil(iso, resolverLimiteFolga({ data: iso, unidadeId, regras: regrasLimite ?? [], diaConfig: diaConfigQuery.data ?? [] }), fixosPorDow.data).limite
       : null;
+  };
   // Trocas aprovadas do mês: data_original por colaborador/data nova (para "era Seg 12/10").
   const trocasMesQuery = useQuery({
     queryKey: ["dp_trocas_mes_cal", selectedCompanyId, ini, fimMes],
