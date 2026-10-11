@@ -13166,6 +13166,8 @@ export type Database = {
       dp_solicitacoes: {
         Row: {
           arquivo_path: string | null
+          assiduidade_justificativa: string | null
+          assiduidade_perde: boolean | null
           colaborador_id: string
           company_id: string
           corrigido_em: string | null
@@ -13192,6 +13194,8 @@ export type Database = {
         }
         Insert: {
           arquivo_path?: string | null
+          assiduidade_justificativa?: string | null
+          assiduidade_perde?: boolean | null
           colaborador_id: string
           company_id: string
           corrigido_em?: string | null
@@ -13218,6 +13222,8 @@ export type Database = {
         }
         Update: {
           arquivo_path?: string | null
+          assiduidade_justificativa?: string | null
+          assiduidade_perde?: boolean | null
           colaborador_id?: string
           company_id?: string
           corrigido_em?: string | null
@@ -20185,6 +20191,10 @@ export type Database = {
           sindicato_id: string
           sindicato_nome: string
         }[]
+      }
+      dp_solicitacao_assiduidade_definir: {
+        Args: { p_id: string; p_justificativa?: string; p_perde: boolean }
+        Returns: number
       }
       dp_solicitacao_cancelar: { Args: { p_id: string }; Returns: Json }
       dp_solicitacao_corrigir: {
