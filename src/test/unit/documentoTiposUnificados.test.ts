@@ -13,7 +13,7 @@ describe("Naturezas unificadas de Admissão e Desligamento", () => {
     const admissao = DP_DOC_TIPOS_IMPORTAVEIS.filter((t) => t.grupo === "admissao").map((t) => t.value);
     const desligamento = DP_DOC_TIPOS_IMPORTAVEIS.filter((t) => t.grupo === "desligamento").map((t) => t.value);
     expect(admissao).toEqual(["admissao", "termo_autorizacao", "aso_admissional"]);
-    expect(desligamento).toEqual(["aviso_previo", "desligamento", "aso_demissional"]);
+    expect(desligamento).toEqual(["aviso_previo", "desligamento", "acerto_rescisorio", "aso_demissional"]);
   });
 
   it("reconhece contrato e ficha como Admissão", () => {

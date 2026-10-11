@@ -10,6 +10,9 @@ vi.mock("@/hooks/useDpCadastros", () => ({
 vi.mock("@/hooks/useDpColaboradores", () => ({
   useDpColaboradores: () => ({ data: [] }),
 }));
+vi.mock("@/hooks/useCompanyContext", () => ({
+  useCompanyContext: () => ({ selectedCompanyId: "c1", companies: [] }),
+}));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { storage: { from: () => ({ upload: vi.fn() }) } },
 }));
