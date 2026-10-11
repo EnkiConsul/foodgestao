@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
 import { MinhasPendenciasCard } from "@/components/dp/home/MinhasPendenciasCard";
+import { CardEscolhaFolgaHome } from "@/components/dp/home/CardEscolhaFolgaHome";
 import { AvisosNotificacoesCard } from "@/components/dp/home/AvisosNotificacoesCard";
 import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { DpEmptyState, DpPage } from "@/components/dp/DpPage";
@@ -129,6 +130,9 @@ export default function DpMeuHome() {
           </Button>
         </div>
       </header>
+
+      {/* Escolha mensal de folgas liberada: destaque no topo. */}
+      <CardEscolhaFolgaHome />
 
       {/* Resumo compacto logo abaixo da saudação: 2 por linha no celular. */}
       <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3">

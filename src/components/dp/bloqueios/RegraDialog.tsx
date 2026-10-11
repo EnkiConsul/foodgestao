@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,11 +12,11 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DIAS, MESES, NOMES_ORDINAIS, NOMES_SEMANA,
-  getMonthName, toggleArr,
-  type RegraFormState, type Unidade,
+  getMonthName, toggleArr, ALVO_LABEL,
+  type RegraFormState, type Unidade, type AlvoRegra,
 } from "@/lib/dp/bloqueios";
 
-type CampoErro = "nome" | "ano" | "meses" | "dias" | "dinamica" | "inicio";
+type CampoErro = "nome" | "ano" | "meses" | "dias" | "dinamica" | "inicio" | "alvo";
 
 function validarForm(form: RegraFormState): Set<CampoErro> {
   const erros = new Set<CampoErro>();
@@ -22,6 +25,7 @@ function validarForm(form: RegraFormState): Set<CampoErro> {
   if (form.meses.length === 0) erros.add("meses");
   if (form.tipo === "fixa_anual" && form.dias.length === 0) erros.add("dias");
   if (form.tipo === "dinamica" && (form.ordinal == null || form.dia_semana == null)) erros.add("dinamica");
+  if (form.alvo_tipo !== "todos" && !form.alvo_id) erros.add("alvo");
   return erros;
 }
 
@@ -40,6 +44,29 @@ export function RegraDialog({
   open, isEditing, form, unidades, saving, onChange, onCancel, onSubmit,
 }: Props) {
   const [tentouSalvar, setTentouSalvar] = useState(false);
+  const { selectedCompanyId } = useCompanyContext();
+  const opcoesAlvo = useQuery({
+    queryKey: ["dp_bloqueio_alvo_opcoes", selectedCompanyId, form.alvo_tipo],
+    enabled: open && !!selectedCompanyId && form.alvo_tipo !== "todos",
+    queryFn: async (): Promise<{ id: string; nome: string }[]> => {
+      if (form.alvo_tipo === "cargo") {
+        const { data, error } = await supabase.from("dp_cargos").select("id, nome")
+          .eq("company_id", selectedCompanyId!).eq("ativo", true).is("removido_em", null).order("nome");
+        if (error) throw error;
+        return data ?? [];
+      }
+      if (form.alvo_tipo === "setor") {
+        const { data, error } = await supabase.from("dp_setores").select("id, nome")
+          .eq("company_id", selectedCompanyId!).eq("ativo", true).order("nome");
+        if (error) throw error;
+        return data ?? [];
+      }
+      const { data, error } = await supabase.from("dp_colaboradores").select("id, nome")
+        .eq("company_id", selectedCompanyId!).eq("ativo", true).is("deleted_at", null).order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
   const erros = tentouSalvar ? validarForm(form) : new Set<CampoErro>();
 
   const handleSubmit = () => {
@@ -96,6 +123,46 @@ export function RegraDialog({
               <option value="dinamica">Dinâmica (ex: 2º sábado)</option>
               <option value="pos_pagamento">Pós-Pagamento (1º sábado e domingo após o dia)</option>
             </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Público-alvo *</Label>
+            <select
+              value={form.alvo_tipo}
+              onChange={(e) => {
+                const alvo_tipo = e.target.value as AlvoRegra;
+                onChange((p) => ({ ...p, alvo_tipo, alvo_id: "" }));
+              }}
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {(Object.keys(ALVO_LABEL) as AlvoRegra[]).map((k) => (
+                <option key={k} value={k}>{ALVO_LABEL[k]}</option>
+              ))}
+            </select>
+            {form.alvo_tipo !== "todos" && (
+              <select
+                value={form.alvo_id}
+                onChange={(e) => onChange((p) => ({ ...p, alvo_id: e.target.value }))}
+                className={cn(
+                  "flex w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  erros.has("alvo") ? "border-destructive" : "border-input",
+                )}
+              >
+                <option value="">
+                  {opcoesAlvo.isLoading ? "Carregando..." : form.alvo_tipo === "cargo" ? "Selecione o cargo" : form.alvo_tipo === "setor" ? "Selecione o setor" : "Selecione o colaborador"}
+                </option>
+                {(opcoesAlvo.data ?? []).map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
+              </select>
+            )}
+            {erros.has("alvo") ? (
+              <p className="text-xs text-destructive">Escolha para quem a regra vale.</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {form.alvo_tipo === "todos"
+                  ? "Ninguém da unidade folga nas datas da regra."
+                  : "Só o público escolhido fica sem folga nessas datas; os demais seguem normalmente. Quem tiver datas restritas no mês escolhe as folgas 1 dia antes."}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">

@@ -136,9 +136,10 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
       if (unidadeAlvo && unidadeAlvo !== "__global__" && linked.length > 0 && !linked.includes(unidadeAlvo)) continue;
       const isGlobal = linked.length === 0;
       const set = expandRegraNoIntervalo(r, from, to);
+      const parcial = (r.regra_json?.alvo_tipo ?? "todos") !== "todos";
       for (const iso of set) {
         if (!autoMap.has(iso)) {
-          autoMap.set(iso, r.nome);
+          autoMap.set(iso, parcial ? `${r.nome} · bloqueio parcial` : r.nome);
           regraByIso.set(iso, r.id);
         }
         if (isGlobal) globalRuleByIso.set(iso, true);
@@ -246,6 +247,7 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
       if (form.meses.length === 0) throw new Error("Selecione pelo menos um mês.");
       if (form.tipo === "fixa_anual" && form.dias.length === 0) throw new Error("Selecione pelo menos um dia.");
       if (form.tipo === "dinamica" && (form.ordinal == null || form.dia_semana == null)) throw new Error("Preencha ordinal e dia da semana.");
+      if (form.alvo_tipo !== "todos" && !form.alvo_id) throw new Error("Selecione o público-alvo da regra.");
 
       const payload = {
         nome: form.nome.trim(),
@@ -261,6 +263,10 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
           dia_semana: form.tipo === "dinamica" ? form.dia_semana : null,
           pos_pagamento_dia: form.tipo === "pos_pagamento" ? (form.pos_pagamento_dia ?? 5) : null,
           data_inicio: form.data_inicio || null,
+          alvo_tipo: form.alvo_tipo,
+          cargo_id: form.alvo_tipo === "cargo" ? form.alvo_id : null,
+          setor_id: form.alvo_tipo === "setor" ? form.alvo_id : null,
+          colaborador_id: form.alvo_tipo === "colaborador" ? form.alvo_id : null,
         } as RegraJson,
         ativo: form.ativo,
       };

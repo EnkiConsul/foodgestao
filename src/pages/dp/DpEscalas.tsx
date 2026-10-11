@@ -15,7 +15,7 @@ import { semanasEfetivas, semanasEfetivasMulher } from "@/lib/dp/dsr-rules";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 
-import { expandRegraNoIntervalo, type RegraRow } from "@/lib/dp/bloqueio-rules";
+import { expandRegraNoIntervalo, regraEhDirecionada, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import {
   gerarEscala, parseIso, type EscalaProposta, type EscalaAlerta, type EscalaColaborador,
 } from "@/lib/dp/escala-generator";
@@ -158,6 +158,7 @@ export default function DpEscalas() {
     for (const r of d.regras) {
       const vinculadas = unidadesDaRegra.get(r.id);
       if (unidade !== "todas" && vinculadas?.length && !vinculadas.includes(unidade)) continue;
+      if (regraEhDirecionada(r)) continue; // bloqueio parcial não fecha o dia
       for (const data of expandRegraNoIntervalo(r, de, ate)) bloqueadas.add(data);
     }
     // Uma liberação explícita vence a regra.

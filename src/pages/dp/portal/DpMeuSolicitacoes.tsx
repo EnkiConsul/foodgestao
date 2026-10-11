@@ -109,7 +109,7 @@ export default function DpMeuSolicitacoes() {
       const { data } = await supabase.rpc("dp_meu_colaborador");
       if (!data) return null;
       const colunas =
-        "id, company_id, unidade_id, cargo_id, sexo, regime, forma_pagamento, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, nome";
+        "id, company_id, unidade_id, cargo_id, setor_id, sexo, regime, forma_pagamento, domingos_folga_mes, folga_dif_dias, folga_fixa_semana, ativo, nome";
       const tentativa = await supabase.from("dp_colaboradores").select(colunas).eq("id", data).single();
       if (!tentativa.error) return tentativa.data as unknown as MeuVinculoSol;
       // Se uma coluna nova ainda não tem permissão de leitura, refaz sem ela.
@@ -241,7 +241,17 @@ export default function DpMeuSolicitacoes() {
       from: form.data_alvo,
       to: form.data_alvo,
     });
-    return map.get(dataAlvoIso) ?? null;
+    if (map.has(dataAlvoIso)) return map.get(dataAlvoIso) ?? null;
+    const me = meRef.data as { id?: string; cargo_id?: string | null; setor_id?: string | null } | undefined;
+    const direcionada = buildBloqueiosDeRegras({
+      regras: regrasBloqueio.data.regras,
+      vinculos: regrasBloqueio.data.vinculos,
+      unidadeId: meRef.data?.unidade_id ?? null,
+      from: form.data_alvo,
+      to: form.data_alvo,
+      pessoa: { colaboradorId: me?.id ?? null, cargoId: me?.cargo_id ?? null, setorId: me?.setor_id ?? null },
+    });
+    return direcionada.has(dataAlvoIso) ? "Data indisponível para folga" : null;
   }, [bloqueios.data, dataAlvoIso, form.data_alvo, meRef.data?.unidade_id, regrasBloqueio.data]);
 
   // Capacidade do dia (só relevante quando tipo = folga)

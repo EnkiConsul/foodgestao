@@ -14,6 +14,20 @@ export type RegraJson = {
   dia_semana?: number | null;
   pos_pagamento_dia?: number | null;
   data_inicio?: string | null;
+  /** Público-alvo: todos (padrão), cargo, setor ou colaborador. */
+  alvo_tipo?: AlvoRegra | null;
+  cargo_id?: string | null;
+  setor_id?: string | null;
+  colaborador_id?: string | null;
+};
+
+export type AlvoRegra = "todos" | "cargo" | "setor" | "colaborador";
+
+export const ALVO_LABEL: Record<AlvoRegra, string> = {
+  todos: "Todos os colaboradores",
+  cargo: "Por cargo",
+  setor: "Por setor",
+  colaborador: "Por colaborador",
 };
 
 export type Regra = {
@@ -58,6 +72,9 @@ export type RegraFormState = {
   data_inicio: string;
   ativo: boolean;
   unidades: string[];
+  alvo_tipo: AlvoRegra;
+  /** cargo_id, setor_id ou colaborador_id conforme `alvo_tipo`. */
+  alvo_id: string;
 };
 
 export type DataFormState = {
@@ -170,6 +187,8 @@ export const emptyRegraForm: RegraFormState = {
   data_inicio: "",
   ativo: true,
   unidades: [],
+  alvo_tipo: "todos",
+  alvo_id: "",
 };
 
 export const regraToFormState = (r: Regra): RegraFormState => {
@@ -187,5 +206,11 @@ export const regraToFormState = (r: Regra): RegraFormState => {
     data_inicio: cfg.data_inicio ?? "",
     ativo: r.ativo,
     unidades: (r.unidades ?? []).map((u) => u.id),
+    alvo_tipo: (cfg.alvo_tipo as AlvoRegra) ?? "todos",
+    alvo_id:
+      cfg.alvo_tipo === "cargo" ? cfg.cargo_id ?? ""
+      : cfg.alvo_tipo === "setor" ? cfg.setor_id ?? ""
+      : cfg.alvo_tipo === "colaborador" ? cfg.colaborador_id ?? ""
+      : "",
   };
 };

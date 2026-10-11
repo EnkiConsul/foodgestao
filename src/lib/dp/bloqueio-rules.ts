@@ -23,9 +23,39 @@ export type RegraRow = {
     pos_pagamento_dia?: number | null;
     tipo_original?: string | null;
     data_inicio?: string | null;
+    alvo_tipo?: AlvoTipo | null;
+    cargo_id?: string | null;
+    setor_id?: string | null;
+    colaborador_id?: string | null;
   } | null;
   ativo: boolean;
 };
+
+export type AlvoTipo = "todos" | "cargo" | "setor" | "colaborador";
+
+/** Pessoa avaliada contra regras direcionadas (cargo/setor/colaborador). */
+export type PessoaAlvo = { colaboradorId?: string | null; cargoId?: string | null; setorId?: string | null };
+
+/**
+ * A regra vale para esta pessoa? Regra "todos" (padrão) vale para todos.
+ * Regras direcionadas só valem quando a pessoa casa com o alvo; em visões
+ * gerais (sem pessoa) elas não bloqueiam o dia inteiro.
+ * Espelha `private.dp_regra_bloqueia_colaborador`.
+ */
+export function regraAplicaPessoa(regra: Pick<RegraRow, "regra_json">, pessoa?: PessoaAlvo | null): boolean {
+  const cfg = regra.regra_json ?? {};
+  const alvo = cfg.alvo_tipo ?? "todos";
+  if (alvo === "todos") return true;
+  if (!pessoa) return false;
+  if (alvo === "colaborador") return !!pessoa.colaboradorId && cfg.colaborador_id === pessoa.colaboradorId;
+  if (alvo === "cargo") return !!pessoa.cargoId && cfg.cargo_id === pessoa.cargoId;
+  if (alvo === "setor") return !!pessoa.setorId && cfg.setor_id === pessoa.setorId;
+  return false;
+}
+
+/** Regra direcionada a cargo/setor/colaborador (bloqueio parcial). */
+export const regraEhDirecionada = (regra: Pick<RegraRow, "regra_json">) =>
+  (regra.regra_json?.alvo_tipo ?? "todos") !== "todos";
 
 export type RegraUnidadeLink = { regra_id: string; unidade_id: string };
 
@@ -143,8 +173,10 @@ export function buildBloqueiosDeRegras(params: {
   unidadeId: string | null;
   from: Date;
   to: Date;
+  /** Pessoa para regras direcionadas; sem ela, só regras de "todos" valem. */
+  pessoa?: PessoaAlvo | null;
 }): Map<string, string> {
-  const { regras, vinculos, unidadeId, from, to } = params;
+  const { regras, vinculos, unidadeId, from, to, pessoa } = params;
   const porRegra = new Map<string, string[]>();
   for (const v of vinculos) {
     const arr = porRegra.get(v.regra_id) ?? [];
@@ -158,6 +190,7 @@ export function buildBloqueiosDeRegras(params: {
     // unidadeId === null (admin visão global): inclui todas as regras.
     // unidadeId setado: inclui globais (sem vínculo) + vinculadas àquela unidade.
     if (unidades.length > 0 && unidadeId && !unidades.includes(unidadeId)) continue;
+    if (!regraAplicaPessoa(r, pessoa)) continue;
     const datas = expandRegraNoIntervalo(r, from, to);
     for (const iso of datas) if (!out.has(iso)) out.set(iso, r.nome);
   }
@@ -184,8 +217,10 @@ export function buildBloqueiosDeRegrasDetalhado(params: {
   unidadeId: string | null;
   from: Date;
   to: Date;
+  /** Pessoa para regras direcionadas; sem ela, só regras de "todos" valem. */
+  pessoa?: PessoaAlvo | null;
 }): Map<string, BloqueioOrigem> {
-  const { regras, vinculos, unidadeId, from, to } = params;
+  const { regras, vinculos, unidadeId, from, to, pessoa } = params;
   const porRegra = new Map<string, string[]>();
   for (const v of vinculos) {
     const arr = porRegra.get(v.regra_id) ?? [];
@@ -197,6 +232,7 @@ export function buildBloqueiosDeRegrasDetalhado(params: {
   for (const r of regras) {
     const unidades = porRegra.get(r.id) ?? [];
     if (unidades.length > 0 && unidadeId && !unidades.includes(unidadeId)) continue;
+    if (!regraAplicaPessoa(r, pessoa)) continue;
     const isGlobal = unidades.length === 0;
     const datas = expandRegraNoIntervalo(r, from, to);
     for (const iso of datas) {
