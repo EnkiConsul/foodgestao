@@ -65,7 +65,7 @@ export default function DpMeuPerfil() {
     if (!p) return;
     setForm({
       telefone: p.telefone ?? "",
-      whatsapp: p.whatsapp ?? "",
+      whatsapp: p.whatsapp || p.telefone || "",
       email_contato: p.email_contato ?? "",
       endereco: {
         logradouro: p.endereco?.logradouro ?? "",
