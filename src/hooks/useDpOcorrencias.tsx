@@ -59,7 +59,7 @@ export interface OcorrenciaFiltros {
 }
 
 export const FILTROS_PADRAO: OcorrenciaFiltros = {
-  periodo: "semana",
+  periodo: "todas",
   colaboradorId: "all",
   unidadeId: "all",
   setorId: "all",
@@ -69,7 +69,7 @@ export const FILTROS_PADRAO: OcorrenciaFiltros = {
   impactaAssiduidade: "all",
   impactaFerias: "all",
   tratativa: "all",
-  somentePendentes: true,
+  somentePendentes: false,
   cobertura: "all",
   assiduidadeDecisao: "all",
 
@@ -256,16 +256,15 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
   const ocorrencias = useMemo(() => {
     const todas = lista.data ?? [];
     const termo = filtros.busca.trim().toLowerCase();
-    return todas.filter((o) => {
-      if (filtros.somentePendentes) {
-        const pendente =
-          o.estado === "aguardando_confirmacao" ||
-          o.analise_status === "pendente" ||
-          o.tratativa_status === "pendente" ||
-          o.impacta_assiduidade === "aguardando" ||
-          o.impacta_ferias === "aguardando";
-        if (!pendente || o.estado === "cancelada") return false;
-      }
+    const ehPendente = (o: Ocorrencia) =>
+      o.estado !== "cancelada" &&
+      (o.estado === "aguardando_confirmacao" ||
+        o.analise_status === "pendente" ||
+        o.tratativa_status === "pendente" ||
+        o.impacta_assiduidade === "aguardando" ||
+        o.impacta_ferias === "aguardando");
+    const filtradas = todas.filter((o) => {
+      if (filtros.somentePendentes && !ehPendente(o)) return false;
       if (filtros.cobertura !== "all") {
         const lista = (coberturasPorOcorrencia.get(o.id) ?? []).filter((c) => c.status !== "recusada");
         const cobrivel = TIPOS_COBRIVEIS.includes(o.tipo);
@@ -291,6 +290,11 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
       if (termo && !(o.colaborador?.nome ?? "").toLowerCase().includes(termo)) return false;
       return true;
     });
+    // Não tratadas primeiro; dentro de cada grupo mantém a ordem (mais recentes primeiro).
+    return filtradas
+      .map((o, i) => ({ o, i, p: ehPendente(o) ? 0 : 1 }))
+      .sort((a, b) => a.p - b.p || a.i - b.i)
+      .map((x) => x.o);
   }, [
     lista.data,
     filtros.busca,
