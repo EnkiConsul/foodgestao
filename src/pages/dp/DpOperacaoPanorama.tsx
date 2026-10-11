@@ -1552,6 +1552,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               selecionado={data}
               filtros={filtrosCal}
               onFiltros={(f) => save({ extras: { ...(prefs.extras ?? {}), [CAL_FILTROS_KEY]: f } })}
+              onMarcarOk={dispensar}
               onAbrirDia={(iso, per) => {
                 setPeriodoPopout(per ?? "todos");
                 if (iso.slice(0, 7) !== competencia) setData(iso);
