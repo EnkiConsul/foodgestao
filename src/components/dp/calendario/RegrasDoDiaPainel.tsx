@@ -14,6 +14,7 @@ import { useBloqueiosEfetivos } from "@/hooks/useBloqueiosEfetivos";
 import { useFixosPorDiaSemana } from "@/hooks/useFixosPorDiaSemana";
 import { VagasCargoSetorDia } from "@/components/dp/bloqueios/RestricoesDoDia";
 import { cn } from "@/lib/utils";
+import { LiberarEscopoDialog } from "@/components/dp/bloqueios/LiberarEscopoDialog";
 
 interface Props {
   companyId: string;
@@ -245,6 +246,30 @@ export function BloqueioDoDiaCabecalho({
         description: `${e instanceof Error ? e.message : String(e)} Tente de novo em instantes.`,
       }),
   });
+  // Liberação de bloqueio geral: só nesta unidade ou em todas (igual ao Calendário de Folgas).
+  const [escopoOpen, setEscopoOpen] = useState(false);
+  const unidadeNomeQ = useQuery({
+    queryKey: ["dp_unidade_nome", unidadeId],
+    enabled: !!unidadeId,
+    queryFn: async () => {
+      const { data: u } = await supabase.from("dp_unidades").select("nome").eq("id", unidadeId!).maybeSingle();
+      return u?.nome ?? null;
+    },
+  });
+  const liberarEscopo = useMutation({
+    mutationFn: (uid: string | null) =>
+      salvarDataBloqueada({ companyId, data, unidadeId: uid, liberada: true, motivo: "Liberado manualmente pelo administrador" }),
+    onSuccess: () => {
+      toast.success("Data liberada para folgas.");
+      setEscopoOpen(false);
+      for (const k of ["dp_bloqueios_efetivos", "dp_bloqueio_cabecalho", "dp_regras_do_dia", "dp_datas_bloqueadas_geral", "dp_datas_bloqueadas", "dp_panorama_base"])
+        qc.invalidateQueries({ queryKey: [k] });
+    },
+    onError: (e: unknown) =>
+      toast.error("Não foi possível liberar a data", {
+        description: `${e instanceof Error ? e.message : String(e)} Tente de novo em instantes.`,
+      }),
+  });
   const [motivo, setMotivo] = useState("");
   const [abrindo, setAbrindo] = useState(false);
   const bloquear = useMutation({
@@ -286,12 +311,30 @@ export function BloqueioDoDiaCabecalho({
       <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-destructive">
         <Lock className="h-4 w-4" /> Bloqueado{b.motivo ? ` · ${b.motivo}` : ""}
       </span>
-      {podeEditar && !b.regra_id && (
-        <Button size="sm" variant="outline" className="h-8" disabled={liberar.isPending} onClick={() => b.id && liberar.mutate(b.id)}>
-          Liberar data
+      {podeEditar && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8"
+          disabled={liberar.isPending || liberarEscopo.isPending}
+          onClick={() => {
+            if (b.global || b.regra_id) setEscopoOpen(true);
+            else if (b.id) liberar.mutate(b.id);
+          }}
+        >
+          <LockOpen className="mr-1 h-3.5 w-3.5" /> Liberar Data
         </Button>
       )}
-      {b.regra_id && <span className="text-xs text-muted-foreground">Vem de uma regra; libere em Folgas.</span>}
+      <LiberarEscopoDialog
+        open={escopoOpen}
+        onOpenChange={setEscopoOpen}
+        dataLabel={data.split("-").reverse().join("/")}
+        unidadeNome={unidadeId ? unidadeNomeQ.data ?? "esta unidade" : null}
+        motivo={b.motivo}
+        loading={liberarEscopo.isPending}
+        onLiberarUnidade={() => unidadeId && liberarEscopo.mutate(unidadeId)}
+        onLiberarGlobal={() => liberarEscopo.mutate(null)}
+      />
     </div>
   );
 }

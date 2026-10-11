@@ -229,7 +229,7 @@ export type DataBloqueadaRow = {
   regra_id?: string | null;
 };
 
-export type BloqueioEfetivo = { id: string | null; motivo: string; regra_id: string | null };
+export type BloqueioEfetivo = { id: string | null; motivo: string; regra_id: string | null; /** Vale para todas as unidades (data geral ou regra sem unidades vinculadas). */ global?: boolean };
 
 /**
  * Bloqueios efetivos de uma unidade, com a mesma precedência do Calendário de
@@ -258,13 +258,13 @@ export function bloqueiosEfetivosUnidade(params: {
     const cur = out.get(b.data);
     // Bloqueio da própria unidade tem prioridade sobre o geral.
     if (!cur || (b.unidade_id && unidadeId === b.unidade_id)) {
-      out.set(b.data, { id: b.id, motivo: b.motivo ?? "Data bloqueada", regra_id: b.regra_id ?? null });
+      out.set(b.data, { id: b.id, motivo: b.motivo ?? "Data bloqueada", regra_id: b.regra_id ?? null, global: !b.unidade_id });
     }
   }
   buildBloqueiosDeRegras({ regras, vinculos, unidadeId, from, to }).forEach((motivo, iso) => {
     if (liberadas.has(iso) || out.has(iso)) return;
     const regra = regras.find((r) => r.nome === motivo);
-    out.set(iso, { id: null, motivo, regra_id: regra?.id ?? "regra" });
+    out.set(iso, { id: null, motivo, regra_id: regra?.id ?? "regra", global: !regra || !vinculos.some((v) => v.regra_id === regra.id) });
   });
   return out;
 }
