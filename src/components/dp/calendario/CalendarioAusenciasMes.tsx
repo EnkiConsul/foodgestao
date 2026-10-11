@@ -76,9 +76,11 @@ interface Props {
   unidadeId?: string | null;
   nomeUnidade?: string;
   competenciaLabel?: string;
+  /** Dispensa o alerta do dia ("Marcar como OK"). */
+  onMarcarOk?: (dia: DiaPanorama) => void;
 }
 
-export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros, onFiltros, onAbrirDia, unidadeId = null, nomeUnidade, competenciaLabel }: Props) {
+export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros, onFiltros, onAbrirDia, unidadeId = null, nomeUnidade, competenciaLabel, onMarcarOk }: Props) {
   const { selectedCompanyId } = useCompanyContext();
   const { config } = useDpConfigDp(unidadeId);
   // Dias de descanso dominical habilitados na regra da unidade.
