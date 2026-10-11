@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDpFerias } from "@/hooks/useDpFerias";
 import { useDpFeriasConfig } from "@/hooks/useDpFeriasConfig";
@@ -34,7 +35,16 @@ export function FeriasNovoModal({ open, onOpenChange, colaboradorId, dataInicio 
     return map;
   }, [gozos]);
 
-  if (!open || periodosLoading) return null;
+  const semSaldo = open && !periodosLoading && doColab.length === 0;
+  useEffect(() => {
+    if (!semSaldo) return;
+    toast.info("Colaborador sem período aquisitivo com saldo disponível", {
+      description: "Verifique os períodos abertos na tela de Férias.",
+    });
+    onOpenChange(false);
+  }, [semSaldo, onOpenChange]);
+
+  if (!open || periodosLoading || semSaldo) return null;
 
   return (
     <FeriasGozoDialog
