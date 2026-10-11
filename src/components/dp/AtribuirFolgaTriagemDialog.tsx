@@ -124,20 +124,44 @@ export function AtribuirFolgaTriagemDialog({
     return out;
   }, [fixosQuery.data, dataIso]);
 
+  /** Intermitente não participa de folga fixa, troca semanal nem escolha de fim de semana. */
+  const regimeQuery = useQuery({
+    queryKey: ["dp_triagem_regime", colaboradorId],
+    enabled: open && !!colaboradorId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("dp_colaboradores")
+        .select("regime_trabalho")
+        .eq("id", colaboradorId)
+        .maybeSingle();
+      return (data as { regime_trabalho?: string } | null)?.regime_trabalho ?? null;
+    },
+  });
+  const intermitente = regimeQuery.data === "intermitente";
+
+  const [limiteMsg, setLimiteMsg] = useState<string | null>(null);
+  const [justificativa, setJustificativa] = useState("");
+
   useEffect(() => {
     if (!open) return;
     setModo("extra");
     setFolgaSubstituir("");
     setDataTrabalho("");
     setMotivo("");
+    setLimiteMsg(null);
+    setJustificativa("");
   }, [open, dataIso, colaboradorId]);
 
   const atribuir = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (autorizar: boolean = false) => {
+      if (intermitente && modo !== "extra")
+        throw new Error("Intermitente não participa de trocas de folga fixa ou de fim de semana.");
       if (modo === "substituir_fds" && !folgaSubstituir)
         throw new Error("Escolha a folga que será substituída.");
       if (modo === "troca_semanal" && !dataTrabalho)
         throw new Error("Escolha o dia em que o colaborador vai trabalhar.");
+      if (autorizar && justificativa.trim().length < 15)
+        throw new Error("Descreva o motivo da exceção (mínimo 15 caracteres).");
       const { data, error } = await supabase.rpc("dp_folga_atribuir_admin_v2" as any, {
         p_colaborador: colaboradorId,
         p_data: dataIso,
@@ -145,10 +169,18 @@ export function AtribuirFolgaTriagemDialog({
         p_folga_substituir_id: modo === "substituir_fds" ? folgaSubstituir : null,
         p_data_trabalho: modo === "troca_semanal" ? dataTrabalho : null,
         p_motivo: motivo.trim() || null,
+        p_autorizar_excedente: autorizar,
+        p_justificativa_excedente: autorizar ? justificativa.trim() : null,
       });
       if (error) {
         const raw = error.message ?? "";
-        if (raw.includes("FOLGA_LIMITE_DIA"))
+        if (raw.includes("FORBIDDEN_UNIDADE"))
+          throw new Error("Você não tem permissão para gerenciar folgas desta unidade.");
+        if (raw.includes("INTERMITENTE"))
+          throw new Error("Intermitente não participa de trocas de folga fixa ou de fim de semana.");
+        if (raw.includes("JUSTIFICATIVA_OBRIGATORIA"))
+          throw new Error("Descreva o motivo da exceção (mínimo 15 caracteres).");
+        if (raw.includes("FOLGA_LIMITE_DIA") || raw.includes("Limite diário"))
           throw new Error("Este dia já atingiu o limite de pessoas em folga.");
         if (raw.includes("DUPLICATE_REQUEST"))
           throw new Error("Este colaborador já tem folga registrada neste dia.");
@@ -160,7 +192,11 @@ export function AtribuirFolgaTriagemDialog({
           throw new Error("Só responsáveis da empresa podem lançar folgas.");
         throw new Error(raw || "Não foi possível atribuir a folga.");
       }
-      const res = (data ?? {}) as { ok?: boolean; mensagem?: string };
+      const res = (data ?? {}) as { ok?: boolean; mensagem?: string; limite_atingido?: boolean };
+      if (res.ok === false && res.limite_atingido) {
+        setLimiteMsg(res.mensagem ?? "Este dia já atingiu o limite de pessoas em folga.");
+        throw new Error("LIMITE_SILENCIOSO");
+      }
       if (res.ok === false)
         throw new Error(res.mensagem ?? "Não foi possível atribuir a folga neste dia.");
     },
