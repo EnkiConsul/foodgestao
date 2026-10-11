@@ -71,6 +71,7 @@ import {
   buildOccupantsByDate,
   calculateDateStatus,
   dayType,
+  getMonthDays,
   diasFixosDeFolga,
   formatBR,
   monthKey,
@@ -769,6 +770,31 @@ export default function DpMeuCalendario() {
         .map((p: any) => ({ data: p.data_alvo, colaborador_id: p.colaborador_id })),
     [pendentes, myUnidade, meRef.data?.id],
   );
+
+  /** Status de cada dia do mês — alimenta os selos da lista no celular (mesmos do desktop). */
+  const statusByDate = useMemo(() => {
+    const map = new Map<string, DateStatusKind>();
+    if (!vinculoCarregado) return map;
+    for (const d of getMonthDays(ano, mes - 1)) {
+      const info = calculateDateStatus({
+        date: d,
+        myColaboradorId: meRef.data?.id ?? null,
+        allFolgas: allFolgasRecords,
+        allColaboradores: colaboradores,
+        manualBlocked,
+        dayLimits,
+        pendingRequests,
+        isAdmin: false,
+        diasElegiveis,
+        tetoMensal,
+      });
+      map.set(ymd(d), info.status);
+    }
+    return map;
+  }, [
+    vinculoCarregado, ano, mes, meRef.data?.id, allFolgasRecords, colaboradores,
+    manualBlocked, dayLimits, pendingRequests, diasElegiveis, tetoMensal,
+  ]);
 
   const goPrev = () => {
     const d = new Date(ano, mes - 2, 1);
