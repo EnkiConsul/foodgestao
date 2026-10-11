@@ -92,7 +92,7 @@ export async function emitirTermoTrocaGestor(input: {
     colaborador_id: input.colaboradorId,
     tipo: "termos",
     titulo: "Termo de Alteração de Folga",
-    descricao: `${ORIGEM_TROCA_LABEL[input.origem]}. ${manual ? "Via impressa para assinatura à mão." : "Assinatura digital pelo portal."}`,
+    descricao: `${ORIGEM_TROCA_LABEL[input.origem]}. ${manual ? "Via impressa para assinatura à mão." : "Assinatura digital pelo portal."} ${input.consomeVaga === false ? "Folga excepcional, sem consumir vaga do limite." : "Consumiu vaga do limite do novo dia."}`,
     file_path: path, file_name: nome, file_size: blob.size, mime_type: "application/pdf",
     referencia_data: input.dataFixa,
     exige_aceite: !manual,
