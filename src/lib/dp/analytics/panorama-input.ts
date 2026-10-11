@@ -61,6 +61,7 @@ export async function carregarPanorama(
     cargos,
     setoresRes,
     avulsasRes,
+    suspensoes,
   ] = await Promise.all([
     supabase
       .from("dp_colaboradores")
@@ -137,6 +138,14 @@ export async function carregarPanorama(
       .eq("company_id", companyId)
       .lte("data_inicio", fim)
       .gte("data_fim", inicio),
+    // Suspensões disciplinares vigentes também afastam a pessoa da operação.
+    supabase
+      .from("dp_registros_disciplinares")
+      .select("colaborador_id, data, suspensao_dias")
+      .eq("company_id", companyId)
+      .eq("tipo", "suspensao")
+      .is("removido_em", null)
+      .lte("data", fim),
   ]);
 
   const respostas = [
@@ -153,6 +162,7 @@ export async function carregarPanorama(
     cargos,
     setoresRes,
     avulsasRes,
+    suspensoes,
   ];
   const err = respostas.find((r) => r.error);
   if (err?.error) throw err.error;
