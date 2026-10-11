@@ -1,5 +1,9 @@
-import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { podeConvocar } from "@/lib/dp/convocacoes";
+import { emitirNotificacaoDescumprimento, PERCENTUAL_MULTA_CONVOCACAO } from "@/lib/dp/termo-descumprimento-convocacao";
+import { Switch } from "@/components/ui/switch";
+import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -107,6 +111,33 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
   }, [form.data_alvo, form.data_fim]);
 
   const nomeColab = ativos.find((c) => c.id === form.colaborador_id)?.nome ?? "";
+  const regimeColab = ativos.find((c) => c.id === form.colaborador_id)?.regime ?? null;
+  const convocavel = podeConvocar(regimeColab as any);
+
+  // Intermitente com convocação aceita no dia: a ausência é falta.
+  const convAceita = useQuery({
+    queryKey: ["dp_convocacao_aceita_dia", selectedCompanyId, form.colaborador_id, form.data_alvo],
+    enabled: open && !!selectedCompanyId && !!form.colaborador_id && !!form.data_alvo && convocavel,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("dp_convocacoes")
+        .select("id, data, entrada, saida, status, respondida_em, updated_at")
+        .eq("company_id", selectedCompanyId!)
+        .eq("colaborador_id", form.colaborador_id)
+        .eq("data", form.data_alvo)
+        .eq("status", "aceita")
+        .limit(1)
+        .maybeSingle();
+      if (error) return null;
+      return data as { entrada: string | null; saida: string | null; respondida_em?: string | null } | null;
+    },
+  });
+  const conv = convocavel ? convAceita.data ?? null : null;
+  const [notificar, setNotificar] = useState(false);
+  const [assinaturaNotif, setAssinaturaNotif] = useState<"digital" | "manual">("digital");
+  useEffect(() => { if (conv) setMotivo("falta"); }, [conv]);
+  useEffect(() => { if (open) { setNotificar(false); setAssinaturaNotif("digital"); } }, [open]);
+  const pendenteNotif = useRef<{ data: string; entrada: string | null; saida: string | null; aceitaEm: string | null } | null>(null);
 
   const continuar = () => {
     if (!form.colaborador_id) return toast.error("Selecione o colaborador");
@@ -117,6 +148,9 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         setFolgaOpen(true);
         break;
       case "falta":
+        pendenteNotif.current = conv && notificar
+          ? { data: form.data_alvo, entrada: conv.entrada, saida: conv.saida, aceitaEm: conv.respondida_em ?? null }
+          : null;
         onOpenChange(false);
         setFaltaOpen(true);
         break;
@@ -189,11 +223,31 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async (_d, input) => {
       toast.success("Falta registrada", { description: "Também aparece nas ocorrências do colaborador." });
       qc.invalidateQueries({ predicate: (q) => String(q.queryKey[0] ?? "").startsWith("dp_ocorrencia") });
       qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
       setFaltaOpen(false);
+      const n = pendenteNotif.current;
+      pendenteNotif.current = null;
+      if (!n || !selectedCompanyId || input.colaboradorId !== form.colaborador_id || input.data !== n.data) return;
+      try {
+        const bytes = await emitirNotificacaoDescumprimento({
+          companyId: selectedCompanyId, colaboradorId: form.colaborador_id, nome: nomeColab,
+          data: n.data, entrada: n.entrada, saida: n.saida, aceitaEm: n.aceitaEm,
+          observacao: input.justificativa ?? null, assinatura: assinaturaNotif,
+        });
+        qc.invalidateQueries({ queryKey: ["dp_documentos"] });
+        if (assinaturaNotif === "manual") {
+          const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
+          window.open(url, "_blank");
+          toast.success("Notificação gerada para impressão", { description: "Também foi guardada na ficha do colaborador." });
+        } else {
+          toast.success("Notificação enviada ao Portal", { description: "O colaborador dará ciência pelo Portal." });
+        }
+      } catch (e) {
+        toast.error("Falta registrada, mas a notificação não foi gerada", { description: e instanceof Error ? e.message : String(e) });
+      }
     },
     onError: (e: Error) => toast.error(textoErroOcorrencia(e.message)),
   });
@@ -236,7 +290,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
               </div>
               <div className="grid gap-1.5">
                 <Label>Motivo *</Label>
-                <Select value={motivo} onValueChange={(v) => setMotivo(v as Motivo)}>
+                <Select value={motivo} onValueChange={(v) => setMotivo(v as Motivo)} disabled={!!conv}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {(Object.keys(MOTIVO_LABEL) as Motivo[]).map((m) => (
@@ -245,6 +299,38 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
                   </SelectContent>
                 </Select>
               </div>
+              {conv && (
+                <div className="grid gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-3">
+                  <div className="flex gap-2 text-sm">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                    <p>
+                      <strong>Convocação aceita para este dia</strong> ({conv.entrada?.slice(0, 5)} às {conv.saida?.slice(0, 5)}).
+                      Por isso a ausência será registrada como <strong>falta</strong>.
+                    </p>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <Label htmlFor="notif-desc" className="text-sm font-normal leading-snug">
+                      Notificar o colaborador sobre a multa de {PERCENTUAL_MULTA_CONVOCACAO}% por descumprir convocação aceita (CLT, art. 452-A, § 4º)
+                    </Label>
+                    <Switch id="notif-desc" checked={notificar} onCheckedChange={setNotificar} />
+                  </div>
+                  {notificar && (
+                    <div className="grid gap-1.5">
+                      <Label>Forma de ciência</Label>
+                      <Select value={assinaturaNotif} onValueChange={(v) => setAssinaturaNotif(v as "digital" | "manual")}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="digital">Digital, pelo Portal do Colaborador</SelectItem>
+                          <SelectItem value="manual">Impressa, com espaço para testemunhas</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground">
+                        O termo informa só o percentual da lei. O valor é apurado pela contabilidade.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div className="grid gap-3 py-2">
