@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { useAuth } from "@/hooks/useAuth";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,38 +21,59 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Database } from "@/integrations/supabase/types";
 import { sugestaoDataFim, duracaoPadrao, TIPOS_LICENCA_CURTA, TIPO_AFASTAMENTO_LABEL } from "@/lib/dp/licencas";
 import { FundamentoLegalCard } from "@/components/dp/licencas/FundamentoLegalCard";
+import { DpFilePicker } from "@/components/dp/DpFilePicker";
+import { AtribuirFolgaTriagemDialog } from "@/components/dp/AtribuirFolgaTriagemDialog";
+import { OcorrenciaFormDialog } from "@/components/dp/ocorrencias/OcorrenciaFormDialog";
+import { textoErroOcorrencia } from "@/lib/dp/ocorrencias";
+import { prepararUpload } from "@/lib/storage/uploadPolicy";
+import { sanitizeStorageFilename } from "@/lib/storage";
 
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 
-const TIPO_LABEL: Record<Tipo, string> = {
-  folga: "Folga",
+/** Motivos do roteador: cada um abre o fluxo oficial da sua área. */
+type Motivo = "folga" | "ferias" | "afastamento" | "falta" | "suspensao";
+
+const MOTIVO_LABEL: Record<Motivo, string> = {
+  folga: "Folga (compensatória, extra ou troca)",
   ferias: "Férias",
-  atestado: "Atestado",
+  afastamento: "Atestado médico ou licença",
+  falta: "Falta",
+  suspensao: "Suspensão disciplinar",
+};
+
+/** Somente afastamentos reais (sem folga, adiantamento ou envio de documentos). */
+const TIPO_AFAST_LABEL: Partial<Record<Tipo, string>> = {
+  atestado: "Atestado médico",
   licenca_maternidade: "Licença-maternidade",
   licenca_paternidade: "Licença-paternidade",
-  ...(Object.fromEntries(TIPOS_LICENCA_CURTA.map((t) => [t, TIPO_AFASTAMENTO_LABEL[t]])) as Record<(typeof TIPOS_LICENCA_CURTA)[number], string>),
-  adiantamento: "Adiantamento",
-  documento: "Envio de documentos",
-  outros: "Outros",
+  ...(Object.fromEntries(TIPOS_LICENCA_CURTA.map((t) => [t, TIPO_AFASTAMENTO_LABEL[t]])) as Partial<Record<Tipo, string>>),
+  outros: "Outro afastamento",
 };
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Data inicial sugerida (AAAA-MM-DD), ex.: vinda do calendário de folgas. */
+  /** Data inicial sugerida (AAAA-MM-DD), ex.: vinda do calendário. */
   dataInicial?: string | null;
 }
 
 /**
- * Registro direto de ausência pelo gestor, a partir da tela de Operação.
- * Férias, atestados e outros afastamentos entram já aprovados e aparecem na
- * Operação; pedidos de folga continuam pendentes de aprovação.
+ * Porta única de "Registrar Ausência" no calendário: o gestor escolhe
+ * colaborador, data e motivo, e o sistema abre o formulário oficial já
+ * preenchido. Só atestados/licenças e faltas são gravados aqui mesmo.
  */
 export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: Props) {
   const { selectedCompanyId } = useCompanyContext();
-  const { user } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const colabs = useDpColaboradores();
+  const ativos = (colabs.data ?? []).filter((c) => c.ativo !== false);
+
+  const [etapa, setEtapa] = useState<"escolha" | "afastamento">("escolha");
+  const [motivo, setMotivo] = useState<Motivo>("afastamento");
+  const [folgaOpen, setFolgaOpen] = useState(false);
+  const [faltaOpen, setFaltaOpen] = useState(false);
+  const [arquivo, setArquivo] = useState<File | null>(null);
   const [form, setForm] = useState({
     colaborador_id: "",
     tipo: "atestado" as Tipo,
@@ -63,22 +84,58 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: P
 
   useEffect(() => {
     if (!open) return;
+    setEtapa("escolha");
+    setMotivo("afastamento");
+    setArquivo(null);
+    const hoje = new Date().toISOString().slice(0, 10);
     setForm({
       colaborador_id: "",
       tipo: "atestado",
-      data_alvo: dataInicial ?? "",
-      data_fim: dataInicial ?? "",
+      data_alvo: dataInicial ?? hoje,
+      data_fim: dataInicial ?? hoje,
       motivo: "",
     });
   }, [open, dataInicial]);
 
   useEffect(() => {
-    if (!open) return;
-    if (!form.data_fim || !form.data_alvo) return;
-    if (form.data_fim < form.data_alvo) setForm((f) => ({ ...f, data_fim: f.data_alvo }));
-  }, [open, form.data_alvo, form.data_fim]);
+    if (form.data_fim && form.data_alvo && form.data_fim < form.data_alvo)
+      setForm((f) => ({ ...f, data_fim: f.data_alvo }));
+  }, [form.data_alvo, form.data_fim]);
 
-  // Licenças sugerem a duração legal padrão (120/5 dias), sempre editável.
+  const nomeColab = ativos.find((c) => c.id === form.colaborador_id)?.nome ?? "";
+
+  const continuar = () => {
+    if (!form.colaborador_id) return toast.error("Selecione o colaborador");
+    if (!form.data_alvo) return toast.error("Informe a data");
+    const q = new URLSearchParams({ colaborador: form.colaborador_id });
+    switch (motivo) {
+      case "folga":
+        onOpenChange(false);
+        setFolgaOpen(true);
+        break;
+      case "falta":
+        onOpenChange(false);
+        setFaltaOpen(true);
+        break;
+      case "ferias":
+        q.set("novo", "1");
+        onOpenChange(false);
+        navigate(`/dp/ferias?${q}`);
+        break;
+      case "suspensao":
+        q.set("tipo", "suspensao");
+        onOpenChange(false);
+        navigate(`/dp/disciplinar?${q}`);
+        toast.info("Registre a suspensão no dossiê disciplinar", {
+          description: "Ela passa a aparecer como ausência no calendário.",
+        });
+        break;
+      case "afastamento":
+        setEtapa("afastamento");
+        break;
+    }
+  };
+
   const sugerirDuracao = (tipo: Tipo, dataInicio: string) => {
     const fim = sugestaoDataFim(tipo, dataInicio);
     if (fim) setForm((f) => ({ ...f, data_fim: fim }));
@@ -87,147 +144,200 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: P
   const salvar = useMutation({
     mutationFn: async () => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      if (!form.colaborador_id) throw new Error("Selecione um colaborador");
-      if (!form.data_alvo) throw new Error("Informe a data inicial");
       if (form.motivo.length > 500) throw new Error("Observações muito longas (máx. 500)");
-      const aprovada = form.tipo !== "folga";
+      const licenca = form.tipo !== "atestado";
+      if (!arquivo && !licenca) throw new Error("Anexe o arquivo do atestado");
+      let path: string | null = null;
+      if (arquivo) {
+        const envio = await prepararUpload("dp-documentos", arquivo);
+        path = `${selectedCompanyId}/${licenca ? "licenca" : "atestado"}/${form.colaborador_id}/${Date.now()}-${sanitizeStorageFilename(envio.name)}`;
+        const up = await supabase.storage.from("dp-documentos").upload(path, envio, { upsert: false });
+        if (up.error) throw up.error;
+      }
       const { error } = await supabase.rpc("dp_solicitacao_criar_admin", {
         p_colaborador: form.colaborador_id,
         p_tipo: form.tipo,
         p_data_alvo: form.data_alvo,
         p_data_fim: (form.data_fim || null) as any,
         p_motivo: (form.motivo.trim() || null) as any,
-        p_arquivo_path: null as any,
-        p_aprovada: aprovada,
+        p_arquivo_path: path as any,
+        p_aprovada: true,
       });
-      if (error) throw error;
-      return aprovada;
+      if (error) {
+        if (path) await supabase.storage.from("dp-documentos").remove([path]).catch(() => undefined);
+        throw error;
+      }
     },
-    onSuccess: (aprovada) => {
-      toast.success(aprovada ? "Ausência registrada" : "Pedido de folga criado", {
-        description: aprovada
-          ? "Já aparece na Operação do dia."
-          : "Ficará pendente até a aprovação do gestor.",
-      });
+    onSuccess: () => {
+      toast.success("Ausência registrada", { description: "Já aparece no calendário e em Atestados." });
       qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
-      qc.invalidateQueries({ queryKey: ["dp_folgas"] });
       qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
       qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
       onOpenChange(false);
     },
-    onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
+    onError: (e) => toast.error("Não foi possível registrar", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
+  const falta = useMutation({
+    mutationFn: async (input: Parameters<React.ComponentProps<typeof OcorrenciaFormDialog>["onSubmit"]>[0]) => {
+      const { error } = await supabase.rpc("dp_ocorrencia_registrar", {
+        _colaborador_id: input.colaboradorId,
+        _data: input.data,
+        _tipo: input.tipo,
+        _justificativa: input.justificativa ?? null,
+        _horario_estimado: input.horarioEstimado ?? null,
+        _horario_real: input.horarioReal ?? null,
+        _marcacao_alvo: input.marcacaoAlvo ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Falta registrada", { description: "Também aparece nas ocorrências do colaborador." });
+      qc.invalidateQueries({ predicate: (q) => String(q.queryKey[0] ?? "").startsWith("dp_ocorrencia") });
+      qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
+      setFaltaOpen(false);
+    },
+    onError: (e: Error) => toast.error(textoErroOcorrencia(e.message)),
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Registrar Ausência</DialogTitle>
-          <DialogDescription>
-            Férias, atestados e licenças entram direto na Operação do dia — inclusive com data de
-            início no passado. Pedidos de folga ficam pendentes de aprovação.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-3 py-2">
-          <div className="grid gap-1.5">
-            <Label>Colaborador *</Label>
-            <Select
-              value={form.colaborador_id}
-              onValueChange={(v) => setForm({ ...form, colaborador_id: v })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione..." />
-              </SelectTrigger>
-              <SelectContent>
-                {(colabs.data ?? [])
-                  .filter((c) => c.ativo !== false)
-                  .map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome}
-                    </SelectItem>
-                  ))}
-                {(colabs.data ?? []).filter((c) => c.ativo !== false).length === 0 && (
-                  <div className="px-3 py-2 text-xs text-muted-foreground">
-                    Nenhum colaborador ativo. Cadastre em Colaboradores.
-                  </div>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-1.5">
-            <Label>Tipo *</Label>
-            <Select
-              value={form.tipo}
-              onValueChange={(v) => {
-                const tipo = v as Tipo;
-                setForm({ ...form, tipo });
-                if (duracaoPadrao(tipo) && form.data_alvo) sugerirDuracao(tipo, form.data_alvo);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(TIPO_LABEL) as Tipo[]).map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {TIPO_LABEL[t]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>Data inicial *</Label>
-              <Input
-                type="date"
-                value={form.data_alvo}
-                onChange={(e) => {
-                  const inicio = e.target.value;
-                  setForm({ ...form, data_alvo: inicio });
-                  if (duracaoPadrao(form.tipo) && inicio) sugerirDuracao(form.tipo, inicio);
-                }}
-              />
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Registrar Ausência</DialogTitle>
+            <DialogDescription>
+              {etapa === "escolha"
+                ? "Escolha o colaborador e o motivo. Abrimos o formulário certo já preenchido."
+                : `${nomeColab} — atestado ou licença com o comprovante.`}
+            </DialogDescription>
+          </DialogHeader>
+
+          {etapa === "escolha" ? (
+            <div className="grid gap-3 py-2">
+              <div className="grid gap-1.5">
+                <Label>Colaborador *</Label>
+                <Select value={form.colaborador_id} onValueChange={(v) => setForm({ ...form, colaborador_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {ativos.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                    {ativos.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">
+                        Nenhum colaborador ativo. Cadastre em Colaboradores.
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Data *</Label>
+                <Input type="date" value={form.data_alvo}
+                  onChange={(e) => setForm({ ...form, data_alvo: e.target.value, data_fim: e.target.value })} />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Motivo *</Label>
+                <Select value={motivo} onValueChange={(v) => setMotivo(v as Motivo)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(MOTIVO_LABEL) as Motivo[]).map((m) => (
+                      <SelectItem key={m} value={m}>{MOTIVO_LABEL[m]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="grid gap-1.5">
-              <Label>Data final</Label>
-              <Input
-                type="date"
-                min={form.data_alvo || undefined}
-                value={form.data_fim}
-                onChange={(e) => setForm({ ...form, data_fim: e.target.value })}
-              />
-              {duracaoPadrao(form.tipo) && (
-                <p className="text-[10px] text-muted-foreground">
-                  Padrão legal: {duracaoPadrao(form.tipo)} dia(s) — ajuste se necessário.
-                </p>
-              )}
+          ) : (
+            <div className="grid gap-3 py-2">
+              <div className="grid gap-1.5">
+                <Label>Tipo *</Label>
+                <Select value={form.tipo} onValueChange={(v) => {
+                  const tipo = v as Tipo;
+                  setForm({ ...form, tipo });
+                  if (duracaoPadrao(tipo) && form.data_alvo) sugerirDuracao(tipo, form.data_alvo);
+                }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TIPO_AFAST_LABEL) as Tipo[]).map((t) => (
+                      <SelectItem key={t} value={t}>{TIPO_AFAST_LABEL[t]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label>Data inicial *</Label>
+                  <Input type="date" value={form.data_alvo} onChange={(e) => {
+                    const inicio = e.target.value;
+                    setForm({ ...form, data_alvo: inicio });
+                    if (duracaoPadrao(form.tipo) && inicio) sugerirDuracao(form.tipo, inicio);
+                  }} />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Data final</Label>
+                  <Input type="date" min={form.data_alvo || undefined} value={form.data_fim}
+                    onChange={(e) => setForm({ ...form, data_fim: e.target.value })} />
+                  {duracaoPadrao(form.tipo) && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Padrão legal: {duracaoPadrao(form.tipo)} dia(s) — ajuste se necessário.
+                    </p>
+                  )}
+                </div>
+              </div>
+              <FundamentoLegalCard tipo={form.tipo} inicio={form.data_alvo} fim={form.data_fim} />
+              <div className="grid gap-1.5">
+                <Label>Comprovante {form.tipo === "atestado" ? "*" : "(pode anexar depois)"}</Label>
+                <DpFilePicker accept="application/pdf,image/*" file={arquivo} onFileChange={setArquivo} />
+                <p className="text-[10px] text-muted-foreground">PDF ou foto, até 15 MB.</p>
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Observação</Label>
+                <Textarea rows={3} maxLength={500} placeholder="Contexto ou observação (opcional)"
+                  value={form.motivo} onChange={(e) => setForm({ ...form, motivo: e.target.value })} />
+              </div>
             </div>
-          </div>
-          <FundamentoLegalCard tipo={form.tipo} inicio={form.data_alvo} fim={form.data_fim} />
-          <div className="grid gap-1.5">
-            <Label>Justificativa</Label>
-            <Textarea
-              rows={3}
-              maxLength={500}
-              placeholder="Motivo, contexto ou observação (opcional)"
-              value={form.motivo}
-              onChange={(e) => setForm({ ...form, motivo: e.target.value })}
-            />
-            <div className="text-right text-[10px] text-muted-foreground">
-              {form.motivo.length}/500
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={salvar.isPending}>
-            Cancelar
-          </Button>
-          <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
-            {salvar.isPending ? "Salvando..." : "Registrar"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          )}
+
+          <DialogFooter className="gap-2">
+            {etapa === "afastamento" ? (
+              <>
+                <Button variant="ghost" onClick={() => setEtapa("escolha")} disabled={salvar.isPending}>Voltar</Button>
+                <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+                  {salvar.isPending ? "Salvando..." : "Registrar"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                <Button onClick={continuar}>Continuar</Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {selectedCompanyId && form.colaborador_id && (
+        <AtribuirFolgaTriagemDialog
+          open={folgaOpen}
+          onOpenChange={setFolgaOpen}
+          companyId={selectedCompanyId}
+          colaboradorId={form.colaborador_id}
+          colaboradorNome={nomeColab}
+          dataIso={form.data_alvo}
+          onDone={() => setFolgaOpen(false)}
+        />
+      )}
+
+      <OcorrenciaFormDialog
+        open={faltaOpen}
+        onOpenChange={setFaltaOpen}
+        colaboradores={ativos.map((c) => ({ id: c.id, nome: c.nome }))}
+        dataInicial={form.data_alvo}
+        colaboradorInicial={form.colaborador_id}
+        saving={falta.isPending}
+        onSubmit={(input) => falta.mutate(input)}
+      />
+    </>
   );
 }
