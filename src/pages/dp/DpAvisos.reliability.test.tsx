@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AvisoDialog } from "@/pages/dp/DpAvisos";
@@ -29,7 +30,9 @@ const aviso = {
 function renderDialog(onSave: (v: any) => Promise<void>) {
   const onOpenChange = vi.fn();
   render(
-    <AvisoDialog aviso={aviso} open onOpenChange={onOpenChange} onSave={onSave} companyId="empresa-1" />,
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <AvisoDialog aviso={aviso} open onOpenChange={onOpenChange} onSave={onSave} companyId="empresa-1" />
+    </QueryClientProvider>,
   );
   return { onOpenChange };
 }
