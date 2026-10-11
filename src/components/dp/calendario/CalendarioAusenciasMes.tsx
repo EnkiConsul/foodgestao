@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
 import { resolverLimiteFolga, limiteComFolgaFixaDiaUtil } from "@/lib/dp/folga-limites";
+import { useBloqueiosParciais } from "@/hooks/useBloqueiosParciais";
 import { useBloqueiosEfetivos } from "@/hooks/useBloqueiosEfetivos";
 import { useFixosPorDiaSemana } from "@/hooks/useFixosPorDiaSemana";
 import { folgaFixaDoDia } from "@/lib/dp/calendario-rotina";
@@ -90,6 +91,8 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
 
   const ini = diasBrutos[0]?.data, fimMes = diasBrutos[diasBrutos.length - 1]?.data;
   const bloqueiosQuery = useBloqueiosEfetivos(selectedCompanyId, unidadeId, ini, fimMes);
+  const parciaisQuery = useBloqueiosParciais(selectedCompanyId, unidadeId, ini, fimMes);
+  const temParcial = (iso: string) => !bloqueios.has(iso) && (parciaisQuery.data?.get(iso)?.length ?? 0) > 0;
   const bloqueios = useMemo(() => {
     const m = new Map<string, string>();
     bloqueiosQuery.data?.forEach((b, iso) => m.set(iso, b.motivo));
@@ -443,9 +446,10 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               dominical: ehDiaDominical(d.data),
               chipsLinhaUnica: true,
               onSelect: () => onAbrirDia(d.data),
-              icones: pico(d.data, d.feriado_nome) || bloqueios.has(d.data) || d.feriado_nome ? (
+              icones: pico(d.data, d.feriado_nome) || bloqueios.has(d.data) || temParcial(d.data) || d.feriado_nome ? (
                 <>
                   {bloqueios.has(d.data) && <Lock className="h-3.5 w-3.5 text-destructive" aria-label="Folgas bloqueadas" />}
+                  {temParcial(d.data) && <Lock className="h-3.5 w-3.5 text-amber-500" aria-label="Bloqueio parcial" />}
                   {pico(d.data, d.feriado_nome) && <Flame className="h-3.5 w-3.5 fill-amber-500 text-amber-500" aria-label="Pico de operação" />}
                   {d.feriado_nome && (
                     <span
@@ -538,6 +542,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                         {ehHoje && <span className="rounded bg-primary px-1 text-[9px] font-bold uppercase tracking-wider text-primary-foreground">Hoje</span>}
                         {ehPico && <Flame className="h-4 w-4 shrink-0 fill-amber-500 text-amber-500" aria-label="Pico de operação"><title>Pico de operação</title></Flame>}
                         {bloqueio && <Lock className="h-3.5 w-3.5 shrink-0 text-destructive" aria-label="Data bloqueada"><title>{bloqueio}</title></Lock>}
+                        {temParcial(d.data) && <Lock className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Bloqueio parcial"><title>Bloqueio parcial</title></Lock>}
                         {d.feriado_nome && (
                           <span className="truncate rounded bg-primary px-1 text-[9px] font-bold uppercase leading-4 text-primary-foreground" title={d.feriado_nome}>Feriado</span>
                         )}

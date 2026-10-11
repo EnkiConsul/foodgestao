@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { definirLimiteDoDia, excluirDataBloqueada, salvarDataBloqueada, salvarRegraBloqueio } from "@/lib/dp/regras-oficial";
+import { definirLimiteDoDia, excluirDataBloqueada, excluirRegraBloqueio, salvarDataBloqueada, salvarRegraBloqueio } from "@/lib/dp/regras-oficial";
+import { useBloqueiosParciais, useNomesAlvo } from "@/hooks/useBloqueiosParciais";
 import { ALVO_LABEL, alvoParaRegraJson, type AlvoRegra } from "@/lib/dp/bloqueios";
 import { AlvoMultiSelect } from "@/components/dp/bloqueios/AlvoMultiSelect";
 import { Button } from "@/components/ui/button";
@@ -245,7 +246,13 @@ export function BloqueioDoDiaCabecalho({
   companyId, unidadeId, data, podeEditar,
 }: { companyId: string; unidadeId: string | null; data: string; podeEditar: boolean }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const efetivos = useBloqueiosEfetivos(companyId, unidadeId, data, data);
+  const parciaisQ = useBloqueiosParciais(companyId, unidadeId, data, data);
+  const parciais = parciaisQ.data?.get(data) ?? [];
+  const nomesQ = useNomesAlvo(parciais.length ? companyId : null);
+  const nomeDe = (id: string) => nomesQ.data?.get(id) ?? "...";
+  const [editId, setEditId] = useState<string | null>(null);
   const q = { isLoading: efetivos.isLoading, data: efetivos.data?.get(data) ?? null };
   const liberar = useMutation({
     mutationFn: (id: string) => excluirDataBloqueada(id),
@@ -293,18 +300,24 @@ export function BloqueioDoDiaCabecalho({
       if (alvoTipo === "todos") return salvarDataBloqueada({ companyId, data, motivo: m, unidadeId });
       if (alvoIds.length === 0) throw new Error("Escolha ao menos um item do público.");
       const [y, mo, d] = data.split("-").map(Number);
+      // Já existe bloqueio parcial deste dia para o mesmo tipo de público? Soma os itens na mesma regra.
+      const existente = editId
+        ? parciais.find((p) => p.regraId === editId)
+        : parciais.find((p) => p.pontual && p.alvoTipo === alvoTipo);
+      const ids = existente && !editId ? [...new Set([...existente.ids, ...alvoIds])] : alvoIds;
       await salvarRegraBloqueio({
         companyId,
         regra: {
-          nome: m, tipo: "fixa_anual", mes: mo, dia: d, ativo: true,
-          regra_json: { aplicacao: "unica", ano_referencia: y, meses: [mo], dias: [d], ...alvoParaRegraJson(alvoTipo, alvoIds) },
+          ...(existente ? { id: existente.regraId } : {}),
+          nome: existente && !motivo.trim() ? existente.nome : m, tipo: "fixa_anual", mes: mo, dia: d, ativo: true,
+          regra_json: { aplicacao: "unica", ano_referencia: y, meses: [mo], dias: [d], ...alvoParaRegraJson(alvoTipo, ids) },
         },
-        unidades: unidadeId ? [unidadeId] : [],
+        unidades: existente ? existente.unidades : unidadeId ? [unidadeId] : [],
       });
     },
     onSuccess: () => {
-      toast.success(alvoTipo === "todos" ? "Data bloqueada para folgas." : "Bloqueio parcial criado para o público escolhido.");
-      setMotivo(""); setAbrindo(false); setAlvoTipo("todos"); setAlvoIds([]);
+      toast.success(alvoTipo === "todos" ? "Data bloqueada para folgas." : editId ? "Bloqueio parcial atualizado." : "Bloqueio parcial salvo para o público escolhido.");
+      setMotivo(""); setAbrindo(false); setAlvoTipo("todos"); setAlvoIds([]); setEditId(null);
       for (const k of ["dp_bloqueios_efetivos", "dp_bloqueio_cabecalho", "dp_regras_do_dia", "dp_datas_bloqueadas_geral", "dp_panorama_base", "dp_bloqueio_regras"])
         qc.invalidateQueries({ queryKey: [k] });
     },
@@ -313,18 +326,61 @@ export function BloqueioDoDiaCabecalho({
         description: `${e instanceof Error ? e.message : String(e)} Tente de novo em instantes.`,
       }),
   });
+  const liberarParcial = useMutation({
+    mutationFn: (id: string) => excluirRegraBloqueio(id, "Liberado no calendário"),
+    onSuccess: () => {
+      toast.success("Bloqueio parcial liberado.");
+      for (const k of ["dp_bloqueios_efetivos", "dp_bloqueio_cabecalho", "dp_regras_do_dia", "dp_panorama_base", "dp_bloqueio_regras"])
+        qc.invalidateQueries({ queryKey: [k] });
+    },
+    onError: (e: unknown) =>
+      toast.error("Não foi possível liberar o bloqueio parcial", {
+        description: `${e instanceof Error ? e.message : String(e)} Tente de novo em instantes.`,
+      }),
+  });
   const b = q.data;
   if (q.isLoading) return null;
   if (!b) {
-    if (!podeEditar) return null;
+    if (!podeEditar && parciais.length === 0) return null;
     return (
       <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-        <span className="inline-flex items-center gap-1 text-xs font-medium text-primary"><LockOpen className="h-3.5 w-3.5" /> Liberado para folgas</span>
-        {abrindo ? (
+        {parciais.length > 0 ? (
+          <div className="w-full space-y-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-left">
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-300">
+              <Lock className="h-4 w-4" /> Bloqueio parcial
+            </span>
+            {parciais.map((p) => (
+              <div key={p.regraId} className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="min-w-0 flex-1">
+                  <span className="text-muted-foreground">Sem folga para: </span>
+                  <span className="font-medium text-foreground">{p.ids.map(nomeDe).join(", ") || "—"}</span>
+                  {p.nome ? <span className="text-muted-foreground"> · {p.nome}</span> : null}
+                </span>
+                {podeEditar && (p.pontual ? (
+                  <span className="flex gap-1">
+                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => {
+                      setEditId(p.regraId); setAlvoTipo(p.alvoTipo); setAlvoIds(p.ids); setMotivo(p.nome); setAbrindo(true);
+                    }}>Editar</Button>
+                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={liberarParcial.isPending} onClick={() => liberarParcial.mutate(p.regraId)}>
+                      <LockOpen className="mr-1 h-3.5 w-3.5" /> Liberar
+                    </Button>
+                  </span>
+                ) : (
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => navigate("/dp/bloqueios")}>Regra recorrente · ver regras</Button>
+                ))}
+              </div>
+            ))}
+            <p className="text-[11px] text-muted-foreground">Os demais colaboradores continuam podendo folgar, dentro do limite do dia.</p>
+          </div>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-primary"><LockOpen className="h-3.5 w-3.5" /> Liberado para folgas</span>
+        )}
+        {!podeEditar ? null : abrindo ? (
           <div className="w-full space-y-2 rounded-lg border p-3 text-left">
             <label className="text-xs font-medium">Quem não poderá folgar</label>
             <select
               value={alvoTipo}
+              disabled={!!editId}
               onChange={(e) => { setAlvoTipo(e.target.value as AlvoRegra); setAlvoIds([]); }}
               className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
             >
@@ -337,12 +393,12 @@ export function BloqueioDoDiaCabecalho({
             </p>
             <div className="flex gap-2">
               <Button size="sm" variant="destructive" className="h-8 flex-1" disabled={bloquear.isPending || (alvoTipo !== "todos" && alvoIds.length === 0)} onClick={() => bloquear.mutate()}>Bloquear</Button>
-              <Button size="sm" variant="ghost" className="h-8" onClick={() => setAbrindo(false)}>Voltar</Button>
+              <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAbrindo(false); setEditId(null); }}>Voltar</Button>
             </div>
           </div>
         ) : (
-          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setAbrindo(true)}>
-            <Lock className="mr-1 h-3.5 w-3.5" /> Bloquear dia
+          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { setEditId(null); setAbrindo(true); }}>
+            <Lock className="mr-1 h-3.5 w-3.5" /> {parciais.length ? "Bloquear mais" : "Bloquear dia"}
           </Button>
         )}
       </div>
