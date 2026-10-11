@@ -275,9 +275,15 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
   return (
     <div className={containerCls}>
       {header}
-      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-2xl border bg-border">
-        {WEEKDAY_LABELS.map((w) => (
-          <div key={w} className="bg-muted/60 py-3 text-center text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-lg ring-1 ring-primary/10">
+        {WEEKDAY_LABELS.map((w, idx) => (
+          <div
+            key={w}
+            className={cn(
+              "border-b-2 border-primary py-2.5 text-center text-xs font-extrabold uppercase tracking-[0.16em]",
+              idx === 0 ? "bg-primary text-primary-foreground" : "bg-foreground text-background",
+            )}
+          >
             {w}
           </div>
         ))}
