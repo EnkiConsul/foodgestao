@@ -154,7 +154,6 @@ export default function DpOcorrencias() {
   const activeCount = useMemo(() => {
     const chaves: (keyof OcorrenciaFiltros)[] = [
       "colaboradorId",
-      "unidadeId",
       "setorId",
       "tipo",
       "estado",
