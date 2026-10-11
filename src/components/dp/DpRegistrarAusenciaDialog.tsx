@@ -126,10 +126,11 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         break;
       case "suspensao":
         q.set("tipo", "suspensao");
+        q.set("data", form.data_alvo);
         onOpenChange(false);
         navigate(`/dp/disciplinar?${q}`);
-        toast.info("Registre a suspensão no dossiê disciplinar", {
-          description: "Ela passa a aparecer como ausência no calendário.",
+        toast.info(`Suspensão de ${nomeColab || "colaborador"} pronta para registro`, {
+          description: "Gere o modelo, colha a assinatura e importe a via assinada.",
         });
         break;
       case "afastamento":
