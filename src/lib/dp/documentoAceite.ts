@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { RegraNegada } from "@/lib/dp/regraAviso";
 
 /**
  * Registro da assinatura eletrônica de um documento.
@@ -15,6 +16,9 @@ export async function assinarDocumento(documentoId: string, assinatura: string):
 
   if (error) {
     const detalhe = await lerMensagem(error);
+    const status = (error as { context?: { status?: number } })?.context?.status;
+    // Recusa por regra (via impressa, documento indisponível): aviso, não falha técnica.
+    if (detalhe && (status === 403 || status === 409)) throw new RegraNegada(detalhe);
     throw new Error(detalhe ?? "Não foi possível registrar a assinatura");
   }
 

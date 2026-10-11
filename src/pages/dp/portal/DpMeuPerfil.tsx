@@ -21,6 +21,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { notifyError } from "@/lib/notifyError";
+import { RegraNegada } from "@/lib/dp/regraAviso";
 import { negarRegra } from "@/lib/dp/regraAviso";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 import { atualizarMeuCadastro } from "@/lib/dp/colaborador-oficial";
@@ -108,7 +109,7 @@ export default function DpMeuPerfil() {
       qc.invalidateQueries({ queryKey: ["dp_meu_perfil"] });
       setEditing(false);
     },
-    onError: (e: any) => notifyError(e, {
+    onError: (e: any) => notifyError(/pix/i.test(String(e?.message ?? "")) ? new RegraNegada(String(e.message)) : e, {
       surface: "Meu perfil",
       action: "salvar seus dados",
       fallback: e?.message?.trim() || "Não foi possível salvar seus dados. Tente novamente — se continuar, relate o problema.",

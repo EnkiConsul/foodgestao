@@ -34,6 +34,14 @@ describe("assinarDocumento", () => {
     );
   });
 
+  it("recusa por via impressa vira aviso de regra, sem registro de erro", async () => {
+    invoke.mockResolvedValue({
+      data: null,
+      error: { message: "non-2xx", context: { status: 409, json: async () => ({ error: "Documentos de desligamento são assinados somente à mão, na via impressa." }) } },
+    });
+    await expect(assinarDocumento("doc-4", "x")).rejects.toMatchObject({ name: "RegraNegada" });
+  });
+
   it("falha quando o servidor não confirma a assinatura", async () => {
     invoke.mockResolvedValue({ data: {}, error: null });
     await expect(assinarDocumento("doc-3", "data:image/png;base64,AA")).rejects.toThrow(
