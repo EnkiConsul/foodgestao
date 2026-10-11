@@ -51,6 +51,7 @@ import { useDpPessoasApoio } from "@/hooks/useDpPessoasApoio";
 import { OcorrenciaCoberturaDialog } from "@/components/dp/ocorrencias/OcorrenciaCoberturaDialog";
 import { OcorrenciaHistoricoDialog } from "@/components/dp/ocorrencias/OcorrenciaHistoricoDialog";
 import { useDpOcorrenciasIndicadores } from "@/hooks/useDpOcorrenciasIndicadores";
+import { useSwipeHorizontal } from "@/hooks/useSwipeHorizontal";
 import type { SubstitutoOpcao } from "@/components/dp/ocorrencias/SubstitutoPicker";
 
 const COBERTURAS: { value: string; label: string }[] = [
