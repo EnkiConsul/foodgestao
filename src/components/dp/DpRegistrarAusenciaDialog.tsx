@@ -543,8 +543,8 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
             ) : (
               <>
                 <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                <Button onClick={continuar} disabled={indisp.isPending}>
-                  {motivo === "indisponibilidade" ? (indisp.isPending ? "Salvando..." : "Registrar") : "Continuar"}
+                <Button onClick={continuar} disabled={indisp.isPending || dispensa.isPending}>
+                  {["indisponibilidade", "liberacao", "socio"].includes(motivo) ? (indisp.isPending || dispensa.isPending ? "Salvando..." : "Registrar") : "Continuar"}
                 </Button>
               </>
             )}
