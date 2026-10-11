@@ -46,10 +46,26 @@ export default function AtivarAcesso() {
   const [termoAceito, setTermoAceito] = useState(false);
   const [termoPendente, setTermoPendente] = useState(false);
 
+  const [estadoLink, setEstadoLink] = useState<"verificando" | "valido" | "usado" | "expirado" | "invalido">("verificando");
+
   useEffect(() => {
     // Ninguém precisa estar logado aqui; se houver sessão antiga, encerra.
     void supabase.auth.signOut();
   }, []);
+
+  // Confere o link antes de pedir qualquer dado ao colaborador.
+  useEffect(() => {
+    let ativo = true;
+    if (!codigo || !tokenId) { setEstadoLink("invalido"); return; }
+    supabase.functions
+      .invoke("dp-alterar-senha-colaborador", { body: { acao: "verificar", token_id: tokenId, codigo, purpose: modo } })
+      .then(({ data, error }) => {
+        if (!ativo) return;
+        // Se a conferência falhar, deixa seguir: o servidor valida de novo ao salvar.
+        setEstadoLink(error ? "valido" : ((data?.estado as typeof estadoLink) ?? "valido"));
+      });
+    return () => { ativo = false; };
+  }, [codigo, tokenId, modo]);
 
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault();
