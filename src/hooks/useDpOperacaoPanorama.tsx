@@ -528,8 +528,10 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
   const ausenciasRegistradas: AusenciaRegistrada[] = useMemo(
     () => {
       // Indisponibilidade só entra no dia se a pessoa pertence à unidade
-      // filtrada (a consulta traz a empresa inteira).
+      // filtrada ou atua nela por disponibilidade (a consulta traz a empresa
+      // inteira). Sem filtro de unidade, vale a empresa toda.
       const idsNaUnidade = new Set(colaboradores.map((c) => c.id));
+      for (const id of apoioUnidadeQuery.data ?? []) idsNaUnidade.add(id);
       return (base.data?.registradas ?? [])
         .filter((a) => !!a.data_alvo)
         .map((a): AusenciaRegistrada => ({
