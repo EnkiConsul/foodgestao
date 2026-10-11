@@ -378,6 +378,8 @@ function SituacaoBadge({ dia }: { dia: DiaPanorama }) {
 }
 
 interface DetalheDiaProps {
+  /** Turno filtrado no calendário do mês: o dia já abre nele. */
+  periodoInicial?: "todos" | "dia" | "noite" | "madrugada";
   data: string;
   dia: DiaPanorama;
   blocos: ReturnType<typeof blocosPorFuncionamento>;
