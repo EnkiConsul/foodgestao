@@ -18,6 +18,7 @@ import { useFixosPorDiaSemana } from "@/hooks/useFixosPorDiaSemana";
 import { VagasCargoSetorDia } from "@/components/dp/bloqueios/RestricoesDoDia";
 import { cn } from "@/lib/utils";
 import { LiberarEscopoDialog } from "@/components/dp/bloqueios/LiberarEscopoDialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface Props {
   companyId: string;
@@ -427,24 +428,25 @@ export function BloqueioDoDiaCabecalho({
       <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 break-words text-sm font-semibold text-destructive">
         <Lock className="h-4 w-4" /> Bloqueado{b.motivo ? ` · ${b.motivo}` : ""}
       </span>
-      {podeEditar && (
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-8"
-          disabled={liberar.isPending || liberarEscopo.isPending}
-          onClick={() => {
-            if (b.global || b.regra_id) setEscopoOpen(true);
-            else if (b.id) liberar.mutate(b.id);
-          }}
-        >
-          <LockOpen className="mr-1 h-3.5 w-3.5" /> Liberar Data
-        </Button>
-      )}
       {podeEditar && !abrindo && (
-        <Button size="sm" variant="outline" className="h-8" onClick={() => { setDeTotal(true); setEditId(null); setAlvoTipo("cargo"); setAlvoIds([]); setMotivo(b.motivo ?? ""); setAbrindo(true); }}>
-          <LockOpen className="mr-1 h-3.5 w-3.5" /> Desbloquear parcial
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" variant="outline" className="h-8" disabled={liberar.isPending || liberarEscopo.isPending}>
+              <LockOpen className="mr-1 h-3.5 w-3.5" /> Liberar Data
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center">
+            <DropdownMenuItem onClick={() => {
+              if (b.global || b.regra_id) setEscopoOpen(true);
+              else if (b.id) liberar.mutate(b.id);
+            }}>
+              <LockOpen className="mr-2 h-4 w-4" /> Liberar totalmente
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setDeTotal(true); setEditId(null); setAlvoTipo("cargo"); setAlvoIds([]); setMotivo(b.motivo ?? ""); setAbrindo(true); }}>
+              <Lock className="mr-2 h-4 w-4" /> Liberar parcialmente
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
       {podeEditar && abrindo && deTotal && formBloqueio}
       <LiberarEscopoDialog
