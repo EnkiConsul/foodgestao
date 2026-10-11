@@ -33,11 +33,17 @@ import {
 } from "@/lib/dp/ocorrencias";
 import {
   FILTROS_PADRAO,
+  intervaloDe,
   useDpOcorrencias,
   type Ocorrencia,
   type OcorrenciaFiltros,
   type OcorrenciaPeriodo,
 } from "@/hooks/useDpOcorrencias";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
@@ -47,15 +53,6 @@ import { OcorrenciaHistoricoDialog } from "@/components/dp/ocorrencias/Ocorrenci
 import { useDpOcorrenciasIndicadores } from "@/hooks/useDpOcorrenciasIndicadores";
 import type { SubstitutoOpcao } from "@/components/dp/ocorrencias/SubstitutoPicker";
 
-function mesCorrente(): { inicio: string; fim: string } {
-  const hoje = new Date();
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
-  return {
-    inicio: iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1)),
-    fim: iso(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)),
-  };
-}
-
 const COBERTURAS: { value: string; label: string }[] = [
   { value: "all", label: "Todas" },
   { value: "sem", label: "Sem cobertura" },
@@ -64,12 +61,12 @@ const COBERTURAS: { value: string; label: string }[] = [
   { value: "realizada", label: "Cobertura realizada" },
 ];
 
-
 const PERIODOS: { value: OcorrenciaPeriodo; label: string }[] = [
   { value: "hoje", label: "Hoje" },
   { value: "semana", label: "Semana" },
-  { value: "mes", label: "Mês" },
+  { value: "mes", label: "Mês vigente" },
   { value: "todas", label: "Todas" },
+  { value: "personalizado", label: "Personalizado" },
 ];
 
 export default function DpOcorrencias() {
@@ -96,8 +93,20 @@ export default function DpOcorrencias() {
   const [cobrir, setCobrir] = useState<Ocorrencia | null>(null);
   const [historico, setHistorico] = useState<Ocorrencia | null>(null);
   const [decidirPremio, setDecidirPremio] = useState<Ocorrencia | null>(null);
-  const mes = useMemo(() => mesCorrente(), []);
-
+  const intervalo = useMemo(() => {
+    if (filtros.data) return { inicio: filtros.data, fim: filtros.data };
+    const r = intervaloDe(filtros.periodo, { inicio: filtros.periodoInicio, fim: filtros.periodoFim });
+    return { inicio: r.inicio ?? "2000-01-01", fim: r.fim ?? "2099-12-31" };
+  }, [filtros.data, filtros.periodo, filtros.periodoInicio, filtros.periodoFim]);
+  const textoPeriodo = useMemo(() => {
+    const br = (s: string) => s.split("-").reverse().join("/");
+    if (filtros.data) return `Dia ${br(filtros.data)}`;
+    if (filtros.periodo === "todas") return "Todo o histórico";
+    if (filtros.periodo === "hoje") return "Hoje";
+    if (filtros.periodo === "semana") return "Nesta semana";
+    if (filtros.periodo === "mes") return "Neste mês";
+    return `${br(intervalo.inicio)} a ${br(intervalo.fim)}`;
+  }, [filtros.data, filtros.periodo, intervalo]);
 
   const set = <K extends keyof OcorrenciaFiltros>(k: K, v: OcorrenciaFiltros[K]) =>
     setFiltros((f) => ({ ...f, [k]: v }));
@@ -108,8 +117,8 @@ export default function DpOcorrencias() {
   const { setores } = useDpSetores(filtros.unidadeId === "all" ? null : filtros.unidadeId);
   const { data: pessoasApoio = [] } = useDpPessoasApoio({ apenasAtivos: true });
   const { indicadores } = useDpOcorrenciasIndicadores({
-    inicio: mes.inicio,
-    fim: mes.fim,
+    inicio: intervalo.inicio,
+    fim: intervalo.fim,
     unidadeId: filtros.unidadeId,
   });
 
@@ -158,7 +167,7 @@ export default function DpOcorrencias() {
     ];
     return (
       chaves.filter((k) => filtros[k] !== "all").length +
-      (filtros.periodo !== "todas" ? 1 : 0) +
+      (filtros.periodo !== "mes" ? 1 : 0) +
       (filtros.somentePendentes ? 1 : 0) +
       (filtros.data ? 1 : 0)
     );
@@ -225,17 +234,17 @@ export default function DpOcorrencias() {
         ].filter((c) => Number(c.valor) > 0);
         if (cards.length === 0) return null;
         const ativo = (c: CardInd) =>
-          Object.entries(c.aplicar).every(([k, v]) => filtros[k as keyof OcorrenciaFiltros] === v) && filtros.periodo === "mes";
+          Object.entries(c.aplicar).every(([k, v]) => filtros[k as keyof OcorrenciaFiltros] === v);
         const clicar = (c: CardInd) => {
           if (ativo(c)) {
-            setFiltros((f) => ({ ...f, tipo: "all", cobertura: "all", somentePendentes: false, periodo: "todas" }));
+            setFiltros((f) => ({ ...f, tipo: "all", cobertura: "all", somentePendentes: false }));
           } else {
-            setFiltros((f) => ({ ...f, tipo: "all", cobertura: "all", somentePendentes: false, periodo: "mes", data: null, ...c.aplicar }));
+            setFiltros((f) => ({ ...f, tipo: "all", cobertura: "all", somentePendentes: false, ...c.aplicar }));
           }
         };
         return (
           <div>
-            <p className="mb-1.5 text-xs text-muted-foreground">Neste mês · toque para filtrar</p>
+            <p className="mb-1.5 text-xs text-muted-foreground">{textoPeriodo} · toque para filtrar</p>
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8">
               {cards.map((c) => (
                 <button
@@ -279,18 +288,59 @@ export default function DpOcorrencias() {
         columns={4}
       >
         <DpFilterField label="Período">
-          <Select value={filtros.periodo} onValueChange={(v) => set("periodo", v as OcorrenciaPeriodo)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PERIODOS.map((p) => (
-                <SelectItem key={p.value} value={p.value}>
-                  {p.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-1.5">
+            <Select
+              value={filtros.periodo}
+              onValueChange={(v) => setFiltros((f) => ({ ...f, periodo: v as OcorrenciaPeriodo, data: null }))}
+            >
+              <SelectTrigger className="flex-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PERIODOS.map((p) => (
+                  <SelectItem key={p.value} value={p.value}>
+                    {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant={filtros.periodo === "personalizado" ? "default" : "outline"}
+                  size="icon"
+                  aria-label="Escolher período no calendário"
+                >
+                  <CalendarIcon className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="range"
+                  locale={ptBR}
+                  selected={{
+                    from: new Date(intervalo.inicio + "T00:00:00"),
+                    to: new Date(intervalo.fim + "T00:00:00"),
+                  }}
+                  defaultMonth={new Date(
+                    (filtros.periodo === "todas" ? format(new Date(), "yyyy-MM-dd") : intervalo.inicio) + "T00:00:00",
+                  )}
+                  onSelect={(r) => {
+                    if (!r?.from) return;
+                    setFiltros((f) => ({
+                      ...f,
+                      periodo: "personalizado",
+                      data: null,
+                      periodoInicio: format(r.from!, "yyyy-MM-dd"),
+                      periodoFim: format(r.to ?? r.from!, "yyyy-MM-dd"),
+                    }));
+                  }}
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </DpFilterField>
 
         <DpFilterField label="Colaborador">

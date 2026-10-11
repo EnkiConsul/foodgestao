@@ -35,10 +35,13 @@ export interface OcorrenciaCobertura {
 }
 
 
-export type OcorrenciaPeriodo = "hoje" | "semana" | "mes" | "todas";
+export type OcorrenciaPeriodo = "hoje" | "semana" | "mes" | "todas" | "personalizado";
 
 export interface OcorrenciaFiltros {
   periodo: OcorrenciaPeriodo;
+  /** Início/fim do período personalizado (yyyy-MM-dd). */
+  periodoInicio?: string | null;
+  periodoFim?: string | null;
   colaboradorId: string;
   unidadeId: string;
   setorId: string;
@@ -59,7 +62,7 @@ export interface OcorrenciaFiltros {
 }
 
 export const FILTROS_PADRAO: OcorrenciaFiltros = {
-  periodo: "todas",
+  periodo: "mes",
   colaboradorId: "all",
   unidadeId: "all",
   setorId: "all",
@@ -132,8 +135,14 @@ const COLS = `
   setor:dp_setores!dp_ocorrencias_setor_id_fkey(nome)
 `;
 
-function intervaloDe(periodo: OcorrenciaPeriodo): { inicio?: string; fim?: string } {
+export function intervaloDe(
+  periodo: OcorrenciaPeriodo,
+  custom?: { inicio?: string | null; fim?: string | null },
+): { inicio?: string; fim?: string } {
   if (periodo === "todas") return {};
+  if (periodo === "personalizado") {
+    return { inicio: custom?.inicio ?? undefined, fim: custom?.fim ?? custom?.inicio ?? undefined };
+  }
   const hoje = new Date();
   const iso = (d: Date) => d.toISOString().slice(0, 10);
   if (periodo === "hoje") return { inicio: iso(hoje), fim: iso(hoje) };
@@ -181,8 +190,11 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
   const { inicio, fim } = useMemo(
-    () => (filtros.data ? { inicio: filtros.data, fim: filtros.data } : intervaloDe(filtros.periodo)),
-    [filtros.periodo, filtros.data],
+    () =>
+      filtros.data
+        ? { inicio: filtros.data, fim: filtros.data }
+        : intervaloDe(filtros.periodo, { inicio: filtros.periodoInicio, fim: filtros.periodoFim }),
+    [filtros.periodo, filtros.data, filtros.periodoInicio, filtros.periodoFim],
   );
 
   const invalidate = () => {
