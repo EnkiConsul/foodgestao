@@ -92,7 +92,7 @@ export function DiasEmLista({
               </div>
 
               <div className="min-w-0 flex-1 space-y-1">
-                {d.resumo ? <div className="text-sm leading-snug">{d.resumo}</div> : null}
+                {d.resumo ? <div className={cn("text-sm leading-snug", d.chipsLinhaUnica && "truncate")}>{d.resumo}</div> : null}
                 {d.chips ? <div className={cn("flex gap-1.5", d.chipsLinhaUnica ? "flex-nowrap overflow-hidden" : "flex-wrap")}>{d.chips}</div> : null}
               </div>
 
@@ -108,6 +108,8 @@ export function DiasEmLista({
             d.dominical && !d.tom && "bg-amber-500/10",
             isToday && "bg-primary/20 shadow-[inset_4px_0_0_hsl(var(--primary))]",
             d.selecionado && "ring-1 ring-inset ring-primary",
+            // Altura fixa: todos os dias com a mesma altura de linha.
+            d.chipsLinhaUnica && "h-[4.75rem] overflow-hidden",
           );
 
           return (

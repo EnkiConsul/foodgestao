@@ -898,44 +898,51 @@ function DetalheDiaOperacao({
 
 
 
-      {foraVisiveis.length > 0 && (
-        <Secao title="Fora da Operação" description="Folgas, férias e afastamentos do dia">
-          <ul className={cn("divide-y", compacto && foraVisiveis.length >= 4 && "grid gap-x-6 divide-y-0 sm:grid-cols-2")}>
-            {foraVisiveis.map((p) => (
-              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2.5">
-                {(() => {
-                  const reg = ausReg.find((a) => a.colaborador_id === p.colaborador_id);
-                  return (
-                    <div className="min-w-0 w-full sm:w-auto">
-                      <span className="block text-sm font-medium" title={p.nome}>{primeiroNome(p.nome)}</span>
-                      {reg && (reg.motivo || reg.fim !== reg.inicio) && (
-                        <span className="block text-xs text-muted-foreground">
-                          {[reg.motivo, reg.fim !== reg.inicio ? `até ${reg.fim.split("-").reverse().join("/")}` : null].filter(Boolean).join(" · ")}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
-                <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
-                  {tagSocio(p) && (
-                    <Badge variant="outline" className="border-primary/40 text-primary">
-                      Folga sócio
-                    </Badge>
-                  )}
-                  <Badge variant="outline">
-                    {p.categoria === "coberto" && p.coberto_por_nome
-                      ? `Coberto por ${p.coberto_por_nome}`
-                      : p.folga_troca && (p.categoria === "folga_padrao" || p.categoria === "folga_extra")
-                        ? "Folga por Troca"
-                        : CATEGORIA_LABEL[p.categoria]}
-                  </Badge>
-                </div>
-                {acoesFolga && (p.categoria === "folga_extra" || p.categoria === "folga_padrao") && acoesFolga(p.colaborador_id, p.categoria === "folga_padrao")}
-              </li>
-            ))}
-          </ul>
-        </Secao>
-      )}
+      {(() => {
+        // Indisponíveis para convocação no dia; se aceitou convocação (está na escala), a indisponibilidade é desconsiderada.
+        const escalados = new Set(blocos.flatMap((b) => b.pessoas.map((x) => x.colaborador_id)));
+        const jaFora = new Set(foraVisiveis.map((p) => p.colaborador_id));
+        const indisp = ausReg.filter((a) => a.tipo === "indisponibilidade" && !escalados.has(a.colaborador_id) && !jaFora.has(a.colaborador_id));
+        if (!foraVisiveis.length && !indisp.length) return null;
+        const ICONE: Record<string, string> = {
+          folga_padrao: "🛌", folga_extra: "🛌", ferias: "🏖️", atestado: "🩺", ausente: "❌",
+          coberto: "🔁", atrasado: "⏰", saida_antecipada: "🚪",
+        };
+        return (
+          <Secao title="Fora da Operação" description="Folgas, férias, afastamentos e indisponibilidades do dia">
+            <ul className="divide-y">
+              {foraVisiveis.map((p) => {
+                const reg = ausReg.find((a) => a.colaborador_id === p.colaborador_id);
+                const tipo = p.categoria === "coberto" && p.coberto_por_nome
+                  ? `Coberto por ${p.coberto_por_nome}`
+                  : p.folga_troca && (p.categoria === "folga_padrao" || p.categoria === "folga_extra")
+                    ? "Folga por Troca"
+                    : CATEGORIA_LABEL[p.categoria];
+                const extra = reg && reg.fim !== reg.inicio ? ` · até ${reg.fim.split("-").reverse().join("/")}` : "";
+                return (
+                  <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex min-w-0 items-center gap-2 py-2">
+                    <span aria-hidden="true" className="shrink-0 text-sm leading-none">{tagSocio(p) ? "🤝" : ICONE[p.categoria] ?? "•"}</span>
+                    <span className="min-w-0 truncate text-sm font-medium" title={[p.nome, reg?.motivo].filter(Boolean).join(" · ")}>{primeiroNome(p.nome)}</span>
+                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{tagSocio(p) ? "Folga Sócio" : tipo}{extra}</span>
+                    {acoesFolga && (p.categoria === "folga_extra" || p.categoria === "folga_padrao") && (
+                      <div className="flex shrink-0 items-center gap-1">{acoesFolga(p.colaborador_id, p.categoria === "folga_padrao")}</div>
+                    )}
+                  </li>
+                );
+              })}
+              {indisp.map((a) => (
+                <li key={`indisp-${a.colaborador_id}`} className="flex min-w-0 items-center gap-2 py-2">
+                  <span aria-hidden="true" className="shrink-0 text-sm leading-none">⚠️</span>
+                  <span className="min-w-0 truncate text-sm font-medium" title={nomesColaboradores.get(a.colaborador_id) ?? ""}>
+                    {primeiroNome(nomesColaboradores.get(a.colaborador_id) ?? "Colaborador")}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">Indisponível{a.motivo ? ` · ${a.motivo}` : ""}</span>
+                </li>
+              ))}
+            </ul>
+          </Secao>
+        );
+      })()}
 
       {!compacto && ausReg.length > 0 && (
         <Secao
@@ -1342,7 +1349,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
             <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
               <Button
                 variant="outline"
-                className="min-w-0 gap-2 px-2 sm:px-4"
+                className="min-w-0 gap-2 border-emerald-500/40 bg-emerald-500/10 px-2 text-emerald-700 hover:bg-emerald-500/20 hover:text-emerald-800 dark:text-emerald-300 sm:px-4"
                 onClick={() => {
                   setAvulsaEditando(null);
                   setAvulsaData(data);
@@ -1352,7 +1359,8 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                 <UserPlus className="h-4 w-4" /> Mão de Obra Extra
               </Button>
               <Button
-                className="min-w-0 gap-2 px-2 sm:px-4"
+                variant="outline"
+                className="min-w-0 gap-2 border-rose-500/40 bg-rose-500/10 px-2 text-rose-700 hover:bg-rose-500/20 hover:text-rose-800 dark:text-rose-300 sm:px-4"
                 onClick={() => {
                   setAusenciaData(null);
                   setAusenciaMotivo(undefined);
@@ -1405,7 +1413,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
       />
 
       {calendario && (
-        <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 rounded-2xl border bg-card/95 px-3 py-2 shadow-sm backdrop-blur md:static md:bg-card">
+        <div className="sticky top-14 z-20 flex flex-nowrap items-center gap-1.5 rounded-2xl border bg-card/95 px-2 py-2 shadow-sm backdrop-blur sm:flex-wrap sm:gap-2 sm:px-3 md:static md:bg-card">
           <div className="inline-flex min-w-0 flex-1 items-center justify-between rounded-full border bg-background p-0.5 sm:flex-none">
             <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 rounded-full" aria-label="Anterior"
               onClick={() => setData(aba === "mes" ? `${somarMeses(competencia, -1)}-01` : somarDias(data, -1))}>
@@ -1423,12 +1431,12 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
             Hoje
           </Button>
           <Select value={unidade && unidade !== "todas" ? unidade : undefined} onValueChange={trocarUnidade}>
-            <SelectTrigger className="h-8 w-full rounded-full sm:w-56" aria-label="Unidade"><SelectValue placeholder="Escolha a unidade" /></SelectTrigger>
+            <SelectTrigger className="h-8 w-[42%] min-w-0 shrink rounded-full sm:w-56" aria-label="Unidade"><SelectValue placeholder="Escolha a unidade" /></SelectTrigger>
             <SelectContent>
               {panorama.unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
             </SelectContent>
           </Select>
-          {aba === "dia" && dia && <SituacaoBadge dia={dia} />}
+          {aba === "dia" && dia && <span className="hidden sm:inline-flex"><SituacaoBadge dia={dia} /></span>}
         </div>
       )}
 
@@ -1849,10 +1857,10 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
               <div className="mt-2 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-2">
                 {podeRegistrar && (
                   <>
-                    <Button size="sm" variant="outline" className="h-9 min-w-0 gap-1 whitespace-nowrap px-1.5 text-xs font-medium rounded-lg sm:h-8 sm:px-3 sm:text-sm" onClick={() => { setAusenciaData(dataPopout); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}>
+                    <Button size="sm" variant="outline" className="h-9 min-w-0 gap-1 whitespace-nowrap px-1.5 text-xs font-medium rounded-lg border-rose-500/40 bg-rose-500/10 text-rose-700 hover:bg-rose-500/20 dark:text-rose-300 sm:h-8 sm:px-3 sm:text-sm" onClick={() => { setAusenciaData(dataPopout); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}>
                       <Plus className="h-4 w-4 shrink-0" /> Registrar Ausência
                     </Button>
-                    <Button size="sm" variant="outline" className="h-9 min-w-0 gap-1 whitespace-nowrap px-1.5 text-xs font-medium rounded-lg sm:h-8 sm:px-3 sm:text-sm" onClick={() => abrirNovaAvulsa(dataPopout)}>
+                    <Button size="sm" variant="outline" className="h-9 min-w-0 gap-1 whitespace-nowrap px-1.5 text-xs font-medium rounded-lg border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300 sm:h-8 sm:px-3 sm:text-sm" onClick={() => abrirNovaAvulsa(dataPopout)}>
                       <UserPlus className="h-4 w-4 shrink-0" /> Mão de Obra Extra
                     </Button>
                   </>
