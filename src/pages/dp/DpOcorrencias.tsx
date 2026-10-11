@@ -273,7 +273,7 @@ export default function DpOcorrencias() {
           { key: "previsao_atraso_intervalo", emoji: "⚠️", label: "Prev. intervalo", valor: indicadores.porTipo.previsao_atraso_intervalo ?? 0, aplicar: { tipo: "previsao_atraso_intervalo" } },
           { key: "atestado", emoji: "🩺", label: "Atestados", valor: indicadores.porTipo.atestado ?? 0, aplicar: { tipo: "atestado" } },
           { key: "ausencia_justificada", emoji: "📋", label: "Ausências", valor: indicadores.porTipo.ausencia_justificada ?? 0, aplicar: { tipo: "ausencia_justificada" } },
-          { key: "esquecimento_marcacao", emoji: "💭", label: "Esquecimentos", valor: indicadores.porTipo.esquecimento_marcacao ?? 0, aplicar: { tipo: "esquecimento_marcacao" } },
+          { key: "esquecimento_marcacao", emoji: "💭", label: "Esqueceu", valor: indicadores.porTipo.esquecimento_marcacao ?? 0, aplicar: { tipo: "esquecimento_marcacao" } },
           { key: "divergencia_jornada", emoji: "⏱️", label: "Erros", valor: indicadores.porTipo.divergencia_jornada ?? 0, aplicar: { tipo: "divergencia_jornada" } },
           {
             key: "cobertas",
