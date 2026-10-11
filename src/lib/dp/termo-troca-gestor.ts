@@ -18,7 +18,7 @@ const br = (iso: string) => {
 };
 
 export function termoTrocaGestorParagrafos(d: {
-  empresa: string; nome: string; dataFixa: string; dataNova: string; origem: OrigemTrocaGestor; motivo?: string | null; folgaFixa: boolean;
+  empresa: string; nome: string; dataFixa: string; dataNova: string; origem: OrigemTrocaGestor; motivo?: string | null; folgaFixa: boolean; consomeVaga?: boolean;
 }): string[] {
   const tipo = d.folgaFixa ? "folga fixa semanal" : "folga";
   const base = [
@@ -28,6 +28,7 @@ export function termoTrocaGestorParagrafos(d: {
     `2. Origem: ${ORIGEM_TROCA_LABEL[d.origem]}.`,
   ];
   if (d.motivo) base.push(`3. Motivo: ${d.motivo}.`);
+  if (d.consomeVaga === false) base.push("Registro interno: folga concedida como exceção autorizada pelo gestor, sem consumir vaga do limite do novo dia.");
   base.push(
     d.origem === "colaborador"
       ? "4. Declaração. O(A) empregado(a) declara que a troca foi pedida por livre e espontânea vontade, no seu interesse pessoal, e que está ciente de que poderá haver mais de 6 (seis) dias consecutivos de trabalho antes do descanso (Art. 67 da CLT e Lei 605/1949)."
@@ -77,7 +78,7 @@ export async function termoTrocaGestorPdf(p: Parameters<typeof termoTrocaGestorP
 export async function emitirTermoTrocaGestor(input: {
   companyId: string; colaboradorId: string; empresa: string; nome: string;
   dataFixa: string; dataNova: string; origem: OrigemTrocaGestor; motivo?: string | null;
-  folgaFixa: boolean; assinatura: AssinaturaTermo;
+  folgaFixa: boolean; consomeVaga?: boolean; assinatura: AssinaturaTermo;
 }): Promise<Uint8Array> {
   const manual = input.assinatura === "manual";
   const bytes = await termoTrocaGestorPdf(input, manual);
@@ -91,7 +92,7 @@ export async function emitirTermoTrocaGestor(input: {
     colaborador_id: input.colaboradorId,
     tipo: "termos",
     titulo: "Termo de Alteração de Folga",
-    descricao: `${ORIGEM_TROCA_LABEL[input.origem]}. ${manual ? "Via impressa para assinatura à mão." : "Assinatura digital pelo portal."}`,
+    descricao: `${ORIGEM_TROCA_LABEL[input.origem]}. ${manual ? "Via impressa para assinatura à mão." : "Assinatura digital pelo portal."} ${input.consomeVaga === false ? "Folga excepcional, sem consumir vaga do limite." : "Consumiu vaga do limite do novo dia."}`,
     file_path: path, file_name: nome, file_size: blob.size, mime_type: "application/pdf",
     referencia_data: input.dataFixa,
     exige_aceite: !manual,

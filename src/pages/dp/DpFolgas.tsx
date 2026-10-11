@@ -275,6 +275,7 @@ export default function DpFolgas() {
     nome: string;
     data: string;
   } | null>(null);
+  const [remarcarConsome, setRemarcarConsome] = useState(true);
   const [remarcarData, setRemarcarData] = useState("");
   const [cancelMotivo, setCancelMotivo] = useState("");
 
@@ -397,17 +398,18 @@ export default function DpFolgas() {
 
   /** Remarca a folga para outro dia, no mesmo registro. */
   const remarcarFolga = useMutation({
-    mutationFn: async ({ id, colaboradorId, dataAtual, novaData }: { id: string; colaboradorId: string; dataAtual: string; novaData: string }) => {
+    mutationFn: async ({ id, colaboradorId, dataAtual, novaData, consome = true }: { id: string; colaboradorId: string; dataAtual: string; novaData: string; consome?: boolean }) => {
       if (!novaData) throw new Error("Escolha a nova data");
 
       const ehFolga = id.startsWith("folga:");
-      const { error } = await supabase.rpc("dp_folga_admin_remarcar", {
+      const { error } = await supabase.rpc("dp_folga_admin_remarcar_limite" as never, {
+        p_consome_vaga: consome,
         p_folga_id: ehFolga ? id.slice("folga:".length) : null,
         p_solicitacao_id: ehFolga ? null : id,
         p_colaborador: colaboradorId,
         p_data_atual: dataAtual,
         p_data_nova: novaData,
-      });
+      } as never);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -1726,6 +1728,10 @@ export default function DpFolgas() {
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Remarcar para outro dia
               </Label>
+              <label className="flex items-start gap-2 text-sm">
+                <input type="checkbox" className="mt-1" checked={!remarcarConsome} onChange={(e) => setRemarcarConsome(!e.target.checked)} />
+                <span>Não impactar o limite do novo dia (folga excepcional). Por padrão a folga consome vaga no novo dia e libera a do dia anterior.</span>
+              </label>
               <div className="flex gap-2">
                 <Input
                   type="date"
@@ -1741,6 +1747,7 @@ export default function DpFolgas() {
                       colaboradorId: folgaGerenciar.colaboradorId,
                       dataAtual: folgaGerenciar.data,
                       novaData: remarcarData,
+                      consome: remarcarConsome,
                     });
                   const desabilitado =
                     !folgaGerenciar ||
