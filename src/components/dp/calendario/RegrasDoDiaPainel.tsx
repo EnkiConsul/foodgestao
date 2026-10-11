@@ -129,6 +129,9 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
   const lim = resolvido.limite;
   const cotas = cotasPorCargoNoDia({ data, unidadeId, regras: regrasLimite ?? [], diaConfig, ocupantes: ocupantes ?? [], cargoNomeById: new Map(cargosQ.data ?? []) });
   const trocasDaUnidade = trocas.filter((t) => nomes.has(t.solicitante_id) || nomes.has(t.destino_id));
+  // Teto do dia bloqueado = folgas fixas cadastradas nesse dia da semana
+  // (elas continuam valendo); vagas extras ficam zeradas.
+  const fixosBloqueio = fixosPorDow.data?.get(new Date(`${data}T12:00:00`).getDay()) ?? 0;
 
   return (
     <div className="space-y-3">
