@@ -23,15 +23,6 @@ const SEM_RISCO: RiscoAssiduidade = { risco: false, motivo: null };
 
 const TIPOS_FALTA: OcorrenciaTipo[] = ["falta", "previsao_falta"];
 
-const TIPOS_ATRASO: OcorrenciaTipo[] = [
-  "atraso",
-  "previsao_atraso",
-  "atraso_intervalo",
-  "previsao_atraso_intervalo",
-  "saida_antecipada",
-  "previsao_saida_antecipada",
-];
-
 function inteiro(valor: number | null | undefined): number {
   const n = Number(valor ?? 0);
   return Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0;
