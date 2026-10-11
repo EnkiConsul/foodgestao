@@ -640,7 +640,13 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
         <DialogContent className="flex max-h-[85dvh] max-w-md flex-col">
           <DialogHeader className="shrink-0">
             <DialogTitle className="first-letter:uppercase">{cardAberto?.label}</DialogTitle>
-            <DialogDescription>{pessoasCard.length} colaborador(es) no mês</DialogDescription>
+            <DialogDescription>
+              {cardAberto?.chave === "feriados"
+                ? `${pessoasCard.length} feriado(s) no mês`
+                : cardAberto?.chave === "bloqueados"
+                  ? `${pessoasCard.length} dia(s) com bloqueio no mês`
+                  : `${pessoasCard.length} colaborador(es) no mês`}
+            </DialogDescription>
           </DialogHeader>
           <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
             {pessoasCard.map((p) => (
