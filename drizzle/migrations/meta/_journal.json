@@ -407,6 +407,13 @@
       "when": 1791725193855,
       "tag": "0057_dp_folga_troca_impacto_limite",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1791729409189,
+      "tag": "0058_dp_indisponibilidade_gestor",
+      "breakpoints": true
     }
   ]
 }

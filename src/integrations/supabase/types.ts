@@ -19434,6 +19434,15 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_indisponibilidade_registrar_gestor: {
+        Args: {
+          p_colaborador: string
+          p_fim?: string
+          p_inicio: string
+          p_motivo?: string
+        }
+        Returns: Json
+      }
       dp_indisponibilidade_remover: { Args: { p_data: string }; Returns: Json }
       dp_jornada_dia_prevista: {
         Args: { p_colaborador: string; p_data: string }
