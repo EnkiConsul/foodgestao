@@ -24,7 +24,7 @@ const aviso = {
   conteudo: "Conteúdo do aviso",
   publicado_em: "2026-09-01T00:00:00.000Z",
   expira_em: "2026-09-30T00:00:00.000Z",
-  escopo: "empresa",
+  escopo: "todos",
 } as any;
 
 function renderDialog(onSave: (v: any) => Promise<void>) {
