@@ -1820,7 +1820,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                     <p className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Quem vai folgar?</p>
                     <div className="max-h-64 overflow-y-auto">
                       {diaPopout.pessoas
-                        .filter((p) => p.categoria === "fixo" && !p.avulso_id)
+                        .filter((p) => !p.avulso_id && ["fixo", "convocado_aceito", "convocado_pendente", "atraso", "saida_antecipada"].includes(String(p.categoria)))
                         .filter((p, i, arr) => arr.findIndex((o) => o.colaborador_id === p.colaborador_id) === i)
                         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
                         .map((p) => (
@@ -1898,7 +1898,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                       data={dataPopout}
                       ocultarBloqueio
                       folgasNoDia={diaPopout.contagens.folga_padrao + diaPopout.contagens.folga_extra}
-                      ocupantes={diaPopout.pessoas.filter((p) => String(p.categoria).startsWith("folga")).map((p) => ({ nome: p.nome, cargoId: p.cargo_id ?? null, setorId: p.setor_id ?? null }))}
+                      ocupantes={diaPopout.pessoas.filter((p) => String(p.categoria).startsWith("folga") && !(diaDominicalPopout && folgaFixaDoDia(diaPopout.data, { troca: !!p.folga_troca, folga_fixa_dows: p.folga_fixa_dows }))).map((p) => ({ nome: p.nome, cargoId: p.cargo_id ?? null, setorId: p.setor_id ?? null }))}
                       nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
                     />
                   </section>

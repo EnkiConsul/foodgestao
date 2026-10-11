@@ -259,6 +259,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
   // Pedidos pendentes: só aparecem aqui, sem contar como folga nem ocupar vaga.
   const pendentes = useQuery({
     queryKey: ["dp_folgas_pendentes_do_dia", companyId, data],
+    enabled: !colaboradorId,
     queryFn: async () => {
       const { data: l, error } = await supabase
         .from("dp_solicitacoes")
