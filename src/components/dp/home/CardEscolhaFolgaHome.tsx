@@ -75,7 +75,7 @@ export function CardEscolhaFolgaHome() {
   });
 
   if (!q.data) return null;
-  const { mes, ate, competencia } = q.data;
+  const { mes, ate } = q.data;
 
   return (
     <div className="rounded-2xl border-2 border-primary/50 bg-primary/5 p-4 sm:p-5">
@@ -90,7 +90,7 @@ export function CardEscolhaFolgaHome() {
             {ate ? ` Escolha até ${ate} para garantir as datas de sua preferência.` : ""}
           </p>
           <Button asChild size="sm" className="mt-3 w-full sm:w-auto">
-            <Link to={`/dp/meu/calendario?mes=${competencia.slice(0, 7)}`}>
+            <Link to="/dp/meu/calendario">
               Escolher minha folga <ArrowRight className="h-4 w-4 ml-1" />
             </Link>
           </Button>
