@@ -1475,6 +1475,27 @@ export default function DpMeuCalendario() {
   const showExceptionBtn =
     selectedDay && !["past", "mine", "fixed", "pending", "swapped"].includes(selectedDay.status);
 
+  const moverDia = (delta: number) => {
+    if (!selectedDay) return;
+    const d = parseYMD(selectedDay.iso);
+    d.setDate(d.getDate() + delta);
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const st = calculateDateStatus({
+      date: d,
+      myColaboradorId: meRef.data?.id ?? null,
+      allFolgas: allFolgasRecords,
+      allColaboradores: colaboradores,
+      manualBlocked,
+      dayLimits,
+      pendingRequests,
+      isAdmin: false,
+      diasElegiveis,
+      tetoMensal,
+    });
+    setSelectedDay({ iso, status: st.status as DateStatusKind });
+  };
+  const swipeMes = useSwipeHorizontal(goNext, goPrev);
+  const swipeDia = useSwipeHorizontal(() => moverDia(1), () => moverDia(-1));
   return (
     <DpPage className="space-y-6 md:space-y-8">
       <Helmet>
@@ -1549,7 +1570,7 @@ export default function DpMeuCalendario() {
       )}
 
       {!convocavel && vinculoCarregado && (<>
-      <div className="hidden md:block">
+      <div className="hidden md:block" {...swipeMes}>
         <FolgaCalendarShared
           year={ano}
           month0={mes - 1}
@@ -1584,7 +1605,7 @@ export default function DpMeuCalendario() {
           }}
         />
       </div>
-      <div className="md:hidden">
+      <div className="md:hidden" {...swipeMes}>
         <CalendarioMobileLista
           year={ano}
           month0={mes - 1}
@@ -1620,7 +1641,7 @@ export default function DpMeuCalendario() {
 
       {/* Dialog do dia */}
       <Dialog open={!!selectedDay} onOpenChange={(o) => !o && setSelectedDay(null)}>
-        <DialogContent className="max-w-md max-h-[90svh] overflow-y-auto overflow-x-hidden [&_button]:whitespace-normal [&_button]:h-auto [&_button]:min-h-9 [&_button]:py-2 [&_button]:break-words">
+        <DialogContent {...swipeDia} className="max-w-md max-h-[90svh] overflow-y-auto overflow-x-hidden [&_button]:whitespace-normal [&_button]:h-auto [&_button]:min-h-9 [&_button]:py-2 [&_button]:break-words">
 
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-3">
