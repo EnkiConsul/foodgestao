@@ -127,3 +127,9 @@ export function folgaEhDominical(
   if (a.troca && a.folga_fixa_dows?.length) return a.folga_fixa_dows.some((d) => diasDominicais.includes(d));
   return diasDominicais.includes(new Date(`${iso}T12:00:00`).getDay());
 }
+
+/** Folga habitual da jornada (sem troca) no dia da semana da data. */
+export function folgaFixaDoDia(iso: string, a: { troca?: boolean; folga_fixa_dows?: number[] }): boolean {
+  if (a.troca || !a.folga_fixa_dows?.length) return false;
+  return a.folga_fixa_dows.includes(new Date(`${iso}T12:00:00`).getDay());
+}

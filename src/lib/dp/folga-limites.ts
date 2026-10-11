@@ -338,3 +338,17 @@ export function cotasPorCargoNoDia(params: {
     };
   });
 }
+
+/**
+ * Mesma regra do Calendário de Folgas: de segunda a sexta, sem exceção na data,
+ * o limite é a quantidade de ativos da unidade com folga fixa nesse dia da semana.
+ */
+export function limiteComFolgaFixaDiaUtil(
+  iso: string,
+  res: LimiteResolvido,
+  fixosPorDow: Map<number, number> | undefined,
+): LimiteResolvido {
+  const wd = new Date(`${iso}T12:00:00`).getDay();
+  if (!fixosPorDow || wd < 1 || wd > 5 || res.origem === "excecao_data") return res;
+  return { ...res, limite: fixosPorDow.get(wd) ?? 0, origem: "folga_fixa" };
+}

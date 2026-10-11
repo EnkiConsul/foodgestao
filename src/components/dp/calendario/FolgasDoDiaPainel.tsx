@@ -256,6 +256,25 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
     },
   });
 
+  // Pedidos pendentes: só aparecem aqui, sem contar como folga nem ocupar vaga.
+  const pendentes = useQuery({
+    queryKey: ["dp_folgas_pendentes_do_dia", companyId, data],
+    enabled: !colaboradorId,
+    queryFn: async () => {
+      const { data: l, error } = await supabase
+        .from("dp_solicitacoes")
+        .select("id, colaborador_id, dp_colaboradores(nome)")
+        .eq("company_id", companyId)
+        .eq("tipo", "folga")
+        .eq("status", "pendente")
+        .eq("data_alvo", data)
+        .is("removido_em", null);
+      if (error) throw error;
+      return ((l ?? []) as unknown as { id: string; colaborador_id: string; dp_colaboradores: { nome: string } | null }[])
+        .filter((x) => !nomes.size || nomes.has(x.colaborador_id));
+    },
+  });
+
   const invalidar = () => {
     qc.invalidateQueries({ queryKey: ["dp_folgas_do_dia"] });
     qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
@@ -366,6 +385,22 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
 
   return (
     <div className="space-y-2">
+      {!!pendentes.data?.length && (
+        <div className="space-y-1.5 rounded-md border border-violet-500/40 bg-violet-500/[0.06] p-2">
+          <p className="text-xs font-semibold text-violet-900 dark:text-violet-200">
+            Pedidos Pendentes ({pendentes.data.length}) · não ocupam vaga até a aprovação
+          </p>
+          <ul className="space-y-1">
+            {pendentes.data.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span className="min-w-0 truncate">{nomes.get(p.colaborador_id) ?? p.dp_colaboradores?.nome ?? "—"}</span>
+                <Badge variant="outline" className="border-violet-500/50 text-[10px] text-violet-900 dark:text-violet-200">Pendente</Badge>
+              </li>
+            ))}
+          </ul>
+          <a href="/dp/solicitacoes" className="inline-block text-xs font-medium text-primary underline-offset-2 hover:underline">Decidir em Solicitações</a>
+        </div>
+      )}
       <p className="text-xs font-medium text-muted-foreground">Folgas marcadas neste dia</p>
       {!itens.length && (
         <p className="text-xs text-muted-foreground">

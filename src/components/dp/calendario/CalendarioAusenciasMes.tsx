@@ -13,7 +13,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
-import { resolverLimiteFolga } from "@/lib/dp/folga-limites";
+import { resolverLimiteFolga, limiteComFolgaFixaDiaUtil } from "@/lib/dp/folga-limites";
+import { useBloqueiosEfetivos } from "@/hooks/useBloqueiosEfetivos";
+import { useFixosPorDiaSemana } from "@/hooks/useFixosPorDiaSemana";
+import { folgaFixaDoDia } from "@/lib/dp/calendario-rotina";
 import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { cn } from "@/lib/utils";
 import {
@@ -81,27 +84,12 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     `${a.nome} · ${a.tipo === "folga" ? "Folga" : TIPO_AUSENCIA_LABEL[a.tipo]}${a.troca ? " (troca)" : ""}`;
 
   const ini = diasBrutos[0]?.data, fimMes = diasBrutos[diasBrutos.length - 1]?.data;
-  const bloqueiosQuery = useQuery({
-    queryKey: ["cal_rotina_bloqueios", selectedCompanyId, unidadeId, ini, fimMes],
-    enabled: !!selectedCompanyId && !!ini,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_datas_bloqueadas")
-        .select("data, motivo, liberada, unidade_id")
-        .eq("company_id", selectedCompanyId!)
-        .gte("data", ini!)
-        .lte("data", fimMes!);
-      if (error) throw error;
-      const m = new Map<string, string>();
-      for (const b of data ?? []) {
-        if (b.liberada) continue;
-        if (b.unidade_id && unidadeId && b.unidade_id !== unidadeId) continue;
-        m.set(b.data, b.motivo ?? "Data bloqueada");
-      }
-      return m;
-    },
-  });
-  const bloqueios = bloqueiosQuery.data ?? new Map<string, string>();
+  const bloqueiosQuery = useBloqueiosEfetivos(selectedCompanyId, unidadeId, ini, fimMes);
+  const bloqueios = useMemo(() => {
+    const m = new Map<string, string>();
+    bloqueiosQuery.data?.forEach((b, iso) => m.set(iso, b.motivo));
+    return m;
+  }, [bloqueiosQuery.data]);
   // Limite de folgas pelas mesmas regras e tabelas do Calendário de Folgas.
   const { regras: regrasLimite } = useDpFolgaLimites(unidadeId);
   const diaConfigQuery = useQuery({
@@ -114,8 +102,11 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
       return data ?? [];
     },
   });
+  const fixosPorDow = useFixosPorDiaSemana(selectedCompanyId, unidadeId);
   const limiteDoDia = (iso: string) =>
-    unidadeId ? resolverLimiteFolga({ data: iso, unidadeId, regras: regrasLimite ?? [], diaConfig: diaConfigQuery.data ?? [] }).limite : null;
+    unidadeId
+      ? limiteComFolgaFixaDiaUtil(iso, resolverLimiteFolga({ data: iso, unidadeId, regras: regrasLimite ?? [], diaConfig: diaConfigQuery.data ?? [] }), fixosPorDow.data).limite
+      : null;
   const alternar = (t: TipoAusenciaCalendario) =>
     onFiltros(filtros.includes(t) ? filtros.filter((x) => x !== t) : [...filtros, t]);
 
@@ -487,7 +478,8 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                     {(() => {
                       const lim = limiteDoDia(d.data);
                       if (lim == null) return null;
-                      const usadas = aus.filter((a) => a.tipo === "folga").length;
+                      // Em dia dominical, quem tem folga fixa nesse dia não ocupa a vaga de escolha.
+                      const usadas = aus.filter((a) => a.tipo === "folga" && !(ehDiaDominical(d.data) && folgaFixaDoDia(d.data, a))).length;
                       return (
                         <span className={cn("mt-auto inline-flex w-fit items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums", usadas >= lim ? "border-destructive/40 text-destructive" : "border-border text-muted-foreground")} title="Vagas de folga da unidade neste dia">
                           Folgas {usadas}/{lim}

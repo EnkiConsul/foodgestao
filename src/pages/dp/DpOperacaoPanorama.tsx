@@ -1,3 +1,5 @@
+import { useDpConfigDp } from "@/hooks/useDpConfigDp";
+import { diasElegiveisDaConfig } from "@/lib/dp/dsr-rules";
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
@@ -69,7 +71,7 @@ import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/
 import { CalendarioAusenciasMes } from "@/components/dp/calendario/CalendarioAusenciasMes";
 import { FolgasDoDiaPainel } from "@/components/dp/calendario/FolgasDoDiaPainel";
 import { RegrasDoDiaPainel, BloqueioDoDiaCabecalho } from "@/components/dp/calendario/RegrasDoDiaPainel";
-import { filtrosSalvos, periodoHabitual, primeiroNome } from "@/lib/dp/calendario-rotina";
+import { filtrosSalvos, periodoHabitual, primeiroNome, folgaFixaDoDia } from "@/lib/dp/calendario-rotina";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { DpStatCard } from "@/components/dp/DpStatCard";
@@ -997,6 +999,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
   const unidadeId = !unidade || unidade === "todas" ? null : unidade;
   const competencia = data.slice(0, 7);
   const panorama = useDpOperacaoPanorama(competencia, unidadeId);
+  const configDominical = useDpConfigDp(unidadeId);
 
   /** Abre já em uma unidade: a última escolhida ou a de maior quadro. */
   useEffect(() => {
@@ -1095,6 +1098,8 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
   const sociosAusentes = useMemo(() => sociosDe(dia), [dia]);
 
   const diaPopout = dataPopout ? panorama.diaDe(dataPopout) : undefined;
+  const diasDominicaisPopout = configDominical.config ? diasElegiveisDaConfig(configDominical.config) : [0];
+  const diaDominicalPopout = !!diaPopout && diasDominicaisPopout.includes(new Date(`${diaPopout.data}T12:00:00`).getDay());
   const regimesColab = useMemo(
     () => new Map(((panorama.colaboradores ?? []) as { id: string; regime?: string | null }[]).map((c) => [c.id, c.regime ?? ""])),
     [panorama.colaboradores],
@@ -1820,7 +1825,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                     <p className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Quem vai folgar?</p>
                     <div className="max-h-64 overflow-y-auto">
                       {diaPopout.pessoas
-                        .filter((p) => p.categoria === "fixo" && !p.avulso_id)
+                        .filter((p) => !p.avulso_id && ["fixo", "convocado_aceito", "convocado_pendente", "atrasado", "saida_antecipada"].includes(String(p.categoria)))
                         .filter((p, i, arr) => arr.findIndex((o) => o.colaborador_id === p.colaborador_id) === i)
                         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
                         .map((p) => (
@@ -1898,7 +1903,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
                       data={dataPopout}
                       ocultarBloqueio
                       folgasNoDia={diaPopout.contagens.folga_padrao + diaPopout.contagens.folga_extra}
-                      ocupantes={diaPopout.pessoas.filter((p) => String(p.categoria).startsWith("folga")).map((p) => ({ nome: p.nome, cargoId: p.cargo_id ?? null, setorId: p.setor_id ?? null }))}
+                      ocupantes={diaPopout.pessoas.filter((p) => String(p.categoria).startsWith("folga") && !(diaDominicalPopout && folgaFixaDoDia(diaPopout.data, { troca: !!p.folga_troca, folga_fixa_dows: p.folga_fixa_dows }))).map((p) => ({ nome: p.nome, cargoId: p.cargo_id ?? null, setorId: p.setor_id ?? null }))}
                       nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
                     />
                   </section>

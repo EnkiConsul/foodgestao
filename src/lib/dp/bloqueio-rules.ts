@@ -218,3 +218,53 @@ export function buildBloqueiosDeRegrasDetalhado(params: {
   return out;
 }
 
+
+export type DataBloqueadaRow = {
+  id: string;
+  data: string;
+  motivo: string | null;
+  liberada?: boolean | null;
+  liberada_por_solicitacao?: string | null;
+  unidade_id: string | null;
+  regra_id?: string | null;
+};
+
+export type BloqueioEfetivo = { id: string | null; motivo: string; regra_id: string | null };
+
+/**
+ * Bloqueios efetivos de uma unidade, com a mesma precedência do Calendário de
+ * Folgas: liberação (geral ou da unidade) vence; data manual vale; regra
+ * recorrente (`dp_bloqueio_regras`) completa as datas restantes.
+ */
+export function bloqueiosEfetivosUnidade(params: {
+  datas: DataBloqueadaRow[];
+  regras: RegraRow[];
+  vinculos: RegraUnidadeLink[];
+  unidadeId: string | null;
+  from: Date;
+  to: Date;
+}): Map<string, BloqueioEfetivo> {
+  const { datas, regras, vinculos, unidadeId, from, to } = params;
+  const liberadas = new Set<string>();
+  const out = new Map<string, BloqueioEfetivo>();
+  const daUnidade = (b: DataBloqueadaRow) => !b.unidade_id || !unidadeId || b.unidade_id === unidadeId;
+  for (const b of datas) {
+    if (!daUnidade(b)) continue;
+    if (b.liberada === true || b.liberada_por_solicitacao != null) liberadas.add(b.data);
+  }
+  for (const b of datas) {
+    if (!daUnidade(b) || liberadas.has(b.data)) continue;
+    if (b.liberada === true || b.liberada_por_solicitacao != null) continue;
+    const cur = out.get(b.data);
+    // Bloqueio da própria unidade tem prioridade sobre o geral.
+    if (!cur || (b.unidade_id && unidadeId === b.unidade_id)) {
+      out.set(b.data, { id: b.id, motivo: b.motivo ?? "Data bloqueada", regra_id: b.regra_id ?? null });
+    }
+  }
+  buildBloqueiosDeRegras({ regras, vinculos, unidadeId, from, to }).forEach((motivo, iso) => {
+    if (liberadas.has(iso) || out.has(iso)) return;
+    const regra = regras.find((r) => r.nome === motivo);
+    out.set(iso, { id: null, motivo, regra_id: regra?.id ?? "regra" });
+  });
+  return out;
+}
