@@ -129,22 +129,25 @@ export function AtribuirFolgaTriagemDialog({
     queryKey: ["dp_triagem_regime", colaboradorId],
     enabled: open && !!colaboradorId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("dp_colaboradores")
-        .select("regime_trabalho, unidade_id")
+        .select("regime, unidade_id")
         .eq("id", colaboradorId)
         .maybeSingle();
-      const row = data as { regime_trabalho?: string; unidade_id?: string } | null;
+      if (error) throw error;
+      const row = data as { regime?: string; unidade_id?: string } | null;
       let compensa = false;
       if (row?.unidade_id) {
         const { data: u } = await supabase.from("dp_unidades").select("compensa_feriados").eq("id", row.unidade_id).maybeSingle();
         compensa = !!(u as { compensa_feriados?: boolean } | null)?.compensa_feriados;
       }
-      return { regime: row?.regime_trabalho ?? null, compensa };
+      return { regime: String(row?.regime ?? "").toLowerCase() || null, compensa };
     },
   });
   const intermitente = regimeQuery.data?.regime === "intermitente";
-  const temCompensacao = !!regimeQuery.data?.compensa && !intermitente;
+  /** Compensatória só para CLT (não intermitente) em unidade que compensa feriados. */
+  const podeCompensatoria = regimeQuery.data?.regime === "clt";
+  const temCompensacao = !!regimeQuery.data?.compensa && podeCompensatoria;
 
   const [limiteMsg, setLimiteMsg] = useState<string | null>(null);
   const [justificativa, setJustificativa] = useState("");
@@ -276,7 +279,7 @@ export function AtribuirFolgaTriagemDialog({
                     Troca da folga semanal da semana
                   </SelectItem>
                 )}
-                {!intermitente && <SelectItem value="compensatoria">Folga compensatória</SelectItem>}
+                {podeCompensatoria && <SelectItem value="compensatoria">Folga compensatória</SelectItem>}
                 <SelectItem value="extra">Folga extra</SelectItem>
               </SelectContent>
             </Select>
