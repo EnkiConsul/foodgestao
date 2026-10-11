@@ -406,7 +406,7 @@ export function BloqueioDoDiaCabecalho({
           <span className="inline-flex items-center gap-1 text-xs font-medium text-primary"><LockOpen className="h-3.5 w-3.5" /> Liberado para folgas</span>
         )}
         {!podeEditar ? null : abrindo ? (
-          {formBloqueio}
+          formBloqueio
         ) : (
           <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { setEditId(null); setAbrindo(true); }}>
             <Lock className="mr-1 h-3.5 w-3.5" /> {parciais.length ? "Bloquear mais" : "Bloquear dia"}
