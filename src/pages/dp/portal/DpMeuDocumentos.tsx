@@ -509,7 +509,8 @@ export default function DpMeuDocumentos() {
         bucket={preview?.bucket}
         path={preview?.file_path ?? undefined}
         mime={preview?.mime_type ?? undefined}
-        comprovanteDocumentoId={preview?.origem === "dp" && preview?.meta?.comprovante ? String(preview.meta?.originalId ?? preview.id) : null}
+        somenteReciboVinculado={!preview?.meta?.comprovante}
+        comprovanteDocumentoId={preview?.origem === "dp" && (preview?.meta?.comprovante || preview?.meta?.recibo_id) ? String(preview.meta?.originalId ?? preview.id) : null}
         acaoRodape={preview?.aceite === false ? (
           <Button size="sm" onClick={() => { const d = preview; setPreview(null); setAssinando(d); }}>
             <PenLine className="h-4 w-4 mr-1" /> Assinar documento

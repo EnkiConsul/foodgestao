@@ -1,3 +1,4 @@
+import { certificadoValidacaoPdf } from "@/lib/dp/documento-certificado";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Download, ExternalLink } from "lucide-react";
@@ -86,6 +87,14 @@ export function DocumentPreview({
           (aceite.data ?? []).length > 0 ||
           (rec.data ?? []).length > 0 ||
           !!(doc.data as { via_assinada_path?: string | null } | null)?.via_assinada_path;
+        // Assinado digitalmente: mostra a via certificada (assinatura + validação).
+        if ((aceite.data ?? []).length > 0) {
+          try {
+            const cert = await certificadoValidacaoPdf(rid);
+            if (!cancelado) setRecibo({ url: cert.url, mime: "application/pdf", nome: "recibo-certificado.pdf", assinado: true });
+            return;
+          } catch { /* cai para o PDF original */ }
+        }
         if (!cancelado && l) setRecibo({ url: l.url, mime: l.mimeType, nome: l.fileName, assinado });
       });
     return () => { cancelado = true; };
