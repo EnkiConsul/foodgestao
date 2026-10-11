@@ -554,7 +554,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
             })),
         );
     },
-    [base.data, conflitosQuery.data, colaboradores],
+    [base.data, conflitosQuery.data, colaboradores, apoioUnidadeQuery.data],
   );
 
   const folgas: FolgaPanorama[] = useMemo(() => {
