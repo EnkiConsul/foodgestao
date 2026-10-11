@@ -1652,6 +1652,7 @@ export default function DpMeuCalendario() {
           occupantsByDate={occupantsByDate as any}
           manualBlocked={manualBlocked}
           myColaboradorId={meRef.data?.id ?? null}
+          statusByDate={statusByDate}
           onPrev={goPrev}
           onNext={goNext}
           onSelectDay={(iso) => {
