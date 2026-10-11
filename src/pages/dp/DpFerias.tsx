@@ -162,6 +162,21 @@ export default function DpFerias() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodoParam, periodosLoading, periodos]);
 
+  /** Atalho do calendário ("Registrar Ausência" → Férias): abre o agendamento do colaborador. */
+  const novoParam = params.get("novo");
+  const colabParam = params.get("colaborador");
+  useEffect(() => {
+    if (novoParam !== "1" || periodosLoading) return;
+    const doColab = periodos
+      .filter((p) => p.colaborador_id === colabParam && (p.dias_saldo ?? 0) > 0 && p.status !== "concluido")
+      .sort((a, b) => String(a.inicio_aquisitivo).localeCompare(String(b.inicio_aquisitivo)));
+    abrirNovo(doColab[0]?.id);
+    const next = new URLSearchParams(params);
+    next.delete("novo");
+    setParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [novoParam, periodosLoading, periodos]);
+
   const hoje = new Date();
   const hojeISO = format(hoje, "yyyy-MM-dd");
   const alertaLimite = (p: FeriasPeriodo) => {

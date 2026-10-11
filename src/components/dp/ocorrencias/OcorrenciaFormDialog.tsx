@@ -28,6 +28,8 @@ interface Props {
   colaboradores: { id: string; nome: string }[];
   saving?: boolean;
   dataInicial?: string;
+  /** Colaborador já escolhido (atalho do calendário). */
+  colaboradorInicial?: string;
   onSubmit: (input: RegistrarOcorrenciaInput) => void;
 }
 
@@ -67,6 +69,7 @@ export function OcorrenciaFormDialog({
   colaboradores,
   saving,
   dataInicial,
+  colaboradorInicial,
   onSubmit,
 }: Props) {
   const hoje = new Date().toISOString().slice(0, 10);
@@ -81,7 +84,7 @@ export function OcorrenciaFormDialog({
 
   useEffect(() => {
     if (!open) return;
-    setColaboradorId("");
+    setColaboradorId(colaboradorInicial ?? "");
     setData(dataInicial ?? hoje);
     setTipo("falta");
     setMarcacao("entrada");
@@ -89,7 +92,7 @@ export function OcorrenciaFormDialog({
     setHorarioReal("");
     setJustificativa("");
     setMotivo(MOTIVOS_AUSENCIA[0]);
-  }, [open, dataInicial, hoje]);
+  }, [open, dataInicial, colaboradorInicial, hoje]);
 
   const pedeEstimado = useMemo(() => PEDE_ESTIMADO.includes(tipo), [tipo]);
   const pedeReal = useMemo(() => PEDE_REAL.includes(tipo), [tipo]);
