@@ -132,6 +132,11 @@ export default function DpAtestados() {
 
   const colabs = useDpColaboradores();
   const unidades = useDpUnidades();
+  useEffect(() => {
+    if (!colaboradorId || unidadeId) return;
+    const c = (colabs.data ?? []).find((x) => x.id === colaboradorId);
+    if (c?.unidade_id) setUnidadeId(c.unidade_id);
+  }, [colabs.data, colaboradorId, unidadeId]);
 
   const list = useQuery({
     queryKey: ["dp_atestados_admin", selectedCompanyId],
