@@ -24,6 +24,8 @@ export interface DiaEmLista {
   dominical?: boolean;
   /** Chips em uma única linha (altura igual entre os dias). */
   chipsLinhaUnica?: boolean;
+  /** Ícones do dia (pico, bloqueio) abaixo da data — não disputam espaço com os nomes. */
+  icones?: ReactNode;
 }
 
 const WEEKDAY = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -86,6 +88,7 @@ export function DiasEmLista({
                     {MES_CURTO[data.getMonth()]}
                   </span>
                 </div>
+                {d.icones ? <div className="mt-1 flex items-center gap-1">{d.icones}</div> : null}
               </div>
 
               <div className="min-w-0 flex-1 space-y-1">

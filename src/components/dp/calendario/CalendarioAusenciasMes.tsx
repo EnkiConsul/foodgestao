@@ -62,6 +62,10 @@ function diasDePreenchimento(dias: DiaPanorama[]) {
 
 const DOW = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
+/** "Qui 15/10" — data com a abreviação do dia da semana. */
+const fmtDiaSemana = (iso: string) =>
+  `${DOW[new Date(`${iso}T12:00:00`).getDay()]} ${iso.slice(8)}/${iso.slice(5, 7)}`;
+
 interface Props {
   dias: DiaPanorama[];
   selecionado: string;
@@ -108,6 +112,29 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     unidadeId
       ? limiteComFolgaFixaDiaUtil(iso, resolverLimiteFolga({ data: iso, unidadeId, regras: regrasLimite ?? [], diaConfig: diaConfigQuery.data ?? [] }), fixosPorDow.data).limite
       : null;
+  // Trocas aprovadas do mês: data_original por colaborador/data nova (para "era Seg 12/10").
+  const trocasMesQuery = useQuery({
+    queryKey: ["dp_trocas_mes_cal", selectedCompanyId, ini, fimMes],
+    enabled: !!selectedCompanyId && !!ini,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_trocas")
+        .select("destino_id, data_original, data_proposta")
+        .eq("company_id", selectedCompanyId!)
+        .eq("status", "aprovada")
+        .gte("data_proposta", ini!)
+        .lte("data_proposta", fimMes!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const dataOriginalTroca = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const t of trocasMesQuery.data ?? []) {
+      if (t.data_proposta) m.set(`${t.destino_id}:${t.data_proposta}`, t.data_original);
+    }
+    return m;
+  }, [trocasMesQuery.data]);
   const alternar = (t: TipoAusenciaCalendario) =>
     onFiltros(filtros.includes(t) ? filtros.filter((x) => x !== t) : [...filtros, t]);
 
@@ -158,17 +185,21 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
 
   const hoje = isoLocal(new Date());
   const resumoMes = useMemo(() => {
-    const quem = new Map<string, Map<string, { nome: string; datas: string[] }>>();
+    const quem = new Map<string, Map<string, { id: string; nome: string; datas: string[] }>>();
     const add = (k: string, id: string, nome: string, iso: string) => {
       const m = quem.get(k) ?? new Map(); quem.set(k, m);
-      const e = m.get(id) ?? { nome, datas: [] }; if (!e.datas.includes(iso)) e.datas.push(iso); m.set(id, e);
+      const e = m.get(id) ?? { id, nome, datas: [] }; if (!e.datas.includes(iso)) e.datas.push(iso); m.set(id, e);
     };
     const r = { trab: 0, semanal: 0, dominical: 0, ferias: 0, falta: 0, atestado: 0, outras: 0, trocas: 0, alertas: 0, feriados: 0, bloqueados: 0 };
     for (const d of dias) {
       r.trab += d.trabalhando;
       if (d.alerta) r.alertas++;
-      if (d.feriado_nome) r.feriados++;
-      if (bloqueios.has(d.data)) r.bloqueados++;
+      if (d.feriado_nome) { r.feriados++; add("feriados", `f-${d.data}`, `Feriado · ${d.feriado_nome}`, d.data); }
+      if (bloqueios.has(d.data)) {
+        r.bloqueados++;
+        const motivo = bloqueios.get(d.data);
+        add("bloqueados", `b-${d.data}`, motivo ? `Bloqueio · ${motivo}` : "Dia bloqueado", d.data);
+      }
       for (const a of ausenciasVisiveis(d.pessoas, filtros)) {
         if (a.tipo === "folga") {
           const k = dominical(a, d.data) ? "dominical" : "semanal"; r[k]++; add(k, a.colaborador_id, a.nome, d.data);
@@ -188,8 +219,8 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     { icon: UserX, chave: "falta", label: "faltas", valor: resumoMes.falta, tom: "text-rose-600 dark:text-rose-400" },
     { icon: Stethoscope, chave: "atestado", label: "atestados", valor: resumoMes.atestado, tom: "text-violet-600 dark:text-violet-400" },
     { icon: CalendarOff, chave: "outras", label: "cobertos", valor: resumoMes.outras, tom: "text-slate-500" },
-    { icon: Lock, label: "bloqueadas", valor: resumoMes.bloqueados, tom: "text-destructive" },
-    { icon: PartyPopper, label: "feriados", valor: resumoMes.feriados, tom: "text-primary" },
+    { icon: Lock, chave: "bloqueados", label: "bloqueadas", valor: resumoMes.bloqueados, tom: "text-destructive" },
+    { icon: PartyPopper, chave: "feriados", label: "feriados", valor: resumoMes.feriados, tom: "text-primary" },
     { icon: AlertTriangle, label: "com alerta", valor: resumoMes.alertas, tom: "text-destructive" },
   ].filter((c) => c.valor > 0) as { icon: typeof Users; label: string; valor: number; tom: string; chave?: string }[];
   const [cardAberto, setCardAberto] = useState<{ chave: string; label: string } | null>(null);
@@ -379,13 +410,10 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
 
       {legenda.length + resumoMes.trocas + resumoMes.bloqueados > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary"><Users className="h-3 w-3" />Escalados no dia</span>
+          <span className="hidden items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary md:inline-flex"><Users className="h-3 w-3" />Escalados no dia</span>
           {legenda.map((l) => (
             <span key={l.label} className={cn("rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase", l.cls)}>{l.label}</span>
           ))}
-          {resumoMes.trocas > 0 && <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground"><Repeat className="h-3 w-3" />Troca</span>}
-          {resumoMes.bloqueados > 0 && <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-destructive"><Lock className="h-3 w-3" />Bloqueada</span>}
-          <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary md:hidden"><Flame className="h-3 w-3 fill-amber-500 text-amber-500" />Pico</span>
           <span className="hidden items-center gap-1 rounded border border-primary/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary md:inline-flex"><Flame className="h-3 w-3 fill-amber-500 text-amber-500" />Pico de operação</span>
           <span className="ml-auto hidden text-[10px] text-muted-foreground lg:inline">Atalhos: ← → mês · H hoje · Esc fecha</span>
         </div>
@@ -404,6 +432,12 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               dominical: ehDiaDominical(d.data),
               chipsLinhaUnica: true,
               onSelect: () => onAbrirDia(d.data),
+              icones: pico(d.data, d.feriado_nome) || bloqueios.has(d.data) ? (
+                <>
+                  {pico(d.data, d.feriado_nome) && <Flame className="h-3.5 w-3.5 fill-amber-500 text-amber-500" aria-label="Pico de operação" />}
+                  {bloqueios.has(d.data) && <Lock className="h-3.5 w-3.5 text-destructive" aria-label="Folgas bloqueadas" />}
+                </>
+              ) : undefined,
               resumo: (
                 <span>
                   <span className="font-semibold text-foreground">{d.trabalhando}</span> trabalham
@@ -413,9 +447,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               chips: (
                 <>
                   {d.data === hoje && <Badge className="text-[10px]">Hoje</Badge>}
-                  {pico(d.data, d.feriado_nome) && <Flame className="h-4 w-4 shrink-0 self-center fill-amber-500 text-amber-500" aria-label="Pico de operação" />}
                   {d.feriado_nome && <Badge variant="outline" className="text-[10px]">Feriado</Badge>}
-                  {bloqueios.has(d.data) && <Lock className="h-4 w-4 shrink-0 self-center text-destructive" aria-label="Folgas bloqueadas" />}
                   {aus.slice(0, 3).map((a) => (
                     <span key={`${a.colaborador_id}-${a.tipo}`} title={rotulo(a, d.data)} className={cn("inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", tomDe(a, d.data), d.data < hoje && "opacity-60")}>
                       {a.troca && <Repeat className="h-2.5 w-2.5" />}{primeiroNome(a.nome)}
@@ -553,7 +585,14 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               <li key={p.nome + p.datas[0]} className="py-2">
                 <p className="text-sm font-semibold">{p.nome}</p>
                 <p className="text-xs text-muted-foreground">
-                  {p.datas.sort().map((iso) => `${iso.slice(8)}/${iso.slice(5, 7)}`).join(" · ")}
+                  {p.datas.sort().map((iso) => {
+                    const base = fmtDiaSemana(iso);
+                    if (cardAberto?.chave === "trocas") {
+                      const orig = dataOriginalTroca.get(`${p.id}:${iso}`);
+                      if (orig) return `${base} (era ${fmtDiaSemana(orig)})`;
+                    }
+                    return base;
+                  }).join(" · ")}
                 </p>
               </li>
             ))}
