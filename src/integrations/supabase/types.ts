@@ -11139,6 +11139,7 @@ export type Database = {
           tratativa_observacao: string | null
           tratativa_ponto: boolean
           tratativa_status: Database["public"]["Enums"]["dp_ocorrencia_tratativa_status"]
+          troca_id: string | null
           unidade_id: string | null
           updated_at: string
         }
@@ -11186,6 +11187,7 @@ export type Database = {
           tratativa_observacao?: string | null
           tratativa_ponto?: boolean
           tratativa_status?: Database["public"]["Enums"]["dp_ocorrencia_tratativa_status"]
+          troca_id?: string | null
           unidade_id?: string | null
           updated_at?: string
         }
@@ -11233,6 +11235,7 @@ export type Database = {
           tratativa_observacao?: string | null
           tratativa_ponto?: boolean
           tratativa_status?: Database["public"]["Enums"]["dp_ocorrencia_tratativa_status"]
+          troca_id?: string | null
           unidade_id?: string | null
           updated_at?: string
         }
@@ -11277,6 +11280,13 @@ export type Database = {
             columns: ["solicitacao_id"]
             isOneToOne: false
             referencedRelation: "dp_solicitacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ocorrencias_troca_id_fkey"
+            columns: ["troca_id"]
+            isOneToOne: false
+            referencedRelation: "dp_trocas"
             referencedColumns: ["id"]
           },
           {
