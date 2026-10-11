@@ -19,6 +19,7 @@ import { useFixosPorDiaSemana } from "@/hooks/useFixosPorDiaSemana";
 import { folgaFixaDoDia } from "@/lib/dp/calendario-rotina";
 import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ausenciasVisiveis, folgaEhDominical, periodoDoHorario, periodoHabitual, pessoaNoFiltro, primeiroNome, tipoAusencia,
   TIPO_AUSENCIA_LABEL, TIPOS_AUSENCIA, type AusenciaCalendario, type PeriodoTurno, type TipoAusenciaCalendario,
@@ -157,6 +158,11 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
 
   const hoje = isoLocal(new Date());
   const resumoMes = useMemo(() => {
+    const quem = new Map<string, Map<string, { nome: string; datas: string[] }>>();
+    const add = (k: string, id: string, nome: string, iso: string) => {
+      const m = quem.get(k) ?? new Map(); quem.set(k, m);
+      const e = m.get(id) ?? { nome, datas: [] }; if (!e.datas.includes(iso)) e.datas.push(iso); m.set(id, e);
+    };
     const r = { trab: 0, semanal: 0, dominical: 0, ferias: 0, falta: 0, atestado: 0, outras: 0, trocas: 0, alertas: 0, feriados: 0, bloqueados: 0 };
     for (const d of dias) {
       r.trab += d.trabalhando;
@@ -164,26 +170,32 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
       if (d.feriado_nome) r.feriados++;
       if (bloqueios.has(d.data)) r.bloqueados++;
       for (const a of ausenciasVisiveis(d.pessoas, filtros)) {
-        if (a.tipo === "folga") { if (dominical(a, d.data)) r.dominical++; else r.semanal++; if (a.troca) r.trocas++; }
-        else r[a.tipo]++;
+        if (a.tipo === "folga") {
+          const k = dominical(a, d.data) ? "dominical" : "semanal"; r[k]++; add(k, a.colaborador_id, a.nome, d.data);
+          if (a.troca) { r.trocas++; add("trocas", a.colaborador_id, a.nome, d.data); }
+        } else { r[a.tipo]++; add(a.tipo, a.colaborador_id, a.nome, d.data); }
       }
     }
-    return { ...r, media: dias.length ? Math.round(r.trab / dias.length) : 0 };
+    return { ...r, quem, media: dias.length ? Math.round(r.trab / dias.length) : 0 };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dias, filtros, bloqueios, diasDominicais]);
   const cards = [
     { icon: Users, label: "trab./dia", valor: resumoMes.media, tom: "text-primary" },
-    { icon: Coffee, label: "semanais", valor: resumoMes.semanal, tom: "text-emerald-600 dark:text-emerald-400" },
-    { icon: CalendarHeart, label: "dominicais", valor: resumoMes.dominical, tom: "text-amber-600 dark:text-amber-400" },
-    { icon: Repeat, label: "trocas", valor: resumoMes.trocas, tom: "text-teal-600 dark:text-teal-400" },
-    { icon: Palmtree, label: "férias", valor: resumoMes.ferias, tom: "text-sky-600 dark:text-sky-400" },
-    { icon: UserX, label: "faltas", valor: resumoMes.falta, tom: "text-rose-600 dark:text-rose-400" },
-    { icon: Stethoscope, label: "atestados", valor: resumoMes.atestado, tom: "text-violet-600 dark:text-violet-400" },
-    { icon: CalendarOff, label: "cobertos", valor: resumoMes.outras, tom: "text-slate-500" },
+    { icon: Coffee, chave: "semanal", label: "semanais", valor: resumoMes.semanal, tom: "text-emerald-600 dark:text-emerald-400" },
+    { icon: CalendarHeart, chave: "dominical", label: "dominicais", valor: resumoMes.dominical, tom: "text-amber-600 dark:text-amber-400" },
+    { icon: Repeat, chave: "trocas", label: "trocas", valor: resumoMes.trocas, tom: "text-teal-600 dark:text-teal-400" },
+    { icon: Palmtree, chave: "ferias", label: "férias", valor: resumoMes.ferias, tom: "text-sky-600 dark:text-sky-400" },
+    { icon: UserX, chave: "falta", label: "faltas", valor: resumoMes.falta, tom: "text-rose-600 dark:text-rose-400" },
+    { icon: Stethoscope, chave: "atestado", label: "atestados", valor: resumoMes.atestado, tom: "text-violet-600 dark:text-violet-400" },
+    { icon: CalendarOff, chave: "outras", label: "cobertos", valor: resumoMes.outras, tom: "text-slate-500" },
     { icon: Lock, label: "bloqueadas", valor: resumoMes.bloqueados, tom: "text-destructive" },
     { icon: PartyPopper, label: "feriados", valor: resumoMes.feriados, tom: "text-primary" },
     { icon: AlertTriangle, label: "com alerta", valor: resumoMes.alertas, tom: "text-destructive" },
-  ].filter((c) => c.valor > 0);
+  ].filter((c) => c.valor > 0) as { icon: typeof Users; label: string; valor: number; tom: string; chave?: string }[];
+  const [cardAberto, setCardAberto] = useState<{ chave: string; label: string } | null>(null);
+  const pessoasCard = cardAberto
+    ? [...(resumoMes.quem.get(cardAberto.chave)?.values() ?? [])].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+    : [];
 
   // Legenda só com o que existe no mês.
   const legenda = [
@@ -335,19 +347,29 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
         ))}
 
         {/* Métricas em linha — só o que tem valor */}
-        <div className="order-last -mx-1 flex w-full min-w-0 items-center gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] md:order-none md:mx-0 md:ml-2 md:w-auto md:flex-wrap md:overflow-visible md:px-0">
-          {cards.map((c) => (
-            <span key={c.label} className="inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border bg-card px-2.5 text-xs shadow-sm">
-              <c.icon className={cn("h-3.5 w-3.5", c.tom)} />
-              <span className="font-bold tabular-nums">{c.valor}</span>
-              <span className="text-muted-foreground">{c.label}</span>
-            </span>
-          ))}
+        <div className="order-last flex w-full min-w-0 flex-wrap items-center gap-1.5 md:order-none md:ml-2 md:w-auto">
+          {cards.map((c) => {
+            const conteudo = (
+              <>
+                <c.icon className={cn("h-3.5 w-3.5", c.tom)} />
+                <span className="font-bold tabular-nums">{c.valor}</span>
+                <span className="text-muted-foreground">{c.label}</span>
+              </>
+            );
+            const cls = "inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border bg-card px-2.5 text-xs shadow-sm";
+            return c.chave ? (
+              <button key={c.label} type="button" onClick={() => setCardAberto({ chave: c.chave!, label: c.label })} className={cn(cls, "transition-colors hover:bg-muted active:bg-muted")} title={`Ver quem: ${c.label}`}>
+                {conteudo}
+              </button>
+            ) : (
+              <span key={c.label} className={cls}>{conteudo}</span>
+            );
+          })}
         </div>
 
         <div className="ml-auto flex items-center gap-1.5">
           <Button size="sm" variant="outline" className="h-8 gap-1.5 rounded-full" onClick={gerarPdf} disabled={gerando || !dias.length}>
-            <FileDown className="h-3.5 w-3.5" /> {gerando ? "Gerando…" : "Gerar PDF"}
+            <FileDown className="h-3.5 w-3.5" /> {gerando ? "Gerando…" : <><span className="md:hidden">PDF</span><span className="hidden md:inline">Gerar PDF</span></>}
           </Button>
           <Button size="sm" variant="outline" className="hidden h-8 gap-1.5 rounded-full md:inline-flex" onClick={() => setFoco((f) => !f)} title={foco ? "Sair do modo foco (Esc)" : "Modo foco"}>
             {foco ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />} {foco ? "Sair" : "Foco"}
@@ -363,6 +385,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
           ))}
           {resumoMes.trocas > 0 && <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground"><Repeat className="h-3 w-3" />Troca</span>}
           {resumoMes.bloqueados > 0 && <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-destructive"><Lock className="h-3 w-3" />Bloqueada</span>}
+          <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary md:hidden"><Flame className="h-3 w-3 fill-amber-500 text-amber-500" />Pico</span>
           <span className="hidden items-center gap-1 rounded border border-primary/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary md:inline-flex"><Flame className="h-3 w-3 fill-amber-500 text-amber-500" />Pico de operação</span>
           <span className="ml-auto hidden text-[10px] text-muted-foreground lg:inline">Atalhos: ← → mês · H hoje · Esc fecha</span>
         </div>
@@ -378,6 +401,8 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               selecionado: d.data === selecionado,
               tom: d.alerta ? (d.avaliacao.situacao === "abaixo" ? ("critico" as const) : ("atencao" as const)) : undefined,
               desabilitado: false,
+              dominical: ehDiaDominical(d.data),
+              chipsLinhaUnica: true,
               onSelect: () => onAbrirDia(d.data),
               resumo: (
                 <span>
@@ -388,14 +413,15 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               chips: (
                 <>
                   {d.data === hoje && <Badge className="text-[10px]">Hoje</Badge>}
-                  {pico(d.data, d.feriado_nome) && <Badge variant="outline" className="gap-1 border-primary/50 text-[10px] text-primary"><Flame className="h-3 w-3 fill-amber-500 text-amber-500" />Pico</Badge>}
+                  {pico(d.data, d.feriado_nome) && <Flame className="h-4 w-4 shrink-0 self-center fill-amber-500 text-amber-500" aria-label="Pico de operação" />}
                   {d.feriado_nome && <Badge variant="outline" className="text-[10px]">Feriado</Badge>}
-                  {bloqueios.has(d.data) && <Badge variant="outline" className="gap-1 border-destructive/40 text-[10px] text-destructive"><Lock className="h-3 w-3" />Bloqueada</Badge>}
-                  {aus.map((a) => (
-                    <span key={`${a.colaborador_id}-${a.tipo}`} title={rotulo(a, d.data)} className={cn("inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", tomDe(a, d.data), d.data < hoje && "opacity-60")}>
+                  {bloqueios.has(d.data) && <Lock className="h-4 w-4 shrink-0 self-center text-destructive" aria-label="Folgas bloqueadas" />}
+                  {aus.slice(0, 3).map((a) => (
+                    <span key={`${a.colaborador_id}-${a.tipo}`} title={rotulo(a, d.data)} className={cn("inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", tomDe(a, d.data), d.data < hoje && "opacity-60")}>
                       {a.troca && <Repeat className="h-2.5 w-2.5" />}{primeiroNome(a.nome)}
                     </span>
                   ))}
+                  {aus.length > 3 && <span className="shrink-0 self-center text-[10px] font-semibold text-muted-foreground">+{aus.length - 3}</span>}
                 </>
               ),
             };
@@ -516,6 +542,24 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
           {depois.map(vazio)}
         </div>
       </div>
+      <Dialog open={!!cardAberto} onOpenChange={(o) => !o && setCardAberto(null)}>
+        <DialogContent className="flex max-h-[85dvh] max-w-md flex-col">
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="first-letter:uppercase">{cardAberto?.label}</DialogTitle>
+            <DialogDescription>{pessoasCard.length} colaborador(es) no mês</DialogDescription>
+          </DialogHeader>
+          <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
+            {pessoasCard.map((p) => (
+              <li key={p.nome + p.datas[0]} className="py-2">
+                <p className="text-sm font-semibold">{p.nome}</p>
+                <p className="text-xs text-muted-foreground">
+                  {p.datas.sort().map((iso) => `${iso.slice(8)}/${iso.slice(5, 7)}`).join(" · ")}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
