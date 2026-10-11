@@ -361,7 +361,7 @@ export function AtribuirFolgaTriagemDialog({
             Cancelar
           </Button>
           <Button
-            onClick={() => atribuir.mutate()}
+            onClick={() => atribuir.mutate(false)}
             disabled={atribuir.isPending}
             className="min-h-10 w-full sm:w-auto"
           >
