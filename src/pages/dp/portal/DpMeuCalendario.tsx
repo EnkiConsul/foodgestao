@@ -1655,7 +1655,7 @@ export default function DpMeuCalendario() {
 
       {/* Dialog do dia */}
       <Dialog open={!!selectedDay} onOpenChange={(o) => !o && setSelectedDay(null)}>
-        <DialogContent {...swipeDia} className="max-w-md max-h-[90svh] overflow-y-auto overflow-x-hidden [&_button]:whitespace-normal [&_button]:h-auto [&_button]:min-h-9 [&_button]:py-2 [&_button]:break-words">
+        <DialogContent {...swipeDia} data-swipe-proprio="" className="max-w-md max-h-[90svh] overflow-y-auto overflow-x-hidden [&_button]:whitespace-normal [&_button]:h-auto [&_button]:min-h-9 [&_button]:py-2 [&_button]:break-words">
 
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-3">

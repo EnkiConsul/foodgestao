@@ -611,8 +611,9 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
           </DialogHeader>
           <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
             {dias.filter((d) => cardAberto?.chave !== "dias_alerta" || d.alerta).map((d) => {
-              const abaixo = d.alerta && d.avaliacao.situacao === "abaixo";
-              const acima = d.alerta && d.avaliacao.situacao === "acima";
+              const pad = d.avaliacao.padrao;
+              const abaixo = d.alerta && pad != null && d.trabalhando < pad;
+              const acima = d.alerta && pad != null && d.trabalhando > pad;
               return (
                 <li key={d.data} className="flex items-center gap-2">
                   <button type="button" onClick={() => { setCardAberto(null); onAbrirDia(d.data, mostraTurno ? periodo : "todos"); }} className="flex min-w-0 flex-1 items-center justify-between gap-2 py-2 text-left hover:bg-muted">
