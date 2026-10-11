@@ -34,6 +34,8 @@ export interface AusenciaCalendario {
   tipo: TipoAusenciaCalendario;
   troca?: boolean;
   folga_fixa_dows?: number[];
+  /** Rótulo próprio no card (ex.: "Indisponibilidade"). */
+  rotulo?: string;
 }
 
 /** Ausências do dia visíveis com os filtros ativos, ordenadas por tipo e nome. */

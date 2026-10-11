@@ -1552,6 +1552,9 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
             <div {...swipeMes}>
             <CalendarioAusenciasMes
               dias={panorama.dias}
+              indisponiveis={(panorama.ausenciasRegistradas ?? [])
+                .filter((a) => a.tipo === "indisponibilidade")
+                .map((a) => ({ ...a, nome: panorama.nomesColaboradores?.get(a.colaborador_id) ?? "Colaborador" }))}
               unidadeId={unidadeId}
               nomeUnidade={nomeUnidade ?? ""}
               competenciaLabel={competenciaExtenso(competencia)}
