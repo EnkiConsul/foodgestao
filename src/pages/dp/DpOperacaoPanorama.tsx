@@ -31,6 +31,7 @@ import {
   UserPlus,
   Users,
   UserX,
+  CalendarPlus,
 } from "lucide-react";
 import { useDpOperacaoPanorama, type DiaPanorama } from "@/hooks/useDpOperacaoPanorama";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
