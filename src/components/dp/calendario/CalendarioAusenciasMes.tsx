@@ -215,7 +215,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dias, filtros, bloqueios, diasDominicais]);
   const cards = [
-    { icon: Users, label: "trab./dia", valor: resumoMes.media, tom: "text-primary" },
+    { icon: Users, chave: "dias_trab", label: "trab./dia", valor: resumoMes.media, tom: "text-primary" },
     { icon: Coffee, chave: "semanal", label: "semanais", valor: resumoMes.semanal, tom: "text-emerald-600 dark:text-emerald-400" },
     { icon: CalendarHeart, chave: "dominical", label: "dominicais", valor: resumoMes.dominical, tom: "text-amber-600 dark:text-amber-400" },
     { icon: Repeat, chave: "trocas", label: "trocas", valor: resumoMes.trocas, tom: "text-teal-600 dark:text-teal-400" },
@@ -225,7 +225,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     { icon: CalendarOff, chave: "outras", label: "cobertos", valor: resumoMes.outras, tom: "text-slate-500" },
     { icon: Lock, chave: "bloqueados", label: "bloqueadas", valor: resumoMes.bloqueados, tom: "text-destructive" },
     { emoji: "🎉", chave: "feriados", label: "feriados", valor: resumoMes.feriados, tom: "text-primary" },
-    { icon: AlertTriangle, label: "com alerta", valor: resumoMes.alertas, tom: "text-destructive" },
+    { icon: AlertTriangle, chave: "dias_alerta", label: "com alerta", valor: resumoMes.alertas, tom: "text-destructive" },
   ].filter((c) => c.valor > 0) as { icon?: typeof Users; emoji?: string; label: string; valor: number; tom: string; chave?: string }[];
   const [cardAberto, setCardAberto] = useState<{ chave: string; label: string } | null>(null);
   const pessoasCard = cardAberto
@@ -593,7 +593,36 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
           {depois.map(vazio)}
         </div>
       </div>
-      <Dialog open={!!cardAberto} onOpenChange={(o) => !o && setCardAberto(null)}>
+      <Dialog open={cardAberto?.chave === "dias_trab" || cardAberto?.chave === "dias_alerta"} onOpenChange={(o) => !o && setCardAberto(null)}>
+        <DialogContent className="flex max-h-[85dvh] max-w-md flex-col">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>{cardAberto?.chave === "dias_alerta" ? "Dias com alerta" : "Trabalhando por dia"}</DialogTitle>
+            <DialogDescription>
+              {cardAberto?.chave === "dias_alerta" ? "Contingente fora do padrão habitual. Toque no dia para ajustar." : `Média de ${resumoMes.media} por dia. Toque no dia para abrir.`}
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
+            {dias.filter((d) => cardAberto?.chave !== "dias_alerta" || d.alerta).map((d) => {
+              const abaixo = d.alerta && d.avaliacao.situacao === "abaixo";
+              const acima = d.alerta && d.avaliacao.situacao === "acima";
+              return (
+                <li key={d.data}>
+                  <button type="button" onClick={() => { setCardAberto(null); onAbrirDia(d.data); }} className="flex w-full items-center justify-between gap-2 py-2 text-left hover:bg-muted">
+                    <span className="text-sm font-semibold">
+                      {fmtDiaSemana(d.data)}{d.feriado_nome ? " 🎉" : ""}{bloqueios.has(d.data) ? " 🔒" : ""}
+                    </span>
+                    <span className={cn("text-xs tabular-nums", abaixo ? "font-semibold text-destructive" : acima ? "font-semibold text-amber-600 dark:text-amber-400" : "text-muted-foreground")}>
+                      {d.trabalhando} trabalhando
+                      {d.alerta && d.avaliacao.padrao != null ? ` (padrão ${d.avaliacao.padrao}) — ${abaixo ? "abaixo" : "acima"} do padrão` : ""}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!cardAberto && cardAberto.chave !== "dias_trab" && cardAberto.chave !== "dias_alerta"} onOpenChange={(o) => !o && setCardAberto(null)}>
         <DialogContent className="flex max-h-[85dvh] max-w-md flex-col">
           <DialogHeader className="shrink-0">
             <DialogTitle className="first-letter:uppercase">{cardAberto?.label}</DialogTitle>
