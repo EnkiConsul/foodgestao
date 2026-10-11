@@ -170,11 +170,35 @@ export default function DpMeuTrocas() {
 
   const minhaUnidade = (meRef.data as { unidade_id?: string | null } | undefined)?.unidade_id ?? null;
 
-  /** Minhas folgas futuras — o que eu tenho para oferecer. */
+  /**
+   * Períodos de afastamento (atestado, licença, suspensão, férias) da empresa:
+   * folga coberta por esses eventos não pode ser oferecida nem pedida em troca.
+   */
+  const afastamentos = useQuery({
+    queryKey: ["dp_trocas_afastamentos", meRef.data?.company_id],
+    enabled: !!meRef.data?.company_id,
+    queryFn: async () => {
+      const de = hojeIsoLocal();
+      const fim = new Date();
+      fim.setDate(fim.getDate() + 180);
+      const { data, error } = await supabase.rpc("dp_trocas_afastamentos", {
+        _de: de,
+        _ate: format(fim, "yyyy-MM-dd"),
+      });
+      if (error) throw error;
+      return (data ?? []) as PeriodoAfastamento[];
+    },
+  });
+
+  /** Minhas folgas futuras — o que eu tenho para oferecer (fora de afastamentos). */
   const minhasFolgas = useMemo(
     () =>
-      (folgasFuturas.data ?? []).filter((f: any) => f.colaborador_id === meRef.data?.id),
-    [folgasFuturas.data, meRef.data?.id],
+      (folgasFuturas.data ?? []).filter(
+        (f: any) =>
+          f.colaborador_id === meRef.data?.id &&
+          !dataEmAfastamento(afastamentos.data, meRef.data?.id, f.data),
+      ),
+    [folgasFuturas.data, meRef.data?.id, afastamentos.data],
   );
 
   /** Meus dias fixos de folga na semana (para avaliar dias seguidos sem descanso). */
