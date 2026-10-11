@@ -279,7 +279,7 @@ export function AtribuirFolgaTriagemDialog({
                     Troca da folga semanal da semana
                   </SelectItem>
                 )}
-                {!intermitente && <SelectItem value="compensatoria">Folga compensatória</SelectItem>}
+                {podeCompensatoria && <SelectItem value="compensatoria">Folga compensatória</SelectItem>}
                 <SelectItem value="extra">Folga extra</SelectItem>
               </SelectContent>
             </Select>
