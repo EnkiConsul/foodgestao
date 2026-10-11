@@ -378,6 +378,8 @@ function SituacaoBadge({ dia }: { dia: DiaPanorama }) {
 }
 
 interface DetalheDiaProps {
+  /** Turno filtrado no calendário do mês: o dia já abre nele. */
+  periodoInicial?: "todos" | "dia" | "noite" | "madrugada";
   data: string;
   dia: DiaPanorama;
   blocos: ReturnType<typeof blocosPorFuncionamento>;
@@ -425,6 +427,7 @@ const tagSocio = (p: PessoaPanorama) =>
  * quanto na janela que abre ao clicar num dia do calendário do mês.
  */
 function DetalheDiaOperacao({
+  periodoInicial,
   data,
   dia,
   blocos,
@@ -497,8 +500,8 @@ function DetalheDiaOperacao({
     let melhor: "dia" | "noite" | "madrugada" | "todos" = "todos";
     let max = -1;
     for (const [k, v] of contagemPeriodos) if (v > max) { max = v; melhor = k; }
-    void melhor; return "todos";
-  }, [contagemPeriodos]);
+    void melhor; return periodoInicial ?? "todos";
+  }, [contagemPeriodos, periodoInicial]);
   // Escolha do gestor vale para o dia aberto; ao trocar de dia volta ao turno mais cheio.
   const [escolhaPeriodo, setEscolhaPeriodo] = useState<{ data: string; p: "todos" | "dia" | "noite" | "madrugada" } | null>(null);
   const periodo = escolhaPeriodo?.data === data ? escolhaPeriodo.p : periodoPadrao;
@@ -1395,7 +1398,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
       />
 
       {calendario && (
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border bg-card px-3 py-2 shadow-sm">
+        <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 rounded-2xl border bg-card/95 px-3 py-2 shadow-sm backdrop-blur md:static md:bg-card">
           <div className="inline-flex min-w-0 flex-1 items-center justify-between rounded-full border bg-background p-0.5 sm:flex-none">
             <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 rounded-full" aria-label="Anterior"
               onClick={() => setData(aba === "mes" ? `${somarMeses(competencia, -1)}-01` : somarDias(data, -1))}>
@@ -1848,6 +1851,7 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
             {dataPopout && diaPopout ? (
               <DetalheDiaOperacao
+                periodoInicial={calendario ? (filtrosCal.periodo as "todos" | "dia" | "noite" | "madrugada") : undefined}
                 compacto={calendario}
                 data={dataPopout}
                 dia={diaPopout}

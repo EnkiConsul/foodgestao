@@ -38,7 +38,7 @@ const TOM: Record<NonNullable<DiaEmLista["tom"]>, string> = {
   primario: "bg-primary/5",
   sucesso: "bg-emerald-500/5",
   atencao: "bg-amber-500/5",
-  critico: "bg-destructive/5",
+  critico: "bg-destructive/15",
 };
 
 const parse = (iso: string) => new Date(`${iso}T12:00:00`);
@@ -103,7 +103,7 @@ export function DiasEmLista({
           );
 
           const base = cn(
-            "flex w-full items-center gap-3 px-3 py-3 text-left",
+            "flex w-full min-w-0 items-center gap-3 px-3 py-3 text-left",
             TOM[d.tom ?? "neutro"],
             d.dominical && !d.tom && "bg-amber-500/10",
             isToday && "bg-primary/20 shadow-[inset_4px_0_0_hsl(var(--primary))]",
@@ -111,7 +111,7 @@ export function DiasEmLista({
           );
 
           return (
-            <li key={d.iso}>
+            <li key={d.iso} className="min-w-0 overflow-hidden">
               {d.onSelect ? (
                 <button
                   type="button"

@@ -83,7 +83,7 @@ export function MultiSelectFilter({
             />
           </div>
         </div>
-        <div className="max-h-60 overflow-y-auto py-1">
+        <div className="max-h-[50vh] touch-pan-y overflow-y-auto overscroll-contain py-1 sm:max-h-60">
           <button
             type="button"
             onClick={() => {

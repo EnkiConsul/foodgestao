@@ -440,14 +440,15 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
             const aus = ausenciasVisiveis(d.pessoas, filtros);
             return {
               iso: d.data,
-              selecionado: d.data === selecionado,
+              selecionado: false,
               tom: d.alerta ? (d.avaliacao.situacao === "abaixo" ? ("critico" as const) : ("atencao" as const)) : undefined,
               desabilitado: false,
               dominical: ehDiaDominical(d.data),
               chipsLinhaUnica: true,
               onSelect: () => onAbrirDia(d.data),
-              icones: pico(d.data, d.feriado_nome) || bloqueios.has(d.data) || temParcial(d.data) || d.feriado_nome ? (
+              icones: d.alerta || pico(d.data, d.feriado_nome) || bloqueios.has(d.data) || temParcial(d.data) || d.feriado_nome ? (
                 <>
+                  {d.alerta && <AlertTriangle className="h-3.5 w-3.5 text-destructive" aria-label="Alerta do dia" />}
                   {bloqueios.has(d.data) && <Lock className="h-3.5 w-3.5 text-destructive" aria-label="Folgas bloqueadas" />}
                   {temParcial(d.data) && <Lock className="h-3.5 w-3.5 text-amber-500" aria-label="Bloqueio parcial" />}
                   {pico(d.data, d.feriado_nome) && <Flame className="h-3.5 w-3.5 fill-amber-500 text-amber-500" aria-label="Pico de operação" />}
@@ -486,7 +487,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
 
       {/* Desktop: grade mensal com ausentes em cada dia */}
       <div className="hidden md:block">
-        <div className="grid grid-cols-7 gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-lg ring-1 ring-primary/10">
+        <div className="grid grid-cols-[repeat(7,minmax(0,1fr))] gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-lg ring-1 ring-primary/10">
           {DOW.map((d, i) => {
             const dom = diasDominicais.includes(i);
             const pk = i === 0 || i >= 5;
@@ -522,14 +523,13 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                     type="button"
                     onClick={() => onAbrirDia(d.data)}
                     className={cn(
-                      "group relative flex min-h-[136px] flex-col gap-2 bg-card p-2 text-left transition-all hover:z-10 hover:-translate-y-px hover:shadow-xl",
+                      "group relative flex min-h-[136px] min-w-0 flex-col gap-2 bg-card p-2 text-left transition-all hover:z-10 hover:-translate-y-px hover:shadow-xl",
                       ehDiaDominical(d.data) && "bg-muted/30",
                       d.feriado_nome && "bg-primary/[0.08]",
                       bloqueio && "bg-destructive/[0.06]",
-                      d.alerta && d.avaliacao.situacao === "abaixo" && "bg-destructive/10",
+                      d.alerta && "bg-destructive/15 ring-1 ring-inset ring-destructive/50",
                       passado && "opacity-45 saturate-50 hover:opacity-100 hover:saturate-100",
                       ehHoje && "z-[1] bg-primary/10 shadow-[0_0_0_2px_hsl(var(--primary)),0_8px_24px_-6px_hsl(var(--primary)/0.5)]",
-                      d.data === selecionado && !ehHoje && "ring-2 ring-inset ring-primary/60",
                     )}
                   >
                     <div className={cn(
@@ -540,6 +540,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                       <div className="flex min-w-0 items-center gap-1">
                         <span className={cn("flex h-6 min-w-6 items-center justify-center rounded-md px-1 text-sm font-extrabold tabular-nums", ehHoje && "bg-primary text-primary-foreground shadow-md")}>{Number(d.data.slice(8))}</span>
                         {ehHoje && <span className="rounded bg-primary px-1 text-[9px] font-bold uppercase tracking-wider text-primary-foreground">Hoje</span>}
+                        {d.alerta && <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-destructive" aria-label="Alerta do dia" />}
                         {ehPico && <Flame className="h-4 w-4 shrink-0 fill-amber-500 text-amber-500" aria-label="Pico de operação"><title>Pico de operação</title></Flame>}
                         {bloqueio && <Lock className="h-3.5 w-3.5 shrink-0 text-destructive" aria-label="Data bloqueada"><title>{bloqueio}</title></Lock>}
                         {temParcial(d.data) && <Lock className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Bloqueio parcial"><title>Bloqueio parcial</title></Lock>}
