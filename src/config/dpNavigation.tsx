@@ -30,7 +30,6 @@ import {
   Settings,
   ShieldAlert,
   Store,
-  Upload,
   User,
   Users,
   type LucideIcon, NotebookPen } from "lucide-react";
