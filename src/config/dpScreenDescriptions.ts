@@ -25,6 +25,7 @@ export const DP_SCREEN_DESCRIPTIONS: Record<string, string> = {
   "/dp/whatsapp-envios": "Acompanhe convites de acesso, nova senha e links de recibos enviados pelo WhatsApp.",
 
   // Rotina
+  "/dp/rotina": "Calendário da operação, com folgas, férias e ocorrências do dia.",
   "/dp/escalas/mes": "Escala e operação do mês por unidade e turno.",
   "/dp/ocorrencias": "Ocorrências do dia: faltas, atrasos e ajustes.",
   "/dp/convocacoes": "Convoque intermitentes e mão de obra extra.",

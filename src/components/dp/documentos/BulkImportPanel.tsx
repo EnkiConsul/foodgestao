@@ -179,6 +179,11 @@ export function BulkImportPanel({
     return (batches.data ?? []).filter((b) => statusFilter === "all" ? true : b.status === statusFilter);
   }, [batches.data, statusFilter]);
 
+  /** Só lotes que pedem atenção (fila, processando, revisão, falha) aparecem;
+   *  concluídos ("Importado") ficam ocultos e, sem nenhum ativo, a lista some. */
+  const STATUS_ATIVOS = ["queued", "processing", "ready", "partially_imported", "failed"];
+  const temLoteAtivo = (batches.data ?? []).some((b) => STATUS_ATIVOS.includes(b.status));
+
   const openedIds = Object.keys(expanded).filter((k) => expanded[k]);
   const anyBatchProcessing = (batches.data ?? []).some(
     (b) => (b.status === "processing" || b.status === "queued") && expanded[b.id],
@@ -591,6 +596,7 @@ export function BulkImportPanel({
       </DpFilterCard>
       </div>
 
+      {temLoteAtivo && (
       <Card className="dp-content-card" ref={lotesRef}>
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle className="text-base">Lotes recentes</CardTitle>
@@ -603,7 +609,6 @@ export function BulkImportPanel({
                 <SelectItem value="processing">Processando</SelectItem>
                 <SelectItem value="ready">Pronto</SelectItem>
                 <SelectItem value="partially_imported">Parcial</SelectItem>
-                <SelectItem value="imported">Importado</SelectItem>
                 <SelectItem value="failed">Falhou</SelectItem>
               </SelectContent>
             </Select>
@@ -627,26 +632,43 @@ export function BulkImportPanel({
             const isProcessing = b.status === "processing" || b.status === "queued";
             const falhas = bItems.filter((i) => (i.status === "failed" || i.status === "dead") && !i.imported_documento_id).length;
             const canDiscard = importadas === 0 && b.status !== "imported" && b.status !== "partially_imported";
+            const contagens = isProcessing && totalPag > 0
+              ? `OCR ${processed}/${totalPag}`
+              : `${totalPag} pág · ${b.matched_count ?? 0} vinc.`;
+            const badge = (
+              <Badge
+                variant={
+                  b.status === "imported" ? "default"
+                  : b.status === "failed" ? "destructive"
+                  : "secondary"
+                }
+                className="whitespace-nowrap"
+              >
+                {isProcessing && <Loader2 className="h-3 w-3 mr-1 animate-spin inline" />}
+                {statusLabel(b.status)}
+              </Badge>
+            );
             return (
               <div key={b.id} id={`lote-${b.id}`} className="border rounded-md scroll-mt-20">
                 <button
                   type="button"
-                  className="w-full flex items-start justify-between gap-2 p-3 text-left hover:bg-muted/50"
+                  className="w-full flex flex-col md:flex-row md:items-start md:justify-between gap-2 p-3 text-left hover:bg-muted/50"
                   onClick={() => setExpanded((s) => ({ ...s, [b.id]: !s[b.id] }))}
                 >
                   <div className="flex items-start gap-2 min-w-0 flex-1">
                     {isOpen ? <ChevronDown className="h-4 w-4 shrink-0 mt-0.5" /> : <ChevronRight className="h-4 w-4 shrink-0 mt-0.5" />}
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium break-words">
-                        {loteAssunto(b, bItems)}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="text-sm font-medium break-words">
+                          {loteAssunto(b, bItems)}
+                        </div>
+                        <div className="md:hidden shrink-0">{badge}</div>
                       </div>
                       <div className="text-xs text-muted-foreground truncate">
                         {b.source_file_name ?? b.id.slice(0, 8)}
                       </div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {isProcessing && totalPag > 0
-                          ? `OCR ${processed}/${totalPag}`
-                          : `${totalPag} pág · ${b.matched_count ?? 0} vinc.`}
+                      <div className="hidden md:block text-xs text-muted-foreground truncate">
+                        {contagens}
                         {isOpen && bItems.length > 0 ? ` · ${importadas}/${totalPag} imp.` : ""}
                       </div>
                       <div className="hidden md:block text-xs text-muted-foreground truncate">
@@ -659,7 +681,10 @@ export function BulkImportPanel({
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center gap-1 shrink-0 pl-6 md:pl-0">
+                    <span className="md:hidden flex-1 min-w-0 text-xs text-muted-foreground truncate">
+                      {contagens}
+                    </span>
                     {!isProcessing && totalPag > 0 && (
                       <Button
                         size="sm"
@@ -733,17 +758,7 @@ export function BulkImportPanel({
                     >
                       <Info className="h-4 w-4" />
                     </Button>
-                    <Badge
-                      variant={
-                        b.status === "imported" ? "default"
-                        : b.status === "failed" ? "destructive"
-                        : "secondary"
-                      }
-                      className="whitespace-nowrap"
-                    >
-                      {isProcessing && <Loader2 className="h-3 w-3 mr-1 animate-spin inline" />}
-                      {statusLabel(b.status)}
-                    </Badge>
+                    <div className="hidden md:inline-flex shrink-0">{badge}</div>
                   </div>
                 </button>
 
@@ -769,6 +784,7 @@ export function BulkImportPanel({
           )}
         </CardContent>
       </Card>
+      )}
 
       {reviewBatch && (
         <BulkReviewDialog
