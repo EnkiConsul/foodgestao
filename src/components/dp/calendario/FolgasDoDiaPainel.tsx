@@ -378,7 +378,6 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
       setAcao(null);
       setMotivo("");
       setNovaData("");
-      setConfRemarcar("");
       invalidar();
     },
     onError: (e) =>
@@ -406,27 +405,21 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
     if (!i) return null;
     return (
       <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
-        {acao?.item.key === i.key && acao.tipo === "remarcar" ? (
-          <div className="flex w-full flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <Input type="date" className="h-8 w-40" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
-              <Input className="h-8 w-44" placeholder='Digite REMARCAR' value={confRemarcar} onChange={(e) => setConfRemarcar(e.target.value)} />
-            </div>
-            <ImpactoLimite valor={consome} onChange={setConsome} />
-            {passado && (
-              <p className="text-[11px] text-amber-700 dark:text-amber-300">Esta data já passou ({dataBr}). Remarcar altera o histórico do colaborador.</p>
-            )}
-            <div className="flex gap-2">
-              <Button size="sm" className="h-8" disabled={executar.isPending || !novaData || !remarcarConfirmado} onClick={() => executar.mutate()}>Confirmar</Button>
-              <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAcao(null); setConfRemarcar(""); }}>Voltar</Button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <Button size="icon" variant="outline" className="h-8 w-8" title="Remarcar Folga" aria-label="Remarcar Folga" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConfRemarcar(""); setConsome(true); }}><RefreshCw className="h-4 w-4" /></Button>
-            <Button size="icon" variant="outline" className="h-8 w-8 border-destructive/40 text-destructive hover:bg-destructive/10" title="Cancelar Folga" aria-label="Cancelar Folga" onClick={() => { setAcao({ item: i, tipo: "cancelar" }); setMotivo(""); }}><X className="h-4 w-4" /></Button>
-          </>
-        )}
+        <Button size="icon" variant="outline" className="h-8 w-8" title="Remarcar Folga" aria-label="Remarcar Folga" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConsome(true); }}><RefreshCw className="h-4 w-4" /></Button>
+        <Button size="icon" variant="outline" className="h-8 w-8 border-destructive/40 text-destructive hover:bg-destructive/10" title="Cancelar Folga" aria-label="Cancelar Folga" onClick={() => { setAcao({ item: i, tipo: "cancelar" }); setMotivo(""); }}><X className="h-4 w-4" /></Button>
+        <RemarcarFolgaDialog
+          aberto={acao?.item.key === i.key && acao.tipo === "remarcar"}
+          onFechar={() => setAcao(null)}
+          nome={nomes.get(i.colaboradorId) ?? "Colaborador"}
+          dataBr={dataBr}
+          passado={passado}
+          novaData={novaData}
+          setNovaData={setNovaData}
+          consome={consome}
+          setConsome={setConsome}
+          onConfirm={() => executar.mutate()}
+          pendente={executar.isPending}
+        />
         <Dialog open={acao?.item.key === i.key && acao.tipo === "cancelar"} onOpenChange={(o) => { if (!o) setAcao(null); }}>
           <DialogContent className="max-w-md">
             <DialogHeader>
