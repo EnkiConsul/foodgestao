@@ -186,12 +186,41 @@ export function RotinaDoDiaPanel({
             </div>
           ))
         )}
-        {colegasDeFolga.length > 0 && (
-          <div className="rounded-xl border border-dashed p-2">
-            <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase text-muted-foreground">
-              <Home className="h-3 w-3" /> De folga
+        {fora.length > 0 && (
+          <div className="overflow-hidden rounded-xl border border-dashed">
+            <p className="flex items-center gap-1 border-b px-3 py-1.5 text-[10px] font-semibold uppercase text-muted-foreground">
+              <Home className="h-3 w-3" /> Fora da operação
+              <span className="ml-auto">{fora.length}</span>
             </p>
-            <p className="break-words text-xs">{colegasDeFolga.join(", ")}</p>
+            <ul className="space-y-1 p-2">
+              {fora.map((p) => {
+                const souEu = p.id === meuId;
+                const s = SITUACAO_FORA[p.situacao] ?? SITUACAO_FORA.ausente;
+                return (
+                  <li
+                    key={p.id}
+                    className={cn(
+                      "flex flex-wrap items-center justify-between gap-2 rounded-md border px-2 py-1.5 text-xs",
+                      souEu ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border/60",
+                    )}
+                  >
+                    <span className={cn("min-w-0 break-words", souEu ? "font-bold text-primary" : "font-medium")}>
+                      {p.nome}
+                      {souEu && <Badge className="ml-1.5 align-middle text-[9px]">Você</Badge>}
+                      <span className="block text-[10px] font-normal text-muted-foreground">{p.cargo}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Badge variant="outline" className={cn("text-[10px] uppercase", s.tom)}>{s.texto}</Badge>
+                      {!souEu && p.situacao === "folga" && trocaveis.includes(p.id) && onTrocar && (
+                        <Button size="sm" variant="outline" className="h-7 rounded-full px-2 text-[11px]" onClick={() => onTrocar(p.id, p.nome)}>
+                          <ArrowLeftRight className="mr-1 h-3 w-3" /> Trocar
+                        </Button>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
       </div>
