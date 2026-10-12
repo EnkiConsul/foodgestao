@@ -26,7 +26,7 @@ export function ModuloCard({ modulo, selected, onToggle }: Props) {
         "group relative flex flex-col items-start gap-3 rounded-xl border-2 p-4 text-left transition-all",
         "hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         selected
-          ? "border-primary bg-[hsl(var(--onboarding-accent-soft))]"
+          ? "border-primary bg-onboarding-accent-soft"
           : "border-border bg-card hover:border-primary/40",
       )}
     >

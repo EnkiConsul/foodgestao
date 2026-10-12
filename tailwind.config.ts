@@ -91,6 +91,11 @@ export default {
           line: "hsl(var(--site-line))",
           success: "hsl(var(--site-success))",
         },
+        onboarding: {
+          canvas: "hsl(var(--onboarding-canvas))",
+          card: "hsl(var(--onboarding-card))",
+          "accent-soft": "hsl(var(--onboarding-accent-soft))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
