@@ -7,6 +7,7 @@ import { DpPage, DpPageHeader, DpEmbeddedProvider } from "@/components/dp/DpPage
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { Separator } from "@/components/ui/separator";
 import { RegrasHistoricoPanel } from "@/components/dp/regras/RegrasHistoricoPanel";
+import { RotinaSubNav } from "@/components/dp/rotina/RotinaNav";
 
 const CalendarioPanel = lazy(() => import("./DpFolgas"));
 const RegrasPanel = lazy(() => import("./cadastros/DpConfiguracoesJornada"));
@@ -15,7 +16,7 @@ const SolicitacoesPanel = lazy(() => import("./DpSolicitacoes"));
 const TrocasPanel = lazy(() => import("./DpTrocas"));
 const ConformidadePanel = lazy(() => import("./DpConformidadeDsr"));
 
-const ABAS = ["calendario", "regras", "solicitacoes", "trocas", "conformidade"] as const;
+const ABAS = ["solicitacoes", "regras", "trocas", "conformidade", "calendario"] as const;
 type Aba = (typeof ABAS)[number];
 
 function PanelFallback() {
@@ -37,7 +38,7 @@ function Embedded({ children }: { children: React.ReactNode }) {
 export default function DpFolgasHub() {
   const [params, setParams] = useSearchParams();
   const raw = params.get("aba");
-  const aba: Aba = (ABAS as readonly string[]).includes(raw ?? "") ? (raw as Aba) : "calendario";
+  const aba: Aba = (ABAS as readonly string[]).includes(raw ?? "") ? (raw as Aba) : "solicitacoes";
 
   const setAba = (value: string) => {
     const next = new URLSearchParams(params);
@@ -47,6 +48,7 @@ export default function DpFolgasHub() {
 
   return (
     <DpPage>
+      <RotinaSubNav />
       <Helmet><title>Folgas — Pessoas 360°</title></Helmet>
 
       <DpPageHeader
@@ -68,14 +70,12 @@ export default function DpFolgasHub() {
             conformidade: "dp.conformidadeDsr",
           }}
           sections={[
-            { value: "calendario", label: "Calendário" },
             { value: "regras", label: "Regras" },
             { value: "solicitacoes", label: "Solicitações" },
             { value: "trocas", label: "Trocas" },
             { value: "conformidade", label: "Conformidade" },
           ]}
         >
-          <TabsTrigger value="calendario">Calendário</TabsTrigger>
           <TabsTrigger value="regras">Regras</TabsTrigger>
           <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
           <TabsTrigger value="trocas">Trocas</TabsTrigger>
