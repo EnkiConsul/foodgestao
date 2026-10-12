@@ -1159,6 +1159,7 @@ export default function DpMeuCalendario() {
       setExceptionMotivo("");
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_solic_meu_cal"] });
+      invalidarRotinaLoja();
     },
     onError: (e: any) => notifyError(e, { surface: "Meu calendário", action: "concluir a ação", fallback: "Erro ao enviar exceção" }),
   });
@@ -1372,6 +1373,7 @@ export default function DpMeuCalendario() {
       qc.invalidateQueries({ queryKey: ["dp_trocas_pend_meu_cal"] });
       qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
       qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+      invalidarRotinaLoja();
     },
     onError: (e: any) =>
       notifyError(e, { surface: "Meu calendário", action: "responder a troca", fallback: "Não foi possível responder a troca. Atualize a tela e tente de novo." }),
@@ -1387,6 +1389,7 @@ export default function DpMeuCalendario() {
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_trocas_pend_meu_cal"] });
       qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+      invalidarRotinaLoja();
     },
     onError: (e: any) =>
       notifyError(e, {
