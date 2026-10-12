@@ -90,6 +90,9 @@ export default function Landing() {
                 <MessageCircle className="h-5 w-5" /> Falar Conosco
               </a>
             </div>
+            <p className="mt-4 text-sm text-lp-muted">
+              7 dias de teste grátis. Sem cartão de crédito.
+            </p>
           </div>
           <img src={imgGestora} alt="Dona de restaurante acompanhando a operação no balcão" width={1280} height={960} className="mx-auto w-full rounded-3xl object-cover shadow-2xl" />
         </div>
