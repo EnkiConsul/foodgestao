@@ -269,7 +269,7 @@ export default function DpMeuTrocas() {
     },
     onSuccess: (efetivada) => {
       toast.success(efetivada ? "Troca efetivada no calendário" : "Resposta registrada");
-      qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+      qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] }); qc.invalidateQueries({ queryKey: ["dp_docs_aguardando_assinatura"] });
       void resolverPendencias(qc, { companyId: meRef.data?.company_id ?? null });
       qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
     },
@@ -284,7 +284,7 @@ export default function DpMeuTrocas() {
     },
     onSuccess: () => {
       toast.success("Troca cancelada");
-      qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+      qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] }); qc.invalidateQueries({ queryKey: ["dp_docs_aguardando_assinatura"] });
       void resolverPendencias(qc, { companyId: meRef.data?.company_id ?? null });
     },
     onError: (e: any) => notifyError(e, { surface: "Trocas de folga", action: "concluir a ação", fallback: "Erro" }),
@@ -299,7 +299,7 @@ export default function DpMeuTrocas() {
     onSuccess: () => {
       toast.success("Solicitação enviada ao gestor", { description: "Seu colega também foi avisado." });
       setPedirCancel(null);
-      qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+      qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] }); qc.invalidateQueries({ queryKey: ["dp_docs_aguardando_assinatura"] });
     },
     onError: (e: any) => notifyError(e, { surface: "Trocas de folga", action: "solicitar o cancelamento", fallback: "Não foi possível enviar. Tente de novo em instantes." }),
   });
@@ -331,7 +331,7 @@ export default function DpMeuTrocas() {
     onSuccess: (exigeGestor) => {
       toast.success(exigeGestor ? "Troca enviada. Depois do aceite do colega, ela depende da aprovação do gestor." : "Troca proposta enviada");
       sugerirPushContextual("Ative os avisos para saber na hora quando seu colega e o gestor responderem a troca.");
-      qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+      qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] }); qc.invalidateQueries({ queryKey: ["dp_docs_aguardando_assinatura"] });
       void resolverPendencias(qc, { companyId: meRef.data?.company_id ?? null });
       setOpen(false);
       setAssinarPedido(false);
@@ -631,7 +631,7 @@ export default function DpMeuTrocas() {
           try {
             await assinarTroca(assinarTermo!, png);
             toast.success("Termo assinado digitalmente com sucesso");
-            qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+            qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] }); qc.invalidateQueries({ queryKey: ["dp_docs_aguardando_assinatura"] });
             // A pendência "Assinar Termo de Troca" some da tela inicial na hora.
             qc.invalidateQueries({ queryKey: ["dp_pendencias_colaborador", user?.id] });
             setAssinarTermo(null);
