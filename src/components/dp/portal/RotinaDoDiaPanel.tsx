@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, Home, Store, Users } from "lucide-react";
+import { ArrowLeftRight, Clock, Home, Store, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
@@ -37,16 +38,24 @@ const ORIGEM_LABEL: Record<string, string> = {
  * e já aplica escala publicada > convocação aceita > jornada habitual.
  * Ausências de colegas nunca mostram motivo — só folgas já visíveis no calendário.
  */
+const SITUACAO_FORA: Record<string, { texto: string; tom: string }> = {
+  folga: { texto: "Folga", tom: "bg-amber-500/15 text-amber-700 border-amber-500/30" },
+  ferias: { texto: "Férias", tom: "bg-sky-500/15 text-sky-700 border-sky-500/30" },
+  ausente: { texto: "Ausente", tom: "bg-muted text-muted-foreground" },
+};
+
 export function RotinaDoDiaPanel({
   iso,
   minhaFolga,
-  colegasDeFolga,
+  trocaveis = [],
+  onTrocar,
 }: {
   iso: string;
   /** Rótulo da minha folga no dia (vem do próprio calendário), ou null. */
   minhaFolga: string | null;
-  /** Colegas de folga no dia, já exibidos no calendário. */
-  colegasDeFolga: string[];
+  /** Colegas de folga cuja folga pode ser trocada neste dia (regras do calendário). */
+  trocaveis?: string[];
+  onTrocar?: (colaboradorId: string, nome: string) => void;
 }) {
   const { data: vinculo } = useMeuVinculoPortal();
 
@@ -79,6 +88,22 @@ export function RotinaDoDiaPanel({
     },
   });
 
+  // Fora da operação: o servidor devolve só situação pública (folga/férias/ausente), nunca o motivo.
+  const foraQ = useQuery({
+    queryKey: ["dp_portal_equipe_fora_dia", vinculo?.unidadeId, iso],
+    enabled: !!vinculo?.unidadeId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("dp_portal_equipe_fora_dia" as any, { p_data: iso });
+      if (error) throw error;
+      return ((data ?? []) as any[]).map((l) => ({
+        id: l.colaborador_id as string,
+        nome: toUpperCadastro(nomeExibicao(l)),
+        cargo: (l.cargo as string) || "Sem função definida",
+        situacao: l.situacao as string,
+      }));
+    },
+  });
+
   const situacaoQ = useQuery({
     queryKey: ["dp_minha_situacao_dia", vinculo?.colaboradorId, iso],
     enabled: !!vinculo?.unidadeId,
@@ -90,6 +115,7 @@ export function RotinaDoDiaPanel({
   });
 
   const lista = q.data ?? [];
+  const fora = foraQ.data ?? [];
   const meuId = vinculo?.colaboradorId;
   const eu = lista.find((p) => p.id === meuId) ?? null;
   const dependeConvocacao = !!vinculo?.podeSerConvocado;
@@ -186,12 +212,41 @@ export function RotinaDoDiaPanel({
             </div>
           ))
         )}
-        {colegasDeFolga.length > 0 && (
-          <div className="rounded-xl border border-dashed p-2">
-            <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase text-muted-foreground">
-              <Home className="h-3 w-3" /> De folga
+        {fora.length > 0 && (
+          <div className="overflow-hidden rounded-xl border border-dashed">
+            <p className="flex items-center gap-1 border-b px-3 py-1.5 text-[10px] font-semibold uppercase text-muted-foreground">
+              <Home className="h-3 w-3" /> Fora da operação
+              <span className="ml-auto">{fora.length}</span>
             </p>
-            <p className="break-words text-xs">{colegasDeFolga.join(", ")}</p>
+            <ul className="space-y-1 p-2">
+              {fora.map((p) => {
+                const souEu = p.id === meuId;
+                const s = SITUACAO_FORA[p.situacao] ?? SITUACAO_FORA.ausente;
+                return (
+                  <li
+                    key={p.id}
+                    className={cn(
+                      "flex flex-wrap items-center justify-between gap-2 rounded-md border px-2 py-1.5 text-xs",
+                      souEu ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border/60",
+                    )}
+                  >
+                    <span className={cn("min-w-0 break-words", souEu ? "font-bold text-primary" : "font-medium")}>
+                      {p.nome}
+                      {souEu && <Badge className="ml-1.5 align-middle text-[9px]">Você</Badge>}
+                      <span className="block text-[10px] font-normal text-muted-foreground">{p.cargo}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Badge variant="outline" className={cn("text-[10px] uppercase", s.tom)}>{s.texto}</Badge>
+                      {!souEu && p.situacao === "folga" && trocaveis.includes(p.id) && onTrocar && (
+                        <Button size="sm" variant="outline" className="h-7 rounded-full px-2 text-[11px]" onClick={() => onTrocar(p.id, p.nome)}>
+                          <ArrowLeftRight className="mr-1 h-3 w-3" /> Trocar
+                        </Button>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
       </div>
