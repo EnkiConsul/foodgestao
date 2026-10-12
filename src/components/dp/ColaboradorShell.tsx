@@ -8,11 +8,13 @@ import { DpShell } from "@/components/dp/DpShell";
 import { CarenciaPortalBanner } from "@/components/dp/CarenciaPortalBanner";
 import { DocumentoAssinaturaGate } from "@/components/dp/portal/DocumentoAssinaturaGate";
 import { TermoPortalGate } from "@/components/dp/portal/TermoPortalGate";
-
+import { PortalIndisponivel, ESTADOS_BLOQUEIO_PORTAL } from "@/components/dp/portal/PortalIndisponivel";
+import { usePortalAcesso } from "@/hooks/usePortalAcesso";
 
 export function ColaboradorShell() {
   const { user } = useAuth();
   const { isSuperAdmin, loading: superLoading } = useSuperAdmin();
+  const acesso = usePortalAcesso();
 
   const ownerOrAdmin = useQuery({
     queryKey: ["is_admin_or_owner", user?.id],
@@ -38,13 +40,16 @@ export function ColaboradorShell() {
   });
 
   if (!user) return <Navigate to="/login" replace />;
-  if (superLoading || ownerOrAdmin.isLoading || check.isLoading) {
+  if (superLoading || ownerOrAdmin.isLoading || check.isLoading || acesso.isLoading) {
     return <div className="p-8 text-muted-foreground">Carregando…</div>;
   }
   // Quem é super_admin / owner / admin e NÃO tem ficha de colaborador não tem
   // o que ver no portal. Já o sócio administrador (com ficha ativa) pode usar
   // as duas áreas — o destino padrão dele segue sendo a área administrativa.
   if ((isSuperAdmin || ownerOrAdmin.data) && !check.data) return <Navigate to="/hub" replace />;
+  if (acesso.estado && ESTADOS_BLOQUEIO_PORTAL.includes(acesso.estado)) {
+    return <PortalIndisponivel estado={acesso.estado} isDono={!!ownerOrAdmin.data} />;
+  }
   if (!check.data) {
     return (
       <div className="p-8 max-w-md mx-auto text-center space-y-3">
