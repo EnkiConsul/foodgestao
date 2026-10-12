@@ -519,6 +519,13 @@
       "when": 1791780286794,
       "tag": "0073_dp_colaborador_titular_terceiro",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1791825220431,
+      "tag": "0074_signup_whatsapp_otp",
+      "breakpoints": true
     }
   ]
 }

@@ -16,7 +16,8 @@ interface AuthContextType {
     email: string,
     password: string,
     fullName: string,
-  ) => Promise<{ error: Error | null; needsEmailConfirmation?: boolean; alreadyRegistered?: boolean }>;
+    whatsapp?: string,
+  ) => Promise<{ error: Error | null; needsEmailConfirmation?: boolean; alreadyRegistered?: boolean; userId?: string }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -159,13 +160,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user?.id, navigate, queryClient]);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, whatsapp?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: { full_name: fullName },
+        data: { full_name: fullName, ...(whatsapp ? { whatsapp: whatsapp.replace(/\D/g, "") } : {}) },
       },
     });
     const alreadyRegistered = !error && isAlreadyRegisteredSignup(data);
@@ -173,6 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       error: error as Error | null,
       alreadyRegistered,
       needsEmailConfirmation: !error && !alreadyRegistered && !data?.session,
+      userId: data?.user?.id,
     };
   };
 

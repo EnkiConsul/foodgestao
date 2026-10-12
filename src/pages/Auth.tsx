@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, MailCheck, Lock, User, Eye, EyeOff, IdCard, ArrowLeft } from "lucide-react";
+import { Mail, MailCheck, Lock, User, Eye, EyeOff, IdCard, ArrowLeft, Phone, MessageCircle } from "lucide-react";
+import { maskPhone, isValidPhone } from "@/lib/phone";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -44,6 +45,7 @@ const signupSchema = z.object({
   // Regra única de senha nova (S3): src/lib/security/passwordPolicy.ts
   password: z.string().max(200),
   fullName: z.string().trim().min(2, "Nome deve ter ao menos 2 caracteres").max(100),
+  whatsapp: z.string().trim().min(1, "Informe seu WhatsApp").refine(isValidPhone, "WhatsApp inválido. Use DDD + número."),
   confirmPassword: z.string(),
   acceptTerms: z.literal(true, {
     errorMap: () => ({ message: "Você precisa aceitar os Termos e a Política de Privacidade" }),
@@ -58,7 +60,7 @@ const signupSchema = z.object({
   path: ["confirmPassword"],
 });
 
-type Mode = "login" | "signup" | "forgot" | "confirm-email";
+type Mode = "login" | "signup" | "forgot" | "confirm-email" | "confirm-whatsapp";
 
 function translateAuthError(message: string): string {
   const m = message.toLowerCase();
@@ -118,6 +120,13 @@ export default function Auth() {
   const [turnstileError, setTurnstileError] = useState<string | null>(null);
   const [turnstileNonce, setTurnstileNonce] = useState(0);
   const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [pendingUserId, setPendingUserId] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpFinal, setOtpFinal] = useState("");
+  const [enviandoOtp, setEnviandoOtp] = useState(false);
+  const [verificandoOtp, setVerificandoOtp] = useState(false);
+  const [corrigindoNumero, setCorrigindoNumero] = useState(false);
   const [duplicateEmail, setDuplicateEmail] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resending, setResending] = useState(false);
@@ -154,6 +163,52 @@ export default function Auth() {
   const isSignup = mode === "signup";
   const isForgot = mode === "forgot";
   const isConfirmEmail = mode === "confirm-email";
+  const isConfirmWhatsapp = mode === "confirm-whatsapp";
+
+  const enviarOtp = async (numero?: string, uid = pendingUserId, mail = pendingConfirmationEmail): Promise<boolean> => {
+    if (!uid) return false;
+    setEnviandoOtp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("signup-whatsapp-otp", {
+        body: { acao: "enviar", user_id: uid, email: mail, ...(numero ? { whatsapp: numero.replace(/\D/g, "") } : {}) },
+      });
+      const msg = (data as { error?: string } | null)?.error
+        ?? (error ? await (error as { context?: Response }).context?.json?.().then((j: { error?: string }) => j?.error).catch(() => undefined) : undefined);
+      if (error || msg) {
+        toast.error("Não foi possível enviar o código", { description: msg ?? "Tente novamente ou confirme pelo e-mail." });
+        return false;
+      }
+      setOtpFinal((data as { final?: string })?.final ?? "");
+      setResendCooldown(60);
+      toast.success("Código enviado no WhatsApp");
+      return true;
+    } finally {
+      setEnviandoOtp(false);
+    }
+  };
+
+  const verificarOtp = async () => {
+    setVerificandoOtp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("signup-whatsapp-otp", {
+        body: { acao: "verificar", user_id: pendingUserId, email: pendingConfirmationEmail, codigo: otp },
+      });
+      const msg = (data as { error?: string } | null)?.error
+        ?? (error ? await (error as { context?: Response }).context?.json?.().then((j: { error?: string }) => j?.error).catch(() => undefined) : undefined);
+      if (error || msg) {
+        toast.error("Código não confirmado", { description: msg ?? "Tente novamente." });
+        return;
+      }
+      toast.success("Conta confirmada!");
+      const { error: e2 } = await supabase.auth.signInWithPassword({ email: pendingConfirmationEmail, password });
+      setPassword("");
+      if (e2) { switchMode("login"); return; }
+      const consumed = await consumePendingInviteToken();
+      navigate(consumed.accepted ? "/hub" : "/onboarding", { replace: true });
+    } finally {
+      setVerificandoOtp(false);
+    }
+  };
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -298,7 +353,7 @@ export default function Auth() {
 
     const parsed = isLogin
       ? loginSchema.safeParse({ identifier, password })
-      : signupSchema.safeParse({ email, password, confirmPassword, fullName, acceptTerms: acceptTerms as true });
+      : signupSchema.safeParse({ email, password, confirmPassword, fullName, whatsapp, acceptTerms: acceptTerms as true });
 
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
@@ -357,7 +412,7 @@ export default function Auth() {
         }
       } else {
         try {
-          const { error, needsEmailConfirmation, alreadyRegistered } = await signUp(email, password, fullName);
+          const { error, needsEmailConfirmation, alreadyRegistered, userId } = await signUp(email, password, fullName, whatsapp);
           if (error) {
             const translated = translateAuthError(error.message);
             const { reason, category } = classifySignupError(error.message);
@@ -403,13 +458,13 @@ export default function Auth() {
             });
             if (needsEmailConfirmation) {
               setPendingConfirmationEmail(email.trim());
-              setPassword("");
+              setPendingUserId(userId ?? "");
               setConfirmPassword("");
-              setResendCooldown(60);
-              setMode("confirm-email");
+              setMode("confirm-whatsapp");
               toast.success("Cadastro realizado!", {
-                description: "Confirme seu e-mail para ativar o acesso.",
+                description: "Confirme pelo código enviado ao seu WhatsApp.",
               });
+              if (userId) void enviarOtp(whatsapp, userId, email.trim());
             } else {
               toast.success("Cadastro realizado!");
               const consumed = await consumePendingInviteToken();
@@ -528,6 +583,72 @@ export default function Auth() {
               onSuccess={() => { void resolveTargetForUser().then(goTo); }}
               onCancel={() => setMfaRequired(false)}
             />
+          </CardContent>
+        ) : isConfirmWhatsapp ? (
+          <CardContent className="space-y-3 px-4">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                <MessageCircle className="h-5 w-5 text-primary" aria-hidden="true" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Confirme pelo WhatsApp</h2>
+              <p className="text-sm text-muted-foreground">
+                {otpFinal
+                  ? <>Enviamos um código de 6 dígitos para o WhatsApp terminado em <span className="font-medium text-foreground">{otpFinal}</span>.</>
+                  : "Informe o código de 6 dígitos enviado para o seu WhatsApp."}
+              </p>
+            </div>
+            {corrigindoNumero ? (
+              <div className="space-y-2">
+                <Label htmlFor="whatsappCorrigir">Número de WhatsApp</Label>
+                <Input
+                  id="whatsappCorrigir"
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="(00) 00000-0000"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(maskPhone(e.target.value))}
+                  className="h-11"
+                  maxLength={16}
+                />
+                <Button type="button" className="h-11 w-full" disabled={enviandoOtp || !isValidPhone(whatsapp)}
+                  onClick={async () => { const ok = await enviarOtp(whatsapp); if (ok) setCorrigindoNumero(false); }}>
+                  {enviandoOtp ? "Enviando..." : "Enviar código para este número"}
+                </Button>
+                <Button type="button" variant="ghost" className="w-full" onClick={() => setCorrigindoNumero(false)}>Voltar</Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="otp">Código</Label>
+                <Input
+                  id="otp"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="000000"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  className="h-12 text-center text-xl tracking-[0.5em]"
+                  maxLength={6}
+                  autoFocus
+                />
+                <Button type="button" className="h-11 w-full" disabled={otp.length !== 6 || verificandoOtp} onClick={verificarOtp}>
+                  {verificandoOtp ? "Confirmando..." : "Confirmar conta"}
+                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button type="button" variant="outline" disabled={enviandoOtp || resendCooldown > 0} onClick={() => void enviarOtp()}>
+                    {resendCooldown > 0 ? `Reenviar em ${resendCooldown}s` : "Reenviar código"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setCorrigindoNumero(true)}>Corrigir número</Button>
+                </div>
+              </div>
+            )}
+            <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+              Não recebeu no WhatsApp?{" "}
+              <button type="button" className="font-medium text-primary underline hover:no-underline"
+                onClick={() => { setResendCooldown(0); setMode("confirm-email"); }}>
+                Confirmar pelo e-mail
+              </button>{" "}
+              — também enviamos um link para {pendingConfirmationEmail}.
+            </div>
           </CardContent>
         ) : isConfirmEmail ? (
           <CardContent className="space-y-2 px-4 md:space-y-2.5">
@@ -674,6 +795,34 @@ export default function Auth() {
                   <p id="erro-email" role="alert" className="text-xs text-destructive">
                     {errors.email}
                   </p>
+                )}
+              </div>
+            )}
+
+            {isSignup && (
+              <div className="space-y-1">
+                <Label htmlFor="whatsapp">WhatsApp</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="whatsapp"
+                    name="tel"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel-national"
+                    aria-invalid={errors.whatsapp ? true : undefined}
+                    aria-describedby={errors.whatsapp ? "erro-whatsapp" : "dica-whatsapp"}
+                    placeholder="(00) 00000-0000"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(maskPhone(e.target.value))}
+                    className="h-9 bg-background/80 pl-10"
+                    maxLength={16}
+                  />
+                </div>
+                {errors.whatsapp ? (
+                  <p id="erro-whatsapp" role="alert" className="text-xs text-destructive">{errors.whatsapp}</p>
+                ) : (
+                  <p id="dica-whatsapp" className="text-xs text-muted-foreground">Enviaremos um código para confirmar sua conta.</p>
                 )}
               </div>
             )}
