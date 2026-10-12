@@ -91,7 +91,11 @@ export function AvisosGestorGate() {
   const qc = useQueryClient();
   const aprov = useAprovacoes();
   const pagtos = usePagamentosPendentes();
-  const [adiadoAte, setAdiadoAte] = useState(0);
+  // Lê o adiamento já na inicialização: se o aviso foi fechado/adiado,
+  // ele nasce fechado — sem abrir e "fechar no fundo" ao voltar ao Início.
+  const [adiadoAte, setAdiadoAte] = useState(() =>
+    selectedCompanyId ? Number(localStorage.getItem(KEY + selectedCompanyId) || 0) : 0,
+  );
   const [aberto, setAberto] = useState(true);
   const [ocupado, setOcupado] = useState(false);
   const [vendo, setVendo] = useState<Aprovacao | null>(null);
