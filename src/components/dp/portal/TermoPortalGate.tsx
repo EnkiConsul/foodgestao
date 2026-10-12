@@ -53,7 +53,12 @@ export function TermoPortalGate({ children }: { children: React.ReactNode }) {
     return (
       <div className="p-8 max-w-md mx-auto text-center space-y-3">
         <p className="text-muted-foreground">Não foi possível verificar seu acesso agora.</p>
-        <Button onClick={() => status.refetch()}>Tentar Novamente</Button>
+        <div className="flex flex-col gap-2">
+          <Button onClick={() => status.refetch()}>Tentar Novamente</Button>
+          <Button variant="outline" onClick={() => supabase.auth.signOut()}>
+            <LogOut className="mr-1.5 h-4 w-4" /> Sair da Conta
+          </Button>
+        </div>
       </div>
     );
   }
