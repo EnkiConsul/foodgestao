@@ -141,28 +141,9 @@ export function useDpPendenciasColaborador() {
           if (cfg && folgaDominicalAutomatica(cfg as any)) escolheFolga = false;
         }
 
-        const { count } = escolheFolga
-          ? await supabase
-              .from("dp_folgas")
-              .select("id", { count: "exact", head: true })
-              .eq("colaborador_id", colabId as string)
-              .neq("status", "cancelada")
-              .gte("data", ymd(mesInicio))
-              .lte("data", ymd(mesFim))
-          : { count: 1 };
-
-        if (escolheFolga && (count ?? 0) === 0) {
-          results.push({
-            id: `folga-mes-${format(mesInicio, "yyyy-MM")}`,
-            icon: CalendarPlus,
-            titulo: "Escolher folga do mês",
-            subtitulo: `Você ainda não tem folga agendada em ${MES_NOME[today.getMonth()]}.`,
-            tipo: "Folga",
-            vencimento: ymd(mesFim),
-            atrasoDias: differenceInCalendarDays(today, mesFim),
-            url: "/dp/meu/calendario",
-          });
-        }
+        // A escolha de folga do mês aparece só no cartão "Folga para escolher"
+        // da tela inicial (sem duplicar aqui).
+        void escolheFolga;
       } catch (e) {
         console.warn("pendencias-colab/folga:", e);
       }
