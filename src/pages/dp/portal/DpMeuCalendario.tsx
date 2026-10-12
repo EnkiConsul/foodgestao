@@ -1711,58 +1711,23 @@ export default function DpMeuCalendario() {
                     ? STATUS_LABEL[selectedDay.status === "fixed" ? "fixed" : selectedDay.status === "swapped" ? "swapped" : "mine"]
                     : null
                 }
-                colegasDeFolga={dayInfo.occupants
-                  .filter((o) => o.colaboradorId !== meRef.data?.id)
-                  .map((o) => o.colaboradorNome)}
+                trocaveis={
+                  dayInfo.canTrade && !["blocked", "past", "mine", "fixed"].includes(selectedDay.status)
+                    ? dayInfo.occupants
+                        .filter((o) => o.colaboradorId !== meRef.data?.id
+                          // Folga do colega coberta por atestado, licença, suspensão ou férias não é negociável.
+                          && !dataEmAfastamento(afastamentosQuery.data, o.colaboradorId, selectedDay.iso))
+                        .map((o) => o.colaboradorId)
+                    : []
+                }
+                onTrocar={(id, nome) =>
+                  setTradeOpen({
+                    occupantId: id,
+                    occupantName: dayInfo.occupants.find((o) => o.colaboradorId === id)?.colaboradorNome ?? nome,
+                    iso: selectedDay.iso,
+                  })
+                }
               />
-
-              {dayInfo.occupants.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-sm font-bold text-muted-foreground">
-                    Colaboradores neste dia:
-                  </h4>
-                  {dayInfo.occupants.map((occ) => {
-                    const isMe = occ.colaboradorId === meRef.data?.id;
-                    const showTrade =
-                      !isMe && dayInfo.canTrade && !["blocked", "past", "mine", "fixed"].includes(selectedDay.status)
-                      // Folga do colega coberta por atestado, licença, suspensão ou férias não é negociável.
-                      && !dataEmAfastamento(afastamentosQuery.data, occ.colaboradorId, selectedDay.iso);
-                    return (
-                      <div
-                        key={occ.key}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-background p-3 text-sm min-w-0"
-                      >
-                        <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1 break-words">
-                          <UserIcon className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{occ.colaboradorNome}</span>
-                          {isMe && (
-                            <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
-                              Você
-                            </Badge>
-                          )}
-                          <span className="text-[10px] text-muted-foreground">{occ.origin}</span>
-                        </div>
-                        {showTrade && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="rounded-full"
-                            onClick={() =>
-                              setTradeOpen({
-                                occupantId: occ.colaboradorId,
-                                occupantName: occ.colaboradorNome,
-                                iso: selectedDay.iso,
-                              })
-                            }
-                          >
-                            <ArrowLeftRight className="h-3 w-3 mr-1" /> Trocar
-                          </Button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
 
               <div className="flex flex-col gap-2">
                 {selectedDay.status === "available" && dayInfo.isWeekend && (
