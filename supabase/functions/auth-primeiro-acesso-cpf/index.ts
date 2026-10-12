@@ -100,25 +100,54 @@ Deno.serve(async (req) => {
     return json(429, { error: mensagemLimite("pedidos de código para este CPF", 3, "peça um novo código. Se já recebeu um código no WhatsApp há pouco, use esse último."), code: "rate_limited" });
   }
 
-  // Cadastros com este CPF (formatado ou só números), não removidos.
-  const { data: rows, error: qErr } = await admin
+  // 1) Cadastro feito pelo Admin/Dono: qualquer ficha com este CPF.
+  const { data: todos, error: qErr } = await admin
     .from("dp_colaboradores")
-    .select("id, company_id, user_id, nome, whatsapp, telefone")
-    .in("cpf", [cpf, formatCpf(cpf)])
-    .is("deleted_at", null);
+    .select("id, company_id, user_id, nome, whatsapp, telefone, deleted_at")
+    .in("cpf", [cpf, formatCpf(cpf)]);
   if (qErr) {
     console.error("[auth-primeiro-acesso-cpf] query:", qErr.message);
     return json(500, { error: "Não foi possível verificar agora. Tente novamente." });
   }
+  if (!todos?.length) return json(200, { status: "cpf_nao_encontrado" });
+  const rows = (todos as (Colab & { deleted_at: string | null })[]).filter((r) => !r.deleted_at);
+  if (!rows.length) return json(200, { status: "cadastro_removido" });
 
-  // Só cadastros com acesso permitido (fonte única: dp_portal_acesso_situacao).
+  // 2) Empresa com o módulo Pessoas (e portal) ativo ou em teste vigente.
+  const companyIds = [...new Set(rows.map((r) => r.company_id))];
+  const { data: mods } = await admin
+    .from("company_modules")
+    .select("company_id, status, ends_at, trial_termina_em")
+    .eq("module", "dp")
+    .in("company_id", companyIds);
+  const agora = Date.now();
+  const comModulo = new Set(
+    (mods ?? [])
+      .filter((m: any) =>
+        (m.status === "active" && (!m.ends_at || new Date(m.ends_at).getTime() > agora)) ||
+        (m.status === "trial" && (!m.trial_termina_em || new Date(m.trial_termina_em).getTime() > agora)))
+      .map((m: any) => m.company_id as string),
+  );
+  const rowsModulo = rows.filter((r) => comModulo.has(r.company_id));
+  if (!rowsModulo.length) return json(200, { status: "sem_modulo_pessoas" });
+
+  // 3) Situação do acesso ao portal (fonte única: dp_portal_acesso_situacao).
   const elegiveis: Colab[] = [];
-  for (const r of (rows ?? []) as Colab[]) {
+  let ultimoMotivo = "acesso_indisponivel";
+  for (const r of rowsModulo) {
     const s = await situacaoAcesso(admin, r.id).catch(() => "cadastro_nao_encontrado");
     if (s === "ok" || s === "prazo_documentos") elegiveis.push(r);
+    else ultimoMotivo = s;
   }
-  if (!rows?.length) return json(200, { status: "cpf_nao_encontrado" });
-  if (!elegiveis.length) return json(200, { status: "acesso_indisponivel" });
+  if (!elegiveis.length) {
+    const mapa: Record<string, string> = {
+      bloqueado: "acesso_bloqueado",
+      vinculo_encerrado: "vinculo_encerrado",
+      empresa_inativa: "sem_modulo_pessoas",
+      cadastro_removido: "cadastro_removido",
+    };
+    return json(200, { status: mapa[ultimoMotivo] ?? "acesso_indisponivel" });
+  }
 
   // Uma única conta por CPF: se algum cadastro já tem conta, ela é a referência.
   const comConta = elegiveis.find((c) => c.user_id);
