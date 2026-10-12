@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useDpConfigDp } from "@/hooks/useDpConfigDp";
 import { diasElegiveisDaConfig } from "@/lib/dp/dsr-rules";
 import { cn } from "@/lib/utils";
@@ -973,7 +974,10 @@ function DetalheDiaOperacao({
   );
 }
 
-export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "operacao" | "calendario" } = {}) {
+export default function DpOperacaoPanorama({
+  modo = "operacao",
+  topo,
+}: { modo?: "operacao" | "calendario"; topo?: React.ReactNode } = {}) {
   const calendario = modo === "calendario";
 
   const [params, setParams] = useSearchParams();
@@ -1373,6 +1377,8 @@ export default function DpOperacaoPanorama({ modo = "operacao" }: { modo?: "oper
           ) : undefined
         }
       />
+
+      {topo && <div className="mb-1">{topo}</div>}
 
       {companyIdCal && dataPopout && folgaColab && (
         <AtribuirFolgaTriagemDialog
