@@ -512,6 +512,13 @@
       "when": 1791777312495,
       "tag": "0072_preadmissao_pagamento_terceiro",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1791780286794,
+      "tag": "0073_dp_colaborador_titular_terceiro",
+      "breakpoints": true
     }
   ]
 }
