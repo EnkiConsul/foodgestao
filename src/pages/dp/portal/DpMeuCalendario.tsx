@@ -1432,6 +1432,7 @@ export default function DpMeuCalendario() {
       setRemarcarAviso(null);
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+      invalidarRotinaLoja();
     },
     onError: (e: any) => {
       // Dia lotado/bloqueado não é erro: o aviso no diálogo já orienta a troca
@@ -1472,6 +1473,7 @@ export default function DpMeuCalendario() {
       setRemarcarAviso(null);
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_solic_meu_cal"] });
+      invalidarRotinaLoja();
     },
     onError: (e: any) =>
       notifyError(e, {
