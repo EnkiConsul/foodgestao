@@ -44,6 +44,7 @@ installGlobalErrorHandlers();
 
 // Eager: rotas do primeiro paint (auth/hub/dashboard)
 import Auth from "./pages/Auth";
+import Sair from "./pages/Sair";
 import Landing from "./pages/Landing";
 import OAuthConsent from "./pages/OAuthConsent";
 const PrimeiroAcesso = lazyWithRetry(() => import("./pages/PrimeiroAcesso"));
