@@ -36,18 +36,51 @@ export const TRAVA_QTD_DOCUMENTOS = 2;
 export function DocumentoAssinaturaGate() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const navigate = useNavigate();
   const { pathname } = useLocation();
   const { colaborador, documentos } = useDocumentosAguardandoAssinatura();
 
   const [adiado, setAdiado] = useState(false);
   const [visualizou, setVisualizou] = useState<string | null>(null);
   const [preview, setPreview] = useState<DocParaAssinar | null>(null);
+  const [previewTroca, setPreviewTroca] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
   const [assinaturaPng, setAssinaturaPng] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const atual = documentos[0] ?? null;
+
+  // Termo de troca: abre na própria janela do aviso, sem trocar de tela.
+  const trocaAtual = useQuery({
+    queryKey: ["dp_troca_termo_gate", atual?.troca_id],
+    enabled: !!atual?.troca_id && previewTroca,
+    staleTime: 60_000,
+    retry: false,
+    queryFn: async (): Promise<DpTrocaRow | null> => {
+      const { data, error } = await supabase
+        .from("dp_trocas")
+        .select(
+          `*, solicitante:solicitante_id(nome, matricula, cargo_id, unidade_id, cargo:cargo_id(nome), unidade:unidade_id(nome)), destino:destino_id(nome, matricula, cargo_id, unidade_id, cargo:cargo_id(nome), unidade:unidade_id(nome))`,
+        )
+        .eq("id", atual!.troca_id!)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? ({ ...(data as any), modo: "direta" } as DpTrocaRow) : null;
+    },
+  });
+
+  const empresaTermo = useQuery({
+    queryKey: ["dp_minha_empresa_termo", colaborador?.company_id],
+    enabled: !!colaborador?.company_id && previewTroca,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("name, trade_name")
+        .eq("id", colaborador!.company_id!)
+        .maybeSingle();
+      return { nome: (data as any)?.name ?? (data as any)?.trade_name ?? "Empresa" };
+    },
+  });
   const diasAtraso = atual
     ? Math.floor((Date.now() - new Date(atual.created_at).getTime()) / 86_400_000)
     : 0;
