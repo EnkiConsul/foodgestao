@@ -10,9 +10,17 @@ import { RegraNegada } from "@/lib/dp/regraAviso";
  * assinaturas.
  */
 export async function assinarDocumento(documentoId: string, assinatura: string): Promise<string> {
-  const { data, error } = await supabase.functions.invoke("dp-documento-aceitar", {
-    body: { documento_id: documentoId, assinatura },
-  });
+  const enviar = () =>
+    supabase.functions.invoke("dp-documento-aceitar", {
+      body: { documento_id: documentoId, assinatura },
+    });
+  let { data, error } = await enviar();
+  // Falha de conexão (servidor acordando ou rede móvel): tenta de novo em silêncio.
+  // O servidor não duplica assinatura, então repetir é seguro.
+  for (let i = 0; i < 2 && error && !(error as { context?: { status?: number } })?.context?.status; i++) {
+    await new Promise((r) => setTimeout(r, 1500));
+    ({ data, error } = await enviar());
+  }
 
   if (error) {
     const detalhe = await lerMensagem(error);
