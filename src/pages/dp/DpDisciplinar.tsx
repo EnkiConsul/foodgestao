@@ -1,3 +1,4 @@
+import { DocumentosSubNav } from "@/components/dp/documentos/DocumentosNav";
 import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { prepararUpload } from "@/lib/storage/uploadPolicy";
@@ -603,6 +604,7 @@ export default function DpDisciplinar() {
   return (
     <DpPage>
       <Helmet><title>Disciplinares — Pessoas 360°</title></Helmet>
+      <DocumentosSubNav />
       <DpPageHeader
         icon={ShieldAlert}
         title="Disciplinares"
