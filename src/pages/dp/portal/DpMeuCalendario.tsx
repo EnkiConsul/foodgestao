@@ -467,11 +467,11 @@ export default function DpMeuCalendario() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_trocas")
-        .select("id, solicitante_id, destino_id, data_original, data_proposta, status, motivo, solicitante:solicitante_id(nome)")
+        .select("id, solicitante_id, destino_id, data_original, data_proposta, status, motivo, solicitante:solicitante_id(nome), destino:destino_id(nome)")
         .eq("company_id", companyId!)
         .in("status", ["pendente_colega", "pendente_gestor"]);
       if (error) throw error;
-      return data ?? [];
+      return completarPartesTrocas((data ?? []) as any[]);
     },
   });
 
