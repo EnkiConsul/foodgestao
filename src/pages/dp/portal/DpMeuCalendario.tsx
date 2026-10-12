@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import FolgaCalendarShared, { LegendaFolgas } from "@/components/dp/FolgaCalendarShared";
+import { FolgaCalendarShared, LegendaFolgas } from "@/components/dp/FolgaCalendarShared";
 import { RotinaDoDiaPanel } from "@/components/dp/portal/RotinaDoDiaPanel";
 import { Button } from "@/components/ui/button";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
