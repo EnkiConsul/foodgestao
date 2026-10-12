@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { LogIn, MessageCircle, Instagram, Users, Wallet, CalendarDays, ClipboardList } from "lucide-react";
+import { UserPlus, ArrowRight, MessageCircle, Instagram, Users, Wallet, CalendarDays } from "lucide-react";
 import { ReclameAquiSeal } from "@/components/marketing/ReclameAquiSeal";
 import imgGestora from "@/assets/site-gestor-indicadores.jpg";
 import imgEquipe from "@/assets/site-equipe-turno.jpg";
@@ -50,14 +50,23 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-lp-bg font-montserrat text-lp-text">
       <header className="absolute inset-x-0 top-0 z-20">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-5">
           <Marca />
-          <Link
-            to="/login"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-lp-green px-5 text-sm font-bold text-lp-text transition-colors hover:bg-lp-green hover:text-lp-bg"
-          >
-            <LogIn className="h-4 w-4" /> Entrar
-          </Link>
+          <nav className="flex items-center gap-1 sm:gap-2">
+            <Link
+              to="/login"
+              className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-bold text-lp-muted transition-colors hover:text-lp-green sm:px-4"
+            >
+              Entrar
+            </Link>
+            <Link
+              to="/cadastro"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-lp-green px-4 text-sm font-bold text-lp-bg transition-colors hover:bg-lp-green-dark sm:px-5"
+            >
+              <UserPlus className="h-4 w-4" />
+              <span>Criar conta</span>
+            </Link>
+          </nav>
         </div>
       </header>
 
@@ -75,7 +84,7 @@ export default function Landing() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to="/cadastro" className={CONTRATAR_CLS}>
-                <ClipboardList className="h-5 w-5" /> Organizar minha operação
+                <ArrowRight className="h-5 w-5" /> Começar teste grátis
               </Link>
               <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" className={SECUNDARIO_CLS}>
                 <MessageCircle className="h-5 w-5" /> Falar Conosco
@@ -172,7 +181,7 @@ export default function Landing() {
         <p className="mt-4 text-xl">Onde estão hoje as <strong className="font-bold">informações da sua equipe?</strong></p>
         <div className="mt-10 flex flex-wrap justify-center gap-3">
           <Link to="/cadastro" className={CONTRATAR_CLS}>
-            <ClipboardList className="h-5 w-5" /> Organizar minha operação
+            <ArrowRight className="h-5 w-5" /> Começar teste grátis
           </Link>
           <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" className={SECUNDARIO_CLS}>
             <MessageCircle className="h-5 w-5" /> Falar Conosco
