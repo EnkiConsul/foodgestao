@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Eye, PenLine, FileText, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +33,6 @@ export const TRAVA_QTD_DOCUMENTOS = 2;
  * o colaborador vê o aviso em qualquer tela. Fechar apenas adia por 10 minutos.
  */
 export function DocumentoAssinaturaGate() {
-  useAuth();
   const qc = useQueryClient();
   const { pathname } = useLocation();
   const { colaborador, documentos } = useDocumentosAguardandoAssinatura();
