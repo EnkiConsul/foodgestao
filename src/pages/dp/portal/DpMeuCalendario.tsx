@@ -1706,11 +1706,11 @@ export default function DpMeuCalendario() {
             const marcadores = marcadoresQuery.data?.get(iso) ?? [];
 
             const chips: ReactNode[] = [];
+            // Bloqueio vira ícone na coluna da data (padrão do gestor), sem fundo vermelho na linha.
+            const icones: ReactNode[] = [];
             if (blocked) {
-              chips.push(
-                <span key="bloq" className="inline-flex items-center gap-1 rounded-full border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive">
-                  <Lock className="h-3 w-3 shrink-0" /> Bloqueado
-                </span>,
+              icones.push(
+                <Lock key="bloq" className="h-3.5 w-3.5 text-destructive" aria-label="Dia bloqueado" />,
               );
             }
             if (!blocked && status === "available" && wknd) {
@@ -1764,7 +1764,10 @@ export default function DpMeuCalendario() {
 
             return {
               iso,
-              tom: status === "mine" || status === "swapped" ? "primario" : blocked ? "critico" : "neutro",
+              tom: status === "mine" || status === "swapped" ? "primario" : "neutro",
+              dominical: d.getDay() === 0,
+              icones: icones.length ? <>{icones}</> : undefined,
+              chipsLinhaUnica: true,
               resumo:
                 chips.length === 0 ? (
                   <span className="text-muted-foreground">Dia de trabalho</span>
