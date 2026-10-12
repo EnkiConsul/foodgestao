@@ -9,7 +9,7 @@ import { DpActions, type DpAction } from "@/components/dp/DpActions";
 import { HelpHint } from "@/components/ui/help-hint";
 import type { HelpKey } from "@/content/help/helpContent";
 import { resolveHelpForPath } from "@/content/help/helpRoutes";
-import { RotinaTituloMenu, telaRotinaDoPath } from "@/components/dp/rotina/RotinaNav";
+import { RotinaTituloMenu, TELAS_ROTINA, telaRotinaDoPath } from "@/components/dp/rotina/RotinaNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 /**
