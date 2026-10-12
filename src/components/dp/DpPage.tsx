@@ -1,3 +1,4 @@
+import { TELAS_CADASTRO, telaCadastroDoPath } from "@/components/dp/cadastro/CadastroNav";
 import { TELAS_DOCUMENTOS, telaDocumentosDoPath } from "@/components/dp/documentos/DocumentosNav";
 import { createContext, useContext, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
@@ -90,6 +91,7 @@ export function DpPageHeader({
   const isMobile = useIsMobile();
   const rotinaAtual = isMobile ? telaRotinaDoPath(pathname) : null;
   const docAtual = isMobile ? telaDocumentosDoPath(pathname) : null;
+  const cadAtual = isMobile ? telaCadastroDoPath(pathname) : null;
   if (embedded) {
     return (
       <header className={cn("dp-page-header-embedded flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between", className)}>
@@ -110,7 +112,9 @@ export function DpPageHeader({
     ? { atual: rotinaAtual, telas: TELAS_ROTINA, rotulo: "Trocar de tela da Rotina" }
     : docAtual
       ? { atual: docAtual, telas: TELAS_DOCUMENTOS, rotulo: "Trocar de tela de Documentos" }
-      : null;
+      : cadAtual
+        ? { atual: cadAtual, telas: TELAS_CADASTRO, rotulo: "Trocar de tela de Cadastro" }
+        : null;
   return (
     <header className={cn("dp-page-header flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between", className)}>
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
