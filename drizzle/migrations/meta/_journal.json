@@ -470,6 +470,13 @@
       "when": 1791766006708,
       "tag": "0066_rotina_dia_sem_afastados",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1791766568881,
+      "tag": "0067_portal_equipe_fora_dia",
+      "breakpoints": true
     }
   ]
 }

@@ -19807,6 +19807,16 @@ export type Database = {
         Args: { _contatos: Json; _whatsapp: string }
         Returns: undefined
       }
+      dp_portal_equipe_fora_dia: {
+        Args: { p_data: string }
+        Returns: {
+          cargo: string
+          colaborador_id: string
+          nome: string
+          nome_social: string
+          situacao: string
+        }[]
+      }
       dp_portal_equipe_unidade: {
         Args: never
         Returns: {
