@@ -15,7 +15,7 @@ const STEPS = [
 
 export function OnboardingShell({ currentStep, children }: OnboardingShellProps) {
   return (
-    <div className="min-h-screen bg-[hsl(var(--onboarding-canvas))] px-4 py-8 md:py-12">
+    <div className="min-h-screen bg-onboarding-canvas px-4 py-8 md:py-12">
       <div className="mx-auto w-full max-w-3xl space-y-8">
         {/* Logo */}
         <div className="flex justify-center">
@@ -36,7 +36,8 @@ export function OnboardingShell({ currentStep, children }: OnboardingShellProps)
                         "flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-colors",
                         done && "bg-primary text-primary-foreground",
                         active && "bg-primary text-primary-foreground ring-4 ring-primary/25",
-                        !done && !active && "bg-white/10 text-white/70",
+                        !done && !active &&
+                          "border border-border bg-muted text-muted-foreground",
                       )}
                     >
                       {done ? <CheckCircle2 className="h-4 w-4" /> : s.n}
@@ -44,7 +45,7 @@ export function OnboardingShell({ currentStep, children }: OnboardingShellProps)
                     <span
                       className={cn(
                         "hidden sm:inline text-sm font-medium",
-                        active ? "text-white" : "text-white/70",
+                        active ? "text-foreground font-semibold" : "text-muted-foreground",
                       )}
                     >
                       {s.label}
@@ -54,7 +55,7 @@ export function OnboardingShell({ currentStep, children }: OnboardingShellProps)
                     <div
                       className={cn(
                         "h-0.5 w-8 md:w-16 rounded-full transition-colors",
-                        currentStep > s.n ? "bg-primary" : "bg-white/20",
+                        currentStep > s.n ? "bg-primary" : "bg-border",
                       )}
                     />
                   )}
@@ -65,11 +66,11 @@ export function OnboardingShell({ currentStep, children }: OnboardingShellProps)
         )}
 
         {/* Card */}
-        <div className="rounded-2xl bg-[hsl(var(--onboarding-card))] p-6 md:p-8 shadow-2xl">
+        <div className="rounded-2xl border border-border bg-onboarding-card p-6 md:p-8 shadow-2xl">
           {children}
         </div>
 
-        <p className="text-center text-xs text-white/60">
+        <p className="text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} Aveto 360 — Gestão inteligente para bares e restaurantes
         </p>
       </div>
