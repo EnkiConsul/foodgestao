@@ -32,7 +32,7 @@ export function RotinaTituloMenu({ atual, children, telas = TELAS_ROTINA, rotulo
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="-ml-1.5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-muted/60 px-2.5 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+        className="-ml-1.5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-muted px-2.5 text-left outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={rotulo}
       >
         {Icon && <Icon className="h-5 w-5 shrink-0 text-primary sm:h-7 sm:w-7" aria-hidden="true" />}
