@@ -8,7 +8,7 @@ import { MODULE_NAV, type NavLeaf } from "@/config/mobileNav";
 import { useModuleShortcuts, type ShortcutSlot } from "@/hooks/useModuleShortcut";
 import { BottomNavShape } from "./BottomNavShape";
 import { cn } from "@/lib/utils";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
