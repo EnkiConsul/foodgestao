@@ -574,7 +574,7 @@ const AppRoutes = () => (
         <Route path="conformidade-dsr" element={<Navigate to="/dp/folgas?aba=conformidade" replace />} />
         <Route path="escalas" element={<DpEscalas />} />
         <Route path="escalas/mes" element={<DpOperacaoPanorama />} />
-        <Route path="rotina/calendario" element={<DpCalendarioRotina />} />
+        <Route path="rotina/calendario" element={<Navigate to="/dp/rotina" replace />} />
         <Route path="operacao" element={<Navigate to="/dp/escalas/mes" replace />} />
         <Route path="convocacoes" element={<DpConvocacoes />} />
         <Route path="ocorrencias" element={<DpOcorrencias />} />

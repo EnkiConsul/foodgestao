@@ -143,7 +143,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       "/dp/atestados",
     ],
     items: [
-      { label: "Calendário", to: "/dp/rotina/calendario", icon: CalendarDays },
+      { label: "Calendário", to: "/dp/rotina", icon: CalendarDays },
       { label: "Ocorrências", to: "/dp/ocorrencias", icon: ClipboardList, shortcut: true },
       { label: "Convocações", to: "/dp/convocacoes", icon: BellRing, shortcut: true },
       { label: "Folgas", to: "/dp/folgas", icon: Calendar, shortcut: true },
