@@ -199,8 +199,9 @@ export function DocumentoAssinaturaGate() {
               disabled={!atual.file_path && !atual.troca_id}
               onClick={() => {
                 if (atual.troca_id) {
-                  // O termo de troca abre na tela de trocas, que já mostra a leitura e a assinatura.
-                  navigate(`/dp/meu/trocas?assinar=${atual.troca_id}`);
+                  // O termo de troca abre em janela sobreposta, sem sair da tela.
+                  setPreviewTroca(true);
+                  setVisualizou(atual.id);
                   return;
                 }
                 setPreview(atual);
