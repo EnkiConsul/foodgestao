@@ -23,7 +23,7 @@ export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" })
 
   const conteudo = (
     <HiddenScreenGuard surface={variant}>
-      <PermissionRouteGuard><Suspense fallback={<RouteFallback />}><div key={pathname} className="animate-in fade-in duration-150"><Outlet /></div></Suspense></PermissionRouteGuard>
+      <PermissionRouteGuard><Suspense fallback={<RouteFallback />}><Outlet /></Suspense></PermissionRouteGuard>
     </HiddenScreenGuard>
   );
 
