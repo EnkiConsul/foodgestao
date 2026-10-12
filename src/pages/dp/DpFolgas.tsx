@@ -1823,7 +1823,7 @@ export default function DpFolgas() {
               })()}
             </div>
 
-            <div className="space-y-2 border-t pt-4">
+            <div className="space-y-3 border-t pt-4">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Cancelar esta folga
               </Label>
@@ -1836,6 +1836,7 @@ export default function DpFolgas() {
               />
               <Button
                 variant="destructive"
+                className="h-11 w-full sm:w-auto"
                 onClick={() =>
                   folgaGerenciar &&
                   cancelarFolga.mutate({
