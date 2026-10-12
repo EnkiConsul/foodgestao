@@ -44,6 +44,7 @@ import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { corrigirAtestado, excluirSolicitacao } from "@/lib/dp/solicitacoes-admin";
 import { fetchAllPages } from "@/lib/supabase/fetchAllPages";
 import { notifyError } from "@/lib/notifyError";
+import { RotinaSubNav } from "@/components/dp/rotina/RotinaNav";
 
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
 type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"] & {
@@ -456,6 +457,7 @@ export default function DpAtestados() {
 
   return (
     <DpPage>
+      <RotinaSubNav />
       <Helmet><title>Atestados e Licenças — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={FileWarning}

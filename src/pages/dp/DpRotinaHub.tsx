@@ -1,18 +1,16 @@
 import { Helmet } from "react-helmet-async";
-import { CalendarClock } from "lucide-react";
-import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { DpGroupCards } from "@/components/dp/DpGroupCards";
+import { RotinaCards } from "@/components/dp/rotina/RotinaNav";
+import DpOperacaoPanorama from "./DpOperacaoPanorama";
 
+/** Rotina: atalhos das telas no topo + calendário oficial do gestor. */
 export default function DpRotinaHub() {
   return (
-    <DpPage>
+    <>
       <Helmet><title>Rotina — Pessoas 360°</title></Helmet>
-      <DpPageHeader
-        icon={CalendarClock}
-        title="Rotina"
-        description="Operação do mês, ocorrências, convocações, folgas, férias e atestados."
-      />
-      <DpGroupCards groupId="rotina" />
-    </DpPage>
+      <div className="px-3 pt-3 sm:px-6 sm:pt-6">
+        <RotinaCards />
+      </div>
+      <DpOperacaoPanorama modo="calendario" />
+    </>
   );
 }
