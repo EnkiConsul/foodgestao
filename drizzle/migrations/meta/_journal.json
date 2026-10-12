@@ -463,6 +463,13 @@
       "when": 1791753529657,
       "tag": "0065_ocorrencia_previsto_vigencia",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1791766006708,
+      "tag": "0066_rotina_dia_sem_afastados",
+      "breakpoints": true
     }
   ]
 }

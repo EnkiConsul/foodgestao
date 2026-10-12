@@ -19833,6 +19833,10 @@ export type Database = {
           via_assinada_path: string
         }[]
       }
+      dp_portal_minha_situacao_dia: {
+        Args: { p_data: string }
+        Returns: string
+      }
       dp_portal_rotina_dia: {
         Args: { p_data: string }
         Returns: {
