@@ -11,7 +11,7 @@ import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
 import { assinarTroca } from "@/lib/dp/troca-assinatura";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   useDocumentosAguardandoAssinatura,
   type DocParaAssinar,
@@ -35,6 +35,7 @@ export function DocumentoAssinaturaGate() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { colaborador, documentos } = useDocumentosAguardandoAssinatura();
 
   const [adiado, setAdiado] = useState(false);
@@ -50,7 +51,9 @@ export function DocumentoAssinaturaGate() {
     : 0;
   const bloqueado =
     documentos.length >= TRAVA_QTD_DOCUMENTOS || diasAtraso >= TRAVA_DIAS_ATRASO;
-  const open = !!atual && (bloqueado || !adiado);
+  // Na tela de trocas o termo é lido e assinado ali; o aviso não cobre a tela.
+  const naTelaTroca = !!atual?.troca_id && pathname.startsWith("/dp/meu/trocas");
+  const open = !!atual && !naTelaTroca && (bloqueado || !adiado);
 
   // Ao trocar de documento, exige nova visualização.
   useEffect(() => {
@@ -162,7 +165,6 @@ export function DocumentoAssinaturaGate() {
               onClick={() => {
                 if (atual.troca_id) {
                   // O termo de troca abre na tela de trocas, que já mostra a leitura e a assinatura.
-                  setAdiado(true);
                   navigate(`/dp/meu/trocas?assinar=${atual.troca_id}`);
                   return;
                 }
