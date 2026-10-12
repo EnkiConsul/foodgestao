@@ -15709,6 +15709,45 @@ export type Database = {
         }
         Relationships: []
       }
+      signup_whatsapp_otps: {
+        Row: {
+          attempts: number
+          code_hash: string
+          created_at: string
+          expires_at: string
+          id: string
+          last_sent_at: string
+          phone: string
+          sends: number
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          last_sent_at?: string
+          phone: string
+          sends?: number
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          last_sent_at?: string
+          phone?: string
+          sends?: number
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       subscription_addons: {
         Row: {
           addon_id: string
