@@ -42,6 +42,18 @@ describe("assinarDocumento", () => {
     await expect(assinarDocumento("doc-4", "x")).rejects.toMatchObject({ name: "RegraNegada" });
   });
 
+  it("tenta de novo em silêncio quando a conexão falha", async () => {
+    vi.useFakeTimers();
+    invoke
+      .mockResolvedValueOnce({ data: null, error: { message: "Failed to send a request to the Edge Function" } })
+      .mockResolvedValueOnce({ data: { aceite_id: "a-9" }, error: null });
+    const p = assinarDocumento("doc-9", "x");
+    await vi.advanceTimersByTimeAsync(2000);
+    await expect(p).resolves.toBe("a-9");
+    expect(invoke).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
   it("falha quando o servidor não confirma a assinatura", async () => {
     invoke.mockResolvedValue({ data: {}, error: null });
     await expect(assinarDocumento("doc-3", "data:image/png;base64,AA")).rejects.toThrow(
