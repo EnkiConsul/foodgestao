@@ -100,3 +100,12 @@
 - [x] Aviso de diárias/recibos pendentes de quitação até a véspera da vigência (recibos emitidos sem assinatura, com total em R$).
 - [x] Conferido no navegador: quadro de efetivação CLT com pendências, botão de complemento e aviso de recibos (ficha da Cristiane).
 - [x] Conferido no navegador: ficha da Nathanaelly abre com nome/CPF/WhatsApp e contatos de emergência; PDF de 16 páginas com dados, dependentes e anexos; seção administrativa passou a usar os dados previstos da vaga quando o gestor ainda não preencheu; subtítulo da tela sem menção à contabilidade.
+
+# Cadastro, módulos e navegação (12/10)
+- [x] Textos das etapas do onboarding legíveis (tokens movidos para :root/.dark e mapeados no tailwind.config.ts)
+- [x] Botão "Criar conta" e aviso "7 dias grátis" na página inicial
+- [x] Período de teste padronizado em 7 dias (tela de módulos e provisão no banco)
+- [x] Módulos não contratados barrados: Hub com selo "Bloqueado" e aviso por endereço direto
+- [x] Saídas na tela de acesso bloqueado: "Voltar ao Hub" no topo, "Trocar de Empresa" e "Sair da Conta" no rodapé — conferido no navegador
+- [ ] Nada publicado: aguardando pedido explícito para atualizar aveto360.com
+- [ ] Assinatura cancelada do Financeiro da AVETO 360 pode travar o aceite do termo do colaborador (revisão separada, a pedido)
