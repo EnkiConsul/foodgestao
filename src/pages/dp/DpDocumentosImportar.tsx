@@ -1,7 +1,8 @@
+import { DocumentosCards } from "@/components/dp/documentos/DocumentosNav";
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
-import { FileUp, Info, X } from "lucide-react";
+import { FileText, Info, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { BulkImportPanel } from "@/components/dp/documentos/BulkImportPanel";
@@ -72,7 +73,7 @@ export default function DpDocumentosImportar() {
   return (
     <DpPage>
       <Helmet>
-        <title>Importar — Pessoas 360°</title>
+        <title>Documentos — Pessoas 360°</title>
         <meta
           name="description"
           content="Importe contracheques, 13º, férias, folhas de ponto e adiantamentos em um único lugar, com distribuição automática por colaborador."
@@ -80,10 +81,12 @@ export default function DpDocumentosImportar() {
       </Helmet>
 
       <DpPageHeader
-        icon={FileUp}
-        title="Importar"
+        icon={FileText}
+        title="Documentos"
         description="Envie o PDF do escritório contábil. O sistema identifica a natureza, a competência e o colaborador de cada página."
       />
+
+      <DocumentosCards />
 
       {mostrarAviso && (
         <Alert className="relative pr-10">
