@@ -6,7 +6,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export const TELAS_ROTINA = [
-  { to: "/dp/rotina", label: "Calendário", icon: CalendarClock },
+  { to: "/dp/rotina/calendario", label: "Calendário", icon: CalendarClock },
   { to: "/dp/folgas", label: "Folgas", icon: Calendar },
   { to: "/dp/ferias", label: "Férias", icon: Palmtree },
   { to: "/dp/ocorrencias", label: "Ocorrências", icon: ClipboardList },
