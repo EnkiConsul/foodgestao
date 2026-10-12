@@ -122,6 +122,7 @@ export function DocumentoAssinaturaGate() {
       setAssinaturaPng(null);
       setConfirmar(false);
       setPreview(null);
+      setPreviewTroca(false);
       qc.invalidateQueries({ queryKey: ["dp_docs_aguardando_assinatura"] });
       qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias_colaborador"] });
@@ -256,13 +257,23 @@ export function DocumentoAssinaturaGate() {
         }
       />
 
+      <TermoTrocaPreviewDialog
+        troca={previewTroca ? (trocaAtual.data ?? null) : null}
+        empresa={empresaTermo.data ?? { nome: "Empresa" }}
+        onOpenChange={(v) => { if (!v) setPreviewTroca(false); }}
+        onAssinar={() => { setPreviewTroca(false); setConfirmar(true); }}
+      />
+
       <AssinaturaConfirmarDialog
-        open={confirmar && !!preview}
+        open={confirmar && !!(preview || (atual?.troca_id && visualizou === atual.id))}
         onOpenChange={setConfirmar}
-        titulo={preview?.titulo ?? ""}
+        titulo={(preview ?? atual)?.titulo ?? ""}
         nome={String(colaborador?.nome_social || colaborador?.nome || "")}
         enviando={assinar.isPending}
-        onConfirmar={(png) => preview && assinar.mutate({ d: preview, png })}
+        onConfirmar={(png) => {
+          const d = preview ?? atual;
+          if (d) assinar.mutate({ d, png });
+        }}
       />
 
     </>
