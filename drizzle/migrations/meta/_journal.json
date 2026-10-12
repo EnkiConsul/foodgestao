@@ -484,6 +484,13 @@
       "when": 1791768786382,
       "tag": "0068_rotina_loja_faltas_ferias",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1791768838993,
+      "tag": "0069_rotina_loja_faltas_ferias_v2",
+      "breakpoints": true
     }
   ]
 }
