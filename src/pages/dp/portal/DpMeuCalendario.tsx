@@ -1667,30 +1667,120 @@ export default function DpMeuCalendario() {
         />
       </div>
       <div className="md:hidden" {...swipeMes}>
-        <CalendarioMobileLista
-          year={ano}
-          month0={mes - 1}
-          occupantsByDate={occupantsByDate as any}
-          manualBlocked={manualBlocked}
-          myColaboradorId={meRef.data?.id ?? null}
-          statusByDate={statusByDate}
-          onPrev={goPrev}
-          onNext={goNext}
-          onSelectDay={(iso) => {
-            const st = calculateDateStatus({
-              date: parseYMD(iso),
-              myColaboradorId: meRef.data?.id ?? null,
-              allFolgas: allFolgasRecords,
-              allColaboradores: colaboradores,
-              manualBlocked,
-              dayLimits,
-              pendingRequests,
-              isAdmin: false,
-              diasElegiveis,
-              tetoMensal,
-            });
-            setSelectedDay({ iso, status: st.status as DateStatusKind });
-          }}
+        {/* Cabeçalho do mês — mesmo padrão do calendário do gestor */}
+        <div className="mb-2 flex items-center gap-2">
+          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={goPrev} aria-label="Mês anterior">
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <p className="flex-1 truncate text-center text-sm font-semibold capitalize tracking-tight">
+            {new Date(ano, mes - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 shrink-0 rounded-full px-3 text-xs"
+            onClick={() => { setAno(today.getFullYear()); setMes(today.getMonth() + 1); }}
+          >
+            Hoje
+          </Button>
+          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={goNext} aria-label="Próximo mês">
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+
+        <DiasEmLista
+          dias={getMonthDays(ano, mes - 1).map((d): DiaEmLista => {
+            const iso = ymd(d);
+            const occupants = occupantsByDate.get(iso) ?? [];
+            const block = manualBlocked.get(iso);
+            const blocked = !!block && !block.liberada;
+            const status = statusByDate.get(iso);
+            const wknd = d.getDay() === 0 || d.getDay() === 6;
+            const marcadores = marcadoresQuery.data?.get(iso) ?? [];
+
+            const chips: React.ReactNode[] = [];
+            if (blocked) {
+              chips.push(
+                <span key="bloq" className="inline-flex items-center gap-1 rounded-full border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive">
+                  <Lock className="h-3 w-3 shrink-0" /> Bloqueado
+                </span>,
+              );
+            }
+            if (!blocked && status === "available" && wknd) {
+              chips.push(
+                <span key="disp" className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
+                  Disponível
+                </span>,
+              );
+            }
+            if (!blocked && status === "fixed") {
+              chips.push(
+                <span key="sem" className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-600">
+                  Semanal
+                </span>,
+              );
+            }
+            if (!blocked && status === "pending") {
+              chips.push(
+                <span key="pend" className="inline-flex items-center rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[11px] font-semibold text-violet-600">
+                  Pendente
+                </span>,
+              );
+            }
+            for (const m of marcadores) {
+              chips.push(
+                <span key={`marc-${m}`} className="inline-flex items-center rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-600">
+                  {m}
+                </span>,
+              );
+            }
+            for (const o of occupants) {
+              const isMe = meRef.data?.id && o.colaboradorId === meRef.data.id;
+              chips.push(
+                <span
+                  key={o.key}
+                  className={cn(
+                    "inline-flex max-w-full items-center rounded-full border px-2 py-0.5 text-[11px]",
+                    isMe
+                      ? "border-primary bg-primary font-semibold text-primary-foreground shadow-sm"
+                      : "border-border bg-muted font-medium text-foreground",
+                  )}
+                  title={o.colaboradorNome}
+                >
+                  <span className="truncate">
+                    {isMe ? "Minha folga" : primeiroNomeCal(o.colaboradorNome)}
+                    {o.extra ? " · Extra" : ""}
+                  </span>
+                </span>,
+              );
+            }
+
+            return {
+              iso,
+              tom: status === "mine" || status === "swapped" ? "primario" : blocked ? "critico" : "neutro",
+              resumo:
+                chips.length === 0 ? (
+                  <span className="text-muted-foreground">Dia de trabalho</span>
+                ) : undefined,
+              chips: chips.length ? <>{chips}</> : undefined,
+              onSelect: () => {
+                const st = calculateDateStatus({
+                  date: parseYMD(iso),
+                  myColaboradorId: meRef.data?.id ?? null,
+                  allFolgas: allFolgasRecords,
+                  allColaboradores: colaboradores,
+                  manualBlocked,
+                  dayLimits,
+                  pendingRequests,
+                  isAdmin: false,
+                  diasElegiveis,
+                  tetoMensal,
+                });
+                setSelectedDay({ iso, status: st.status as DateStatusKind });
+              },
+            };
+          })}
         />
         <LegendaFolgas className="mt-2.5" />
       </div>
