@@ -437,7 +437,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
               <p className="text-[11px] text-muted-foreground">Mínimo de 5 caracteres. Fica registrada no histórico.</p>
             </div>
             <DialogFooter className="flex-col gap-2 sm:flex-col">
-              <Button className="w-full" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConfRemarcar(""); setConsome(true); }}><RefreshCw className="mr-2 h-4 w-4" />Prefiro Remarcar para Outro Dia (Recomendado)</Button>
+              <Button className="w-full" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConsome(true); }}><RefreshCw className="mr-2 h-4 w-4" />Prefiro Remarcar para Outro Dia (Recomendado)</Button>
               <Button variant="destructive" className="w-full" disabled={motivo.trim().length < 5 || executar.isPending} onClick={() => executar.mutate()}>Confirmar Cancelamento da Folga</Button>
             </DialogFooter>
           </DialogContent>
@@ -479,7 +479,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
                 {i.origem === "troca" && <Badge variant="outline" className="ml-2 text-[10px]">Troca</Badge>}
               </span>
               <div className="flex gap-1">
-                <Button size="sm" variant="outline" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConfRemarcar(""); setConsome(true); }}>
+                <Button size="sm" variant="outline" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConsome(true); }}>
                   Remarcar
                 </Button>
                 <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { setAcao({ item: i, tipo: "cancelar" }); setMotivo(""); }}>
@@ -487,26 +487,26 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
                 </Button>
               </div>
             </div>
-            {acao?.item.key === i.key && (
+            <RemarcarFolgaDialog
+              aberto={acao?.item.key === i.key && acao.tipo === "remarcar"}
+              onFechar={() => setAcao(null)}
+              nome={nomes.get(i.colaboradorId) ?? "Colaborador"}
+              dataBr={dataBr}
+              passado={passado}
+              novaData={novaData}
+              setNovaData={setNovaData}
+              consome={consome}
+              setConsome={setConsome}
+              onConfirm={() => executar.mutate()}
+              pendente={executar.isPending}
+            />
+            {acao?.item.key === i.key && acao.tipo === "cancelar" && (
               <div className="flex flex-wrap items-center gap-2">
-                {acao.tipo === "remarcar" ? (
-                  <>
-                    <Input type="date" className="h-8 w-44" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
-                    <Input className="h-8 w-44" placeholder='Digite REMARCAR' value={confRemarcar} onChange={(e) => setConfRemarcar(e.target.value)} />
-                    <div className="w-full"><ImpactoLimite valor={consome} onChange={setConsome} /></div>
-                    <Button size="sm" disabled={executar.isPending || !novaData || !remarcarConfirmado} onClick={() => executar.mutate()}>
-                      Confirmar
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Input className="h-8 w-64" placeholder="Motivo (opcional)" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
-                    <Button size="sm" disabled={executar.isPending} onClick={() => executar.mutate()}>
-                      Confirmar
-                    </Button>
-                  </>
-                )}
-                <Button size="sm" variant="ghost" onClick={() => { setAcao(null); setConfRemarcar(""); }}>Voltar</Button>
+                <Input className="h-8 w-64" placeholder="Motivo (opcional)" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+                <Button size="sm" disabled={executar.isPending} onClick={() => executar.mutate()}>
+                  Confirmar
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setAcao(null)}>Voltar</Button>
               </div>
             )}
           </li>
