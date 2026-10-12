@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
+import { assinarTroca } from "@/lib/dp/troca-assinatura";
+import { useNavigate } from "react-router-dom";
 import {
   useDocumentosAguardandoAssinatura,
   type DocParaAssinar,
@@ -32,6 +34,7 @@ export const TRAVA_QTD_DOCUMENTOS = 2;
 export function DocumentoAssinaturaGate() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { colaborador, documentos } = useDocumentosAguardandoAssinatura();
 
   const [adiado, setAdiado] = useState(false);
@@ -70,7 +73,8 @@ export function DocumentoAssinaturaGate() {
     mutationFn: async ({ d, png }: { d: DocParaAssinar; png: string | null }) => {
       if (!colaborador) throw new Error("Colaborador não encontrado");
       if (!png) throw new Error("Desenhe ou escolha a sua assinatura.");
-      await assinarDocumento(d.id, png);
+      if (d.troca_id) await assinarTroca(d.troca_id, png);
+      else await assinarDocumento(d.id, png);
     },
     onSuccess: () => {
       toast.success("Documento assinado", {
@@ -83,13 +87,15 @@ export function DocumentoAssinaturaGate() {
       qc.invalidateQueries({ queryKey: ["dp_docs_aguardando_assinatura"] });
       qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias_colaborador"] });
+      qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+      qc.invalidateQueries({ queryKey: ["dp_trocas"] });
     },
     onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Não foi possível registrar a assinatura" }),
   });
 
   if (!atual) return null;
 
-  const podeAssinar = !atual.file_path || visualizou === atual.id;
+  const podeAssinar = (!atual.file_path && !atual.troca_id) || visualizou === atual.id;
 
   return (
     <>
@@ -120,7 +126,7 @@ export function DocumentoAssinaturaGate() {
                 <div className="min-w-0">
                   <p className="font-medium break-words">{atual.titulo}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {atual.tipo_label} · Competência {atual.competencia_label}
+                    {atual.troca_id ? atual.tipo_label : `${atual.tipo_label} · Competência ${atual.competencia_label}`}
                   </p>
                 </div>
               </div>
@@ -152,8 +158,14 @@ export function DocumentoAssinaturaGate() {
             <Button
               variant="outline"
               className="w-full min-h-10"
-              disabled={!atual.file_path}
+              disabled={!atual.file_path && !atual.troca_id}
               onClick={() => {
+                if (atual.troca_id) {
+                  // O termo de troca abre na tela de trocas, que já mostra a leitura e a assinatura.
+                  setAdiado(true);
+                  navigate(`/dp/meu/trocas?assinar=${atual.troca_id}`);
+                  return;
+                }
                 setPreview(atual);
                 setVisualizou(atual.id);
               }}

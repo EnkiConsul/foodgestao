@@ -18,6 +18,8 @@ export type DocParaAssinar = {
   file_name: string | null;
   mime_type: string | null;
   created_at: string;
+  /** Quando preenchido, é o Termo de Troca de Folga (assinado pela troca, não por dp_documentos). */
+  troca_id?: string | null;
 };
 
 const TIPO_LABEL: Record<string, string> = {
@@ -123,7 +125,40 @@ export function useDocumentosAguardandoAssinatura() {
           .eq("colaborador_id", colab.data!.id)
           .not("documento_id", "is", null),
       ]);
-      return selecionarPendentesAssinatura((docs ?? []) as any[], (aceites ?? []) as any[]);
+      const lista = selecionarPendentesAssinatura((docs ?? []) as any[], (aceites ?? []) as any[]);
+      // Termos de troca aprovados que ainda esperam a minha assinatura entram na mesma fila.
+      try {
+        const cid = colab.data!.id as string;
+        const corte = new Date();
+        corte.setDate(corte.getDate() - 30);
+        const { data: trocas } = await (supabase.from("dp_trocas") as any)
+          .select("id, solicitante_id, destino_id, data_original, data_proposta, created_at, gestor_respondido_em, colega_respondido_em, solicitante_assinatura, destino_assinatura, solicitante:solicitante_id(nome), destino:destino_id(nome)")
+          .or(`solicitante_id.eq.${cid},destino_id.eq.${cid}`)
+          .eq("status", "aprovada")
+          .gte("data_original", corte.toISOString().slice(0, 10))
+          .limit(20);
+        const f = (d: string | null) => (d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "—");
+        for (const t of (trocas ?? []) as any[]) {
+          const souSolic = t.solicitante_id === cid;
+          if (souSolic ? t.solicitante_assinatura : t.destino_assinatura) continue;
+          const colega = souSolic ? t.destino?.nome : t.solicitante?.nome;
+          lista.push({
+            id: `troca-${t.id}`,
+            troca_id: t.id,
+            titulo: `Termo de Troca de Folga — ${f(t.data_original)} ⇄ ${f(t.data_proposta)}`,
+            tipo: "termo_troca",
+            tipo_label: `Troca com ${colega ?? "colega"}`,
+            competencia_label: fmtCompetencia(t.data_original),
+            file_path: null,
+            file_name: null,
+            mime_type: null,
+            created_at: t.gestor_respondido_em ?? t.colega_respondido_em ?? t.created_at,
+          });
+        }
+      } catch (e) {
+        console.warn("assinatura/termo-troca:", e);
+      }
+      return lista.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
     },
   });
 
