@@ -30,7 +30,6 @@ import {
   Settings,
   ShieldAlert,
   Store,
-  Upload,
   User,
   Users,
   type LucideIcon, NotebookPen } from "lucide-react";
@@ -110,7 +109,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     hubTo: "/dp/documentos/inicio",
     matchPrefixes: ["/dp/documentos", "/dp/disciplinar"],
     items: [
-      { label: "Importar", to: "/dp/documentos", icon: Upload, end: true, shortcut: true, shortLabel: "Importar" },
+      { label: "Documentos", to: "/dp/documentos", icon: FileText, end: true, shortcut: true, shortLabel: "Documentos" },
       {
         label: "Histórico",
         to: "/dp/documentos/historico",
