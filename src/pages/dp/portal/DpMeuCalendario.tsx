@@ -487,6 +487,14 @@ export default function DpMeuCalendario() {
     },
   });
 
+  // Rotina da loja (painel do dia) depende de folgas, solicitações e trocas:
+  // sempre que uma dessas fontes muda, o painel precisa recarregar também.
+  const invalidarRotinaLoja = () => {
+    qc.invalidateQueries({ queryKey: ["dp_meu_rotina_loja"] });
+    qc.invalidateQueries({ queryKey: ["dp_portal_equipe_fora_dia"] });
+    qc.invalidateQueries({ queryKey: ["dp_minha_situacao_dia"] });
+  };
+
   // Realtime — invalida queries quando qualquer fonte muda
   useEffect(() => {
     if (!companyId) return;
@@ -494,9 +502,11 @@ export default function DpMeuCalendario() {
       .channel(`cal-portal-${companyId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "dp_folgas", filter: `company_id=eq.${companyId}` }, () => {
         qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+        invalidarRotinaLoja();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "dp_solicitacoes", filter: `company_id=eq.${companyId}` }, () => {
         qc.invalidateQueries({ queryKey: ["dp_solic_meu_cal"] });
+        invalidarRotinaLoja();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "dp_datas_bloqueadas", filter: `company_id=eq.${companyId}` }, () => {
         qc.invalidateQueries({ queryKey: ["dp_datas_bloq_meu_cal"] });
