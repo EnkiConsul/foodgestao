@@ -35,6 +35,10 @@ import { notifyError } from "@/lib/notifyError";
 import { gerarFichaAdmissaoPdf } from "@/lib/dp/ficha-admissao-pdf";
 import { PARENTESCOS_EMERGENCIA, contatosDaFicha, rotuloParentescoEmergencia } from "@/lib/dp/contatosEmergencia";
 import { maskPhone } from "@/lib/phone";
+import { maskCpf } from "@/lib/cpf";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { TermoContaTerceiroPreviaDialog } from "@/components/dp/TermoContaTerceiroPreviaDialog";
+import { PAGAMENTO_BLANK } from "@/lib/dp/dadosPagamento";
 import { tipoPelaExtensao } from "@/lib/dp/abrirDocumento";
 import { PreadmissaoExcluirDialog } from "@/components/dp/preadmissao/PreadmissaoExcluirDialog";
 import {
@@ -256,6 +260,9 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const [enviandoFicha, setEnviandoFicha] = useState(false);
   const [excluir, setExcluir] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const { companies } = useCompanyContext();
+  /** Conta de terceiro aprovada: o termo abre logo após a efetivação. */
+  const [termoTerceiroDe, setTermoTerceiroDe] = useState<string | null>(null);
 
   const pa = data?.preadmissao;
   const parentescosPermitidos = data?.parentescos_permitidos ?? null;
@@ -452,13 +459,15 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     if (!id) return;
     setEfetivando(true);
     try {
-      const { error } = await supabase.rpc("dp_preadmissao_efetivar_direto", {
+      const { data: res, error } = await supabase.rpc("dp_preadmissao_efetivar_direto", {
         p_preadmissao_id: id,
         p_data_admissao: admin.data_admissao || undefined,
         p_confirmo_sem_ficha: confirmado,
       });
       if (error) throw error;
       toast.success("Colaborador efetivado com os dados, documentos e dependentes da pré-admissão.");
+      const novoId = (res as { colaborador_id?: string } | null)?.colaborador_id;
+      if (novoId && ficha.pagamento_terceiro === "sim" && ficha.titular_nome) setTermoTerceiroDe(novoId);
       await queryClient.invalidateQueries();
       await refetch();
     } catch (e) {
@@ -1382,6 +1391,35 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         onOpenChange={setExcluir}
         onExcluida={() => onOpenChange(false)}
       />
+      {termoTerceiroDe && pa && (
+        <TermoContaTerceiroPreviaDialog
+          open
+          onOpenChange={(v) => { if (!v) setTermoTerceiroDe(null); }}
+          companyId={pa.company_id}
+          colaboradorId={termoTerceiroDe}
+          pagamento={{
+            ...PAGAMENTO_BLANK,
+            banco_nome: ficha.banco_nome ?? "", agencia: ficha.agencia ?? "", conta: ficha.conta ?? "",
+            conta_digito: ficha.conta_digito ?? "", conta_tipo: ficha.conta_tipo ?? "",
+            pix_tipo: ficha.pix_tipo ?? "", pix_chave: ficha.pix_chave ?? "",
+            titular_proprio: false, titular_nome: ficha.titular_nome ?? "",
+            titular_cpf: ficha.titular_cpf ?? "", titular_relacao: ficha.titular_relacao ?? "",
+          }}
+          partes={(() => {
+            const emp = (companies ?? []).find((c: { id: string }) => c.id === pa.company_id) as
+              { name?: string; trade_name?: string; cnpj?: string } | undefined;
+            return {
+              empresa: String(emp?.name || emp?.trade_name || "EMPRESA").toUpperCase(),
+              cnpj: emp?.cnpj ?? null,
+              unidade: unidades.find((u) => u.id === admin.unidade_id)?.nome ?? null,
+              nome: String(ficha.nome ?? pa.candidato_nome ?? "").toUpperCase(),
+              cpf: ficha.cpf || pa.cpf || null,
+              cargo: (cargosLista ?? []).find((c: { id: string }) => c.id === admin.cargo_id)?.nome ?? null,
+            };
+          })()}
+          onEmitido={() => setTermoTerceiroDe(null)}
+        />
+      )}
     </>
   );
 }
