@@ -8,6 +8,7 @@ import { DpActions, type DpAction } from "@/components/dp/DpActions";
 import { HelpHint } from "@/components/ui/help-hint";
 import type { HelpKey } from "@/content/help/helpContent";
 import { resolveHelpForPath } from "@/content/help/helpRoutes";
+import { RotinaTituloMenu, telaRotinaDoPath } from "@/components/dp/rotina/RotinaNav";
 
 /**
  * Quando uma tela é renderizada dentro de outra (como aba), o wrapper
@@ -83,6 +84,7 @@ export function DpPageHeader({
   const { pathname } = useLocation();
   const helpKey = help === null ? undefined : (help ?? (embedded ? undefined : resolveHelpForPath(pathname)));
   const temAcoes = Boolean(actions || (actionItems && actionItems.length > 0));
+  const rotinaAtual = telaRotinaDoPath(pathname);
   if (embedded) {
     return (
       <header className={cn("dp-page-header-embedded flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between", className)}>
@@ -104,7 +106,9 @@ export function DpPageHeader({
         <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary sm:mt-1 sm:h-7 sm:w-7" aria-hidden="true" />
         <div className="min-w-0">
           <h1 className="flex items-center gap-1 text-lg font-bold leading-tight tracking-normal sm:text-2xl md:text-3xl">
-            {toTitleCase(title)}
+            {rotinaAtual ? (
+              <RotinaTituloMenu atual={rotinaAtual}>{toTitleCase(title)}</RotinaTituloMenu>
+            ) : toTitleCase(title)}
             {helpKey && <HelpHint helpKey={helpKey} size="md" side="bottom" align="start" />}
           </h1>
           {description && (

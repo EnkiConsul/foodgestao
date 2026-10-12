@@ -53,7 +53,6 @@ import { OcorrenciaHistoricoDialog } from "@/components/dp/ocorrencias/Ocorrenci
 import { useDpOcorrenciasIndicadores } from "@/hooks/useDpOcorrenciasIndicadores";
 import { useSwipeHorizontal } from "@/hooks/useSwipeHorizontal";
 import type { SubstitutoOpcao } from "@/components/dp/ocorrencias/SubstitutoPicker";
-import { RotinaSubNav } from "@/components/dp/rotina/RotinaNav";
 
 const COBERTURAS: { value: string; label: string }[] = [
   { value: "all", label: "Todas" },
@@ -198,7 +197,6 @@ export default function DpOcorrencias() {
 
   return (
     <DpPage>
-      <RotinaSubNav />
       {!embedded && (
         <Helmet>
           <title>Ocorrências — Pessoas 360°</title>
