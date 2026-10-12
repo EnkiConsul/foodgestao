@@ -14,6 +14,9 @@ import {
   ArrowLeftRight,
   CalendarDays,
   CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  Lock,
   Send,
   User as UserIcon,
 } from "lucide-react";
