@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     const cliente = callerClient(caller.token);
     const admin = serviceClient();
 
-    const { data: colabId } = await cliente.rpc("dp_colaborador_ativo_of", { _user_id: caller.id });
+    const { data: colabId } = await cliente.rpc("dp_colaborador_of", { _user_id: caller.id });
     if (!colabId) return resp(403, { error: "Seu acesso não permite esta ação agora." });
 
     const { data: colab } = await admin
