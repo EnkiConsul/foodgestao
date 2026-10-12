@@ -4,7 +4,7 @@ import { MOTIVO_COMPENSACAO_FERIADO, diasDeAntecedencia } from "@/lib/dp/termos-
 import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
 import { assinarTroca } from "@/lib/dp/troca-assinatura";
 import { CienciaFaltaTrocaBox, TEXTO_CIENCIA_FALTA_TROCA } from "@/components/dp/CienciaFaltaTrocaBox";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -145,6 +145,11 @@ const DIA_SEMANA_BR = [
   "sábado",
 ];
 const diaSemanaBR = (iso: string) => DIA_SEMANA_BR[parseYMD(iso).getDay()];
+/** Primeiro nome em Primeira Maiúscula (ex.: "SARA HELEN" → "Sara"). */
+const primeiroNomeCal = (nome: string) => {
+  const p = (nome ?? "").trim().split(/\s+/)[0] ?? "";
+  return p ? p.charAt(0).toLocaleUpperCase("pt-BR") + p.slice(1).toLocaleLowerCase("pt-BR") : "";
+};
 /** Ex.: "domingo, 25/10/2026" */
 const descreverDia = (iso: string) => `${diaSemanaBR(iso)}, ${formatBR(parseYMD(iso))}`;
 
