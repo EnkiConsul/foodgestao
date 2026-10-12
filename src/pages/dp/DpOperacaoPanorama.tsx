@@ -977,7 +977,7 @@ function DetalheDiaOperacao({
 export default function DpOperacaoPanorama({
   modo = "operacao",
   topo,
-}: { modo?: "operacao" | "calendario"; topo?: React.ReactNode } = {}) {
+}: { modo?: "operacao" | "calendario"; topo?: ReactNode } = {}) {
   const calendario = modo === "calendario";
 
   const [params, setParams] = useSearchParams();

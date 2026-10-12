@@ -1,12 +1,14 @@
+import type { ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
 import DpOperacaoPanorama from "./DpOperacaoPanorama";
 
-/** Rotina: abre direto no calendário; o título alterna entre as telas do módulo. */
-export default function DpRotinaHub() {
+/**
+ * Rotina: central com os cards de cada tela do módulo no topo
+ * (Calendário, Folgas, Férias, Ocorrências, Convocações, Atestados)
+ * e o calendário da operação logo abaixo.
+ */
+export default function DpRotinaHub({ topo }: { topo?: ReactNode } = {}) {
   return (
-    <>
-      <Helmet><title>Rotina — Pessoas 360°</title></Helmet>
-      <DpOperacaoPanorama modo="calendario" />
-    </>
+    <DpOperacaoPanorama modo="calendario" topo={topo} />
   );
 }
