@@ -1,4 +1,3 @@
-import { DocumentosSubNav } from "@/components/dp/documentos/DocumentosNav";
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -479,7 +478,6 @@ export default function DpRecibos() {
   return (
     <DpPage>
       <Helmet><title>Recibos | Pessoas 360°</title></Helmet>
-      <DocumentosSubNav />
       <DpPageHeader
         icon={Receipt}
         title="Recibos"
