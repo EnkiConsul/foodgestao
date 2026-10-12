@@ -193,6 +193,8 @@ export const CAMPOS_CANDIDATO = [
   // Dados de pagamento: conta para depósito ou chave Pix.
   "banco_codigo", "banco_nome", "agencia", "conta", "conta_digito", "conta_tipo",
   "pix_tipo", "pix_chave",
+  // Pedido de recebimento em conta de outra pessoa (avaliado pela empresa).
+  "pagamento_terceiro", "titular_nome", "titular_cpf", "titular_relacao",
 ] as const;
 
 export function filtrarCamposCandidato(entrada: unknown): Record<string, unknown> {
@@ -332,9 +334,21 @@ export function validarDadosCandidato(
   if (txt("pix_tipo") === "aleatoria" && chave && !/^[0-9a-fA-F-]{32,36}$/.test(chave)) {
     erros.pix_chave = "A chave aleatória tem 32 caracteres (com ou sem os traços).";
   }
-  // Conta de terceiro não é mais aceita: só titularidade do próprio candidato.
+  // O termo de terceiro só é emitido pela empresa: o candidato apenas pede
+  // a avaliação, identificando o titular por completo.
   if (dados.titular_proprio === false) {
     erros.titular_proprio = "A conta precisa ser de titularidade do próprio colaborador.";
+  }
+  if (txt("pagamento_terceiro") && !["sim", "nao"].includes(txt("pagamento_terceiro"))) {
+    erros.pagamento_terceiro = "Escolha uma opção da lista.";
+  }
+  if (txt("pagamento_terceiro") === "sim") {
+    if (txt("titular_nome").length < 5) erros.titular_nome = "Informe o nome completo do titular da conta.";
+    if (!cpfValido(txt("titular_cpf"))) erros.titular_cpf = "Informe um CPF válido do titular da conta.";
+    else if (txt("cpf") && txt("titular_cpf").replace(/\D/g, "") === txt("cpf").replace(/\D/g, "")) {
+      erros.titular_cpf = "O titular é outra pessoa: informe o CPF dela, não o seu.";
+    }
+    if (!txt("titular_relacao")) erros.titular_relacao = "Informe o parentesco ou a relação com o titular.";
   }
   return erros;
 }
