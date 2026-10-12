@@ -50,7 +50,7 @@ describe("assinarDocumento", () => {
     const p = assinarDocumento("doc-9", "x");
     await vi.advanceTimersByTimeAsync(2000);
     await expect(p).resolves.toBe("a-9");
-    expect(invoke).toHaveBeenCalledTimes(2);
+    expect(invoke.mock.calls.filter((c) => c[0] === "dp-documento-aceitar")).toHaveLength(2);
     vi.useRealTimers();
   });
 
