@@ -9,7 +9,7 @@ import { DpActions, type DpAction } from "@/components/dp/DpActions";
 import { HelpHint } from "@/components/ui/help-hint";
 import type { HelpKey } from "@/content/help/helpContent";
 import { resolveHelpForPath } from "@/content/help/helpRoutes";
-import { RotinaTituloMenu, telaRotinaDoPath } from "@/components/dp/rotina/RotinaNav";
+import { RotinaTituloMenu, TELAS_ROTINA, telaRotinaDoPath } from "@/components/dp/rotina/RotinaNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 /**
@@ -105,23 +105,41 @@ export function DpPageHeader({
       </header>
     );
   }
+  // Ícone + título + seta em um único botão clicável: alinhamento garantido.
+  const menuAtual = rotinaAtual
+    ? { atual: rotinaAtual, telas: TELAS_ROTINA, rotulo: "Trocar de tela da Rotina" }
+    : docAtual
+      ? { atual: docAtual, telas: TELAS_DOCUMENTOS, rotulo: "Trocar de tela de Documentos" }
+      : null;
   return (
     <header className={cn("dp-page-header flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between", className)}>
-      <div className="flex min-w-0 items-start gap-2 sm:gap-3">
-        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary sm:mt-1 sm:h-7 sm:w-7" aria-hidden="true" />
-        <div className="min-w-0">
-          <h1 className="flex items-center gap-1 text-lg font-bold leading-tight tracking-normal sm:text-2xl md:text-3xl">
-            {rotinaAtual ? (
-              <RotinaTituloMenu atual={rotinaAtual}>{toTitleCase(title)}</RotinaTituloMenu>
-            ) : docAtual ? (
-              <RotinaTituloMenu atual={docAtual} telas={TELAS_DOCUMENTOS} rotulo="Trocar de tela de Documentos">{toTitleCase(title)}</RotinaTituloMenu>
-            ) : toTitleCase(title)}
-            {helpKey && <HelpHint helpKey={helpKey} size="md" side="bottom" align="start" />}
-          </h1>
-          {description && (
-            <p className="mt-0.5 text-xs text-muted-foreground break-words leading-snug sm:mt-1 sm:text-sm">{description}</p>
-          )}
-        </div>
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        {menuAtual ? (
+          <div className="min-w-0">
+            <h1 className="flex items-center text-lg font-bold leading-tight tracking-normal sm:text-2xl md:text-3xl">
+              <RotinaTituloMenu atual={menuAtual.atual} telas={menuAtual.telas} rotulo={menuAtual.rotulo} icon={Icon}>
+                {toTitleCase(title)}
+              </RotinaTituloMenu>
+              {helpKey && <HelpHint helpKey={helpKey} size="md" side="bottom" align="start" />}
+            </h1>
+            {description && (
+              <p className="mt-0.5 text-xs text-muted-foreground break-words leading-snug sm:mt-1 sm:text-sm">{description}</p>
+            )}
+          </div>
+        ) : (
+          <>
+            <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary sm:mt-1 sm:h-7 sm:w-7" aria-hidden="true" />
+            <div className="min-w-0">
+              <h1 className="flex items-center gap-1 text-lg font-bold leading-tight tracking-normal sm:text-2xl md:text-3xl">
+                {toTitleCase(title)}
+                {helpKey && <HelpHint helpKey={helpKey} size="md" side="bottom" align="start" />}
+              </h1>
+              {description && (
+                <p className="mt-0.5 text-xs text-muted-foreground break-words leading-snug sm:mt-1 sm:text-sm">{description}</p>
+              )}
+            </div>
+          </>
+        )}
       </div>
       {temAcoes && <HeaderActions actions={actions} actionItems={actionItems} actionsExtra={actionsExtra} actionsClassName={actionsClassName} />}
     </header>

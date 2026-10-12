@@ -20,21 +20,24 @@ export function telaRotinaDoPath(pathname: string): string | null {
   return t?.to ?? null;
 }
 
-/** Título da tela que vira lista suspensa para alternar entre as telas da Rotina. */
-export function RotinaTituloMenu({ atual, children, telas = TELAS_ROTINA, rotulo = "Trocar de tela da Rotina" }: {
+/** Título da tela que vira lista suspensa para alternar entre as telas da Rotina/Documentos. */
+export function RotinaTituloMenu({ atual, children, telas = TELAS_ROTINA, rotulo = "Trocar de tela da Rotina", icon: Icon }: {
   atual: string; children: React.ReactNode;
   telas?: { to: string; label: string; icon: React.ComponentType<{ className?: string }> }[];
   rotulo?: string;
+  /** Ícone da tela, desenhado dentro do botão para alinhar sempre. */
+  icon?: React.ComponentType<{ className?: string }>;
 }) {
   const navigate = useNavigate();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="inline-flex min-h-11 items-center gap-1 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="-ml-1.5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-muted/60 px-2.5 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={rotulo}
       >
+        {Icon && <Icon className="h-5 w-5 shrink-0 text-primary sm:h-7 sm:w-7" aria-hidden="true" />}
         {children}
-        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground sm:h-5 sm:w-5" aria-hidden="true" />
+        <ChevronDown className="h-5 w-5 shrink-0 text-primary/80 sm:h-6 sm:w-6" aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-60">
         {telas.map((t) => {
