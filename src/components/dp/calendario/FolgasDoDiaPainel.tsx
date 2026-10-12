@@ -46,6 +46,54 @@ function ImpactoLimite({ valor, onChange }: { valor: boolean; onChange: (v: bool
   );
 }
 
+/** Janela de remarcação: nova data em largura total e rodapé com Confirmar/Voltar. */
+function RemarcarFolgaDialog({
+  aberto, onFechar, nome, dataBr, passado, novaData, setNovaData, consome, setConsome, onConfirm, pendente,
+}: {
+  aberto: boolean;
+  onFechar: () => void;
+  nome: string;
+  dataBr: string;
+  passado: boolean;
+  novaData: string;
+  setNovaData: (v: string) => void;
+  consome: boolean;
+  setConsome: (v: boolean) => void;
+  onConfirm: () => void;
+  pendente: boolean;
+}) {
+  return (
+    <DpDialogShell
+      open={aberto}
+      onOpenChange={(o) => { if (!o) onFechar(); }}
+      icon={RefreshCw}
+      title="Remarcar Folga"
+      description={`Mover a folga de ${nome} do dia ${dataBr} para outra data.`}
+      size="sm"
+      footer={
+        <>
+          <Button variant="outline" onClick={onFechar}>Voltar</Button>
+          <Button disabled={pendente || !novaData} onClick={onConfirm}>Confirmar Remarcação</Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {passado && (
+          <p className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs text-amber-900 dark:text-amber-200">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            Esta data já passou ({dataBr}). Remarcar altera o histórico do colaborador.
+          </p>
+        )}
+        <div className="grid gap-1.5">
+          <Label htmlFor="remarcar-nova-data">Nova data <span className="text-destructive">*</span></Label>
+          <Input id="remarcar-nova-data" type="date" className="h-11 w-full" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
+        </div>
+        <ImpactoLimite valor={consome} onChange={setConsome} />
+      </div>
+    </DpDialogShell>
+  );
+}
+
 /** Troca da folga fixa pelo gestor: a pessoa trabalha neste dia e folga no novo, com termo. */
 function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { companyId: string; colaboradorId: string; data: string; nome: string; onFeito: () => void }) {
   const qc = useQueryClient();
