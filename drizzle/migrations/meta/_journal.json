@@ -526,6 +526,13 @@
       "when": 1791825220431,
       "tag": "0074_signup_whatsapp_otp",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1791831059863,
+      "tag": "0075_dp_colaboradores_grant_titular_relacao",
+      "breakpoints": true
     }
   ]
 }
