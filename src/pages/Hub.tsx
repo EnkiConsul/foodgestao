@@ -7,7 +7,8 @@ import { HelpHint } from "@/components/ui/help-hint";
 import { Badge } from "@/components/ui/badge";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useModulosCatalogo } from "@/hooks/useModulosCatalogo";
-import { MODULES, type ModuleDefinition } from "@/lib/modules";
+import { MODULES, isModuleUsable, type AppModule, type ModuleDefinition } from "@/lib/modules";
+import { useCompanyModules } from "@/hooks/useCompanyModules";
 import { cn } from "@/lib/utils";
 import { PendingInvitesAlert } from "@/components/invites/PendingInvitesAlert";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
@@ -92,11 +93,16 @@ export default function Hub() {
   const { data: catalogo } = useModulosCatalogo();
   const { hasModulo } = useCompanyPermissions();
   const { data: ent } = useCompanyEntitlements();
+  const { getStatus, isLoading: modulosLoading } = useCompanyModules();
   const bloqueioDe = (slug: string) => {
-    if (ent?.mode !== "v2") return null;
     const m = slug === "financeiro" ? "financeiro" : slug === "dp" ? "pessoas" : null;
-    const a = m ? ent[m] : null;
-    return m && a && !a.allowed ? { modulo: m, motivo: a.motivo } : null;
+    if (!m) return null;
+    if (!modulosLoading && !isModuleUsable(getStatus(slug as AppModule))) {
+      return { modulo: m, motivo: "sem_cobertura" };
+    }
+    if (ent?.mode !== "v2") return null;
+    const a = ent[m];
+    return a && !a.allowed ? { modulo: m, motivo: a.motivo } : null;
   };
 
   // Somente módulos ativos e marcados para aparecer no Hub (backoffice).

@@ -54,6 +54,9 @@ export function ModuleGuard({ module, children }: ModuleGuardProps) {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button asChild size="lg">
+              <Link to="/planos">Contratar Módulo</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
               <a
                 href={`https://wa.me/5562992365959?text=${waMsg}`}
                 target="_blank"

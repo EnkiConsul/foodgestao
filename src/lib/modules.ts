@@ -115,9 +115,9 @@ export function statusLabel(status: ModuleStatus): string {
 }
 
 /**
- * Planos e período de teste foram descontinuados: o acesso aos módulos é
- * definido apenas pelas permissões do usuário, não por contratação.
+ * Módulo só é utilizável se a empresa o contratou ou está em teste
+ * (registro em company_modules). Vencimento do teste é tratado pelo guard de assinatura.
  */
-export function isModuleUsable(_status?: ModuleStatus): boolean {
-  return true;
+export function isModuleUsable(status?: ModuleStatus): boolean {
+  return status === "active" || status === "trial";
 }
