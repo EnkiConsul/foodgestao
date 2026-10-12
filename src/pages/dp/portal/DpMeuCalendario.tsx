@@ -487,6 +487,14 @@ export default function DpMeuCalendario() {
     },
   });
 
+  // Rotina da loja (painel do dia) depende de folgas, solicitações e trocas:
+  // sempre que uma dessas fontes muda, o painel precisa recarregar também.
+  const invalidarRotinaLoja = () => {
+    qc.invalidateQueries({ queryKey: ["dp_meu_rotina_loja"] });
+    qc.invalidateQueries({ queryKey: ["dp_portal_equipe_fora_dia"] });
+    qc.invalidateQueries({ queryKey: ["dp_minha_situacao_dia"] });
+  };
+
   // Realtime — invalida queries quando qualquer fonte muda
   useEffect(() => {
     if (!companyId) return;
@@ -494,9 +502,11 @@ export default function DpMeuCalendario() {
       .channel(`cal-portal-${companyId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "dp_folgas", filter: `company_id=eq.${companyId}` }, () => {
         qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+        invalidarRotinaLoja();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "dp_solicitacoes", filter: `company_id=eq.${companyId}` }, () => {
         qc.invalidateQueries({ queryKey: ["dp_solic_meu_cal"] });
+        invalidarRotinaLoja();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "dp_datas_bloqueadas", filter: `company_id=eq.${companyId}` }, () => {
         qc.invalidateQueries({ queryKey: ["dp_datas_bloq_meu_cal"] });
@@ -1044,6 +1054,7 @@ export default function DpMeuCalendario() {
       toast.success("Folga marcada!");
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+      invalidarRotinaLoja();
       const me = meRef.data as { nome?: string; unidade_id?: string | null; vinculo_label?: string | null } | null;
       if (me && isSocio(me.vinculo_label)) {
         setSocioBloqueio({ nome: me.nome ?? "Sócio", datas: [iso], unidadeId: me.unidade_id ?? null });
@@ -1087,6 +1098,7 @@ export default function DpMeuCalendario() {
       toast.success("Folga removida.");
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+      invalidarRotinaLoja();
     },
     onError: (e: any) => notifyError(e, { surface: "Meu calendário", action: "concluir a ação", fallback: "Erro ao remover folga" }),
   });
@@ -1147,6 +1159,7 @@ export default function DpMeuCalendario() {
       setExceptionMotivo("");
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_solic_meu_cal"] });
+      invalidarRotinaLoja();
     },
     onError: (e: any) => notifyError(e, { surface: "Meu calendário", action: "concluir a ação", fallback: "Erro ao enviar exceção" }),
   });
@@ -1360,6 +1373,7 @@ export default function DpMeuCalendario() {
       qc.invalidateQueries({ queryKey: ["dp_trocas_pend_meu_cal"] });
       qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
       qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+      invalidarRotinaLoja();
     },
     onError: (e: any) =>
       notifyError(e, { surface: "Meu calendário", action: "responder a troca", fallback: "Não foi possível responder a troca. Atualize a tela e tente de novo." }),
@@ -1375,6 +1389,7 @@ export default function DpMeuCalendario() {
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_trocas_pend_meu_cal"] });
       qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+      invalidarRotinaLoja();
     },
     onError: (e: any) =>
       notifyError(e, {
@@ -1417,6 +1432,7 @@ export default function DpMeuCalendario() {
       setRemarcarAviso(null);
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+      invalidarRotinaLoja();
     },
     onError: (e: any) => {
       // Dia lotado/bloqueado não é erro: o aviso no diálogo já orienta a troca
@@ -1457,6 +1473,7 @@ export default function DpMeuCalendario() {
       setRemarcarAviso(null);
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_solic_meu_cal"] });
+      invalidarRotinaLoja();
     },
     onError: (e: any) =>
       notifyError(e, {
