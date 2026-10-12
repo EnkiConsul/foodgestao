@@ -533,6 +533,13 @@
       "when": 1791831059863,
       "tag": "0075_dp_colaboradores_grant_titular_relacao",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1791832058178,
+      "tag": "0076_onboarding_trial_7_dias",
+      "breakpoints": true
     }
   ]
 }

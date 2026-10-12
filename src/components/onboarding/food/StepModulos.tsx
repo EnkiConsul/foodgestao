@@ -26,7 +26,7 @@ export function StepModulos({ selectedSlugs, onToggle }: Props) {
           <Gift className="h-4 w-4" />
         </div>
         <div className="text-sm">
-          <p className="font-semibold text-foreground">14 dias grátis em todos os módulos</p>
+          <p className="font-semibold text-foreground">7 dias grátis em todos os módulos</p>
           <p className="text-xs text-muted-foreground mt-0.5">
             Após o período de teste, você decide quais manter — cobrança é por módulo, por empresa.
           </p>
