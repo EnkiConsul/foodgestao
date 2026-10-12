@@ -1,4 +1,3 @@
-import { DocumentosSubNav } from "@/components/dp/documentos/DocumentosNav";
 import { aceitaComprovante } from "@/lib/dp/documentoTipos";
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
 import { useEffect, useMemo, useState } from "react";
@@ -912,7 +911,6 @@ export default function DpHistoricoCompleto() {
   return (
     <DpPage>
       <Helmet><title>Histórico — Pessoas 360°</title></Helmet>
-      <DocumentosSubNav />
       <DpPageHeader
         icon={FileText}
         title="Histórico"

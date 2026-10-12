@@ -1,3 +1,4 @@
+import { TELAS_DOCUMENTOS, telaDocumentosDoPath } from "@/components/dp/documentos/DocumentosNav";
 import { createContext, useContext, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
@@ -85,6 +86,7 @@ export function DpPageHeader({
   const helpKey = help === null ? undefined : (help ?? (embedded ? undefined : resolveHelpForPath(pathname)));
   const temAcoes = Boolean(actions || (actionItems && actionItems.length > 0));
   const rotinaAtual = telaRotinaDoPath(pathname);
+  const docAtual = telaDocumentosDoPath(pathname);
   if (embedded) {
     return (
       <header className={cn("dp-page-header-embedded flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between", className)}>
@@ -108,6 +110,8 @@ export function DpPageHeader({
           <h1 className="flex items-center gap-1 text-lg font-bold leading-tight tracking-normal sm:text-2xl md:text-3xl">
             {rotinaAtual ? (
               <RotinaTituloMenu atual={rotinaAtual}>{toTitleCase(title)}</RotinaTituloMenu>
+            ) : docAtual ? (
+              <RotinaTituloMenu atual={docAtual} telas={TELAS_DOCUMENTOS} rotulo="Trocar de tela de Documentos">{toTitleCase(title)}</RotinaTituloMenu>
             ) : toTitleCase(title)}
             {helpKey && <HelpHint helpKey={helpKey} size="md" side="bottom" align="start" />}
           </h1>

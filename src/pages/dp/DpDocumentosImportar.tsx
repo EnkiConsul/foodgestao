@@ -1,4 +1,3 @@
-import { DocumentosCards } from "@/components/dp/documentos/DocumentosNav";
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
@@ -85,8 +84,6 @@ export default function DpDocumentosImportar() {
         title="Documentos"
         description="Envie o PDF do escritório contábil. O sistema identifica a natureza, a competência e o colaborador de cada página."
       />
-
-      <DocumentosCards />
 
       {mostrarAviso && (
         <Alert className="relative pr-10">

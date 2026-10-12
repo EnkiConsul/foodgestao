@@ -21,19 +21,23 @@ export function telaRotinaDoPath(pathname: string): string | null {
 }
 
 /** Título da tela que vira lista suspensa para alternar entre as telas da Rotina. */
-export function RotinaTituloMenu({ atual, children }: { atual: string; children: React.ReactNode }) {
+export function RotinaTituloMenu({ atual, children, telas = TELAS_ROTINA, rotulo = "Trocar de tela da Rotina" }: {
+  atual: string; children: React.ReactNode;
+  telas?: { to: string; label: string; icon: React.ComponentType<{ className?: string }> }[];
+  rotulo?: string;
+}) {
   const navigate = useNavigate();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         className="inline-flex min-h-11 items-center gap-1 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Trocar de tela da Rotina"
+        aria-label={rotulo}
       >
         {children}
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground sm:h-5 sm:w-5" aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-60">
-        {TELAS_ROTINA.map((t) => {
+        {telas.map((t) => {
           const ativo = t.to === atual;
           return (
             <DropdownMenuItem

@@ -1,4 +1,3 @@
-import { DocumentosSubNav } from "@/components/dp/documentos/DocumentosNav";
 import { useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -73,7 +72,6 @@ export default function DpAtas() {
   return (
     <DpPage>
       <Helmet><title>Atas de Reunião — Pessoas 360°</title></Helmet>
-      <DocumentosSubNav />
       <DpPageHeader
         icon={NotebookPen}
         title="Atas de Reunião"
