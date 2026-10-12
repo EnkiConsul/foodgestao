@@ -1,0 +1,1 @@
+GRANT SELECT (titular_relacao) ON public.dp_colaboradores TO authenticated;
