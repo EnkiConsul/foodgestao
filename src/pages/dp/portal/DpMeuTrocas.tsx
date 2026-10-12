@@ -1,3 +1,4 @@
+import { completarPartesTrocas } from "@/lib/dp/troca-partes";
 import { CienciaFaltaTrocaBox, TEXTO_CIENCIA_FALTA_TROCA } from "@/components/dp/CienciaFaltaTrocaBox";
 import { Link } from "react-router-dom";
 import { sugerirPushContextual } from "@/components/dp/PushSoftPrompt";
