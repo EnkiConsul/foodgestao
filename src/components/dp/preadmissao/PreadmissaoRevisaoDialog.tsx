@@ -137,6 +137,7 @@ const CAMPOS_FICHA_EDITAVEIS = [
   "reservista", "reservista_categoria", "pis",
   "banco_nome", "agencia", "conta", "conta_digito", "conta_tipo",
   "pix_tipo", "pix_chave",
+  "pagamento_terceiro", "titular_nome", "titular_cpf", "titular_relacao",
 ] as const;
 
 type CampoFicha = (typeof CAMPOS_FICHA_EDITAVEIS)[number];
@@ -144,7 +145,7 @@ type CampoFicha = (typeof CAMPOS_FICHA_EDITAVEIS)[number];
 /** Nomes próprios e endereços ficam em CAIXA ALTA, como no cadastro. */
 const CAIXA_ALTA: ReadonlySet<string> = new Set([
   "nome", "nome_social", "nome_mae", "nome_pai", "naturalidade", "naturalidade_uf",
-  "endereco", "complemento", "bairro", "cidade", "uf", "banco_nome",
+  "endereco", "complemento", "bairro", "cidade", "uf", "banco_nome", "titular_nome", "titular_relacao",
   "rg_orgao", "rg_uf", "ctps_uf", "reservista_categoria", "nacionalidade", "emerg1_nome", "emerg2_nome",
 ]);
 
@@ -174,6 +175,8 @@ const CAMPOS_IMPRESSAO: Array<[string, string]> = [
   ["reservista", "Reservista"], ["reservista_categoria", "Categoria da reservista"],
   ["banco_nome", "Banco"], ["conta_tipo", "Tipo de conta"], ["agencia", "Agência"], ["conta", "Conta"],
   ["conta_digito", "Dígito"], ["pix_tipo", "Tipo de chave Pix"], ["pix_chave", "Chave Pix"],
+  ["pagamento_terceiro", "Conta de outra pessoa"], ["titular_nome", "Titular da conta"],
+  ["titular_cpf", "CPF do titular"], ["titular_relacao", "Relação com o titular"],
 ];
 
 const ROTULOS_OPCOES: Record<string, Record<string, string>> = {
@@ -182,6 +185,7 @@ const ROTULOS_OPCOES: Record<string, Record<string, string>> = {
   grau_instrucao: Object.fromEntries(INSTRUCOES.map((s) => [s.value, s.label])),
   conta_tipo: Object.fromEntries(CONTA_TIPOS.map((s) => [s.value, s.label])),
   pix_tipo: Object.fromEntries(PIX_TIPOS.map((s) => [s.value, s.label])),
+  pagamento_terceiro: { sim: "Sim, pedida pelo candidato", nao: "Não" },
   emerg1_parentesco: Object.fromEntries(PARENTESCOS_EMERGENCIA.map((s) => [s.value, s.label])),
   emerg2_parentesco: Object.fromEntries(PARENTESCOS_EMERGENCIA.map((s) => [s.value, s.label])),
 };
@@ -767,6 +771,12 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         conta: e.pagamento.conta ?? "", conta_digito: e.pagamento.conta_digito ?? "",
         conta_tipo: e.pagamento.conta_tipo || ficha.conta_tipo || "",
         pix_tipo: e.pagamento.pix_tipo || ficha.pix_tipo || "", pix_chave: e.pagamento.pix_chave ?? "",
+        // Conta de terceiro: o DP aprova mantendo desmarcado "próprio colaborador";
+        // ao marcar, o pedido fica recusado e os dados do terceiro saem da ficha.
+        pagamento_terceiro: e.pagamento.titular_proprio === false ? "sim" : "nao",
+        titular_nome: e.pagamento.titular_proprio === false ? String(e.pagamento.titular_nome ?? "").toUpperCase() : "",
+        titular_cpf: e.pagamento.titular_proprio === false ? String(e.pagamento.titular_cpf ?? "").replace(/\D/g, "") : "",
+        titular_relacao: e.pagamento.titular_proprio === false ? String(e.pagamento.titular_relacao ?? "").toUpperCase() : "",
       };
       for (const c of [
         "rg_numero", "rg_orgao", "rg_uf", "rg_emissao", "ctps_numero", "ctps_serie", "ctps_uf", "ctps_expedicao",
@@ -1345,6 +1355,10 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
             banco_nome: ficha.banco_nome ?? "", agencia: ficha.agencia ?? "", conta: ficha.conta ?? "",
             conta_digito: ficha.conta_digito ?? "", conta_tipo: ficha.conta_tipo ?? "",
             pix_tipo: ficha.pix_tipo ?? "", pix_chave: ficha.pix_chave ?? "",
+            titular_proprio: ficha.pagamento_terceiro !== "sim",
+            titular_nome: ficha.pagamento_terceiro === "sim" ? ficha.titular_nome ?? "" : "",
+            titular_cpf: ficha.pagamento_terceiro === "sim" ? maskCpf(ficha.titular_cpf ?? "") : "",
+            titular_relacao: ficha.pagamento_terceiro === "sim" ? ficha.titular_relacao ?? "" : "",
           },
           rem: {
             ...(admin.forma_pagamento ? { forma_pagamento: admin.forma_pagamento as never } : {}),
