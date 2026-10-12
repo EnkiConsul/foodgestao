@@ -498,6 +498,13 @@
       "when": 1791773842625,
       "tag": "0070_portal_trocas_nomes",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1791776664609,
+      "tag": "0071_migration",
+      "breakpoints": true
     }
   ]
 }

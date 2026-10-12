@@ -18,6 +18,8 @@ export interface DadosPagamento {
   titular_proprio: boolean;
   titular_nome: string;
   titular_cpf: string;
+  /** Parentesco ou relação com o titular de terceiro. */
+  titular_relacao: string;
   pix_tipo: string;
   pix_chave: string;
   recebe_em_especie: boolean;
@@ -50,13 +52,13 @@ export const pixTipoRecomendado = (tipo: string): boolean =>
 
 export const CAMPOS_PAGAMENTO = [
   "banco_codigo", "banco_nome", "agencia", "conta", "conta_digito", "conta_tipo",
-  "titular_proprio", "titular_nome", "titular_cpf", "pix_tipo", "pix_chave",
+  "titular_proprio", "titular_nome", "titular_cpf", "titular_relacao", "pix_tipo", "pix_chave",
   "recebe_em_especie",
 ] as const;
 
 export const PAGAMENTO_BLANK: DadosPagamento = {
   banco_codigo: "", banco_nome: "", agencia: "", conta: "", conta_digito: "",
-  conta_tipo: "", titular_proprio: true, titular_nome: "", titular_cpf: "",
+  conta_tipo: "", titular_proprio: true, titular_nome: "", titular_cpf: "", titular_relacao: "",
   pix_tipo: "", pix_chave: "", recebe_em_especie: false,
 };
 
@@ -75,6 +77,7 @@ export function pagamentoDoRegistro(c: Record<string, unknown> | null | undefine
     titular_proprio: c?.titular_proprio !== false,
     titular_nome: texto(c?.titular_nome),
     titular_cpf: texto(c?.titular_cpf),
+    titular_relacao: texto(c?.titular_relacao),
     pix_tipo: texto(c?.pix_tipo),
     pix_chave: texto(c?.pix_chave),
     recebe_em_especie: c?.recebe_em_especie === true,
@@ -92,11 +95,11 @@ export function pagamentoParaBanco(p: DadosPagamento) {
     conta: emEspecie ? null : nulo(p.conta),
     conta_digito: emEspecie ? null : nulo(p.conta_digito),
     conta_tipo: emEspecie ? null : nulo(p.conta_tipo),
-    // Só conta de titularidade do próprio colaborador: o titular de terceiro
-    // saiu do sistema e o banco de dados recusa qualquer gravação assim.
-    titular_proprio: true,
-    titular_nome: null,
-    titular_cpf: null,
+    // Terceiro só com nome, CPF e relação; exige o termo de autorização (art. 464 CLT).
+    titular_proprio: emEspecie ? true : p.titular_proprio !== false,
+    titular_nome: emEspecie || p.titular_proprio !== false ? null : nulo(p.titular_nome.toUpperCase()),
+    titular_cpf: emEspecie || p.titular_proprio !== false ? null : nulo(p.titular_cpf.replace(/\D/g, "")),
+    titular_relacao: emEspecie || p.titular_proprio !== false ? null : nulo(p.titular_relacao.toUpperCase()),
     pix_tipo: emEspecie ? null : nulo(p.pix_tipo),
     pix_chave: emEspecie ? null : nulo(p.pix_chave),
     recebe_em_especie: emEspecie,
@@ -110,6 +113,17 @@ export const contaPreenchida = (p: Partial<DadosPagamento> | Record<string, unkn
 
 export const pixPreenchido = (p: Partial<DadosPagamento> | Record<string, unknown>) =>
   !!texto((p as DadosPagamento).pix_tipo) && !!texto((p as DadosPagamento).pix_chave);
+
+/** Mudou para um terceiro diferente (exige novo termo de autorização)? */
+export function precisaTermoTerceiro(antes: Partial<DadosPagamento> | null | undefined, depois: DadosPagamento): boolean {
+  if (depois.recebe_em_especie || depois.titular_proprio !== false) return false;
+  if (!antes || antes.titular_proprio !== false) return true;
+  const d = (v: unknown) => texto(v).replace(/\D/g, "");
+  return d(antes.titular_cpf) !== d(depois.titular_cpf)
+    || texto(antes.pix_chave) !== texto(depois.pix_chave)
+    || texto(antes.conta) !== texto(depois.conta)
+    || texto(antes.agencia) !== texto(depois.agencia);
+}
 
 /** Falta informar como a pessoa recebe? (espécie dispensa tudo) */
 export function pagamentoFaltando(c: Record<string, unknown> | null | undefined): boolean {
@@ -156,7 +170,9 @@ export function erroPagamento(p: DadosPagamento): string | null {
     return "Informe os dados da conta (banco, agência e conta) ou a chave Pix.";
   }
   if (p.titular_proprio === false) {
-    return "A conta precisa ser de titularidade do próprio colaborador.";
+    if (!texto(p.titular_nome)) return "Informe o nome do titular da conta ou do Pix.";
+    if (!isValidCpf(p.titular_cpf)) return "Confira o CPF do titular da conta ou do Pix.";
+    if (!texto(p.titular_relacao)) return "Informe o parentesco ou a relação com o titular.";
   }
   if (texto(p.pix_tipo) && !texto(p.pix_chave)) return "Informe a chave Pix.";
   return erroChavePix(p.pix_tipo, p.pix_chave);

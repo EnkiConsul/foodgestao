@@ -63,6 +63,7 @@ import { DIA_PAGAMENTO_PADRAO, DIAS_CORTE_PADRAO, REGRAS_DESCONTO_PADRAO } from 
 
 import { useDeleteDpColaborador } from "@/hooks/useDpColaboradores";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { TermoContaTerceiroPreviaDialog } from "@/components/dp/TermoContaTerceiroPreviaDialog";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
@@ -146,7 +147,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { EnderecoFields, type EnderecoValor } from "@/components/shared/EnderecoFields";
 import {
   CONTA_TIPOS, PAGAMENTO_BLANK, PIX_TIPOS, erroPagamento, pixTipoRecomendado,
-  pagamentoDoRegistro, pagamentoParaBanco, type DadosPagamento,
+  pagamentoDoRegistro, pagamentoParaBanco, precisaTermoTerceiro, type DadosPagamento,
 } from "@/lib/dp/dadosPagamento";
 
 
@@ -343,6 +344,9 @@ export function ColaboradorFormDialog({
   /** Endereço do colaborador, no mesmo bloco usado no resto do sistema. */
   const [endereco, setEndereco] = useState<EnderecoValor>({});
   const [pagamento, setPagamento] = useState<DadosPagamento>(PAGAMENTO_BLANK);
+  // Último pagamento gravado: decide se o terceiro mudou e precisa de novo termo.
+  const pagamentoSalvoRef = useRef<DadosPagamento | null>(null);
+  const [termoTerceiro, setTermoTerceiro] = useState<{ colaboradorId: string; perguntar: boolean } | null>(null);
   const { selectedCompanyId, companies } = useCompanyContext();
   const todosColaboradores = useDpColaboradores();
   /** Benefícios retirados que exigem ciência de isonomia neste salvamento. */
@@ -743,6 +747,7 @@ export function ColaboradorFormDialog({
       uf: texto("uf"),
     });
     setPagamento(pagamentoDoRegistro(c as Record<string, unknown>));
+    pagamentoSalvoRef.current = pagamentoDoRegistro(c as Record<string, unknown>);
     const regime = c.regime ? String(c.regime) : "clt";
     setRem({
       ...remuneracaoBlank,
@@ -1595,6 +1600,15 @@ export function ColaboradorFormDialog({
     );
 
   /** Encerra o salvamento: pergunta pelo padrão da unidade antes de sair da tela. */
+  const concluirOuTermo = (colaboradorId: string, perguntar: boolean) => {
+    if (!admissao && precisaTermoTerceiro(pagamentoSalvoRef.current, pagamento)) {
+      setTermoTerceiro({ colaboradorId, perguntar });
+      return;
+    }
+    pagamentoSalvoRef.current = pagamento;
+    concluir(perguntar);
+  };
+
   const concluir = (perguntar: boolean) => {
     if (perguntar) {
       const escopoInicial = nivelPadrao(padraoAplicavel) ?? "unidade";
@@ -2253,7 +2267,7 @@ export function ColaboradorFormDialog({
           });
         }
         setBaseline(snapshot);
-        concluir(perguntar);
+        concluirOuTermo(colaboradorId, perguntar);
         return;
       }
 
@@ -2276,7 +2290,7 @@ export function ColaboradorFormDialog({
       if (intencaoRef.current !== "close" && tab === "dados") {
         toast("Defina o turno e a jornada");
       }
-      concluir(perguntar);
+      concluirOuTermo(colaboradorId, perguntar);
 
 
 
@@ -2608,10 +2622,38 @@ export function ColaboradorFormDialog({
                       </p>
                     )}
                   </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <p className="text-xs text-muted-foreground">
-                      A conta ou a chave Pix precisa ser de titularidade do próprio colaborador.
-                    </p>
+                  <div className="space-y-3 md:col-span-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={pagamento.titular_proprio !== false}
+                        onCheckedChange={(v) => setPagamento((p) => ({ ...p, titular_proprio: v === true }))}
+                      />
+                      Conta/Pix do próprio colaborador
+                    </label>
+                    {pagamento.titular_proprio === false && (
+                      <div className="grid gap-3 rounded-md border border-dashed p-3 md:grid-cols-3">
+                        <div className="space-y-2 md:col-span-3">
+                          <p className="text-xs text-muted-foreground">
+                            Pagamento em conta de outra pessoa exige termo de autorização assinado pelo colaborador (art. 464 da CLT). Ao salvar, o termo é gerado para assinatura.
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Nome do titular *</Label>
+                          <Input value={pagamento.titular_nome} maxLength={120}
+                            onChange={(e) => setPagamento((p) => ({ ...p, titular_nome: e.target.value.toUpperCase() }))} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>CPF do titular *</Label>
+                          <Input value={pagamento.titular_cpf} inputMode="numeric"
+                            onChange={(e) => setPagamento((p) => ({ ...p, titular_cpf: maskCpf(e.target.value) }))} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Parentesco / relação *</Label>
+                          <Input value={pagamento.titular_relacao} maxLength={40} placeholder="MÃE, CÔNJUGE..."
+                            onChange={(e) => setPagamento((p) => ({ ...p, titular_relacao: e.target.value.toUpperCase() }))} />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 {erroPagamento(pagamento) && (
@@ -4262,6 +4304,37 @@ export function ColaboradorFormDialog({
           onEscolher={(regime) => {
             setForm({ ...form, tipo_vinculo: regime === "clt" ? "CLT" : "Intermitente" });
             setRiscoOpen(false);
+          }}
+        />
+      )}
+      {termoTerceiro && (
+        <TermoContaTerceiroPreviaDialog
+          open
+          onOpenChange={(v) => {
+            if (v) return;
+            const p = termoTerceiro.perguntar;
+            setTermoTerceiro(null);
+            concluir(p);
+          }}
+          companyId={(colaborador?.company_id as string | undefined) ?? selectedCompanyId ?? ""}
+          colaboradorId={termoTerceiro.colaboradorId}
+          pagamento={pagamento}
+          partes={(() => {
+            const emp = (companies ?? []).find((c: any) => c.id === ((colaborador?.company_id as string | undefined) ?? selectedCompanyId)) as any;
+            return {
+              empresa: String(emp?.name || emp?.trade_name || "EMPRESA").toUpperCase(),
+              cnpj: emp?.cnpj ?? null,
+              unidade: unidadeSelecionada?.nome ?? null,
+              nome: form.nome.trim().toUpperCase(),
+              cpf: form.cpf || null,
+              cargo: cargoSelecionado?.nome ?? null,
+            };
+          })()}
+          onEmitido={() => {
+            pagamentoSalvoRef.current = pagamento;
+            const p = termoTerceiro.perguntar;
+            setTermoTerceiro(null);
+            concluir(p);
           }}
         />
       )}

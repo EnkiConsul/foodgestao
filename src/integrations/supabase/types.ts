@@ -6412,6 +6412,7 @@ export type Database = {
           titular_cpf: string | null
           titular_nome: string | null
           titular_proprio: boolean
+          titular_relacao: string | null
           titulo_eleitor: string | null
           titulo_secao: string | null
           titulo_zona: string | null
@@ -6553,6 +6554,7 @@ export type Database = {
           titular_cpf?: string | null
           titular_nome?: string | null
           titular_proprio?: boolean
+          titular_relacao?: string | null
           titulo_eleitor?: string | null
           titulo_secao?: string | null
           titulo_zona?: string | null
@@ -6694,6 +6696,7 @@ export type Database = {
           titular_cpf?: string | null
           titular_nome?: string | null
           titular_proprio?: boolean
+          titular_relacao?: string | null
           titulo_eleitor?: string | null
           titulo_secao?: string | null
           titulo_zona?: string | null
