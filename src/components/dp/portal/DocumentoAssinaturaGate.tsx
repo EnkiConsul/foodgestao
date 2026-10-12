@@ -34,7 +34,7 @@ export const TRAVA_QTD_DOCUMENTOS = 2;
  * o colaborador vê o aviso em qualquer tela. Fechar apenas adia por 10 minutos.
  */
 export function DocumentoAssinaturaGate() {
-  const { user } = useAuth();
+  useAuth();
   const qc = useQueryClient();
   const { pathname } = useLocation();
   const { colaborador, documentos } = useDocumentosAguardandoAssinatura();
