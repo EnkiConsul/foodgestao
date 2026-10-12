@@ -78,24 +78,29 @@ export function CardEscolhaFolgaHome() {
   const { mes, ate } = q.data;
 
   return (
-    <div className="rounded-2xl border-2 border-primary/50 bg-primary/5 p-4 sm:p-5">
-      <div className="flex items-start gap-3">
-        <div className="h-10 w-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
-          <CalendarCheck className="h-5 w-5 text-primary" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-base sm:text-lg font-semibold">Escolha de folga liberada</h2>
-          <p className="text-sm text-muted-foreground">
-            A escolha das suas folgas de {mes} está disponível.
-            {ate ? ` Escolha até ${ate} para garantir as datas de sua preferência.` : ""}
-          </p>
-          <Button asChild size="sm" className="mt-3 w-full sm:w-auto">
-            <Link to="/dp/meu/calendario">
-              Escolher minha folga <ArrowRight className="h-4 w-4 ml-1" />
-            </Link>
-          </Button>
+    <div className="rounded-xl border bg-card p-4 shadow-sm">
+      <p className="flex items-center gap-2 font-semibold">
+        <CalendarCheck className="h-5 w-5 text-primary" /> Folga para escolher
+      </p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Escolha suas folgas de {mes}{ate ? ` até ${ate}` : ""} para garantir as datas de sua preferência.
+      </p>
+      <div className="mt-3 rounded-lg border p-3">
+        <div className="flex items-start gap-3">
+          <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <CalendarCheck className="size-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-medium break-words">Escolha de folga de {mes}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{ate ? `Prazo até ${ate}` : "Janela aberta"}</p>
+          </div>
         </div>
       </div>
+      <Button asChild className="mt-3 w-full min-h-10">
+        <Link to="/dp/meu/calendario">
+          Escolher minha folga <ArrowRight className="h-4 w-4 ml-1" />
+        </Link>
+      </Button>
     </div>
   );
 }
