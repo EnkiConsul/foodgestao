@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, Home, Store, Users } from "lucide-react";
+import { ArrowLeftRight, Clock, Home, Store, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
@@ -37,16 +38,24 @@ const ORIGEM_LABEL: Record<string, string> = {
  * e já aplica escala publicada > convocação aceita > jornada habitual.
  * Ausências de colegas nunca mostram motivo — só folgas já visíveis no calendário.
  */
+const SITUACAO_FORA: Record<string, { texto: string; tom: string }> = {
+  folga: { texto: "Folga", tom: "bg-amber-500/15 text-amber-700 border-amber-500/30" },
+  ferias: { texto: "Férias", tom: "bg-sky-500/15 text-sky-700 border-sky-500/30" },
+  ausente: { texto: "Ausente", tom: "bg-muted text-muted-foreground" },
+};
+
 export function RotinaDoDiaPanel({
   iso,
   minhaFolga,
-  colegasDeFolga,
+  trocaveis = [],
+  onTrocar,
 }: {
   iso: string;
   /** Rótulo da minha folga no dia (vem do próprio calendário), ou null. */
   minhaFolga: string | null;
-  /** Colegas de folga no dia, já exibidos no calendário. */
-  colegasDeFolga: string[];
+  /** Colegas de folga cuja folga pode ser trocada neste dia (regras do calendário). */
+  trocaveis?: string[];
+  onTrocar?: (colaboradorId: string, nome: string) => void;
 }) {
   const { data: vinculo } = useMeuVinculoPortal();
 
@@ -79,6 +88,22 @@ export function RotinaDoDiaPanel({
     },
   });
 
+  // Fora da operação: o servidor devolve só situação pública (folga/férias/ausente), nunca o motivo.
+  const foraQ = useQuery({
+    queryKey: ["dp_portal_equipe_fora_dia", vinculo?.unidadeId, iso],
+    enabled: !!vinculo?.unidadeId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("dp_portal_equipe_fora_dia" as any, { p_data: iso });
+      if (error) throw error;
+      return ((data ?? []) as any[]).map((l) => ({
+        id: l.colaborador_id as string,
+        nome: toUpperCadastro(nomeExibicao(l)),
+        cargo: (l.cargo as string) || "Sem função definida",
+        situacao: l.situacao as string,
+      }));
+    },
+  });
+
   const situacaoQ = useQuery({
     queryKey: ["dp_minha_situacao_dia", vinculo?.colaboradorId, iso],
     enabled: !!vinculo?.unidadeId,
@@ -90,6 +115,7 @@ export function RotinaDoDiaPanel({
   });
 
   const lista = q.data ?? [];
+  const fora = foraQ.data ?? [];
   const meuId = vinculo?.colaboradorId;
   const eu = lista.find((p) => p.id === meuId) ?? null;
   const dependeConvocacao = !!vinculo?.podeSerConvocado;
