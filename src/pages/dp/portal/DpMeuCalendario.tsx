@@ -1054,6 +1054,7 @@ export default function DpMeuCalendario() {
       toast.success("Folga marcada!");
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+      invalidarRotinaLoja();
       const me = meRef.data as { nome?: string; unidade_id?: string | null; vinculo_label?: string | null } | null;
       if (me && isSocio(me.vinculo_label)) {
         setSocioBloqueio({ nome: me.nome ?? "Sócio", datas: [iso], unidadeId: me.unidade_id ?? null });
@@ -1097,6 +1098,7 @@ export default function DpMeuCalendario() {
       toast.success("Folga removida.");
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+      invalidarRotinaLoja();
     },
     onError: (e: any) => notifyError(e, { surface: "Meu calendário", action: "concluir a ação", fallback: "Erro ao remover folga" }),
   });
