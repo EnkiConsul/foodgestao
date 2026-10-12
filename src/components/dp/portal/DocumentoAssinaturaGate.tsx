@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Eye, PenLine, FileText, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +10,9 @@ import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
 import { assinarTroca } from "@/lib/dp/troca-assinatura";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { TermoTrocaPreviewDialog } from "@/components/dp/trocas/TermoTrocaPreviewDialog";
+import type { DpTrocaRow } from "@/hooks/useDpTrocas";
 import {
   useDocumentosAguardandoAssinatura,
   type DocParaAssinar,
@@ -32,20 +33,52 @@ export const TRAVA_QTD_DOCUMENTOS = 2;
  * o colaborador vê o aviso em qualquer tela. Fechar apenas adia por 10 minutos.
  */
 export function DocumentoAssinaturaGate() {
-  const { user } = useAuth();
   const qc = useQueryClient();
-  const navigate = useNavigate();
   const { pathname } = useLocation();
   const { colaborador, documentos } = useDocumentosAguardandoAssinatura();
 
   const [adiado, setAdiado] = useState(false);
   const [visualizou, setVisualizou] = useState<string | null>(null);
   const [preview, setPreview] = useState<DocParaAssinar | null>(null);
+  const [previewTroca, setPreviewTroca] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
   const [assinaturaPng, setAssinaturaPng] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const atual = documentos[0] ?? null;
+
+  // Termo de troca: abre na própria janela do aviso, sem trocar de tela.
+  const trocaAtual = useQuery({
+    queryKey: ["dp_troca_termo_gate", atual?.troca_id],
+    enabled: !!atual?.troca_id && previewTroca,
+    staleTime: 60_000,
+    retry: false,
+    queryFn: async (): Promise<DpTrocaRow | null> => {
+      const { data, error } = await supabase
+        .from("dp_trocas")
+        .select(
+          `*, solicitante:solicitante_id(nome, matricula, cargo_id, unidade_id, cargo:cargo_id(nome), unidade:unidade_id(nome)), destino:destino_id(nome, matricula, cargo_id, unidade_id, cargo:cargo_id(nome), unidade:unidade_id(nome))`,
+        )
+        .eq("id", atual!.troca_id!)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? ({ ...(data as any), modo: "direta" } as DpTrocaRow) : null;
+    },
+  });
+
+  const empresaTermo = useQuery({
+    queryKey: ["dp_minha_empresa_termo", colaborador?.company_id],
+    enabled: !!colaborador?.company_id && previewTroca,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("name, trade_name")
+        .eq("id", colaborador!.company_id!)
+        .maybeSingle();
+      return { nome: (data as any)?.name ?? (data as any)?.trade_name ?? "Empresa" };
+    },
+  });
   const diasAtraso = atual
     ? Math.floor((Date.now() - new Date(atual.created_at).getTime()) / 86_400_000)
     : 0;
@@ -87,6 +120,7 @@ export function DocumentoAssinaturaGate() {
       setAssinaturaPng(null);
       setConfirmar(false);
       setPreview(null);
+      setPreviewTroca(false);
       qc.invalidateQueries({ queryKey: ["dp_docs_aguardando_assinatura"] });
       qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias_colaborador"] });
@@ -164,8 +198,9 @@ export function DocumentoAssinaturaGate() {
               disabled={!atual.file_path && !atual.troca_id}
               onClick={() => {
                 if (atual.troca_id) {
-                  // O termo de troca abre na tela de trocas, que já mostra a leitura e a assinatura.
-                  navigate(`/dp/meu/trocas?assinar=${atual.troca_id}`);
+                  // O termo de troca abre em janela sobreposta, sem sair da tela.
+                  setPreviewTroca(true);
+                  setVisualizou(atual.id);
                   return;
                 }
                 setPreview(atual);
@@ -220,13 +255,23 @@ export function DocumentoAssinaturaGate() {
         }
       />
 
+      <TermoTrocaPreviewDialog
+        troca={previewTroca ? (trocaAtual.data ?? null) : null}
+        empresa={empresaTermo.data ?? { nome: "Empresa" }}
+        onOpenChange={(v) => { if (!v) setPreviewTroca(false); }}
+        onAssinar={() => { setPreviewTroca(false); setConfirmar(true); }}
+      />
+
       <AssinaturaConfirmarDialog
-        open={confirmar && !!preview}
+        open={confirmar && !!(preview || (atual?.troca_id && visualizou === atual.id))}
         onOpenChange={setConfirmar}
-        titulo={preview?.titulo ?? ""}
+        titulo={(preview ?? atual)?.titulo ?? ""}
         nome={String(colaborador?.nome_social || colaborador?.nome || "")}
         enviando={assinar.isPending}
-        onConfirmar={(png) => preview && assinar.mutate({ d: preview, png })}
+        onConfirmar={(png) => {
+          const d = preview ?? atual;
+          if (d) assinar.mutate({ d, png });
+        }}
       />
 
     </>
