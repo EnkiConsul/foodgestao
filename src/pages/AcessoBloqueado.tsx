@@ -1,6 +1,6 @@
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { useModuleAccess, useCompanyEntitlements, MODULO_ROTULO, type ModuloAcesso } from "@/hooks/useModuleAccess";
-import { AlertTriangle, CreditCard, LifeBuoy, Sparkles } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Building2, CreditCard, LifeBuoy, LogOut, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExportMyDataCard } from "@/components/settings/ExportMyDataCard";
@@ -102,6 +102,7 @@ export default function AcessoBloqueado() {
     return (
       <div className="min-h-screen bg-background px-4 py-10">
         <div className="mx-auto w-full max-w-2xl space-y-6">
+          <VoltarAoHub />
           {mods.map((m) => {
             const motivo = ent.data?.[m]?.motivo ?? "sem_acesso";
             return (
@@ -165,6 +166,7 @@ export default function AcessoBloqueado() {
   return (
     <div className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto w-full max-w-2xl space-y-6">
+        <VoltarAoHub />
         <Card className="border-destructive/40">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
