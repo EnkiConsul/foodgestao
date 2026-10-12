@@ -8,10 +8,10 @@ import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 
 export type ShortcutSlot = "a" | "b" | "c";
 
-const keyOf = (mod: ActiveModule, slot: ShortcutSlot) =>
+const keyOf = (mod: string, slot: ShortcutSlot) =>
   `aveto:mobile-shortcut:v2:${mod}:${slot}`;
 
-function readStored(mod: ActiveModule, slot: ShortcutSlot): string | null {
+function readStored(mod: string, slot: ShortcutSlot): string | null {
   if (typeof window === "undefined") return null;
   try {
     return window.localStorage.getItem(keyOf(mod, slot));
@@ -20,7 +20,7 @@ function readStored(mod: ActiveModule, slot: ShortcutSlot): string | null {
   }
 }
 
-function writeStored(mod: ActiveModule, slot: ShortcutSlot, to: string) {
+function writeStored(mod: string, slot: ShortcutSlot, to: string) {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(keyOf(mod, slot), to);
@@ -75,27 +75,29 @@ function resolve(
  */
 export function useModuleShortcuts(mod: ActiveModule) {
   const { available, mobileShortcuts, setMobileShortcut } = useDpUserPrefs();
+  // Portal: versão nova dos atalhos (2 = Documentos, 4 = Calendário) para todos.
+  const store = mod === "portal_colaborador" ? "portal_colaborador_v3" : mod;
 
-  const [localA, setLocalA] = useState<string | null>(() => readStored(mod, "a"));
-  const [localB, setLocalB] = useState<string | null>(() => readStored(mod, "b"));
-  const [localC, setLocalC] = useState<string | null>(() => readStored(mod, "c"));
+  const [localA, setLocalA] = useState<string | null>(() => readStored(store, "a"));
+  const [localB, setLocalB] = useState<string | null>(() => readStored(store, "b"));
+  const [localC, setLocalC] = useState<string | null>(() => readStored(store, "c"));
 
   useEffect(() => {
-    setLocalA(readStored(mod, "a"));
-    setLocalB(readStored(mod, "b"));
-    setLocalC(readStored(mod, "c"));
-  }, [mod]);
+    setLocalA(readStored(store, "a"));
+    setLocalB(readStored(store, "b"));
+    setLocalC(readStored(store, "c"));
+  }, [store]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const onStorage = (e: StorageEvent) => {
-      if (e.key === keyOf(mod, "a")) setLocalA(e.newValue);
-      if (e.key === keyOf(mod, "b")) setLocalB(e.newValue);
-      if (e.key === keyOf(mod, "c")) setLocalC(e.newValue);
+      if (e.key === keyOf(store, "a")) setLocalA(e.newValue);
+      if (e.key === keyOf(store, "b")) setLocalB(e.newValue);
+      if (e.key === keyOf(store, "c")) setLocalC(e.newValue);
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, [mod]);
+  }, [store]);
 
   const config = MODULE_NAV[mod] ?? MODULE_NAV.financeiro;
   const { hidden } = useHiddenScreens();
@@ -110,7 +112,7 @@ export function useModuleShortcuts(mod: ActiveModule) {
 
   // Fonte primária: se sincronização estiver disponível, usa o backend;
   // senão, localStorage.
-  const remote = available ? mobileShortcuts[mod] ?? {} : null;
+  const remote = available ? mobileShortcuts[store] ?? {} : null;
   const rawA = remote ? remote.a ?? null : localA;
   const rawB = remote ? remote.b ?? null : localB;
   const rawC = remote ? remote.c ?? null : localC;
@@ -127,34 +129,34 @@ export function useModuleShortcuts(mod: ActiveModule) {
   const migratedRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!available) return;
-    if (migratedRef.current.has(mod)) return;
+    if (migratedRef.current.has(store)) return;
     const backendHas = remote && (remote.a || remote.b || remote.c);
     if (backendHas) {
-      migratedRef.current.add(mod);
+      migratedRef.current.add(store);
       return;
     }
-    const a = readStored(mod, "a");
-    const b = readStored(mod, "b");
-    const c = readStored(mod, "c");
-    if (a) setMobileShortcut(mod, "a", a);
-    if (b) setMobileShortcut(mod, "b", b);
-    if (c) setMobileShortcut(mod, "c", c);
-    migratedRef.current.add(mod);
+    const a = readStored(store, "a");
+    const b = readStored(store, "b");
+    const c = readStored(store, "c");
+    if (a) setMobileShortcut(store, "a", a);
+    if (b) setMobileShortcut(store, "b", b);
+    if (c) setMobileShortcut(store, "c", c);
+    migratedRef.current.add(store);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [available, mod]);
+  }, [available, store]);
 
   const setShortcut = useCallback(
     (slot: ShortcutSlot, to: string) => {
       if (available) {
-        setMobileShortcut(mod, slot, to);
+        setMobileShortcut(store, slot, to);
       } else {
-        writeStored(mod, slot, to);
+        writeStored(store, slot, to);
         if (slot === "a") setLocalA(to);
         else if (slot === "b") setLocalB(to);
         else setLocalC(to);
       }
     },
-    [available, mod, setMobileShortcut],
+    [available, store, setMobileShortcut],
   );
 
   return {
