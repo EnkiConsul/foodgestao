@@ -21,7 +21,7 @@ export function StepModulos({ selectedSlugs, onToggle }: Props) {
         </p>
       </div>
 
-      <div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-[hsl(var(--onboarding-accent-soft))] p-4">
+      <div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-onboarding-accent-soft p-4">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
           <Gift className="h-4 w-4" />
         </div>
