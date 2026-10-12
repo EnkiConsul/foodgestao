@@ -85,7 +85,7 @@ import {
 } from "@/lib/dp/folga-rules";
 import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import { cn } from "@/lib/utils";
-import { CalendarioMobileLista } from "@/components/dp/CalendarioMobileLista";
+import { DiasEmLista, type DiaEmLista } from "@/components/dp/DiasEmLista";
 import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { MinhaDisponibilidadeCard } from "@/components/dp/MinhaDisponibilidadeCard";
