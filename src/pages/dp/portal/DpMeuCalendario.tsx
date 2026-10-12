@@ -500,6 +500,7 @@ export default function DpMeuCalendario() {
   // sempre que uma dessas fontes muda, o painel precisa recarregar também.
   const invalidarRotinaLoja = () => {
     qc.invalidateQueries({ queryKey: ["dp_meu_rotina_loja"] });
+    qc.invalidateQueries({ queryKey: ["dp_card_escolha_folga"] });
     qc.invalidateQueries({ queryKey: ["dp_portal_equipe_fora_dia"] });
     qc.invalidateQueries({ queryKey: ["dp_minha_situacao_dia"] });
   };
