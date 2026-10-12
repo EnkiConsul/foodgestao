@@ -46,6 +46,8 @@ type Campo = {
   opcoes?: Opcao[];
   /** Só o gestor pode mudar; o candidato pede correção. */
   somenteLeitura?: boolean;
+  /** Só aparece quando a condição sobre o que já foi preenchido vale. */
+  quando?: (f: Record<string, string>) => boolean;
 };
 
 const RACA_COR: Opcao[] = [
@@ -135,6 +137,18 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?:
       { nome: "conta_tipo", rotulo: "Tipo de conta", opcoes: CONTA_TIPOS },
       { nome: "pix_tipo", rotulo: "Tipo da chave Pix", opcoes: PIX_TIPOS },
       { nome: "pix_chave", rotulo: "Chave Pix" },
+      {
+        nome: "pagamento_terceiro",
+        rotulo: "A conta ou o Pix é seu?",
+        opcoes: [
+          { value: "nao", label: "Sim, está no meu nome" },
+          { value: "sim", label: "Não tenho conta em meu nome (pedir conta de outra pessoa)" },
+        ],
+        ajuda: "Receber em conta de outra pessoa é exceção: a empresa avalia e, se aprovar, você assina um termo de autorização (art. 464 da CLT).",
+      },
+      { nome: "titular_nome", rotulo: "Nome completo do titular da conta", upper: true, quando: (f) => f.pagamento_terceiro === "sim" },
+      { nome: "titular_cpf", rotulo: "CPF do titular da conta", mask: "cpf", inputMode: "numeric", quando: (f) => f.pagamento_terceiro === "sim" },
+      { nome: "titular_relacao", rotulo: "Parentesco ou relação com o titular", upper: true, ajuda: "Ex.: MÃE, CÔNJUGE, IRMÃO.", quando: (f) => f.pagamento_terceiro === "sim" },
     ],
   },
   {
@@ -757,7 +771,7 @@ export default function PreAdmissao() {
     if (r) return r;
     return OBRIGATORIOS_PADRAO.has(nome) ? "obrigatorio" : "opcional";
   };
-  const campoVisivel = (c: Campo) => exigenciaCampo(c.nome) !== "nao_pedir";
+  const campoVisivel = (c: Campo) => exigenciaCampo(c.nome) !== "nao_pedir" && (!c.quando || c.quando(form));
   const parentescosPermitidos = estado?.parentescos_permitidos ?? null;
   /** Finalidades liberadas num grau, já com as marcações antigas como reserva. */
   const liberadasDoGrau = (grau: string): string[] => {
