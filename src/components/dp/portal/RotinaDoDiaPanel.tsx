@@ -1,9 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, Clock, Home, Store, Users } from "lucide-react";
+import { Clock, Home, Store, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
@@ -50,7 +49,6 @@ export function RotinaDoDiaPanel({
   colegasDeFolga: string[];
 }) {
   const { data: vinculo } = useMeuVinculoPortal();
-  const [aberto, setAberto] = useState(false);
 
   const q = useQuery({
     queryKey: ["dp_meu_rotina_loja", vinculo?.unidadeId, iso],
