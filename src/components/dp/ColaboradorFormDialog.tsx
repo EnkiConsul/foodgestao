@@ -2633,9 +2633,15 @@ export function ColaboradorFormDialog({
                     {pagamento.titular_proprio === false && (
                       <div className="grid gap-3 rounded-md border border-dashed p-3 md:grid-cols-3">
                         <div className="space-y-2 md:col-span-3">
-                          <p className="text-xs text-muted-foreground">
-                            Pagamento em conta de outra pessoa exige termo de autorização assinado pelo colaborador (art. 464 da CLT). Ao salvar, o termo é gerado para assinatura.
-                          </p>
+                          {admissao ? (
+                            <p className="rounded-md bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-400">
+                              ⚠️ O candidato pediu para receber em conta de outra pessoa. Para aprovar, mantenha os dados abaixo: o termo de autorização abre logo após a efetivação. Para recusar, marque "Conta/Pix do próprio colaborador" e peça a conta própria ao candidato.
+                            </p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">
+                              Pagamento em conta de outra pessoa exige termo de autorização assinado pelo colaborador (art. 464 da CLT). Ao salvar, o termo é gerado para assinatura.
+                            </p>
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label>Nome do titular *</Label>

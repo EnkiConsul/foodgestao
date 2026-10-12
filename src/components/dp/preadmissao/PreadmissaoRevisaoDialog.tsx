@@ -1414,7 +1414,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
               unidade: unidades.find((u) => u.id === admin.unidade_id)?.nome ?? null,
               nome: String(ficha.nome ?? pa.candidato_nome ?? "").toUpperCase(),
               cpf: ficha.cpf || pa.cpf || null,
-              cargo: (cargosLista ?? []).find((c: { id: string }) => c.id === admin.cargo_id)?.nome ?? null,
+              cargo: (cargos as Array<{ id: string; nome: string }>).find((c) => c.id === admin.cargo_id)?.nome ?? null,
             };
           })()}
           onEmitido={() => setTermoTerceiroDe(null)}
