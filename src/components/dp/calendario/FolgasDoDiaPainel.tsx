@@ -280,10 +280,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
   const [acao, setAcao] = useState<{ item: FolgaDia; tipo: "cancelar" | "remarcar" } | null>(null);
   const [motivo, setMotivo] = useState("");
   const [novaData, setNovaData] = useState("");
-  /** Confirmação digitada para a sobrescrita da folga no remarcar. */
-  const [confRemarcar, setConfRemarcar] = useState("");
   const [consome, setConsome] = useState(true);
-  const remarcarConfirmado = confRemarcar.trim().toUpperCase() === "REMARCAR";
 
   const q = useQuery({
     queryKey: ["dp_folgas_do_dia", companyId, data],
