@@ -769,7 +769,7 @@ export default function Auth() {
                   className="min-h-0 py-0.5 text-left text-xs font-medium text-primary hover:underline md:min-h-11"
                   onClick={() => navigate("/esqueci-senha?primeiro=1")}
                 >
-                  Primeiro acesso? Crie sua senha pelo CPF
+                  Colaborador cadastrado? Ative seu acesso pelo CPF
                 </button>
               </div>
             ) : (

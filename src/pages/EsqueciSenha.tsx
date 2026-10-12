@@ -267,10 +267,10 @@ export default function EsqueciSenha() {
         </Link>
         <Card className="w-full">
         <CardHeader>
-          <CardTitle className="text-2xl">{primeiro ? "Primeiro Acesso" : "Recuperar senha"}</CardTitle>
+          <CardTitle className="text-2xl">{primeiro ? "Primeiro Acesso — Portal do Colaborador" : "Recuperar senha"}</CardTitle>
           <CardDescription>
             {step === "identify" && (primeiro
-              ? "Digite seu CPF. Enviaremos um código de segurança para o WhatsApp da sua ficha."
+              ? "Exclusivo para colaboradores cadastrados pela empresa. Digite seu CPF para enviarmos um código de segurança ao WhatsApp da sua ficha."
               : "Informe seu e-mail ou CPF. Enviaremos um código pelo WhatsApp cadastrado.")}
             {step === "otp" && (telefoneMascarado
               ? `Enviamos um código de 6 dígitos para o WhatsApp com final ${telefoneMascarado}. Digite o código abaixo para criar sua senha.`
