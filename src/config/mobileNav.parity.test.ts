@@ -56,7 +56,7 @@ describe("paridade sidebar DP x menu Mais (mobile)", () => {
 
   it("apenas o item mais específico fica ativo", () => {
     const routes = surfaceRoutes(DP_ADMIN_NAV);
-    expect(resolveActiveRoute("/dp/escalas/mes", routes)).toBe("/dp/escalas/mes");
+    expect(resolveActiveRoute("/dp/ocorrencias/12", routes)).toBe("/dp/ocorrencias");
     expect(resolveActiveRoute("/dp/colaboradores/12", routes)).toBe("/dp/colaboradores");
 
     expect(resolveActiveRoute("/dp", routes)).toBe("/dp");
