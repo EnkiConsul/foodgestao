@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { PageSpinner } from "@/components/PageSpinner";
 import { PermissionRouteGuard } from "@/components/users/PermissionRouteGuard";
 import { Outlet, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,7 +23,7 @@ export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" })
 
   const conteudo = (
     <HiddenScreenGuard surface={variant}>
-      <PermissionRouteGuard><Outlet /></PermissionRouteGuard>
+      <PermissionRouteGuard><Suspense fallback={<PageSpinner />}><Outlet /></Suspense></PermissionRouteGuard>
     </HiddenScreenGuard>
   );
 
