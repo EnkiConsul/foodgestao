@@ -19888,6 +19888,20 @@ export type Database = {
           data: string
         }[]
       }
+      dp_portal_trocas_partes: {
+        Args: { p_ids: string[] }
+        Returns: {
+          destino_cargo: string
+          destino_matricula: string
+          destino_nome: string
+          destino_unidade: string
+          solicitante_cargo: string
+          solicitante_matricula: string
+          solicitante_nome: string
+          solicitante_unidade: string
+          troca_id: string
+        }[]
+      }
       dp_preadmissao_anexar_somente: {
         Args: {
           p_file_name?: string

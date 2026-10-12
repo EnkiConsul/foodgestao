@@ -1,3 +1,4 @@
+import { completarPartesTrocas } from "@/lib/dp/troca-partes";
 import { CienciaFaltaTrocaBox, TEXTO_CIENCIA_FALTA_TROCA } from "@/components/dp/CienciaFaltaTrocaBox";
 import { Link } from "react-router-dom";
 import { sugerirPushContextual } from "@/components/dp/PushSoftPrompt";
@@ -119,7 +120,7 @@ export default function DpMeuTrocas() {
         .select("*, solicitante:solicitante_id(nome), destino:destino_id(nome)")
         .or(`solicitante_id.eq.${meRef.data!.id},destino_id.eq.${meRef.data!.id}`)
         .order("created_at", { ascending: false });
-      return data ?? [];
+      return completarPartesTrocas((data ?? []) as any[]);
     },
   });
 
