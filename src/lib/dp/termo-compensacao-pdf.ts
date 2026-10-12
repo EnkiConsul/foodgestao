@@ -94,6 +94,7 @@ export async function gerarTermoCompensacaoPdf(d: DadosTermoPdf): Promise<Uint8A
   caixa("EMPREGADO(A)", [d.nome, [d.cpf ? `CPF ${d.cpf}` : null, d.cargo ? `Cargo: ${d.cargo}` : null].filter(Boolean).join("  ·  ") || " "]);
   y -= 6;
 
+  if (d.jornada.length) {
   // Quadro da jornada
   garantir(40 + d.jornada.length * 18);
   texto("QUADRO DA JORNADA SEMANAL", M, y, 10, b); y -= 10;
@@ -114,6 +115,8 @@ export async function gerarTermoCompensacaoPdf(d: DadosTermoPdf): Promise<Uint8A
   page.drawLine({ start: { x: M, y }, end: { x: W - M, y }, thickness: 0.6, color: AZUL });
   linhaTabela(["Total semanal", "", "", "", fmtHoras(total)], null, b);
   y -= 14;
+
+  }
 
   // Cláusulas
   for (const c of d.clausulas.filter((c) => c.trim())) {
