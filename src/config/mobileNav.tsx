@@ -228,7 +228,7 @@ const GLOBAL_SHORTCUT_DEFAULTS: Record<
   { A: string; B: string; C?: string }
 > = {
   financeiro: { A: "/lancamentos", B: "/contas-bancarias" },
-  dp:         { A: "/dp/documentos", B: "/dp/folgas" },
+  dp:         { A: "/dp/documentos", B: "/dp/rotina/calendario" },
   portal_colaborador: { A: "/dp/meu/documentos", B: "/dp/meu/calendario" },
   hub:        { A: "/dashboard", B: "/dp", C: "/buscar" },
   admin:      { A: "/admin/clientes", B: "/admin/assinaturas" },
