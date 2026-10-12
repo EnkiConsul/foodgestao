@@ -76,7 +76,7 @@ function resolve(
 export function useModuleShortcuts(mod: ActiveModule) {
   const { available, mobileShortcuts, setMobileShortcut } = useDpUserPrefs();
   // Portal: versão nova dos atalhos (2 = Documentos, 4 = Calendário) para todos.
-  const store = mod === "portal_colaborador" ? "portal_colaborador_v3" : mod;
+  const store = mod === "portal_colaborador" ? "portal_colaborador_v3" : mod === "dp" ? "dp_v2" : mod;
 
   const [localA, setLocalA] = useState<string | null>(() => readStored(store, "a"));
   const [localB, setLocalB] = useState<string | null>(() => readStored(store, "b"));
