@@ -39,7 +39,7 @@ export function MobileBottomNav() {
   // Rótulo curto pelo vínculo: o calendário do portal é de folgas para quem
   // tem escala fixa e de convocações para intermitente/freelancer por hora ou diária.
   const rotular = (leaf: NavLeaf): NavLeaf => {
-    if (leaf.to === "/dp/meu/calendario") return { ...leaf, label: convocavel ? "Calendário" : "Folgas" };
+    if (leaf.to === "/dp/meu/calendario") return { ...leaf, label: "Calendário" };
     if (leaf.to === "/dp/documentos" || leaf.to === "/dp/meu/documentos") return { ...leaf, label: "Documentos" };
     return leaf;
   };
