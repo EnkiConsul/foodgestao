@@ -505,6 +505,13 @@
       "when": 1791776664609,
       "tag": "0071_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1791777312495,
+      "tag": "0072_preadmissao_pagamento_terceiro",
+      "breakpoints": true
     }
   ]
 }
