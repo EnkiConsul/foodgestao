@@ -9,6 +9,40 @@ import { PageSpinner } from "@/components/PageSpinner";
 import { CoberturaOpcoes } from "@/components/billing/CoberturaOpcoes";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 
+/** Saída sempre visível: quem chega nesta tela nunca pode ficar sem para onde ir. */
+function VoltarAoHub() {
+  return (
+    <div>
+      <Button asChild variant="ghost" size="sm" className="-ml-2 h-8 text-muted-foreground">
+        <Link to="/hub">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao Hub
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
+/** Apoio de rodapé: trocar de empresa (quando há mais de uma) ou sair da conta. */
+function AcoesSaida() {
+  const { companies } = useCompanyContext();
+  return (
+    <div className="flex flex-wrap gap-2 pt-1">
+      {companies.length > 1 && (
+        <Button asChild variant="outline" size="sm">
+          <Link to="/empresas">
+            <Building2 className="mr-2 h-4 w-4" /> Trocar de Empresa
+          </Link>
+        </Button>
+      )}
+      <Button asChild variant="outline" size="sm">
+        <Link to="/sair">
+          <LogOut className="mr-2 h-4 w-4" /> Sair da Conta
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
 const TEXTOS: Record<MotivoBloqueio, { titulo: string; descricao: string }> = {
   sem_assinatura: {
     titulo: "Escolha um plano para continuar",
@@ -90,6 +124,9 @@ export default function AcessoBloqueado() {
             <Button asChild variant="outline"><Link to="/empresas">Ir para Empresas</Link></Button>
           </CardContent>
         </Card>
+        <div className="mx-auto mt-4 w-full max-w-lg">
+          <AcoesSaida />
+        </div>
       </div>
     );
   }
@@ -124,6 +161,7 @@ export default function AcessoBloqueado() {
             );
           })}
           <ExportMyDataCard />
+          <AcoesSaida />
         </div>
       </div>
     );
@@ -236,6 +274,8 @@ export default function AcessoBloqueado() {
               Após a confirmação do pagamento integral, o acesso é restabelecido — em até dois dias
               úteis, conforme a forma de pagamento.
             </p>
+
+            <AcoesSaida />
           </CardContent>
         </Card>
 
