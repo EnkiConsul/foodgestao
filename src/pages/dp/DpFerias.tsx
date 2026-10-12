@@ -30,7 +30,6 @@ import {
   riscoAcumuloPorColaborador,
 } from "@/lib/dp/ferias-direito";
 import { dataBr as fmt } from "@/lib/dp/formato";
-import { RotinaSubNav } from "@/components/dp/rotina/RotinaNav";
 
 
 const PERIODO_LABEL: Record<FeriasPeriodoStatus, string> = {
@@ -217,7 +216,6 @@ export default function DpFerias() {
 
   return (
     <DpPage>
-      <RotinaSubNav />
       {!embedded && <Helmet><title>Férias — Pessoas 360°</title></Helmet>}
       {!embedded && (
         <DpPageHeader

@@ -31,7 +31,6 @@ import { antecedenciaDias } from "@/lib/dp/convocacoes-planejamento";
 import { cn } from "@/lib/utils";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { mensagemErro } from "@/lib/dp/mensagemErro";
-import { RotinaSubNav } from "@/components/dp/rotina/RotinaNav";
 
 const hoje = () => new Date().toISOString().slice(0, 10);
 const emDias = (n: number) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
@@ -325,7 +324,6 @@ export default function DpConvocacoes() {
 
   return (
     <DpPage>
-      <RotinaSubNav />
       <Helmet>
         <title>Convocações | Pessoas 360°</title>
         <meta
