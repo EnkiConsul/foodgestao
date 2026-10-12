@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -42,6 +43,54 @@ function ImpactoLimite({ valor, onChange }: { valor: boolean; onChange: (v: bool
         <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="nao" /> Não impactar o limite (folga excepcional)</label>
       </RadioGroup>
     </div>
+  );
+}
+
+/** Janela de remarcação: nova data em largura total e rodapé com Confirmar/Voltar. */
+function RemarcarFolgaDialog({
+  aberto, onFechar, nome, dataBr, passado, novaData, setNovaData, consome, setConsome, onConfirm, pendente,
+}: {
+  aberto: boolean;
+  onFechar: () => void;
+  nome: string;
+  dataBr: string;
+  passado: boolean;
+  novaData: string;
+  setNovaData: (v: string) => void;
+  consome: boolean;
+  setConsome: (v: boolean) => void;
+  onConfirm: () => void;
+  pendente: boolean;
+}) {
+  return (
+    <DpDialogShell
+      open={aberto}
+      onOpenChange={(o) => { if (!o) onFechar(); }}
+      icon={RefreshCw}
+      title="Remarcar Folga"
+      description={`Mover a folga de ${nome} do dia ${dataBr} para outra data.`}
+      size="sm"
+      footer={
+        <>
+          <Button variant="outline" onClick={onFechar}>Voltar</Button>
+          <Button disabled={pendente || !novaData} onClick={onConfirm}>Confirmar Remarcação</Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {passado && (
+          <p className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs text-amber-900 dark:text-amber-200">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            Esta data já passou ({dataBr}). Remarcar altera o histórico do colaborador.
+          </p>
+        )}
+        <div className="grid gap-1.5">
+          <Label htmlFor="remarcar-nova-data">Nova data <span className="text-destructive">*</span></Label>
+          <Input id="remarcar-nova-data" type="date" className="h-11 w-full" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
+        </div>
+        <ImpactoLimite valor={consome} onChange={setConsome} />
+      </div>
+    </DpDialogShell>
   );
 }
 
@@ -231,10 +280,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
   const [acao, setAcao] = useState<{ item: FolgaDia; tipo: "cancelar" | "remarcar" } | null>(null);
   const [motivo, setMotivo] = useState("");
   const [novaData, setNovaData] = useState("");
-  /** Confirmação digitada para a sobrescrita da folga no remarcar. */
-  const [confRemarcar, setConfRemarcar] = useState("");
   const [consome, setConsome] = useState(true);
-  const remarcarConfirmado = confRemarcar.trim().toUpperCase() === "REMARCAR";
 
   const q = useQuery({
     queryKey: ["dp_folgas_do_dia", companyId, data],
@@ -332,7 +378,6 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
       setAcao(null);
       setMotivo("");
       setNovaData("");
-      setConfRemarcar("");
       invalidar();
     },
     onError: (e) =>
@@ -360,27 +405,21 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
     if (!i) return null;
     return (
       <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
-        {acao?.item.key === i.key && acao.tipo === "remarcar" ? (
-          <div className="flex w-full flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <Input type="date" className="h-8 w-40" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
-              <Input className="h-8 w-44" placeholder='Digite REMARCAR' value={confRemarcar} onChange={(e) => setConfRemarcar(e.target.value)} />
-            </div>
-            <ImpactoLimite valor={consome} onChange={setConsome} />
-            {passado && (
-              <p className="text-[11px] text-amber-700 dark:text-amber-300">Esta data já passou ({dataBr}). Remarcar altera o histórico do colaborador.</p>
-            )}
-            <div className="flex gap-2">
-              <Button size="sm" className="h-8" disabled={executar.isPending || !novaData || !remarcarConfirmado} onClick={() => executar.mutate()}>Confirmar</Button>
-              <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAcao(null); setConfRemarcar(""); }}>Voltar</Button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <Button size="icon" variant="outline" className="h-8 w-8" title="Remarcar Folga" aria-label="Remarcar Folga" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConfRemarcar(""); setConsome(true); }}><RefreshCw className="h-4 w-4" /></Button>
-            <Button size="icon" variant="outline" className="h-8 w-8 border-destructive/40 text-destructive hover:bg-destructive/10" title="Cancelar Folga" aria-label="Cancelar Folga" onClick={() => { setAcao({ item: i, tipo: "cancelar" }); setMotivo(""); }}><X className="h-4 w-4" /></Button>
-          </>
-        )}
+        <Button size="icon" variant="outline" className="h-8 w-8" title="Remarcar Folga" aria-label="Remarcar Folga" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConsome(true); }}><RefreshCw className="h-4 w-4" /></Button>
+        <Button size="icon" variant="outline" className="h-8 w-8 border-destructive/40 text-destructive hover:bg-destructive/10" title="Cancelar Folga" aria-label="Cancelar Folga" onClick={() => { setAcao({ item: i, tipo: "cancelar" }); setMotivo(""); }}><X className="h-4 w-4" /></Button>
+        <RemarcarFolgaDialog
+          aberto={acao?.item.key === i.key && acao.tipo === "remarcar"}
+          onFechar={() => setAcao(null)}
+          nome={nomes.get(i.colaboradorId) ?? "Colaborador"}
+          dataBr={dataBr}
+          passado={passado}
+          novaData={novaData}
+          setNovaData={setNovaData}
+          consome={consome}
+          setConsome={setConsome}
+          onConfirm={() => executar.mutate()}
+          pendente={executar.isPending}
+        />
         <Dialog open={acao?.item.key === i.key && acao.tipo === "cancelar"} onOpenChange={(o) => { if (!o) setAcao(null); }}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -398,7 +437,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
               <p className="text-[11px] text-muted-foreground">Mínimo de 5 caracteres. Fica registrada no histórico.</p>
             </div>
             <DialogFooter className="flex-col gap-2 sm:flex-col">
-              <Button className="w-full" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConfRemarcar(""); setConsome(true); }}><RefreshCw className="mr-2 h-4 w-4" />Prefiro Remarcar para Outro Dia (Recomendado)</Button>
+              <Button className="w-full" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConsome(true); }}><RefreshCw className="mr-2 h-4 w-4" />Prefiro Remarcar para Outro Dia (Recomendado)</Button>
               <Button variant="destructive" className="w-full" disabled={motivo.trim().length < 5 || executar.isPending} onClick={() => executar.mutate()}>Confirmar Cancelamento da Folga</Button>
             </DialogFooter>
           </DialogContent>
@@ -440,7 +479,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
                 {i.origem === "troca" && <Badge variant="outline" className="ml-2 text-[10px]">Troca</Badge>}
               </span>
               <div className="flex gap-1">
-                <Button size="sm" variant="outline" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConfRemarcar(""); setConsome(true); }}>
+                <Button size="sm" variant="outline" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConsome(true); }}>
                   Remarcar
                 </Button>
                 <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { setAcao({ item: i, tipo: "cancelar" }); setMotivo(""); }}>
@@ -448,26 +487,26 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
                 </Button>
               </div>
             </div>
-            {acao?.item.key === i.key && (
+            <RemarcarFolgaDialog
+              aberto={acao?.item.key === i.key && acao.tipo === "remarcar"}
+              onFechar={() => setAcao(null)}
+              nome={nomes.get(i.colaboradorId) ?? "Colaborador"}
+              dataBr={dataBr}
+              passado={passado}
+              novaData={novaData}
+              setNovaData={setNovaData}
+              consome={consome}
+              setConsome={setConsome}
+              onConfirm={() => executar.mutate()}
+              pendente={executar.isPending}
+            />
+            {acao?.item.key === i.key && acao.tipo === "cancelar" && (
               <div className="flex flex-wrap items-center gap-2">
-                {acao.tipo === "remarcar" ? (
-                  <>
-                    <Input type="date" className="h-8 w-44" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
-                    <Input className="h-8 w-44" placeholder='Digite REMARCAR' value={confRemarcar} onChange={(e) => setConfRemarcar(e.target.value)} />
-                    <div className="w-full"><ImpactoLimite valor={consome} onChange={setConsome} /></div>
-                    <Button size="sm" disabled={executar.isPending || !novaData || !remarcarConfirmado} onClick={() => executar.mutate()}>
-                      Confirmar
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Input className="h-8 w-64" placeholder="Motivo (opcional)" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
-                    <Button size="sm" disabled={executar.isPending} onClick={() => executar.mutate()}>
-                      Confirmar
-                    </Button>
-                  </>
-                )}
-                <Button size="sm" variant="ghost" onClick={() => { setAcao(null); setConfRemarcar(""); }}>Voltar</Button>
+                <Input className="h-8 w-64" placeholder="Motivo (opcional)" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+                <Button size="sm" disabled={executar.isPending} onClick={() => executar.mutate()}>
+                  Confirmar
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setAcao(null)}>Voltar</Button>
               </div>
             )}
           </li>
