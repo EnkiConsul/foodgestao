@@ -10,6 +10,7 @@ import { HelpHint } from "@/components/ui/help-hint";
 import type { HelpKey } from "@/content/help/helpContent";
 import { resolveHelpForPath } from "@/content/help/helpRoutes";
 import { RotinaTituloMenu, telaRotinaDoPath } from "@/components/dp/rotina/RotinaNav";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 /**
  * Quando uma tela é renderizada dentro de outra (como aba), o wrapper
@@ -85,8 +86,10 @@ export function DpPageHeader({
   const { pathname } = useLocation();
   const helpKey = help === null ? undefined : (help ?? (embedded ? undefined : resolveHelpForPath(pathname)));
   const temAcoes = Boolean(actions || (actionItems && actionItems.length > 0));
-  const rotinaAtual = telaRotinaDoPath(pathname);
-  const docAtual = telaDocumentosDoPath(pathname);
+  // Lista suspensa no título só no celular; no computador a barra lateral navega.
+  const isMobile = useIsMobile();
+  const rotinaAtual = isMobile ? telaRotinaDoPath(pathname) : null;
+  const docAtual = isMobile ? telaDocumentosDoPath(pathname) : null;
   if (embedded) {
     return (
       <header className={cn("dp-page-header-embedded flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between", className)}>
