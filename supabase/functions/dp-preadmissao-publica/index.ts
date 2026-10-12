@@ -71,6 +71,7 @@ const CAMPOS_DO_FORMULARIO: ReadonlySet<string> = new Set([
   "reservista", "reservista_categoria", "pis",
   "banco_nome", "agencia", "conta", "conta_digito", "conta_tipo",
   "pix_tipo", "pix_chave",
+  "pagamento_terceiro", "titular_nome", "titular_cpf", "titular_relacao",
 ]);
 
 /**

@@ -35,6 +35,10 @@ import { notifyError } from "@/lib/notifyError";
 import { gerarFichaAdmissaoPdf } from "@/lib/dp/ficha-admissao-pdf";
 import { PARENTESCOS_EMERGENCIA, contatosDaFicha, rotuloParentescoEmergencia } from "@/lib/dp/contatosEmergencia";
 import { maskPhone } from "@/lib/phone";
+import { maskCpf } from "@/lib/cpf";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { TermoContaTerceiroPreviaDialog } from "@/components/dp/TermoContaTerceiroPreviaDialog";
+import { PAGAMENTO_BLANK } from "@/lib/dp/dadosPagamento";
 import { tipoPelaExtensao } from "@/lib/dp/abrirDocumento";
 import { PreadmissaoExcluirDialog } from "@/components/dp/preadmissao/PreadmissaoExcluirDialog";
 import {
@@ -137,6 +141,7 @@ const CAMPOS_FICHA_EDITAVEIS = [
   "reservista", "reservista_categoria", "pis",
   "banco_nome", "agencia", "conta", "conta_digito", "conta_tipo",
   "pix_tipo", "pix_chave",
+  "pagamento_terceiro", "titular_nome", "titular_cpf", "titular_relacao",
 ] as const;
 
 type CampoFicha = (typeof CAMPOS_FICHA_EDITAVEIS)[number];
@@ -144,7 +149,7 @@ type CampoFicha = (typeof CAMPOS_FICHA_EDITAVEIS)[number];
 /** Nomes próprios e endereços ficam em CAIXA ALTA, como no cadastro. */
 const CAIXA_ALTA: ReadonlySet<string> = new Set([
   "nome", "nome_social", "nome_mae", "nome_pai", "naturalidade", "naturalidade_uf",
-  "endereco", "complemento", "bairro", "cidade", "uf", "banco_nome",
+  "endereco", "complemento", "bairro", "cidade", "uf", "banco_nome", "titular_nome", "titular_relacao",
   "rg_orgao", "rg_uf", "ctps_uf", "reservista_categoria", "nacionalidade", "emerg1_nome", "emerg2_nome",
 ]);
 
@@ -174,6 +179,8 @@ const CAMPOS_IMPRESSAO: Array<[string, string]> = [
   ["reservista", "Reservista"], ["reservista_categoria", "Categoria da reservista"],
   ["banco_nome", "Banco"], ["conta_tipo", "Tipo de conta"], ["agencia", "Agência"], ["conta", "Conta"],
   ["conta_digito", "Dígito"], ["pix_tipo", "Tipo de chave Pix"], ["pix_chave", "Chave Pix"],
+  ["pagamento_terceiro", "Conta de outra pessoa"], ["titular_nome", "Titular da conta"],
+  ["titular_cpf", "CPF do titular"], ["titular_relacao", "Relação com o titular"],
 ];
 
 const ROTULOS_OPCOES: Record<string, Record<string, string>> = {
@@ -182,6 +189,7 @@ const ROTULOS_OPCOES: Record<string, Record<string, string>> = {
   grau_instrucao: Object.fromEntries(INSTRUCOES.map((s) => [s.value, s.label])),
   conta_tipo: Object.fromEntries(CONTA_TIPOS.map((s) => [s.value, s.label])),
   pix_tipo: Object.fromEntries(PIX_TIPOS.map((s) => [s.value, s.label])),
+  pagamento_terceiro: { sim: "Sim, pedida pelo candidato", nao: "Não" },
   emerg1_parentesco: Object.fromEntries(PARENTESCOS_EMERGENCIA.map((s) => [s.value, s.label])),
   emerg2_parentesco: Object.fromEntries(PARENTESCOS_EMERGENCIA.map((s) => [s.value, s.label])),
 };
@@ -252,6 +260,9 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const [enviandoFicha, setEnviandoFicha] = useState(false);
   const [excluir, setExcluir] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const { companies } = useCompanyContext();
+  /** Conta de terceiro aprovada: o termo abre logo após a efetivação. */
+  const [termoTerceiroDe, setTermoTerceiroDe] = useState<string | null>(null);
 
   const pa = data?.preadmissao;
   const parentescosPermitidos = data?.parentescos_permitidos ?? null;
@@ -448,13 +459,15 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     if (!id) return;
     setEfetivando(true);
     try {
-      const { error } = await supabase.rpc("dp_preadmissao_efetivar_direto", {
+      const { data: res, error } = await supabase.rpc("dp_preadmissao_efetivar_direto", {
         p_preadmissao_id: id,
         p_data_admissao: admin.data_admissao || undefined,
         p_confirmo_sem_ficha: confirmado,
       });
       if (error) throw error;
       toast.success("Colaborador efetivado com os dados, documentos e dependentes da pré-admissão.");
+      const novoId = (res as { colaborador_id?: string } | null)?.colaborador_id;
+      if (novoId && ficha.pagamento_terceiro === "sim" && ficha.titular_nome) setTermoTerceiroDe(novoId);
       await queryClient.invalidateQueries();
       await refetch();
     } catch (e) {
@@ -767,6 +780,12 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         conta: e.pagamento.conta ?? "", conta_digito: e.pagamento.conta_digito ?? "",
         conta_tipo: e.pagamento.conta_tipo || ficha.conta_tipo || "",
         pix_tipo: e.pagamento.pix_tipo || ficha.pix_tipo || "", pix_chave: e.pagamento.pix_chave ?? "",
+        // Conta de terceiro: o DP aprova mantendo desmarcado "próprio colaborador";
+        // ao marcar, o pedido fica recusado e os dados do terceiro saem da ficha.
+        pagamento_terceiro: e.pagamento.titular_proprio === false ? "sim" : "nao",
+        titular_nome: e.pagamento.titular_proprio === false ? String(e.pagamento.titular_nome ?? "").toUpperCase() : "",
+        titular_cpf: e.pagamento.titular_proprio === false ? String(e.pagamento.titular_cpf ?? "").replace(/\D/g, "") : "",
+        titular_relacao: e.pagamento.titular_proprio === false ? String(e.pagamento.titular_relacao ?? "").toUpperCase() : "",
       };
       for (const c of [
         "rg_numero", "rg_orgao", "rg_uf", "rg_emissao", "ctps_numero", "ctps_serie", "ctps_uf", "ctps_expedicao",
@@ -1345,6 +1364,10 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
             banco_nome: ficha.banco_nome ?? "", agencia: ficha.agencia ?? "", conta: ficha.conta ?? "",
             conta_digito: ficha.conta_digito ?? "", conta_tipo: ficha.conta_tipo ?? "",
             pix_tipo: ficha.pix_tipo ?? "", pix_chave: ficha.pix_chave ?? "",
+            titular_proprio: ficha.pagamento_terceiro !== "sim",
+            titular_nome: ficha.pagamento_terceiro === "sim" ? ficha.titular_nome ?? "" : "",
+            titular_cpf: ficha.pagamento_terceiro === "sim" ? maskCpf(ficha.titular_cpf ?? "") : "",
+            titular_relacao: ficha.pagamento_terceiro === "sim" ? ficha.titular_relacao ?? "" : "",
           },
           rem: {
             ...(admin.forma_pagamento ? { forma_pagamento: admin.forma_pagamento as never } : {}),
@@ -1368,6 +1391,35 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         onOpenChange={setExcluir}
         onExcluida={() => onOpenChange(false)}
       />
+      {termoTerceiroDe && pa && (
+        <TermoContaTerceiroPreviaDialog
+          open
+          onOpenChange={(v) => { if (!v) setTermoTerceiroDe(null); }}
+          companyId={pa.company_id}
+          colaboradorId={termoTerceiroDe}
+          pagamento={{
+            ...PAGAMENTO_BLANK,
+            banco_nome: ficha.banco_nome ?? "", agencia: ficha.agencia ?? "", conta: ficha.conta ?? "",
+            conta_digito: ficha.conta_digito ?? "", conta_tipo: ficha.conta_tipo ?? "",
+            pix_tipo: ficha.pix_tipo ?? "", pix_chave: ficha.pix_chave ?? "",
+            titular_proprio: false, titular_nome: ficha.titular_nome ?? "",
+            titular_cpf: ficha.titular_cpf ?? "", titular_relacao: ficha.titular_relacao ?? "",
+          }}
+          partes={(() => {
+            const emp = (companies ?? []).find((c: { id: string }) => c.id === pa.company_id) as
+              { name?: string; trade_name?: string; cnpj?: string } | undefined;
+            return {
+              empresa: String(emp?.name || emp?.trade_name || "EMPRESA").toUpperCase(),
+              cnpj: emp?.cnpj ?? null,
+              unidade: unidades.find((u) => u.id === admin.unidade_id)?.nome ?? null,
+              nome: String(ficha.nome ?? pa.candidato_nome ?? "").toUpperCase(),
+              cpf: ficha.cpf || pa.cpf || null,
+              cargo: (cargos as Array<{ id: string; nome: string }>).find((c) => c.id === admin.cargo_id)?.nome ?? null,
+            };
+          })()}
+          onEmitido={() => setTermoTerceiroDe(null)}
+        />
+      )}
     </>
   );
 }
