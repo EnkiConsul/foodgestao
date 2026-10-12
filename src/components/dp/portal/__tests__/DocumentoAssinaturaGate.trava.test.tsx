@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ReactElement } from "react";
 import { render as renderBase, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 
 /**
  * A trava do portal remove o "Ver depois" quando há muitos documentos parados
@@ -60,7 +61,7 @@ function doc(diasAtraso: number) {
 
 function render(ui: ReactElement) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return renderBase(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>);
+  return renderBase(<MemoryRouter><QueryClientProvider client={qc}>{ui}</QueryClientProvider></MemoryRouter>);
 }
 
 const fechar = () => screen.queryByRole("button", { name: "Close" });
