@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Eye, PenLine, FileText, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,7 +11,9 @@ import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
 import { assinarTroca } from "@/lib/dp/troca-assinatura";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { TermoTrocaPreviewDialog } from "@/components/dp/trocas/TermoTrocaPreviewDialog";
+import type { DpTrocaRow } from "@/hooks/useDpTrocas";
 import {
   useDocumentosAguardandoAssinatura,
   type DocParaAssinar,
