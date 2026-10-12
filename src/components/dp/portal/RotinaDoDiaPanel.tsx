@@ -81,14 +81,24 @@ export function RotinaDoDiaPanel({
     },
   });
 
+  const situacaoQ = useQuery({
+    queryKey: ["dp_minha_situacao_dia", vinculo?.colaboradorId, iso],
+    enabled: !!vinculo?.unidadeId,
+    queryFn: async (): Promise<string | null> => {
+      const { data, error } = await supabase.rpc("dp_portal_minha_situacao_dia" as any, { p_data: iso });
+      if (error) throw error;
+      return (data as string | null) ?? null;
+    },
+  });
+
   const lista = q.data ?? [];
-  const eu = lista.find((p) => p.id === vinculo?.colaboradorId) ?? null;
-  const colegas = lista.filter((p) => p.id !== vinculo?.colaboradorId);
+  const meuId = vinculo?.colaboradorId;
+  const eu = lista.find((p) => p.id === meuId) ?? null;
   const dependeConvocacao = !!vinculo?.podeSerConvocado;
 
   const turnos = useMemo(() => {
     const m = new Map<string, { chave: string; nome: string; entrada: string | null; pessoas: Pessoa[] }>();
-    for (const p of colegas) {
+    for (const p of lista) {
       const atual = m.get(p.turnoChave);
       if (atual) { atual.pessoas.push(p); continue; }
       const horario = p.entrada && p.saida ? `${p.entrada} às ${p.saida}` : null;
@@ -96,9 +106,9 @@ export function RotinaDoDiaPanel({
       m.set(p.turnoChave, { chave: p.turnoChave, nome, entrada: p.entrada, pessoas: [p] });
     }
     return Array.from(m.values()).sort((a, b) => (a.entrada ?? "99:99").localeCompare(b.entrada ?? "99:99"));
-  }, [colegas]);
+  }, [lista]);
 
-  const usaSetores = colegas.some((p) => !!p.setor);
+  const usaSetores = lista.some((p) => !!p.setor);
   const grupos = (pessoas: Pessoa[]) => {
     const m = new Map<string, Pessoa[]>();
     for (const p of pessoas) {
@@ -110,102 +120,80 @@ export function RotinaDoDiaPanel({
 
   if (!vinculo?.unidadeId) return null;
 
-  // Minha situação: folga vem do calendário; trabalho só se a RPC me retornou.
+  const minha = situacaoQ.data;
   let situacao: { texto: string; tom: string };
-  if (minhaFolga) situacao = { texto: minhaFolga, tom: "bg-amber-500/15 text-amber-700 border-amber-500/30" };
-  else if (eu) situacao = { texto: "Trabalho previsto", tom: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30" };
+  if (minha === "ferias") situacao = { texto: "Minhas férias", tom: "bg-sky-500/15 text-sky-700 border-sky-500/30" };
+  else if (minha === "afastado") situacao = { texto: "Estou afastado", tom: "bg-muted text-muted-foreground" };
+  else if (minhaFolga) situacao = { texto: minhaFolga, tom: "bg-amber-500/15 text-amber-700 border-amber-500/30" };
+  else if (eu) situacao = { texto: eu.entrada && eu.saida ? `Trabalho ${eu.entrada}–${eu.saida}` : "Trabalho previsto", tom: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30" };
   else if (dependeConvocacao) situacao = { texto: "Sem convocação aceita", tom: "bg-muted text-muted-foreground" };
   else situacao = { texto: "Sem horário previsto", tom: "bg-muted text-muted-foreground" };
 
   return (
-    <section className="space-y-3" aria-label="Rotina do dia">
-      <div className="rounded-2xl border border-primary/30 bg-primary/5 p-3 text-sm space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="font-bold flex items-center gap-1.5"><Clock className="h-4 w-4 text-primary" /> Minha rotina</span>
-          <Badge variant="outline" className={cn("text-[10px] uppercase", situacao.tom)}>{situacao.texto}</Badge>
-        </div>
-        {q.isLoading ? (
-          <Skeleton className="h-10 w-full" />
-        ) : (
-          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-            <dt className="text-muted-foreground">Unidade</dt>
-            <dd className="font-medium break-words">{vinculo.unidadeNome ?? "—"}</dd>
-            {eu && (<>
-              <dt className="text-muted-foreground">Setor · Função</dt>
-              <dd className="font-medium break-words">{[eu.setor, eu.cargo].filter(Boolean).join(" · ")}</dd>
-              <dt className="text-muted-foreground">Turno</dt>
-              <dd className="font-medium break-words">{eu.turnoNome ?? "—"}</dd>
-              <dt className="text-muted-foreground">Horário</dt>
-              <dd className="font-medium">{eu.entrada && eu.saida ? `${eu.entrada} às ${eu.saida}` : "A confirmar"}</dd>
-              <dt className="text-muted-foreground">Origem</dt>
-              <dd className="font-medium">{ORIGEM_LABEL[eu.origem ?? ""] ?? "—"}</dd>
-            </>)}
-          </dl>
-        )}
+    <section className="rounded-2xl border bg-card" aria-label="Rotina da loja">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2.5">
+        <span className="flex min-w-0 items-center gap-1.5 text-sm font-bold">
+          <Store className="h-4 w-4 shrink-0 text-primary" />
+          <span className="break-words">Rotina da loja{vinculo.unidadeNome ? ` · ${vinculo.unidadeNome}` : ""}</span>
+          <Badge variant="outline" className="text-[10px]">{lista.length}</Badge>
+        </span>
+        <Badge variant="outline" className={cn("text-[10px] uppercase", situacao.tom)}>{situacao.texto}</Badge>
       </div>
-
-      <div className="rounded-2xl border bg-card">
-        <Button
-          type="button"
-          variant="ghost"
-          className="w-full justify-between rounded-2xl px-3"
-          onClick={() => setAberto((v) => !v)}
-          aria-expanded={aberto}
-        >
-          <span className="flex items-center gap-1.5 font-bold text-sm">
-            <Store className="h-4 w-4 text-primary" /> Rotina da loja
-            <Badge variant="outline" className="text-[10px]">{colegas.length}</Badge>
-          </span>
-          <ChevronDown className={cn("h-4 w-4 transition-transform", aberto && "rotate-180")} />
-        </Button>
-        {aberto && (
-          <div className="space-y-3 px-3 pb-3">
-            {q.isError ? (
-              <p className="text-xs text-destructive">Não foi possível carregar a equipe. Tente novamente.</p>
-            ) : q.isLoading ? (
-              <Skeleton className="h-16 w-full" />
-            ) : turnos.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Nenhum colega previsto para este dia.</p>
-            ) : (
-              turnos.map((t) => (
-                <div key={t.chave} className="rounded-xl border overflow-hidden">
-                  <div className="flex items-center gap-2 bg-foreground px-3 py-1.5 text-background">
-                    <Users className="h-3.5 w-3.5" />
-                    <span className="text-xs font-bold uppercase tracking-wide min-w-0 break-words flex-1">{t.nome}</span>
-                    <span className="text-[10px] font-semibold">{t.pessoas.length}</span>
-                    {eu && t.chave === eu.turnoChave && <Badge className="text-[9px]">Meu turno</Badge>}
-                  </div>
-                  <div className="space-y-2 p-2">
-                    {grupos(t.pessoas).map(([titulo, pessoas]) => (
-                      <div key={titulo}>
-                        <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">{titulo}</p>
-                        <ul className="space-y-1">
-                          {pessoas.map((p) => (
-                            <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-2 py-1.5 text-xs">
-                              <span className="min-w-0 break-words font-medium">
-                                {p.nome}
-                                {usaSetores && <span className="block text-[10px] font-normal text-muted-foreground">{p.cargo}</span>}
-                              </span>
-                              <span className="text-muted-foreground whitespace-nowrap">
-                                {p.entrada && p.saida ? `${p.entrada}–${p.saida}` : "A confirmar"}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
-            {colegasDeFolga.length > 0 && (
-              <div className="rounded-xl border border-dashed p-2">
-                <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase text-muted-foreground">
-                  <Home className="h-3 w-3" /> De folga
-                </p>
-                <p className="text-xs break-words">{colegasDeFolga.join(", ")}</p>
+      <div className="space-y-3 p-3">
+        {q.isError ? (
+          <p className="text-xs text-destructive">Não foi possível carregar a equipe. Tente novamente.</p>
+        ) : q.isLoading ? (
+          <Skeleton className="h-16 w-full" />
+        ) : turnos.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Ninguém previsto para trabalhar neste dia.</p>
+        ) : (
+          turnos.map((t) => (
+            <div key={t.chave} className="overflow-hidden rounded-xl border">
+              <div className="flex items-center gap-2 bg-foreground px-3 py-1.5 text-background">
+                <Users className="h-3.5 w-3.5" />
+                <span className="min-w-0 flex-1 break-words text-xs font-bold uppercase tracking-wide">{t.nome}</span>
+                <span className="text-[10px] font-semibold">{t.pessoas.length}</span>
               </div>
-            )}
+              <div className="space-y-2 p-2">
+                {grupos(t.pessoas).map(([titulo, pessoas]) => (
+                  <div key={titulo}>
+                    <p className="mb-1 text-[10px] font-semibold uppercase text-muted-foreground">{titulo}</p>
+                    <ul className="space-y-1">
+                      {pessoas.map((p) => {
+                        const souEu = p.id === meuId;
+                        return (
+                          <li
+                            key={p.id}
+                            className={cn(
+                              "flex flex-wrap items-center justify-between gap-2 rounded-md border px-2 py-1.5 text-xs",
+                              souEu ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border/60",
+                            )}
+                          >
+                            <span className={cn("min-w-0 break-words", souEu ? "font-bold text-primary" : "font-medium")}>
+                              {p.nome}
+                              {souEu && <Badge className="ml-1.5 align-middle text-[9px]">Você</Badge>}
+                              {usaSetores && <span className="block text-[10px] font-normal text-muted-foreground">{p.cargo}</span>}
+                            </span>
+                            <span className="flex items-center gap-1 whitespace-nowrap text-muted-foreground">
+                              {souEu && <Clock className="h-3 w-3" />}
+                              {p.entrada && p.saida ? `${p.entrada}–${p.saida}` : "A confirmar"}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+        {colegasDeFolga.length > 0 && (
+          <div className="rounded-xl border border-dashed p-2">
+            <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase text-muted-foreground">
+              <Home className="h-3 w-3" /> De folga
+            </p>
+            <p className="break-words text-xs">{colegasDeFolga.join(", ")}</p>
           </div>
         )}
       </div>
