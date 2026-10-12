@@ -248,7 +248,7 @@ function HubMoreSheet() {
   const go = (to: string) => {
     haptic(8);
     setOpen(false);
-    navigate(to);
+    startTransition(() => navigate(to));
   };
   return (
     <>

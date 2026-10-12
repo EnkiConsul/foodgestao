@@ -41,10 +41,9 @@ export function RotinaTituloMenu({ atual, children, telas = TELAS_ROTINA, rotulo
 }) {
   const navigate = useNavigate();
   const [aberto, setAberto] = useState(false);
-  const onOpenChange = (v: boolean) => {
-    setAberto(v);
-    if (v) telas.forEach((t) => { PREFETCH[t.to]?.().catch(() => {}); });
-  };
+  // Sem pré-carregar todas as telas de uma vez (sobrecarrega o celular):
+  // só a tela tocada começa a carregar, já no toque.
+  const onOpenChange = (v: boolean) => setAberto(v);
   return (
     <DropdownMenu open={aberto} onOpenChange={onOpenChange} modal={false}>
       <DropdownMenuTrigger
