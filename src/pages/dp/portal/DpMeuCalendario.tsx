@@ -1704,7 +1704,7 @@ export default function DpMeuCalendario() {
             const wknd = d.getDay() === 0 || d.getDay() === 6;
             const marcadores = marcadoresQuery.data?.get(iso) ?? [];
 
-            const chips: React.ReactNode[] = [];
+            const chips: ReactNode[] = [];
             if (blocked) {
               chips.push(
                 <span key="bloq" className="inline-flex items-center gap-1 rounded-full border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive">
