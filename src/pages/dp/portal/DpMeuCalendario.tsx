@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { FolgaCalendarShared, LegendaFolgas } from "@/components/dp/FolgaCalendarShared";
+import { RotinaDoDiaPanel } from "@/components/dp/portal/RotinaDoDiaPanel";
 import { Button } from "@/components/ui/button";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Badge } from "@/components/ui/badge";
@@ -1701,6 +1702,19 @@ export default function DpMeuCalendario() {
                   {STATUS_LABEL[selectedDay.status]}
                 </Badge>
               </div>
+
+              <RotinaDoDiaPanel
+                iso={selectedDay.iso}
+                minhaFolga={
+                  ["mine", "fixed", "swapped"].includes(selectedDay.status)
+                  || dayInfo.occupants.some((o) => o.colaboradorId === meRef.data?.id)
+                    ? STATUS_LABEL[selectedDay.status === "fixed" ? "fixed" : selectedDay.status === "swapped" ? "swapped" : "mine"]
+                    : null
+                }
+                colegasDeFolga={dayInfo.occupants
+                  .filter((o) => o.colaboradorId !== meRef.data?.id)
+                  .map((o) => o.colaboradorNome)}
+              />
 
               {dayInfo.occupants.length > 0 && (
                 <div className="space-y-2">
