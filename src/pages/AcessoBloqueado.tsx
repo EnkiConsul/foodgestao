@@ -1,6 +1,6 @@
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { useModuleAccess, useCompanyEntitlements, MODULO_ROTULO, type ModuloAcesso } from "@/hooks/useModuleAccess";
-import { AlertTriangle, CreditCard, LifeBuoy, Sparkles } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Building2, CreditCard, LifeBuoy, LogOut, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExportMyDataCard } from "@/components/settings/ExportMyDataCard";
@@ -8,6 +8,40 @@ import { useCompanyAccess, type MotivoBloqueio } from "@/hooks/useCompanyAccess"
 import { PageSpinner } from "@/components/PageSpinner";
 import { CoberturaOpcoes } from "@/components/billing/CoberturaOpcoes";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+
+/** Saída sempre visível: quem chega nesta tela nunca pode ficar sem para onde ir. */
+function VoltarAoHub() {
+  return (
+    <div>
+      <Button asChild variant="ghost" size="sm" className="-ml-2 h-8 text-muted-foreground">
+        <Link to="/hub">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao Hub
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
+/** Apoio de rodapé: trocar de empresa (quando há mais de uma) ou sair da conta. */
+function AcoesSaida() {
+  const { companies } = useCompanyContext();
+  return (
+    <div className="flex flex-wrap gap-2 pt-1">
+      {companies.length > 1 && (
+        <Button asChild variant="outline" size="sm">
+          <Link to="/empresas">
+            <Building2 className="mr-2 h-4 w-4" /> Trocar de Empresa
+          </Link>
+        </Button>
+      )}
+      <Button asChild variant="outline" size="sm">
+        <Link to="/sair">
+          <LogOut className="mr-2 h-4 w-4" /> Sair da Conta
+        </Link>
+      </Button>
+    </div>
+  );
+}
 
 const TEXTOS: Record<MotivoBloqueio, { titulo: string; descricao: string }> = {
   sem_assinatura: {
@@ -90,6 +124,9 @@ export default function AcessoBloqueado() {
             <Button asChild variant="outline"><Link to="/empresas">Ir para Empresas</Link></Button>
           </CardContent>
         </Card>
+        <div className="mx-auto mt-4 w-full max-w-lg">
+          <AcoesSaida />
+        </div>
       </div>
     );
   }
@@ -102,6 +139,7 @@ export default function AcessoBloqueado() {
     return (
       <div className="min-h-screen bg-background px-4 py-10">
         <div className="mx-auto w-full max-w-2xl space-y-6">
+          <VoltarAoHub />
           {mods.map((m) => {
             const motivo = ent.data?.[m]?.motivo ?? "sem_acesso";
             return (
@@ -123,6 +161,7 @@ export default function AcessoBloqueado() {
             );
           })}
           <ExportMyDataCard />
+          <AcoesSaida />
         </div>
       </div>
     );
@@ -165,6 +204,7 @@ export default function AcessoBloqueado() {
   return (
     <div className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto w-full max-w-2xl space-y-6">
+        <VoltarAoHub />
         <Card className="border-destructive/40">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
@@ -234,6 +274,8 @@ export default function AcessoBloqueado() {
               Após a confirmação do pagamento integral, o acesso é restabelecido — em até dois dias
               úteis, conforme a forma de pagamento.
             </p>
+
+            <AcoesSaida />
           </CardContent>
         </Card>
 
