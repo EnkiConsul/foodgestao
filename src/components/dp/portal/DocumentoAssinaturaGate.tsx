@@ -16,6 +16,7 @@ import {
 } from "@/hooks/portal/useDocumentosAguardandoAssinatura";
 import { notifyError } from "@/lib/notifyError";
 import { AssinaturaCaptura } from "@/components/dp/AssinaturaCaptura";
+import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
 
 const BUCKET = "dp-documentos";
 /** Se o colaborador fechar sem assinar, o aviso volta depois deste intervalo. */
@@ -36,6 +37,7 @@ export function DocumentoAssinaturaGate() {
   const [adiado, setAdiado] = useState(false);
   const [visualizou, setVisualizou] = useState<string | null>(null);
   const [preview, setPreview] = useState<DocParaAssinar | null>(null);
+  const [confirmar, setConfirmar] = useState(false);
   const [assinaturaPng, setAssinaturaPng] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -65,10 +67,10 @@ export function DocumentoAssinaturaGate() {
   };
 
   const assinar = useMutation({
-    mutationFn: async (d: DocParaAssinar) => {
+    mutationFn: async ({ d, png }: { d: DocParaAssinar; png: string | null }) => {
       if (!colaborador) throw new Error("Colaborador não encontrado");
-      if (!assinaturaPng) throw new Error("Desenhe ou escolha a sua assinatura.");
-      await assinarDocumento(d.id, assinaturaPng);
+      if (!png) throw new Error("Desenhe ou escolha a sua assinatura.");
+      await assinarDocumento(d.id, png);
     },
     onSuccess: () => {
       toast.success("Documento assinado", {
@@ -76,6 +78,8 @@ export function DocumentoAssinaturaGate() {
       });
       setVisualizou(null);
       setAssinaturaPng(null);
+      setConfirmar(false);
+      setPreview(null);
       qc.invalidateQueries({ queryKey: ["dp_docs_aguardando_assinatura"] });
       qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias_colaborador"] });
@@ -170,7 +174,7 @@ export function DocumentoAssinaturaGate() {
             <Button
               className="w-full min-h-10"
               disabled={!podeAssinar || !assinaturaPng || assinar.isPending}
-              onClick={() => assinar.mutate(atual)}
+              onClick={() => assinar.mutate({ d: atual, png: assinaturaPng })}
             >
               <PenLine className="h-4 w-4 mr-1" /> Assinar documento
             </Button>
@@ -195,12 +199,22 @@ export function DocumentoAssinaturaGate() {
         path={preview?.file_path ?? null}
         mime={preview?.mime_type ?? null}
         comprovanteDocumentoId={preview?.id ?? null}
-        toolbar={
-          <Button className="w-full min-h-10" onClick={() => setPreview(null)}>
-            <PenLine className="h-4 w-4 mr-1" /> Já Li — Assinar Agora
+        acaoRodape={
+          <Button size="sm" className="ml-auto sm:ml-0 sm:order-last" onClick={() => setConfirmar(true)}>
+            <PenLine className="h-4 w-4 mr-1" /> Assinar
           </Button>
         }
       />
+
+      <AssinaturaConfirmarDialog
+        open={confirmar && !!preview}
+        onOpenChange={setConfirmar}
+        titulo={preview?.titulo ?? ""}
+        nome={String(colaborador?.nome_social || colaborador?.nome || "")}
+        enviando={assinar.isPending}
+        onConfirmar={(png) => preview && assinar.mutate({ d: preview, png })}
+      />
+
     </>
   );
 }

@@ -118,7 +118,10 @@ export function useDpPendenciasColaborador() {
           .eq("id", colabId as string)
           .maybeSingle();
 
-        let escolheFolga = (meFolga as any)?.folga_fixa_semana == null;
+        // Intermitente não marca folga: trabalha por convocação (Art. 452-A CLT).
+        let escolheFolga =
+          (meFolga as any)?.folga_fixa_semana == null &&
+          String(regimeAtual ?? "").toLowerCase() !== "intermitente";
 
         // Quem tem dias fixos sem trabalho na configuração de trabalho
         // (ex.: sábado e domingo) também não escolhe folga do mês.
