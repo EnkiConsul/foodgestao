@@ -1764,7 +1764,10 @@ export default function DpMeuCalendario() {
 
             return {
               iso,
-              tom: status === "mine" || status === "swapped" ? "primario" : blocked ? "critico" : "neutro",
+              tom: status === "mine" || status === "swapped" ? "primario" : "neutro",
+              dominical: d.getDay() === 0,
+              icones: icones.length ? <>{icones}</> : undefined,
+              chipsLinhaUnica: true,
               resumo:
                 chips.length === 0 ? (
                   <span className="text-muted-foreground">Dia de trabalho</span>
