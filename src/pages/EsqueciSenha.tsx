@@ -119,7 +119,15 @@ export default function EsqueciSenha() {
         const mensagens: Record<string, string> = {
           cpf_invalido: "Digite os 11 números do seu CPF.",
           cpf_nao_encontrado:
-            "Não localizamos nenhum cadastro ativo com este CPF. Confira se os 11 números foram digitados corretamente ou procure o gestor/RH da sua empresa para confirmar seu cadastro.",
+            "Colaborador não cadastrado. Este CPF ainda não foi registrado pelo Administrador ou Dono da empresa. Confira os 11 números ou peça ao gestor/RH para fazer seu cadastro antes do primeiro acesso.",
+          cadastro_removido:
+            "Seu cadastro de colaborador foi removido pela empresa. Não é possível ativar o acesso ao portal. Procure o gestor ou RH.",
+          sem_modulo_pessoas:
+            "Seu cadastro foi localizado, mas sua empresa não tem o módulo Pessoas 360° e o Portal do Colaborador ativos no momento. Procure o Administrador ou Dono da empresa.",
+          acesso_bloqueado:
+            "Seu acesso ao Portal do Colaborador está bloqueado pela empresa. Procure o gestor ou RH para reativar.",
+          vinculo_encerrado:
+            "Seu vínculo com a empresa foi encerrado e o prazo de consulta ao portal terminou. Procure o gestor ou RH se precisar de algum documento.",
           sem_whatsapp:
             "Seu cadastro foi localizado, mas ainda não possui um número de WhatsApp cadastrado para envio do código de segurança. Solicite ao gestor ou RH da sua empresa a inclusão do seu celular com DDD.",
           ja_possui_senha:
