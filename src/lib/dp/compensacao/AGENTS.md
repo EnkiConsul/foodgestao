@@ -1,0 +1,1 @@
+- Motor puro (minutos inteiros, arredondamento ao minuto mais próximo, sem banco/relógio) — simulação nunca grava nem vira controle de banco de horas.
