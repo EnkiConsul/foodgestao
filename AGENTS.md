@@ -1,10 +1,10 @@
 # Regras técnicas do projeto
 
-- Limites de plano: calculados no banco por `assinatura_limites(company_id, modulo)` (plano + adicionais ativos) e barrados no app por `garantirLimite` (`src/lib/billing/limites.ts`); colaboradores e unidades também são barrados por constraint triggers (`dp_guard_limite_*` / `assinatura_limite_excedido`) — o app não é a única defesa.
+- Limites de plano: calculados no banco por `assinatura_limites(company_id, modulo)` (plano + adicionais ativos) e barrados no app por `garantirLimite` (`src/lib/billing/limites.ts`); colaboradores e unidades também são barrados por constraint triggers (`dp_guard_limite_*` / `assinatura_limite_excedido`).
 - Cobrança mensal = plano base + adicionais ativos não isentos (`subscription_total_cents`, `asaas-create-checkout`); isentas não geram cobrança. Adicional no meio do ciclo gera `prorata_cents` (trigger em `subscription_addons`) cobrado uma vez na próxima fatura; `prorata_billed_at` evita cobrança repetida.
 - Recontratação preserva identidade, documentos e histórico; cargo, salário, benefícios e jornada são novos.
 - Rotina de banco só recebe `GRANT EXECUTE ... TO authenticated` quando o frontend a chama via `supabase.rpc`, quando uma RLS policy a referencia ou quando um gatilho `SECURITY INVOKER` a usa; as demais ficam só com `service_role`.
-- `dp_ficha_aplicar` é `SECURITY DEFINER` autorizada por `tem_permissao(company_id, 'dp.colaboradores', 'inclusao')`; `dp_colaboradores` segue sem gravação direta para `authenticated` — aplicação atômica sem reabrir acesso amplo.
+- `dp_ficha_aplicar` é `SECURITY DEFINER` autorizada por `tem_permissao(company_id, 'dp.colaboradores', 'inclusao')`; `dp_colaboradores` segue sem gravação direta para `authenticated`.
 - Filtros `in`/`not.in` do PostgREST vão entre parênteses ("(a,b)") — sem eles a consulta aborta (PGRST100).
 - O portal não lê `dp_colaboradores` de colegas: `dp_portal_equipe_unidade()` expõe só nome, função e folga fixa.
 - Pré-admissão: o checklist compartilhado governa leitura e envio; desativar requisito preserva anexos.
@@ -23,4 +23,4 @@
 - Acesso e preço v2: `get_company_entitlements`/`has_module_access` decidem por empresa coberta em `subscription_companies`; flags `access_model_v2` (legado|sombra|v2, via `access_model_set_mode`) e `checkout_v2` (legado|v2), só super admin; preço só por `billing_v2_quote` — valor nunca vem do navegador.
 - Tokens de uma tela vivem em `:root` (overrides em `.dark`) e são mapeados em `tailwind.config.ts`, nunca dentro de classe de escopo que a rota não renderiza — o utilitário `hsl(var())` fica sem valor e a cor some.
 - Troca de plano/ciclo só por `billing_v2_plan_change_quote/schedule/cancel`: upgrade e mensal→anual são imediatos com crédito proporcional; downgrade e anual→mensal ficam em `pending_plan_change` e `billing_v2_apply_scheduled_changes` revalida uso na renovação — valor calculado no banco.
-- Calculadora de Compensação: motor puro em `src/lib/dp/compensacao/` (minutos inteiros, arredondamento ao minuto mais próximo, sem banco/relógio) — simulação nunca grava nem vira controle de banco de horas.
+- Subpastas podem ter `AGENTS.md` próprio; leia antes de alterar arquivos nelas.
