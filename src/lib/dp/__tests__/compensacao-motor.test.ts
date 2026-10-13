@@ -50,8 +50,7 @@ describe("formatarMinutos", () => {
   });
   it("ida e volta preserva o valor", () => {
     fc.assert(fc.property(fc.integer({ min: -600000, max: 600000 }), (m) => {
-      const txt = formatarMinutos(m).replace("min", "");
-      const r = parseHoras(txt === "0h" ? "0" : txt);
+      const r = parseHoras(formatarMinutos(m));
       return r.ok && r.minutos === m;
     }));
   });
