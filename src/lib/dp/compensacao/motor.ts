@@ -126,10 +126,14 @@ export interface SugestaoCompensacao {
   saldoFinal: number;
 }
 
+/** Lista de sugestões + indicação se a busca percorreu todo o espaço (sem corte por `maxNos`). */
+export type ResultadoSugestoes = SugestaoCompensacao[] & { buscaCompleta: boolean };
+
 /**
  * Sugere combinações de dias cujo total cabe no saldo (+ limite negativo).
- * Prioriza: menor sobra absoluta, depois mais dias, depois datas mais cedo.
- * Busca limitada (`maxNos`) para nunca travar a tela.
+ * Hierarquia: 1) menor |saldo final|; 2) menos folgas; 3) datas em ordem crescente.
+ * Busca limitada (`maxNos`) para nunca travar a tela — resultado é a melhor encontrada,
+ * não garantia de ótimo quando `buscaCompleta` = false.
  */
 export function sugerirCombinacoes(params: {
   saldoMinutos: number;
@@ -138,21 +142,26 @@ export function sugerirCombinacoes(params: {
   maxDias?: number;
   maxSugestoes?: number;
   maxNos?: number;
-  /** menor_sobra (padrão): menor resto absoluto; menor_folgas: menos dias, depois menor resto. */
+  /** Mantido por compatibilidade; ambos seguem a mesma hierarquia desde a Fase 2.2. */
   criterio?: "menor_sobra" | "menor_folgas";
-}): SugestaoCompensacao[] {
+}): ResultadoSugestoes {
   const saldo = arredondarMinuto(params.saldoMinutos);
   const limite = Math.max(0, arredondarMinuto(params.limiteNegativo ?? 0));
   const teto = saldo + limite;
   const maxDias = Math.max(1, params.maxDias ?? 5);
   const maxSugestoes = Math.max(1, params.maxSugestoes ?? 5);
   const maxNos = params.maxNos ?? 50_000;
-  const dias = normalizarDias(params.dias);
-  if (teto <= 0 || dias.length === 0) return [];
+  // Ordem de exploração: cargas maiores primeiro (data crescente no empate) — com o corte por
+  // `maxNos`, chega antes às combinações com menos folgas. Não altera o ranking final.
+  const dias = normalizarDias(params.dias).sort((a, b) => b.minutos - a.minutos || a.data.localeCompare(b.data));
+  const comFlag = (lista: SugestaoCompensacao[], completa: boolean): ResultadoSugestoes =>
+    Object.defineProperty(lista, "buscaCompleta", { value: completa, enumerable: false }) as ResultadoSugestoes;
+  if (teto <= 0 || dias.length === 0) return comFlag([], true);
 
   const achadas: SugestaoCompensacao[] = [];
   const chaves = new Set<string>();
   let nos = 0;
+  let interrompida = false;
   const atual: DiaCompensavel[] = [];
 
   const registrar = (soma: number) => {
@@ -160,11 +169,12 @@ export function sugerirCombinacoes(params: {
     const chave = atual.map((d) => d.minutos).sort((a, b) => a - b).join(",");
     if (chaves.has(chave)) return;
     chaves.add(chave);
-    achadas.push({ dias: [...atual], minutosUsados: soma, saldoFinal: saldo - soma });
+    const ds = [...atual].sort((a, b) => a.data.localeCompare(b.data));
+    achadas.push({ dias: ds, minutosUsados: soma, saldoFinal: saldo - soma });
   };
 
   const buscar = (inicio: number, soma: number) => {
-    if (nos++ > maxNos) return;
+    if (nos++ > maxNos) { interrompida = true; return; }
     if (atual.length > 0) registrar(soma);
     if (atual.length >= maxDias) return;
     for (let i = inicio; i < dias.length; i++) {
@@ -173,22 +183,15 @@ export function sugerirCombinacoes(params: {
       atual.push(dias[i]);
       buscar(i + 1, nova);
       atual.pop();
-      if (nos > maxNos) return;
+      if (interrompida) return;
     }
   };
   buscar(0, 0);
 
   const datas = (x: SugestaoCompensacao) => x.dias.map((d) => d.data).join(",");
-  const cmp = (params.criterio ?? "menor_sobra") === "menor_folgas"
-    ? (a: SugestaoCompensacao, b: SugestaoCompensacao) =>
-        a.dias.length - b.dias.length ||
-        Math.abs(a.saldoFinal) - Math.abs(b.saldoFinal) ||
-        a.dias[0].data.localeCompare(b.dias[0].data) ||
-        datas(a).localeCompare(datas(b))
-    : (a: SugestaoCompensacao, b: SugestaoCompensacao) =>
-        Math.abs(a.saldoFinal) - Math.abs(b.saldoFinal) ||
-        b.dias.length - a.dias.length ||
-        a.dias[0].data.localeCompare(b.dias[0].data) ||
-        datas(a).localeCompare(datas(b));
-  return achadas.sort(cmp).slice(0, maxSugestoes);
+  const cmp = (a: SugestaoCompensacao, b: SugestaoCompensacao) =>
+    Math.abs(a.saldoFinal) - Math.abs(b.saldoFinal) ||
+    a.dias.length - b.dias.length ||
+    datas(a).localeCompare(datas(b));
+  return comFlag(achadas.sort(cmp).slice(0, maxSugestoes), !interrompida);
 }
