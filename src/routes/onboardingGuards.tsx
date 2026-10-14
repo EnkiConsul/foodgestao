@@ -124,7 +124,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const cacheInicial = user ? onboardingStatusEmCache(user.id) : null;
   const [checkingOnboarding, setCheckingOnboarding] = useState(!cacheInicial);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(cacheInicial ? true : null);
-  const [mfaChecking, setMfaChecking] = useState(true);
+  const [mfaChecking, setMfaChecking] = useState(!cacheInicial);
   const [mfaRequired, setMfaRequired] = useState(false);
   const [cadastroFalhou, setCadastroFalhou] = useState(false);
 
