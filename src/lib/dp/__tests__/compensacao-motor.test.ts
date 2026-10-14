@@ -193,7 +193,7 @@ describe("Fase 2.2 — hierarquia de recomendação", () => {
       { data: "2026-10-05", minutos: H(6) },
       { data: "2026-10-01", minutos: H(4) },
     ];
-    const s = sugerirCombinacoes({ saldoMinutos: H(5), dias });
+    const s = sugerirCombinacoes({ saldoMinutos: H(5), dias, limiteNegativo: H(1) });
     // |5-6| = 1 = |5-4| → mesma sobra e 1 folga: vence a data mais cedo
     expect(s.map((x) => x.dias[0].data)).toEqual(["2026-10-01", "2026-10-05"]);
   });

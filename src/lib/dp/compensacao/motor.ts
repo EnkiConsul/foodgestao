@@ -153,7 +153,7 @@ export function sugerirCombinacoes(params: {
   const maxNos = params.maxNos ?? 50_000;
   const dias = normalizarDias(params.dias);
   const comFlag = (lista: SugestaoCompensacao[], completa: boolean): ResultadoSugestoes =>
-    Object.assign(lista, { buscaCompleta: completa });
+    Object.defineProperty(lista, "buscaCompleta", { value: completa, enumerable: false }) as ResultadoSugestoes;
   if (teto <= 0 || dias.length === 0) return comFlag([], true);
 
   const achadas: SugestaoCompensacao[] = [];
