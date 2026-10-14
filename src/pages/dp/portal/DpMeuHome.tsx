@@ -26,6 +26,7 @@ import { textoProximaFolga } from "@/lib/dp/proxima-folga";
 import { toProperName } from "@/lib/text/properName";
 import { ConfirmarContatosPortal } from "@/components/dp/contatos/ConfirmarContatosPortal";
 import { InstalarAppCard } from "@/components/dp/portal/InstalarAppCard";
+import { VerMenuCompleto } from "@/components/mobile/VerMenuCompleto";
 
 
 export default function DpMeuHome() {
@@ -229,6 +230,7 @@ export default function DpMeuHome() {
 
 
       <AtalhosFavoritos />
+      <VerMenuCompleto to="/dp/meu/mais" />
 
     </DpPage>
   );
