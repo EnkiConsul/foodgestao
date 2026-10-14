@@ -17,7 +17,7 @@ import { CalculadoraDesligamento } from "./CalculadoraDesligamento";
 
 export type PerfilCalculadora = "gestor" | "colaborador";
 
-interface Jornada { id: number; nome: string; carga: string; qtd: string }
+interface Jornada { id: number; nome: string; carga: string; qtd: string; picos?: number }
 
 const JORNADAS_INICIAIS: Jornada[] = [
   { id: 1, nome: "JORNADA A", carga: "8", qtd: "4" },
@@ -97,7 +97,7 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
   useEffect(() => {
     if (!origem || estado === "carregando") return;
     setJornadas(estado === "ok"
-      ? origem.jornadas.map((j, i) => ({ id: i + 1, nome: j.nome, carga: hhmm(j.minutos), qtd: String(j.qtd) }))
+      ? origem.jornadas.map((j, i) => ({ id: i + 1, nome: j.nome, carga: hhmm(j.minutos), qtd: String(j.qtd), picos: j.picos ?? 0 }))
       : []);
     setEscolhida(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -117,6 +117,8 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
   const dias: DiaCompensavel[] = useMemo(
     () => validas.flatMap((j) => Array.from({ length: j.n }, (_, i) => ({
       data: `${String(j.id).padStart(4, "0")}-${String(i).padStart(2, "0")}`, minutos: j.min,
+      // Os últimos dias do grupo são os de pico (sex/sáb/dom): evitados na sugestão.
+      pico: i >= j.n - Math.min(j.n, j.picos ?? 0),
     }))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [JSON.stringify(validas)],
