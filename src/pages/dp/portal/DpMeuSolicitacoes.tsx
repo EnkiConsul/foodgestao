@@ -40,6 +40,7 @@ import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { registrarDocumento } from "@/lib/dp/documentos-oficial";
 import { AtestadoAnexoDialog } from "@/components/dp/AtestadoAnexoDialog";
+import { SolicitacaoCorrigirDialog } from "@/components/dp/portal/SolicitacaoCorrigirDialog";
 
 const TIPOS = [
   { value: "folga", label: "Folga" },
@@ -489,6 +490,7 @@ export default function DpMeuSolicitacoes() {
     onError: (e: any) => notifyError(e, { surface: "Minhas solicitações", action: "concluir a ação", fallback: "Erro" }),
   });
   const [reanexar, setReanexar] = useState<any>(null);
+  const [corrigir, setCorrigir] = useState<any>(null);
 
   const filtered = useMemo(() => {
     if (tab === "todas") return list.data ?? [];
@@ -664,14 +666,19 @@ export default function DpMeuSolicitacoes() {
                 )}
                 {s.status === "pendente" && s.devolvido_em && (
                   <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm">
-                    <b>O gestor pediu um novo anexo:</b> {s.devolvido_motivo}
+                    <b>Devolvida pelo gestor para correção:</b> {s.devolvido_motivo}
                   </div>
                 )}
                 {s.status === "pendente" && (
                   <div className="flex flex-wrap items-center gap-2 pt-1">
-                    {(s.tipo === "atestado" || String(s.tipo).startsWith("licenca")) && (
+                    {s.devolvido_em && (
+                      <Button size="sm" onClick={() => setCorrigir(s)}>
+                        <Pencil className="h-4 w-4 mr-1" /> Corrigir e reenviar
+                      </Button>
+                    )}
+                    {!s.devolvido_em && (s.tipo === "atestado" || String(s.tipo).startsWith("licenca")) && (
                       <Button size="sm" onClick={() => setReanexar(s)}>
-                        <Upload className="h-4 w-4 mr-1" /> {s.devolvido_em ? "Reenviar anexo" : "Trocar anexo"}
+                        <Upload className="h-4 w-4 mr-1" /> Trocar anexo
                       </Button>
                     )}
                     {s.tipo === "documento" && (
@@ -710,6 +717,11 @@ export default function DpMeuSolicitacoes() {
           ))}
         </div>
       )}
+      <SolicitacaoCorrigirDialog
+        alvo={corrigir}
+        onOpenChange={(o) => !o && setCorrigir(null)}
+        onDone={() => { setCorrigir(null); qc.invalidateQueries({ queryKey: ["dp_meu_sol"] }); }}
+      />
       <AtestadoAnexoDialog
         alvo={reanexar ? { id: reanexar.id, company_id: reanexar.company_id, colaborador_id: reanexar.colaborador_id, data_alvo: reanexar.data_alvo } : null}
         aviso={reanexar?.devolvido_motivo}
