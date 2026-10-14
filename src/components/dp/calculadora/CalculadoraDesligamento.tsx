@@ -74,11 +74,8 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
   const [saldoTxt, setSaldoTxt] = useState("");
   const [folgas, setFolgas] = useState<string[]>([]);
   // Feriados cadastrados na unidade do colaborador entram sozinhos (ano da comunicação e seguinte).
-  const { feriados: regrasUnidade } = useDpFeriados(unidadeId);
-  const anoCom = Number(comunicacao.slice(0, 4)) || new Date().getFullYear();
-  const feriadosUnidade = useMemo(
-    () => (unidadeId ? [...datasDeFeriados(regrasUnidade.filter((f) => f.ativo !== false), [anoCom, anoCom + 1])].filter((d) => d >= comunicacao).sort() : []),
-    [unidadeId, regrasUnidade, anoCom, comunicacao]);
+  const [feriadosUnidade, setFeriadosUnidade] = useState<string[]>([]);
+  useEffect(() => { if (!unidadeId) setFeriadosUnidade([]); }, [unidadeId]);
   const feriados = useMemo(() => [...new Set([...feriadosUnidade, ...feriadosManuais])].sort(), [feriadosUnidade, feriadosManuais]);
   // Colaborador selecionado no topo: preenche admissão e jornada do cadastro (editáveis).
   const jornadaKey = jornadaInicial?.join("|") ?? "";
@@ -126,6 +123,7 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+      {unidadeId && <FeriadosUnidade unidadeId={unidadeId} desde={comunicacao} onDatas={setFeriadosUnidade} />}
       <div className="space-y-4">
         <Card>
           <CardHeader><CardTitle className="text-base">Aviso prévio</CardTitle>
@@ -319,4 +317,15 @@ function Resultado({ r, b, onAlternar }: { r: ResultadoDesligamento; b: Resultad
       )}
     </>
   );
+}
+
+/** Lê os feriados cadastrados na unidade (ano da comunicação e seguinte, a partir dela). */
+function FeriadosUnidade({ unidadeId, desde, onDatas }: { unidadeId: string; desde: string; onDatas: (d: string[]) => void }) {
+  const { feriados } = useDpFeriados(unidadeId);
+  const ano = Number(desde.slice(0, 4)) || new Date().getFullYear();
+  const chave = useMemo(
+    () => [...datasDeFeriados(feriados.filter((f) => f.ativo !== false), [ano, ano + 1])].filter((d) => d >= desde).sort().join("|"),
+    [feriados, ano, desde]);
+  useEffect(() => { onDatas(chave ? chave.split("|") : []); }, [chave, onDatas]);
+  return null;
 }
