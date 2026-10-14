@@ -176,7 +176,7 @@ describe("Fase 2.2 — hierarquia de recomendação", () => {
     expect(s[2].dias).toHaveLength(4);
   });
   it("3. saldo 16h com limite negativo 2h nunca passa de -2h", () => {
-    const dias = [...gerar([8], 3), { data: "2026-12-01", minutos: 440 }, { data: "2026-12-02", minutos: 440 }];
+    const dias = [...gerar([8], 3), { data: "2026-12-01", minutos: 440 }, { data: "2026-12-02", minutos: H(9) }];
     const s = sugerirCombinacoes({ saldoMinutos: H(16), dias, limiteNegativo: H(2), maxSugestoes: 50 });
     expect(s[0].saldoFinal).toBe(0);
     expect(s[0].dias).toHaveLength(2);
