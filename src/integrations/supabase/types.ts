@@ -20315,6 +20315,16 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_solicitacao_corrigir_reenviar: {
+        Args: {
+          p_arquivo_path: string
+          p_data_alvo: string
+          p_data_fim: string
+          p_id: string
+          p_motivo: string
+        }
+        Returns: undefined
+      }
       dp_solicitacao_criar: {
         Args: {
           p_arquivo_path?: string
