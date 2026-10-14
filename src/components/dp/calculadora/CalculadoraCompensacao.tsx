@@ -241,7 +241,8 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
                     className="flex w-full flex-wrap items-center justify-between gap-2 rounded-md border p-2 text-left text-xs transition-colors hover:bg-accent">
                     <span className="font-medium">{s.dias.length} folga(s) · {agrupar(s.dias)}</span>
                     <span className={s.saldoFinal < 0 ? "font-semibold text-destructive" : "text-muted-foreground"}>
-                      {i === 0 ? "Melhor · " : ""}resta {formatarMinutos(s.saldoFinal)}{s.saldoFinal < 0 ? " (Saldo negativo)" : ""}
+                      {i === 0 ? "Melhor · " : ""}resta {formatarMinutos(s.saldoFinal)}
+                      {s.saldoFinal < 0 && <Badge variant="destructive" className="ml-1">Saldo negativo</Badge>}
                     </span>
                   </button>
                 )))}
