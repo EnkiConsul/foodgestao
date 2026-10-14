@@ -13,6 +13,7 @@ import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { VerMenuCompleto } from "@/components/mobile/VerMenuCompleto";
 
 export default function DpHome() {
   const isMobile = useIsMobile();
@@ -53,6 +54,7 @@ export default function DpHome() {
       </div>
 
       <AtalhosFavoritos />
+      <VerMenuCompleto to="/dp/mais" />
     </DpPage>
   );
 }
