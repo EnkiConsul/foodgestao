@@ -12,7 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useJornadasCalculadoraGestor, useJornadasCalculadoraMinhas } from "@/hooks/useCalculadoraJornadas";
-import { unidadesDosColaboradores, colaboradoresDaUnidade } from "@/lib/dp/compensacao/filtroCalculadora";
+import { unidadesDosColaboradores, colaboradoresDaUnidade, elegivelCompensacao, type RegraUnidadeComp, type ExcecaoComp } from "@/lib/dp/compensacao/filtroCalculadora";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 /** Calculadora de simulação (sem gravar nada). Gestor e colaborador usam a mesma tela. */
 export default function DpCalculadora({ perfil = "gestor" }: { perfil?: PerfilCalculadora }) {
@@ -32,8 +34,28 @@ function CalculadoraGestor() {
   const [unidade, setUnidade] = useState("todas");
   const lista = useDpColaboradores();
   const { selectedCompanyId } = useCompanyContext();
-  const unidades = useMemo(() => unidadesDosColaboradores(lista.data ?? []), [lista.data]);
-  const filtrados = useMemo(() => colaboradoresDaUnidade(lista.data ?? [], unidade), [lista.data, unidade]);
+  // Só quem tem banco de horas ou compensação de feriados (unidade + exceção individual).
+  const regras = useQuery({
+    queryKey: ["calc_elegiveis", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const [u, e] = await Promise.all([
+        supabase.from("dp_unidades").select("id, banco_horas, compensa_feriados").eq("company_id", selectedCompanyId!),
+        supabase.from("dp_colaborador_compensacao").select("colaborador_id, usa_banco_horas, usa_compensa_feriados").eq("company_id", selectedCompanyId!),
+      ]);
+      if (u.error) throw u.error;
+      if (e.error) throw e.error;
+      return {
+        un: new Map((u.data ?? []).map((r) => [r.id as string, r as RegraUnidadeComp])),
+        ex: new Map((e.data ?? []).map((r) => [r.colaborador_id as string, r as ExcecaoComp])),
+      };
+    },
+  });
+  const elegiveis = useMemo(() => (lista.data ?? []).filter((c) =>
+    regras.data && elegivelCompensacao(c.unidade_id ? regras.data.un.get(c.unidade_id) : undefined, regras.data.ex.get(c.id))),
+  [lista.data, regras.data]);
+  const unidades = useMemo(() => unidadesDosColaboradores(elegiveis), [elegiveis]);
+  const filtrados = useMemo(() => colaboradoresDaUnidade(elegiveis, unidade), [elegiveis, unidade]);
   const q = useJornadasCalculadoraGestor(colabId);
 
   const origem: OrigemJornadas | undefined = colabId ? {
@@ -43,9 +65,10 @@ function CalculadoraGestor() {
     incompletos: q.data?.incompletos ?? [],
     unidadeId: (lista.data ?? []).find((c) => c.id === colabId)?.unidade_id ?? null,
     companyId: selectedCompanyId,
+    colaboradorId: colabId,
   } : undefined;
 
-  const vazio = !lista.isLoading && !lista.isError && filtrados.length === 0;
+  const vazio = !lista.isLoading && !regras.isLoading && !lista.isError && filtrados.length === 0;
   const topo = (
     <Card>
       <CardContent className="grid gap-2 pt-4 sm:grid-cols-[12rem_1fr_auto] sm:items-end">
@@ -63,7 +86,7 @@ function CalculadoraGestor() {
           <Label htmlFor="calc-colab" className="text-xs">Colaborador (opcional)</Label>
           <Select value={colabId ?? ""} onValueChange={(v) => setColabId(v || null)} disabled={lista.isLoading || vazio}>
             <SelectTrigger id="calc-colab" aria-label="Selecionar colaborador">
-              <SelectValue placeholder={lista.isLoading ? "Carregando…" : lista.isError ? "Erro ao carregar colaboradores" : vazio ? "Nenhum colaborador ativo nesta unidade" : "Simulação manual (sem colaborador)"} />
+              <SelectValue placeholder={lista.isLoading ? "Carregando…" : lista.isError ? "Erro ao carregar colaboradores" : vazio ? "Nenhum colaborador com banco de horas ou compensação de feriados" : "Simulação manual (sem colaborador)"} />
             </SelectTrigger>
             <SelectContent>
               {filtrados.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
@@ -89,6 +112,7 @@ function CalculadoraColaborador() {
     incompletos: v?.incompletos ?? [],
     unidadeId: v?.unidadeId ?? null,
     companyId: v?.companyId ?? null,
+    colaboradorId: v?.id ?? null,
   };
   return <CalculadoraCompensacao perfil="colaborador" origem={origem} />;
 }
