@@ -124,3 +124,32 @@ describe("sugerirCombinacoes", () => {
     expect(arredondarMinuto(0.5)).toBe(1);
   });
 });
+
+describe("sugerirCombinacoes — critérios", () => {
+  const dias = [
+    { data: "a1", minutos: 480 },
+    { data: "a2", minutos: 480 },
+    { data: "b1", minutos: 600 },
+    { data: "c1", minutos: 360 },
+  ];
+  it("sem critério mantém o padrão menor_sobra", () => {
+    const a = sugerirCombinacoes({ saldoMinutos: 960, dias });
+    const b = sugerirCombinacoes({ saldoMinutos: 960, dias, criterio: "menor_sobra" });
+    expect(a).toEqual(b);
+    expect(a[0].saldoFinal).toBe(0);
+  });
+  it("menor_folgas prioriza menos dias e desempata pela menor sobra", () => {
+    const s = sugerirCombinacoes({ saldoMinutos: 960, dias, criterio: "menor_folgas" });
+    expect(s[0].dias).toHaveLength(1);
+    expect(s[0].minutosUsados).toBe(600);
+  });
+  it("menor_folgas respeita o limite negativo", () => {
+    const s = sugerirCombinacoes({ saldoMinutos: 900, dias, limiteNegativo: 60, criterio: "menor_folgas", maxSugestoes: 50 });
+    expect(s.every((x) => x.saldoFinal >= -60)).toBe(true);
+  });
+  it("ordem determinística em repetições", () => {
+    const r1 = sugerirCombinacoes({ saldoMinutos: 1500, dias, criterio: "menor_folgas" });
+    const r2 = sugerirCombinacoes({ saldoMinutos: 1500, dias: [...dias].reverse(), criterio: "menor_folgas" });
+    expect(r1).toEqual(r2);
+  });
+});
