@@ -49,9 +49,10 @@ export function DocumentoAssinaturaGate() {
   const atual = documentos[0] ?? null;
 
   // Termo de troca: abre na própria janela do aviso, sem trocar de tela.
+  // Buscado já na abertura do aviso para mostrar o nome da outra parte no cartão.
   const trocaAtual = useQuery({
     queryKey: ["dp_troca_termo_gate", atual?.troca_id],
-    enabled: !!atual?.troca_id && previewTroca,
+    enabled: !!atual?.troca_id,
     staleTime: 60_000,
     retry: false,
     queryFn: async (): Promise<DpTrocaRow | null> => {
