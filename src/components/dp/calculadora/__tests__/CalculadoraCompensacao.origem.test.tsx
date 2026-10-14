@@ -55,4 +55,17 @@ describe("Calculadora — jornadas do colaborador", () => {
     render(<CalculadoraCompensacao perfil="gestor" />);
     expect(screen.queryByText(ORIENTACAO_SALDO_COLABORADOR)).toBeNull();
   });
+
+  it("voltar ao modo manual mantém o saldo digitado", () => {
+    const { rerender } = render(<CalculadoraCompensacao perfil="gestor" origem={ok("a", 480)} />);
+    fireEvent.change(screen.getByLabelText("Saldo de horas"), { target: { value: "10" } });
+    rerender(<CalculadoraCompensacao perfil="gestor" />);
+    expect((screen.getByLabelText("Saldo de horas") as HTMLInputElement).value).toBe("10");
+  });
+
+  it("ajustar jornadas do cadastro avisa que é só da simulação", () => {
+    render(<CalculadoraCompensacao perfil="gestor" origem={ok("a", 480)} />);
+    fireEvent.click(screen.getByText("Ajustar jornadas"));
+    expect(screen.getByText(/Ajuste só desta simulação/)).toBeTruthy();
+  });
 });
