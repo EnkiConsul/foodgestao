@@ -1,6 +1,6 @@
 import { startTransition, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BellRing, Calendar, CalendarClock, Check, ChevronDown, ClipboardList, HeartPulse, Palmtree } from "lucide-react";
+import { BellRing, Calculator, Calendar, CalendarClock, Check, ChevronDown, ClipboardList, HeartPulse, Palmtree } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -13,6 +13,7 @@ export const TELAS_ROTINA = [
   { to: "/dp/ocorrencias", label: "Ocorrências", icon: ClipboardList },
   { to: "/dp/convocacoes", label: "Convocações", icon: BellRing },
   { to: "/dp/atestados", label: "Atestados e Licenças", icon: HeartPulse },
+  { to: "/dp/rotina/calculadora", label: "Calculadora", icon: Calculator },
 ];
 
 /** Pré-carrega os arquivos das telas para a troca pela pílula ser imediata. */
@@ -23,6 +24,7 @@ const PREFETCH: Record<string, () => Promise<unknown>> = {
   "/dp/ocorrencias": () => import("@/pages/dp/DpOcorrencias"),
   "/dp/convocacoes": () => import("@/pages/dp/DpConvocacoes"),
   "/dp/atestados": () => import("@/pages/dp/DpAtestados"),
+  "/dp/rotina/calculadora": () => import("@/pages/dp/DpCalculadora"),
 };
 
 /** Tela da Rotina correspondente ao endereço (ou null fora do módulo). */

@@ -148,6 +148,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       { label: "Folgas", to: "/dp/folgas", icon: Calendar, shortcut: true },
       { label: "Férias", to: "/dp/ferias", icon: Palmtree, shortcut: true },
       { label: "Atestados", to: "/dp/atestados", icon: HeartPulse },
+      { label: "Calculadora", to: "/dp/rotina/calculadora", icon: Calculator },
     ],
   },
   {
@@ -212,6 +213,7 @@ const PORTAL_GROUPS: DpNavGroup[] = [
       "/dp/meu/trocas",
       "/dp/meu/ferias",
       "/dp/meu/solicitacoes",
+      "/dp/meu/calculadora",
     ],
     items: [
       { label: "Calendário", to: "/dp/meu/calendario", icon: Calendar, shortcut: true },
@@ -223,6 +225,7 @@ const PORTAL_GROUPS: DpNavGroup[] = [
       { label: "Trocas", to: "/dp/meu/trocas", icon: Repeat, shortcut: true },
       { label: "Minhas Férias", to: "/dp/meu/ferias", icon: Palmtree, shortcut: true, shortLabel: "Férias" },
       { label: "Solicitações", to: "/dp/meu/solicitacoes", icon: ClipboardList, shortcut: true },
+      { label: "Calculadora", to: "/dp/meu/calculadora", icon: Calculator },
     ],
   },
   {

@@ -138,6 +138,8 @@ export function sugerirCombinacoes(params: {
   maxDias?: number;
   maxSugestoes?: number;
   maxNos?: number;
+  /** menor_sobra (padrão): menor resto absoluto; menor_folgas: menos dias, depois menor resto. */
+  criterio?: "menor_sobra" | "menor_folgas";
 }): SugestaoCompensacao[] {
   const saldo = arredondarMinuto(params.saldoMinutos);
   const limite = Math.max(0, arredondarMinuto(params.limiteNegativo ?? 0));
@@ -176,10 +178,17 @@ export function sugerirCombinacoes(params: {
   };
   buscar(0, 0);
 
-  return achadas
-    .sort((a, b) =>
-      Math.abs(a.saldoFinal) - Math.abs(b.saldoFinal) ||
-      b.dias.length - a.dias.length ||
-      a.dias[0].data.localeCompare(b.dias[0].data))
-    .slice(0, maxSugestoes);
+  const datas = (x: SugestaoCompensacao) => x.dias.map((d) => d.data).join(",");
+  const cmp = (params.criterio ?? "menor_sobra") === "menor_folgas"
+    ? (a: SugestaoCompensacao, b: SugestaoCompensacao) =>
+        a.dias.length - b.dias.length ||
+        Math.abs(a.saldoFinal) - Math.abs(b.saldoFinal) ||
+        a.dias[0].data.localeCompare(b.dias[0].data) ||
+        datas(a).localeCompare(datas(b))
+    : (a: SugestaoCompensacao, b: SugestaoCompensacao) =>
+        Math.abs(a.saldoFinal) - Math.abs(b.saldoFinal) ||
+        b.dias.length - a.dias.length ||
+        a.dias[0].data.localeCompare(b.dias[0].data) ||
+        datas(a).localeCompare(datas(b));
+  return achadas.sort(cmp).slice(0, maxSugestoes);
 }
