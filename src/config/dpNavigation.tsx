@@ -203,7 +203,7 @@ export const DP_ADMIN_NAV: DpNavSurface = {
 const PORTAL_GROUPS: DpNavGroup[] = [
   {
     id: "minha-escala",
-    label: "Rotina",
+    label: "Minha rotina e folgas",
     icon: Calendar,
     matchPrefixes: [
       "/dp/meu/calendario",
@@ -230,7 +230,7 @@ const PORTAL_GROUPS: DpNavGroup[] = [
   },
   {
     id: "portal-documentos",
-    label: "Documentos",
+    label: "Meus documentos",
     icon: FileText,
     matchPrefixes: [
       "/dp/meu/documentos",
