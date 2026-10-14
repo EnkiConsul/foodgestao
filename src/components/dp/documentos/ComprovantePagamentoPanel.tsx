@@ -189,6 +189,7 @@ function ReciboEspecieAcoes(props: {
   const atualizar = () => {
     qc.invalidateQueries({ queryKey: ["dp_doc_detalhes"] });
     qc.invalidateQueries({ queryKey: ["dp_documentos"] });
+    qc.invalidateQueries({ queryKey: ["dp_historico_unified"] });
     qc.invalidateQueries({ queryKey: ["dp_recibo_especie_status"] });
   };
 

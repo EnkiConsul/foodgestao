@@ -1317,9 +1317,8 @@ export default function DpHistoricoCompleto() {
         // Usa a versão mais recente da lista: o comprovante recém-importado aparece sem reabrir.
         comprovanteDocumentoId={(() => {
           if (!preview || !preview.id.startsWith("doc:")) return null;
-          const lista = Array.isArray(query.data) ? (query.data as UnifiedDoc[]) : [];
-          const atual = lista.find((r) => r.id === preview.id) ?? preview;
-          return atual.tem_comprovante ? preview.id.slice(4) : null;
+          // Sempre consulta o documento: o comprovante aparece mesmo se a lista ainda não atualizou.
+          return preview.id.slice(4);
         })()}
         // Assinado: o comprovante bancário já vem dentro do certificado; o recibo em
         // dinheiro é outro documento e continua aparecendo abaixo.
