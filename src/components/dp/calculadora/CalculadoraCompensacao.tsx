@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
-import { Plus, Trash2, Info } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Plus, Trash2, Info, Loader2, AlertTriangle } from "lucide-react";
+import type { JornadaCarregada } from "@/lib/dp/compensacao/jornadasColaborador";
+import { DOW_CURTO_CALC } from "@/lib/dp/compensacao/jornadasColaborador";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,7 +47,21 @@ function teveArredondamento(entrada: string): boolean {
   return Math.abs((Number(`0.${m[1]}`) * 60) % 1) > 1e-9;
 }
 
-export function CalculadoraCompensacao({ perfil }: { perfil: PerfilCalculadora }) {
+/** Jornadas vindas do cadastro (somente leitura). Ausente = modo manual/avulso. */
+export interface OrigemJornadas {
+  /** Muda a cada colaborador; ao mudar, saldo e resultados são limpos. */
+  chave: string;
+  estado: "carregando" | "erro" | "sem_config" | "sem_vinculo" | "ok";
+  jornadas: JornadaCarregada[];
+  incompletos: number[];
+}
+
+export const ORIENTACAO_SALDO_COLABORADOR =
+  "Consulte seu saldo de banco de horas na folha de ponto disponibilizada pela empresa e informe-o aqui para simular quantos dias de folga podem ser compensados.";
+
+const hhmm = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
+
+export function CalculadoraCompensacao({ perfil, origem, topo }: { perfil: PerfilCalculadora; origem?: OrigemJornadas; topo?: ReactNode }) {
   // Desligamento só existe na árvore do gestor; o colaborador nunca monta o componente.
   const gestor = perfil === "gestor";
   return (
@@ -54,19 +70,37 @@ export function CalculadoraCompensacao({ perfil }: { perfil: PerfilCalculadora }
         <TabsTrigger value="compensatoria">Folga Compensatória</TabsTrigger>
         {gestor && <TabsTrigger value="desligamento">Desligamento</TabsTrigger>}
       </TabsList>
-      <TabsContent value="compensatoria"><HorasFolgas perfil={perfil} /></TabsContent>
+      <TabsContent value="compensatoria" className="space-y-4">{topo}<HorasFolgas perfil={perfil} origem={origem} /></TabsContent>
       {gestor && <TabsContent value="desligamento"><CalculadoraDesligamento /></TabsContent>}
     </Tabs>
   );
 }
 
 
-function HorasFolgas({ perfil }: { perfil: PerfilCalculadora }) {
+function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: OrigemJornadas }) {
   const [saldoTxt, setSaldoTxt] = useState("");
   const [jornadas, setJornadas] = useState<Jornada[]>(JORNADAS_INICIAIS);
   const [negAtivo, setNegAtivo] = useState(false);
   const [limiteTxt, setLimiteTxt] = useState("");
   const [escolhida, setEscolhida] = useState(0);
+
+  const chave = origem?.chave ?? "manual";
+  const estado = origem?.estado;
+  // Troca de colaborador (ou volta ao manual): limpa saldo e resultados.
+  useEffect(() => {
+    setSaldoTxt(""); setEscolhida(0); setNegAtivo(false); setLimiteTxt("");
+    if (!origem) setJornadas(JORNADAS_INICIAIS);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave]);
+  // Nunca inventa jornada: sem cadastro completo, a lista fica vazia até o usuário digitar.
+  useEffect(() => {
+    if (!origem || estado === "carregando") return;
+    setJornadas(estado === "ok"
+      ? origem.jornadas.map((j, i) => ({ id: i + 1, nome: j.nome, carga: hhmm(j.minutos), qtd: String(j.qtd) }))
+      : []);
+    setEscolhida(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave, estado]);
 
   const gestor = perfil === "gestor";
   const saldo = parseHoras(saldoTxt);
