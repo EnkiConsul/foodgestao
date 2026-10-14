@@ -17,13 +17,41 @@ describe("Calculadora — abas por perfil", () => {
     render(<CalculadoraCompensacao perfil="gestor" />);
     expect(screen.getByRole("tab", { name: "Folga Compensatória" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Desligamento" })).toBeTruthy();
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
     expect(screen.queryByText(/Prazos & Rescisão/)).toBeNull();
   });
   it("colaborador não tem a aba nem o conteúdo de Desligamento", () => {
     const { container } = render(<CalculadoraCompensacao perfil="colaborador" />);
     expect(screen.queryByRole("tab", { name: "Desligamento" })).toBeNull();
-    expect(container.innerHTML).not.toMatch(/desligamento|aviso prévio|comparecimento/i);
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Folga Compensatória"]);
+    expect(container.innerHTML).not.toMatch(/desligamento|aviso prévio|comparecimento|férias/i);
     expect(screen.getByLabelText("Saldo de horas")).toBeTruthy();
+  });
+});
+
+describe("Saldo do banco de horas na aba Desligamento", () => {
+  const saldo = (v: string) => fireEvent.change(screen.getByLabelText("Saldo do banco de horas"), { target: { value: v } });
+  it("negativo mostra erro e não simula com zero", () => {
+    render(<CalculadoraDesligamento />);
+    preencher(); saldo("-8");
+    expect(screen.getByRole("alert").textContent).toMatch(/positivo/);
+    expect(screen.queryByTestId("ultimo-comparecimento")).toBeNull();
+    expect(screen.getByText(/Corrija o saldo/)).toBeTruthy();
+  });
+  it("inválido mostra erro e não simula", () => {
+    render(<CalculadoraDesligamento />);
+    preencher(); saldo("abc");
+    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(screen.queryByTestId("ultimo-comparecimento")).toBeNull();
+  });
+  it("vazio e zero simulam normalmente", () => {
+    render(<CalculadoraDesligamento />);
+    preencher();
+    expect(ultimo()).toContain("31/10/2026");
+    saldo("0");
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(ultimo()).toContain("31/10/2026");
+    expect((screen.getByText("Concentrar no final") as HTMLButtonElement).disabled).toBe(true);
   });
 });
 
