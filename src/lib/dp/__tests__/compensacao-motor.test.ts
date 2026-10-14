@@ -6,7 +6,7 @@ import {
 
 const min = (s: string) => {
   const r = parseHoras(s);
-  if (!r.ok) throw new Error(r.erro);
+  if ("erro" in r) throw new Error(r.erro);
   return r.minutos;
 };
 
