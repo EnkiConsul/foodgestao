@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { AnexoFotoPdfPicker } from "@/components/dp/portal/AnexoFotoPdfPicker";
 import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { AlertTriangle, Clock, HeartPulse, HelpCircle, LogOut, Timer, UserX, Wrench } from "lucide-react";
 import { toast } from "sonner";
@@ -73,9 +74,6 @@ export function MinhaJornadaAcoesCard() {
   const [motivo, setMotivo] = useState("");
   const [enviandoAtestado, setEnviandoAtestado] = useState(false);
   const [arquivoAtestado, setArquivoAtestado] = useState<File | null>(null);
-  const cameraRef = useRef<HTMLInputElement>(null);
-  const galeriaRef = useRef<HTMLInputElement>(null);
-  const pdfRef = useRef<HTMLInputElement>(null);
 
   if (!colaboradorId) return null;
 
@@ -332,40 +330,7 @@ export function MinhaJornadaAcoesCard() {
             {opcao?.pedeArquivo && (
               <div className="space-y-1.5">
                 <Label>Foto ou PDF do atestado</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {([
-                    { ref: cameraRef, rotulo: "Tirar foto", accept: "image/*", capture: true },
-                    { ref: galeriaRef, rotulo: "Galeria", accept: "image/*", capture: false },
-                    { ref: pdfRef, rotulo: "PDF", accept: "application/pdf,.pdf", capture: false },
-                  ] as const).map((b) => (
-                    <label
-                      key={b.rotulo}
-                      className="flex min-h-11 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-2 text-center text-sm font-medium hover:bg-accent"
-                    >
-                      {b.rotulo}
-                      <input
-                        ref={b.ref}
-                        type="file"
-                        accept={b.accept}
-                        {...(b.capture ? { capture: "environment" as const } : {})}
-                        className="sr-only"
-                        onClick={(e) => {
-                          e.currentTarget.value = "";
-                        }}
-                        onChange={(e) => setArquivoAtestado(e.target.files?.[0] ?? null)}
-                      />
-                    </label>
-                  ))}
-                </div>
-                {arquivoAtestado && (
-                  <div className="flex min-w-0 items-center gap-2 rounded-md border p-2 text-sm">
-                    {arquivoAtestado.type.startsWith("image/") && !/hei[cf]/i.test(arquivoAtestado.type) && (
-                      <img
-                        src={URL.createObjectURL(arquivoAtestado)}
-                        alt="Prévia do atestado"
-                        className="size-12 shrink-0 rounded object-cover"
-                      />
-                    )}
+                <AnexoFotoPdfPicker file={arquivoAtestado} onChange={setArquivoAtestado} />
                     <span className="min-w-0 flex-1 truncate">{arquivoAtestado.name}</span>
                     <Button type="button" variant="ghost" size="sm" onClick={() => setArquivoAtestado(null)}>
                       Remover
