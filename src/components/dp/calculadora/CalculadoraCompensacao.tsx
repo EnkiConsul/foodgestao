@@ -76,8 +76,8 @@ export function CalculadoraCompensacao({ perfil, origem, topo }: { perfil: Perfi
         <TabsTrigger value="compensatoria">Folga Compensatória</TabsTrigger>
         {gestor && <TabsTrigger value="desligamento">Desligamento</TabsTrigger>}
       </TabsList>
-      <TabsContent value="compensatoria" className="space-y-4">{topo}<HorasFolgas perfil={perfil} origem={origem} /></TabsContent>
-      {gestor && <TabsContent value="desligamento"><CalculadoraDesligamento /></TabsContent>}
+      <TabsContent value="compensatoria" forceMount className="space-y-4 data-[state=inactive]:hidden">{topo}<HorasFolgas perfil={perfil} origem={origem} /></TabsContent>
+      {gestor && <TabsContent value="desligamento" forceMount className="data-[state=inactive]:hidden"><CalculadoraDesligamento /></TabsContent>}
     </Tabs>
   );
 }

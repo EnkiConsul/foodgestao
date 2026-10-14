@@ -10,21 +10,20 @@ const saldo = 32 * 60 + 54; // 1974
 
 describe("cenários de folga compensatória", () => {
   it("opção 1 usa só meio de semana, mesmo em semanas diferentes (4 folgas, não 3)", () => {
-    const c = cenariosCompensacao(cris, saldo)[0];
+    const c = cenariosCompensacao(cris, saldo).find((x) => x.tipo === "meio_semana")!;
     expect(c.tipo).toBe("meio_semana");
     expect(c.itens).toEqual([{ rotulo: "SEG, TER, QUA", minutos: 425, pico: false, n: 4 }]);
     expect(c.saldoFinal).toBe(1974 - 1700);
   });
 
-  it("opção 2 mescla meio e fim de semana com o menor saldo restante", () => {
-    const c = cenariosCompensacao(cris, saldo).find((x) => x.tipo === "menor_sobra")!;
-    // 1×425 + 3×455 = 1790 → resta 184 (melhor mistura possível)
-    expect(c.saldoFinal).toBe(184);
-    expect(c.itens.some((i) => i.pico) && c.itens.some((i) => !i.pico)).toBe(true);
+  it("primeira opção é o menor saldo restante, sem forçar mistura", () => {
+    const c = cenariosCompensacao(cris, saldo)[0];
+    expect(c.tipo).toBe("menor_sobra");
+    expect(c.saldoFinal).toBe(154); // 4×455 — igual ao "só fim de semana", que não se repete
   });
 
   it("opção 3 usa só fim de semana", () => {
-    const c = cenariosCompensacao(cris, saldo).find((x) => x.tipo === "fim_semana")!;
+    const c = cenariosCompensacao(cris, saldo).find((x) => x.itens.every((i) => i.pico))!;
     expect(c.itens.every((i) => i.pico)).toBe(true);
     expect(c.minutosUsados).toBe(4 * 455);
   });
@@ -35,7 +34,7 @@ describe("cenários de folga compensatória", () => {
 
   it("sem dias de pico informados, não cria opção de fim de semana", () => {
     const r = cenariosCompensacao([{ rotulo: "A", minutos: 480, pico: false, max: 4 }], 1000);
-    expect(r.map((c) => c.tipo)).toEqual(["meio_semana"]);
+    expect(r.map((c) => c.tipo)).toEqual(["menor_sobra"]);
   });
 });
 
@@ -48,5 +47,16 @@ describe("menor saldo com saldo de um dia", () => {
     ], 455);
     expect(r.some((c) => c.tipo === "menor_sobra" || c.saldoFinal === 0)).toBe(true);
     expect(Math.min(...r.map((c) => Math.abs(c.saldoFinal)))).toBe(0);
+  });
+});
+
+describe("saldo negativo liberado", () => {
+  const r = cenariosCompensacao(cris, saldo, 455);
+  it("primeira opção é a de menor saldo restante absoluto", () => {
+    expect(r[0].tipo).toBe("menor_sobra");
+    expect(Math.abs(r[0].saldoFinal)).toBe(Math.min(...r.map((c) => Math.abs(c.saldoFinal))));
+  });
+  it("só fim de semana usa 5 folgas dentro do limite", () => {
+    expect(r.find((c) => c.tipo === "fim_semana")!.dias).toBe(5);
   });
 });
