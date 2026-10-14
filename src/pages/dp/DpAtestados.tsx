@@ -26,6 +26,7 @@ import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpFilePicker } from "@/components/dp/DpFilePicker";
+import { AnexoFotoPdfPicker } from "@/components/dp/portal/AnexoFotoPdfPicker";
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
 import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
