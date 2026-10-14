@@ -123,6 +123,13 @@ export function CompensacaoJornadaBox({ companyId, colaboradorId, nome, cpf, reg
   });
 
   const temRegraUnidade = admite && (!!unidade?.banco_horas || !!unidade?.compensa_feriados);
+  if (!admite && (unidade?.banco_horas || unidade?.compensa_feriados)) {
+    return (
+      <div className="mb-4 rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
+        Este tipo de vínculo não admite banco de horas nem compensação de feriados. O colaborador fica fora dessas regras da unidade.
+      </div>
+    );
+  }
   if (!tipos.length && !temRegraUnidade) return null;
   const pendentes = tipos.filter((t) => !status.data?.[t]);
 

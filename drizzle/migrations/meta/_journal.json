@@ -568,6 +568,13 @@
       "when": 1791980192292,
       "tag": "0080_fix_dp_portal_minhas_jornadas_builtins",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1791993441976,
+      "tag": "0081_dp_compensacao_bloqueio_por_vinculo",
+      "breakpoints": true
     }
   ]
 }
