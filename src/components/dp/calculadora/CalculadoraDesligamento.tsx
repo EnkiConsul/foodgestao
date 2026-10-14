@@ -77,9 +77,14 @@ export function CalculadoraDesligamento() {
   });
   const jornadaOk = jornadaMin.every((m) => m !== null);
   const saldoParse = parseHoras(saldoTxt);
-  const saldoMin = saldoTxt && saldoParse.ok ? Math.max(0, saldoParse.minutos) : 0;
+  const saldoVazio = !saldoTxt.trim();
+  // Vazio = 0. Negativo ou inválido bloqueia a simulação — nunca vira 0 em silêncio.
+  const saldoMin = saldoVazio ? 0 : saldoParse.ok && saldoParse.minutos >= 0 ? saldoParse.minutos : null;
+  const saldoErro = saldoVazio || saldoMin !== null ? null
+    : !saldoParse.ok ? ("erro" in saldoParse ? saldoParse.erro : "Saldo inválido.")
+    : "Informe apenas saldo positivo.";
 
-  const params = admissao && comunicacao && jornadaOk ? {
+  const params = admissao && comunicacao && jornadaOk && saldoMin !== null ? {
     dataAdmissao: admissao, dataComunicacao: comunicacao, modalidade,
     reducao: modalidade === "trabalhado" ? reducao : null,
     jornadaSemanal: jornadaMin as [number, number, number, number, number, number, number],
@@ -168,11 +173,10 @@ export function CalculadoraDesligamento() {
           <CardContent className="space-y-2">
             <Input aria-label="Saldo do banco de horas" inputMode="decimal" placeholder="Ex.: 16 ou 24:30" value={saldoTxt}
               onChange={(e) => { setSaldoTxt(e.target.value); setFolgas([]); }} />
-            {saldoTxt && !saldoParse.ok && <p className="text-sm text-destructive">{"erro" in saldoParse ? saldoParse.erro : ""}</p>}
-            {saldoTxt && saldoParse.ok && saldoParse.minutos < 0 && <p className="text-sm text-destructive">Informe apenas saldo positivo.</p>}
+            {saldoErro && <p role="alert" className="text-sm text-destructive">{saldoErro}</p>}
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" disabled={!b || modalidade !== "trabalhado" || saldoMin <= 0}
-                onClick={() => b && setFolgas(concentrarNoFinal(b, saldoMin))}>Concentrar no final</Button>
+              <Button type="button" variant="outline" size="sm" disabled={!b || modalidade !== "trabalhado" || !saldoMin}
+                onClick={() => b && saldoMin && setFolgas(concentrarNoFinal(b, saldoMin))}>Concentrar no final</Button>
               <Button type="button" variant="ghost" size="sm" disabled={!folgas.length} onClick={() => setFolgas([])}>Limpar folgas</Button>
             </div>
           </CardContent>
@@ -180,7 +184,8 @@ export function CalculadoraDesligamento() {
       </div>
 
       <div className="space-y-4">
-        {!params && <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Informe a data de admissão para simular.</CardContent></Card>}
+        {!params && <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">
+          {saldoErro ? "Corrija o saldo do banco de horas para simular." : "Informe a data de admissão para simular."}</CardContent></Card>}
         {erro && <Card><CardContent className="py-6 text-sm text-destructive">{erro}</CardContent></Card>}
         {r && b && <Resultado r={r} b={b} onAlternar={alternar} />}
       </div>
