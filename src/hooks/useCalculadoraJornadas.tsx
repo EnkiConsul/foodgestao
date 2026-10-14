@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { normalizarDias, type DiaConfig, type TurnoResolvido } from "@/lib/dp/config-trabalho";
-import { configVigente, jornadasDaConfig, type ResultadoJornadas } from "@/lib/dp/compensacao/jornadasColaborador";
+import { configVigente, jornadasDaConfig, jornadasDaRpc, type LinhaJornadaRpc, type ResultadoJornadas } from "@/lib/dp/compensacao/jornadasColaborador";
 
 /**
  * Leitura (somente SELECT) da jornada vigente para a calculadora.
@@ -49,6 +49,7 @@ export function useJornadasCalculadoraGestor(colaboradorId: string | null) {
   });
 }
 
+/** Colaborador: a grade vem resolvida pela RPC da sessão; não lê `dp_turnos` diretamente. */
 export function useJornadasCalculadoraMinhas() {
   return useQuery({
     queryKey: ["calc_jornadas", "meu"],
@@ -56,7 +57,11 @@ export function useJornadasCalculadoraMinhas() {
       const { data: id, error } = await supabase.rpc("dp_meu_colaborador");
       if (error) throw error;
       if (!id) return { semVinculo: true as const };
-      return { semVinculo: false as const, id: id as string, ...(await carregar(id as string, null)) };
+      const { data: linhas, error: e2 } = await supabase.rpc("dp_portal_minhas_jornadas");
+      if (e2) throw e2;
+      const lista = (linhas ?? []) as LinhaJornadaRpc[];
+      if (!lista.length) return { semVinculo: false as const, id: id as string, jornadas: [], incompletos: [], semConfig: true };
+      return { semVinculo: false as const, id: id as string, ...jornadasDaRpc(lista), semConfig: false };
     },
   });
 }

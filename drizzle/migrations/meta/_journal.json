@@ -554,6 +554,20 @@
       "when": 1791954952926,
       "tag": "0078_fix_dp_solicitar_complemento_clt_schema_restore",
       "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1791979907278,
+      "tag": "0079_create_dp_portal_minhas_jornadas",
+      "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1791980192292,
+      "tag": "0080_fix_dp_portal_minhas_jornadas_builtins",
+      "breakpoints": true
     }
   ]
 }
