@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
-import { Plus, Trash2, Info } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Plus, Trash2, Info, Loader2, AlertTriangle } from "lucide-react";
+import type { JornadaCarregada } from "@/lib/dp/compensacao/jornadasColaborador";
+import { DOW_CURTO_CALC } from "@/lib/dp/compensacao/jornadasColaborador";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,7 +47,21 @@ function teveArredondamento(entrada: string): boolean {
   return Math.abs((Number(`0.${m[1]}`) * 60) % 1) > 1e-9;
 }
 
-export function CalculadoraCompensacao({ perfil }: { perfil: PerfilCalculadora }) {
+/** Jornadas vindas do cadastro (somente leitura). Ausente = modo manual/avulso. */
+export interface OrigemJornadas {
+  /** Muda a cada colaborador; ao mudar, saldo e resultados são limpos. */
+  chave: string;
+  estado: "carregando" | "erro" | "sem_config" | "sem_vinculo" | "ok";
+  jornadas: JornadaCarregada[];
+  incompletos: number[];
+}
+
+export const ORIENTACAO_SALDO_COLABORADOR =
+  "Consulte seu saldo de banco de horas na folha de ponto disponibilizada pela empresa e informe-o aqui para simular quantos dias de folga podem ser compensados.";
+
+const hhmm = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
+
+export function CalculadoraCompensacao({ perfil, origem, topo }: { perfil: PerfilCalculadora; origem?: OrigemJornadas; topo?: ReactNode }) {
   // Desligamento só existe na árvore do gestor; o colaborador nunca monta o componente.
   const gestor = perfil === "gestor";
   return (
@@ -54,19 +70,37 @@ export function CalculadoraCompensacao({ perfil }: { perfil: PerfilCalculadora }
         <TabsTrigger value="compensatoria">Folga Compensatória</TabsTrigger>
         {gestor && <TabsTrigger value="desligamento">Desligamento</TabsTrigger>}
       </TabsList>
-      <TabsContent value="compensatoria"><HorasFolgas perfil={perfil} /></TabsContent>
+      <TabsContent value="compensatoria" className="space-y-4">{topo}<HorasFolgas perfil={perfil} origem={origem} /></TabsContent>
       {gestor && <TabsContent value="desligamento"><CalculadoraDesligamento /></TabsContent>}
     </Tabs>
   );
 }
 
 
-function HorasFolgas({ perfil }: { perfil: PerfilCalculadora }) {
+function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: OrigemJornadas }) {
   const [saldoTxt, setSaldoTxt] = useState("");
   const [jornadas, setJornadas] = useState<Jornada[]>(JORNADAS_INICIAIS);
   const [negAtivo, setNegAtivo] = useState(false);
   const [limiteTxt, setLimiteTxt] = useState("");
   const [escolhida, setEscolhida] = useState(0);
+
+  const chave = origem?.chave ?? "manual";
+  const estado = origem?.estado;
+  // Troca de colaborador (ou volta ao manual): limpa saldo e resultados.
+  useEffect(() => {
+    setSaldoTxt(""); setEscolhida(0); setNegAtivo(false); setLimiteTxt("");
+    if (!origem) setJornadas(JORNADAS_INICIAIS);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave]);
+  // Nunca inventa jornada: sem cadastro completo, a lista fica vazia até o usuário digitar.
+  useEffect(() => {
+    if (!origem || estado === "carregando") return;
+    setJornadas(estado === "ok"
+      ? origem.jornadas.map((j, i) => ({ id: i + 1, nome: j.nome, carga: hhmm(j.minutos), qtd: String(j.qtd) }))
+      : []);
+    setEscolhida(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave, estado]);
 
   const gestor = perfil === "gestor";
   const saldo = parseHoras(saldoTxt);
@@ -112,6 +146,7 @@ function HorasFolgas({ perfil }: { perfil: PerfilCalculadora }) {
         <CardHeader><CardTitle className="text-base">Saldo disponível</CardTitle>
           <CardDescription>Ex.: 32,9 · 32.9 · 32:54 · 32h54 · 45min</CardDescription></CardHeader>
         <CardContent className="space-y-2">
+          {!gestor && <p className="rounded-md bg-muted p-2 text-xs text-muted-foreground">{ORIENTACAO_SALDO_COLABORADOR}</p>}
           <Input inputMode="decimal" value={saldoTxt} onChange={(e) => { setSaldoTxt(e.target.value); setEscolhida(0); }} placeholder="Informe o saldo" aria-label="Saldo de horas" />
           {saldoTxt && (saldo.ok
             ? <p className="text-sm">Equivale a <strong>{formatarMinutos(saldo.minutos)}</strong>
@@ -122,8 +157,17 @@ function HorasFolgas({ perfil }: { perfil: PerfilCalculadora }) {
 
       <Card>
         <CardHeader><CardTitle className="text-base">Jornadas</CardTitle>
-          <CardDescription>Horas líquidas por dia e quantos dias dessa jornada podem virar folga.</CardDescription></CardHeader>
+          <CardDescription>
+            {origem?.estado === "ok" ? "Carregadas do cadastro (semana vigente). Você pode ajustar para simular." : "Horas líquidas por dia e quantos dias dessa jornada podem virar folga."}
+          </CardDescription></CardHeader>
         <CardContent className="space-y-2">
+          {origem?.estado === "carregando" && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando jornadas…</p>}
+          {origem?.estado === "erro" && <AvisoJornada texto="Não foi possível ler as jornadas cadastradas. Informe-as manualmente ou tente novamente." />}
+          {origem?.estado === "sem_config" && <AvisoJornada texto="Não há configuração de trabalho vigente cadastrada. Informe as jornadas manualmente." />}
+          {origem?.estado === "sem_vinculo" && <AvisoJornada texto="Seu acesso não está vinculado a um cadastro de colaborador ativo. Informe as jornadas manualmente." />}
+          {origem?.estado === "ok" && origem.incompletos.length > 0 && (
+            <AvisoJornada texto={`Sem horário cadastrado em: ${origem.incompletos.map((d) => DOW_CURTO_CALC[d]).join(", ")}. Esses dias não entraram na simulação.`} />
+          )}
           {jornadas.map((j) => (
             <div key={j.id} className="grid grid-cols-[1fr_5rem_4rem_auto] items-end gap-2">
               <div><Label className="text-xs">Nome</Label><Input value={j.nome} onChange={(e) => atualizar(j.id, "nome", e.target.value)} /></div>
@@ -222,4 +266,8 @@ function HorasFolgas({ perfil }: { perfil: PerfilCalculadora }) {
       </p>
     </div>
   );
+}
+
+function AvisoJornada({ texto }: { texto: string }) {
+  return <p className="flex gap-2 rounded-md border border-destructive/30 p-2 text-xs text-destructive" role="status"><AlertTriangle className="h-4 w-4 shrink-0" />{texto}</p>;
 }
