@@ -3,7 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { resolveOnboardingStatus } from "@/lib/onboardingStatus";
+import { onboardingStatusEmCache, resolveOnboardingStatus } from "@/lib/onboardingStatus";
 import { resolveLandingTarget, PORTAL_PATH } from "@/lib/auth/landing";
 import { Button } from "@/components/ui/button";
 import { reportError } from "@/lib/errorLog";
@@ -121,9 +121,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   const { setContext, selectedCompanyId } = useCompanyContext();
-  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
-  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
-  const [mfaChecking, setMfaChecking] = useState(true);
+  const cacheInicial = user ? onboardingStatusEmCache(user.id) : null;
+  const [checkingOnboarding, setCheckingOnboarding] = useState(!cacheInicial);
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(cacheInicial ? true : null);
+  const [mfaChecking, setMfaChecking] = useState(!cacheInicial);
   const [mfaRequired, setMfaRequired] = useState(false);
   const [cadastroFalhou, setCadastroFalhou] = useState(false);
 
@@ -137,8 +138,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
       return;
     }
     setCadastroFalhou(false);
-    setCheckingOnboarding(true);
-    setMfaChecking(true);
+    const jaConcluido = !!onboardingStatusEmCache(user.id);
+    setCheckingOnboarding(!jaConcluido);
+    if (!jaConcluido) setMfaChecking(true);
     setMfaRequired(false);
 
     resolveOnboardingStatus(user.id)

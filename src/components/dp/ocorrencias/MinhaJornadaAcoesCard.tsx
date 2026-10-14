@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { AnexoFotoPdfPicker } from "@/components/dp/portal/AnexoFotoPdfPicker";
 import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { AlertTriangle, Clock, HeartPulse, HelpCircle, LogOut, Timer, UserX, Wrench } from "lucide-react";
 import { toast } from "sonner";
@@ -72,7 +73,7 @@ export function MinhaJornadaAcoesCard() {
   const [horario, setHorario] = useState("");
   const [motivo, setMotivo] = useState("");
   const [enviandoAtestado, setEnviandoAtestado] = useState(false);
-  const arquivoRef = useRef<HTMLInputElement>(null);
+  const [arquivoAtestado, setArquivoAtestado] = useState<File | null>(null);
 
   if (!colaboradorId) return null;
 
@@ -90,13 +91,13 @@ export function MinhaJornadaAcoesCard() {
     setMomento(o.pedeMomento ? "entrada" : null);
     setHorario(id === "saida_antecipada" ? (saida ?? "") : "");
     setMotivo("");
-    if (arquivoRef.current) arquivoRef.current.value = "";
+    setArquivoAtestado(null);
   };
 
   const fechar = () => setAberta(null);
 
   const enviarAtestado = async () => {
-    const escolhido = arquivoRef.current?.files?.[0];
+    const escolhido = arquivoAtestado;
     if (!vinculo) return toast.error("Não encontramos seu cadastro. Fale com o DP.");
     if (!escolhido) return toast.error("Anexe a foto ou o PDF do atestado.");
     setEnviandoAtestado(true);
@@ -329,7 +330,7 @@ export function MinhaJornadaAcoesCard() {
             {opcao?.pedeArquivo && (
               <div className="space-y-1.5">
                 <Label>Foto ou PDF do atestado</Label>
-                <Input ref={arquivoRef} type="file" accept="image/*,application/pdf" />
+                <AnexoFotoPdfPicker file={arquivoAtestado} onChange={setArquivoAtestado} />
                 <p className="text-xs text-muted-foreground">
                   O atestado vai para os seus documentos e aguarda a conferência do DP.
                 </p>

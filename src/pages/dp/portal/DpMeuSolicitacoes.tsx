@@ -35,6 +35,10 @@ import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
 import { podePedirTrocaFds, validarTrocaFds } from "@/lib/dp/troca-fds";
 import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import { notifyError } from "@/lib/notifyError";
+import { AnexoFotoPdfPicker } from "@/components/dp/portal/AnexoFotoPdfPicker";
+import { prepararUpload } from "@/lib/storage/uploadPolicy";
+import { sanitizeStorageFilename } from "@/lib/storage";
+import { registrarDocumento } from "@/lib/dp/documentos-oficial";
 
 const TIPOS = [
   { value: "folga", label: "Folga" },
@@ -82,6 +86,7 @@ export default function DpMeuSolicitacoes() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<StatusTab>("todas");
+  const [anexoAtestado, setAnexoAtestado] = useState<File | null>(null);
   const [form, setForm] = useState<{
     tipo: string;
     data_alvo: Date | undefined;
@@ -357,6 +362,7 @@ export default function DpMeuSolicitacoes() {
     if (!form.data_alvo) errors.push("Informe a data.");
     if (form.data_fim && form.data_alvo && form.data_fim < form.data_alvo)
       errors.push("A data fim não pode ser anterior à data inicial.");
+    if (form.tipo === "atestado" && !anexoAtestado) errors.push("Anexe a foto ou o PDF do atestado.");
     if (form.tipo !== "folga" && !form.motivo.trim())
       errors.push("Motivo obrigatório para este tipo de solicitação.");
     if (form.tipo === "folga" && dateStatus) {
@@ -404,12 +410,32 @@ export default function DpMeuSolicitacoes() {
         }
         return;
       }
+      let arquivoPath: string | null = null;
+      if (form.tipo === "atestado" && anexoAtestado && meRef.data) {
+        const arq = await prepararUpload("dp-documentos", anexoAtestado);
+        arquivoPath = `${meRef.data.company_id}/${meRef.data.id}/${Date.now()}-${sanitizeStorageFilename(arq.name)}`;
+        const up = await supabase.storage.from("dp-documentos").upload(arquivoPath, arq, { contentType: arq.type, upsert: false });
+        if (up.error) throw up.error;
+        const dataRef = toIso(form.data_alvo) as string;
+        await registrarDocumento({
+          company_id: meRef.data.company_id,
+          colaborador_id: meRef.data.id,
+          tipo: "atestado",
+          titulo: `Atestado ${dataRef.split("-").reverse().join("/")}`,
+          descricao: form.motivo.trim() || null,
+          file_path: arquivoPath,
+          file_name: arq.name,
+          file_size: arq.size,
+          mime_type: arq.type,
+          referencia_data: dataRef,
+        });
+      }
       const { error } = await supabase.rpc("dp_solicitacao_criar", {
         p_tipo: form.tipo as any,
         p_data_alvo: toIso(form.data_alvo) as string,
         p_data_fim: (toIso(form.data_fim) || null) as any,
         p_motivo: (form.motivo || null) as any,
-        p_arquivo_path: null as any,
+        p_arquivo_path: arquivoPath as any,
       });
       if (error) {
         const raw = error.message ?? "";
@@ -429,6 +455,7 @@ export default function DpMeuSolicitacoes() {
       qc.invalidateQueries({ queryKey: ["dp_meu_sol"] });
       setOpen(false);
       setForm({ tipo: "folga", data_alvo: undefined, data_fim: undefined, motivo: "" });
+      setAnexoAtestado(null);
     },
     onError: (e: any) => notifyError(e, { surface: "Minhas solicitações", action: "concluir a ação", fallback: "Erro" }),
   });
@@ -528,6 +555,12 @@ export default function DpMeuSolicitacoes() {
                   <Label>Motivo{form.tipo !== "folga" && <span className="text-destructive ml-0.5">*</span>}</Label>
                   <Textarea rows={3} value={form.motivo} onChange={(e) => setForm({ ...form, motivo: e.target.value })} />
                 </div>
+                {form.tipo === "atestado" && (
+                  <div className="space-y-1.5">
+                    <Label>Foto ou PDF do atestado<span className="text-destructive ml-0.5">*</span></Label>
+                    <AnexoFotoPdfPicker file={anexoAtestado} onChange={setAnexoAtestado} />
+                  </div>
+                )}
                 {validation.length > 0 && (
                   <p className="text-xs text-destructive">{validation[0]}</p>
                 )}
