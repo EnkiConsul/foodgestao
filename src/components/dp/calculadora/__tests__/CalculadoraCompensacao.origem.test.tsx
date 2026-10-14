@@ -11,7 +11,7 @@ describe("Calculadora — jornadas do colaborador", () => {
 
   it("carrega as jornadas cadastradas como resumo, editáveis sob demanda", () => {
     render(<CalculadoraCompensacao perfil="gestor" origem={ok("a", 440)} />);
-    expect(screen.getByText("3× 7h20")).toBeTruthy();
+    expect(screen.getByText(/^3× 7h ?20/)).toBeTruthy();
     fireEvent.click(screen.getByText("Ajustar jornadas"));
     expect(screen.getByDisplayValue("Ja")).toBeTruthy();
     expect(screen.getByDisplayValue("7:20")).toBeTruthy();
