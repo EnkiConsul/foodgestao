@@ -151,7 +151,9 @@ export function sugerirCombinacoes(params: {
   const maxDias = Math.max(1, params.maxDias ?? 5);
   const maxSugestoes = Math.max(1, params.maxSugestoes ?? 5);
   const maxNos = params.maxNos ?? 50_000;
-  const dias = normalizarDias(params.dias);
+  // Ordem de exploração: cargas maiores primeiro (data crescente no empate) — com o corte por
+  // `maxNos`, chega antes às combinações com menos folgas. Não altera o ranking final.
+  const dias = normalizarDias(params.dias).sort((a, b) => b.minutos - a.minutos || a.data.localeCompare(b.data));
   const comFlag = (lista: SugestaoCompensacao[], completa: boolean): ResultadoSugestoes =>
     Object.defineProperty(lista, "buscaCompleta", { value: completa, enumerable: false }) as ResultadoSugestoes;
   if (teto <= 0 || dias.length === 0) return comFlag([], true);
@@ -167,7 +169,8 @@ export function sugerirCombinacoes(params: {
     const chave = atual.map((d) => d.minutos).sort((a, b) => a - b).join(",");
     if (chaves.has(chave)) return;
     chaves.add(chave);
-    achadas.push({ dias: [...atual], minutosUsados: soma, saldoFinal: saldo - soma });
+    const ds = [...atual].sort((a, b) => a.data.localeCompare(b.data));
+    achadas.push({ dias: ds, minutosUsados: soma, saldoFinal: saldo - soma });
   };
 
   const buscar = (inicio: number, soma: number) => {

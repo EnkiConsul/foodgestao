@@ -1,8 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, afterEach } from "vitest";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { CalculadoraCompensacao } from "../CalculadoraCompensacao";
 
 describe("10. Calculadora — gestor x colaborador", () => {
+  afterEach(cleanup);
   it("colaborador não vê simulação de saldo negativo e nunca recebe sugestão negativa", () => {
     render(<CalculadoraCompensacao perfil="colaborador" />);
     expect(screen.queryByText("Simulação de saldo negativo")).toBeNull();
