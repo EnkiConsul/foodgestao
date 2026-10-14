@@ -59,3 +59,31 @@ export function jornadasDaConfig(
 }
 
 export const DOW_CURTO_CALC = CURTO;
+
+/** Linha devolvida pela RPC `dp_portal_minhas_jornadas()`. */
+export interface LinhaJornadaRpc {
+  dow: number;
+  trabalha: boolean;
+  minutos_liquidos: number | null;
+  incompleto: boolean;
+}
+
+/** Mesmo agrupamento de `jornadasDaConfig`, a partir da grade já resolvida no servidor. */
+export function jornadasDaRpc(linhas: LinhaJornadaRpc[]): ResultadoJornadas {
+  const grupos = new Map<number, number[]>();
+  const incompletos: number[] = [];
+  for (const d of [...linhas].sort((a, b) => a.dow - b.dow)) {
+    if (!d.trabalha) continue;
+    const min = Math.round(Number(d.minutos_liquidos ?? 0));
+    if (d.incompleto || !Number.isFinite(min) || min <= 0) { incompletos.push(d.dow); continue; }
+    grupos.set(min, [...(grupos.get(min) ?? []), d.dow]);
+  }
+  const jornadas = [...grupos.entries()]
+    .sort((a, b) => b[0] - a[0])
+    .map(([minutos, dows]) => ({
+      nome: `${dows.map((x) => CURTO[x]).join(", ")} (${formatarMinutos(minutos).toUpperCase()})`,
+      minutos,
+      qtd: dows.length,
+    }));
+  return { jornadas, incompletos };
+}

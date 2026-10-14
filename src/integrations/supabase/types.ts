@@ -19889,6 +19889,19 @@ export type Database = {
         Args: { p_data: string }
         Returns: string
       }
+      dp_portal_minhas_jornadas: {
+        Args: never
+        Returns: {
+          dow: number
+          entrada: string
+          incompleto: boolean
+          intervalo_minutos: number
+          minutos_liquidos: number
+          origem: string
+          saida: string
+          trabalha: boolean
+        }[]
+      }
       dp_portal_rotina_dia: {
         Args: { p_data: string }
         Returns: {
