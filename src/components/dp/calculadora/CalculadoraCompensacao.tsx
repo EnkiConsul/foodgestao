@@ -86,7 +86,6 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
   const [saldoTxt, setSaldoTxt] = useState("");
   const [jornadas, setJornadas] = useState<Jornada[]>(JORNADAS_INICIAIS);
   const [negAtivo, setNegAtivo] = useState(false);
-  const [limiteTxt, setLimiteTxt] = useState("");
   const [escolhida, setEscolhida] = useState(0);
   const [editar, setEditar] = useState(false);
   const [diasCal, setDiasCal] = useState<Set<string>>(new Set());
@@ -113,13 +112,12 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
   const gestor = perfil === "gestor";
   const saldo = parseHoras(saldoTxt);
   const saldoMin = saldo.ok ? saldo.minutos : null;
-  const limiteParse = parseHoras(limiteTxt);
-  // Colaborador nunca tem limite negativo, independentemente do estado da tela.
-  const limite = gestor && negAtivo && limiteParse.ok ? Math.abs(limiteParse.minutos) : 0;
-
   const validas = jornadas
     .map((j) => ({ ...j, min: cargaMin(j.carga), n: Math.min(31, Math.max(0, Math.floor(Number(j.qtd) || 0))) }))
     .filter((j): j is typeof j & { min: number } => j.min !== null);
+
+  // Saldo negativo (só gestor): permite ficar devendo até uma jornada, sem digitar limite.
+  const limite = gestor && negAtivo ? Math.max(0, ...validas.map((j) => j.min)) : 0;
 
   // Folgas podem cair em semanas diferentes: até 4 semanas de cada dia da escala.
   const SEMANAS = 4;
@@ -171,12 +169,7 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
                 <Label htmlFor="neg" className="text-sm">Simulação de saldo negativo</Label>
                 <span title="Apenas para análise do gestor. Não representa débito real." aria-label="Apenas para análise do gestor. Não representa débito real."><Info className="h-4 w-4 text-muted-foreground" /></span>
               </div>
-              {negAtivo && (<>
-                <Input value={limiteTxt} onChange={(e) => setLimiteTxt(e.target.value)} placeholder="Limite (ex.: 4 ou 2:30)" aria-label="Limite negativo" />
-                {limiteTxt && !limiteParse.ok
-                  ? <p className="text-sm text-destructive">{erroDe(limiteParse)}</p>
-                  : <p className="text-xs text-muted-foreground">Só análise; não é débito real.</p>}
-              </>)}
+              {negAtivo && <p className="text-xs text-muted-foreground">As sugestões podem passar do saldo em até uma jornada. Só análise; não é débito real.</p>}
             </div>
           )}
         </CardContent>

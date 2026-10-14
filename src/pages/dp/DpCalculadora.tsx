@@ -67,7 +67,7 @@ function CalculadoraGestor() {
     companyId: selectedCompanyId,
   } : undefined;
 
-  const vazio = !lista.isLoading && !lista.isError && filtrados.length === 0;
+  const vazio = !lista.isLoading && !regras.isLoading && !lista.isError && filtrados.length === 0;
   const topo = (
     <Card>
       <CardContent className="grid gap-2 pt-4 sm:grid-cols-[12rem_1fr_auto] sm:items-end">
@@ -85,7 +85,7 @@ function CalculadoraGestor() {
           <Label htmlFor="calc-colab" className="text-xs">Colaborador (opcional)</Label>
           <Select value={colabId ?? ""} onValueChange={(v) => setColabId(v || null)} disabled={lista.isLoading || vazio}>
             <SelectTrigger id="calc-colab" aria-label="Selecionar colaborador">
-              <SelectValue placeholder={lista.isLoading ? "Carregando…" : lista.isError ? "Erro ao carregar colaboradores" : vazio ? "Nenhum colaborador ativo nesta unidade" : "Simulação manual (sem colaborador)"} />
+              <SelectValue placeholder={lista.isLoading ? "Carregando…" : lista.isError ? "Erro ao carregar colaboradores" : vazio ? "Nenhum colaborador com banco de horas ou compensação de feriados" : "Simulação manual (sem colaborador)"} />
             </SelectTrigger>
             <SelectContent>
               {filtrados.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
