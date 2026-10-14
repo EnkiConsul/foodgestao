@@ -7,11 +7,12 @@ self.addEventListener("push", (event) => {
   let d = {};
   try { d = event.data ? event.data.json() : {}; } catch { d = { body: event.data && event.data.text() }; }
   event.waitUntil(
+    // Sem "tag": cada aviso vira uma notificação independente e elas acumulam
+    // na barra do celular (com tag, o Android substituiria a anterior).
     self.registration.showNotification(d.title || "AVETO 360", {
       body: d.body || "",
       icon: "/icon-192.png?v=6",
       badge: "/icon-192.png?v=6",
-      tag: d.tag,
       data: { url: d.url || "/dp/meu" },
     }),
   );
