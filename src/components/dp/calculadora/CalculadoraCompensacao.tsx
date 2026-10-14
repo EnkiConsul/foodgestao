@@ -11,6 +11,7 @@ import {
   parseHoras, formatarMinutos, sugerirCombinacoes, simularCompensacao,
   type DiaCompensavel, type StatusSimulacao,
 } from "@/lib/dp/compensacao/motor";
+import { CalculadoraDesligamento } from "./CalculadoraDesligamento";
 
 export type PerfilCalculadora = "gestor" | "colaborador";
 
@@ -45,28 +46,21 @@ function teveArredondamento(entrada: string): boolean {
 }
 
 export function CalculadoraCompensacao({ perfil }: { perfil: PerfilCalculadora }) {
+  // Desligamento só existe na árvore do gestor; o colaborador nunca monta o componente.
+  const gestor = perfil === "gestor";
   return (
-    <Tabs defaultValue="horas" className="space-y-4">
+    <Tabs defaultValue="compensatoria" className="space-y-4">
       <TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
-        <TabsTrigger value="horas">Horas & Folgas</TabsTrigger>
-        <TabsTrigger value="ferias">Férias</TabsTrigger>
-        <TabsTrigger value="prazos">Prazos & Rescisão</TabsTrigger>
+        <TabsTrigger value="compensatoria">Folga Compensatória</TabsTrigger>
+        {gestor && <TabsTrigger value="desligamento">Desligamento</TabsTrigger>}
+        <TabsTrigger value="ferias" disabled>Férias · Em breve</TabsTrigger>
       </TabsList>
-      <TabsContent value="horas"><HorasFolgas perfil={perfil} /></TabsContent>
-      <TabsContent value="ferias"><EmBreve /></TabsContent>
-      <TabsContent value="prazos"><EmBreve /></TabsContent>
+      <TabsContent value="compensatoria"><HorasFolgas perfil={perfil} /></TabsContent>
+      {gestor && <TabsContent value="desligamento"><CalculadoraDesligamento /></TabsContent>}
     </Tabs>
   );
 }
 
-function EmBreve() {
-  return (
-    <Card><CardContent className="py-10 text-center text-muted-foreground">
-      <Badge variant="outline" className="mb-2">Em breve</Badge>
-      <p className="text-sm">Esta calculadora estará disponível em uma próxima etapa.</p>
-    </CardContent></Card>
-  );
-}
 
 function HorasFolgas({ perfil }: { perfil: PerfilCalculadora }) {
   const [saldoTxt, setSaldoTxt] = useState("");
