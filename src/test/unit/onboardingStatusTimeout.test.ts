@@ -11,7 +11,7 @@ vi.mock("@/lib/onboardingFinalize", () => ({
   marcarOnboardingConcluido: vi.fn(async () => undefined),
 }));
 
-import { resolveOnboardingStatus } from "@/lib/onboardingStatus";
+import { limparOnboardingStatusCache, resolveOnboardingStatus } from "@/lib/onboardingStatus";
 
 /** Encadeamento mínimo usado pelo resolvedor: profiles e empresas. */
 function mockTabelas(opts: { travarPrimeira?: boolean } = {}) {
@@ -43,6 +43,7 @@ function mockTabelas(opts: { travarPrimeira?: boolean } = {}) {
 
 describe("resolveOnboardingStatus", () => {
   beforeEach(() => {
+    limparOnboardingStatusCache();
     vi.useFakeTimers();
     maybeSingle.mockClear();
     fromMock.mockReset();
