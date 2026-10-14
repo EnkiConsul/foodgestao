@@ -12,7 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useJornadasCalculadoraGestor, useJornadasCalculadoraMinhas } from "@/hooks/useCalculadoraJornadas";
-import { unidadesDosColaboradores, colaboradoresDaUnidade } from "@/lib/dp/compensacao/filtroCalculadora";
+import { unidadesDosColaboradores, colaboradoresDaUnidade, elegivelCompensacao, type RegraUnidadeComp, type ExcecaoComp } from "@/lib/dp/compensacao/filtroCalculadora";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 /** Calculadora de simulação (sem gravar nada). Gestor e colaborador usam a mesma tela. */
 export default function DpCalculadora({ perfil = "gestor" }: { perfil?: PerfilCalculadora }) {
@@ -32,8 +34,28 @@ function CalculadoraGestor() {
   const [unidade, setUnidade] = useState("todas");
   const lista = useDpColaboradores();
   const { selectedCompanyId } = useCompanyContext();
-  const unidades = useMemo(() => unidadesDosColaboradores(lista.data ?? []), [lista.data]);
-  const filtrados = useMemo(() => colaboradoresDaUnidade(lista.data ?? [], unidade), [lista.data, unidade]);
+  // Só quem tem banco de horas ou compensação de feriados (unidade + exceção individual).
+  const regras = useQuery({
+    queryKey: ["calc_elegiveis", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const [u, e] = await Promise.all([
+        supabase.from("dp_unidades").select("id, banco_horas, compensa_feriados").eq("company_id", selectedCompanyId!),
+        supabase.from("dp_colaborador_compensacao").select("colaborador_id, usa_banco_horas, usa_compensa_feriados").eq("company_id", selectedCompanyId!),
+      ]);
+      if (u.error) throw u.error;
+      if (e.error) throw e.error;
+      return {
+        un: new Map((u.data ?? []).map((r) => [r.id as string, r as RegraUnidadeComp])),
+        ex: new Map((e.data ?? []).map((r) => [r.colaborador_id as string, r as ExcecaoComp])),
+      };
+    },
+  });
+  const elegiveis = useMemo(() => (lista.data ?? []).filter((c) =>
+    regras.data && elegivelCompensacao(c.unidade_id ? regras.data.un.get(c.unidade_id) : undefined, regras.data.ex.get(c.id))),
+  [lista.data, regras.data]);
+  const unidades = useMemo(() => unidadesDosColaboradores(elegiveis), [elegiveis]);
+  const filtrados = useMemo(() => colaboradoresDaUnidade(elegiveis, unidade), [elegiveis, unidade]);
   const q = useJornadasCalculadoraGestor(colabId);
 
   const origem: OrigemJornadas | undefined = colabId ? {
