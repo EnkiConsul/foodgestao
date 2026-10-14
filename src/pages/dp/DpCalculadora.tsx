@@ -65,6 +65,7 @@ function CalculadoraGestor() {
     incompletos: q.data?.incompletos ?? [],
     unidadeId: (lista.data ?? []).find((c) => c.id === colabId)?.unidade_id ?? null,
     companyId: selectedCompanyId,
+    colaboradorId: colabId,
   } : undefined;
 
   const vazio = !lista.isLoading && !regras.isLoading && !lista.isError && filtrados.length === 0;
@@ -111,6 +112,7 @@ function CalculadoraColaborador() {
     incompletos: v?.incompletos ?? [],
     unidadeId: v?.unidadeId ?? null,
     companyId: v?.companyId ?? null,
+    colaboradorId: v?.id ?? null,
   };
   return <CalculadoraCompensacao perfil="colaborador" origem={origem} />;
 }

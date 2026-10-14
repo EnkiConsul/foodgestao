@@ -30,6 +30,8 @@ interface MonthGridCalendarProps {
   onToggleDia: (iso: string) => void;
   info?: Record<string, MonthGridDay>;
   className?: string;
+  /** Grade de 7 colunas também no celular, só número + selo curto. */
+  compacto?: boolean;
 }
 
 const SEMANA = ["D", "S", "T", "Q", "Q", "S", "S"];
@@ -50,6 +52,7 @@ export function MonthGridCalendar({
   onToggleDia,
   info,
   className,
+  compacto = false,
 }: MonthGridCalendarProps) {
   const dias = useMemo(() => getMonthDays(ano, mes - 1), [ano, mes]);
   const offset = dias.length ? dias[0].getDay() : 0;
@@ -94,7 +97,7 @@ export function MonthGridCalendar({
       </div>
 
       {/* Mobile: 1 dia = 1 linha */}
-      <div className="md:hidden">
+      <div className={compacto ? "hidden" : "md:hidden"}>
         <DiasEmLista
           dias={dias.map((d) => {
             const iso = ymd(d);
@@ -122,13 +125,13 @@ export function MonthGridCalendar({
         />
       </div>
 
-      <div className="hidden grid-cols-7 gap-1 text-center text-[10px] uppercase text-muted-foreground md:grid">
+      <div className={cn("grid-cols-7 gap-1 text-center text-[10px] uppercase text-muted-foreground", compacto ? "grid" : "hidden md:grid")}>
         {SEMANA.map((d, i) => (
           <div key={`${d}-${i}`}>{d}</div>
         ))}
       </div>
 
-      <div className="mt-1 hidden grid-cols-7 gap-1 md:grid">
+      <div className={cn("mt-1 grid-cols-7 gap-1", compacto ? "grid" : "hidden md:grid")}>
         {Array.from({ length: offset }).map((_, i) => (
           <div key={`vazio-${i}`} />
         ))}
@@ -144,7 +147,8 @@ export function MonthGridCalendar({
               disabled={meta?.desabilitado}
               onClick={() => onToggleDia(iso)}
               className={cn(
-                "flex min-h-[46px] flex-col items-center justify-center rounded-lg border p-1 text-xs transition-colors",
+                "flex flex-col items-center justify-center rounded-lg border text-xs transition-colors",
+                compacto ? "min-h-[40px] p-0.5" : "min-h-[46px] p-1",
                 "disabled:cursor-not-allowed disabled:opacity-40",
                 ativo
                   ? "border-primary bg-primary/10 font-semibold text-primary"
@@ -155,7 +159,7 @@ export function MonthGridCalendar({
               {meta?.selo ? (
                 <span
                   className={cn(
-                    "mt-0.5 rounded px-1 text-[9px] leading-tight",
+                    "mt-0.5 max-w-full truncate rounded px-1 text-[9px] leading-tight",
                     TONS[meta.tom ?? "neutro"],
                   )}
                 >

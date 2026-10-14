@@ -59,6 +59,7 @@ export interface OrigemJornadas {
   /** Unidade do colaborador: feriados e bloqueios do calendário. */
   unidadeId?: string | null;
   companyId?: string | null;
+  colaboradorId?: string | null;
 }
 
 export const ORIENTACAO_SALDO_COLABORADOR =
@@ -247,7 +248,7 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
                 </button>
                 {calendario && (
                   <div className="mt-3">
-                    <CalendarioSimulacao minutosPorDow={minutosPorDow} saldoMin={saldo.minutos} unidadeId={origem?.unidadeId} companyId={origem?.companyId} sel={diasCal} setSel={setDiasCal} />
+                    <CalendarioSimulacao minutosPorDow={minutosPorDow} saldoMin={saldo.minutos} unidadeId={origem?.unidadeId} companyId={origem?.companyId} colaboradorId={origem?.colaboradorId} sel={diasCal} setSel={setDiasCal} />
                   </div>
                 )}
               </div>
