@@ -16,10 +16,11 @@ describe("cenários de folga compensatória", () => {
     expect(c.saldoFinal).toBe(1974 - 1700);
   });
 
-  it("opção 2 é a de menor saldo restante", () => {
+  it("opção 2 mescla meio e fim de semana com o menor saldo restante", () => {
     const c = cenariosCompensacao(cris, saldo).find((x) => x.tipo === "menor_sobra")!;
-    // 2×425 + 2×455 = 1760 → resta 214, menor que 274 da opção 1
-    expect(c.saldoFinal).toBe(214);
+    // 1×425 + 3×455 = 1790 → resta 184 (melhor mistura possível)
+    expect(c.saldoFinal).toBe(184);
+    expect(c.itens.some((i) => i.pico) && c.itens.some((i) => !i.pico)).toBe(true);
   });
 
   it("opção 3 usa só fim de semana", () => {
