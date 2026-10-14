@@ -395,7 +395,7 @@ export default function DpSolicitacoes() {
                 )}
                 {ehAtestadoLike(s) && s.devolvido_em && (
                   <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-xs">
-                    <b>Devolvido ao colaborador</b> em {new Date(s.devolvido_em).toLocaleDateString("pt-BR")}: {s.devolvido_motivo}. Aguardando novo anexo.
+                    <b>Devolvido ao colaborador</b> em {new Date(s.devolvido_em).toLocaleDateString("pt-BR")}: {s.devolvido_motivo}. Aguardando correção do colaborador.
                   </div>
                 )}
                 {ehAtestadoLike(s) && !arquivo && !s.devolvido_em && (
@@ -741,9 +741,9 @@ export default function DpSolicitacoes() {
         open={!!devolver}
         onOpenChange={(o) => !o && setDevolver(null)}
         title="Devolver para o colaborador"
-        description="A solicitação continua pendente. O colaborador recebe um aviso para reenviar o anexo."
+        description="A solicitação continua pendente. O colaborador recebe um aviso e pode corrigir datas, motivo ou anexo antes de reenviar."
         motivoObrigatorio
-        textoInicial="Foto ilegível. Envie uma foto nítida do atestado."
+        textoInicial=""
         confirmLabel="Devolver"
         loading={devolverMut.isPending}
         onConfirm={(motivo) => devolver && devolverMut.mutate({ id: devolver.id, motivo })}

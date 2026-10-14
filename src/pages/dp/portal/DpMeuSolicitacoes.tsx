@@ -717,6 +717,11 @@ export default function DpMeuSolicitacoes() {
           ))}
         </div>
       )}
+      <SolicitacaoCorrigirDialog
+        alvo={corrigir}
+        onOpenChange={(o) => !o && setCorrigir(null)}
+        onDone={() => { setCorrigir(null); qc.invalidateQueries({ queryKey: ["dp_meu_sol"] }); }}
+      />
       <AtestadoAnexoDialog
         alvo={reanexar ? { id: reanexar.id, company_id: reanexar.company_id, colaborador_id: reanexar.colaborador_id, data_alvo: reanexar.data_alvo } : null}
         aviso={reanexar?.devolvido_motivo}
