@@ -67,18 +67,27 @@ export const ORIENTACAO_SALDO_COLABORADOR =
 
 const hhmm = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
 
-export function CalculadoraCompensacao({ perfil, origem, topo }: { perfil: PerfilCalculadora; origem?: OrigemJornadas; topo?: ReactNode }) {
+export function CalculadoraCompensacao({ perfil, origem, topo, admissao }: { perfil: PerfilCalculadora; origem?: OrigemJornadas; topo?: ReactNode; admissao?: string | null }) {
   // Desligamento só existe na árvore do gestor; o colaborador nunca monta o componente.
   const gestor = perfil === "gestor";
+  // Jornada por dia da semana do cadastro, herdada pela aba Desligamento.
+  const jornadaDow = origem?.estado === "ok" ? (() => {
+    const arr = ["0", "0", "0", "0", "0", "0", "0"];
+    origem.jornadas.forEach((j) => j.dows?.forEach((d) => { arr[d] = hhmm(j.minutos); }));
+    return arr;
+  })() : null;
   return (
-    <Tabs defaultValue="compensatoria" className="space-y-4">
-      <TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
-        <TabsTrigger value="compensatoria">Folga Compensatória</TabsTrigger>
-        {gestor && <TabsTrigger value="desligamento">Desligamento</TabsTrigger>}
-      </TabsList>
-      <TabsContent value="compensatoria" forceMount className="space-y-4 data-[state=inactive]:hidden">{topo}<HorasFolgas perfil={perfil} origem={origem} /></TabsContent>
-      {gestor && <TabsContent value="desligamento" forceMount className="data-[state=inactive]:hidden"><CalculadoraDesligamento /></TabsContent>}
-    </Tabs>
+    <div className="space-y-4">
+      {topo}
+      <Tabs defaultValue="compensatoria" className="space-y-4">
+        <TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
+          <TabsTrigger value="compensatoria">Folga Compensatória</TabsTrigger>
+          {gestor && <TabsTrigger value="desligamento">Desligamento</TabsTrigger>}
+        </TabsList>
+        <TabsContent value="compensatoria" forceMount className="space-y-4 data-[state=inactive]:hidden"><HorasFolgas perfil={perfil} origem={origem} /></TabsContent>
+        {gestor && <TabsContent value="desligamento" forceMount className="data-[state=inactive]:hidden"><CalculadoraDesligamento chave={origem?.chave} admissaoInicial={admissao ?? null} jornadaInicial={jornadaDow} /></TabsContent>}
+      </Tabs>
+    </div>
   );
 }
 
@@ -226,7 +235,7 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
                 <button key={c.tipo} type="button" onClick={() => setEscolhida(i)}
                   className={`w-full rounded-md border p-3 text-left transition-colors ${ativo ? "border-primary bg-accent" : "hover:bg-accent/60"}`}>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold uppercase text-muted-foreground">Opção {i + 1} · {ROTULO_CENARIO[c.tipo]}</span>
+                    <span className="text-xs font-semibold uppercase text-muted-foreground">Opção {i + 1} · {c.tipo === "menor_sobra" && c.saldoFinal < 0 ? "Menor saldo devedor" : ROTULO_CENARIO[c.tipo]}</span>
                     {i === 0 && <Badge variant="outline">Melhor sugestão encontrada</Badge>}
                     {c.saldoFinal < 0 && <Badge variant="destructive">Saldo negativo</Badge>}
                   </div>
