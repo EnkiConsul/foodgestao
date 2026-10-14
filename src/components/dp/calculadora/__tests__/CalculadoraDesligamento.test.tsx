@@ -72,7 +72,7 @@ describe("Aba Desligamento", () => {
     // 31/10 (2h) + 30/10 (6h) + 29/10 (6h) = 14h
     expect(ultimo()).toContain("28/10/2026");
     const cen = screen.getByText("Com compensação").parentElement!;
-    expect(within(cen).getByText("0min")).toBeTruthy();
+    expect(within(cen).getByText("0h")).toBeTruthy();
   });
   it("feriado e jornada variável viram dia sem expediente", () => {
     render(<CalculadoraDesligamento />);
