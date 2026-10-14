@@ -11,7 +11,7 @@ describe("Calculadora — jornadas do colaborador", () => {
 
   it("carrega as jornadas cadastradas no lugar das de exemplo", () => {
     render(<CalculadoraCompensacao perfil="gestor" origem={ok("a", 440)} />);
-    expect(screen.getByDisplayValue("JA")).toBeTruthy();
+    expect(screen.getByDisplayValue("Ja")).toBeTruthy();
     expect(screen.getByDisplayValue("7:20")).toBeTruthy();
     expect(screen.queryByDisplayValue("JORNADA A")).toBeNull();
   });
