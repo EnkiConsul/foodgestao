@@ -83,12 +83,13 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
   const [negAtivo, setNegAtivo] = useState(false);
   const [limiteTxt, setLimiteTxt] = useState("");
   const [escolhida, setEscolhida] = useState(0);
+  const [editar, setEditar] = useState(false);
 
   const chave = origem?.chave ?? "manual";
   const estado = origem?.estado;
-  // Troca de colaborador (ou volta ao manual): limpa saldo e resultados.
+  // Troca de colaborador (ou volta ao manual): mantém o saldo digitado e recalcula.
   useEffect(() => {
-    setSaldoTxt(""); setEscolhida(0); setNegAtivo(false); setLimiteTxt("");
+    setEscolhida(0); setEditar(false);
     if (!origem) setJornadas(JORNADAS_INICIAIS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chave]);
@@ -140,27 +141,36 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
   const atualizar = (id: number, campo: keyof Jornada, v: string) =>
     setJornadas((js) => js.map((j) => (j.id === id ? { ...j, [campo]: campo === "nome" ? v.toUpperCase() : v } : j)));
 
+  const resumoEscala = validas.map((j) => `${j.n}× ${formatarMinutos(j.min)}`).join(" + ");
+
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <Card>
-        <CardHeader><CardTitle className="text-base">Saldo disponível</CardTitle>
-          <CardDescription>Ex.: 32,9 · 32.9 · 32:54 · 32h54 · 45min</CardDescription></CardHeader>
-        <CardContent className="space-y-2">
-          {!gestor && <p className="rounded-md bg-muted p-2 text-xs text-muted-foreground">{ORIENTACAO_SALDO_COLABORADOR}</p>}
-          <Input inputMode="decimal" value={saldoTxt} onChange={(e) => { setSaldoTxt(e.target.value); setEscolhida(0); }} placeholder="Informe o saldo" aria-label="Saldo de horas" />
-          {saldoTxt && (saldo.ok
-            ? <p className="text-sm">Equivale a <strong>{formatarMinutos(saldo.minutos)}</strong>
-                {teveArredondamento(saldoTxt) && <span className="text-xs text-muted-foreground"> (arredondado ao minuto)</span>}</p>
-            : <p className="text-sm text-destructive">{erroDe(saldo)}</p>)}
+      <Card className="lg:col-span-2">
+        <CardContent className="grid gap-4 pt-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="calc-saldo" className="text-xs">Saldo de horas <span className="text-muted-foreground">(ex.: 32:54 · 32,9 · 45min)</span></Label>
+            {!gestor && <p className="rounded-md bg-muted p-2 text-xs text-muted-foreground">{ORIENTACAO_SALDO_COLABORADOR}</p>}
+            <Input id="calc-saldo" inputMode="decimal" value={saldoTxt} onChange={(e) => { setSaldoTxt(e.target.value); setEscolhida(0); }} placeholder="Informe o saldo" aria-label="Saldo de horas" />
+            {saldoTxt && (saldo.ok
+              ? <p className="text-sm">Equivale a <strong>{formatarMinutos(saldo.minutos)}</strong>
+                  {teveArredondamento(saldoTxt) && <span className="text-xs text-muted-foreground"> (arredondado ao minuto)</span>}</p>
+              : <p className="text-sm text-destructive">{erroDe(saldo)}</p>)}
+          </div>
+          {gestor && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2"><Switch checked={negAtivo} onCheckedChange={(v) => { setNegAtivo(v); setEscolhida(0); }} id="neg" /><Label htmlFor="neg" className="text-sm">Simulação de saldo negativo</Label></div>
+              <p className="text-xs text-muted-foreground">Apenas para análise do gestor. Não representa débito real.</p>
+              {negAtivo && (<>
+                <Input value={limiteTxt} onChange={(e) => setLimiteTxt(e.target.value)} placeholder="Limite (ex.: 4 ou 2:30)" aria-label="Limite negativo" />
+                {limiteTxt && !limiteParse.ok && <p className="text-sm text-destructive">{erroDe(limiteParse)}</p>}
+              </>)}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">Jornadas</CardTitle>
-          <CardDescription>
-            {origem?.estado === "ok" ? "Carregadas do cadastro (semana vigente). Você pode ajustar para simular." : "Horas líquidas por dia e quantos dias dessa jornada podem virar folga."}
-          </CardDescription></CardHeader>
-        <CardContent className="space-y-2">
+      <Card className="lg:col-span-2">
+        <CardContent className="space-y-2 pt-4">
           {origem?.estado === "carregando" && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando jornadas…</p>}
           {origem?.estado === "erro" && <AvisoJornada texto="Não foi possível ler as jornadas cadastradas. Informe-as manualmente ou tente novamente." />}
           {origem?.estado === "sem_config" && <AvisoJornada texto="Não há configuração de trabalho vigente cadastrada. Informe as jornadas manualmente." />}
@@ -168,52 +178,29 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
           {origem?.estado === "ok" && origem.incompletos.length > 0 && (
             <AvisoJornada texto={`Sem horário cadastrado em: ${origem.incompletos.map((d) => DOW_CURTO_CALC[d]).join(", ")}. Esses dias não entraram na simulação.`} />
           )}
-          {jornadas.map((j) => (
-            <div key={j.id} className="grid grid-cols-[1fr_5rem_4rem_auto] items-end gap-2">
-              <div><Label className="text-xs">Nome</Label><Input value={j.nome} onChange={(e) => atualizar(j.id, "nome", e.target.value)} /></div>
-              <div><Label className="text-xs">Horas</Label><Input value={j.carga} onChange={(e) => atualizar(j.id, "carga", e.target.value)}
-                className={j.carga && cargaMin(j.carga) === null ? "border-destructive" : ""} /></div>
-              <div><Label className="text-xs">Dias</Label><Input inputMode="numeric" value={j.qtd} onChange={(e) => atualizar(j.id, "qtd", e.target.value.replace(/\D/g, ""))} /></div>
-              <Button variant="ghost" size="icon" aria-label="Remover jornada" onClick={() => setJornadas((js) => js.filter((x) => x.id !== j.id))}><Trash2 className="h-4 w-4" /></Button>
+          {origem?.estado === "ok" && !editar ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+              <span><span className="text-muted-foreground">Escala da semana:</span> <strong>{resumoEscala || "—"}</strong></span>
+              <Button variant="ghost" size="sm" onClick={() => setEditar(true)}>Ajustar jornadas</Button>
             </div>
-          ))}
-          <Button variant="outline" size="sm" onClick={() => setJornadas((js) => [...js, { id: Math.max(0, ...js.map((x) => x.id)) + 1, nome: `JORNADA ${String.fromCharCode(65 + js.length)}`, carga: "", qtd: "1" }])}>
-            <Plus className="h-4 w-4" /> Adicionar jornada
-          </Button>
+          ) : (<>
+            <p className="text-xs text-muted-foreground">Horas líquidas por dia e quantos dias dessa jornada podem virar folga.</p>
+            {jornadas.map((j) => (
+              <div key={j.id} className="grid grid-cols-[1fr_5rem_4rem_auto] items-end gap-2">
+                <div><Label className="text-xs">Nome</Label><Input value={j.nome} onChange={(e) => atualizar(j.id, "nome", e.target.value)} /></div>
+                <div><Label className="text-xs">Horas</Label><Input value={j.carga} onChange={(e) => atualizar(j.id, "carga", e.target.value)}
+                  className={j.carga && cargaMin(j.carga) === null ? "border-destructive" : ""} /></div>
+                <div><Label className="text-xs">Dias</Label><Input inputMode="numeric" value={j.qtd} onChange={(e) => atualizar(j.id, "qtd", e.target.value.replace(/\D/g, ""))} /></div>
+                <Button variant="ghost" size="icon" aria-label="Remover jornada" onClick={() => setJornadas((js) => js.filter((x) => x.id !== j.id))}><Trash2 className="h-4 w-4" /></Button>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={() => setJornadas((js) => [...js, { id: Math.max(0, ...js.map((x) => x.id)) + 1, nome: `JORNADA ${String.fromCharCode(65 + js.length)}`, carga: "", qtd: "1" }])}>
+              <Plus className="h-4 w-4" /> Adicionar jornada
+            </Button>
+          </>)}
         </CardContent>
       </Card>
 
-      {saldo.ok && validas.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Comparação por jornada</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
-            {validas.map((j) => {
-              const disp = Math.max(0, saldo.minutos);
-              const n = Math.floor(disp / j.min);
-              return (
-                <div key={j.id} className="flex flex-wrap justify-between gap-2 rounded-md border p-2 text-sm">
-                  <span className="font-medium">{j.nome} · {formatarMinutos(j.min)}</span>
-                  <span>{n} folga(s) · usa {formatarMinutos(n * j.min)} · sobra {formatarMinutos(disp - n * j.min)}</span>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
-
-      {gestor && (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Simulação de saldo negativo</CardTitle>
-            <CardDescription>Apenas para análise do gestor. Não representa débito real.</CardDescription></CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-center gap-2"><Switch checked={negAtivo} onCheckedChange={(v) => { setNegAtivo(v); setEscolhida(0); }} id="neg" /><Label htmlFor="neg">Permitir ficar negativo</Label></div>
-            {negAtivo && (<>
-              <Input value={limiteTxt} onChange={(e) => setLimiteTxt(e.target.value)} placeholder="Limite (ex.: 4 ou 2:30)" aria-label="Limite negativo" />
-              {limiteTxt && !limiteParse.ok && <p className="text-sm text-destructive">{erroDe(limiteParse)}</p>}
-            </>)}
-          </CardContent>
-        </Card>
-      )}
 
       {saldo.ok && (
         <Card className="lg:col-span-2">
