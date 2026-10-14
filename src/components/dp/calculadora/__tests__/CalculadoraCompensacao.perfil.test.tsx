@@ -15,7 +15,7 @@ describe("10. Calculadora — gestor x colaborador", () => {
   it("gestor vê a simulação de saldo negativo e o resultado é sinalizado", () => {
     render(<CalculadoraCompensacao perfil="gestor" />);
     expect(screen.getByText(/simulação de saldo negativo/i)).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Saldo de horas"), { target: { value: "15" } });
+    fireEvent.change(screen.getByLabelText("Saldo de horas"), { target: { value: "15:40" } });
     fireEvent.click(screen.getByRole("switch"));
     fireEvent.change(screen.getByLabelText("Limite negativo"), { target: { value: "1" } });
     expect(screen.getAllByText("Saldo negativo").length).toBeGreaterThan(0);
