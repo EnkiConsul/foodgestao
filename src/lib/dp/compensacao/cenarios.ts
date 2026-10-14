@@ -27,13 +27,14 @@ export function melhorCombinacao(
   limite = 0,
   maxDias = 30,
   exigeMisto = false,
+  usarTeto = false,
 ): Omit<Cenario, "tipo"> | null {
   const gs = grupos.filter((g) => g.minutos > 0 && g.max > 0);
   const teto = saldo + Math.max(0, limite);
   if (teto <= 0 || !gs.length) return null;
   let best: { n: number[]; soma: number } | null = null;
   const n = gs.map(() => 0);
-  const score = (soma: number, dias: number, picos: number) => [Math.abs(saldo - soma), dias, picos];
+  const score = (soma: number, dias: number, picos: number) => [usarTeto ? teto - soma : Math.abs(saldo - soma), dias, picos];
   const melhor = (soma: number) => {
     const dias = n.reduce((s, x) => s + x, 0);
     if (!dias) return;
@@ -75,10 +76,12 @@ const assinatura = (c: Omit<Cenario, "tipo">) => c.itens.map((i) => `${i.rotulo}
  * Cenário igual a um anterior não se repete.
  */
 export function cenariosCompensacao(grupos: GrupoJornada[], saldo: number, limite = 0): Cenario[] {
+  // Com saldo negativo liberado, as opções por período usam o máximo de folgas que cabe no limite.
+  const teto = limite > 0;
   const brutos: [TipoCenario, Omit<Cenario, "tipo"> | null][] = [
-    ["meio_semana", melhorCombinacao(grupos.filter((g) => !g.pico), saldo, limite)],
-    ["menor_sobra", melhorCombinacao(grupos, saldo, limite, 30, grupos.some((g) => g.pico) && grupos.some((g) => !g.pico)) ?? melhorCombinacao(grupos, saldo, limite)],
-    ["fim_semana", melhorCombinacao(grupos.filter((g) => g.pico), saldo, limite)],
+    ["menor_sobra", melhorCombinacao(grupos, saldo, limite)],
+    ["meio_semana", melhorCombinacao(grupos.filter((g) => !g.pico), saldo, limite, 30, false, teto)],
+    ["fim_semana", melhorCombinacao(grupos.filter((g) => g.pico), saldo, limite, 30, false, teto)],
   ];
   const vistos = new Set<string>();
   const out: Cenario[] = [];
