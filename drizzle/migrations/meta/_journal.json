@@ -547,6 +547,13 @@
       "when": 1791953249005,
       "tag": "0077_fix_dp_solicitar_complemento_clt_security",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1791954952926,
+      "tag": "0078_fix_dp_solicitar_complemento_clt_schema_restore",
+      "breakpoints": true
     }
   ]
 }
