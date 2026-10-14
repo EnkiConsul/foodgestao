@@ -314,14 +314,23 @@ export default function DpMeuDocumentos() {
 
       {/* Sub-tabs origem (quando tipo tem envio) */}
       {currentTab.hasEnvio && (
-        <Tabs value={origem} onValueChange={(v) => setOrigem(v as any)} className="mt-2">
-          <div className="-mx-1 overflow-x-auto px-1">
-            <TabsList className="w-max">
-              <TabsTrigger value="dp" className="whitespace-nowrap">Recebidos do DP</TabsTrigger>
-              <TabsTrigger value="meu_envio" className="whitespace-nowrap">Meus envios</TabsTrigger>
-            </TabsList>
-          </div>
-        </Tabs>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <Tabs value={origem} onValueChange={(v) => setOrigem(v as any)}>
+            <div className="-mx-1 overflow-x-auto px-1">
+              <TabsList className="w-max">
+                <TabsTrigger value="dp" className="whitespace-nowrap">Recebidos do DP</TabsTrigger>
+                <TabsTrigger value="meu_envio" className="whitespace-nowrap">Meus envios</TabsTrigger>
+              </TabsList>
+            </div>
+          </Tabs>
+          {currentTab.key === "atestado" && (
+            <Button asChild size="sm">
+              <Link to="/dp/meu/solicitacoes?tipo=atestado">
+                <HeartPulse className="mr-1 size-4" /> Enviar atestado
+              </Link>
+            </Button>
+          )}
+        </div>
       )}
 
       {/* Filtros — recolhidos no celular, sempre visíveis no desktop */}
