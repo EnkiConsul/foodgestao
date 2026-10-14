@@ -138,10 +138,10 @@ describe("sugerirCombinacoes — critérios", () => {
     expect(a).toEqual(b);
     expect(a[0].saldoFinal).toBe(0);
   });
-  it("menor_folgas prioriza menos dias e desempata pela menor sobra", () => {
-    const s = sugerirCombinacoes({ saldoMinutos: 960, dias, criterio: "menor_folgas" });
-    expect(s[0].dias).toHaveLength(1);
-    expect(s[0].minutosUsados).toBe(600);
+  it("menor_folgas segue a mesma hierarquia (sobra antes de quantidade)", () => {
+    const a = sugerirCombinacoes({ saldoMinutos: 960, dias, criterio: "menor_folgas" });
+    expect(a[0].saldoFinal).toBe(0);
+    expect(a).toEqual(sugerirCombinacoes({ saldoMinutos: 960, dias }));
   });
   it("menor_folgas respeita o limite negativo", () => {
     const s = sugerirCombinacoes({ saldoMinutos: 900, dias, limiteNegativo: 60, criterio: "menor_folgas", maxSugestoes: 50 });
@@ -151,5 +151,80 @@ describe("sugerirCombinacoes — critérios", () => {
     const r1 = sugerirCombinacoes({ saldoMinutos: 1500, dias, criterio: "menor_folgas" });
     const r2 = sugerirCombinacoes({ saldoMinutos: 1500, dias: [...dias].reverse(), criterio: "menor_folgas" });
     expect(r1).toEqual(r2);
+  });
+});
+
+const gerar = (cargasH: number[], porCarga: number) =>
+  cargasH.flatMap((h, j) => Array.from({ length: porCarga }, (_, i) => ({
+    data: `2026-1${j}-${String(i + 1).padStart(2, "0")}`, minutos: h * 60,
+  })));
+const H = (h: number) => h * 60;
+
+describe("Fase 2.2 — hierarquia de recomendação", () => {
+  it("1. saldo 40h com 4h/6h/8h zera o saldo com o mínimo de folgas", () => {
+    const s = sugerirCombinacoes({ saldoMinutos: H(40), dias: gerar([4, 6, 8], 10), maxDias: 10 });
+    expect(s[0].saldoFinal).toBe(0);
+    expect(s[0].dias).toHaveLength(5);
+    expect(s[0].dias.every((d) => d.minutos === H(8))).toBe(true);
+    expect(s.every((x) => x.saldoFinal >= 0)).toBe(true);
+  });
+  it("2. saldo 20h com 5h/10h prefere duas folgas de 10h", () => {
+    const s = sugerirCombinacoes({ saldoMinutos: H(20), dias: gerar([5, 10], 4), maxDias: 10 });
+    expect(s[0].dias.map((d) => d.minutos)).toEqual([H(10), H(10)]);
+    expect(s[0].saldoFinal).toBe(0);
+    expect(s[1].dias).toHaveLength(3);
+    expect(s[2].dias).toHaveLength(4);
+  });
+  it("3. saldo 16h com limite negativo 2h nunca passa de -2h", () => {
+    const dias = [...gerar([8], 3), { data: "2026-12-01", minutos: 440 }, { data: "2026-12-02", minutos: 440 }];
+    const s = sugerirCombinacoes({ saldoMinutos: H(16), dias, limiteNegativo: H(2), maxSugestoes: 50 });
+    expect(s[0].saldoFinal).toBe(0);
+    expect(s[0].dias).toHaveLength(2);
+    expect(s.every((x) => x.saldoFinal >= -H(2))).toBe(true);
+    expect(s.some((x) => x.saldoFinal < 0)).toBe(true);
+  });
+  it("4. limite zero nunca compensa acima do saldo", () => {
+    const s = sugerirCombinacoes({ saldoMinutos: H(10), dias: gerar([4, 7], 5), limiteNegativo: 0, maxSugestoes: 100 });
+    expect(s.length).toBeGreaterThan(0);
+    expect(s.every((x) => x.saldoFinal >= 0 && x.minutosUsados <= H(10))).toBe(true);
+  });
+  it("5. empate de sobra e quantidade desempata pela data mais cedo", () => {
+    const dias = [
+      { data: "2026-10-05", minutos: H(6) },
+      { data: "2026-10-01", minutos: H(4) },
+    ];
+    const s = sugerirCombinacoes({ saldoMinutos: H(5), dias });
+    // |5-6| = 1 = |5-4| → mesma sobra e 1 folga: vence a data mais cedo
+    expect(s.map((x) => x.dias[0].data)).toEqual(["2026-10-01", "2026-10-05"]);
+  });
+  it("6. ordem de entrada das datas não muda o ranking", () => {
+    const dias = gerar([4, 6, 8], 4);
+    const a = sugerirCombinacoes({ saldoMinutos: H(22), dias, maxSugestoes: 20 });
+    const b = sugerirCombinacoes({ saldoMinutos: H(22), dias: [...dias].reverse(), maxSugestoes: 20 });
+    const c = sugerirCombinacoes({ saldoMinutos: H(22), dias: [...dias.slice(5), ...dias.slice(0, 5)], maxSugestoes: 20 });
+    expect(a).toEqual(b);
+    expect(a).toEqual(c);
+    const chaves = a.map((x) => x.dias.map((d) => d.minutos).join(","));
+    expect(new Set(chaves).size).toBe(chaves.length);
+  });
+  it("7. maxNos interrompe e marca buscaCompleta = false", () => {
+    const dias = gerar([1, 2, 3], 10);
+    const curta = sugerirCombinacoes({ saldoMinutos: H(30), dias, maxDias: 10, maxNos: 20 });
+    expect(curta.buscaCompleta).toBe(false);
+    const cheia = sugerirCombinacoes({ saldoMinutos: H(8), dias: gerar([8], 2) });
+    expect(cheia.buscaCompleta).toBe(true);
+  });
+  it("8. maxDias limita a quantidade de folgas", () => {
+    const s = sugerirCombinacoes({ saldoMinutos: H(40), dias: gerar([4], 10), maxDias: 3, maxSugestoes: 50 });
+    expect(s.every((x) => x.dias.length <= 3)).toBe(true);
+    expect(s[0].dias).toHaveLength(3);
+    expect(s[0].saldoFinal).toBe(H(28));
+  });
+  it("9. saldo zero ou sem dias elegíveis não sugere nada", () => {
+    const z = sugerirCombinacoes({ saldoMinutos: 0, dias: gerar([8], 2) });
+    expect(z).toEqual([]);
+    expect(z.buscaCompleta).toBe(true);
+    expect(sugerirCombinacoes({ saldoMinutos: H(4), dias: gerar([8], 2) })).toEqual([]);
+    expect(sugerirCombinacoes({ saldoMinutos: H(4), dias: [{ data: "2026-10-01", minutos: 0 }] })).toEqual([]);
   });
 });
