@@ -107,6 +107,17 @@ export default function DpMeuSolicitacoes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Abre o formulário já no tipo pedido (ex.: ?tipo=atestado vindo de Meus Documentos).
+  useEffect(() => {
+    const tipo = params.get("tipo");
+    if (!tipo || !TIPOS.some((t) => t.value === tipo)) return;
+    setForm((f) => ({ ...f, tipo }));
+    setOpen(true);
+    params.delete("tipo");
+    setParams(params, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const meRef = useQuery({
     queryKey: ["colab_of_sol", user?.id],
     enabled: !!user?.id,
