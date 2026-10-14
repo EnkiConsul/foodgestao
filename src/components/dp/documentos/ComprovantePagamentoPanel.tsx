@@ -98,6 +98,25 @@ function useValorLiquido(documentoId: string, enabled = true) {
   });
 }
 
+/** Valor do documento visível de cara, antes de escolher o comprovante. */
+function ValorDocumentoSelo({ documentoId }: { documentoId: string }) {
+  const v = useValorLiquido(documentoId);
+  if (v.isLoading) return null;
+  const cents = v.data;
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
+      <span className="text-xs">Valor do documento:</span>
+      <span className="text-base font-semibold">
+        {cents && cents > 0
+          ? (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+          : "não identificado"}
+      </span>
+      <span className="text-[11px]">· confira antes de pagar</span>
+    </div>
+  );
+}
+
+
 const MAX_MB = 15;
 
 function validar(file: File): boolean {
@@ -704,7 +723,7 @@ export function ComprovanteAnexarDialog(props: {
         props.onOpenChange(v);
       }}
     >
-      <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto">
+      <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-md overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>
             {props.complementar
@@ -718,7 +737,9 @@ export function ComprovanteAnexarDialog(props: {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-3 rounded-md border bg-muted/30 p-3 sm:grid-cols-3">
+        <ValorDocumentoSelo documentoId={props.alvo.documentoId} />
+
+        <div className="grid min-w-0 gap-3 rounded-md border bg-muted/30 p-3 sm:grid-cols-3">
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Colaborador</p>
             <p className="break-words text-sm font-medium">
