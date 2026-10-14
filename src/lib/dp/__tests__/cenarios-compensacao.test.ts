@@ -38,3 +38,15 @@ describe("cenários de folga compensatória", () => {
     expect(r.map((c) => c.tipo)).toEqual(["meio_semana"]);
   });
 });
+
+describe("menor saldo com saldo de um dia", () => {
+  it("não some quando 1 folga basta", async () => {
+    const { cenariosCompensacao } = await import("@/lib/dp/compensacao/cenarios");
+    const r = cenariosCompensacao([
+      { rotulo: "meio", minutos: 425, pico: false, max: 16 },
+      { rotulo: "pico", minutos: 455, pico: true, max: 12 },
+    ], 455);
+    expect(r.some((c) => c.tipo === "menor_sobra" || c.saldoFinal === 0)).toBe(true);
+    expect(Math.min(...r.map((c) => Math.abs(c.saldoFinal)))).toBe(0);
+  });
+});

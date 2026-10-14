@@ -89,6 +89,8 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
   const [limiteTxt, setLimiteTxt] = useState("");
   const [escolhida, setEscolhida] = useState(0);
   const [editar, setEditar] = useState(false);
+  const [diasCal, setDiasCal] = useState<Set<string>>(new Set());
+  useEffect(() => { setDiasCal(new Set()); }, [origem?.chave]);
 
   const chave = origem?.chave ?? "manual";
   const estado = origem?.estado;
@@ -252,7 +254,7 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
                 </button>
                 {calendario && (
                   <div className="mt-3">
-                    <CalendarioSimulacao minutosPorDow={minutosPorDow} saldoMin={saldo.minutos} unidadeId={origem?.unidadeId} companyId={origem?.companyId} />
+                    <CalendarioSimulacao minutosPorDow={minutosPorDow} saldoMin={saldo.minutos} unidadeId={origem?.unidadeId} companyId={origem?.companyId} sel={diasCal} setSel={setDiasCal} />
                   </div>
                 )}
               </div>

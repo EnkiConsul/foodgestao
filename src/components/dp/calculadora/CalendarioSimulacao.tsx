@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { Button } from "@/components/ui/button";
 import { Info, AlertTriangle } from "lucide-react";
 import { MonthGridCalendar, type MonthGridDay } from "@/components/dp/convocacoes/MonthGridCalendar";
 import { useDpFeriados } from "@/hooks/useDpFeriados";
@@ -12,7 +13,9 @@ import { formatarMinutos } from "@/lib/dp/compensacao/motor";
  * Opção 4: o próprio usuário escolhe as datas. Folga da escala e feriado já são
  * descanso e não podem ser escolhidos; bloqueio só é sinalizado. Nada é gravado.
  */
-export function CalendarioSimulacao({ minutosPorDow, saldoMin, unidadeId, companyId }: {
+export function CalendarioSimulacao({ minutosPorDow, saldoMin, unidadeId, companyId, sel, setSel }: {
+  sel: Set<string>;
+  setSel: Dispatch<SetStateAction<Set<string>>>;
   minutosPorDow: Map<number, number>;
   saldoMin: number;
   unidadeId?: string | null;
@@ -21,7 +24,6 @@ export function CalendarioSimulacao({ minutosPorDow, saldoMin, unidadeId, compan
   const hoje = new Date();
   const [ano, setAno] = useState(hoje.getFullYear());
   const [mes, setMes] = useState(hoje.getMonth() + 1);
-  const [sel, setSel] = useState<Set<string>>(new Set());
   const { selectedCompanyId } = useCompanyContext();
   const empresa = companyId ?? selectedCompanyId;
 
@@ -30,6 +32,12 @@ export function CalendarioSimulacao({ minutosPorDow, saldoMin, unidadeId, compan
   const ate = dias.length ? ymd(dias[dias.length - 1]) : undefined;
   const { feriados } = useDpFeriados(unidadeId ?? null);
   const bloq = useBloqueiosEfetivos(empresa, unidadeId ?? null, de, ate);
+  // Bloqueios acumulados entre meses: o aviso não some ao navegar.
+  const [bloqAcum, setBloqAcum] = useState<Map<string, { motivo?: string | null }>>(new Map());
+  useEffect(() => {
+    if (!bloq.data) return;
+    setBloqAcum((m) => { const n = new Map(m); for (const [k, v] of bloq.data!) n.set(k, v as { motivo?: string | null }); return n; });
+  }, [bloq.data]);
   const fer = useMemo(() => datasDeFeriados(feriados.filter((f) => f.ativo !== false), [ano]), [feriados, ano]);
   const hojeIso = ymd(hoje);
 
@@ -46,7 +54,7 @@ export function CalendarioSimulacao({ minutosPorDow, saldoMin, unidadeId, compan
 
   const escolhidos = [...sel].sort();
   const usado = escolhidos.reduce((s, iso) => s + (minutosPorDow.get(new Date(`${iso}T12:00:00`).getDay()) ?? 0), 0);
-  const restricoes = escolhidos.filter((iso) => bloq.data?.has(iso)).length;
+  const restricoes = escolhidos.filter((iso) => bloqAcum.has(iso)).length;
   const resta = saldoMin - usado;
 
   const alternar = (iso: string) => setSel((s) => {
@@ -59,7 +67,10 @@ export function CalendarioSimulacao({ minutosPorDow, saldoMin, unidadeId, compan
     <div className="space-y-3">
       <MonthGridCalendar ano={ano} mes={mes} onMesChange={(a, m) => { setAno(a); setMes(m); }} selecionados={sel} onToggleDia={alternar} info={info} />
       <div className="rounded-md border p-3 text-sm">
-        <div className="font-semibold">{escolhidos.length} folga(s) escolhida(s)</div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="font-semibold">{escolhidos.length} folga(s) escolhida(s)</div>
+          {escolhidos.length > 0 && <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setSel(new Set())}>Limpar seleção</Button>}
+        </div>
         <div className="text-muted-foreground">
           Compensa <strong className="text-foreground">{formatarMinutos(usado)}</strong> · resta{" "}
           <strong className={resta < 0 ? "text-destructive" : "text-foreground"}>{formatarMinutos(resta)}</strong>

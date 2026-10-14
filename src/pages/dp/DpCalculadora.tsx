@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useJornadasCalculadoraGestor, useJornadasCalculadoraMinhas } from "@/hooks/useCalculadoraJornadas";
 import { unidadesDosColaboradores, colaboradoresDaUnidade } from "@/lib/dp/compensacao/filtroCalculadora";
@@ -30,6 +31,7 @@ function CalculadoraGestor() {
   const [colabId, setColabId] = useState<string | null>(null);
   const [unidade, setUnidade] = useState("todas");
   const lista = useDpColaboradores();
+  const { selectedCompanyId } = useCompanyContext();
   const unidades = useMemo(() => unidadesDosColaboradores(lista.data ?? []), [lista.data]);
   const filtrados = useMemo(() => colaboradoresDaUnidade(lista.data ?? [], unidade), [lista.data, unidade]);
   const q = useJornadasCalculadoraGestor(colabId);
@@ -40,6 +42,7 @@ function CalculadoraGestor() {
     jornadas: q.data?.jornadas ?? [],
     incompletos: q.data?.incompletos ?? [],
     unidadeId: (lista.data ?? []).find((c) => c.id === colabId)?.unidade_id ?? null,
+    companyId: selectedCompanyId,
   } : undefined;
 
   const vazio = !lista.isLoading && !lista.isError && filtrados.length === 0;
