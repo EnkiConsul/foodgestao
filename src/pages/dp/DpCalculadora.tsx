@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Calculator, X } from "lucide-react";
+import { Calculator, RotateCcw } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import {
@@ -32,6 +32,8 @@ export default function DpCalculadora({ perfil = "gestor" }: { perfil?: PerfilCa
 function CalculadoraGestor() {
   const [colabId, setColabId] = useState<string | null>(null);
   const [unidade, setUnidade] = useState("todas");
+  const [versao, setVersao] = useState(0);
+  const novaSimulacao = () => { setColabId(null); setUnidade("todas"); setVersao((v) => v + 1); };
   const lista = useDpColaboradores();
   const { selectedCompanyId } = useCompanyContext();
   // Só quem tem banco de horas ou compensação de feriados (unidade + exceção individual).
@@ -93,13 +95,12 @@ function CalculadoraGestor() {
             </SelectContent>
           </Select>
         </div>
-        {colabId && (
-          <Button variant="outline" size="sm" onClick={() => setColabId(null)}><X className="h-4 w-4" /> Simulação manual</Button>
-        )}
+        <Button variant="outline" size="sm" onClick={novaSimulacao}><RotateCcw className="h-4 w-4" /> Nova simulação</Button>
       </CardContent>
     </Card>
   );
-  return <CalculadoraCompensacao perfil="gestor" origem={origem} topo={topo} />;
+  const admissao = (lista.data ?? []).find((c) => c.id === colabId)?.data_admissao ?? null;
+  return <CalculadoraCompensacao key={versao} perfil="gestor" origem={origem} topo={topo} admissao={admissao} />;
 }
 
 function CalculadoraColaborador() {

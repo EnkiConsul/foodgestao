@@ -67,7 +67,7 @@ export function CalendarioSimulacao({ minutosPorDow, saldoMin, unidadeId, compan
     else if (fer.has(iso)) info[iso] = { selo: "Feriado", tom: "neutro", desabilitado: true, titulo: "Feriado já é descanso" };
     else if (!min) info[iso] = { selo: "Folga", tom: "neutro", desabilitado: true, titulo: "Dia de folga da escala" };
     else if (bloq.data?.has(iso)) info[iso] = { selo: "Bloq.", tom: "atencao", titulo: bloq.data.get(iso)?.motivo || "Data bloqueada para folga" };
-    else info[iso] = { selo: null };
+    else info[iso] = { selo: null, titulo: `Jornada prevista: ${formatarMinutos(min)}` };
   }
 
   const escolhidos = [...sel].sort();
@@ -98,6 +98,11 @@ export function CalendarioSimulacao({ minutosPorDow, saldoMin, unidadeId, compan
           Compensa <strong className="text-foreground">{formatarMinutos(usado)}</strong> · resta{" "}
           <strong className={resta < 0 ? "text-destructive" : "text-foreground"}>{formatarMinutos(resta)}</strong>
         </div>
+        {escolhidos.length > 0 && (
+          <div className="mt-1 text-xs text-muted-foreground">
+            Dias: {escolhidos.map((iso) => `${br(iso)} (${formatarMinutos(minutosPorDow.get(new Date(`${iso}T12:00:00`).getDay()) ?? 0)})`).join(", ")}
+          </div>
+        )}
       </div>
       {restricoes > 0 && (
         <p className="flex gap-2 rounded-md border border-destructive/30 p-2 text-xs text-destructive" role="status">

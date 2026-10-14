@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Info, Plus, X, CalendarCheck } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -58,7 +58,9 @@ function concentrarNoFinal(base: ResultadoDesligamento, saldoMin: number): strin
   return out.sort();
 }
 
-export function CalculadoraDesligamento() {
+export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornadaInicial = null }: {
+  chave?: string; admissaoInicial?: string | null; jornadaInicial?: string[] | null;
+} = {}) {
   const [admissao, setAdmissao] = useState("");
   const [comunicacao, setComunicacao] = useState(hojeLocal());
   const [modalidade, setModalidade] = useState<ModalidadeAviso>("trabalhado");
@@ -69,6 +71,15 @@ export function CalculadoraDesligamento() {
   const [novoFeriado, setNovoFeriado] = useState("");
   const [saldoTxt, setSaldoTxt] = useState("");
   const [folgas, setFolgas] = useState<string[]>([]);
+  // Colaborador selecionado no topo: preenche admissão e jornada do cadastro (editáveis).
+  const jornadaKey = jornadaInicial?.join("|") ?? "";
+  useEffect(() => {
+    if (!chave) return;
+    if (admissaoInicial) setAdmissao(admissaoInicial.slice(0, 10));
+    if (jornadaInicial) { setJornada(jornadaInicial); setJornadaEditada(false); }
+    setFolgas([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave, admissaoInicial, jornadaKey]);
 
   const jornadaMin = jornada.map((t) => {
     if (!t.trim()) return 0;
