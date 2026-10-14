@@ -705,13 +705,30 @@ export default function DpSolicitacoes() {
           ...(detailsRow.resposta_admin ? [{ label: "Resposta", value: detailsRow.resposta_admin }] : []),
         ] : []}
         footer={detailsRow && detailsRow.status === "pendente" ? (
-          <div className="flex gap-2 w-full">
-            <Button variant="outline" className="flex-1" onClick={() => { decide(detailsRow, false); setDetailsRow(null); }}>
-              <X className="size-4 mr-1" /> Recusar
-            </Button>
-            <Button className="flex-1" onClick={() => { decide(detailsRow, true); setDetailsRow(null); }}>
-              <Check className="size-4 mr-1" /> Aprovar
-            </Button>
+          <div className="grid gap-2 w-full">
+            {detailsRow.devolvido_em && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm">
+                <b>Aguardando colaborador:</b> {detailsRow.devolvido_motivo}
+              </div>
+            )}
+            <div className="flex gap-2 w-full">
+              {ehAtestadoLike(detailsRow) && (
+                <Button variant="ghost" className="flex-1" onClick={() => { const r = detailsRow; setAnexar({ id: r.id, company_id: r.company_id, colaborador_id: r.colaborador_id, data_alvo: r.data_alvo, nome: r.dp_colaboradores?.nome }); setDetailsRow(null); }}>
+                  <Paperclip className="size-4 mr-1" /> Anexar
+                </Button>
+              )}
+              <Button variant="ghost" className="flex-1" onClick={() => { setDevolver(detailsRow); setDetailsRow(null); }}>
+                <Undo2 className="size-4 mr-1" /> Devolver
+              </Button>
+            </div>
+            <div className="flex gap-2 w-full">
+              <Button variant="outline" className="flex-1" onClick={() => { decide(detailsRow, false); setDetailsRow(null); }}>
+                <X className="size-4 mr-1" /> Recusar
+              </Button>
+              <Button className="flex-1" onClick={() => { decide(detailsRow, true); setDetailsRow(null); }}>
+                <Check className="size-4 mr-1" /> Aprovar
+              </Button>
+            </div>
           </div>
         ) : detailsRow && detailsRow.status === "aprovada" && ehLiberacaoGestor(detailsRow.motivo) ? (
           <Button variant="outline" className="w-full" onClick={() => { setDesfazer({ id: detailsRow.id, nome: detailsRow.dp_colaboradores?.nome }); setDetailsRow(null); }}>

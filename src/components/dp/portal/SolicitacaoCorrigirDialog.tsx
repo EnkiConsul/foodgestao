@@ -20,6 +20,7 @@ export type SolicitacaoCorrigir = {
   data_fim: string | null;
   motivo: string | null;
   devolvido_motivo: string | null;
+  arquivo_path?: string | null;
 };
 
 /** Colaborador corrige datas, motivo e/ou anexo de uma solicitação devolvida e reenvia. */
@@ -132,8 +133,13 @@ export function SolicitacaoCorrigirDialog({
         {comAnexo && (
           <div className="grid gap-1">
             <Label>Novo anexo (opcional)</Label>
+            <p className="text-xs text-muted-foreground">
+              {alvo?.arquivo_path ? "Já existe um arquivo enviado. Ele será mantido se você não escolher outro." : "Ainda não há arquivo enviado nesta solicitação."}
+            </p>
             <AnexoFotoPdfPicker file={file} onChange={setFile} />
-            <p className="text-[11px] text-muted-foreground">Sem novo arquivo, o anexo atual é mantido.</p>
+            {file && alvo?.arquivo_path && (
+              <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Este arquivo vai substituir o anterior ao reenviar.</p>
+            )}
           </div>
         )}
         <DialogFooter className="gap-2">
