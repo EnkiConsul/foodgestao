@@ -89,6 +89,8 @@ type UnifiedDoc = {
   comprovante_mime?: string | null;
   /** Soma consolidada dos comprovantes (lida do banco, sem nova leitura). */
   quitacao?: QuitacaoConsolidada | null;
+  /** Valor do documento quando ainda não há comprovante. */
+  valor_pendente_cents?: number | null;
 };
 
 function QuitacaoSelo({ q, pendenteCents }: { q?: QuitacaoConsolidada | null; pendenteCents?: number | null }) {
