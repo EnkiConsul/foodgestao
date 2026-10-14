@@ -331,12 +331,6 @@ export function MinhaJornadaAcoesCard() {
               <div className="space-y-1.5">
                 <Label>Foto ou PDF do atestado</Label>
                 <AnexoFotoPdfPicker file={arquivoAtestado} onChange={setArquivoAtestado} />
-                    <span className="min-w-0 flex-1 truncate">{arquivoAtestado.name}</span>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setArquivoAtestado(null)}>
-                      Remover
-                    </Button>
-                  </div>
-                )}
                 <p className="text-xs text-muted-foreground">
                   O atestado vai para os seus documentos e aguarda a conferência do DP.
                 </p>

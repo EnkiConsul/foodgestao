@@ -455,6 +455,7 @@ export default function DpMeuSolicitacoes() {
       qc.invalidateQueries({ queryKey: ["dp_meu_sol"] });
       setOpen(false);
       setForm({ tipo: "folga", data_alvo: undefined, data_fim: undefined, motivo: "" });
+      setAnexoAtestado(null);
     },
     onError: (e: any) => notifyError(e, { surface: "Minhas solicitações", action: "concluir a ação", fallback: "Erro" }),
   });
