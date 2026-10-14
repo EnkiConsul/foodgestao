@@ -71,7 +71,6 @@ function EmBreve() {
 function HorasFolgas({ perfil }: { perfil: PerfilCalculadora }) {
   const [saldoTxt, setSaldoTxt] = useState("");
   const [jornadas, setJornadas] = useState<Jornada[]>(JORNADAS_INICIAIS);
-  const [criterio, setCriterio] = useState<"menor_sobra" | "menor_folgas">("menor_sobra");
   const [negAtivo, setNegAtivo] = useState(false);
   const [limiteTxt, setLimiteTxt] = useState("");
   const [escolhida, setEscolhida] = useState(0);
@@ -97,8 +96,10 @@ function HorasFolgas({ perfil }: { perfil: PerfilCalculadora }) {
   const nomeDe = (data: string) => validas.find((j) => j.id === Number(data.slice(0, 4)))?.nome ?? "";
 
   const sugestoes = useMemo(
-    () => (saldoMin !== null ? sugerirCombinacoes({ saldoMinutos: saldoMin, dias, limiteNegativo: limite, criterio, maxDias: 10, maxSugestoes: 5 }) : []),
-    [saldoMin, dias, limite, criterio],
+    () => (saldoMin !== null
+      ? sugerirCombinacoes({ saldoMinutos: saldoMin, dias, limiteNegativo: limite, maxDias: 10, maxSugestoes: 5 })
+      : Object.assign([], { buscaCompleta: true })),
+    [saldoMin, dias, limite],
   );
   const sel = sugestoes[Math.min(escolhida, sugestoes.length - 1)];
   const resultado = sel && saldo.ok ? simularCompensacao({ saldoMinutos: saldo.minutos, dias: sel.dias, limiteNegativo: limite }) : null;
@@ -179,21 +180,23 @@ function HorasFolgas({ perfil }: { perfil: PerfilCalculadora }) {
 
       {saldo.ok && (
         <Card className="lg:col-span-2">
-          <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+          <CardHeader className="space-y-1">
             <CardTitle className="text-base">Sugestões</CardTitle>
-            <Tabs value={criterio} onValueChange={(v) => { setCriterio(v as typeof criterio); setEscolhida(0); }}>
-              <TabsList>
-                <TabsTrigger value="menor_sobra">Menor sobra</TabsTrigger>
-                <TabsTrigger value="menor_folgas">Menos folgas</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <CardDescription>Ordenadas pelo saldo mais próximo de zero; no empate, a que usa menos folgas.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             {sugestoes.length === 0 && <p className="text-sm text-muted-foreground">Saldo insuficiente para qualquer folga com as jornadas informadas.</p>}
+            {sugestoes.length > 0 && !sugestoes.buscaCompleta && (
+              <p className="text-xs text-muted-foreground">Muitas combinações possíveis: a busca foi limitada e mostra as melhores encontradas.</p>
+            )}
             {sugestoes.map((s, i) => (
               <button key={i} type="button" onClick={() => setEscolhida(i)}
                 className={`w-full rounded-md border p-3 text-left text-sm transition-colors hover:bg-accent ${sel === s ? "border-primary bg-accent" : ""}`}>
-                <div className="font-medium">{agrupar(s.dias)}</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {i === 0 && <Badge variant="outline">Melhor sugestão encontrada</Badge>}
+                  {s.saldoFinal < 0 && <Badge variant="destructive">Saldo negativo</Badge>}
+                </div>
+                <div className="mt-1 font-medium">{agrupar(s.dias)}</div>
                 <div className="text-muted-foreground">
                   {s.dias.length} dia(s) · compensa {formatarMinutos(s.minutosUsados)} · resta{" "}
                   <span className={s.saldoFinal < 0 ? "font-semibold text-destructive" : ""}>{formatarMinutos(s.saldoFinal)}</span>
