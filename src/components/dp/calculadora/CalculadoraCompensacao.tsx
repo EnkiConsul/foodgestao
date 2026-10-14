@@ -267,3 +267,7 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
     </div>
   );
 }
+
+function AvisoJornada({ texto }: { texto: string }) {
+  return <p className="flex gap-2 rounded-md border border-destructive/30 p-2 text-xs text-destructive" role="status"><AlertTriangle className="h-4 w-4 shrink-0" />{texto}</p>;
+}

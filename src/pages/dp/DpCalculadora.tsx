@@ -63,12 +63,12 @@ function CalculadoraGestor() {
 
 function CalculadoraColaborador() {
   const q = useJornadasCalculadoraMinhas();
-  const d = q.data;
+  const v = q.data && q.data.semVinculo === false ? q.data : null;
   const origem: OrigemJornadas = {
-    chave: d && !d.semVinculo ? d.id : "meu",
-    estado: q.isLoading ? "carregando" : q.isError ? "erro" : !d || d.semVinculo ? "sem_vinculo" : d.semConfig ? "sem_config" : "ok",
-    jornadas: d && !d.semVinculo ? d.jornadas : [],
-    incompletos: d && !d.semVinculo ? d.incompletos : [],
+    chave: v?.id ?? "meu",
+    estado: q.isLoading ? "carregando" : q.isError ? "erro" : !v ? "sem_vinculo" : v.semConfig ? "sem_config" : "ok",
+    jornadas: v?.jornadas ?? [],
+    incompletos: v?.incompletos ?? [],
   };
   return <CalculadoraCompensacao perfil="colaborador" origem={origem} />;
 }
