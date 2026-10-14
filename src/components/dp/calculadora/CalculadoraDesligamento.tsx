@@ -42,11 +42,11 @@ function hojeLocal(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-export const br = (iso: string | null) => (iso ? iso.split("-").reverse().join("/") : "—");
+const br = (iso: string | null) => (iso ? iso.split("-").reverse().join("/") : "—");
 const semana = (iso: string) => DIAS[new Date(`${iso}T00:00:00Z`).getUTCDay()];
 
 /** Concentra folgas nas últimas jornadas efetivas, enquanto o saldo cobre a jornada inteira. */
-export function concentrarNoFinal(base: ResultadoDesligamento, saldoMin: number): string[] {
+function concentrarNoFinal(base: ResultadoDesligamento, saldoMin: number): string[] {
   const out: string[] = [];
   let resto = saldoMin;
   const trab = base.calendario.filter((d) => d.classificacao === "trabalho_previsto");
