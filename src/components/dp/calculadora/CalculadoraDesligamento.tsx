@@ -11,6 +11,8 @@ import {
   simularDesligamento, type ClassificacaoDia, type ModalidadeAviso, type ReducaoArt488,
   type ResultadoDesligamento, type MotivoRejeicao,
 } from "@/lib/dp/compensacao/desligamentoMotor";
+import { useDpFeriados } from "@/hooks/useDpFeriados";
+import { datasDeFeriados } from "@/lib/dp/feriados";
 
 /**
  * Simulação de aviso prévio (dispensa sem justa causa pela empresa).
@@ -174,12 +176,13 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
               <div className="flex gap-2">
                 <Input type="date" aria-label="Novo feriado" value={novoFeriado} onChange={(e) => setNovoFeriado(e.target.value)} />
                 <Button type="button" variant="outline" size="icon" aria-label="Adicionar feriado" disabled={!novoFeriado}
-                  onClick={() => { if (!feriados.includes(novoFeriado)) setFeriados([...feriados, novoFeriado].sort()); setNovoFeriado(""); setFolgas([]); }}>
+                  onClick={() => { if (!feriados.includes(novoFeriado)) setFeriados([...feriadosManuais, novoFeriado].sort()); setNovoFeriado(""); setFolgas([]); }}>
                   <Plus className="h-4 w-4" /></Button>
               </div>
               {feriados.length > 0 && <div className="mt-2 flex flex-wrap gap-1">{feriados.map((f) => (
                 <Badge key={f} variant="secondary" className="gap-1">{br(f)}
-                  <button type="button" aria-label={`Remover feriado ${br(f)}`} onClick={() => { setFeriados(feriados.filter((x) => x !== f)); setFolgas([]); }}><X className="h-3 w-3" /></button></Badge>
+                  {feriadosUnidade.includes(f) ? <span className="text-[10px] text-muted-foreground">unidade</span>
+                    : <button type="button" aria-label={`Remover feriado ${br(f)}`} onClick={() => { setFeriados(feriadosManuais.filter((x) => x !== f)); setFolgas([]); }}><X className="h-3 w-3" /></button>}</Badge>
               ))}</div>}
             </div>
           </CardContent>
