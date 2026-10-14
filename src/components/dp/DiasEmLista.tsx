@@ -107,7 +107,7 @@ export function DiasEmLista({
             TOM[d.tom ?? "neutro"],
             d.dominical && !d.tom && "bg-amber-500/10",
             isToday && "bg-primary/20 shadow-[inset_4px_0_0_hsl(var(--primary))]",
-            d.selecionado && "ring-1 ring-inset ring-primary",
+            d.selecionado && "bg-primary/15 ring-2 ring-inset ring-primary",
             // Altura fixa: todos os dias com a mesma altura de linha.
             d.chipsLinhaUnica && "h-[4.75rem] overflow-hidden",
           );

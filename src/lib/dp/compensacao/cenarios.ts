@@ -77,7 +77,7 @@ const assinatura = (c: Omit<Cenario, "tipo">) => c.itens.map((i) => `${i.rotulo}
 export function cenariosCompensacao(grupos: GrupoJornada[], saldo: number, limite = 0): Cenario[] {
   const brutos: [TipoCenario, Omit<Cenario, "tipo"> | null][] = [
     ["meio_semana", melhorCombinacao(grupos.filter((g) => !g.pico), saldo, limite)],
-    ["menor_sobra", melhorCombinacao(grupos, saldo, limite, 30, grupos.some((g) => g.pico) && grupos.some((g) => !g.pico))],
+    ["menor_sobra", melhorCombinacao(grupos, saldo, limite, 30, grupos.some((g) => g.pico) && grupos.some((g) => !g.pico)) ?? melhorCombinacao(grupos, saldo, limite)],
     ["fim_semana", melhorCombinacao(grupos.filter((g) => g.pico), saldo, limite)],
   ];
   const vistos = new Set<string>();
