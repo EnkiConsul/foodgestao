@@ -26,6 +26,8 @@ export interface JornadaCarregada {
   minutos: number;
   /** Quantos dias dessa jornada existem na semana cadastrada. */
   qtd: number;
+  /** Quantos desses dias são de pico (sex/sáb/dom). */
+  picos?: number;
 }
 
 export interface ResultadoJornadas {
@@ -54,6 +56,7 @@ export function jornadasDaConfig(
       nome: `${dows.map((x) => CURTO[x]).join(", ")} (${formatarMinutos(minutos).toUpperCase()})`,
       minutos,
       qtd: dows.length,
+      picos: dows.filter((x) => x === 0 || x >= 5).length,
     }));
   return { jornadas, incompletos };
 }
@@ -84,6 +87,7 @@ export function jornadasDaRpc(linhas: LinhaJornadaRpc[]): ResultadoJornadas {
       nome: `${dows.map((x) => CURTO[x]).join(", ")} (${formatarMinutos(minutos).toUpperCase()})`,
       minutos,
       qtd: dows.length,
+      picos: dows.filter((x) => x === 0 || x >= 5).length,
     }));
   return { jornadas, incompletos };
 }

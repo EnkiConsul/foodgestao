@@ -74,6 +74,8 @@ export function formatarMinutos(minutos: number): string {
 export interface DiaCompensavel {
   data: string; // AAAA-MM-DD
   minutos: number;
+  /** Dia de pico da operação (sex/sáb/dom): só vira folga se os demais não bastarem. */
+  pico?: boolean;
 }
 
 export type StatusSimulacao = "positivo" | "zerado" | "negativo_permitido" | "excede_limite";
@@ -93,7 +95,7 @@ function normalizarDias(dias: DiaCompensavel[]): DiaCompensavel[] {
     const min = arredondarMinuto(d.minutos);
     if (!d.data || min <= 0 || vistos.has(d.data)) continue;
     vistos.add(d.data);
-    out.push({ data: d.data, minutos: min });
+    out.push(d.pico ? { data: d.data, minutos: min, pico: true } : { data: d.data, minutos: min });
   }
   return out.sort((a, b) => a.data.localeCompare(b.data));
 }
@@ -131,7 +133,7 @@ export type ResultadoSugestoes = SugestaoCompensacao[] & { buscaCompleta: boolea
 
 /**
  * Sugere combinações de dias cujo total cabe no saldo (+ limite negativo).
- * Hierarquia: 1) menor |saldo final|; 2) menos folgas; 3) datas em ordem crescente.
+ * Hierarquia: 1) menos dias de pico; 2) menor |saldo final|; 3) menos folgas; 4) datas em ordem crescente.
  * Busca limitada (`maxNos`) para nunca travar a tela — resultado é a melhor encontrada,
  * não garantia de ótimo quando `buscaCompleta` = false.
  */
@@ -153,7 +155,7 @@ export function sugerirCombinacoes(params: {
   const maxNos = params.maxNos ?? 50_000;
   // Ordem de exploração: cargas maiores primeiro (data crescente no empate) — com o corte por
   // `maxNos`, chega antes às combinações com menos folgas. Não altera o ranking final.
-  const dias = normalizarDias(params.dias).sort((a, b) => b.minutos - a.minutos || a.data.localeCompare(b.data));
+  const dias = normalizarDias(params.dias).sort((a, b) => Number(!!a.pico) - Number(!!b.pico) || b.minutos - a.minutos || a.data.localeCompare(b.data));
   const comFlag = (lista: SugestaoCompensacao[], completa: boolean): ResultadoSugestoes =>
     Object.defineProperty(lista, "buscaCompleta", { value: completa, enumerable: false }) as ResultadoSugestoes;
   if (teto <= 0 || dias.length === 0) return comFlag([], true);
@@ -166,7 +168,7 @@ export function sugerirCombinacoes(params: {
 
   const registrar = (soma: number) => {
     // assinatura por cargas: evita sugestões "iguais" só trocando dias de mesma carga
-    const chave = atual.map((d) => d.minutos).sort((a, b) => a - b).join(",");
+    const chave = atual.map((d) => `${d.minutos}${d.pico ? "p" : ""}`).sort().join(",");
     if (chaves.has(chave)) return;
     chaves.add(chave);
     const ds = [...atual].sort((a, b) => a.data.localeCompare(b.data));
@@ -189,7 +191,9 @@ export function sugerirCombinacoes(params: {
   buscar(0, 0);
 
   const datas = (x: SugestaoCompensacao) => x.dias.map((d) => d.data).join(",");
+  const picos = (x: SugestaoCompensacao) => x.dias.filter((d) => d.pico).length;
   const cmp = (a: SugestaoCompensacao, b: SugestaoCompensacao) =>
+    picos(a) - picos(b) ||
     Math.abs(a.saldoFinal) - Math.abs(b.saldoFinal) ||
     a.dias.length - b.dias.length ||
     datas(a).localeCompare(datas(b));
