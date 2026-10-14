@@ -26,6 +26,7 @@ import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpFilePicker } from "@/components/dp/DpFilePicker";
+import { AnexoFotoPdfPicker } from "@/components/dp/portal/AnexoFotoPdfPicker";
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
 import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
@@ -99,6 +100,7 @@ export default function DpAtestados() {
   const [recusaId, setRecusaId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Row | null>(null);
   const [editing, setEditing] = useState<Row | null>(null);
+  const [editFile, setEditFile] = useState<File | null>(null);
   const [motivoExclusao, setMotivoExclusao] = useState<string>("");
 
   // form
@@ -329,6 +331,7 @@ export default function DpAtestados() {
     setEditDataDoc(editing.data_alvo ?? "");
     setEditDias(String(diffDays(editing.data_alvo, editing.data_fim) || 1));
     setEditObservacao(editing.motivo ?? "");
+    setEditFile(null);
   }, [editing]);
 
   // upload
@@ -426,6 +429,17 @@ export default function DpAtestados() {
         dias: d,
         observacao: editObservacao,
       });
+      if (editFile) {
+        const arq = await prepararUpload(BUCKET, editFile);
+        const path = `${editing.company_id}/${editColaboradorId}/${Date.now()}-${sanitizeStorageFilename(arq.name)}`;
+        const up = await supabase.storage.from(BUCKET).upload(path, arq, { contentType: arq.type, upsert: false });
+        if (up.error) throw up.error;
+        const { error } = await supabase.rpc("dp_solicitacao_anexar_gestor", { p_id: editing.id, p_arquivo_path: path });
+        if (error) {
+          if (error.message.includes("STATUS_INVALIDO")) throw new Error("Este atestado não aceita troca de anexo (recusado ou cancelado).");
+          throw error;
+        }
+      }
     },
     onSuccess: () => {
       toast.success("Atestado atualizado");
@@ -854,6 +868,21 @@ export default function DpAtestados() {
             <div className="space-y-2">
               <Label htmlFor="observacoes-15">Observações</Label>
               <Textarea id="observacoes-15" rows={3} value={editObservacao} onChange={(e) => setEditObservacao(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Anexo do atestado</Label>
+              {editing?.arquivo_path ? (
+                <div className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
+                  <span className="min-w-0 truncate text-muted-foreground">Já tem arquivo anexado</span>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setPreview({ title: `Atestado — ${editing.dp_colaboradores?.nome ?? ""}`, path: editing.arquivo_path! })}>Ver</Button>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Este atestado ainda não tem arquivo.</p>
+              )}
+              <AnexoFotoPdfPicker file={editFile} onChange={setEditFile} />
+              {editFile && editing?.arquivo_path && (
+                <p className="text-xs text-muted-foreground">O novo arquivo vai substituir o anterior ao salvar.</p>
+              )}
             </div>
           </div>
           <DialogFooter>
