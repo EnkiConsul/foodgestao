@@ -12,6 +12,7 @@ import { assinarDocumento } from "@/lib/dp/documentoAceite";
 import { assinarTroca } from "@/lib/dp/troca-assinatura";
 import { useLocation } from "react-router-dom";
 import { termoTrocaHtml } from "@/lib/dp/troca-certificado";
+import { completarPartesTrocas } from "@/lib/dp/troca-partes";
 import type { DpTrocaRow } from "@/hooks/useDpTrocas";
 import {
   useDocumentosAguardandoAssinatura,
@@ -62,7 +63,11 @@ export function DocumentoAssinaturaGate() {
         .eq("id", atual!.troca_id!)
         .maybeSingle();
       if (error) throw error;
-      return data ? ({ ...(data as any), modo: "direta" } as DpTrocaRow) : null;
+      if (!data) return null;
+      // O colaborador não lê o cadastro do colega (dados sigilosos): os nomes
+      // e cargos das duas partes vêm da rotina segura dp_portal_trocas_partes.
+      const [completa] = await completarPartesTrocas([data as any]);
+      return { ...(completa as any), modo: "direta" } as DpTrocaRow;
     },
   });
 
