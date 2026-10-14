@@ -75,14 +75,34 @@ function comLimiteDeTempo<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 }
 
+// Cadastro concluído não "desconclui": guardamos por 5 minutos para que cada
+// troca de tela não repita as consultas e a tela de espera.
+const CACHE_MS = 5 * 60_000;
+const cacheConcluido = new Map<string, { em: number; valor: OnboardingStatusResolution }>();
+
+export function onboardingStatusEmCache(userId: string): OnboardingStatusResolution | null {
+  const c = cacheConcluido.get(userId);
+  if (!c || Date.now() - c.em > CACHE_MS) return null;
+  return c.valor;
+}
+
+export function limparOnboardingStatusCache() {
+  cacheConcluido.clear();
+}
+
 export async function resolveOnboardingStatus(userId: string): Promise<OnboardingStatusResolution> {
+  const emCache = onboardingStatusEmCache(userId);
+  if (emCache) return emCache;
+  let r: OnboardingStatusResolution;
   try {
-    return await comLimiteDeTempo(consultarOnboardingStatus(userId), ONBOARDING_STATUS_TIMEOUT_MS);
+    r = await comLimiteDeTempo(consultarOnboardingStatus(userId), ONBOARDING_STATUS_TIMEOUT_MS);
   } catch {
     // Uma nova tentativa antes de desistir: falha momentânea não deve prender
     // o usuário na tela de espera das verificações de entrada.
-    return await comLimiteDeTempo(consultarOnboardingStatus(userId), ONBOARDING_STATUS_TIMEOUT_MS);
+    r = await comLimiteDeTempo(consultarOnboardingStatus(userId), ONBOARDING_STATUS_TIMEOUT_MS);
   }
+  if (r.completed) cacheConcluido.set(userId, { em: Date.now(), valor: r });
+  return r;
 }
 
 async function consultarOnboardingStatus(userId: string): Promise<OnboardingStatusResolution> {
