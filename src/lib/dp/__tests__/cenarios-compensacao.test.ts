@@ -16,13 +16,14 @@ describe("cenários de folga compensatória", () => {
     expect(c.saldoFinal).toBe(1974 - 1700);
   });
 
-  it("opção 2 mescla meio e fim de semana com o menor saldo restante", () => {
-    const c = cenariosCompensacao(cris, saldo).find((x) => x.tipo === "menor_sobra")!;
-    expect(c.saldoFinal).toBe(184);
+  it("primeira opção é o menor saldo restante, sem forçar mistura", () => {
+    const c = cenariosCompensacao(cris, saldo)[0];
+    expect(c.tipo).toBe("menor_sobra");
+    expect(c.saldoFinal).toBe(154); // 4×455 — igual ao "só fim de semana", que não se repete
   });
 
   it("opção 3 usa só fim de semana", () => {
-    const c = cenariosCompensacao(cris, saldo).find((x) => x.tipo === "fim_semana")!;
+    const c = cenariosCompensacao(cris, saldo).find((x) => x.itens.every((i) => i.pico))!;
     expect(c.itens.every((i) => i.pico)).toBe(true);
     expect(c.minutosUsados).toBe(4 * 455);
   });
@@ -33,7 +34,7 @@ describe("cenários de folga compensatória", () => {
 
   it("sem dias de pico informados, não cria opção de fim de semana", () => {
     const r = cenariosCompensacao([{ rotulo: "A", minutos: 480, pico: false, max: 4 }], 1000);
-    expect(r.map((c) => c.tipo)).toEqual(["meio_semana"]);
+    expect(r.map((c) => c.tipo)).toEqual(["menor_sobra"]);
   });
 });
 
