@@ -119,16 +119,6 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
     .map((j) => ({ ...j, min: cargaMin(j.carga), n: Math.min(31, Math.max(0, Math.floor(Number(j.qtd) || 0))) }))
     .filter((j): j is typeof j & { min: number } => j.min !== null);
 
-  const dias: DiaCompensavel[] = useMemo(
-    () => validas.flatMap((j) => Array.from({ length: j.n }, (_, i) => ({
-      data: `${String(j.id).padStart(4, "0")}-${String(i).padStart(2, "0")}`, minutos: j.min,
-      // Os últimos dias do grupo são os de pico (sex/sáb/dom): evitados na sugestão.
-      pico: i >= j.n - Math.min(j.n, j.picos ?? 0),
-    }))),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(validas)],
-  );
-
   // Folgas podem cair em semanas diferentes: até 4 semanas de cada dia da escala.
   const SEMANAS = 4;
   const grupos: GrupoJornada[] = validas.flatMap((j) => {
