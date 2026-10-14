@@ -39,6 +39,7 @@ function CalculadoraGestor() {
     estado: q.isLoading ? "carregando" : q.isError ? "erro" : q.data?.semConfig ? "sem_config" : "ok",
     jornadas: q.data?.jornadas ?? [],
     incompletos: q.data?.incompletos ?? [],
+    unidadeId: (lista.data ?? []).find((c) => c.id === colabId)?.unidade_id ?? null,
   } : undefined;
 
   const vazio = !lista.isLoading && !lista.isError && filtrados.length === 0;
@@ -83,6 +84,8 @@ function CalculadoraColaborador() {
     estado: q.isLoading ? "carregando" : q.isError ? "erro" : !v ? "sem_vinculo" : v.semConfig ? "sem_config" : "ok",
     jornadas: v?.jornadas ?? [],
     incompletos: v?.incompletos ?? [],
+    unidadeId: v?.unidadeId ?? null,
+    companyId: v?.companyId ?? null,
   };
   return <CalculadoraCompensacao perfil="colaborador" origem={origem} />;
 }

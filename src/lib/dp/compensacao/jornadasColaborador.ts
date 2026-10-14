@@ -28,6 +28,8 @@ export interface JornadaCarregada {
   qtd: number;
   /** Quantos desses dias são de pico (sex/sáb/dom). */
   picos?: number;
+  /** Dias da semana (0=dom) em que essa jornada acontece. */
+  dows?: number[];
 }
 
 export interface ResultadoJornadas {
@@ -57,6 +59,7 @@ export function jornadasDaConfig(
       minutos,
       qtd: dows.length,
       picos: dows.filter((x) => x === 0 || x >= 5).length,
+      dows,
     }));
   return { jornadas, incompletos };
 }
@@ -88,6 +91,7 @@ export function jornadasDaRpc(linhas: LinhaJornadaRpc[]): ResultadoJornadas {
       minutos,
       qtd: dows.length,
       picos: dows.filter((x) => x === 0 || x >= 5).length,
+      dows,
     }));
   return { jornadas, incompletos };
 }
