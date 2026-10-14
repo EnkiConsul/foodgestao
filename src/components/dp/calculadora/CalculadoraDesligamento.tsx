@@ -58,8 +58,8 @@ function concentrarNoFinal(base: ResultadoDesligamento, saldoMin: number): strin
   return out.sort();
 }
 
-export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornadaInicial = null }: {
-  chave?: string; admissaoInicial?: string | null; jornadaInicial?: string[] | null;
+export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornadaInicial = null, unidadeId = null }: {
+  chave?: string; admissaoInicial?: string | null; jornadaInicial?: string[] | null; unidadeId?: string | null;
 } = {}) {
   const [admissao, setAdmissao] = useState("");
   const [comunicacao, setComunicacao] = useState(hojeLocal());
@@ -67,10 +67,17 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
   const [reducao, setReducao] = useState<ReducaoArt488>("duas_horas");
   const [jornada, setJornada] = useState<string[]>(JORNADA_EXEMPLO);
   const [jornadaEditada, setJornadaEditada] = useState(false);
-  const [feriados, setFeriados] = useState<string[]>([]);
+  const [feriadosManuais, setFeriados] = useState<string[]>([]);
   const [novoFeriado, setNovoFeriado] = useState("");
   const [saldoTxt, setSaldoTxt] = useState("");
   const [folgas, setFolgas] = useState<string[]>([]);
+  // Feriados cadastrados na unidade do colaborador entram sozinhos (ano da comunicação e seguinte).
+  const { feriados: regrasUnidade } = useDpFeriados(unidadeId);
+  const anoCom = Number(comunicacao.slice(0, 4)) || new Date().getFullYear();
+  const feriadosUnidade = useMemo(
+    () => (unidadeId ? [...datasDeFeriados(regrasUnidade.filter((f) => f.ativo !== false), [anoCom, anoCom + 1])].filter((d) => d >= comunicacao).sort() : []),
+    [unidadeId, regrasUnidade, anoCom, comunicacao]);
+  const feriados = useMemo(() => [...new Set([...feriadosUnidade, ...feriadosManuais])].sort(), [feriadosUnidade, feriadosManuais]);
   // Colaborador selecionado no topo: preenche admissão e jornada do cadastro (editáveis).
   const jornadaKey = jornadaInicial?.join("|") ?? "";
   useEffect(() => {
