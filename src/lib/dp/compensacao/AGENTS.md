@@ -1,1 +1,2 @@
 - Motor puro (minutos inteiros, arredondamento ao minuto mais próximo, sem banco/relógio) — simulação nunca grava nem vira controle de banco de horas.
+- Ranking de sugestões: menor |saldo final| → menos folgas → datas crescentes; busca explora cargas maiores primeiro e expõe `buscaCompleta` (não enumerável) — corte por `maxNos` nunca é apresentado como ótimo.
