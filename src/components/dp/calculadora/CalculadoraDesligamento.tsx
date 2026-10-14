@@ -179,6 +179,7 @@ export function CalculadoraDesligamento() {
                 onClick={() => b && saldoMin && setFolgas(concentrarNoFinal(b, saldoMin))}>Concentrar no final</Button>
               <Button type="button" variant="ghost" size="sm" disabled={!folgas.length} onClick={() => setFolgas([])}>Limpar folgas</Button>
             </div>
+            <p className="text-xs text-muted-foreground">Concentra folgas consecutivas nas últimas jornadas para antecipar o último dia de trabalho. Para simular folgas intercaladas, selecione os dias diretamente no calendário.</p>
           </CardContent>
         </Card>
       </div>
