@@ -12,6 +12,7 @@ import { assinarDocumento } from "@/lib/dp/documentoAceite";
 import { assinarTroca } from "@/lib/dp/troca-assinatura";
 import { useLocation } from "react-router-dom";
 import { termoTrocaHtml } from "@/lib/dp/troca-certificado";
+import { completarPartesTrocas } from "@/lib/dp/troca-partes";
 import type { DpTrocaRow } from "@/hooks/useDpTrocas";
 import {
   useDocumentosAguardandoAssinatura,
