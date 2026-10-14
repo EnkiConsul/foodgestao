@@ -29,6 +29,11 @@ import { avisoDsrGestor } from "@/lib/dp/dsr-consecutivo";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AtestadoAprovarDialog } from "@/components/dp/AtestadoAprovarDialog";
 import { LiberacaoDesfazerDialog, ehLiberacaoGestor } from "@/components/dp/LiberacaoDesfazerDialog";
+import { AtestadoAnexoDialog, type AtestadoAnexoAlvo } from "@/components/dp/AtestadoAnexoDialog";
+import { RecusaDialog } from "@/components/dp/RecusaDialog";
+import { Paperclip, Undo2 } from "lucide-react";
+
+const ehAtestadoLike = (r: { tipo: string }) => r.tipo === "atestado" || String(r.tipo).startsWith("licenca");
 
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
@@ -249,6 +254,21 @@ export default function DpSolicitacoes() {
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
   });
 
+  const [anexar, setAnexar] = useState<AtestadoAnexoAlvo | null>(null);
+  const [devolver, setDevolver] = useState<RowWithColab | null>(null);
+  const devolverMut = useMutation({
+    mutationFn: async ({ id, motivo }: { id: string; motivo: string }) => {
+      const { error } = await supabase.rpc("dp_solicitacao_devolver", { p_id: id, p_motivo: motivo });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Devolvido ao colaborador");
+      setDevolver(null);
+      qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
+    },
+    onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
   const openArquivo = async (path: string) => {
     const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60);
     if (error) return notifyError(error, { surface: "Pessoas 360°", action: "concluir a ação" });
@@ -373,6 +393,16 @@ export default function DpSolicitacoes() {
                 {s.motivo && (
                   <div className="text-sm bg-muted/40 rounded-lg p-3 line-clamp-2 md:line-clamp-none">{s.motivo}</div>
                 )}
+                {ehAtestadoLike(s) && s.devolvido_em && (
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-xs">
+                    <b>Devolvido ao colaborador</b> em {new Date(s.devolvido_em).toLocaleDateString("pt-BR")}: {s.devolvido_motivo}. Aguardando novo anexo.
+                  </div>
+                )}
+                {ehAtestadoLike(s) && !arquivo && !s.devolvido_em && (
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-xs">
+                    Sem anexo. Anexe o atestado ou devolva para o colaborador enviar.
+                  </div>
+                )}
 
                 <Textarea
                   placeholder="Resposta (opcional)"
@@ -395,6 +425,26 @@ export default function DpSolicitacoes() {
                       <FileText className="size-4 md:mr-1" />
                       <span className="hidden md:inline">Ver arquivo</span>
                     </Button>
+                  )}
+                  {ehAtestadoLike(s) && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="min-h-11 h-11 px-3"
+                        onClick={() => setAnexar({ id: s.id, company_id: s.company_id, colaborador_id: s.colaborador_id, data_alvo: s.data_alvo, nome: s.dp_colaboradores?.nome })}
+                      >
+                        <Paperclip className="size-4 mr-1" /> Anexar
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="min-h-11 h-11 px-3"
+                        onClick={() => setDevolver(s)}
+                      >
+                        <Undo2 className="size-4 mr-1" /> Devolver
+                      </Button>
+                    </>
                   )}
                   <Button
                     variant="outline"
@@ -681,6 +731,23 @@ export default function DpSolicitacoes() {
         }}
       />
       <LiberacaoDesfazerDialog solicitacao={desfazer} onOpenChange={(o) => !o && setDesfazer(null)} />
+      <AtestadoAnexoDialog
+        alvo={anexar}
+        modo="gestor"
+        onOpenChange={(o) => !o && setAnexar(null)}
+        onDone={() => { setAnexar(null); qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] }); }}
+      />
+      <RecusaDialog
+        open={!!devolver}
+        onOpenChange={(o) => !o && setDevolver(null)}
+        title="Devolver para o colaborador"
+        description="A solicitação continua pendente. O colaborador recebe um aviso para reenviar o anexo."
+        motivoObrigatorio
+        textoInicial="Foto ilegível. Envie uma foto nítida do atestado."
+        confirmLabel="Devolver"
+        loading={devolverMut.isPending}
+        onConfirm={(motivo) => devolver && devolverMut.mutate({ id: devolver.id, motivo })}
+      />
     </DpPage>
   );
 }

@@ -39,6 +39,7 @@ import { AnexoFotoPdfPicker } from "@/components/dp/portal/AnexoFotoPdfPicker";
 import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { registrarDocumento } from "@/lib/dp/documentos-oficial";
+import { AtestadoAnexoDialog } from "@/components/dp/AtestadoAnexoDialog";
 
 const TIPOS = [
   { value: "folga", label: "Folga" },
@@ -487,6 +488,7 @@ export default function DpMeuSolicitacoes() {
     },
     onError: (e: any) => notifyError(e, { surface: "Minhas solicitações", action: "concluir a ação", fallback: "Erro" }),
   });
+  const [reanexar, setReanexar] = useState<any>(null);
 
   const filtered = useMemo(() => {
     if (tab === "todas") return list.data ?? [];
@@ -660,8 +662,18 @@ export default function DpMeuSolicitacoes() {
                 {s.resposta_admin && (
                   <p className="text-xs text-muted-foreground">Resposta: {s.resposta_admin}</p>
                 )}
+                {s.status === "pendente" && s.devolvido_em && (
+                  <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm">
+                    <b>O gestor pediu um novo anexo:</b> {s.devolvido_motivo}
+                  </div>
+                )}
                 {s.status === "pendente" && (
                   <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {(s.tipo === "atestado" || String(s.tipo).startsWith("licenca")) && (
+                      <Button size="sm" onClick={() => setReanexar(s)}>
+                        <Upload className="h-4 w-4 mr-1" /> {s.devolvido_em ? "Reenviar anexo" : "Trocar anexo"}
+                      </Button>
+                    )}
                     {s.tipo === "documento" && (
                       <Button
                         size="sm"
@@ -698,6 +710,13 @@ export default function DpMeuSolicitacoes() {
           ))}
         </div>
       )}
+      <AtestadoAnexoDialog
+        alvo={reanexar ? { id: reanexar.id, company_id: reanexar.company_id, colaborador_id: reanexar.colaborador_id, data_alvo: reanexar.data_alvo } : null}
+        aviso={reanexar?.devolvido_motivo}
+        modo="colaborador"
+        onOpenChange={(o) => !o && setReanexar(null)}
+        onDone={() => { setReanexar(null); qc.invalidateQueries({ queryKey: ["dp_meu_sol"] }); }}
+      />
     </DpPage>
   );
 }

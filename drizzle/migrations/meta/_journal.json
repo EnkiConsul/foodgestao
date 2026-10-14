@@ -575,6 +575,13 @@
       "when": 1791993441976,
       "tag": "0081_dp_compensacao_bloqueio_por_vinculo",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1792011368059,
+      "tag": "0082_atestado_anexar_devolver",
+      "breakpoints": true
     }
   ]
 }

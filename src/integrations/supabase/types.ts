@@ -13189,6 +13189,8 @@ export type Database = {
           criado_por: string | null
           data_alvo: string | null
           data_fim: string | null
+          devolvido_em: string | null
+          devolvido_motivo: string | null
           fora_da_janela: boolean
           id: string
           motivo: string | null
@@ -13217,6 +13219,8 @@ export type Database = {
           criado_por?: string | null
           data_alvo?: string | null
           data_fim?: string | null
+          devolvido_em?: string | null
+          devolvido_motivo?: string | null
           fora_da_janela?: boolean
           id?: string
           motivo?: string | null
@@ -13245,6 +13249,8 @@ export type Database = {
           criado_por?: string | null
           data_alvo?: string | null
           data_fim?: string | null
+          devolvido_em?: string | null
+          devolvido_motivo?: string | null
           fora_da_janela?: boolean
           id?: string
           motivo?: string | null
@@ -20289,6 +20295,10 @@ export type Database = {
           sindicato_nome: string
         }[]
       }
+      dp_solicitacao_anexar_gestor: {
+        Args: { p_arquivo_path: string; p_id: string }
+        Returns: undefined
+      }
       dp_solicitacao_assiduidade_definir: {
         Args: { p_id: string; p_justificativa?: string; p_perde: boolean }
         Returns: number
@@ -20327,9 +20337,17 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_solicitacao_devolver: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
       dp_solicitacao_excluir: {
         Args: { p_id: string; p_motivo?: string }
         Returns: Json
+      }
+      dp_solicitacao_reanexar: {
+        Args: { p_arquivo_path: string; p_id: string }
+        Returns: undefined
       }
       dp_solicitacao_responder: {
         Args: {
