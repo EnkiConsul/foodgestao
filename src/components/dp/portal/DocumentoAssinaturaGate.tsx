@@ -49,9 +49,10 @@ export function DocumentoAssinaturaGate() {
   const atual = documentos[0] ?? null;
 
   // Termo de troca: abre na própria janela do aviso, sem trocar de tela.
+  // Buscado já na abertura do aviso para mostrar o nome da outra parte no cartão.
   const trocaAtual = useQuery({
     queryKey: ["dp_troca_termo_gate", atual?.troca_id],
-    enabled: !!atual?.troca_id && previewTroca,
+    enabled: !!atual?.troca_id,
     staleTime: 60_000,
     retry: false,
     queryFn: async (): Promise<DpTrocaRow | null> => {
@@ -165,6 +166,12 @@ export function DocumentoAssinaturaGate() {
   if (!atual) return null;
 
   const podeAssinar = (!atual.file_path && !atual.troca_id) || visualizou === atual.id;
+  // Nome da outra parte da troca, para o colaborador reconhecer o termo no cartão.
+  const troca = trocaAtual.data;
+  const outraParte =
+    atual.troca_id && troca
+      ? (troca.solicitante_id === colaborador?.id ? troca.destino?.nome : troca.solicitante?.nome) ?? null
+      : null;
 
   return (
     <>
@@ -195,7 +202,11 @@ export function DocumentoAssinaturaGate() {
                 <div className="min-w-0">
                   <p className="font-medium break-words">{atual.titulo}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {atual.troca_id ? atual.tipo_label : `${atual.tipo_label} · Competência ${atual.competencia_label}`}
+                    {atual.troca_id
+                      ? outraParte
+                        ? `Troca de folga com ${outraParte}`
+                        : atual.tipo_label
+                      : `${atual.tipo_label} · Competência ${atual.competencia_label}`}
                   </p>
                 </div>
               </div>
@@ -231,7 +242,8 @@ export function DocumentoAssinaturaGate() {
               onClick={() => {
                 if (atual.troca_id) {
                   // O termo abre dentro deste mesmo aviso: nada de janela por cima.
-                  setPreviewTroca(true);
+                  // O botão alterna: abre para ler e recolhe para assinar com a tela limpa.
+                  setPreviewTroca((v) => !v);
                   setVisualizou(atual.id);
                   return;
                 }
@@ -239,7 +251,8 @@ export function DocumentoAssinaturaGate() {
                 setVisualizou(atual.id);
               }}
             >
-              <Eye className="h-4 w-4 mr-1" /> Abrir documento
+              <Eye className="h-4 w-4 mr-1" />
+              {atual.troca_id && previewTroca ? "Recolher documento" : "Abrir documento"}
             </Button>
 
             {atual.troca_id && previewTroca && (

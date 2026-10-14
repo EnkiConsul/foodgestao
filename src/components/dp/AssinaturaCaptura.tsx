@@ -228,7 +228,10 @@ export function AssinaturaCaptura({ nomePadrao, onChange: emitir }: Props) {
                   estilo === s.id ? "border-primary ring-2 ring-primary/30" : "hover:border-primary/50",
                 )}
               >
-                <span className="block truncate text-3xl text-foreground" style={{ fontFamily: `"${s.font}", cursive` }}>
+                <span
+                  className="block break-words leading-tight text-foreground"
+                  style={{ fontFamily: `"${s.font}", cursive`, fontSize: (nome || "Seu nome").length > 22 ? "1.25rem" : "1.875rem" }}
+                >
                   {nome || "Seu nome"}
                 </span>
                 <span className="text-[11px] text-muted-foreground">{s.label}</span>
