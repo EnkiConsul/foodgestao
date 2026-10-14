@@ -721,7 +721,7 @@ export default function DpHistoricoCompleto() {
             : r.aceite
               ? <Badge variant="outline" className="border-emerald-300 text-emerald-700 text-[11px]">Aceito</Badge>
               : <Badge variant="outline" className="border-amber-300 text-amber-700 text-[11px]">Aguardando</Badge>}
-          <QuitacaoSelo q={r.quitacao} />
+          <QuitacaoSelo q={r.quitacao} pendenteCents={r.valor_pendente_cents} />
         </div>
       ),
       cellClass: "whitespace-normal align-top text-center",
@@ -1337,10 +1337,10 @@ export default function DpHistoricoCompleto() {
         // dinheiro é outro documento e continua aparecendo abaixo.
         somenteReciboVinculado={!!certPreview}
         comprovantesExtras={extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null }))}
-        toolbar={preview && (preview.aceite !== null || preview.aceiteDispensado || preview.viaFisica || preview.quitacao) ? (
+        toolbar={preview && (preview.aceite !== null || preview.aceiteDispensado || preview.viaFisica || preview.quitacao || preview.valor_pendente_cents) ? (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <AssinaturaSelo r={preview} longo />
-            <QuitacaoSelo q={preview.quitacao} />
+            <QuitacaoSelo q={preview.quitacao} pendenteCents={preview.valor_pendente_cents} />
           </div>
         ) : null}
       />
