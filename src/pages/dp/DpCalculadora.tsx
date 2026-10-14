@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useJornadasCalculadoraGestor, useJornadasCalculadoraMinhas } from "@/hooks/useCalculadoraJornadas";
+import { unidadesDosColaboradores, colaboradoresDaUnidade } from "@/lib/dp/compensacao/filtroCalculadora";
 
 /** Calculadora de simulação (sem gravar nada). Gestor e colaborador usam a mesma tela. */
 export default function DpCalculadora({ perfil = "gestor" }: { perfil?: PerfilCalculadora }) {
@@ -29,15 +30,8 @@ function CalculadoraGestor() {
   const [colabId, setColabId] = useState<string | null>(null);
   const [unidade, setUnidade] = useState("todas");
   const lista = useDpColaboradores();
-  const ativos = useMemo(() => (lista.data ?? []).filter((c) => c.ativo), [lista.data]);
-  const unidades = useMemo(
-    () => [...new Set(ativos.map((c) => c.unidade_nome).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, "pt-BR")),
-    [ativos],
-  );
-  const filtrados = useMemo(
-    () => ativos.filter((c) => unidade === "todas" || c.unidade_nome === unidade).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
-    [ativos, unidade],
-  );
+  const unidades = useMemo(() => unidadesDosColaboradores(lista.data ?? []), [lista.data]);
+  const filtrados = useMemo(() => colaboradoresDaUnidade(lista.data ?? [], unidade), [lista.data, unidade]);
   const q = useJornadasCalculadoraGestor(colabId);
 
   const origem: OrigemJornadas | undefined = colabId ? {
@@ -47,6 +41,7 @@ function CalculadoraGestor() {
     incompletos: q.data?.incompletos ?? [],
   } : undefined;
 
+  const vazio = !lista.isLoading && !lista.isError && filtrados.length === 0;
   const topo = (
     <Card>
       <CardContent className="grid gap-2 pt-4 sm:grid-cols-[12rem_1fr_auto] sm:items-end">
@@ -56,15 +51,15 @@ function CalculadoraGestor() {
             <SelectTrigger id="calc-unidade" aria-label="Filtrar unidade"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas as unidades</SelectItem>
-              {unidades.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+              {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div className="min-w-0">
           <Label htmlFor="calc-colab" className="text-xs">Colaborador (opcional)</Label>
-          <Select value={colabId ?? ""} onValueChange={(v) => setColabId(v || null)} disabled={lista.isLoading}>
+          <Select value={colabId ?? ""} onValueChange={(v) => setColabId(v || null)} disabled={lista.isLoading || vazio}>
             <SelectTrigger id="calc-colab" aria-label="Selecionar colaborador">
-              <SelectValue placeholder={lista.isLoading ? "Carregando…" : lista.isError ? "Erro ao carregar colaboradores" : "Simulação manual (sem colaborador)"} />
+              <SelectValue placeholder={lista.isLoading ? "Carregando…" : lista.isError ? "Erro ao carregar colaboradores" : vazio ? "Nenhum colaborador ativo nesta unidade" : "Simulação manual (sem colaborador)"} />
             </SelectTrigger>
             <SelectContent>
               {filtrados.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}

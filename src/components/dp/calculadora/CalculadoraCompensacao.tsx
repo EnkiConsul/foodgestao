@@ -151,6 +151,7 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
             <Label htmlFor="calc-saldo" className="text-xs">Saldo de horas <span className="text-muted-foreground">(ex.: 32:54 · 32,9 · 45min)</span></Label>
             {!gestor && <p className="rounded-md bg-muted p-2 text-xs text-muted-foreground">{ORIENTACAO_SALDO_COLABORADOR}</p>}
             <Input id="calc-saldo" inputMode="decimal" value={saldoTxt} onChange={(e) => { setSaldoTxt(e.target.value); setEscolhida(0); }} placeholder="Informe o saldo" aria-label="Saldo de horas" />
+            {gestor && <p className="text-xs text-muted-foreground">Digitado por você; não vem do cadastro e continua ao trocar de colaborador.</p>}
             {saldoTxt && (saldo.ok
               ? <p className="text-sm">Equivale a <strong>{formatarMinutos(saldo.minutos)}</strong>
                   {teveArredondamento(saldoTxt) && <span className="text-xs text-muted-foreground"> (arredondado ao minuto)</span>}</p>
@@ -158,11 +159,16 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
           </div>
           {gestor && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2"><Switch checked={negAtivo} onCheckedChange={(v) => { setNegAtivo(v); setEscolhida(0); }} id="neg" /><Label htmlFor="neg" className="text-sm">Simulação de saldo negativo</Label></div>
-              <p className="text-xs text-muted-foreground">Apenas para análise do gestor. Não representa débito real.</p>
+              <div className="flex items-center gap-2">
+                <Switch checked={negAtivo} onCheckedChange={(v) => { setNegAtivo(v); setEscolhida(0); }} id="neg" />
+                <Label htmlFor="neg" className="text-sm">Simulação de saldo negativo</Label>
+                <span title="Apenas para análise do gestor. Não representa débito real." aria-label="Apenas para análise do gestor. Não representa débito real."><Info className="h-4 w-4 text-muted-foreground" /></span>
+              </div>
               {negAtivo && (<>
                 <Input value={limiteTxt} onChange={(e) => setLimiteTxt(e.target.value)} placeholder="Limite (ex.: 4 ou 2:30)" aria-label="Limite negativo" />
-                {limiteTxt && !limiteParse.ok && <p className="text-sm text-destructive">{erroDe(limiteParse)}</p>}
+                {limiteTxt && !limiteParse.ok
+                  ? <p className="text-sm text-destructive">{erroDe(limiteParse)}</p>
+                  : <p className="text-xs text-muted-foreground">Só análise; não é débito real.</p>}
               </>)}
             </div>
           )}
@@ -180,10 +186,13 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
           )}
           {origem?.estado === "ok" && !editar ? (
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-              <span><span className="text-muted-foreground">Escala da semana:</span> <strong>{resumoEscala || "—"}</strong></span>
+              <span><span className="text-muted-foreground">Escala do cadastro:</span> <strong>{resumoEscala || "—"}</strong></span>
               <Button variant="ghost" size="sm" onClick={() => setEditar(true)}>Ajustar jornadas</Button>
             </div>
           ) : (<>
+            {origem?.estado === "ok" && (
+              <p className="flex gap-2 rounded-md bg-muted p-2 text-xs text-muted-foreground"><Info className="h-4 w-4 shrink-0" />Ajuste só desta simulação — o cadastro e a escala do colaborador não mudam.</p>
+            )}
             <p className="text-xs text-muted-foreground">Horas líquidas por dia e quantos dias dessa jornada podem virar folga.</p>
             {jornadas.map((j) => (
               <div key={j.id} className="grid grid-cols-[1fr_5rem_4rem_auto] items-end gap-2">
@@ -204,45 +213,44 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
 
       {saldo.ok && (
         <Card className="lg:col-span-2">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-base">Sugestões</CardTitle>
-            <CardDescription>Ordenadas pelo saldo mais próximo de zero; no empate, a que usa menos folgas.</CardDescription>
+          <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+            <CardTitle className="text-base">Resultado</CardTitle>
+            {resultado && <Badge variant={STATUS[resultado.status].variant}>{STATUS[resultado.status].rotulo}</Badge>}
           </CardHeader>
-          <CardContent className="space-y-2">
-            {sugestoes.length === 0 && <p className="text-sm text-muted-foreground">Saldo insuficiente para qualquer folga com as jornadas informadas.</p>}
+          <CardContent className="space-y-3 text-sm">
+            {sugestoes.length === 0 && <p className="text-muted-foreground">Saldo insuficiente para qualquer folga com as jornadas informadas.</p>}
+            {resultado && (
+              <div className="rounded-md border border-primary bg-accent p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  {escolhida === 0 && <Badge variant="outline">Melhor sugestão encontrada</Badge>}
+                  {resultado.saldoFinal < 0 && <Badge variant="destructive">Saldo negativo</Badge>}
+                </div>
+                <div className="mt-2 text-lg font-semibold">{resultado.dias.length} folga(s)</div>
+                <div className="font-medium">{agrupar(resultado.dias)}</div>
+                <div className="mt-1 text-muted-foreground">
+                  Compensa <strong className="text-foreground">{formatarMinutos(resultado.minutosUsados)}</strong> · resta{" "}
+                  <strong className={resultado.saldoFinal < 0 ? "text-destructive" : "text-foreground"}>{formatarMinutos(resultado.saldoFinal)}</strong>
+                </div>
+              </div>
+            )}
+            {sugestoes.length > 1 && (
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Outras opções (saldo mais próximo de zero primeiro):</p>
+                {sugestoes.map((s, i) => (i === Math.min(escolhida, sugestoes.length - 1) ? null : (
+                  <button key={i} type="button" onClick={() => setEscolhida(i)}
+                    className="flex w-full flex-wrap items-center justify-between gap-2 rounded-md border p-2 text-left text-xs transition-colors hover:bg-accent">
+                    <span className="font-medium">{s.dias.length} folga(s) · {agrupar(s.dias)}</span>
+                    <span className={s.saldoFinal < 0 ? "font-semibold text-destructive" : "text-muted-foreground"}>
+                      {i === 0 ? "Melhor · " : ""}resta {formatarMinutos(s.saldoFinal)}
+                      {s.saldoFinal < 0 && <Badge variant="destructive" className="ml-1">Saldo negativo</Badge>}
+                    </span>
+                  </button>
+                )))}
+              </div>
+            )}
             {sugestoes.length > 0 && !sugestoes.buscaCompleta && (
               <p className="text-xs text-muted-foreground">Muitas combinações possíveis: a busca foi limitada e mostra as melhores encontradas.</p>
             )}
-            {sugestoes.map((s, i) => (
-              <button key={i} type="button" onClick={() => setEscolhida(i)}
-                className={`w-full rounded-md border p-3 text-left text-sm transition-colors hover:bg-accent ${sel === s ? "border-primary bg-accent" : ""}`}>
-                <div className="flex flex-wrap items-center gap-2">
-                  {i === 0 && <Badge variant="outline">Melhor sugestão encontrada</Badge>}
-                  {s.saldoFinal < 0 && <Badge variant="destructive">Saldo negativo</Badge>}
-                </div>
-                <div className="mt-1 font-medium">{agrupar(s.dias)}</div>
-                <div className="text-muted-foreground">
-                  {s.dias.length} dia(s) · compensa {formatarMinutos(s.minutosUsados)} · resta{" "}
-                  <span className={s.saldoFinal < 0 ? "font-semibold text-destructive" : ""}>{formatarMinutos(s.saldoFinal)}</span>
-                </div>
-              </button>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {resultado && (
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base">Resultado</CardTitle>
-            <Badge variant={STATUS[resultado.status].variant}>{STATUS[resultado.status].rotulo}</Badge>
-          </CardHeader>
-          <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
-            <div>Saldo inicial: <strong>{formatarMinutos(resultado.saldoInicial)}</strong></div>
-            <div>Folgas: <strong>{resultado.dias.length}</strong></div>
-            <div className="sm:col-span-2">Jornadas: <strong>{agrupar(resultado.dias)}</strong></div>
-            <div>Horas compensadas: <strong>{formatarMinutos(resultado.minutosUsados)}</strong></div>
-            <div>Saldo restante: <strong className={resultado.saldoFinal < 0 ? "text-destructive" : ""}>{formatarMinutos(resultado.saldoFinal)}</strong></div>
           </CardContent>
         </Card>
       )}
