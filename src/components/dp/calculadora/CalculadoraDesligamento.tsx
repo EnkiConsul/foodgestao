@@ -11,6 +11,8 @@ import {
   simularDesligamento, type ClassificacaoDia, type ModalidadeAviso, type ReducaoArt488,
   type ResultadoDesligamento, type MotivoRejeicao,
 } from "@/lib/dp/compensacao/desligamentoMotor";
+import { useDpFeriados } from "@/hooks/useDpFeriados";
+import { datasDeFeriados } from "@/lib/dp/feriados";
 
 /**
  * Simulação de aviso prévio (dispensa sem justa causa pela empresa).
@@ -58,8 +60,8 @@ function concentrarNoFinal(base: ResultadoDesligamento, saldoMin: number): strin
   return out.sort();
 }
 
-export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornadaInicial = null }: {
-  chave?: string; admissaoInicial?: string | null; jornadaInicial?: string[] | null;
+export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornadaInicial = null, unidadeId = null }: {
+  chave?: string; admissaoInicial?: string | null; jornadaInicial?: string[] | null; unidadeId?: string | null;
 } = {}) {
   const [admissao, setAdmissao] = useState("");
   const [comunicacao, setComunicacao] = useState(hojeLocal());
@@ -67,10 +69,14 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
   const [reducao, setReducao] = useState<ReducaoArt488>("duas_horas");
   const [jornada, setJornada] = useState<string[]>(JORNADA_EXEMPLO);
   const [jornadaEditada, setJornadaEditada] = useState(false);
-  const [feriados, setFeriados] = useState<string[]>([]);
+  const [feriadosManuais, setFeriados] = useState<string[]>([]);
   const [novoFeriado, setNovoFeriado] = useState("");
   const [saldoTxt, setSaldoTxt] = useState("");
   const [folgas, setFolgas] = useState<string[]>([]);
+  // Feriados cadastrados na unidade do colaborador entram sozinhos (ano da comunicação e seguinte).
+  const [feriadosUnidade, setFeriadosUnidade] = useState<string[]>([]);
+  useEffect(() => { if (!unidadeId) setFeriadosUnidade([]); }, [unidadeId]);
+  const feriados = useMemo(() => [...new Set([...feriadosUnidade, ...feriadosManuais])].sort(), [feriadosUnidade, feriadosManuais]);
   // Colaborador selecionado no topo: preenche admissão e jornada do cadastro (editáveis).
   const jornadaKey = jornadaInicial?.join("|") ?? "";
   useEffect(() => {
@@ -117,6 +123,7 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+      {unidadeId && <FeriadosUnidade unidadeId={unidadeId} desde={comunicacao} onDatas={setFeriadosUnidade} />}
       <div className="space-y-4">
         <Card>
           <CardHeader><CardTitle className="text-base">Aviso prévio</CardTitle>
@@ -167,12 +174,13 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
               <div className="flex gap-2">
                 <Input type="date" aria-label="Novo feriado" value={novoFeriado} onChange={(e) => setNovoFeriado(e.target.value)} />
                 <Button type="button" variant="outline" size="icon" aria-label="Adicionar feriado" disabled={!novoFeriado}
-                  onClick={() => { if (!feriados.includes(novoFeriado)) setFeriados([...feriados, novoFeriado].sort()); setNovoFeriado(""); setFolgas([]); }}>
+                  onClick={() => { if (!feriados.includes(novoFeriado)) setFeriados([...feriadosManuais, novoFeriado].sort()); setNovoFeriado(""); setFolgas([]); }}>
                   <Plus className="h-4 w-4" /></Button>
               </div>
               {feriados.length > 0 && <div className="mt-2 flex flex-wrap gap-1">{feriados.map((f) => (
                 <Badge key={f} variant="secondary" className="gap-1">{br(f)}
-                  <button type="button" aria-label={`Remover feriado ${br(f)}`} onClick={() => { setFeriados(feriados.filter((x) => x !== f)); setFolgas([]); }}><X className="h-3 w-3" /></button></Badge>
+                  {feriadosUnidade.includes(f) ? <span className="text-[10px] text-muted-foreground">unidade</span>
+                    : <button type="button" aria-label={`Remover feriado ${br(f)}`} onClick={() => { setFeriados(feriadosManuais.filter((x) => x !== f)); setFolgas([]); }}><X className="h-3 w-3" /></button>}</Badge>
               ))}</div>}
             </div>
           </CardContent>
@@ -309,4 +317,15 @@ function Resultado({ r, b, onAlternar }: { r: ResultadoDesligamento; b: Resultad
       )}
     </>
   );
+}
+
+/** Lê os feriados cadastrados na unidade (ano da comunicação e seguinte, a partir dela). */
+function FeriadosUnidade({ unidadeId, desde, onDatas }: { unidadeId: string; desde: string; onDatas: (d: string[]) => void }) {
+  const { feriados } = useDpFeriados(unidadeId);
+  const ano = Number(desde.slice(0, 4)) || new Date().getFullYear();
+  const chave = useMemo(
+    () => [...datasDeFeriados(feriados.filter((f) => f.ativo !== false), [ano, ano + 1])].filter((d) => d >= desde).sort().join("|"),
+    [feriados, ano, desde]);
+  useEffect(() => { onDatas(chave ? chave.split("|") : []); }, [chave, onDatas]);
+  return null;
 }

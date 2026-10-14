@@ -85,7 +85,7 @@ export function CalculadoraCompensacao({ perfil, origem, topo, admissao }: { per
           {gestor && <TabsTrigger value="desligamento">Desligamento</TabsTrigger>}
         </TabsList>
         <TabsContent value="compensatoria" forceMount className="space-y-4 data-[state=inactive]:hidden"><HorasFolgas perfil={perfil} origem={origem} /></TabsContent>
-        {gestor && <TabsContent value="desligamento" forceMount className="data-[state=inactive]:hidden"><CalculadoraDesligamento chave={origem?.chave} admissaoInicial={admissao ?? null} jornadaInicial={jornadaDow} /></TabsContent>}
+        {gestor && <TabsContent value="desligamento" forceMount className="data-[state=inactive]:hidden"><CalculadoraDesligamento chave={origem?.chave} admissaoInicial={admissao ?? null} jornadaInicial={jornadaDow} unidadeId={origem?.unidadeId ?? null} /></TabsContent>}
       </Tabs>
     </div>
   );
