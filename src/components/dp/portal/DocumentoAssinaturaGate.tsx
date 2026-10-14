@@ -11,7 +11,7 @@ import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
 import { assinarTroca } from "@/lib/dp/troca-assinatura";
 import { useLocation } from "react-router-dom";
-import { TermoTrocaPreviewDialog } from "@/components/dp/trocas/TermoTrocaPreviewDialog";
+import { termoTrocaHtml } from "@/lib/dp/troca-certificado";
 import type { DpTrocaRow } from "@/hooks/useDpTrocas";
 import {
   useDocumentosAguardandoAssinatura,
@@ -79,6 +79,33 @@ export function DocumentoAssinaturaGate() {
       return { nome: (data as any)?.name ?? (data as any)?.trade_name ?? "Empresa" };
     },
   });
+  // CPF é sigiloso: vem da rotina segura, só para as partes da troca.
+  const cpfsTermo = useQuery({
+    queryKey: ["dp_troca_termo_cpfs", atual?.troca_id],
+    enabled: !!atual?.troca_id && previewTroca,
+    staleTime: 5 * 60_000,
+    retry: false,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("dp_troca_termo_cpfs", { _troca_id: atual!.troca_id! });
+      if (error) throw error;
+      return (Array.isArray(data) ? data[0] : data) as { solicitante_cpf: string | null; destino_cpf: string | null } | null;
+    },
+  });
+  const termoHtml = (() => {
+    const t = trocaAtual.data;
+    if (!previewTroca || !t) return "";
+    const c = cpfsTermo.data;
+    return termoTrocaHtml(
+      {
+        ...t,
+        solicitante: t.solicitante ? { ...t.solicitante, cpf: c?.solicitante_cpf ?? null } : null,
+        destino: t.destino ? { ...t.destino, cpf: c?.destino_cpf ?? null } : null,
+      } as DpTrocaRow,
+      empresaTermo.data ?? { nome: "Empresa" },
+      { manual: false },
+    );
+  })();
+
   const diasAtraso = atual
     ? Math.floor((Date.now() - new Date(atual.created_at).getTime()) / 86_400_000)
     : 0;
@@ -198,7 +225,7 @@ export function DocumentoAssinaturaGate() {
               disabled={!atual.file_path && !atual.troca_id}
               onClick={() => {
                 if (atual.troca_id) {
-                  // O termo de troca abre em janela sobreposta, sem sair da tela.
+                  // O termo abre dentro deste mesmo aviso: nada de janela por cima.
                   setPreviewTroca(true);
                   setVisualizou(atual.id);
                   return;
@@ -209,6 +236,18 @@ export function DocumentoAssinaturaGate() {
             >
               <Eye className="h-4 w-4 mr-1" /> Abrir documento
             </Button>
+
+            {atual.troca_id && previewTroca && (
+              <div className="h-[50dvh] overflow-hidden rounded-lg border bg-background">
+                {trocaAtual.isLoading || cpfsTermo.isLoading ? (
+                  <p className="p-3 text-xs text-muted-foreground">Carregando o termo…</p>
+                ) : trocaAtual.isError || !trocaAtual.data ? (
+                  <p className="p-3 text-xs text-destructive">Não conseguimos abrir o termo agora. Toque em "Abrir documento" de novo; se continuar, fale com o seu gestor.</p>
+                ) : (
+                  <iframe title="Termo de Troca de Folga" srcDoc={termoHtml} sandbox="" className="h-full w-full bg-white" />
+                )}
+              </div>
+            )}
 
             {podeAssinar && (
               <AssinaturaCaptura
@@ -255,15 +294,8 @@ export function DocumentoAssinaturaGate() {
         }
       />
 
-      <TermoTrocaPreviewDialog
-        troca={previewTroca ? (trocaAtual.data ?? null) : null}
-        empresa={empresaTermo.data ?? { nome: "Empresa" }}
-        onOpenChange={(v) => { if (!v) setPreviewTroca(false); }}
-        onAssinar={() => { setPreviewTroca(false); setConfirmar(true); }}
-      />
-
       <AssinaturaConfirmarDialog
-        open={confirmar && !!(preview || (atual?.troca_id && visualizou === atual.id))}
+        open={confirmar && !!preview}
         onOpenChange={setConfirmar}
         titulo={(preview ?? atual)?.titulo ?? ""}
         nome={String(colaborador?.nome_social || colaborador?.nome || "")}
