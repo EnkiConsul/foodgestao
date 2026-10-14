@@ -146,6 +146,7 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
         <CardHeader><CardTitle className="text-base">Saldo disponível</CardTitle>
           <CardDescription>Ex.: 32,9 · 32.9 · 32:54 · 32h54 · 45min</CardDescription></CardHeader>
         <CardContent className="space-y-2">
+          {!gestor && <p className="rounded-md bg-muted p-2 text-xs text-muted-foreground">{ORIENTACAO_SALDO_COLABORADOR}</p>}
           <Input inputMode="decimal" value={saldoTxt} onChange={(e) => { setSaldoTxt(e.target.value); setEscolhida(0); }} placeholder="Informe o saldo" aria-label="Saldo de horas" />
           {saldoTxt && (saldo.ok
             ? <p className="text-sm">Equivale a <strong>{formatarMinutos(saldo.minutos)}</strong>
@@ -156,8 +157,17 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
 
       <Card>
         <CardHeader><CardTitle className="text-base">Jornadas</CardTitle>
-          <CardDescription>Horas líquidas por dia e quantos dias dessa jornada podem virar folga.</CardDescription></CardHeader>
+          <CardDescription>
+            {origem?.estado === "ok" ? "Carregadas do cadastro (semana vigente). Você pode ajustar para simular." : "Horas líquidas por dia e quantos dias dessa jornada podem virar folga."}
+          </CardDescription></CardHeader>
         <CardContent className="space-y-2">
+          {origem?.estado === "carregando" && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando jornadas…</p>}
+          {origem?.estado === "erro" && <AvisoJornada texto="Não foi possível ler as jornadas cadastradas. Informe-as manualmente ou tente novamente." />}
+          {origem?.estado === "sem_config" && <AvisoJornada texto="Não há configuração de trabalho vigente cadastrada. Informe as jornadas manualmente." />}
+          {origem?.estado === "sem_vinculo" && <AvisoJornada texto="Seu acesso não está vinculado a um cadastro de colaborador ativo. Informe as jornadas manualmente." />}
+          {origem?.estado === "ok" && origem.incompletos.length > 0 && (
+            <AvisoJornada texto={`Sem horário cadastrado em: ${origem.incompletos.map((d) => DOW_CURTO_CALC[d]).join(", ")}. Esses dias não entraram na simulação.`} />
+          )}
           {jornadas.map((j) => (
             <div key={j.id} className="grid grid-cols-[1fr_5rem_4rem_auto] items-end gap-2">
               <div><Label className="text-xs">Nome</Label><Input value={j.nome} onChange={(e) => atualizar(j.id, "nome", e.target.value)} /></div>
