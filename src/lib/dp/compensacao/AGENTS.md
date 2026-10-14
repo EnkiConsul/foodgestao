@@ -1,2 +1,3 @@
 - Motor puro (minutos inteiros, arredondamento ao minuto mais próximo, sem banco/relógio) — simulação nunca grava nem vira controle de banco de horas.
 - Ranking de sugestões: menor |saldo final| → menos folgas → datas crescentes; busca explora cargas maiores primeiro e expõe `buscaCompleta` (não enumerável) — corte por `maxNos` nunca é apresentado como ótimo.
+- Desligamento (`desligamentoMotor.ts`): aviso conta de D+1 em dias corridos sem adiamento; calendário dia a dia com classe única por dia (folga regular, ausência legal, compensatória, trabalho) — último comparecimento sai do calendário, nunca de subtração; trabalhado limita o cumprimento a 30 dias e projeta o proporcional como indenizado até decisão jurídica.
