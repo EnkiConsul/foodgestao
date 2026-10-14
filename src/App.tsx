@@ -101,6 +101,8 @@ const DpCadastroPendenciasLista = lazyWithRetry(() => import("./pages/dp/cadastr
 const DpEscalas = lazyWithRetry(() => import("./pages/dp/DpEscalas"));
 const DpOperacaoPanorama = lazyWithRetry(() => import("./pages/dp/DpOperacaoPanorama"));
 const DpCalendarioRotina = lazyWithRetry(() => import("./pages/dp/DpCalendarioRotina"));
+const DpCalculadora = lazyWithRetry(() => import("./pages/dp/DpCalculadora"));
+const DpMeuCalculadora = lazyWithRetry(() => import("./pages/dp/DpCalculadora").then((m) => ({ default: m.DpMeuCalculadora })));
 const DpConvocacoes = lazyWithRetry(() => import("./pages/dp/DpConvocacoes"));
 const DpOcorrencias = lazyWithRetry(() => import("./pages/dp/DpOcorrencias"));
 
@@ -454,6 +456,7 @@ const AppRoutes = () => (
         <Route path="calendario" element={<PortalSomenteDocumentos><DpMeuCalendario /></PortalSomenteDocumentos>} />
         <Route path="escala" element={<PortalSomenteDocumentos><DpMeuEscala /></PortalSomenteDocumentos>} />
         <Route path="rotina" element={<PortalSomenteDocumentos><DpMeuRotinaLoja /></PortalSomenteDocumentos>} />
+        <Route path="calculadora" element={<PortalSomenteDocumentos><DpMeuCalculadora /></PortalSomenteDocumentos>} />
         <Route path="convocacoes" element={<PortalSomenteDocumentos><DpMinhasConvocacoes /></PortalSomenteDocumentos>} />
         <Route path="ponto" element={<Navigate to="/dp/meu" replace />} />
         <Route path="contracheque" element={<Navigate to="/dp/meu/documentos?tipo=contracheque" replace />} />
@@ -577,6 +580,7 @@ const AppRoutes = () => (
         <Route path="escalas" element={<DpEscalas />} />
         <Route path="escalas/mes" element={<DpOperacaoPanorama />} />
         <Route path="rotina/calendario" element={<DpCalendarioRotina />} />
+        <Route path="rotina/calculadora" element={<DpCalculadora />} />
         <Route path="operacao" element={<Navigate to="/dp/escalas/mes" replace />} />
         <Route path="convocacoes" element={<DpConvocacoes />} />
         <Route path="ocorrencias" element={<DpOcorrencias />} />
