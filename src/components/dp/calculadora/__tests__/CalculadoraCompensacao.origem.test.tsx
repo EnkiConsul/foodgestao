@@ -9,20 +9,21 @@ const ok = (chave: string, minutos: number): OrigemJornadas => ({
 describe("Calculadora — jornadas do colaborador", () => {
   afterEach(cleanup);
 
-  it("carrega as jornadas cadastradas no lugar das de exemplo", () => {
+  it("carrega as jornadas cadastradas como resumo, editáveis sob demanda", () => {
     render(<CalculadoraCompensacao perfil="gestor" origem={ok("a", 440)} />);
+    expect(screen.getByText(/^3× 7h ?20/)).toBeTruthy();
+    fireEvent.click(screen.getByText("Ajustar jornadas"));
     expect(screen.getByDisplayValue("Ja")).toBeTruthy();
     expect(screen.getByDisplayValue("7:20")).toBeTruthy();
     expect(screen.queryByDisplayValue("JORNADA A")).toBeNull();
   });
 
-  it("trocar de colaborador limpa o saldo e os resultados", () => {
+  it("trocar de colaborador mantém o saldo digitado", () => {
     const { rerender } = render(<CalculadoraCompensacao perfil="gestor" origem={ok("a", 480)} />);
     fireEvent.change(screen.getByLabelText("Saldo de horas"), { target: { value: "16" } });
-    expect(screen.getByText("Resultado")).toBeTruthy();
     rerender(<CalculadoraCompensacao perfil="gestor" origem={ok("b", 480)} />);
-    expect((screen.getByLabelText("Saldo de horas") as HTMLInputElement).value).toBe("");
-    expect(screen.queryByText("Resultado")).toBeNull();
+    expect((screen.getByLabelText("Saldo de horas") as HTMLInputElement).value).toBe("16");
+    expect(screen.getByText("Resultado")).toBeTruthy();
   });
 
   it("sem configuração não inventa jornadas", () => {

@@ -27,8 +27,17 @@ export default function DpCalculadora({ perfil = "gestor" }: { perfil?: PerfilCa
 
 function CalculadoraGestor() {
   const [colabId, setColabId] = useState<string | null>(null);
+  const [unidade, setUnidade] = useState("todas");
   const lista = useDpColaboradores();
   const ativos = useMemo(() => (lista.data ?? []).filter((c) => c.ativo), [lista.data]);
+  const unidades = useMemo(
+    () => [...new Set(ativos.map((c) => c.unidade_nome).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [ativos],
+  );
+  const filtrados = useMemo(
+    () => ativos.filter((c) => unidade === "todas" || c.unidade_nome === unidade).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+    [ativos, unidade],
+  );
   const q = useJornadasCalculadoraGestor(colabId);
 
   const origem: OrigemJornadas | undefined = colabId ? {
@@ -40,15 +49,25 @@ function CalculadoraGestor() {
 
   const topo = (
     <Card>
-      <CardContent className="flex flex-wrap items-end gap-2 pt-4">
-        <div className="min-w-[14rem] flex-1">
+      <CardContent className="grid gap-2 pt-4 sm:grid-cols-[12rem_1fr_auto] sm:items-end">
+        <div>
+          <Label htmlFor="calc-unidade" className="text-xs">Unidade</Label>
+          <Select value={unidade} onValueChange={(v) => { setUnidade(v); setColabId(null); }}>
+            <SelectTrigger id="calc-unidade" aria-label="Filtrar unidade"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as unidades</SelectItem>
+              {unidades.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="min-w-0">
           <Label htmlFor="calc-colab" className="text-xs">Colaborador (opcional)</Label>
           <Select value={colabId ?? ""} onValueChange={(v) => setColabId(v || null)} disabled={lista.isLoading}>
             <SelectTrigger id="calc-colab" aria-label="Selecionar colaborador">
               <SelectValue placeholder={lista.isLoading ? "Carregando…" : lista.isError ? "Erro ao carregar colaboradores" : "Simulação manual (sem colaborador)"} />
             </SelectTrigger>
             <SelectContent>
-              {ativos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_social || c.nome}</SelectItem>)}
+              {filtrados.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
