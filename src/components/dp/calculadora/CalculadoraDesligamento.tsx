@@ -77,9 +77,14 @@ export function CalculadoraDesligamento() {
   });
   const jornadaOk = jornadaMin.every((m) => m !== null);
   const saldoParse = parseHoras(saldoTxt);
-  const saldoMin = saldoTxt && saldoParse.ok ? Math.max(0, saldoParse.minutos) : 0;
+  const saldoVazio = !saldoTxt.trim();
+  // Vazio = 0. Negativo ou inválido bloqueia a simulação — nunca vira 0 em silêncio.
+  const saldoMin = saldoVazio ? 0 : saldoParse.ok && saldoParse.minutos >= 0 ? saldoParse.minutos : null;
+  const saldoErro = saldoVazio || saldoMin !== null ? null
+    : !saldoParse.ok ? ("erro" in saldoParse ? saldoParse.erro : "Saldo inválido.")
+    : "Informe apenas saldo positivo.";
 
-  const params = admissao && comunicacao && jornadaOk ? {
+  const params = admissao && comunicacao && jornadaOk && saldoMin !== null ? {
     dataAdmissao: admissao, dataComunicacao: comunicacao, modalidade,
     reducao: modalidade === "trabalhado" ? reducao : null,
     jornadaSemanal: jornadaMin as [number, number, number, number, number, number, number],

@@ -53,7 +53,6 @@ export function CalculadoraCompensacao({ perfil }: { perfil: PerfilCalculadora }
       <TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
         <TabsTrigger value="compensatoria">Folga Compensatória</TabsTrigger>
         {gestor && <TabsTrigger value="desligamento">Desligamento</TabsTrigger>}
-        <TabsTrigger value="ferias" disabled>Férias · Em breve</TabsTrigger>
       </TabsList>
       <TabsContent value="compensatoria"><HorasFolgas perfil={perfil} /></TabsContent>
       {gestor && <TabsContent value="desligamento"><CalculadoraDesligamento /></TabsContent>}
