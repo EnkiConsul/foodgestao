@@ -37,7 +37,7 @@ function cargaMin(s: string): number | null {
 function teveArredondamento(entrada: string): boolean {
   const m = entrada.trim().replace(",", ".").match(/^[-+]?\d+\.(\d+)$/);
   if (!m) return false;
-  return !Number.isInteger(Number(`0.${m[1]}`) * 60 * 1e6 / 1e6) && Math.abs((Number(`0.${m[1]}`) * 60) % 1) > 1e-9;
+  return Math.abs((Number(`0.${m[1]}`) * 60) % 1) > 1e-9;
 }
 
 export function CalculadoraCompensacao({ perfil }: { perfil: PerfilCalculadora }) {
@@ -74,6 +74,7 @@ function HorasFolgas({ perfil }: { perfil: PerfilCalculadora }) {
 
   const gestor = perfil === "gestor";
   const saldo = parseHoras(saldoTxt);
+  const saldoMin = saldo.ok ? saldo.minutos : null;
   const limiteParse = parseHoras(limiteTxt);
   // Colaborador nunca tem limite negativo, independentemente do estado da tela.
   const limite = gestor && negAtivo && limiteParse.ok ? Math.abs(limiteParse.minutos) : 0;
@@ -92,8 +93,8 @@ function HorasFolgas({ perfil }: { perfil: PerfilCalculadora }) {
   const nomeDe = (data: string) => validas.find((j) => j.id === Number(data.slice(0, 4)))?.nome ?? "";
 
   const sugestoes = useMemo(
-    () => (saldo.ok ? sugerirCombinacoes({ saldoMinutos: saldo.minutos, dias, limiteNegativo: limite, criterio, maxDias: 10, maxSugestoes: 5 }) : []),
-    [saldo.ok, saldo.ok && saldo.minutos, dias, limite, criterio],
+    () => (saldoMin !== null ? sugerirCombinacoes({ saldoMinutos: saldoMin, dias, limiteNegativo: limite, criterio, maxDias: 10, maxSugestoes: 5 }) : []),
+    [saldoMin, dias, limite, criterio],
   );
   const sel = sugestoes[Math.min(escolhida, sugestoes.length - 1)];
   const resultado = sel && saldo.ok ? simularCompensacao({ saldoMinutos: saldo.minutos, dias: sel.dias, limiteNegativo: limite }) : null;
