@@ -10,14 +10,16 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  parseHoras, formatarMinutos, sugerirCombinacoes, simularCompensacao,
+  parseHoras, formatarMinutos, simularCompensacao,
   type DiaCompensavel, type StatusSimulacao,
 } from "@/lib/dp/compensacao/motor";
 import { CalculadoraDesligamento } from "./CalculadoraDesligamento";
+import { CalendarioSimulacao } from "./CalendarioSimulacao";
+import { cenariosCompensacao, type Cenario, type GrupoJornada } from "@/lib/dp/compensacao/cenarios";
 
 export type PerfilCalculadora = "gestor" | "colaborador";
 
-interface Jornada { id: number; nome: string; carga: string; qtd: string; picos?: number }
+interface Jornada { id: number; nome: string; carga: string; qtd: string; picos?: number; dows?: number[] }
 
 const JORNADAS_INICIAIS: Jornada[] = [
   { id: 1, nome: "JORNADA A", carga: "8", qtd: "4" },
@@ -54,6 +56,9 @@ export interface OrigemJornadas {
   estado: "carregando" | "erro" | "sem_config" | "sem_vinculo" | "ok";
   jornadas: JornadaCarregada[];
   incompletos: number[];
+  /** Unidade do colaborador: feriados e bloqueios do calendário. */
+  unidadeId?: string | null;
+  companyId?: string | null;
 }
 
 export const ORIENTACAO_SALDO_COLABORADOR =
@@ -97,7 +102,7 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
   useEffect(() => {
     if (!origem || estado === "carregando") return;
     setJornadas(estado === "ok"
-      ? origem.jornadas.map((j, i) => ({ id: i + 1, nome: j.nome, carga: hhmm(j.minutos), qtd: String(j.qtd), picos: j.picos ?? 0 }))
+      ? origem.jornadas.map((j, i) => ({ id: i + 1, nome: j.nome, carga: hhmm(j.minutos), qtd: String(j.qtd), picos: j.picos ?? 0, dows: j.dows }))
       : []);
     setEscolhida(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,31 +119,29 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
     .map((j) => ({ ...j, min: cargaMin(j.carga), n: Math.min(31, Math.max(0, Math.floor(Number(j.qtd) || 0))) }))
     .filter((j): j is typeof j & { min: number } => j.min !== null);
 
-  const dias: DiaCompensavel[] = useMemo(
-    () => validas.flatMap((j) => Array.from({ length: j.n }, (_, i) => ({
-      data: `${String(j.id).padStart(4, "0")}-${String(i).padStart(2, "0")}`, minutos: j.min,
-      // Os últimos dias do grupo são os de pico (sex/sáb/dom): evitados na sugestão.
-      pico: i >= j.n - Math.min(j.n, j.picos ?? 0),
-    }))),
+  // Folgas podem cair em semanas diferentes: até 4 semanas de cada dia da escala.
+  const SEMANAS = 4;
+  const grupos: GrupoJornada[] = validas.flatMap((j) => {
+    const p = Math.min(j.n, j.picos ?? 0);
+    return [
+      { rotulo: j.nome, minutos: j.min, pico: false, max: (j.n - p) * SEMANAS },
+      { rotulo: j.nome, minutos: j.min, pico: true, max: p * SEMANAS },
+    ];
+  });
+  const cenarios = useMemo(
+    () => (saldoMin !== null ? cenariosCompensacao(grupos, saldoMin, limite) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(validas)],
+    [saldoMin, limite, JSON.stringify(grupos)],
   );
-  const nomeDe = (data: string) => validas.find((j) => j.id === Number(data.slice(0, 4)))?.nome ?? "";
+  // Calendário só quando se sabe em que dia da semana cada jornada cai (escala do cadastro).
+  const minutosPorDow = new Map<number, number>();
+  if (origem?.estado === "ok" && !editar) validas.forEach((j) => j.dows?.forEach((d) => minutosPorDow.set(d, j.min)));
+  const podeCalendario = minutosPorDow.size > 0;
+  const calendario = escolhida === -1 && podeCalendario;
+  const sel = calendario ? undefined : cenarios[Math.min(Math.max(escolhida, 0), cenarios.length - 1)];
+  const resultado = sel && saldo.ok ? simularCompensacao({ saldoMinutos: saldo.minutos, dias: diasDoCenario(sel), limiteNegativo: limite }) : null;
 
-  const sugestoes = useMemo(
-    () => (saldoMin !== null
-      ? sugerirCombinacoes({ saldoMinutos: saldoMin, dias, limiteNegativo: limite, maxDias: 10, maxSugestoes: 5 })
-      : Object.assign([], { buscaCompleta: true })),
-    [saldoMin, dias, limite],
-  );
-  const sel = sugestoes[Math.min(escolhida, sugestoes.length - 1)];
-  const resultado = sel && saldo.ok ? simularCompensacao({ saldoMinutos: saldo.minutos, dias: sel.dias, limiteNegativo: limite }) : null;
-
-  const agrupar = (ds: DiaCompensavel[]) => {
-    const m = new Map<string, { n: number; min: number }>();
-    ds.forEach((d) => { const k = nomeDe(d.data); const v = m.get(k) ?? { n: 0, min: d.minutos }; v.n++; m.set(k, v); });
-    return [...m.entries()].map(([nome, v]) => `${v.n}× ${nome} (${formatarMinutos(v.min)})`).join(" + ");
-  };
+  const agrupar = (c: Cenario) => c.itens.map((i) => `${i.n}× ${i.rotulo} (${formatarMinutos(i.minutos)})`).join(" + ");
 
   const atualizar = (id: number, campo: keyof Jornada, v: string) =>
     setJornadas((js) => js.map((j) => (j.id === id ? { ...j, [campo]: campo === "nome" ? v.toUpperCase() : v } : j)));
@@ -219,39 +222,42 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
             <CardTitle className="text-base">Resultado</CardTitle>
             {resultado && <Badge variant={STATUS[resultado.status].variant}>{STATUS[resultado.status].rotulo}</Badge>}
           </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            {sugestoes.length === 0 && <p className="text-muted-foreground">Saldo insuficiente para qualquer folga com as jornadas informadas.</p>}
-            {resultado && (
-              <div className="rounded-md border border-primary bg-accent p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  {escolhida === 0 && <Badge variant="outline">Melhor sugestão encontrada</Badge>}
-                  {resultado.saldoFinal < 0 && <Badge variant="destructive">Saldo negativo</Badge>}
-                </div>
-                <div className="mt-2 text-lg font-semibold">{resultado.dias.length} folga(s)</div>
-                <div className="font-medium">{agrupar(resultado.dias)}</div>
-                <div className="mt-1 text-muted-foreground">
-                  Compensa <strong className="text-foreground">{formatarMinutos(resultado.minutosUsados)}</strong> · resta{" "}
-                  <strong className={resultado.saldoFinal < 0 ? "text-destructive" : "text-foreground"}>{formatarMinutos(resultado.saldoFinal)}</strong>
-                </div>
+          <CardContent className="space-y-2 text-sm">
+            {cenarios.length === 0 && <p className="text-muted-foreground">Saldo insuficiente para qualquer folga com as jornadas informadas.</p>}
+            {cenarios.map((c, i) => {
+              const ativo = !calendario && sel === c;
+              return (
+                <button key={c.tipo} type="button" onClick={() => setEscolhida(i)}
+                  className={`w-full rounded-md border p-3 text-left transition-colors ${ativo ? "border-primary bg-accent" : "hover:bg-accent/60"}`}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold uppercase text-muted-foreground">Opção {i + 1} · {ROTULO_CENARIO[c.tipo]}</span>
+                    {i === 0 && <Badge variant="outline">Melhor sugestão encontrada</Badge>}
+                    {c.saldoFinal < 0 && <Badge variant="destructive">Saldo negativo</Badge>}
+                  </div>
+                  <div className={ativo ? "mt-1 text-lg font-semibold" : "mt-1 font-semibold"}>{c.dias} folga(s)</div>
+                  <div className="font-medium">{agrupar(c)}</div>
+                  <div className="text-muted-foreground">
+                    Compensa <strong className="text-foreground">{formatarMinutos(c.minutosUsados)}</strong> · resta{" "}
+                    <strong className={c.saldoFinal < 0 ? "text-destructive" : "text-foreground"}>{formatarMinutos(c.saldoFinal)}</strong>
+                  </div>
+                </button>
+              );
+            })}
+            {cenarios.length > 0 && <p className="text-xs text-muted-foreground">As folgas podem cair em semanas diferentes.</p>}
+            {podeCalendario ? (
+              <div className={`rounded-md border p-3 ${calendario ? "border-primary" : ""}`}>
+                <button type="button" className="w-full text-left" onClick={() => setEscolhida(calendario ? 0 : -1)}>
+                  <span className="text-xs font-semibold uppercase text-muted-foreground">Opção {cenarios.length + 1} · Escolher no calendário</span>
+                  {!calendario && <div className="text-muted-foreground">Escolha os dias e veja quanto sobra.</div>}
+                </button>
+                {calendario && (
+                  <div className="mt-3">
+                    <CalendarioSimulacao minutosPorDow={minutosPorDow} saldoMin={saldo.minutos} unidadeId={origem?.unidadeId} companyId={origem?.companyId} />
+                  </div>
+                )}
               </div>
-            )}
-            {sugestoes.length > 1 && (
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Outras opções (saldo mais próximo de zero primeiro):</p>
-                {sugestoes.map((s, i) => (i === Math.min(escolhida, sugestoes.length - 1) ? null : (
-                  <button key={i} type="button" onClick={() => setEscolhida(i)}
-                    className="flex w-full flex-wrap items-center justify-between gap-2 rounded-md border p-2 text-left text-xs transition-colors hover:bg-accent">
-                    <span className="font-medium">{s.dias.length} folga(s) · {agrupar(s.dias)}</span>
-                    <span className={s.saldoFinal < 0 ? "font-semibold text-destructive" : "text-muted-foreground"}>
-                      {i === 0 ? "Melhor · " : ""}resta {formatarMinutos(s.saldoFinal)}
-                      {s.saldoFinal < 0 && <Badge variant="destructive" className="ml-1">Saldo negativo</Badge>}
-                    </span>
-                  </button>
-                )))}
-              </div>
-            )}
-            {sugestoes.length > 0 && !sugestoes.buscaCompleta && (
-              <p className="text-xs text-muted-foreground">Muitas combinações possíveis: a busca foi limitada e mostra as melhores encontradas.</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Para escolher no calendário, selecione um colaborador e use a escala do cadastro.</p>
             )}
           </CardContent>
         </Card>
@@ -263,6 +269,18 @@ function HorasFolgas({ perfil, origem }: { perfil: PerfilCalculadora; origem?: O
       </p>
     </div>
   );
+}
+
+const ROTULO_CENARIO: Record<Cenario["tipo"], string> = {
+  meio_semana: "Só meio de semana",
+  menor_sobra: "Menor saldo restante",
+  fim_semana: "Só fim de semana",
+};
+
+/** Dias fictícios do cenário, só para o motor de simulação conferir o status. */
+function diasDoCenario(c: Cenario): DiaCompensavel[] {
+  let k = 0;
+  return c.itens.flatMap((i) => Array.from({ length: i.n }, () => ({ data: `c-${String(k++).padStart(3, "0")}`, minutos: i.minutos, pico: i.pico })));
 }
 
 function AvisoJornada({ texto }: { texto: string }) {

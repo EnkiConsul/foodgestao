@@ -60,8 +60,11 @@ export function useJornadasCalculadoraMinhas() {
       const { data: linhas, error: e2 } = await supabase.rpc("dp_portal_minhas_jornadas");
       if (e2) throw e2;
       const lista = (linhas ?? []) as LinhaJornadaRpc[];
-      if (!lista.length) return { semVinculo: false as const, id: id as string, jornadas: [], incompletos: [], semConfig: true };
-      return { semVinculo: false as const, id: id as string, ...jornadasDaRpc(lista), semConfig: false };
+      // Unidade só para feriados/bloqueios do calendário; leitura do próprio cadastro (RLS read_self).
+      const { data: eu } = await supabase.from("dp_colaboradores").select("unidade_id, company_id").eq("id", id as string).maybeSingle();
+      const extra = { unidadeId: (eu?.unidade_id as string | null) ?? null, companyId: (eu?.company_id as string | null) ?? null };
+      if (!lista.length) return { semVinculo: false as const, id: id as string, jornadas: [], incompletos: [], semConfig: true, ...extra };
+      return { semVinculo: false as const, id: id as string, ...jornadasDaRpc(lista), semConfig: false, ...extra };
     },
   });
 }
