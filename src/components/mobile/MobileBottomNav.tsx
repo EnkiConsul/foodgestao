@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutGrid, MoreHorizontal, Sliders } from "lucide-react";
+import { LayoutGrid, Menu, Sliders } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useActiveModule, type ActiveModule } from "@/hooks/useActiveModule";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
@@ -260,17 +260,17 @@ function HubMoreSheet() {
           "active:scale-95 transition-all",
           open ? "text-primary" : "text-muted-foreground",
         )}
-        aria-label="Mais opções"
+        aria-label="Menu completo"
         aria-haspopup="dialog"
       >
-        <MoreHorizontal className="h-5 w-5" />
-        <span className="text-[10px] font-medium leading-none">Mais</span>
+        <Menu className="h-5 w-5" />
+        <span className="text-[10px] font-medium leading-none">Menu</span>
       </button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" className="rounded-t-2xl p-0 md:hidden">
           <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-muted" aria-hidden />
           <SheetHeader className="px-5 pt-3 pb-2">
-            <SheetTitle className="text-left">Mais opções</SheetTitle>
+            <SheetTitle className="text-left">Menu completo</SheetTitle>
           </SheetHeader>
           <div
             className="px-4 pb-4 max-h-[70vh] overflow-y-auto space-y-4"
@@ -327,10 +327,10 @@ function MoreSlot({ to }: { to: string }) {
         "text-muted-foreground active:scale-95 transition-all",
       )}
       activeClassName="text-primary"
-      aria-label="Mais opções"
+      aria-label="Menu completo"
     >
-      <MoreHorizontal className="h-5 w-5" />
-      <span className="text-[10px] font-medium leading-none">Mais</span>
+      <Menu className="h-5 w-5" />
+      <span className="text-[10px] font-medium leading-none">Menu</span>
     </NavLink>
   );
 }
