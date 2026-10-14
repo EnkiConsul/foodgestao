@@ -34,6 +34,10 @@ function cargaMin(s: string): number | null {
   return r.ok && r.minutos > 0 ? r.minutos : null;
 }
 
+function erroDe(r: ReturnType<typeof parseHoras>): string {
+  return "erro" in r ? r.erro : "";
+}
+
 function teveArredondamento(entrada: string): boolean {
   const m = entrada.trim().replace(",", ".").match(/^[-+]?\d+\.(\d+)$/);
   if (!m) return false;
@@ -118,7 +122,7 @@ function HorasFolgas({ perfil }: { perfil: PerfilCalculadora }) {
           {saldoTxt && (saldo.ok
             ? <p className="text-sm">Equivale a <strong>{formatarMinutos(saldo.minutos)}</strong>
                 {teveArredondamento(saldoTxt) && <span className="text-xs text-muted-foreground"> (arredondado ao minuto)</span>}</p>
-            : <p className="text-sm text-destructive">{saldo.erro}</p>)}
+            : <p className="text-sm text-destructive">{erroDe(saldo)}</p>)}
         </CardContent>
       </Card>
 
@@ -167,7 +171,7 @@ function HorasFolgas({ perfil }: { perfil: PerfilCalculadora }) {
             <div className="flex items-center gap-2"><Switch checked={negAtivo} onCheckedChange={(v) => { setNegAtivo(v); setEscolhida(0); }} id="neg" /><Label htmlFor="neg">Permitir ficar negativo</Label></div>
             {negAtivo && (<>
               <Input value={limiteTxt} onChange={(e) => setLimiteTxt(e.target.value)} placeholder="Limite (ex.: 4 ou 2:30)" aria-label="Limite negativo" />
-              {limiteTxt && !limiteParse.ok && <p className="text-sm text-destructive">{limiteParse.erro}</p>}
+              {limiteTxt && !limiteParse.ok && <p className="text-sm text-destructive">{erroDe(limiteParse)}</p>}
             </>)}
           </CardContent>
         </Card>
