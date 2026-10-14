@@ -103,13 +103,12 @@ function ValorDocumentoSelo({ documentoId }: { documentoId: string }) {
   const v = useValorLiquido(documentoId);
   if (v.isLoading) return null;
   const cents = v.data;
+  if (!cents || cents <= 0) return null;
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
       <span className="text-xs">Valor do documento:</span>
       <span className="text-base font-semibold">
-        {cents && cents > 0
-          ? (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-          : "não identificado"}
+        {(cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
       </span>
       <span className="text-[11px]">· confira antes de pagar</span>
     </div>

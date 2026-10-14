@@ -38,6 +38,8 @@ vi.mock("@/integrations/supabase/client", () => ({
 const resolveOnboardingStatusMock = vi.fn();
 vi.mock("@/lib/onboardingStatus", () => ({
   resolveOnboardingStatus: (...args: unknown[]) => resolveOnboardingStatusMock(...args),
+  onboardingStatusEmCache: () => null,
+  limparOnboardingStatusCache: () => {},
 }));
 
 import { ProtectedRoute, OnboardingGuard } from "@/routes/onboardingGuards";
