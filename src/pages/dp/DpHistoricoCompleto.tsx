@@ -91,7 +91,17 @@ type UnifiedDoc = {
   quitacao?: QuitacaoConsolidada | null;
 };
 
-function QuitacaoSelo({ q }: { q?: QuitacaoConsolidada | null }) {
+function QuitacaoSelo({ q, pendenteCents }: { q?: QuitacaoConsolidada | null; pendenteCents?: number | null }) {
+  if (!q && pendenteCents && pendenteCents > 0) {
+    return (
+      <span
+        className="inline-flex items-center whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800"
+        title="Comprovante de pagamento ainda não anexado"
+      >
+        {(pendenteCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · pagamento pendente
+      </span>
+    );
+  }
   if (!q) return null;
   const rotulo = rotuloQuitacao(q);
   if (!rotulo) return null;
@@ -567,6 +577,9 @@ export default function DpHistoricoCompleto() {
                 extraQtd: d.comprovantes_extra_qtd,
                 extraCents: d.comprovantes_extra_cents,
               })
+            : null,
+          valor_pendente_cents: !d.comprovante_file_path && !d.comprovante_recibo_documento_id && Number(d.valor_liquido_cents) > 0
+            ? Number(d.valor_liquido_cents)
             : null,
         });
       });
