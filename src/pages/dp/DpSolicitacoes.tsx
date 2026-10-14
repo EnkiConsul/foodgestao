@@ -393,9 +393,10 @@ export default function DpSolicitacoes() {
                 {s.motivo && (
                   <div className="text-sm bg-muted/40 rounded-lg p-3 line-clamp-2 md:line-clamp-none">{s.motivo}</div>
                 )}
-                {ehAtestadoLike(s) && s.devolvido_em && (
+                {s.devolvido_em && (
                   <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-xs">
-                    <b>Devolvido ao colaborador</b> em {new Date(s.devolvido_em).toLocaleDateString("pt-BR")}: {s.devolvido_motivo}. Aguardando correção do colaborador.
+                    <span className="mr-1 inline-block rounded-full bg-amber-500/20 px-2 py-0.5 font-semibold">Aguardando colaborador</span>
+                    <b>Devolvido</b> em {new Date(s.devolvido_em).toLocaleDateString("pt-BR")}: {s.devolvido_motivo}
                   </div>
                 )}
                 {ehAtestadoLike(s) && !arquivo && !s.devolvido_em && (
@@ -427,25 +428,23 @@ export default function DpSolicitacoes() {
                     </Button>
                   )}
                   {ehAtestadoLike(s) && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="min-h-11 h-11 px-3"
-                        onClick={() => setAnexar({ id: s.id, company_id: s.company_id, colaborador_id: s.colaborador_id, data_alvo: s.data_alvo, nome: s.dp_colaboradores?.nome })}
-                      >
-                        <Paperclip className="size-4 mr-1" /> Anexar
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="min-h-11 h-11 px-3"
-                        onClick={() => setDevolver(s)}
-                      >
-                        <Undo2 className="size-4 mr-1" /> Devolver
-                      </Button>
-                    </>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="min-h-11 h-11 px-3"
+                      onClick={() => setAnexar({ id: s.id, company_id: s.company_id, colaborador_id: s.colaborador_id, data_alvo: s.data_alvo, nome: s.dp_colaboradores?.nome })}
+                    >
+                      <Paperclip className="size-4 mr-1" /> Anexar
+                    </Button>
                   )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="min-h-11 h-11 px-3"
+                    onClick={() => setDevolver(s)}
+                  >
+                    <Undo2 className="size-4 mr-1" /> Devolver
+                  </Button>
                   <Button
                     variant="outline"
                     aria-label="Recusar solicitação"
