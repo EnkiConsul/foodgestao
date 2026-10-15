@@ -988,7 +988,7 @@ export function ComprovanteAnexarDialog(props: {
             ) : null}
             <div className="grid gap-1.5">
               <Label htmlFor={`${campoId}-especie`} className="text-xs">
-                Valor pago em dinheiro (R$)
+                {ehEstorno ? "Valor devolvido em dinheiro (R$)" : "Valor pago em dinheiro (R$)"}
               </Label>
               <Input
                 id={`${campoId}-especie`}
