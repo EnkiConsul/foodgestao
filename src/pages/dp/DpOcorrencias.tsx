@@ -93,6 +93,7 @@ export default function DpOcorrencias() {
   const [novaOpen, setNovaOpen] = useState(false);
   const [visao, setVisao] = useState<"dia" | "colaborador">("dia");
   const [diretriz, setDiretriz] = useState<DiretrizPonto | null>(null);
+  const [maisFiltros, setMaisFiltros] = useState(false);
 
   const [confirmar, setConfirmar] = useState<Ocorrencia | null>(null);
   const [tratativa, setTratativa] = useState<Ocorrencia | null>(null);
