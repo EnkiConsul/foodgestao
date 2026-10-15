@@ -120,7 +120,9 @@ export function OcorrenciaCard({
             {r.previsto && (
               <span className="text-xs text-muted-foreground">(previsto {r.previsto})</span>
             )}
-            {!r.batida && !r.horario && <span className="text-xs text-muted-foreground">{resumoOperacional(o)}</span>}
+            {!r.batida && !r.horario && resumoOperacional(o) !== r.titulo && (
+              <span className="text-xs text-muted-foreground">{resumoOperacional(o)}</span>
+            )}
           </p>
 
           {o.justificativa_inicial && (
