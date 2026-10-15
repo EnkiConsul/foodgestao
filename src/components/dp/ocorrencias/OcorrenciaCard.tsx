@@ -1,3 +1,4 @@
+import { tratativaPendente, tratativaJaDecididaPorAtestado } from "@/lib/dp/ocorrencias";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 import { useState } from "react";
 import {
@@ -81,7 +82,8 @@ export function OcorrenciaCard({
 
   const r = resumoTratativa(o);
   const cancelada = o.estado === "cancelada";
-  const tratarPendente = o.tratativa_ponto && o.tratativa_status === "pendente" && !cancelada;
+  const tratarPendente = tratativaPendente(o);
+  const abonoAtestado = !cancelada && tratativaJaDecididaPorAtestado(o) && o.tratativa_status === "pendente";
   const conferirPendente = !tratarPendente && o.analise_status === "pendente" && !cancelada;
 
   return (
@@ -137,6 +139,11 @@ export function OcorrenciaCard({
               <ShieldAlert className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
               <span className="font-medium">{ESTADO_ASSIDUIDADE_LABEL[estadoPremio]}</span>
               {o.assiduidade_risco_motivo ? ` · ${o.assiduidade_risco_motivo}` : ""}
+            </p>
+          )}
+          {abonoAtestado && (
+            <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+              <CheckCircle2 className="h-3 w-3" /> Atestado aprovado · abonar o dia no ponto
             </p>
           )}
           {!tratarPendente && o.tratativa_status !== "pendente" && o.tratativa_ponto && (

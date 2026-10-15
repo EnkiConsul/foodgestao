@@ -1,3 +1,4 @@
+import { tratativaPendente } from "@/lib/dp/ocorrencias";
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -272,7 +273,7 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
       o.estado !== "cancelada" &&
       (o.estado === "aguardando_confirmacao" ||
         o.analise_status === "pendente" ||
-        o.tratativa_status === "pendente" ||
+        tratativaPendente(o) ||
         o.impacta_assiduidade === "aguardando" ||
         o.impacta_ferias === "aguardando");
     const filtradas = todas.filter((o) => {
