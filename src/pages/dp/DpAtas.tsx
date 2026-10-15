@@ -151,6 +151,8 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
   const [revisao, setRevisao] = useState<{ html: string; alteracoes: string[] } | null>(null);
   const [revisando, setRevisando] = useState(false);
   const [pickerAberto, setPickerAberto] = useState(false);
+  const [confirmEnvio, setConfirmEnvio] = useState(false);
+  const [revertendo, setRevertendo] = useState<null | "reverter" | "excluir">(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const unidades = useCompanyUnidades(companyId);
   const colabs = useDpColaboradores();
@@ -249,6 +251,32 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
     } catch (e: any) {
       toast.error(e?.message ?? "Não foi possível enviar a ata.");
     } finally { setProgresso(null); }
+  }
+
+  function pedirEnvio() {
+    if (!htmlTemTexto(html) || html === ESTRUTURA_PADRAO_ATA) { toast.error("Escreva o conteúdo da ata antes de enviar.", { description: "Preencha a pauta, as discussões e os combinados." }); return; }
+    if (!parts.length) { toast.error("Inclua ao menos um participante.", { description: "Use o botão Adicionar Participantes." }); return; }
+    setConfirmEnvio(true);
+  }
+
+  const algumAssinou = parts.some((p) => !!p.assinado_em || (!!p.documento_id && !!aceites.data?.get(p.documento_id)));
+
+  async function reverterEnvio(excluirAta: boolean) {
+    if (!id) return;
+    setRevertendo(excluirAta ? "excluir" : "reverter");
+    try {
+      const { error } = await (supabase as any).rpc("dp_ata_reverter_envio", { p_ata_id: id, p_excluir: excluirAta });
+      if (error) {
+        const m = String(error.message ?? "");
+        if (m.includes("ATA_JA_ASSINADA")) toast.error("Alguém já assinou esta ata.", { description: "Ata com assinatura não pode ser alterada nem excluída. Crie uma nova ata se precisar corrigir." });
+        else if (m.includes("SEM_PERMISSAO")) toast.error("Seu perfil não tem permissão para isso.", { description: "Fale com o administrador da empresa." });
+        else toast.error("Não foi possível concluir agora.", { description: "Tente novamente em instantes." });
+        return;
+      }
+      toast.success(excluirAta ? "Ata excluída." : "Envio cancelado. A ata voltou para rascunho.", { description: "As pendências saíram do portal dos participantes." });
+      qc.invalidateQueries({ queryKey: ["dp_atas"] });
+      onClose();
+    } finally { setRevertendo(null); }
   }
 
   async function excluir() {
@@ -434,18 +462,48 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
             <span className="block text-xs text-muted-foreground">Opcional. Ao enviar, o resumo da ata vai para o Mural {unidadeId === "todas" ? "da empresa" : "da unidade"}. Deixe desligado em reuniões reservadas.</span></label>
         </div>
         <DialogFooter className="flex-col gap-2 border-t p-4 sm:flex-row sm:justify-between">
-          {progresso ? <p className="text-sm text-muted-foreground">{progresso}</p> : enviada ? <span /> : (
+          {progresso ? <p className="text-sm text-muted-foreground">{progresso}</p> : enviada ? (
+            !algumAssinou && !aceites.isLoading ? (
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" disabled={!!revertendo} onClick={() => reverterEnvio(false)}>{revertendo === "reverter" ? "Cancelando…" : "Cancelar Envio e Editar"}</Button>
+                <Button variant="ghost" className="text-destructive" disabled={!!revertendo} onClick={() => { if (window.confirm("Excluir esta ata? Ninguém assinou ainda e as pendências sairão do portal.")) reverterEnvio(true); }}><Trash2 className="mr-1 h-4 w-4" />Excluir Ata</Button>
+              </div>
+            ) : <span className="text-xs text-muted-foreground">Já há assinatura: a ata não pode mais ser alterada.</span>
+          ) : (
             <Button variant="ghost" className="text-destructive" onClick={excluir}><Trash2 className="mr-1 h-4 w-4" />Excluir Rascunho</Button>
           )}
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose} disabled={!!progresso}>Fechar</Button>
             {!enviada && <>
               <Button variant="secondary" disabled={salvando || !!progresso} onClick={() => salvar()}>Salvar Rascunho</Button>
-              <Button disabled={salvando || !!progresso} onClick={enviar}><Send className="mr-1 h-4 w-4" />Enviar aos Participantes</Button>
+              <Button disabled={salvando || !!progresso} onClick={pedirEnvio}><Send className="mr-1 h-4 w-4" />Enviar aos Participantes</Button>
             </>}
           </div>
         </DialogFooter>
       </DialogContent>
+
+      <Dialog open={confirmEnvio} onOpenChange={setConfirmEnvio}>
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-md">
+          <DialogHeader>
+            <DialogTitle>Como os participantes vão assinar?</DialogTitle>
+            <DialogDescription>Confira antes de enviar. Você pode aplicar uma forma para todos ou manter o que definiu em cada nome.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            <p><strong>{contagem.presente}</strong> assinam pelo portal (presentes)</p>
+            <p><strong>{contagem.ciencia}</strong> assinam ciência pelo portal (ausentes)</p>
+            <p><strong>{contagem.consulta}</strong> só recebem para consulta, sem assinar</p>
+            {parts.some((p) => !p.colaborador_id) && <p className="text-muted-foreground">Quem não tem cadastro recebe o link pelo WhatsApp ou assina na via impressa.</p>}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => setParts((x) => x.map((p) => ({ ...p, modalidade: "presente" })))}>Todos assinam</Button>
+            <Button size="sm" variant="outline" onClick={() => setParts((x) => x.map((p) => ({ ...p, modalidade: "consulta" })))}>Todos só consulta</Button>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setConfirmEnvio(false)}>Voltar</Button>
+            <Button onClick={() => { setConfirmEnvio(false); enviar(); }}><Send className="mr-1 h-4 w-4" />Confirmar e Enviar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {pickerAberto && (
         <ParticipantesPicker

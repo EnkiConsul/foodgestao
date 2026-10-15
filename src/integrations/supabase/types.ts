@@ -17872,6 +17872,10 @@ export type Database = {
         Args: { p_apoio: Json; p_company_id: string }
         Returns: string
       }
+      dp_ata_reverter_envio: {
+        Args: { p_ata_id: string; p_excluir?: boolean }
+        Returns: Json
+      }
       dp_aviso_comentar: {
         Args: { p_autor_nome?: string; p_aviso_id: string; p_conteudo: string }
         Returns: string

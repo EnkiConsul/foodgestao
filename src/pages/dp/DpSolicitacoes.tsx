@@ -81,7 +81,7 @@ function formatBR(iso: string | null): string {
   return `${d}/${m}/${y}`;
 }
 
-export default function DpSolicitacoes() {
+export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
   const embedded = useDpEmbedded();
   const { selectedCompanyId } = useCompanyContext();
   const { user } = useAuth();
@@ -164,7 +164,7 @@ export default function DpSolicitacoes() {
   const [confirmDsr, setConfirmDsr] = useState<{ row: RowWithColab; dias: number } | null>(null);
   const [gestorCiente, setGestorCiente] = useState(false);
 
-  const rows = list.data ?? [];
+  const rows = useMemo(() => (list.data ?? []).filter((r) => !tipoFixo || r.tipo === tipoFixo), [list.data, tipoFixo]);
   const pendentes = useMemo(() => rows.filter((r) => r.status === "pendente"), [rows]);
   const [fMes, setFMes] = useState("todos");
   const [fColab, setFColab] = useState("todos");
@@ -498,13 +498,13 @@ export default function DpSolicitacoes() {
               {colabsHistorico.map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={fTipo} onValueChange={setFTipo}>
+          {!tipoFixo && <Select value={fTipo} onValueChange={setFTipo}>
             <SelectTrigger aria-label="Tipo"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os tipos</SelectItem>
               {tiposHistorico.map((t) => <SelectItem key={t} value={t}>{tipoLabel(t)}</SelectItem>)}
             </SelectContent>
-          </Select>
+          </Select>}
           <Select value={fStatus} onValueChange={setFStatus}>
             <SelectTrigger aria-label="Status"><SelectValue /></SelectTrigger>
             <SelectContent>
