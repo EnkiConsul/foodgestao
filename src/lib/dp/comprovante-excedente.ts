@@ -79,8 +79,7 @@ export function motivoPermiteRecibo(m: MotivoExcedente | null): boolean {
 }
 
 /** Natureza do recibo: nunca adiantamento/salário (mesma do principal). */
-export function naturezaReciboDiferenca(m: MotivoExcedente): "reembolso" | "premio" | "comissao" | "outros" {
-  if (m === "reembolso" || m === "premio" || m === "comissao") return m;
+export function naturezaReciboDiferenca(_m: MotivoExcedente): "outros" {
   return "outros";
 }
 
