@@ -9,9 +9,11 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = "https://grtxmbffgmgnkawlvqhm.supabase.co";
-const ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdydHhtYmZmZ21nbmthd2x2cWhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MDM5ODYsImV4cCI6MjA4NjM3OTk4Nn0.izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko";
+import {
+  SUPABASE_URL,
+  ANON_KEY,
+  failIfRequired,
+} from "../helpers/testBackend";
 
 const ID = "00000000-0000-4000-8000-00000000f008";
 
@@ -21,8 +23,10 @@ beforeAll(async () => {
   try {
     const res = await fetch(`${SUPABASE_URL}/auth/v1/health`, { headers: { apikey: ANON_KEY } });
     networkAvailable = res.ok;
+    failIfRequired(networkAvailable);
   } catch {
     networkAvailable = false;
+    failIfRequired(false);
   }
 });
 

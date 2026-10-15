@@ -82,3 +82,10 @@ export async function checkTestBackend(): Promise<boolean> {
   }
   return ok;
 }
+
+/** Para testes com health check próprio: em modo obrigatório, indisponível = falha. */
+export function failIfRequired(available: boolean): void {
+  if (!available && TEST_BACKEND_REQUIRED) {
+    throw new Error("[testBackend] modo obrigatório: backend de homologação inacessível ou não configurado.");
+  }
+}

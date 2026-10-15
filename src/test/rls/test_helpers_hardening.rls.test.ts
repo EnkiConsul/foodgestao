@@ -19,9 +19,11 @@
  */
 import { describe, it, expect, beforeAll } from "vitest";
 
-const SUPABASE_URL = "https://grtxmbffgmgnkawlvqhm.supabase.co";
-const ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdydHhtYmZmZ21nbmthd2x2cWhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MDM5ODYsImV4cCI6MjA4NjM3OTk4Nn0.izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko";
+import {
+  SUPABASE_URL,
+  ANON_KEY,
+  failIfRequired,
+} from "../helpers/testBackend";
 
 /** Rotinas de QA e um payload válido de formato. */
 const ROTINAS_TESTE: Array<[string, Record<string, unknown>]> = [
@@ -43,8 +45,10 @@ beforeAll(async () => {
   try {
     const res = await fetch(`${SUPABASE_URL}/auth/v1/health`, { headers: { apikey: ANON_KEY } });
     networkAvailable = res.ok;
+    failIfRequired(networkAvailable);
   } catch {
     networkAvailable = false;
+    failIfRequired(false);
   }
 });
 
