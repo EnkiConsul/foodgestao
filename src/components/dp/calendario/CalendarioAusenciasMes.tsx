@@ -26,6 +26,7 @@ import {
   TIPO_AUSENCIA_LABEL, TIPOS_AUSENCIA, type AusenciaCalendario, type PeriodoTurno, type TipoAusenciaCalendario,
 } from "@/lib/dp/calendario-rotina";
 import type { DiaPanorama } from "@/hooks/useDpOperacaoPanorama";
+import { avaliarDia } from "@/lib/dp/operacao-panorama";
 
 // Mesmas cores do Calendário de Folgas.
 const TOM: Record<TipoAusenciaCalendario, string> = {
@@ -200,9 +201,25 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
   const dias = useMemo(() => {
     const f = { periodo: mostraTurno ? periodo : "todos" as PeriodoTurno, setores };
     if (f.periodo === "todos" && !setores.length) return diasBrutos;
-    return diasBrutos.map((d) => {
+    const filtrados = diasBrutos.map((d) => {
       const pessoas = d.pessoas.filter((p) => pessoaNoFiltro(p, f, habitual));
       return { ...d, pessoas, trabalhando: pessoas.filter((p) => !tipoAusencia(p.categoria)).length };
+    });
+    // O padrão aprendido é do dia inteiro: com filtro, vale só a fatia habitual
+    // do turno/setor naquele dia da semana (mediana da proporção no mês).
+    const fracoes = new Map<number, number[]>();
+    filtrados.forEach((d, i) => {
+      const total = diasBrutos[i].trabalhando;
+      if (total > 0) { const l = fracoes.get(d.dow) ?? []; l.push(d.trabalhando / total); fracoes.set(d.dow, l); }
+    });
+    const med = (v: number[]) => { const s = [...v].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+    return filtrados.map((d) => {
+      const pad = d.avaliacao.padrao;
+      const fr = fracoes.get(d.dow);
+      if (pad == null || !fr?.length) return d;
+      const avaliacao = avaliarDia(d.trabalhando, Math.round(pad * med(fr)));
+      const desvio = avaliacao.situacao === "abaixo" || avaliacao.situacao === "acima";
+      return { ...d, avaliacao, alerta: desvio && !d.dispensado };
     });
   }, [diasBrutos, periodo, setores, mostraTurno, habitual]);
 
