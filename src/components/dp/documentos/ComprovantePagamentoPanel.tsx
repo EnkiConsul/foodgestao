@@ -58,7 +58,7 @@ import {
   reciboEspeciePdf,
   registroPagamentoEspecieArquivo,
 } from "@/lib/dp/recibo-especie";
-import { emitirRecibo, whatsappUrl } from "@/lib/dp/recibos";
+import { emitirRecibo, reciboPdfUrl, whatsappUrl } from "@/lib/dp/recibos";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -395,6 +395,9 @@ export function ComprovanteAnexarDialog(props: {
   const [cienteValor, setCienteValor] = useState(false);
   const [justValor, setJustValor] = useState("");
   const [motivoExc, setMotivoExc] = useState<MotivoExcedente | null>(null);
+  const qc = useQueryClient();
+  const [emitirDif, setEmitirDif] = useState(true);
+  const [canalDif, setCanalDif] = useState<"portal" | "whatsapp" | "fisico">("portal");
   const [liquidoTexto, setLiquidoTexto] = useState<string | null>(null);
   const liquido = useValorLiquido(props.alvo.documentoId, props.open);
   const { selectedCompanyId } = useCompanyContext();
@@ -584,6 +587,48 @@ export function ComprovanteAnexarDialog(props: {
             confirmado_excedente_em: new Date().toISOString(),
           }
         : {};
+
+    /** Recibo da diferença: mesmo fluxo oficial da tela de Recibos, ligado ao documento. */
+    const emitirReciboDiferenca = async (pagoEmISO: string, vincular: boolean) => {
+      if (confValor.status !== "maior" || !motivoExc || !emitirDif) return;
+      if (!selectedCompanyId || !props.alvo.colaboradorId) {
+        toast.warning("Recibo da diferença não emitido: o documento não tem colaborador. Emita na tela de Recibos.");
+        return;
+      }
+      try {
+        const saida = await emitirRecibo({
+          company_id: selectedCompanyId,
+          colaborador_id: props.alvo.colaboradorId,
+          natureza: motivoExc === "adiantamento_adicional" ? "adiantamento" : "outros",
+          descricao: `Diferença paga a maior — ${props.documentoTitulo ?? "documento"} (previsto ${centsParaBRL(confValor.esperadoCents)}, pago ${centsParaBRL(confValor.comprovadoCents)}). Motivo: ${MOTIVOS_EXCEDENTE[motivoExc].rotulo}. ${justValor.trim()}`.slice(0, 900),
+          competencia: props.competencia ?? pagoEmISO.slice(0, 7),
+          pago_em: pagoEmISO,
+          valor_cents: confValor.diferencaCents,
+          modalidade: "bancario",
+          valor_bancario_cents: confValor.diferencaCents,
+          valor_especie_cents: null,
+          canal_assinatura: canalDif,
+        });
+        if (vincular && saida.documento_id && !exigeRecibo(modalidade)) {
+          const { error } = await supabase.rpc("dp_comprovante_recibo_vincular", {
+            p_documento_id: props.alvo.documentoId,
+            p_recibo_id: saida.documento_id,
+          });
+          if (error) toast.error("Recibo da diferença emitido, mas não foi ligado ao documento. Confira na tela de Recibos.");
+        }
+        if (canalDif === "fisico") {
+          window.open(await reciboPdfUrl(saida.recibo_id, true), "_blank");
+          toast.success("Recibo da diferença emitido. Imprima e colha a assinatura.");
+        } else if (canalDif === "whatsapp" && !saida.whatsapp_enviado) {
+          toast.warning("Recibo da diferença emitido, mas o WhatsApp não entregou. O link está na tela de Recibos.");
+        } else {
+          toast.success(canalDif === "portal" ? "Recibo da diferença enviado ao portal do colaborador." : "Recibo da diferença enviado pelo WhatsApp.");
+        }
+        qc.invalidateQueries({ queryKey: ["dp_recibos"] });
+      } catch (e) {
+        toast.error(`Comprovante salvo, mas o recibo da diferença não foi emitido: ${(e as Error).message} Emita na tela de Recibos.`);
+      }
+    };
     if (divergente && !confirmado) {
       setErro(aviso ?? "Confirme a competência do comprovante.");
       return;
@@ -615,7 +660,8 @@ export function ComprovanteAnexarDialog(props: {
           quitacao: quitacaoFinal,
         },
         {
-          onSuccess: () => {
+          onSuccess: async () => {
+            await emitirReciboDiferenca(check.valor, false);
             limpar();
             props.onOpenChange(false);
           },
@@ -648,6 +694,7 @@ export function ComprovanteAnexarDialog(props: {
       },
       {
         onSuccess: async () => {
+          await emitirReciboDiferenca(check.valor, true);
           const novo =
             liquidoTexto !== null ? brlParaCents(liquidoTexto) : undefined;
           if (novo !== undefined && novo !== (liquido.data ?? null)) {
@@ -987,9 +1034,6 @@ export function ComprovanteAnexarDialog(props: {
                 <p className="text-muted-foreground">
                   <strong>Base legal:</strong> {MOTIVOS_EXCEDENTE[motivoExc].base}
                 </p>
-                <p className="text-muted-foreground">
-                  Recomendado: emitir um recibo da diferença na tela de Recibos, assinado pelo colaborador.
-                </p>
               </div>
             ) : null}
             <Textarea
@@ -1013,6 +1057,44 @@ export function ComprovanteAnexarDialog(props: {
               />
               <span>{CONFIRMACAO_EXCEDENTE}</span>
             </label>
+            <div className="space-y-2 rounded border bg-background p-2 text-foreground">
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={emitirDif}
+                  onChange={(e) => setEmitirDif(e.target.checked)}
+                />
+                <span>
+                  <strong>Emitir recibo da diferença ({centsParaBRL(confValor.diferencaCents)})</strong> — mesmo
+                  recibo da tela de Recibos, ligado a este documento, com o motivo e a justificativa.
+                </span>
+              </label>
+              {emitirDif ? (
+                <div className="flex flex-wrap gap-1">
+                  {([
+                    ["portal", "Portal"],
+                    ["whatsapp", "WhatsApp"],
+                    ["fisico", "Assinar à mão"],
+                  ] as const).map(([v, l]) => (
+                    <Button
+                      key={v}
+                      type="button"
+                      size="sm"
+                      variant={canalDif === v ? "default" : "outline"}
+                      className="h-7 text-xs"
+                      onClick={() => setCanalDif(v)}
+                    >
+                      {l}
+                    </Button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground">
+                  Sem o recibo, a diferença fica explicada só pela justificativa interna.
+                </p>
+              )}
+            </div>
           </div>
         ) : valorDivergente ? (
           <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
