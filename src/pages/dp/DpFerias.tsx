@@ -108,6 +108,31 @@ export default function DpFerias() {
     return base;
   }, [periodos, statusFilter, soRisco, riscoPorColab, incluirDesligados, incluirGozados]);
 
+  /** Uma pessoa por cartão: períodos agrupados por colaborador, mais antigo primeiro. */
+  const grupos = useMemo(() => {
+    const map = new Map<string, FeriasPeriodo[]>();
+    for (const p of periodosFiltrados) {
+      const l = map.get(p.colaborador_id) ?? [];
+      l.push(p);
+      map.set(p.colaborador_id, l);
+    }
+    return [...map.entries()].map(([id, lista]) => {
+      const ord = lista.slice().sort((a, b) => a.inicio_aquisitivo.localeCompare(b.inicio_aquisitivo));
+      const controlados = ord.filter((p) => !p.controle_externo && !p.socio && !p.desligado);
+      const abertos = controlados.filter((p) => (p.dias_saldo ?? 0) > 0 && p.status !== "em_aquisicao");
+      return {
+        id,
+        nome: ord[0].colaborador_nome ?? "Colaborador",
+        periodos: ord,
+        saldo: controlados.reduce((s, p) => s + (p.dias_saldo ?? 0), 0),
+        proximoLimite: abertos.map((p) => p.limite_concessivo).sort()[0] ?? null,
+        emRisco: !!riscoPorColab.get(id)?.emRisco,
+        socio: ord.some((p) => p.socio),
+        desligado: ord.some((p) => p.desligado),
+      };
+    });
+  }, [periodosFiltrados, riscoPorColab]);
+
   const desligadosOcultos = useMemo(
     () => (incluirDesligados ? 0 : periodos.filter((p) => p.desligado).length),
     [periodos, incluirDesligados],
@@ -323,7 +348,34 @@ export default function DpFerias() {
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {periodosFiltrados.map((p) => {
+            {grupos.map((gr) => (
+              <details
+                key={gr.id}
+                open={gr.emRisco || grupos.length === 1}
+                className={`group${gr.emRisco ? " border-l-4 border-l-destructive" : ""}`}
+              >
+                <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-4 hover:bg-muted/40">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{gr.nome}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {gr.socio
+                        ? "Sócio · fora do controle de férias legais"
+                        : gr.desligado
+                          ? "Desligado · tratado na rescisão"
+                          : `Saldo ${gr.saldo} dias${gr.proximoLimite ? ` · próximo prazo ${fmt(gr.proximoLimite)}` : ""}`}
+                      {` · ${gr.periodos.length} período(s)`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {gr.emRisco && (
+                      <Badge className={RISCO_DOBRA_META.tone}>{RISCO_DOBRA_META.label}</Badge>
+                    )}
+                    <span className="text-xs text-muted-foreground group-open:hidden">Ver detalhes</span>
+                    <span className="hidden text-xs text-muted-foreground group-open:inline">Recolher</span>
+                  </div>
+                </summary>
+                <div className="space-y-2 px-4 pb-4">
+            {gr.periodos.map((p) => {
               const lista = gozosByPeriodo.get(p.id) ?? [];
               const faltas = p.faltas_injustificadas;
               const encerrado = parseISO(p.fim_aquisitivo) <= hoje;
@@ -335,11 +387,10 @@ export default function DpFerias() {
                 risco.periodosAbertos.some((a) => a.id === p.id);
               const concederPrimeiro = emRisco && risco?.periodoMaisAntigo?.id === p.id;
               return (
-                <div key={p.id} className={`space-y-3 p-4${externo ? " bg-muted/30" : ""}`}>
+                <div key={p.id} className={`space-y-3 rounded-xl border border-border p-3${externo ? " bg-muted/30" : ""}`}>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate font-semibold">{p.colaborador_nome ?? "Colaborador"}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm font-medium">
                         Aquisitivo {fmt(p.inicio_aquisitivo)} — {fmt(p.fim_aquisitivo)} · limite {fmt(p.limite_concessivo)}
                       </p>
                       {emRisco && (
@@ -459,6 +510,9 @@ export default function DpFerias() {
                 </div>
               );
             })}
+                </div>
+              </details>
+            ))}
           </div>
         )}
       </DpContentCard>
