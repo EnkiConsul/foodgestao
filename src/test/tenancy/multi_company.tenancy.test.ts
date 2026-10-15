@@ -4,8 +4,8 @@
  * Roda contra um projeto Supabase de TESTES dedicado.
  * Se as variáveis `TEST_SUPABASE_URL`/`TEST_SUPABASE_ANON_KEY` e as credenciais
  * dos 4 usuários (A/B/C na Empresa 1, D na Empresa 2) não estiverem definidas,
- * o bloco é ignorado via `describe.skip` — permite rodar `vitest` em CI sem
- * credenciais sem falhar.
+ * o bloco fica NÃO EXECUTADO (`describe.skip` com aviso). Com
+ * TEST_BACKEND_REQUIRED=1 (Release Gate) a ausência é falha.
  *
  * Cenários (Etapa 13):
  *  1. Isolamento entre Empresa 1 e Empresa 2 em transactions/budgets/categories/contacts.
@@ -15,6 +15,7 @@
  */
 import { describe, it, expect, beforeAll } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { resolveTestBackend } from "../helpers/testBackend";
 
 const ENV = process.env;
 
@@ -33,11 +34,32 @@ const REQUIRED = [
   "TEST_COMPANY_2_ID",
 ] as const;
 
-const missing = REQUIRED.filter((k) => !ENV[k]);
+// Modo obrigatório (Release Gate): TEST_BACKEND_REQUIRED=1 ou TENANCY_REQUIRED=1.
+// Nele, credenciais ausentes, projeto fora da homologação ou falta de dados de
+// referência viram FALHA — nunca aprovação silenciosa.
+const REQUIRED_MODE = ENV.TEST_BACKEND_REQUIRED === "1" || ENV.TENANCY_REQUIRED === "1";
+const backend = resolveTestBackend(ENV);
+const missing: string[] = REQUIRED.filter((k) => !ENV[k]);
+if (ENV.TEST_SUPABASE_URL && !backend.configured) missing.push(`backend inválido (${backend.reason})`);
+if (missing.length > 0) {
+  if (REQUIRED_MODE) {
+    throw new Error(`[tenancy] modo obrigatório: pré-requisitos ausentes: ${missing.join(", ")}`);
+  }
+  // eslint-disable-next-line no-console
+  console.warn(`[tenancy] NÃO EXECUTADO: faltam ${missing.join(", ")}`);
+}
 const suite = missing.length === 0 ? describe : describe.skip;
 
+/** Sem dado de referência: no modo obrigatório falha; fora dele, o cenário não é afirmado. */
+function semReferencia(cenario: string): true {
+  if (REQUIRED_MODE) throw new Error(`[tenancy] sem dados de referência para: ${cenario}`);
+  // eslint-disable-next-line no-console
+  console.warn(`[tenancy] cenário NÃO EXECUTADO por falta de dados: ${cenario}`);
+  return true;
+}
+
 async function signIn(email: string, password: string): Promise<SupabaseClient> {
-  const client = createClient(ENV.TEST_SUPABASE_URL!, ENV.TEST_SUPABASE_ANON_KEY!, {
+  const client = createClient(backend.url, backend.anonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const { error } = await client.auth.signInWithPassword({ email, password });
@@ -80,7 +102,7 @@ suite("Tenancy: multiempresa (Bloco I)", () => {
       .select("id")
       .eq("company_id", COMPANY_1)
       .limit(1);
-    if (!createdByA || createdByA.length === 0) return; // sem dados de fixture
+    if (!createdByA || createdByA.length === 0) return void semReferencia("transactions da Empresa 1 (colaboração)");
     const { data: seenByB } = await clientB
       .from("transactions")
       .select("id")
@@ -107,7 +129,7 @@ suite("Tenancy: multiempresa (Bloco I)", () => {
       .select("id")
       .eq("company_id", COMPANY_1)
       .limit(1);
-    if (!rows || rows.length === 0) return;
+    if (!rows || rows.length === 0) return void semReferencia("transactions da Empresa 1 (transferência)");
     const { error } = await clientA
       .from("transactions")
       .update({ company_id: COMPANY_2 })
@@ -122,7 +144,7 @@ suite("Tenancy: multiempresa (Bloco I)", () => {
       .select("contact_id")
       .eq("company_id", COMPANY_1)
       .limit(1);
-    if (!ids || ids.length === 0) return;
+    if (!ids || ids.length === 0) return void semReferencia("contact_companies da Empresa 1");
     const { data } = await clientD.from("contacts").select("id").eq("id", ids[0].contact_id);
     expect(data ?? []).toEqual([]);
   });
@@ -133,7 +155,7 @@ suite("Tenancy: multiempresa (Bloco I)", () => {
       .select("category_id")
       .eq("company_id", COMPANY_1)
       .limit(1);
-    if (!ids || ids.length === 0) return;
+    if (!ids || ids.length === 0) return void semReferencia("category_companies da Empresa 1");
     const { data } = await clientD.from("categories").select("id").eq("id", ids[0].category_id);
     expect(data ?? []).toEqual([]);
   });
@@ -144,7 +166,7 @@ suite("Tenancy: multiempresa (Bloco I)", () => {
       .select("payment_method_id")
       .eq("company_id", COMPANY_1)
       .limit(1);
-    if (!ids || ids.length === 0) return;
+    if (!ids || ids.length === 0) return void semReferencia("payment_method_companies da Empresa 1");
     const { data } = await clientD
       .from("payment_methods")
       .select("id")
