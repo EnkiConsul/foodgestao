@@ -29,7 +29,9 @@ export const DP_SCREEN_DESCRIPTIONS: Record<string, string> = {
   "/dp/escalas/mes": "Escala e operação do mês por unidade e turno.",
   "/dp/ocorrencias": "Ocorrências do dia: faltas, atrasos e ajustes.",
   "/dp/convocacoes": "Convoque intermitentes e mão de obra extra.",
-  "/dp/folgas": "Calendário de folgas, regras, solicitações e trocas.",
+  "/dp/rotina/calendario": "Visão mensal da operação com folgas, férias e ocorrências do dia.",
+  "/dp/rotina/calculadora": "Simule a compensação do banco de horas e cenários de folgas.",
+  "/dp/folgas": "Regras, datas bloqueadas, solicitações, trocas e conformidade de folgas.",
   "/dp/ferias": "Programação, status e documentos de férias.",
   "/dp/atestados": "Atestados, licenças e afastamentos.",
 

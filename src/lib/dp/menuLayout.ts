@@ -34,7 +34,13 @@ export function applyMenuLayout(
     (g) => {
       const order = layout.items[g.id];
       if (!Array.isArray(order) || order.length === 0) return g;
-      return { ...g, items: orderBy(g.items, (i: DpNavItem) => i.to, order) };
+      const items = orderBy(g.items, (i: DpNavItem) => i.to, order);
+      // Calendário é sempre a primeira tela da Rotina.
+      if (g.id === "rotina") {
+        const idx = items.findIndex((i) => i.to === "/dp/rotina/calendario");
+        if (idx > 0) items.unshift(items.splice(idx, 1)[0]);
+      }
+      return { ...g, items };
     },
   );
   return { ...surface, groups };
