@@ -500,7 +500,13 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={() => setParts((x) => x.map((p) => ({ ...p, modalidade: "presente" })))}>Todos assinam</Button>
             <Button size="sm" variant="outline" onClick={() => setParts((x) => x.map((p) => ({ ...p, modalidade: "consulta" })))}>Todos só consulta</Button>
+            <Button size="sm" variant="outline" onClick={() => setParts((x) => x.map((p) => ({ ...p, modalidade: "consulta" })))}>Assinar no papel/impresso</Button>
           </div>
+          {contagem.consulta === parts.length && parts.length > 0 && (
+            <p className="rounded-md border bg-muted/40 p-2 text-xs text-muted-foreground">
+              Assinatura no papel: imprima a ata, colete as assinaturas à caneta e guarde a via física. No portal, todos recebem a ata apenas para consulta, sem assinatura digital.
+            </p>
+          )}
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setConfirmEnvio(false)}>Voltar</Button>
             <Button onClick={() => { setConfirmEnvio(false); enviar(); }}><Send className="mr-1 h-4 w-4" />Confirmar e Enviar</Button>
