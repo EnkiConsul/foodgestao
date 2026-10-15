@@ -123,11 +123,43 @@ export default function DpOcorrencias() {
     const ultimo = new Date(a, m, 0).getDate();
     return ini.endsWith("-01") && fim === `${ini.slice(0, 7)}-${String(ultimo).padStart(2, "0")}` ? ini.slice(0, 7) : null;
   };
-  const compAtual = filtros.data ? null : mesDe(intervalo.inicio, intervalo.fim);
+  const [corte, setCorteState] = useState<number>(() => {
+    const v = Number(typeof window !== "undefined" ? window.localStorage.getItem("dp_ocorrencias_corte") : 0);
+    return v >= 2 && v <= 28 ? v : 0;
+  });
+  const compCorte = (() => {
+    if (filtros.data || !corte) return null;
+    const di = Number(intervalo.inicio.slice(8, 10));
+    const df = Number(intervalo.fim.slice(8, 10));
+    if (di !== corte || df !== corte - 1) return null;
+    const [a, m] = intervalo.inicio.split("-").map(Number);
+    const esperado = format(new Date(a, m, corte - 1), "yyyy-MM-dd");
+    return esperado === intervalo.fim ? intervalo.fim.slice(0, 7) : null;
+  })();
+  const compAtual = filtros.data ? null : compCorte ?? mesDe(intervalo.inicio, intervalo.fim);
   const baseMes = compAtual ?? (filtros.data ?? intervalo.inicio).slice(0, 7);
-  const irMes = (n: number) => {
+  const aplicarMes = (a: number, m: number, c: number) => {
+    const d = c ? new Date(a, m - 2, c) : new Date(a, m - 1, 1);
+    const fim = c ? new Date(a, m - 1, c - 1) : new Date(a, m, 0);
+    setFiltros((f) => ({
+      ...f,
+      data: null,
+      periodo: "personalizado",
+      periodoInicio: format(d, "yyyy-MM-dd"),
+      periodoFim: format(fim, "yyyy-MM-dd"),
+    }));
+  };
+  const setCorte = (c: number) => {
+    setCorteState(c);
+    window.localStorage.setItem("dp_ocorrencias_corte", String(c));
     const [a, m] = (filtros.periodo === "todas" ? format(new Date(), "yyyy-MM") : baseMes).split("-").map(Number);
-    const d = new Date(a, m - 1 + n, 1);
+    aplicarMes(a, m, c);
+  };
+  const irMes = (n: number) => {
+    const [a0, m0] = (filtros.periodo === "todas" ? format(new Date(), "yyyy-MM") : baseMes).split("-").map(Number);
+    const alvo = new Date(a0, m0 - 1 + n, 1);
+    if (corte) return aplicarMes(alvo.getFullYear(), alvo.getMonth() + 1, corte);
+    const d = alvo;
     const fim = new Date(d.getFullYear(), d.getMonth() + 1, 0);
     setFiltros((f) => ({
       ...f,
@@ -284,9 +316,13 @@ export default function DpOcorrencias() {
 
       <div {...swipeMes}>
       {(() => {
-        const rotulo = compAtual
+        const nomeMes = compAtual
           ? new Date(`${compAtual}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
-          : textoPeriodo;
+          : null;
+        const br = (x: string) => `${x.slice(8, 10)}/${x.slice(5, 7)}`;
+        const rotulo = compCorte
+          ? `${nomeMes} (${br(intervalo.inicio)} a ${br(intervalo.fim)})`
+          : nomeMes ?? textoPeriodo;
         return (
           <div className="sticky top-14 z-20 flex flex-wrap items-center gap-2 rounded-2xl border bg-card/95 px-3 py-2 shadow-sm backdrop-blur md:static md:bg-card">
             <div className="inline-flex min-w-0 flex-1 items-center justify-between rounded-full border bg-background p-0.5 sm:flex-none">
@@ -302,6 +338,17 @@ export default function DpOcorrencias() {
               onClick={() => setFiltros((f) => ({ ...f, data: null, periodo: "mes", periodoInicio: null, periodoFim: null }))}>
               Hoje
             </Button>
+            <Select value={String(corte)} onValueChange={(v) => setCorte(Number(v))}>
+              <SelectTrigger className="h-8 w-auto shrink-0 rounded-full text-xs" aria-label="Período de apuração">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Mês civil (1 ao último dia)</SelectItem>
+                {Array.from({ length: 27 }, (_, i) => i + 2).map((c) => (
+                  <SelectItem key={c} value={String(c)}>Corte da folha: {c} a {c - 1}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={filtros.unidadeId} onValueChange={(v) => setFiltros((f) => ({ ...f, unidadeId: v, setorId: "all" }))}>
               <SelectTrigger className="h-8 w-full rounded-full sm:w-56" aria-label="Unidade"><SelectValue /></SelectTrigger>
               <SelectContent>
