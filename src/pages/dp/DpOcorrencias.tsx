@@ -93,6 +93,7 @@ export default function DpOcorrencias() {
   const [novaOpen, setNovaOpen] = useState(false);
   const [visao, setVisao] = useState<"dia" | "colaborador">("dia");
   const [diretriz, setDiretriz] = useState<DiretrizPonto | null>(null);
+  const [maisFiltros, setMaisFiltros] = useState(false);
 
   const [confirmar, setConfirmar] = useState<Ocorrencia | null>(null);
   const [tratativa, setTratativa] = useState<Ocorrencia | null>(null);
@@ -507,6 +508,19 @@ export default function DpOcorrencias() {
           </div>
         </DpFilterField>
 
+        <DpFilterField label=" " className="flex items-end">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => setMaisFiltros((v) => !v)}
+          >
+            {maisFiltros ? "Menos filtros" : "Mais filtros"}
+          </Button>
+        </DpFilterField>
+
+        {maisFiltros && (
+        <>
         <DpFilterField label="Colaborador">
           <Select value={filtros.colaboradorId} onValueChange={(v) => set("colaboradorId", v)}>
             <SelectTrigger>
@@ -681,6 +695,8 @@ export default function DpOcorrencias() {
             </Label>
           </div>
         </DpFilterField>
+        </>
+        )}
       </DpFilters>
 
       <DpContentCard>
