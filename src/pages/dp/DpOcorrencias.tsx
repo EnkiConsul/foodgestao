@@ -695,6 +695,8 @@ export default function DpOcorrencias() {
             </Label>
           </div>
         </DpFilterField>
+        </>
+        )}
       </DpFilters>
 
       <DpContentCard>
