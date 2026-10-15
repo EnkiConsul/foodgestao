@@ -50,6 +50,7 @@ interface Props {
   onCancelar: () => void;
   onCobrir?: () => void;
   onHistorico?: () => void;
+  onLancado?: (v: boolean) => void;
   onImpacto: (campo: "assiduidade" | "ferias", valor: OcorrenciaImpacto) => void;
   onDecidirAssiduidade?: () => void;
 }
@@ -65,6 +66,7 @@ export function OcorrenciaCard({
   onCancelar,
   onCobrir,
   onHistorico,
+  onLancado,
   onImpacto,
   onDecidirAssiduidade,
 }: Props) {
@@ -235,6 +237,17 @@ export function OcorrenciaCard({
             </Badge>
           </div>
           <div className="flex flex-wrap gap-1.5">
+            {onLancado && !cancelada && (
+              <Button
+                size="sm"
+                variant={o.lancado_ponto_em ? "secondary" : "outline"}
+                title={o.lancado_ponto_em ? "Clique para desmarcar" : "Marque depois de lançar no seu sistema de ponto"}
+                onClick={() => onLancado(!o.lancado_ponto_em)}
+              >
+                <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                {o.lancado_ponto_em ? "Lançado no ponto" : "Marcar como lançado"}
+              </Button>
+            )}
             {onHistorico && (
               <Button size="sm" variant="ghost" onClick={onHistorico}>
                 <HistoryIcon className="mr-1 h-3.5 w-3.5" /> Histórico
