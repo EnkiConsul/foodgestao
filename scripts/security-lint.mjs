@@ -11,7 +11,8 @@
  *   critical → exit 1 sempre
  *   warning  → exit 1 só se --strict (ou modo default sem --ci)
  *
- * Sem credenciais (psql/SUPABASE_DB_URL ausentes) → sai 0 com aviso.
+ * Sem credenciais (psql/SUPABASE_DB_URL ausentes) → NÃO EXECUTADO: sai 0 com aviso,
+ * ou 3 (bloqueante) com --require / REQUIRE_DB_AUDIT=1.
  */
 import { spawnSync } from "node:child_process";
 
@@ -38,10 +39,16 @@ function err(msg) {
   if (!JSON_ONLY) console.error(msg);
 }
 
+// Estados: APROVADO (exit 0) · REPROVADO (exit 1/2) · NÃO EXECUTADO.
+// Sem --require (ou REQUIRE_DB_AUDIT=1), NÃO EXECUTADO sai 0 mas nunca diz "OK".
+// Com --require (gates de liberação), NÃO EXECUTADO sai 3 — bloqueante.
+const REQUIRE = process.argv.includes("--require") || process.env.REQUIRE_DB_AUDIT === "1";
 function skip(reason) {
-  warn(`${YELLOW}[security-lint] skipped: ${reason}${RESET}`);
-  if (JSON_ONLY) console.log(JSON.stringify({ skipped: true, reason }));
-  process.exit(0);
+  const msg = `[security-lint] NÃO EXECUTADO: ${reason} — auditoria de banco não foi feita (não equivale a aprovado)`;
+  if (REQUIRE) console.error(`${RED}${msg} · modo obrigatório → falha${RESET}`);
+  else warn(`${YELLOW}${msg}${RESET}`);
+  if (JSON_ONLY) console.log(JSON.stringify({ status: "NAO_EXECUTADO", skipped: true, reason, required: REQUIRE }));
+  process.exit(REQUIRE ? 3 : 0);
 }
 
 const which = spawnSync("which", ["psql"], { encoding: "utf8" });
@@ -517,6 +524,7 @@ if (JSON_ONLY) {
   console.log(
     JSON.stringify(
       {
+        status: report.length === 0 ? "APROVADO" : critical > 0 ? "REPROVADO" : "APROVADO_COM_AVISOS",
         ok: report.length === 0,
         critical,
         warning,
@@ -530,7 +538,7 @@ if (JSON_ONLY) {
 }
 
 if (report.length === 0) {
-  log(`\n${GREEN}${BOLD}✓ security-lint OK${RESET} ${DIM}(${tookTotal}ms)${RESET}`);
+  log(`\n${GREEN}${BOLD}✓ security-lint APROVADO${RESET} ${DIM}(${tookTotal}ms)${RESET}`);
   process.exit(0);
 }
 
@@ -548,7 +556,7 @@ if (!JSON_ONLY) {
 
 if (critical > 0) {
   err(
-    `\n${RED}${BOLD}✗ Falha: ${critical} finding(s) crítico(s)${RESET}`,
+    `\n${RED}${BOLD}✗ REPROVADO: ${critical} finding(s) crítico(s)${RESET}`,
   );
   process.exit(1);
 }

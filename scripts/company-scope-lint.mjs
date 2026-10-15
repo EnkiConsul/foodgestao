@@ -371,6 +371,7 @@ if (JSON_ONLY) {
       {
         scanned_files: staticResult.scanned,
         db_skipped: db.skipped ?? null,
+        db_status: db.skipped ? "NAO_EXECUTADO" : "EXECUTADO",
         critical: critical.length,
         warnings: warnings.length,
         results: results.map(({ id, severity, description, findings }) => ({
@@ -387,7 +388,10 @@ if (JSON_ONLY) {
 } else {
   log(`${BOLD}${CYAN}[company-scope-lint]${RESET} isolamento entre empresas`);
   log(`${DIM}arquivos varridos: ${staticResult.scanned}${RESET}`);
-  if (db.skipped) warn(`${YELLOW}checagens de RLS puladas: ${db.skipped}${RESET}`);
+  if (db.skipped)
+    warn(
+      `${YELLOW}checagens de banco NÃO EXECUTADAS: ${db.skipped} — só a parte estática foi verificada${RESET}`,
+    );
 
   for (const r of results) {
     const ok = r.findings.length === 0;
@@ -397,6 +401,11 @@ if (JSON_ONLY) {
   }
 }
 
+// --require-db: em gates de liberação, banco não executado é bloqueante.
+if (db.skipped && (process.argv.includes("--require-db") || process.env.REQUIRE_DB_AUDIT === "1")) {
+  console.error(`${RED}${BOLD}[company-scope-lint] checagens de banco NÃO EXECUTADAS em modo obrigatório → falha.${RESET}`);
+  process.exit(3);
+}
 if (critical.length) {
   if (!JSON_ONLY)
     console.error(
@@ -409,4 +418,4 @@ if (warnings.length && STRICT) {
     console.error(`${YELLOW}[company-scope-lint] avisos presentes e modo estrito ativo.${RESET}`);
   process.exit(1);
 }
-if (!JSON_ONLY) log(`${GREEN}[company-scope-lint] isolamento entre empresas ok.${RESET}`);
+if (!JSON_ONLY) log(`${GREEN}[company-scope-lint] isolamento entre empresas ok${db.skipped ? " (parte estática; banco NÃO EXECUTADO)" : ""}.${RESET}`);
