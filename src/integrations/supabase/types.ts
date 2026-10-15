@@ -4329,6 +4329,7 @@ export type Database = {
           enviada_por: string | null
           id: string
           local: string | null
+          materiais_apoio: Json
           origem: string
           publicar_mural: boolean
           status: string
@@ -4348,6 +4349,7 @@ export type Database = {
           enviada_por?: string | null
           id?: string
           local?: string | null
+          materiais_apoio?: Json
           origem?: string
           publicar_mural?: boolean
           status?: string
@@ -4367,6 +4369,7 @@ export type Database = {
           enviada_por?: string | null
           id?: string
           local?: string | null
+          materiais_apoio?: Json
           origem?: string
           publicar_mural?: boolean
           status?: string

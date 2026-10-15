@@ -1,0 +1,2 @@
+ALTER TABLE public.dp_atas ADD COLUMN IF NOT EXISTS materiais_apoio jsonb NOT NULL DEFAULT '[]'::jsonb;
+COMMENT ON COLUMN public.dp_atas.materiais_apoio IS 'Arquivos de apoio (PPTX, XLSX, DOCX etc.) só para download; não entram no PDF assinado.';
