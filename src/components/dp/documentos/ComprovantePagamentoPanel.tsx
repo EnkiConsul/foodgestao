@@ -77,7 +77,12 @@ import {
   CONFIRMACAO_EXCEDENTE,
   JUSTIFICATIVA_EXCEDENTE_MIN,
   MOTIVOS_EXCEDENTE,
+  ACERTO_ENGANO_LABEL,
+  motivoPermiteRecibo,
+  naturezaReciboDiferenca,
+  quitacaoDiferenca,
   validarExcedente,
+  type AcertoEngano,
   type MotivoExcedente,
 } from "@/lib/dp/comprovante-excedente";
 import { Textarea } from "@/components/ui/textarea";
@@ -395,6 +400,7 @@ export function ComprovanteAnexarDialog(props: {
   const [cienteValor, setCienteValor] = useState(false);
   const [justValor, setJustValor] = useState("");
   const [motivoExc, setMotivoExc] = useState<MotivoExcedente | null>(null);
+  const [acertoEng, setAcertoEng] = useState<AcertoEngano | null>(null);
   const qc = useQueryClient();
   const [emitirDif, setEmitirDif] = useState(true);
   const [canalDif, setCanalDif] = useState<"portal" | "whatsapp" | "fisico">("portal");
@@ -564,7 +570,7 @@ export function ComprovanteAnexarDialog(props: {
       return;
     }
     if (confValor.status === "maior") {
-      const v = validarExcedente({ motivo: motivoExc, justificativa: justValor, confirmado: cienteValor });
+      const v = validarExcedente({ motivo: motivoExc, justificativa: justValor, confirmado: cienteValor, acerto: acertoEng });
       if ("erro" in v) {
         setErro(v.erro);
         return;
@@ -585,12 +591,18 @@ export function ComprovanteAnexarDialog(props: {
             motivo_excedente_rotulo: MOTIVOS_EXCEDENTE[motivoExc].rotulo,
             confirmacao_excedente: CONFIRMACAO_EXCEDENTE,
             confirmado_excedente_em: new Date().toISOString(),
+            acerto_engano: motivoExc === "pago_por_engano" ? acertoEng : null,
           }
         : {};
 
     /** Recibo da diferença: mesmo fluxo oficial da tela de Recibos, ligado ao documento. */
     const emitirReciboDiferenca = async (pagoEmISO: string, vincular: boolean) => {
-      if (confValor.status !== "maior" || !motivoExc || !emitirDif) return;
+      if (confValor.status !== "maior" || !motivoExc || !emitirDif || !motivoPermiteRecibo(motivoExc)) return;
+      const qd = quitacaoDiferenca(
+        quitacao.modalidade,
+        confValor.diferencaCents,
+        quitacao.modalidade === "bancario" ? null : brlParaCents(especie),
+      );
       if (!selectedCompanyId || !props.alvo.colaboradorId) {
         toast.warning("Recibo da diferença não emitido: o documento não tem colaborador. Emita na tela de Recibos.");
         return;
@@ -599,14 +611,14 @@ export function ComprovanteAnexarDialog(props: {
         const saida = await emitirRecibo({
           company_id: selectedCompanyId,
           colaborador_id: props.alvo.colaboradorId,
-          natureza: motivoExc === "adiantamento_adicional" ? "adiantamento" : "outros",
+          natureza: naturezaReciboDiferenca(motivoExc),
           descricao: `Diferença paga a maior — ${props.documentoTitulo ?? "documento"} (previsto ${centsParaBRL(confValor.esperadoCents)}, pago ${centsParaBRL(confValor.comprovadoCents)}). Motivo: ${MOTIVOS_EXCEDENTE[motivoExc].rotulo}. ${justValor.trim()}`.slice(0, 900),
           competencia: props.competencia ?? pagoEmISO.slice(0, 7),
           pago_em: pagoEmISO,
           valor_cents: confValor.diferencaCents,
-          modalidade: "bancario",
-          valor_bancario_cents: confValor.diferencaCents,
-          valor_especie_cents: null,
+          modalidade: qd.modalidade,
+          valor_bancario_cents: qd.bancarioCents,
+          valor_especie_cents: qd.especieCents,
           canal_assinatura: canalDif,
         });
         if (vincular && saida.documento_id && !exigeRecibo(modalidade)) {
@@ -1057,6 +1069,21 @@ export function ComprovanteAnexarDialog(props: {
               />
               <span>{CONFIRMACAO_EXCEDENTE}</span>
             </label>
+            {motivoExc === "pago_por_engano" ? (
+              <div className="space-y-1 rounded border bg-background p-2 text-foreground">
+                <p className="font-medium">Como será o acerto? *</p>
+                <div className="flex flex-wrap gap-1">
+                  {(Object.keys(ACERTO_ENGANO_LABEL) as AcertoEngano[]).map((k) => (
+                    <Button key={k} type="button" size="sm" className="h-7 text-xs"
+                      variant={acertoEng === k ? "default" : "outline"}
+                      onClick={() => { setAcertoEng(k); setErro(null); }}>
+                      {ACERTO_ENGANO_LABEL[k]}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-muted-foreground">Sem recibo: o valor errado não recebe quitação.</p>
+              </div>
+            ) : motivoExc ? (
             <div className="space-y-2 rounded border bg-background p-2 text-foreground">
               <label className="flex items-start gap-2">
                 <input
@@ -1067,7 +1094,7 @@ export function ComprovanteAnexarDialog(props: {
                 />
                 <span>
                   <strong>Emitir recibo da diferença ({centsParaBRL(confValor.diferencaCents)})</strong> — mesmo
-                  recibo da tela de Recibos, ligado a este documento, com o motivo e a justificativa.
+                  recibo da tela de Recibos, como "Outros Pagamentos" (verba extra, não {props.documentoTitulo ?? "a mesma natureza do documento"}), com a forma de pagamento do comprovante.
                 </span>
               </label>
               {emitirDif ? (
@@ -1095,6 +1122,7 @@ export function ComprovanteAnexarDialog(props: {
                 </p>
               )}
             </div>
+            ) : null}
           </div>
         ) : valorDivergente ? (
           <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
