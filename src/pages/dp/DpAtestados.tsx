@@ -125,6 +125,7 @@ export default function DpAtestados() {
   const [fUnidade, setFUnidade] = useState<string>("todos");
   const [fDataInicio, setFDataInicio] = useState<string>("");
   const [fDataFim, setFDataFim] = useState<string>("");
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
 
   // edição histórico
   const [editUnidadeId, setEditUnidadeId] = useState<string>("");
@@ -632,6 +633,17 @@ export default function DpAtestados() {
         </TabsContent>
 
         <TabsContent value="historico" className="mt-4 space-y-4">
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11 w-full md:hidden"
+            onClick={() => setFiltrosAbertos((v) => !v)}
+          >
+            {filtrosAbertos ? "Ocultar filtros" : "Filtros"}
+            {[fUnidade, fColab, fStatus].filter((v) => v && v !== "todos").length + (fDataInicio ? 1 : 0) + (fDataFim ? 1 : 0) > 0 &&
+              ` (${[fUnidade, fColab, fStatus].filter((v) => v && v !== "todos").length + (fDataInicio ? 1 : 0) + (fDataFim ? 1 : 0)})`}
+          </Button>
+          <div className={filtrosAbertos ? "" : "hidden md:block"}>
           <DpFilterCard>
             <div className="grid gap-3 md:grid-cols-5">
               <div className="space-y-1.5">
@@ -677,6 +689,7 @@ export default function DpAtestados() {
               </div>
             </div>
           </DpFilterCard>
+          </div>
 
           {(() => {
             const hoje = new Date().toISOString().slice(0, 10);
