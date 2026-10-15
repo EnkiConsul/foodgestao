@@ -31,6 +31,8 @@ interface Props {
   ocultarBloqueio?: boolean;
   /** Quem está de folga no dia (para as cotas por cargo/setor). */
   ocupantes?: { nome: string; cargoId?: string | null; setorId?: string | null }[];
+  /** Quem ocupa vaga de folga mas está de atestado/licença no dia. */
+  afastadosNaVaga?: string[];
 }
 
 const STATUS_TROCA: Record<string, string> = {
@@ -43,7 +45,7 @@ const STATUS_TROCA: Record<string, string> = {
  * Bloqueio de data, limite de folgas e trocas do dia, pelas mesmas rotinas
  * do Calendário de Folgas (o servidor valida permissões e regras).
  */
-export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nomes, ocultarBloqueio, ocupantes }: Props) {
+export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nomes, ocultarBloqueio, ocupantes, afastadosNaVaga }: Props) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [motivo, setMotivo] = useState("");
@@ -185,6 +187,11 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
               {resolvido.origem === "regra_recorrente" ? "Regras da unidade" : origemLimiteLabel(resolvido.origem)}
             </span>
           </div>
+        )}
+        {!bloqueio && lim != null && (afastadosNaVaga?.length ?? 0) > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Inclui {afastadosNaVaga!.length} de atestado/licença ({afastadosNaVaga!.join(", ")}): a vaga fica ocupada, mas não é folga.
+          </p>
         )}
         {!bloqueio && cotas.length > 0 && (
           <ul className="space-y-1">

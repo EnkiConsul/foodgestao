@@ -691,18 +691,18 @@ function DetalheDiaOperacao({
             </div>
             <div className="p-4">
             {bloco.pessoas.length ? (
-              <div className="grid items-start gap-4 lg:grid-cols-2">
+              <div className="grid items-start gap-4 md:grid-cols-[repeat(auto-fill,minmax(20rem,1fr))]">
                 {[...bloco.grupos]
                   // Setores de 1 pessoa ficam lado a lado; os maiores ocupam a linha toda (com 2 colunas internas).
                   .sort((a, b) => Number(a.pessoas.length > 1) - Number(b.pessoas.length > 1) || a.pessoas.length - b.pessoas.length)
                   .map((g) => (
-                  <div key={g.setor_id ?? g.cargo_id ?? "sem-grupo"} className={cn("min-w-0", g.pessoas.length > 1 && "lg:col-span-2")}>
+                  <div key={g.setor_id ?? g.cargo_id ?? "sem-grupo"} className={cn("min-w-0", g.pessoas.length > 1 && "md:col-span-full")}>
                 <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                       <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                       {g.cargo_nome}
                       <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] tabular-nums">{g.pessoas.length}</span>
                     </p>
-                      <ul className="grid gap-2 lg:grid-cols-2">
+                      <ul className="grid gap-2 sm:grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]">
                         {g.pessoas.map((p) => (
                           <li
                             key={`${p.colaborador_id}-${p.categoria}-${p.ocorrencia_id ?? p.avulso_id ?? ""}`}
@@ -1925,6 +1925,12 @@ export default function DpOperacaoPanorama({
                       folgasNoDia={diaPopout.pessoas.filter((p) => String(p.categoria).startsWith("folga") && !(diaDominicalPopout && folgaFixaDoDia(diaPopout.data, { troca: !!p.folga_troca, folga_fixa_dows: p.folga_fixa_dows }))).length}
                       ocupantes={diaPopout.pessoas.filter((p) => String(p.categoria).startsWith("folga") && !(diaDominicalPopout && folgaFixaDoDia(diaPopout.data, { troca: !!p.folga_troca, folga_fixa_dows: p.folga_fixa_dows }))).map((p) => ({ nome: p.nome, cargoId: p.cargo_id ?? null, setorId: p.setor_id ?? null }))}
                       nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
+                      afastadosNaVaga={(() => {
+                        const afast = new Set(diaPopout.pessoas.filter((p) => p.categoria === "atestado").map((p) => p.colaborador_id));
+                        return diaPopout.pessoas
+                          .filter((p) => String(p.categoria).startsWith("folga") && afast.has(p.colaborador_id) && !(diaDominicalPopout && folgaFixaDoDia(diaPopout.data, { troca: !!p.folga_troca, folga_fixa_dows: p.folga_fixa_dows })))
+                          .map((p) => primeiroNome(p.nome));
+                      })()}
                     />
                   </section>
                 )}
