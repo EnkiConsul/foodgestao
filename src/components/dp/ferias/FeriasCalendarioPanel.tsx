@@ -108,7 +108,7 @@ export function FeriasCalendarioPanel() {
   const espacos = dias.length ? dias[0].getDay() : 0;
   const titulo =
     visao === "mes"
-      ? format(mes, "MMMM 'de' yyyy", { locale: ptBR })
+      ? format(mes, "MMMM 'de' yyyy", { locale: ptBR }).replace(/^./, (c) => c.toUpperCase())
       : `${format(dias[0], "dd/MM")} a ${format(dias[dias.length - 1], "dd/MM")}`;
 
   return (
@@ -136,7 +136,7 @@ export function FeriasCalendarioPanel() {
             <ChevronLeft className="size-4" />
           </Button>
         ) : <span className="size-9" />}
-        <p className="font-semibold capitalize">{titulo}</p>
+        <p className="font-semibold">{titulo}</p>
         {visao === "mes" ? (
           <Button aria-label="Mês seguinte" variant="ghost" size="icon" onClick={() => setMes((m) => addMonths(m, 1))}>
             <ChevronRight className="size-4" />
