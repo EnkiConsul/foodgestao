@@ -1,7 +1,7 @@
 import { Suspense, lazy } from "react";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
-import { Calendar, Loader2 } from "lucide-react";
+import { Coffee, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { DpPage, DpPageHeader, DpEmbeddedProvider } from "@/components/dp/DpPage";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
@@ -50,9 +50,9 @@ export default function DpFolgasHub() {
       <Helmet><title>Folgas — Pessoas 360°</title></Helmet>
 
       <DpPageHeader
-        icon={Calendar}
+        icon={Coffee}
         title="Folgas"
-        description="Calendário de folgas, regras e datas bloqueadas, solicitações, trocas e conformidade de DSR."
+        description="Regras e datas bloqueadas, solicitações, trocas e conformidade de DSR."
       />
 
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">

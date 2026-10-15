@@ -43,39 +43,6 @@ export function DpGroupCards({ groupId, extras = [] }: DpGroupCardsProps) {
     <NavigationCard key={c.to} title={c.label} description={c.description} to={c.to} icon={c.icon} />
   );
 
-  // No desktop (3 colunas), quando a última linha ficaria incompleta, a sobra
-  // vai para a PRIMEIRA linha centralizada — lê-se como destaque, não como falta.
-  const sobra = cards.length % 3;
-  const reequilibrar = cards.length > 3 && sobra > 0;
-
-  if (!reequilibrar) {
-    return (
-      <div className="grid gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {cards.map(renderCard)}
-      </div>
-    );
-  }
-
-  const primeira = cards.slice(0, sobra);
-  const restantes = cards.slice(sobra);
-
-  return (
-    <>
-      {/* Mobile/tablet: grade normal, sem reequilíbrio. */}
-      <div className="grid gap-2 sm:gap-4 sm:grid-cols-2 lg:hidden">
-        {cards.map(renderCard)}
-      </div>
-      {/* Desktop: sobra centralizada no topo + linhas completas de 3. */}
-      <div className="hidden lg:block space-y-4">
-        <div className="flex justify-center gap-4">
-          {primeira.map((c) => (
-            <div key={c.to} className="w-[calc((100%-2rem)/3)]">
-              {renderCard(c)}
-            </div>
-          ))}
-        </div>
-        <div className="grid gap-4 grid-cols-3">{restantes.map(renderCard)}</div>
-      </div>
-    </>
-  );
+  // Lista: uma tela por linha, em todos os tamanhos de tela.
+  return <div className="flex flex-col gap-2 sm:gap-3">{cards.map(renderCard)}</div>;
 }
