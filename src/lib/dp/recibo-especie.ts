@@ -43,6 +43,46 @@ export async function emitirReciboEspecieParaAssinatura(documentoId: string): Pr
 }
 
 /**
+ * Termo de devolução em dinheiro: o colaborador devolveu à empresa um valor
+ * pago a maior (estorno em espécie). Gerado quando não há comprovante bancário
+ * da devolução; deve ser impresso e assinado pelo colaborador e pela empresa.
+ */
+export async function declaracaoDevolucaoEspecieArquivo(dados: {
+  colaborador: string;
+  competencia: string;
+  devolvidoEm: string;
+  valorCents: number;
+}): Promise<File> {
+  const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+  const pdf = await PDFDocument.create();
+  const page = pdf.addPage([595, 420]);
+  const f = await pdf.embedFont(StandardFonts.Helvetica);
+  const b = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const valor = (dados.valorCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+  const [a, m, d] = dados.devolvidoEm.split("-");
+  page.drawText("Termo de Devolução em Dinheiro", { x: 48, y: 372, size: 16, font: b });
+  const linhas = [
+    `Colaborador: ${dados.colaborador}`,
+    `Competência: ${dados.competencia}`,
+    `Data da devolução: ${d}/${m}/${a}`,
+    `Valor devolvido em dinheiro: R$ ${valor}`,
+    "",
+    "Declaro que recebi da empresa o valor acima a título de pagamento",
+    "maior do que o devido e o devolvi integralmente em dinheiro nesta data.",
+    "",
+    "Assinatura do colaborador: ______________________________",
+    "Assinatura da empresa:     ______________________________",
+  ];
+  linhas.forEach((t, i) =>
+    page.drawText(t, { x: 48, y: 336 - i * 20, size: 11, font: f, color: rgb(0.1, 0.1, 0.1) }),
+  );
+  const bytes = await pdf.save();
+  return new File([bytes as BlobPart], `devolucao-especie-${dados.devolvidoEm}.pdf`, {
+    type: "application/pdf",
+  });
+}
+
+/**
  * Registro interno do pagamento em dinheiro, usado como arquivo do comprovante
  * quando não há comprovante bancário. Não substitui o recibo assinado.
  */
