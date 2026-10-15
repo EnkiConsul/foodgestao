@@ -57,6 +57,7 @@ import {
   emitirReciboEspecieParaAssinatura,
   reciboEspeciePdf,
   registroPagamentoEspecieArquivo,
+  declaracaoDevolucaoEspecieArquivo,
 } from "@/lib/dp/recibo-especie";
 import { emitirRecibo, reciboPdfUrl, whatsappUrl } from "@/lib/dp/recibos";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -505,7 +506,7 @@ export function ComprovanteAnexarDialog(props: {
   };
 
   const semArquivoEspecie =
-    !arquivo && modalidade === "especie" && !props.complementar;
+    !arquivo && modalidade === "especie" && (!props.complementar || ehEstorno);
   const [reciboPrevia, setReciboPrevia] = useState<{
     url: string;
     revogar: () => void;
