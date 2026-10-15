@@ -56,7 +56,7 @@ export function selecionarPendentesAssinatura(
   return (docs ?? [])
     .filter(
       (d) =>
-        !!d.exige_aceite &&
+        !!d.exige_aceite && d.tipo !== "atestado" &&
         !d.submetido_por_colaborador &&
         !d.assinatura_fisica &&
         !SO_ASSINATURA_FISICA.has(String(d.tipo ?? "")) &&
