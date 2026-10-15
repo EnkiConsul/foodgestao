@@ -1034,9 +1034,6 @@ export function ComprovanteAnexarDialog(props: {
                 <p className="text-muted-foreground">
                   <strong>Base legal:</strong> {MOTIVOS_EXCEDENTE[motivoExc].base}
                 </p>
-                <p className="text-muted-foreground">
-                  Recomendado: emitir um recibo da diferença na tela de Recibos, assinado pelo colaborador.
-                </p>
               </div>
             ) : null}
             <Textarea
@@ -1060,6 +1057,44 @@ export function ComprovanteAnexarDialog(props: {
               />
               <span>{CONFIRMACAO_EXCEDENTE}</span>
             </label>
+            <div className="space-y-2 rounded border bg-background p-2 text-foreground">
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={emitirDif}
+                  onChange={(e) => setEmitirDif(e.target.checked)}
+                />
+                <span>
+                  <strong>Emitir recibo da diferença ({centsParaBRL(confValor.diferencaCents)})</strong> — mesmo
+                  recibo da tela de Recibos, ligado a este documento, com o motivo e a justificativa.
+                </span>
+              </label>
+              {emitirDif ? (
+                <div className="flex flex-wrap gap-1">
+                  {([
+                    ["portal", "Portal"],
+                    ["whatsapp", "WhatsApp"],
+                    ["fisico", "Assinar à mão"],
+                  ] as const).map(([v, l]) => (
+                    <Button
+                      key={v}
+                      type="button"
+                      size="sm"
+                      variant={canalDif === v ? "default" : "outline"}
+                      className="h-7 text-xs"
+                      onClick={() => setCanalDif(v)}
+                    >
+                      {l}
+                    </Button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground">
+                  Sem o recibo, a diferença fica explicada só pela justificativa interna.
+                </p>
+              )}
+            </div>
           </div>
         ) : valorDivergente ? (
           <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
