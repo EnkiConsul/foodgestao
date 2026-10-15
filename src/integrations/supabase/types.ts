@@ -11135,6 +11135,8 @@ export type Database = {
           informada_em: string
           justificativa_final: string | null
           justificativa_inicial: string | null
+          lancado_ponto_em: string | null
+          lancado_ponto_por: string | null
           marcacao_alvo:
             | Database["public"]["Enums"]["dp_ocorrencia_marcacao"]
             | null
@@ -11183,6 +11185,8 @@ export type Database = {
           informada_em?: string
           justificativa_final?: string | null
           justificativa_inicial?: string | null
+          lancado_ponto_em?: string | null
+          lancado_ponto_por?: string | null
           marcacao_alvo?:
             | Database["public"]["Enums"]["dp_ocorrencia_marcacao"]
             | null
@@ -11231,6 +11235,8 @@ export type Database = {
           informada_em?: string
           justificativa_final?: string | null
           justificativa_inicial?: string | null
+          lancado_ponto_em?: string | null
+          lancado_ponto_por?: string | null
           marcacao_alvo?:
             | Database["public"]["Enums"]["dp_ocorrencia_marcacao"]
             | null
@@ -19696,6 +19702,10 @@ export type Database = {
           _justificativa_final?: string
           _ocorrencia_id: string
         }
+        Returns: undefined
+      }
+      dp_ocorrencia_marcar_lancado: {
+        Args: { _id: string; _lancado: boolean }
         Returns: undefined
       }
       dp_ocorrencia_previsto: {
