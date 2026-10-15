@@ -113,6 +113,7 @@ export function MinhaJornadaAcoesCard() {
         company_id: vinculo.companyId,
         colaborador_id: vinculo.colaboradorId,
         tipo: "atestado",
+        exige_aceite: false,
         titulo: `Atestado ${hoje.split("-").reverse().join("/")}`,
         descricao: motivo.trim() || null,
         file_path: path,

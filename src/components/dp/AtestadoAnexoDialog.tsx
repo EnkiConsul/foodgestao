@@ -54,6 +54,7 @@ export function AtestadoAnexoDialog({ alvo, modo, aviso, onOpenChange, onDone }:
           company_id: alvo.company_id,
           colaborador_id: alvo.colaborador_id,
           tipo: "atestado",
+          exige_aceite: false,
           titulo: `Atestado ${alvo.data_alvo.split("-").reverse().join("/")}`,
           descricao: null,
           file_path: path,

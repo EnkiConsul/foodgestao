@@ -434,6 +434,7 @@ export default function DpMeuSolicitacoes() {
           company_id: meRef.data.company_id,
           colaborador_id: meRef.data.id,
           tipo: "atestado",
+          exige_aceite: false,
           titulo: `Atestado ${dataRef.split("-").reverse().join("/")}`,
           descricao: form.motivo.trim() || null,
           file_path: arquivoPath,

@@ -559,7 +559,8 @@ export default function DpHistoricoCompleto() {
           file_path: d.file_path,
           mime_type: d.mime_type,
           titulo: d.titulo,
-          aceite: d.exige_aceite ? aceitos.has(d.id) : null,
+          // Atestado é comprovante médico: nunca pede aceite da pessoa.
+          aceite: d.exige_aceite && d.tipo !== "atestado" ? aceitos.has(d.id) : null,
           aceite_em: aceitoEm.get(d.id) ?? null,
           aceiteDispensado: !d.exige_aceite && d.assinatura_detectada === true && !docTipoAssinaturaFisica(d.tipo),
           viaFisica: !d.exige_aceite && (d.assinatura_fisica || docTipoAssinaturaFisica(d.tipo))
@@ -586,8 +587,10 @@ export default function DpHistoricoCompleto() {
         });
       });
 
+      // O mesmo arquivo pode estar na solicitação e no acervo: uma linha só.
+      const arquivosNoAcervo = new Set((docsRes.data ?? []).map((d: any) => d.file_path).filter(Boolean));
       (solRes.data ?? []).forEach((s: any) => {
-        if (!s.arquivo_path) return;
+        if (!s.arquivo_path || arquivosNoAcervo.has(s.arquivo_path)) return;
         const c = s.colaborador_id ? colabMap.get(s.colaborador_id) : null;
         const comp = fmtCompetencia(s.data_alvo ?? s.created_at);
         const statusKey =
