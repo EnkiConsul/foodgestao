@@ -14,6 +14,7 @@ import { FeriasConfigCard } from "@/components/dp/ferias/FeriasConfigCard";
 import { FeriasContabilidadePanel } from "@/components/dp/ferias/FeriasContabilidadePanel";
 import { FeriasCalendarioPanel } from "@/components/dp/ferias/FeriasCalendarioPanel";
 import { FeriasPendenciasPanel } from "@/components/dp/ferias/FeriasPendenciasPanel";
+import { FeriasHistoricoColaborador } from "@/components/dp/ferias/FeriasHistoricoColaborador";
 import { FeriasVisaoGeral } from "@/components/dp/ferias/FeriasVisaoGeral";
 import { FeriasProgramacaoPanel } from "@/components/dp/ferias/FeriasProgramacaoPanel";
 import { useDpFerias } from "@/hooks/useDpFerias";
@@ -229,6 +230,13 @@ export default function DpFeriasHub() {
                 <FeriasGozosPanel status={["em_gozo"]} vazio="Ninguém em férias hoje." />
               )}
               {statusVisao === "historico" && (
+                <FeriasHistoricoColaborador
+                  periodos={periodos}
+                  gozos={gozos}
+                  colaboradores={(colaboradores as any[]).map((c) => ({ id: c.id, nome: c.nome }))}
+                />
+              )}
+              {statusVisao === "historico" && (
                 <FeriasGozosPanel
                   status={["concluido", "cancelado"]}
                   vazio="Nenhum período de férias concluído ou cancelado."
@@ -269,8 +277,16 @@ export default function DpFeriasHub() {
         <TabsContent value="regras" className="m-0 space-y-6">
           {aba === "regras" && (
             <DpEmbeddedProvider>
-              <FeriasConfigCard />
-              <FeriasRegrasSection />
+              <section className="space-y-2">
+                <h2 className="text-base font-semibold">Política da empresa e proteção jurídica</h2>
+                <p className="text-xs text-muted-foreground">Aviso, divisão das férias, 13º, início do controle e ciclos encerrados.</p>
+                <FeriasConfigCard />
+              </section>
+              <section className="space-y-2">
+                <h2 className="text-base font-semibold">Capacidade da operação</h2>
+                <p className="text-xs text-muted-foreground">Quantos podem sair ao mesmo tempo e datas em que férias ficam indisponíveis.</p>
+                <FeriasRegrasSection />
+              </section>
             </DpEmbeddedProvider>
           )}
         </TabsContent>
