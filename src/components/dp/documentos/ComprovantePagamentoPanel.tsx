@@ -848,7 +848,9 @@ export function ComprovanteAnexarDialog(props: {
                 : "Anexar Comprovante de Pagamento"}
           </DialogTitle>
           <DialogDescription>
-            Escolha o arquivo: o sistema lê a data e o valor para você conferir.
+            {ehEstorno
+              ? "Anexe a prova da devolução: estorno formal do banco, PIX comum de devolução ou, se foi em dinheiro, o termo de devolução assinado (o sistema gera para você)."
+              : "Escolha o arquivo: o sistema lê a data e o valor para você conferir."}
           </DialogDescription>
         </DialogHeader>
 
@@ -1004,9 +1006,9 @@ export function ComprovanteAnexarDialog(props: {
 
         {modalidade !== "bancario" ? (
           <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
-            Depois de importar, o sistema gera o recibo do valor em dinheiro
-            para assinatura no portal do colaborador — ou para você baixar e
-            colher a assinatura à mão.
+            {ehEstorno
+              ? "Se a devolução foi em dinheiro e você não tem comprovante, o sistema gera um termo de devolução para imprimir e colher a assinatura do colaborador e da empresa."
+              : "Depois de importar, o sistema gera o recibo do valor em dinheiro para assinatura no portal do colaborador — ou para você baixar e colher a assinatura à mão."}
           </p>
         ) : null}
 
