@@ -17,7 +17,7 @@ const ATIVAS = new Set(["aprovado", "em_gozo", "concluido"]);
 
 /** Filas de prioridade: o que o gestor precisa resolver hoje em férias. */
 export function FeriasVisaoGeral({ gozos, nomeColaborador, irPara }: Props) {
-  const { data: pedidos = [] } = useDpFeriasSolicitacoes(["pendente"]);
+  const { solicitacoes: pedidos } = useDpFeriasSolicitacoes(["pendente"]);
   const hojeISO = format(new Date(), "yyyy-MM-dd");
   const em14 = format(addDays(new Date(), 14), "yyyy-MM-dd");
 
