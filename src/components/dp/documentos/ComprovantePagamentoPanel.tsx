@@ -395,6 +395,7 @@ export function ComprovanteAnexarDialog(props: {
   const [cienteValor, setCienteValor] = useState(false);
   const [justValor, setJustValor] = useState("");
   const [motivoExc, setMotivoExc] = useState<MotivoExcedente | null>(null);
+  const qc = useQueryClient();
   const [emitirDif, setEmitirDif] = useState(true);
   const [canalDif, setCanalDif] = useState<"portal" | "whatsapp" | "fisico">("portal");
   const [liquidoTexto, setLiquidoTexto] = useState<string | null>(null);
@@ -659,7 +660,8 @@ export function ComprovanteAnexarDialog(props: {
           quitacao: quitacaoFinal,
         },
         {
-          onSuccess: () => {
+          onSuccess: async () => {
+            await emitirReciboDiferenca(check.valor, false);
             limpar();
             props.onOpenChange(false);
           },
