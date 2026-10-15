@@ -99,6 +99,7 @@ export default function DpAtestados() {
   const [preview, setPreview] = useState<{ title: string; path: string } | null>(null);
   const [recusaId, setRecusaId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Row | null>(null);
+  const [detalhe, setDetalhe] = useState<Row | null>(null);
   const [editing, setEditing] = useState<Row | null>(null);
   const [editFile, setEditFile] = useState<File | null>(null);
   const [motivoExclusao, setMotivoExclusao] = useState<string>("");
@@ -480,13 +481,6 @@ export default function DpAtestados() {
             {pendentesCount > 0 && (
               <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive">{pendentesCount} pendente(s)</Badge>
             )}
-            <DpTableColumnsMenu
-              columns={ATEST_COL_ORDER.map((k) => ({ key: k, label: COLS[k].label }))}
-              hidden={hidden}
-              essentialKeys={["colaborador"]}
-              onToggle={toggleHidden}
-              onReset={resetLayout}
-            />
           </>
         }
       />
@@ -684,136 +678,138 @@ export default function DpAtestados() {
             </div>
           </DpFilterCard>
 
-          <DpContentCard contentClassName="hidden md:block">
-            {list.isLoading ? (
-              <TableSkeleton columns={9} headers={["Colaborador", "Unidade", "Data", "Data Retorno", "Observações", "Status", "Dias", "Arquivo", "Ações"]} />
-            ) : linhasFiltradas.length === 0 ? (
-              <div className="text-center text-muted-foreground py-10">
-                <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                {filtered.length === 0 ? "Nenhum atestado encontrado com os filtros atuais." : "Nenhum resultado para os filtros de coluna aplicados."}
+          {(() => {
+            const hoje = new Date().toISOString().slice(0, 10);
+            const em7 = addDays(hoje, 7);
+            const ativos = linhasFiltradas.filter((r) => r.status === "aprovada" || r.status === "pendente");
+            const foraHoje = ativos.filter((r) => r.data_alvo <= hoje && (r.data_fim ?? r.data_alvo) > hoje);
+            const retornam = ativos.filter((r) => r.data_fim && r.data_fim > hoje && r.data_fim <= em7);
+            const pend = linhasFiltradas.filter((r) => r.status === "pendente");
+            const kpis = [
+              { label: "Afastados hoje", valor: foraHoje.length, nomes: foraHoje },
+              { label: "Retornam em 7 dias", valor: retornam.length, nomes: retornam },
+              { label: "Aguardando análise", valor: pend.length, nomes: pend },
+            ];
+            return (
+              <div className="grid gap-3 sm:grid-cols-3">
+                {kpis.map((k) => (
+                  <div key={k.label} className="rounded-2xl border border-border bg-card p-4">
+                    <div className="text-xs font-medium text-muted-foreground">{k.label}</div>
+                    <div className="text-2xl font-bold tabular-nums">{k.valor}</div>
+                    {k.nomes.length > 0 && (
+                      <div className="mt-1 truncate text-xs text-muted-foreground">
+                        {k.nomes.slice(0, 3).map((r) => r.dp_colaboradores?.nome?.split(" ")[0]).join(", ")}
+                        {k.nomes.length > 3 ? ` +${k.nomes.length - 3}` : ""}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            ) : (
-              <div className="w-full overflow-x-auto">
-                <Table className="table-fixed text-xs" style={{ width: "100%", minWidth: larguraTotal + ATEST_ACOES_WIDTH }}>
-                  <TableHeader>
-                    <TableRow>
-                      {visibleOrder.map((k) => (
-                        <DpTableColumnHeader
-                          key={k}
-                          label={COLS[k].label}
-                          width={colWidths[k]}
-                          sortAtivo={sortKey === COLS[k].sortKey && COLS[k].sortKey !== "padrao"}
-                          sortDir={sortDir}
-                          onSort={(dir) => aplicarSort(COLS[k].sortKey, dir)}
-                          ativos={colFilters[k] ?? []}
-                          getOpcoes={() => opcoesColuna(k)}
-                          onToggle={(v) => toggleColValue(k, v)}
-                          onSelecionarTodos={() => setColFilters((p) => ({ ...p, [k]: opcoesColuna(k) }))}
-                          onLimpar={() => setColFilters((p) => ({ ...p, [k]: [] }))}
-                          arrastando={dragCol === k}
-                          onDragStart={() => setDragCol(k)}
-                          onDrop={() => soltarSobre(k)}
-                          onDragEnd={() => setDragCol(null)}
-                          onResize={(largura) => resize(k, largura)}
-                          onResetWidth={() => resetWidth(k)}
-                        />
-                      ))}
-                      <TableHead
-                        className="relative select-none text-right text-xs"
-                        style={{ width: ATEST_ACOES_WIDTH, minWidth: ATEST_ACOES_WIDTH, maxWidth: ATEST_ACOES_WIDTH }}
-                      >
-                        Ações
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {linhasFiltradas.map((r) => (
-                      <TableRow key={r.id} className="align-middle">
-                        {visibleOrder.map((k) => (
-                          <TableCell key={k} className="overflow-hidden px-3" style={{ width: colWidths[k], maxWidth: colWidths[k] }}>
-                            {COLS[k].render(r)}
-                          </TableCell>
-                        ))}
-                        <TableCell className="px-3 text-right" style={{ width: ATEST_ACOES_WIDTH, maxWidth: ATEST_ACOES_WIDTH }}>
-                          <div className="flex gap-1 justify-end">
-                            <Button aria-label="Editar atestado" size="icon" variant="ghost" title="Editar" onClick={() => setEditing(r)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            {r.arquivo_path && (
-                              <Button aria-label="Baixar atestado" size="icon" variant="ghost" title="Baixar" onClick={() => handleDownload(r)}>
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <Button aria-label="Excluir atestado" size="icon" variant="ghost" title="Excluir" onClick={() => setToDelete(r)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </DpContentCard>
+            );
+          })()}
 
-          {/* Mobile: lista de cards */}
-          <div className="md:hidden space-y-3">
+          <div className="space-y-2">
             {list.isLoading && (
               <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">Carregando…</div>
             )}
             {!list.isLoading && linhasFiltradas.length === 0 && (
               <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
                 <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                {filtered.length === 0 ? "Nenhum atestado encontrado." : "Nenhum resultado para os filtros aplicados."}
+                Nenhum atestado encontrado com os filtros atuais.
               </div>
             )}
             {!list.isLoading && linhasFiltradas.map((r) => {
-              const d = diffDays(r.data_alvo, r.data_fim);
               const unitName = r.dp_colaboradores?.unidade_id ? unidadeNameById.get(r.dp_colaboradores.unidade_id) : null;
-              const fileKind = getFileKind(r.arquivo_path);
-              const FileIcon = fileKind.icon;
+              const hoje = new Date().toISOString().slice(0, 10);
+              const afastadoAgora = r.status !== "recusada" && r.status !== "cancelada" && r.data_alvo <= hoje && (r.data_fim ?? r.data_alvo) > hoje;
               return (
-                <div key={r.id} className="rounded-2xl border border-border bg-card p-4 space-y-2 active:scale-[0.98] transition-transform">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-semibold">{r.dp_colaboradores?.nome ?? "—"}</div>
-                      {unitName && <div className="text-[11px] text-muted-foreground truncate">{unitName}</div>}
+                <div
+                  key={r.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setDetalhe(r)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDetalhe(r); } }}
+                  className="flex min-w-0 cursor-pointer flex-col gap-2 rounded-2xl border border-border bg-card p-3 transition-colors hover:bg-accent/40 sm:flex-row sm:items-center sm:gap-4"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="truncate font-semibold">{r.dp_colaboradores?.nome ?? "—"}</span>
+                      {afastadoAgora && <Badge variant="outline" className="shrink-0 border-primary/30 bg-primary/10 text-primary">Fora hoje</Badge>}
                     </div>
-                    <Badge variant="outline" className={STATUS_BADGE[r.status].className + " shrink-0"}>{STATUS_BADGE[r.status].label}</Badge>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {labelAfastamento(r.tipo)}{unitName ? ` · ${unitName}` : ""}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-border/60">
-                    <div><span className="text-muted-foreground">Data:</span> {formatDate(r.data_alvo)}</div>
-                    <div><span className="text-muted-foreground">Retorno:</span> {formatDate(r.data_fim)}</div>
-                    <div><span className="text-muted-foreground">Dias:</span> {d}</div>
-                    {r.arquivo_path && (
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 text-primary hover:underline text-left"
-                        onClick={() => setPreview({ title: `Atestado — ${r.dp_colaboradores?.nome ?? ""}`, path: r.arquivo_path! })}
+                  <div className="text-sm tabular-nums sm:w-56 sm:shrink-0">
+                    {formatDate(r.data_alvo)} <span className="text-muted-foreground">→ volta</span> {formatDate(r.data_fim)}
+                  </div>
+                  <div className="flex items-center justify-between gap-2 sm:shrink-0">
+                    <Badge variant="outline" className={STATUS_BADGE[r.status].className}>{STATUS_BADGE[r.status].label}</Badge>
+                    {r.arquivo_path ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="min-h-9"
+                        onClick={(e) => { e.stopPropagation(); setPreview({ title: `Atestado — ${r.dp_colaboradores?.nome ?? ""}`, path: r.arquivo_path! }); }}
                       >
-                        <FileIcon className="h-3 w-3" /> {fileKind.label}
-                      </button>
-                    )}
-                  </div>
-                  {r.motivo && <div className="text-xs text-muted-foreground line-clamp-2">{r.motivo}</div>}
-                  <div className="flex gap-1 pt-1 border-t border-border/60">
-                    <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setEditing(r)}>
-                      <Pencil className="h-4 w-4 mr-1" /> Editar
-                    </Button>
-                    {r.arquivo_path && (
-                      <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => handleDownload(r)}>
-                        <Download className="h-4 w-4 mr-1" /> Baixar
+                        <FileText className="mr-1 h-4 w-4" /> Ver
                       </Button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Sem arquivo</span>
                     )}
-                    <Button aria-label="Excluir atestado" size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(r)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
                   </div>
                 </div>
               );
             })}
           </div>
+
+          <Dialog open={!!detalhe} onOpenChange={(v) => !v && setDetalhe(null)}>
+            <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="truncate">{detalhe?.dp_colaboradores?.nome ?? "Atestado"}</DialogTitle>
+              </DialogHeader>
+              {detalhe && (
+                <div className="space-y-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">{labelAfastamento(detalhe.tipo)}</Badge>
+                    <Badge variant="outline" className={STATUS_BADGE[detalhe.status].className}>{STATUS_BADGE[detalhe.status].label}</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/30 p-3">
+                    <div><div className="text-xs text-muted-foreground">Início</div>{formatDate(detalhe.data_alvo)}</div>
+                    <div><div className="text-xs text-muted-foreground">Retorno</div>{formatDate(detalhe.data_fim)}</div>
+                    <div className="col-span-2"><div className="text-xs text-muted-foreground">Unidade</div>
+                      {detalhe.dp_colaboradores?.unidade_id ? unidadeNameById.get(detalhe.dp_colaboradores.unidade_id) ?? "—" : "—"}
+                    </div>
+                  </div>
+                  {detalhe.motivo && (
+                    <div><div className="text-xs text-muted-foreground">Observações</div><p className="whitespace-pre-wrap">{detalhe.motivo}</p></div>
+                  )}
+                  <div className="text-xs text-muted-foreground">Registrado em {new Date(detalhe.created_at).toLocaleString("pt-BR")}</div>
+                </div>
+              )}
+              <DialogFooter className="flex-row flex-wrap gap-2 sm:justify-between">
+                {detalhe && (
+                  <>
+                    <Button variant="ghost" className="text-destructive" onClick={() => { setToDelete(detalhe); setDetalhe(null); }}>
+                      <Trash2 className="mr-1 h-4 w-4" /> Excluir
+                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      {detalhe.arquivo_path && (
+                        <>
+                          <Button variant="outline" onClick={() => handleDownload(detalhe)}><Download className="mr-1 h-4 w-4" /> Baixar</Button>
+                          <Button variant="outline" onClick={() => setPreview({ title: `Atestado — ${detalhe.dp_colaboradores?.nome ?? ""}`, path: detalhe.arquivo_path! })}>
+                            <FileText className="mr-1 h-4 w-4" /> Ver
+                          </Button>
+                        </>
+                      )}
+                      <Button onClick={() => { setEditing(detalhe); setDetalhe(null); }}><Pencil className="mr-1 h-4 w-4" /> Editar</Button>
+                    </div>
+                  </>
+                )}
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
 
         </TabsContent>
       </Tabs>
