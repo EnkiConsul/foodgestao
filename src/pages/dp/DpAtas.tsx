@@ -25,6 +25,7 @@ import { AtaImportarDialog } from "@/components/dp/atas/AtaImportarDialog";
 import { MODALIDADES, MODELOS_ATA, ESTRUTURA_PADRAO_ATA, enviarAta, enviarLinkAvulso, htmlTemTexto, type AtaAnexo, type AtaCondutor, type AtaModalidade } from "@/lib/dp/atas";
 import { Switch } from "@/components/ui/switch";
 import { abrirArquivoDp } from "@/lib/dp/abrirDocumento";
+import { cn } from "@/lib/utils";
 
 type Ata = {
   id: string; company_id: string; unidade_id: string | null; titulo: string; data_reuniao: string; local: string | null;
@@ -36,6 +37,7 @@ const soDigitos = (v: string) => v.replace(/\D/g, "");
 const hoje = () => new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
 const fmt = (d: string) => d.split("-").reverse().join("/");
 const MIMES = ["application/pdf", "image/png", "image/jpeg"];
+type Situacao = "rascunho" | "aguardando" | "concluida";
 
 export default function DpAtas() {
   const { selectedCompanyId } = useCompanyContext();
@@ -43,6 +45,11 @@ export default function DpAtas() {
   const [editando, setEditando] = useState<Ata | "nova" | null>(null);
   const [busca, setBusca] = useState("");
   const [importar, setImportar] = useState(false);
+  const [filtro, setFiltro] = useState<Situacao | "todas">("todas");
+  const [unidade, setUnidade] = useState("todas");
+  const [mes, setMes] = useState("todos");
+  const unidadesQ = useCompanyUnidades(selectedCompanyId) as any;
+  const unidades: any[] = (Array.isArray(unidadesQ) ? unidadesQ : unidadesQ?.data ?? unidadesQ?.unidades ?? []) as any[];
 
   const atas = useQuery({
     queryKey: ["dp_atas", selectedCompanyId],
@@ -68,7 +75,28 @@ export default function DpAtas() {
     },
   });
 
-  const filtradas = (atas.data ?? []).filter((a) => a.titulo.toLowerCase().includes(busca.toLowerCase()));
+  const situacao = (a: { status: string; exige: number; assinados: number }): Situacao =>
+    a.status === "rascunho" ? "rascunho" : a.exige > 0 && a.assinados < a.exige ? "aguardando" : "concluida";
+  const todas = atas.data ?? [];
+  const meses = Array.from(new Set(todas.map((a) => a.data_reuniao.slice(0, 7)))).sort().reverse();
+  const base = todas.filter((a) =>
+    a.titulo.toLowerCase().includes(busca.toLowerCase()) &&
+    (unidade === "todas" || a.unidade_id === unidade) &&
+    (mes === "todos" || a.data_reuniao.startsWith(mes)));
+  const cont = { rascunho: 0, aguardando: 0, concluida: 0 } as Record<Situacao, number>;
+  base.forEach((a) => { cont[situacao(a)]++; });
+  const exigeTot = base.filter((a) => a.status === "enviada").reduce((s, a) => s + a.exige, 0);
+  const assTot = base.filter((a) => a.status === "enviada").reduce((s, a) => s + a.assinados, 0);
+  const adesao = exigeTot ? Math.round((assTot / exigeTot) * 100) : null;
+  const filtradas = base.filter((a) => filtro === "todas" || situacao(a) === filtro);
+  const nomeUnidade = (id: string | null) => unidades.find((u: any) => u.id === id)?.nome ?? null;
+  const fmtMes = (m: string) => { const [y, mm] = m.split("-"); return `${["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][+mm - 1]}/${y}`; };
+  const indicadores: { k: Situacao | "todas"; rotulo: string; valor: string | number; icon: any; dica: string }[] = [
+    { k: "todas", rotulo: "Atas", valor: base.length, icon: NotebookPen, dica: "No período filtrado" },
+    { k: "rascunho", rotulo: "Rascunhos", valor: cont.rascunho, icon: FileText, dica: "Ainda não enviadas" },
+    { k: "aguardando", rotulo: "Aguardando", valor: cont.aguardando, icon: Clock, dica: `${exigeTot - assTot} assinatura(s) pendente(s)` },
+    { k: "concluida", rotulo: "Concluídas", valor: cont.concluida, icon: CheckCircle2, dica: adesao === null ? "Sem envios" : `Adesão de ${adesao}%` },
+  ];
 
   return (
     <DpPage>
@@ -76,43 +104,77 @@ export default function DpAtas() {
       <DpPageHeader
         icon={NotebookPen}
         title="Atas de Reunião"
-        description="Registre as reuniões da equipe e envie a ata para assinatura ou consulta no portal."
+        description="Registre os combinados da equipe, colete as assinaturas no portal e acompanhe quem ainda não assinou."
         actions={<div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setImportar(true)}><Paperclip className="mr-1 h-4 w-4" />Importar Ata</Button><Button onClick={() => setEditando("nova")}><Plus className="mr-1 h-4 w-4" />Nova Ata</Button></div>}
       />
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input className="pl-8" placeholder="Buscar ata…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+        {indicadores.map((i) => (
+          <button key={i.k} type="button" onClick={() => setFiltro(i.k)}
+            className={cn("rounded-lg border bg-card p-3 text-left transition hover:border-primary/50", filtro === i.k && "border-primary ring-1 ring-primary")}>
+            <div className="flex items-center justify-between text-xs text-muted-foreground"><span>{i.rotulo}</span><i.icon className="h-4 w-4" /></div>
+            <p className="mt-1 text-2xl font-bold">{i.valor}</p>
+            <p className="truncate text-xs text-muted-foreground">{i.dica}</p>
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="relative sm:w-64">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-8" placeholder="Buscar ata…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+        </div>
+        {unidades.length > 1 && (
+          <Select value={unidade} onValueChange={setUnidade}>
+            <SelectTrigger className="sm:w-52"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="todas">Todas as unidades</SelectItem>{unidades.map((u: any) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent>
+          </Select>
+        )}
+        <Select value={mes} onValueChange={setMes}>
+          <SelectTrigger className="sm:w-40"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="todos">Todos os meses</SelectItem>{meses.map((m) => <SelectItem key={m} value={m}>{fmtMes(m)}</SelectItem>)}</SelectContent>
+        </Select>
+        {(filtro !== "todas" || unidade !== "todas" || mes !== "todos" || busca) && (
+          <Button variant="ghost" size="sm" onClick={() => { setFiltro("todas"); setUnidade("todas"); setMes("todos"); setBusca(""); }}><X className="mr-1 h-4 w-4" />Limpar filtros</Button>
+        )}
       </div>
       {atas.isLoading ? <p className="text-sm text-muted-foreground">Carregando…</p> : filtradas.length === 0 ? (
         <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
-          Nenhuma ata registrada ainda. Clique em <b>Nova Ata</b> e escolha um modelo rápido para começar.
+          {todas.length === 0
+            ? <>Nenhuma ata registrada ainda. Clique em <b>Nova Ata</b> e escolha um modelo rápido para começar.</>
+            : "Nenhuma ata encontrada com esses filtros."}
         </CardContent></Card>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {filtradas.map((a) => (
-            <Card key={a.id} className="cursor-pointer transition hover:border-primary/50" onClick={() => setEditando(a)}>
-              <CardContent className="space-y-2 p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
+        <div className="flex flex-col gap-2">
+          {filtradas.map((a) => {
+            const s = situacao(a);
+            const faltam = a.exige - a.assinados;
+            return (
+              <Card key={a.id} className="cursor-pointer transition hover:border-primary/50" onClick={() => setEditando(a)}>
+                <CardContent className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:p-4">
+                  <div className="flex shrink-0 flex-col items-center justify-center rounded-md bg-muted px-3 py-1.5 text-center sm:w-16">
+                    <span className="text-lg font-bold leading-none">{a.data_reuniao.slice(8, 10)}</span>
+                    <span className="text-[11px] uppercase text-muted-foreground">{fmtMes(a.data_reuniao.slice(0, 7))}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{a.titulo}</p>
-                    <p className="text-xs text-muted-foreground">{fmt(a.data_reuniao)}{a.local ? ` • ${a.local}` : ""}</p>
+                    <p className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                      {nomeUnidade(a.unidade_id) && <span>{nomeUnidade(a.unidade_id)}</span>}
+                      {a.local && <span>{a.local}</span>}
+                      <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" />{a.total}</span>
+                      {a.anexos?.length ? <span className="inline-flex items-center gap-1"><Paperclip className="h-3.5 w-3.5" />{a.anexos.length}</span> : null}
+                    </p>
                   </div>
-                  {a.status === "rascunho"
-                    ? <Badge variant="outline">Rascunho</Badge>
-                    : a.exige > 0 && a.assinados >= a.exige
-                      ? <Badge className="bg-primary/15 text-primary hover:bg-primary/15"><CheckCircle2 className="mr-1 h-3 w-3" />Concluída</Badge>
-                      : <Badge variant="secondary"><Clock className="mr-1 h-3 w-3" />Aguardando Assinaturas</Badge>}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground"><Users className="h-3.5 w-3.5" />{a.total} participante(s){a.anexos?.length ? ` • ${a.anexos.length} anexo(s)` : ""}</div>
-                {a.status === "enviada" && a.exige > 0 && (
-                  <div className="space-y-1">
-                    <Progress value={(a.assinados / a.exige) * 100} className="h-1.5" />
-                    <p className="text-xs text-muted-foreground">{a.assinados} de {a.exige} assinaturas</p>
+                  <div className="flex shrink-0 flex-col gap-1 sm:w-48 sm:items-end">
+                    {s === "rascunho"
+                      ? <Badge variant="outline" className="w-fit">Rascunho · continuar</Badge>
+                      : s === "concluida"
+                        ? <Badge className="w-fit bg-primary/15 text-primary hover:bg-primary/15"><CheckCircle2 className="mr-1 h-3 w-3" />{a.exige ? "Todos assinaram" : "Enviada para consulta"}</Badge>
+                        : <Badge variant="secondary" className="w-fit"><Clock className="mr-1 h-3 w-3" />Faltam {faltam} de {a.exige}</Badge>}
+                    {a.status === "enviada" && a.exige > 0 && <Progress value={(a.assinados / a.exige) * 100} className="h-1.5 w-full" />}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
       {importar && selectedCompanyId && (
@@ -383,6 +445,7 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
               {!enviada && <Button type="button" size="sm" variant="outline" onClick={() => fileRef.current?.click()}><Paperclip className="mr-1 h-4 w-4" />Anexar</Button>}
               <input ref={fileRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg" className="hidden" onChange={(e) => anexar(e.target.files)} />
             </div>
+            {!enviada && <p className="rounded-md border border-dashed bg-muted/30 p-2 text-xs text-muted-foreground">Tem uma apresentação em PowerPoint? No PowerPoint, use <b>Arquivo › Exportar › PDF</b> e anexe o PDF — assim os slides abrem no celular da equipe e entram na ata assinada.</p>}
             {anexos.length === 0 ? <p className="text-xs text-muted-foreground">PDF ou imagens (PNG/JPG). Os anexos entram no documento enviado para assinatura.</p> : (
               <ul className="space-y-1">
                 {anexos.map((a) => (
