@@ -13,6 +13,7 @@ import { FeriasSolicitacoesPanel } from "@/components/dp/ferias/FeriasSolicitaco
 import { FeriasConfigCard } from "@/components/dp/ferias/FeriasConfigCard";
 import { FeriasContabilidadePanel } from "@/components/dp/ferias/FeriasContabilidadePanel";
 import { FeriasCalendarioPanel } from "@/components/dp/ferias/FeriasCalendarioPanel";
+import { FeriasPendenciasPanel } from "@/components/dp/ferias/FeriasPendenciasPanel";
 import { FeriasVisaoGeral } from "@/components/dp/ferias/FeriasVisaoGeral";
 import { FeriasProgramacaoPanel } from "@/components/dp/ferias/FeriasProgramacaoPanel";
 import { useDpFerias } from "@/hooks/useDpFerias";
@@ -20,7 +21,7 @@ import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 
 const PlanejamentoPanel = lazy(() => import("./DpFerias"));
 
-const ABAS = ["visao", "ferias", "status", "calendario", "contabilidade", "regras"] as const;
+const ABAS = ["visao", "ferias", "status", "calendario", "pendencias", "contabilidade", "regras"] as const;
 type Aba = (typeof ABAS)[number];
 
 const VISOES = ["analitica", "sintetica"] as const;
@@ -123,6 +124,7 @@ export default function DpFeriasHub() {
               : a === "ferias" ? "Planejar"
               : a === "status" ? "Status"
               : a === "calendario" ? "Calendário"
+              : a === "pendencias" ? "Pendências"
               : a === "contabilidade" ? "A informar à contabilidade"
               : "Regras",
           }))}
@@ -134,6 +136,7 @@ export default function DpFeriasHub() {
             ferias: "dp.ferias",
             status: "dp.feriasStatus",
             calendario: "dp.calendario",
+            pendencias: "dp.ferias",
             contabilidade: "dp.feriasContabilidade",
             regras: "dp.folgasRegras",
           }}
@@ -142,6 +145,7 @@ export default function DpFeriasHub() {
           <TabsTrigger value="ferias">Planejar</TabsTrigger>
           <TabsTrigger value="status">Status</TabsTrigger>
           <TabsTrigger value="calendario">Calendário</TabsTrigger>
+          <TabsTrigger value="pendencias">Pendências</TabsTrigger>
           <TabsTrigger value="contabilidade">A informar à contabilidade</TabsTrigger>
           <TabsTrigger value="regras">Regras</TabsTrigger>
         </DpTabsBar>
@@ -238,6 +242,18 @@ export default function DpFeriasHub() {
           {aba === "calendario" && (
             <DpEmbeddedProvider>
               <FeriasCalendarioPanel />
+            </DpEmbeddedProvider>
+          )}
+        </TabsContent>
+
+        <TabsContent value="pendencias" className="m-0">
+          {aba === "pendencias" && (
+            <DpEmbeddedProvider>
+              <FeriasPendenciasPanel
+                gozos={gozos}
+                nomeColaborador={(id) => nomes.get(id) ?? "Colaborador"}
+                irPara={irPara}
+              />
             </DpEmbeddedProvider>
           )}
         </TabsContent>
