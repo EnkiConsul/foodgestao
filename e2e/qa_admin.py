@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -61,6 +62,60 @@ MISSING_PSQL_MESSAGE = (
     "QA bloqueado: `psql` não está disponível neste ambiente; ele é necessário "
     "para executar as rotinas do schema `qa` por conexão direta."
 )
+
+
+# --- Proteção de ambiente (Plano 01) -------------------------------------
+# Só o projeto de homologação pode receber rotinas de QA. Sem bypass.
+HOMOLOG_PROJECT_REF = "utjhzpdbqzajrhnzcher"
+BLOCKED_PROJECT_REFS = frozenset({"grtxmbffgmgnkawlvqhm"})  # produção
+_POOLER_HOST = re.compile(r"^aws-[0-9]+-[a-z]{2}-[a-z]+-[0-9]+\.pooler\.supabase\.com$")
+
+
+class UnauthorizedDatabaseError(RuntimeError):
+    pass
+
+
+def _deny(motivo: str):
+    raise UnauthorizedDatabaseError(f"QA bloqueado: {motivo}")
+
+
+def assert_authorized_test_database(url: str) -> str:
+    """Valida (exato, sem substring) que a URL aponta para homologação.
+
+    Aceita só: direta `db.<ref>.supabase.co` + usuário `postgres`, ou pooler
+    `aws-N-<região>.pooler.supabase.com` + usuário `postgres.<ref>`.
+    Proteção PARCIAL: baseada na URL; não há identificador no próprio banco.
+    """
+    parts = urlsplit(url or "")
+    if parts.scheme not in ("postgres", "postgresql"):
+        _deny("URL de conexão inválida ou ausente.")
+    host = (parts.hostname or "").lower()
+    user = unquote(parts.username or "")
+    if not host or not user:
+        _deny("conexão sem host ou usuário identificável.")
+
+    host_ref = None
+    if host.startswith("db.") and host.endswith(".supabase.co") and host.count(".") == 3:
+        host_ref = host.split(".")[1]
+        if user != "postgres":
+            _deny("usuário inesperado para conexão direta.")
+        user_ref = host_ref
+    elif _POOLER_HOST.fullmatch(host):
+        if not user.startswith("postgres.") or user.count(".") != 1:
+            _deny("usuário do pooler sem identificação do projeto.")
+        user_ref = user.split(".", 1)[1]
+    else:
+        _deny("host desconhecido (somente homologação é permitida).")
+
+    refs = {r for r in (host_ref, user_ref) if r}
+    if refs & BLOCKED_PROJECT_REFS:
+        _deny("a conexão aponta para PRODUÇÃO.")
+    if len(refs) != 1:
+        _deny("configuração divergente entre host e usuário.")
+    ref = refs.pop()
+    if ref != HOMOLOG_PROJECT_REF:
+        _deny("projeto desconhecido (somente homologação é permitida).")
+    return ref
 
 
 def db_url() -> str:
@@ -141,7 +196,9 @@ def qa_rpc(name: str, payload: dict | None = None):
             f"qa_rpc: rotina '{name}' não está na allowlist de QA "
             f"({', '.join(sorted(QA_ROUTINES))})"
         )
-    env = {**os.environ, **_libpq_env(db_url())}
+    url = db_url()
+    assert_authorized_test_database(url)
+    env = {**os.environ, **_libpq_env(url)}
     if not shutil.which("psql"):
         raise RuntimeError(MISSING_PSQL_MESSAGE)
 
