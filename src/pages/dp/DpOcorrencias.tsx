@@ -1,4 +1,7 @@
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { tratativaPendente } from "@/lib/dp/ocorrencias";
 import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
@@ -136,6 +139,7 @@ export default function DpOcorrencias() {
   const swipeMes = useSwipeHorizontal(() => irMes(1), () => irMes(-1));
 
   const acoes = useDpOcorrencias(filtros);
+  const qc = useQueryClient();
   const { data: colaboradores = [] } = useDpColaboradores();
   const { data: unidades = [] } = useDpUnidades();
   const { setores } = useDpSetores(filtros.unidadeId === "all" ? null : filtros.unidadeId);
@@ -199,6 +203,11 @@ export default function DpOcorrencias() {
 
   const renderCard = (o: (typeof acoes.ocorrencias)[number]) => (
               <OcorrenciaCard
+                onLancado={async (v: boolean) => {
+                  const { error } = await supabase.rpc("dp_ocorrencia_marcar_lancado", { _id: o.id, _lancado: v });
+                  if (error) toast.error("Não foi possível marcar. Tente de novo.");
+                  else qc.invalidateQueries({ queryKey: ["dp_ocorrencias"] });
+                }}
                 key={o.id}
                 ocorrencia={o}
                 coberturas={acoes.coberturasPorOcorrencia.get(o.id) ?? []}

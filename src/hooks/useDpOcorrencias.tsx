@@ -108,6 +108,7 @@ export interface Ocorrencia {
   analise_status: OcorrenciaAnalise;
   analisado_em: string | null;
   tratativa_ponto: boolean;
+  lancado_ponto_em: string | null;
   tratativa_status: OcorrenciaTratativa;
   tratativa_decisao: string | null;
   tratativa_observacao: string | null;
@@ -129,7 +130,7 @@ const COLS = `
   justificativa_inicial, justificativa_final, impacta_assiduidade, impacta_ferias,
   assiduidade_risco, assiduidade_risco_motivo, assiduidade_observacao, assiduidade_decidido_em,
   relevancia_operacional, analise_status, analisado_em, tratativa_ponto, tratativa_status,
-  tratativa_decisao, tratativa_observacao, marcacao_alvo, documento_id, informada_em,
+  tratativa_decisao, tratativa_observacao, lancado_ponto_em, marcacao_alvo, documento_id, informada_em,
   antecedencia_minutos, motivo_cancelamento, created_at, troca_id,
   colaborador:dp_colaboradores!dp_ocorrencias_colaborador_id_fkey(nome, nome_social, cargo),
   unidade:dp_unidades!dp_ocorrencias_unidade_id_fkey(nome),
