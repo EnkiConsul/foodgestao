@@ -251,3 +251,40 @@ export function textoErroOcorrencia(message?: string | null): string {
   const chave = Object.keys(OCORRENCIA_ERRO_TEXTO).find((k) => message.includes(k));
   return chave ? OCORRENCIA_ERRO_TEXTO[chave] : message;
 }
+
+/**
+ * Ausência justificada gerada pelo sistema a partir de atestado já aprovado
+ * (análise feita e assiduidade decidida na aprovação): não há nova decisão a
+ * tomar — a diretriz para o ponto é abonar o dia com o atestado.
+ */
+export function tratativaJaDecididaPorAtestado(o: {
+  tipo: string;
+  origem?: string | null;
+  analise_status?: string | null;
+  impacta_assiduidade?: string | null;
+}): boolean {
+  return (
+    o.tipo === "ausencia_justificada" &&
+    o.origem === "sistema" &&
+    o.analise_status === "analisada" &&
+    o.impacta_assiduidade !== "aguardando"
+  );
+}
+
+/** Ocorrência que ainda exige tratativa de ponto pelo gestor. */
+export function tratativaPendente(o: {
+  tipo: string;
+  estado: string;
+  origem?: string | null;
+  analise_status?: string | null;
+  impacta_assiduidade?: string | null;
+  tratativa_ponto?: boolean | null;
+  tratativa_status?: string | null;
+}): boolean {
+  return (
+    !!o.tratativa_ponto &&
+    o.tratativa_status === "pendente" &&
+    o.estado !== "cancelada" &&
+    !tratativaJaDecididaPorAtestado(o)
+  );
+}
