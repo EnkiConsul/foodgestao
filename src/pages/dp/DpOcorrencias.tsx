@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { tratativaPendente } from "@/lib/dp/ocorrencias";
+import { tratativaPendente, diretrizPonto, DIRETRIZ_LABEL, TIPO_LABEL as TIPO_LABEL_D, type DiretrizPonto } from "@/lib/dp/ocorrencias";
 import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -92,6 +92,7 @@ export default function DpOcorrencias() {
   );
   const [novaOpen, setNovaOpen] = useState(false);
   const [visao, setVisao] = useState<"dia" | "colaborador">("dia");
+  const [diretriz, setDiretriz] = useState<DiretrizPonto | null>(null);
 
   const [confirmar, setConfirmar] = useState<Ocorrencia | null>(null);
   const [tratativa, setTratativa] = useState<Ocorrencia | null>(null);
@@ -228,9 +229,30 @@ export default function DpOcorrencias() {
                 }
               />
   );
+  const contagemDiretriz = (() => {
+    const c: Record<DiretrizPonto, number> = { abonar: 0, descontar: 0, ajustar: 0, decidir: 0, outro: 0 };
+    for (const o of acoes.ocorrencias) { const d = diretrizPonto(o); if (d) c[d]++; }
+    return c;
+  })();
+  const lista = diretriz ? acoes.ocorrencias.filter((o) => diretrizPonto(o) === diretriz) : acoes.ocorrencias;
+  const copiarResumo = async () => {
+    const linhas: string[] = [`Resumo do ponto — ${textoPeriodo}`];
+    for (const d of ["abonar", "descontar", "ajustar", "decidir"] as DiretrizPonto[]) {
+      const itens = acoes.ocorrencias.filter((o) => diretrizPonto(o) === d)
+        .sort((a, b) => (a.colaborador?.nome ?? "").localeCompare(b.colaborador?.nome ?? "") || a.data_operacional.localeCompare(b.data_operacional));
+      if (!itens.length) continue;
+      linhas.push("", `${DIRETRIZ_LABEL[d].toUpperCase()} (${itens.length})`);
+      for (const o of itens) {
+        const [, m, dd] = o.data_operacional.split("-");
+        linhas.push(`- ${dd}/${m} · ${o.colaborador?.nome ?? "Colaborador"} · ${TIPO_LABEL_D[o.tipo]}${o.minutos ? ` · ${o.minutos} min` : ""}`);
+      }
+    }
+    try { await navigator.clipboard.writeText(linhas.join("\n")); toast.success("Resumo copiado. Cole no WhatsApp ou e-mail."); }
+    catch { toast.error("Não foi possível copiar. Tente de novo."); }
+  };
   const porColaborador = (() => {
     const m = new Map<string, { nome: string; linhas: typeof acoes.ocorrencias }>();
-    for (const o of acoes.ocorrencias) {
+    for (const o of lista) {
       const g = m.get(o.colaborador_id) ?? { nome: o.colaborador?.nome ?? "Colaborador", linhas: [] };
       g.linhas.push(o);
       m.set(o.colaborador_id, g);
@@ -625,6 +647,25 @@ export default function DpOcorrencias() {
           </p>
         ) : (
           <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+              {([
+                ["abonar", "🟢"], ["descontar", "🔴"], ["ajustar", "⏱️"], ["decidir", "⚖️"],
+              ] as [DiretrizPonto, string][]).map(([d, emoji]) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDiretriz((v) => (v === d ? null : d))}
+                  aria-pressed={diretriz === d}
+                  className={cn(
+                    "rounded-xl border p-3 text-left transition-colors",
+                    diretriz === d ? "border-primary bg-primary/10" : "border-border hover:bg-muted",
+                  )}
+                >
+                  <div className="text-xs font-medium text-muted-foreground">{emoji} {DIRETRIZ_LABEL[d]}</div>
+                  <div className="text-2xl font-bold tabular-nums">{contagemDiretriz[d]}</div>
+                </button>
+              ))}
+            </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-muted-foreground">Ver:</span>
               <Button size="sm" variant={visao === "dia" ? "default" : "outline"} onClick={() => setVisao("dia")}>
@@ -633,9 +674,17 @@ export default function DpOcorrencias() {
               <Button size="sm" variant={visao === "colaborador" ? "default" : "outline"} onClick={() => setVisao("colaborador")}>
                 Por colaborador
               </Button>
+              {diretriz && (
+                <Button size="sm" variant="ghost" onClick={() => setDiretriz(null)}>
+                  Mostrar todas
+                </Button>
+              )}
+              <Button size="sm" variant="outline" className="sm:ml-auto" onClick={() => void copiarResumo()}>
+                Copiar resumo do ponto
+              </Button>
             </div>
             {visao === "dia" ? (
-              <div className="space-y-2">{acoes.ocorrencias.map((o) => renderCard(o))}</div>
+              <div className="space-y-2">{lista.map((o) => renderCard(o))}</div>
             ) : (
               porColaborador.map(([id, g]) => {
                 const aTratar = g.linhas.filter((o) => tratativaPendente(o)).length;
