@@ -57,6 +57,7 @@ import {
   emitirReciboEspecieParaAssinatura,
   reciboEspeciePdf,
   registroPagamentoEspecieArquivo,
+  declaracaoDevolucaoEspecieArquivo,
 } from "@/lib/dp/recibo-especie";
 import { emitirRecibo, reciboPdfUrl, whatsappUrl } from "@/lib/dp/recibos";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -505,7 +506,7 @@ export function ComprovanteAnexarDialog(props: {
   };
 
   const semArquivoEspecie =
-    !arquivo && modalidade === "especie" && !props.complementar;
+    !arquivo && modalidade === "especie" && (!props.complementar || ehEstorno);
   const [reciboPrevia, setReciboPrevia] = useState<{
     url: string;
     revogar: () => void;
@@ -538,15 +539,26 @@ export function ComprovanteAnexarDialog(props: {
     if (!arquivoFinal && semArquivoEspecie) {
       const cents = brlParaCents(especie);
       if (!pagoEm || !cents) {
-        setErro("Informe a data do pagamento e o valor pago em dinheiro.");
+        setErro(
+          ehEstorno
+            ? "Informe a data da devolução e o valor devolvido em dinheiro."
+            : "Informe a data do pagamento e o valor pago em dinheiro.",
+        );
         return;
       }
-      arquivoFinal = await registroPagamentoEspecieArquivo({
-        colaborador: props.colaboradorNome ?? "Não informado",
-        competencia: props.competencia ?? "Não informada",
-        pagoEm,
-        valorCents: cents,
-      });
+      arquivoFinal = ehEstorno
+        ? await declaracaoDevolucaoEspecieArquivo({
+            colaborador: props.colaboradorNome ?? "Não informado",
+            competencia: props.competencia ?? "Não informada",
+            devolvidoEm: pagoEm,
+            valorCents: cents,
+          })
+        : await registroPagamentoEspecieArquivo({
+            colaborador: props.colaboradorNome ?? "Não informado",
+            competencia: props.competencia ?? "Não informada",
+            pagoEm,
+            valorCents: cents,
+          });
     }
     if (!arquivoFinal) {
       abrirSeletorFoto();
@@ -836,7 +848,9 @@ export function ComprovanteAnexarDialog(props: {
                 : "Anexar Comprovante de Pagamento"}
           </DialogTitle>
           <DialogDescription>
-            Escolha o arquivo: o sistema lê a data e o valor para você conferir.
+            {ehEstorno
+              ? "Anexe a prova da devolução: estorno formal do banco, PIX comum de devolução ou, se foi em dinheiro, o termo de devolução assinado (o sistema gera para você)."
+              : "Escolha o arquivo: o sistema lê a data e o valor para você conferir."}
           </DialogDescription>
         </DialogHeader>
 
@@ -903,7 +917,7 @@ export function ComprovanteAnexarDialog(props: {
 
         <div className="grid gap-1.5">
           <Label htmlFor={campoId} className="text-xs">
-            Data do pagamento
+            {ehEstorno ? "Data da devolução" : "Data do pagamento"}
           </Label>
           <Input
             id={campoId}
@@ -931,7 +945,7 @@ export function ComprovanteAnexarDialog(props: {
         </div>
 
         <div className="grid gap-1.5">
-          <Label className="text-xs">Como o pagamento foi feito</Label>
+          <Label className="text-xs">{ehEstorno ? "Como a devolução foi feita" : "Como o pagamento foi feito"}</Label>
           <div className="flex flex-wrap gap-2">
             {COMPROVANTE_MODALIDADES.map((m) => (
               <Button
@@ -974,7 +988,7 @@ export function ComprovanteAnexarDialog(props: {
             ) : null}
             <div className="grid gap-1.5">
               <Label htmlFor={`${campoId}-especie`} className="text-xs">
-                Valor pago em dinheiro (R$)
+                {ehEstorno ? "Valor devolvido em dinheiro (R$)" : "Valor pago em dinheiro (R$)"}
               </Label>
               <Input
                 id={`${campoId}-especie`}
@@ -992,9 +1006,9 @@ export function ComprovanteAnexarDialog(props: {
 
         {modalidade !== "bancario" ? (
           <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
-            Depois de importar, o sistema gera o recibo do valor em dinheiro
-            para assinatura no portal do colaborador — ou para você baixar e
-            colher a assinatura à mão.
+            {ehEstorno
+              ? "Se a devolução foi em dinheiro e você não tem comprovante, o sistema gera um termo de devolução para imprimir e colher a assinatura do colaborador e da empresa."
+              : "Depois de importar, o sistema gera o recibo do valor em dinheiro para assinatura no portal do colaborador — ou para você baixar e colher a assinatura à mão."}
           </p>
         ) : null}
 
