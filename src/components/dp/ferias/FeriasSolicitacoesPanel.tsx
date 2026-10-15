@@ -223,7 +223,30 @@ export function FeriasSolicitacoesPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <FeriasHistoricoRecusadas />
       <FeriasTermoDialog open={!!termoId} onOpenChange={(v) => { if (!v) setTermoId(null); }} solicitacaoId={termoId} />
     </>
+  );
+}
+
+/** Histórico de pedidos de férias recusados ou cancelados (consulta). */
+function FeriasHistoricoRecusadas() {
+  const { solicitacoes, isLoading } = useDpFeriasSolicitacoes(["recusada", "cancelada"]);
+  if (isLoading || solicitacoes.length === 0) return null;
+  return (
+    <DpContentCard title="Histórico de Pedidos Recusados e Cancelados" className="mt-4">
+      <div className="divide-y divide-border">
+        {solicitacoes.map((s) => (
+          <div key={s.id} className="flex flex-wrap items-start justify-between gap-2 p-4">
+            <div className="min-w-0 space-y-1">
+              <p className="truncate font-medium">{s.colaborador_nome ?? "Colaborador"}</p>
+              <p className="text-sm text-muted-foreground">{fmt(s.data_inicio)} a {fmt(s.data_fim)} · {s.dias} dias</p>
+              {s.resposta_admin && <p className="text-sm text-muted-foreground break-words">Motivo: {s.resposta_admin}</p>}
+            </div>
+            <Badge variant="outline">{s.status === "recusada" ? "Recusada" : "Cancelada"}</Badge>
+          </div>
+        ))}
+      </div>
+    </DpContentCard>
   );
 }
