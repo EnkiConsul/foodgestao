@@ -55,10 +55,12 @@ export function FeriasGozoDialog({
 }: Props) {
   const [form, setForm] = useState<GozoInput>(emptyForm);
   const [justificativa, setJustificativa] = useState("");
+  const [etapa, setEtapa] = useState(1);
 
   useEffect(() => {
     if (!open) return;
     setJustificativa("");
+    setEtapa(defaultPeriodoId || editing ? 2 : 1);
     if (editing) {
       setForm({
         id: editing.id,
@@ -177,7 +179,19 @@ export function FeriasGozoDialog({
           </DialogDescription>
         </DialogHeader>
 
+        <ol className="flex gap-1 text-[11px] font-medium">
+          {["Período", "Datas", "Detalhes", "Revisar"].map((n, i) => (
+            <li
+              key={n}
+              className={`flex-1 rounded-full px-2 py-1 text-center ${etapa === i + 1 ? "bg-primary text-primary-foreground" : etapa > i + 1 ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}
+            >
+              {i + 1}. {n}
+            </li>
+          ))}
+        </ol>
+
         <div className="space-y-4">
+          {etapa === 1 && (
           <div className="space-y-2">
             <Label>Período aquisitivo</Label>
             <Select value={form.periodo_id} onValueChange={selectPeriodo} disabled={!!editing}>
@@ -198,7 +212,15 @@ export function FeriasGozoDialog({
               </p>
             )}
           </div>
+          )}
 
+          {etapa === 2 && periodoSel && (
+            <p className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+              <strong className="text-foreground">{periodoSel.colaborador_nome ?? "Colaborador"}</strong> · saldo{" "}
+              {saldoPeriodo} dias · prazo {format(parseISO(periodoSel.limite_concessivo), "dd/MM/yyyy")}
+            </p>
+          )}
+          {etapa === 2 && (
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Início</Label>
@@ -214,7 +236,9 @@ export function FeriasGozoDialog({
               />
             </div>
           </div>
+          )}
 
+          {etapa === 3 && (<>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Abono pecuniário (dias)</Label>
@@ -245,7 +269,9 @@ export function FeriasGozoDialog({
             />
           </div>
 
-          {foraDeOrdem && (
+          </>)}
+
+          {(etapa === 1 || etapa === 3) && foraDeOrdem && (
             <div className="space-y-1 rounded-xl border border-destructive/50 bg-destructive/10 p-3">
               <p className="text-sm font-medium text-destructive">
                 Esta pessoa tem férias mais antigas em aberto.
@@ -259,7 +285,7 @@ export function FeriasGozoDialog({
             </div>
           )}
 
-          {(emCimaDaHora || foraDeOrdem) && (
+          {etapa === 3 && (emCimaDaHora || foraDeOrdem) && (
             <div className="space-y-2 rounded-xl border border-amber-400/60 bg-amber-500/10 p-3">
               {emCimaDaHora && (
                 <p className="text-sm font-medium text-amber-700">
@@ -281,6 +307,7 @@ export function FeriasGozoDialog({
           )}
 
 
+          {etapa === 3 && (
           <div className="space-y-2">
             <Label>Observação</Label>
             <Textarea
@@ -289,7 +316,31 @@ export function FeriasGozoDialog({
               onChange={(e) => setForm((f) => ({ ...f, observacao: e.target.value }))}
             />
           </div>
+          )}
 
+          {etapa === 4 && periodoSel && (
+            <div className="space-y-1 rounded-xl border border-border p-3 text-sm">
+              <p><strong>{periodoSel.colaborador_nome ?? "Colaborador"}</strong></p>
+              <p>Férias de {form.data_inicio && format(parseISO(form.data_inicio), "dd/MM/yyyy")} a{" "}
+                {form.data_fim && format(parseISO(form.data_fim), "dd/MM/yyyy")} · {dias} dias
+                {form.dias_abono > 0 && ` + ${form.dias_abono} de abono`}</p>
+              <p className="text-muted-foreground">
+                Saldo do período: {saldoPeriodo} → {Math.max(saldoPeriodo - totalConsumido, 0)} dias
+                {form.adiantar_13 && " · 13º adiantado"}
+              </p>
+              <p className="text-muted-foreground">
+                Aviso: {form.aviso_em ? format(parseISO(form.aviso_em), "dd/MM/yyyy") : "não informado"}
+              </p>
+              {!editing && (
+                <p className="mt-2 rounded-lg bg-amber-500/10 p-2 text-xs text-amber-700">
+                  Depois de programar, as férias ficam como <strong>A informar à contabilidade</strong> até
+                  você confirmar que encaminhou os dados à contabilidade externa.
+                </p>
+              )}
+            </div>
+          )}
+
+          {etapa >= 2 && (
           <div className="rounded-xl bg-muted/50 p-3 text-sm">
             <span className="font-semibold">{dias}</span> dias de gozo
             {form.dias_abono > 0 && <> + <span className="font-semibold">{form.dias_abono}</span> de abono</> } ={" "}
@@ -305,10 +356,27 @@ export function FeriasGozoDialog({
             )}
             {erroFracao && <p className="mt-1 text-destructive">{erroFracao}</p>}
           </div>
+          )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          {etapa > 1 ? (
+            <Button variant="outline" onClick={() => setEtapa((e) => e - 1)}>Voltar</Button>
+          ) : (
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          )}
+          {etapa < 4 ? (
+            <Button
+              disabled={
+                (etapa === 1 && !form.periodo_id) ||
+                (etapa === 2 && (!form.data_inicio || !form.data_fim || excede || !!erroFracao)) ||
+                (etapa === 3 && faltaJustificativa)
+              }
+              onClick={() => setEtapa((e) => e + 1)}
+            >
+              Avançar
+            </Button>
+          ) : (
           <Button
             disabled={
               saving || excede || faltaJustificativa || !!erroFracao ||
@@ -318,6 +386,7 @@ export function FeriasGozoDialog({
           >
             {saving ? "Salvando…" : editing ? "Salvar" : "Programar"}
           </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
