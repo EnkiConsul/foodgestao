@@ -539,15 +539,26 @@ export function ComprovanteAnexarDialog(props: {
     if (!arquivoFinal && semArquivoEspecie) {
       const cents = brlParaCents(especie);
       if (!pagoEm || !cents) {
-        setErro("Informe a data do pagamento e o valor pago em dinheiro.");
+        setErro(
+          ehEstorno
+            ? "Informe a data da devolução e o valor devolvido em dinheiro."
+            : "Informe a data do pagamento e o valor pago em dinheiro.",
+        );
         return;
       }
-      arquivoFinal = await registroPagamentoEspecieArquivo({
-        colaborador: props.colaboradorNome ?? "Não informado",
-        competencia: props.competencia ?? "Não informada",
-        pagoEm,
-        valorCents: cents,
-      });
+      arquivoFinal = ehEstorno
+        ? await declaracaoDevolucaoEspecieArquivo({
+            colaborador: props.colaboradorNome ?? "Não informado",
+            competencia: props.competencia ?? "Não informada",
+            devolvidoEm: pagoEm,
+            valorCents: cents,
+          })
+        : await registroPagamentoEspecieArquivo({
+            colaborador: props.colaboradorNome ?? "Não informado",
+            competencia: props.competencia ?? "Não informada",
+            pagoEm,
+            valorCents: cents,
+          });
     }
     if (!arquivoFinal) {
       abrirSeletorFoto();
