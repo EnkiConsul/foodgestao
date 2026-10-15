@@ -467,6 +467,29 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
               </div>}
             </div>
             {parts.length > 0 && <p className="text-xs text-muted-foreground">{contagem.presente} presente(s) • {contagem.ciencia} ciência • {contagem.consulta} apenas consulta</p>}
+            {enviada && carregouParts && ata?.origem !== "importada_assinada" && (() => {
+              const pend = parts.filter((p) => p.modalidade !== "consulta" && !(p.colaborador_id ? (p.documento_id && aceites.data?.get(p.documento_id)) : p.assinado_em));
+              const avulsosLink = pend.filter((p) => !p.colaborador_id && p.avulso_cpf && p.avulso_whatsapp);
+              if (!pend.length) return <p className="rounded-md border border-primary/30 bg-primary/5 p-2 text-xs text-primary"><CheckCircle2 className="mr-1 inline h-3.5 w-3.5" />Todos que precisavam assinar já assinaram.</p>;
+              return (
+                <div className="space-y-2 rounded-md border bg-muted/30 p-3 text-sm">
+                  <p className="font-medium">Faltam {pend.length} assinatura(s)</p>
+                  <p className="text-xs text-muted-foreground">{pend.map((p) => nomeDe(p)).join(", ")}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" size="sm" variant="outline" onClick={async () => {
+                      const txt = `Pessoal, falta assinar a ata "${ata?.titulo}" (reunião de ${fmt(ata!.data_reuniao)}) no portal: ${pend.map((p) => nomeDe(p)).join(", ")}. Abra o app em Documentos e assine. Obrigado!`;
+                      await navigator.clipboard.writeText(txt).catch(() => {});
+                      toast.success("Lembrete copiado.", { description: "Cole no grupo da equipe no WhatsApp." });
+                    }}>Copiar lembrete para o grupo</Button>
+                    {avulsosLink.length > 0 && <Button type="button" size="sm" variant="outline" onClick={async () => {
+                      let ok = 0;
+                      for (const p of avulsosLink) { const r = await enviarLinkAvulso(p.id!).catch(() => ({ enviado: false })); if (r.enviado) ok++; }
+                      ok === avulsosLink.length ? toast.success("Links reenviados pelo WhatsApp.") : toast.warning(`${ok} de ${avulsosLink.length} links reenviados.`, { description: "Use Reenviar Link na pessoa que falhou." });
+                    }}>Reenviar links sem cadastro ({avulsosLink.length})</Button>}
+                  </div>
+                </div>
+              );
+            })()}
             {!carregouParts ? <p className="text-xs text-muted-foreground">Carregando…</p> : (
               <ul className="divide-y rounded border">
                 {parts.map((p) => {
