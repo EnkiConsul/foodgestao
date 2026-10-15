@@ -562,7 +562,7 @@ export function ComprovanteAnexarDialog(props: {
     }
     if (confValor.status === "maior") {
       const v = validarExcedente({ motivo: motivoExc, justificativa: justValor, confirmado: cienteValor });
-      if (v.ok === false) {
+      if ("erro" in v) {
         setErro(v.erro);
         return;
       }
