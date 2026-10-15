@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { tratativaPendente } from "@/lib/dp/ocorrencias";
 import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -87,6 +88,7 @@ export default function DpOcorrencias() {
       : FILTROS_PADRAO,
   );
   const [novaOpen, setNovaOpen] = useState(false);
+  const [visao, setVisao] = useState<"dia" | "colaborador">("dia");
 
   const [confirmar, setConfirmar] = useState<Ocorrencia | null>(null);
   const [tratativa, setTratativa] = useState<Ocorrencia | null>(null);
@@ -194,6 +196,38 @@ export default function DpOcorrencias() {
     );
   }, [filtros]);
 
+
+  const renderCard = (o: (typeof acoes.ocorrencias)[number]) => (
+              <OcorrenciaCard
+                key={o.id}
+                ocorrencia={o}
+                coberturas={acoes.coberturasPorOcorrencia.get(o.id) ?? []}
+                onConfirmar={() => setConfirmar(o)}
+                onTratativa={() => setTratativa(o)}
+                onAnalisar={() => acoes.analisar.mutate({ id: o.id, status: "analisada" })}
+                onCancelar={() => setCancelarId(o.id)}
+                onCobrir={() => setCobrir(o)}
+                onHistorico={() => setHistorico(o)}
+                onDecidirAssiduidade={() => setDecidirPremio(o)}
+
+                onImpacto={(campo, valor) =>
+                  acoes.classificar.mutate(
+                    campo === "assiduidade"
+                      ? { id: o.id, impactaAssiduidade: valor }
+                      : { id: o.id, impactaFerias: valor },
+                  )
+                }
+              />
+  );
+  const porColaborador = (() => {
+    const m = new Map<string, { nome: string; linhas: typeof acoes.ocorrencias }>();
+    for (const o of acoes.ocorrencias) {
+      const g = m.get(o.colaborador_id) ?? { nome: o.colaborador?.nome ?? "Colaborador", linhas: [] };
+      g.linhas.push(o);
+      m.set(o.colaborador_id, g);
+    }
+    return [...m.entries()].sort((a, b) => a[1].nome.localeCompare(b[1].nome));
+  })();
 
   return (
     <DpPage>
@@ -581,29 +615,36 @@ export default function DpOcorrencias() {
             Nenhuma ocorrência nesse período com os filtros escolhidos.
           </p>
         ) : (
-          <div className="space-y-2">
-            {acoes.ocorrencias.map((o) => (
-              <OcorrenciaCard
-                key={o.id}
-                ocorrencia={o}
-                coberturas={acoes.coberturasPorOcorrencia.get(o.id) ?? []}
-                onConfirmar={() => setConfirmar(o)}
-                onTratativa={() => setTratativa(o)}
-                onAnalisar={() => acoes.analisar.mutate({ id: o.id, status: "analisada" })}
-                onCancelar={() => setCancelarId(o.id)}
-                onCobrir={() => setCobrir(o)}
-                onHistorico={() => setHistorico(o)}
-                onDecidirAssiduidade={() => setDecidirPremio(o)}
-
-                onImpacto={(campo, valor) =>
-                  acoes.classificar.mutate(
-                    campo === "assiduidade"
-                      ? { id: o.id, impactaAssiduidade: valor }
-                      : { id: o.id, impactaFerias: valor },
-                  )
-                }
-              />
-            ))}
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-muted-foreground">Ver:</span>
+              <Button size="sm" variant={visao === "dia" ? "default" : "outline"} onClick={() => setVisao("dia")}>
+                Dia a dia
+              </Button>
+              <Button size="sm" variant={visao === "colaborador" ? "default" : "outline"} onClick={() => setVisao("colaborador")}>
+                Por colaborador
+              </Button>
+            </div>
+            {visao === "dia" ? (
+              <div className="space-y-2">{acoes.ocorrencias.map((o) => renderCard(o))}</div>
+            ) : (
+              porColaborador.map(([id, g]) => {
+                const aTratar = g.linhas.filter((o) => tratativaPendente(o)).length;
+                return (
+                  <details key={id} open={aTratar > 0} className="rounded-xl border border-border">
+                    <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-3 py-2">
+                      <span className="font-medium">{g.nome}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {g.linhas.length} ocorrência(s){aTratar > 0 ? ` · ${aTratar} a tratar no ponto` : " · nada a tratar"}
+                      </span>
+                    </summary>
+                    <div className="space-y-2 border-t border-border p-2">
+                      {[...g.linhas].sort((a, b) => a.data_operacional.localeCompare(b.data_operacional)).map((o) => renderCard(o))}
+                    </div>
+                  </details>
+                );
+              })
+            )}
           </div>
         )}
       </DpContentCard>
