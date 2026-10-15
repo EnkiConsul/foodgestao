@@ -82,6 +82,7 @@ export function SolicitacaoCorrigirDialog({
             company_id: alvo.company_id,
             colaborador_id: alvo.colaborador_id,
             tipo: "atestado",
+            exige_aceite: false,
             titulo: `Atestado ${ini.split("-").reverse().join("/")}`,
             descricao: null,
             file_path: path,

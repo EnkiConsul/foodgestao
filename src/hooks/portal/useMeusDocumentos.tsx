@@ -220,7 +220,7 @@ export function useMeusDocumentos() {
           created_at: d.created_at,
           observacao: d.descricao ?? null,
           motivo_recusao: d.motivo_recusao ?? null,
-          aceite: d.exige_aceite && !d.submetido_por_colaborador && !d.assinatura_fisica ? aceitos.has(d.id) : null,
+          aceite: d.exige_aceite && d.tipo !== "atestado" && !d.submetido_por_colaborador && !d.assinatura_fisica ? aceitos.has(d.id) : null,
           aceiteInfo: aceitePorDoc.get(d.id) ?? null,
           meta: {
             originalId: d.id,
