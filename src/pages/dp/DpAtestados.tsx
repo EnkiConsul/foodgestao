@@ -125,6 +125,7 @@ export default function DpAtestados() {
   const [fUnidade, setFUnidade] = useState<string>("todos");
   const [fDataInicio, setFDataInicio] = useState<string>("");
   const [fDataFim, setFDataFim] = useState<string>("");
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
 
   // edição histórico
   const [editUnidadeId, setEditUnidadeId] = useState<string>("");
