@@ -1791,13 +1791,31 @@ export function useDpPendencias() {
       // Contatos de emergência sem confirmação semestral.
       if (cfg.alerta_contatos_emergencia) {
         try {
-          const { data: cs } = await supabase
+          const { data: cs, error: csErr } = await supabase
             .from("dp_colaboradores")
             .select("id, nome, data_desligamento, contatos_confirmados_em, contatos_solicitado_em")
             .eq("company_id", selectedCompanyId!)
             .is("data_desligamento", null)
             .limit(1000);
-          for (const c of (cs ?? []) as any[]) {
+          if (csErr) {
+            // Falha na consulta não equivale a "sem pendências": registra só o código
+            // e mostra um aviso ao gestor; as demais seções seguem sendo calculadas.
+            console.warn("pendencias/contatos-emergencia: falha na consulta", csErr.code ?? "sem_codigo");
+            results.push({
+              id: "contatos-emergencia-falha-consulta",
+              icon: Users,
+              titulo: "Não foi possível verificar os contatos de emergência",
+              subtitulo: "A verificação falhou e será refeita no próximo carregamento. Se persistir, acione o suporte.",
+              tipo: "Cadastro de Colaborador",
+              colaboradorNome: null,
+              colaboradorId: null,
+              escopo: "empresa",
+              vencimento: null,
+              atrasoDias: -1,
+              url: `/dp/colaboradores`,
+            } as any);
+          }
+          for (const c of (csErr ? [] : (cs ?? [])) as any[]) {
             if (!confirmacaoVencida(c.contatos_confirmados_em, c.contatos_solicitado_em, today)) continue;
             results.push({
               id: `contatos-emergencia-${c.id}`,
