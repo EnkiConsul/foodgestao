@@ -72,6 +72,14 @@ import {
   fraseConferenciaValor,
   JUSTIFICATIVA_VALOR_MIN,
 } from "@/lib/dp/comprovante-valor";
+import {
+  ALERTA_EXCEDENTE,
+  CONFIRMACAO_EXCEDENTE,
+  JUSTIFICATIVA_EXCEDENTE_MIN,
+  MOTIVOS_EXCEDENTE,
+  validarExcedente,
+  type MotivoExcedente,
+} from "@/lib/dp/comprovante-excedente";
 import { Textarea } from "@/components/ui/textarea";
 import {
   linkComplementar,
@@ -386,6 +394,7 @@ export function ComprovanteAnexarDialog(props: {
   const [cienteFavorecido, setCienteFavorecido] = useState(false);
   const [cienteValor, setCienteValor] = useState(false);
   const [justValor, setJustValor] = useState("");
+  const [motivoExc, setMotivoExc] = useState<MotivoExcedente | null>(null);
   const [liquidoTexto, setLiquidoTexto] = useState<string | null>(null);
   const liquido = useValorLiquido(props.alvo.documentoId, props.open);
   const { selectedCompanyId } = useCompanyContext();
@@ -551,7 +560,13 @@ export function ComprovanteAnexarDialog(props: {
       setErro("Valor líquido do documento inválido.");
       return;
     }
-    if (
+    if (confValor.status === "maior") {
+      const v = validarExcedente({ motivo: motivoExc, justificativa: justValor, confirmado: cienteValor });
+      if (!v.ok) {
+        setErro(v.erro);
+        return;
+      }
+    } else if (
       valorDivergente &&
       (!cienteValor || justValor.trim().length < JUSTIFICATIVA_VALOR_MIN)
     ) {
@@ -560,6 +575,15 @@ export function ComprovanteAnexarDialog(props: {
       );
       return;
     }
+    const excedenteInfo =
+      confValor.status === "maior" && motivoExc
+        ? {
+            motivo_excedente: motivoExc,
+            motivo_excedente_rotulo: MOTIVOS_EXCEDENTE[motivoExc].rotulo,
+            confirmacao_excedente: CONFIRMACAO_EXCEDENTE,
+            confirmado_excedente_em: new Date().toISOString(),
+          }
+        : {};
     if (divergente && !confirmado) {
       setErro(aviso ?? "Confirme a competência do comprovante.");
       return;
@@ -578,6 +602,7 @@ export function ComprovanteAnexarDialog(props: {
         valor_comprovado_cents: confValor.comprovadoCents,
         diferenca_cents: confValor.diferencaCents,
         justificativa_valor: valorDivergente ? justValor.trim() : null,
+        ...excedenteInfo,
         complementar: true,
       },
     };
@@ -617,6 +642,7 @@ export function ComprovanteAnexarDialog(props: {
             valor_comprovado_cents: confValor.comprovadoCents,
             diferenca_cents: confValor.diferencaCents,
             justificativa_valor: valorDivergente ? justValor.trim() : null,
+            ...excedenteInfo,
           },
         },
       },
