@@ -617,6 +617,20 @@
       "when": 1792073834185,
       "tag": "0087_atas_material_apoio",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1792077658837,
+      "tag": "0088_ocorrencia_lancado_ponto",
+      "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1792077691809,
+      "tag": "0089_ocorrencia_lancado_ponto_permissao",
+      "breakpoints": true
     }
   ]
 }
