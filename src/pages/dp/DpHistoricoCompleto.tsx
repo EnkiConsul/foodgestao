@@ -100,7 +100,7 @@ function QuitacaoSelo({ q, pendenteCents }: { q?: QuitacaoConsolidada | null; pe
         className="inline-flex items-center whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800"
         title="Comprovante de pagamento ainda não anexado"
       >
-        {(pendenteCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · pagamento pendente
+        Pendente · {(pendenteCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
       </span>
     );
   }

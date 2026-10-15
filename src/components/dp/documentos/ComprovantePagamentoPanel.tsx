@@ -72,6 +72,14 @@ import {
   fraseConferenciaValor,
   JUSTIFICATIVA_VALOR_MIN,
 } from "@/lib/dp/comprovante-valor";
+import {
+  ALERTA_EXCEDENTE,
+  CONFIRMACAO_EXCEDENTE,
+  JUSTIFICATIVA_EXCEDENTE_MIN,
+  MOTIVOS_EXCEDENTE,
+  validarExcedente,
+  type MotivoExcedente,
+} from "@/lib/dp/comprovante-excedente";
 import { Textarea } from "@/components/ui/textarea";
 import {
   linkComplementar,
@@ -386,6 +394,7 @@ export function ComprovanteAnexarDialog(props: {
   const [cienteFavorecido, setCienteFavorecido] = useState(false);
   const [cienteValor, setCienteValor] = useState(false);
   const [justValor, setJustValor] = useState("");
+  const [motivoExc, setMotivoExc] = useState<MotivoExcedente | null>(null);
   const [liquidoTexto, setLiquidoTexto] = useState<string | null>(null);
   const liquido = useValorLiquido(props.alvo.documentoId, props.open);
   const { selectedCompanyId } = useCompanyContext();
@@ -551,7 +560,13 @@ export function ComprovanteAnexarDialog(props: {
       setErro("Valor líquido do documento inválido.");
       return;
     }
-    if (
+    if (confValor.status === "maior") {
+      const v = validarExcedente({ motivo: motivoExc, justificativa: justValor, confirmado: cienteValor });
+      if ("erro" in v) {
+        setErro(v.erro);
+        return;
+      }
+    } else if (
       valorDivergente &&
       (!cienteValor || justValor.trim().length < JUSTIFICATIVA_VALOR_MIN)
     ) {
@@ -560,6 +575,15 @@ export function ComprovanteAnexarDialog(props: {
       );
       return;
     }
+    const excedenteInfo =
+      confValor.status === "maior" && motivoExc
+        ? {
+            motivo_excedente: motivoExc,
+            motivo_excedente_rotulo: MOTIVOS_EXCEDENTE[motivoExc].rotulo,
+            confirmacao_excedente: CONFIRMACAO_EXCEDENTE,
+            confirmado_excedente_em: new Date().toISOString(),
+          }
+        : {};
     if (divergente && !confirmado) {
       setErro(aviso ?? "Confirme a competência do comprovante.");
       return;
@@ -578,6 +602,7 @@ export function ComprovanteAnexarDialog(props: {
         valor_comprovado_cents: confValor.comprovadoCents,
         diferenca_cents: confValor.diferencaCents,
         justificativa_valor: valorDivergente ? justValor.trim() : null,
+        ...excedenteInfo,
         complementar: true,
       },
     };
@@ -617,6 +642,7 @@ export function ComprovanteAnexarDialog(props: {
             valor_comprovado_cents: confValor.comprovadoCents,
             diferenca_cents: confValor.diferencaCents,
             justificativa_valor: valorDivergente ? justValor.trim() : null,
+            ...excedenteInfo,
           },
         },
       },
@@ -931,7 +957,64 @@ export function ComprovanteAnexarDialog(props: {
             A conferência soma este novo valor.
           </p>
         ) : null}
-        {valorDivergente ? (
+        {confValor.status === "maior" ? (
+          <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs">
+            <p className="text-foreground">
+              Documento: <strong>{centsParaBRL(confValor.esperadoCents)}</strong> · Comprovado:{" "}
+              <strong>{centsParaBRL(confValor.comprovadoCents)}</strong> · Diferença:{" "}
+              <strong className="text-destructive">{centsParaBRL(confValor.diferencaCents)}</strong>
+            </p>
+            <p className="text-destructive">{ALERTA_EXCEDENTE}</p>
+            <label className="block space-y-1 text-foreground">
+              <span className="font-medium">Motivo do valor a maior *</span>
+              <select
+                className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+                value={motivoExc ?? ""}
+                onChange={(e) => {
+                  setMotivoExc((e.target.value || null) as MotivoExcedente | null);
+                  setErro(null);
+                }}
+              >
+                <option value="">Selecione…</option>
+                {(Object.keys(MOTIVOS_EXCEDENTE) as MotivoExcedente[]).map((k) => (
+                  <option key={k} value={k}>{MOTIVOS_EXCEDENTE[k].rotulo}</option>
+                ))}
+              </select>
+            </label>
+            {motivoExc ? (
+              <div className="space-y-1 rounded border bg-background p-2 text-foreground">
+                <p>{MOTIVOS_EXCEDENTE[motivoExc].orientacao}</p>
+                <p className="text-muted-foreground">
+                  <strong>Base legal:</strong> {MOTIVOS_EXCEDENTE[motivoExc].base}
+                </p>
+                <p className="text-muted-foreground">
+                  Recomendado: emitir um recibo da diferença na tela de Recibos, assinado pelo colaborador.
+                </p>
+              </div>
+            ) : null}
+            <Textarea
+              rows={2}
+              placeholder={`Justificativa obrigatória (mín. ${JUSTIFICATIVA_EXCEDENTE_MIN} caracteres)`}
+              value={justValor}
+              onChange={(e) => {
+                setJustValor(e.target.value);
+                setErro(null);
+              }}
+            />
+            <label className="flex items-start gap-2 text-foreground">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={cienteValor}
+                onChange={(e) => {
+                  setCienteValor(e.target.checked);
+                  setErro(null);
+                }}
+              />
+              <span>{CONFIRMACAO_EXCEDENTE}</span>
+            </label>
+          </div>
+        ) : valorDivergente ? (
           <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
             <p>
               Documento:{" "}
