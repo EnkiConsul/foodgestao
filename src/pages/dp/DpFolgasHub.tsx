@@ -103,7 +103,7 @@ export default function DpFolgasHub() {
         <TabsContent value="solicitacoes" className="m-0">
           {aba === "solicitacoes" && (
             <Embedded>
-              <SolicitacoesPanel />
+              <SolicitacoesPanel tipoFixo="folga" />
             </Embedded>
           )}
         </TabsContent>
