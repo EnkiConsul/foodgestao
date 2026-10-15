@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { tratativaPendente } from "@/lib/dp/ocorrencias";
 
 export interface OcorrenciasIndicadores {
   atrasos: number;
@@ -54,7 +55,7 @@ export function useDpOcorrenciasIndicadores(params: {
     queryFn: async () => {
       let q = supabase
         .from("dp_ocorrencias")
-        .select("tipo, minutos")
+        .select("tipo, minutos, estado, origem, analise_status, impacta_assiduidade, impacta_ferias, tratativa_ponto, tratativa_status")
         .eq("company_id", selectedCompanyId!)
         .gte("data_operacional", params.inicio)
         .lte("data_operacional", params.fim)
@@ -72,14 +73,20 @@ export function useDpOcorrenciasIndicadores(params: {
       ]);
       const porTipo: Record<string, number> = {};
       let atraso_minutos = 0;
-      for (const r of (tipos.data ?? []) as { tipo: string; minutos: number | null }[]) {
+      let pendentes = 0;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const r of (tipos.data ?? []) as any[]) {
+        if (
+          r.estado === "aguardando_confirmacao" || r.analise_status === "pendente" ||
+          tratativaPendente(r) || r.impacta_assiduidade === "aguardando" || r.impacta_ferias === "aguardando"
+        ) pendentes++;
         porTipo[r.tipo] = (porTipo[r.tipo] ?? 0) + 1;
         if (r.tipo === "atraso") atraso_minutos += Number(r.minutos ?? 0);
       }
       const esquecimentos = porTipo.esquecimento_marcacao ?? 0;
       const divergencias = porTipo.divergencia_jornada ?? 0;
       if (error) throw error;
-      return { ...VAZIO, ...((data ?? {}) as Partial<OcorrenciasIndicadores>), atraso_minutos, esquecimentos, divergencias, porTipo };
+      return { ...VAZIO, ...((data ?? {}) as Partial<OcorrenciasIndicadores>), atraso_minutos, esquecimentos, divergencias, porTipo, pendentes: tipos.error ? (data as any)?.pendentes ?? 0 : pendentes };
     },
   });
 
