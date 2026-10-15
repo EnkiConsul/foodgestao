@@ -25,6 +25,7 @@ import { AtaImportarDialog } from "@/components/dp/atas/AtaImportarDialog";
 import { MODALIDADES, MODELOS_ATA, ESTRUTURA_PADRAO_ATA, enviarAta, enviarLinkAvulso, htmlTemTexto, type AtaAnexo, type AtaCondutor, type AtaModalidade } from "@/lib/dp/atas";
 import { Switch } from "@/components/ui/switch";
 import { abrirArquivoDp } from "@/lib/dp/abrirDocumento";
+import { cn } from "@/lib/utils";
 
 type Ata = {
   id: string; company_id: string; unidade_id: string | null; titulo: string; data_reuniao: string; local: string | null;
