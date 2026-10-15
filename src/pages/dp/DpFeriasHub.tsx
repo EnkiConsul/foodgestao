@@ -13,13 +13,14 @@ import { FeriasSolicitacoesPanel } from "@/components/dp/ferias/FeriasSolicitaco
 import { FeriasConfigCard } from "@/components/dp/ferias/FeriasConfigCard";
 import { FeriasContabilidadePanel } from "@/components/dp/ferias/FeriasContabilidadePanel";
 import { FeriasCalendarioPanel } from "@/components/dp/ferias/FeriasCalendarioPanel";
+import { FeriasVisaoGeral } from "@/components/dp/ferias/FeriasVisaoGeral";
 import { FeriasProgramacaoPanel } from "@/components/dp/ferias/FeriasProgramacaoPanel";
 import { useDpFerias } from "@/hooks/useDpFerias";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 
 const PlanejamentoPanel = lazy(() => import("./DpFerias"));
 
-const ABAS = ["ferias", "status", "calendario", "contabilidade", "regras"] as const;
+const ABAS = ["visao", "ferias", "status", "calendario", "contabilidade", "regras"] as const;
 type Aba = (typeof ABAS)[number];
 
 const VISOES = ["analitica", "sintetica"] as const;
@@ -59,7 +60,7 @@ export default function DpFeriasHub() {
   const legado = LEGADO[raw];
   const aba: Aba = (ABAS as readonly string[]).includes(raw)
     ? (raw as Aba)
-    : (legado?.aba ?? "ferias");
+    : (legado?.aba ?? "visao");
 
   const rawVisao = params.get("visao") ?? "";
   const visao: Visao = (VISOES as readonly string[]).includes(rawVisao)
@@ -83,6 +84,19 @@ export default function DpFeriasHub() {
     return map;
   }, [colaboradores]);
 
+  const nomes = useMemo(
+    () => new Map((colaboradores as any[]).map((c) => [c.id, c.nome as string])),
+    [colaboradores],
+  );
+
+  const irPara = (novaAba: string, extra?: Record<string, string>) => {
+    const next = new URLSearchParams(params);
+    next.set("aba", novaAba);
+    next.delete("periodo");
+    for (const [k, v] of Object.entries(extra ?? {})) next.set(k, v);
+    setParams(next, { replace: true });
+  };
+
   const setParam = (key: string, value: string) => {
     const next = new URLSearchParams(params);
     next.set(key, value);
@@ -100,27 +114,23 @@ export default function DpFeriasHub() {
         description="Planejamento, aprovação e acompanhamento das férias da equipe."
       />
 
-      <FeriasDashboard
-        periodos={periodos}
-        gozos={gozos}
-        descricaoColaborador={(id) => detalhePorColaborador.get(id) ?? null}
-      />
-
       <Tabs value={aba} onValueChange={(v) => setParam("aba", v)} className="space-y-4">
         <DpTabsBar
           sections={ABAS.map((a) => ({
             value: a,
             label:
-              a === "ferias" ? "Férias"
+              a === "visao" ? "Visão geral"
+              : a === "ferias" ? "Planejar"
               : a === "status" ? "Status"
               : a === "calendario" ? "Calendário"
-              : a === "contabilidade" ? "Contabilidade"
+              : a === "contabilidade" ? "A informar à contabilidade"
               : "Regras",
           }))}
           value={aba}
           onValueChange={(v) => setParam("aba", v)}
           sectionTitle="Seções de Férias"
           help={{
+            visao: "dp.ferias",
             ferias: "dp.ferias",
             status: "dp.feriasStatus",
             calendario: "dp.calendario",
@@ -128,12 +138,30 @@ export default function DpFeriasHub() {
             regras: "dp.folgasRegras",
           }}
         >
-          <TabsTrigger value="ferias">Férias</TabsTrigger>
+          <TabsTrigger value="visao">Visão geral</TabsTrigger>
+          <TabsTrigger value="ferias">Planejar</TabsTrigger>
           <TabsTrigger value="status">Status</TabsTrigger>
           <TabsTrigger value="calendario">Calendário</TabsTrigger>
-          <TabsTrigger value="contabilidade">Contabilidade</TabsTrigger>
+          <TabsTrigger value="contabilidade">A informar à contabilidade</TabsTrigger>
           <TabsTrigger value="regras">Regras</TabsTrigger>
         </DpTabsBar>
+
+        <TabsContent value="visao" className="m-0 space-y-4">
+          {aba === "visao" && (
+            <>
+              <FeriasDashboard
+                periodos={periodos}
+                gozos={gozos}
+                descricaoColaborador={(id) => detalhePorColaborador.get(id) ?? null}
+              />
+              <FeriasVisaoGeral
+                gozos={gozos}
+                nomeColaborador={(id) => nomes.get(id) ?? "Colaborador"}
+                irPara={irPara}
+              />
+            </>
+          )}
+        </TabsContent>
 
         <TabsContent value="ferias" className="m-0 space-y-4">
           {aba === "ferias" && (
