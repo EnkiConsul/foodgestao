@@ -78,6 +78,10 @@ import {
   JUSTIFICATIVA_EXCEDENTE_MIN,
   MOTIVOS_EXCEDENTE,
   ACERTO_ENGANO_LABEL,
+  ACERTO_ENGANO_ORIENTACAO,
+  NATUREZA_COMPROVANTE_LABEL,
+  sinalNatureza,
+  type NaturezaComprovante,
   motivoPermiteRecibo,
   naturezaReciboDiferenca,
   quitacaoDiferenca,
@@ -366,7 +370,7 @@ export function ComprovanteAnexarDialog(props: {
   valorBancarioAtual?: number | null;
   valorEspecieAtual?: number | null;
   /** Comprovante complementar: soma ao que já foi comprovado. */
-  complementar?: { jaComprovadoCents: number };
+  complementar?: { jaComprovadoCents: number; natureza?: NaturezaComprovante };
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const {
@@ -434,16 +438,27 @@ export function ComprovanteAnexarDialog(props: {
   const extra = useDpComprovanteComplementarAcoes();
   const ocupado = ocupadoPrincipal || extra.ocupado;
   const jaComprovado = props.complementar?.jaComprovadoCents ?? 0;
+  const naturezaExtra = props.complementar?.natureza ?? "pagamento";
+  const ehEstorno = naturezaExtra === "estorno";
   const esperadoCents =
     liquidoTexto !== null ? brlParaCents(liquidoTexto) : (liquido.data ?? null);
-  const confValor = conferirValor(
-    esperadoCents,
-    (modalidade === "especie" ? 0 : (brlParaCents(bancario) ?? 0)) +
-      jaComprovado,
-    modalidade === "bancario" ? null : brlParaCents(especie),
-  );
+  const confValor = ehEstorno
+    ? conferirValor(
+        esperadoCents,
+        jaComprovado -
+          (modalidade === "especie" ? 0 : (brlParaCents(bancario) ?? 0)) -
+          (modalidade === "bancario" ? 0 : (brlParaCents(especie) ?? 0)),
+        null,
+      )
+    : conferirValor(
+        esperadoCents,
+        (modalidade === "especie" ? 0 : (brlParaCents(bancario) ?? 0)) +
+          jaComprovado,
+        modalidade === "bancario" ? null : brlParaCents(especie),
+      );
+  const excede = !ehEstorno && confValor.status === "maior";
   const valorDivergente =
-    confValor.status === "menor" || confValor.status === "maior";
+    !ehEstorno && (confValor.status === "menor" || confValor.status === "maior");
   const fraseValor = fraseConferenciaValor(confValor);
   const hoje = hojeISO();
 
@@ -569,7 +584,7 @@ export function ComprovanteAnexarDialog(props: {
       setErro("Valor líquido do documento inválido.");
       return;
     }
-    if (confValor.status === "maior") {
+    if (excede) {
       const v = validarExcedente({ motivo: motivoExc, justificativa: justValor, confirmado: cienteValor, acerto: acertoEng });
       if ("erro" in v) {
         setErro(v.erro);
@@ -585,7 +600,7 @@ export function ComprovanteAnexarDialog(props: {
       return;
     }
     const excedenteInfo =
-      confValor.status === "maior" && motivoExc
+      excede && motivoExc
         ? {
             motivo_excedente: motivoExc,
             motivo_excedente_rotulo: MOTIVOS_EXCEDENTE[motivoExc].rotulo,
@@ -597,7 +612,7 @@ export function ComprovanteAnexarDialog(props: {
 
     /** Recibo da diferença: mesmo fluxo oficial da tela de Recibos, ligado ao documento. */
     const emitirReciboDiferenca = async (pagoEmISO: string, vincular: boolean) => {
-      if (confValor.status !== "maior" || !motivoExc || !emitirDif || !motivoPermiteRecibo(motivoExc)) return;
+      if (!excede || !motivoExc || !emitirDif || !motivoPermiteRecibo(motivoExc)) return;
       const qd = quitacaoDiferenca(
         quitacao.modalidade,
         confValor.diferencaCents,
@@ -621,11 +636,12 @@ export function ComprovanteAnexarDialog(props: {
           valor_especie_cents: qd.especieCents,
           canal_assinatura: canalDif,
         });
-        if (vincular && saida.documento_id && !exigeRecibo(modalidade)) {
-          const { error } = await supabase.rpc("dp_comprovante_recibo_vincular", {
+        if (saida.documento_id) {
+          void vincular;
+          const { error } = await supabase.rpc("dp_documento_recibo_diferenca_vincular" as never, {
             p_documento_id: props.alvo.documentoId,
             p_recibo_id: saida.documento_id,
-          });
+          } as never);
           if (error) toast.error("Recibo da diferença emitido, mas não foi ligado ao documento. Confira na tela de Recibos.");
         }
         if (canalDif === "fisico") {
@@ -670,6 +686,7 @@ export function ComprovanteAnexarDialog(props: {
           file: arquivoFinal,
           pagoEm: check.valor,
           quitacao: quitacaoFinal,
+          natureza: naturezaExtra,
         },
         {
           onSuccess: async () => {
@@ -811,7 +828,9 @@ export function ComprovanteAnexarDialog(props: {
         <DialogHeader>
           <DialogTitle>
             {props.complementar
-              ? "Adicionar Comprovante Complementar"
+              ? props.complementar.natureza && props.complementar.natureza !== "pagamento"
+                ? NATUREZA_COMPROVANTE_LABEL[props.complementar.natureza]
+                : "Adicionar Comprovante Complementar"
               : props.substituir
                 ? "Substituir Comprovante de Pagamento"
                 : "Anexar Comprovante de Pagamento"}
@@ -1016,7 +1035,7 @@ export function ComprovanteAnexarDialog(props: {
             A conferência soma este novo valor.
           </p>
         ) : null}
-        {confValor.status === "maior" ? (
+        {excede ? (
           <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs">
             <p className="text-foreground">
               Documento: <strong>{centsParaBRL(confValor.esperadoCents)}</strong> · Comprovado:{" "}
@@ -1081,6 +1100,7 @@ export function ComprovanteAnexarDialog(props: {
                     </Button>
                   ))}
                 </div>
+                {acertoEng ? <p className="text-foreground">{ACERTO_ENGANO_ORIENTACAO[acertoEng]}</p> : null}
                 <p className="text-muted-foreground">Sem recibo: o valor errado não recebe quitação.</p>
               </div>
             ) : motivoExc ? (
@@ -1450,7 +1470,7 @@ export function ComprovantePagamentoPanel(props: {
     aceitaComprovante(props.alvo.tipo) && !props.somenteLeitura,
   );
   const extraAcoes = useDpComprovanteComplementarAcoes();
-  const [complementarOpen, setComplementarOpen] = useState(false);
+  const [complementarOpen, setComplementarOpen] = useState<NaturezaComprovante | null>(null);
   const [extraPreview, setExtraPreview] = useState<{
     url: string;
     nome: string;
@@ -1519,7 +1539,7 @@ export function ComprovantePagamentoPanel(props: {
               {(extras.data ?? []).map((e, i) => (
                 <li key={e.id} className="flex flex-wrap items-center gap-2">
                   <span className="min-w-0 flex-1 break-words">
-                    Comprovante {i + 2}: {resumoQuitacao(e)} · pago em{" "}
+                    {e.natureza && e.natureza !== "pagamento" ? NATUREZA_COMPROVANTE_LABEL[e.natureza] : `Comprovante ${i + 2}`}: {e.natureza === "estorno" ? "− " : ""}{resumoQuitacao(e)} · {e.natureza === "estorno" ? "devolvido" : "pago"} em{" "}
                     {e.pago_em.split("-").reverse().join("/")}
                   </span>
                   <Button
@@ -1561,8 +1581,9 @@ export function ComprovantePagamentoPanel(props: {
             const extraCents = (extras.data ?? []).reduce(
               (t, e) =>
                 t +
-                Number(e.valor_bancario_cents ?? 0) +
-                Number(e.valor_especie_cents ?? 0),
+                sinalNatureza(e.natureza) *
+                  (Number(e.valor_bancario_cents ?? 0) +
+                    Number(e.valor_especie_cents ?? 0)),
               0,
             );
             const c = consolidarQuitacao({
@@ -1582,25 +1603,37 @@ export function ComprovantePagamentoPanel(props: {
             if (c.status === "sem_referencia") return null;
             return (
               <>
-                {c.status === "menor" && !props.somenteLeitura ? (
+                {(c.status === "menor" || c.status === "maior") && !props.somenteLeitura ? (
                   <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
-                    <p>Quitação parcial: {fraseConferenciaValor(c)}.</p>
-                    <Button
-                      size="sm"
-                      disabled={extraAcoes.ocupado}
-                      onClick={() => setComplementarOpen(true)}
-                    >
-                      <Upload className="mr-1 size-4" /> Adicionar Comprovante
-                      Complementar
-                    </Button>
+                    <p>
+                      {c.status === "menor" ? "Quitação parcial" : "Pago a maior"}: {fraseConferenciaValor(c)}.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {c.status === "maior" ? (
+                        <Button size="sm" disabled={extraAcoes.ocupado} onClick={() => setComplementarOpen("estorno")}>
+                          <Upload className="mr-1 size-4" /> Anexar Comprovante de Estorno
+                        </Button>
+                      ) : (
+                        <>
+                          <Button size="sm" disabled={extraAcoes.ocupado} onClick={() => setComplementarOpen("pagamento")}>
+                            <Upload className="mr-1 size-4" /> Comprovante Complementar
+                          </Button>
+                          {(extras.data ?? []).some((e) => e.natureza === "estorno") ? (
+                            <Button size="sm" variant="outline" disabled={extraAcoes.ocupado} onClick={() => setComplementarOpen("repagamento")}>
+                              <Upload className="mr-1 size-4" /> Novo Comprovante (Valor Correto)
+                            </Button>
+                          ) : null}
+                        </>
+                      )}
+                    </div>
                     <ComprovanteAnexarDialog
-                      open={complementarOpen}
-                      onOpenChange={setComplementarOpen}
+                      open={!!complementarOpen}
+                      onOpenChange={(o) => { if (!o) setComplementarOpen(null); }}
                       alvo={props.alvo}
                       documentoTitulo={props.documentoTitulo}
                       colaboradorNome={props.colaboradorNome}
                       competencia={props.competencia}
-                      complementar={{ jaComprovadoCents: c.comprovadoCents }}
+                      complementar={{ jaComprovadoCents: c.comprovadoCents, natureza: complementarOpen ?? "pagamento" }}
                     />
                   </div>
                 ) : null}

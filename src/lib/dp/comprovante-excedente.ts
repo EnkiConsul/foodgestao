@@ -22,12 +22,30 @@ export type MotivoExcedente =
   | "comissao"
   | "outro";
 
-export type AcertoEngano = "estorno" | "desconto_proximo";
+export type AcertoEngano = "estorno_parcial" | "estorno_total" | "desconto_proximo";
 
 export const ACERTO_ENGANO_LABEL: Record<AcertoEngano, string> = {
-  estorno: "Colaborador devolve (estorno)",
+  estorno_parcial: "Colaborador devolve só a diferença",
+  estorno_total: "Colaborador devolve tudo e pago de novo o valor certo",
   desconto_proximo: "Descontar no próximo pagamento",
 };
+
+export const ACERTO_ENGANO_ORIENTACAO: Record<AcertoEngano, string> = {
+  estorno_parcial: "Quando o colaborador devolver, anexe o comprovante do estorno neste documento. O total fica quitado no valor correto.",
+  estorno_total: "Anexe o comprovante da devolução integral e depois o novo comprovante com o valor correto. O documento fica pendente até o novo pagamento.",
+  desconto_proximo: "Lance o desconto no próximo pagamento com ciência do colaborador (CLT art. 462).",
+};
+
+/** Natureza de cada comprovante extra: estorno subtrai do total pago. */
+export type NaturezaComprovante = "pagamento" | "estorno" | "repagamento";
+export const NATUREZA_COMPROVANTE_LABEL: Record<NaturezaComprovante, string> = {
+  pagamento: "Comprovante complementar",
+  estorno: "Comprovante de estorno (devolução)",
+  repagamento: "Novo comprovante (valor correto)",
+};
+export function sinalNatureza(n: NaturezaComprovante | string | null | undefined): 1 | -1 {
+  return n === "estorno" ? -1 : 1;
+}
 
 export const JUSTIFICATIVA_EXCEDENTE_MIN = 15;
 

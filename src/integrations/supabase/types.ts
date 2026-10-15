@@ -8431,6 +8431,7 @@ export type Database = {
           leitura: Json | null
           mime_type: string | null
           modalidade: string
+          natureza: string
           pago_em: string
           valor_bancario_cents: number | null
           valor_especie_cents: number | null
@@ -8447,6 +8448,7 @@ export type Database = {
           leitura?: Json | null
           mime_type?: string | null
           modalidade: string
+          natureza?: string
           pago_em: string
           valor_bancario_cents?: number | null
           valor_especie_cents?: number | null
@@ -8463,6 +8465,7 @@ export type Database = {
           leitura?: Json | null
           mime_type?: string | null
           modalidade?: string
+          natureza?: string
           pago_em?: string
           valor_bancario_cents?: number | null
           valor_especie_cents?: number | null
@@ -8665,6 +8668,7 @@ export type Database = {
           mime_type: string | null
           motivo_recusao: string | null
           origem_recibo_id: string | null
+          recibo_diferenca_documento_id: string | null
           referencia_data: string | null
           replaced_by_documento_id: string | null
           replaces_documento_id: string | null
@@ -8724,6 +8728,7 @@ export type Database = {
           mime_type?: string | null
           motivo_recusao?: string | null
           origem_recibo_id?: string | null
+          recibo_diferenca_documento_id?: string | null
           referencia_data?: string | null
           replaced_by_documento_id?: string | null
           replaces_documento_id?: string | null
@@ -8783,6 +8788,7 @@ export type Database = {
           mime_type?: string | null
           motivo_recusao?: string | null
           origem_recibo_id?: string | null
+          recibo_diferenca_documento_id?: string | null
           referencia_data?: string | null
           replaced_by_documento_id?: string | null
           replaces_documento_id?: string | null
@@ -18195,6 +18201,7 @@ export type Database = {
           p_documento_id: string
           p_leitura?: Json
           p_modalidade: string
+          p_natureza?: string
           p_pago_em: string
           p_valor_bancario_cents?: number
           p_valor_especie_cents?: number
@@ -18874,6 +18881,10 @@ export type Database = {
       dp_documento_excluir_definitivo: {
         Args: { _documento_id: string; _motivo: string }
         Returns: string
+      }
+      dp_documento_recibo_diferenca_vincular: {
+        Args: { p_documento_id: string; p_recibo_id: string }
+        Returns: undefined
       }
       dp_documento_registrar: { Args: { p_dados: Json }; Returns: string }
       dp_documento_requisito_excluir: {

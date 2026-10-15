@@ -20,6 +20,7 @@ export type ComprovanteComplementar = {
   valor_bancario_cents: number | null;
   valor_especie_cents: number | null;
   created_at: string;
+  natureza: "pagamento" | "estorno" | "repagamento";
 };
 
 /** Comprovantes complementares (2º, 3º...) do documento. Só lê o que já foi gravado. */
@@ -30,7 +31,7 @@ export function useComprovantesComplementares(documentoId: string | null | undef
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_documento_comprovantes" as never)
-        .select("id,file_path,file_name,mime_type,pago_em,modalidade,valor_bancario_cents,valor_especie_cents,created_at")
+        .select("id,file_path,file_name,mime_type,pago_em,modalidade,valor_bancario_cents,valor_especie_cents,created_at,natureza")
         .eq("documento_id", documentoId!)
         .order("created_at");
       if (error) throw error;
@@ -56,7 +57,7 @@ export function useDpComprovanteComplementarAcoes() {
   };
 
   const adicionar = useMutation({
-    mutationFn: async (p: { alvo: ComprovanteAlvo; file: File; pagoEm: string; quitacao: ComprovanteQuitacao }) => {
+    mutationFn: async (p: { alvo: ComprovanteAlvo; file: File; pagoEm: string; quitacao: ComprovanteQuitacao; natureza?: "pagamento" | "estorno" | "repagamento" }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
       const file = await prepararUpload(DP_DOCUMENTOS_BUCKET, p.file);
       const path = `${selectedCompanyId}/${p.alvo.colaboradorId ?? "geral"}/comprovantes/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
@@ -70,6 +71,7 @@ export function useDpComprovanteComplementarAcoes() {
         p_valor_bancario_cents: p.quitacao.valorBancarioCents ?? null,
         p_valor_especie_cents: p.quitacao.valorEspecieCents ?? null,
         p_leitura: p.quitacao.leitura ?? null,
+        p_natureza: p.natureza ?? "pagamento",
       } as never);
       if (error) {
         await supabase.storage.from(DP_DOCUMENTOS_BUCKET).remove([path]);
