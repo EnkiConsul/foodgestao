@@ -1,3 +1,4 @@
+import { tratativaPendente, tratativaJaDecididaPorAtestado } from "@/lib/dp/ocorrencias";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 import { useState } from "react";
 import {
