@@ -207,7 +207,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
       if (!form.colaborador_id) throw new Error("Selecione um colaborador");
       const { error } = await supabase.rpc("dp_solicitacao_criar_admin", {
         p_colaborador: form.colaborador_id,
-        p_tipo: form.tipo,
+        p_tipo: tipoFixo ?? form.tipo,
         p_data_alvo: form.data_alvo,
         p_data_fim: (form.data_fim || null) as any,
         p_motivo: (form.motivo.trim() || null) as any,
@@ -312,8 +312,8 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
 
       <DpPageHeader
         icon={ClipboardList}
-        title="Solicitações"
-        description="Aprove ou recuse pedidos especiais."
+        title={tipoFixo === "folga" ? "Solicitações de Folga" : "Solicitações"}
+        description={tipoFixo === "folga" ? "Pedidos de folga dos colaboradores. Férias e atestados têm telas próprias." : "Aprove ou recuse pedidos especiais."}
       />
 
       {/* Pendentes */}
@@ -581,7 +581,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-1.5">
+            {!tipoFixo && <div className="grid gap-1.5">
               <Label>Tipo *</Label>
               <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Tipo })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -589,7 +589,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
                   {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
+            </div>}
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label>Data alvo</Label>

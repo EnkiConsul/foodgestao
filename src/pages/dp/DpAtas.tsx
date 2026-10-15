@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NotebookPen, Plus, Paperclip, Send, Sparkles, Trash2, Users, Search, CheckCircle2, Clock, Eye, X, FileText } from "lucide-react";
 import { abrirDocumento } from "@/lib/documentoArquivo";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { AtaEditor } from "@/components/dp/atas/AtaEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -275,6 +276,8 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
       }
       toast.success(excluirAta ? "Ata excluída." : "Envio cancelado. A ata voltou para rascunho.", { description: "As pendências saíram do portal dos participantes." });
       qc.invalidateQueries({ queryKey: ["dp_atas"] });
+      qc.invalidateQueries({ queryKey: ["dp_notificacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
       onClose();
     } finally { setRevertendo(null); }
   }
@@ -466,7 +469,7 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
             !algumAssinou && !aceites.isLoading ? (
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" disabled={!!revertendo} onClick={() => reverterEnvio(false)}>{revertendo === "reverter" ? "Cancelando…" : "Cancelar Envio e Editar"}</Button>
-                <Button variant="ghost" className="text-destructive" disabled={!!revertendo} onClick={() => { if (window.confirm("Excluir esta ata? Ninguém assinou ainda e as pendências sairão do portal.")) reverterEnvio(true); }}><Trash2 className="mr-1 h-4 w-4" />Excluir Ata</Button>
+                <ConfirmarAcaoDialog titulo="Excluir esta ata?" descricao="Ninguém assinou ainda. A ata será excluída e as pendências sairão do portal dos participantes." confirmar="Excluir Ata" onConfirm={() => reverterEnvio(true)} disabled={!!revertendo}><Button variant="ghost" className="text-destructive" disabled={!!revertendo}><Trash2 className="mr-1 h-4 w-4" />Excluir Ata</Button></ConfirmarAcaoDialog>
               </div>
             ) : <span className="text-xs text-muted-foreground">Já há assinatura: a ata não pode mais ser alterada.</span>
           ) : (
