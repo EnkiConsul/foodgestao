@@ -288,3 +288,25 @@ export function tratativaPendente(o: {
     !tratativaJaDecididaPorAtestado(o)
   );
 }
+
+export type DiretrizPonto = "abonar" | "descontar" | "ajustar" | "decidir" | "outro";
+
+export const DIRETRIZ_LABEL: Record<DiretrizPonto, string> = {
+  abonar: "Abonar no ponto",
+  descontar: "Descontar na folha",
+  ajustar: "Ajustar batida",
+  decidir: "A decidir",
+  outro: "Outros",
+};
+
+/** O que o gestor deve fazer no sistema de ponto com esta ocorrência. */
+export function diretrizPonto(o: Parameters<typeof tratativaPendente>[0]): DiretrizPonto | null {
+  if (o.estado === "cancelada") return null;
+  if (tratativaJaDecididaPorAtestado(o)) return "abonar";
+  if (o.estado === "aguardando_confirmacao" || TIPOS_PREVISAO.includes(o.tipo as OcorrenciaTipo)) return "decidir";
+  if (tratativaPendente(o)) return "decidir";
+  if (o.tipo === "atestado" || o.tipo === "ausencia_justificada") return "abonar";
+  if (o.tipo === "esquecimento_marcacao") return "ajustar";
+  if (["falta", "atraso", "saida_antecipada", "atraso_intervalo"].includes(o.tipo)) return "descontar";
+  return "outro";
+}
