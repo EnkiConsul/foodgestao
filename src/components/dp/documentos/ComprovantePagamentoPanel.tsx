@@ -917,7 +917,7 @@ export function ComprovanteAnexarDialog(props: {
 
         <div className="grid gap-1.5">
           <Label htmlFor={campoId} className="text-xs">
-            Data do pagamento
+            {ehEstorno ? "Data da devolução" : "Data do pagamento"}
           </Label>
           <Input
             id={campoId}
@@ -945,7 +945,7 @@ export function ComprovanteAnexarDialog(props: {
         </div>
 
         <div className="grid gap-1.5">
-          <Label className="text-xs">Como o pagamento foi feito</Label>
+          <Label className="text-xs">{ehEstorno ? "Como a devolução foi feita" : "Como o pagamento foi feito"}</Label>
           <div className="flex flex-wrap gap-2">
             {COMPROVANTE_MODALIDADES.map((m) => (
               <Button
