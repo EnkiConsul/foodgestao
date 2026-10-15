@@ -2,9 +2,11 @@
 
 ## Estado atual
 
+> O gate só sinaliza no GitHub após o push; não impede publicação. Ver `docs/runbooks/publicacao-e-versoes.md`.
+
 | Campo | Valor |
 | --- | --- |
-| Congelado | **Sim** |
+| Congelado | **Não** — encerrado em 2026-08-27 14:10 UTC (ver `.lovable/release-freeze.json`) |
 | SHA congelado (release candidate) | `bcb88435e` — "Validou redirect em Auth.tsx" |
 | Início do freeze | 2026-08-27 08:27 UTC (05:27 São Paulo) |
 | Responsável | Rafael Castro |
