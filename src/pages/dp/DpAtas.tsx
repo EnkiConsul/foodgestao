@@ -469,7 +469,7 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
             !algumAssinou && !aceites.isLoading ? (
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" disabled={!!revertendo} onClick={() => reverterEnvio(false)}>{revertendo === "reverter" ? "Cancelando…" : "Cancelar Envio e Editar"}</Button>
-                <Button variant="ghost" className="text-destructive" disabled={!!revertendo} ><Trash2 className="mr-1 h-4 w-4" />Excluir Ata</Button></ConfirmarAcaoDialog>
+                <ConfirmarAcaoDialog titulo="Excluir esta ata?" descricao="Ninguém assinou ainda. A ata será excluída e as pendências sairão do portal dos participantes." confirmar="Excluir Ata" onConfirm={() => reverterEnvio(true)} disabled={!!revertendo}><Button variant="ghost" className="text-destructive" disabled={!!revertendo}><Trash2 className="mr-1 h-4 w-4" />Excluir Ata</Button></ConfirmarAcaoDialog>
               </div>
             ) : <span className="text-xs text-muted-foreground">Já há assinatura: a ata não pode mais ser alterada.</span>
           ) : (
