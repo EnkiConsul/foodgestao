@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 
 type Ata = {
   id: string; company_id: string; unidade_id: string | null; titulo: string; data_reuniao: string; local: string | null;
-  conteudo_html: string; anexos: AtaAnexo[]; condutores?: AtaCondutor[]; publicar_mural?: boolean; origem?: "sistema" | "importada" | "importada_assinada"; status: "rascunho" | "enviada"; enviada_em: string | null; created_at: string;
+  conteudo_html: string; anexos: AtaAnexo[]; materiais_apoio?: AtaAnexo[]; condutores?: AtaCondutor[]; publicar_mural?: boolean; origem?: "sistema" | "importada" | "importada_assinada"; status: "rascunho" | "enviada"; enviada_em: string | null; created_at: string;
 };
 type Part = { key: string; colaborador_id: string | null; modalidade: AtaModalidade; documento_id?: string | null; nome?: string; avulso_cpf?: string | null; avulso_whatsapp?: string | null; id?: string; assinado_em?: string | null };
 const soDigitos = (v: string) => v.replace(/\D/g, "");
@@ -217,6 +217,8 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
   const [confirmEnvio, setConfirmEnvio] = useState(false);
   const [revertendo, setRevertendo] = useState<null | "reverter" | "excluir">(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const apoioRef = useRef<HTMLInputElement>(null);
+  const [materiais, setMateriais] = useState<AtaAnexo[]>(ata?.materiais_apoio ?? []);
   const unidades = useCompanyUnidades(companyId);
   const colabs = useDpColaboradores();
 
@@ -248,7 +250,7 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
     if (!data) { toast.error("Informe a data da reunião."); return null; }
     setSalvando(true);
     try {
-      const payload = { company_id: companyId, titulo: titulo.trim(), data_reuniao: data, local: local.trim() || null, unidade_id: unidadeId === "todas" ? null : unidadeId, conteudo_html: html, anexos, condutores, publicar_mural: publicarMural };
+      const payload = { company_id: companyId, titulo: titulo.trim(), data_reuniao: data, local: local.trim() || null, unidade_id: unidadeId === "todas" ? null : unidadeId, conteudo_html: html, anexos, materiais_apoio: materiais, condutores, publicar_mural: publicarMural };
       let atual = id;
       if (atual) {
         const { error } = await supabase.from("dp_atas" as never).update(payload as never).eq("id", atual);
@@ -284,6 +286,17 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
       setAnexos((a) => [...a, { path, name: f.name, mime: f.type, size: f.size }]);
     }
     if (fileRef.current) fileRef.current.value = "";
+  }
+  async function anexarApoio(files: FileList | null) {
+    if (!files?.length) return;
+    for (const f of Array.from(files)) {
+      if (f.size > 15 * 1024 * 1024) { toast.error(`"${f.name}" passa de 15 MB.`, { description: "Reduza o arquivo e tente de novo." }); continue; }
+      const path = `${companyId}/atas/apoio/${crypto.randomUUID()}-${f.name.replace(/[^\w.-]+/g, "_")}`;
+      const up = await supabase.storage.from("dp-documentos").upload(path, f, { contentType: f.type || "application/octet-stream" });
+      if (up.error) { toast.error(`Não foi possível adicionar "${f.name}".`, { description: "Tente novamente em instantes." }); continue; }
+      setMateriais((a) => [...a, { path, name: f.name, mime: f.type, size: f.size }]);
+    }
+    if (apoioRef.current) apoioRef.current.value = "";
   }
 
   async function revisar() {
@@ -452,6 +465,27 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
                   <li key={a.path} className="flex items-center justify-between gap-2 rounded border px-2 py-1 text-sm">
                     <button type="button" className="truncate text-left hover:underline" onClick={() => abrirArquivoDp({ bucket: "dp-documentos", path: a.path, mimeType: a.mime, fileName: a.name })}>{a.name}</button>
                     {!enviada && <Button size="icon" variant="ghost" aria-label="Remover anexo" className="h-7 w-7" onClick={() => setAnexos((x) => x.filter((y) => y.path !== a.path))}><X className="h-4 w-4" /></Button>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Material de apoio (para baixar)</Label>
+              {!enviada && <Button type="button" size="sm" variant="outline" onClick={() => apoioRef.current?.click()}><Paperclip className="mr-1 h-4 w-4" />Adicionar</Button>}
+              <input ref={apoioRef} type="file" multiple accept=".ppt,.pptx,.xls,.xlsx,.doc,.docx,.csv,.txt,.pdf,.png,.jpg,.jpeg,.zip" className="hidden" onChange={(e) => anexarApoio(e.target.files)} />
+            </div>
+            {materiais.length === 0 ? <p className="text-xs text-muted-foreground">PowerPoint, planilhas ou documentos originais. Ficam guardados com a ata para consulta e download, mas não entram no documento assinado.</p> : (
+              <ul className="space-y-1">
+                {materiais.map((a) => (
+                  <li key={a.path} className="flex items-center justify-between gap-2 rounded border px-2 py-1 text-sm">
+                    <button type="button" className="truncate text-left hover:underline" onClick={async () => {
+                      const { data } = await supabase.storage.from("dp-documentos").createSignedUrl(a.path, 300, { download: a.name });
+                      if (data?.signedUrl) window.open(data.signedUrl, "_blank"); else toast.error("Não foi possível baixar o arquivo.");
+                    }}>{a.name}</button>
+                    {!enviada && <Button size="icon" variant="ghost" aria-label="Remover material" className="h-7 w-7" onClick={() => setMateriais((x) => x.filter((y) => y.path !== a.path))}><X className="h-4 w-4" /></Button>}
                   </li>
                 ))}
               </ul>
