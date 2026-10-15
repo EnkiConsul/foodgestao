@@ -28,7 +28,7 @@ interface DocumentPreviewProps {
   /** Documento assinado: o comprovante bancário já está no certificado; mostra só o recibo em dinheiro vinculado. */
   somenteReciboVinculado?: boolean;
   /** Comprovantes complementares (bucket dp-documentos), exibidos na mesma rolagem. */
-  comprovantesExtras?: { id: string; path: string; mime: string | null }[];
+  comprovantesExtras?: { id: string; path: string; mime: string | null; rotulo?: string }[];
   /** Mensagem de espera: nada é carregado enquanto estiver definida. */
   aguardando?: string | null;
   /** Ação principal no rodapé (ex.: "Assinar documento" após a leitura). */
@@ -57,9 +57,11 @@ export function DocumentPreview({
 }: DocumentPreviewProps) {
   const [comprovante, setComprovante] = useState<{ url: string; mime: string | null; nome: string | null } | null>(null);
   const [recibo, setRecibo] = useState<{ url: string; mime: string | null; nome: string | null; assinado: boolean } | null>(null);
+  const [reciboDif, setReciboDif] = useState<{ url: string; mime: string | null; nome: string | null; assinado: boolean } | null>(null);
   useEffect(() => {
     setComprovante(null);
     setRecibo(null);
+    setReciboDif(null);
     if (!open || !comprovanteDocumentoId || aguardando) return;
     let cancelado = false;
     if (!somenteReciboVinculado) {
@@ -67,47 +69,55 @@ export function DocumentPreview({
         .then((l) => { if (!cancelado && l) setComprovante({ url: l.url, mime: l.mimeType, nome: l.fileName }); })
         .catch(() => undefined);
     }
-    // Pagamento em dinheiro/misto: o recibo vinculado entra na mesma rolagem.
+    // Recibo do valor em dinheiro e recibo da diferença paga a maior entram na mesma rolagem.
+    const carregar = async (rid: string) => {
+      // Assinado por aceite no portal, link do WhatsApp (dp_recibos) ou via física digitalizada.
+      const [l, aceite, rec, doc] = await Promise.all([
+        linkDocumentoAssinado(rid, expiresIn).catch(() => null),
+        supabase.from("dp_documento_aceites").select("id").eq("documento_id", rid).limit(1),
+        supabase.from("dp_recibos").select("id").eq("documento_id", rid).not("assinado_em", "is", null).limit(1),
+        supabase.from("dp_documentos").select("via_assinada_path").eq("id", rid).maybeSingle(),
+      ]);
+      const assinado =
+        (aceite.data ?? []).length > 0 ||
+        (rec.data ?? []).length > 0 ||
+        !!(doc.data as { via_assinada_path?: string | null } | null)?.via_assinada_path;
+      if ((aceite.data ?? []).length > 0) {
+        try {
+          const cert = await certificadoValidacaoPdf(rid);
+          return { url: cert.url, mime: "application/pdf", nome: "recibo-certificado.pdf", assinado: true };
+        } catch { /* cai para o PDF original */ }
+      }
+      return l ? { url: l.url, mime: l.mimeType, nome: l.fileName, assinado } : null;
+    };
     supabase
       .from("dp_documentos")
-      .select("comprovante_recibo_documento_id")
+      .select("comprovante_recibo_documento_id, recibo_diferenca_documento_id")
       .eq("id", comprovanteDocumentoId)
       .maybeSingle()
       .then(async ({ data }) => {
-        const rid = (data as { comprovante_recibo_documento_id?: string | null } | null)?.comprovante_recibo_documento_id;
-        if (!rid || cancelado) return;
-        // Assinado por aceite no portal, link do WhatsApp (dp_recibos) ou via física digitalizada.
-        const [l, aceite, rec, doc] = await Promise.all([
-          linkDocumentoAssinado(rid, expiresIn).catch(() => null),
-          supabase.from("dp_documento_aceites").select("id").eq("documento_id", rid).limit(1),
-          supabase.from("dp_recibos").select("id").eq("documento_id", rid).not("assinado_em", "is", null).limit(1),
-          supabase.from("dp_documentos").select("via_assinada_path").eq("id", rid).maybeSingle(),
-        ]);
-        const assinado =
-          (aceite.data ?? []).length > 0 ||
-          (rec.data ?? []).length > 0 ||
-          !!(doc.data as { via_assinada_path?: string | null } | null)?.via_assinada_path;
-        // Assinado digitalmente: mostra a via certificada (assinatura + validação).
-        if ((aceite.data ?? []).length > 0) {
-          try {
-            const cert = await certificadoValidacaoPdf(rid);
-            if (!cancelado) setRecibo({ url: cert.url, mime: "application/pdf", nome: "recibo-certificado.pdf", assinado: true });
-            return;
-          } catch { /* cai para o PDF original */ }
+        const d = data as { comprovante_recibo_documento_id?: string | null; recibo_diferenca_documento_id?: string | null } | null;
+        if (cancelado) return;
+        if (d?.comprovante_recibo_documento_id) {
+          const r = await carregar(d.comprovante_recibo_documento_id);
+          if (!cancelado && r) setRecibo(r);
         }
-        if (!cancelado && l) setRecibo({ url: l.url, mime: l.mimeType, nome: l.fileName, assinado });
+        if (d?.recibo_diferenca_documento_id && d.recibo_diferenca_documento_id !== d.comprovante_recibo_documento_id) {
+          const r = await carregar(d.recibo_diferenca_documento_id);
+          if (!cancelado && r) setReciboDif(r);
+        }
       });
     return () => { cancelado = true; };
   }, [open, comprovanteDocumentoId, somenteReciboVinculado, expiresIn, aguardando]);
   const extrasChave = (comprovantesExtras ?? []).map((e) => e.path).join("|");
-  const [extras, setExtras] = useState<{ id: string; url: string; mime: string | null; path: string }[]>([]);
+  const [extras, setExtras] = useState<{ id: string; url: string; mime: string | null; path: string; rotulo?: string }[]>([]);
   useEffect(() => {
     setExtras([]);
     if (!open || !comprovantesExtras?.length || aguardando) return;
     let cancelado = false;
     Promise.all(comprovantesExtras.map(async (e) => {
       const { data } = await supabase.storage.from("dp-documentos").createSignedUrl(e.path, expiresIn);
-      return data?.signedUrl ? { id: e.id, url: data.signedUrl, mime: e.mime, path: e.path } : null;
+      return data?.signedUrl ? { id: e.id, url: data.signedUrl, mime: e.mime, path: e.path, rotulo: e.rotulo } : null;
     })).then((r) => { if (!cancelado) setExtras(r.filter((x): x is NonNullable<typeof x> => !!x)); });
     return () => { cancelado = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -116,6 +126,7 @@ export function DocumentPreview({
     ...(comprovante ? [{ id: "principal", url: comprovante.url, mime: comprovante.mime, path: comprovante.nome ?? "" }] : []),
     ...extras,
     ...(recibo ? [{ id: "recibo", url: recibo.url, mime: recibo.mime, path: recibo.nome ?? "", rotulo: recibo.assinado ? "Recibo do Valor em Dinheiro · Assinado" : "Recibo do Valor em Dinheiro · Aguardando assinatura" }] : []),
+    ...(reciboDif ? [{ id: "recibo-diferenca", url: reciboDif.url, mime: reciboDif.mime, path: reciboDif.nome ?? "", rotulo: reciboDif.assinado ? "Recibo da Diferença Paga a Maior · Assinado" : "Recibo da Diferença Paga a Maior · Aguardando assinatura" }] : []),
   ];
   const temAnexos = listaComprovantes.length > 0;
   const scrollRef = useRef<HTMLDivElement>(null);
