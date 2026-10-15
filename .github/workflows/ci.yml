@@ -47,17 +47,20 @@ jobs:
         # Baixe este teto ao mesmo tempo em que reduz warnings; nunca aumente.
         run: npx eslint . --max-warnings=546
 
-      - name: Isolamento entre empresas (escopo + RLS)
-        # Falha se alguma leitura multiempresa perder o filtro de empresa ou se
-        # alguma policy RLS permitir bypass entre empresas. As checagens de
-        # banco são puladas automaticamente sem SUPABASE_DB_URL.
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      - name: Isolamento entre empresas (parte estática — bloqueante)
+        # CI comum não usa credencial de banco. A parte estática bloqueia;
+        # as checagens de banco aparecem como NÃO EXECUTADAS (nunca "ok") e
+        # são obrigatórias no Release Gate (--require-db).
         run: npm run scope-lint:ci
 
+      - name: Status das verificações autenticadas
+        run: |
+          echo "::notice::Auditoria de banco (security-lint, policy-sweep, RLS do scope-lint): NÃO EXECUTADO no CI comum — obrigatória no Release Gate."
+          echo "::notice::Testes reais de RLS/tenancy: NÃO EXECUTADO sem TEST_SUPABASE_* de homologação — obrigatórios no Release Gate."
+
       - name: Vitest (unit + RLS regression)
-        # Suíte de tenancy em src/test/tenancy é auto-skipped quando
-        # TEST_SUPABASE_URL e credenciais dos 4 usuários não estão setadas.
+        # Testes reais de RLS/tenancy ficam NÃO EXECUTADOS (aviso) sem as
+        # variáveis de homologação; nunca acessam produção.
         run: npm test
 
       - name: Production build

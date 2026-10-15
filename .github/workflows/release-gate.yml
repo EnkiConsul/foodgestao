@@ -130,6 +130,7 @@ jobs:
           TEST_USER_D_PASSWORD: ${{ secrets.TEST_USER_D_PASSWORD }}
           TEST_COMPANY_1_ID: ${{ secrets.TEST_COMPANY_1_ID }}
           TEST_COMPANY_2_ID: ${{ secrets.TEST_COMPANY_2_ID }}
+          TEST_BACKEND_REQUIRED: "1"
         run: npx vitest run src/test/tenancy src/test/rls --reporter=verbose
 
   security:
@@ -158,12 +159,17 @@ jobs:
       - name: Security linter (strict)
         env:
           SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
-        run: node scripts/security-lint.mjs --ci --strict
+        run: node scripts/security-lint.mjs --ci --strict --require
 
       - name: Policy sweep
         env:
           SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
-        run: node scripts/policy-sweep.mjs
+        run: node scripts/policy-sweep.mjs --require
+
+      - name: Isolamento entre empresas (estático + banco obrigatório)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+        run: node scripts/company-scope-lint.mjs --ci --strict --require-db
 
       - name: Relatórios JSON
         if: always()

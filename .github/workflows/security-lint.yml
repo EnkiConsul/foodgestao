@@ -1,10 +1,12 @@
 name: Security Lint
 
+# Auditoria de catálogo do banco (exige PostgreSQL de homologação).
+# Saiu de pull_request/push: o CI comum não depende de credencial privilegiada.
+# Execução: manual (workflow_dispatch) quando existir mecanismo autorizado de
+# acesso à homologação, e obrigatoriamente pelo Release Gate (job "security").
+# Em modo --require, ausência de conexão = NÃO EXECUTADO = falha (exit 3).
 on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   security-lint:
@@ -31,11 +33,11 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           if [ -z "$SUPABASE_DB_URL" ]; then
-            echo "::error::Missing SUPABASE_DB_URL secret. Add it under Settings → Secrets → Actions."
+            echo "::error::NÃO EXECUTADO — SUPABASE_DB_URL (homologação) ausente."
             exit 1
           fi
 
       - name: Run security linter (CI strict)
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: node scripts/security-lint.mjs --ci --strict
+        run: node scripts/security-lint.mjs --ci --strict --require
