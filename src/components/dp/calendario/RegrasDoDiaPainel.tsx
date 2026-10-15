@@ -31,6 +31,8 @@ interface Props {
   ocultarBloqueio?: boolean;
   /** Quem está de folga no dia (para as cotas por cargo/setor). */
   ocupantes?: { nome: string; cargoId?: string | null; setorId?: string | null }[];
+  /** Quem ocupa vaga de folga mas está de atestado/licença no dia. */
+  afastadosNaVaga?: string[];
 }
 
 const STATUS_TROCA: Record<string, string> = {
