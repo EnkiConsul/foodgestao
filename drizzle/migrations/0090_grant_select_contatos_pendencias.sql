@@ -1,0 +1,1 @@
+GRANT SELECT (contatos_confirmados_em, contatos_solicitado_em) ON public.dp_colaboradores TO authenticated;

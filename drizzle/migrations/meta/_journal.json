@@ -631,6 +631,13 @@
       "when": 1792077691809,
       "tag": "0089_ocorrencia_lancado_ponto_permissao",
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1792093078345,
+      "tag": "0090_grant_select_contatos_pendencias",
+      "breakpoints": true
     }
   ]
 }
