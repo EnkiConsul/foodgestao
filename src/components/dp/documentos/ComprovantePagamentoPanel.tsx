@@ -58,7 +58,7 @@ import {
   reciboEspeciePdf,
   registroPagamentoEspecieArquivo,
 } from "@/lib/dp/recibo-especie";
-import { emitirRecibo, whatsappUrl } from "@/lib/dp/recibos";
+import { emitirRecibo, reciboPdfUrl, whatsappUrl } from "@/lib/dp/recibos";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
