@@ -828,7 +828,9 @@ export function ComprovanteAnexarDialog(props: {
         <DialogHeader>
           <DialogTitle>
             {props.complementar
-              ? "Adicionar Comprovante Complementar"
+              ? props.complementar.natureza && props.complementar.natureza !== "pagamento"
+                ? NATUREZA_COMPROVANTE_LABEL[props.complementar.natureza]
+                : "Adicionar Comprovante Complementar"
               : props.substituir
                 ? "Substituir Comprovante de Pagamento"
                 : "Anexar Comprovante de Pagamento"}
@@ -1468,7 +1470,7 @@ export function ComprovantePagamentoPanel(props: {
     aceitaComprovante(props.alvo.tipo) && !props.somenteLeitura,
   );
   const extraAcoes = useDpComprovanteComplementarAcoes();
-  const [complementarOpen, setComplementarOpen] = useState(false);
+  const [complementarOpen, setComplementarOpen] = useState<NaturezaComprovante | null>(null);
   const [extraPreview, setExtraPreview] = useState<{
     url: string;
     nome: string;
@@ -1601,25 +1603,37 @@ export function ComprovantePagamentoPanel(props: {
             if (c.status === "sem_referencia") return null;
             return (
               <>
-                {c.status === "menor" && !props.somenteLeitura ? (
+                {(c.status === "menor" || c.status === "maior") && !props.somenteLeitura ? (
                   <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
-                    <p>Quitação parcial: {fraseConferenciaValor(c)}.</p>
-                    <Button
-                      size="sm"
-                      disabled={extraAcoes.ocupado}
-                      onClick={() => setComplementarOpen(true)}
-                    >
-                      <Upload className="mr-1 size-4" /> Adicionar Comprovante
-                      Complementar
-                    </Button>
+                    <p>
+                      {c.status === "menor" ? "Quitação parcial" : "Pago a maior"}: {fraseConferenciaValor(c)}.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {c.status === "maior" ? (
+                        <Button size="sm" disabled={extraAcoes.ocupado} onClick={() => setComplementarOpen("estorno")}>
+                          <Upload className="mr-1 size-4" /> Anexar Comprovante de Estorno
+                        </Button>
+                      ) : (
+                        <>
+                          <Button size="sm" disabled={extraAcoes.ocupado} onClick={() => setComplementarOpen("pagamento")}>
+                            <Upload className="mr-1 size-4" /> Comprovante Complementar
+                          </Button>
+                          {(extras.data ?? []).some((e) => e.natureza === "estorno") ? (
+                            <Button size="sm" variant="outline" disabled={extraAcoes.ocupado} onClick={() => setComplementarOpen("repagamento")}>
+                              <Upload className="mr-1 size-4" /> Novo Comprovante (Valor Correto)
+                            </Button>
+                          ) : null}
+                        </>
+                      )}
+                    </div>
                     <ComprovanteAnexarDialog
-                      open={complementarOpen}
-                      onOpenChange={setComplementarOpen}
+                      open={!!complementarOpen}
+                      onOpenChange={(o) => { if (!o) setComplementarOpen(null); }}
                       alvo={props.alvo}
                       documentoTitulo={props.documentoTitulo}
                       colaboradorNome={props.colaboradorNome}
                       competencia={props.competencia}
-                      complementar={{ jaComprovadoCents: c.comprovadoCents }}
+                      complementar={{ jaComprovadoCents: c.comprovadoCents, natureza: complementarOpen ?? "pagamento" }}
                     />
                   </div>
                 ) : null}
