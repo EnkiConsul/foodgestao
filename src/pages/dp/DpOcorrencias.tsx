@@ -508,6 +508,19 @@ export default function DpOcorrencias() {
           </div>
         </DpFilterField>
 
+        <DpFilterField label=" " className="flex items-end">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => setMaisFiltros((v) => !v)}
+          >
+            {maisFiltros ? "Menos filtros" : "Mais filtros"}
+          </Button>
+        </DpFilterField>
+
+        {maisFiltros && (
+        <>
         <DpFilterField label="Colaborador">
           <Select value={filtros.colaboradorId} onValueChange={(v) => set("colaboradorId", v)}>
             <SelectTrigger>
