@@ -504,7 +504,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
               <SelectItem value="todos">Todos os tipos</SelectItem>
               {tiposHistorico.map((t) => <SelectItem key={t} value={t}>{tipoLabel(t)}</SelectItem>)}
             </SelectContent>
-          </Select>
+          </Select>}
           <Select value={fStatus} onValueChange={setFStatus}>
             <SelectTrigger aria-label="Status"><SelectValue /></SelectTrigger>
             <SelectContent>
