@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DocSubstituirDialog, type DocSubstituirTarget } from "@/components/dp/documentos/DocSubstituirDialog";
 import { DocDetalhesDialog } from "@/components/dp/documentos/DocDetalhesDialog";
+import { AtestadoResumo } from "@/components/dp/documentos/AtestadoResumo";
 import { DocEventosDialog } from "@/components/dp/documentos/DocEventosDialog";
 import { Textarea } from "@/components/ui/textarea";
 import { docSourceConfig, excluirDocumentoHistorico } from "@/lib/dp/historicoDocAcoes";
@@ -1342,7 +1343,9 @@ export default function DpHistoricoCompleto() {
         // dinheiro é outro documento e continua aparecendo abaixo.
         somenteReciboVinculado={!!certPreview}
         comprovantesExtras={extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null, rotulo: e.natureza === "estorno" ? "Comprovante de Estorno (Devolução)" : e.natureza === "repagamento" ? "Novo Comprovante (Valor Correto)" : undefined }))}
-        toolbar={preview && (preview.aceite !== null || preview.aceiteDispensado || preview.viaFisica || preview.quitacao || preview.valor_pendente_cents) ? (
+        toolbar={preview && preview.tipo_key === "atestado" ? (
+          <AtestadoResumo rowId={preview.id} filePath={preview.file_path} colaboradorId={preview.colaborador_id} />
+        ) : preview && (preview.aceite !== null || preview.aceiteDispensado || preview.viaFisica || preview.quitacao || preview.valor_pendente_cents) ? (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <AssinaturaSelo r={preview} longo />
             <QuitacaoSelo q={preview.quitacao} pendenteCents={preview.valor_pendente_cents} />
