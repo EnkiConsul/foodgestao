@@ -79,16 +79,24 @@ export default function DpOcorrencias() {
   const [searchParams] = useSearchParams();
   const colaboradorParam = searchParams.get("colaborador");
   const dataParam = searchParams.get("data");
-  const [filtros, setFiltros] = useState<OcorrenciaFiltros>(
+  // Corte salvo no navegador: o filtro inicial já nasce no período dele.
+  const [corte, setCorteState] = useState<number>(() =>
+    lerCorte(typeof window !== "undefined" ? window.localStorage.getItem("dp_ocorrencias_corte") : null),
+  );
+  const filtrosIniciais = (c: number): OcorrenciaFiltros => {
+    if (!c) return FILTROS_PADRAO;
+    const i = intervaloAtual(c);
+    return { ...FILTROS_PADRAO, periodo: "personalizado", periodoInicio: i.inicio, periodoFim: i.fim };
+  };
+  const [filtros, setFiltros] = useState<OcorrenciaFiltros>(() =>
     colaboradorParam || dataParam
       ? {
-          ...FILTROS_PADRAO,
+          ...filtrosIniciais(corte),
           colaboradorId: colaboradorParam ?? "all",
           data: dataParam ?? null,
-          periodo: "mes",
           somentePendentes: false,
         }
-      : FILTROS_PADRAO,
+      : filtrosIniciais(corte),
   );
   const [novaOpen, setNovaOpen] = useState(false);
   const [visao, setVisao] = useState<"dia" | "colaborador">("dia");
