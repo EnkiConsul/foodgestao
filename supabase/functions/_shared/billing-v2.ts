@@ -205,8 +205,6 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
           totalValue: reais(parc!.total_cents), dueDate: hoje(1), description: `${plano.name} — anual em ${p.parcelas}x (juros do cartão inclusos)`, externalReference: sub.id }),
       }, conta.asaas_env);
       const pgId = requireAsaasId(pg, "a cobrança");
-      const { error: eU } = await admin.from("subscriptions").update({ external_subscription_id: `installment:${pg.installment ?? pgId}` }).eq("id", sub.id);
-      if (eU) throw new Error(eU.message);
       criados.push({ tipo: "cobrança parcelada", id: pgId, descricao: `${plano.name} anual ${p.parcelas}x` });
       await registrarFatura(admin, sub, pg, "cartao", `Contratação anual ${p.parcelas}x`);
     } else {
