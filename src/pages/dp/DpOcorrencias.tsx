@@ -185,10 +185,10 @@ export default function DpOcorrencias() {
     const alvo = deslocarMes(a0, m0, n);
     aplicarMes(alvo.ano, alvo.mes, corte);
   };
+  // "Hoje" filtra só o dia atual (São Paulo): indicadores e lista passam a refletir o dia.
   const irHoje = () => {
-    if (!corte) return setFiltros((f) => ({ ...f, data: null, periodo: "mes", periodoInicio: null, periodoFim: null }));
-    const [a, m] = hojeRef().split("-").map(Number);
-    aplicarMes(a, m, corte);
+    const h = hojeRef();
+    setFiltros((f) => ({ ...f, data: null, periodo: "hoje", periodoInicio: h, periodoFim: h }));
   };
   const swipeMes = useSwipeHorizontal(() => irMes(1), () => irMes(-1));
 
