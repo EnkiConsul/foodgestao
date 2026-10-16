@@ -26,6 +26,46 @@ function docValido(d: string): boolean {
   return false;
 }
 
+function mascararDoc(d?: string | null): string | null {
+  if (!d) return null;
+  const s = d.replace(/\D/g, "");
+  if (s.length === 11) return `${s.slice(0, 3)}.***.***-${s.slice(9)}`;
+  if (s.length === 14) return `${s.slice(0, 2)}.***.***/****-${s.slice(12)}`;
+  return "***";
+}
+function mascararEmail(e?: string | null): string | null {
+  if (!e) return null;
+  const [u, dom] = e.split("@");
+  return `${u.slice(0, 1)}***${u.length > 1 ? u.slice(-1) : ""}@${dom ?? ""}`;
+}
+const DOC_DIVERGENTE = "O CPF/CNPJ informado é diferente do pagador já cadastrado. Fale com o suporte.";
+
+/** Conta com cliente no Asaas e sem documento local: alinha o documento antes de qualquer criação. */
+async function alinharDocumentoAsaas(conta: any, documento: string, email: string): Promise<{ documento: string; asaasAtualizado: boolean }> {
+  let cliente: any;
+  try { cliente = await asaasFetch(`/customers/${conta.asaas_customer_id}`, { method: "GET" }, conta.asaas_env); }
+  catch (e) { throw new BillingError("Não foi possível consultar o pagador no Asaas. Nada foi alterado. Tente novamente.", 502, String((e as Error).message)); }
+  const docAsaas = String(cliente?.cpfCnpj ?? "").replace(/\D/g, "");
+  if (docAsaas) {
+    if (documento && documento !== docAsaas) throw new BillingError(DOC_DIVERGENTE, 422);
+    return { documento: docAsaas, asaasAtualizado: false };
+  }
+  if (!documento) throw new BillingError("Informe o CPF/CNPJ do pagador.", 422);
+  try {
+    await asaasFetch(`/customers/${conta.asaas_customer_id}`, { method: "POST", body: JSON.stringify({ cpfCnpj: documento, email }) }, conta.asaas_env);
+  } catch (e) { throw new BillingError("O Asaas recusou o CPF/CNPJ do pagador. Nada foi alterado.", 422, String((e as Error).message)); }
+  return { documento, asaasAtualizado: true };
+}
+
+async function registrarPagador(admin: any, contaId: string, actor: string, antes: any, depois: any, extra: Record<string, unknown>) {
+  await admin.from("billing_account_events").insert({ billing_account_id: contaId, tipo_evento: "pagador_atualizado", actor_id: actor,
+    payload: {
+      antes: { documento_pagador: mascararDoc(antes.documento_pagador), email_cobranca: mascararEmail(antes.email_cobranca) },
+      depois: { documento_pagador: mascararDoc(depois.documento_pagador), email_cobranca: mascararEmail(depois.email_cobranca) },
+      ...extra,
+    } });
+}
+
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
