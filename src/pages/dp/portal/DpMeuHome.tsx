@@ -217,7 +217,7 @@ export default function DpMeuHome() {
             ))}
           </div>
           <Button asChild variant="ghost" size="sm" className="mt-3 w-full">
-            <Link to="/dp/meu/solicitacoes">Ver todas <ArrowRight className="h-4 w-4 ml-1" /></Link>
+            <Link to="/dp/meu/historico">Ver todas <ArrowRight className="h-4 w-4 ml-1" /></Link>
           </Button>
         </section>
 

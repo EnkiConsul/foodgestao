@@ -638,6 +638,13 @@
       "when": 1792093078345,
       "tag": "0090_grant_select_contatos_pendencias",
       "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1792139674245,
+      "tag": "0091_bloquear_adiantamento_e_tipos_genericos_no_portal",
+      "breakpoints": true
     }
   ]
 }

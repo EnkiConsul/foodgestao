@@ -233,7 +233,7 @@ export function useDpPendenciasColaborador() {
               tipo: "Férias",
               vencimento: ymd(limite),
               atrasoDias: dias,
-              url: "/dp/meu/solicitacoes",
+              url: "/dp/meu/ferias",
             });
           });
         }

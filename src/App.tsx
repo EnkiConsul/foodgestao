@@ -133,7 +133,6 @@ const DpMeuHome = lazyWithRetry(() => import("./pages/dp/portal/DpMeuHome"));
 const DpMeuMural = lazyWithRetry(() => import("./pages/dp/portal/DpMeuMural"));
 const DpMeuPerfil = lazyWithRetry(() => import("./pages/dp/portal/DpMeuPerfil"));
 const DpMeuDocumentos = lazyWithRetry(() => import("./pages/dp/portal/DpMeuDocumentos"));
-const DpMeuSolicitacoes = lazyWithRetry(() => import("./pages/dp/portal/DpMeuSolicitacoes"));
 const DpMeuFerias = lazyWithRetry(() => import("./pages/dp/portal/DpMeuFerias"));
 const DpMeuTrocas = lazyWithRetry(() => import("./pages/dp/portal/DpMeuTrocas"));
 const DpMeuCalendario = lazyWithRetry(() => import("./pages/dp/portal/DpMeuCalendario"));
@@ -450,7 +449,8 @@ const AppRoutes = () => (
         <Route path="perfil" element={<DpMeuPerfil />} />
         <Route path="cadastro" element={<Navigate to="/dp/meu/perfil" replace />} />
         <Route path="documentos" element={<DpMeuDocumentos />} />
-        <Route path="solicitacoes" element={<PortalSomenteDocumentos><DpMeuSolicitacoes /></PortalSomenteDocumentos>} />
+        {/* Tela genérica de solicitações removida do portal — redireciona para o início. */}
+        <Route path="solicitacoes" element={<Navigate to="/dp/meu" replace />} />
         <Route path="trocas" element={<PortalSomenteDocumentos><DpMeuTrocas /></PortalSomenteDocumentos>} />
         <Route path="ferias" element={<PortalSomenteDocumentos><DpMeuFerias /></PortalSomenteDocumentos>} />
         <Route path="calendario" element={<PortalSomenteDocumentos><DpMeuCalendario /></PortalSomenteDocumentos>} />

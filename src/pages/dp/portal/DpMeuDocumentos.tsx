@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import { format } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Download, FileText, Eye, Ban, ChevronDown, SlidersHorizontal,
@@ -35,7 +36,13 @@ import type { Database } from "@/integrations/supabase/types";
 import { notifyError } from "@/lib/notifyError";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
 import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
-import { excluirDocumento } from "@/lib/dp/documentos-oficial";
+import { excluirDocumento, registrarDocumento } from "@/lib/dp/documentos-oficial";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { PortalDateField } from "@/components/dp/portal/PortalDateField";
+import { AnexoFotoPdfPicker } from "@/components/dp/portal/AnexoFotoPdfPicker";
+import { prepararUpload } from "@/lib/storage/uploadPolicy";
+import { sanitizeStorageFilename } from "@/lib/storage";
 
 type Tipo = Database["public"]["Enums"]["dp_documento_tipo"];
 
@@ -285,6 +292,65 @@ export default function DpMeuDocumentos() {
     onError: (e: any) => notifyError(e, { surface: "Meus documentos", action: "concluir a ação", fallback: "Erro ao cancelar" }),
   });
 
+  /**
+   * Envio de atestado pelo portal (antes ficava na tela genérica de
+   * Solicitações, removida). O fluxo é o mesmo: upload no bucket privado,
+   * registro documental e solicitação para análise do DP.
+   */
+  const [envioAberto, setEnvioAberto] = useState(false);
+  const [envioData, setEnvioData] = useState<Date | undefined>(undefined);
+  const [envioMotivo, setEnvioMotivo] = useState("");
+  const [envioArquivo, setEnvioArquivo] = useState<File | null>(null);
+
+  const enviarAtestado = useMutation({
+    mutationFn: async () => {
+      if (!colaborador?.id || !colaborador?.company_id) throw new Error("Cadastro de colaborador não encontrado");
+      if (!envioData) throw new Error("Informe a data do atestado.");
+      if (!envioMotivo.trim()) throw new Error("Descreva o motivo do atestado.");
+      if (!envioArquivo) throw new Error("Anexe a foto ou o PDF do atestado.");
+      const dataRef = format(envioData, "yyyy-MM-dd");
+      const arq = await prepararUpload("dp-documentos", envioArquivo);
+      const path = `${colaborador.company_id}/${colaborador.id}/${Date.now()}-${sanitizeStorageFilename(arq.name)}`;
+      const up = await supabase.storage.from("dp-documentos").upload(path, arq, { contentType: arq.type, upsert: false });
+      if (up.error) throw up.error;
+      await registrarDocumento({
+        company_id: colaborador.company_id,
+        colaborador_id: colaborador.id,
+        tipo: "atestado",
+        exige_aceite: false,
+        titulo: `Atestado ${dataRef.split("-").reverse().join("/")}`,
+        descricao: envioMotivo.trim(),
+        file_path: path,
+        file_name: arq.name,
+        file_size: arq.size,
+        mime_type: arq.type,
+        referencia_data: dataRef,
+      });
+      const { error } = await supabase.rpc("dp_solicitacao_criar", {
+        p_tipo: "atestado" as any,
+        p_data_alvo: dataRef,
+        p_data_fim: null as any,
+        p_motivo: envioMotivo.trim(),
+        p_arquivo_path: path as any,
+      });
+      if (error) {
+        const raw = error.message ?? "";
+        if (raw.includes("DUPLICATE_REQUEST"))
+          throw new Error("Você já tem um atestado em análise para este dia.");
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success("Atestado enviado para análise do DP");
+      qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
+      setEnvioAberto(false);
+      setEnvioData(undefined);
+      setEnvioMotivo("");
+      setEnvioArquivo(null);
+    },
+    onError: (e: any) => notifyError(e, { surface: "Meus documentos", action: "enviar o atestado", fallback: "Erro ao enviar" }),
+  });
+
   return (
     <DpPage>
       <Helmet><title>Meus documentos — Portal</title></Helmet>
@@ -324,10 +390,8 @@ export default function DpMeuDocumentos() {
             </div>
           </Tabs>
           {currentTab.key === "atestado" && (
-            <Button asChild size="sm">
-              <Link to="/dp/meu/solicitacoes?tipo=atestado">
-                <HeartPulse className="mr-1 size-4" /> Enviar atestado
-              </Link>
+            <Button size="sm" onClick={() => setEnvioAberto(true)}>
+              <HeartPulse className="mr-1 size-4" /> Enviar atestado
             </Button>
           )}
         </div>
@@ -549,6 +613,37 @@ export default function DpMeuDocumentos() {
         enviando={aceitar.isPending}
         onConfirmar={(assinatura) => assinando && aceitar.mutate({ d: assinando, assinatura })}
       />
+
+      {/* Envio de atestado — independente da antiga tela de Solicitações. */}
+      <Dialog open={envioAberto} onOpenChange={setEnvioAberto}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Enviar atestado</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <PortalDateField
+              label="Data do atestado"
+              value={envioData}
+              onChange={setEnvioData}
+            />
+            <div>
+              <Label>Motivo<span className="text-destructive ml-0.5">*</span></Label>
+              <Textarea rows={3} value={envioMotivo} onChange={(e) => setEnvioMotivo(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Foto ou PDF do atestado<span className="text-destructive ml-0.5">*</span></Label>
+              <AnexoFotoPdfPicker file={envioArquivo} onChange={setEnvioArquivo} />
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setEnvioAberto(false)}>Cancelar</Button>
+              <Button
+                disabled={enviarAtestado.isPending || !envioData || !envioMotivo.trim() || !envioArquivo}
+                onClick={() => enviarAtestado.mutate()}
+              >
+                {enviarAtestado.isPending ? "Enviando…" : "Enviar"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DpPage>
   );
 }
