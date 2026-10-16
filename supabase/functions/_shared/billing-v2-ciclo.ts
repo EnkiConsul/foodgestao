@@ -85,6 +85,8 @@ export async function apurarExcedentes(admin: SupabaseClient, subId: string, com
   if (ja) return { ...ja, ja_apurado: true };
   const { data: sub } = await admin.from("subscriptions").select("*").eq("id", subId).single();
   if (sub.module !== "pessoas") return { ignorado: "módulo sem franquia de colaboradores" };
+  // Nunca cobra assinatura sem vínculo no Asaas (ex.: contratação incompleta): vira alerta no Backoffice.
+  if (!sub.external_subscription_id && sub.status === "pending") return { ignorado: "assinatura pendente sem vínculo no Asaas" };
   const { data: cnt, error } = await admin.rpc("billing_v2_colaboradores_competencia", { _sub: subId, _competencia: comp });
   if (error) throw new Error(`apuração: ${error.message}`);
   const c = (cnt as any[])[0];
