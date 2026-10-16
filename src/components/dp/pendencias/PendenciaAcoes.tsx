@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Ban, CalendarPlus, Check, RotateCcw, X } from "lucide-react";
+import { ArrowRight, Ban, CalendarPlus, Check, FileUp, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ import { useDpIntermitenteConfirmacoes } from "@/hooks/useDpIntermitenteConfirma
 import type { Pendencia } from "@/hooks/useDpPendencias";
 import { DpLicencaRetornoDialog } from "@/components/dp/licencas/DpLicencaRetornoDialog";
 import { adiarPresets } from "@/lib/dp/adiar-presets";
+import { DpDocumentoImportarDialog, alvoImportacao } from "@/components/dp/documentos/DpDocumentoImportarDialog";
 import { FeriasNovoModal } from "@/components/dp/ferias/FeriasNovoModal";
 
 /** Rótulo do botão principal conforme o assunto (em vez do genérico "Resolver"). */
@@ -58,6 +59,8 @@ export function PendenciaAcoes({
   const [adiarAberto, setAdiarAberto] = useState(false);
   const [retornoAberto, setRetornoAberto] = useState(false);
   const [feriasAberto, setFeriasAberto] = useState(false);
+  const [importarAberto, setImportarAberto] = useState(false);
+  const importarNaTela = !!alvoImportacao(p.url);
   const feriasNaTela = p.tipo === "Férias" && !!p.colaboradorId;
 
   const decisao = decisaoDe.get(p.id);
@@ -129,6 +132,10 @@ export function PendenciaAcoes({
       ) : feriasNaTela ? (
         <Button size="sm" className="h-9 sm:h-7 text-xs" onClick={() => setFeriasAberto(true)}>
           <CalendarPlus className="h-3 w-3 mr-1" /> Programar férias
+        </Button>
+      ) : importarNaTela ? (
+        <Button size="sm" className="h-9 sm:h-7 text-xs" onClick={() => setImportarAberto(true)}>
+          <FileUp className="h-3 w-3 mr-1" /> Importar documento
         </Button>
       ) : (
         <Button asChild size="sm" className="h-9 sm:h-7 text-xs">
@@ -236,6 +243,17 @@ export function PendenciaAcoes({
             if (!o) onResolved?.();
           }}
           colaboradorId={p.colaboradorId!}
+        />
+      )}
+
+      {importarNaTela && importarAberto && (
+        <DpDocumentoImportarDialog
+          url={p.url}
+          open={importarAberto}
+          onOpenChange={(o) => {
+            setImportarAberto(o);
+            if (!o) onResolved?.();
+          }}
         />
       )}
 
