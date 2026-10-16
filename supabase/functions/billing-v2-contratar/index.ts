@@ -26,6 +26,46 @@ function docValido(d: string): boolean {
   return false;
 }
 
+function mascararDoc(d?: string | null): string | null {
+  if (!d) return null;
+  const s = d.replace(/\D/g, "");
+  if (s.length === 11) return `${s.slice(0, 3)}.***.***-${s.slice(9)}`;
+  if (s.length === 14) return `${s.slice(0, 2)}.***.***/****-${s.slice(12)}`;
+  return "***";
+}
+function mascararEmail(e?: string | null): string | null {
+  if (!e) return null;
+  const [u, dom] = e.split("@");
+  return `${u.slice(0, 1)}***${u.length > 1 ? u.slice(-1) : ""}@${dom ?? ""}`;
+}
+const DOC_DIVERGENTE = "O CPF/CNPJ informado é diferente do pagador já cadastrado. Fale com o suporte.";
+
+/** Conta com cliente no Asaas e sem documento local: alinha o documento antes de qualquer criação. */
+async function alinharDocumentoAsaas(conta: any, documento: string, email: string): Promise<{ documento: string; asaasAtualizado: boolean }> {
+  let cliente: any;
+  try { cliente = await asaasFetch(`/customers/${conta.asaas_customer_id}`, { method: "GET" }, conta.asaas_env); }
+  catch (e) { throw new BillingError(502, "Não foi possível consultar o pagador no Asaas. Nada foi alterado. Tente novamente.", String((e as Error).message)); }
+  const docAsaas = String(cliente?.cpfCnpj ?? "").replace(/\D/g, "");
+  if (docAsaas) {
+    if (documento && documento !== docAsaas) throw new BillingError(422, DOC_DIVERGENTE);
+    return { documento: docAsaas, asaasAtualizado: false };
+  }
+  if (!documento) throw new BillingError(422, "Informe o CPF/CNPJ do pagador.");
+  try {
+    await asaasFetch(`/customers/${conta.asaas_customer_id}`, { method: "POST", body: JSON.stringify({ cpfCnpj: documento, email }) }, conta.asaas_env);
+  } catch (e) { throw new BillingError(422, "O Asaas recusou o CPF/CNPJ do pagador. Nada foi alterado.", String((e as Error).message)); }
+  return { documento, asaasAtualizado: true };
+}
+
+async function registrarPagador(admin: any, contaId: string, actor: string, antes: any, depois: any, extra: Record<string, unknown>) {
+  await admin.from("billing_account_events").insert({ billing_account_id: contaId, tipo_evento: "pagador_atualizado", actor_id: actor,
+    payload: {
+      antes: { documento_pagador: mascararDoc(antes.documento_pagador), email_cobranca: mascararEmail(antes.email_cobranca) },
+      depois: { documento_pagador: mascararDoc(depois.documento_pagador), email_cobranca: mascararEmail(depois.email_cobranca) },
+      ...extra,
+    } });
+}
+
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
@@ -82,17 +122,27 @@ Deno.serve(async (req) => {
     if (b.acao === "atualizar_pagador") {
       if (!docValido(b.documento)) return json({ error: "CPF/CNPJ inválido. Confira os números e tente novamente." }, 422);
       const antes = { documento_pagador: conta.documento_pagador, email_cobranca: conta.email_cobranca };
-      if (conta.asaas_customer_id) {
+      let asaasAtualizado = false;
+      if (conta.asaas_customer_id && !conta.documento_pagador) {
+        // sem documento local: o cliente do Asaas manda; divergência é recusada
+        const r = await alinharDocumentoAsaas(conta, b.documento, b.email);
+        asaasAtualizado = r.asaasAtualizado;
+        if (!asaasAtualizado) {
+          try { await asaasFetch(`/customers/${conta.asaas_customer_id}`, { method: "POST", body: JSON.stringify({ email: b.email }) }, conta.asaas_env); asaasAtualizado = true; }
+          catch (e) { return json({ error: "O Asaas recusou o novo e-mail do pagador. Nada foi alterado.", detalhes: String((e as Error).message) }, 422); }
+        }
+      } else if (conta.asaas_customer_id) {
         try {
           await asaasFetch(`/customers/${conta.asaas_customer_id}`, { method: "POST", body: JSON.stringify({ cpfCnpj: b.documento, email: b.email }) }, conta.asaas_env);
+          asaasAtualizado = true;
         } catch (e) {
           return json({ error: "O Asaas recusou os novos dados do pagador. Nada foi alterado.", detalhes: String((e as Error).message) }, 422);
         }
       }
-      await admin.from("billing_accounts").update({ documento_pagador: b.documento, email_cobranca: b.email }).eq("id", conta.id);
-      await admin.from("billing_account_events").insert({ billing_account_id: conta.id, tipo_evento: "pagador_atualizado", actor_id: user.id,
-        payload: { antes, depois: { documento_pagador: b.documento, email_cobranca: b.email }, asaas_atualizado: !!conta.asaas_customer_id } });
-      return json({ ok: true, asaas_atualizado: !!conta.asaas_customer_id });
+      const { error: eUp } = await admin.from("billing_accounts").update({ documento_pagador: b.documento, email_cobranca: b.email }).eq("id", conta.id);
+      if (eUp) return json({ error: "Não foi possível gravar os dados do pagador.", detalhes: eUp.message }, 500);
+      await registrarPagador(admin, conta.id, user.id, antes, { documento_pagador: b.documento, email_cobranca: b.email }, { asaas_atualizado: asaasAtualizado, origem: "minha_assinatura" });
+      return json({ ok: true, asaas_atualizado: asaasAtualizado });
     }
 
     const { data: au } = await admin.auth.admin.getUserById(user.id);
@@ -105,9 +155,31 @@ Deno.serve(async (req) => {
     if (b.acao === "contratar") {
       if (b.valor_cents !== undefined) console.warn("billing-v2-contratar: valor do navegador ignorado", b.valor_cents);
       // Dados do pagador: gravados só enquanto o cliente ainda não existe no Asaas
+      if (b.pagador && !docValido(b.pagador.documento)) return json({ error: "CPF/CNPJ inválido. Confira os números e tente novamente." }, 422);
       if (b.pagador && !conta.asaas_customer_id) {
         await admin.from("billing_accounts").update({ documento_pagador: b.pagador.documento, email_cobranca: b.pagador.email }).eq("id", conta.id);
         conta.documento_pagador = b.pagador.documento; conta.email_cobranca = b.pagador.email;
+      } else if (conta.asaas_customer_id && (!conta.documento_pagador || !conta.email_cobranca)) {
+        // Cliente já existe no Asaas mas falta dado local: alinhar ANTES de criar qualquer assinatura
+        const antes = { documento_pagador: conta.documento_pagador, email_cobranca: conta.email_cobranca };
+        const upd: Record<string, string> = {};
+        let asaasAtualizado = false;
+        if (!conta.documento_pagador) {
+          const r = await alinharDocumentoAsaas(conta, b.pagador?.documento ?? "", b.pagador?.email ?? conta.email_cobranca ?? "");
+          upd.documento_pagador = r.documento; asaasAtualizado = r.asaasAtualizado;
+        }
+        if (!conta.email_cobranca) {
+          if (!b.pagador?.email) return json({ error: "Informe o e-mail de cobrança." }, 422);
+          upd.email_cobranca = b.pagador.email;
+          if (!asaasAtualizado) {
+            try { await asaasFetch(`/customers/${conta.asaas_customer_id}`, { method: "POST", body: JSON.stringify({ email: b.pagador.email }) }, conta.asaas_env); asaasAtualizado = true; }
+            catch (e) { return json({ error: "O Asaas recusou o e-mail de cobrança. Nada foi alterado.", detalhes: String((e as Error).message) }, 422); }
+          }
+        }
+        const { error: eUp } = await admin.from("billing_accounts").update(upd).eq("id", conta.id);
+        if (eUp) return json({ error: "Não foi possível gravar os dados do pagador.", detalhes: eUp.message }, 500);
+        Object.assign(conta, upd);
+        await registrarPagador(admin, conta.id, user.id, antes, { ...antes, ...upd }, { asaas_atualizado: asaasAtualizado, origem: "checkout" });
       }
       // Grupo escolhido pelo cliente: cria/converte a conta de grupo só com as empresas selecionadas
       if (b.modo === "grupo" && b.empresas?.length) {

@@ -79,8 +79,29 @@ export default function MinhaAssinaturaV2() {
   const subs = (d.assinaturas ?? []) as Json[];
   const faturas = (d.faturas ?? []) as Json[];
 
-  if (!conta || !subs.length) {
+  if (!conta) {
     return <Vazio texto="Esta empresa ainda não tem assinatura ativa." planos />;
+  }
+  if (!subs.length) {
+    return (
+      <div className="mx-auto max-w-5xl space-y-4 p-4">
+        <Vazio texto="Esta empresa ainda não tem assinatura ativa." planos />
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Conta de Cobrança</CardTitle></CardHeader>
+          <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
+            <Campo r="Documento do pagador" v={conta.documento_pagador} />
+            <Campo r="E-mail de cobrança" v={conta.email_cobranca} />
+            <div className="sm:col-span-2">
+              <Button size="sm" variant="outline" data-testid="editar-pagador" onClick={() => setEditPagador(true)}>Alterar Dados do Pagador</Button>
+            </div>
+          </CardContent>
+        </Card>
+        {editPagador && (
+          <PagadorDialog conta={conta} companyId={selectedCompanyId} onClose={() => setEditPagador(false)}
+            onDone={() => { setEditPagador(false); qc.invalidateQueries({ queryKey: ["minha-assinatura-v2"] }); }} />
+        )}
+      </div>
+    );
   }
 
   return (
