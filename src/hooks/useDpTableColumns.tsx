@@ -173,12 +173,10 @@ export function useDpTableColumns<K extends string, S extends string>(opts: {
         .from("app_table_layouts")
         .select("screen_key, column_order, column_widths, updated_at")
         .eq("screen_key", screenKey)
-        .single();
-      if (error) {
-        if (error.code === "PGRST116") return null; // nenhum registro encontrado
-        throw error;
-      }
-      return data as TableLayout;
+        .maybeSingle();
+      // 0 registros → data null (sem 406); múltiplos registros ou erro real → propaga
+      if (error) throw error;
+      return (data as TableLayout | null) ?? null;
     },
     enabled: !!screenKey,
     staleTime: 5 * 60 * 1000,
