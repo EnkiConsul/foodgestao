@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
       const antes = await asaasFetch(`/customers/${CUS}`, {}, "production");
       await asaasFetch(`/customers/${CUS}`, { method: "POST", body: JSON.stringify({ notificationDisabled: true }) }, "production");
       const depois = await asaasFetch(`/customers/${CUS}`, {}, "production");
-      const { data: ev } = await admin.from("billing_account_events").insert({ billing_account_id: ACC, actor_id: null, tipo_evento: "pagador_atualizado",
+      const { data: ev } = await admin.from("billing_account_events").insert({ billing_account_id: ACC, actor_id: (await admin.from("billing_accounts").select("titular_user_id").eq("id", ACC).single()).data?.titular_user_id, tipo_evento: "pagador_atualizado",
         payload: { origem: "notificacoes_asaas_desligadas", cliente: CUS, antes: { notificationDisabled: antes.notificationDisabled }, depois: { notificationDisabled: depois.notificationDisabled }, autorizado_por: "Rafael Castro" } }).select("id").single();
       return json({ antes: antes.notificationDisabled, depois: depois.notificationDisabled, evento: ev?.id });
     }
