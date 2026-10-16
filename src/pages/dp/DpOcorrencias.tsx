@@ -44,6 +44,7 @@ import {
   type OcorrenciaPeriodo,
 } from "@/hooks/useDpOcorrencias";
 import { format } from "date-fns";
+import { competenciaDe, competenciaDoIntervalo, deslocarMes, hojeSaoPaulo, intervaloAtual, intervaloCompetencia, lerCorte } from "@/lib/dp/ocorrenciasPeriodo";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
