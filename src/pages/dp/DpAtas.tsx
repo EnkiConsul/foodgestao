@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 
 type Ata = {
   id: string; company_id: string; unidade_id: string | null; titulo: string; data_reuniao: string; local: string | null;
-  conteudo_html: string; anexos: AtaAnexo[]; materiais_apoio?: AtaAnexo[]; condutores?: AtaCondutor[]; publicar_mural?: boolean; origem?: "sistema" | "importada" | "importada_assinada"; status: "rascunho" | "enviada"; enviada_em: string | null; created_at: string;
+  conteudo_html: string; anexos: AtaAnexo[]; materiais_apoio?: AtaAnexo[]; condutores?: AtaCondutor[]; publicar_mural?: boolean; origem?: "sistema" | "importada" | "importada_assinada"; status: "rascunho" | "enviada"; enviada_em: string | null; created_at: string; updated_at?: string;
 };
 type Part = { key: string; colaborador_id: string | null; modalidade: AtaModalidade; documento_id?: string | null; nome?: string; avulso_cpf?: string | null; avulso_whatsapp?: string | null; id?: string; assinado_em?: string | null };
 const soDigitos = (v: string) => v.replace(/\D/g, "");
@@ -195,7 +195,7 @@ export default function DpAtas() {
 function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | null; onClose: () => void }) {
   const qc = useQueryClient();
   const [id, setId] = useState<string | null>(ata?.id ?? null);
-  const [versao, setVersao] = useState<string | null>((ata as any)?.updated_at ?? null);
+  const [versao, setVersao] = useState<string | null>(ata?.updated_at ?? null);
   const enviada = ata?.status === "enviada";
   const [titulo, setTitulo] = useState(ata?.titulo ?? "");
   const [data, setData] = useState(ata?.data_reuniao ?? hoje());
