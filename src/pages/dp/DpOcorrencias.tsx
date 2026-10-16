@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { tratativaPendente, diretrizPonto, DIRETRIZ_LABEL, TIPO_LABEL as TIPO_LABEL_D, type DiretrizPonto } from "@/lib/dp/ocorrencias";
 import { Helmet } from "react-helmet-async";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useSearchParams } from "react-router-dom";
 
 import { ChevronLeft, ChevronRight, ClipboardList, Plus } from "lucide-react";
@@ -78,6 +79,7 @@ const PERIODOS: { value: OcorrenciaPeriodo; label: string }[] = [
 export default function DpOcorrencias() {
   const embedded = useDpEmbedded();
   const [searchParams] = useSearchParams();
+  const { selectedCompanyId } = useCompanyContext();
   const colaboradorParam = searchParams.get("colaborador");
   const dataParam = searchParams.get("data");
   // Corte salvo no navegador: o filtro inicial já nasce no período dele.
