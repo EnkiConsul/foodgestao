@@ -1,4 +1,5 @@
 import { tratativaPendente } from "@/lib/dp/ocorrencias";
+import { intervaloDePeriodo } from "@/lib/dp/ocorrenciasPeriodo";
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -137,27 +138,12 @@ const COLS = `
   setor:dp_setores!dp_ocorrencias_setor_id_fkey(nome)
 `;
 
+/** Datas civis (sem UTC): o fuso do navegador não desloca o período. */
 export function intervaloDe(
   periodo: OcorrenciaPeriodo,
   custom?: { inicio?: string | null; fim?: string | null },
 ): { inicio?: string; fim?: string } {
-  if (periodo === "todas") return {};
-  if (periodo === "personalizado") {
-    return { inicio: custom?.inicio ?? undefined, fim: custom?.fim ?? custom?.inicio ?? undefined };
-  }
-  const hoje = new Date();
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
-  if (periodo === "hoje") return { inicio: iso(hoje), fim: iso(hoje) };
-  if (periodo === "semana") {
-    const inicio = new Date(hoje);
-    inicio.setDate(inicio.getDate() - inicio.getDay());
-    const fim = new Date(inicio);
-    fim.setDate(fim.getDate() + 6);
-    return { inicio: iso(inicio), fim: iso(fim) };
-  }
-  const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-  const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
-  return { inicio: iso(inicio), fim: iso(fim) };
+  return intervaloDePeriodo(periodo, custom);
 }
 
 export interface RegistrarOcorrenciaInput {
