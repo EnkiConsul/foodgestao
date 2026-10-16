@@ -169,6 +169,11 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
     parc = (await opcoesParcelamento(admin, q.total_ciclo_cents)).find((o) => o.parcelas === p.parcelas) ?? null;
     if (!parc) throw new BillingError(422, "Número de parcelas inválido.");
   }
+  // Sempre o pagador ATUAL da conta (nunca um valor lido antes da troca de pagador).
+  const { data: atual } = await admin.from("billing_accounts").select("asaas_customer_id,documento_pagador,email_cobranca").eq("id", conta.id).single();
+  conta.asaas_customer_id = (atual as any)?.asaas_customer_id ?? null;
+  conta.documento_pagador = (atual as any)?.documento_pagador ?? conta.documento_pagador;
+  conta.email_cobranca = (atual as any)?.email_cobranca ?? conta.email_cobranca;
   const cliente = await garantirCliente(admin, conta, userEmail);
 
   const inicio = new Date();
@@ -180,35 +185,60 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
     external_customer_id: cliente,
   }).select("*").single();
   if (error) throw new BillingError(500, "Falha ao registrar a assinatura.", error.message);
-  await admin.from("subscription_companies").insert(cobertas.map((c) => ({ subscription_id: sub.id, company_id: c })));
-  for (const a of p.adicionais ?? []) {
-    const { data: ad } = await admin.from("plan_addons").select("id,price_cents").eq("module", plano.module).eq("code", a.code).single();
-    await admin.from("subscription_addons").insert({ subscription_id: sub.id, addon_id: ad!.id, quantity: a.qtd, price_cents: ad!.price_cents, status: "active", origem: "compra" });
-  }
 
-  if (p.parcelas && p.parcelas > 1) {
-    // Anual parcelado no cartão: cobrança única parcelada; a renovação gera nova cobrança.
-    const pg = await asaasFetch("/payments", {
-      method: "POST",
-      body: JSON.stringify({ customer: cliente, billingType: "CREDIT_CARD", installmentCount: p.parcelas,
-        totalValue: reais(parc!.total_cents), dueDate: hoje(1), description: `${plano.name} — anual em ${p.parcelas}x (juros do cartão inclusos)`, externalReference: sub.id }),
-    }, conta.asaas_env);
-    criados.push({ tipo: "cobrança parcelada", id: requireAsaasId(pg, "a cobrança"), descricao: `${plano.name} anual ${p.parcelas}x` });
-    await registrarFatura(admin, sub, pg, "cartao", `Contratação anual ${p.parcelas}x`);
-  } else {
-    const as = await asaasFetch("/subscriptions", {
-      method: "POST",
-      body: JSON.stringify({ customer: cliente, billingType: billingType(p.forma), value: reais(q.total_ciclo_cents),
-        nextDueDate: hoje(1), cycle: p.ciclo === "anual" ? "YEARLY" : "MONTHLY", description: plano.name, externalReference: sub.id }),
-    }, conta.asaas_env);
-    const asId = requireAsaasId(as, "a assinatura");
-    criados.push({ tipo: "assinatura", id: asId, descricao: `${plano.name} ${p.ciclo}` });
-    await admin.from("subscriptions").update({ external_subscription_id: asId }).eq("id", sub.id);
-    const pays = await asaasFetch(`/subscriptions/${asId}/payments`, {}, conta.asaas_env);
-    for (const pg of pays?.data ?? []) {
-      criados.push({ tipo: "cobrança", id: pg.id, descricao: `1ª cobrança ${plano.name}` });
-      await registrarFatura(admin, { ...sub, external_subscription_id: asId }, pg, p.forma, "Contratação");
+  // Tudo ou nada: qualquer falha daqui em diante desfaz o que foi gravado.
+  let asId: string | null = null;
+  try {
+    const { error: eC } = await admin.from("subscription_companies").insert(cobertas.map((c) => ({ subscription_id: sub.id, company_id: c })));
+    if (eC) throw new Error(`cobertura: ${eC.message}`);
+    for (const a of p.adicionais ?? []) {
+      const { data: ad } = await admin.from("plan_addons").select("id,price_cents").eq("module", plano.module).eq("code", a.code).single();
+      if (!ad) throw new Error(`adicional ${a.code} inexistente`);
+      const { error: eA } = await admin.from("subscription_addons").insert({ subscription_id: sub.id, addon_id: ad.id, quantity: a.qtd, price_cents: ad.price_cents, status: "active", origem: "compra" });
+      if (eA) throw new Error(`adicional: ${eA.message}`);
     }
+
+    if (p.parcelas && p.parcelas > 1) {
+      const pg = await asaasFetch("/payments", {
+        method: "POST",
+        body: JSON.stringify({ customer: cliente, billingType: "CREDIT_CARD", installmentCount: p.parcelas,
+          totalValue: reais(parc!.total_cents), dueDate: hoje(1), description: `${plano.name} — anual em ${p.parcelas}x (juros do cartão inclusos)`, externalReference: sub.id }),
+      }, conta.asaas_env);
+      const pgId = requireAsaasId(pg, "a cobrança");
+      const { error: eU } = await admin.from("subscriptions").update({ external_subscription_id: `installment:${pg.installment ?? pgId}` }).eq("id", sub.id);
+      if (eU) throw new Error(eU.message);
+      criados.push({ tipo: "cobrança parcelada", id: pgId, descricao: `${plano.name} anual ${p.parcelas}x` });
+      await registrarFatura(admin, sub, pg, "cartao", `Contratação anual ${p.parcelas}x`);
+    } else {
+      const as = await asaasFetch("/subscriptions", {
+        method: "POST",
+        body: JSON.stringify({ customer: cliente, billingType: billingType(p.forma), value: reais(q.total_ciclo_cents),
+          nextDueDate: hoje(1), cycle: p.ciclo === "anual" ? "YEARLY" : "MONTHLY", description: plano.name, externalReference: sub.id }),
+      }, conta.asaas_env);
+      asId = requireAsaasId(as, "a assinatura");
+      const { error: eU } = await admin.from("subscriptions").update({ external_subscription_id: asId }).eq("id", sub.id);
+      if (eU) throw new Error(eU.message);
+      criados.push({ tipo: "assinatura", id: asId, descricao: `${plano.name} ${p.ciclo}` });
+      const pays = await asaasFetch(`/subscriptions/${asId}/payments`, {}, conta.asaas_env);
+      for (const pg of pays?.data ?? []) {
+        criados.push({ tipo: "cobrança", id: pg.id, descricao: `1ª cobrança ${plano.name}` });
+        await registrarFatura(admin, { ...sub, external_subscription_id: asId }, pg, p.forma, "Contratação");
+      }
+    }
+  } catch (e) {
+    const detalhe = e instanceof BillingError ? `${e.message} ${JSON.stringify((e as any).detail ?? "")}` : String((e as any)?.message ?? e);
+    if (asId) { try { await asaasFetch(`/subscriptions/${asId}`, { method: "DELETE" }, conta.asaas_env); } catch (_) { /* registrado abaixo */ } }
+    await admin.from("invoices").delete().eq("subscription_id", sub.id);
+    await admin.from("subscription_addons").delete().eq("subscription_id", sub.id);
+    await admin.from("subscription_companies").delete().eq("subscription_id", sub.id);
+    await admin.from("subscription_events").delete().eq("subscription_id", sub.id);
+    const { error: eD } = await admin.from("subscriptions").delete().eq("id", sub.id);
+    if (eD) await admin.from("subscriptions").update({ status: "canceled", canceled_at: new Date().toISOString() }).eq("id", sub.id);
+    await admin.from("billing_account_events").insert({ billing_account_id: conta.id, actor_id: conta.titular_user_id, tipo_evento: "contratacao_falhou",
+      payload: { plano: p.plano, forma: p.forma, ciclo: p.ciclo, subscription_id: sub.id, asaas_subscription_desfeita: asId, cliente, erro: detalhe.slice(0, 800) } });
+    criados.length = 0;
+    console.error("[contratar] falha, contratação desfeita", sub.id, detalhe);
+    throw new BillingError(502, "Não foi possível concluir a contratação com o meio de pagamento. Nada foi cobrado e nenhuma assinatura ficou pendente. Tente novamente ou escolha outra forma de pagamento.", detalhe);
   }
   await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "contratacao_v2", payload: { quote: q, forma: p.forma, parcelas: p.parcelas ?? 1, parcelamento: parc, empresas: cobertas } });
   return { subscription_id: sub.id, total_cents: q.total_ciclo_cents, empresas_cobertas: cobertas.length, parcelamento: parc };
