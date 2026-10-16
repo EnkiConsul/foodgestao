@@ -42,16 +42,36 @@ export async function exigirModoPermitido(admin: SupabaseClient, conta: Conta) {
   if (data !== "v2") throw new BillingError(409, "A contratação nova ainda não foi liberada. Use a tela atual de planos.");
 }
 
+/** Bloqueia o uso de um cliente do Asaas que já pertence a outra conta de cobrança. */
+export async function assertClienteExclusivo(admin: SupabaseClient, conta: Conta, customerId: string) {
+  const { data } = await admin.from("billing_accounts").select("id")
+    .eq("asaas_env", conta.asaas_env).eq("asaas_customer_id", customerId).neq("id", conta.id).limit(1);
+  if (data && data.length) {
+    throw new BillingError(409, "Este pagador já está vinculado a outra conta de cobrança. Nenhuma cobrança foi criada. Fale com o suporte.");
+  }
+}
+
 export async function garantirCliente(admin: SupabaseClient, conta: Conta, email: string): Promise<string> {
   if (conta.asaas_customer_id) return conta.asaas_customer_id;
   const doc = (conta.documento_pagador ?? "").replace(/\D/g, "");
   if (!doc) throw new BillingError(422, "Informe o CNPJ/CPF do pagador antes de contratar.");
+  // Se o Asaas já tem cliente com este documento ligado a outra conta, aborta sem criar nada.
+  const busca = await asaasFetch(`/customers?cpfCnpj=${doc}`, { method: "GET" }, conta.asaas_env);
+  for (const c of (busca?.data ?? []) as any[]) {
+    if (c?.deleted) continue;
+    await assertClienteExclusivo(admin, conta, c.id);
+    if (c.externalReference && c.externalReference !== conta.id) {
+      throw new BillingError(409, "Este CPF/CNPJ já é pagador de outra conta de cobrança. Nenhuma cobrança foi criada. Fale com o suporte.");
+    }
+  }
   const c = await asaasFetch("/customers", {
     method: "POST",
     body: JSON.stringify({ name: conta.nome, cpfCnpj: doc, email: conta.email_cobranca ?? email, externalReference: conta.id, notificationDisabled: true }),
   }, conta.asaas_env);
   const id = requireAsaasId(c, "o cliente");
-  await admin.from("billing_accounts").update({ asaas_customer_id: id }).eq("id", conta.id);
+  await assertClienteExclusivo(admin, conta, id);
+  const { error } = await admin.from("billing_accounts").update({ asaas_customer_id: id }).eq("id", conta.id);
+  if (error) throw new BillingError(409, "Este pagador já está vinculado a outra conta de cobrança. Fale com o suporte.", error.message);
   conta.asaas_customer_id = id;
   return id;
 }
