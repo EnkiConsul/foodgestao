@@ -15,6 +15,7 @@
  * ou 3 (bloqueante) com --require / REQUIRE_DB_AUDIT=1.
  */
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
 const RED = "\x1b[31m";
 const YELLOW = "\x1b[33m";
@@ -27,7 +28,9 @@ const RESET = "\x1b[0m";
 const args = new Set(process.argv.slice(2));
 const CI = args.has("--ci");
 const JSON_ONLY = args.has("--json");
-const STRICT = args.has("--strict") || (!CI && !JSON_ONLY);
+// Estrito só quando pedido (auditoria). Sem --strict, avisos da linha de base
+// (security-lint.baseline.json) não bloqueiam; críticos e avisos novos bloqueiam.
+const STRICT = args.has("--strict");
 
 function log(msg) {
   if (!JSON_ONLY) console.log(msg);
@@ -530,6 +533,20 @@ for (const check of checks) {
 
 const tookTotal = Date.now() - startedAt;
 
+// Linha de base: avisos preexistentes não bloqueiam; avisos novos bloqueiam.
+let baseline = {};
+try {
+  baseline = JSON.parse(readFileSync(new URL("./security-lint.baseline.json", import.meta.url), "utf8")).warnings || {};
+} catch {
+  baseline = {};
+}
+const novosAvisos = [];
+for (const r of report) {
+  if (r.severity !== "warning") continue;
+  const conhecidos = new Set(baseline[r.id] || []);
+  for (const f of r.findings) if (!conhecidos.has(f)) novosAvisos.push(`${r.id}: ${f}`);
+}
+
 if (JSON_ONLY) {
   console.log(
     JSON.stringify(
@@ -576,7 +593,12 @@ if (STRICT && warning > 0) {
   );
   process.exit(1);
 }
+if (novosAvisos.length > 0) {
+  err(`\n${RED}${BOLD}✗ REPROVADO: ${novosAvisos.length} aviso(s) novo(s) fora da linha de base${RESET}`);
+  for (const n of novosAvisos) err(`    ${RED}+${RESET} ${n}`);
+  process.exit(1);
+}
 log(
-  `\n${YELLOW}⚠ ${warning} warning(s) — não bloqueante em modo CI${RESET}`,
+  `\n${YELLOW}⚠ ${warning} warning(s) da linha de base — não bloqueante (use --strict para auditoria)${RESET}`,
 );
 process.exit(0);
