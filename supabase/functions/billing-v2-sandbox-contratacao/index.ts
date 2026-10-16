@@ -38,19 +38,6 @@ Deno.serve(async (req) => {
   const sb = (path: string, init: RequestInit = {}) => asaasFetch(path, init, "sandbox");
 
   try {
-    const corpo = await req.json().catch(() => ({})) as any;
-    if (corpo.modo === "notif_prod_2b68867d") {
-      // AUTORIZADO pelo responsável: só notificationDisabled=true no cliente da conta 2b68867d
-      const ACC = "2b68867d-9c08-4757-ad52-41f821071877"; const CUS = "cus_000207223283";
-      const ba = (await admin.from("billing_accounts").select("asaas_customer_id,asaas_env").eq("id", ACC).single()).data as any;
-      if (ba?.asaas_customer_id !== CUS || ba?.asaas_env !== "production") return json({ erro: "conta não confere" }, 409);
-      const antes = await asaasFetch(`/customers/${CUS}`, {}, "production");
-      await asaasFetch(`/customers/${CUS}`, { method: "POST", body: JSON.stringify({ notificationDisabled: true }) }, "production");
-      const depois = await asaasFetch(`/customers/${CUS}`, {}, "production");
-      const { data: ev } = await admin.from("billing_account_events").insert({ billing_account_id: ACC, actor_id: (await admin.from("billing_accounts").select("titular_user_id").eq("id", ACC).single()).data?.titular_user_id, tipo_evento: "pagador_atualizado",
-        payload: { origem: "notificacoes_asaas_desligadas", cliente: CUS, antes: { notificationDisabled: antes.notificationDisabled }, depois: { notificationDisabled: depois.notificationDisabled }, autorizado_por: "Rafael Castro" } }).select("id").single();
-      return json({ antes: antes.notificationDisabled, depois: depois.notificationDisabled, evento: ev?.id });
-    }
     // ---------- massa [TESTE] ----------
     const senha = crypto.randomUUID() + "Aa1!";
     const email = `teste.billing.contratacao.${rnd.toLowerCase()}@aveto360.com`;
