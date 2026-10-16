@@ -1018,6 +1018,37 @@ export default function DpOperacaoPanorama({
     }
   }, [params, setParams]);
 
+  /**
+   * Vinda de Ocorrências ("Cobrir"): /dp/escalas/mes?cobrir=<colaborador>&motivo=&data=&ate=&unidade=&entrada=&saida=
+   * abre a Mão de Obra Extra já como folguista cobrindo a ausência — um único formulário de cobertura.
+   */
+  const [avulsaPreset, setAvulsaPreset] = useState<{
+    cobre_colaborador_id: string; cobre_motivo: string; data_fim?: string | null; entrada?: string | null; saida?: string | null;
+  } | null>(null);
+  useEffect(() => {
+    const cobre = params.get("cobrir");
+    if (!cobre) return;
+    const iso = /^\d{4}-\d{2}-\d{2}$/;
+    const dia = params.get("data");
+    const ate = params.get("ate");
+    const un = params.get("unidade");
+    const hora = (v: string | null) => (v && /^\d{2}:\d{2}$/.test(v) ? v : null);
+    const motivo = params.get("motivo");
+    if (un) setUnidade(un);
+    if (dia && iso.test(dia)) { setData(dia); setAvulsaData(dia); }
+    setAvulsaPreset({
+      cobre_colaborador_id: cobre,
+      cobre_motivo: motivo && ["folga", "falta", "atestado", "outro"].includes(motivo) ? motivo : "outro",
+      data_fim: ate && iso.test(ate) ? ate : null,
+      entrada: hora(params.get("entrada")),
+      saida: hora(params.get("saida")),
+    });
+    setAvulsaEditando(null);
+    setAvulsaOpen(true);
+    ["cobrir", "motivo", "ate", "unidade", "entrada", "saida"].forEach((k) => params.delete(k));
+    setParams(params, { replace: true });
+  }, [params, setParams]);
+
   const { prefs, save } = useDpUserPrefs();
   const [periodoPopout, setPeriodoPopout] = useState<"todos" | "dia" | "noite" | "madrugada">("todos");
   const filtrosCal = filtrosSalvos((prefs.extras as Record<string, unknown>)?.[CAL_FILTROS_KEY]);
@@ -1170,6 +1201,7 @@ export default function DpOperacaoPanorama({
 
   const abrirNovaAvulsa = (iso: string) => {
     setAvulsaEditando(null);
+    setAvulsaPreset(null);
     setAvulsaData(iso);
     setAvulsaOpen(true);
   };
@@ -1188,6 +1220,7 @@ export default function DpOperacaoPanorama({
         });
         setAvulsaOpen(false);
         setAvulsaEditando(null);
+        setAvulsaPreset(null);
       },
       onError: (e: unknown) =>
         toast.error(traduzirErroSetor(e as { message?: string }), { id: "rotina-avulsa-salvar" }),
@@ -1403,8 +1436,9 @@ export default function DpOperacaoPanorama({
         open={avulsaOpen}
         onOpenChange={(o) => {
           setAvulsaOpen(o);
-          if (!o) setAvulsaEditando(null);
+          if (!o) { setAvulsaEditando(null); setAvulsaPreset(null); }
         }}
+        preset={avulsaEditando ? null : avulsaPreset}
         dataInicial={avulsaData ?? data}
         unidadePadrao={unidadeId}
         unidades={panorama.unidades}

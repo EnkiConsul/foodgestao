@@ -67,6 +67,14 @@ interface Props {
   /** Atalho para abrir a convocação já preenchida (intermitente/freelancer). */
   onIrParaConvocacao?: (alvo: { unidadeId: string; cargoId: string; data: string; colaboradorId: string }) => void;
   onSalvar: (input: PessoaAvulsaInput) => void;
+  /** Cobertura vinda de uma ausência (Ocorrências): já abre como folguista cobrindo a pessoa. */
+  preset?: {
+    cobre_colaborador_id: string;
+    cobre_motivo: string;
+    data_fim?: string | null;
+    entrada?: string | null;
+    saida?: string | null;
+  } | null;
 }
 
 const TIPO_LABEL: Record<PessoaAvulsaTipo, string> = {
@@ -133,6 +141,7 @@ export function DpPessoaAvulsaDialog({
   previsaoDoDia,
   onIrParaConvocacao,
   onSalvar,
+  preset,
 }: Props) {
   const [form, setForm] = useState({
     nome: "",
@@ -154,7 +163,7 @@ export function DpPessoaAvulsaDialog({
   });
   const [horarioTocado, setHorarioTocado] = useState(false);
   const [escolhido, setEscolhido] = useState(false);
-  useEffect(() => { if (open) setEscolhido(false); }, [open]);
+  useEffect(() => { if (open) setEscolhido(!!preset); }, [open, preset]);
   const pedirEscolha = !registro && !!onIrParaConvocacao && !escolhido;
   const [cadastroApoioOpen, setCadastroApoioOpen] = useState(false);
   const apoio = useDpPessoasApoio({ apenasAtivos: true });
@@ -225,9 +234,21 @@ export function DpPessoaAvulsaDialog({
       saida: registro?.saida ?? "",
       termina_no_dia_seguinte: registro?.termina_no_dia_seguinte ?? false,
       observacao: registro?.observacao ?? "",
+      ...(!registro && preset
+        ? {
+            tipo: "folguista" as PessoaAvulsaTipo,
+            cobre_colaborador_id: preset.cobre_colaborador_id,
+            cobre_motivo: preset.cobre_motivo,
+            data_fim: preset.data_fim && preset.data_fim >= dataBase ? preset.data_fim : dataBase,
+            entrada: preset.entrada ?? "",
+            saida: preset.saida ?? "",
+            termina_no_dia_seguinte: !!(preset.entrada && preset.saida && preset.saida < preset.entrada),
+          }
+        : {}),
     });
+    if (!registro && preset?.entrada) setHorarioTocado(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, registro, dataInicial, unidadePadrao]);
+  }, [open, registro, dataInicial, unidadePadrao, preset]);
 
   useEffect(() => {
     if (!open || !sugerirHorario || horarioTocado || !form.unidade_id || !form.cargo_id || !form.data_inicio) return;
@@ -408,7 +429,7 @@ export function DpPessoaAvulsaDialog({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="overflow-x-hidden sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{registro ? "Editar Pessoa no Dia" : "Mão de Obra Extra"}</DialogTitle>
           <DialogDescription>

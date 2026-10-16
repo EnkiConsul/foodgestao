@@ -73,10 +73,10 @@ export function OcorrenciaCoberturaDialog({
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>Cobrir a ausência</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="break-words">
             {ocorrencia.colaborador?.nome} — {TIPO_LABEL[ocorrencia.tipo].toLowerCase()} em {data}
           </DialogDescription>
         </DialogHeader>

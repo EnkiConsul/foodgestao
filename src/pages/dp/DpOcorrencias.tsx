@@ -6,7 +6,7 @@ import { tratativaPendente, diretrizPonto, DIRETRIZ_LABEL, TIPO_LABEL as TIPO_LA
 import { Helmet } from "react-helmet-async";
 import { useEffect, useMemo, useState } from "react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { Check, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Plus } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -248,6 +248,37 @@ export default function DpOcorrencias() {
     return extra ? [{ id: extra.id, nome: `${extra.nome} (inativo)` }, ...colaboradoresAtivos] : colaboradoresAtivos;
   }, [colaboradoresAtivos, colaboradores, filtros.colaboradorId]);
 
+  const navigate = useNavigate();
+  /**
+   * Cobertura nova vai para a Mão de Obra Extra (formulário único): já abre
+   * como folguista cobrindo a pessoa, com o período inteiro da ausência
+   * (dias seguidos do mesmo tipo) e o horário previsto. Coberturas antigas
+   * continuam sendo vistas e decididas no diálogo da ocorrência.
+   */
+  const abrirCobertura = (o: Ocorrencia) => {
+    const existentes = (acoes.coberturasPorOcorrencia.get(o.id) ?? []).filter((c) => c.status !== "recusada");
+    if (existentes.length) { setCobrir(o); return; }
+    const dias = new Set(
+      (acoes.ocorrencias ?? [])
+        .filter((x) => x.colaborador_id === o.colaborador_id && x.tipo === o.tipo && x.estado !== "cancelada")
+        .map((x) => x.data_operacional),
+    );
+    let fim = o.data_operacional;
+    for (;;) {
+      const prox = new Date(`${fim}T12:00:00Z`);
+      prox.setUTCDate(prox.getUTCDate() + 1);
+      const iso = prox.toISOString().slice(0, 10);
+      if (!dias.has(iso)) break;
+      fim = iso;
+    }
+    const motivo = o.tipo === "atestado" || o.tipo === "ausencia_justificada" ? "atestado" : o.tipo.includes("falta") ? "falta" : "outro";
+    const q = new URLSearchParams({ aba: "dia", data: o.data_operacional, ate: fim, cobrir: o.colaborador_id, motivo });
+    if (o.unidade_id) q.set("unidade", o.unidade_id);
+    if (o.previsto_entrada) q.set("entrada", o.previsto_entrada.slice(0, 5));
+    if (o.previsto_saida) q.set("saida", o.previsto_saida.slice(0, 5));
+    navigate(`/dp/escalas/mes?${q.toString()}`);
+  };
+
   const opcoesSubstituto = useMemo<SubstitutoOpcao[]>(
     () => [
       ...pessoasApoio
@@ -299,7 +330,7 @@ export default function DpOcorrencias() {
                 onTratativa={() => setTratativa(o)}
                 onAnalisar={() => acoes.analisar.mutate({ id: o.id, status: "analisada" })}
                 onCancelar={() => setCancelarId(o.id)}
-                onCobrir={() => setCobrir(o)}
+                onCobrir={() => abrirCobertura(o)}
                 onHistorico={() => setHistorico(o)}
                 onDecidirAssiduidade={() => setDecidirPremio(o)}
 
