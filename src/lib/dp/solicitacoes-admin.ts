@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { somarDiasIso } from "./atestadosIndicadores";
 
 /**
  * Rotinas oficiais de estado administrativo das solicitações (atestados,
@@ -7,10 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
  * e aplica as regras na mesma transação.
  */
 
+/** Soma dias civis sem depender do fuso do navegador (Etapa 7.1). */
 export function somaDias(iso: string, dias: number) {
-  const d = new Date(`${iso}T00:00:00`);
-  d.setDate(d.getDate() + dias);
-  return d.toISOString().slice(0, 10);
+  return somarDiasIso(iso, dias);
 }
 
 /** Período final de um afastamento a partir da data inicial e dos dias. */

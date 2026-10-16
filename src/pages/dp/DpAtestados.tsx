@@ -28,7 +28,7 @@ import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/
 import { DpFilePicker } from "@/components/dp/DpFilePicker";
 import { AnexoFotoPdfPicker } from "@/components/dp/portal/AnexoFotoPdfPicker";
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
-import { calcularIndicadores, afastadoNoDia } from "@/lib/dp/atestadosIndicadores";
+import { calcularIndicadores, afastadoNoDia, somarDiasIso } from "@/lib/dp/atestadosIndicadores";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
@@ -86,11 +86,8 @@ function diffDays(start?: string | null, end?: string | null) {
   return Math.max(0, Math.round((b.getTime() - a.getTime()) / 86400000));
 }
 
-function addDays(iso: string, days: number) {
-  const d = new Date(iso + "T00:00:00");
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
+// Soma de dias civis independente do fuso do navegador (Etapa 7.1).
+const addDays = somarDiasIso;
 
 export default function DpAtestados() {
   const { selectedCompanyId } = useCompanyContext();
@@ -939,7 +936,5 @@ export default function DpAtestados() {
 }
 
 function sugestaoFimDias(inicio: string, dias: number) {
-  const d = new Date(`${inicio}T12:00:00`);
-  d.setDate(d.getDate() + dias - 1);
-  return d.toISOString().slice(0, 10);
+  return somarDiasIso(inicio, dias - 1);
 }
