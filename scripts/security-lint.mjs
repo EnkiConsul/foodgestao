@@ -295,6 +295,9 @@ const checks = [
       SELECT t.schemaname || '.' || t.tablename AS finding
       FROM pg_tables t
       WHERE t.schemaname = 'public' AND t.rowsecurity = true
+        -- Exceções revisadas (docs/security/excecoes-security-lint.md):
+        -- signup_whatsapp_otps: só service_role lê/grava; sem policy = fechado a clientes.
+        AND t.tablename NOT IN ('signup_whatsapp_otps')
         AND NOT EXISTS (
           SELECT 1 FROM pg_policies p
           WHERE p.schemaname = t.schemaname AND p.tablename = t.tablename
@@ -407,6 +410,8 @@ const checks = [
       FROM pg_policies p
       WHERE p.schemaname = 'public'
         AND p.tablename LIKE '%\\_companies' ESCAPE '\\'
+        -- Exceção revisada: titular da conta de cobrança (titular_user_id), não criador.
+        AND (p.tablename, p.policyname) NOT IN (('subscription_companies', 'Titular e super admin leem cobertura'))
         AND (
           COALESCE(p.qual, '')       ~* '(user_owns_[a-z_]+|user_id\\s*=\\s*auth\\.uid\\(\\))'
           OR COALESCE(p.with_check,'') ~* '(user_owns_[a-z_]+|user_id\\s*=\\s*auth\\.uid\\(\\))'
@@ -463,7 +468,12 @@ const checks = [
           AND COALESCE(qual, '') ~ 'is_super_admin'
         )
         -- Matriz de Permissões: a autorização é delegada à função oficial.
-        AND COALESCE(qual, '') !~ 'dp_storage_caminho_liberado';
+        AND COALESCE(qual, '') !~ 'dp_storage_caminho_liberado'
+        -- Exceções revisadas: atestado só do próprio colaborador; anexo do Mural
+        -- para membros/colaboradores da empresa; negociação via dp_negociacao_visivel_colab.
+        AND policyname NOT IN ('dp_doc_bucket_read_atestado_proprio',
+                               'dp_doc_bucket_read_avisos',
+                               'dp_doc_bucket_read_sindicato_negociacao');
     `,
   },
 ];
