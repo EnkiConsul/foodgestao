@@ -156,6 +156,7 @@ export default function DpOcorrencias() {
   }, [selectedCompanyId]);
   const setCorte = (c: number) => {
     const anterior = corte;
+    const filtrosAnteriores = filtros;
     setCorteState(c);
     window.localStorage.setItem("dp_ocorrencias_corte", String(c));
     const [a, m] = (filtros.periodo === "todas" ? competenciaDe(hojeSaoPaulo(), c) : baseMes).split("-").map(Number);
@@ -164,6 +165,7 @@ export default function DpOcorrencias() {
     supabase.rpc("dp_ocorrencias_corte_definir", { p_company_id: selectedCompanyId, p_dia: c }).then(({ error }) => {
       if (!error) return;
       setCorteState(anterior);
+      setFiltros(filtrosAnteriores);
       window.localStorage.setItem("dp_ocorrencias_corte", String(anterior));
       toast.error(
         /SEM_PERMISSAO/.test(error.message)
