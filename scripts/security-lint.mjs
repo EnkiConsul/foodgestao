@@ -5,11 +5,11 @@
  * Flags:
  *   --ci         Modo CI: logs verbosos (JSON + tabela) e falha apenas em findings críticos.
  *   --json       Imprime relatório em JSON puro (sem cores) e sai.
- *   --strict     Falha em qualquer finding (default fora do --ci).
+ *   --strict     Auditoria: falha em qualquer warning (inclusive os da linha de base).
  *
  * Severidades:
  *   critical → exit 1 sempre
- *   warning  → exit 1 só se --strict (ou modo default sem --ci)
+ *   warning  → exit 1 se --strict, ou se estiver fora de security-lint.baseline.json
  *
  * Sem credenciais (psql/SUPABASE_DB_URL ausentes) → NÃO EXECUTADO: sai 0 com aviso,
  * ou 3 (bloqueante) com --require / REQUIRE_DB_AUDIT=1.
