@@ -8,7 +8,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useSearchParams } from "react-router-dom";
 
-import { ChevronLeft, ChevronRight, ClipboardList, Plus } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Plus } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -45,7 +47,7 @@ import {
   type OcorrenciaPeriodo,
 } from "@/hooks/useDpOcorrencias";
 import { format } from "date-fns";
-import { competenciaDe, competenciaDoIntervalo, deslocarMes, hojeSaoPaulo, intervaloAtual, intervaloCompetencia, lerCorte } from "@/lib/dp/ocorrenciasPeriodo";
+import { competenciaDe, competenciaDoIntervalo, deslocarMes, hojeSaoPaulo, intervaloAtual, intervaloCompetencia, lerCorte, somarDias } from "@/lib/dp/ocorrenciasPeriodo";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
