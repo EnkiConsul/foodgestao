@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarClock, CheckCircle2, Settings, UserRound } from "lucide-react";
+import { CalendarClock, Check, CheckCircle2, ChevronRight, ListChecks, Play, Settings, UserRound, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DpFilters, DpFilterField, type DpFilterChip } from "@/components/dp/DpFilters";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
@@ -20,6 +20,12 @@ import { EIXOS, eixoDe, type EixoAcao } from "@/lib/dp/acoes-eixos";
 import { UrgenciaBadge } from "@/components/dp/home/PendenciasCard";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { mensagemErro } from "@/lib/dp/mensagemErro";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useDpIntermitenteConfirmacoes } from "@/hooks/useDpIntermitenteConfirmacoes";
+import { adiarPresets } from "@/lib/dp/adiar-presets";
+import { contarResolvidas, EVENTO_RESOLVIDAS, registrarResolvida } from "@/lib/dp/resolvidas-hoje";
+import { toast } from "sonner";
 
 type Aba = EixoAcao | "todas";
 type Filtro = { tipo: string; colaborador: string; unidade: string };
@@ -50,6 +56,23 @@ export default function DpCadastroPendenciasLista() {
   const [filtro, setFiltro] = useState<Filtro>(FILTRO_INICIAL);
   const [busca, setBusca] = useState("");
   const [detalhe, setDetalhe] = useState<Pendencia | null>(null);
+  const { selectedCompanyId } = useCompanyContext();
+  const { decidir } = useDpPendenciasDecisoes();
+  const { responder } = useDpIntermitenteConfirmacoes();
+  const [resolvidas, setResolvidas] = useState(0);
+  useEffect(() => {
+    if (!selectedCompanyId) return;
+    const atualizar = () => setResolvidas(contarResolvidas(selectedCompanyId));
+    atualizar();
+    window.addEventListener(EVENTO_RESOLVIDAS, atualizar);
+    return () => window.removeEventListener(EVENTO_RESOLVIDAS, atualizar);
+  }, [selectedCompanyId]);
+  const [selecionando, setSelecionando] = useState(false);
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [loteOcupado, setLoteOcupado] = useState(false);
+  const [foco, setFoco] = useState<{ ids: string[]; i: number } | null>(null);
+  const alternar = (id: string) => setSel((s0) => { const n = new Set(s0); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const sairSelecao = () => { setSelecionando(false); setSel(new Set()); };
 
   const adiamentos = useMemo(() => ({ ...prefs.pendencias_adiadas, ...adiadas }), [prefs.pendencias_adiadas, adiadas]);
 
@@ -76,6 +99,44 @@ export default function DpCadastroPendenciasLista() {
     () => (aba === "todas" ? filtradas : filtradas.filter((p) => eixoDe(p) === aba)).slice().sort(compararUrgencia),
     [filtradas, aba],
   );
+
+  const selecionadas = lista.filter((p) => sel.has(p.id));
+  const intermSel = selecionadas.filter((p) => p.tipo === "Intermitente" && p.colaboradorId && p.competencia);
+
+  const adiarLote = async (data: string) => {
+    setLoteOcupado(true);
+    let ok = 0;
+    for (const p of selecionadas) {
+      try { await decidir.mutateAsync({ pendenciaId: p.id, tipo: p.tipo, acao: "adiar", adiadaAte: data }); ok++; } catch { /* aviso já exibido */ }
+    }
+    setLoteOcupado(false);
+    toast.success(`${ok} de ${selecionadas.length} ações adiadas.`);
+    sairSelecao();
+  };
+
+  const trabalharamLote = async () => {
+    setLoteOcupado(true);
+    let ok = 0;
+    for (const p of intermSel) {
+      try {
+        await responder.mutateAsync({ colaboradorId: p.colaboradorId!, competencia: p.competencia!, trabalhou: true });
+        if (selectedCompanyId) registrarResolvida(selectedCompanyId, p.id);
+        ok++;
+      } catch { /* aviso já exibido */ }
+    }
+    setLoteOcupado(false);
+    toast.success(`${ok} de ${intermSel.length} intermitentes confirmados.`);
+    void refetch();
+    sairSelecao();
+  };
+
+  const focoItem = foco ? data.find((p) => p.id === foco.ids[foco.i]) ?? null : null;
+  const avancarFoco = () => setFoco((f) => (f && f.i + 1 < f.ids.length ? { ...f, i: f.i + 1 } : null));
+  const iniciarFoco = () => {
+    const ids = lista.filter((p) => urgenciaDe(p) !== "proxima").map((p) => p.id);
+    const todos = ids.length ? ids : lista.map((p) => p.id);
+    if (todos.length) setFoco({ ids: todos, i: 0 });
+  };
 
   const resumo = useMemo(() => {
     const r = { agora: 0, hoje: 0, proximas: 0 };
@@ -109,15 +170,21 @@ export default function DpCadastroPendenciasLista() {
         tabIndex={0}
         onClick={(e) => {
           if ((e.target as HTMLElement).closest("button,a,[role=dialog]")) return;
-          setDetalhe(p);
+          if (selecionando) alternar(p.id); else setDetalhe(p);
         }}
         onKeyDown={(e) => { if (e.key === "Enter" && e.target === e.currentTarget) setDetalhe(p); }}
         className="relative flex cursor-pointer gap-3 overflow-hidden rounded-2xl border border-border bg-card p-3 pl-4 transition-colors hover:bg-muted/40 active:bg-muted/60"
       >
         <span className={cn("absolute inset-y-0 left-0 w-1", FAIXA[u])} aria-hidden="true" />
-        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-          <p.icon className="h-4 w-4 text-primary" aria-hidden="true" />
-        </div>
+        {selecionando ? (
+          <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center">
+            <Checkbox checked={sel.has(p.id)} onCheckedChange={() => alternar(p.id)} aria-label={`Selecionar ${p.titulo}`} className="h-5 w-5" />
+          </div>
+        ) : (
+          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <p.icon className="h-4 w-4 text-primary" aria-hidden="true" />
+          </div>
+        )}
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex items-start justify-between gap-2">
             <p className="min-w-0 break-words text-sm font-semibold leading-snug">{p.titulo}</p>
@@ -134,7 +201,7 @@ export default function DpCadastroPendenciasLista() {
             {adiada && adiamentos[p.id] && <span className="font-medium text-foreground">Adiada até {dataBR(adiamentos[p.id])}</span>}
             {decisao?.acao === "ignorar" && <span className="font-medium">Ignorada: {decisao.justificativa}</span>}
           </div>
-          <PendenciaAcoes pendencia={p} />
+          {!selecionando && <PendenciaAcoes pendencia={p} />}
         </div>
       </li>
     );
@@ -197,6 +264,25 @@ export default function DpCadastroPendenciasLista() {
             <p className="mt-1 text-[11px] leading-tight text-muted-foreground">{c.k}</p>
           </div>
         ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium", resolvidas > 0 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
+          <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+          {resolvidas === 1 ? "1 resolvida hoje" : `${resolvidas} resolvidas hoje`}
+        </span>
+        <div className="ml-auto flex gap-2">
+          {lista.length > 0 && !selecionando && (
+            <Button size="sm" className="h-10 gap-1.5 sm:h-8" onClick={iniciarFoco}>
+              <Play className="h-4 w-4" /> Despachar agora
+            </Button>
+          )}
+          {lista.length > 0 && (
+            <Button size="sm" variant="outline" className="h-10 gap-1.5 sm:h-8" onClick={() => (selecionando ? sairSelecao() : setSelecionando(true))}>
+              {selecionando ? <><X className="h-4 w-4" /> Cancelar</> : <><ListChecks className="h-4 w-4" /> Selecionar</>}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Assuntos: faixa rolável para o polegar no celular */}
@@ -271,7 +357,9 @@ export default function DpCadastroPendenciasLista() {
         <div className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card px-6 py-10 text-center">
           <CheckCircle2 className="h-10 w-10 text-primary" aria-hidden="true" />
           <p className="text-base font-semibold">Tudo em dia!</p>
-          <p className="text-sm text-muted-foreground">Nenhuma ação aberta na empresa. Pode seguir com o serviço.</p>
+          <p className="text-sm text-muted-foreground">
+            {resolvidas > 0 ? `Você despachou ${resolvidas} ${resolvidas === 1 ? "ação" : "ações"} hoje. ` : ""}Nenhuma ação aberta na empresa. Pode seguir com o serviço.
+          </p>
         </div>
       )}
       {!isLoading && !isError && !vazioTotal && lista.length === 0 && (
@@ -323,6 +411,59 @@ export default function DpCadastroPendenciasLista() {
           </DialogContent>
         </Dialog>
       )}
+      {selecionando && (
+        <div className="sticky bottom-0 z-20 -mx-3 space-y-2 border-t border-border bg-background/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur md:mx-0 md:rounded-2xl md:border">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium">{selecionadas.length} selecionada(s)</span>
+            <button type="button" className="text-xs text-primary" onClick={() => setSel(new Set(lista.map((p) => p.id)))}>Selecionar todas</button>
+          </div>
+          {selecionadas.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {intermSel.length > 0 && (
+                <Button size="sm" className="h-10 sm:h-8" disabled={loteOcupado} onClick={() => void trabalharamLote()}>
+                  <Check className="mr-1 h-4 w-4" /> {intermSel.length} trabalharam
+                </Button>
+              )}
+              {adiarPresets().map((op) => (
+                <Button key={op.chave} size="sm" variant="outline" className="h-10 sm:h-8" disabled={loteOcupado} onClick={() => void adiarLote(op.data)}>
+                  Adiar: {op.label}
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <Dialog open={!!foco} onOpenChange={(o) => !o && setFoco(null)}>
+        <DialogContent className="flex max-h-[92dvh] flex-col gap-4 sm:max-w-md">
+          {foco && (
+            <>
+              <DialogHeader>
+                <p className="text-xs text-muted-foreground">Ação {foco.i + 1} de {foco.ids.length}</p>
+                <div className="h-1 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full bg-primary transition-all" style={{ width: `${((foco.i + 1) / foco.ids.length) * 100}%` }} />
+                </div>
+                <DialogTitle className="break-words pt-2 text-left">{focoItem?.titulo ?? "Ação já resolvida"}</DialogTitle>
+                <DialogDescription className="text-left">{focoItem?.subtitulo ?? "Siga para a próxima."}</DialogDescription>
+              </DialogHeader>
+              {focoItem && (
+                <div className="space-y-2 overflow-y-auto text-sm">
+                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    <span className="rounded-full bg-muted px-2 py-0.5">{focoItem.tipo}</span>
+                    {(focoItem.colaboradorNome ?? focoItem.unidadeNome) && <span>{focoItem.colaboradorNome ?? focoItem.unidadeNome}</span>}
+                    {focoItem.vencimento && <span>Prazo {dataBR(focoItem.vencimento)}</span>}
+                    <UrgenciaBadge atrasoDias={focoItem.atrasoDias} urgente={focoItem.urgente} />
+                  </div>
+                  <PendenciaAcoes key={focoItem.id} pendencia={focoItem} onNavigate={() => setFoco(null)} onResolved={avancarFoco} />
+                </div>
+              )}
+              <Button variant="ghost" className="h-11 w-full justify-center gap-1" onClick={avancarFoco}>
+                {foco.i + 1 < foco.ids.length ? <>Pular para a próxima <ChevronRight className="h-4 w-4" /></> : "Concluir"}
+              </Button>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </DpPage>
   );
 }
