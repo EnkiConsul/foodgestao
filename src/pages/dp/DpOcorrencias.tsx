@@ -126,6 +126,7 @@ export default function DpOcorrencias() {
     if (filtros.periodo === "hoje") return "Hoje";
     if (filtros.periodo === "semana") return "Nesta semana";
     if (filtros.periodo === "mes") return "Neste mês";
+    if (intervalo.inicio === intervalo.fim) return `Dia ${br(intervalo.inicio)}`;
     return `${br(intervalo.inicio)} a ${br(intervalo.fim)}`;
   }, [filtros.data, filtros.periodo, intervalo]);
 
