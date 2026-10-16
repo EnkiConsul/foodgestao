@@ -220,6 +220,7 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
 
   // Tudo ou nada: qualquer falha daqui em diante desfaz o que foi gravado.
   let asId: string | null = null;
+  const tentativa: Criado[] = [];
   try {
     const { error: eC } = await admin.from("subscription_companies").insert(cobertas.map((c) => ({ subscription_id: sub.id, company_id: c })));
     if (eC) throw new Error(`cobertura: ${eC.message}`);
@@ -230,6 +231,7 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
       if (eA) throw new Error(`adicional: ${eA.message}`);
     }
 
+    if (falha === "criacao") throw new Error("falha simulada antes de criar no Asaas (teste Sandbox)");
     if (p.parcelas && p.parcelas > 1) {
       const pg = await asaasFetch("/payments", {
         method: "POST",
@@ -237,6 +239,7 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
           totalValue: reais(parc!.total_cents), dueDate: hoje(1), description: `${plano.name} — anual em ${p.parcelas}x (juros do cartão inclusos)`, externalReference: sub.id }),
       }, conta.asaas_env);
       const pgId = requireAsaasId(pg, "a cobrança");
+      tentativa.push({ tipo: "cobranca", id: pgId });
       criados.push({ tipo: "cobrança parcelada", id: pgId, descricao: `${plano.name} anual ${p.parcelas}x` });
       await registrarFatura(admin, sub, pg, "cartao", `Contratação anual ${p.parcelas}x`);
     } else {
@@ -246,29 +249,38 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
           nextDueDate: hoje(1), cycle: p.ciclo === "anual" ? "YEARLY" : "MONTHLY", description: plano.name, externalReference: sub.id }),
       }, conta.asaas_env);
       asId = requireAsaasId(as, "a assinatura");
+      tentativa.push({ tipo: "assinatura", id: asId });
       const { error: eU } = await admin.from("subscriptions").update({ external_subscription_id: asId }).eq("id", sub.id);
       if (eU) throw new Error(eU.message);
       criados.push({ tipo: "assinatura", id: asId, descricao: `${plano.name} ${p.ciclo}` });
       const pays = await asaasFetch(`/subscriptions/${asId}/payments`, {}, conta.asaas_env);
       for (const pg of pays?.data ?? []) {
+        tentativa.push({ tipo: "cobranca", id: pg.id });
         criados.push({ tipo: "cobrança", id: pg.id, descricao: `1ª cobrança ${plano.name}` });
         await registrarFatura(admin, { ...sub, external_subscription_id: asId }, pg, p.forma, "Contratação");
       }
+      if (falha === "apos_assinatura" || falha === "cancelamento") throw new Error("falha simulada após criar a assinatura no Asaas (teste Sandbox)");
     }
   } catch (e) {
-    const detalhe = e instanceof BillingError ? `${e.message} ${JSON.stringify((e as any).detail ?? "")}` : String((e as any)?.message ?? e);
-    if (asId) { try { await asaasFetch(`/subscriptions/${asId}`, { method: "DELETE" }, conta.asaas_env); } catch (_) { /* registrado abaixo */ } }
-    await admin.from("invoices").delete().eq("subscription_id", sub.id);
-    await admin.from("subscription_addons").delete().eq("subscription_id", sub.id);
-    await admin.from("subscription_companies").delete().eq("subscription_id", sub.id);
-    await admin.from("subscription_events").delete().eq("subscription_id", sub.id);
-    const { error: eD } = await admin.from("subscriptions").delete().eq("id", sub.id);
-    if (eD) await admin.from("subscriptions").update({ status: "canceled", canceled_at: new Date().toISOString() }).eq("id", sub.id);
-    await admin.from("billing_account_events").insert({ billing_account_id: conta.id, actor_id: conta.titular_user_id, tipo_evento: "contratacao_falhou",
-      payload: { plano: p.plano, forma: p.forma, ciclo: p.ciclo, subscription_id: sub.id, asaas_subscription_desfeita: asId, cliente, erro: detalhe.slice(0, 800) } });
+    const detalhe = e instanceof BillingError ? `${e.message} ${JSON.stringify((e as any).detalhes ?? "")}` : String((e as any)?.message ?? e);
+    const agora = new Date().toISOString();
+    // 1) compensação no Asaas, conferida por GET
+    const { desfeitos, pendentes } = await compensarAsaas(tentativa, conta.asaas_env, falha === "cancelamento");
+    // 2) desfazimento local SEM exclusão: histórico preservado
+    await admin.from("subscriptions").update({ status: "canceled", canceled_at: agora }).eq("id", sub.id);
+    await admin.from("subscription_companies").update({ removed_at: agora }).eq("subscription_id", sub.id).is("removed_at", null);
+    await admin.from("subscription_addons").update({ status: "canceled" }).eq("subscription_id", sub.id);
+    await admin.from("invoices").update({ status: "canceled" }).eq("subscription_id", sub.id).in("status", ["draft", "open", "overdue"]);
+    await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "contratacao_desfeita",
+      payload: { erro: detalhe.slice(0, 800), cliente, criados_asaas: tentativa, desfeitos_asaas: desfeitos, pendentes_asaas: pendentes } });
+    const ok = pendentes.length === 0;
+    await admin.from("billing_account_events").insert({ billing_account_id: conta.id, actor_id: conta.titular_user_id,
+      tipo_evento: ok ? "contratacao_falhou" : "contratacao_falhou_compensacao_pendente",
+      payload: { plano: p.plano, forma: p.forma, ciclo: p.ciclo, subscription_id: sub.id, cliente, asaas_env: conta.asaas_env,
+        desfeitos: desfeitos.map((d) => d.id), pendentes, erro: detalhe.slice(0, 800) } });
     criados.length = 0;
-    console.error("[contratar] falha, contratação desfeita", sub.id, detalhe);
-    throw new BillingError(502, "Não foi possível concluir a contratação com o meio de pagamento. Nada foi cobrado e nenhuma assinatura ficou pendente. Tente novamente ou escolha outra forma de pagamento.", detalhe);
+    console.error("[contratar] falha", ok ? "desfeita" : "COMPENSAÇÃO PENDENTE", sub.id, detalhe, JSON.stringify(pendentes));
+    throw new BillingError(502, ok ? MSG_FALHA_DESFEITA : MSG_FALHA_COMPENSACAO, { subscription_id: sub.id, compensacao_pendente: !ok });
   }
   await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "contratacao_v2", payload: { quote: q, forma: p.forma, parcelas: p.parcelas ?? 1, parcelamento: parc, empresas: cobertas } });
   return { subscription_id: sub.id, total_cents: q.total_ciclo_cents, empresas_cobertas: cobertas.length, parcelamento: parc };
