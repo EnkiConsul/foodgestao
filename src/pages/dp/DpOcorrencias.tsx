@@ -180,15 +180,43 @@ export default function DpOcorrencias() {
       );
     });
   };
+  // Fora de um mês completo (Hoje, Ontem, semana…), as setas partem do mês que contém o período.
+  const mesReferencia = compAtual ?? competenciaDe(filtros.data ?? intervalo.fim, corte);
   const irMes = (n: number) => {
-    const [a0, m0] = (filtros.periodo === "todas" ? hojeRef() : baseMes).split("-").map(Number);
-    const alvo = deslocarMes(a0, m0, n);
+    const [a0, m0] = (filtros.periodo === "todas" ? hojeRef() : compAtual ? baseMes : mesReferencia).split("-").map(Number);
+    const alvo = compAtual || filtros.periodo === "todas" ? deslocarMes(a0, m0, n) : n === 0 ? { ano: a0, mes: m0 } : deslocarMes(a0, m0, n);
     aplicarMes(alvo.ano, alvo.mes, corte);
   };
-  // "Hoje" filtra só o dia atual (São Paulo): indicadores e lista passam a refletir o dia.
-  const irHoje = () => {
-    setFiltros((f) => ({ ...f, data: null, periodo: "hoje", periodoInicio: null, periodoFim: null }));
+  const voltarAoMes = () => {
+    const [a, m] = mesReferencia.split("-").map(Number);
+    aplicarMes(a, m, corte);
   };
+  const [calAberto, setCalAberto] = useState(false);
+  const atalhos = (() => {
+    const hoje = hojeSaoPaulo();
+    const dow = new Date(`${hoje}T12:00:00Z`).getUTCDay();
+    const iniSem = somarDias(hoje, -dow);
+    return [
+      { key: "hoje", label: "Hoje", inicio: hoje, fim: hoje },
+      { key: "ontem", label: "Ontem", inicio: somarDias(hoje, -1), fim: somarDias(hoje, -1) },
+      { key: "semana", label: "Esta semana", inicio: iniSem, fim: somarDias(iniSem, 6) },
+      { key: "semana_passada", label: "Semana passada", inicio: somarDias(iniSem, -7), fim: somarDias(iniSem, -1) },
+      { key: "mes", label: "Mês inteiro", ...intervaloAtual(corte, hoje) },
+    ];
+  })();
+  const atalhoAtivo = filtros.data
+    ? null
+    : atalhos.find((a) => a.inicio === intervalo.inicio && a.fim === intervalo.fim) ?? null;
+  const aplicarAtalho = (a: (typeof atalhos)[number]) => {
+    if (a.key === "mes") return voltarAoMes();
+    setFiltros((f) => ({ ...f, data: null, periodo: "personalizado", periodoInicio: a.inicio, periodoFim: a.fim }));
+  };
+  const periodoCurto = !filtros.data && !compAtual && filtros.periodo !== "todas";
+  const rotuloBotaoPeriodo = filtros.data
+    ? filtros.data.split("-").reverse().slice(0, 2).join("/")
+    : compAtual || filtros.periodo === "todas"
+      ? "Período"
+      : atalhoAtivo?.label ?? "Personalizado";
   const swipeMes = useSwipeHorizontal(() => irMes(1), () => irMes(-1));
 
   const acoes = useDpOcorrencias(filtros);
