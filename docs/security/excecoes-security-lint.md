@@ -12,3 +12,8 @@ Aprovadas pelo cliente após revisão das regras no banco. Nenhuma permissão fo
 
 Alertas 0028 (access_model_mode, dp_trocas_afastamentos) foram corrigidos revogando acesso de visitantes (migration 0095).
 Se a regra de uma exceção mudar, a exceção deve ser revista.
+
+## Linha de base dos avisos (2026-10-16)
+`scripts/security-lint.baseline.json` lista os 372 avisos preexistentes (todos `0029_authenticated_security_definer`).
+Build normal: críticos e avisos novos bloqueiam; avisos da linha de base aparecem no relatório sem bloquear.
+Auditoria: `npm run security-lint:strict` falha em qualquer aviso. Ao corrigir um aviso, remova-o da linha de base; nunca acrescente itens sem revisão.

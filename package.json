@@ -13,6 +13,7 @@
     "scope-lint": "node scripts/company-scope-lint.mjs",
     "scope-lint:ci": "node scripts/company-scope-lint.mjs --ci --strict",
     "security-lint:ci": "node scripts/security-lint.mjs --ci",
+    "security-lint:strict": "node scripts/security-lint.mjs --strict",
     "db:push": "node scripts/db-migrate.mjs push",
     "db:push:ci": "node scripts/db-migrate.mjs push --ci",
     "db:migrate": "node scripts/db-migrate.mjs up",
