@@ -2,7 +2,7 @@ import { AvisosGestorGate } from "@/components/dp/home/AvisosGestorGate";
 import { Helmet } from "react-helmet-async";
 import { Bell, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
-import { PendenciasCard } from "@/components/dp/home/PendenciasCard";
+import { AcoesDoDiaCard } from "@/components/dp/home/AcoesDoDiaCard";
 import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
 import { KpiCards } from "@/components/dp/home/KpiCards";
@@ -48,8 +48,8 @@ export default function DpHome() {
 
       <KpiCards />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 min-w-0">
-        <PendenciasCard />
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 min-w-0 items-start">
+        <AcoesDoDiaCard />
         <AniversariantesCard />
       </div>
 
