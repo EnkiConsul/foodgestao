@@ -86,6 +86,10 @@ export type Pendencia = {
     dataInicio: string;
     dataFimPrevista: string;
   } | null;
+  /** Solicitação pendente: decisão direta do gestor na tela Ações do Dia. */
+  solicitacao?: { id: string; tipo: string } | null;
+  /** Troca de folga aguardando o gestor. */
+  trocaId?: string | null;
 };
 
 
@@ -156,6 +160,7 @@ export function useDpPendencias() {
             vencimento: ymd(vencimento),
             atrasoDias: dias,
             url: "/dp/folgas?aba=solicitacoes",
+            solicitacao: { id: s.id, tipo: s.tipo },
           });
         });
       } catch (e) {
@@ -185,6 +190,7 @@ export function useDpPendencias() {
             vencimento: ymd(vencimento),
             atrasoDias: dias,
             url: "/dp/folgas?aba=trocas",
+            trocaId: t.id,
           });
         });
       } catch (e) {

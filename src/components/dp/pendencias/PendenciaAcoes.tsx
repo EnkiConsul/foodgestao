@@ -20,6 +20,15 @@ import { DpLicencaRetornoDialog } from "@/components/dp/licencas/DpLicencaRetorn
 import { adiarPresets } from "@/lib/dp/adiar-presets";
 import { DpDocumentoImportarDialog, alvoImportacao } from "@/components/dp/documentos/DpDocumentoImportarDialog";
 import { FeriasNovoModal } from "@/components/dp/ferias/FeriasNovoModal";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { porIds, resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { registrarResolvida } from "@/lib/dp/resolvidas-hoje";
+
+/** Pedidos que exigem decisões extras (assiduidade, evento) ficam na tela própria. */
+const SOLICITACAO_NA_TELA_PROPRIA = /atestado|licen|adiantamento|outro/i;
 
 /** Rótulo do botão principal conforme o assunto (em vez do genérico "Resolver"). */
 const ROTULO: Record<string, string> = {
@@ -63,6 +72,46 @@ export function PendenciaAcoes({
   const importarNaTela = !!alvoImportacao(p.url);
   const feriasNaTela = p.tipo === "Férias" && !!p.colaboradorId;
 
+  const qc = useQueryClient();
+  const { selectedCompanyId } = useCompanyContext();
+  const [recusarAberto, setRecusarAberto] = useState(false);
+  const [motivoRecusa, setMotivoRecusa] = useState("");
+  const trocaNaTela = p.tipo === "Troca" && !!p.trocaId;
+  const solicitacaoNaTela = p.tipo === "Solicitação" && !!p.solicitacao && !SOLICITACAO_NA_TELA_PROPRIA.test(p.solicitacao.tipo);
+
+  const concluir = () => {
+    if (selectedCompanyId) registrarResolvida(selectedCompanyId, p.id);
+    void resolverPendencias(qc, { companyId: selectedCompanyId, match: porIds([p.id]) });
+    onResolved?.();
+  };
+
+  const decidirDireto = useMutation({
+    mutationFn: async ({ aceito, obs }: { aceito: boolean; obs?: string }) => {
+      if (trocaNaTela) {
+        const { error } = await supabase.rpc("dp_troca_responder_gestor", {
+          p_id: p.trocaId!, p_aceito: aceito, p_observacao: obs?.trim() || null,
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.rpc("dp_solicitacao_responder", {
+          p_id: p.solicitacao!.id, p_status: aceito ? "aprovada" : "recusada", p_resposta: (obs?.trim() || null) as any,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, v) => {
+      toast.success(v.aceito ? "Aprovado" : "Recusado");
+      setRecusarAberto(false);
+      setMotivoRecusa("");
+      qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_trocas"] });
+      concluir();
+    },
+    onError: (e: any) => toast.error("Não foi possível registrar a decisão", {
+      description: `${e?.message ?? "Erro"} — tente de novo ou abra a tela de Folgas.`,
+    }),
+  });
+
   const decisao = decisaoDe.get(p.id);
   const intermitente = p.tipo === "Intermitente" && !!p.colaboradorId && !!p.competencia;
   const licencaRetorno = p.tipo === "Licença" && !!p.licenca;
@@ -100,7 +149,7 @@ export function PendenciaAcoes({
                   competencia: p.competencia!,
                   trabalhou: true,
                 },
-                { onSuccess: onResolved },
+                { onSuccess: concluir },
               )
             }
           >
@@ -118,11 +167,25 @@ export function PendenciaAcoes({
                   competencia: p.competencia!,
                   trabalhou: false,
                 },
-                { onSuccess: onResolved },
+                { onSuccess: concluir },
               )
             }
           >
             <X className="h-3 w-3 mr-1" /> Não trabalhou
+          </Button>
+        </>
+      ) : trocaNaTela || solicitacaoNaTela ? (
+        <>
+          <Button size="sm" className="h-9 sm:h-7 text-xs" disabled={decidirDireto.isPending}
+            onClick={() => decidirDireto.mutate({ aceito: true })}>
+            <Check className="h-3 w-3 mr-1" /> Aprovar
+          </Button>
+          <Button size="sm" variant="outline" className="h-9 sm:h-7 text-xs" disabled={decidirDireto.isPending}
+            onClick={() => setRecusarAberto(true)}>
+            <X className="h-3 w-3 mr-1" /> Recusar
+          </Button>
+          <Button asChild size="sm" variant="ghost" className="h-9 sm:h-7 text-xs">
+            <Link to={p.url} onClick={onNavigate}>Detalhes <ArrowRight className="h-3 w-3 ml-1" /></Link>
           </Button>
         </>
       ) : licencaRetorno ? (
@@ -230,6 +293,27 @@ export function PendenciaAcoes({
               onClick={confirmarIgnorar}
             >
               {decidir.isPending ? "Salvando…" : "Ignorar pendência"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={recusarAberto} onOpenChange={setRecusarAberto}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Recusar {trocaNaTela ? "troca" : "pedido"}</DialogTitle>
+            <DialogDescription>O colaborador verá o motivo informado.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-1.5 py-1">
+            <Label>Motivo <span className="text-destructive">*</span></Label>
+            <Textarea rows={3} autoFocus value={motivoRecusa} onChange={(e) => setMotivoRecusa(e.target.value)}
+              placeholder="Ex.: dia de pico, sem cobertura na equipe." />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRecusarAberto(false)}>Cancelar</Button>
+            <Button disabled={motivoRecusa.trim().length < 3 || decidirDireto.isPending}
+              onClick={() => decidirDireto.mutate({ aceito: false, obs: motivoRecusa })}>
+              {decidirDireto.isPending ? "Salvando…" : "Recusar"}
             </Button>
           </DialogFooter>
         </DialogContent>
