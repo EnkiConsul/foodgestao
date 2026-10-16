@@ -195,6 +195,27 @@ async function processEvent(admin: Admin, env: Env, eventType: string, payload: 
       .eq("asaas_env", env)
       .eq("external_invoice_id", payment.id).maybeSingle();
 
+    // Assinatura desfeita por falha de contratação: nunca reativa nem libera acesso.
+    let subAlvo: string | null = (inv as any)?.subscription_id ?? null;
+    if (!subAlvo && payment.subscription) {
+      const { data: sr } = await admin.from("subscriptions").select("id").eq("asaas_env", env)
+        .eq("external_subscription_id", payment.subscription).maybeSingle();
+      subAlvo = (sr as any)?.id ?? null;
+    }
+    if (subAlvo) {
+      const { count } = await admin.from("subscription_events").select("id", { count: "exact", head: true })
+        .eq("subscription_id", subAlvo).eq("tipo_evento", "contratacao_desfeita");
+      if ((count ?? 0) > 0) {
+        await admin.from("asaas_env_divergencias").insert({
+          event_id: String(payload?.id ?? payment.id), event_type: eventType, evento_env: env, registro_env: env,
+          tabela: "subscriptions", external_id: String(payment.subscription ?? payment.id),
+          detalhe: `Evento ignorado: assinatura ${subAlvo} foi desfeita por falha de contratação — conferir e cancelar no Asaas`,
+        });
+        console.warn(`asaas-webhook-worker: ${eventType} para assinatura desfeita ${subAlvo} — ignorado`);
+        return;
+      }
+    }
+
     // Fatura recorrente gerada pelo Asaas: cria a linha local
     if (!inv && payment.subscription) {
       const { data: subRow } = await admin
