@@ -64,6 +64,18 @@ describe("Solicitações: visitante negado nas rotinas administrativas", () => {
       "dp_adiantamento_registrar",
       { p_colaborador: UUID_QUALQUER, p_tipo: "ativar", p_data: DATA_QUALQUER, p_observacao: null },
     ],
+    // Tipos removidos do portal (adiantamento é gestão exclusiva do gestor;
+    // "outros" deixou de existir): a rotina do colaborador deve recusar.
+    [
+      "criar solicitação de adiantamento pelo portal",
+      "dp_solicitacao_criar",
+      { p_tipo: "adiantamento", p_data_alvo: DATA_QUALQUER, p_data_fim: null, p_motivo: "teste", p_arquivo_path: null },
+    ],
+    [
+      "criar solicitação genérica (outros) pelo portal",
+      "dp_solicitacao_criar",
+      { p_tipo: "outros", p_data_alvo: DATA_QUALQUER, p_data_fim: null, p_motivo: "teste", p_arquivo_path: null },
+    ],
     [
       "cancelar folga como gestor",
       "dp_folga_admin_cancelar",
