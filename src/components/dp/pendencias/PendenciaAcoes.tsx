@@ -17,9 +17,25 @@ import { useDpPendenciasDecisoes } from "@/hooks/useDpPendenciasDecisoes";
 import { useDpIntermitenteConfirmacoes } from "@/hooks/useDpIntermitenteConfirmacoes";
 import type { Pendencia } from "@/hooks/useDpPendencias";
 import { DpLicencaRetornoDialog } from "@/components/dp/licencas/DpLicencaRetornoDialog";
-import { addDays, format } from "date-fns";
+import { adiarPresets } from "@/lib/dp/adiar-presets";
+import { FeriasNovoModal } from "@/components/dp/ferias/FeriasNovoModal";
 
-const ADIAR_PRESETS = [7, 15, 30];
+/** Rótulo do botão principal conforme o assunto (em vez do genérico "Resolver"). */
+const ROTULO: Record<string, string> = {
+  "Férias": "Programar férias",
+  "Assinaturas": "Ver assinatura",
+  "Documentos": "Enviar documento",
+  "Comprovante de pagamento": "Anexar comprovante",
+  "Cadastro de Colaborador": "Completar cadastro",
+  "Dependente": "Ver dependente",
+  "Escala": "Abrir escala",
+  "Troca": "Analisar troca",
+  "Solicitação": "Analisar pedido",
+  "Ocorrência": "Tratar ocorrência",
+  "Rescisão": "Ver desligamento",
+  "Pré-Admissão": "Ver pré-admissão",
+  "Benefícios": "Ver benefícios",
+};
 
 /**
  * Ações compartilhadas de uma pendência: resolver, adiar ou ignorar para toda a
@@ -41,20 +57,17 @@ export function PendenciaAcoes({
   const [justificativa, setJustificativa] = useState("");
   const [adiarAberto, setAdiarAberto] = useState(false);
   const [retornoAberto, setRetornoAberto] = useState(false);
+  const [feriasAberto, setFeriasAberto] = useState(false);
+  const feriasNaTela = p.tipo === "Férias" && !!p.colaboradorId;
 
   const decisao = decisaoDe.get(p.id);
   const intermitente = p.tipo === "Intermitente" && !!p.colaboradorId && !!p.competencia;
   const licencaRetorno = p.tipo === "Licença" && !!p.licenca;
 
 
-  const adiar = (dias: number) => {
+  const adiar = (data: string) => {
     setAdiarAberto(false);
-    decidir.mutate({
-      pendenciaId: p.id,
-      tipo: p.tipo,
-      acao: "adiar",
-      adiadaAte: format(addDays(new Date(), dias), "yyyy-MM-dd"),
-    });
+    decidir.mutate({ pendenciaId: p.id, tipo: p.tipo, acao: "adiar", adiadaAte: data });
   };
 
   const confirmarIgnorar = () => {
@@ -113,10 +126,14 @@ export function PendenciaAcoes({
         <Button size="sm" className="h-9 sm:h-7 text-xs" onClick={() => setRetornoAberto(true)}>
           <Check className="h-3 w-3 mr-1" /> Registrar retorno
         </Button>
+      ) : feriasNaTela ? (
+        <Button size="sm" className="h-9 sm:h-7 text-xs" onClick={() => setFeriasAberto(true)}>
+          <CalendarPlus className="h-3 w-3 mr-1" /> Programar férias
+        </Button>
       ) : (
         <Button asChild size="sm" className="h-9 sm:h-7 text-xs">
           <Link to={p.url} onClick={onNavigate}>
-            Resolver <ArrowRight className="h-3 w-3 ml-1" />
+            {ROTULO[p.tipo] ?? "Resolver"} <ArrowRight className="h-3 w-3 ml-1" />
           </Link>
         </Button>
       )}
@@ -141,20 +158,24 @@ export function PendenciaAcoes({
                 <CalendarPlus className="h-3 w-3 mr-1" /> Adiar
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-56 p-3 space-y-2">
+            <PopoverContent align="end" className="w-60 p-3 space-y-2">
               <p className="text-xs font-medium text-muted-foreground">
-                Adiar para todos os gestores por
+                Lembrar todos os gestores em
               </p>
-              <div className="flex gap-1">
-                {ADIAR_PRESETS.map((d) => (
+              <div className="grid gap-1">
+                {adiarPresets().map((op) => (
                   <Button
-                    key={d}
+                    key={op.chave}
                     size="sm"
                     variant="outline"
-                    className="h-7 flex-1 text-xs"
-                    onClick={() => adiar(d)}
+                    className="h-10 sm:h-8 justify-between text-xs"
+                    disabled={decidir.isPending}
+                    onClick={() => adiar(op.data)}
                   >
-                    {d}d
+                    <span>{op.label}</span>
+                    <span className="text-muted-foreground">
+                      {new Date(op.data + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                    </span>
                   </Button>
                 ))}
               </div>
@@ -206,6 +227,17 @@ export function PendenciaAcoes({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {feriasNaTela && feriasAberto && (
+        <FeriasNovoModal
+          open={feriasAberto}
+          onOpenChange={(o) => {
+            setFeriasAberto(o);
+            if (!o) onResolved?.();
+          }}
+          colaboradorId={p.colaboradorId!}
+        />
+      )}
 
       {licencaRetorno && (
         <DpLicencaRetornoDialog
