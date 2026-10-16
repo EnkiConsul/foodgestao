@@ -195,6 +195,7 @@ export default function DpAtas() {
 function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | null; onClose: () => void }) {
   const qc = useQueryClient();
   const [id, setId] = useState<string | null>(ata?.id ?? null);
+  const [versao, setVersao] = useState<string | null>((ata as any)?.updated_at ?? null);
   const enviada = ata?.status === "enviada";
   const [titulo, setTitulo] = useState(ata?.titulo ?? "");
   const [data, setData] = useState(ata?.data_reuniao ?? hoje());
@@ -250,27 +251,26 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
     if (!data) { toast.error("Informe a data da reunião."); return null; }
     setSalvando(true);
     try {
-      const payload = { company_id: companyId, titulo: titulo.trim(), data_reuniao: data, local: local.trim() || null, unidade_id: unidadeId === "todas" ? null : unidadeId, conteudo_html: html, anexos, materiais_apoio: materiais, condutores, publicar_mural: publicarMural };
-      let atual = id;
-      if (atual) {
-        const { error } = await supabase.from("dp_atas" as never).update(payload as never).eq("id", atual);
-        if (error) throw error;
-      } else {
-        const { data: ins, error } = await supabase.from("dp_atas" as never).insert(payload as never).select("id").single();
-        if (error) throw error;
-        atual = (ins as any).id; setId(atual);
-      }
-      // sincroniza participantes
-      await supabase.from("dp_ata_participantes" as never).delete().eq("ata_id", atual!);
-      if (parts.length) {
-        const { error } = await supabase.from("dp_ata_participantes" as never).insert(parts.map((p) => ({ ata_id: atual, company_id: companyId, colaborador_id: p.colaborador_id, modalidade: p.modalidade, avulso_nome: p.colaborador_id ? null : p.nome, avulso_cpf: p.colaborador_id ? null : p.avulso_cpf, avulso_whatsapp: p.colaborador_id ? null : p.avulso_whatsapp })) as never);
-        if (error) throw error;
-      }
+      const dados = { titulo: titulo.trim(), data_reuniao: data, local: local.trim() || null, unidade_id: unidadeId === "todas" ? null : unidadeId, conteudo_html: html, anexos, materiais_apoio: materiais, condutores, publicar_mural: publicarMural };
+      const participantes = parts.map((p) => ({ id: p.id ?? null, colaborador_id: p.colaborador_id, modalidade: p.modalidade, avulso_nome: p.colaborador_id ? null : p.nome, avulso_cpf: p.colaborador_id ? null : p.avulso_cpf, avulso_whatsapp: p.colaborador_id ? null : p.avulso_whatsapp }));
+      // Salvamento atômico no servidor: ata + participantes confirmam juntos ou nada muda.
+      const { data: r, error } = await (supabase as any).rpc("dp_ata_salvar", { p_ata_id: id, p_company_id: companyId, p_dados: dados, p_participantes: participantes, p_versao: versao });
+      if (error) throw error;
+      const atual = (r as any).id as string;
+      setId(atual); setVersao((r as any).updated_at ?? null);
+      const { data: novos } = await supabase.from("dp_ata_participantes" as never).select("id, colaborador_id, modalidade, documento_id, avulso_nome, avulso_cpf, avulso_whatsapp, assinado_em, dp_colaboradores(nome)").eq("ata_id", atual);
+      if (novos) setParts(((novos as any[]).map((p) => ({ key: p.id, colaborador_id: p.colaborador_id, modalidade: p.modalidade, documento_id: p.documento_id, nome: p.dp_colaboradores?.nome ?? p.avulso_nome, avulso_cpf: p.avulso_cpf, avulso_whatsapp: p.avulso_whatsapp, id: p.id, assinado_em: p.assinado_em }))));
       if (!silencioso) toast.success("Rascunho salvo.");
       qc.invalidateQueries({ queryKey: ["dp_atas"] });
       return atual;
     } catch (e: any) {
-      toast.error("Não foi possível salvar a ata.", { description: /permission|policy/i.test(e?.message ?? "") ? "Seu perfil não tem permissão para editar documentos. Fale com o administrador." : "Tente novamente em instantes." });
+      const m = String(e?.message ?? "");
+      const desc = m.includes("CONFLITO_EDICAO") ? "Outra pessoa salvou esta ata enquanto você editava. Feche e abra de novo para ver a versão atual — nada foi alterado."
+        : m.includes("ATA_ENVIADA") ? "Esta ata já foi enviada e não pode mais ser editada."
+        : m.includes("PARTICIPANTE_PROTEGIDO") ? "Um participante já tem documento ou assinatura e não pode ser removido."
+        : /SEM_PERMISSAO|EMPRESA_DIVERGENTE|permission|policy/i.test(m) ? "Seu perfil não tem permissão para editar esta ata. Fale com o administrador."
+        : "Nada foi alterado. Tente novamente em instantes.";
+      toast.error("Não foi possível salvar a ata.", { description: desc });
       return null;
     } finally { setSalvando(false); }
   }
