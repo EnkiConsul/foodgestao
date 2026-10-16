@@ -673,6 +673,13 @@
       "when": 1792157629554,
       "tag": "0095_revogar_anon_access_model_mode_trocas_afastamentos",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1792161161946,
+      "tag": "0096_dp_folga_atribuir_admin_v2_corrige_regime",
+      "breakpoints": true
     }
   ]
 }
