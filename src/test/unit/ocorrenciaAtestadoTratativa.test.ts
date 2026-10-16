@@ -18,3 +18,13 @@ describe("tratativa de ponto", () => {
     expect(tratativaPendente({ ...base, tipo: "atraso", origem: "gestor" })).toBe(true);
   });
 });
+
+import { ocorrenciaPedeAtencao } from "@/lib/dp/ocorrencias";
+describe("alerta da tela inicial", () => {
+  it("atestado já aprovado não alerta", () => {
+    expect(ocorrenciaPedeAtencao(base)).toBe(false);
+  });
+  it("falta ainda não analisada alerta", () => {
+    expect(ocorrenciaPedeAtencao({ ...base, tipo: "falta", origem: "gestor", analise_status: "pendente" })).toBe(true);
+  });
+});
