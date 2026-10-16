@@ -310,3 +310,18 @@ export function diretrizPonto(o: Parameters<typeof tratativaPendente>[0]): Diret
   if (["falta", "atraso", "saida_antecipada", "atraso_intervalo"].includes(o.tipo)) return "descontar";
   return "outro";
 }
+
+/** Ocorrência que ainda pede atenção do gestor (alerta da tela inicial). */
+export function ocorrenciaPedeAtencao(o: {
+  tipo: string;
+  estado: string;
+  origem?: string | null;
+  analise_status?: string | null;
+  impacta_assiduidade?: string | null;
+  tratativa_ponto?: boolean | null;
+  tratativa_status?: string | null;
+}): boolean {
+  if (o.estado === "cancelada") return false;
+  if (tratativaJaDecididaPorAtestado(o)) return false;
+  return o.analise_status !== "analisada" || tratativaPendente(o);
+}
