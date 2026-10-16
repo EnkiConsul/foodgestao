@@ -226,7 +226,7 @@ export function OcorrenciaCard({
           <div className="flex flex-wrap items-center gap-3">
             {(["assiduidade", "ferias"] as const).map((campo) => (
               <div key={campo} className="flex items-center gap-2">
-                <span className="text-muted-foreground">{campo === "assiduidade" ? "Assiduidade" : "Férias"}</span>
+                <span className="text-muted-foreground">{campo === "assiduidade" ? "Perde assiduidade" : "Desconta férias"}</span>
                 <Select
                   value={campo === "assiduidade" ? o.impacta_assiduidade : o.impacta_ferias}
                   onValueChange={(v) => onImpacto(campo, v as OcorrenciaImpacto)}
