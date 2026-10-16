@@ -14,6 +14,9 @@ vi.mock("@/integrations/supabase/client", () => {
   return { supabase: { from: () => chain, auth: { getUser: async () => ({ data: { user: null } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) } } };
 });
 
+let prefsMock: any = { prefs: {}, isLoading: false, available: true, save: vi.fn() };
+vi.mock("@/hooks/useDpUserPrefs", () => ({ useDpUserPrefs: () => prefsMock }));
+
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 
 const wrap = () => {
@@ -23,7 +26,7 @@ const wrap = () => {
 const args: any = { screenKey: "t_layout", storageKey: "t_layout", defaultOrder: ["a", "b"], defaultWidths: { a: 100, b: 200 }, defaultSortKey: "a" };
 
 describe("useDpTableColumns — layout global", () => {
-  beforeEach(() => { localStorage.clear(); maybeSingle.mockReset(); single.mockReset(); });
+  beforeEach(() => { prefsMock = { prefs: {}, isLoading: false, available: true, save: vi.fn() }; localStorage.clear(); maybeSingle.mockReset(); single.mockReset(); });
 
   it("sem layout global usa maybeSingle (sem 406) e mantém o padrão", async () => {
     maybeSingle.mockResolvedValue({ data: null, error: null });
@@ -46,5 +49,26 @@ describe("useDpTableColumns — layout global", () => {
     await waitFor(() => expect(maybeSingle).toHaveBeenCalled());
     expect(result.current.colOrder).toEqual(["a", "b"]);
     expect(result.current.colWidths).toEqual({ a: 100, b: 200 });
+  });
+
+  it("preferência individual vence o layout global", async () => {
+    prefsMock = { prefs: { extras: { table_layouts: { t_layout: { order: ["b", "a"], widths: { a: 111, b: 222 }, hidden: [] } } } }, isLoading: false, available: true, save: vi.fn() };
+    maybeSingle.mockResolvedValue({ data: { screen_key: "t_layout", column_order: ["a", "b"], column_widths: { a: 999, b: 999 }, updated_at: new Date().toISOString() }, error: null });
+    const { result } = renderHook(() => useDpTableColumns(args), { wrapper: wrap() });
+    await waitFor(() => expect(result.current.colOrder).toEqual(["b", "a"]));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(result.current.colWidths.a).toBe(111);
+  });
+
+  it("cache local mais recente que o global é preservado", async () => {
+    localStorage.setItem("t_layout_order", JSON.stringify(["b", "a"]));
+    localStorage.setItem("t_layout_width", JSON.stringify({ a: 130, b: 230 }));
+    localStorage.setItem("t_layout_layout_ts", String(Date.now() + 100000));
+    maybeSingle.mockResolvedValue({ data: { screen_key: "t_layout", column_order: ["a", "b"], column_widths: { a: 999, b: 999 }, updated_at: new Date().toISOString() }, error: null });
+    const { result } = renderHook(() => useDpTableColumns(args), { wrapper: wrap() });
+    await waitFor(() => expect(maybeSingle).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 50));
+    expect(result.current.colOrder).toEqual(["b", "a"]);
+    expect(result.current.colWidths.a).toBe(130);
   });
 });
