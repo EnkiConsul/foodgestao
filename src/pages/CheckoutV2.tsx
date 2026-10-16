@@ -119,6 +119,14 @@ export default function CheckoutV2() {
     }
   }, [conta.data]);
 
+  const nfse = useQuery({
+    queryKey: ["checkout-v2-nfse"],
+    queryFn: async () => {
+      const { data } = await supabase.from("system_parameters" as any).select("value").eq("key", "emitir_nfse").maybeSingle();
+      return String((data as any)?.value ?? "desligado").replace(/"/g, "");
+    },
+  });
+  const nfseLigada = !!nfse.data && nfse.data !== "desligado" && nfse.data !== "false";
   const planos = useMemo(() => (catalogo.data?.planos ?? []).filter((p) => p.module === modulo), [catalogo.data, modulo]);
   const planoSel = planos.find((p) => p.slug === plano);
   const limEmpresas = catalogo.data?.limites.find((l) => l.plan_id === planoSel?.id && l.recurso === "empresas");
@@ -180,7 +188,18 @@ export default function CheckoutV2() {
   const docLimpo = doc.replace(/\D/g, "");
   const docOk = docLimpo.length === 11 || docLimpo.length === 14;
   const emailOk = /^\S+@\S+\.\S+$/.test(email.trim());
-  const pronto = !!planoSel && cotacao.data?.ok && docOk && emailOk && aceite && (modo !== "grupo" || selGrupo.length >= 2);
+  const docTravado = !!conta.data?.asaas_customer_id && !!conta.data?.documento_pagador;
+  const emailTravado = !!conta.data?.asaas_customer_id && !!conta.data?.email_cobranca;
+  const pendencias: string[] = [];
+  if (!modulo) pendencias.push("Escolha o módulo.");
+  if (!planoSel) pendencias.push("Escolha o plano.");
+  if (!docOk) pendencias.push("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.");
+  if (!emailOk) pendencias.push("Informe um e-mail de cobrança válido.");
+  if (!aceite) pendencias.push("Aceite os Termos de Uso.");
+  if (modo === "grupo" && selGrupo.length < 2) pendencias.push("Marque pelo menos 2 empresas no modo Grupo.");
+  if (planoSel && cotacao.isLoading) pendencias.push("Aguarde o cálculo do valor.");
+  if (planoSel && (cotacao.error || (cotacao.data && !cotacao.data.ok))) pendencias.push("O cálculo do valor retornou erro. Revise as opções acima.");
+  const pronto = pendencias.length === 0 && !!cotacao.data?.ok;
 
   const enviar = useMutation({
     mutationFn: () => chamar({
@@ -285,7 +304,9 @@ export default function CheckoutV2() {
               )}
               {modo === "grupo" && (
                 <Alert><AlertTriangle className="h-4 w-4" /><AlertDescription>
-                  Aviso fiscal: no modo Grupo a cobrança e a nota fiscal saem em nome de um único pagador (o CPF/CNPJ informado abaixo), mesmo cobrindo várias empresas. Confirme com sua contabilidade.
+                  {nfseLigada
+                    ? "Aviso fiscal: no modo Grupo a cobrança e a nota fiscal saem em nome de um único pagador (o CPF/CNPJ informado abaixo), mesmo cobrindo várias empresas. Confirme com sua contabilidade."
+                    : "Aviso: no modo Grupo a cobrança sai em nome de um único pagador (o CPF/CNPJ informado abaixo), mesmo cobrindo várias empresas."}
                 </AlertDescription></Alert>
               )}
             </Passo>
@@ -305,15 +326,16 @@ export default function CheckoutV2() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
                   <Label htmlFor="doc">CNPJ ou CPF</Label>
-                  <Input id="doc" value={doc} onChange={(e) => setDoc(e.target.value)} disabled={!!conta.data.asaas_customer_id} />
+                  <Input id="doc" value={doc} onChange={(e) => setDoc(e.target.value)} disabled={docTravado} />
                   {doc && !docOk && <p className="text-xs text-destructive">Informe 11 (CPF) ou 14 (CNPJ) dígitos.</p>}
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="email">E-mail de Cobrança</Label>
-                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!!conta.data.asaas_customer_id} />
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={emailTravado} />
                 </div>
               </div>
-              {conta.data.asaas_customer_id && <p className="text-xs text-muted-foreground">Pagador já cadastrado nesta conta de cobrança.</p>}
+              {docTravado && emailTravado && <p className="text-xs text-muted-foreground">Pagador já cadastrado nesta conta de cobrança.</p>}
+              {conta.data.asaas_customer_id && (!docTravado || !emailTravado) && <p className="text-xs text-muted-foreground">Complete os dados do pagador. Eles serão conferidos com o cadastro de cobrança existente.</p>}
             </Passo>
 
             <Passo n={7} titulo="Forma de Pagamento">
@@ -373,6 +395,14 @@ export default function CheckoutV2() {
             <Button className="w-full" disabled={!pronto || enviar.isPending} onClick={() => enviar.mutate()} data-testid="confirmar">
               {enviar.isPending ? "Enviando..." : <><Check className="mr-1 h-4 w-4" /> Confirmar Contratação</>}
             </Button>
+            {pendencias.length > 0 && !enviar.isPending && (
+              <div className="space-y-1" data-testid="pendencias">
+                <p className="text-xs font-medium">Para liberar a contratação:</p>
+                <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
+                  {pendencias.map((p) => <li key={p}>{p}</li>)}
+                </ul>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
