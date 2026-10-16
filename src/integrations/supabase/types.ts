@@ -6811,6 +6811,7 @@ export type Database = {
           negociacao_id: string | null
           ocorrencia_cobertura_aprovacao: string
           ocorrencia_prazo_retroativo_dias: number
+          ocorrencias_corte_dia: number | null
           periodicidade_domingo: number
           periodicidade_domingo_mulher: number
           politica_feriado: Database["public"]["Enums"]["dp_politica_feriado"]
@@ -6874,6 +6875,7 @@ export type Database = {
           negociacao_id?: string | null
           ocorrencia_cobertura_aprovacao?: string
           ocorrencia_prazo_retroativo_dias?: number
+          ocorrencias_corte_dia?: number | null
           periodicidade_domingo?: number
           periodicidade_domingo_mulher?: number
           politica_feriado?: Database["public"]["Enums"]["dp_politica_feriado"]
@@ -6937,6 +6939,7 @@ export type Database = {
           negociacao_id?: string | null
           ocorrencia_cobertura_aprovacao?: string
           ocorrencia_prazo_retroativo_dias?: number
+          ocorrencias_corte_dia?: number | null
           periodicidade_domingo?: number
           periodicidade_domingo_mulher?: number
           politica_feriado?: Database["public"]["Enums"]["dp_politica_feriado"]
@@ -18303,6 +18306,7 @@ export type Database = {
           negociacao_id: string | null
           ocorrencia_cobertura_aprovacao: string
           ocorrencia_prazo_retroativo_dias: number
+          ocorrencias_corte_dia: number | null
           periodicidade_domingo: number
           periodicidade_domingo_mulher: number
           politica_feriado: Database["public"]["Enums"]["dp_politica_feriado"]
@@ -19748,6 +19752,14 @@ export type Database = {
       dp_ocorrencia_tratar: {
         Args: { _decisao: string; _observacao?: string; _ocorrencia_id: string }
         Returns: undefined
+      }
+      dp_ocorrencias_corte_definir: {
+        Args: { p_company_id: string; p_dia: number }
+        Returns: number
+      }
+      dp_ocorrencias_corte_obter: {
+        Args: { p_company_id: string }
+        Returns: number
       }
       dp_ocorrencias_indicadores: {
         Args: {
