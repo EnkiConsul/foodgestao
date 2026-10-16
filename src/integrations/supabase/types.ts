@@ -17891,6 +17891,16 @@ export type Database = {
         Args: { p_ata_id: string; p_excluir?: boolean }
         Returns: Json
       }
+      dp_ata_salvar: {
+        Args: {
+          p_ata_id: string
+          p_company_id: string
+          p_dados: Json
+          p_participantes: Json
+          p_versao?: string
+        }
+        Returns: Json
+      }
       dp_aviso_comentar: {
         Args: { p_autor_nome?: string; p_aviso_id: string; p_conteudo: string }
         Returns: string
