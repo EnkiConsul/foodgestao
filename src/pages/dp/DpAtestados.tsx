@@ -28,6 +28,8 @@ import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/
 import { DpFilePicker } from "@/components/dp/DpFilePicker";
 import { AnexoFotoPdfPicker } from "@/components/dp/portal/AnexoFotoPdfPicker";
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
+import { calcularIndicadores, afastadoNoDia } from "@/lib/dp/atestadosIndicadores";
+import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
@@ -692,12 +694,7 @@ export default function DpAtestados() {
           </div>
 
           {(() => {
-            const hoje = new Date().toISOString().slice(0, 10);
-            const em7 = addDays(hoje, 7);
-            const ativos = linhasFiltradas.filter((r) => r.status === "aprovada" || r.status === "pendente");
-            const foraHoje = ativos.filter((r) => r.data_alvo <= hoje && (r.data_fim ?? r.data_alvo) > hoje);
-            const retornam = ativos.filter((r) => r.data_fim && r.data_fim > hoje && r.data_fim <= em7);
-            const pend = linhasFiltradas.filter((r) => r.status === "pendente");
+            const { foraHoje, retornam, pend } = calcularIndicadores(linhasFiltradas);
             const kpis = [
               { label: "Afastados hoje", valor: foraHoje.length, nomes: foraHoje },
               { label: "Retornam em 7 dias", valor: retornam.length, nomes: retornam },
@@ -733,8 +730,7 @@ export default function DpAtestados() {
             )}
             {!list.isLoading && linhasFiltradas.map((r) => {
               const unitName = r.dp_colaboradores?.unidade_id ? unidadeNameById.get(r.dp_colaboradores.unidade_id) : null;
-              const hoje = new Date().toISOString().slice(0, 10);
-              const afastadoAgora = r.status !== "recusada" && r.status !== "cancelada" && r.data_alvo <= hoje && (r.data_fim ?? r.data_alvo) > hoje;
+              const afastadoAgora = afastadoNoDia(r, hojeIsoLocal());
               return (
                 <div
                   key={r.id}
