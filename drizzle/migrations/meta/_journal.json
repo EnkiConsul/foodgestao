@@ -652,6 +652,13 @@
       "when": 1792154813389,
       "tag": "0092_dp_ata_salvar_atomico",
       "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1792156026880,
+      "tag": "0093_dp_ata_salvar_versao_obrigatoria",
+      "breakpoints": true
     }
   ]
 }
