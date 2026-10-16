@@ -59,7 +59,6 @@ export const FAVORITABLE_PAGES: FavoritablePage[] = [
 
   { pattern: "/dp/meu/perfil", label: "Meu Perfil", icon: User },
   { pattern: "/dp/meu/documentos", label: "Meus Documentos", icon: FileText },
-  { pattern: "/dp/meu/solicitacoes", label: "Minhas Solicitações", icon: ClipboardList },
   { pattern: "/dp/meu/trocas", label: "Minhas Trocas", icon: Repeat },
   { pattern: "/dp/meu/calendario", label: "Meu Calendário", icon: Calendar },
   { pattern: "/dp/meu/atestados", label: "Meus Atestados", icon: FileSignature },

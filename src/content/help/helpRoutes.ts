@@ -67,7 +67,6 @@ export const HELP_BY_ROUTE: Record<string, HelpKey> = {
   "/dp/meu/mural": "portal.mural",
   "/dp/meu/perfil": "portal.perfil",
   "/dp/meu/documentos": "portal.documentos",
-  "/dp/meu/solicitacoes": "portal.solicitacoes",
   "/dp/meu/trocas": "portal.trocas",
   "/dp/meu/ferias": "portal.ferias",
   "/dp/meu/calendario": "dp.calendario",

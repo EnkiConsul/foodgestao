@@ -213,7 +213,6 @@ const PORTAL_GROUPS: DpNavGroup[] = [
       "/dp/meu/convocacoes",
       "/dp/meu/trocas",
       "/dp/meu/ferias",
-      "/dp/meu/solicitacoes",
       "/dp/meu/calculadora",
     ],
     items: [
@@ -225,7 +224,6 @@ const PORTAL_GROUPS: DpNavGroup[] = [
       { label: "Convocações", to: "/dp/meu/convocacoes", icon: BellRing, shortcut: true },
       { label: "Trocas", to: "/dp/meu/trocas", icon: Repeat, shortcut: true },
       { label: "Minhas Férias", to: "/dp/meu/ferias", icon: Palmtree, shortcut: true, shortLabel: "Férias" },
-      { label: "Solicitações", to: "/dp/meu/solicitacoes", icon: ClipboardList, shortcut: true },
       { label: "Calculadora", to: "/dp/meu/calculadora", icon: Calculator },
     ],
   },
