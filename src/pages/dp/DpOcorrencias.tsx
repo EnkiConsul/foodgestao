@@ -187,8 +187,7 @@ export default function DpOcorrencias() {
   };
   // "Hoje" filtra só o dia atual (São Paulo): indicadores e lista passam a refletir o dia.
   const irHoje = () => {
-    const h = hojeRef();
-    setFiltros((f) => ({ ...f, data: null, periodo: "hoje", periodoInicio: h, periodoFim: h }));
+    setFiltros((f) => ({ ...f, data: null, periodo: "hoje", periodoInicio: null, periodoFim: null }));
   };
   const swipeMes = useSwipeHorizontal(() => irMes(1), () => irMes(-1));
 
