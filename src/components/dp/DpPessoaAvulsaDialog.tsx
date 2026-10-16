@@ -429,7 +429,7 @@ export function DpPessoaAvulsaDialog({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="overflow-x-hidden sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{registro ? "Editar Pessoa no Dia" : "Mão de Obra Extra"}</DialogTitle>
           <DialogDescription>
