@@ -659,6 +659,13 @@
       "when": 1792156026880,
       "tag": "0093_dp_ata_salvar_versao_obrigatoria",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1792157016228,
+      "tag": "0094_ocorrencias_corte_dia_empresa",
+      "breakpoints": true
     }
   ]
 }

@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { tratativaPendente, diretrizPonto, DIRETRIZ_LABEL, TIPO_LABEL as TIPO_LABEL_D, type DiretrizPonto } from "@/lib/dp/ocorrencias";
 import { Helmet } from "react-helmet-async";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useSearchParams } from "react-router-dom";
 
 import { ChevronLeft, ChevronRight, ClipboardList, Plus } from "lucide-react";
@@ -78,6 +79,7 @@ const PERIODOS: { value: OcorrenciaPeriodo; label: string }[] = [
 export default function DpOcorrencias() {
   const embedded = useDpEmbedded();
   const [searchParams] = useSearchParams();
+  const { selectedCompanyId } = useCompanyContext();
   const colaboradorParam = searchParams.get("colaborador");
   const dataParam = searchParams.get("data");
   // Corte salvo no navegador: o filtro inicial já nasce no período dele.
@@ -136,11 +138,39 @@ export default function DpOcorrencias() {
     const i = intervaloCompetencia(a, m, c);
     setFiltros((f) => ({ ...f, data: null, periodo: "personalizado", periodoInicio: i.inicio, periodoFim: i.fim }));
   };
+  // Corte oficial vem da configuração da empresa; o navegador guarda só uma cópia rápida.
+  useEffect(() => {
+    if (!selectedCompanyId) return;
+    let vivo = true;
+    supabase.rpc("dp_ocorrencias_corte_obter", { p_company_id: selectedCompanyId }).then(({ data, error }) => {
+      if (!vivo || error || data === null || data === undefined) return;
+      const c = lerCorte(String(data));
+      window.localStorage.setItem("dp_ocorrencias_corte", String(c));
+      setCorteState((atual) => {
+        if (atual !== c && !colaboradorParam && !dataParam) setFiltros(filtrosIniciais(c));
+        return c;
+      });
+    });
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCompanyId]);
   const setCorte = (c: number) => {
+    const anterior = corte;
     setCorteState(c);
     window.localStorage.setItem("dp_ocorrencias_corte", String(c));
     const [a, m] = (filtros.periodo === "todas" ? competenciaDe(hojeSaoPaulo(), c) : baseMes).split("-").map(Number);
     aplicarMes(a, m, c);
+    if (!selectedCompanyId) return;
+    supabase.rpc("dp_ocorrencias_corte_definir", { p_company_id: selectedCompanyId, p_dia: c }).then(({ error }) => {
+      if (!error) return;
+      setCorteState(anterior);
+      window.localStorage.setItem("dp_ocorrencias_corte", String(anterior));
+      toast.error(
+        /SEM_PERMISSAO/.test(error.message)
+          ? "Você não tem permissão para alterar o dia de corte da empresa."
+          : "Não foi possível salvar o dia de corte. Tente novamente.",
+      );
+    });
   };
   const irMes = (n: number) => {
     const [a0, m0] = (filtros.periodo === "todas" ? hojeRef() : baseMes).split("-").map(Number);
