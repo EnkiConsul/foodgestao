@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarClock, CheckCircle2, ChevronRight, Settings, UserRound } from "lucide-react";
+import { CalendarClock, CheckCircle2, Settings, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DpFilters, DpFilterField, type DpFilterChip } from "@/components/dp/DpFilters";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
@@ -323,7 +323,6 @@ export default function DpCadastroPendenciasLista() {
           </DialogContent>
         </Dialog>
       )}
-      <span className="hidden"><ChevronRight /></span>
     </DpPage>
   );
 }
