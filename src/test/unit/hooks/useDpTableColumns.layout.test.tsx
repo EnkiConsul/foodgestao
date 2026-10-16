@@ -20,7 +20,7 @@ const wrap = () => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return ({ children }: any) => React.createElement(QueryClientProvider, { client: qc }, children);
 };
-const args: any = { screenKey: "t_layout", storageKey: "t_layout", defaultOrder: ["a", "b"], defaultWidths: { a: 100, b: 200 } };
+const args: any = { screenKey: "t_layout", storageKey: "t_layout", defaultOrder: ["a", "b"], defaultWidths: { a: 100, b: 200 }, defaultSortKey: "a" };
 
 describe("useDpTableColumns — layout global", () => {
   beforeEach(() => { localStorage.clear(); maybeSingle.mockReset(); single.mockReset(); });
