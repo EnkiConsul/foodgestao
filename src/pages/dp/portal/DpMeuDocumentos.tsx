@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useSearchParams } from "react-router-dom";
+import { format } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Download, FileText, Eye, Ban, ChevronDown, SlidersHorizontal,
@@ -35,7 +36,13 @@ import type { Database } from "@/integrations/supabase/types";
 import { notifyError } from "@/lib/notifyError";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
 import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
-import { excluirDocumento } from "@/lib/dp/documentos-oficial";
+import { excluirDocumento, registrarDocumento } from "@/lib/dp/documentos-oficial";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { PortalDateField } from "@/components/dp/portal/PortalDateField";
+import { AnexoFotoPdfPicker } from "@/components/dp/portal/AnexoFotoPdfPicker";
+import { prepararUpload } from "@/lib/storage/uploadPolicy";
+import { sanitizeStorageFilename } from "@/lib/storage";
 
 type Tipo = Database["public"]["Enums"]["dp_documento_tipo"];
 
