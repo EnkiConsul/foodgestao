@@ -167,8 +167,8 @@ export default function DpCadastroPendenciasLista() {
     <DpPage>
       <DpPageHeader
         icon={CalendarClock}
-        title="Pendências"
-        description="Lista completa das pendências da empresa, com filtros e ações individuais."
+        title="Ações do Dia"
+        description="Tudo o que precisa ser resolvido na empresa, com filtros e ações individuais."
         actions={
           <Button asChild variant="outline" size="sm" className="gap-1.5">
             <Link to="/dp/configuracoes/prazos-pendencias">
