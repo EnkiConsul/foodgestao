@@ -666,6 +666,13 @@
       "when": 1792157016228,
       "tag": "0094_ocorrencias_corte_dia_empresa",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1792157629554,
+      "tag": "0095_revogar_anon_access_model_mode_trocas_afastamentos",
+      "breakpoints": true
     }
   ]
 }
