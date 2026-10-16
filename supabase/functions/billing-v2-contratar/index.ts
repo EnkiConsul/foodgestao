@@ -78,6 +78,8 @@ const Body = z.discriminatedUnion("acao", [
     valor_cents: z.number().optional(),
     adicionais: z.array(z.object({ code: z.string().max(40), qtd: z.number().int().min(1).max(500) })).max(10).optional(),
     empresas: z.array(z.string().uuid()).min(2).max(50).optional(),
+    // injeção de falha: só respeitada em conta [TESTE] do Sandbox (ver contratar)
+    simular_falha: z.enum(["criacao", "apos_assinatura", "cancelamento"]).optional(),
     pagador: z.object({
       documento: z.string().transform((s) => s.replace(/\D/g, "")).refine((s) => s.length === 11 || s.length === 14, "CPF/CNPJ inválido"),
       email: z.string().trim().email().max(255),

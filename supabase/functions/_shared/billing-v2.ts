@@ -140,10 +140,42 @@ export async function opcoesParcelamento(admin: SupabaseClient, valorCents: numb
 
 // ---------- operações ----------
 
+export const MSG_FALHA_DESFEITA = "Não foi possível concluir a contratação. Nada foi cobrado. Tente novamente ou escolha outra forma de pagamento.";
+export const MSG_FALHA_COMPENSACAO = "Não foi possível concluir a contratação. Se você receber alguma cobrança dela, desconsidere: nossa equipe vai cancelá-la.";
+
+type Criado = { tipo: "assinatura" | "cobranca"; id: string };
+
+/** Cancela no Asaas cada item criado na tentativa e confere por GET; devolve o que ficou ativo. */
+async function compensarAsaas(itens: Criado[], env: AsaasEnv, falharCancelamento: boolean) {
+  const desfeitos: Criado[] = []; const pendentes: (Criado & { motivo: string })[] = [];
+  // assinatura primeiro: o Asaas remove as cobranças em aberto dela junto
+  for (const it of [...itens].sort((a) => (a.tipo === "assinatura" ? -1 : 1))) {
+    const rota = it.tipo === "assinatura" ? `/subscriptions/${it.id}` : `/payments/${it.id}`;
+    let motivo = "";
+    try {
+      if (falharCancelamento) throw new Error("falha de cancelamento simulada (teste Sandbox)");
+      await asaasFetch(rota, { method: "DELETE" }, env);
+    } catch (e) { motivo = String((e as Error).message ?? e); }
+    // conferência: só vale como desfeito se o GET mostrar removido/cancelado
+    try {
+      const r = await asaasFetch(rota, { method: "GET" }, env);
+      const ativo = !(r?.deleted === true || ["INACTIVE", "CANCELLED", "DELETED", "REFUNDED"].includes(String(r?.status ?? "").toUpperCase()));
+      if (ativo) { pendentes.push({ ...it, motivo: motivo || `ainda ativo no Asaas (status ${r?.status})` }); continue; }
+    } catch (e) {
+      const m = String((e as Error).message ?? e);
+      if (!/\[404\]/.test(m)) { pendentes.push({ ...it, motivo: `${motivo} | conferência falhou: ${m}` }); continue; }
+    }
+    desfeitos.push(it);
+  }
+  return { desfeitos, pendentes };
+}
+
 export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: string, companyId: string, p: {
   plano: string; ciclo: Ciclo; forma: Forma; parcelas?: number; adicionais?: { code: string; qtd: number }[]; modo?: "empresa" | "grupo";
-  empresas?: string[];
+  empresas?: string[]; simular_falha?: "criacao" | "apos_assinatura" | "cancelamento";
 }, criados: Criados) {
+  // falha simulada só em conta [TESTE] do Sandbox; em qualquer outra é ignorada
+  const falha = conta.is_test && conta.asaas_env === "sandbox" ? p.simular_falha : undefined;
   const { data: plano } = await admin.from("plans").select("id,module,slug,name").eq("slug", p.plano).eq("is_active", true).maybeSingle();
   if (!plano) throw new BillingError(422, "Plano indisponível.");
   const { data: ativa } = await admin.from("subscriptions").select("id")
