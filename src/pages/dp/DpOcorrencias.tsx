@@ -364,28 +364,82 @@ export default function DpOcorrencias() {
 
       <div {...swipeMes}>
       {(() => {
-        const nomeMes = compAtual
-          ? new Date(`${compAtual}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
-          : null;
+        const nomeMes = new Date(`${mesReferencia}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
         const br = (x: string) => `${x.slice(8, 10)}/${x.slice(5, 7)}`;
-        const rotulo = compCorte
-          ? `${nomeMes} (${br(intervalo.inicio)} a ${br(intervalo.fim)})`
-          : nomeMes ?? textoPeriodo;
+        const mesInteiroAtivo = !!compAtual;
         return (
           <div className="sticky top-14 z-20 flex flex-wrap items-center gap-2 rounded-2xl border bg-card/95 px-3 py-2 shadow-sm backdrop-blur md:static md:bg-card">
-            <div className="inline-flex min-w-0 flex-1 items-center justify-between rounded-full border bg-background p-0.5 sm:flex-none">
-              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 rounded-full" aria-label="Mês anterior" onClick={() => irMes(-1)}>
+            <div className="flex w-full min-w-0 items-center justify-between rounded-full border bg-background p-0.5 sm:w-auto">
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 rounded-full" aria-label="Mês anterior" onClick={() => irMes(-1)}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="min-w-0 truncate px-1 text-center text-sm font-bold first-letter:uppercase sm:min-w-[9.5rem]">{rotulo}</span>
-              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 rounded-full" aria-label="Próximo mês" onClick={() => irMes(1)}>
+              <button
+                type="button"
+                onClick={voltarAoMes}
+                aria-pressed={mesInteiroAtivo}
+                aria-label={`Ver ${nomeMes} inteiro`}
+                className={cn(
+                  "flex min-w-0 flex-1 flex-col items-center rounded-full px-3 py-0.5 leading-tight transition-colors sm:min-w-[10rem]",
+                  mesInteiroAtivo ? "text-foreground" : "text-muted-foreground hover:bg-muted",
+                )}
+              >
+                <span className="text-sm font-bold first-letter:uppercase">{nomeMes}</span>
+                {mesInteiroAtivo && compCorte && (
+                  <span className="text-[11px] text-muted-foreground">{br(intervalo.inicio)} a {br(intervalo.fim)}</span>
+                )}
+                {!mesInteiroAtivo && filtros.periodo !== "todas" && (
+                  <span className="text-[11px] text-primary">Toque para ver o mês todo</span>
+                )}
+              </button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 rounded-full" aria-label="Próximo mês" onClick={() => irMes(1)}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-            <Button size="sm" className="h-8 shrink-0 rounded-full"
-              onClick={irHoje}>
-              Hoje
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant={periodoCurto || filtros.data ? "default" : "outline"} className="h-8 shrink-0 gap-1 rounded-full">
+                  {rotuloBotaoPeriodo}
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                {atalhos.map((a) => {
+                  const ativo = a.key === "mes" ? mesInteiroAtivo : atalhoAtivo?.key === a.key;
+                  return (
+                    <DropdownMenuItem key={a.key} onSelect={() => aplicarAtalho(a)} className="justify-between">
+                      {a.label}
+                      {ativo && <Check className="h-4 w-4 text-primary" />}
+                    </DropdownMenuItem>
+                  );
+                })}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => setCalAberto(true)} className="justify-between">
+                  Personalizado…
+                  {periodoCurto && !atalhoAtivo && <Check className="h-4 w-4 text-primary" />}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Dialog open={calAberto} onOpenChange={setCalAberto}>
+              <DialogContent className="w-auto max-w-[calc(100vw-2rem)]">
+                <DialogHeader><DialogTitle>Escolher período</DialogTitle></DialogHeader>
+                <Calendar
+                  mode="range"
+                  locale={ptBR}
+                  selected={{ from: new Date(intervalo.inicio + "T00:00:00"), to: new Date(intervalo.fim + "T00:00:00") }}
+                  defaultMonth={new Date((filtros.periodo === "todas" ? hojeSaoPaulo() : intervalo.inicio) + "T00:00:00")}
+                  onSelect={(r) => {
+                    if (!r?.from) return;
+                    setFiltros((f) => ({
+                      ...f, periodo: "personalizado", data: null,
+                      periodoInicio: format(r.from!, "yyyy-MM-dd"),
+                      periodoFim: format(r.to ?? r.from!, "yyyy-MM-dd"),
+                    }));
+                  }}
+                  className="pointer-events-auto mx-auto p-0"
+                />
+                <Button onClick={() => setCalAberto(false)}>Aplicar</Button>
+              </DialogContent>
+            </Dialog>
             <Select value={String(corte)} onValueChange={(v) => setCorte(Number(v))}>
               <SelectTrigger className="h-8 w-auto shrink-0 rounded-full text-xs" aria-label="Período de apuração">
                 <SelectValue />
