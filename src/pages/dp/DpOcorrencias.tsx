@@ -127,56 +127,29 @@ export default function DpOcorrencias() {
   const set = <K extends keyof OcorrenciaFiltros>(k: K, v: OcorrenciaFiltros[K]) =>
     setFiltros((f) => ({ ...f, [k]: v }));
 
-  const mesDe = (ini: string, fim: string) => {
-    const [a, m] = ini.split("-").map(Number);
-    const ultimo = new Date(a, m, 0).getDate();
-    return ini.endsWith("-01") && fim === `${ini.slice(0, 7)}-${String(ultimo).padStart(2, "0")}` ? ini.slice(0, 7) : null;
-  };
-  const [corte, setCorteState] = useState<number>(() => {
-    const v = Number(typeof window !== "undefined" ? window.localStorage.getItem("dp_ocorrencias_corte") : 0);
-    return v >= 2 && v <= 28 ? v : 0;
-  });
-  const compCorte = (() => {
-    if (filtros.data || !corte) return null;
-    const di = Number(intervalo.inicio.slice(8, 10));
-    const df = Number(intervalo.fim.slice(8, 10));
-    if (di !== corte || df !== corte - 1) return null;
-    const [a, m] = intervalo.inicio.split("-").map(Number);
-    const esperado = format(new Date(a, m, corte - 1), "yyyy-MM-dd");
-    return esperado === intervalo.fim ? intervalo.fim.slice(0, 7) : null;
-  })();
-  const compAtual = filtros.data ? null : compCorte ?? mesDe(intervalo.inicio, intervalo.fim);
-  const baseMes = compAtual ?? (filtros.data ?? intervalo.inicio).slice(0, 7);
+  const compCorte = filtros.data || !corte ? null : competenciaDoIntervalo(intervalo, corte);
+  const compAtual = filtros.data ? null : compCorte ?? competenciaDoIntervalo(intervalo, 0);
+  const hojeRef = () => competenciaDe(hojeSaoPaulo(), corte);
+  const baseMes = compAtual ?? competenciaDe(filtros.data ?? intervalo.inicio, filtros.data ? corte : 0);
   const aplicarMes = (a: number, m: number, c: number) => {
-    const d = c ? new Date(a, m - 2, c) : new Date(a, m - 1, 1);
-    const fim = c ? new Date(a, m - 1, c - 1) : new Date(a, m, 0);
-    setFiltros((f) => ({
-      ...f,
-      data: null,
-      periodo: "personalizado",
-      periodoInicio: format(d, "yyyy-MM-dd"),
-      periodoFim: format(fim, "yyyy-MM-dd"),
-    }));
+    const i = intervaloCompetencia(a, m, c);
+    setFiltros((f) => ({ ...f, data: null, periodo: "personalizado", periodoInicio: i.inicio, periodoFim: i.fim }));
   };
   const setCorte = (c: number) => {
     setCorteState(c);
     window.localStorage.setItem("dp_ocorrencias_corte", String(c));
-    const [a, m] = (filtros.periodo === "todas" ? format(new Date(), "yyyy-MM") : baseMes).split("-").map(Number);
+    const [a, m] = (filtros.periodo === "todas" ? competenciaDe(hojeSaoPaulo(), c) : baseMes).split("-").map(Number);
     aplicarMes(a, m, c);
   };
   const irMes = (n: number) => {
-    const [a0, m0] = (filtros.periodo === "todas" ? format(new Date(), "yyyy-MM") : baseMes).split("-").map(Number);
-    const alvo = new Date(a0, m0 - 1 + n, 1);
-    if (corte) return aplicarMes(alvo.getFullYear(), alvo.getMonth() + 1, corte);
-    const d = alvo;
-    const fim = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-    setFiltros((f) => ({
-      ...f,
-      data: null,
-      periodo: "personalizado",
-      periodoInicio: format(d, "yyyy-MM-dd"),
-      periodoFim: format(fim, "yyyy-MM-dd"),
-    }));
+    const [a0, m0] = (filtros.periodo === "todas" ? hojeRef() : baseMes).split("-").map(Number);
+    const alvo = deslocarMes(a0, m0, n);
+    aplicarMes(alvo.ano, alvo.mes, corte);
+  };
+  const irHoje = () => {
+    if (!corte) return setFiltros((f) => ({ ...f, data: null, periodo: "mes", periodoInicio: null, periodoFim: null }));
+    const [a, m] = hojeRef().split("-").map(Number);
+    aplicarMes(a, m, corte);
   };
   const swipeMes = useSwipeHorizontal(() => irMes(1), () => irMes(-1));
 
