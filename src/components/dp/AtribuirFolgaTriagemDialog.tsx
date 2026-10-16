@@ -232,9 +232,12 @@ export function AtribuirFolgaTriagemDialog({
     },
     onError: (e: any) => {
       if (e instanceof Error && e.message === "LIMITE_SILENCIOSO") return;
-      toast.error("Erro ao atribuir folga", {
-        description: e instanceof Error ? e.message : String(e),
-      });
+      const bruto: string = String(e?.message ?? e ?? "");
+      const m = bruto.match(/^[A-Z_]+:\s*(.+)$/s);
+      const descricao = m
+        ? m[1].charAt(0).toUpperCase() + m[1].slice(1)
+        : "Houve uma falha inesperada ao gravar a folga. Tente novamente — se continuar, relate o problema.";
+      toast.error("Não foi possível atribuir a folga", { description: descricao });
     },
   });
 
