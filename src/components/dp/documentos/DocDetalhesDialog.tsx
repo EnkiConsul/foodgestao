@@ -191,6 +191,9 @@ export function DocDetalhesDialog(props: {
 
         {target && (
           <div className="space-y-5">
+            {target.tipo_key === "atestado" && (
+              <AtestadoResumo rowId={target.rowId} filePath={target.file_path} colaboradorId={target.colaborador_id} />
+            )}
             <div className="grid gap-4 sm:grid-cols-3">
               <Campo label="Colaborador">{target.colaborador_nome}</Campo>
               <Campo label="Unidade">{target.unidade_nome}</Campo>
