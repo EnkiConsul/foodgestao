@@ -1,3 +1,4 @@
+import { AtestadoResumo } from "@/components/dp/documentos/AtestadoResumo";
 import { useState } from "react";
 import { ViaAssinadaBotao } from "@/components/dp/documentos/ViaAssinadaBotao";
 import { useQuery } from "@tanstack/react-query";
