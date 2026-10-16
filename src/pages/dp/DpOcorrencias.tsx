@@ -318,7 +318,7 @@ export default function DpOcorrencias() {
               </Button>
             </div>
             <Button size="sm" className="h-8 shrink-0 rounded-full"
-              onClick={() => setFiltros((f) => ({ ...f, data: null, periodo: "mes", periodoInicio: null, periodoFim: null }))}>
+              onClick={irHoje}>
               Hoje
             </Button>
             <Select value={String(corte)} onValueChange={(v) => setCorte(Number(v))}>
