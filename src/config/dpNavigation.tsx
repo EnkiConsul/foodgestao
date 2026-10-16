@@ -100,7 +100,6 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       { label: "Cargos e Salários", to: "/dp/cadastros/cargos", icon: Briefcase },
       { label: "Unidades", to: "/dp/cadastros/unidades", icon: Building2 },
       { label: "Benefícios", to: "/dp/cadastros/beneficios", icon: Gift },
-      { label: "Ações do Dia", to: "/dp/cadastros/pendencias", icon: BellRing },
     ],
   },
   {
@@ -141,9 +140,11 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       "/dp/bloqueios",
       "/dp/conformidade-dsr",
       "/dp/atestados",
+      "/dp/cadastros/pendencias",
     ],
     items: [
       { label: "Calendário", to: "/dp/rotina/calendario", icon: CalendarDays, shortcut: true },
+      { label: "Ações do Dia", to: "/dp/cadastros/pendencias", icon: ListChecks },
       { label: "Ocorrências", to: "/dp/ocorrencias", icon: ClipboardList, shortcut: true },
       { label: "Convocações", to: "/dp/convocacoes", icon: BellRing, shortcut: true },
       { label: "Folgas", to: "/dp/folgas", icon: Coffee, shortcut: true },
