@@ -67,7 +67,7 @@ export function SubstitutoPicker({ opcoes, value, onChange }: Props) {
               </span>
               <span className="flex shrink-0 items-center gap-1">
                 {o.detalhe && (
-                  <span className="text-xs text-muted-foreground">{o.detalhe}</span>
+                  <span className="hidden text-xs text-muted-foreground sm:inline">{o.detalhe}</span>
                 )}
                 <Badge variant="outline" className="text-[10px]">
                   {o.origem === "colaborador" ? "Equipe" : "Apoio"}
