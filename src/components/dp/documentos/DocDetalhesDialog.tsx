@@ -4,7 +4,7 @@ import { ViaAssinadaBotao } from "@/components/dp/documentos/ViaAssinadaBotao";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
-  Download, Eye, FileText, Pencil, History, Replace, Trash2, Loader2, Printer,
+  Download, Eye, FileText, Info, Pencil, History, Replace, Trash2, Loader2, Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -193,7 +193,7 @@ export function DocDetalhesDialog(props: {
         {target && (
           <div className="space-y-5">
             {target.tipo_key === "atestado" && (
-              <AtestadoResumo rowId={target.rowId} filePath={target.file_path} colaboradorId={target.colaborador_id} />
+              <AtestadoResumo rowId={target.rowId} filePath={target.file_path} />
             )}
             <div className="grid gap-4 sm:grid-cols-3">
               <Campo label="Colaborador">{target.colaborador_nome}</Campo>
@@ -348,6 +348,20 @@ export function DocDetalhesDialog(props: {
               </Button>
             );
           })()}
+          {target?.tipo_key === "atestado" && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                props.onOpenChange(false);
+                const params = new URLSearchParams({ aba: "historico" });
+                if (target.colaborador_id) params.set("colaborador", target.colaborador_id);
+                if (target.rowId.startsWith("sol:")) params.set("solicitacao", target.rowId.slice(4));
+                navigate(`/dp/atestados?${params.toString()}`);
+              }}
+            >
+              <Info className="mr-1 h-4 w-4" /> Detalhes
+            </Button>
+          )}
           <Button variant="outline" onClick={props.onPreview} disabled={!target?.file_path}>
             <Eye className="mr-1 h-4 w-4 text-primary" /> Ver
           </Button>
