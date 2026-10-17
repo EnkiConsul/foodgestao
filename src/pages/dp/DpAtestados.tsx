@@ -28,7 +28,7 @@ import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/
 import { DpFilePicker } from "@/components/dp/DpFilePicker";
 import { AnexoFotoPdfPicker } from "@/components/dp/portal/AnexoFotoPdfPicker";
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
-import { calcularIndicadores, afastadoNoDia, somarDiasIso } from "@/lib/dp/atestadosIndicadores";
+import { calcularIndicadores, afastadoNoDia, somarDiasIso, dataRetorno, diasAfastamento } from "@/lib/dp/atestadosIndicadores";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
@@ -80,10 +80,8 @@ const getFileKind = (path?: string | null) => {
 };
 
 function diffDays(start?: string | null, end?: string | null) {
-  if (!start || !end) return 0;
-  const a = new Date(start + "T00:00:00");
-  const b = new Date(end + "T00:00:00");
-  return Math.max(0, Math.round((b.getTime() - a.getTime()) / 86400000));
+  if (!start) return 0;
+  return diasAfastamento(start, end);
 }
 
 // Soma de dias civis independente do fuso do navegador (Etapa 7.1).
@@ -239,8 +237,8 @@ export default function DpAtestados() {
     },
     retorno: {
       label: "Data Retorno", sortKey: "retorno" as const,
-      value: (r: Row) => formatDate(r.data_fim),
-      render: (r: Row) => <span className="whitespace-nowrap">{formatDate(r.data_fim)}</span>,
+      value: (r: Row) => formatDate(dataRetorno(r)),
+      render: (r: Row) => <span className="whitespace-nowrap">{formatDate(dataRetorno(r))}</span>,
     },
     observacoes: {
       label: "Observações", sortKey: "padrao" as const,
@@ -329,7 +327,7 @@ export default function DpAtestados() {
     arr.sort((a, b) => {
       let cmp: number;
       if (sortKey === "data") cmp = (a.data_alvo ?? "").localeCompare(b.data_alvo ?? "");
-      else if (sortKey === "retorno") cmp = (a.data_fim ?? "").localeCompare(b.data_fim ?? "");
+      else if (sortKey === "retorno") cmp = dataRetorno(a).localeCompare(dataRetorno(b));
       else {
         const col = ATEST_COL_ORDER.find((k) => COLS[k].sortKey === sortKey);
         if (!col) return 0;
@@ -375,7 +373,7 @@ export default function DpAtestados() {
         if (up.error) throw up.error;
       }
 
-      const dataFim = d > 0 ? addDays(dataDoc, d) : dataDoc;
+      const dataFim = addDays(dataDoc, Math.max(1, d) - 1);
       const { error } = await supabase.rpc("dp_solicitacao_criar_admin", {
         p_colaborador: colaboradorId,
         p_tipo: tipoDoc,
@@ -482,10 +480,10 @@ export default function DpAtestados() {
   };
 
   const dataRetorno = dataDoc && dias && parseInt(dias, 10) > 0
-    ? new Date(addDays(dataDoc, parseInt(dias, 10)) + "T00:00:00").toLocaleDateString("pt-BR")
+    ? new Date(addDays(dataDoc, Math.max(1, parseInt(dias, 10))) + "T00:00:00").toLocaleDateString("pt-BR")
     : null;
   const editDataRetorno = editDataDoc && editDias && parseInt(editDias, 10) > 0
-    ? new Date(addDays(editDataDoc, parseInt(editDias, 10)) + "T00:00:00").toLocaleDateString("pt-BR")
+    ? new Date(addDays(editDataDoc, Math.max(1, parseInt(editDias, 10))) + "T00:00:00").toLocaleDateString("pt-BR")
     : null;
 
   return (
@@ -766,7 +764,7 @@ export default function DpAtestados() {
                     </div>
                   </div>
                   <div className="text-sm tabular-nums sm:w-56 sm:shrink-0">
-                    {formatDate(r.data_alvo)} <span className="text-muted-foreground">→ volta</span> {formatDate(r.data_fim)}
+                    {formatDate(r.data_alvo)} <span className="text-muted-foreground">→ volta</span> {formatDate(dataRetorno(r))}
                   </div>
                   <div className="flex items-center justify-between gap-2 sm:shrink-0">
                     <Badge variant="outline" className={STATUS_BADGE[r.status].className}>{STATUS_BADGE[r.status].label}</Badge>
@@ -801,7 +799,7 @@ export default function DpAtestados() {
                   </div>
                   <div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/30 p-3">
                     <div><div className="text-xs text-muted-foreground">Início</div>{formatDate(detalhe.data_alvo)}</div>
-                    <div><div className="text-xs text-muted-foreground">Retorno</div>{formatDate(detalhe.data_fim)}</div>
+                    <div><div className="text-xs text-muted-foreground">Retorno</div>{formatDate(dataRetorno(detalhe))}</div>
                     <div className="col-span-2"><div className="text-xs text-muted-foreground">Unidade</div>
                       {detalhe.dp_colaboradores?.unidade_id ? unidadeNameById.get(detalhe.dp_colaboradores.unidade_id) ?? "—" : "—"}
                     </div>
