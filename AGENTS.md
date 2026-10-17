@@ -23,6 +23,8 @@
 - Acesso e preço v2: `get_company_entitlements`/`has_module_access` decidem por empresa coberta em `subscription_companies`; flags `access_model_v2` (legado|sombra|v2, via `access_model_set_mode`) e `checkout_v2` (legado|v2), só super admin; preço só por `billing_v2_quote` — valor nunca vem do navegador.
 - Tokens: `:root`/`.dark`, mapped in `tailwind.config.ts`; never route-scoped.
 - Troca de plano/ciclo só por `billing_v2_plan_change_quote/schedule/cancel`: upgrade e mensal→anual são imediatos com crédito proporcional; downgrade e anual→mensal ficam em `pending_plan_change` e `billing_v2_apply_scheduled_changes` revalida uso na renovação — valor calculado no banco.
-- Subpastas podem ter `AGENTS.md` próprio; leia antes de alterar arquivos nelas.
+- Read nested `AGENTS.md` before editing.
 
-- Ações do Dia: direct decisions only for document submission; time-off/unknown requests use dedicated screens for DSR and release undo.
+- Ações do Dia: decide documents only; other requests use dedicated DSR/release-undo screens.
+
+- Leave previews retain the request row to open its exact details.

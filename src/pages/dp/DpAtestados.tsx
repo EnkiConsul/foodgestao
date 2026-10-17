@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileWarning, Download, Upload, History, FileText, Trash2, Pencil, FileImage, FileUp } from "lucide-react";
+import { FileWarning, Download, Upload, History, FileText, Trash2, Pencil, FileImage, FileUp, Info } from "lucide-react";
 import { FundamentoLegalCard } from "@/components/dp/licencas/FundamentoLegalCard";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeStorageFilename } from "@/lib/storage";
@@ -28,7 +28,7 @@ import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/
 import { DpFilePicker } from "@/components/dp/DpFilePicker";
 import { AnexoFotoPdfPicker } from "@/components/dp/portal/AnexoFotoPdfPicker";
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
-import { calcularIndicadores, afastadoNoDia, somarDiasIso, dataRetorno, diasAfastamento } from "@/lib/dp/atestadosIndicadores";
+import { calcularIndicadores, afastadoNoDia, somarDiasIso, dataRetorno, diasAfastamento, ultimoDia } from "@/lib/dp/atestadosIndicadores";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
@@ -95,7 +95,13 @@ export default function DpAtestados() {
   const [tab, setTab] = useState<"importar" | "historico">(
     () => (new URLSearchParams(window.location.search).get("aba") === "historico" ? "historico" : "importar"),
   );
-  const [preview, setPreview] = useState<{ title: string; path: string } | null>(null);
+  const [preview, setPreview] = useState<Row | null>(null);
+  const abrirComprovante = (r: Row) => {
+    if (!r.arquivo_path) return;
+    setDetalhe(null);
+    setEditing(null);
+    setPreview(r);
+  };
   const [recusaId, setRecusaId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Row | null>(null);
   const [detalhe, setDetalhe] = useState<Row | null>(null);
@@ -267,7 +273,7 @@ export default function DpAtestados() {
           <button
             type="button"
             className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
-            onClick={() => setPreview({ title: `Atestado — ${r.dp_colaboradores?.nome ?? ""}`, path: r.arquivo_path! })}
+            onClick={() => abrirComprovante(r)}
           >
             <FileIcon className="h-4 w-4" />
             {fileKind.label}
@@ -773,7 +779,7 @@ export default function DpAtestados() {
                         size="sm"
                         variant="outline"
                         className="min-h-9"
-                        onClick={(e) => { e.stopPropagation(); setPreview({ title: `Atestado — ${r.dp_colaboradores?.nome ?? ""}`, path: r.arquivo_path! }); }}
+                        onClick={(e) => { e.stopPropagation(); abrirComprovante(r); }}
                       >
                         <FileText className="mr-1 h-4 w-4" /> Ver
                       </Button>
@@ -787,30 +793,42 @@ export default function DpAtestados() {
           </div>
 
           <Dialog open={!!detalhe} onOpenChange={(v) => !v && setDetalhe(null)}>
-            <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="truncate">{detalhe?.dp_colaboradores?.nome ?? "Atestado"}</DialogTitle>
+            <DialogContent className="flex max-h-[90svh] w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+              <DialogHeader className="shrink-0 border-b p-4 pr-12">
+                <DialogTitle className="break-words text-left">{detalhe?.dp_colaboradores?.nome ?? "Atestado"}</DialogTitle>
               </DialogHeader>
               {detalhe && (
-                <div className="space-y-3 text-sm">
+                <div className="min-h-0 space-y-4 overflow-y-auto p-4 text-sm">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline">{labelAfastamento(detalhe.tipo)}</Badge>
                     <Badge variant="outline" className={STATUS_BADGE[detalhe.status].className}>{STATUS_BADGE[detalhe.status].label}</Badge>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/30 p-3">
-                    <div><div className="text-xs text-muted-foreground">Início</div>{formatDate(detalhe.data_alvo)}</div>
-                    <div><div className="text-xs text-muted-foreground">Retorno</div>{formatDate(dataRetorno(detalhe))}</div>
+                  <div className="grid grid-cols-2 gap-4 border-y py-3">
+                    <div><div className="text-xs text-muted-foreground">Início do repouso</div>{formatDate(detalhe.data_alvo)}</div>
+                    <div><div className="text-xs text-muted-foreground">Fim do repouso</div>{formatDate(ultimoDia(detalhe))}</div>
+                    <div><div className="text-xs text-muted-foreground">Dias de afastamento</div>{diasAfastamento(detalhe.data_alvo, detalhe.data_fim)}</div>
+                    <div><div className="text-xs text-muted-foreground">Retorno ao trabalho</div>{formatDate(dataRetorno(detalhe))}</div>
                     <div className="col-span-2"><div className="text-xs text-muted-foreground">Unidade</div>
                       {detalhe.dp_colaboradores?.unidade_id ? unidadeNameById.get(detalhe.dp_colaboradores.unidade_id) ?? "—" : "—"}
                     </div>
                   </div>
                   {detalhe.motivo && (
-                    <div><div className="text-xs text-muted-foreground">Observações</div><p className="whitespace-pre-wrap">{detalhe.motivo}</p></div>
+                    <div><div className="text-xs text-muted-foreground">Observações</div><p className="whitespace-pre-wrap break-words">{detalhe.motivo}</p></div>
                   )}
+                  {detalhe.tipo === "atestado" && (
+                    <div>
+                      <div className="text-xs text-muted-foreground">Assiduidade</div>
+                      <p>{detalhe.assiduidade_perde === true ? "Impacta a assiduidade" : detalhe.assiduidade_perde === false ? "Não impacta a assiduidade" : "Não informada"}</p>
+                      {detalhe.assiduidade_justificativa && <p className="mt-1 whitespace-pre-wrap break-words text-muted-foreground">{detalhe.assiduidade_justificativa}</p>}
+                    </div>
+                  )}
+                  {detalhe.resposta_admin && <div><div className="text-xs text-muted-foreground">Resposta do gestor</div><p className="whitespace-pre-wrap break-words">{detalhe.resposta_admin}</p></div>}
+                  {detalhe.devolvido_motivo && <div><div className="text-xs text-muted-foreground">Motivo da devolução</div><p className="whitespace-pre-wrap break-words">{detalhe.devolvido_motivo}</p></div>}
                   <div className="text-xs text-muted-foreground">Registrado em {new Date(detalhe.created_at).toLocaleString("pt-BR")}</div>
+                  {detalhe.respondido_em && <div className="text-xs text-muted-foreground">Analisado em {new Date(detalhe.respondido_em).toLocaleString("pt-BR")}</div>}
                 </div>
               )}
-              <DialogFooter className="flex-row flex-wrap gap-2 sm:justify-between">
+              <DialogFooter className="shrink-0 flex-row flex-wrap gap-2 border-t p-3 sm:justify-between">
                 {detalhe && (
                   <>
                     <Button variant="ghost" className="text-destructive" onClick={() => { setToDelete(detalhe); setDetalhe(null); }}>
@@ -820,8 +838,8 @@ export default function DpAtestados() {
                       {detalhe.arquivo_path && (
                         <>
                           <Button variant="outline" onClick={() => handleDownload(detalhe)}><Download className="mr-1 h-4 w-4" /> Baixar</Button>
-                          <Button variant="outline" onClick={() => setPreview({ title: `Atestado — ${detalhe.dp_colaboradores?.nome ?? ""}`, path: detalhe.arquivo_path! })}>
-                            <FileText className="mr-1 h-4 w-4" /> Ver
+                          <Button variant="outline" onClick={() => abrirComprovante(detalhe)}>
+                            <FileText className="mr-1 h-4 w-4" /> Ver comprovante
                           </Button>
                         </>
                       )}
@@ -840,9 +858,21 @@ export default function DpAtestados() {
       <DocumentPreview
         open={!!preview}
         onOpenChange={(v) => { if (!v) setPreview(null); }}
-        title={preview?.title}
+        title={preview ? `${labelAfastamento(preview.tipo)} — ${preview.dp_colaboradores?.nome ?? ""}` : undefined}
         bucket={BUCKET}
-        path={preview?.path}
+        path={preview?.arquivo_path}
+        toolbar={preview && (
+          <div className="rounded-md border bg-muted/40 px-3 py-2 text-left text-xs sm:text-sm">
+            <b>Período:</b> {formatDate(preview.data_alvo)} a {formatDate(ultimoDia(preview))}
+            {` (${diasAfastamento(preview.data_alvo, preview.data_fim)} ${diasAfastamento(preview.data_alvo, preview.data_fim) === 1 ? "dia" : "dias"})`}
+            <span className="mt-1 block"><b>Retorno ao trabalho:</b> {formatDate(dataRetorno(preview))}</span>
+          </div>
+        )}
+        acaoDetalhes={preview && (
+          <Button variant="outline" size="sm" onClick={() => { setDetalhe(preview); setPreview(null); }}>
+            <Info className="mr-1 h-4 w-4" /> Detalhes
+          </Button>
+        )}
       />
 
       <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
@@ -893,7 +923,7 @@ export default function DpAtestados() {
               {editing?.arquivo_path ? (
                 <div className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
                   <span className="min-w-0 truncate text-muted-foreground">Já tem arquivo anexado</span>
-                  <Button type="button" size="sm" variant="ghost" onClick={() => setPreview({ title: `Atestado — ${editing.dp_colaboradores?.nome ?? ""}`, path: editing.arquivo_path! })}>Ver</Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => editing && abrirComprovante(editing)}>Ver</Button>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">Este atestado ainda não tem arquivo.</p>

@@ -109,3 +109,8 @@
 - [x] Saídas na tela de acesso bloqueado: "Voltar ao Hub" no topo, "Trocar de Empresa" e "Sair da Conta" no rodapé — conferido no navegador
 - [ ] Nada publicado: aguardando pedido explícito para atualizar aveto360.com
 - [ ] Assinatura cancelada do Financeiro da AVETO 360 pode travar o aceite do termo do colaborador (revisão separada, a pedido)
+
+# Histórico de Atestados — visualização
+- [x] Período e retorno no visualizador, com Detalhes no rodapé.
+- [x] Ficha completa e confortável no celular.
+- [x] Conferir Ver → Detalhes com atestado existente no celular e computador, sem publicar.
