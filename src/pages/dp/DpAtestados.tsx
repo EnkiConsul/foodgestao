@@ -479,7 +479,7 @@ export default function DpAtestados() {
     document.body.appendChild(a); a.click(); a.remove();
   };
 
-  const dataRetorno = dataDoc && dias && parseInt(dias, 10) > 0
+  const previaRetorno = dataDoc && dias && parseInt(dias, 10) > 0
     ? new Date(addDays(dataDoc, Math.max(1, parseInt(dias, 10))) + "T00:00:00").toLocaleDateString("pt-BR")
     : null;
   const editDataRetorno = editDataDoc && editDias && parseInt(editDias, 10) > 0
@@ -610,7 +610,7 @@ export default function DpAtestados() {
               {dataDoc && dias && parseInt(dias) > 0 && (
                 <div className="rounded-xl bg-muted/30 p-3 text-sm">
                   <span className="font-semibold">Data de retorno:</span>{" "}
-                  {dataRetorno}
+                  {previaRetorno}
                 </div>
               )}
 

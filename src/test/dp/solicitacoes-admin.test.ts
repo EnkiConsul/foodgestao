@@ -14,10 +14,10 @@ describe("Período do afastamento", () => {
     });
   });
 
-  it("três dias terminam no terceiro dia seguinte", () => {
+  it("três dias terminam no terceiro dia (retorno no quarto)", () => {
     expect(periodoAfastamento("2026-05-10", 3)).toEqual({
       data_alvo: "2026-05-10",
-      data_fim: "2026-05-13",
+      data_fim: "2026-05-12",
     });
   });
 
