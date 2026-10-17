@@ -609,7 +609,7 @@ export default function DpMeuDocumentos() {
         open={!!assinando}
         onOpenChange={(v) => { if (!v) setAssinando(null); }}
         titulo={assinando?.titulo ?? ""}
-        nome={String(colaborador?.nome_social || colaborador?.nome || "")}
+        nome={String(colaborador?.nome || "")}
         enviando={aceitar.isPending}
         onConfirmar={(assinatura) => assinando && aceitar.mutate({ d: assinando, assinatura })}
       />

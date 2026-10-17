@@ -296,7 +296,7 @@ Deno.serve(async (req) => {
     const recibo: Recibo = {
       empresa: String(empresa?.name ?? empresa?.trade_name ?? ""),
       empresaCnpj: cnpjFormatado(empresa?.cnpj as string | null),
-      colaborador: String(colab?.nome_social || colab?.nome || ""),
+      colaborador: String(colab?.nome || "").toUpperCase(),
       colaboradorCpf: cpfFormatado(colab?.cpf as string | null),
       matricula: String(colab?.matricula ?? "—"),
       documentoTitulo: String(visivel.titulo ?? ""),

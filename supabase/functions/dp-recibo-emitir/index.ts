@@ -314,7 +314,7 @@ Deno.serve(async (req) => {
         .select("id, company_id, nome, nome_social, cpf, whatsapp, telefone, unidade_id, ativo")
         .eq("id", b.colaborador_id).maybeSingle();
       if (!colab || colab.company_id !== b.company_id) return erro(403, "Colaborador não pertence à empresa.");
-      nome = String(colab.nome_social || colab.nome || "").toUpperCase();
+      nome = String(colab.nome || "").toUpperCase();
       cpf = String(colab.cpf ?? "").replace(/\D+/g, "");
       whatsapp = whatsapp || String(colab.whatsapp || colab.telefone || "").replace(/\D+/g, "");
       unidadeId = colab.unidade_id ?? unidadeId;

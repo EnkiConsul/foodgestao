@@ -445,7 +445,7 @@ Deno.serve(async (req) => {
     const empresaNome = (empresa as Record<string, unknown> | null);
     const dados: Dados = {
       empresa: String(empresaNome?.name ?? empresaNome?.trade_name ?? ""),
-      colaborador: String(colab?.nome_social || colab?.nome || ""),
+      colaborador: String(colab?.nome || "").toUpperCase(),
       documentoTitulo: String(registro.titulo ?? ""),
       documentoTipo: String(registro.tipo ?? ""),
       competencia: registro.referencia_data
@@ -454,7 +454,7 @@ Deno.serve(async (req) => {
         : "—",
       arquivo: String(doc.file_name ?? ""),
       aceitoEm: String(aceite.aceito_em ?? ""),
-      aprovadoPor: String(colab?.nome_social || colab?.nome || ""),
+      aprovadoPor: String(colab?.nome || "").toUpperCase(),
       ip: String(aceite.ip ?? "—"),
       dispositivo: String(aceite.user_agent ?? "—"),
       conteudoHash: String(aceite.conteudo_hash ?? ""),
