@@ -74,6 +74,8 @@ export function PendenciaAcoes({
   const [recusarAberto, setRecusarAberto] = useState(false);
   const [motivoRecusa, setMotivoRecusa] = useState("");
   const trocaNaTela = p.tipo === "Troca" && !!p.trocaId;
+  // Somente envio de documento tem decisão simples; folgas/férias exigem análise própria.
+  const solicitacaoNaTela = p.tipo === "Solicitação" && p.solicitacao?.tipo === "documento";
 
   const concluir = () => {
     if (selectedCompanyId) registrarResolvida(selectedCompanyId, p.id);
@@ -83,12 +85,20 @@ export function PendenciaAcoes({
 
   const decidirDireto = useMutation({
     mutationFn: async ({ aceito, obs }: { aceito: boolean; obs?: string }) => {
-      // Solicitações usam a tela própria: DSR, ciência e desfazimento de liberação.
-      if (!trocaNaTela || !p.trocaId) throw new Error("Abra a tela própria para analisar este pedido.");
-      const { error } = await supabase.rpc("dp_troca_responder_gestor", {
-        p_id: p.trocaId, p_aceito: aceito, p_observacao: obs?.trim() || null,
-      });
-      if (error) throw error;
+      if (trocaNaTela && p.trocaId) {
+        const { error } = await supabase.rpc("dp_troca_responder_gestor", {
+          p_id: p.trocaId, p_aceito: aceito, p_observacao: obs?.trim() || null,
+        });
+        if (error) throw error;
+      } else if (solicitacaoNaTela && p.solicitacao) {
+        const { error } = await supabase.rpc("dp_solicitacao_responder", {
+          p_id: p.solicitacao.id, p_status: aceito ? "aprovada" : "recusada",
+          p_resposta: (obs?.trim() || null) as any,
+        });
+        if (error) throw error;
+      } else {
+        throw new Error("Abra a tela própria para analisar este pedido.");
+      }
     },
     onSuccess: (_d, v) => {
       toast.success(v.aceito ? "Aprovado" : "Recusado");
@@ -165,7 +175,7 @@ export function PendenciaAcoes({
             <X className="h-3 w-3 mr-1" /> Não trabalhou
           </Button>
         </>
-      ) : trocaNaTela ? (
+      ) : trocaNaTela || solicitacaoNaTela ? (
         <>
           <Button size="sm" className="h-9 sm:h-7 text-xs" disabled={decidirDireto.isPending}
             onClick={() => decidirDireto.mutate({ aceito: true })}>
@@ -193,7 +203,7 @@ export function PendenciaAcoes({
         </Button>
       ) : (
         <Button asChild size="sm" className="h-9 sm:h-7 text-xs">
-          <Link to={p.url} onClick={onNavigate}>
+          <Link to={p.tipo === "Solicitação" && p.solicitacao?.tipo === "ferias" ? "/dp/ferias" : p.url} onClick={onNavigate}>
             {ROTULO[p.tipo] ?? "Resolver"} <ArrowRight className="h-3 w-3 ml-1" />
           </Link>
         </Button>

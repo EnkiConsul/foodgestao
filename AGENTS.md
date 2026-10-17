@@ -25,4 +25,4 @@
 - Troca de plano/ciclo só por `billing_v2_plan_change_quote/schedule/cancel`: upgrade e mensal→anual são imediatos com crédito proporcional; downgrade e anual→mensal ficam em `pending_plan_change` e `billing_v2_apply_scheduled_changes` revalida uso na renovação — valor calculado no banco.
 - Subpastas podem ter `AGENTS.md` próprio; leia antes de alterar arquivos nelas.
 
-- Ações do Dia routes requests to their decision screen, never directly to `dp_solicitacao_responder`, preserving DSR acknowledgement and release undo.
+- Ações do Dia allows direct request decisions only for document submission; time-off and unknown types use dedicated screens to preserve DSR and release undo.
