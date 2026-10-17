@@ -27,4 +27,4 @@
 
 - Ações do Dia: decide documents only; other requests use dedicated DSR/release-undo screens.
 
-- Leave previews retain the request row to open exact details without losing attachment context.
+- Leave previews retain the request row to open its exact details.
