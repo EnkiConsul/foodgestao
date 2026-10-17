@@ -1330,6 +1330,7 @@ export default function DpHistoricoCompleto() {
               const params = new URLSearchParams({ aba: "historico" });
               if (p.colaborador_id) params.set("colaborador", p.colaborador_id);
               if (p.id.startsWith("sol:")) params.set("solicitacao", p.id.slice(4));
+              else if (p.file_path) params.set("arquivo", p.file_path);
               navigate(`/dp/atestados?${params.toString()}`);
             }}
           >

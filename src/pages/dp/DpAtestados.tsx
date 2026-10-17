@@ -181,15 +181,18 @@ export default function DpAtestados() {
 
   // Abertura direta da ficha de um atestado (ex.: botão "Detalhes" em Documentos).
   const solicitacaoParam = useMemo(() => new URLSearchParams(window.location.search).get("solicitacao"), []);
+  const arquivoParam = useMemo(() => new URLSearchParams(window.location.search).get("arquivo"), []);
   const abriuDetalheRef = useRef(false);
   useEffect(() => {
-    if (abriuDetalheRef.current || !solicitacaoParam || rows.length === 0) return;
-    const alvo = rows.find((r) => r.id === solicitacaoParam);
+    if (abriuDetalheRef.current || (!solicitacaoParam && !arquivoParam) || rows.length === 0) return;
+    const alvo = rows.find((r: any) =>
+      (solicitacaoParam && r.id === solicitacaoParam) || (arquivoParam && r.arquivo_path === arquivoParam),
+    );
     if (alvo) {
       abriuDetalheRef.current = true;
       setDetalhe(alvo);
     }
-  }, [rows, solicitacaoParam]);
+  }, [rows, solicitacaoParam, arquivoParam]);
   const colabsHistorico = useMemo(() => {
     return (colabs.data ?? []).filter((c) => fUnidade === "todos" || c.unidade_id === fUnidade);
   }, [colabs.data, fUnidade]);

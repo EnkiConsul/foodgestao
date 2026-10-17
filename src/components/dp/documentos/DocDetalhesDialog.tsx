@@ -356,6 +356,7 @@ export function DocDetalhesDialog(props: {
                 const params = new URLSearchParams({ aba: "historico" });
                 if (target.colaborador_id) params.set("colaborador", target.colaborador_id);
                 if (target.rowId.startsWith("sol:")) params.set("solicitacao", target.rowId.slice(4));
+                else if (target.file_path) params.set("arquivo", target.file_path);
                 navigate(`/dp/atestados?${params.toString()}`);
               }}
             >
