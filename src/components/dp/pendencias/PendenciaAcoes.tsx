@@ -27,9 +27,6 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { porIds, resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { registrarResolvida } from "@/lib/dp/resolvidas-hoje";
 
-/** Pedidos que exigem decisões extras (assiduidade, evento) ficam na tela própria. */
-const SOLICITACAO_NA_TELA_PROPRIA = /atestado|licen|adiantamento|outro/i;
-
 /** Rótulo do botão principal conforme o assunto (em vez do genérico "Resolver"). */
 const ROTULO: Record<string, string> = {
   "Férias": "Programar férias",
@@ -77,7 +74,8 @@ export function PendenciaAcoes({
   const [recusarAberto, setRecusarAberto] = useState(false);
   const [motivoRecusa, setMotivoRecusa] = useState("");
   const trocaNaTela = p.tipo === "Troca" && !!p.trocaId;
-  const solicitacaoNaTela = p.tipo === "Solicitação" && !!p.solicitacao && !SOLICITACAO_NA_TELA_PROPRIA.test(p.solicitacao.tipo);
+  // Somente envio de documento tem decisão simples; folgas/férias exigem análise própria.
+  const solicitacaoNaTela = p.tipo === "Solicitação" && p.solicitacao?.tipo === "documento";
 
   const concluir = () => {
     if (selectedCompanyId) registrarResolvida(selectedCompanyId, p.id);
@@ -87,16 +85,19 @@ export function PendenciaAcoes({
 
   const decidirDireto = useMutation({
     mutationFn: async ({ aceito, obs }: { aceito: boolean; obs?: string }) => {
-      if (trocaNaTela) {
+      if (trocaNaTela && p.trocaId) {
         const { error } = await supabase.rpc("dp_troca_responder_gestor", {
-          p_id: p.trocaId!, p_aceito: aceito, p_observacao: obs?.trim() || null,
+          p_id: p.trocaId, p_aceito: aceito, p_observacao: obs?.trim() || null,
+        });
+        if (error) throw error;
+      } else if (solicitacaoNaTela && p.solicitacao) {
+        const { error } = await supabase.rpc("dp_solicitacao_responder", {
+          p_id: p.solicitacao.id, p_status: aceito ? "aprovada" : "recusada",
+          p_resposta: (obs?.trim() || null) as any,
         });
         if (error) throw error;
       } else {
-        const { error } = await supabase.rpc("dp_solicitacao_responder", {
-          p_id: p.solicitacao!.id, p_status: aceito ? "aprovada" : "recusada", p_resposta: (obs?.trim() || null) as any,
-        });
-        if (error) throw error;
+        throw new Error("Abra a tela própria para analisar este pedido.");
       }
     },
     onSuccess: (_d, v) => {
@@ -202,7 +203,7 @@ export function PendenciaAcoes({
         </Button>
       ) : (
         <Button asChild size="sm" className="h-9 sm:h-7 text-xs">
-          <Link to={p.url} onClick={onNavigate}>
+          <Link to={p.tipo === "Solicitação" && p.solicitacao?.tipo === "ferias" ? "/dp/ferias" : p.url} onClick={onNavigate}>
             {ROTULO[p.tipo] ?? "Resolver"} <ArrowRight className="h-3 w-3 ml-1" />
           </Link>
         </Button>
