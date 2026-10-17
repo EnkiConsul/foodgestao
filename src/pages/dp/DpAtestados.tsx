@@ -94,7 +94,9 @@ export default function DpAtestados() {
   const { user } = useAuth();
   const qc = useQueryClient();
 
-  const [tab, setTab] = useState<"importar" | "historico">("importar");
+  const [tab, setTab] = useState<"importar" | "historico">(
+    () => (new URLSearchParams(window.location.search).get("aba") === "historico" ? "historico" : "importar"),
+  );
   const [preview, setPreview] = useState<{ title: string; path: string } | null>(null);
   const [recusaId, setRecusaId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Row | null>(null);
@@ -119,7 +121,9 @@ export default function DpAtestados() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   // filtros histórico
-  const [fColab, setFColab] = useState<string>("todos");
+  const [fColab, setFColab] = useState<string>(
+    () => new URLSearchParams(window.location.search).get("colaborador") ?? "todos",
+  );
   const [fStatus, setFStatus] = useState<string>("todos");
   const [fUnidade, setFUnidade] = useState<string>("todos");
   const [fDataInicio, setFDataInicio] = useState<string>("");

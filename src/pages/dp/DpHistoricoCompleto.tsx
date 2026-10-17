@@ -1344,7 +1344,7 @@ export default function DpHistoricoCompleto() {
         somenteReciboVinculado={!!certPreview}
         comprovantesExtras={extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null, rotulo: e.natureza === "estorno" ? "Comprovante de Estorno (Devolução)" : e.natureza === "repagamento" ? "Novo Comprovante (Valor Correto)" : undefined }))}
         toolbar={preview && preview.tipo_key === "atestado" ? (
-          <AtestadoResumo rowId={preview.id} filePath={preview.file_path} colaboradorId={preview.colaborador_id} />
+          <AtestadoResumo rowId={preview.id} filePath={preview.file_path} />
         ) : preview && (preview.aceite !== null || preview.aceiteDispensado || preview.viaFisica || preview.quitacao || preview.valor_pendente_cents) ? (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <AssinaturaSelo r={preview} longo />
