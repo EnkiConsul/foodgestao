@@ -15,7 +15,7 @@ export function afastadoNoDia(r: LinhaIndicador, hoje: string): boolean {
   return r.status !== "recusada" && r.status !== "cancelada" && r.data_alvo <= hoje && (r.data_fim ?? r.data_alvo) > hoje;
 }
 
-/** KPIs: ativos = aprovada/pendente; retorno em (hoje, hoje+7]. */
+/** KPIs: ativos = aprovada/pendente; retorno em [hoje, hoje+7] (quem volta hoje conta). */
 export function calcularIndicadores<T extends LinhaIndicador>(linhas: T[], agora: Date = new Date()) {
   const hoje = hojeIsoLocal(agora);
   const em7 = somarDiasIso(hoje, 7);
@@ -24,7 +24,7 @@ export function calcularIndicadores<T extends LinhaIndicador>(linhas: T[], agora
     hoje,
     em7,
     foraHoje: ativos.filter((r) => r.data_alvo <= hoje && (r.data_fim ?? r.data_alvo) > hoje),
-    retornam: ativos.filter((r) => !!r.data_fim && r.data_fim > hoje && r.data_fim <= em7),
+    retornam: ativos.filter((r) => !!r.data_fim && r.data_fim >= hoje && r.data_fim <= em7),
     pend: linhas.filter((r) => r.status === "pendente"),
   };
 }
