@@ -94,7 +94,9 @@ export default function DpAtestados() {
   const { user } = useAuth();
   const qc = useQueryClient();
 
-  const [tab, setTab] = useState<"importar" | "historico">("importar");
+  const [tab, setTab] = useState<"importar" | "historico">(
+    () => (new URLSearchParams(window.location.search).get("aba") === "historico" ? "historico" : "importar"),
+  );
   const [preview, setPreview] = useState<{ title: string; path: string } | null>(null);
   const [recusaId, setRecusaId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Row | null>(null);
@@ -119,7 +121,9 @@ export default function DpAtestados() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   // filtros histórico
-  const [fColab, setFColab] = useState<string>("todos");
+  const [fColab, setFColab] = useState<string>(
+    () => new URLSearchParams(window.location.search).get("colaborador") ?? "todos",
+  );
   const [fStatus, setFStatus] = useState<string>("todos");
   const [fUnidade, setFUnidade] = useState<string>("todos");
   const [fDataInicio, setFDataInicio] = useState<string>("");
@@ -174,6 +178,18 @@ export default function DpAtestados() {
   }, [rows, fColab, fStatus, fUnidade, fDataInicio, fDataFim]);
 
   const pendentesCount = rows.filter((r) => r.status === "pendente").length;
+
+  // Abertura direta da ficha de um atestado (ex.: botão "Detalhes" em Documentos).
+  const solicitacaoParam = useMemo(() => new URLSearchParams(window.location.search).get("solicitacao"), []);
+  const abriuDetalheRef = useRef(false);
+  useEffect(() => {
+    if (abriuDetalheRef.current || !solicitacaoParam || rows.length === 0) return;
+    const alvo = rows.find((r) => r.id === solicitacaoParam);
+    if (alvo) {
+      abriuDetalheRef.current = true;
+      setDetalhe(alvo);
+    }
+  }, [rows, solicitacaoParam]);
   const colabsHistorico = useMemo(() => {
     return (colabs.data ?? []).filter((c) => fUnidade === "todos" || c.unidade_id === fUnidade);
   }, [colabs.data, fUnidade]);
