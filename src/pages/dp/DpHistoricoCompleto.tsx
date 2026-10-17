@@ -1,7 +1,7 @@
 import { aceitaComprovante } from "@/lib/dp/documentoTipos";
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { certificadoValidacaoPdf } from "@/lib/dp/documento-certificado";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import {
   History as HistoryIcon, ChevronDown, ArrowDownUp,
   Upload,
   Receipt,
+  Info,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";

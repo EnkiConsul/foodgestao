@@ -33,6 +33,8 @@ interface DocumentPreviewProps {
   aguardando?: string | null;
   /** Ação principal no rodapé (ex.: "Assinar documento" após a leitura). */
   acaoRodape?: React.ReactNode;
+  /** Ação de detalhes no rodapé (ex.: abrir a ficha completa do atestado). */
+  acaoDetalhes?: React.ReactNode;
 }
 
 /**
@@ -54,6 +56,7 @@ export function DocumentPreview({
   comprovantesExtras,
   aguardando,
   acaoRodape,
+  acaoDetalhes,
 }: DocumentPreviewProps) {
   const [comprovante, setComprovante] = useState<{ url: string; mime: string | null; nome: string | null } | null>(null);
   const [recibo, setRecibo] = useState<{ url: string; mime: string | null; nome: string | null; assinado: boolean } | null>(null);
@@ -325,6 +328,7 @@ export function DocumentPreview({
         </div>
         <DialogFooter className="p-2 sm:p-3 border-t flex-row flex-wrap sm:justify-between gap-2">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>
+          {acaoDetalhes}
           {acaoRodape}
           {resolvedUrl && (
             <div className="flex flex-wrap gap-2">
