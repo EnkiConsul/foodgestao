@@ -178,6 +178,18 @@ export default function DpAtestados() {
   }, [rows, fColab, fStatus, fUnidade, fDataInicio, fDataFim]);
 
   const pendentesCount = rows.filter((r) => r.status === "pendente").length;
+
+  // Abertura direta da ficha de um atestado (ex.: botão "Detalhes" em Documentos).
+  const solicitacaoParam = useMemo(() => new URLSearchParams(window.location.search).get("solicitacao"), []);
+  const abriuDetalheRef = useRef(false);
+  useEffect(() => {
+    if (abriuDetalheRef.current || !solicitacaoParam || rows.length === 0) return;
+    const alvo = rows.find((r) => r.id === solicitacaoParam);
+    if (alvo) {
+      abriuDetalheRef.current = true;
+      setDetalhe(alvo);
+    }
+  }, [rows, solicitacaoParam]);
   const colabsHistorico = useMemo(() => {
     return (colabs.data ?? []).filter((c) => fUnidade === "todos" || c.unidade_id === fUnidade);
   }, [colabs.data, fUnidade]);
