@@ -21,6 +21,8 @@
 - Revogar cortesia gera carência (`grace`, fim 23:59:59 BRT via `_shared/grace.ts`), nunca ativa; vencida, `company_access_status` bloqueia; banner lê `company_grace_subscriptions` por módulo — evita acesso grátis sem fim.
 - Cobrança v2: `billing_accounts` agrupa empresas; painel grava legado + grants só via RPCs `billing_v2_*` (ator explícito); ativar encerra carência; conferência em `billing_v2_reconciliation` — rollback seguro.
 - Acesso e preço v2: `get_company_entitlements`/`has_module_access` decidem por empresa coberta em `subscription_companies`; flags `access_model_v2` (legado|sombra|v2, via `access_model_set_mode`) e `checkout_v2` (legado|v2), só super admin; preço só por `billing_v2_quote` — valor nunca vem do navegador.
-- Tokens de uma tela vivem em `:root` (overrides em `.dark`) e são mapeados em `tailwind.config.ts`, nunca dentro de classe de escopo que a rota não renderiza — o utilitário `hsl(var())` fica sem valor e a cor some.
+- Define tokens in `:root`/`.dark` and map in `tailwind.config.ts`, never route-scoped, so utilities resolve.
 - Troca de plano/ciclo só por `billing_v2_plan_change_quote/schedule/cancel`: upgrade e mensal→anual são imediatos com crédito proporcional; downgrade e anual→mensal ficam em `pending_plan_change` e `billing_v2_apply_scheduled_changes` revalida uso na renovação — valor calculado no banco.
 - Subpastas podem ter `AGENTS.md` próprio; leia antes de alterar arquivos nelas.
+
+- Ações do Dia routes requests to their decision screen, never directly to `dp_solicitacao_responder`, preserving DSR acknowledgement and release undo.

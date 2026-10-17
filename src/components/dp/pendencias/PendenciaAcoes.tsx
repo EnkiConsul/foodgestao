@@ -27,9 +27,6 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { porIds, resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { registrarResolvida } from "@/lib/dp/resolvidas-hoje";
 
-/** Pedidos que exigem decisões extras (assiduidade, evento) ficam na tela própria. */
-const SOLICITACAO_NA_TELA_PROPRIA = /atestado|licen|adiantamento|outro/i;
-
 /** Rótulo do botão principal conforme o assunto (em vez do genérico "Resolver"). */
 const ROTULO: Record<string, string> = {
   "Férias": "Programar férias",
@@ -77,7 +74,6 @@ export function PendenciaAcoes({
   const [recusarAberto, setRecusarAberto] = useState(false);
   const [motivoRecusa, setMotivoRecusa] = useState("");
   const trocaNaTela = p.tipo === "Troca" && !!p.trocaId;
-  const solicitacaoNaTela = p.tipo === "Solicitação" && !!p.solicitacao && !SOLICITACAO_NA_TELA_PROPRIA.test(p.solicitacao.tipo);
 
   const concluir = () => {
     if (selectedCompanyId) registrarResolvida(selectedCompanyId, p.id);
@@ -87,17 +83,12 @@ export function PendenciaAcoes({
 
   const decidirDireto = useMutation({
     mutationFn: async ({ aceito, obs }: { aceito: boolean; obs?: string }) => {
-      if (trocaNaTela) {
-        const { error } = await supabase.rpc("dp_troca_responder_gestor", {
-          p_id: p.trocaId!, p_aceito: aceito, p_observacao: obs?.trim() || null,
-        });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.rpc("dp_solicitacao_responder", {
-          p_id: p.solicitacao!.id, p_status: aceito ? "aprovada" : "recusada", p_resposta: (obs?.trim() || null) as any,
-        });
-        if (error) throw error;
-      }
+      // Solicitações usam a tela própria: DSR, ciência e desfazimento de liberação.
+      if (!trocaNaTela || !p.trocaId) throw new Error("Abra a tela própria para analisar este pedido.");
+      const { error } = await supabase.rpc("dp_troca_responder_gestor", {
+        p_id: p.trocaId, p_aceito: aceito, p_observacao: obs?.trim() || null,
+      });
+      if (error) throw error;
     },
     onSuccess: (_d, v) => {
       toast.success(v.aceito ? "Aprovado" : "Recusado");
@@ -174,7 +165,7 @@ export function PendenciaAcoes({
             <X className="h-3 w-3 mr-1" /> Não trabalhou
           </Button>
         </>
-      ) : trocaNaTela || solicitacaoNaTela ? (
+      ) : trocaNaTela ? (
         <>
           <Button size="sm" className="h-9 sm:h-7 text-xs" disabled={decidirDireto.isPending}
             onClick={() => decidirDireto.mutate({ aceito: true })}>
