@@ -112,5 +112,5 @@
 
 # Histórico de Atestados — visualização
 - [x] Período e retorno no visualizador, com Detalhes no rodapé.
-- [ ] Ficha completa e confortável no celular.
-- [ ] Conferir Ver → Detalhes com atestado existente, sem publicar.
+- [x] Ficha completa e confortável no celular.
+- [x] Conferir Ver → Detalhes com atestado existente no celular e computador, sem publicar.
