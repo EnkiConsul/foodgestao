@@ -31,16 +31,22 @@ describe("Atestados — data de Brasília", () => {
   it("6: janela de retorno [hoje, hoje+7]", () => {
     const agora = new Date("2026-10-16T01:00:00Z"); // 15/10 22h em Brasília
     const linhas = [
-      { status: "aprovada", data_alvo: "2026-10-10", data_fim: "2026-10-15" }, // volta hoje: conta
-      { status: "aprovada", data_alvo: "2026-10-10", data_fim: "2026-10-16" }, // limite inferior
-      { status: "aprovada", data_alvo: "2026-10-10", data_fim: "2026-10-22" }, // limite superior
-      { status: "aprovada", data_alvo: "2026-10-10", data_fim: "2026-10-23" }, // fora da janela
+      { status: "aprovada", data_alvo: "2026-10-10", data_fim: "2026-10-14" }, // volta hoje: conta
+      { status: "aprovada", data_alvo: "2026-10-10", data_fim: "2026-10-15" }, // último dia hoje, volta amanhã
+      { status: "aprovada", data_alvo: "2026-10-10", data_fim: "2026-10-21" }, // volta em hoje+7
+      { status: "aprovada", data_alvo: "2026-10-10", data_fim: "2026-10-22" }, // fora da janela
     ];
     const k = calcularIndicadores(linhas, agora);
     expect(k.hoje).toBe("2026-10-15");
     expect(k.em7).toBe("2026-10-22");
-    expect(k.retornam.map((r) => r.data_fim)).toEqual(["2026-10-15", "2026-10-16", "2026-10-22"]);
-    expect(k.foraHoje).toHaveLength(3); // retorno em 15/10 já não conta como fora hoje
+    expect(k.retornam.map((r) => r.data_fim)).toEqual(["2026-10-14", "2026-10-15", "2026-10-21"]);
+    expect(k.foraHoje).toHaveLength(3); // quem volta hoje já não conta como fora hoje
+  });
+  it("Rosângela: 14/10 com 3 dias volta em 17/10 e conta no card de hoje", () => {
+    const r = { status: "aprovada", data_alvo: "2026-10-14", data_fim: "2026-10-16" };
+    const k = calcularIndicadores([r], new Date("2026-10-17T14:00:00Z"));
+    expect(k.retornam).toHaveLength(1);
+    expect(k.foraHoje).toHaveLength(0);
   });
   it("7: status preservados", () => {
     const base = { data_alvo: "2026-10-14", data_fim: "2026-10-17" };

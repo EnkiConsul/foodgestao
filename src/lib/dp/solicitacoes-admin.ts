@@ -13,10 +13,10 @@ export function somaDias(iso: string, dias: number) {
   return somarDiasIso(iso, dias);
 }
 
-/** Período final de um afastamento a partir da data inicial e dos dias. */
+/** Período de um afastamento: data_fim é o último dia afastado (início + dias − 1). */
 export function periodoAfastamento(dataInicio: string, dias: number) {
-  const d = Number.isFinite(dias) && dias > 0 ? dias : 0;
-  return { data_alvo: dataInicio, data_fim: d > 0 ? somaDias(dataInicio, d) : dataInicio };
+  const d = Number.isFinite(dias) && dias > 1 ? Math.floor(dias) : 1;
+  return { data_alvo: dataInicio, data_fim: somaDias(dataInicio, d - 1) };
 }
 
 export async function corrigirAtestado(params: {
