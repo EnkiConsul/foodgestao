@@ -815,7 +815,17 @@ export default function DpAtestados() {
                   {detalhe.motivo && (
                     <div><div className="text-xs text-muted-foreground">Observações</div><p className="whitespace-pre-wrap break-words">{detalhe.motivo}</p></div>
                   )}
+                  {detalhe.tipo === "atestado" && (
+                    <div>
+                      <div className="text-xs text-muted-foreground">Assiduidade</div>
+                      <p>{detalhe.assiduidade_perde === true ? "Impacta a assiduidade" : detalhe.assiduidade_perde === false ? "Não impacta a assiduidade" : "Não informada"}</p>
+                      {detalhe.assiduidade_justificativa && <p className="mt-1 whitespace-pre-wrap break-words text-muted-foreground">{detalhe.assiduidade_justificativa}</p>}
+                    </div>
+                  )}
+                  {detalhe.resposta_admin && <div><div className="text-xs text-muted-foreground">Resposta do gestor</div><p className="whitespace-pre-wrap break-words">{detalhe.resposta_admin}</p></div>}
+                  {detalhe.devolvido_motivo && <div><div className="text-xs text-muted-foreground">Motivo da devolução</div><p className="whitespace-pre-wrap break-words">{detalhe.devolvido_motivo}</p></div>}
                   <div className="text-xs text-muted-foreground">Registrado em {new Date(detalhe.created_at).toLocaleString("pt-BR")}</div>
+                  {detalhe.respondido_em && <div className="text-xs text-muted-foreground">Analisado em {new Date(detalhe.respondido_em).toLocaleString("pt-BR")}</div>}
                 </div>
               )}
               <DialogFooter className="shrink-0 flex-row flex-wrap gap-2 border-t p-3 sm:justify-between">
