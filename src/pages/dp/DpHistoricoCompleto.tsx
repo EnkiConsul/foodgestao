@@ -1,7 +1,7 @@
 import { aceitaComprovante } from "@/lib/dp/documentoTipos";
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { certificadoValidacaoPdf } from "@/lib/dp/documento-certificado";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import {
   History as HistoryIcon, ChevronDown, ArrowDownUp,
   Upload,
   Receipt,
+  Info,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -373,6 +374,7 @@ function ColunaFiltroHeader(props: {
 
 export default function DpHistoricoCompleto() {
 
+  const navigate = useNavigate();
   const { selectedCompanyId } = useCompanyContext();
   const colabs = useDpColaboradores();
   const unidades = useDpUnidades();
@@ -1318,6 +1320,22 @@ export default function DpHistoricoCompleto() {
         path={certPreview ? undefined : preview?.viaFisica?.path ?? preview?.file_path ?? undefined}
         url={certPreview?.url}
         mime={certPreview ? "application/pdf" : preview?.viaFisica?.path ? preview.viaFisica.mime : preview?.mime_type}
+        acaoDetalhes={preview && preview.tipo_key === "atestado" ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const p = preview;
+              setPreview(null);
+              const params = new URLSearchParams({ aba: "historico" });
+              if (p.colaborador_id) params.set("colaborador", p.colaborador_id);
+              if (p.id.startsWith("sol:")) params.set("solicitacao", p.id.slice(4));
+              navigate(`/dp/atestados?${params.toString()}`);
+            }}
+          >
+            <Info className="h-4 w-4 mr-2" /> Detalhes
+          </Button>
+        ) : null}
         acaoRodape={(() => {
           const lista = Array.isArray(query.data) ? (query.data as UnifiedDoc[]) : [];
           const atual = preview ? lista.find((r) => r.id === preview.id) ?? preview : null;
