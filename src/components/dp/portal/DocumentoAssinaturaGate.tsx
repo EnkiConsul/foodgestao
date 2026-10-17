@@ -270,7 +270,7 @@ export function DocumentoAssinaturaGate() {
             {podeAssinar && (
               <AssinaturaCaptura
                 key={atual.id}
-                nomePadrao={String(colaborador?.nome_social || colaborador?.nome || "")}
+                nomePadrao={String(colaborador?.nome || "")}
                 onChange={setAssinaturaPng}
               />
             )}
@@ -316,7 +316,7 @@ export function DocumentoAssinaturaGate() {
         open={confirmar && !!preview}
         onOpenChange={setConfirmar}
         titulo={(preview ?? atual)?.titulo ?? ""}
-        nome={String(colaborador?.nome_social || colaborador?.nome || "")}
+        nome={String(colaborador?.nome || "")}
         enviando={assinar.isPending}
         onConfirmar={(png) => {
           const d = preview ?? atual;
