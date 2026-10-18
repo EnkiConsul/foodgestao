@@ -203,6 +203,26 @@ export function agruparPorColaborador<T extends PendenciaLike>(
   });
 }
 
+/**
+ * Pendências ligadas a documentos: importações periódicas (contracheque,
+ * adiantamento, ponto), assinaturas/aceites pendentes, comprovantes de
+ * pagamento e documentos rescisórios. Usada pelo resumo da Gestão de
+ * Documentos para contar TODOS os documentos, não só um subconjunto.
+ */
+const TIPOS_DOCUMENTO = new Set([
+  "Documentos",
+  "Assinaturas",
+  "Comprovante de pagamento",
+  "Importação",
+  "contracheque",
+  "adiantamento",
+  "ponto",
+]);
+
+export function isDocumentoPendencia(p: Pick<PendenciaLike, "tipo">): boolean {
+  return TIPOS_DOCUMENTO.has(p.tipo);
+}
+
 /** Valores distintos para popular filtros (somente o que existe nos dados). */
 export function opcoesFiltro(itens: PendenciaLike[]) {
   const tipos = new Set<string>();
