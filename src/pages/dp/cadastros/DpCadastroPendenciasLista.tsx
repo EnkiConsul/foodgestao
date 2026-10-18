@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { CalendarClock, Check, CheckCircle2, ChevronRight, ListChecks, Play, RefreshCw, Settings, UserRound, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DpFilters, DpFilterField, type DpFilterChip } from "@/components/dp/DpFilters";
@@ -59,7 +59,12 @@ export default function DpCadastroPendenciasLista() {
   const { ignoradas, adiadas, decisaoDe } = useDpPendenciasDecisoes();
   const isMobile = useIsMobile();
   const [mostrarAdiadas, setMostrarAdiadas] = useState(false);
-  const [aba, setAba] = useState<Aba>("todas");
+  // Atalhos (ex.: Gestão de Documentos) abrem a tela já na aba do assunto.
+  const [urlParams] = useSearchParams();
+  const eixoUrl = urlParams.get("eixo");
+  const [aba, setAba] = useState<Aba>(() =>
+    EIXOS.some((e) => e.value === eixoUrl) ? (eixoUrl as Aba) : "todas",
+  );
   const [filtro, setFiltro] = useState<Filtro>(FILTRO_INICIAL);
   const [busca, setBusca] = useState("");
   const [detalhe, setDetalhe] = useState<Pendencia | null>(null);
