@@ -24,6 +24,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+async function permiteMultiplos(): Promise<boolean> {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return false;
+  const { data } = await supabase
+    .from("auth_user_security_state")
+    .select("permite_multiplos_dispositivos")
+    .eq("user_id", u.user.id)
+    .maybeSingle();
+  return data?.permite_multiplos_dispositivos === true;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -55,8 +66,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     // Sessão única: o aparelho que acabou de entrar assume a conta e derruba os outros.
+    // Exceção liberada pelo servidor: login simultâneo em vários aparelhos.
     const assumirSessao = async () => {
       try {
+        if (await permiteMultiplos()) return;
         await supabase.rpc("auth_sessao_assumir", {
           _session_id: obterSessionIdLocal(),
           _device: descreverAparelho(),
@@ -149,7 +162,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          const ativa = (payload.new as { active_session_id?: string | null } | null)?.active_session_id;
+          const novo = payload.new as { active_session_id?: string | null; permite_multiplos_dispositivos?: boolean } | null;
+          if (novo?.permite_multiplos_dispositivos) return;
+          const ativa = novo?.active_session_id;
           if (ativa && ativa !== local) void derrubar();
         },
       )
