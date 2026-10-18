@@ -162,7 +162,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          const ativa = (payload.new as { active_session_id?: string | null } | null)?.active_session_id;
+          const novo = payload.new as { active_session_id?: string | null; permite_multiplos_dispositivos?: boolean } | null;
+          if (novo?.permite_multiplos_dispositivos) return;
+          const ativa = novo?.active_session_id;
           if (ativa && ativa !== local) void derrubar();
         },
       )
