@@ -1455,7 +1455,30 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </DpPage>
+    </>
+  );
 
+  // Embutida na Gestão de Documentos: sem casca de página própria, as ações
+  // de colunas/registro ficam numa barra discreta acima da listagem.
+  if (embutido) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-end gap-2">{acoesCabecalho}</div>
+        {conteudo}
+      </div>
+    );
+  }
+
+  return (
+    <DpPage>
+      <Helmet><title>Histórico — Pessoas 360°</title></Helmet>
+      <DpPageHeader
+        icon={FileText}
+        title="Histórico"
+        description="Visualize todos os documentos de todos os colaboradores em um único lugar."
+        actions={acoesCabecalho}
+      />
+      {conteudo}
+    </DpPage>
   );
 }
