@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
-import { FileText, Info, X } from "lucide-react";
+import { FileText, Info, Upload, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { BulkImportPanel } from "@/components/dp/documentos/BulkImportPanel";
 import { DocConsistenciaPanel } from "@/components/dp/documentos/DocConsistenciaPanel";
@@ -50,6 +51,18 @@ export default function DpDocumentosGestao() {
     competencia: params.get("competencia") ?? undefined,
     lote: params.get("lote") ?? undefined,
   }));
+
+  /**
+   * No celular a área de importação fica recolhida atrás de um botão para não
+   * empurrar a lista de documentos para baixo; no computador fica sempre aberta.
+   * Abre automaticamente quando veio de uma pendência (atalho pré-preenchido).
+   */
+  const [importarAberto, setImportarAberto] = useState(
+    () => !!(inicial.tipo || inicial.lote),
+  );
+  useEffect(() => {
+    if (foco) setImportarAberto(true);
+  }, [foco]);
 
   /**
    * O aviso vive na URL (veio do atalho "Resolver"). Fechá-lo precisa apagar os
@@ -107,19 +120,39 @@ export default function DpDocumentosGestao() {
         </Alert>
       )}
 
+      {/* Importação é o primeiro bloco: quem entra para enviar encontra de imediato. */}
+      {!importarAberto && (
+        <Button className="w-full md:hidden" onClick={() => setImportarAberto(true)}>
+          <Upload className="mr-2 h-4 w-4" /> Importar Documento
+        </Button>
+      )}
+      <div className={importarAberto ? "" : "hidden md:block"}>
+        {importarAberto && (
+          <div className="mb-1 flex justify-end md:hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-muted-foreground"
+              onClick={() => setImportarAberto(false)}
+            >
+              Recolher importação
+            </Button>
+          </div>
+        )}
+        <BulkImportPanel
+          title="Importar Documento"
+          tipoInicial={inicial.tipo}
+          referenciaInicial={inicial.competencia ? `${inicial.competencia}-01` : undefined}
+          loteAbertoId={inicial.lote}
+          foco={foco}
+          onLoteConcluido={limparContexto}
+        />
+      </div>
+
       <DocConsistenciaPanel
         onImportar={(t, comp) =>
           setFoco((f) => ({ tipo: t, competencia: comp, nonce: (f?.nonce ?? 0) + 1 }))
         }
-      />
-
-      <BulkImportPanel
-        title="Importar Documento"
-        tipoInicial={inicial.tipo}
-        referenciaInicial={inicial.competencia ? `${inicial.competencia}-01` : undefined}
-        loteAbertoId={inicial.lote}
-        foco={foco}
-        onLoteConcluido={limparContexto}
       />
 
       {/* Listagem completa da equipe (antiga tela "Histórico"), embutida. */}

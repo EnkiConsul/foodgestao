@@ -929,7 +929,8 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
 
 
 
-  const acoesCabecalho = (
+  // Controles de coluna/largura só fazem sentido na tabela do computador.
+  const acoesTabelaDesktop = (
     <>
       <DpTableColumnsMenu
         columns={DEFAULT_COL_ORDER.map((k) => ({ key: k, label: COLS[k].label }))}
@@ -939,9 +940,19 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
         onReset={resetLayout}
       />
       <DpSalvarLargurasButton screenKey="dp_historico_documentos" colOrder={colOrder} colWidths={colWidths} />
-      <Button variant="outline" onClick={() => setLogAberto(true)}>
-        <HistoryIcon className="mr-1 h-4 w-4" /> Registro de Alterações
-      </Button>
+    </>
+  );
+
+  const botaoRegistro = (
+    <Button variant="outline" onClick={() => setLogAberto(true)}>
+      <HistoryIcon className="mr-1 h-4 w-4" /> Registro de Alterações
+    </Button>
+  );
+
+  const acoesCabecalho = (
+    <>
+      {acoesTabelaDesktop}
+      {botaoRegistro}
     </>
   );
 
@@ -1463,7 +1474,10 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
   if (embutido) {
     return (
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-end gap-2">{acoesCabecalho}</div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="hidden md:flex items-center gap-2">{acoesTabelaDesktop}</div>
+          {botaoRegistro}
+        </div>
         {conteudo}
       </div>
     );

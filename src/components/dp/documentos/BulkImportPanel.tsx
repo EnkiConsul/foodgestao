@@ -92,6 +92,8 @@ export function BulkImportPanel({
   const [batchLimit, setBatchLimit] = useState<number>(20);
   const [reviewBatch, setReviewBatch] = useState<{ id: string; name?: string } | null>(null);
   const [detailsBatch, setDetailsBatch] = useState<any | null>(null);
+  /** Lotes concluídos ficam ocultos; o gestor abre o histórico só quando precisa. */
+  const [mostrarHistoricoLotes, setMostrarHistoricoLotes] = useState(false);
 
   useEffect(() => { if (tipoFixed) setTipo(tipoFixed); }, [tipoFixed]);
   useEffect(() => { if (referenciaFixed) setReferencia(referenciaFixed); }, [referenciaFixed]);
@@ -596,11 +598,34 @@ export function BulkImportPanel({
       </DpFilterCard>
       </div>
 
-      {temLoteAtivo && (
+      {!temLoteAtivo && !mostrarHistoricoLotes && (batches.data ?? []).length > 0 && (
+        <div className="flex justify-center">
+          <Button
+            variant="link"
+            size="sm"
+            className="text-xs text-muted-foreground"
+            onClick={() => setMostrarHistoricoLotes(true)}
+          >
+            Ver histórico de lotes anteriores
+          </Button>
+        </div>
+      )}
+
+      {(temLoteAtivo || mostrarHistoricoLotes) && (
       <Card className="dp-content-card" ref={lotesRef}>
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle className="text-base">Lotes recentes</CardTitle>
           <div className="flex items-center gap-2">
+            {!temLoteAtivo && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-xs text-muted-foreground"
+                onClick={() => setMostrarHistoricoLotes(false)}
+              >
+                Ocultar
+              </Button>
+            )}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-40 h-8"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
