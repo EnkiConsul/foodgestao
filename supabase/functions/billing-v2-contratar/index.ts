@@ -79,7 +79,7 @@ const Body = z.discriminatedUnion("acao", [
     adicionais: z.array(z.object({ code: z.string().max(40), qtd: z.number().int().min(1).max(500) })).max(10).optional(),
     empresas: z.array(z.string().uuid()).min(2).max(50).optional(),
     // injeção de falha: só respeitada em conta [TESTE] do Sandbox (ver contratar)
-    simular_falha: z.enum(["criacao", "apos_assinatura", "cancelamento"]).optional(),
+    simular_falha: z.enum(["criacao", "apos_assinatura", "cancelamento", "timeout", "timeout_busca", "gravacao_desfazimento"]).optional(),
     pagador: z.object({
       documento: z.string().transform((s) => s.replace(/\D/g, "")).refine((s) => s.length === 11 || s.length === 14, "CPF/CNPJ inválido"),
       email: z.string().trim().email().max(255),
@@ -159,7 +159,8 @@ Deno.serve(async (req) => {
       // Dados do pagador: gravados só enquanto o cliente ainda não existe no Asaas
       if (b.pagador && !docValido(b.pagador.documento)) return json({ error: "CPF/CNPJ inválido. Confira os números e tente novamente." }, 422);
       if (b.pagador && !conta.asaas_customer_id) {
-        await admin.from("billing_accounts").update({ documento_pagador: b.pagador.documento, email_cobranca: b.pagador.email }).eq("id", conta.id);
+        const { error: ePg } = await admin.from("billing_accounts").update({ documento_pagador: b.pagador.documento, email_cobranca: b.pagador.email }).eq("id", conta.id);
+        if (ePg) return json({ error: "Não foi possível gravar os dados do pagador. Nada foi cobrado. Tente novamente.", detalhes: ePg.message }, 500);
         conta.documento_pagador = b.pagador.documento; conta.email_cobranca = b.pagador.email;
       } else if (conta.asaas_customer_id && (!conta.documento_pagador || !conta.email_cobranca)) {
         // Cliente já existe no Asaas mas falta dado local: alinhar ANTES de criar qualquer assinatura
