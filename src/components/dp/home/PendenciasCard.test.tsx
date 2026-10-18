@@ -8,6 +8,9 @@ import { lerPendenciasSnapshot, salvarPendenciasSnapshot } from "@/lib/dp/penden
 import { QueryClient } from "@tanstack/react-query";
 import { baixarPendencias, porIds } from "@/lib/dp/pendencias-resolver";
 
+// Estas verificações são do cache de ações, não do worker de PDF.
+vi.mock("@/components/dp/pendencias/PendenciaAcoes", () => ({ PendenciaAcoes: () => null }));
+
 // ---- Mocks -----------------------------------------------------------------
 vi.mock("@/hooks/useCompanyContext", () => ({
   useCompanyContext: () => ({ selectedCompanyId: "empresa-teste" }),

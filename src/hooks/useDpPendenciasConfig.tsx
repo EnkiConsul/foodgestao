@@ -1,3 +1,4 @@
+import { carregarComPrazo } from "@/lib/dp/pendencias-carregamento";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -53,14 +54,16 @@ export function useDpPendenciasConfig() {
   const query = useQuery({
     queryKey: ["dp_pendencias_config", selectedCompanyId],
     enabled: !!selectedCompanyId,
-    queryFn: async (): Promise<DpPendenciasConfig> => {
+    retry: false,
+    staleTime: 5 * 60_000,
+    queryFn: ({ signal: origem }) => carregarComPrazo(async (signal): Promise<DpPendenciasConfig> => {
       const { data, error } = await supabase
         .from("dp_pendencias_config")
         .select(
           "alerta_solicitacao_dias, alerta_troca_dias, alerta_ocorrencia_horas, alerta_contracheque_dia_mes, alerta_adiantamento_offset, alerta_negociacao_dias, alerta_ferias_dias, dias_carencia_portal, exigir_contracheque_mes_desligamento, exigir_comprovante_pagamento, alerta_comprovante_dias, comprovante_vigencia_inicio, alerta_recibo_assinatura_dias, alerta_ata_assinatura_dias, alerta_preadmissao_dias, alerta_contatos_emergencia",
         )
         .eq("company_id", selectedCompanyId!)
-        .maybeSingle();
+        .abortSignal(signal).maybeSingle();
       if (error) throw error;
       if (!data) return DP_PENDENCIAS_CONFIG_DEFAULT;
       const row = data as any;
@@ -93,7 +96,7 @@ export function useDpPendenciasConfig() {
         alerta_preadmissao_dias: row.alerta_preadmissao_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_preadmissao_dias,
         alerta_contatos_emergencia: row.alerta_contatos_emergencia ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_contatos_emergencia,
       };
-    },
+    }, origem),
   });
 
 
@@ -116,6 +119,9 @@ export function useDpPendenciasConfig() {
   return {
     config: query.data ?? DP_PENDENCIAS_CONFIG_DEFAULT,
     isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
     save: save.mutate,
     saving: save.isPending,
   };

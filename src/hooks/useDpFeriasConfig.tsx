@@ -1,3 +1,4 @@
+import { carregarComPrazo } from "@/lib/dp/pendencias-carregamento";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,7 +48,9 @@ export function useDpFeriasConfig() {
   const query = useQuery({
     queryKey: ["dp_ferias_config", selectedCompanyId],
     enabled: !!selectedCompanyId,
-    queryFn: async () => {
+    retry: false,
+    staleTime: 5 * 60_000,
+    queryFn: ({ signal: origem }) => carregarComPrazo(async (signal) => {
       const { data, error } = await supabase
         .from("dp_config_dp")
         .select(
@@ -55,7 +58,7 @@ export function useDpFeriasConfig() {
         )
         .eq("company_id", selectedCompanyId!)
         .is("unidade_id", null)
-        .maybeSingle();
+        .abortSignal(signal).maybeSingle();
       if (error) throw error;
       return {
         id: (data?.id as string | undefined) ?? null,
@@ -79,7 +82,7 @@ export function useDpFeriasConfig() {
             FERIAS_CONFIG_DEFAULT.sinalizacaoCicloEncerrado) as FeriasSinalizacaoCiclo,
         } satisfies FeriasConfig,
       };
-    },
+    }, origem),
   });
 
   const save = useMutation({
@@ -111,6 +114,9 @@ export function useDpFeriasConfig() {
   return {
     config: query.data?.config ?? FERIAS_CONFIG_DEFAULT,
     isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
     save,
   };
 }

@@ -17,3 +17,5 @@
 - Troca com restrição de folga: se o solicitante ou o colega cairia em data bloqueada para ele (`private.dp_troca_restricao`), a troca nunca é efetivada direto — vai para o gestor mesmo com troca direta ligada; a proposta devolve `exige_gestor` para avisar o colaborador.
 - Janela de escolha de folga: `private.dp_folga_janela_lembretes` (cron diário) notifica abertura e lembra diariamente quem falta (vira push pela fila), avisa o gestor em D+1 do fechamento, e `dp_folga_autoatribuir_todas` só atribui a partir de D+2 — o gestor sempre tem um dia para decidir.
 - Alvos de bloqueio listam só quem participa da escolha de folga (`colaboradorElegivelBloqueio`); no bloqueio de um dia, quem já tem folga marcada nele não aparece.
+
+- Pending actions load independent domains with bounded concurrency and abortable deadlines; keep the confirmed snapshot during refresh and surface read failures, so incomplete results never mean all clear.

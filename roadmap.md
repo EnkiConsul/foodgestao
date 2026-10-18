@@ -114,3 +114,8 @@
 - [x] Período e retorno no visualizador, com Detalhes no rodapé.
 - [x] Ficha completa e confortável no celular.
 - [x] Conferir Ver → Detalhes com atestado existente no celular e computador, sem publicar.
+
+# Ações do Dia — carregamento
+- [x] Reduzir espera com consultas independentes em paralelo e último retrato disponível.
+- [x] Limitar a espera, mostrar falhas e permitir tentar novamente.
+- [x] Testar carregamento e recuperação no celular, sem publicar (56 ações preservadas; 15 testes passaram).
