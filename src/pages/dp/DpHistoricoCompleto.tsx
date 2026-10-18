@@ -979,11 +979,11 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
             </Button>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto py-1">
           <button
             type="button"
             onClick={() => { setGrupo("all"); setTipo("all"); }}
-            className={`h-8 rounded-full border px-3 text-xs font-semibold transition-colors ${
+            className={`h-8 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors ${
               grupo === "all" ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"
             }`}
           >
@@ -994,7 +994,7 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
               key={g.grupo}
               type="button"
               onClick={() => { setGrupo(grupo === g.grupo ? "all" : g.grupo); setTipo("all"); }}
-              className={`h-8 rounded-full border px-3 text-xs font-semibold transition-colors ${
+              className={`h-8 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors ${
                 grupo === g.grupo ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"
               }`}
             >
