@@ -929,30 +929,25 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
 
 
 
-  return (
-    <DpPage>
-      <Helmet><title>Histórico — Pessoas 360°</title></Helmet>
-      <DpPageHeader
-        icon={FileText}
-        title="Histórico"
-        description="Visualize todos os documentos de todos os colaboradores em um único lugar."
-        actions={
-          <>
-            <DpTableColumnsMenu
-              columns={DEFAULT_COL_ORDER.map((k) => ({ key: k, label: COLS[k].label }))}
-              hidden={hidden}
-              essentialKeys={["colaborador"]}
-              onToggle={toggleHidden}
-              onReset={resetLayout}
-            />
-            <DpSalvarLargurasButton screenKey="dp_historico_documentos" colOrder={colOrder} colWidths={colWidths} />
-            <Button variant="outline" onClick={() => setLogAberto(true)}>
-              <HistoryIcon className="mr-1 h-4 w-4" /> Registro de Alterações
-            </Button>
-          </>
-        }
-
+  const acoesCabecalho = (
+    <>
+      <DpTableColumnsMenu
+        columns={DEFAULT_COL_ORDER.map((k) => ({ key: k, label: COLS[k].label }))}
+        hidden={hidden}
+        essentialKeys={["colaborador"]}
+        onToggle={toggleHidden}
+        onReset={resetLayout}
       />
+      <DpSalvarLargurasButton screenKey="dp_historico_documentos" colOrder={colOrder} colWidths={colWidths} />
+      <Button variant="outline" onClick={() => setLogAberto(true)}>
+        <HistoryIcon className="mr-1 h-4 w-4" /> Registro de Alterações
+      </Button>
+    </>
+  );
+
+  const conteudo = (
+    <>
+
 
 
       {/* Barra de naturezas: somente os grupos */}
