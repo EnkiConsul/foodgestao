@@ -4,6 +4,7 @@ import {
   agruparPorTipo,
   contarAbertas,
   filtrarAbertas,
+  isDocumentoPendencia,
   isPendenciaAdiada,
   opcoesFiltro,
   urgenciaDe,
@@ -97,6 +98,27 @@ describe("agruparPorColaborador", () => {
     ];
     const subs = agruparPorColaborador(itens, { ordenarPorAtraso: true });
     expect(subs.map((s) => s.colaborador)).toEqual(["Bia", "Carla", "Ana"]);
+  });
+});
+
+describe("isDocumentoPendencia", () => {
+  it("reconhece todos os tipos de documento do motor", () => {
+    for (const tipo of [
+      "Documentos",
+      "Assinaturas",
+      "Comprovante de pagamento",
+      "Importação",
+      "contracheque",
+      "adiantamento",
+      "ponto",
+    ]) {
+      expect(isDocumentoPendencia(mk({ tipo }))).toBe(true);
+    }
+  });
+  it("ignora pendências que não são de documento", () => {
+    for (const tipo of ["Férias", "Escala", "Troca", "Cadastro de Colaborador", "Rescisão"]) {
+      expect(isDocumentoPendencia(mk({ tipo }))).toBe(false);
+    }
   });
 });
 

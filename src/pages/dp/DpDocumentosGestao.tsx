@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { Link, useSearchParams } from "react-router-dom";
 import { ChevronRight, FileText, Info, ListChecks, Upload, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { BulkImportPanel } from "@/components/dp/documentos/BulkImportPanel";
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
@@ -11,8 +12,7 @@ import { useDpPendencias } from "@/hooks/useDpPendencias";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { useDpPendenciasDecisoes } from "@/hooks/useDpPendenciasDecisoes";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { filtrarAbertas, urgenciaDe } from "@/lib/dp/pendencias";
-import { eixoDe } from "@/lib/dp/acoes-eixos";
+import { filtrarAbertas, isDocumentoPendencia, urgenciaDe } from "@/lib/dp/pendencias";
 import { useStablePendencias } from "@/components/dp/home/PendenciasCard";
 import DpHistoricoCompleto from "@/pages/dp/DpHistoricoCompleto";
 
@@ -44,22 +44,24 @@ function AcoesDocumentosChip() {
   const abertas = useMemo(
     () =>
       filtrarAbertas(
-        stable.data.filter((p) => !ignoradas.has(p.id) && eixoDe(p) === "documentos"),
+        stable.data.filter((p) => !ignoradas.has(p.id) && isDocumentoPendencia(p)),
         { ...prefs.pendencias_adiadas, ...adiadas },
       ),
     [stable.data, prefs.pendencias_adiadas, ignoradas, adiadas],
   );
   const atrasadas = abertas.filter((p) => urgenciaDe(p) === "atrasada").length;
-  const hoje = abertas.filter((p) => urgenciaDe(p) === "hoje").length;
   const carregando = !stable.ready;
 
   const resumo = carregando
     ? "Carregando…"
     : abertas.length === 0
       ? "Tudo em dia"
-      : [atrasadas > 0 && `${atrasadas} ${atrasadas === 1 ? "atrasada" : "atrasadas"}`, hoje > 0 && `${hoje} para hoje`]
+      : [
+          `${abertas.length} ${abertas.length === 1 ? "pendente" : "pendentes"}`,
+          atrasadas > 0 && `${atrasadas} ${atrasadas === 1 ? "atrasada" : "atrasadas"}`,
+        ]
           .filter(Boolean)
-          .join(" · ") || "Nenhuma urgente";
+          .join(" · ");
 
   return (
     <Link
@@ -200,27 +202,24 @@ export default function DpDocumentosGestao() {
         />
       </div>
 
-      {/* Listagem completa da equipe (antiga tela "Histórico"), embutida. */}
-      <DpHistoricoCompleto embutido />
-
-      {/* Respiro inferior no celular: evita o botão flutuante cobrir a paginação. */}
-      <div className="h-24 md:hidden" aria-hidden="true" />
-
-      {/* Botão flutuante de importação na zona do polegar (só no celular). */}
+      {/* No celular, botão visível com rótulo abre a importação no topo. */}
       {!importarAberto && (
-        <button
+        <Button
           type="button"
+          className="min-h-11 w-full gap-2 md:hidden"
           onClick={() => {
             setImportarAberto(true);
             // Coloca a área de envio (topo) na visão de imediato.
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
-          aria-label="Importar Documento"
-          className="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95 md:hidden"
         >
-          <Upload className="h-6 w-6" aria-hidden="true" />
-        </button>
+          <Upload className="h-4 w-4" aria-hidden="true" />
+          Importar Documento
+        </Button>
       )}
+
+      {/* Listagem completa da equipe (antiga tela "Histórico"), embutida. */}
+      <DpHistoricoCompleto embutido />
     </DpPage>
   );
 }

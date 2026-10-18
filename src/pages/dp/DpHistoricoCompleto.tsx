@@ -979,11 +979,11 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
             </Button>
           )}
         </div>
-        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto py-1">
+        <div className="flex flex-wrap items-center gap-2 py-1">
           <button
             type="button"
             onClick={() => { setGrupo("all"); setTipo("all"); }}
-            className={`h-8 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors ${
+            className={`h-8 rounded-full border px-3 text-xs font-semibold transition-colors ${
               grupo === "all" ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"
             }`}
           >
@@ -994,7 +994,7 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
               key={g.grupo}
               type="button"
               onClick={() => { setGrupo(grupo === g.grupo ? "all" : g.grupo); setTipo("all"); }}
-              className={`h-8 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors ${
+              className={`h-8 rounded-full border px-3 text-xs font-semibold transition-colors ${
                 grupo === g.grupo ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"
               }`}
             >
@@ -1005,8 +1005,7 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
       </div>
 
       <DpFilterCard>
-        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="text-sm font-semibold sm:w-20">Filtros</div>
+        <div className="mb-3 flex items-center gap-2">
           <div className="relative flex-1 sm:max-w-md">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -1017,7 +1016,7 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
             />
 
           </div>
-          <Button variant="ghost" className="sm:ml-auto" onClick={limpar}>Limpar</Button>
+          <Button variant="ghost" size="sm" className="shrink-0 sm:ml-auto" onClick={limpar}>Limpar</Button>
         </div>
 
         {/* Celular: filtros recolhidos e escolha da ordem da lista */}
