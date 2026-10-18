@@ -11,8 +11,7 @@ import { useDpPendencias } from "@/hooks/useDpPendencias";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { useDpPendenciasDecisoes } from "@/hooks/useDpPendenciasDecisoes";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { filtrarAbertas, urgenciaDe } from "@/lib/dp/pendencias";
-import { eixoDe } from "@/lib/dp/acoes-eixos";
+import { filtrarAbertas, isDocumentoPendencia, urgenciaDe } from "@/lib/dp/pendencias";
 import { useStablePendencias } from "@/components/dp/home/PendenciasCard";
 import DpHistoricoCompleto from "@/pages/dp/DpHistoricoCompleto";
 
@@ -44,7 +43,7 @@ function AcoesDocumentosChip() {
   const abertas = useMemo(
     () =>
       filtrarAbertas(
-        stable.data.filter((p) => !ignoradas.has(p.id) && eixoDe(p) === "documentos"),
+        stable.data.filter((p) => !ignoradas.has(p.id) && isDocumentoPendencia(p)),
         { ...prefs.pendencias_adiadas, ...adiadas },
       ),
     [stable.data, prefs.pendencias_adiadas, ignoradas, adiadas],
