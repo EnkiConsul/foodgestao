@@ -4,7 +4,7 @@ import { aprovarEmBlocos } from "@/lib/dp/bulkApproveChunks";
 import { validarUpload } from "@/lib/storage/uploadPolicy";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Upload, Loader2, Check, X, ChevronDown, ChevronRight, RefreshCw, ExternalLink, AlertTriangle, Eye, Trash2, Info,
+  Upload, Loader2, Check, X, ChevronDown, ChevronRight, RefreshCw, ExternalLink, AlertTriangle, Eye, Trash2, Info, History,
 } from "lucide-react";
 import {
   statusLabel, MobileDetailsSheet,
@@ -426,7 +426,22 @@ export function BulkImportPanel({
       <div ref={uploadCardRef} className="scroll-mt-20">
       <DpFilterCard>
         <div className="space-y-3">
-          <h2 className="text-base font-semibold">{title}</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-base font-semibold">{title}</h2>
+            {!temLoteAtivo && (batches.data ?? []).length > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                aria-label={mostrarHistoricoLotes ? "Ocultar histórico de lotes" : "Ver histórico de lotes importados"}
+                title={mostrarHistoricoLotes ? "Ocultar histórico de lotes" : "Ver histórico de lotes importados"}
+                onClick={() => setMostrarHistoricoLotes((v) => !v)}
+              >
+                <History className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
           <AvisoViaFisica />
 
           <div

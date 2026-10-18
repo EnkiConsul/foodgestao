@@ -1,19 +1,24 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link, useSearchParams } from "react-router-dom";
-import { ChevronRight, FileText, Info, ListChecks, Upload, X } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { CheckCircle2, ChevronRight, FileText, Info, ListChecks, Upload, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { BulkImportPanel } from "@/components/dp/documentos/BulkImportPanel";
+import { PendenciaAcoes } from "@/components/dp/pendencias/PendenciaAcoes";
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpPendencias } from "@/hooks/useDpPendencias";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { useDpPendenciasDecisoes } from "@/hooks/useDpPendenciasDecisoes";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { filtrarAbertas, isDocumentoPendencia, urgenciaDe } from "@/lib/dp/pendencias";
-import { useStablePendencias } from "@/components/dp/home/PendenciasCard";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
+import { compararUrgencia, filtrarAbertas, isDocumentoPendencia, urgenciaDe } from "@/lib/dp/pendencias";
+import { useStablePendencias, UrgenciaBadge } from "@/components/dp/home/PendenciasCard";
 import DpHistoricoCompleto from "@/pages/dp/DpHistoricoCompleto";
 
 const MESES = [
@@ -29,24 +34,29 @@ function competenciaLabel(comp: string | null) {
   return `${MESES[idx]}/${ano}`;
 }
 
+const dataBR = (d: string) => new Date(d.slice(0, 10) + "T12:00:00").toLocaleDateString("pt-BR");
+
 /**
- * Resumo compacto das ações de documentos (mesmo motor das Ações do Dia da
- * tela inicial, filtrado para o assunto "Documentos e contabilidade").
- * Um clique abre a tela completa já na aba Documentos.
+ * Resumo das pendências de documentos (mesmo motor das Ações do Dia da tela
+ * inicial, filtrado para documentos). O clique abre uma gaveta na própria
+ * tela — sem navegar para fora — com as ações e os botões de resolução.
  */
-function AcoesDocumentosChip() {
+function AcoesDocumentosCard() {
   const { selectedCompanyId } = useCompanyContext();
-  const { data, isLoading, isFetching, dataUpdatedAt, lastCalculatedAt } = useDpPendencias();
+  const pendencias = useDpPendencias();
+  const { data, isLoading, isFetching, dataUpdatedAt, lastCalculatedAt } = pendencias;
   const stable = useStablePendencias({ companyId: selectedCompanyId, data, dataUpdatedAt, lastCalculatedAt, isLoading, isFetching });
   const { prefs } = useDpUserPrefs();
   const { ignoradas, adiadas } = useDpPendenciasDecisoes();
+  const isMobile = useIsMobile();
+  const [aberto, setAberto] = useState(false);
 
   const abertas = useMemo(
     () =>
       filtrarAbertas(
         stable.data.filter((p) => !ignoradas.has(p.id) && isDocumentoPendencia(p)),
         { ...prefs.pendencias_adiadas, ...adiadas },
-      ),
+      ).slice().sort(compararUrgencia),
     [stable.data, prefs.pendencias_adiadas, ignoradas, adiadas],
   );
   const atrasadas = abertas.filter((p) => urgenciaDe(p) === "atrasada").length;
@@ -63,24 +73,105 @@ function AcoesDocumentosChip() {
           .filter(Boolean)
           .join(" · ");
 
+  const lista = (
+    <ul className="space-y-2">
+      {abertas.map((p) => {
+        const u = urgenciaDe(p);
+        return (
+          <li
+            key={p.id}
+            className="relative flex gap-3 overflow-hidden rounded-2xl border border-border bg-card p-3 pl-4"
+          >
+            <span
+              className={cn(
+                "absolute inset-y-0 left-0 w-1",
+                u === "atrasada" || u === "urgente" ? "bg-destructive" : u === "hoje" ? "bg-warning" : "bg-border",
+              )}
+              aria-hidden="true"
+            />
+            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+              <p.icon className="h-4 w-4 text-primary" aria-hidden="true" />
+            </div>
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex items-start justify-between gap-2">
+                <p className="min-w-0 break-words text-sm font-semibold leading-snug">{p.titulo}</p>
+                <UrgenciaBadge atrasoDias={p.atrasoDias} urgente={p.urgente} />
+              </div>
+              <p className="break-words text-xs leading-relaxed text-muted-foreground">{p.subtitulo}</p>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+                <span className="rounded-full bg-muted px-2 py-0.5">{p.tipo}</span>
+                {(p.colaboradorNome ?? p.unidadeNome) && <span className="truncate">{p.colaboradorNome ?? p.unidadeNome}</span>}
+                {p.vencimento && <span>Prazo {dataBR(p.vencimento)}</span>}
+              </div>
+              <PendenciaAcoes pendencia={p} onNavigate={() => setAberto(false)} />
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
+  const vazio = (
+    <div className="flex flex-col items-center gap-2 px-6 py-8 text-center">
+      <CheckCircle2 className="h-10 w-10 text-primary" aria-hidden="true" />
+      <p className="text-base font-semibold">Documentos em dia!</p>
+      <p className="text-sm text-muted-foreground">Nenhuma pendência de documentos na empresa.</p>
+    </div>
+  );
+
   return (
-    <Link
-      to="/dp/cadastros/pendencias?eixo=documentos"
-      className="flex items-center gap-3 rounded-2xl border border-[hsl(var(--dp-border))] bg-card px-4 py-2.5 transition-colors hover:bg-muted/40"
-      aria-label="Abrir ações de documentos"
-    >
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <ListChecks className="h-4 w-4" aria-hidden="true" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold">Ações de Documentos</p>
-        <p className={atrasadas > 0 ? "truncate text-xs text-destructive" : "truncate text-xs text-muted-foreground"}>{resumo}</p>
-      </div>
-      {!carregando && abertas.length > 0 && (
-        <span className="rounded-full bg-primary px-2.5 py-0.5 text-sm font-bold tabular-nums text-primary-foreground">{abertas.length}</span>
+    <>
+      <button
+        type="button"
+        onClick={() => setAberto(true)}
+        className="flex h-full w-full items-center gap-3 rounded-2xl border border-[hsl(var(--dp-border))] bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/40"
+        aria-label="Abrir pendências de documentos"
+      >
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <ListChecks className="h-4 w-4" aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">Pendências</p>
+          <p className={atrasadas > 0 ? "truncate text-xs text-destructive" : "truncate text-xs text-muted-foreground"}>{resumo}</p>
+        </div>
+        {!carregando && abertas.length > 0 && (
+          <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-bold tabular-nums text-primary-foreground">{abertas.length}</span>
+        )}
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      </button>
+
+      {isMobile ? (
+        <Drawer open={aberto} onOpenChange={setAberto}>
+          <DrawerContent className="max-h-[88dvh]">
+            <DrawerHeader className="text-left">
+              <DrawerTitle>Pendências de Documentos</DrawerTitle>
+              <DrawerDescription>
+                {abertas.length === 0
+                  ? "Nada pendente no momento."
+                  : `${abertas.length} ${abertas.length === 1 ? "ação aberta" : "ações abertas"}${atrasadas > 0 ? ` · ${atrasadas} atrasada${atrasadas > 1 ? "s" : ""}` : ""}`}
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              {abertas.length === 0 ? vazio : lista}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={aberto} onOpenChange={setAberto}>
+          <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Pendências de Documentos</DialogTitle>
+              <DialogDescription>
+                {abertas.length === 0
+                  ? "Nada pendente no momento."
+                  : `${abertas.length} ${abertas.length === 1 ? "ação aberta" : "ações abertas"}${atrasadas > 0 ? ` · ${atrasadas} atrasada${atrasadas > 1 ? "s" : ""}` : ""}`}
+              </DialogDescription>
+            </DialogHeader>
+            {abertas.length === 0 ? vazio : lista}
+          </DialogContent>
+        </Dialog>
       )}
-      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-    </Link>
+    </>
   );
 }
 
@@ -89,9 +180,9 @@ function AcoesDocumentosChip() {
  *
  * Une a importação (PDF multipáginas, foto de atestado, comprovantes) e a
  * listagem completa dos documentos da equipe (antes "Histórico") em uma só
- * experiência. No celular a lista aparece de imediato: a importação abre por
- * um botão flutuante na zona do polegar e as pendências de documentos viram
- * um resumo de uma linha que leva às Ações do Dia.
+ * experiência. No topo, dois cards lado a lado: Pendências (abre gaveta na
+ * própria tela) e Importar Documento (expande a área de envio). No celular a
+ * lista aparece de imediato, sem blocos empilhados.
  *
  * Quando chega de uma pendência ("Resolver"), a natureza, a competência e a
  * unidade vêm na URL e aparecem num aviso, além de pré-preencherem a importação.
@@ -113,9 +204,9 @@ export default function DpDocumentosGestao() {
   }));
 
   /**
-   * No celular a importação abre pelo botão flutuante (não empurra a lista);
-   * no computador fica sempre visível no topo. Abre automaticamente quando
-   * veio de uma pendência (atalho pré-preenchido).
+   * No celular a importação abre pelo card "Importar Documento"; no computador
+   * fica sempre visível no topo. Abre automaticamente quando veio de uma
+   * pendência (atalho pré-preenchido).
    */
   const [importarAberto, setImportarAberto] = useState(
     () => !!(inicial.tipo || inicial.lote),
@@ -177,10 +268,31 @@ export default function DpDocumentosGestao() {
         </Alert>
       )}
 
-      {/* Pendências de documentos: resumo de uma linha, mesmo motor das Ações do Dia. */}
-      <AcoesDocumentosChip />
+      {/* Dois cards lado a lado: pendências (gaveta na própria tela) e importação. */}
+      <div className="grid grid-cols-2 gap-2">
+        <AcoesDocumentosCard />
+        {!importarAberto && (
+          <button
+            type="button"
+            className="flex h-full w-full items-center gap-3 rounded-2xl border border-[hsl(var(--dp-border))] bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/40 md:hidden"
+            onClick={() => {
+              setImportarAberto(true);
+              // Coloca a área de envio (topo) na visão de imediato.
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Upload className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">Importar</p>
+              <p className="truncate text-xs text-muted-foreground">Enviar documento</p>
+            </div>
+          </button>
+        )}
+      </div>
 
-      {/* Importação: sempre visível no computador; no celular abre pelo botão flutuante. */}
+      {/* Importação: sempre visível no computador; no celular abre pelo card acima. */}
       <div className={importarAberto ? "" : "hidden md:block"}>
         {importarAberto && (
           <div className="mb-1 flex justify-end md:hidden">
@@ -201,22 +313,6 @@ export default function DpDocumentosGestao() {
           onLoteConcluido={limparContexto}
         />
       </div>
-
-      {/* No celular, botão visível com rótulo abre a importação no topo. */}
-      {!importarAberto && (
-        <Button
-          type="button"
-          className="min-h-11 w-full gap-2 md:hidden"
-          onClick={() => {
-            setImportarAberto(true);
-            // Coloca a área de envio (topo) na visão de imediato.
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-        >
-          <Upload className="h-4 w-4" aria-hidden="true" />
-          Importar Documento
-        </Button>
-      )}
 
       {/* Listagem completa da equipe (antiga tela "Histórico"), embutida. */}
       <DpHistoricoCompleto embutido />

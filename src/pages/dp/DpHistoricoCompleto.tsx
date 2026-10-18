@@ -969,8 +969,8 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
 
 
 
-      {/* Barra de naturezas: somente os grupos */}
-      <div className="rounded-lg border bg-card p-3">
+      {/* Barra de naturezas: somente os grupos (no celular fica dentro dos Filtros) */}
+      <div className="hidden rounded-lg border bg-card p-3 md:block">
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="text-sm font-semibold">Natureza do Documento</div>
           {grupo !== "all" && (
@@ -1056,6 +1056,19 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
         </div>
 
         <div className={`${filtrosAbertos ? "grid" : "hidden md:grid"} gap-3 md:grid-cols-3 lg:grid-cols-5`}>
+          {/* No celular a Natureza mora aqui dentro dos filtros; no desktop fica na barra de pílulas acima. */}
+          <div className="space-y-1.5 md:hidden">
+            <Label className="text-xs font-medium text-muted-foreground">Natureza</Label>
+            <Select value={grupo} onValueChange={(v) => { setGrupo(v); setTipo("all"); }}>
+              <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {DP_DOC_GRUPOS.map((g) => (
+                  <SelectItem key={g.grupo} value={g.grupo}>{g.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Pendência</Label>
             <Select value={pendencia} onValueChange={(v) => setPendencia(v as typeof pendencia)}>
