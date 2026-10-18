@@ -2,6 +2,7 @@ import { prazoLegalRescisao, prazoPagamentoRescisao } from "@/lib/dp/desligament
 import { datasDeFeriados, faltaFeriadoLocal } from "@/lib/dp/feriados";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
+import { carregarComPrazo, executarBlocosPendencias } from "@/lib/dp/pendencias-carregamento";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPendenciasConfig, type DpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
@@ -104,8 +105,10 @@ function ymd(d: Date) {
 
 export function useDpPendencias() {
   const { selectedCompanyId } = useCompanyContext();
-  const { config, isLoading: isConfigLoading } = useDpPendenciasConfig();
-  const { config: feriasConfig, isLoading: isFeriasConfigLoading } = useDpFeriasConfig();
+  const configQuery = useDpPendenciasConfig();
+  const { config, isLoading: isConfigLoading } = configQuery;
+  const feriasQuery = useDpFeriasConfig();
+  const { config: feriasConfig, isLoading: isFeriasConfigLoading } = feriasQuery;
   // Verdadeira apuração em curso (botão manual ou recálculo por estar desatualizado).
   // Reler o resultado já pronto não conta — por isso é separado de isFetching.
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -115,7 +118,8 @@ export function useDpPendencias() {
     // A identidade do cache depende apenas da empresa. Mudanças de configuração
     // invalidam explicitamente esta chave no hook de configuração.
     queryKey: ["dp_pendencias", selectedCompanyId],
-    enabled: !!selectedCompanyId && !isConfigLoading && !isFeriasConfigLoading,
+    enabled: !!selectedCompanyId && !isConfigLoading && !isFeriasConfigLoading && !configQuery.isError && !feriasQuery.isError,
+    retry: false,
     // Sem repetição periódica no navegador: a rotina diária, as ações do gestor
     // e o botão manual controlam quando uma nova apuração deve acontecer.
     staleTime: Infinity,
@@ -124,7 +128,9 @@ export function useDpPendencias() {
     gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    queryFn: async (): Promise<Pendencia[]> => {
+    queryFn: ({ signal: origem }) => carregarComPrazo(async (signal): Promise<Pendencia[]> => {
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      const falhas: unknown[] = [];
       const cfg: DpPendenciasConfig = config;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -136,11 +142,13 @@ export function useDpPendencias() {
 
       const results: Pendencia[] = [];
 
+      await executarBlocosPendencias([
+        async () => {
       // 1. Solicitações pendentes
       try {
         const { data: sols } = await supabase
           .from("dp_solicitacoes")
-          .select("id, tipo, created_at, dp_colaboradores(nome)")
+          .select("id, tipo, created_at, dp_colaboradores(nome)").abortSignal(signal).throwOnError()
           .is("removido_em", null)
           .eq("company_id", selectedCompanyId!)
           .eq("status", "pendente")
@@ -165,13 +173,16 @@ export function useDpPendencias() {
         });
       } catch (e) {
         console.warn("pendencias/solicitacoes:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // 2. Trocas pendentes de gestor
       try {
         const { data: trocas } = await supabase
           .from("dp_trocas")
-          .select("id, status, created_at, solicitante:solicitante_id(nome)")
+          .select("id, status, created_at, solicitante:solicitante_id(nome)").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .in("status", ["pendente_gestor"])
           .order("created_at", { ascending: true })
@@ -195,15 +206,18 @@ export function useDpPendencias() {
         });
       } catch (e) {
         console.warn("pendencias/trocas:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // 2b. Ocorrências aguardando decisão do gestor
       try {
         const { data: ocs } = await supabase
           .from("dp_ocorrencias")
           .select(
             "id, tipo, estado, analise_status, tratativa_status, tratativa_ponto, data_operacional, created_at, assiduidade_risco, assiduidade_decidido_em, colaborador:colaborador_id(nome)",
-          )
+          ).abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .neq("estado", "cancelada")
           .order("created_at", { ascending: true })
@@ -245,9 +259,13 @@ export function useDpPendencias() {
           });
       } catch (e) {
         console.warn("pendencias/ocorrencias:", e);
+        falhas.push(e);
       }
 
 
+
+        }
+      ], signal);
 
       // Carregar unidades ativas (usadas nos blocos 3-6)
       let unidades: Array<{
@@ -261,12 +279,13 @@ export function useDpPendencias() {
       try {
         const { data } = await supabase
           .from("dp_unidades")
-          .select("id, nome, created_at, possui_relogio_ponto, tem_adiantamento, dia_adiantamento")
+          .select("id, nome, created_at, possui_relogio_ponto, tem_adiantamento, dia_adiantamento").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .eq("ativo", true);
         unidades = (data ?? []) as any;
       } catch (e) {
         console.warn("pendencias/unidades:", e);
+        falhas.push(e);
       }
 
       // Colaboradores por unidade — 1 query só (evita N+1 por unidade).
@@ -278,7 +297,7 @@ export function useDpPendencias() {
           .from("dp_colaboradores")
           .select(
             "id, nome, unidade_id, ativo, regime, forma_pagamento, vinculo_label, possui_folha_ponto, optante_adiantamento, data_admissao, data_desligamento",
-          )
+          ).abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!);
         (colabsU ?? []).forEach((c: any) => {
           if (c.unidade_id) unidadeDoColab.set(c.id, c.unidade_id);
@@ -286,6 +305,7 @@ export function useDpPendencias() {
         colaboradoresDocs = (colabsU ?? []) as any;
       } catch (e) {
         console.warn("pendencias/colabs-unidade:", e);
+        falhas.push(e);
       }
 
       // Histórico de solicitações de adiantamento (ativar/cancelar com data) —
@@ -294,7 +314,7 @@ export function useDpPendencias() {
       try {
         const { data: sols } = await supabase
           .from("dp_adiantamento_solicitacoes" as any)
-          .select("id, colaborador_id, tipo, data_solicitacao, competencia_efeito, origem, created_at")
+          .select("id, colaborador_id, tipo, data_solicitacao, competencia_efeito, origem, created_at").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!);
         (sols ?? []).forEach((s: any) => {
           if (!solicitacoesPorColab.has(s.colaborador_id)) solicitacoesPorColab.set(s.colaborador_id, []);
@@ -302,6 +322,7 @@ export function useDpPendencias() {
         });
       } catch (e) {
         console.warn("pendencias/adiantamento-solicitacoes:", e);
+        falhas.push(e);
       }
 
       // Confirmações do gestor sobre o intermitente (trabalhou / não trabalhou).
@@ -309,13 +330,14 @@ export function useDpPendencias() {
       try {
         const { data: confs } = await supabase
           .from("dp_intermitente_competencia_confirmacoes" as any)
-          .select("colaborador_id, competencia, trabalhou")
+          .select("colaborador_id, competencia, trabalhou").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!);
         (confs ?? []).forEach((c: any) => {
           confirmacaoIntermitente.set(`${c.colaborador_id}:${c.competencia}`, c.trabalhou === true);
         });
       } catch (e) {
         console.warn("pendencias/intermitente-confirmacoes:", e);
+        falhas.push(e);
       }
 
       const hojeISO = ymd(today);
@@ -338,7 +360,7 @@ export function useDpPendencias() {
         try {
           const { data } = await supabase
             .from("dp_documentos")
-            .select("colaborador_id, referencia_data")
+            .select("colaborador_id, referencia_data").abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!)
             .in("tipo", tiposDb as any)
             .gte("referencia_data", inicio)
@@ -350,6 +372,7 @@ export function useDpPendencias() {
           });
         } catch (e) {
           console.warn(`pendencias/docs-${tipo}:`, e);
+        falhas.push(e);
         }
         importados.set(tipo, set);
         return set;
@@ -378,7 +401,7 @@ export function useDpPendencias() {
       try {
         const { data: afast } = await supabase
           .from("dp_solicitacoes")
-          .select("colaborador_id, data_alvo, data_fim")
+          .select("colaborador_id, data_alvo, data_fim").abortSignal(signal).throwOnError()
           .is("removido_em", null)
           .eq("company_id", selectedCompanyId!)
           .in("tipo", [...TIPOS_AFASTAMENTO] as any)
@@ -395,6 +418,7 @@ export function useDpPendencias() {
         });
       } catch (e) {
         console.warn("pendencias/afastamentos:", e);
+        falhas.push(e);
       }
 
       const afastadoMesInteiroCache = new Map<string, boolean>();
@@ -639,11 +663,12 @@ export function useDpPendencias() {
             .from("dp_colaborador_historico_condicoes")
             .select(
               "colaborador_id, vigencia_inicio, vigencia_fim, regime, unidade_id, modo_continuidade",
-            )
+            ).abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!);
           historicoVinculos = (data ?? []) as unknown as VinculoHistorico[];
         } catch (e) {
           console.warn("pendencias/historico-vinculos:", e);
+        falhas.push(e);
         }
 
         const unidadesValidas = new Set(unidades.map((u) => u.id));
@@ -670,7 +695,7 @@ export function useDpPendencias() {
         try {
           const { data } = await supabase
             .from("dp_unidade_feriados")
-            .select("id, unidade_id, nome, tipo, data, dia, mes, ordinal, dia_semana, ativo")
+            .select("id, unidade_id, nome, tipo, data, dia, mes, ordinal, dia_semana, ativo").abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!)
             .eq("ativo", true);
           for (const r of (data ?? []) as any[]) {
@@ -680,6 +705,7 @@ export function useDpPendencias() {
           }
         } catch (e) {
           console.warn("pendencias/feriados-rescisao:", e);
+        falhas.push(e);
         }
 
         // Aviso Prévio e Acerto Rescisório: cobrados por colaborador, a partir
@@ -691,7 +717,7 @@ export function useDpPendencias() {
           if (ids.length) {
             const { data } = await supabase
               .from("dp_documentos")
-              .select("id, tipo, colaborador_id, referencia_data, comprovante_file_path, comprovante_modalidade, comprovante_pago_em, arquivado_em")
+              .select("id, tipo, colaborador_id, referencia_data, comprovante_file_path, comprovante_modalidade, comprovante_pago_em, arquivado_em").abortSignal(signal).throwOnError()
               .eq("company_id", selectedCompanyId!)
               .in("tipo", ["aviso_previo", "acerto_rescisorio"] as any)
               .gte("referencia_data", rangeInicio);
@@ -700,7 +726,7 @@ export function useDpPendencias() {
             if (docsAcerto.length) {
               const { data: recs } = await supabase
                 .from("dp_recibos")
-                .select("documento_id, assinado_em, substituido_em")
+                .select("documento_id, assinado_em, substituido_em").abortSignal(signal).throwOnError()
                 .in("documento_id", docsAcerto.map((d) => d.id));
               (recs ?? []).forEach((r: any) => recibos.set(r.documento_id, r));
             }
@@ -716,6 +742,7 @@ export function useDpPendencias() {
           }
         } catch (e) {
           console.warn("pendencias/rescisao-momentos:", e);
+        falhas.push(e);
         }
 
         for (const u of unidades) {
@@ -790,11 +817,13 @@ export function useDpPendencias() {
       }
 
 
+      await executarBlocosPendencias([
+        async () => {
       // 6. Negociação coletiva pendente — por unidade + sindicato laboral
       try {
         const { data: sinds } = await supabase
           .from("dp_sindicatos")
-          .select("id, nome")
+          .select("id, nome").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .eq("tipo", "laboral")
           .eq("ativo", true);
@@ -815,13 +844,13 @@ export function useDpPendencias() {
         if (sindIds.length > 0 && unidadeIdsAtivas.length > 0) {
           const { data: uc } = await supabase
             .from("dp_unidade_cargos")
-            .select("unidade_id, cargo_id")
+            .select("unidade_id, cargo_id").abortSignal(signal).throwOnError()
             .in("unidade_id", unidadeIdsAtivas);
           const cargoIds = Array.from(new Set((uc ?? []).map((r: any) => r.cargo_id)));
           if (cargoIds.length > 0) {
             const { data: sc } = await supabase
               .from("dp_sindicato_cargos")
-              .select("sindicato_id, cargo_id")
+              .select("sindicato_id, cargo_id").abortSignal(signal).throwOnError()
               .in("cargo_id", cargoIds)
               .in("sindicato_id", sindIds);
             const sindByCargo = new Map<string, string[]>();
@@ -836,7 +865,7 @@ export function useDpPendencias() {
 
           const { data: negPairs } = await supabase
             .from("dp_sindicato_negociacoes")
-            .select("unidade_id, sindicato_id, sindicato_laboral_id")
+            .select("unidade_id, sindicato_id, sindicato_laboral_id").abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!)
             .not("unidade_id", "is", null);
           (negPairs ?? []).forEach((r: any) => {
@@ -852,7 +881,7 @@ export function useDpPendencias() {
         {
           const { data: todasNegs } = await supabase
             .from("dp_sindicato_negociacoes")
-            .select("ano, mes, unidade_id, sindicato_id, sindicato_laboral_id")
+            .select("ano, mes, unidade_id, sindicato_id, sindicato_laboral_id").abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!)
             .not("unidade_id", "is", null)
             .not("ano", "is", null)
@@ -917,13 +946,16 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/negociacoes:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // 6.1. Regras de folgas não cadastradas — sem elas a rotina de folgas fica travada
       try {
         const { data: regras } = await supabase
           .from("dp_config_dp")
-          .select("unidade_id")
+          .select("unidade_id").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!);
         const comRegra = new Set((regras ?? []).map((r: any) => r.unidade_id).filter(Boolean));
         const semRegra = unidades.filter((u) => !comRegra.has(u.id));
@@ -953,18 +985,21 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/regras-folgas:", e);
+        falhas.push(e);
       }
 
 
+        },
+        async () => {
       // 6b. Conformidade do ponto (Art. 74 CLT): unidade com mais de 20 ativos sem ponto e sem justificativa.
       try {
         const ids = unidades.map((u) => u.id);
         if (ids.length) {
           const [{ data: uj }, { data: ativosRows }] = await Promise.all([
-            supabase.from("dp_unidades").select("id, relogio_ponto_dispensa_justificativa").in("id", ids),
+            supabase.from("dp_unidades").select("id, relogio_ponto_dispensa_justificativa").abortSignal(signal).throwOnError().in("id", ids),
             supabase
               .from("dp_colaboradores")
-              .select("unidade_id")
+              .select("unidade_id").abortSignal(signal).throwOnError()
               .in("unidade_id", ids)
               .eq("ativo", true)
               .is("deleted_at", null)
@@ -992,15 +1027,18 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/ponto-art74:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // 6c. Feriados municipais/estaduais: unidade sem feriado local e sem ciência do gestor.
       try {
         const ids = unidades.map((u) => u.id);
         if (ids.length) {
           const [{ data: uc }, { data: fr }] = await Promise.all([
-            (supabase as any).from("dp_unidades").select("id, feriados_locais_ciente_em").in("id", ids),
-            supabase.from("dp_unidade_feriados").select("unidade_id, tipo, dia, mes, ativo").in("unidade_id", ids),
+            (supabase as any).from("dp_unidades").select("id, feriados_locais_ciente_em").abortSignal(signal).throwOnError().in("id", ids),
+            supabase.from("dp_unidade_feriados").select("unidade_id, tipo, dia, mes, ativo").abortSignal(signal).throwOnError().in("unidade_id", ids),
           ]);
           const ciente = new Map(((uc ?? []) as any[]).map((r) => [r.id, r.feriados_locais_ciente_em as string | null]));
           const porUnidade = new Map<string, any[]>();
@@ -1026,15 +1064,18 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/feriados-locais:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // 7. Férias — períodos aquisitivos com saldo perto do limite concessivo
       try {
         const limite = new Date(today);
         limite.setDate(limite.getDate() + cfg.alerta_ferias_dias);
         const { data: periodos } = await supabase
           .from("dp_ferias_periodos")
-          .select("id, colaborador_id, fim_aquisitivo, limite_concessivo, dias_saldo, dp_colaboradores(nome, vinculo_label, ativo, regime)")
+          .select("id, colaborador_id, fim_aquisitivo, limite_concessivo, dias_saldo, dp_colaboradores(nome, vinculo_label, ativo, regime)").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .eq("controle_externo", false)
           .gt("dias_saldo", 0)
@@ -1045,7 +1086,7 @@ export function useDpPendencias() {
         // primeiro, precisamos de todos os períodos (inclusive em aquisição).
         const { data: todosPeriodos } = await supabase
           .from("dp_ferias_periodos")
-          .select("id, colaborador_id, inicio_aquisitivo, dias_saldo, controle_externo")
+          .select("id, colaborador_id, inicio_aquisitivo, dias_saldo, controle_externo").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .limit(2000);
         const idsAcumulo = periodosComAcumulo((todosPeriodos ?? []) as any[]);
@@ -1087,13 +1128,16 @@ export function useDpPendencias() {
         });
       } catch (e) {
         console.warn("pendencias/ferias:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // 7c. Aviso de férias sem registro/ciência e recibo de férias faltando
       try {
         const { data: gozos } = await supabase
           .from("dp_ferias_gozos")
-          .select("id, colaborador_id, data_inicio, data_fim, status, aviso_em, ciente_em, dp_colaboradores(nome, ativo)")
+          .select("id, colaborador_id, data_inicio, data_fim, status, aviso_em, ciente_em, dp_colaboradores(nome, ativo)").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .in("status", ["aprovado", "em_gozo", "concluido"])
           .order("data_inicio", { ascending: true })
@@ -1102,7 +1146,7 @@ export function useDpPendencias() {
         const { data: docsFerias } = ids.length
           ? await supabase
               .from("dp_documentos")
-              .select("ferias_gozo_id, tipo")
+              .select("ferias_gozo_id, tipo").abortSignal(signal).throwOnError()
               .eq("company_id", selectedCompanyId!)
               .in("ferias_gozo_id", ids)
           : { data: [] as any[] };
@@ -1147,15 +1191,18 @@ export function useDpPendencias() {
         });
       } catch (e) {
         console.warn("pendencias/ferias-documentos:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // 7b. Licenças (maternidade/paternidade) — retorno se aproximando ou vencido
       try {
         const limiteRetorno = new Date(today);
         limiteRetorno.setDate(limiteRetorno.getDate() + LEMBRETE_RETORNO_DIAS);
         const { data: licencas } = await supabase
           .from("dp_solicitacoes")
-          .select("id, colaborador_id, tipo, data_alvo, data_fim, retorno_confirmado_em, dp_colaboradores(nome, ativo)")
+          .select("id, colaborador_id, tipo, data_alvo, data_fim, retorno_confirmado_em, dp_colaboradores(nome, ativo)").abortSignal(signal).throwOnError()
           .is("removido_em", null)
           .eq("company_id", selectedCompanyId!)
           .in("tipo", [...TIPOS_LICENCA])
@@ -1201,8 +1248,11 @@ export function useDpPendencias() {
         });
       } catch (e) {
         console.warn("pendencias/licencas:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // 9. Contingência: a rotina automática já fechou o mês vigente (23:59 do último
       // dia do mês anterior). Quem continua sem folga indica falha do sistema.
       try {
@@ -1212,25 +1262,25 @@ export function useDpPendencias() {
           const [{ data: colabs }, { data: folgas }, { data: cfgs }, { data: sols }, { data: gozosMes }] = await Promise.all([
             supabase
               .from("dp_colaboradores")
-              .select("id, nome, regime, vinculo_label, forma_pagamento, data_admissao, data_desligamento")
+              .select("id, nome, regime, vinculo_label, forma_pagamento, data_admissao, data_desligamento").abortSignal(signal).throwOnError()
               .eq("company_id", selectedCompanyId!)
               .eq("ativo", true)
               .is("deleted_at", null),
             supabase
               .from("dp_folgas")
-              .select("colaborador_id")
+              .select("colaborador_id").abortSignal(signal).throwOnError()
               .eq("company_id", selectedCompanyId!)
               .neq("status", "cancelada")
               .gte("data", ymd(inicioProx))
               .lte("data", ymd(fimProx)),
             supabase
               .from("dp_colaborador_config_trabalho")
-              .select("colaborador_id, folga_fixa_dow, dias:dp_colaborador_config_dias(dow, trabalha)")
+              .select("colaborador_id, folga_fixa_dow, dias:dp_colaborador_config_dias(dow, trabalha)").abortSignal(signal).throwOnError()
               .eq("company_id", selectedCompanyId!)
               .is("vigencia_fim", null),
             supabase
               .from("dp_solicitacoes")
-              .select("colaborador_id")
+              .select("colaborador_id").abortSignal(signal).throwOnError()
               .eq("company_id", selectedCompanyId!)
               .eq("tipo", "folga")
               .eq("status", "aprovada")
@@ -1238,7 +1288,7 @@ export function useDpPendencias() {
               .lte("data_alvo", ymd(fimProx)),
             supabase
               .from("dp_ferias_gozos")
-              .select("colaborador_id, data_inicio, data_fim")
+              .select("colaborador_id, data_inicio, data_fim").abortSignal(signal).throwOnError()
               .eq("company_id", selectedCompanyId!)
               .in("status", ["aprovado", "em_gozo", "concluido"])
               .lte("data_inicio", ymd(fimProx))
@@ -1303,13 +1353,16 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/escala:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // 10. Lotes de importação sem unidade identificada
       try {
         const { data: lotes } = await supabase
           .from("dp_bulk_import_batches")
-          .select("id, tipo, source_file_name, referencia_data, created_at, status, unidade_id")
+          .select("id, tipo, source_file_name, referencia_data, created_at, status, unidade_id").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .is("unidade_id", null)
           .eq("status", "ready")
@@ -1319,7 +1372,7 @@ export function useDpPendencias() {
         const { data: itensLote } = loteIds.length
           ? await supabase
             .from("dp_bulk_import_items")
-            .select("batch_id, detected_unidade_id, matched_colaborador_id, status")
+            .select("batch_id, detected_unidade_id, matched_colaborador_id, status").abortSignal(signal).throwOnError()
             .in("batch_id", loteIds)
           : { data: [] };
         const itensPorLote = new Map<string, any[]>();
@@ -1351,15 +1404,18 @@ export function useDpPendencias() {
         });
       } catch (e) {
         console.warn("pendencias/lotes-unidade:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // 11. Tabela anual do salário-família (INSS reajusta todo ano)
       try {
         const { data: cfgSf } = await supabase
           .from("dp_config_dp")
           .select(
             "salario_familia_cota, salario_familia_teto, salario_familia_vigencia, salario_familia_confirmado_em",
-          )
+          ).abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .is("unidade_id", null)
           .maybeSingle();
@@ -1391,15 +1447,18 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/salario-familia:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // 12. Documentos de dependentes (vacinação, frequência escolar, laudo)
       try {
         const { data: deps } = await supabase
           .from("dp_dependentes")
           .select(
             "id, colaborador_id, nome, data_nascimento, parentesco, cpf, deficiencia, laudo_validade, conta_irrf, conta_salario_familia, vacinacao_em, frequencia_escolar_em, cessado_em, observacao, dp_colaboradores(nome)",
-          )
+          ).abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .is("cessado_em", null);
         const porId = new Map(
@@ -1426,31 +1485,34 @@ export function useDpPendencias() {
         });
       } catch (e) {
         console.warn("pendencias/dependentes:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // 13. Documentos obrigatórios de admissão faltando, vencidos ou recusados
       try {
         const [reqs, colabs, deps, vincs] = await Promise.all([
           supabase
             .from("dp_documento_requisitos")
-            .select("*")
+            .select("*").abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!)
             .neq("obrigatoriedade", "desativado"),
           supabase
             .from("dp_colaboradores")
             .select(
               "id, nome, data_nascimento, regime, estado_civil, veiculo_proprio, aprendiz, possui_folha_ponto, dp_cargos(exige_cnh, exige_epi)",
-            )
+            ).abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!)
             .eq("ativo", true),
           supabase
             .from("dp_dependentes")
-            .select("id, colaborador_id, nome, data_nascimento, deficiencia, cessado_em")
+            .select("id, colaborador_id, nome, data_nascimento, deficiencia, cessado_em").abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!)
             .is("cessado_em", null),
           supabase
             .from("dp_colaborador_documentos")
-            .select("*")
+            .select("*").abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!),
         ]);
 
@@ -1522,15 +1584,18 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/documentos:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // 14. Cadastro de colaborador incompleto (campos essenciais em branco)
       try {
         const { data: colabsBase } = await supabase
           .from("dp_colaboradores")
           .select(
             "id, nome, setor_id, telefone, whatsapp, email_contato, endereco, data_nascimento, estado_civil, regime, forma_pagamento, valor_hora, valor_diaria, socio_remuneracao, cargo_id, unidade_id, recebe_em_especie",
-          )
+          ).abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .eq("ativo", true);
         // Campos confidenciais pela consulta segura (mascarados preservam "preenchido").
@@ -1541,11 +1606,11 @@ export function useDpPendencias() {
         const [{ data: pisos }, { data: vinculosPatronal }] = await Promise.all([
           supabase
             .from("dp_cargo_salarios")
-            .select("cargo_id, unidade_id, sindicato_patronal_id, salario_base, vigencia_inicio, vigencia_fim")
+            .select("cargo_id, unidade_id, sindicato_patronal_id, salario_base, vigencia_inicio, vigencia_fim").abortSignal(signal).throwOnError()
             .is("removido_em", null),
           supabase
             .from("dp_sindicato_unidades")
-            .select("unidade_id, sindicato_id, dp_sindicatos!inner(tipo)")
+            .select("unidade_id, sindicato_id, dp_sindicatos!inner(tipo)").abortSignal(signal).throwOnError()
             .eq("dp_sindicatos.tipo", "patronal"),
         ]);
         const pisosPorCargo = agruparPisosPorCargo((pisos ?? []) as any[]);
@@ -1585,14 +1650,17 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/cadastro-incompleto:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // Pré-Admissões que esperam uma ação do DP: revisar a ficha do candidato,
       // enviar à contabilidade ou criar o cadastro depois da ficha conferida.
       try {
         const { data: preadms } = await supabase
           .from("dp_preadmissoes")
-          .select("id, candidato_nome, status, enviado_em, ficha_oficial_conferida_em, updated_at")
+          .select("id, candidato_nome, status, enviado_em, ficha_oficial_conferida_em, updated_at").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .is("removido_em", null)
           .in("status", ["aguardando_revisao", "aguardando_nova_versao", "pronto_contabilidade", "registro_recebido"]);
@@ -1617,13 +1685,16 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/preadmissao:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // Recibos aguardando assinatura do colaborador além do prazo configurado.
       try {
         const { data: recs } = await supabase
           .from("dp_recibos")
-          .select("id, beneficiario_nome, created_at, link_enviado_em, colaborador_id")
+          .select("id, beneficiario_nome, created_at, link_enviado_em, colaborador_id").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .is("assinado_em", null)
           .is("cancelado_em", null)
@@ -1648,13 +1719,16 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/recibos-assinatura:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // Atas enviadas com participantes que ainda não assinaram.
       try {
         const { data: atas } = await supabase
           .from("dp_atas")
-          .select("id, titulo, enviada_em, created_at")
+          .select("id, titulo, enviada_em, created_at").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .eq("status", "enviada")
           .limit(200);
@@ -1662,7 +1736,7 @@ export function useDpPendencias() {
         if (ids.length) {
           const { data: parts } = await supabase
             .from("dp_ata_participantes")
-            .select("ata_id")
+            .select("ata_id").abortSignal(signal).throwOnError()
             .in("ata_id", ids)
             .is("assinado_em", null);
           const faltam = new Map<string, number>();
@@ -1686,13 +1760,16 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/atas-assinatura:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // Termos de compensação emitidos e ainda sem assinatura do colaborador.
       try {
         const { data: termos } = await supabase
           .from("dp_documentos")
-          .select("id, titulo, created_at, colaborador_id")
+          .select("id, titulo, created_at, colaborador_id").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .eq("tipo", "termos")
           .is("arquivado_em", null)
@@ -1702,7 +1779,7 @@ export function useDpPendencias() {
         if (lista.length) {
           const { data: aceites } = await (supabase as any)
             .from("dp_documento_aceites")
-            .select("documento_id")
+            .select("documento_id").abortSignal(signal).throwOnError()
             .in("documento_id", lista.map((t) => t.id));
           const assinados = new Set(((aceites ?? []) as any[]).map((a) => a.documento_id));
           const pend = lista.filter((t) => !assinados.has(t.id));
@@ -1711,7 +1788,7 @@ export function useDpPendencias() {
           if (colIds.length) {
             const { data: cols } = await supabase
               .from("dp_colaboradores")
-              .select("id, nome, data_desligamento")
+              .select("id, nome, data_desligamento").abortSignal(signal).throwOnError()
               .in("id", colIds);
             ((cols ?? []) as any[]).forEach((c) => nomes.set(c.id, { nome: c.nome, desligado: !!c.data_desligamento }));
           }
@@ -1736,14 +1813,17 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/termos-compensacao:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // Efetivação CLT: recibos/diárias do período autônomo ainda sem quitação.
       try {
         const desde = ymd(addDays(today, -60));
         const { data: conds } = await supabase
           .from("dp_colaborador_historico_condicoes")
-          .select("colaborador_id, regime, vigencia_inicio")
+          .select("colaborador_id, regime, vigencia_inicio").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .in("regime", ["clt", "intermitente"])
           .gte("vigencia_inicio", desde)
@@ -1753,12 +1833,12 @@ export function useDpPendencias() {
           const colIds = [...new Set(lista.map((c) => c.colaborador_id))];
           const { data: anteriores } = await supabase
             .from("dp_colaborador_historico_condicoes")
-            .select("colaborador_id, regime, vigencia_inicio")
+            .select("colaborador_id, regime, vigencia_inicio").abortSignal(signal).throwOnError()
             .in("colaborador_id", colIds)
             .in("regime", ["freelancer", "pj", "mei"]);
           const { data: recs } = await supabase
             .from("dp_recibos")
-            .select("colaborador_id, beneficiario_nome, valor_cents, created_at")
+            .select("colaborador_id, beneficiario_nome, valor_cents, created_at").abortSignal(signal).throwOnError()
             .in("colaborador_id", colIds)
             .is("assinado_em", null)
             .is("cancelado_em", null)
@@ -1792,14 +1872,17 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/quitacao-clt:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // Contatos de emergência sem confirmação semestral.
       if (cfg.alerta_contatos_emergencia) {
         try {
           const { data: cs, error: csErr } = await supabase
             .from("dp_colaboradores")
-            .select("id, nome, data_desligamento, contatos_confirmados_em, contatos_solicitado_em")
+            .select("id, nome, data_desligamento, contatos_confirmados_em, contatos_solicitado_em").abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!)
             .is("data_desligamento", null)
             .limit(1000);
@@ -1807,6 +1890,7 @@ export function useDpPendencias() {
             // Falha na consulta não equivale a "sem pendências": registra só o código
             // e mostra um aviso ao gestor; as demais seções seguem sendo calculadas.
             console.warn("pendencias/contatos-emergencia: falha na consulta", csErr.code ?? "sem_codigo");
+            falhas.push(csErr);
             results.push({
               id: "contatos-emergencia-falha-consulta",
               icon: Users,
@@ -1841,9 +1925,12 @@ export function useDpPendencias() {
           }
         } catch (e) {
           console.warn("pendencias/contatos-emergencia:", e);
+        falhas.push(e);
         }
       }
 
+        },
+        async () => {
       // Comprovante de pagamento em falta nos documentos de pagamento.
       // Só cobra documentos ativos a partir da data de início configurada.
       if (cfg.exigir_comprovante_pagamento) {
@@ -1851,7 +1938,7 @@ export function useDpPendencias() {
           const inicio = cfg.comprovante_vigencia_inicio || "2026-09-01";
           const { data: docsPagto } = await supabase
             .from("dp_documentos")
-            .select("id, tipo, titulo, referencia_data, created_at, colaborador_id, comprovante_file_path, comprovante_modalidade, comprovante_pago_em, ciclo_status")
+            .select("id, tipo, titulo, referencia_data, created_at, colaborador_id, comprovante_file_path, comprovante_modalidade, comprovante_pago_em, ciclo_status").abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!)
             .in("tipo", [...TIPOS_COM_COMPROVANTE] as never)
             .is("comprovante_file_path", null)
@@ -1867,7 +1954,7 @@ export function useDpPendencias() {
           if (idsResc.length) {
             const { data: desl } = await supabase
               .from("dp_colaboradores")
-              .select("id, data_desligamento")
+              .select("id, data_desligamento").abortSignal(signal).throwOnError()
               .in("id", idsResc);
             for (const r of (desl ?? []) as any[]) deslPorColab.set(r.id, r.data_desligamento ?? null);
           }
@@ -1905,28 +1992,31 @@ export function useDpPendencias() {
           }
         } catch (e) {
           console.warn("pendencias/comprovante-pagamento:", e);
+        falhas.push(e);
         }
       }
 
+        },
+        async () => {
       // Pagamento de vales (VA/VT): próxima 2 dias antes, urgente no dia, atrasada depois.
       try {
         const hojeVale = ymd(today);
         const [{ data: cfgVale }, { data: apur }, { data: colabsVale }] = await Promise.all([
           supabase
             .from("dp_config_dp")
-            .select("va_ativo, vt_ativo, va_dia_pagamento, vt_dia_pagamento")
+            .select("va_ativo, vt_ativo, va_dia_pagamento, vt_dia_pagamento").abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!)
             .is("unidade_id", null)
             .maybeSingle(),
           supabase
             .from("dp_va_apuracoes")
-            .select("tipo, competencia")
+            .select("tipo, competencia").abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!)
             .not("fechado_em", "is", null)
             .gte("competencia", ymd(addDays(today, -70)).slice(0, 7) + "-01"),
           supabase
             .from("dp_colaboradores")
-            .select("vale_alimentacao, vale_transporte")
+            .select("vale_alimentacao, vale_transporte").abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!)
             .eq("ativo", true),
         ]);
@@ -1960,14 +2050,17 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/vales:", e);
+        falhas.push(e);
       }
 
+        },
+        async () => {
       // Unidades sem calendário de feriados no ano corrente.
       try {
         if (unidades.length > 0) {
           const { data: fer } = await supabase
             .from("dp_unidade_feriados")
-            .select("id, unidade_id, nome, tipo, data, dia, mes, ordinal, dia_semana, ativo")
+            .select("id, unidade_id, nome, tipo, data, dia, mes, ordinal, dia_semana, ativo").abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!)
             .eq("ativo", true);
           const comFeriado = new Set<string>();
@@ -1990,18 +2083,21 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/feriados:", e);
+        falhas.push(e);
       }
 
 
 
 
+        },
+        async () => {
       // A apuração documental é compartilhada entre as telas e também roda
       // automaticamente às 3h (horário de São Paulo). Se alguma
       // alteração deixou o resultado marcado como desatualizado, recalcula ao abrir.
       try {
         let { data: apuracao } = await supabase
           .from("dp_pendencias_apuracoes")
-          .select("apurado_em, sujo_desde")
+          .select("apurado_em, sujo_desde").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .maybeSingle();
         const precisaAtualizar = !apuracao?.apurado_em || new Date(apuracao.sujo_desde).getTime() > new Date(apuracao.apurado_em).getTime();
@@ -2010,11 +2106,13 @@ export function useDpPendencias() {
           try {
             const { error } = await supabase.functions.invoke("dp-refresh-pendencias", {
               body: { companyId: selectedCompanyId },
+              signal,
             });
+            if (error) throw error;
             if (!error) {
               const refreshed = await supabase
                 .from("dp_pendencias_apuracoes")
-                .select("apurado_em, sujo_desde")
+                .select("apurado_em, sujo_desde").abortSignal(signal).throwOnError()
                 .eq("company_id", selectedCompanyId!)
                 .maybeSingle();
               apuracao = refreshed.data;
@@ -2026,7 +2124,7 @@ export function useDpPendencias() {
 
         const { data: materializadas, error } = await supabase
           .from("dp_pendencias_materializadas")
-          .select("pendencia_id, titulo, subtitulo, tipo, vencimento, atraso_dias, url, colaborador_nome, unidade_nome, colaborador_id, competencia, doc_tipo, unidade_id, escopo, pessoas, total_elegiveis")
+          .select("pendencia_id, titulo, subtitulo, tipo, vencimento, atraso_dias, url, colaborador_nome, unidade_nome, colaborador_id, competencia, doc_tipo, unidade_id, escopo, pessoas, total_elegiveis").abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!);
         if (error) throw error;
 
@@ -2064,47 +2162,67 @@ export function useDpPendencias() {
         }
       } catch (e) {
         console.warn("pendencias/materializadas:", e);
+        falhas.push(e);
       }
+
+        }
+      ], signal);
 
       // Ordenar: atrasados primeiro, urgentes em seguida; empate → vencimento e nome.
       results.sort(compararUrgencia);
 
+      if (falhas.length) throw falhas[0];
       return results;
-    },
+    }, origem),
   });
 
   const apuracao = useQuery({
     queryKey: ["dp_pendencias_apuracao", selectedCompanyId, query.dataUpdatedAt],
     enabled: !!selectedCompanyId,
-    queryFn: async () => {
+    retry: false,
+    staleTime: 60_000,
+    queryFn: ({ signal: origem }) => carregarComPrazo(async (signal) => {
       const { data } = await supabase
         .from("dp_pendencias_apuracoes")
-        .select("apurado_em")
+        .select("apurado_em").abortSignal(signal).throwOnError()
         .eq("company_id", selectedCompanyId!)
         .maybeSingle();
       return data?.apurado_em ?? null;
-    },
+    }, origem),
   });
 
   const refetch = useCallback(async () => {
+    if (configQuery.isError || feriasQuery.isError) {
+      await Promise.all([configQuery.refetch(), feriasQuery.refetch()]);
+      return;
+    }
     if (selectedCompanyId) {
       // Atualização manual: o retrato guardado no aparelho não pode segurar
       // o quadro antigo — a próxima leitura do servidor passa a valer.
       forcarRecargaPendencias(selectedCompanyId);
       setIsRefreshing(true);
       try {
-        await supabase.functions.invoke("dp-refresh-pendencias", {
-          body: { companyId: selectedCompanyId },
-        });
+        await carregarComPrazo(async (signal) => {
+          const { error } = await supabase.functions.invoke("dp-refresh-pendencias", {
+            body: { companyId: selectedCompanyId }, signal,
+          });
+          if (error) throw error;
+        }, new AbortController().signal);
+      } catch {
+        // A leitura seguinte exibe a falha e permite nova tentativa.
       } finally {
         setIsRefreshing(false);
       }
     }
     return query.refetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCompanyId]);
+  }, [selectedCompanyId, configQuery.isError, feriasQuery.isError, configQuery.refetch, feriasQuery.refetch, query.refetch]);
 
-  return { ...query, refetch, isRefreshing, lastCalculatedAt: apuracao.data ?? null };
+  return { ...query,
+    isLoading: !!selectedCompanyId && (query.isLoading || isConfigLoading || isFeriasConfigLoading),
+    isError: query.isError || configQuery.isError || feriasQuery.isError,
+    error: query.error ?? configQuery.error ?? feriasQuery.error,
+    refetch, isRefreshing, lastCalculatedAt: apuracao.data ?? null };
 }
 
 /** Alias explícito: escopo administrativo (empresa inteira). */

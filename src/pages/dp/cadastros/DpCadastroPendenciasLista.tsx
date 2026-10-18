@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarClock, Check, CheckCircle2, ChevronRight, ListChecks, Play, Settings, UserRound, X } from "lucide-react";
+import { CalendarClock, Check, CheckCircle2, ChevronRight, ListChecks, Play, RefreshCw, Settings, UserRound, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DpFilters, DpFilterField, type DpFilterChip } from "@/components/dp/DpFilters";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
@@ -17,7 +17,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { PendenciaAcoes } from "@/components/dp/pendencias/PendenciaAcoes";
 import { compararUrgencia, filtrarAbertas, opcoesFiltro, urgenciaDe, type PendenciaUrgencia } from "@/lib/dp/pendencias";
 import { EIXOS, eixoDe, type EixoAcao } from "@/lib/dp/acoes-eixos";
-import { UrgenciaBadge } from "@/components/dp/home/PendenciasCard";
+import { useStablePendencias, UrgenciaBadge } from "@/components/dp/home/PendenciasCard";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { mensagemErro } from "@/lib/dp/mensagemErro";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,6 +26,8 @@ import { useDpIntermitenteConfirmacoes } from "@/hooks/useDpIntermitenteConfirma
 import { adiarPresets } from "@/lib/dp/adiar-presets";
 import { contarResolvidas, EVENTO_RESOLVIDAS, registrarResolvida } from "@/lib/dp/resolvidas-hoje";
 import { toast } from "sonner";
+import { CardListSkeleton } from "@/components/dp/DpSkeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Aba = EixoAcao | "todas";
 type Filtro = { tipo: string; colaborador: string; unidade: string };
@@ -47,7 +49,12 @@ const FAIXA: Record<PendenciaUrgencia, string> = {
 const dataBR = (d: string) => new Date(d.slice(0, 10) + "T12:00:00").toLocaleDateString("pt-BR");
 
 export default function DpCadastroPendenciasLista() {
-  const { data = [], isLoading, isError, error, refetch } = useDpPendencias();
+  const pendencias = useDpPendencias();
+  const { isError, error, refetch, isFetching, isRefreshing } = pendencias;
+  const { selectedCompanyId } = useCompanyContext();
+  const stable = useStablePendencias({ companyId: selectedCompanyId, ...pendencias });
+  const data = stable.data;
+  const isLoading = !stable.ready && !isError;
   const { prefs } = useDpUserPrefs();
   const { ignoradas, adiadas, decisaoDe } = useDpPendenciasDecisoes();
   const isMobile = useIsMobile();
@@ -56,7 +63,6 @@ export default function DpCadastroPendenciasLista() {
   const [filtro, setFiltro] = useState<Filtro>(FILTRO_INICIAL);
   const [busca, setBusca] = useState("");
   const [detalhe, setDetalhe] = useState<Pendencia | null>(null);
-  const { selectedCompanyId } = useCompanyContext();
   const { decidir } = useDpPendenciasDecisoes();
   const { responder } = useDpIntermitenteConfirmacoes();
   const [resolvidas, setResolvidas] = useState(0);
@@ -260,7 +266,7 @@ export default function DpCadastroPendenciasLista() {
           { k: "Próximos dias", v: resumo.proximas, cls: "text-foreground" },
         ].map((c) => (
           <div key={c.k} className="rounded-2xl border border-border bg-card px-3 py-2.5">
-            <p className={cn("text-2xl font-bold tabular-nums leading-none", c.cls)}>{isLoading ? "–" : c.v}</p>
+            {isLoading ? <Skeleton className="h-6 w-12" /> : <p className={cn("text-2xl font-bold tabular-nums leading-none", c.cls)}>{c.v}</p>}
             <p className="mt-1 text-[11px] leading-tight text-muted-foreground">{c.k}</p>
           </div>
         ))}
@@ -272,6 +278,9 @@ export default function DpCadastroPendenciasLista() {
           {resolvidas === 1 ? "1 resolvida hoje" : `${resolvidas} resolvidas hoje`}
         </span>
         <div className="ml-auto flex gap-2">
+          <Button variant="outline" size="icon" className="h-10 w-10 sm:h-8 sm:w-8" disabled={isFetching || isRefreshing} onClick={() => void refetch()} aria-label="Atualizar ações">
+            <RefreshCw className={cn("h-4 w-4", (isFetching || isRefreshing) && "animate-spin")} />
+          </Button>
           {lista.length > 0 && !selecionando && (
             <Button size="sm" className="h-10 gap-1.5 sm:h-8" onClick={iniciarFoco}>
               <Play className="h-4 w-4" /> Despachar agora
@@ -350,7 +359,8 @@ export default function DpCadastroPendenciasLista() {
         Mostrar adiadas e ignoradas
       </label>
 
-      {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
+      {isLoading && <CardListSkeleton rows={4} />}
+      {stable.ready && (isFetching || isRefreshing) && <p role="status" className="text-xs text-muted-foreground">Atualizando ações…</p>}
       {!isLoading && isError && <DpErrorState message={mensagemErro(error)} onRetry={() => void refetch()} />}
 
       {vazioTotal && (
