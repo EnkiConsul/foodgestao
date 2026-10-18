@@ -1,14 +1,19 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useSearchParams } from "react-router-dom";
-import { FileText, Info, Upload, X } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ChevronRight, FileText, Info, ListChecks, Upload, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { BulkImportPanel } from "@/components/dp/documentos/BulkImportPanel";
-import { DocConsistenciaPanel } from "@/components/dp/documentos/DocConsistenciaPanel";
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
+import { useDpPendencias } from "@/hooks/useDpPendencias";
+import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
+import { useDpPendenciasDecisoes } from "@/hooks/useDpPendenciasDecisoes";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { filtrarAbertas, urgenciaDe } from "@/lib/dp/pendencias";
+import { eixoDe } from "@/lib/dp/acoes-eixos";
+import { useStablePendencias } from "@/components/dp/home/PendenciasCard";
 import DpHistoricoCompleto from "@/pages/dp/DpHistoricoCompleto";
 
 const MESES = [
@@ -25,19 +30,72 @@ function competenciaLabel(comp: string | null) {
 }
 
 /**
+ * Resumo compacto das ações de documentos (mesmo motor das Ações do Dia da
+ * tela inicial, filtrado para o assunto "Documentos e contabilidade").
+ * Um clique abre a tela completa já na aba Documentos.
+ */
+function AcoesDocumentosChip() {
+  const { selectedCompanyId } = useCompanyContext();
+  const { data, isLoading, isFetching, dataUpdatedAt, lastCalculatedAt } = useDpPendencias();
+  const stable = useStablePendencias({ companyId: selectedCompanyId, data, dataUpdatedAt, lastCalculatedAt, isLoading, isFetching });
+  const { prefs } = useDpUserPrefs();
+  const { ignoradas, adiadas } = useDpPendenciasDecisoes();
+
+  const abertas = useMemo(
+    () =>
+      filtrarAbertas(
+        stable.data.filter((p) => !ignoradas.has(p.id) && eixoDe(p) === "documentos"),
+        { ...prefs.pendencias_adiadas, ...adiadas },
+      ),
+    [stable.data, prefs.pendencias_adiadas, ignoradas, adiadas],
+  );
+  const atrasadas = abertas.filter((p) => urgenciaDe(p) === "atrasada").length;
+  const hoje = abertas.filter((p) => urgenciaDe(p) === "hoje").length;
+  const carregando = !stable.ready;
+
+  const resumo = carregando
+    ? "Carregando…"
+    : abertas.length === 0
+      ? "Tudo em dia"
+      : [atrasadas > 0 && `${atrasadas} ${atrasadas === 1 ? "atrasada" : "atrasadas"}`, hoje > 0 && `${hoje} para hoje`]
+          .filter(Boolean)
+          .join(" · ") || "Nenhuma urgente";
+
+  return (
+    <Link
+      to="/dp/cadastros/pendencias?eixo=documentos"
+      className="flex items-center gap-3 rounded-2xl border border-[hsl(var(--dp-border))] bg-card px-4 py-2.5 transition-colors hover:bg-muted/40"
+      aria-label="Abrir ações de documentos"
+    >
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <ListChecks className="h-4 w-4" aria-hidden="true" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold">Ações de Documentos</p>
+        <p className={atrasadas > 0 ? "truncate text-xs text-destructive" : "truncate text-xs text-muted-foreground"}>{resumo}</p>
+      </div>
+      {!carregando && abertas.length > 0 && (
+        <span className="rounded-full bg-primary px-2.5 py-0.5 text-sm font-bold tabular-nums text-primary-foreground">{abertas.length}</span>
+      )}
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+    </Link>
+  );
+}
+
+/**
  * Gestão de Documentos — tela única do módulo.
  *
  * Une a importação (PDF multipáginas, foto de atestado, comprovantes) e a
  * listagem completa dos documentos da equipe (antes "Histórico") em uma só
- * experiência: o gestor importa no topo e confere o resultado logo abaixo,
- * sem trocar de tela.
+ * experiência. No celular a lista aparece de imediato: a importação abre por
+ * um botão flutuante na zona do polegar e as pendências de documentos viram
+ * um resumo de uma linha que leva às Ações do Dia.
  *
  * Quando chega de uma pendência ("Resolver"), a natureza, a competência e a
  * unidade vêm na URL e aparecem num aviso, além de pré-preencherem a importação.
  */
 export default function DpDocumentosGestao() {
   const [params, setParams] = useSearchParams();
-  const [foco, setFoco] = useState<{ tipo: string; competencia: string; nonce: number } | null>(null);
   const unidades = useDpUnidades();
 
   const tipo = params.get("tipo");
@@ -53,16 +111,13 @@ export default function DpDocumentosGestao() {
   }));
 
   /**
-   * No celular a área de importação fica recolhida atrás de um botão para não
-   * empurrar a lista de documentos para baixo; no computador fica sempre aberta.
-   * Abre automaticamente quando veio de uma pendência (atalho pré-preenchido).
+   * No celular a importação abre pelo botão flutuante (não empurra a lista);
+   * no computador fica sempre visível no topo. Abre automaticamente quando
+   * veio de uma pendência (atalho pré-preenchido).
    */
   const [importarAberto, setImportarAberto] = useState(
     () => !!(inicial.tipo || inicial.lote),
   );
-  useEffect(() => {
-    if (foco) setImportarAberto(true);
-  }, [foco]);
 
   /**
    * O aviso vive na URL (veio do atalho "Resolver"). Fechá-lo precisa apagar os
@@ -120,23 +175,20 @@ export default function DpDocumentosGestao() {
         </Alert>
       )}
 
-      {/* Importação é o primeiro bloco: quem entra para enviar encontra de imediato. */}
-      {!importarAberto && (
-        <Button className="w-full md:hidden" onClick={() => setImportarAberto(true)}>
-          <Upload className="mr-2 h-4 w-4" /> Importar Documento
-        </Button>
-      )}
+      {/* Pendências de documentos: resumo de uma linha, mesmo motor das Ações do Dia. */}
+      <AcoesDocumentosChip />
+
+      {/* Importação: sempre visível no computador; no celular abre pelo botão flutuante. */}
       <div className={importarAberto ? "" : "hidden md:block"}>
         {importarAberto && (
           <div className="mb-1 flex justify-end md:hidden">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs text-muted-foreground"
+            <button
+              type="button"
+              className="min-h-11 px-2 text-xs font-medium text-muted-foreground underline-offset-2 hover:underline"
               onClick={() => setImportarAberto(false)}
             >
               Recolher importação
-            </Button>
+            </button>
           </div>
         )}
         <BulkImportPanel
@@ -144,19 +196,24 @@ export default function DpDocumentosGestao() {
           tipoInicial={inicial.tipo}
           referenciaInicial={inicial.competencia ? `${inicial.competencia}-01` : undefined}
           loteAbertoId={inicial.lote}
-          foco={foco}
           onLoteConcluido={limparContexto}
         />
       </div>
 
-      <DocConsistenciaPanel
-        onImportar={(t, comp) =>
-          setFoco((f) => ({ tipo: t, competencia: comp, nonce: (f?.nonce ?? 0) + 1 }))
-        }
-      />
-
       {/* Listagem completa da equipe (antiga tela "Histórico"), embutida. */}
       <DpHistoricoCompleto embutido />
+
+      {/* Botão flutuante de importação na zona do polegar (só no celular). */}
+      {!importarAberto && (
+        <button
+          type="button"
+          onClick={() => setImportarAberto(true)}
+          aria-label="Importar Documento"
+          className="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95 md:hidden"
+        >
+          <Upload className="h-6 w-6" aria-hidden="true" />
+        </button>
+      )}
     </DpPage>
   );
 }
