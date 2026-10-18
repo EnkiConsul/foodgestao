@@ -57,8 +57,13 @@ Deno.serve(async (req) => {
   try {
     // ---------- usuário [TESTE] reutilizado ----------
     const senha = crypto.randomUUID() + "Aa1!";
-    const { data: lista } = await admin.from("profiles").select("user_id").eq("email", EMAIL_TESTE).maybeSingle();
-    let uid = (lista as any)?.user_id as string | undefined;
+    let uid: string | undefined;
+    for (let page = 1; page <= 20 && !uid; page++) {
+      const { data: lu, error: eL } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+      if (eL) throw new Error(`usuários: ${eL.message}`);
+      uid = lu.users.find((x) => x.email === EMAIL_TESTE)?.id;
+      if (lu.users.length < 200) break;
+    }
     if (uid) {
       const { error } = await admin.auth.admin.updateUserById(uid, { password: senha });
       if (error) throw new Error(`usuário: ${error.message}`);
