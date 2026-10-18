@@ -103,13 +103,14 @@ export async function valorRecorrente(admin: SupabaseClient, subId: string) {
 }
 
 async function registrarFatura(admin: SupabaseClient, sub: any, pg: any, forma: Forma, nota: string) {
-  await admin.from("invoices").insert({
+  const { error } = await admin.from("invoices").insert({
     subscription_id: sub.id, user_id: sub.user_id, billing_account_id: sub.billing_account_id,
     amount_cents: Math.round(Number(pg.value ?? 0) * 100), status: "open", due_date: pg.dueDate,
     payment_method: forma === "cartao" ? "card" : forma, external_invoice_id: pg.id,
     external_payment_url: pg.invoiceUrl ?? null, boleto_url: pg.bankSlipUrl ?? null,
     notes: nota, asaas_env: sub.asaas_env,
   });
+  if (error) throw new Error(`fatura ${pg.id}: ${error.message}`);
 }
 
 export type Criados = { tipo: string; id: string; descricao: string }[];
@@ -143,36 +144,97 @@ export async function opcoesParcelamento(admin: SupabaseClient, valorCents: numb
 export const MSG_FALHA_DESFEITA = "Não foi possível concluir a contratação. Nada foi cobrado. Tente novamente ou escolha outra forma de pagamento.";
 export const MSG_FALHA_COMPENSACAO = "Não foi possível concluir a contratação. Se você receber alguma cobrança dela, desconsidere: nossa equipe vai cancelá-la.";
 
-type Criado = { tipo: "assinatura" | "cobranca"; id: string };
+type Criado = { tipo: "assinatura" | "cobranca" | "parcelamento"; id: string };
+export type SimularFalha = "criacao" | "apos_assinatura" | "cancelamento" | "timeout" | "timeout_busca" | "gravacao_desfazimento";
 
-/** Cancela no Asaas cada item criado na tentativa e confere por GET; devolve o que ficou ativo. */
+const INATIVO = ["INACTIVE", "CANCELLED", "DELETED", "REFUNDED"];
+const CRIACAO_TIMEOUT_MS = 25000;
+
+/** Erro de rede/timeout/5xx: o Asaas pode ter criado o item sem nos responder. */
+function respostaIncerta(e: unknown): boolean {
+  const m = String((e as Error)?.message ?? e);
+  const http = m.match(/\[(\d{3})\]/);
+  if (http) return Number(http[1]) >= 500;
+  return true; // sem status HTTP = timeout, conexão caída, resposta perdida
+}
+
+/** Cria no Asaas com tempo limite; em teste simula a resposta perdida DEPOIS de criar. */
+async function criarNoAsaas(path: string, body: unknown, env: AsaasEnv, simularPerda: boolean) {
+  const r = await asaasFetch(path, { method: "POST", body: JSON.stringify(body), signal: AbortSignal.timeout(CRIACAO_TIMEOUT_MS) }, env);
+  if (simularPerda) throw new Error("timeout simulado: resposta do Asaas perdida após a criação (teste Sandbox)");
+  return r;
+}
+
+/** Procura no Asaas tudo que tenha externalReference = assinatura local. */
+async function buscarPorReferencia(ref: string, env: AsaasEnv, simularFalha: boolean): Promise<Criado[]> {
+  if (simularFalha) throw new Error("busca por externalReference indisponível (teste Sandbox)");
+  const achados: Criado[] = [];
+  const subs = await asaasFetch(`/subscriptions?externalReference=${encodeURIComponent(ref)}&limit=100`, { method: "GET" }, env);
+  for (const s of subs?.data ?? []) if (!s?.deleted) achados.push({ tipo: "assinatura", id: s.id });
+  const pays = await asaasFetch(`/payments?externalReference=${encodeURIComponent(ref)}&limit=100`, { method: "GET" }, env);
+  for (const p of pays?.data ?? []) {
+    if (p?.deleted) continue;
+    if (p.installment) achados.push({ tipo: "parcelamento", id: p.installment });
+    else if (!p.subscription) achados.push({ tipo: "cobranca", id: p.id });
+  }
+  return achados;
+}
+
+const rotaDe = (it: Criado) => it.tipo === "assinatura" ? `/subscriptions/${it.id}` : it.tipo === "parcelamento" ? `/installments/${it.id}` : `/payments/${it.id}`;
+
+/** Confere por GET que o item não tem mais nada ativo. Devolve motivo se ainda ativo. */
+async function conferirInativo(it: Criado, env: AsaasEnv): Promise<string | null> {
+  try {
+    if (it.tipo === "parcelamento") {
+      const ps = await asaasFetch(`/payments?installment=${it.id}&limit=100`, { method: "GET" }, env);
+      const ativas = (ps?.data ?? []).filter((p: any) => !p.deleted && !INATIVO.includes(String(p.status ?? "").toUpperCase()));
+      return ativas.length ? `${ativas.length} parcela(s) ainda ativa(s)` : null;
+    }
+    const r = await asaasFetch(rotaDe(it), { method: "GET" }, env);
+    const ativo = !(r?.deleted === true || INATIVO.includes(String(r?.status ?? "").toUpperCase()));
+    return ativo ? `ainda ativo no Asaas (status ${r?.status})` : null;
+  } catch (e) {
+    const m = String((e as Error).message ?? e);
+    return /\[404\]/.test(m) ? null : `conferência falhou: ${m}`;
+  }
+}
+
+/** Cancela no Asaas cada item da tentativa (assinatura e parcelamento inteiro) e confere por GET. */
 async function compensarAsaas(itens: Criado[], env: AsaasEnv, falharCancelamento: boolean) {
   const desfeitos: Criado[] = []; const pendentes: (Criado & { motivo: string })[] = [];
-  // assinatura primeiro: o Asaas remove as cobranças em aberto dela junto
-  for (const it of [...itens].sort((a) => (a.tipo === "assinatura" ? -1 : 1))) {
-    const rota = it.tipo === "assinatura" ? `/subscriptions/${it.id}` : `/payments/${it.id}`;
+  const ordem = { assinatura: 0, parcelamento: 1, cobranca: 2 } as const;
+  const unicos = [...new Map(itens.map((i) => [`${i.tipo}:${i.id}`, i])).values()].sort((a, b) => ordem[a.tipo] - ordem[b.tipo]);
+  for (const it of unicos) {
     let motivo = "";
     try {
       if (falharCancelamento) throw new Error("falha de cancelamento simulada (teste Sandbox)");
-      await asaasFetch(rota, { method: "DELETE" }, env);
+      await asaasFetch(rotaDe(it), { method: "DELETE" }, env);
     } catch (e) { motivo = String((e as Error).message ?? e); }
-    // conferência: só vale como desfeito se o GET mostrar removido/cancelado
-    try {
-      const r = await asaasFetch(rota, { method: "GET" }, env);
-      const ativo = !(r?.deleted === true || ["INACTIVE", "CANCELLED", "DELETED", "REFUNDED"].includes(String(r?.status ?? "").toUpperCase()));
-      if (ativo) { pendentes.push({ ...it, motivo: motivo || `ainda ativo no Asaas (status ${r?.status})` }); continue; }
-    } catch (e) {
-      const m = String((e as Error).message ?? e);
-      if (!/\[404\]/.test(m)) { pendentes.push({ ...it, motivo: `${motivo} | conferência falhou: ${m}` }); continue; }
-    }
+    const ativo = await conferirInativo(it, env);
+    if (ativo) { pendentes.push({ ...it, motivo: motivo ? `${motivo} | ${ativo}` : ativo }); continue; }
     desfeitos.push(it);
   }
   return { desfeitos, pendentes };
 }
 
+/** Executa uma gravação do desfazimento com 1 nova tentativa; devolve o erro final ou null. */
+async function gravarComRetry(nome: string, fn: () => PromiseLike<{ error: any }>, simular: boolean): Promise<string | null> {
+  let ultimo = "";
+  for (let t = 0; t < 2; t++) {
+    try {
+      if (simular) throw new Error("falha de gravação simulada (teste Sandbox)");
+      const { error } = await fn();
+      if (!error) return null;
+      ultimo = error.message ?? String(error);
+    } catch (e) { ultimo = String((e as Error).message ?? e); }
+  }
+  console.error(`[contratar] desfazimento: ${nome} falhou 2x`, ultimo);
+  return `${nome}: ${ultimo}`;
+}
+
 export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: string, companyId: string, p: {
   plano: string; ciclo: Ciclo; forma: Forma; parcelas?: number; adicionais?: { code: string; qtd: number }[]; modo?: "empresa" | "grupo";
-  empresas?: string[]; simular_falha?: "criacao" | "apos_assinatura" | "cancelamento";
+  empresas?: string[]; simular_falha?: SimularFalha;
 }, criados: Criados) {
   // falha simulada só em conta [TESTE] do Sandbox; em qualquer outra é ignorada
   const falha = conta.is_test && conta.asaas_env === "sandbox" ? p.simular_falha : undefined;
@@ -202,10 +264,12 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
     if (!parc) throw new BillingError(422, "Número de parcelas inválido.");
   }
   // Sempre o pagador ATUAL da conta (nunca um valor lido antes da troca de pagador).
-  const { data: atual } = await admin.from("billing_accounts").select("asaas_customer_id,documento_pagador,email_cobranca").eq("id", conta.id).single();
-  conta.asaas_customer_id = (atual as any)?.asaas_customer_id ?? null;
-  conta.documento_pagador = (atual as any)?.documento_pagador ?? conta.documento_pagador;
-  conta.email_cobranca = (atual as any)?.email_cobranca ?? conta.email_cobranca;
+  // Se a releitura falhar, aborta ANTES de qualquer chamada ao Asaas.
+  const { data: atual, error: eAtual } = await admin.from("billing_accounts").select("asaas_customer_id,documento_pagador,email_cobranca").eq("id", conta.id).single();
+  if (eAtual || !atual) throw new BillingError(500, "Não foi possível conferir os dados do pagador. Nada foi cobrado. Tente novamente.", eAtual?.message);
+  conta.asaas_customer_id = (atual as any).asaas_customer_id ?? null;
+  conta.documento_pagador = (atual as any).documento_pagador ?? conta.documento_pagador;
+  conta.email_cobranca = (atual as any).email_cobranca ?? conta.email_cobranca;
   const cliente = await garantirCliente(admin, conta, userEmail);
 
   const inicio = new Date();
@@ -221,6 +285,8 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
   // Tudo ou nada: qualquer falha daqui em diante desfaz o que foi gravado.
   let asId: string | null = null;
   const tentativa: Criado[] = [];
+  let tentouAsaas = false; let incerto = false;
+  const perder = falha === "timeout" || falha === "timeout_busca";
   try {
     const { error: eC } = await admin.from("subscription_companies").insert(cobertas.map((c) => ({ subscription_id: sub.id, company_id: c })));
     if (eC) throw new Error(`cobertura: ${eC.message}`);
@@ -232,22 +298,26 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
     }
 
     if (falha === "criacao") throw new Error("falha simulada antes de criar no Asaas (teste Sandbox)");
+    tentouAsaas = true;
     if (p.parcelas && p.parcelas > 1) {
-      const pg = await asaasFetch("/payments", {
-        method: "POST",
-        body: JSON.stringify({ customer: cliente, billingType: "CREDIT_CARD", installmentCount: p.parcelas,
-          totalValue: reais(parc!.total_cents), dueDate: hoje(1), description: `${plano.name} — anual em ${p.parcelas}x (juros do cartão inclusos)`, externalReference: sub.id }),
-      }, conta.asaas_env);
+      let pg: any;
+      try {
+        pg = await criarNoAsaas("/payments", { customer: cliente, billingType: "CREDIT_CARD", installmentCount: p.parcelas,
+          totalValue: reais(parc!.total_cents), dueDate: hoje(1), description: `${plano.name} — anual em ${p.parcelas}x (juros do cartão inclusos)`, externalReference: sub.id }, conta.asaas_env, perder);
+      } catch (e) { if (respostaIncerta(e)) incerto = true; throw e; }
       const pgId = requireAsaasId(pg, "a cobrança");
+      if (pg.installment) tentativa.push({ tipo: "parcelamento", id: pg.installment });
       tentativa.push({ tipo: "cobranca", id: pgId });
-      criados.push({ tipo: "cobrança parcelada", id: pgId, descricao: `${plano.name} anual ${p.parcelas}x` });
-      await registrarFatura(admin, sub, pg, "cartao", `Contratação anual ${p.parcelas}x`);
+      criados.push({ tipo: "cobrança parcelada", id: pg.installment ?? pgId, descricao: `${plano.name} anual ${p.parcelas}x` });
+      // todas as parcelas viram faturas locais (o webhook não as recria)
+      const parcelas = pg.installment ? (await asaasFetch(`/payments?installment=${pg.installment}&limit=100`, {}, conta.asaas_env))?.data ?? [pg] : [pg];
+      for (const x of parcelas) await registrarFatura(admin, sub, x, "cartao", `Contratação anual ${p.parcelas}x — parcela ${x.installmentNumber ?? 1}`);
     } else {
-      const as = await asaasFetch("/subscriptions", {
-        method: "POST",
-        body: JSON.stringify({ customer: cliente, billingType: billingType(p.forma), value: reais(q.total_ciclo_cents),
-          nextDueDate: hoje(1), cycle: p.ciclo === "anual" ? "YEARLY" : "MONTHLY", description: plano.name, externalReference: sub.id }),
-      }, conta.asaas_env);
+      let as: any;
+      try {
+        as = await criarNoAsaas("/subscriptions", { customer: cliente, billingType: billingType(p.forma), value: reais(q.total_ciclo_cents),
+          nextDueDate: hoje(1), cycle: p.ciclo === "anual" ? "YEARLY" : "MONTHLY", description: plano.name, externalReference: sub.id }, conta.asaas_env, perder);
+      } catch (e) { if (respostaIncerta(e)) incerto = true; throw e; }
       asId = requireAsaasId(as, "a assinatura");
       tentativa.push({ tipo: "assinatura", id: asId });
       const { error: eU } = await admin.from("subscriptions").update({ external_subscription_id: asId }).eq("id", sub.id);
@@ -259,28 +329,44 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
         criados.push({ tipo: "cobrança", id: pg.id, descricao: `1ª cobrança ${plano.name}` });
         await registrarFatura(admin, { ...sub, external_subscription_id: asId }, pg, p.forma, "Contratação");
       }
-      if (falha === "apos_assinatura" || falha === "cancelamento") throw new Error("falha simulada após criar a assinatura no Asaas (teste Sandbox)");
+    }
+    if (falha === "apos_assinatura" || falha === "cancelamento" || falha === "gravacao_desfazimento") {
+      throw new Error("falha simulada após criar no Asaas (teste Sandbox)");
     }
   } catch (e) {
     const detalhe = e instanceof BillingError ? `${e.message} ${JSON.stringify((e as any).detalhes ?? "")}` : String((e as any)?.message ?? e);
     const agora = new Date().toISOString();
+    // 0) resposta incerta (ou qualquer tentativa no Asaas): procura pelo externalReference
+    let buscaFalhou: string | null = null;
+    if (tentouAsaas) {
+      try { tentativa.push(...await buscarPorReferencia(sub.id, conta.asaas_env, falha === "timeout_busca")); }
+      catch (eb) { buscaFalhou = String((eb as Error).message ?? eb); }
+    }
     // 1) compensação no Asaas, conferida por GET
     const { desfeitos, pendentes } = await compensarAsaas(tentativa, conta.asaas_env, falha === "cancelamento");
-    // 2) desfazimento local SEM exclusão: histórico preservado
-    await admin.from("subscriptions").update({ status: "canceled", canceled_at: agora }).eq("id", sub.id);
-    await admin.from("subscription_companies").update({ removed_at: agora }).eq("subscription_id", sub.id).is("removed_at", null);
-    await admin.from("subscription_addons").update({ status: "canceled" }).eq("subscription_id", sub.id);
-    await admin.from("invoices").update({ status: "canceled" }).eq("subscription_id", sub.id).in("status", ["draft", "open", "overdue"]);
-    await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "contratacao_desfeita",
-      payload: { erro: detalhe.slice(0, 800), cliente, criados_asaas: tentativa, desfeitos_asaas: desfeitos, pendentes_asaas: pendentes } });
+    if (buscaFalhou && incerto) pendentes.push({ tipo: "assinatura", id: `externalReference=${sub.id}`, motivo: `resposta incerta e busca falhou: ${buscaFalhou}` });
     const ok = pendentes.length === 0;
-    await admin.from("billing_account_events").insert({ billing_account_id: conta.id, actor_id: conta.titular_user_id,
-      tipo_evento: ok ? "contratacao_falhou" : "contratacao_falhou_compensacao_pendente",
-      payload: { plano: p.plano, forma: p.forma, ciclo: p.ciclo, subscription_id: sub.id, cliente, asaas_env: conta.asaas_env,
-        desfeitos: desfeitos.map((d) => d.id), pendentes, erro: detalhe.slice(0, 800) } });
+    // 2) desfazimento local SEM exclusão, cada gravação conferida (1 nova tentativa)
+    const simG = falha === "gravacao_desfazimento";
+    const falhas = (await Promise.all([
+      gravarComRetry("assinatura cancelada", () => admin.from("subscriptions").update({ status: "canceled", canceled_at: agora }).eq("id", sub.id), false),
+      gravarComRetry("coberturas encerradas", () => admin.from("subscription_companies").update({ removed_at: agora }).eq("subscription_id", sub.id).is("removed_at", null), simG),
+      gravarComRetry("adicionais cancelados", () => admin.from("subscription_addons").update({ status: "canceled" }).eq("subscription_id", sub.id), false),
+      gravarComRetry("faturas canceladas", () => admin.from("invoices").update({ status: "canceled" }).eq("subscription_id", sub.id).in("status", ["draft", "open", "overdue"]), false),
+      gravarComRetry("evento contratacao_desfeita", () => admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "contratacao_desfeita",
+        payload: { erro: detalhe.slice(0, 800), cliente, criados_asaas: tentativa, desfeitos_asaas: desfeitos, pendentes_asaas: pendentes, resposta_incerta: incerto, busca_falhou: buscaFalhou } }), false),
+      gravarComRetry(ok ? "evento contratacao_falhou" : "evento contratacao_falhou_compensacao_pendente", () => admin.from("billing_account_events").insert({ billing_account_id: conta.id, actor_id: conta.titular_user_id,
+        tipo_evento: ok ? "contratacao_falhou" : "contratacao_falhou_compensacao_pendente",
+        payload: { plano: p.plano, forma: p.forma, ciclo: p.ciclo, subscription_id: sub.id, cliente, asaas_env: conta.asaas_env,
+          desfeitos: desfeitos.map((d) => d.id), pendentes, resposta_incerta: incerto, erro: detalhe.slice(0, 800) } }), false),
+    ])).filter((x): x is string => !!x);
+    if (falhas.length) {
+      await gravarComRetry("evento desfazimento_incompleto", () => admin.from("billing_account_events").insert({ billing_account_id: conta.id, actor_id: conta.titular_user_id,
+        tipo_evento: "desfazimento_incompleto", payload: { subscription_id: sub.id, asaas_env: conta.asaas_env, falhas, erro: detalhe.slice(0, 400) } }), false);
+    }
     criados.length = 0;
-    console.error("[contratar] falha", ok ? "desfeita" : "COMPENSAÇÃO PENDENTE", sub.id, detalhe, JSON.stringify(pendentes));
-    throw new BillingError(502, ok ? MSG_FALHA_DESFEITA : MSG_FALHA_COMPENSACAO, { subscription_id: sub.id, compensacao_pendente: !ok });
+    console.error("[contratar] falha", ok ? "desfeita" : "COMPENSAÇÃO PENDENTE", sub.id, detalhe, JSON.stringify(pendentes), falhas.length ? `LOCAL INCOMPLETO ${JSON.stringify(falhas)}` : "");
+    throw new BillingError(502, ok ? MSG_FALHA_DESFEITA : MSG_FALHA_COMPENSACAO, { subscription_id: sub.id, compensacao_pendente: !ok, desfazimento_incompleto: falhas.length > 0 });
   }
   await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "contratacao_v2", payload: { quote: q, forma: p.forma, parcelas: p.parcelas ?? 1, parcelamento: parc, empresas: cobertas } });
   return { subscription_id: sub.id, total_cents: q.total_ciclo_cents, empresas_cobertas: cobertas.length, parcelamento: parc };
