@@ -49,16 +49,18 @@ function AcoesDocumentosChip() {
     [stable.data, prefs.pendencias_adiadas, ignoradas, adiadas],
   );
   const atrasadas = abertas.filter((p) => urgenciaDe(p) === "atrasada").length;
-  const hoje = abertas.filter((p) => urgenciaDe(p) === "hoje").length;
   const carregando = !stable.ready;
 
   const resumo = carregando
     ? "Carregando…"
     : abertas.length === 0
       ? "Tudo em dia"
-      : [atrasadas > 0 && `${atrasadas} ${atrasadas === 1 ? "atrasada" : "atrasadas"}`, hoje > 0 && `${hoje} para hoje`]
+      : [
+          `${abertas.length} ${abertas.length === 1 ? "pendente" : "pendentes"}`,
+          atrasadas > 0 && `${atrasadas} ${atrasadas === 1 ? "atrasada" : "atrasadas"}`,
+        ]
           .filter(Boolean)
-          .join(" · ") || "Nenhuma urgente";
+          .join(" · ");
 
   return (
     <Link
