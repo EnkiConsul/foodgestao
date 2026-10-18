@@ -8,6 +8,7 @@ import { BulkImportPanel } from "@/components/dp/documentos/BulkImportPanel";
 import { DocConsistenciaPanel } from "@/components/dp/documentos/DocConsistenciaPanel";
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
+import DpHistoricoCompleto from "@/pages/dp/DpHistoricoCompleto";
 
 const MESES = [
   "janeiro", "fevereiro", "março", "abril", "maio", "junho",
@@ -23,15 +24,17 @@ function competenciaLabel(comp: string | null) {
 }
 
 /**
- * Central única de importação de documentos do Pessoas 360°.
- * Um PDF de qualquer natureza (contracheque, 13º, férias, ponto, adiantamento…)
- * é dividido por página, a natureza é detectada automaticamente e cada página
- * é distribuída ao colaborador correspondente.
+ * Gestão de Documentos — tela única do módulo.
+ *
+ * Une a importação (PDF multipáginas, foto de atestado, comprovantes) e a
+ * listagem completa dos documentos da equipe (antes "Histórico") em uma só
+ * experiência: o gestor importa no topo e confere o resultado logo abaixo,
+ * sem trocar de tela.
  *
  * Quando chega de uma pendência ("Resolver"), a natureza, a competência e a
- * unidade vêm na URL e aparecem num aviso, além de pré-preencherem o formulário.
+ * unidade vêm na URL e aparecem num aviso, além de pré-preencherem a importação.
  */
-export default function DpDocumentosImportar() {
+export default function DpDocumentosGestao() {
   const [params, setParams] = useSearchParams();
   const [foco, setFoco] = useState<{ tipo: string; competencia: string; nonce: number } | null>(null);
   const unidades = useDpUnidades();
@@ -72,17 +75,17 @@ export default function DpDocumentosImportar() {
   return (
     <DpPage>
       <Helmet>
-        <title>Documentos — Pessoas 360°</title>
+        <title>Gestão de Documentos — Pessoas 360°</title>
         <meta
           name="description"
-          content="Importe contracheques, 13º, férias, folhas de ponto e adiantamentos em um único lugar, com distribuição automática por colaborador."
+          content="Importe e acompanhe os documentos da equipe em um só lugar: contracheques, pontos, atestados, férias e comprovantes, com distribuição automática por colaborador."
         />
       </Helmet>
 
       <DpPageHeader
         icon={FileText}
-        title="Documentos"
-        description="Envie o PDF do escritório contábil. O sistema identifica a natureza, a competência e o colaborador de cada página."
+        title="Gestão de Documentos"
+        description="Importe documentos e acompanhe assinaturas e comprovantes da equipe em um só lugar."
       />
 
       {mostrarAviso && (
@@ -111,13 +114,16 @@ export default function DpDocumentosImportar() {
       />
 
       <BulkImportPanel
-        title="Importação em Massa (PDF com Várias Páginas)"
+        title="Importar Documento"
         tipoInicial={inicial.tipo}
         referenciaInicial={inicial.competencia ? `${inicial.competencia}-01` : undefined}
         loteAbertoId={inicial.lote}
         foco={foco}
         onLoteConcluido={limparContexto}
       />
+
+      {/* Listagem completa da equipe (antiga tela "Histórico"), embutida. */}
+      <DpHistoricoCompleto embutido />
     </DpPage>
   );
 }

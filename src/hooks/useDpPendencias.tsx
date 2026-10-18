@@ -1969,7 +1969,7 @@ export function useDpPendencias() {
               competencia: competenciaDe(referencia),
               vencimento,
               atrasoDias: atrasoEmDias(vencimento, hojeISO),
-              url: `/dp/documentos/historico?tipo=${d.tipo}`,
+              url: `/dp/documentos`,
             });
           }
         } catch (e) {

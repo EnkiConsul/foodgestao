@@ -155,7 +155,7 @@ export function FolhaPagamentoAlerta() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Button asChild size="sm">
-              <Link to={`/dp/documentos/historico?pendencia=comprovante&mes=${g.mes}&ano=${g.ano}`}>
+              <Link to={`/dp/documentos?pendencia=comprovante&mes=${g.mes}&ano=${g.ano}`}>
                 Ver Documentos Para Pagar <ArrowRight className="h-4 w-4 ml-1" />
               </Link>
             </Button>

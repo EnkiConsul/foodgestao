@@ -44,7 +44,6 @@ export const HELP_BY_ROUTE: Record<string, HelpKey> = {
   "/dp/disciplinar": "dp.disciplinar",
   "/dp/documentos": "dp.documentos",
   "/dp/documentos/inicio": "dp.documentos",
-  "/dp/documentos/historico": "dp.documentosHistorico",
   "/dp/avisos": "dp.avisos",
   "/dp/mensagens": "dp.mensagens",
   "/dp/modelos-mensagem": "dp.modelosMensagem",

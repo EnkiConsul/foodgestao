@@ -372,7 +372,7 @@ function ColunaFiltroHeader(props: {
   );
 }
 
-export default function DpHistoricoCompleto() {
+export default function DpHistoricoCompleto({ embutido = false }: { embutido?: boolean }) {
 
   const navigate = useNavigate();
   const { selectedCompanyId } = useCompanyContext();
@@ -929,30 +929,25 @@ export default function DpHistoricoCompleto() {
 
 
 
-  return (
-    <DpPage>
-      <Helmet><title>Histórico — Pessoas 360°</title></Helmet>
-      <DpPageHeader
-        icon={FileText}
-        title="Histórico"
-        description="Visualize todos os documentos de todos os colaboradores em um único lugar."
-        actions={
-          <>
-            <DpTableColumnsMenu
-              columns={DEFAULT_COL_ORDER.map((k) => ({ key: k, label: COLS[k].label }))}
-              hidden={hidden}
-              essentialKeys={["colaborador"]}
-              onToggle={toggleHidden}
-              onReset={resetLayout}
-            />
-            <DpSalvarLargurasButton screenKey="dp_historico_documentos" colOrder={colOrder} colWidths={colWidths} />
-            <Button variant="outline" onClick={() => setLogAberto(true)}>
-              <HistoryIcon className="mr-1 h-4 w-4" /> Registro de Alterações
-            </Button>
-          </>
-        }
-
+  const acoesCabecalho = (
+    <>
+      <DpTableColumnsMenu
+        columns={DEFAULT_COL_ORDER.map((k) => ({ key: k, label: COLS[k].label }))}
+        hidden={hidden}
+        essentialKeys={["colaborador"]}
+        onToggle={toggleHidden}
+        onReset={resetLayout}
       />
+      <DpSalvarLargurasButton screenKey="dp_historico_documentos" colOrder={colOrder} colWidths={colWidths} />
+      <Button variant="outline" onClick={() => setLogAberto(true)}>
+        <HistoryIcon className="mr-1 h-4 w-4" /> Registro de Alterações
+      </Button>
+    </>
+  );
+
+  const conteudo = (
+    <>
+
 
 
       {/* Barra de naturezas: somente os grupos */}
@@ -1460,7 +1455,30 @@ export default function DpHistoricoCompleto() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </DpPage>
+    </>
+  );
 
+  // Embutida na Gestão de Documentos: sem casca de página própria, as ações
+  // de colunas/registro ficam numa barra discreta acima da listagem.
+  if (embutido) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-end gap-2">{acoesCabecalho}</div>
+        {conteudo}
+      </div>
+    );
+  }
+
+  return (
+    <DpPage>
+      <Helmet><title>Histórico — Pessoas 360°</title></Helmet>
+      <DpPageHeader
+        icon={FileText}
+        title="Histórico"
+        description="Visualize todos os documentos de todos os colaboradores em um único lugar."
+        actions={acoesCabecalho}
+      />
+      {conteudo}
+    </DpPage>
   );
 }

@@ -235,7 +235,7 @@ export function AvisosGestorGate() {
                     </span>
                   </p>
                   <Button asChild size="sm" variant="outline" className="w-full sm:w-auto">
-                    <Link to={`/dp/documentos/historico?pendencia=comprovante&mes=${g.mes}&ano=${g.ano}`} onClick={() => setAberto(false)}>
+                    <Link to={`/dp/documentos?pendencia=comprovante&mes=${g.mes}&ano=${g.ano}`} onClick={() => setAberto(false)}>
                       Ver Documentos Para Pagar <ArrowRight className="h-4 w-4 ml-1" />
                     </Link>
                   </Button>
