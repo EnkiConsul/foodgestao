@@ -3,7 +3,7 @@ export async function executarBlocosPendencias(blocos: Array<() => Promise<void>
   let proximo = 0;
   await Promise.all(Array.from({ length: Math.min(concorrencia, blocos.length) }, async () => {
     while (proximo < blocos.length) {
-      signal.throwIfAborted();
+      if (signal.aborted) throw signal.reason ?? new Error("Consulta cancelada");
       const bloco = blocos[proximo++];
       await bloco();
     }
@@ -25,7 +25,7 @@ export async function carregarComPrazo<T>(operacao: (signal: AbortSignal) => Pro
     }, prazoMs);
   });
   try {
-    controller.signal.throwIfAborted();
+    if (controller.signal.aborted) throw controller.signal.reason ?? new Error("Consulta cancelada");
     return await Promise.race([operacao(controller.signal), limite]);
   } finally {
     clearTimeout(timer);
