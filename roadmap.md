@@ -116,6 +116,6 @@
 - [x] Conferir Ver → Detalhes com atestado existente no celular e computador, sem publicar.
 
 # Ações do Dia — carregamento
-- [ ] Reduzir espera com consultas independentes em paralelo e último retrato disponível.
-- [ ] Limitar a espera, mostrar falhas e permitir tentar novamente.
-- [ ] Testar carregamento e recuperação no celular, sem publicar.
+- [x] Reduzir espera com consultas independentes em paralelo e último retrato disponível.
+- [x] Limitar a espera, mostrar falhas e permitir tentar novamente.
+- [x] Testar carregamento e recuperação no celular, sem publicar (56 ações preservadas; 15 testes passaram).
