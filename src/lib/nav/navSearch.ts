@@ -31,7 +31,7 @@ const SYNONYMS: Record<string, string[]> = {
   "/dp/convocacoes": ["intermitente", "chamar", "convocar", "extra"],
   "/dp/folgas": ["descanso", "dsr", "domingo", "day off"],
   "/dp/ferias": ["vacacao", "descanso anual", "abono pecuniario"],
-  "/dp/documentos": ["arquivo", "upload", "anexo", "importar"],
+  "/dp/documentos": ["arquivo", "upload", "anexo", "importar", "arquivos enviados", "anexos", "histórico"],
   "/dp/documentos/historico": ["arquivos enviados", "anexos"],
   "/dp/atestados": ["medico", "afastamento", "saude", "cid"],
   "/dp/disciplinar": ["advertencia", "suspensao", "punicao"],
