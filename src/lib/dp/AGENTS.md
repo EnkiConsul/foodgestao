@@ -19,3 +19,5 @@
 - Alvos de bloqueio listam só quem participa da escolha de folga (`colaboradorElegivelBloqueio`); no bloqueio de um dia, quem já tem folga marcada nele não aparece.
 
 - Pending actions load independent domains with bounded concurrency and abortable deadlines; keep the confirmed snapshot during refresh and surface read failures, so incomplete results never mean all clear.
+
+- WhatsApp dispatch normalizes phone numbers centrally and uses explicit Android package intents with official HTTPS fallback; never assume the app opened or the message was sent.

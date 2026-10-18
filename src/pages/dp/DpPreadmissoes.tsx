@@ -26,7 +26,7 @@ export default function DpPreadmissoes() {
       <DpPageHeader
         icon={UserSquare2}
         title="Pré-Admissões"
-        description="O candidato preenche a ficha e envia os documentos pelo celular. Você revisa, baixa a ficha em PDF e cria o cadastro."
+        className="[&_.dp-page-actions]:hidden [&_.dp-page-actions]:md:flex"
         actions={
           <Button onClick={() => setConvidando(true)}>
             <UserPlus className="h-4 w-4 mr-2" /> Convidar Candidato
@@ -45,6 +45,7 @@ export default function DpPreadmissoes() {
           }
         }}
       />
+      <Button size="icon" className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-40 h-14 w-14 rounded-full shadow-lg md:hidden" onClick={() => setConvidando(true)} aria-label="Convidar candidato" title="Convidar candidato"><UserPlus className="h-6 w-6" /></Button>
     </DpPage>
   );
 }

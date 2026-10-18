@@ -11,9 +11,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Copy, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { WhatsAppChoiceDrawer } from "@/components/dp/WhatsAppChoiceDrawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -77,6 +76,7 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
   const [apos22h, setApos22h] = useState<"" | "sim" | "nao">("");
   const [dias, setDias] = useState("7");
   const [link, setLink] = useState<string | null>(null);
+  const [escolherWhatsapp, setEscolherWhatsapp] = useState(false);
   const [validade, setValidade] = useState<string | null>(null);
   /** Número normalizado pelo servidor (com DDI) — é o que vai para o wa.me. */
   const [numeroEnvio, setNumeroEnvio] = useState<string | null>(null);
@@ -93,8 +93,8 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
     setNome((v) => v || (inicial.nome ?? "").toLocaleUpperCase("pt-BR"));
     setWhatsapp((v) => v || (inicial.whatsapp ?? ""));
     setCpf((v) => v || maskCpf(String(inicial.cpf ?? "").replace(/\D/g, "")));
-    if (inicial.unidadeId) setUnidadeId((v) => v || inicial.unidadeId!);
-    if (inicial.cargoId) setCargoId((v) => v || inicial.cargoId!);
+    if (inicial.unidadeId) setUnidadeId((v) => v || (inicial.unidadeId ?? ""));
+    if (inicial.cargoId) setCargoId((v) => v || (inicial.cargoId ?? ""));
   }, [open, inicial]);
 
   /** Ao abrir, oferece o rascunho guardado — nada é preenchido sem a escolha. */
@@ -187,7 +187,7 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
   const fechar = () => {
     onOpenChange(false);
     setNome(""); setWhatsapp(""); setCargoId(""); setUnidadeId(""); setCpf("");
-    setRegime(""); setApos22h(""); setDias("7"); setLink(null); setValidade(null); setNumeroEnvio(null);
+    setRegime(""); setApos22h(""); setDias("7"); setLink(null); setValidade(null); setNumeroEnvio(null); setEscolherWhatsapp(false);
   };
 
   const completo =
@@ -229,20 +229,15 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
 
   const copiar = async () => {
     if (!link) return;
-    await navigator.clipboard.writeText(link);
-    toast.success("Link copiado");
+    try { await navigator.clipboard.writeText(link); toast.success("Link copiado"); }
+    catch { toast.error("Não foi possível copiar. Selecione o link acima e copie manualmente."); }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => (v ? onOpenChange(true) : fechar())}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Convidar Candidato Para Preencher</DialogTitle>
-          <DialogDescription>
-            O candidato preenche os dados e envia os documentos pelo celular. Nada entra no cadastro antes da sua
-            revisão e da ficha oficial da contabilidade.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <ResponsiveDialog open={open} onOpenChange={(v) => (v ? onOpenChange(true) : fechar())}
+        title="Convidar candidato" description="Dados do candidato e da vaga"
+        footer={link ? <Button variant="outline" className="min-h-11" onClick={fechar}>Fechar</Button> : <div className="flex w-full gap-2"><Button variant="outline" className="min-h-11 flex-1" onClick={fechar}>Cancelar</Button><Button className="min-h-11 flex-1" onClick={enviar} disabled={criar.isPending || !completo}>Criar convite</Button></div>}>
 
         {!link && rascunhoGuardado && (
           <div className="rounded-lg border bg-muted/40 p-3 text-sm">
@@ -274,17 +269,7 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
               aparece só agora: se precisar, gere outro na lista de pré-admissões.
             </p>
             {numeroEnvio ? (
-              <Button className="w-full h-11" asChild>
-                <a
-                  href={`https://wa.me/${numeroEnvio}?text=${encodeURIComponent(
-                    `Olá! Para começar sua admissão, preencha seus dados neste link: ${link}`,
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Send className="h-4 w-4 mr-2" /> Enviar Pelo WhatsApp
-                </a>
-              </Button>
+              <Button className="w-full h-11" onClick={() => setEscolherWhatsapp(true)}><Send className="h-4 w-4 mr-2" />Enviar pelo WhatsApp</Button>
             ) : (
               <p className="text-xs text-muted-foreground">
                 Não foi possível montar o envio pelo WhatsApp. Copie o link e envie manualmente.
@@ -427,19 +412,8 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
           </div>
         )}
 
-        <DialogFooter>
-          {link ? (
-            <Button variant="outline" onClick={fechar}>Fechar</Button>
-          ) : (
-            <>
-              <Button variant="outline" onClick={fechar}>Cancelar</Button>
-              <Button onClick={enviar} disabled={criar.isPending || !completo}>
-                Criar Convite
-              </Button>
-            </>
-          )}
-        </DialogFooter>
-      </DialogContent>
+      </ResponsiveDialog>
+      {escolherWhatsapp && numeroEnvio && link && <WhatsAppChoiceDrawer key={link} open onOpenChange={setEscolherWhatsapp} numero={numeroEnvio} mensagem={`Olá! Para começar sua admissão, preencha seus dados neste link: ${link}`} />}
       <UnidadeFormDialog
         open={novaUnidade}
         onOpenChange={setNovaUnidade}
@@ -451,6 +425,6 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
         cargo={null}
         onSaved={(c) => { setCargosCriados((l) => [...l, c]); setCargoId(c.id); }}
       />
-    </Dialog>
+    </>
   );
 }

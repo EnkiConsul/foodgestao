@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { Ban, CalendarClock, Eye, Loader2, RefreshCw, Trash2, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -163,8 +162,9 @@ export function PreadmissoesPanel({
   const gerarNovoLink = async (id: string) => {
     try {
       const r = await reenviar.mutateAsync({ preadmissao_id: id });
-      await navigator.clipboard.writeText(r.link);
-      toast.success("Novo link gerado e copiado. O link anterior deixou de valer.");
+      setDespacho({ numero: lista.find((p) => p.id === id)?.whatsapp ?? "", mensagem: `Olá! Para começar sua admissão, preencha seus dados neste link: ${r.link}` });
+      try { await navigator.clipboard.writeText(r.link); toast.success("Novo link gerado e copiado. O link anterior deixou de valer."); }
+      catch { toast.info("Novo link gerado. Use Enviar ou Copiar mensagem na janela aberta."); }
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "gerar um novo link" });
     }
