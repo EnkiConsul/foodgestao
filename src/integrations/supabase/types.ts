@@ -1448,6 +1448,7 @@ export type Database = {
           must_change_password: boolean
           password_changed_at: string | null
           password_changed_by: string | null
+          permite_multiplos_dispositivos: boolean
           provisional_password_expires_at: string | null
           provisional_password_issued_at: string | null
           sessions_revoked_at: string | null
@@ -1469,6 +1470,7 @@ export type Database = {
           must_change_password?: boolean
           password_changed_at?: string | null
           password_changed_by?: string | null
+          permite_multiplos_dispositivos?: boolean
           provisional_password_expires_at?: string | null
           provisional_password_issued_at?: string | null
           sessions_revoked_at?: string | null
@@ -1490,6 +1492,7 @@ export type Database = {
           must_change_password?: boolean
           password_changed_at?: string | null
           password_changed_by?: string | null
+          permite_multiplos_dispositivos?: boolean
           provisional_password_expires_at?: string | null
           provisional_password_issued_at?: string | null
           sessions_revoked_at?: string | null
