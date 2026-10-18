@@ -103,13 +103,14 @@ export async function valorRecorrente(admin: SupabaseClient, subId: string) {
 }
 
 async function registrarFatura(admin: SupabaseClient, sub: any, pg: any, forma: Forma, nota: string) {
-  await admin.from("invoices").insert({
+  const { error } = await admin.from("invoices").insert({
     subscription_id: sub.id, user_id: sub.user_id, billing_account_id: sub.billing_account_id,
     amount_cents: Math.round(Number(pg.value ?? 0) * 100), status: "open", due_date: pg.dueDate,
     payment_method: forma === "cartao" ? "card" : forma, external_invoice_id: pg.id,
     external_payment_url: pg.invoiceUrl ?? null, boleto_url: pg.bankSlipUrl ?? null,
     notes: nota, asaas_env: sub.asaas_env,
   });
+  if (error) throw new Error(`fatura ${pg.id}: ${error.message}`);
 }
 
 export type Criados = { tipo: string; id: string; descricao: string }[];
