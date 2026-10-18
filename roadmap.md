@@ -121,7 +121,7 @@
 - [x] Testar carregamento e recuperação no celular, sem publicar (56 ações preservadas; 15 testes passaram).
 
 # Pré-Admissões — mobile first e envio
-- [ ] Substituir filtros laterais por resumo e seleção sem rolagem horizontal.
-- [ ] Organizar cartões, prazos e ações rápidas; convite e revisão confortáveis no celular.
-- [ ] Oferecer WhatsApp, Business e compartilhamento com alternativas seguras.
-- [ ] Testar filtros e revisão com dados reais, sem publicar.
+- [x] Substituir filtros laterais por resumo e seleção sem rolagem horizontal.
+- [x] Organizar cartões, prazos e ações rápidas; convite e revisão confortáveis no celular.
+- [x] Oferecer WhatsApp, Business e compartilhamento com alternativas seguras (abertura dos aplicativos depende do aparelho).
+- [x] Testar filtros e revisão com dados reais, sem publicar (3 fichas; celular e computador; 2 testes de links).

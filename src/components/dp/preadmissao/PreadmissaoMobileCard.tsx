@@ -49,7 +49,7 @@ export function PreadmissaoMobileCard({ ficha: p, cargo, unidade, prorrogando, o
         <DpActionsMenu vertical className="min-h-11 min-w-11 shrink-0" actions={[
           { key: "link", label: "Gerar e copiar novo link", icon: Copy, hidden: !ativa, onSelect: onNovoLink },
           { key: "cancelar", label: "Cancelar link", icon: Ban, hidden: !ativa, destructive: true, onSelect: onCancelar },
-          { key: "excluir", label: "Excluir ficha", icon: Trash2, destructive: true, disabled: !ativa && p.status === "concluido" || !!p.colaborador_id, onSelect: onExcluir },
+          { key: "excluir", label: "Excluir ficha", icon: Trash2, destructive: true, disabled: p.status === "concluido" || !!p.colaborador_id, onSelect: onExcluir },
         ]} />
       </div>
       <p className="mt-2 break-words text-xs text-muted-foreground">{cargo} · {unidade}</p>
@@ -61,7 +61,7 @@ export function PreadmissaoMobileCard({ ficha: p, cargo, unidade, prorrogando, o
       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
         <Button variant="outline" className="min-h-11 flex-1" onClick={onRevisar}><Eye className="mr-1.5 h-4 w-4" />{p.status === "concluido" ? "Abrir cadastro" : "Revisar"}</Button>
         <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" onClick={onMensagem} disabled={!p.whatsapp} title="Enviar WhatsApp" aria-label={`Enviar WhatsApp para ${p.candidato_nome}`}><MessageCircle className="h-4 w-4" /></Button>
-        {ativa && <Button variant="outline" className="min-h-11" disabled={prorrogando} onClick={onProrrogar} title="Prorrogar validade por 7 dias"><CalendarClock className="mr-1.5 h-4 w-4" />+7 dias</Button>}
+        {ativa && <Button variant="outline" className="min-h-11" disabled={prorrogando} onClick={onProrrogar} title="Renovar validade até 7 dias a partir de hoje"><CalendarClock className="mr-1.5 h-4 w-4" />7 dias</Button>}
       </div>
       {p.whatsapp && <p className="mt-2 text-xs text-muted-foreground">{maskPhone(telefone)}</p>}
     </article>
