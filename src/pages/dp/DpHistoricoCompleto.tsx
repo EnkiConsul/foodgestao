@@ -994,7 +994,7 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
               key={g.grupo}
               type="button"
               onClick={() => { setGrupo(grupo === g.grupo ? "all" : g.grupo); setTipo("all"); }}
-              className={`h-8 rounded-full border px-3 text-xs font-semibold transition-colors ${
+              className={`h-8 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors ${
                 grupo === g.grupo ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"
               }`}
             >
