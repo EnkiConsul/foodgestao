@@ -500,6 +500,8 @@ export type Database = {
           external_id: string | null
           id: string
           registro_env: string
+          resolucao: string | null
+          resolvido_em: string | null
           tabela: string
         }
         Insert: {
@@ -511,6 +513,8 @@ export type Database = {
           external_id?: string | null
           id?: string
           registro_env: string
+          resolucao?: string | null
+          resolvido_em?: string | null
           tabela: string
         }
         Update: {
@@ -522,6 +526,8 @@ export type Database = {
           external_id?: string | null
           id?: string
           registro_env?: string
+          resolucao?: string | null
+          resolvido_em?: string | null
           tabela?: string
         }
         Relationships: []
@@ -1932,6 +1938,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      billing_v2_desfeita_eventos: {
+        Row: {
+          alerta: boolean
+          asaas_env: string
+          created_at: string
+          event_id: string
+          event_type: string
+          id: string
+          motivo: string | null
+          payment_id: string | null
+          resolvido_em: string | null
+          resolvido_por: string | null
+          subscription_id: string
+        }
+        Insert: {
+          alerta?: boolean
+          asaas_env: string
+          created_at?: string
+          event_id: string
+          event_type: string
+          id?: string
+          motivo?: string | null
+          payment_id?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          subscription_id: string
+        }
+        Update: {
+          alerta?: boolean
+          asaas_env?: string
+          created_at?: string
+          event_id?: string
+          event_type?: string
+          id?: string
+          motivo?: string | null
+          payment_id?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          subscription_id?: string
+        }
+        Relationships: []
       }
       billing_v2_excedentes: {
         Row: {
