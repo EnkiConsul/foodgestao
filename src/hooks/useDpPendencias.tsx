@@ -112,6 +112,7 @@ export function useDpPendencias() {
   // Verdadeira apuração em curso (botão manual ou recálculo por estar desatualizado).
   // Reler o resultado já pronto não conta — por isso é separado de isFetching.
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<{ companyId: string; error: unknown } | null>(null);
 
 
   const query = useQuery({
@@ -2173,6 +2174,7 @@ export function useDpPendencias() {
   });
 
   const refetch = useCallback(async () => {
+    setRefreshError(null);
     if (configQuery.isError || feriasQuery.isError) {
       await Promise.all([configQuery.refetch(), feriasQuery.refetch()]);
       return;
@@ -2189,8 +2191,9 @@ export function useDpPendencias() {
           });
           if (error) throw error;
         }, new AbortController().signal);
-      } catch {
-        // A leitura seguinte exibe a falha e permite nova tentativa.
+      } catch (error) {
+        setRefreshError({ companyId: selectedCompanyId, error });
+        return;
       } finally {
         setIsRefreshing(false);
       }
@@ -2201,8 +2204,8 @@ export function useDpPendencias() {
 
   return { ...query,
     isLoading: !!selectedCompanyId && (query.isLoading || isConfigLoading || isFeriasConfigLoading),
-    isError: query.isError || configQuery.isError || feriasQuery.isError,
-    error: query.error ?? configQuery.error ?? feriasQuery.error,
+    isError: query.isError || configQuery.isError || feriasQuery.isError || refreshError?.companyId === selectedCompanyId,
+    error: query.error ?? configQuery.error ?? feriasQuery.error ?? (refreshError?.companyId === selectedCompanyId ? refreshError.error : null),
     refetch, isRefreshing, lastCalculatedAt: apuracao.data ?? null };
 }
 
