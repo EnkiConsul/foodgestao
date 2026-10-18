@@ -203,11 +203,18 @@ export default function DpDocumentosGestao() {
       {/* Listagem completa da equipe (antiga tela "Histórico"), embutida. */}
       <DpHistoricoCompleto embutido />
 
+      {/* Respiro inferior no celular: evita o botão flutuante cobrir a paginação. */}
+      <div className="h-24 md:hidden" aria-hidden="true" />
+
       {/* Botão flutuante de importação na zona do polegar (só no celular). */}
       {!importarAberto && (
         <button
           type="button"
-          onClick={() => setImportarAberto(true)}
+          onClick={() => {
+            setImportarAberto(true);
+            // Coloca a área de envio (topo) na visão de imediato.
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
           aria-label="Importar Documento"
           className="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95 md:hidden"
         >
