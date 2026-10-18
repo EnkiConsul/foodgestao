@@ -541,17 +541,18 @@ const AppRoutes = () => (
         <Route path="erros" element={<DpErrosRedirect />} />
 
         <Route path="calendario" element={<DpAdminCalendario />} />
-        <Route path="documentos" element={<DpDocumentosImportar />} />
+        <Route path="documentos" element={<DpDocumentosGestao />} />
         <Route path="documentos/inicio" element={<DpDocumentosHub />} />
         <Route path="rotina" element={<DpRotinaHub />} />
         <Route path="geral" element={<DpGeralHub />} />
-        <Route path="documentos/historico" element={<DpHistoricoCompleto />} />
+        {/* Histórico foi unificado na Gestão de Documentos: redireciona preservando os filtros da URL. */}
+        <Route path="documentos/historico" element={<RedirectGestaoDocumentos />} />
         <Route path="documentos/recibos" element={<DpRecibos />} />
         <Route path="documentos/atas" element={<DpAtas />} />
-        <Route path="documentos/todos" element={<Navigate to="/dp/documentos/historico" replace />} />
-        <Route path="documentos/contracheque" element={<Navigate to="/dp/documentos/historico?tipo=contracheque" replace />} />
-        <Route path="documentos/ponto" element={<Navigate to="/dp/documentos/historico?tipo=ponto" replace />} />
-        <Route path="documentos/adiantamento" element={<Navigate to="/dp/documentos/historico?tipo=adiantamento" replace />} />
+        <Route path="documentos/todos" element={<Navigate to="/dp/documentos" replace />} />
+        <Route path="documentos/contracheque" element={<Navigate to="/dp/documentos?tipo=contracheque" replace />} />
+        <Route path="documentos/ponto" element={<Navigate to="/dp/documentos?tipo=ponto" replace />} />
+        <Route path="documentos/adiantamento" element={<Navigate to="/dp/documentos?tipo=adiantamento" replace />} />
         <Route path="atestados" element={<DpAtestados />} />
         <Route path="avisos" element={<DpAvisos />} />
         <Route path="mensagens" element={<DpMensagens />} />
@@ -563,7 +564,7 @@ const AppRoutes = () => (
         <Route path="bloqueios" element={<Navigate to="/dp/folgas?aba=regras" replace />} />
         <Route path="trocas" element={<Navigate to="/dp/folgas?aba=trocas" replace />} />
         <Route path="documentos/importar" element={<Navigate to="/dp/documentos" replace />} />
-        <Route path="documentos/:categoria" element={<Navigate to="/dp/documentos/historico" replace />} />
+        <Route path="documentos/:categoria" element={<Navigate to="/dp/documentos" replace />} />
         <Route path="cadastros" element={<DpCadastrosHub />} />
         <Route path="cadastros/unidades" element={<DpUnidades />} />
         <Route path="cadastros/cargos" element={<DpCargos />} />
