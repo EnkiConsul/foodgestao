@@ -372,7 +372,7 @@ function ColunaFiltroHeader(props: {
   );
 }
 
-export default function DpHistoricoCompleto() {
+export default function DpHistoricoCompleto({ embutido = false }: { embutido?: boolean }) {
 
   const navigate = useNavigate();
   const { selectedCompanyId } = useCompanyContext();
