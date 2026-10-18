@@ -203,15 +203,23 @@ async function processEvent(admin: Admin, env: Env, eventType: string, payload: 
       subAlvo = (sr as any)?.id ?? null;
     }
     if (subAlvo) {
-      const { count } = await admin.from("subscription_events").select("id", { count: "exact", head: true })
-        .eq("subscription_id", subAlvo).eq("tipo_evento", "contratacao_desfeita");
-      if ((count ?? 0) > 0) {
-        await admin.from("asaas_env_divergencias").insert({
-          event_id: String(payload?.id ?? payment.id), event_type: eventType, evento_env: env, registro_env: env,
-          tabela: "subscriptions", external_id: String(payment.subscription ?? payment.id),
-          detalhe: `Evento ignorado: assinatura ${subAlvo} foi desfeita por falha de contratação — conferir e cancelar no Asaas`,
+      const { data: evsD, error: eD } = await admin.from("subscription_events").select("tipo_evento,payload,created_at")
+        .eq("subscription_id", subAlvo).in("tipo_evento", ["contratacao_desfeita", "cancelada_falha_contratacao"])
+        .order("created_at", { ascending: false });
+      if (eD) throw new Error(`desfeita_check: ${eD.message}`);
+      if ((evsD ?? []).length > 0) {
+        const ultima = (evsD ?? []).find((e: any) => e.tipo_evento === "contratacao_desfeita") as any;
+        const total = !ultima || ((ultima.payload?.pendentes_asaas ?? []).length === 0);
+        const pago = ["PAYMENT_RECEIVED", "PAYMENT_CONFIRMED", "PAYMENT_RECEIVED_IN_CASH"].includes(eventType);
+        const ativa = !total && eventType !== "PAYMENT_DELETED" && !["DELETED", "REFUNDED", "CANCELLED"].includes(String(payment.status ?? "").toUpperCase());
+        const alerta = pago || ativa;
+        const { error: eIns } = await admin.from("billing_v2_desfeita_eventos").insert({
+          subscription_id: subAlvo, event_id: String(payload?.id ?? payment.id), event_type: eventType, asaas_env: env,
+          payment_id: String(payment.id), alerta,
+          motivo: pago ? "Pagamento recebido de contratação desfeita — devolver ao cliente" : ativa ? "Cobrança ainda ativa no Asaas de contratação desfeita — cancelar" : "Aviso sem efeito: contratação totalmente desfeita",
         });
-        console.warn(`asaas-webhook-worker: ${eventType} para assinatura desfeita ${subAlvo} — ignorado`);
+        if (eIns) throw new Error(`desfeita_registro: ${eIns.message}`);
+        console.warn(`asaas-webhook-worker: ${eventType} para assinatura desfeita ${subAlvo} — ignorado (alerta=${alerta})`);
         return;
       }
     }
