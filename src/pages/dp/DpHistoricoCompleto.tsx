@@ -943,9 +943,17 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
     </>
   );
 
+  // No celular vira só o ícone para não empurrar a lista para baixo.
   const botaoRegistro = (
-    <Button variant="outline" onClick={() => setLogAberto(true)}>
-      <HistoryIcon className="mr-1 h-4 w-4" /> Registro de Alterações
+    <Button
+      variant="outline"
+      onClick={() => setLogAberto(true)}
+      aria-label="Registro de Alterações"
+      title="Registro de Alterações"
+      className="px-3 sm:px-4"
+    >
+      <HistoryIcon className="h-4 w-4 sm:mr-1" />
+      <span className="hidden sm:inline">Registro de Alterações</span>
     </Button>
   );
 
