@@ -4,6 +4,7 @@ import {
   agruparPorTipo,
   contarAbertas,
   filtrarAbertas,
+  isDocumentoPendencia,
   isPendenciaAdiada,
   opcoesFiltro,
   urgenciaDe,

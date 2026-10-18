@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { Link, useSearchParams } from "react-router-dom";
 import { ChevronRight, FileText, Info, ListChecks, Upload, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { BulkImportPanel } from "@/components/dp/documentos/BulkImportPanel";
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
