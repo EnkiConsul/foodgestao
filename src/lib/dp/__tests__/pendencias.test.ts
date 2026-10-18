@@ -101,6 +101,27 @@ describe("agruparPorColaborador", () => {
   });
 });
 
+describe("isDocumentoPendencia", () => {
+  it("reconhece todos os tipos de documento do motor", () => {
+    for (const tipo of [
+      "Documentos",
+      "Assinaturas",
+      "Comprovante de pagamento",
+      "Importação",
+      "contracheque",
+      "adiantamento",
+      "ponto",
+    ]) {
+      expect(isDocumentoPendencia(mk({ tipo }))).toBe(true);
+    }
+  });
+  it("ignora pendências que não são de documento", () => {
+    for (const tipo of ["Férias", "Escala", "Troca", "Cadastro de Colaborador", "Rescisão"]) {
+      expect(isDocumentoPendencia(mk({ tipo }))).toBe(false);
+    }
+  });
+});
+
 describe("opcoesFiltro", () => {
   it("extrai opções únicas e ordenadas de tipo, colaborador e unidade", () => {
     const itens = [
