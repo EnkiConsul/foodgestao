@@ -110,13 +110,6 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     matchPrefixes: ["/dp/documentos", "/dp/disciplinar"],
     items: [
       { label: "Documentos", to: "/dp/documentos", icon: FileText, end: true, shortcut: true, shortLabel: "Documentos" },
-      {
-        label: "Histórico",
-        to: "/dp/documentos/historico",
-        icon: ListChecks,
-        shortcut: true,
-        shortLabel: "Histórico",
-      },
       { label: "Recibos", to: "/dp/documentos/recibos", icon: Receipt },
       { label: "Atas de Reunião", to: "/dp/documentos/atas", icon: NotebookPen },
       { label: "Disciplinares", to: "/dp/disciplinar", icon: ShieldAlert },

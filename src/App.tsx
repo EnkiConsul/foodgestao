@@ -88,7 +88,7 @@ const DpFichaRegistroImportar = lazyWithRetry(() => import("./pages/dp/DpFichaRe
 const DpPreadmissoes = lazyWithRetry(() => import("./pages/dp/DpPreadmissoes"));
 const PreAdmissao = lazyWithRetry(() => import("./pages/PreAdmissao"));
 
-const DpDocumentosImportar = lazyWithRetry(() => import("./pages/dp/DpDocumentosImportar"));
+const DpDocumentosGestao = lazyWithRetry(() => import("./pages/dp/DpDocumentosGestao"));
 const DpFerias = lazyWithRetry(() => import("./pages/dp/DpFeriasHub"));
 const DpBeneficios = lazyWithRetry(() => import("./pages/dp/DpBeneficios"));
 const DpAnalytics = lazyWithRetry(() => import("./pages/dp/DpAnalytics"));
@@ -125,7 +125,11 @@ const DpDocumentosHub = lazyWithRetry(() => import("./pages/dp/DpDocumentosHub")
 const DpRotinaHub = lazyWithRetry(() => import("./pages/dp/DpRotinaHub"));
 const DpGeralHub = lazyWithRetry(() => import("./pages/dp/DpGeralHub"));
 const DpAtestados = lazyWithRetry(() => import("./pages/dp/DpAtestados"));
-const DpHistoricoCompleto = lazyWithRetry(() => import("./pages/dp/DpHistoricoCompleto"));
+/** /dp/documentos/historico → /dp/documentos, preservando os filtros da URL. */
+function RedirectGestaoDocumentos() {
+  const location = useLocation();
+  return <Navigate to={`/dp/documentos${location.search}`} replace />;
+}
 const DpNotificacoes = lazyWithRetry(() => import("./pages/dp/DpNotificacoes"));
 
 // DP portal
