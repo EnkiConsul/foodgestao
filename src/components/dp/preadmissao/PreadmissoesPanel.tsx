@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { Ban, CalendarClock, Eye, Loader2, RefreshCw, Trash2, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -31,6 +30,9 @@ import { DpFilters, DpFilterField, type DpFilterChip } from "@/components/dp/DpF
 import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { DpActionsMenu } from "@/components/dp/DpActions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { WhatsAppChoiceDrawer } from "@/components/dp/WhatsAppChoiceDrawer";
+import { PreadmissaoMobileCard } from "./PreadmissaoMobileCard";
 
 type ColunaKey = "candidato" | "situacao" | "cargo" | "validade";
 const COLUNAS: { key: ColunaKey; label: string }[] = [
@@ -58,10 +60,10 @@ const COLUNAS_STORAGE = "dp.preadmissoes.colunas_ocultas";
 
 
 const TOM: Partial<Record<PreadmissaoStatus, string>> = {
-  aguardando_revisao: "bg-amber-500/10 text-amber-700 border-amber-500/30",
-  correcao_solicitada: "bg-amber-500/10 text-amber-700 border-amber-500/30",
+  aguardando_revisao: "bg-warning/10 text-warning-foreground border-warning/30",
+  correcao_solicitada: "bg-warning/10 text-warning-foreground border-warning/30",
   registro_recebido: "bg-primary/10 text-primary border-primary/30",
-  concluido: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
+  concluido: "bg-success/10 text-success-strong border-success/30",
   cancelado: "bg-muted text-muted-foreground",
   expirado: "bg-muted text-muted-foreground",
 };
@@ -87,7 +89,7 @@ interface Props {
 export function PreadmissoesPanel({
   convidarAberto, onConvidarChange, mostrarBotaoConvidar = false, conviteInicial = null,
 }: Props) {
-  const { data: lista = [], isLoading } = useDpPreadmissoes();
+  const { data: lista = [], isLoading, isError, refetch } = useDpPreadmissoes();
   const { data: cargos = [] } = useDpCargos();
   const { data: unidades = [] } = useDpUnidades();
   const { reenviar, prorrogar, revogar } = useDpPreadmissaoConvite();
@@ -99,6 +101,8 @@ export function PreadmissoesPanel({
   // Ficha marcada para exclusão (confirmação em janela própria).
   const [excluindo, setExcluindo] = useState<{ id: string; nome: string } | null>(null);
   const [aba, setAba] = useState<"fichas" | "regras">("fichas");
+  const [despacho, setDespacho] = useState<{ numero: string; mensagem: string } | null>(null);
+  const [novoLink, setNovoLink] = useState<string | null>(null);
 
   const nomeCargo = (id: string | null) => cargos.find((c) => c.id === id)?.nome ?? "—";
   const nomeUnidade = (id: string | null) => unidades.find((u) => u.id === id)?.nome ?? "—";
@@ -158,8 +162,9 @@ export function PreadmissoesPanel({
   const gerarNovoLink = async (id: string) => {
     try {
       const r = await reenviar.mutateAsync({ preadmissao_id: id });
-      await navigator.clipboard.writeText(r.link);
-      toast.success("Novo link gerado e copiado. O link anterior deixou de valer.");
+      setDespacho({ numero: lista.find((p) => p.id === id)?.whatsapp ?? "", mensagem: `Olá! Para começar sua admissão, preencha seus dados neste link: ${r.link}` });
+      try { await navigator.clipboard.writeText(r.link); toast.success("Novo link gerado e copiado. O link anterior deixou de valer."); }
+      catch { toast.info("Novo link gerado. Use Enviar ou Copiar mensagem na janela aberta."); }
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "gerar um novo link" });
     }
@@ -168,7 +173,7 @@ export function PreadmissoesPanel({
   /** Mantém o link que o candidato já recebeu e só estica o prazo dele. */
   const prorrogarValidade = async (id: string) => {
     try {
-      const r = await prorrogar.mutateAsync({ preadmissao_id: id });
+      const r = await prorrogar.mutateAsync({ preadmissao_id: id, dias_validade: 7 });
       const ate = new Date(r.expires_at).toLocaleDateString("pt-BR");
       toast.success(`Prazo prorrogado até ${ate}. O link que ele já recebeu voltou a abrir.`);
     } catch (e) {
@@ -188,7 +193,8 @@ export function PreadmissoesPanel({
 
   return (
     <>
-      <div className="flex gap-2 mb-3">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex gap-2">
         {([["fichas", "Fichas"], ["regras", "Regras"]] as const).map(([k, label]) => (
           <Button
             key={k}
@@ -199,11 +205,12 @@ export function PreadmissoesPanel({
             {label}
           </Button>
         ))}
+        </div>
+        <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => refetch()} disabled={isLoading} aria-label="Atualizar pré-admissões" title="Atualizar pré-admissões"><RefreshCw className="h-4 w-4" /></Button>
       </div>
 
       {aba === "regras" ? <AdmissaoRegrasPanel /> : (
-      <Card>
-        <CardContent className="p-3 sm:p-4 space-y-3">
+      <section className="min-w-0 space-y-3">
           {mostrarBotaoConvidar && (
             <div className="flex justify-end">
               <Button onClick={() => setConvidando(true)}>
@@ -211,7 +218,21 @@ export function PreadmissoesPanel({
               </Button>
             </div>
           )}
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Situação das fichas">
+          <div className="grid grid-cols-3 gap-2 md:hidden" aria-label="Etapas da pré-admissão">
+            {([ ["candidato", "Candidato"], ["revisao", "Revisão"], ["registro", "Registro"] ] as const).map(([key, label]) => (
+              <Button key={key} variant={grupo === key ? "default" : "outline"} aria-pressed={grupo === key}
+                className="h-auto min-h-16 min-w-0 flex-col gap-1 px-1 py-2" onClick={() => { setGrupo(grupo === key ? "todas" : key); setFSituacao("todas"); }}>
+                <span className="text-xl font-semibold tabular-nums">{isLoading ? "—" : contagem[key]}</span><span className="text-xs">{label}</span>
+              </Button>
+            ))}
+          </div>
+          <div className="md:hidden">
+            <Select value={grupo} onValueChange={(v) => { setGrupo(v as GrupoKey); setFSituacao("todas"); }}>
+              <SelectTrigger className="min-h-11" aria-label="Exibir etapa"><SelectValue /></SelectTrigger>
+              <SelectContent>{GRUPOS.map((g) => <SelectItem key={g.key} value={g.key}>{g.label} ({contagem[g.key]})</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="hidden md:flex flex-wrap gap-2" role="tablist" aria-label="Situação das fichas">
             {GRUPOS.map((g) => (
               <Button
                 key={g.key}
@@ -219,8 +240,8 @@ export function PreadmissoesPanel({
                 role="tab"
                 aria-selected={grupo === g.key}
                 variant={grupo === g.key ? "default" : "outline"}
-                className="shrink-0 rounded-full"
-                onClick={() => setGrupo(g.key)}
+                className="shrink-0"
+                onClick={() => { setGrupo(g.key); setFSituacao("todas"); }}
               >
                 {g.label}
                 <span className="ml-1.5 rounded-full bg-background/20 px-1.5 text-xs tabular-nums">{contagem[g.key]}</span>
@@ -233,7 +254,7 @@ export function PreadmissoesPanel({
             onClear={limparFiltros}
           >
             <DpFilterField label="Situação">
-              <Select value={fSituacao} onValueChange={setFSituacao}>
+              <Select value={fSituacao} onValueChange={(v) => { setFSituacao(v); setGrupo("todas"); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todas">Todas</SelectItem>
@@ -272,54 +293,23 @@ export function PreadmissoesPanel({
             </DpFilterField>
           </DpFilters>
 
-          {isLoading ? (
+          {isError ? <div className="py-8 text-center space-y-3"><p className="text-sm text-muted-foreground">Não foi possível carregar as fichas. Tente novamente.</p><Button variant="outline" onClick={() => refetch()}>Tentar novamente</Button></div> : isLoading ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" /> Carregando…
             </div>
           ) : !filtradas.length ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
-              Nenhuma pré-admissão por aqui. Convide um candidato para começar.
+              {lista.length ? "Nenhuma ficha corresponde aos filtros selecionados." : "Nenhuma pré-admissão por aqui. Convide um candidato para começar."}
+              {lista.length > 0 && <Button variant="link" onClick={() => { limparFiltros(); setBusca(""); }}>Limpar filtros</Button>}
             </div>
           ) : (
             <>
               {/* Celular */}
               <div className="space-y-2 md:hidden">
-                {filtradas.map((p) => (
-                  <div key={p.id} className="rounded-lg border">
-                    <button
-                      type="button"
-                      onClick={() => setRevisando(p.id)}
-                      className="w-full text-left p-3 active:bg-accent/50"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium text-sm">{p.candidato_nome}</span>
-                        <Badge variant="outline" className={TOM[p.status]}>
-                          {PREADMISSAO_STATUS_LABEL[p.status]}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {nomeCargo(p.cargo_previsto_id)} · {nomeUnidade(p.unidade_prevista_id)}{p.regime_previsto ? ` · ${REGIMES_ADMISSAO.find((r) => r.value === p.regime_previsto)?.label ?? p.regime_previsto}` : ""}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{p.whatsapp}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Link vale até {p.convite_expira_em ? new Date(p.convite_expira_em).toLocaleDateString("pt-BR") : "—"}
-                      </p>
-                    </button>
-                    {podeProrrogar(p.status, p.colaborador_id) && (
-                      <div className="border-t px-3 py-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="w-full"
-                          disabled={prorrogar.isPending}
-                          onClick={() => prorrogarValidade(p.id)}
-                        >
-                          <CalendarClock className="h-4 w-4 mr-2" /> Prorrogar Validade
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                {filtradas.map((p) => <PreadmissaoMobileCard key={p.id} ficha={p} cargo={nomeCargo(p.cargo_previsto_id)} unidade={nomeUnidade(p.unidade_prevista_id)}
+                  prorrogando={prorrogar.isPending} onRevisar={() => setRevisando(p.id)} onProrrogar={() => prorrogarValidade(p.id)}
+                  onNovoLink={() => setNovoLink(p.id)} onCancelar={() => cancelar(p.id)} onExcluir={() => setExcluindo({ id: p.id, nome: p.candidato_nome })}
+                  onMensagem={() => setDespacho({ numero: p.whatsapp, mensagem: `Olá, ${p.candidato_nome}! Tudo bem? Podemos acompanhar sua pré-admissão? Se precisar de ajuda com a ficha ou os documentos, me avise.` })} />)}
               </div>
 
               {/* Telas maiores: largura fixa e texto quebrando — nunca rolagem lateral */}
@@ -389,7 +379,7 @@ export function PreadmissoesPanel({
                                   hidden: !podeProrrogar(p.status, p.colaborador_id),
                                   disabled: prorrogar.isPending, onSelect: () => prorrogarValidade(p.id),
                                 },
-                                { key: "link", label: "Gerar Novo Link", icon: RefreshCw, onSelect: () => gerarNovoLink(p.id) },
+                                { key: "link", label: "Gerar Novo Link", icon: RefreshCw, hidden: !podeProrrogar(p.status, p.colaborador_id), onSelect: () => setNovoLink(p.id) },
                                 {
                                   key: "cancelar", label: "Cancelar Link", icon: Ban, destructive: true,
                                   separatorBefore: true, onSelect: () => cancelar(p.id),
@@ -410,9 +400,12 @@ export function PreadmissoesPanel({
               </div>
             </>
           )}
-        </CardContent>
-      </Card>
+      </section>
       )}
+
+      <ResponsiveDialog open={!!novoLink} onOpenChange={(v) => { if (!v) setNovoLink(null); }} title="Gerar novo link?" description="O link anterior deixará de funcionar. O novo link será copiado para você enviar ao candidato."
+        footer={<><Button variant="outline" onClick={() => setNovoLink(null)}>Cancelar</Button><Button disabled={reenviar.isPending} onClick={async () => { if (!novoLink) return; await gerarNovoLink(novoLink); setNovoLink(null); }}>Gerar e copiar</Button></>}><p className="text-sm text-muted-foreground">Para manter o link atual, use Prorrogar Validade.</p></ResponsiveDialog>
+      {despacho && <WhatsAppChoiceDrawer key={`${despacho.numero}:${despacho.mensagem}`} open onOpenChange={(v) => { if (!v) setDespacho(null); }} {...despacho} />}
 
       <PreadmissaoConviteDialog
         open={convidando}

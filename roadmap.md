@@ -119,3 +119,9 @@
 - [x] Reduzir espera com consultas independentes em paralelo e último retrato disponível.
 - [x] Limitar a espera, mostrar falhas e permitir tentar novamente.
 - [x] Testar carregamento e recuperação no celular, sem publicar (56 ações preservadas; 15 testes passaram).
+
+# Pré-Admissões — mobile first e envio
+- [x] Substituir filtros laterais por resumo e seleção sem rolagem horizontal.
+- [x] Organizar cartões, prazos e ações rápidas; convite e revisão confortáveis no celular.
+- [x] Oferecer WhatsApp, Business e compartilhamento com alternativas seguras (abertura dos aplicativos depende do aparelho).
+- [x] Testar filtros e revisão com dados reais, sem publicar (3 fichas; celular e computador; 2 testes de links).
