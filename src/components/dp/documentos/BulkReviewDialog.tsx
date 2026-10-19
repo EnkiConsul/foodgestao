@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { aprovarEmBlocos } from "@/lib/dp/bulkApproveChunks";
-import { importSessionComplete } from "./importSessionComplete";
+import { approvalFullySaved, importSessionComplete } from "./importSessionComplete";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft, ChevronRight, X, Check, Loader2, AlertTriangle, ExternalLink, RotateCcw,
@@ -326,7 +326,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
       if (okc + rep > 0) {
-        setAguardandoConclusao(other === 0 && dup === 0 && results.length === item_ids.length);
+        setAguardandoConclusao(approvalFullySaved(item_ids.length, results));
         const companyId = (batchInfo.data as any)?.company_id;
         if (companyId) {
           await resolverPendencias(qc, { companyId });
