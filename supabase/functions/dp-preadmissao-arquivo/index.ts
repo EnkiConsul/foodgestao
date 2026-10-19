@@ -297,7 +297,25 @@ Deno.serve(async (req) => {
       const r = await lerDocumento(aiKey, codigo, arquivos);
       // Falha na leitura nunca trava o candidato: ele segue digitando.
       if (!r.ok) return jsonResponse(req, 200, { campos: {}, indisponivel: true });
-      return jsonResponse(req, 200, { campos: r.campos });
+      let divergencias: Divergencia[] = [];
+      if (codigo === "identidade") {
+        const dadosPa = ((pa as Record<string, unknown>).dados ?? {}) as Record<string, unknown>;
+        const p = pa as Record<string, unknown>;
+        const nasc = String(body?.data_nascimento ?? dadosPa.data_nascimento ?? p.data_nascimento ?? "");
+        divergencias = compararComCadastro(r.campos, {
+          nome: (p.candidato_nome as string) ?? null,
+          cpf: (p.cpf as string) ?? null,
+          data_nascimento: /^\d{2}\/\d{2}\/\d{4}$/.test(nasc) ? nasc.split("/").reverse().join("-") : nasc,
+        });
+        // Registra para o gestor conferir; o candidato segue normalmente.
+        await admin.from("dp_preadmissao_eventos").insert({
+          preadmissao_id: pa.id,
+          company_id: p.company_id,
+          evento: "ocr_divergencia",
+          detalhe: { divergencias },
+        });
+      }
+      return jsonResponse(req, 200, { campos: r.campos, divergencias });
     }
 
     // ---------- Gestor: link temporário de visualização ----------
