@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { calendarioResumoNavigation } from "./calendarioResumoNavigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useDpOperacaoPanorama, type DiaPanorama } from "@/hooks/useDpOperacaoPanorama";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
@@ -40,6 +41,7 @@ export function CalendarioOperacaoResumo() {
   const [expandidos, setExpandidos] = useState<string[]>([]);
   const { prefs, save } = useDpUserPrefs();
   const qc = useQueryClient();
+  const isMobile = useIsMobile();
   const p = useDpOperacaoPanorama(competencia, unidade || null);
 
   useEffect(() => {
@@ -127,6 +129,23 @@ export function CalendarioOperacaoResumo() {
               <div className="flex flex-wrap gap-x-3 gap-y-1 border-b pb-3">{indicadores(dia).map((i) => <span key={i.label} className={cn("text-xs", i.cor)}><strong className="tabular-nums">{i.valor}</strong> {i.label}</span>)}</div>
               {dia.feriado_nome && <p className="text-xs text-warning">🎉 {dia.feriado_nome}</p>}
               {dia.alerta && <Button variant="ghost" className="h-auto min-h-11 w-full justify-start gap-2 whitespace-normal bg-destructive/10 px-2 text-left text-xs text-destructive" onClick={() => abrirDia(selecionado)}><AlertTriangle className="h-4 w-4 shrink-0" />{mensagemAlerta(dia, dia.avaliacao, p.unidades.find((u) => u.id === unidade)?.nome ?? null)}</Button>}
+              {isMobile ? <div className="space-y-2">
+                {blocos.map((bloco) => {
+                  const Icon = Number((bloco.horario ?? "").slice(0, 2)) >= 15 ? Moon : Sun;
+                  return <Button key={bloco.key} variant="ghost" className="h-auto min-h-12 w-full justify-between gap-2 border bg-muted/30 px-3 py-2 text-left" onClick={() => abrirDia(selecionado)} aria-label={`${bloco.titulo}: ${bloco.pessoas.length} trabalhando. Abrir detalhes`}>
+                    <Icon className="h-4 w-4 shrink-0 text-primary" />
+                    <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold">{bloco.titulo}</span><span className="block text-[11px] font-normal text-muted-foreground">{bloco.horario}</span></span>
+                    <span className="shrink-0 text-xs text-primary"><strong className="tabular-nums">{bloco.pessoas.length}</strong> trabalhando</span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </Button>;
+                })}
+                {ausentes.length > 0 && <Button variant="ghost" className="h-auto min-h-12 w-full justify-between gap-2 border bg-muted/30 px-3 py-2 text-left" onClick={() => abrirDia(selecionado)} aria-label={`Fora da operação: ${ausentes.length}. Abrir detalhes`}>
+                  <span className="min-w-0 flex-1"><span className="block text-xs font-semibold">Fora da operação</span><span className="block truncate text-[11px] font-normal text-muted-foreground">{indicadores(dia).filter((i) => i.label !== "Trabalhando" && i.label !== "Aguardando").map((i) => `${i.valor} ${i.label.toLowerCase()}`).join(" · ")}</span></span>
+                  <span className="shrink-0 text-xs font-semibold tabular-nums">{ausentes.length}</span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </Button>}
+                {!blocos.length && <p className="py-2 text-xs text-muted-foreground">Nenhuma pessoa prevista para trabalhar neste dia.</p>}
+              </div> : <>
               {blocos.map((bloco) => {
                 const expandido = expandidos.includes(bloco.key);
                 const Noite = Number((bloco.horario ?? "").slice(0, 2)) >= 15;
@@ -150,6 +169,7 @@ export function CalendarioOperacaoResumo() {
                 <ul className="divide-y">{(expandidos.includes("ausentes") ? ausentes : ausentes.slice(0, 2)).map((pessoa, i) => <li key={`${pessoa.colaborador_id}-${i}`}><Button variant="ghost" className="h-auto min-h-11 w-full justify-between gap-2 whitespace-normal px-2 text-left" onClick={() => abrirDia(selecionado)}><span className="min-w-0 break-words text-xs font-normal">{pessoa.nome}</span><span className={cn("shrink-0 text-[10px] font-medium", ["atestado", "ausente"].includes(pessoa.categoria) ? "text-destructive" : "text-muted-foreground")}>{pessoa.folga_troca ? "Folga por troca" : CATEGORIA_LABEL[pessoa.categoria]}</span></Button></li>)}</ul>
                 {!expandidos.includes("ausentes") && ausentes.length > 2 && <Button variant="ghost" className="min-h-11 w-full text-xs text-primary" onClick={() => alternar("ausentes")}>Ver todas as {ausentes.length} ausências</Button>}
               </section>}
+              </>}
               <Button variant="outline" className="min-h-11 w-full gap-2" onClick={() => abrirDia(selecionado)}><CalendarDays className="h-4 w-4" />Gerir dia<ChevronRight className="ml-auto h-4 w-4" /></Button>
             </div> : <p className="py-3 text-xs text-muted-foreground">Sem informações para este dia.</p>}
           </>}
