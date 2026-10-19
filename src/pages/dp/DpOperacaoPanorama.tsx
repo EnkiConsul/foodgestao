@@ -2001,9 +2001,7 @@ export default function DpOperacaoPanorama({
             )}
           </DialogHeader>
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
-            {dataPopout && diaPopout ? (
-              {conteudoDia(dataPopout, diaPopout)}
-            ) : (
+            {dataPopout && diaPopout ? conteudoDia(dataPopout, diaPopout) : (
               <p className="text-sm text-muted-foreground">Sem dados para este dia.</p>
             )}
             {calendario && dataPopout && diaPopout && (
