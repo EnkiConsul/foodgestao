@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
-import { CheckCircle2, FileText, Info, ListChecks, Upload, X } from "lucide-react";
+import { CheckCircle2, FileText, History, Info, ListChecks, Upload, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -210,6 +210,8 @@ export default function DpDocumentosGestao() {
   const [importarAberto, setImportarAberto] = useState(
     () => !!(inicial.tipo || inicial.lote),
   );
+  /** Cada incremento manda o painel de importação abrir o histórico de lotes. */
+  const [historicoNonce, setHistoricoNonce] = useState(0);
 
   /**
    * O aviso vive na URL (veio do atalho "Resolver"). Fechá-lo precisa apagar os
@@ -271,21 +273,37 @@ export default function DpDocumentosGestao() {
       <div className="grid grid-cols-2 items-stretch gap-2">
         <AcoesDocumentosCard />
         {!importarAberto && (
-          <button
-            type="button"
-            className="flex h-full w-full flex-col gap-1 rounded-2xl border border-[hsl(var(--dp-border))] bg-card p-3 text-left transition-colors hover:bg-muted/40 md:hidden"
-            onClick={() => {
-              setImportarAberto(true);
-              // Coloca a área de envio (topo) na visão de imediato.
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-          >
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Upload className="h-4 w-4" aria-hidden="true" />
-            </span>
-            <span className="text-sm font-semibold leading-tight">Importar</span>
-            <span className="text-xs leading-snug text-muted-foreground">Enviar documento</span>
-          </button>
+          <div className="relative h-full md:hidden">
+            <button
+              type="button"
+              className="flex h-full w-full flex-col gap-1 rounded-2xl border border-[hsl(var(--dp-border))] bg-card p-3 pr-10 text-left transition-colors hover:bg-muted/40"
+              onClick={() => {
+                setImportarAberto(true);
+                // Coloca a área de envio (topo) na visão de imediato.
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <Upload className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <span className="text-sm font-semibold leading-tight">Importar</span>
+              <span className="text-xs leading-snug text-muted-foreground">Enviar documento</span>
+            </button>
+            {/* Atalho direto para os lotes já importados, sem abrir o envio. */}
+            <button
+              type="button"
+              aria-label="Ver histórico de importações"
+              title="Histórico de importações"
+              className="absolute right-1.5 top-1.5 flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              onClick={() => {
+                setHistoricoNonce((n) => n + 1);
+                setImportarAberto(true);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            >
+              <History className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
         )}
       </div>
 
@@ -308,6 +326,7 @@ export default function DpDocumentosGestao() {
           referenciaInicial={inicial.competencia ? `${inicial.competencia}-01` : undefined}
           loteAbertoId={inicial.lote}
           onLoteConcluido={limparContexto}
+          abrirHistoricoNonce={historicoNonce}
         />
       </div>
 

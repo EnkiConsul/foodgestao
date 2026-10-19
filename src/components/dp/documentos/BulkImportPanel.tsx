@@ -63,6 +63,11 @@ export interface BulkImportPanelProps {
   foco?: { tipo?: string | null; competencia?: string | null; nonce: number } | null;
   /** Disparado quando um lote é concluído (usado para limpar o aviso do atalho). */
   onLoteConcluido?: () => void;
+  /**
+   * Atalho externo para o histórico: cada novo `nonce` abre a lista de lotes
+   * anteriores (usado pelo ícone de relógio do card "Importar").
+   */
+  abrirHistoricoNonce?: number;
 }
 
 export function BulkImportPanel({
@@ -75,6 +80,7 @@ export function BulkImportPanel({
   loteAbertoId,
   foco,
   onLoteConcluido,
+  abrirHistoricoNonce,
 }: BulkImportPanelProps) {
   const qc = useQueryClient();
   const { selectedCompanyId } = useCompanyContext();
@@ -100,6 +106,9 @@ export function BulkImportPanel({
   useEffect(() => {
     if (loteAbertoId) setExpanded((s) => ({ ...s, [loteAbertoId]: true }));
   }, [loteAbertoId]);
+  useEffect(() => {
+    if (abrirHistoricoNonce) setMostrarHistoricoLotes(true);
+  }, [abrirHistoricoNonce]);
 
   /** Âncoras para levar o usuário até o lote em processamento e de volta ao envio. */
   const uploadCardRef = useRef<HTMLDivElement | null>(null);
