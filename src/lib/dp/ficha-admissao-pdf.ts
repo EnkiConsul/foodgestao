@@ -111,11 +111,9 @@ export async function gerarFichaAdmissaoPdf(opts: {
     page.drawRectangle({ x: fx - 3, y: fy - 3, width: fotoW + 6, height: fotoH + 6, color: rgb(1, 1, 1) });
     try {
       const img = await embutirImagem(pdf, opts.foto.blob, opts.foto.mime);
-      const e = Math.max(fotoW / img.width, fotoH / img.height);
+      const e = Math.min(fotoW / img.width, fotoH / img.height);
       const w = img.width * e, h = img.height * e;
-      // Recorte central: desenha maior e cobre as sobras com a moldura.
       page.drawImage(img, { x: fx + (fotoW - w) / 2, y: fy + (fotoH - h) / 2, width: w, height: h });
-      page.drawRectangle({ x: fx - 3 - 200, y: fy - 3, width: 200, height: fotoH + 6, color: VERDE, opacity: 0 });
     } catch {
       page.drawText("Sem foto", { x: fx + 14, y: fy + fotoH / 2, size: 9, font: f, color: CINZA });
     }
