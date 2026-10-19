@@ -977,12 +977,15 @@ function DetalheDiaOperacao({
 export default function DpOperacaoPanorama({
   modo = "operacao",
   topo,
-}: { modo?: "operacao" | "calendario"; topo?: ReactNode } = {}) {
+  detalheInicial,
+  onFecharDetalhe,
+}: { modo?: "operacao" | "calendario"; topo?: ReactNode; detalheInicial?: { data: string; unidadeId: string }; onFecharDetalhe?: () => void } = {}) {
   const calendario = modo === "calendario";
+  const embutido = Boolean(detalheInicial);
 
   const [params, setParams] = useSearchParams();
-  const [data, setData] = useState(() => params.get("data") || hojeIso());
-  const [unidade, setUnidade] = useState<string>("");
+  const [data, setData] = useState(() => detalheInicial?.data || params.get("data") || hojeIso());
+  const [unidade, setUnidade] = useState<string>(detalheInicial?.unidadeId ?? "");
   const [aba, setAba] = useState(() => {
     const a = params.get("aba");
     if (calendario) return "mes";
@@ -991,7 +994,10 @@ export default function DpOperacaoPanorama({
   const [detalheCategoria, setDetalheCategoria] = useState<CategoriaDia | null>(null);
   const [detalheAvulso, setDetalheAvulso] = useState<"avulso_teste" | "avulso_folguista" | null>(null);
   /** Dia aberto em janela a partir do calendário do mês. */
-  const [dataPopout, setDataPopout] = useState<string | null>(null);
+  const [dataPopout, setDataPopout] = useState<string | null>(detalheInicial?.data ?? null);
+  useEffect(() => {
+    if (embutido && dataPopout) setData(dataPopout);
+  }, [embutido, dataPopout]);
   const [contagemTurno, setContagemTurno] = useState<{ n: number; turno: string } | null>(null);
   const { selectedCompanyId: companyIdCal } = useCompanyContext();
   const [folgaColab, setFolgaColab] = useState<string>("");
@@ -1009,6 +1015,7 @@ export default function DpOperacaoPanorama({
 
   /** Vinda do calendário de folgas: /dp/operacao?ausencia=AAAA-MM-DD. */
   useEffect(() => {
+    if (embutido) return;
     const preset = params.get("ausencia");
     if (preset && /^\d{4}-\d{2}-\d{2}$/.test(preset)) {
       setAusenciaData(preset);
@@ -1016,7 +1023,7 @@ export default function DpOperacaoPanorama({
       params.delete("ausencia");
       setParams(params, { replace: true });
     }
-  }, [params, setParams]);
+  }, [params, setParams, embutido]);
 
   /**
    * Vinda de Ocorrências ("Cobrir"): /dp/escalas/mes?cobrir=<colaborador>&motivo=&data=&ate=&unidade=&entrada=&saida=
@@ -1026,6 +1033,7 @@ export default function DpOperacaoPanorama({
     cobre_colaborador_id: string; cobre_motivo: string; data_fim?: string | null; entrada?: string | null; saida?: string | null;
   } | null>(null);
   useEffect(() => {
+    if (embutido) return;
     const cobre = params.get("cobrir");
     if (!cobre) return;
     const iso = /^\d{4}-\d{2}-\d{2}$/;
@@ -1047,7 +1055,7 @@ export default function DpOperacaoPanorama({
     setAvulsaOpen(true);
     ["cobrir", "motivo", "ate", "unidade", "entrada", "saida"].forEach((k) => params.delete(k));
     setParams(params, { replace: true });
-  }, [params, setParams]);
+  }, [params, setParams, embutido]);
 
   const { prefs, save } = useDpUserPrefs();
   const [periodoPopout, setPeriodoPopout] = useState<"todos" | "dia" | "noite" | "madrugada">("todos");
@@ -1299,7 +1307,7 @@ export default function DpOperacaoPanorama({
 
   // Atalhos do Calendário: ← → navegam, H volta para hoje.
   useEffect(() => {
-    if (!calendario) return;
+    if (!calendario || embutido) return;
     const h = (e: KeyboardEvent) => {
       if (dataPopout || e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
@@ -1313,7 +1321,7 @@ export default function DpOperacaoPanorama({
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [calendario, dataPopout, aba, competencia, data, setData]);
+  }, [calendario, embutido, dataPopout, aba, competencia, data, setData]);
 
   // Dia aberto: ← → trocam de dia (Esc fecha pela própria janela).
   useEffect(() => {
@@ -1367,8 +1375,11 @@ export default function DpOperacaoPanorama({
     p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria) && !p.socio_integrado;
 
 
+  const Container = embutido ? Fragment : DpPage;
+  const fecharDia = () => { setDataPopout(null); onFecharDetalhe?.(); };
   return (
-    <DpPage>
+    <Container>
+      {!embutido && <>
       <Helmet>
         <title>Operação | Pessoas Aveto 360</title>
         <meta
@@ -1412,6 +1423,7 @@ export default function DpOperacaoPanorama({
       />
 
       {topo && <div className="mb-1">{topo}</div>}
+      </>}
 
       {companyIdCal && dataPopout && folgaColab && (
         <AtribuirFolgaTriagemDialog
@@ -1452,6 +1464,7 @@ export default function DpOperacaoPanorama({
         onSalvar={salvarAvulsa}
       />
 
+      {!embutido && <>
       {calendario && (
         <div className="sticky top-14 z-20 flex flex-wrap items-center gap-2 rounded-2xl border bg-card/95 px-3 py-2 shadow-sm backdrop-blur md:static md:bg-card">
           <div className="inline-flex min-w-0 flex-1 items-center justify-between rounded-full border bg-background p-0.5 sm:flex-none">
@@ -1854,9 +1867,10 @@ export default function DpOperacaoPanorama({
         </TabsContent>
 
       </Tabs>
+      </>}
 
-      <Dialog open={!!dataPopout} onOpenChange={(o) => !o && setDataPopout(null)}>
-        <DialogContent {...swipeDia} data-swipe-proprio="" className="flex max-h-[92dvh] max-w-3xl flex-col gap-3 overflow-hidden p-4 sm:p-6">
+      <Dialog open={!!dataPopout} onOpenChange={(o) => !o && fecharDia()}>
+        <DialogContent {...swipeDia} data-swipe-proprio="" className={cn("flex max-h-[92dvh] max-w-3xl flex-col gap-3 overflow-hidden p-4 sm:p-6", embutido && "max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-b-none [&_button]:min-h-11")}>
           <DialogHeader className="shrink-0">
             <div className="flex items-center gap-2 pr-6">
               <Button
@@ -1972,7 +1986,7 @@ export default function DpOperacaoPanorama({
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDataPopout(null)}>
+            <Button variant="outline" onClick={fecharDia}>
               Fechar
             </Button>
           </DialogFooter>
@@ -2069,6 +2083,6 @@ export default function DpOperacaoPanorama({
           </ul>
         </DialogContent>
       </Dialog>
-    </DpPage>
+    </Container>
   );
 }
