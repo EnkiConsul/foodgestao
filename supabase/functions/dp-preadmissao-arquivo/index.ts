@@ -24,7 +24,7 @@ import {
 } from "../_shared/preadmissao.ts";
 import { aplicarRegrasDocumentos, montarChecklist } from "../_shared/preadmissao-checklist.ts";
 import { type ArquivoLeitura, CODIGOS_LEITURA, lerDocumento } from "../_shared/preadmissao-ocr.ts";
-import { encodeBase64 as base64Encode } from "jsr:@std/encoding@1/base64";
+import { base64Encode } from "../_shared/doc-bulk-ocr.ts";
 
 const BUCKET = "dp-documentos";
 const MAX_BYTES = 10 * 1024 * 1024;
