@@ -942,7 +942,7 @@ export default function PreAdmissao() {
                   )}
                 </div>
               )}
-              <LeituraDocumentos codigos={etapaAtual.leitura ?? []} />
+              {renderLeitura(etapaAtual.leitura ?? [])}
               {etapaAtual.campos.some((c) => c.ctpsFisica) && (
                 <div className="flex items-start justify-between gap-3 rounded-md border p-3">
                   <div className="min-w-0">
