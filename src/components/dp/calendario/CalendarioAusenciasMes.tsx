@@ -17,7 +17,7 @@ import { resolverLimiteFolga, limiteComFolgaFixaDiaUtil } from "@/lib/dp/folga-l
 import { useBloqueiosParciais } from "@/hooks/useBloqueiosParciais";
 import { useBloqueiosEfetivos } from "@/hooks/useBloqueiosEfetivos";
 import { useFixosPorDiaSemana } from "@/hooks/useFixosPorDiaSemana";
-import { diaEhPico, folgaFixaDoDia } from "@/lib/dp/calendario-rotina";
+import { diaEhPico } from "@/lib/dp/calendario-rotina";
 import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { CalendarioSemanaCabecalho } from "./CalendarioSemanaCabecalho";
 import { useDpAniversariantes30d } from "@/hooks/useDpAniversariantes30d";

@@ -77,7 +77,7 @@ import { CalendarioAusenciasMes } from "@/components/dp/calendario/CalendarioAus
 import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { FolgasDoDiaPainel } from "@/components/dp/calendario/FolgasDoDiaPainel";
 import { RegrasDoDiaPainel, BloqueioDoDiaCabecalho } from "@/components/dp/calendario/RegrasDoDiaPainel";
-import { diaEhPico, filtrosSalvos, periodoHabitual, primeiroNome, folgaFixaDoDia } from "@/lib/dp/calendario-rotina";
+import { diaEhPico, filtrosSalvos, periodoHabitual, primeiroNome } from "@/lib/dp/calendario-rotina";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { DpStatCard } from "@/components/dp/DpStatCard";
@@ -1204,8 +1204,6 @@ export default function DpOperacaoPanorama({
   const sociosAusentes = useMemo(() => sociosDe(dia), [dia]);
 
   const diaPopout = dataPopout ? panorama.diaDe(dataPopout) : undefined;
-  const diasDominicaisPopout = configDominical.config ? diasElegiveisDaConfig(configDominical.config) : [0];
-  const diaDominicalPopout = !!diaPopout && diasDominicaisPopout.includes(new Date(`${diaPopout.data}T12:00:00`).getDay());
   const regimesColab = useMemo(
     () => new Map(((panorama.colaboradores ?? []) as { id: string; regime?: string | null }[]).map((c) => [c.id, c.regime ?? ""])),
     [panorama.colaboradores],
