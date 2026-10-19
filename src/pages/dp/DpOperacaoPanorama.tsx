@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useDpConfigDp } from "@/hooks/useDpConfigDp";
 import { diasElegiveisDaConfig } from "@/lib/dp/dsr-rules";
 import { cn } from "@/lib/utils";
@@ -982,6 +983,7 @@ export default function DpOperacaoPanorama({
 }: { modo?: "operacao" | "calendario"; topo?: ReactNode; detalheInicial?: { data: string; unidadeId: string }; onFecharDetalhe?: () => void } = {}) {
   const calendario = modo === "calendario";
   const embutido = Boolean(detalheInicial);
+  const isMobile = useIsMobile();
 
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState(() => detalheInicial?.data || params.get("data") || hojeIso());
@@ -1870,7 +1872,7 @@ export default function DpOperacaoPanorama({
       </>}
 
       <Dialog open={!!dataPopout} onOpenChange={(o) => !o && fecharDia()}>
-        <DialogContent {...swipeDia} data-swipe-proprio="" className={cn("flex max-h-[92dvh] max-w-3xl flex-col gap-3 overflow-hidden p-4 sm:p-6", embutido && "max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-b-none [&_button]:min-h-11")}>
+        <DialogContent {...swipeDia} data-swipe-proprio="" className={cn("flex max-h-[92dvh] max-w-3xl flex-col gap-3 overflow-hidden p-4 sm:p-6", embutido && "[&_button]:min-h-11", embutido && isMobile && "inset-x-0 bottom-0 top-auto w-full translate-x-0 translate-y-0 rounded-b-none")}>
           <DialogHeader className="shrink-0">
             <div className="flex items-center gap-2 pr-6">
               <Button
