@@ -9,7 +9,6 @@ import { useDpAniversariantes30d, type AnivItem } from "@/hooks/useDpAniversaria
 import { WhatsappComposerDialog } from "@/components/dp/WhatsappComposerDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { filtrarAniversariantesPortal } from "@/lib/dp/aniversariantes-portal";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 
