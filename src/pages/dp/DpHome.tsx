@@ -13,6 +13,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { VerMenuCompleto } from "@/components/mobile/VerMenuCompleto";
+import { ImportarDocumentoAtalho } from "@/components/dp/home/ImportarDocumentoAtalho";
+import { AcoesDoDiaCard } from "@/components/dp/home/AcoesDoDiaCard";
+import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 
 export default function DpHome() {
   const isMobile = useIsMobile();
@@ -20,11 +23,11 @@ export default function DpHome() {
 
   return (
     <DpPage>
-      <Helmet><title>Pessoas 360° — Início</title></Helmet>
+      <Helmet><title>Pessoas 360° — Painel Inteligente</title></Helmet>
 
       <DpPageHeader
         icon={Bell}
-        title="Pessoas 360°"
+        title="Painel Inteligente"
         description="Visão geral e atalhos rápidos."
         className="flex-row items-center justify-between gap-3"
         actionsClassName="w-auto shrink-0 [&>*]:min-h-0"
@@ -46,6 +49,14 @@ export default function DpHome() {
       {isMobile && <MenusPrincipaisCards />}
 
       <KpiCards />
+
+      <div className="grid min-w-0 items-stretch gap-2 lg:grid-cols-2" aria-label="Ações rápidas do gestor">
+        <ImportarDocumentoAtalho destaque className="h-full px-4 py-3" />
+        <div className="grid min-w-0 grid-cols-2 gap-2 lg:grid-cols-1">
+          <AcoesDoDiaCard />
+          <AniversariantesCard compacto />
+        </div>
+      </div>
 
       <CalendarioOperacaoResumo />
 

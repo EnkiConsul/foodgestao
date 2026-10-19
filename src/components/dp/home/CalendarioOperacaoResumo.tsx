@@ -18,9 +18,6 @@ import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { ausenciasVisiveis, diaEhPico, folgaEhDominical, periodoHabitual, pessoaNoFiltro, tipoAusencia, type PeriodoTurno } from "@/lib/dp/calendario-rotina";
 import { mensagemAlerta } from "@/lib/dp/operacao-panorama";
-import { AcoesDoDiaCard } from "./AcoesDoDiaCard";
-import { ImportarDocumentoAtalho } from "./ImportarDocumentoAtalho";
-import { AniversariantesCard } from "./AniversariantesCard";
 
 type ControladorOficial = typeof import("@/pages/dp/DpOperacaoPanorama").default;
 const CalendarioOficial = lazyWithRetry<Parameters<ControladorOficial>[0], ControladorOficial>(() => import("@/pages/dp/DpOperacaoPanorama"));
