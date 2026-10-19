@@ -4,6 +4,7 @@ import {
   conflitoColaboradores,
   diasPermitidosParaLimite,
   resolverLimiteFolga,
+  limiteComFolgaFixaDiaUtil,
   resumoRegraLimite,
   type RegraLimiteFolga,
 } from "@/lib/dp/folga-limites";
@@ -22,6 +23,19 @@ const base: RegraLimiteFolga = {
   setor_ids: [],
   colaborador_ids: [],
 };
+
+describe("piso da jornada vigente", () => {
+  it("duas folgas padrão na segunda elevam a regra geral de 1 para 2", () => {
+    const resolvido = resolverLimiteFolga({ data: "2026-10-19", unidadeId: "u1", regras: [{ ...base, maximo: 1 }] });
+    expect(limiteComFolgaFixaDiaUtil("2026-10-19", resolvido, new Map([[1, 2]])).limite).toBe(2);
+  });
+  it("o sábado também respeita o piso da jornada", () => {
+    expect(limiteComFolgaFixaDiaUtil("2026-10-24", { limite: 1, origem: "regra_recorrente" }, new Map([[6, 3]])).limite).toBe(3);
+  });
+  it("exceção explícita da data não é elevada pelas folgas padrão", () => {
+    expect(limiteComFolgaFixaDiaUtil("2026-10-19", { limite: 0, origem: "excecao_data" }, new Map([[1, 2]])).limite).toBe(0);
+  });
+});
 
 
 describe("resolverLimiteFolga", () => {

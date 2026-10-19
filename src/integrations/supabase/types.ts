@@ -19496,6 +19496,19 @@ export type Database = {
         Args: { _colab: string; _company: string; _competencia: string }
         Returns: Json
       }
+      dp_folga_fixos_periodo: {
+        Args: {
+          p_company: string
+          p_fim: string
+          p_inicio: string
+          p_unidade: string
+        }
+        Returns: {
+          data: string
+          dow: number
+          quantidade: number
+        }[]
+      }
       dp_folga_limite_dia: {
         Args: {
           p_cargo: string

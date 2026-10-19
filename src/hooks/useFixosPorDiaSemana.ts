@@ -1,19 +1,17 @@
-import { useMemo } from "react";
-import { useDpColaboradores } from "@/hooks/useDpColaboradores";
-import { normalizeWeekday } from "@/lib/dp/folga-rules";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-/** Quantos ativos da unidade têm folga fixa em cada dia da semana (mesma fonte do Calendário de Folgas). */
-export function useFixosPorDiaSemana(_companyId: string | null | undefined, unidadeId: string | null) {
-  const colabs = useDpColaboradores();
-  const data = useMemo(() => {
-    if (!unidadeId || !colabs.data) return undefined;
-    const m = new Map<number, number>();
-    for (const c of colabs.data as { ativo?: boolean | null; unidade_id: string | null; folga_fixa_semana?: unknown }[]) {
-      if (c.ativo === false || c.unidade_id !== unidadeId) continue;
-      const wd = normalizeWeekday(c.folga_fixa_semana);
-      if (wd != null) m.set(wd, (m.get(wd) ?? 0) + 1);
-    }
-    return m;
-  }, [colabs.data, unidadeId]);
-  return { data };
+/** Contagem por data, pela mesma configuração vigente usada na trava do banco. */
+export function useFixosPorDiaSemana(companyId: string | null | undefined, unidadeId: string | null, inicio: string | undefined, fim = inicio) {
+  const query = useQuery({
+    queryKey: ["dp_colab_config_trabalho", "fixos_periodo", companyId, unidadeId, inicio, fim],
+    enabled: !!companyId && !!unidadeId && !!inicio && !!fim,
+    queryFn: async () => {
+      if (!companyId || !unidadeId || !inicio || !fim) return new Map<string, Map<number, number>>();
+      const result = await supabase.rpc("dp_folga_fixos_periodo", { p_company: companyId, p_unidade: unidadeId, p_inicio: inicio, p_fim: fim });
+      if (result.error) throw new Error(result.error.message);
+      return new Map((result.data ?? []).map((r) => [r.data, new Map([[r.dow, r.quantidade]])]));
+    },
+  });
+  return { ...query, naData: (iso: string) => query.data?.get(iso) };
 }

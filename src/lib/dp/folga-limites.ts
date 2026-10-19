@@ -350,7 +350,8 @@ export function limiteComFolgaFixaDiaUtil(
   fixosPorDow: Map<number, number> | undefined,
 ): LimiteResolvido {
   const wd = new Date(`${iso}T12:00:00`).getDay();
-  if (!fixosPorDow) return res;
+  if (!fixosPorDow || res.origem === "excecao_data") return res;
+  if (res.regra && (res.regra.tipo !== "quantidade" || res.regra.cargo_ids.length > 0 || res.regra.setor_ids.length > 0)) return res;
   const fixos = fixosPorDow.get(wd) ?? 0;
   if (res.origem === "sem_limite") return { ...res, limite: fixos, origem: "folga_fixa" };
   // Com limite configurado, as folgas fixas cadastradas no dia são o piso: o teto nunca fica abaixo delas.

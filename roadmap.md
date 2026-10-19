@@ -1,4 +1,8 @@
 # Melhorias da admissão
+## Folgas padrão — fonte da jornada
+- [ ] Unificar a contagem pela configuração vigente na data e corrigir a validação no banco.
+- [ ] Sincronizar campos antigos vazios sem alterar jornada, histórico ou regras cadastradas.
+- [ ] Testar segunda (2/2), sábado e vigências; conferir os dois calendários sem publicar.
 ## Início — campos encavalados no celular
 - [x] Reorganizar Ações do Dia e Aniversariantes sem cortar títulos, contadores e resumos.
 - [x] Separar título do calendário de unidade e abas; conferir o cabeçalho diário em largura estreita.
