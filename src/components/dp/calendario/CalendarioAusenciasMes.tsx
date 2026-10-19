@@ -19,6 +19,7 @@ import { useBloqueiosEfetivos } from "@/hooks/useBloqueiosEfetivos";
 import { useFixosPorDiaSemana } from "@/hooks/useFixosPorDiaSemana";
 import { diaEhPico, folgaFixaDoDia } from "@/lib/dp/calendario-rotina";
 import { DiasEmLista } from "@/components/dp/DiasEmLista";
+import { CalendarioSemanaCabecalho } from "./CalendarioSemanaCabecalho";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -522,18 +523,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
       {/* Desktop: grade mensal com ausentes em cada dia */}
       <div className="hidden md:block">
         <div className="grid grid-cols-[repeat(7,minmax(0,1fr))] gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-lg ring-1 ring-primary/10">
-          {DOW.map((d, i) => {
-            const dom = diasDominicais.includes(i);
-            const pk = i === 0 || i >= 5;
-            return (
-              <div key={d} className={cn(
-                "flex items-center justify-center gap-1 border-b-2 py-2.5 text-xs font-extrabold uppercase tracking-[0.16em] shadow-sm",
-                dom ? "border-primary bg-primary text-primary-foreground" : "border-primary bg-foreground text-background",
-              )}>
-                {d}{pk && <span title="Pico de operação" className="inline-flex"><Flame className="h-3.5 w-3.5 fill-amber-500 text-amber-500" aria-label="Pico de operação" /></span>}
-              </div>
-            );
-          })}
+          <CalendarioSemanaCabecalho diasDominicais={diasDominicais} />
           {antes.map(vazio)}
           {dias.map((d) => {
             const aus = ausDo(d);
