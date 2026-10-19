@@ -7,3 +7,8 @@ export function importSessionComplete(
     batches.some((batch) => batch.id === id && batch.status === "imported"),
   );
 }
+
+/** A partial or missing approval result must not dismiss the review. */
+export function approvalFullySaved(expectedCount: number, results: readonly { ok: boolean }[]) {
+  return expectedCount > 0 && results.length === expectedCount && results.every((result) => result.ok);
+}

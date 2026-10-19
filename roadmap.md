@@ -1,4 +1,9 @@
 # Melhorias da admissão
+## Refinamentos da janela de documentos
+- [x] Sincronizar pendências após conclusão e fechar revisão completa somente com lote salvo (aprovação parcial mantém revisão aberta).
+- [x] Mover auditoria para filtros no celular e permitir alternar envio/histórico sem sair da janela, preservando preenchimento.
+- [x] Validar testes e navegação no celular/computador, sem publicar (21 testes, sem erros de execução; gravação real segue aguardando PDF autorizado).
+
 ## Importação em janela — Gestão de Documentos
 - [x] Abrir envio e histórico em janela sem deslocar a lista (celular e computador conferidos).
 - [x] Fechamento após lotes salvos e atualização da lista; 4 testes de conclusão passaram.

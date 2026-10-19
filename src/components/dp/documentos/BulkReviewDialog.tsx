@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { aprovarEmBlocos } from "@/lib/dp/bulkApproveChunks";
+import { approvalFullySaved, importSessionComplete } from "./importSessionComplete";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft, ChevronRight, X, Check, Loader2, AlertTriangle, ExternalLink, RotateCcw,
@@ -46,9 +47,11 @@ export interface BulkReviewDialogProps {
   onOpenChange: (o: boolean) => void;
   batchId: string;
   batchName?: string;
+  /** Confirmado pelo status salvo do lote, nunca apenas pela resposta da aprovação. */
+  onConcluido?: () => void;
 }
 
-export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: BulkReviewDialogProps) {
+export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onConcluido }: BulkReviewDialogProps) {
   const qc = useQueryClient();
   const { data: colaboradores = [] } = useDpColaboradores();
   const { data: unidades = [] } = useDpUnidades();
@@ -60,6 +63,8 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
   const [rendering, setRendering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const aprovandoRef = useRef(false);
+  const [aguardandoConclusao, setAguardandoConclusao] = useState(false);
+  const conclusaoNotificada = useRef(false);
   const [redrawTick, setRedrawTick] = useState(0);
   const { confirmacoes: confirmacoesIntermitente, responder: responderIntermitente, desfazer: desfazerIntermitente } =
     useDpIntermitenteConfirmacoes();
@@ -72,7 +77,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
     enabled: open && !!batchId,
     refetchInterval: (q) => {
       const b = q.state.data as any;
-      if (!b || b.status === "processing" || isSaving) return 900;
+      if (!b || b.status === "processing" || isSaving || aguardandoConclusao) return 900;
       return false;
     },
     queryFn: async () => {
@@ -117,7 +122,18 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
 
   useEffect(() => {
     if (!open) setCurrentIdx(0);
+    setAguardandoConclusao(false);
+    conclusaoNotificada.current = false;
   }, [open, batchId]);
+
+  useEffect(() => {
+    if (!open || !aguardandoConclusao || isSaving || conclusaoNotificada.current) return;
+    if (!importSessionComplete([batchId], batchInfo.data ? [batchInfo.data] : [])) return;
+    conclusaoNotificada.current = true;
+    setAguardandoConclusao(false);
+    onOpenChange(false);
+    onConcluido?.();
+  }, [open, aguardandoConclusao, isSaving, batchId, batchInfo.data, onOpenChange, onConcluido]);
 
   const rows = items.data ?? [];
   const current = rows[currentIdx];
@@ -310,6 +326,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
       if (okc + rep > 0) {
+        setAguardandoConclusao(approvalFullySaved(item_ids.length, results));
         const companyId = (batchInfo.data as any)?.company_id;
         if (companyId) {
           await resolverPendencias(qc, { companyId });
