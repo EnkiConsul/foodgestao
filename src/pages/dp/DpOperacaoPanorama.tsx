@@ -1,6 +1,5 @@
 import { Fragment, type ReactNode } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useDpConfigDp } from "@/hooks/useDpConfigDp";
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";

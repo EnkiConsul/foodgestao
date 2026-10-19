@@ -45,4 +45,14 @@ describe("folga fixa no domingo", () => {
     expect(folgaFixaDoDia("2026-10-11", { folga_fixa_dows: [0] })).toBe(true);
     expect(folgaFixaDoDia("2026-10-11", { troca: true, folga_fixa_dows: [0] })).toBe(false);
   });
+  it("domingo: quem folga padrão também conta no limite do dia", () => {
+    // 2026-10-11 é domingo: as 2 folgas fixas são o piso, mesmo com regra de 1 vaga.
+    const r = limiteComFolgaFixaDiaUtil("2026-10-11", { limite: 1, origem: "regra_recorrente" } as never, new Map([[0, 2]]));
+    expect(r.limite).toBe(2);
+    expect(r.origem).toBe("folga_fixa");
+  });
+  it("sábado sem limite cadastrado usa as folgas fixas do dia", () => {
+    const r = limiteComFolgaFixaDiaUtil("2026-10-10", { limite: null, origem: "sem_limite" } as never, new Map([[6, 2]]));
+    expect(r.limite).toBe(2);
+  });
 });
