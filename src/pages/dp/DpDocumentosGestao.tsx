@@ -10,6 +10,7 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { BulkImportPanel } from "@/components/dp/documentos/BulkImportPanel";
+import { documentPendenciasState } from "@/components/dp/documentos/documentPendenciasState";
 import { PendenciaAcoes } from "@/components/dp/pendencias/PendenciaAcoes";
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
@@ -62,9 +63,9 @@ export function AcoesDocumentosCard() {
     [stable.data, prefs.pendencias_adiadas, ignoradas, adiadas],
   );
   const atrasadas = abertas.filter((p) => urgenciaDe(p) === "atrasada").length;
-  const atualizando = isLoading || isFetching || isRefreshing;
-  const falhou = isError && !atualizando;
-  const carregando = !stable.ready && !falhou;
+  const { atualizando, falhou, carregando, podeConfirmarVazio } = documentPendenciasState({
+    ready: stable.ready, isLoading, isFetching, isRefreshing, isError,
+  });
 
   const resumo = falhou
     ? "Falha ao atualizar"
@@ -152,7 +153,7 @@ export function AcoesDocumentosCard() {
       )}
       {stable.ready && abertas.length > 0
         ? lista
-        : !falhou && !carregando && !atualizando ? vazio : null}
+        : podeConfirmarVazio ? vazio : null}
     </div>
   );
 
