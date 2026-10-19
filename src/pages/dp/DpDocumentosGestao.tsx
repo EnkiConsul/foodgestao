@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
 import { CheckCircle2, FileText, History, Info, ListChecks, Upload, X } from "lucide-react";
@@ -180,13 +181,14 @@ function AcoesDocumentosCard() {
  * Une a importação (PDF multipáginas, foto de atestado, comprovantes) e a
  * listagem completa dos documentos da equipe (antes "Histórico") em uma só
  * experiência. No topo, dois cards lado a lado: Pendências (abre gaveta na
- * própria tela) e Importar Documento (expande a área de envio). No celular a
+ * própria tela) e Importar Documento (abre uma janela de envio). No celular a
  * lista aparece de imediato, sem blocos empilhados.
  *
  * Quando chega de uma pendência ("Resolver"), a natureza, a competência e a
  * unidade vêm na URL e aparecem num aviso, além de pré-preencherem a importação.
  */
 export default function DpDocumentosGestao() {
+  const qc = useQueryClient();
   const [params, setParams] = useSearchParams();
   const unidades = useDpUnidades();
 
@@ -203,8 +205,8 @@ export default function DpDocumentosGestao() {
   }));
 
   /**
-   * No celular a importação abre pelo card "Importar Documento"; no computador
-   * fica sempre visível no topo. Abre automaticamente quando veio de uma
+   * A importação abre em janela pelo card em qualquer aparelho.
+   * Abre automaticamente quando veio de uma
    * pendência (atalho pré-preenchido).
    */
   const [importarAberto, setImportarAberto] = useState(
@@ -212,6 +214,7 @@ export default function DpDocumentosGestao() {
   );
   /** Cada incremento manda o painel de importação abrir o histórico de lotes. */
   const [historicoNonce, setHistoricoNonce] = useState(0);
+  const [somenteHistorico, setSomenteHistorico] = useState(false);
 
   /**
    * O aviso vive na URL (veio do atalho "Resolver"). Fechá-lo precisa apagar os
@@ -256,7 +259,7 @@ export default function DpDocumentosGestao() {
           <AlertDescription>
             {partes.length > 0
               ? `Importando: ${partes.join(" · ")}`
-              : "Lote aberto para revisão abaixo."}
+              : "Lote aberto para revisão."}
           </AlertDescription>
           <button
             type="button"
@@ -272,63 +275,64 @@ export default function DpDocumentosGestao() {
       {/* Dois cards lado a lado: pendências (gaveta na própria tela) e importação. */}
       <div className="grid grid-cols-2 items-stretch gap-2">
         <AcoesDocumentosCard />
-        {!importarAberto && (
-          <div className="relative h-full md:hidden">
-            <button
-              type="button"
-              className="flex h-full w-full flex-col gap-1 rounded-2xl border border-[hsl(var(--dp-border))] bg-card p-3 pr-10 text-left transition-colors hover:bg-muted/40"
-              onClick={() => {
-                setImportarAberto(true);
-                // Coloca a área de envio (topo) na visão de imediato.
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Upload className="h-4 w-4" aria-hidden="true" />
-              </span>
-              <span className="text-sm font-semibold leading-tight">Importar</span>
-              <span className="text-xs leading-snug text-muted-foreground">Enviar documento</span>
-            </button>
-            {/* Atalho direto para os lotes já importados, sem abrir o envio. */}
-            <button
-              type="button"
-              aria-label="Ver histórico de importações"
-              title="Histórico de importações"
-              className="absolute right-1.5 top-1.5 flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              onClick={() => {
-                setHistoricoNonce((n) => n + 1);
-                setImportarAberto(true);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-            >
-              <History className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </div>
-        )}
+        <div className="relative h-full">
+          <Button
+            type="button"
+            variant="outline"
+            aria-label="Importar documento"
+            className="flex h-full w-full flex-col items-start gap-1 whitespace-normal rounded-2xl border-border bg-card p-3 pr-10 text-left hover:bg-muted/40"
+            onClick={() => { setHistoricoNonce(0); setSomenteHistorico(false); setImportarAberto(true); }}
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Upload className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <span className="text-sm font-semibold leading-tight">Importar</span>
+            <span className="text-xs leading-snug text-muted-foreground">Enviar documento</span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Ver histórico de importações"
+            title="Histórico de importações"
+            className="absolute right-1.5 top-1.5 h-9 w-9 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+            onClick={() => {
+              setHistoricoNonce((n) => n + 1);
+              setSomenteHistorico(true);
+              setImportarAberto(true);
+            }}
+          >
+            <History className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </div>
       </div>
 
-      {/* Importação: sempre visível no computador; no celular abre pelo card acima. */}
-      <div className={importarAberto ? "" : "hidden md:block"}>
-        {importarAberto && (
-          <div className="mb-1 flex justify-end md:hidden">
-            <button
-              type="button"
-              className="min-h-11 px-2 text-xs font-medium text-muted-foreground underline-offset-2 hover:underline"
-              onClick={() => setImportarAberto(false)}
-            >
-              Recolher importação
-            </button>
+      <Dialog open={importarAberto} onOpenChange={setImportarAberto}>
+        <DialogContent className="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] flex-col gap-0 overflow-hidden p-0 sm:h-auto sm:max-h-[92dvh] sm:max-w-5xl sm:p-0">
+          <DialogHeader className="shrink-0 border-b p-4 pr-12 text-left">
+            <DialogTitle>{somenteHistorico ? "Histórico de Importações" : "Importar Documento"}</DialogTitle>
+            <DialogDescription>{somenteHistorico ? "Lotes enviados e resultados da conferência." : "Envie o PDF e confira as páginas antes de salvar."}</DialogDescription>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+            {importarAberto && (
+              <BulkImportPanel
+                title="Importar Documento"
+                tipoInicial={inicial.tipo}
+                referenciaInicial={inicial.competencia ? `${inicial.competencia}-01` : undefined}
+                loteAbertoId={inicial.lote}
+                onLoteConcluido={() => {
+                  setImportarAberto(false);
+                  limparContexto();
+                  qc.invalidateQueries({ queryKey: ["dp_historico_unified"] });
+                }}
+                abrirHistoricoNonce={historicoNonce}
+                somenteHistorico={somenteHistorico}
+                emJanela
+              />
+            )}
           </div>
-        )}
-        <BulkImportPanel
-          title="Importar Documento"
-          tipoInicial={inicial.tipo}
-          referenciaInicial={inicial.competencia ? `${inicial.competencia}-01` : undefined}
-          loteAbertoId={inicial.lote}
-          onLoteConcluido={limparContexto}
-          abrirHistoricoNonce={historicoNonce}
-        />
-      </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Listagem completa da equipe (antiga tela "Histórico"), embutida. */}
       <DpHistoricoCompleto embutido />

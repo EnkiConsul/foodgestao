@@ -1,4 +1,5 @@
 import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
+import { importSessionComplete } from "./importSessionComplete";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { aprovarEmBlocos } from "@/lib/dp/bulkApproveChunks";
 import { validarUpload } from "@/lib/storage/uploadPolicy";
@@ -68,6 +69,10 @@ export interface BulkImportPanelProps {
    * anteriores (usado pelo ícone de relógio do card "Importar").
    */
   abrirHistoricoNonce?: number;
+  /** Exibe só a consulta dos lotes, sem formulário de envio. */
+  somenteHistorico?: boolean;
+  /** Evita rolar a página por trás da janela. */
+  emJanela?: boolean;
 }
 
 export function BulkImportPanel({
@@ -81,6 +86,8 @@ export function BulkImportPanel({
   foco,
   onLoteConcluido,
   abrirHistoricoNonce,
+  somenteHistorico = false,
+  emJanela = false,
 }: BulkImportPanelProps) {
   const qc = useQueryClient();
   const { selectedCompanyId } = useCompanyContext();
@@ -100,6 +107,8 @@ export function BulkImportPanel({
   const [detailsBatch, setDetailsBatch] = useState<any | null>(null);
   /** Lotes concluídos ficam ocultos; o gestor abre o histórico só quando precisa. */
   const [mostrarHistoricoLotes, setMostrarHistoricoLotes] = useState(false);
+  const [lotesDaSessao, setLotesDaSessao] = useState<string[]>(loteAbertoId ? [loteAbertoId] : []);
+  const conclusaoNotificada = useRef(false);
 
   useEffect(() => { if (tipoFixed) setTipo(tipoFixed); }, [tipoFixed]);
   useEffect(() => { if (referenciaFixed) setReferencia(referenciaFixed); }, [referenciaFixed]);
@@ -116,9 +125,9 @@ export function BulkImportPanel({
   const loteNovoRef = useRef<string | null>(null);
 
   const rolarAte = useCallback((el: HTMLElement | null) => {
-    if (!el) return;
+    if (!el || emJanela) return;
     el.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
+  }, [emJanela]);
 
   /**
    * Clique num pendente da conferência: já deixa o formulário preenchido e
@@ -171,6 +180,16 @@ export function BulkImportPanel({
       return data as any[];
     },
   });
+
+  // Conferência inline e em tela cheia invalidam esta consulta ao salvar.
+  // Só encerra quando TODOS os PDFs enviados nesta janela foram concluídos.
+  useEffect(() => {
+    if (!emJanela || !lotesDaSessao.length || conclusaoNotificada.current) return;
+    const concluidos = importSessionComplete(lotesDaSessao, batches.data ?? []);
+    if (!concluidos) return;
+    conclusaoNotificada.current = true;
+    onLoteConcluido?.();
+  }, [emJanela, lotesDaSessao, batches.data, onLoteConcluido]);
 
   /**
    * Depois de enviar, o lote novo entra na lista de forma assíncrona: rolamos
@@ -328,6 +347,8 @@ export function BulkImportPanel({
           : `${n} PDFs enviados — processando em segundo plano`,
       );
       res.falhas.forEach((f) => toast.error(f));
+      conclusaoNotificada.current = false;
+      setLotesDaSessao((prev) => [...prev, ...res.enviados]);
       setFiles([]);
       qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
@@ -432,7 +453,7 @@ export function BulkImportPanel({
 
   return (
     <div className="space-y-4">
-      <div ref={uploadCardRef} className="scroll-mt-20">
+      {!somenteHistorico && <div ref={uploadCardRef} className="scroll-mt-20">
       <DpFilterCard>
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
@@ -620,9 +641,9 @@ export function BulkImportPanel({
           </Button>
         </div>
       </DpFilterCard>
-      </div>
+      </div>}
 
-      {!temLoteAtivo && !mostrarHistoricoLotes && (batches.data ?? []).length > 0 && (
+      {!somenteHistorico && !temLoteAtivo && !mostrarHistoricoLotes && (batches.data ?? []).length > 0 && (
         <div className="flex justify-center">
           <Button
             variant="link"
@@ -635,12 +656,12 @@ export function BulkImportPanel({
         </div>
       )}
 
-      {(temLoteAtivo || mostrarHistoricoLotes) && (
+      {(temLoteAtivo || mostrarHistoricoLotes || somenteHistorico) && (
       <Card className="dp-content-card" ref={lotesRef}>
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <CardHeader className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base">Lotes recentes</CardTitle>
           <div className="flex items-center gap-2">
-            {!temLoteAtivo && (
+            {!temLoteAtivo && !somenteHistorico && (
               <Button
                 size="sm"
                 variant="ghost"
@@ -817,7 +838,7 @@ export function BulkImportPanel({
                       batchId={b.id}
                       batchName={b.source_file_name}
                       onOpenFullscreen={() => setReviewBatch({ id: b.id, name: b.source_file_name })}
-                      onConcluido={() => { reiniciarEnvio(b.id); onLoteConcluido?.(); }}
+                      onConcluido={() => { reiniciarEnvio(b.id); if (!emJanela) onLoteConcluido?.(); }}
                     />
                   </div>
                 )}
