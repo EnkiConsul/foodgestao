@@ -23,7 +23,7 @@ import {
   validarConvite,
 } from "../_shared/preadmissao.ts";
 import { aplicarRegrasDocumentos, montarChecklist } from "../_shared/preadmissao-checklist.ts";
-import { type ArquivoLeitura, CODIGOS_LEITURA, lerDocumento } from "../_shared/preadmissao-ocr.ts";
+import { type ArquivoLeitura, CODIGOS_LEITURA, compararComCadastro, type Divergencia, lerDocumento } from "../_shared/preadmissao-ocr.ts";
 import { base64Encode } from "../_shared/doc-bulk-ocr.ts";
 
 const BUCKET = "dp-documentos";
