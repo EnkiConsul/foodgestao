@@ -77,7 +77,7 @@ export function AcoesDocumentosCard({ onImportar, onHistorico }: { onImportar?: 
     : abertas.length === 0
       ? "Tudo em dia"
       : [
-          `${abertas.length} ${abertas.length === 1 ? "pendente" : "pendentes"}`,
+          `${abertas.length} ${abertas.length === 1 ? "documento pendente" : "documentos pendentes"}`,
           atrasadas > 0 && `${atrasadas} ${atrasadas === 1 ? "atrasada" : "atrasadas"}`,
         ]
           .filter(Boolean)
