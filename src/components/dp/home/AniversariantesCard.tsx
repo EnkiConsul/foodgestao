@@ -57,7 +57,24 @@ export function AniversariantesCard({ variant = "admin", compacto = false, emFai
         <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-calendar-dominical/15 px-1.5 text-xs font-bold tabular-nums text-calendar-dominical">{isLoading ? "…" : isError ? "—" : data.length}</span>
         {!emFaixa && <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" />}
       </Button>
-      <DpDialogShell open={aberto} onOpenChange={setAberto} icon={Cake} title="Aniversariantes" description={competencia ? "Nascimento e tempo de casa neste mês" : "Nascimento e tempo de casa nos próximos 30 dias"} footer={<Button variant="outline" onClick={() => setAberto(false)}>Fechar</Button>}>{lista}</DpDialogShell>
+      {isMobile ? (
+        <Drawer open={aberto} onOpenChange={setAberto}>
+          <DrawerContent className="max-h-[90dvh]">
+            <DrawerHeader className="relative text-left">
+              <DrawerTitle>Aniversariantes</DrawerTitle>
+              <DrawerDescription>{competencia ? "Nascimento e tempo de casa neste mês" : "Nascimento e tempo de casa nos próximos 30 dias"}</DrawerDescription>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon" className="absolute right-2 top-0" aria-label="Fechar">
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </DrawerClose>
+            </DrawerHeader>
+            <div className="min-w-0 overflow-y-auto px-4 pb-6">{lista}</div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <DpDialogShell open={aberto} onOpenChange={setAberto} icon={Cake} title="Aniversariantes" description={competencia ? "Nascimento e tempo de casa neste mês" : "Nascimento e tempo de casa nos próximos 30 dias"}>{lista}</DpDialogShell>
+      )}
     </> : <div className={cn("min-w-0", competencia ? "space-y-3" : "rounded-2xl border-2 border-[hsl(var(--dp-birthday-border))] bg-[hsl(var(--dp-birthday-bg))] p-5")}>
       <div className="flex items-center gap-2 mb-1 flex-wrap">
         <Cake className="h-5 w-5 text-primary shrink-0" />
