@@ -1,7 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDpConfigDp } from "@/hooks/useDpConfigDp";
-import { diasElegiveisDaConfig } from "@/lib/dp/dsr-rules";
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
@@ -1105,7 +1104,6 @@ export default function DpOperacaoPanorama({
   const unidadeId = !unidade || unidade === "todas" ? null : unidade;
   const competencia = data.slice(0, 7);
   const panorama = useDpOperacaoPanorama(competencia, unidadeId);
-  const configDominical = useDpConfigDp(unidadeId);
 
   /** Abre já em uma unidade: a última escolhida ou a de maior quadro. */
   useEffect(() => {
