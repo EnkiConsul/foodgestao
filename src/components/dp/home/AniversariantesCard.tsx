@@ -45,7 +45,15 @@ export function AniversariantesCard({ variant = "admin", compacto = false, emFai
   return (
     <>
     {compacto ? <>
-      <Button variant="outline" onClick={() => setAberto(true)} className={cn("h-auto w-full justify-start rounded-2xl bg-card text-left", emFaixa ? "min-h-11 min-w-0 gap-1 px-2 py-2 sm:gap-2 sm:px-3" : "min-h-12 gap-3 px-4 py-3")} aria-label="Ver aniversariantes"><span className={cn("flex shrink-0 items-center justify-center rounded-lg bg-calendar-dominical/15 text-calendar-dominical", emFaixa ? "hidden h-7 w-7 sm:flex" : "h-9 w-9")}><Cake className="h-4 w-4" /></span><span className="flex-1 min-w-0 whitespace-normal"><strong className={cn("block font-semibold", emFaixa ? "break-words text-[10px] leading-tight sm:text-xs" : "text-sm")}>Aniversariantes</strong>{!emFaixa && <span className="block text-xs text-muted-foreground">{competencia ? "Neste mês" : "Nos próximos 30 dias"}</span>}</span><span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-calendar-dominical/15 px-1.5 text-xs font-bold tabular-nums text-calendar-dominical">{isLoading ? "…" : isError ? "—" : data.length}</span>{!emFaixa && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}</Button>
+      <Button variant="outline" onClick={() => setAberto(true)} className={cn("h-auto min-w-0 w-full justify-start rounded-2xl bg-card text-left", emFaixa ? "min-h-11 gap-1 px-2 py-2 sm:gap-2 sm:px-3" : "grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1.5 gap-y-1 px-2.5 py-3 sm:flex sm:gap-3 sm:px-4")} aria-label="Ver aniversariantes">
+        <span className={cn("shrink-0 items-center justify-center rounded-lg bg-calendar-dominical/15 text-calendar-dominical", emFaixa ? "hidden h-7 w-7 sm:flex" : "hidden h-9 w-9 sm:flex")}><Cake className="h-4 w-4" /></span>
+        <span className={cn("min-w-0 flex-1 whitespace-normal", !emFaixa && "contents sm:block")}>
+          <strong className={cn("block font-semibold", emFaixa ? "break-words text-[10px] leading-tight sm:text-xs" : "text-xs leading-snug sm:text-sm")}>Aniversariantes</strong>
+          {!emFaixa && <span className="col-span-2 row-start-2 block whitespace-normal break-words text-[11px] leading-snug text-muted-foreground sm:text-xs">{competencia ? "Neste mês" : "Nos próximos 30 dias"}</span>}
+        </span>
+        <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-calendar-dominical/15 px-1.5 text-xs font-bold tabular-nums text-calendar-dominical">{isLoading ? "…" : isError ? "—" : data.length}</span>
+        {!emFaixa && <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" />}
+      </Button>
       <DpDialogShell open={aberto} onOpenChange={setAberto} icon={Cake} title="Aniversariantes" description={competencia ? "Nascimento e tempo de casa neste mês" : "Nascimento e tempo de casa nos próximos 30 dias"} footer={<Button variant="outline" onClick={() => setAberto(false)}>Fechar</Button>}>{lista}</DpDialogShell>
     </> : <div className={cn("min-w-0", competencia ? "space-y-3" : "rounded-2xl border-2 border-[hsl(var(--dp-birthday-border))] bg-[hsl(var(--dp-birthday-bg))] p-5")}>
       <div className="flex items-center gap-2 mb-1 flex-wrap">

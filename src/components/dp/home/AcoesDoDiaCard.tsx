@@ -119,21 +119,21 @@ export function AcoesDoDiaCard({ emFaixa = false }: { emFaixa?: boolean }) {
       <Button
         variant="ghost"
         onClick={() => setAberto(true)}
-        className={cn("h-auto w-full justify-start rounded-2xl border bg-card text-left hover:bg-muted/40", emFaixa ? "min-h-11 min-w-0 gap-2 px-2 py-2 sm:px-3" : "gap-3 px-4 py-3")}
+        className={cn("h-auto min-w-0 w-full justify-start rounded-2xl border bg-card text-left hover:bg-muted/40", emFaixa ? "min-h-11 gap-2 px-2 py-2 sm:px-3" : "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1.5 gap-y-1 px-2.5 py-3 sm:flex sm:gap-3 sm:px-4")}
         aria-label="Abrir Ações do Dia"
       >
-        <span className={cn("shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary", emFaixa ? "hidden h-7 w-7 sm:flex" : "flex h-9 w-9")}>
+        <span className={cn("shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary", emFaixa ? "hidden h-7 w-7 sm:flex" : "hidden h-9 w-9 sm:flex")}>
           <ListChecks className="h-4 w-4" aria-hidden="true" />
         </span>
-        <div className="min-w-0 flex-1">
-          <p className={cn("whitespace-normal font-semibold", emFaixa ? "text-[11px] leading-tight sm:text-xs" : "text-sm")}>Ações do Dia</p>
-          {!emFaixa && <p className={atrasadas > 0 || (falhou && !stable.ready) ? "truncate text-xs text-destructive" : "truncate text-xs text-muted-foreground"}>{resumo}</p>}
+        <div className={cn("min-w-0 flex-1", !emFaixa && "contents sm:block")}>
+          <p className={cn("whitespace-normal font-semibold", emFaixa ? "text-[11px] leading-tight sm:text-xs" : "text-xs leading-snug sm:text-sm")}>Ações do Dia</p>
+          {!emFaixa && <p className={cn("col-span-2 row-start-2 whitespace-normal break-words text-[11px] leading-snug sm:text-xs", atrasadas > 0 || (falhou && !stable.ready) ? "text-destructive" : "text-muted-foreground")}>{resumo}</p>}
         </div>
         {!carregando && abertas.length > 0 && (
           <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold tabular-nums text-primary-foreground">{abertas.length}</span>
         )}
         {emFaixa && (carregando || falhou) && <span className="text-xs text-muted-foreground" title={resumo}>{carregando ? "…" : "!"}</span>}
-        {!emFaixa && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
+        {!emFaixa && <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" aria-hidden="true" />}
       </Button>
 
       {isMobile ? (

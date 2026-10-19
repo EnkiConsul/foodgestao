@@ -1948,7 +1948,7 @@ export default function DpOperacaoPanorama({
       {inicioEmLinha && <section className="space-y-2" aria-label="Visão oficial do dia">
         {dia && <>
           <div className="flex flex-wrap items-center gap-1 rounded-xl border border-primary/20 bg-calendar-day-header px-2 py-1.5 text-xs text-calendar-header-foreground">
-            {inicioCabecalho}
+            <div className="flex min-w-0 flex-[1_1_180px] items-center gap-1">{inicioCabecalho}</div>
             <span className="ml-auto inline-flex shrink-0 items-center gap-1" title={`${dia.trabalhando} trabalhando${dia.aguardando > 0 ? ` · ${dia.aguardando} aguardando` : ""}`} aria-label={`${dia.trabalhando} trabalhando`}><Users className="h-3.5 w-3.5" /><strong>{dia.trabalhando}</strong></span>
             <Popover open={acoesInicioOpen} onOpenChange={setAcoesInicioOpen}><PopoverTrigger asChild><Button size="sm" className="h-8 shrink-0 gap-1 rounded-full bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90" aria-label="Ações do calendário"><MoreHorizontal className="h-4 w-4" />Ações</Button></PopoverTrigger>
               <PopoverContent align="end" className="w-80 max-w-[calc(100vw-2rem)] space-y-1 rounded-xl p-2">
