@@ -1,4 +1,8 @@
 # Melhorias da admissão
+## Início — campos encavalados no celular
+- [ ] Reorganizar Ações do Dia e Aniversariantes sem cortar títulos, contadores e resumos.
+- [ ] Separar título do calendário de unidade e abas; conferir o cabeçalho diário em largura estreita.
+- [ ] Validar os atalhos e o calendário com dados reais no celular e computador, sem publicar.
 ## Detalhes do dia — quadro operacional
 - [x] Suavizar somente o cabeçalho do dia no Início.
 - [x] Compactar a janela compartilhada: turnos lado a lado, linhas por colaborador, ausências à vista e menu Ações.
