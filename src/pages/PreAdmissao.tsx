@@ -361,6 +361,7 @@ interface ChecklistItem {
   pessoa_id?: string | null;
   pessoa_nome?: string | null;
   obrigatorio: boolean;
+  instrucao?: string | null;
 }
 
 interface DocumentoEnviado {
@@ -407,6 +408,9 @@ interface Estado {
 }
 
 /** Campos que a ficha sempre pede quando a empresa não muda a regra. */
+/** Documentos que a leitura automática sabe interpretar. */
+const CODIGOS_LEITURA = new Set(["identidade", "comprovante_endereco", "ctps", "titulo_eleitor", "reservista"]);
+
 const OBRIGATORIOS_PADRAO = new Set([
   "nome", "cpf", "data_nascimento", "email", "estado_civil", "nome_mae",
   "grau_instrucao", "telefone", "cep", "endereco", "cidade", "uf",
@@ -484,6 +488,14 @@ export default function PreAdmissao() {
   const assinaturaRef = useRef<string | null>(null);
   /** Foto escolhida aguardando a conferência do candidato. */
   const [conferindo, setConferindo] = useState<File | null>(null);
+  /** Bancos do catálogo do financeiro (lista única da plataforma). */
+  const [bancos, setBancos] = useState<Banco[]>([]);
+  const [bancoOutro, setBancoOutro] = useState(false);
+  /** Carteira física antiga: só então pedimos número, série, UF e data. */
+  const [ctpsFisica, setCtpsFisica] = useState(false);
+  /** Documento em leitura automática e campos preenchidos por ela. */
+  const [lendo, setLendo] = useState<string | null>(null);
+  const [lidos, setLidos] = useState<Set<string>>(new Set());
   /** Cópia local do que foi digitado: sobrevive a recarga e troca de app. */
   const servidorRef = useRef<string | null>(null);
   const chaveLocal = c ? `preadmissao-rascunho:${c}` : null;
@@ -729,12 +741,93 @@ export default function PreAdmissao() {
       });
       aplicar(await chamar<Estado>("dp-preadmissao-publica", { t, c, action: "ler" }));
       toast.success(`${rotuloParte(parte)} enviada`);
+      if (!item.pessoa_id && CODIGOS_LEITURA.has(item.codigo)) void lerDocumento(item.codigo);
     } catch (e) {
       void tratarFalha(e);
     } finally {
       setSubindo(null);
       alvo.current = null;
     }
+  };
+
+  /**
+   * Leitura automática: só preenche campos vazios e nunca nome/CPF conferidos
+   * pela empresa. O candidato confere tudo; o servidor revalida ao salvar.
+   */
+  const lerDocumento = async (codigo: string) => {
+    setLendo(codigo);
+    try {
+      const r = await chamar<{ campos: Record<string, string>; indisponivel?: boolean }>("dp-preadmissao-arquivo", {
+        action: "ler_documento", t, c, requisito_codigo: codigo,
+      });
+      const novos: string[] = [];
+      setForm((f) => {
+        const prox = { ...f };
+        for (const [k, v] of Object.entries(r.campos ?? {})) {
+          if (k === "nome" || k === "cpf" || !v || String(f[k] ?? "").trim()) continue;
+          prox[k] = v;
+          novos.push(k);
+        }
+        return prox;
+      });
+      // setForm roda já na sequência; o retorno fica disponível no próximo tique.
+      await Promise.resolve();
+      if (codigo === "ctps" && (r.campos?.ctps_serie || r.campos?.ctps_uf)) setCtpsFisica(true);
+      if (novos.length) {
+        setLidos((s) => new Set([...s, ...novos]));
+        toast.success(`Preenchemos ${novos.length} ${novos.length === 1 ? "campo" : "campos"} a partir do documento. Confira antes de seguir.`);
+      } else if (r.indisponivel) {
+        toast.info("A leitura automática não está disponível agora. Preencha os campos normalmente.");
+      } else {
+        toast.info("Não encontramos dados novos nesta foto. Se faltar algo, preencha manualmente.");
+      }
+    } catch {
+      toast.info("Não conseguimos ler o documento. Preencha os campos normalmente.");
+    } finally {
+      setLendo(null);
+    }
+  };
+
+  /** Atalho de envio no topo da etapa: documento primeiro, digitação depois. */
+  const renderLeitura = (codigos: string[]) => {
+    const itens = (estado?.checklist ?? []).filter((i) => !i.pessoa_id && codigos.includes(i.codigo));
+    if (!itens.length) return null;
+    return (
+      <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
+        <p className="flex items-center gap-2 text-sm font-medium">
+          <Sparkles className="h-4 w-4 text-primary shrink-0" /> Envie o documento e nós preenchemos para você
+        </p>
+        {itens.map((item) => {
+          const enviados = documentoPorChave.get(`${item.codigo}:`) ?? [];
+          const proxima = Math.min(enviados.length + 1, 10);
+          const ocupado = subindo?.startsWith(`${item.key}:`) || lendo === item.codigo;
+          return (
+            <div key={item.key} className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm">{item.titulo}</p>
+                <p className="text-xs text-muted-foreground">
+                  {lendo === item.codigo ? "Lendo seu documento…" : enviados.length
+                    ? `${enviados.length} ${enviados.length === 1 ? "foto enviada" : "fotos enviadas"}`
+                    : item.instrucao ?? "Foto ou PDF"}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {enviados.length > 0 && (
+                  <Button type="button" variant="ghost" size="sm" disabled={!!ocupado}
+                    onClick={() => void lerDocumento(item.codigo)}>Ler de novo</Button>
+                )}
+                <Button type="button" size="sm" variant={enviados.length ? "outline" : "default"} disabled={!!ocupado}
+                  onClick={() => escolherArquivo(item, proxima)}>
+                  {ocupado ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4 mr-1" />}
+                  {enviados.length ? rotuloParte(proxima) : "Enviar foto"}
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+        <p className="text-xs text-muted-foreground">Se não conseguirmos ler algum dado, é só digitar abaixo.</p>
+      </div>
+    );
   };
 
   /** O candidato revê o próprio arquivo por link temporário do convite. */
@@ -826,7 +919,9 @@ export default function PreAdmissao() {
     if (r) return r;
     return OBRIGATORIOS_PADRAO.has(nome) ? "obrigatorio" : "opcional";
   };
-  const campoVisivel = (c: Campo) => exigenciaCampo(c.nome) !== "nao_pedir" && (!c.quando || c.quando(form));
+  const campoVisivel = (c: Campo) =>
+    exigenciaCampo(c.nome) !== "nao_pedir" && (!c.quando || c.quando(form)) &&
+    (!c.ctpsFisica || ctpsFisica) && (!c.soHomem || form.sexo !== "feminino");
   const parentescosPermitidos = estado?.parentescos_permitidos ?? null;
   /** Finalidades liberadas num grau, já com as marcações antigas como reserva. */
   const liberadasDoGrau = (grau: string): string[] => {
@@ -1092,11 +1187,11 @@ export default function PreAdmissao() {
                         <span className="ml-1 text-primary font-normal">· lido do documento, confira</span>
                       )}
                     </Label>
-                    {campo.nome === "banco_nome" && bancos.length ? (
+                    {campo.nome === "banco_nome" && bancos.length && !bancoOutro && !(form.banco_nome && !form.banco_codigo) ? (
                       <BancoPicker
                         bancos={bancos}
                         nome={valor}
-                        onChange={(slug, nome) => setForm((f) => ({ ...f, banco_codigo: slug ?? "", banco_nome: nome }))}
+                        onChange={(slug, nome) => { if (!slug) setBancoOutro(true); setForm((f) => ({ ...f, banco_codigo: slug ?? "", banco_nome: nome })); }}
                       />
                     ) : campo.opcoes ? (
                       <Select
