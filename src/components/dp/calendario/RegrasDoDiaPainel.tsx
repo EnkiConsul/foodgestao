@@ -60,7 +60,7 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
   });
   const { regras: regrasLimite } = useDpFolgaLimites(unidadeId);
   const efetivos = useBloqueiosEfetivos(companyId, unidadeId, data, data);
-  const fixosPorDow = useFixosPorDiaSemana(companyId, unidadeId);
+  const fixosPorDow = useFixosPorDiaSemana(companyId, unidadeId, data);
 
   const q = useQuery({
     queryKey: ["dp_regras_do_dia", companyId, unidadeId, data],
@@ -131,13 +131,13 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
   if (q.isLoading || !q.data) return null;
   const { diaConfig, trocas } = q.data;
   const bloqueio = efetivos.data?.get(data) ?? null;
-  const resolvido = limiteComFolgaFixaDiaUtil(data, resolverLimiteFolga({ data, unidadeId, regras: regrasLimite ?? [], diaConfig }), fixosPorDow.data);
+  const resolvido = limiteComFolgaFixaDiaUtil(data, resolverLimiteFolga({ data, unidadeId, regras: regrasLimite ?? [], diaConfig }), fixosPorDow.naData(data));
   const lim = resolvido.limite;
   const cotas = cotasPorCargoNoDia({ data, unidadeId, regras: regrasLimite ?? [], diaConfig, ocupantes: ocupantes ?? [], cargoNomeById: new Map(cargosQ.data ?? []) });
   const trocasDaUnidade = trocas.filter((t) => nomes.has(t.solicitante_id) || nomes.has(t.destino_id));
   // Teto do dia bloqueado = folgas fixas cadastradas nesse dia da semana
   // (elas continuam valendo); vagas extras ficam zeradas.
-  const fixosBloqueio = fixosPorDow.data?.get(new Date(`${data}T12:00:00`).getDay()) ?? 0;
+  const fixosBloqueio = fixosPorDow.naData(data)?.get(new Date(`${data}T12:00:00`).getDay()) ?? 0;
 
   return (
     <div className="space-y-3">

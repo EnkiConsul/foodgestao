@@ -1,4 +1,8 @@
 # Melhorias da admissão
+## Folgas padrão — fonte da jornada
+- [x] Unificar a contagem pela configuração vigente na data e corrigir piso e ocupação no banco, preservando exceções, cotas e folgas extras.
+- [x] Sincronizar campos antigos vazios de Luiz e Herick sem alterar jornada, histórico ou regras cadastradas.
+- [x] Segunda 2/2 e sábado 3 fixos confirmados com sessão real; ambos os calendários mostram 2/2; 39 testes passaram, build OK, sem publicar.
 ## Início — campos encavalados no celular
 - [x] Reorganizar Ações do Dia e Aniversariantes sem cortar títulos, contadores e resumos.
 - [x] Separar título do calendário de unidade e abas; conferir o cabeçalho diário em largura estreita.

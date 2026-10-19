@@ -701,6 +701,27 @@
       "when": 1792355882185,
       "tag": "0099_permite_multiplos_dispositivos",
       "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1792407196484,
+      "tag": "0100_folga_fixos_jornada_vigente",
+      "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1792407441030,
+      "tag": "0101_folga_ocupacao_inclui_jornada_fixa",
+      "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1792407469986,
+      "tag": "0102_folga_ocupacao_preserva_extras",
+      "breakpoints": true
     }
   ]
 }
