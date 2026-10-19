@@ -1,4 +1,8 @@
 # Melhorias da admissão
+## Início — composição compacta
+- [ ] Mês maior ao lado do dia no computador; abas no celular.
+- [ ] Menu Ações único, linhas claras e compactas, contador de Aniversariantes à direita.
+- [ ] Conferir janelas oficiais, navegação e apresentação sem publicar.
 ## Calendário e aniversariantes — ajustes aprovados
 - [x] Suavizar pico e arredondar seletores; filtro de turno no mês resumido.
 - [x] Turnos resumidos em todos os aparelhos com janela operacional oficial e alteração de setor.
