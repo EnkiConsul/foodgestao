@@ -263,6 +263,9 @@ export interface ModoAdmissao {
    * de nascimento, contato de recado). Aparecem na aba "Dados".
    */
   complementares?: ReactNode;
+  /** Conferência guiada: avisa a aba aberta e permite pedir troca de aba. */
+  onAbaChange?: (aba: string) => void;
+  abaPedida?: { aba: string; n: number } | null;
   somenteLeitura?: boolean;
   salvando?: boolean;
   onSalvar: (e: SalvarAdmissaoEntrada) => Promise<void>;
@@ -356,6 +359,10 @@ export function ColaboradorFormDialog({
   const motivoIsonomia = useRef<MotivoIsonomiaEscolhido | null>(null);
   const [cienciaAberta, setCienciaAberta] = useState(false);
   const [tab, setTab] = useState<AbaVisivel>("dados");
+  useEffect(() => {
+    if (admissao?.abaPedida) { setTab(admissao.abaPedida.aba as AbaVisivel); admissao.onAbaChange?.(admissao.abaPedida.aba); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [admissao?.abaPedida?.n]);
   /** Intenção do botão acionado: continuar na tela, avançar de aba ou sair. */
   const intencaoRef = useRef<IntencaoSalvar>("stay");
   /** Marco do último estado gravado — base para detectar alterações pendentes. */
@@ -2308,7 +2315,7 @@ export function ColaboradorFormDialog({
       >
         <Tabs
           value={tab}
-          onValueChange={(v) => setTab(v as typeof tab)}
+          onValueChange={(v) => { setTab(v as typeof tab); admissao?.onAbaChange?.(v); }}
           className="flex min-h-0 flex-1 flex-col"
         >
           {/* Cabeçalho e abas fixos: só o conteúdo do formulário rola. */}
