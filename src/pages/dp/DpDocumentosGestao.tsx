@@ -326,6 +326,7 @@ export default function DpDocumentosGestao() {
           referenciaInicial={inicial.competencia ? `${inicial.competencia}-01` : undefined}
           loteAbertoId={inicial.lote}
           onLoteConcluido={limparContexto}
+          abrirHistoricoNonce={historicoNonce}
         />
       </div>
 
