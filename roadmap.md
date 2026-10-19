@@ -1,4 +1,8 @@
 # Melhorias da admissão
+\n+## Importação em janela — Gestão de Documentos
+- [ ] Abrir envio e histórico em janela sem deslocar a lista.
+- [ ] Fechar ao concluir a importação, atualizar documentos e conferir no celular/computador.
+
 - [x] Separar documentos do menor, retirar declaração de CNH e preservar anexos.
 - [x] Simplificar configuração de documentos e permitir inclusão/retirada pelo gestor.
 - [x] Configurar parentescos/finalidades por empresa em toda a ficha.
