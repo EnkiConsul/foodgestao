@@ -81,7 +81,7 @@ export function CalendarioOperacaoResumo() {
       <Card className="min-w-0 overflow-hidden rounded-2xl p-3 sm:p-4" role="region" aria-label="Calendário do início">
         <div className="flex flex-wrap items-center gap-2">
           <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
-          <h2 className="text-sm font-semibold">Calendário</h2>
+          <h2 className="text-sm font-semibold">Calendário Operacional</h2>
           {p.unidades.length > 1 && <Select value={unidade} onValueChange={(v) => {
             setUnidade(v); save({ extras: { ...(prefs.extras ?? {}), [UNIDADE_KEY]: v } });
           }}>
