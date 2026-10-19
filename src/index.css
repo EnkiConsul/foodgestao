@@ -62,6 +62,9 @@
     --calendar-atestado: 263 70% 45%;
     --calendar-falta: 347 77% 45%;
     --calendar-dominical: 38 92% 40%;
+    --calendar-pico: 38 75% 96%;
+    --calendar-header: 155 22% 9%;
+    --calendar-header-foreground: 150 12% 96%;
     --calendar-noite: 222 47% 11%;
     --calendar-noite-foreground: 210 40% 98%;
     --dp-pending-bg: 38 90% 96%;
@@ -148,6 +151,9 @@
     --calendar-atestado: 263 85% 78%;
     --calendar-falta: 347 85% 72%;
     --calendar-dominical: 38 92% 70%;
+    --calendar-pico: 38 22% 15%;
+    --calendar-header: 155 28% 6%;
+    --calendar-header-foreground: 150 12% 96%;
     --calendar-noite: 224 71% 4%;
     --calendar-noite-foreground: 210 40% 98%;
     --dp-pending-bg: 38 40% 14%;
