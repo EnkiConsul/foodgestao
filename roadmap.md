@@ -1,4 +1,8 @@
 # Melhorias da admissão
+## Calendário minimalista no Início
+- [x] Manter Hoje/Mês com navegação por setas e preservar o dia ao trocar o mês.
+- [x] Conferir navegação com dados existentes e testar viradas de mês/ano, sem publicar (6 testes; computador/celular sem erros de execução).
+
 ## Refinamentos da janela de documentos
 - [x] Sincronizar pendências após conclusão e fechar revisão completa somente com lote salvo (aprovação parcial mantém revisão aberta).
 - [x] Mover auditoria para filtros no celular e permitir alternar envio/histórico sem sair da janela, preservando preenchimento.

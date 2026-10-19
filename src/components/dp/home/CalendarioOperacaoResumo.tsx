@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useReducer, useState } from "react";
 import { Link } from "react-router-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { calendarioResumoNavigation } from "./calendarioResumoNavigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useDpOperacaoPanorama, type DiaPanorama } from "@/hooks/useDpOperacaoPanorama";
@@ -28,9 +30,9 @@ function resumo(d: DiaPanorama) {
 /** Resumo do Calendário da Rotina no Início — mesma rotina oficial, sem cálculo próprio. */
 export function CalendarioOperacaoResumo() {
   const hoje = hojeIsoLocal();
-  const [competencia, setCompetencia] = useState(hoje.slice(0, 7));
-  const [aba, setAba] = useState<"hoje" | "mes">("hoje");
-  const [selecionado, setSelecionado] = useState(hoje);
+  const [{ competencia, aba, selecionado }, navegar] = useReducer(calendarioResumoNavigation, {
+    competencia: hoje.slice(0, 7), aba: "hoje", selecionado: hoje,
+  });
   const [unidade, setUnidade] = useState("");
   const { prefs, save } = useDpUserPrefs();
   const p = useDpOperacaoPanorama(competencia, unidade || null);
@@ -50,15 +52,7 @@ export function CalendarioOperacaoResumo() {
     save({ extras: { ...(prefs.extras ?? {}), [UNIDADE_KEY]: v } });
   };
 
-  const mudarMes = (delta: number) => {
-    const [a, m] = competencia.split("-").map(Number);
-    const d = new Date(a, m - 1 + delta, 1);
-    setCompetencia(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-  };
-
-  const irHoje = () => { setAba("hoje"); setCompetencia(hoje.slice(0, 7)); setSelecionado(hoje); };
-
-  const dia = p.diaDe(selecionado);
+  const dia = selecionado.slice(0, 7) === competencia ? p.diaDe(selecionado) : undefined;
   const offset = p.dias[0] ? p.dias[0].dow : 0;
   const rotuloMes = useMemo(() => {
     const [a, m] = competencia.split("-").map(Number);
@@ -67,22 +61,18 @@ export function CalendarioOperacaoResumo() {
   const rotuloDia = new Date(`${selecionado}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" });
 
   return (
-    <Card className="min-w-0 p-3">
+    <Card className="min-w-0 p-3" role="region" aria-label="Calendário do início">
       <div className="mb-2 flex items-center gap-2">
         <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
         <h2 className="text-sm font-semibold">Calendário</h2>
-        <div className="ml-auto flex items-center gap-1 rounded-lg bg-muted p-0.5 text-xs">
-          {(["hoje", "mes"] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => (t === "hoje" ? irHoje() : setAba("mes"))}
-              className={cn("rounded-md px-2.5 py-1 font-medium", aba === t ? "bg-background shadow-sm" : "text-muted-foreground")}
-            >
-              {t === "hoje" ? "Hoje" : "Mês"}
-            </button>
-          ))}
-        </div>
+        <Tabs value={aba} onValueChange={(value) => {
+          if (value === "hoje" || value === "mes") navegar({ type: "aba", aba: value });
+        }} className="ml-auto">
+          <TabsList className="h-8 p-0.5" aria-label="Visualização do calendário">
+            <TabsTrigger value="hoje" className="px-2.5 py-1 text-xs">Hoje</TabsTrigger>
+            <TabsTrigger value="mes" className="px-2.5 py-1 text-xs">Mês</TabsTrigger>
+          </TabsList>
+        </Tabs>
         <Button asChild variant="ghost" size="icon" className="h-8 w-8" aria-label="Abrir calendário completo">
           <Link to="/dp/rotina/calendario"><ExternalLink className="h-4 w-4" /></Link>
         </Button>
@@ -103,13 +93,16 @@ export function CalendarioOperacaoResumo() {
         <div className="h-24 animate-pulse rounded-lg bg-muted" />
       ) : (
         <>
+          <div className="mb-2 flex min-h-9 items-center gap-1">
+            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => navegar({ type: "avancar", delta: -1 })} aria-label={aba === "mes" ? "Mês anterior" : "Dia anterior"}><ChevronLeft className="h-4 w-4" /></Button>
+            <span className="min-w-0 flex-1 text-center text-xs font-medium capitalize" aria-live="polite">
+              {aba === "mes" ? rotuloMes : selecionado === hoje ? `Hoje, ${rotuloDia}` : rotuloDia}
+            </span>
+            {(selecionado !== hoje || competencia !== hoje.slice(0, 7)) && <Button type="button" variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => navegar({ type: "hoje", data: hoje })} aria-label="Voltar para hoje">Hoje</Button>}
+            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => navegar({ type: "avancar", delta: 1 })} aria-label={aba === "mes" ? "Próximo mês" : "Próximo dia"}><ChevronRight className="h-4 w-4" /></Button>
+          </div>
           {aba === "mes" && (
             <>
-              <div className="mb-1 flex items-center justify-between">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => mudarMes(-1)} aria-label="Mês anterior"><ChevronLeft className="h-4 w-4" /></Button>
-                <span className="text-sm font-medium capitalize">{rotuloMes}</span>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => mudarMes(1)} aria-label="Próximo mês"><ChevronRight className="h-4 w-4" /></Button>
-              </div>
               <div className="grid grid-cols-7 gap-1 text-center text-[10px] uppercase text-muted-foreground">
                 {SEMANA.map((s, i) => <div key={i}>{s}</div>)}
               </div>
@@ -119,13 +112,17 @@ export function CalendarioOperacaoResumo() {
                   const ativo = d.data === selecionado;
                   const ehHoje = d.data === hoje;
                   return (
-                    <button
+                    <Button
+                      variant="ghost"
+                      aria-label={`Selecionar ${d.data}`}
+                      aria-pressed={ativo}
+                      aria-current={ehHoje ? "date" : undefined}
                       key={d.data}
                       type="button"
-                      onClick={() => setSelecionado(d.data)}
+                      onClick={() => navegar({ type: "selecionar", data: d.data })}
                       title={d.feriado_nome ?? undefined}
                       className={cn(
-                        "relative flex min-h-[40px] flex-col items-center justify-center rounded-lg border text-xs",
+                        "relative flex h-10 min-w-0 flex-col items-center justify-center gap-0 rounded-lg border p-0 text-xs",
                         ativo ? "border-primary bg-primary/10 font-semibold text-primary" : "border-border hover:bg-muted/60",
                         ehHoje && !ativo && "ring-1 ring-primary/50",
                         diaEhPico(d.data, d.feriado_nome) && !ativo && "bg-muted/40",
@@ -134,7 +131,7 @@ export function CalendarioOperacaoResumo() {
                       <span className="tabular-nums">{Number(d.data.slice(8))}</span>
                       <span className="text-[9px] tabular-nums text-muted-foreground">{d.trabalhando}</span>
                       {d.alerta && <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-destructive" />}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -143,25 +140,24 @@ export function CalendarioOperacaoResumo() {
 
           {dia ? (
             <div className={cn("rounded-lg bg-muted/40 p-2.5", aba === "mes" && "mt-2")}>
-              <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
-                <span className="font-medium capitalize">{selecionado === hoje ? "Hoje" : rotuloDia}</span>
+              {(aba === "mes" || dia.feriado_nome) && <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                {aba === "mes" && <span className="font-medium capitalize">{selecionado === hoje ? `Hoje, ${rotuloDia}` : rotuloDia}</span>}
                 {dia.feriado_nome && <span>🎉 {dia.feriado_nome}</span>}
-              </div>
-              <div className="grid grid-cols-3 gap-1.5">
+              </div>}
+              <div className="flex flex-wrap gap-x-3 gap-y-2">
                 {resumo(dia).map((i) => (
-                  <div key={i.k} className="rounded-md bg-background px-2 py-1.5">
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <span className={cn("h-1.5 w-1.5 rounded-full", i.cor)} />{i.k}
-                    </div>
-                    <div className="text-base font-semibold tabular-nums">{i.v}</div>
+                  <div key={i.k} className="flex items-center gap-1 text-xs">
+                    <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", i.cor)} />
+                    <span className="font-semibold tabular-nums">{i.v}</span>
+                    <span className="text-muted-foreground">{i.k}</span>
                   </div>
                 ))}
               </div>
               {dia.alerta && <p className="mt-1.5 text-xs text-destructive">Equipe fora do padrão neste dia.</p>}
             </div>
-          ) : (
+          ) : selecionado.slice(0, 7) === competencia ? (
             <p className="py-3 text-center text-xs text-muted-foreground">Sem informações para este dia.</p>
-          )}
+          ) : null}
         </>
       )}
     </Card>
