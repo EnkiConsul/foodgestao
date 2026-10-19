@@ -1023,6 +1023,7 @@ export default function DpOperacaoPanorama({
   const [detalheAvulso, setDetalheAvulso] = useState<"avulso_teste" | "avulso_folguista" | null>(null);
   /** Dia aberto em janela a partir do calendário do mês. */
   const [dataPopout, setDataPopout] = useState<string | null>(inicioEmLinha ? null : detalheInicial?.data ?? null);
+  const [acoesInicioOpen, setAcoesInicioOpen] = useState(false);
   useEffect(() => {
     if (embutido && dataPopout) setData(dataPopout);
   }, [embutido, dataPopout]);
@@ -1940,13 +1941,13 @@ export default function DpOperacaoPanorama({
         {dia && <>
           <div className="flex items-center justify-between gap-2 text-xs">
             <span className="inline-flex min-w-0 flex-wrap items-center gap-1.5 text-muted-foreground"><Users className="h-3.5 w-3.5 text-primary" /><strong className="text-foreground">{dia.trabalhando}</strong> trabalhando{dia.aguardando > 0 && <span>· {dia.aguardando} aguardando</span>}{dia.feriado_nome && <span>🎉 {dia.feriado_nome}</span>}</span>
-            <Popover><PopoverTrigger asChild><Button variant="outline" size="sm" className="h-8 shrink-0 gap-1.5 rounded-full px-3 text-xs" aria-label="Ações do calendário"><MoreHorizontal className="h-4 w-4" />Ações</Button></PopoverTrigger>
+            <Popover open={acoesInicioOpen} onOpenChange={setAcoesInicioOpen}><PopoverTrigger asChild><Button variant="outline" size="sm" className="h-8 shrink-0 gap-1.5 rounded-full px-3 text-xs" aria-label="Ações do calendário"><MoreHorizontal className="h-4 w-4" />Ações</Button></PopoverTrigger>
               <PopoverContent align="end" className="w-80 max-w-[calc(100vw-2rem)] space-y-1 rounded-xl p-2">
                 {podeRegistrar && <>
-                  <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => { setAusenciaData(data); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}><Plus className="h-4 w-4 text-calendar-falta" />Registrar Ausência</Button>
-                  <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => abrirNovaAvulsa(data)}><UserPlus className="h-4 w-4 text-primary" />Mão de Obra Extra</Button>
+                  <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => { setAcoesInicioOpen(false); setAusenciaData(data); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}><Plus className="h-4 w-4 text-calendar-falta" />Registrar Ausência</Button>
+                  <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => { setAcoesInicioOpen(false); abrirNovaAvulsa(data); }}><UserPlus className="h-4 w-4 text-primary" />Mão de Obra Extra</Button>
                 </>}
-                <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => { setPeriodoPopout("todos"); setDataPopout(data); }}><Eye className="h-4 w-4" />Detalhes e demais ações</Button>
+                <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => { setAcoesInicioOpen(false); setPeriodoPopout("todos"); setDataPopout(data); }}><Eye className="h-4 w-4" />Detalhes e demais ações</Button>
                 {companyIdCal && <div className="border-t px-1 pb-1 pt-2"><span className="inline-flex items-center gap-1.5 text-xs font-semibold"><Lock className="h-3.5 w-3.5" />Folgas deste dia</span><BloqueioDoDiaCabecalho companyId={companyIdCal} unidadeId={unidadeId} data={data} podeEditar={podeRegistrar} /></div>}
               </PopoverContent>
             </Popover>
