@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { calendarioResumoNavigation as navegar, type CalendarioResumoNavigation } from "./calendarioResumoNavigation";
 const state: CalendarioResumoNavigation = { aba: "hoje", competencia: "2026-10", selecionado: "2026-10-18" };
 describe("navegação do calendário do início", () => {
+  it("navega cada coluna sem depender da aba do celular", () => {
+    expect(navegar(state, { type: "avancar", delta: 1, alvo: "mes" })).toEqual({ ...state, competencia: "2026-11" });
+    expect(navegar({ ...state, aba: "mes" }, { type: "avancar", delta: 1, alvo: "hoje" })).toEqual({ ...state, aba: "mes", selecionado: "2026-10-19" });
+  });
   it("avança e volta um dia na aba Hoje", () => {
     expect(navegar(state, { type: "avancar", delta: 1 }).selecionado).toBe("2026-10-19");
     expect(navegar(state, { type: "avancar", delta: -1 }).selecionado).toBe("2026-10-17");

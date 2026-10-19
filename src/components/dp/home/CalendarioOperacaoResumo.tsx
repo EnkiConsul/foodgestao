@@ -83,20 +83,20 @@ export function CalendarioOperacaoResumo() {
           <h2 className="text-sm font-semibold">Calendário</h2>
           <Tabs value={aba} onValueChange={(value) => {
             if (value === "hoje" || value === "mes") navegar({ type: "aba", aba: value });
-          }} className="ml-auto">
+          }} className="ml-auto lg:hidden">
             <TabsList className="h-11 rounded-full p-1" aria-label="Visualização do calendário">
               <TabsTrigger value="hoje" className="min-h-9 rounded-full px-3 text-xs">Hoje</TabsTrigger>
               <TabsTrigger value="mes" className="min-h-9 rounded-full px-3 text-xs">Mês</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button asChild variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label="Abrir calendário completo">
+          <Button asChild variant="ghost" size="icon" className="ml-auto h-11 w-11 shrink-0 lg:ml-auto" aria-label="Abrir calendário completo">
             <Link to="/dp/rotina/calendario"><ExternalLink className="h-4 w-4" /></Link>
           </Button>
         </div>
         {p.unidades.length > 1 && <Select value={unidade} onValueChange={(v) => {
           setUnidade(v); save({ extras: { ...(prefs.extras ?? {}), [UNIDADE_KEY]: v } });
         }}>
-          <SelectTrigger className="mt-3 h-11 rounded-full bg-muted/40 px-4" aria-label="Unidade do calendário"><SelectValue placeholder="Unidade" /></SelectTrigger>
+          <SelectTrigger className="mt-2 h-9 w-full rounded-full bg-muted/40 px-4 text-xs sm:max-w-sm" aria-label="Unidade do calendário"><SelectValue placeholder="Unidade" /></SelectTrigger>
           <SelectContent className="rounded-xl">{p.unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent>
         </Select>}
 
@@ -106,13 +106,13 @@ export function CalendarioOperacaoResumo() {
         </div> : p.isLoading ? <div className="mt-3 h-40 animate-pulse rounded-lg bg-muted" aria-label="Carregando calendário" />
           : !p.unidades.length ? <p className="py-4 text-sm text-muted-foreground">Nenhuma unidade disponível para consultar o calendário.</p>
           : !unidade ? <div className="mt-3 h-40 animate-pulse rounded-lg bg-muted" /> : <>
-            <div className="my-2 flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => navegar({ type: "avancar", delta: -1 })} aria-label={aba === "mes" ? "Mês anterior" : "Dia anterior"}><ChevronLeft className="h-4 w-4" /></Button>
-              <span className="min-w-0 flex-1 text-center text-xs font-semibold capitalize" aria-live="polite">{aba === "mes" ? rotuloMes : selecionado === hoje ? `Hoje, ${rotuloDia}` : rotuloDia}</span>
-              {(selecionado !== hoje || competencia !== hoje.slice(0, 7)) && <Button variant="ghost" className="h-11 px-2 text-xs" onClick={() => navegar({ type: "hoje", data: hoje })} aria-label="Voltar para hoje">Hoje</Button>}
-              <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => navegar({ type: "avancar", delta: 1 })} aria-label={aba === "mes" ? "Próximo mês" : "Próximo dia"}><ChevronRight className="h-4 w-4" /></Button>
-            </div>
-            {aba === "mes" ? <>
+            <div className="mt-3 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
+            <section className={cn("min-w-0", aba !== "mes" && "hidden lg:block")} aria-label="Mês resumido">
+              <div className="mb-2 flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => navegar({ type: "avancar", delta: -1, alvo: "mes" })} aria-label="Mês anterior"><ChevronLeft className="h-4 w-4" /></Button>
+                <span className="min-w-0 flex-1 text-center text-xs font-semibold capitalize" aria-live="polite">{rotuloMes}</span>
+                <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => navegar({ type: "avancar", delta: 1, alvo: "mes" })} aria-label="Próximo mês"><ChevronRight className="h-4 w-4" /></Button>
+              </div>
               <div className="mb-3 inline-flex flex-wrap gap-1 rounded-full border bg-muted/40 p-1" role="group" aria-label="Turno do mês resumido">
                 {(["todos", "dia", "noite"] as PeriodoTurno[]).map((v) => <Button key={v} size="sm" variant={periodo === v ? "default" : "ghost"} aria-pressed={periodo === v} onClick={() => setPeriodo(v)} className="min-h-9 gap-1.5 rounded-full px-3 text-xs">{v === "todos" ? <Users className="h-3.5 w-3.5" /> : v === "dia" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}{v === "todos" ? "Todos" : v === "dia" ? "Dia" : "Noite"}</Button>)}
               </div>
@@ -131,7 +131,7 @@ export function CalendarioOperacaoResumo() {
                     title={[d.feriado_nome, d.alerta ? mensagemAlerta(d, d.avaliacao, p.unidades.find((u) => u.id === unidade)?.nome ?? null) : null].filter(Boolean).join(" · ") || undefined}
                     aria-label={`Selecionar ${d.data}, ${d.trabalhando} trabalhando, ${AUSENCIAS_MES.map((a) => `${a.valor(d)} ${a.label.toLowerCase()}`).join(", ")}${diaEhPico(d.data, d.feriado_nome) ? ", dia de pico" : ""}${d.alerta ? ", alerta de equipe" : ""}${aniversariosDoDia(d.data).length ? `, ${aniversariosDoDia(d.data).length} aniversariantes` : ""}`}
                     aria-pressed={d.data === selecionado} aria-current={d.data === hoje ? "date" : undefined}
-                    onClick={() => { navegar({ type: "selecionar", data: d.data }); abrirDia(d.data); }}
+                    onClick={() => { navegar({ type: "selecionar", data: d.data }); if (window.matchMedia("(max-width: 1023px)").matches) abrirDia(d.data); }}
                     className={cn("relative flex h-28 min-w-0 flex-col justify-start gap-1 rounded-lg border px-0.5 py-1 text-xs", "border-border bg-card", diaEhPico(d.data, d.feriado_nome) && "bg-calendar-pico", d.data === selecionado && "border-primary ring-1 ring-inset ring-primary", d.alerta && "border-destructive ring-1 ring-inset ring-destructive/60")}>
                     <span className="flex h-6 w-full items-center justify-between gap-0.5 px-0.5">
                       <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-semibold", d.data === hoje && "bg-primary text-primary-foreground")}>{Number(d.data.slice(8))}</span>
@@ -145,12 +145,22 @@ export function CalendarioOperacaoResumo() {
                   </Button>)}
                 </div>
               </div>
-              {dia && <Button variant="outline" className="mt-3 min-h-11 w-full justify-between text-xs" onClick={() => abrirDia(selecionado)}>
+              {dia && <Button variant="outline" className="mt-3 min-h-11 w-full justify-between text-xs lg:hidden" onClick={() => abrirDia(selecionado)}>
                 <span className="min-w-0 truncate capitalize">{rotuloDia} · {dia.trabalhando} trabalhando</span><ChevronRight className="h-4 w-4 shrink-0" />
               </Button>}
-            </> : <Suspense fallback={<p role="status" className="py-3 text-xs text-muted-foreground">Carregando dia…</p>}>
+            </section>
+            <section className={cn("min-w-0 space-y-2", aba !== "hoje" && "hidden lg:block")} aria-label="Dia resumido">
+              <div className="flex items-center gap-1 rounded-xl bg-calendar-header px-1 py-1 text-calendar-header-foreground">
+                <Button variant="ghost" size="icon" className="h-9 w-8 shrink-0 hover:bg-calendar-header-foreground/10 hover:text-calendar-header-foreground" onClick={() => navegar({ type: "avancar", delta: -1, alvo: "hoje" })} aria-label="Dia anterior"><ChevronLeft className="h-4 w-4" /></Button>
+                <span className="min-w-0 flex-1 text-center text-xs font-semibold first-letter:uppercase" aria-live="polite">{selecionado === hoje ? `Hoje, ${rotuloDia}` : rotuloDia}</span>
+                <Button variant="ghost" size="icon" className="h-9 w-8 shrink-0 hover:bg-calendar-header-foreground/10 hover:text-calendar-header-foreground" onClick={() => navegar({ type: "avancar", delta: 1, alvo: "hoje" })} aria-label="Próximo dia"><ChevronRight className="h-4 w-4" /></Button>
+              </div>
+              {selecionado !== hoje && <Button variant="ghost" className="h-7 rounded-full px-3 text-xs" onClick={() => navegar({ type: "hoje", data: hoje })}>Voltar para hoje</Button>}
+              <Suspense fallback={<p role="status" className="py-3 text-xs text-muted-foreground">Carregando dia…</p>}>
               <CalendarioOficial key={`${unidade}-${selecionado}`} modo="calendario" detalheInicial={{ data: selecionado, unidadeId: unidade }} inicioEmLinha />
-            </Suspense>}
+            </Suspense>
+            </section>
+            </div>
           </>}
       </Card>
       {detalhe && <Suspense fallback={<p role="status" className="py-2 text-xs text-muted-foreground">Abrindo detalhes do dia…</p>}>
