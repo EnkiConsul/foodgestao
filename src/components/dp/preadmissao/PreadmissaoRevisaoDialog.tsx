@@ -194,6 +194,10 @@ const ROTULOS_OPCOES: Record<string, Record<string, string>> = {
   emerg2_parentesco: Object.fromEntries(PARENTESCOS_EMERGENCIA.map((s) => [s.value, s.label])),
 };
 
+const ROTULO_DIVERGENCIA_OCR: Record<string, string> = { nome: "Nome", cpf: "CPF", data_nascimento: "Data de nascimento" };
+const formatarDivergencia = (campo: string, v: string) =>
+  campo === "cpf" ? maskCpf(v) : campo === "data_nascimento" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v.split("-").reverse().join("/") : v;
+
 const valorFicha = (campo: string, valor: unknown): string => {
   if (valor === null || valor === undefined || String(valor).trim() === "") return "";
   const bruto = String(valor);
