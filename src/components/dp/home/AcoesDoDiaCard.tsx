@@ -22,7 +22,7 @@ const dataBR = (d: string) => new Date(d.slice(0, 10) + "T12:00:00").toLocaleDat
  * gaveta na própria tela, com as ações de resolução; a tela completa fica
  * como link no rodapé.
  */
-export function AcoesDoDiaCard() {
+export function AcoesDoDiaCard({ emFaixa = false }: { emFaixa?: boolean }) {
   const { selectedCompanyId } = useCompanyContext();
   const { data, isLoading, isFetching, isError, refetch, dataUpdatedAt, lastCalculatedAt } = useDpPendencias();
   const stable = useStablePendencias({ companyId: selectedCompanyId, data, dataUpdatedAt, lastCalculatedAt, isLoading, isFetching });
@@ -116,24 +116,25 @@ export function AcoesDoDiaCard() {
 
   return (
     <>
-      <button
-        type="button"
+      <Button
+        variant="ghost"
         onClick={() => setAberto(true)}
-        className="flex w-full items-center gap-3 rounded-2xl border border-[hsl(var(--dp-border))] bg-card px-4 py-3 text-left transition-colors hover:bg-muted/40"
+        className={cn("h-auto w-full justify-start rounded-2xl border bg-card text-left hover:bg-muted/40", emFaixa ? "min-h-11 min-w-0 gap-2 px-2 py-2 sm:px-3" : "gap-3 px-4 py-3")}
         aria-label="Abrir Ações do Dia"
       >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <span className={cn("flex shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary", emFaixa ? "h-7 w-7" : "h-9 w-9")}>
           <ListChecks className="h-4 w-4" aria-hidden="true" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">Ações do Dia</p>
-          <p className={atrasadas > 0 || (falhou && !stable.ready) ? "truncate text-xs text-destructive" : "truncate text-xs text-muted-foreground"}>{resumo}</p>
+          <p className={cn("whitespace-normal font-semibold", emFaixa ? "text-[11px] leading-tight sm:text-xs" : "text-sm")}>Ações do Dia</p>
+          {!emFaixa && <p className={atrasadas > 0 || (falhou && !stable.ready) ? "truncate text-xs text-destructive" : "truncate text-xs text-muted-foreground"}>{resumo}</p>}
         </div>
         {!carregando && abertas.length > 0 && (
-          <span className="rounded-full bg-primary px-2.5 py-0.5 text-sm font-bold tabular-nums text-primary-foreground">{abertas.length}</span>
+          <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold tabular-nums text-primary-foreground">{abertas.length}</span>
         )}
-        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-      </button>
+        {emFaixa && (carregando || falhou) && <span className="text-xs text-muted-foreground" title={resumo}>{carregando ? "…" : "!"}</span>}
+        {!emFaixa && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
+      </Button>
 
       {isMobile ? (
         <Drawer open={aberto} onOpenChange={setAberto}>
