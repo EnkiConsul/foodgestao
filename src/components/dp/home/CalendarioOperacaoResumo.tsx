@@ -18,6 +18,9 @@ import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { ausenciasVisiveis, diaEhPico, folgaEhDominical, periodoHabitual, pessoaNoFiltro, tipoAusencia, type PeriodoTurno } from "@/lib/dp/calendario-rotina";
 import { mensagemAlerta } from "@/lib/dp/operacao-panorama";
+import { AcoesDoDiaCard } from "./AcoesDoDiaCard";
+import { ImportarDocumentoAtalho } from "./ImportarDocumentoAtalho";
+import { AniversariantesCard } from "./AniversariantesCard";
 
 type ControladorOficial = typeof import("@/pages/dp/DpOperacaoPanorama").default;
 const CalendarioOficial = lazyWithRetry<Parameters<ControladorOficial>[0], ControladorOficial>(() => import("@/pages/dp/DpOperacaoPanorama"));
@@ -78,9 +81,15 @@ export function CalendarioOperacaoResumo() {
   return (
     <>
       <Card className="min-w-0 overflow-hidden rounded-2xl p-3 sm:p-4" role="region" aria-label="Calendário do início">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
           <h2 className="text-sm font-semibold">Calendário</h2>
+          {p.unidades.length > 1 && <Select value={unidade} onValueChange={(v) => {
+            setUnidade(v); save({ extras: { ...(prefs.extras ?? {}), [UNIDADE_KEY]: v } });
+          }}>
+            <SelectTrigger className="h-9 w-auto min-w-0 max-w-[180px] flex-1 rounded-full bg-muted/40 px-3 text-xs sm:max-w-[240px] sm:flex-none [&>span]:truncate" aria-label="Unidade do calendário"><SelectValue placeholder="Unidade" /></SelectTrigger>
+            <SelectContent className="rounded-xl">{p.unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent>
+          </Select>}
           <Tabs value={aba} onValueChange={(value) => {
             if (value === "hoje" || value === "mes") navegar({ type: "aba", aba: value });
           }} className="ml-auto lg:hidden">
@@ -93,12 +102,11 @@ export function CalendarioOperacaoResumo() {
             <Link to="/dp/rotina/calendario"><ExternalLink className="h-4 w-4" /></Link>
           </Button>
         </div>
-        {p.unidades.length > 1 && <Select value={unidade} onValueChange={(v) => {
-          setUnidade(v); save({ extras: { ...(prefs.extras ?? {}), [UNIDADE_KEY]: v } });
-        }}>
-          <SelectTrigger className="mt-2 h-9 w-full rounded-full bg-muted/40 px-4 text-xs sm:max-w-sm" aria-label="Unidade do calendário"><SelectValue placeholder="Unidade" /></SelectTrigger>
-          <SelectContent className="rounded-xl">{p.unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent>
-        </Select>}
+        <div className="mt-2 grid grid-cols-3 items-stretch gap-1.5 sm:gap-2" aria-label="Atalhos do início">
+          <AcoesDoDiaCard emFaixa />
+          <ImportarDocumentoAtalho emFaixa />
+          <AniversariantesCard compacto emFaixa />
+        </div>
 
         {p.error ? <div className="space-y-2 py-4 text-center">
           <p className="text-sm text-muted-foreground">Não foi possível carregar o calendário.</p>
@@ -106,15 +114,15 @@ export function CalendarioOperacaoResumo() {
         </div> : p.isLoading ? <div className="mt-3 h-40 animate-pulse rounded-lg bg-muted" aria-label="Carregando calendário" />
           : !p.unidades.length ? <p className="py-4 text-sm text-muted-foreground">Nenhuma unidade disponível para consultar o calendário.</p>
           : !unidade ? <div className="mt-3 h-40 animate-pulse rounded-lg bg-muted" /> : <>
-            <div className="mt-3 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
-            <section className={cn("min-w-0", aba !== "mes" && "hidden lg:block")} aria-label="Mês resumido">
-              <div className="mb-2 flex items-center gap-1">
+            <div className="mt-3 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] lg:items-start">
+            <section className={cn("min-w-0 lg:col-start-2 lg:row-start-1", aba !== "mes" && "hidden lg:block")} aria-label="Mês resumido">
+              <div className="mb-2 flex flex-wrap items-center gap-1">
                 <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => navegar({ type: "avancar", delta: -1, alvo: "mes" })} aria-label="Mês anterior"><ChevronLeft className="h-4 w-4" /></Button>
                 <span className="min-w-0 flex-1 text-center text-xs font-semibold capitalize" aria-live="polite">{rotuloMes}</span>
                 <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => navegar({ type: "avancar", delta: 1, alvo: "mes" })} aria-label="Próximo mês"><ChevronRight className="h-4 w-4" /></Button>
-              </div>
-              <div className="mb-3 inline-flex flex-wrap gap-1 rounded-full border bg-muted/40 p-1" role="group" aria-label="Turno do mês resumido">
-                {(["todos", "dia", "noite"] as PeriodoTurno[]).map((v) => <Button key={v} size="sm" variant={periodo === v ? "default" : "ghost"} aria-pressed={periodo === v} onClick={() => setPeriodo(v)} className="min-h-9 gap-1.5 rounded-full px-3 text-xs">{v === "todos" ? <Users className="h-3.5 w-3.5" /> : v === "dia" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}{v === "todos" ? "Todos" : v === "dia" ? "Dia" : "Noite"}</Button>)}
+                <div className="ml-auto inline-flex gap-0.5 rounded-full border bg-muted/40 p-0.5" role="group" aria-label="Turno do mês resumido">
+                  {(["todos", "dia", "noite"] as PeriodoTurno[]).map((v) => <Button key={v} size="sm" variant={periodo === v ? "secondary" : "ghost"} aria-pressed={periodo === v} onClick={() => setPeriodo(v)} className="h-8 gap-1 rounded-full px-2 text-[11px]">{v === "todos" ? <Users className="h-3 w-3" /> : v === "dia" ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}{v === "todos" ? "Todos" : v === "dia" ? "Dia" : "Noite"}</Button>)}
+                </div>
               </div>
               <div className="mb-2 flex flex-wrap gap-x-3 gap-y-2 text-[10px] text-muted-foreground" aria-label="Legenda do calendário">
                 <span className="inline-flex items-center gap-1"><Users className="h-3 w-3 text-primary" />Trabalhando</span>
@@ -132,12 +140,12 @@ export function CalendarioOperacaoResumo() {
                     aria-label={`Selecionar ${d.data}, ${d.trabalhando} trabalhando, ${AUSENCIAS_MES.map((a) => `${a.valor(d)} ${a.label.toLowerCase()}`).join(", ")}${diaEhPico(d.data, d.feriado_nome) ? ", dia de pico" : ""}${d.alerta ? ", alerta de equipe" : ""}${aniversariosDoDia(d.data).length ? `, ${aniversariosDoDia(d.data).length} aniversariantes` : ""}`}
                     aria-pressed={d.data === selecionado} aria-current={d.data === hoje ? "date" : undefined}
                     onClick={() => { navegar({ type: "selecionar", data: d.data }); if (window.matchMedia("(max-width: 1023px)").matches) abrirDia(d.data); }}
-                    className={cn("relative flex h-28 min-w-0 flex-col justify-start gap-1 rounded-lg border px-0.5 py-1 text-xs", "border-border bg-card", diaEhPico(d.data, d.feriado_nome) && "bg-calendar-pico", d.data === selecionado && "border-primary ring-1 ring-inset ring-primary", d.alerta && "border-destructive ring-1 ring-inset ring-destructive/60")}>
+                    className={cn("relative flex h-[88px] min-w-0 flex-col justify-start gap-0.5 rounded-lg border px-0.5 py-1 text-xs", "border-border bg-card", diaEhPico(d.data, d.feriado_nome) && "bg-calendar-pico", d.data === selecionado && "border-primary ring-1 ring-inset ring-primary", d.alerta && "border-destructive ring-1 ring-inset ring-destructive/60")}>
                     <span className="flex h-6 w-full items-center justify-between gap-0.5 px-0.5">
                       <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-semibold", d.data === hoje && "bg-primary text-primary-foreground")}>{Number(d.data.slice(8))}</span>
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold tabular-nums text-primary" title={`${d.trabalhando} trabalhando`}><Users className="h-2.5 w-2.5" />{d.trabalhando}</span>
                       {d.alerta ? <AlertTriangle className="h-3 w-3 shrink-0 text-destructive" /> : d.feriado_nome ? <span className="text-[10px]">🎉</span> : diaEhPico(d.data) ? <Flame className="h-3 w-3 shrink-0 text-warning" /> : null}
                     </span>
-                    <span className="flex items-center justify-center gap-0.5 text-[11px] font-semibold tabular-nums text-primary"><Users className="h-3 w-3 shrink-0" />{d.trabalhando}</span>
                     <span className="grid w-full grid-cols-2 gap-0.5">
                       {AUSENCIAS_MES.filter((a) => a.valor(d) > 0).map(({ label, Icon, cor, valor }) => <span key={label} className={cn("flex min-w-0 items-center justify-center gap-0.5 rounded-sm py-0.5 text-[10px] leading-none tabular-nums", cor)}><Icon className="h-2.5 w-2.5 shrink-0" /><span>{valor(d)}</span></span>)}
                     </span>
@@ -149,15 +157,14 @@ export function CalendarioOperacaoResumo() {
                 <span className="min-w-0 truncate capitalize">{rotuloDia} · {dia.trabalhando} trabalhando</span><ChevronRight className="h-4 w-4 shrink-0" />
               </Button>}
             </section>
-            <section className={cn("min-w-0 space-y-2", aba !== "hoje" && "hidden lg:block")} aria-label="Dia resumido">
-              <div className="flex items-center gap-1 rounded-xl bg-calendar-header px-1 py-1 text-calendar-header-foreground">
-                <Button variant="ghost" size="icon" className="h-9 w-8 shrink-0 hover:bg-calendar-header-foreground/10 hover:text-calendar-header-foreground" onClick={() => navegar({ type: "avancar", delta: -1, alvo: "hoje" })} aria-label="Dia anterior"><ChevronLeft className="h-4 w-4" /></Button>
-                <span className="min-w-0 flex-1 text-center text-xs font-semibold first-letter:uppercase" aria-live="polite">{selecionado === hoje ? `Hoje, ${rotuloDia}` : rotuloDia}</span>
-                <Button variant="ghost" size="icon" className="h-9 w-8 shrink-0 hover:bg-calendar-header-foreground/10 hover:text-calendar-header-foreground" onClick={() => navegar({ type: "avancar", delta: 1, alvo: "hoje" })} aria-label="Próximo dia"><ChevronRight className="h-4 w-4" /></Button>
-              </div>
+            <section className={cn("min-w-0 space-y-2 lg:col-start-1 lg:row-start-1", aba !== "hoje" && "hidden lg:block")} aria-label="Dia resumido">
               {selecionado !== hoje && <Button variant="ghost" className="h-7 rounded-full px-3 text-xs" onClick={() => navegar({ type: "hoje", data: hoje })}>Voltar para hoje</Button>}
               <Suspense fallback={<p role="status" className="py-3 text-xs text-muted-foreground">Carregando dia…</p>}>
-              <CalendarioOficial key={`${unidade}-${selecionado}`} modo="calendario" detalheInicial={{ data: selecionado, unidadeId: unidade }} inicioEmLinha />
+              <CalendarioOficial key={`${unidade}-${selecionado}`} modo="calendario" detalheInicial={{ data: selecionado, unidadeId: unidade }} inicioEmLinha inicioCabecalho={<>
+                <Button variant="ghost" size="icon" className="h-8 w-6 shrink-0 hover:bg-calendar-header-foreground/10 hover:text-calendar-header-foreground" onClick={() => navegar({ type: "avancar", delta: -1, alvo: "hoje" })} aria-label="Dia anterior"><ChevronLeft className="h-4 w-4" /></Button>
+                <span className="min-w-0 text-xs font-semibold first-letter:uppercase" aria-live="polite">{selecionado === hoje ? `Hoje, ${rotuloDia}` : rotuloDia}</span>
+                <Button variant="ghost" size="icon" className="h-8 w-6 shrink-0 hover:bg-calendar-header-foreground/10 hover:text-calendar-header-foreground" onClick={() => navegar({ type: "avancar", delta: 1, alvo: "hoje" })} aria-label="Próximo dia"><ChevronRight className="h-4 w-4" /></Button>
+              </>} />
             </Suspense>
             </section>
             </div>
