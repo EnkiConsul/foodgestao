@@ -1491,16 +1491,11 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
 
   // Embutida na Gestão de Documentos: sem casca de página própria, as ações
   // de colunas/registro ficam numa barra discreta acima da listagem.
+  // Embutida na Gestão de Documentos: sem casca de página própria e sem linha
+  // avulsa de ações — o Registro de Alterações e as ações de coluna ficam
+  // integrados na barra de busca (ícone no celular, botões no computador).
   if (embutido) {
-    return (
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <div className="hidden md:flex items-center gap-2">{acoesTabelaDesktop}</div>
-          {botaoRegistro}
-        </div>
-        {conteudo}
-      </div>
-    );
+    return <div className="space-y-4">{conteudo}</div>;
   }
 
   return (
