@@ -1,7 +1,7 @@
 import { BookOpen, FileText, Receipt, ShieldAlert } from "lucide-react";
 
 export const TELAS_DOCUMENTOS = [
-  { to: "/dp/documentos", label: "Gestão de Documentos", icon: FileText },
+  { to: "/dp/documentos", label: "Gerir Documentos", icon: FileText },
   { to: "/dp/documentos/recibos", label: "Recibos", icon: Receipt },
   { to: "/dp/documentos/atas", label: "Atas de Reunião", icon: BookOpen },
   { to: "/dp/disciplinar", label: "Disciplinares", icon: ShieldAlert },
