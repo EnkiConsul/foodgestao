@@ -1006,7 +1006,8 @@ export default function DpOperacaoPanorama({
   detalheInicial,
   onFecharDetalhe,
   inicioEmLinha = false,
-}: { modo?: "operacao" | "calendario"; topo?: ReactNode; detalheInicial?: { data: string; unidadeId: string; periodo?: "todos" | "dia" | "noite" }; onFecharDetalhe?: () => void; inicioEmLinha?: boolean } = {}) {
+  inicioCabecalho,
+}: { modo?: "operacao" | "calendario"; topo?: ReactNode; detalheInicial?: { data: string; unidadeId: string; periodo?: "todos" | "dia" | "noite" }; onFecharDetalhe?: () => void; inicioEmLinha?: boolean; inicioCabecalho?: ReactNode } = {}) {
   const calendario = modo === "calendario";
   const embutido = Boolean(detalheInicial);
   const isMobile = useIsMobile();
@@ -1939,9 +1940,10 @@ export default function DpOperacaoPanorama({
 
       {inicioEmLinha && <section className="space-y-2" aria-label="Visão oficial do dia">
         {dia && <>
-          <div className="flex items-center justify-between gap-2 text-xs">
-            <span className="inline-flex min-w-0 flex-wrap items-center gap-1.5 text-muted-foreground"><Users className="h-3.5 w-3.5 text-primary" /><strong className="text-foreground">{dia.trabalhando}</strong> trabalhando{dia.aguardando > 0 && <span>· {dia.aguardando} aguardando</span>}{dia.feriado_nome && <span>🎉 {dia.feriado_nome}</span>}</span>
-            <Popover open={acoesInicioOpen} onOpenChange={setAcoesInicioOpen}><PopoverTrigger asChild><Button variant="outline" size="sm" className="h-8 shrink-0 gap-1.5 rounded-full px-3 text-xs" aria-label="Ações do calendário"><MoreHorizontal className="h-4 w-4" />Ações</Button></PopoverTrigger>
+          <div className="flex flex-wrap items-center gap-1 rounded-xl bg-calendar-header px-2 py-1.5 text-xs text-calendar-header-foreground">
+            {inicioCabecalho}
+            <span className="ml-auto inline-flex shrink-0 items-center gap-1" title={`${dia.trabalhando} trabalhando${dia.aguardando > 0 ? ` · ${dia.aguardando} aguardando` : ""}`} aria-label={`${dia.trabalhando} trabalhando`}><Users className="h-3.5 w-3.5" /><strong>{dia.trabalhando}</strong></span>
+            <Popover open={acoesInicioOpen} onOpenChange={setAcoesInicioOpen}><PopoverTrigger asChild><Button variant="ghost" size="sm" className="h-8 shrink-0 gap-1 rounded-full px-2 text-xs hover:bg-calendar-header-foreground/10 hover:text-calendar-header-foreground" aria-label="Ações do calendário"><MoreHorizontal className="h-4 w-4" />Ações</Button></PopoverTrigger>
               <PopoverContent align="end" className="w-80 max-w-[calc(100vw-2rem)] space-y-1 rounded-xl p-2">
                 {podeRegistrar && <>
                   <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => { setAcoesInicioOpen(false); setAusenciaData(data); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}><Plus className="h-4 w-4 text-calendar-falta" />Registrar Ausência</Button>
@@ -1952,6 +1954,7 @@ export default function DpOperacaoPanorama({
               </PopoverContent>
             </Popover>
           </div>
+          {(dia.aguardando > 0 || dia.feriado_nome) && <p className="text-xs text-muted-foreground">{dia.aguardando > 0 && `${dia.aguardando} aguardando`}{dia.aguardando > 0 && dia.feriado_nome && " · "}{dia.feriado_nome && `🎉 ${dia.feriado_nome}`}</p>}
           {conteudoDia(data, dia, true)}
           <AniversariantesCard compacto competencia={data.slice(0, 7)} dataDia={data} unidadeId={unidadeId} />
         </>}

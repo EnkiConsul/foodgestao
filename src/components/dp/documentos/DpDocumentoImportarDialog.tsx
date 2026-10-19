@@ -37,7 +37,7 @@ export function DpDocumentoImportarDialog({
       icon={FileUp}
       size="xl"
       title={alvo.tipo ? `Importar ${docTipoLabel(alvo.tipo)}` : "Revisar lote"}
-      description="Envie o PDF do escritório contábil. O sistema distribui cada página ao colaborador."
+      description="Envie o PDF para conferir e vincular as páginas aos colaboradores."
     >
       <BulkImportPanel
         title="Enviar PDF"

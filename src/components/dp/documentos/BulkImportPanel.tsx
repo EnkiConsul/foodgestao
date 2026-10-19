@@ -599,7 +599,7 @@ export function BulkImportPanel({
                 </Select>
                 <p className="text-[11px] text-muted-foreground">
                   {tipo === AUTO_TIPO
-                    ? "O sistema identifica a natureza de cada página (contracheque, 13º, férias, ponto…). Você confere antes de salvar."
+                    ? "O sistema identifica a natureza de cada página. Você confere antes de salvar."
                     : "Todas as páginas do PDF serão salvas com esta natureza."}
                 </p>
               </div>
