@@ -1,4 +1,8 @@
 # Melhorias da admissão
+## Início — Painel Inteligente e Calendário Operacional
+- [x] Ícone do painel, subtítulo que define a tela e título "Calendário Operacional".
+- [x] Linha dos dias da semana com as mesmas cores do calendário principal, mudando só o tamanho.
+- [x] Conferir título, subtítulo, faixa semanal e celular sem publicar: 11 testes, build OK e navegador sem erros.
 ## Início — refinamento final
 - [x] Dia à esquerda, Mês maior à direita; unidade e três atalhos compactos no topo.
 - [x] Reduzir células mensais e reunir data, trabalhando e Ações no cabeçalho diário.
