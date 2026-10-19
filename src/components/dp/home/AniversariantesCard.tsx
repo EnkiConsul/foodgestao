@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Cake, Clock, MessageCircle, MessageSquare, X } from "lucide-react";
+import { Cake, ChevronRight, Clock, MessageCircle, MessageSquare, X } from "lucide-react";
 import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
