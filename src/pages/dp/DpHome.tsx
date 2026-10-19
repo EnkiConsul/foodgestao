@@ -1,6 +1,6 @@
 import { AvisosGestorGate } from "@/components/dp/home/AvisosGestorGate";
 import { Helmet } from "react-helmet-async";
-import { Bell, Settings } from "lucide-react";
+import { LayoutDashboard, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { CalendarioOperacaoResumo } from "@/components/dp/home/CalendarioOperacaoResumo";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
@@ -26,9 +26,9 @@ export default function DpHome() {
       <Helmet><title>Pessoas 360° — Painel Inteligente</title></Helmet>
 
       <DpPageHeader
-        icon={Bell}
+        icon={LayoutDashboard}
         title="Painel Inteligente"
-        description="Visão geral e atalhos rápidos."
+        description="Escala de hoje, pendências e documentos da equipe em um só lugar."
         className="flex-row items-center justify-between gap-3"
         actionsClassName="w-auto shrink-0 [&>*]:min-h-0"
         actions={
