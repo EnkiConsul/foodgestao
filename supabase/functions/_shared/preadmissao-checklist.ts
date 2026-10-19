@@ -42,15 +42,15 @@ export interface ItemChecklist {
 export const DOCUMENTOS: Record<string, { titulo: string; instrucao?: string }> = {
   identidade: {
     titulo: "Identidade com CPF ou CNH",
-    instrucao: "Envie o RG com CPF ou a CNH. Um dos dois já atende.",
+    instrucao: "Envie o RG com CPF ou a CNH (física, PDF ou print do app gov.br/CNH do Brasil). Um dos dois já atende.",
   },
   ctps: {
     titulo: "Carteira de Trabalho (digital ou física)",
-    instrucao: "Pode ser a foto da carteira física ou o PDF da carteira digital.",
+    instrucao: "A maioria é digital: envie o print ou PDF da Carteira de Trabalho Digital (app ou gov.br). Se tiver só a física, envie a foto da página com a sua foto e a de qualificação.",
   },
   foto_3x4: {
     titulo: "Foto estilo 3x4",
-    instrucao: "Envie uma foto recente, de frente, com boa iluminação e o rosto visível.",
+    instrucao: "Pode ser uma foto 3x4 ou uma selfie recente: de frente, com boa iluminação, fundo claro (parede branca ou neutra) e o rosto visível, sem boné ou óculos escuros.",
   },
   titulo_eleitor: { titulo: "Título de eleitor" },
   cns_sus: { titulo: "Cartão Nacional de Saúde (SUS)" },

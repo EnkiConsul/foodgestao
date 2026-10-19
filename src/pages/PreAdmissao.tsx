@@ -11,7 +11,9 @@ import { converterHeicParaJpeg } from "@/lib/storage/heic";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Camera, CheckCircle2, ChevronDown, Loader2, Send } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, Check, CheckCircle2, ChevronDown, ChevronsUpDown, Loader2, Send, Sparkles } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -48,7 +50,54 @@ type Campo = {
   somenteLeitura?: boolean;
   /** Só aparece quando a condição sobre o que já foi preenchido vale. */
   quando?: (f: Record<string, string>) => boolean;
+  /** Só para quem tem a carteira de trabalho física (a digital usa o CPF). */
+  ctpsFisica?: boolean;
+  /** Reservista: não se pede de quem informou sexo feminino. */
+  soHomem?: boolean;
 };
+
+type Banco = { slug: string; name: string; logo_url?: string | null; domain?: string | null };
+
+/** Lista de bancos do financeiro, com busca, para o candidato sem login. */
+function BancoPicker({ bancos, nome, onChange }: {
+  bancos: Banco[];
+  nome: string;
+  onChange: (slug: string | null, nome: string) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <Popover open={aberto} onOpenChange={setAberto}>
+      <PopoverTrigger asChild>
+        <Button id="campo-banco_nome" type="button" variant="outline" role="combobox" aria-expanded={aberto}
+          className="h-11 w-full justify-between font-normal">
+          <span className="truncate">{nome || "Buscar banco"}</span>
+          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Digite o nome do banco..." />
+          <CommandList>
+            <CommandEmpty>Nenhum banco encontrado.</CommandEmpty>
+            <CommandGroup>
+              {bancos.map((b) => (
+                <CommandItem key={b.slug} value={b.name}
+                  onSelect={() => { onChange(b.slug, b.name.toLocaleUpperCase("pt-BR")); setAberto(false); }}>
+                  <Check className={`mr-2 h-4 w-4 ${nome === b.name.toLocaleUpperCase("pt-BR") ? "opacity-100" : "opacity-0"}`} />
+                  {b.name}
+                </CommandItem>
+              ))}
+              <CommandItem value="outro não listado"
+                onSelect={() => { onChange(null, ""); setAberto(false); }}>
+                Outro / não listado (digite abaixo)
+              </CommandItem>
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 const RACA_COR: Opcao[] = [
   { value: "branca", label: "Branca" },
@@ -70,10 +119,11 @@ const DEFICIENCIA: Opcao[] = [
   { value: "reabilitado", label: "Reabilitado(a) pelo INSS" },
 ];
 
-const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?: boolean }> = [
+const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?: boolean; leitura?: string[] }> = [
   {
     titulo: "Seus Dados",
-    ajuda: "Escreva como está no seu documento.",
+    ajuda: "Envie a foto do RG ou da CNH e nós preenchemos o que der para você conferir. O resto é rápido.",
+    leitura: ["identidade"],
     campos: [
       { nome: "nome", rotulo: "Nome completo", upper: true, autoComplete: "name", somenteLeitura: true },
       { nome: "cpf", rotulo: "CPF", inputMode: "numeric", mask: "cpf", somenteLeitura: true },
@@ -122,7 +172,8 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?:
   },
   {
     titulo: "Endereço",
-    ajuda: "Comece pelo CEP: o resto do endereço vem preenchido.",
+    ajuda: "Envie o comprovante e nós preenchemos o endereço, ou comece pelo CEP.",
+    leitura: ["comprovante_endereco"],
     campos: [],
     endereco: true,
   },
@@ -153,22 +204,26 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?:
   },
   {
     titulo: "Documentos e Registros",
-    ajuda: "Se não souber algum número, deixe em branco.",
+    ajuda: "Envie as fotos acima e nós preenchemos o que der. Se não souber algum número, deixe em branco.",
+    leitura: ["ctps", "titulo_eleitor", "reservista"],
     campos: [
       { nome: "rg_numero", rotulo: "RG", inputMode: "numeric" },
       { nome: "rg_orgao", rotulo: "Órgão emissor do RG", upper: true },
       { nome: "rg_uf", rotulo: "UF do RG", opcoes: UFS.map((uf) => ({ value: uf, label: uf })) },
       { nome: "rg_emissao", rotulo: "Data de emissão do RG", mask: "data", inputMode: "numeric", ajuda: "dd/mm/aaaa" },
-      { nome: "pis", rotulo: "PIS / NIS", inputMode: "numeric" },
-      { nome: "ctps_numero", rotulo: "Carteira de trabalho", inputMode: "numeric" },
-      { nome: "ctps_serie", rotulo: "Série da carteira", inputMode: "numeric" },
-      { nome: "ctps_uf", rotulo: "UF da carteira", opcoes: UFS.map((uf) => ({ value: uf, label: uf })) },
-      { nome: "ctps_expedicao", rotulo: "Data da carteira", mask: "data", inputMode: "numeric", ajuda: "dd/mm/aaaa" },
+      {
+        nome: "pis", rotulo: "PIS / NIS", inputMode: "numeric",
+        ajuda: "Aparece no app Carteira de Trabalho Digital ou no cartão Cidadão. Se é seu primeiro emprego ou não souber, deixe em branco.",
+      },
+      { nome: "ctps_numero", rotulo: "Número da carteira física", inputMode: "numeric", ctpsFisica: true },
+      { nome: "ctps_serie", rotulo: "Série da carteira", inputMode: "numeric", ctpsFisica: true },
+      { nome: "ctps_uf", rotulo: "UF da carteira", opcoes: UFS.map((uf) => ({ value: uf, label: uf })), ctpsFisica: true },
+      { nome: "ctps_expedicao", rotulo: "Data da carteira", mask: "data", inputMode: "numeric", ajuda: "dd/mm/aaaa", ctpsFisica: true },
       { nome: "titulo_eleitor", rotulo: "Título de eleitor", inputMode: "numeric" },
       { nome: "titulo_zona", rotulo: "Zona do título", inputMode: "numeric" },
       { nome: "titulo_secao", rotulo: "Seção do título", inputMode: "numeric" },
-      { nome: "reservista", rotulo: "Certificado de reservista", inputMode: "numeric" },
-      { nome: "reservista_categoria", rotulo: "Categoria da reservista", upper: true },
+      { nome: "reservista", rotulo: "Certificado de reservista", inputMode: "numeric", soHomem: true },
+      { nome: "reservista_categoria", rotulo: "Categoria da reservista", upper: true, soHomem: true },
     ],
   },
 ];
@@ -306,6 +361,7 @@ interface ChecklistItem {
   pessoa_id?: string | null;
   pessoa_nome?: string | null;
   obrigatorio: boolean;
+  instrucao?: string | null;
 }
 
 interface DocumentoEnviado {
@@ -352,6 +408,9 @@ interface Estado {
 }
 
 /** Campos que a ficha sempre pede quando a empresa não muda a regra. */
+/** Documentos que a leitura automática sabe interpretar. */
+const CODIGOS_LEITURA = new Set(["identidade", "comprovante_endereco", "ctps", "titulo_eleitor", "reservista"]);
+
 const OBRIGATORIOS_PADRAO = new Set([
   "nome", "cpf", "data_nascimento", "email", "estado_civil", "nome_mae",
   "grau_instrucao", "telefone", "cep", "endereco", "cidade", "uf",
@@ -429,6 +488,26 @@ export default function PreAdmissao() {
   const assinaturaRef = useRef<string | null>(null);
   /** Foto escolhida aguardando a conferência do candidato. */
   const [conferindo, setConferindo] = useState<File | null>(null);
+  /** Bancos do catálogo do financeiro (lista única da plataforma). */
+  const [bancos, setBancos] = useState<Banco[]>([]);
+  const [bancoOutro, setBancoOutro] = useState(false);
+  /** Carteira física antiga: só então pedimos número, série, UF e data. */
+  const [ctpsFisica, setCtpsFisica] = useState(false);
+  /** Documento em leitura automática e campos preenchidos por ela. */
+  const [lendo, setLendo] = useState<string | null>(null);
+  const [lidos, setLidos] = useState<Set<string>>(new Set());
+  const formRef = useRef(form);
+  formRef.current = form;
+  const ctpsIniciada = useRef(false);
+  useEffect(() => {
+    if (!estado || ctpsIniciada.current) return;
+    ctpsIniciada.current = true;
+    const d = estado.dados ?? {};
+    setCtpsFisica(!!(d.ctps_serie || d.ctps_uf || (d.ctps_numero && d.ctps_numero !== d.cpf)));
+    chamar<{ bancos: Banco[] }>("dp-preadmissao-arquivo", { action: "bancos", t, c })
+      .then((r) => setBancos(r.bancos ?? []))
+      .catch(() => setBancos([]));
+  }, [estado, t, c]);
   /** Cópia local do que foi digitado: sobrevive a recarga e troca de app. */
   const servidorRef = useRef<string | null>(null);
   const chaveLocal = c ? `preadmissao-rascunho:${c}` : null;
@@ -674,12 +753,92 @@ export default function PreAdmissao() {
       });
       aplicar(await chamar<Estado>("dp-preadmissao-publica", { t, c, action: "ler" }));
       toast.success(`${rotuloParte(parte)} enviada`);
+      if (!item.pessoa_id && CODIGOS_LEITURA.has(item.codigo)) void lerDocumento(item.codigo);
     } catch (e) {
       void tratarFalha(e);
     } finally {
       setSubindo(null);
       alvo.current = null;
     }
+  };
+
+  /**
+   * Leitura automática: só preenche campos vazios e nunca nome/CPF conferidos
+   * pela empresa. O candidato confere tudo; o servidor revalida ao salvar.
+   */
+  const lerDocumento = async (codigo: string) => {
+    setLendo(codigo);
+    try {
+      const r = await chamar<{ campos: Record<string, string>; indisponivel?: boolean }>("dp-preadmissao-arquivo", {
+        action: "ler_documento", t, c, requisito_codigo: codigo,
+      });
+      const atual = formRef.current;
+      const novos = Object.entries(r.campos ?? {})
+        .filter(([k, v]) => k !== "nome" && k !== "cpf" && !!v && !String(atual[k] ?? "").trim())
+        .map(([k]) => k);
+      if (novos.length) {
+        setForm((f) => {
+          const prox = { ...f };
+          for (const k of novos) if (!String(f[k] ?? "").trim()) prox[k] = r.campos[k];
+          return prox;
+        });
+      }
+      if (codigo === "ctps" && (r.campos?.ctps_serie || r.campos?.ctps_uf)) setCtpsFisica(true);
+      if (novos.length) {
+        setLidos((s) => new Set([...s, ...novos]));
+        toast.success(`Preenchemos ${novos.length} ${novos.length === 1 ? "campo" : "campos"} a partir do documento. Confira antes de seguir.`);
+      } else if (r.indisponivel) {
+        toast.info("A leitura automática não está disponível agora. Preencha os campos normalmente.");
+      } else {
+        toast.info("Não encontramos dados novos nesta foto. Se faltar algo, preencha manualmente.");
+      }
+    } catch {
+      toast.info("Não conseguimos ler o documento. Preencha os campos normalmente.");
+    } finally {
+      setLendo(null);
+    }
+  };
+
+  /** Atalho de envio no topo da etapa: documento primeiro, digitação depois. */
+  const renderLeitura = (codigos: string[]) => {
+    const itens = (estado?.checklist ?? []).filter((i) => !i.pessoa_id && codigos.includes(i.codigo));
+    if (!itens.length) return null;
+    return (
+      <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
+        <p className="flex items-center gap-2 text-sm font-medium">
+          <Sparkles className="h-4 w-4 text-primary shrink-0" /> Envie o documento e nós preenchemos para você
+        </p>
+        {itens.map((item) => {
+          const enviados = documentoPorChave.get(`${item.codigo}:`) ?? [];
+          const proxima = Math.min(enviados.length + 1, 10);
+          const ocupado = subindo?.startsWith(`${item.key}:`) || lendo === item.codigo;
+          return (
+            <div key={item.key} className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm">{item.titulo}</p>
+                <p className="text-xs text-muted-foreground">
+                  {lendo === item.codigo ? "Lendo seu documento…" : enviados.length
+                    ? `${enviados.length} ${enviados.length === 1 ? "foto enviada" : "fotos enviadas"}`
+                    : item.instrucao ?? "Foto ou PDF"}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {enviados.length > 0 && (
+                  <Button type="button" variant="ghost" size="sm" disabled={!!ocupado}
+                    onClick={() => void lerDocumento(item.codigo)}>Ler de novo</Button>
+                )}
+                <Button type="button" size="sm" variant={enviados.length ? "outline" : "default"} disabled={!!ocupado}
+                  onClick={() => escolherArquivo(item, proxima)}>
+                  {ocupado ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4 mr-1" />}
+                  {enviados.length ? rotuloParte(proxima) : "Enviar foto"}
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+        <p className="text-xs text-muted-foreground">Se não conseguirmos ler algum dado, é só digitar abaixo.</p>
+      </div>
+    );
   };
 
   /** O candidato revê o próprio arquivo por link temporário do convite. */
@@ -771,7 +930,9 @@ export default function PreAdmissao() {
     if (r) return r;
     return OBRIGATORIOS_PADRAO.has(nome) ? "obrigatorio" : "opcional";
   };
-  const campoVisivel = (c: Campo) => exigenciaCampo(c.nome) !== "nao_pedir" && (!c.quando || c.quando(form));
+  const campoVisivel = (c: Campo) =>
+    exigenciaCampo(c.nome) !== "nao_pedir" && (!c.quando || c.quando(form)) &&
+    (!c.ctpsFisica || ctpsFisica) && (!c.soHomem || form.sexo !== "feminino");
   const parentescosPermitidos = estado?.parentescos_permitidos ?? null;
   /** Finalidades liberadas num grau, já com as marcações antigas como reserva. */
   const liberadasDoGrau = (grau: string): string[] => {
@@ -934,8 +1095,33 @@ export default function PreAdmissao() {
                         {INSTRUCAO.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-muted-foreground">
+                      É até onde você estudou. Escolha a última etapa que terminou — por exemplo, se parou no 2º ano do
+                      ensino médio, escolha "Ensino médio incompleto"; se terminou o 3º ano, "Ensino médio completo".
+                    </p>
                   </div>
                   )}
+                </div>
+              )}
+              {renderLeitura(etapaAtual.leitura ?? [])}
+              {etapaAtual.campos.some((c) => c.ctpsFisica) && (
+                <div className="flex items-start justify-between gap-3 rounded-md border p-3">
+                  <div className="min-w-0">
+                    <Label htmlFor="ctps_fisica" className="text-sm">Minha carteira de trabalho é a física antiga (papel)</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Na Carteira de Trabalho Digital o número é o seu CPF — não precisa preencher nada.
+                    </p>
+                  </div>
+                  <Switch
+                    id="ctps_fisica"
+                    checked={ctpsFisica}
+                    onCheckedChange={(v) => {
+                      setCtpsFisica(v);
+                      setForm((f) => v
+                        ? { ...f, ctps_numero: f.ctps_numero === f.cpf ? "" : f.ctps_numero }
+                        : { ...f, ctps_numero: f.cpf ?? "", ctps_serie: "", ctps_uf: "", ctps_expedicao: "" });
+                    }}
+                  />
                 </div>
               )}
               {etapaAtual.endereco ? (
@@ -1008,11 +1194,25 @@ export default function PreAdmissao() {
                       {exigenciaCampo(campo.nome) === "obrigatorio" && (
                         <span className="text-destructive"> *</span>
                       )}
+                      {lidos.has(campo.nome) && (
+                        <span className="ml-1 text-primary font-normal">· lido do documento, confira</span>
+                      )}
                     </Label>
-                    {campo.opcoes ? (
+                    {campo.nome === "banco_nome" && bancos.length && !bancoOutro && !(form.banco_nome && !form.banco_codigo) ? (
+                      <BancoPicker
+                        bancos={bancos}
+                        nome={valor}
+                        onChange={(slug, nome) => { if (!slug) setBancoOutro(true); setForm((f) => ({ ...f, banco_codigo: slug ?? "", banco_nome: nome })); }}
+                      />
+                    ) : campo.opcoes ? (
                       <Select
                         value={valor}
-                        onValueChange={(v) => setForm((f) => ({ ...f, [campo.nome]: v }))}
+                        onValueChange={(v) => setForm((f) => {
+                          if (campo.nome !== "pix_tipo") return { ...f, [campo.nome]: v };
+                          // Chave Pix já conhecida: reaproveita o que foi digitado antes.
+                          const sugestao = v === "cpf" ? f.cpf : v === "telefone" ? f.telefone : v === "email" ? f.email : "";
+                          return { ...f, pix_tipo: v, pix_chave: sugestao ? String(sugestao) : (f.pix_tipo === v ? f.pix_chave : "") };
+                        })}
                       >
                         <SelectTrigger id={`campo-${campo.nome}`} className="h-11">
                           <SelectValue placeholder="Escolher" />
@@ -1200,6 +1400,7 @@ export default function PreAdmissao() {
                         {item.pessoa_nome ? item.pessoa_nome : "Seu documento"}
                         {item.obrigatorio ? " · obrigatório" : " · opcional"}
                       </p>
+                      {item.instrucao && <p className="text-xs text-muted-foreground">{item.instrucao}</p>}
                       <p className="text-xs text-muted-foreground">
                         Se o documento tiver frente e verso, envie uma foto de cada lado.
                       </p>

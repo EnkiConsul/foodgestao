@@ -23,6 +23,8 @@ import {
   validarConvite,
 } from "../_shared/preadmissao.ts";
 import { aplicarRegrasDocumentos, montarChecklist } from "../_shared/preadmissao-checklist.ts";
+import { type ArquivoLeitura, CODIGOS_LEITURA, lerDocumento } from "../_shared/preadmissao-ocr.ts";
+import { base64Encode } from "../_shared/doc-bulk-ocr.ts";
 
 const BUCKET = "dp-documentos";
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -245,6 +247,57 @@ Deno.serve(async (req) => {
       const signed = await admin.storage.from(BUCKET).createSignedUrl(doc.file_path as string, 120);
       if (signed.error) return jsonError(req, "internal", signed.error.message);
       return jsonResponse(req, 200, { url: signed.data.signedUrl, file_name: doc.file_name });
+    }
+
+    // ---------- Candidato: lista oficial de bancos (mesma do financeiro) ----------
+    if (acao === "bancos") {
+      const valid = await validarConvite(admin, String(body?.t ?? ""), String(body?.c ?? ""));
+      if (!valid.ok) return jsonResponse(req, 403, { error: "Este link não está mais válido." });
+      const { data } = await admin
+        .from("banks")
+        .select("slug, name, domain, logo_url")
+        .eq("is_active", true)
+        .order("sort_order")
+        .order("name");
+      return jsonResponse(req, 200, { bancos: data ?? [] });
+    }
+
+    // ---------- Candidato: leitura automática do documento enviado ----------
+    if (acao === "ler_documento") {
+      if (await ipRateLimited(admin as unknown as Parameters<typeof ipRateLimited>[0], req, "preadmissao_ocr", 40)) {
+        return jsonError(req, "rate_limited");
+      }
+      const valid = await validarConvite(admin, String(body?.t ?? ""), String(body?.c ?? ""));
+      if (!valid.ok) return jsonResponse(req, 403, { error: "Este link não está mais válido." });
+      const pa = valid.preadmissao;
+      if (!candidatoPodeEditar(pa.status)) return jsonResponse(req, 409, { error: FASE_ENCERRADA });
+      const codigo = String(body?.requisito_codigo ?? "").trim();
+      if (!CODIGOS_LEITURA.includes(codigo)) return jsonResponse(req, 200, { campos: {} });
+      const aiKey = Deno.env.get("LOVABLE_API_KEY");
+      if (!aiKey) return jsonResponse(req, 200, { campos: {}, indisponivel: true });
+      const { data: docs } = await admin
+        .from("dp_preadmissao_documentos")
+        .select("file_path, mime_type, file_size, parte")
+        .eq("preadmissao_id", pa.id)
+        .eq("requisito_codigo", codigo)
+        .is("pessoa_id", null)
+        .is("substituido_em", null)
+        .order("parte")
+        .limit(3);
+      const arquivos: ArquivoLeitura[] = [];
+      for (const d of docs ?? []) {
+        if (Number(d.file_size ?? 0) > MAX_BYTES) continue;
+        const mime = String(d.mime_type ?? "");
+        if (!["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(mime)) continue;
+        const dl = await admin.storage.from(BUCKET).download(d.file_path as string);
+        if (dl.error || !dl.data) continue;
+        arquivos.push({ mime, base64: base64Encode(new Uint8Array(await dl.data.arrayBuffer())) });
+      }
+      if (!arquivos.length) return jsonResponse(req, 200, { campos: {} });
+      const r = await lerDocumento(aiKey, codigo, arquivos);
+      // Falha na leitura nunca trava o candidato: ele segue digitando.
+      if (!r.ok) return jsonResponse(req, 200, { campos: {}, indisponivel: true });
+      return jsonResponse(req, 200, { campos: r.campos });
     }
 
     // ---------- Gestor: link temporário de visualização ----------
