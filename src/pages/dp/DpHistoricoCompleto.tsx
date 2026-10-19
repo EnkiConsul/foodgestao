@@ -969,43 +969,8 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
 
 
 
-      {/* Barra de naturezas: somente os grupos (no celular fica dentro dos Filtros) */}
-      <div className="hidden rounded-lg border bg-card p-3 md:block">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <div className="text-sm font-semibold">Natureza do Documento</div>
-          {grupo !== "all" && (
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setGrupo("all"); setTipo("all"); }}>
-              Limpar Natureza
-            </Button>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-2 py-1">
-          <button
-            type="button"
-            onClick={() => { setGrupo("all"); setTipo("all"); }}
-            className={`h-8 rounded-full border px-3 text-xs font-semibold transition-colors ${
-              grupo === "all" ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"
-            }`}
-          >
-            Todos
-          </button>
-          {DP_DOC_GRUPOS.map((g) => (
-            <button
-              key={g.grupo}
-              type="button"
-              onClick={() => { setGrupo(grupo === g.grupo ? "all" : g.grupo); setTipo("all"); }}
-              className={`h-8 rounded-full border px-3 text-xs font-semibold transition-colors ${
-                grupo === g.grupo ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"
-              }`}
-            >
-              {g.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <DpFilterCard>
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex items-center gap-2 md:mb-2">
           <div className="relative flex-1 sm:max-w-md">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -1060,9 +1025,9 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
           </Select>
         </div>
 
-        <div className={`${filtrosAbertos ? "grid" : "hidden md:grid"} gap-3 md:grid-cols-3 lg:grid-cols-5`}>
-          {/* No celular a Natureza mora aqui dentro dos filtros; no desktop fica na barra de pílulas acima. */}
-          <div className="space-y-1.5 md:hidden">
+        <div className={`${filtrosAbertos ? "grid" : "hidden md:grid"} gap-3 md:grid-cols-4 md:gap-2 xl:grid-cols-7 [&_button[role=combobox]]:md:h-9`}>
+          {/* Natureza fica dentro dos filtros em todas as telas (barra compacta). */}
+          <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Natureza</Label>
             <Select value={grupo} onValueChange={(v) => { setGrupo(v); setTipo("all"); }}>
               <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
