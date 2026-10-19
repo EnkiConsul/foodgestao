@@ -159,11 +159,11 @@ export function AcoesDocumentosCard({ onImportar, onHistorico }: { onImportar?: 
 
   return (
     <>
-      <div className="flex h-11 items-center gap-1">
+      <div className="flex min-h-11 items-center gap-1">
         <button
           type="button"
           onClick={() => (falhou ? void refetch() : setAberto(true))}
-          className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl px-2 text-left transition-colors hover:bg-muted/40"
+          className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl px-2 py-1 text-left transition-colors hover:bg-muted/40"
           aria-label={falhou ? "Falha ao conferir pendências. Tentar novamente" : `Abrir pendências de documentos: ${resumo}`}
         >
           {carregando || atualizando ? (
@@ -177,7 +177,7 @@ export function AcoesDocumentosCard({ onImportar, onHistorico }: { onImportar?: 
               aria-hidden="true"
             />
           )}
-          <span className={cn("truncate text-sm font-medium", falhou || atrasadas > 0 ? "text-destructive" : "text-foreground")}>
+          <span className={cn("min-w-0 break-words text-sm font-medium leading-tight", falhou || atrasadas > 0 ? "text-destructive" : "text-foreground")}>
             {falhou ? "Falha · Tentar novamente" : resumo}
           </span>
         </button>
