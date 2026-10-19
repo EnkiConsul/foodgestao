@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /** Atalho do Início: abre a mesma janela de importação de Gerir Documentos (sem pendências). */
-export function ImportarDocumentoAtalho({ emFaixa = false, destaque = false }: { emFaixa?: boolean; destaque?: boolean }) {
+export function ImportarDocumentoAtalho({ emFaixa = false, destaque = false, className }: { emFaixa?: boolean; destaque?: boolean; className?: string }) {
   const [aberto, setAberto] = useState(false);
   const qc = useQueryClient();
   return (
@@ -16,7 +16,7 @@ export function ImportarDocumentoAtalho({ emFaixa = false, destaque = false }: {
         <button
           type="button"
           onClick={() => setAberto(true)}
-          className="group flex w-full min-w-0 items-center gap-3 rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-card px-3 py-2 text-left transition-all hover:border-primary/50 hover:shadow-sm"
+          className={cn("group flex w-full min-w-0 items-center gap-3 rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-card px-3 py-2 text-left transition-all hover:border-primary/50 hover:shadow-sm", className)}
           aria-label="Importar documento"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm"><FileUp className="h-4 w-4" aria-hidden="true" /></span>
