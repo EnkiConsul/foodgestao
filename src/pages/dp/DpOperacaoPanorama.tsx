@@ -74,6 +74,7 @@ import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { AvisoAutoatribuicaoExcedida } from "@/components/dp/calendario/AvisoAutoatribuicaoExcedida";
 import { CalendarioAusenciasMes } from "@/components/dp/calendario/CalendarioAusenciasMes";
+import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { FolgasDoDiaPainel } from "@/components/dp/calendario/FolgasDoDiaPainel";
 import { RegrasDoDiaPainel, BloqueioDoDiaCabecalho } from "@/components/dp/calendario/RegrasDoDiaPainel";
 import { diaEhPico, filtrosSalvos, periodoHabitual, primeiroNome, folgaFixaDoDia } from "@/lib/dp/calendario-rotina";
@@ -553,14 +554,13 @@ function DetalheDiaOperacao({
   if (resumoInicio) return (
     <div className="space-y-2">
       {diaEhPico(data, dia.feriado_nome) && <span className="inline-flex items-center gap-1 text-xs font-semibold text-warning-foreground"><Flame className="h-3.5 w-3.5 fill-warning text-warning" />Pico de operação</span>}
-      {blocos.map((bloco) => {
-        const per = periodoBloco(bloco);
+      {[...contagemPeriodos].map(([per, quantidade]) => {
         const fora = foraDaOperacao.filter((p) => periodoPessoa(p) === per);
         const Icon = per === "dia" ? Sun : Moon;
-        return <Button key={bloco.key} variant="ghost" onClick={() => onAbrirDetalhe?.(per)} className={cn("h-auto min-h-11 w-full flex-wrap justify-start gap-2 overflow-hidden border px-3 py-2 text-left", per === "dia" ? "bg-primary/10" : "bg-calendar-noite text-calendar-noite-foreground")}>
+        return <Button key={per} variant="ghost" aria-label={`Ver detalhes do turno ${per === "dia" ? "Dia" : per === "noite" ? "Noite" : "Madrugada"}`} onClick={() => onAbrirDetalhe?.(per)} className="h-auto min-h-16 w-full flex-wrap justify-start gap-2 overflow-hidden rounded-xl border border-calendar-header bg-calendar-header px-3 py-3 text-left text-calendar-header-foreground hover:bg-calendar-header/90 hover:text-calendar-header-foreground">
           <Icon className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 flex-1"><span className="block whitespace-normal text-xs font-bold">{bloco.titulo}</span><span className="block text-[10px] font-normal opacity-80">{bloco.horario}</span></span>
-          <span className="flex w-full items-center gap-2 text-[11px] font-normal"><Users className="h-3 w-3" /><strong>{bloco.pessoas.length}</strong> trabalhando<span className="ml-auto"><strong>{fora.length}</strong> fora da operação</span><ChevronRight className="h-3 w-3" /></span>
+          <span className="min-w-0 flex-1 whitespace-normal text-sm font-bold">{per === "dia" ? "Dia" : per === "noite" ? "Noite" : "Madrugada"}</span><ChevronRight className="h-4 w-4 shrink-0" />
+          <span className="flex w-full flex-wrap items-center gap-2 text-[11px] font-normal"><Users className="h-3 w-3" /><strong>{quantidade}</strong> trabalhando<span className="ml-auto"><strong>{fora.length}</strong> fora da operação</span></span>
         </Button>;
       })}
       {!blocos.length && <p className="text-xs text-muted-foreground">Nenhuma pessoa prevista para trabalhar.</p>}
@@ -1004,7 +1004,7 @@ export default function DpOperacaoPanorama({
   detalheInicial,
   onFecharDetalhe,
   inicioEmLinha = false,
-}: { modo?: "operacao" | "calendario"; topo?: ReactNode; detalheInicial?: { data: string; unidadeId: string }; onFecharDetalhe?: () => void; inicioEmLinha?: boolean } = {}) {
+}: { modo?: "operacao" | "calendario"; topo?: ReactNode; detalheInicial?: { data: string; unidadeId: string; periodo?: "todos" | "dia" | "noite" }; onFecharDetalhe?: () => void; inicioEmLinha?: boolean } = {}) {
   const calendario = modo === "calendario";
   const embutido = Boolean(detalheInicial);
   const isMobile = useIsMobile();
@@ -1084,7 +1084,7 @@ export default function DpOperacaoPanorama({
   }, [params, setParams, embutido]);
 
   const { prefs, save } = useDpUserPrefs();
-  const [periodoPopout, setPeriodoPopout] = useState<"todos" | "dia" | "noite" | "madrugada">("todos");
+  const [periodoPopout, setPeriodoPopout] = useState<"todos" | "dia" | "noite" | "madrugada">(detalheInicial?.periodo ?? "todos");
   const filtrosCal = filtrosSalvos((prefs.extras as Record<string, unknown>)?.[CAL_FILTROS_KEY]);
   const unidadeId = !unidade || unidade === "todas" ? null : unidade;
   const competencia = data.slice(0, 7);
@@ -1936,13 +1936,14 @@ export default function DpOperacaoPanorama({
 
       {inicioEmLinha && <section className="space-y-3" aria-label="Visão oficial do dia">
         {dia && <>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><span>{dia.trabalhando} trabalhando</span>{dia.aguardando > 0 && <span>· {dia.aguardando} aguardando resposta</span>}{dia.feriado_nome && <Badge variant="outline">🎉 {dia.feriado_nome}</Badge>}</div>
+          <div className="flex flex-wrap items-center gap-2 rounded-xl bg-calendar-header px-3 py-3 text-xs text-calendar-header-foreground"><CalendarDays className="h-4 w-4" /><span>{dia.trabalhando} trabalhando</span>{dia.aguardando > 0 && <span>· {dia.aguardando} aguardando resposta</span>}{dia.feriado_nome && <span>🎉 {dia.feriado_nome}</span>}</div>
           {companyIdCal && <BloqueioDoDiaCabecalho companyId={companyIdCal} unidadeId={unidadeId} data={data} podeEditar={podeRegistrar} />}
           {podeRegistrar && <div className="grid grid-cols-2 gap-1.5">
             <Button variant="outline" className="h-auto min-h-11 gap-1 whitespace-normal px-1.5 text-xs text-calendar-falta" onClick={() => { setAusenciaData(data); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}><Plus className="h-4 w-4 shrink-0" />Registrar Ausência</Button>
             <Button variant="outline" className="h-auto min-h-11 gap-1 whitespace-normal px-1.5 text-xs text-primary" onClick={() => abrirNovaAvulsa(data)}><UserPlus className="h-4 w-4 shrink-0" />Mão de Obra Extra</Button>
           </div>}
-          {conteudoDia(data, dia, isMobile)}
+          {conteudoDia(data, dia, true)}
+          <AniversariantesCard competencia={data.slice(0, 7)} dataDia={data} unidadeId={unidadeId} />
         </>}
         {!dia && <p className="text-xs text-muted-foreground">Sem dados para este dia.</p>}
       </section>}
@@ -2001,6 +2002,7 @@ export default function DpOperacaoPanorama({
             )}
           </DialogHeader>
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+            {calendario && dataPopout && <AniversariantesCard competencia={dataPopout.slice(0, 7)} dataDia={dataPopout} unidadeId={unidadeId} />}
             {dataPopout && diaPopout ? conteudoDia(dataPopout, diaPopout) : (
               <p className="text-sm text-muted-foreground">Sem dados para este dia.</p>
             )}
