@@ -106,6 +106,9 @@ export function BulkImportPanel({
   useEffect(() => {
     if (loteAbertoId) setExpanded((s) => ({ ...s, [loteAbertoId]: true }));
   }, [loteAbertoId]);
+  useEffect(() => {
+    if (abrirHistoricoNonce) setMostrarHistoricoLotes(true);
+  }, [abrirHistoricoNonce]);
 
   /** Âncoras para levar o usuário até o lote em processamento e de volta ao envio. */
   const uploadCardRef = useRef<HTMLDivElement | null>(null);
