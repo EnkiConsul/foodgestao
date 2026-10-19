@@ -1,4 +1,7 @@
 # Melhorias da admissão
+## Ações do Dia — aviso de atualização
+- [ ] Substituir o erro grande por aviso compacto quando existir uma lista confirmada, mantendo nova tentativa disponível.
+- [ ] Conferir preservação das ações, nova tentativa e apresentação no celular/computador, sem publicar.
 ## Folgas padrão — fonte da jornada
 - [x] Unificar a contagem pela configuração vigente na data e corrigir piso e ocupação no banco, preservando exceções, cotas e folgas extras.
 - [x] Sincronizar campos antigos vazios de Luiz e Herick sem alterar jornada, histórico ou regras cadastradas.
