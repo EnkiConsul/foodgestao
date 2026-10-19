@@ -109,7 +109,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     hubTo: "/dp/documentos/inicio",
     matchPrefixes: ["/dp/documentos", "/dp/disciplinar"],
     items: [
-      { label: "Documentos", to: "/dp/documentos", icon: FileText, end: true, shortcut: true, shortLabel: "Documentos" },
+      { label: "Gestão de Documentos", to: "/dp/documentos", icon: FileText, end: true, shortcut: true, shortLabel: "Documentos" },
       { label: "Recibos", to: "/dp/documentos/recibos", icon: Receipt },
       { label: "Atas de Reunião", to: "/dp/documentos/atas", icon: NotebookPen },
       { label: "Disciplinares", to: "/dp/disciplinar", icon: ShieldAlert },
@@ -188,7 +188,7 @@ export const DP_ADMIN_NAV: DpNavSurface = {
   groups: ADMIN_GROUPS,
   // Hubs mantidos como opção de atalho para preservar defaults já salvos.
   extraShortcuts: [
-    { label: "Documentos", to: "/dp/documentos", icon: FileText, shortcut: true },
+    { label: "Gestão de Documentos", to: "/dp/documentos", icon: FileText, shortcut: true },
     { label: "Comunicação", to: "/dp/comunicacao", icon: BellRing, shortcut: true },
   ],
 };
