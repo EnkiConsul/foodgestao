@@ -164,7 +164,7 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
       </div>}
 
       <div className="space-y-3 rounded-xl border bg-muted/30 p-3">
-        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground">Vagas de Folga no Dia</p>
+        <p className="text-xs font-semibold text-muted-foreground">Vagas de Folga no Dia</p>
         {bloqueio ? (
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span className="text-2xl font-extrabold tabular-nums text-destructive">{folgasNoDia}/{fixosBloqueio}</span>

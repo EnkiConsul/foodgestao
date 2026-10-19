@@ -3,6 +3,7 @@
 - [x] Suavizar somente o cabeçalho do dia no Início.
 - [x] Compactar a janela compartilhada: turnos lado a lado, linhas por colaborador, ausências à vista e menu Ações.
 - [x] Conferir os dois calendários no computador e celular: 91 testes, janela com dados reais e alteração de setor aberta sem salvar; sem publicação.
+- [x] "Limite e Regras de Folgas" sempre aberto e em caixa normal; 121 testes, janela conferida no calendário principal, no Início e no celular; sem publicação.
 ## Início — Painel Inteligente e Calendário Operacional
 - [x] Ícone do painel, subtítulo que define a tela e título "Calendário Operacional".
 - [x] Linha dos dias da semana com as mesmas cores do calendário principal, mudando só o tamanho.
