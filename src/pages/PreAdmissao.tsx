@@ -874,7 +874,7 @@ export default function PreAdmissao() {
                 </p>
               </div>
               <div className="flex gap-2">
-                {enviados.length > 0 && (
+                {enviados.length > 0 && CODIGOS_LEITURA.has(item.codigo) && (
                   <Button type="button" variant="ghost" size="sm" disabled={!!ocupado}
                     onClick={() => void lerDocumento(item.codigo)}>Ler de novo</Button>
                 )}
