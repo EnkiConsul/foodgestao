@@ -2029,9 +2029,21 @@ export default function DpOperacaoPanorama({
             {calendario && dataPopout && diaPopout && companyIdCal && podeRegistrar && (
               <section className="space-y-3 border-t pt-3">
                 <h3 className="text-sm font-semibold">Limite e Regras de Folgas</h3>
-                    <RegrasDoDiaPainel
-...
-                    />
+                <RegrasDoDiaPainel
+                  companyId={companyIdCal}
+                  unidadeId={unidadeId}
+                  data={dataPopout}
+                  ocultarBloqueio
+                  folgasNoDia={diaPopout.pessoas.filter((p) => String(p.categoria).startsWith("folga") && !(diaDominicalPopout && folgaFixaDoDia(diaPopout.data, { troca: !!p.folga_troca, folga_fixa_dows: p.folga_fixa_dows }))).length}
+                  ocupantes={diaPopout.pessoas.filter((p) => String(p.categoria).startsWith("folga") && !(diaDominicalPopout && folgaFixaDoDia(diaPopout.data, { troca: !!p.folga_troca, folga_fixa_dows: p.folga_fixa_dows }))).map((p) => ({ nome: p.nome, cargoId: p.cargo_id ?? null, setorId: p.setor_id ?? null }))}
+                  nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
+                  afastadosNaVaga={(() => {
+                    const afast = new Set(diaPopout.pessoas.filter((p) => p.categoria === "atestado").map((p) => p.colaborador_id));
+                    return diaPopout.pessoas
+                      .filter((p) => String(p.categoria).startsWith("folga") && afast.has(p.colaborador_id) && !(diaDominicalPopout && folgaFixaDoDia(diaPopout.data, { troca: !!p.folga_troca, folga_fixa_dows: p.folga_fixa_dows })))
+                      .map((p) => primeiroNome(p.nome));
+                  })()}
+                />
               </section>
             )}
           </div>
