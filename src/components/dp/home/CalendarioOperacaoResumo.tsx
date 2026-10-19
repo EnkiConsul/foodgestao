@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect, useMemo, useReducer, useState } from "react";
+import { Suspense, useEffect, useMemo, useReducer, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Moon, Sun, Users } from "lucide-react";
+import { AlertTriangle, BedSingle, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, FileHeart, Flame, Moon, Palmtree, Sun, Users, UserX } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { calendarioResumoNavigation } from "./calendarioResumoNavigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDpOperacaoPanorama, type DiaPanorama } from "@/hooks/useDpOperacaoPanorama";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
@@ -15,9 +16,16 @@ import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { diaEhPico } from "@/lib/dp/calendario-rotina";
 import { blocosPorFuncionamento, CATEGORIA_LABEL, mensagemAlerta } from "@/lib/dp/operacao-panorama";
 
-const CalendarioOficial = lazy(() => import("@/pages/dp/DpOperacaoPanorama"));
+type ControladorOficial = typeof import("@/pages/dp/DpOperacaoPanorama").default;
+const CalendarioOficial = lazyWithRetry<Parameters<ControladorOficial>[0], ControladorOficial>(() => import("@/pages/dp/DpOperacaoPanorama"));
 const UNIDADE_KEY = "operacao_unidade";
 const SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const AUSENCIAS_MES = [
+  { label: "Folgas", Icon: BedSingle, cor: "text-calendar-folga bg-calendar-folga/10", valor: (d: DiaPanorama) => d.contagens.folga_padrao + d.contagens.folga_extra },
+  { label: "Férias", Icon: Palmtree, cor: "text-calendar-ferias bg-calendar-ferias/10", valor: (d: DiaPanorama) => d.contagens.ferias },
+  { label: "Atestados", Icon: FileHeart, cor: "text-calendar-atestado bg-calendar-atestado/10", valor: (d: DiaPanorama) => d.contagens.atestado },
+  { label: "Faltas", Icon: UserX, cor: "text-calendar-falta bg-calendar-falta/10", valor: (d: DiaPanorama) => d.contagens.ausente },
+];
 
 function indicadores(d: DiaPanorama) {
   return [
@@ -105,22 +113,37 @@ export function CalendarioOperacaoResumo() {
               <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => navegar({ type: "avancar", delta: 1 })} aria-label={aba === "mes" ? "Próximo mês" : "Próximo dia"}><ChevronRight className="h-4 w-4" /></Button>
             </div>
             {aba === "mes" ? <>
-              <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-muted-foreground">{SEMANA.map((s) => <div key={s} className="py-1">{s}</div>)}</div>
-              <div className="grid grid-cols-7 gap-1">
-                {Array.from({ length: p.dias[0]?.dow ?? 0 }).map((_, i) => <div key={`v${i}`} />)}
-                {p.dias.map((d) => <Button key={d.data} variant="ghost" aria-label={`Selecionar ${d.data}, ${d.trabalhando} trabalhando, ${d.contagens.folga_padrao + d.contagens.folga_extra} folgas`} aria-pressed={d.data === selecionado} aria-current={d.data === hoje ? "date" : undefined}
-                  onClick={() => { navegar({ type: "selecionar", data: d.data }); abrirDia(d.data); }}
-                  className={cn("relative flex h-16 min-w-0 flex-col gap-1 rounded-md border p-1 text-xs", d.data === selecionado ? "border-primary bg-primary/10 text-primary" : "border-border", diaEhPico(d.data, d.feriado_nome) && "bg-warning/10", d.alerta && "border-destructive/50")}>
-                  <span className={cn("flex h-5 w-5 items-center justify-center rounded-full font-semibold", d.data === hoje && "bg-primary text-primary-foreground")}>{Number(d.data.slice(8))}</span>
-                  <span className="flex items-center gap-1 text-[10px] text-primary"><Users className="h-3 w-3" />{d.trabalhando}</span>
-                  <span className="flex items-center gap-1">
-                    {(d.contagens.folga_padrao + d.contagens.folga_extra > 0) && <span className="h-1 w-1 rounded-full bg-muted-foreground" />}
-                    {d.contagens.atestado > 0 && <span className="h-1 w-1 rounded-full bg-warning" />}
-                    {d.contagens.ferias > 0 && <span className="h-1 w-1 rounded-full bg-primary" />}
-                    {d.alerta && <span className="h-1 w-1 rounded-full bg-destructive" />}
-                  </span>
-                  {d.feriado_nome && <span className="absolute right-0.5 top-0.5 text-[9px]" title={d.feriado_nome}>🎉</span>}
-                </Button>)}
+              <div className="mb-2 flex flex-wrap gap-x-3 gap-y-2 text-[10px] text-muted-foreground" aria-label="Legenda do calendário">
+                <span className="inline-flex items-center gap-1"><Users className="h-3 w-3 text-primary" />Trabalhando</span>
+                {AUSENCIAS_MES.map(({ label, Icon, cor }) => <span key={label} className="inline-flex items-center gap-1"><Icon className={cn("h-3 w-3 rounded-sm", cor)} />{label}</span>)}
+                <span className="inline-flex items-center gap-1"><Flame className="h-3 w-3 text-warning" />Pico</span>
+                <span className="inline-flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-destructive" />Alerta</span>
+              </div>
+              <div className="relative isolate">
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 grid grid-cols-7 gap-1">
+                  {SEMANA.map((s, i) => <div key={s} className={cn("rounded-md", (i === 0 || i >= 5) && "bg-warning/15")} />)}
+                </div>
+                <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-muted-foreground">{SEMANA.map((s, i) => <div key={s} className={cn("flex items-center justify-center gap-0.5 rounded-t-md py-2", (i === 0 || i >= 5) && "bg-warning/20 font-semibold text-warning-foreground")}>
+                  {s}{(i === 0 || i >= 5) && <Flame className="h-2.5 w-2.5 text-warning" />}
+                </div>)}</div>
+                <div className="grid grid-cols-7 gap-1">
+                  {Array.from({ length: p.dias[0]?.dow ?? 0 }).map((_, i) => <div key={`v${i}`} aria-hidden="true" />)}
+                  {p.dias.map((d) => <Button key={d.data} variant="ghost"
+                    title={[d.feriado_nome, d.alerta ? mensagemAlerta(d, d.avaliacao, p.unidades.find((u) => u.id === unidade)?.nome ?? null) : null].filter(Boolean).join(" · ") || undefined}
+                    aria-label={`Selecionar ${d.data}, ${d.trabalhando} trabalhando, ${AUSENCIAS_MES.map((a) => `${a.valor(d)} ${a.label.toLowerCase()}`).join(", ")}${diaEhPico(d.data, d.feriado_nome) ? ", dia de pico" : ""}${d.alerta ? ", alerta de equipe" : ""}`}
+                    aria-pressed={d.data === selecionado} aria-current={d.data === hoje ? "date" : undefined}
+                    onClick={() => { navegar({ type: "selecionar", data: d.data }); abrirDia(d.data); }}
+                    className={cn("relative flex h-24 min-w-0 flex-col justify-start gap-1 rounded-md border px-0.5 py-1 text-xs", "border-border bg-card/70", diaEhPico(d.data, d.feriado_nome) && "bg-warning/10", d.data === selecionado && "border-primary ring-1 ring-inset ring-primary", d.alerta && "border-destructive bg-destructive/10 ring-1 ring-inset ring-destructive/60")}>
+                    <span className="flex h-6 w-full items-center justify-between gap-0.5 px-0.5">
+                      <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-semibold", d.data === hoje && "bg-primary text-primary-foreground")}>{Number(d.data.slice(8))}</span>
+                      {d.alerta ? <AlertTriangle className="h-3 w-3 shrink-0 text-destructive" /> : d.feriado_nome ? <span className="text-[10px]">🎉</span> : diaEhPico(d.data) ? <Flame className="h-3 w-3 shrink-0 text-warning" /> : null}
+                    </span>
+                    <span className="flex items-center justify-center gap-0.5 text-[11px] font-semibold tabular-nums text-primary"><Users className="h-3 w-3 shrink-0" />{d.trabalhando}</span>
+                    <span className="grid w-full grid-cols-2 gap-0.5">
+                      {AUSENCIAS_MES.filter((a) => a.valor(d) > 0).map(({ label, Icon, cor, valor }) => <span key={label} className={cn("flex min-w-0 items-center justify-center gap-0.5 rounded-sm py-0.5 text-[10px] leading-none tabular-nums", cor)}><Icon className="h-2.5 w-2.5 shrink-0" /><span>{valor(d)}</span></span>)}
+                    </span>
+                  </Button>)}
+                </div>
               </div>
               {dia && <Button variant="outline" className="mt-3 min-h-11 w-full justify-between text-xs" onClick={() => abrirDia(selecionado)}>
                 <span className="min-w-0 truncate capitalize">{rotuloDia} · {dia.trabalhando} trabalhando</span><ChevronRight className="h-4 w-4 shrink-0" />

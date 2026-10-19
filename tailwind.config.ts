@@ -28,6 +28,12 @@ export default {
         marketing: ["Manrope", "Inter", "sans-serif"],
       },
       colors: {
+        calendar: {
+          folga: "hsl(var(--calendar-folga))",
+          ferias: "hsl(var(--calendar-ferias))",
+          atestado: "hsl(var(--calendar-atestado))",
+          falta: "hsl(var(--calendar-falta))",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

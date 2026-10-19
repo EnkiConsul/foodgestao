@@ -1,5 +1,6 @@
 # Melhorias da admissão
 ## Calendário minimalista no Início
+- [x] Revisar Mês: contagens com ícones/legenda, colunas de pico e alertas destacados; detalhes e formulário oficiais conferidos no celular (407×748) e computador, 28 testes passaram e build OK. Sem gravação ou publicação.
 - [x] Aproximar o Início do calendário oficial: nomes por turno, ausências e mesmas ações em janela adaptada ao celular.
 - [x] Conferir detalhes e navegação com dados reais no celular e computador: 70 testes passaram; janela oficial e formulário de ausência abriram sem sair do Início. Nenhuma gravação ou publicação realizada.
 - [x] Manter Hoje/Mês com navegação por setas e preservar o dia ao trocar o mês.
