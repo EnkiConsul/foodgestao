@@ -1,7 +1,8 @@
 # Melhorias da admissão
-\n+## Importação em janela — Gestão de Documentos
-- [ ] Abrir envio e histórico em janela sem deslocar a lista.
-- [ ] Fechar ao concluir a importação, atualizar documentos e conferir no celular/computador.
+## Importação em janela — Gestão de Documentos
+- [x] Abrir envio e histórico em janela sem deslocar a lista (celular e computador conferidos).
+- [x] Fechamento após lotes salvos e atualização da lista; 4 testes de conclusão passaram.
+- [ ] Conferir importação real até salvar — aguarda PDF autorizado para evitar documentos fictícios na empresa.
 
 - [x] Separar documentos do menor, retirar declaração de CNH e preservar anexos.
 - [x] Simplificar configuração de documentos e permitir inclusão/retirada pelo gestor.

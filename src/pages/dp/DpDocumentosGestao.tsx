@@ -281,7 +281,7 @@ export default function DpDocumentosGestao() {
             variant="outline"
             aria-label="Importar documento"
             className="flex h-full w-full flex-col items-start gap-1 whitespace-normal rounded-2xl border-border bg-card p-3 pr-10 text-left hover:bg-muted/40"
-            onClick={() => { setSomenteHistorico(false); setImportarAberto(true); }}
+            onClick={() => { setHistoricoNonce(0); setSomenteHistorico(false); setImportarAberto(true); }}
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Upload className="h-4 w-4" aria-hidden="true" />
