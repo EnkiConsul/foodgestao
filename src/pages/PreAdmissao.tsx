@@ -1009,10 +1009,21 @@ export default function PreAdmissao() {
                         <span className="text-destructive"> *</span>
                       )}
                     </Label>
-                    {campo.opcoes ? (
+                    {campo.nome === "banco_nome" && bancos.length ? (
+                      <BancoPicker
+                        bancos={bancos}
+                        nome={valor}
+                        onChange={(slug, nome) => setForm((f) => ({ ...f, banco_codigo: slug ?? "", banco_nome: nome }))}
+                      />
+                    ) : campo.opcoes ? (
                       <Select
                         value={valor}
-                        onValueChange={(v) => setForm((f) => ({ ...f, [campo.nome]: v }))}
+                        onValueChange={(v) => setForm((f) => {
+                          if (campo.nome !== "pix_tipo") return { ...f, [campo.nome]: v };
+                          // Chave Pix já conhecida: reaproveita o que foi digitado antes.
+                          const sugestao = v === "cpf" ? f.cpf : v === "telefone" ? f.telefone : v === "email" ? f.email : "";
+                          return { ...f, pix_tipo: v, pix_chave: sugestao ? String(sugestao) : (f.pix_tipo === v ? f.pix_chave : "") };
+                        })}
                       >
                         <SelectTrigger id={`campo-${campo.nome}`} className="h-11">
                           <SelectValue placeholder="Escolher" />
@@ -1200,6 +1211,7 @@ export default function PreAdmissao() {
                         {item.pessoa_nome ? item.pessoa_nome : "Seu documento"}
                         {item.obrigatorio ? " · obrigatório" : " · opcional"}
                       </p>
+                      {item.instrucao && <p className="text-xs text-muted-foreground">{item.instrucao}</p>}
                       <p className="text-xs text-muted-foreground">
                         Se o documento tiver frente e verso, envie uma foto de cada lado.
                       </p>
