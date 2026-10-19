@@ -57,6 +57,10 @@
     /* Pessoas 360° tokens — alinhados ao Financeiro 360° */
     --dp-canvas: 150 14% 98%;
     --dp-border: 150 12% 88%;
+    --calendar-folga: 142 72% 29%;
+    --calendar-ferias: 200 90% 35%;
+    --calendar-atestado: 263 70% 45%;
+    --calendar-falta: 347 77% 45%;
     --dp-pending-bg: 38 90% 96%;
     --dp-pending-border: 38 85% 82%;
     --dp-birthday-bg: 150 40% 97%;
@@ -136,6 +140,10 @@
     /* Pessoas 360° tokens no tema escuro */
     --dp-canvas: 155 25% 7%;
     --dp-border: 155 16% 19%;
+    --calendar-folga: 142 65% 65%;
+    --calendar-ferias: 200 90% 70%;
+    --calendar-atestado: 263 85% 78%;
+    --calendar-falta: 347 85% 72%;
     --dp-pending-bg: 38 40% 14%;
     --dp-pending-border: 38 40% 26%;
     --dp-birthday-bg: 155 20% 12%;

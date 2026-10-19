@@ -29,5 +29,6 @@
 
 - Leave previews retain the request row to open its exact details.
 <!-- LOVABLE:BEGIN -->
+- Home calendar details reuse the official operation controller via lazyWithRetry; semantic calendar tokens preserve themed absence colors and deploy recovery.
 - Document management hosts import and history in a modal; confirmed session completion refreshes the unified list without scrolling the page.
 <!-- LOVABLE:END -->
