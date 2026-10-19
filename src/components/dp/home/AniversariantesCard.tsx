@@ -9,6 +9,7 @@ import { useDpAniversariantes30d, type AnivItem } from "@/hooks/useDpAniversaria
 import { WhatsappComposerDialog } from "@/components/dp/WhatsappComposerDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { filtrarAniversariantesPortal } from "@/lib/dp/aniversariantes-portal";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 
@@ -18,6 +19,7 @@ export function AniversariantesCard({ variant = "admin", compacto = false, emFai
   const [aberto, setAberto] = useState(false);
   const [target, setTarget] = useState<AnivItem | null>(null);
   const portal = variant === "portal";
+  const isMobile = useIsMobile();
   const visiveis = portal
     ? filtrarAniversariantesPortal(todos, {
         colaboradorId: eu?.colaboradorId ?? null,
