@@ -2,7 +2,7 @@ import { differenceInCalendarDays, differenceInYears } from "date-fns";
 
 /** Próxima ocorrência para o resumo, ou ocorrência do mês consultado. */
 export function aniversarioNoPeriodo(raw: string, competencia?: string, hoje = new Date()) {
-  const origem = new Date(`${raw.slice(0, 10)}T12:00:00`);
+  const origem = new Date(`${raw.slice(0, 10)}T00:00:00`);
   if (Number.isNaN(origem.getTime())) return null;
   const ano = competencia ? Number(competencia.slice(0, 4)) : hoje.getFullYear();
   const data = new Date(ano, origem.getMonth(), origem.getDate());

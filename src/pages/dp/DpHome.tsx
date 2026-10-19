@@ -54,10 +54,10 @@ export default function DpHome() {
         <div className="flex min-w-0 flex-col gap-3">
           <AcoesDoDiaCard />
           <ImportarDocumentoAtalho />
-          <CalendarioOperacaoResumo />
         </div>
         <AniversariantesCard compacto />
       </div>
+      <CalendarioOperacaoResumo />
 
       <AtalhosFavoritos />
       <VerMenuCompleto to="/dp/mais" />
