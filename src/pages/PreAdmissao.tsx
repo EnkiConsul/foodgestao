@@ -496,6 +496,18 @@ export default function PreAdmissao() {
   /** Documento em leitura automática e campos preenchidos por ela. */
   const [lendo, setLendo] = useState<string | null>(null);
   const [lidos, setLidos] = useState<Set<string>>(new Set());
+  const formRef = useRef(form);
+  formRef.current = form;
+  const ctpsIniciada = useRef(false);
+  useEffect(() => {
+    if (!estado || ctpsIniciada.current) return;
+    ctpsIniciada.current = true;
+    const d = estado.dados ?? {};
+    setCtpsFisica(!!(d.ctps_serie || d.ctps_uf || (d.ctps_numero && d.ctps_numero !== d.cpf)));
+    chamar<{ bancos: Banco[] }>("dp-preadmissao-arquivo", { action: "bancos", t, c })
+      .then((r) => setBancos(r.bancos ?? []))
+      .catch(() => setBancos([]));
+  }, [estado, t, c]);
   /** Cópia local do que foi digitado: sobrevive a recarga e troca de app. */
   const servidorRef = useRef<string | null>(null);
   const chaveLocal = c ? `preadmissao-rascunho:${c}` : null;
@@ -760,18 +772,17 @@ export default function PreAdmissao() {
       const r = await chamar<{ campos: Record<string, string>; indisponivel?: boolean }>("dp-preadmissao-arquivo", {
         action: "ler_documento", t, c, requisito_codigo: codigo,
       });
-      const novos: string[] = [];
-      setForm((f) => {
-        const prox = { ...f };
-        for (const [k, v] of Object.entries(r.campos ?? {})) {
-          if (k === "nome" || k === "cpf" || !v || String(f[k] ?? "").trim()) continue;
-          prox[k] = v;
-          novos.push(k);
-        }
-        return prox;
-      });
-      // setForm roda já na sequência; o retorno fica disponível no próximo tique.
-      await Promise.resolve();
+      const atual = formRef.current;
+      const novos = Object.entries(r.campos ?? {})
+        .filter(([k, v]) => k !== "nome" && k !== "cpf" && !!v && !String(atual[k] ?? "").trim())
+        .map(([k]) => k);
+      if (novos.length) {
+        setForm((f) => {
+          const prox = { ...f };
+          for (const k of novos) if (!String(f[k] ?? "").trim()) prox[k] = r.campos[k];
+          return prox;
+        });
+      }
       if (codigo === "ctps" && (r.campos?.ctps_serie || r.campos?.ctps_uf)) setCtpsFisica(true);
       if (novos.length) {
         setLidos((s) => new Set([...s, ...novos]));
