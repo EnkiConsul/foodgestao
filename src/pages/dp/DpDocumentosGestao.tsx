@@ -77,7 +77,7 @@ export function AcoesDocumentosCard({ onImportar, onHistorico }: { onImportar?: 
     : abertas.length === 0
       ? "Tudo em dia"
       : [
-          `${abertas.length} ${abertas.length === 1 ? "pendente" : "pendentes"}`,
+          `${abertas.length} ${abertas.length === 1 ? "documento pendente" : "documentos pendentes"}`,
           atrasadas > 0 && `${atrasadas} ${atrasadas === 1 ? "atrasada" : "atrasadas"}`,
         ]
           .filter(Boolean)
@@ -160,31 +160,35 @@ export function AcoesDocumentosCard({ onImportar, onHistorico }: { onImportar?: 
 
   return (
     <>
-      <div className="flex items-center gap-2 rounded-2xl border border-[hsl(var(--dp-border))] bg-card p-2">
+      <div className="flex h-11 items-center gap-1">
         <button
           type="button"
-          onClick={() => setAberto(true)}
-          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl p-1.5 text-left transition-colors hover:bg-muted/40"
-          aria-label={`Abrir pendências de documentos: ${resumo}`}
+          onClick={() => (falhou ? void refetch() : setAberto(true))}
+          className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl px-2 text-left transition-colors hover:bg-muted/40"
+          aria-label={falhou ? "Falha ao conferir pendências. Tentar novamente" : `Abrir pendências de documentos: ${resumo}`}
         >
-          <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <ListChecks className="h-4 w-4" aria-hidden="true" />
-            {!carregando && !falhou && abertas.length > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 min-w-5 rounded-full bg-primary px-1.5 text-center text-[11px] font-bold leading-5 tabular-nums text-primary-foreground">{abertas.length}</span>
-            )}
-          </span>
-          <span className="min-w-0">
-            <span className="block text-sm font-semibold leading-tight">Pendências</span>
-            <span className={cn("block truncate text-xs leading-snug", falhou || atrasadas > 0 ? "text-destructive" : "text-muted-foreground")}>{resumo}</span>
+          {carregando || atualizando ? (
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground motion-reduce:animate-none" aria-hidden="true" />
+          ) : (
+            <span
+              className={cn(
+                "h-2.5 w-2.5 shrink-0 rounded-full",
+                falhou || atrasadas > 0 ? "bg-destructive" : abertas.length > 0 ? "bg-warning" : "bg-primary",
+              )}
+              aria-hidden="true"
+            />
+          )}
+          <span className={cn("truncate text-sm font-medium", falhou || atrasadas > 0 ? "text-destructive" : "text-foreground")}>
+            {falhou ? "Falha · Tentar novamente" : resumo}
           </span>
         </button>
         {onHistorico && (
-          <Button type="button" variant="ghost" size="icon" aria-label="Ver histórico de importações" title="Histórico de importações" className="h-10 w-10 shrink-0 rounded-lg text-muted-foreground" onClick={onHistorico}>
+          <Button type="button" variant="ghost" size="icon" aria-label="Ver histórico de importações" title="Histórico de importações" className="h-11 w-11 shrink-0 rounded-xl text-muted-foreground" onClick={onHistorico}>
             <History className="h-4 w-4" aria-hidden="true" />
           </Button>
         )}
         {onImportar && (
-          <Button type="button" className="h-10 shrink-0 gap-1.5 rounded-xl px-3" onClick={onImportar}>
+          <Button type="button" className="h-11 shrink-0 gap-1.5 rounded-xl px-3" onClick={onImportar}>
             <Upload className="h-4 w-4" aria-hidden="true" />
             Importar
           </Button>
