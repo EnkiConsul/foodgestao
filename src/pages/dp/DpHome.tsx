@@ -4,6 +4,7 @@ import { Bell, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { AcoesDoDiaCard } from "@/components/dp/home/AcoesDoDiaCard";
 import { ImportarDocumentoAtalho } from "@/components/dp/home/ImportarDocumentoAtalho";
+import { CalendarioOperacaoResumo } from "@/components/dp/home/CalendarioOperacaoResumo";
 import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
 import { KpiCards } from "@/components/dp/home/KpiCards";
@@ -53,6 +54,7 @@ export default function DpHome() {
         <div className="flex min-w-0 flex-col gap-3">
           <AcoesDoDiaCard />
           <ImportarDocumentoAtalho />
+          <CalendarioOperacaoResumo />
         </div>
         <AniversariantesCard />
       </div>
