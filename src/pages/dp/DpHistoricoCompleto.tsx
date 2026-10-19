@@ -1017,6 +1017,12 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
 
           </div>
           <Button variant="ghost" size="sm" className="shrink-0 sm:ml-auto" onClick={limpar}>Limpar</Button>
+          {embutido && (
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="hidden md:flex items-center gap-2">{acoesTabelaDesktop}</div>
+              {botaoRegistro}
+            </div>
+          )}
         </div>
 
         {/* Celular: filtros recolhidos e escolha da ordem da lista */}
