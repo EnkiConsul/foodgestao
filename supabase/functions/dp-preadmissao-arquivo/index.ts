@@ -227,6 +227,42 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ---------- Gestor: arquivo do ASO (exame admissional) ----------
+    if (acao === "aso_arquivo" || acao === "aso_url") {
+      const caller = await requireUser(req);
+      if (!caller) return jsonError(req, "unauthorized");
+      const { data: pa } = await admin.from("dp_preadmissoes")
+        .select("id, company_id, status, removido_em, admin_dados")
+        .eq("id", String(body?.preadmissao_id ?? "").trim()).maybeSingle();
+      if (!pa || pa.removido_em) return jsonError(req, "not_found");
+      const access = await requireCompanyAccess(caller.id, pa.company_id as string);
+      if (!access || !canAdminister(access)) return jsonError(req, "forbidden");
+      const adm = (pa.admin_dados ?? {}) as Record<string, unknown>;
+      const aso = (adm.aso ?? {}) as Record<string, unknown>;
+      if (acao === "aso_url") {
+        if (!aso.arquivo_path) return jsonError(req, "not_found");
+        const signed = await admin.storage.from(BUCKET).createSignedUrl(String(aso.arquivo_path), 120);
+        if (signed.error) return jsonError(req, "internal", signed.error.message);
+        return jsonResponse(req, 200, { url: signed.data.signedUrl, file_name: aso.arquivo_nome, mime_type: aso.arquivo_mime });
+      }
+      if (["concluido", "cancelado", "expirado"].includes(String(pa.status))) {
+        return jsonResponse(req, 409, { error: "Esta pré-admissão já foi encerrada." });
+      }
+      const bytes = decodificar(String(body?.content_base64 ?? ""));
+      if (!bytes.length) return jsonResponse(req, 400, { error: "O arquivo não foi recebido. Tente novamente." });
+      if (bytes.length > MAX_BYTES) return jsonResponse(req, 400, { error: "O arquivo passa de 10 MB." });
+      const real = tipoRealDoArquivo(bytes);
+      if (!real || !EXTENSOES[real]) return jsonResponse(req, 400, { error: "Anexe o ASO em PDF ou imagem." });
+      const caminho = `${pa.company_id}/preadmissao/${pa.id}/aso-${Date.now()}.${EXTENSOES[real]}`;
+      const up = await admin.storage.from(BUCKET).upload(caminho, bytes, { contentType: real, upsert: false });
+      if (up.error) return jsonError(req, "internal", up.error.message);
+      const novo = { ...aso, arquivo_path: caminho, arquivo_nome: String(body?.file_name ?? "aso").slice(0, 180), arquivo_mime: real, arquivo_em: new Date().toISOString() };
+      const { error: e2 } = await admin.from("dp_preadmissoes").update({ admin_dados: { ...adm, aso: novo } }).eq("id", pa.id);
+      if (e2) { await admin.storage.from(BUCKET).remove([caminho]); return jsonError(req, "internal", "não foi possível anexar o ASO"); }
+      await registrarEvento(admin, pa.id as string, pa.company_id as string, "aso_anexado", {}, caller.id);
+      return jsonResponse(req, 200, { success: true });
+    }
+
     // ---------- Candidato: rever os próprios arquivos pelo convite ----------
     if (acao === "url_candidato") {
       if (await ipRateLimited(admin as unknown as Parameters<typeof ipRateLimited>[0], req, "preadmissao_url", 300)) {
