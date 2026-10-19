@@ -934,8 +934,33 @@ export default function PreAdmissao() {
                         {INSTRUCAO.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-muted-foreground">
+                      É até onde você estudou. Escolha a última etapa que terminou — por exemplo, se parou no 2º ano do
+                      ensino médio, escolha "Ensino médio incompleto"; se terminou o 3º ano, "Ensino médio completo".
+                    </p>
                   </div>
                   )}
+                </div>
+              )}
+              <LeituraDocumentos codigos={etapaAtual.leitura ?? []} />
+              {etapaAtual.campos.some((c) => c.ctpsFisica) && (
+                <div className="flex items-start justify-between gap-3 rounded-md border p-3">
+                  <div className="min-w-0">
+                    <Label htmlFor="ctps_fisica" className="text-sm">Minha carteira de trabalho é a física antiga (papel)</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Na Carteira de Trabalho Digital o número é o seu CPF — não precisa preencher nada.
+                    </p>
+                  </div>
+                  <Switch
+                    id="ctps_fisica"
+                    checked={ctpsFisica}
+                    onCheckedChange={(v) => {
+                      setCtpsFisica(v);
+                      setForm((f) => v
+                        ? { ...f, ctps_numero: f.ctps_numero === f.cpf ? "" : f.ctps_numero }
+                        : { ...f, ctps_numero: f.cpf ?? "", ctps_serie: "", ctps_uf: "", ctps_expedicao: "" });
+                    }}
+                  />
                 </div>
               )}
               {etapaAtual.endereco ? (
@@ -1007,6 +1032,9 @@ export default function PreAdmissao() {
                       {campo.rotulo}
                       {exigenciaCampo(campo.nome) === "obrigatorio" && (
                         <span className="text-destructive"> *</span>
+                      )}
+                      {lidos.has(campo.nome) && (
+                        <span className="ml-1 text-primary font-normal">· lido do documento, confira</span>
                       )}
                     </Label>
                     {campo.nome === "banco_nome" && bancos.length ? (
