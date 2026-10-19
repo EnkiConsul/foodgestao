@@ -84,7 +84,7 @@ export function CalendarioOperacaoResumo() {
       <Card className="min-w-0 overflow-hidden rounded-2xl p-3 sm:p-4" role="region" aria-label="Calendário do início">
         <div className="flex flex-wrap items-center gap-2">
           <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
-          <h2 className="text-sm font-semibold">Calendário Inteligente</h2>
+          <h2 className="text-sm font-semibold">Calendário</h2>
           {p.unidades.length > 1 && <Select value={unidade} onValueChange={(v) => {
             setUnidade(v); save({ extras: { ...(prefs.extras ?? {}), [UNIDADE_KEY]: v } });
           }}>
@@ -103,8 +103,7 @@ export function CalendarioOperacaoResumo() {
             <Link to="/dp/rotina/calendario"><ExternalLink className="h-4 w-4" /></Link>
           </Button>
         </div>
-        <div className="mt-2 grid grid-cols-2 items-stretch gap-1.5 sm:grid-cols-4 sm:gap-2" aria-label="Indicadores do gestor">
-          <AcoesDoDiaCard emFaixa />
+        <div className="mt-2 grid grid-cols-2 items-stretch gap-1.5 sm:gap-2" aria-label="Indicadores do gestor">
           {([
             { label: "Ausências hoje", Icon: UserX, cor: "bg-calendar-falta/10 text-calendar-falta", valor: diaHoje ? diaHoje.contagens.ferias + diaHoje.contagens.atestado + diaHoje.contagens.ausente : null },
             { label: "Folgas hoje", Icon: BedSingle, cor: "bg-calendar-folga/10 text-calendar-folga", valor: diaHoje ? diaHoje.contagens.folga_padrao + diaHoje.contagens.folga_extra : null },
@@ -114,9 +113,7 @@ export function CalendarioOperacaoResumo() {
             <span className="min-w-0 flex-1 text-[11px] font-semibold leading-tight sm:text-xs">{label}</span>
             <span className={cn("flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full px-1.5 text-xs font-bold tabular-nums", cor)}>{valor ?? "–"}</span>
           </button>)}
-          <AniversariantesCard compacto emFaixa />
         </div>
-        <div className="mt-2 lg:hidden"><ImportarDocumentoAtalho destaque /></div>
 
         {p.error ? <div className="space-y-2 py-4 text-center">
           <p className="text-sm text-muted-foreground">Não foi possível carregar o calendário.</p>
@@ -168,7 +165,6 @@ export function CalendarioOperacaoResumo() {
               </Button>}
             </section>
             <section className={cn("min-w-0 space-y-2 lg:col-start-1 lg:row-start-1", aba !== "hoje" && "hidden lg:block")} aria-label="Dia resumido">
-              <div className="hidden lg:block"><ImportarDocumentoAtalho destaque /></div>
               {selecionado !== hoje && <Button variant="ghost" className="h-7 rounded-full px-3 text-xs" onClick={() => navegar({ type: "hoje", data: hoje })}>Voltar para hoje</Button>}
               <Suspense fallback={<p role="status" className="py-3 text-xs text-muted-foreground">Carregando dia…</p>}>
               <CalendarioOficial key={`${unidade}-${selecionado}`} modo="calendario" detalheInicial={{ data: selecionado, unidadeId: unidade }} inicioEmLinha inicioCabecalho={<>
