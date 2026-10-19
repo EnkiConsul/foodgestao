@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { gerarCalendarioMesPdf, type CelulaPdf } from "@/lib/dp/calendario-mes-pdf";
-import { Moon, SlidersHorizontal, Sun, Users, AlertTriangle, X, Lock, CalendarHeart, Palmtree, Stethoscope, Repeat, CalendarOff, Coffee, Flame, FileDown, Maximize2, Minimize2, Loader2 } from "lucide-react";
+import { Cake, Moon, SlidersHorizontal, Sun, Users, AlertTriangle, X, Lock, CalendarHeart, Palmtree, Stethoscope, Repeat, CalendarOff, Coffee, Flame, FileDown, Maximize2, Minimize2, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -20,6 +20,8 @@ import { useFixosPorDiaSemana } from "@/hooks/useFixosPorDiaSemana";
 import { diaEhPico, folgaFixaDoDia } from "@/lib/dp/calendario-rotina";
 import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { CalendarioSemanaCabecalho } from "./CalendarioSemanaCabecalho";
+import { useDpAniversariantes30d } from "@/hooks/useDpAniversariantes30d";
+import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -108,6 +110,8 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     `${a.nome} · ${a.rotulo ?? (a.tipo === "folga" ? "Folga" : TIPO_AUSENCIA_LABEL[a.tipo])}${a.troca ? " (troca)" : ""}`;
 
   const ini = diasBrutos[0]?.data, fimMes = diasBrutos[diasBrutos.length - 1]?.data;
+  const { data: aniversariantes = [] } = useDpAniversariantes30d(ini?.slice(0, 7));
+  const aniversariosDoDia = (iso: string) => aniversariantes.filter((a) => (!unidadeId || a.unidadeId === unidadeId) && a.diaMes === `${iso.slice(8)}/${iso.slice(5, 7)}`);
   const bloqueiosQuery = useBloqueiosEfetivos(selectedCompanyId, unidadeId, ini, fimMes);
   const parciaisQuery = useBloqueiosParciais(selectedCompanyId, unidadeId, ini, fimMes);
   const temParcial = (iso: string) => !bloqueios.has(iso) && (parciaisQuery.data?.get(iso)?.length ?? 0) > 0;
@@ -457,6 +461,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
         </div>
       </div>
 
+      <AniversariantesCard compacto competencia={ini?.slice(0, 7)} unidadeId={unidadeId} />
       {legenda.length + resumoMes.trocas + resumoMes.bloqueados > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="hidden items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary md:inline-flex"><Users className="h-3 w-3" />Escalados no dia</span>
@@ -481,7 +486,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               dominical: ehDiaDominical(d.data),
               chipsLinhaUnica: true,
               onSelect: () => onAbrirDia(d.data, mostraTurno ? periodo : "todos"),
-              icones: d.alerta || pico(d.data, d.feriado_nome) || bloqueios.has(d.data) || temParcial(d.data) || d.feriado_nome ? (
+              icones: d.alerta || pico(d.data, d.feriado_nome) || bloqueios.has(d.data) || temParcial(d.data) || d.feriado_nome || aniversariosDoDia(d.data).length > 0 ? (
                 <>
                   {d.alerta && <AlertTriangle className="h-3.5 w-3.5 text-destructive" aria-label="Alerta do dia" />}
                   {bloqueios.has(d.data) && <Lock className="h-3.5 w-3.5 text-destructive" aria-label="Folgas bloqueadas" />}
@@ -497,6 +502,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                       🎉
                     </span>
                   )}
+                  {aniversariosDoDia(d.data).length > 0 && <Cake className="h-3.5 w-3.5 text-primary" aria-label={`${aniversariosDoDia(d.data).length} aniversariantes`} />}
                 </>
               ) : undefined,
               resumo: (
@@ -548,7 +554,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                     onClick={() => onAbrirDia(d.data, mostraTurno ? periodo : "todos")}
                     className={cn(
                       "group relative flex min-h-[136px] min-w-0 flex-col gap-2 bg-card p-2 text-left transition-all hover:z-10 hover:-translate-y-px hover:shadow-xl",
-                      ehDiaDominical(d.data) && "bg-muted/30",
+                      ehPico && "bg-calendar-pico",
                       d.feriado_nome && "bg-primary/[0.08]",
                       bloqueio && "bg-destructive/[0.06]",
                       d.alerta && "bg-destructive/15 ring-1 ring-inset ring-destructive/50",
@@ -574,6 +580,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                       </div>
                       <span className={cn("inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums", d.alerta && d.avaliacao.situacao === "abaixo" ? "bg-destructive text-destructive-foreground" : "bg-primary/15 text-primary")} title="Trabalhando"><Users className="h-3 w-3" />{d.trabalhando}</span>
                     </div>
+                    {aniversariosDoDia(d.data).length > 0 && <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-foreground" title={aniversariosDoDia(d.data).map((a) => `${a.nome} · ${a.tipo === "nascimento" ? "Nascimento" : "Contratação"}`).join("; ")}><Cake className="h-3.5 w-3.5 shrink-0 text-primary" />{aniversariosDoDia(d.data).length} aniversariante(s)</span>}
                     <div className={cn("mt-0.5", compacto ? "grid grid-cols-2 gap-1" : "flex flex-col gap-1")}>
                       {visiveis.map((a) => (
                         <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("inline-flex min-w-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase shadow-sm", tomDe(a, d.data))} title={rotulo(a, d.data)}>

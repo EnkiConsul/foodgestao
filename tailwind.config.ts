@@ -29,6 +29,9 @@ export default {
       },
       colors: {
         calendar: {
+          pico: "hsl(var(--calendar-pico))",
+          header: "hsl(var(--calendar-header))",
+          "header-foreground": "hsl(var(--calendar-header-foreground))",
           folga: "hsl(var(--calendar-folga))",
           ferias: "hsl(var(--calendar-ferias))",
           atestado: "hsl(var(--calendar-atestado))",
