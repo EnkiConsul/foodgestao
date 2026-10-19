@@ -11,7 +11,9 @@ import { converterHeicParaJpeg } from "@/lib/storage/heic";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Camera, Check, CheckCircle2, ChevronDown, ChevronsUpDown, Loader2, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, Check, CheckCircle2, ChevronDown, ChevronsUpDown, Loader2, Pencil, Save, Send, Sparkles, X } from "lucide-react";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
@@ -65,39 +67,67 @@ function BancoPicker({ bancos, nome, onChange }: {
   onChange: (slug: string | null, nome: string) => void;
 }) {
   const [aberto, setAberto] = useState(false);
+  const mobile = useIsMobile();
+  const gatilho = (
+    <Button id="campo-banco_nome" type="button" variant="outline" role="combobox" aria-expanded={aberto}
+      className="h-11 w-full justify-between font-normal" onClick={mobile ? () => setAberto(true) : undefined}>
+      <span className="truncate">{nome || "Buscar banco"}</span>
+      <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+    </Button>
+  );
+  const lista = (
+    <Command>
+      <CommandInput placeholder="Digite o nome do banco..." />
+      <CommandList className={mobile ? "max-h-[60vh]" : undefined}>
+        <CommandEmpty>Nenhum banco encontrado.</CommandEmpty>
+        <CommandGroup>
+          {bancos.map((b) => (
+            <CommandItem key={b.slug} value={b.name} className={mobile ? "min-h-11" : undefined}
+              onSelect={() => { onChange(b.slug, b.name.toLocaleUpperCase("pt-BR")); setAberto(false); }}>
+              <Check className={`mr-2 h-4 w-4 ${nome === b.name.toLocaleUpperCase("pt-BR") ? "opacity-100" : "opacity-0"}`} />
+              {b.name}
+            </CommandItem>
+          ))}
+          <CommandItem value="outro não listado" className={mobile ? "min-h-11" : undefined}
+            onSelect={() => { onChange(null, ""); setAberto(false); }}>
+            Outro / não listado (digite abaixo)
+          </CommandItem>
+        </CommandGroup>
+      </CommandList>
+    </Command>
+  );
+  // No celular a lista sobe numa gaveta: busca e toque confortáveis com o teclado aberto.
+  if (mobile) {
+    return (
+      <>
+        {gatilho}
+        <Drawer open={aberto} onOpenChange={setAberto}>
+          <DrawerContent className="max-h-[85vh]">
+            <DrawerHeader className="flex items-center justify-between text-left">
+              <DrawerTitle>Escolha o Banco</DrawerTitle>
+              <Button type="button" variant="ghost" size="icon" aria-label="Fechar" onClick={() => setAberto(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </DrawerHeader>
+            <div className="px-2 pb-[max(1rem,env(safe-area-inset-bottom))]">{lista}</div>
+          </DrawerContent>
+        </Drawer>
+      </>
+    );
+  }
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
-      <PopoverTrigger asChild>
-        <Button id="campo-banco_nome" type="button" variant="outline" role="combobox" aria-expanded={aberto}
-          className="h-11 w-full justify-between font-normal">
-          <span className="truncate">{nome || "Buscar banco"}</span>
-          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command>
-          <CommandInput placeholder="Digite o nome do banco..." />
-          <CommandList>
-            <CommandEmpty>Nenhum banco encontrado.</CommandEmpty>
-            <CommandGroup>
-              {bancos.map((b) => (
-                <CommandItem key={b.slug} value={b.name}
-                  onSelect={() => { onChange(b.slug, b.name.toLocaleUpperCase("pt-BR")); setAberto(false); }}>
-                  <Check className={`mr-2 h-4 w-4 ${nome === b.name.toLocaleUpperCase("pt-BR") ? "opacity-100" : "opacity-0"}`} />
-                  {b.name}
-                </CommandItem>
-              ))}
-              <CommandItem value="outro não listado"
-                onSelect={() => { onChange(null, ""); setAberto(false); }}>
-                Outro / não listado (digite abaixo)
-              </CommandItem>
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
+      <PopoverTrigger asChild>{gatilho}</PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">{lista}</PopoverContent>
     </Popover>
   );
 }
+
+const ROTULO_DIVERGENCIA: Record<string, string> = {
+  nome: "Nome",
+  cpf: "CPF",
+  data_nascimento: "Data de nascimento",
+};
 
 const RACA_COR: Opcao[] = [
   { value: "branca", label: "Branca" },
