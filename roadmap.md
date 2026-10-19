@@ -1,4 +1,9 @@
 # Melhorias da admissão
+## Calendário e aniversariantes — ajustes aprovados
+- [ ] Suavizar pico e arredondar seletores; filtro de turno no mês resumido.
+- [ ] Turnos resumidos em todos os aparelhos com janela operacional oficial e alteração de setor.
+- [ ] Incorporar aniversários nos dois calendários e resumo compacto com todas as ações existentes.
+- [ ] Conferir navegação, filtros, janelas e testes, sem publicar.
 ## Calendário minimalista no Início
 - [x] Reutilizar o corpo oficial do dia no Início, com quantidades por turno no celular e ações oficiais.
 - [x] Compartilhar a faixa semanal original e conferir Hoje/Mês no celular e computador: abertura do dia, formulário de ausência e navegação verificados com dados reais, sem erros nem rolagem lateral; 28 testes passaram, sem gravações ou publicação.
