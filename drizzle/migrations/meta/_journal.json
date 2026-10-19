@@ -722,6 +722,13 @@
       "when": 1792407469986,
       "tag": "0102_folga_ocupacao_preserva_extras",
       "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1792431845471,
+      "tag": "0103_preadmissao_foto_vira_foto_perfil",
+      "breakpoints": true
     }
   ]
 }
