@@ -1,4 +1,5 @@
 import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
+import { importSessionComplete } from "./importSessionComplete";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { aprovarEmBlocos } from "@/lib/dp/bulkApproveChunks";
 import { validarUpload } from "@/lib/storage/uploadPolicy";
@@ -184,9 +185,7 @@ export function BulkImportPanel({
   // Só encerra quando TODOS os PDFs enviados nesta janela foram concluídos.
   useEffect(() => {
     if (!emJanela || !lotesDaSessao.length || conclusaoNotificada.current) return;
-    const concluidos = lotesDaSessao.every((id) =>
-      batches.data?.some((b) => b.id === id && b.status === "imported"),
-    );
+    const concluidos = importSessionComplete(lotesDaSessao, batches.data ?? []);
     if (!concluidos) return;
     conclusaoNotificada.current = true;
     onLoteConcluido?.();
