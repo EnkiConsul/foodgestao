@@ -15,14 +15,14 @@ import { diasElegiveisDaConfig } from "@/lib/dp/dsr-rules";
 import { useDpOperacaoPanorama, type DiaPanorama } from "@/hooks/useDpOperacaoPanorama";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
-import { diaEhPico } from "@/lib/dp/calendario-rotina";
+import { ausenciasVisiveis, diaEhPico, folgaEhDominical } from "@/lib/dp/calendario-rotina";
 import { mensagemAlerta } from "@/lib/dp/operacao-panorama";
 
 type ControladorOficial = typeof import("@/pages/dp/DpOperacaoPanorama").default;
 const CalendarioOficial = lazyWithRetry<Parameters<ControladorOficial>[0], ControladorOficial>(() => import("@/pages/dp/DpOperacaoPanorama"));
 const UNIDADE_KEY = "operacao_unidade";
 const SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-const AUSENCIAS_MES = [
+const AUSENCIAS_BASE = [
   { label: "Folgas", Icon: BedSingle, cor: "text-calendar-folga bg-calendar-folga/10", valor: (d: DiaPanorama) => d.contagens.folga_padrao + d.contagens.folga_extra },
   { label: "Férias", Icon: Palmtree, cor: "text-calendar-ferias bg-calendar-ferias/10", valor: (d: DiaPanorama) => d.contagens.ferias },
   { label: "Atestados", Icon: FileHeart, cor: "text-calendar-atestado bg-calendar-atestado/10", valor: (d: DiaPanorama) => d.contagens.atestado },
@@ -41,6 +41,12 @@ export function CalendarioOperacaoResumo() {
   const qc = useQueryClient();
   const { config } = useDpConfigDp(unidade || null);
   const diasDominicais = config ? diasElegiveisDaConfig(config) : [0];
+  const folgasDominicais = (d: DiaPanorama) => ausenciasVisiveis(d.pessoas, ["folga"]).filter((a) => folgaEhDominical(d.data, diasDominicais, a)).length;
+  const AUSENCIAS_MES = [
+    { ...AUSENCIAS_BASE[0], valor: (d: DiaPanorama) => ausenciasVisiveis(d.pessoas, ["folga"]).length - folgasDominicais(d) },
+    { label: "Dominicais", Icon: BedSingle, cor: "text-calendar-dominical bg-calendar-dominical/15", valor: folgasDominicais },
+    ...AUSENCIAS_BASE.slice(1),
+  ];
   const p = useDpOperacaoPanorama(competencia, unidade || null);
 
   useEffect(() => {
