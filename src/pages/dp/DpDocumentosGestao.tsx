@@ -291,7 +291,7 @@ export default function DpDocumentosGestao() {
   return (
     <DpPage>
       <Helmet>
-        <title>Gestão de Documentos — Pessoas 360°</title>
+        <title>Gerir Documentos — Pessoas 360°</title>
         <meta
           name="description"
           content="Importe e acompanhe os documentos da equipe em um só lugar: contracheques, pontos, atestados, férias e comprovantes, com distribuição automática por colaborador."
@@ -300,7 +300,7 @@ export default function DpDocumentosGestao() {
 
       <DpPageHeader
         icon={FileText}
-        title="Gestão de Documentos"
+        title="Gerir Documentos"
         description="Importe documentos e acompanhe assinaturas e comprovantes da equipe em um só lugar."
       />
 
