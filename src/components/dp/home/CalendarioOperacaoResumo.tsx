@@ -16,7 +16,8 @@ import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { diaEhPico } from "@/lib/dp/calendario-rotina";
 import { blocosPorFuncionamento, CATEGORIA_LABEL, mensagemAlerta } from "@/lib/dp/operacao-panorama";
 
-const CalendarioOficial = lazyWithRetry(() => import("@/pages/dp/DpOperacaoPanorama"));
+type ControladorOficial = typeof import("@/pages/dp/DpOperacaoPanorama").default;
+const CalendarioOficial = lazyWithRetry<Parameters<ControladorOficial>[0], ControladorOficial>(() => import("@/pages/dp/DpOperacaoPanorama"));
 const UNIDADE_KEY = "operacao_unidade";
 const SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const AUSENCIAS_MES = [
