@@ -1,9 +1,9 @@
 # Melhorias da admissão
 ## Início — refinamento final
-- [ ] Dia à esquerda, Mês maior à direita; unidade e três atalhos compactos no topo.
-- [ ] Reduzir células mensais e reunir data, trabalhando e Ações no cabeçalho diário.
-- [ ] Tornar genéricos os textos de importação sem alterar categorias contábeis.
-- [ ] Conferir computador/celular, filtros, janelas e testes sem publicar.
+- [x] Dia à esquerda, Mês maior à direita; unidade e três atalhos compactos no topo.
+- [x] Reduzir células mensais e reunir data, trabalhando e Ações no cabeçalho diário.
+- [x] Tornar genéricos os textos de importação sem alterar categorias contábeis.
+- [x] Conferir computador/celular com dados da Pakerê: navegação, ausência, turno com alteração de setor, importação e aniversariantes; 35 testes passaram, sem erros nem publicação.
 ## Início — composição compacta
 - [x] Mês maior ao lado do dia no computador; abas no celular.
 - [x] Menu Ações único, linhas claras e compactas, contador de Aniversariantes à direita.

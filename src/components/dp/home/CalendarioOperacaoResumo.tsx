@@ -102,7 +102,7 @@ export function CalendarioOperacaoResumo() {
             <Link to="/dp/rotina/calendario"><ExternalLink className="h-4 w-4" /></Link>
           </Button>
         </div>
-        <div className="mt-2 grid grid-cols-3 items-stretch gap-1.5 sm:gap-2" aria-label="Atalhos do início">
+        <div className="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)] items-stretch gap-1.5 sm:grid-cols-3 sm:gap-2" aria-label="Atalhos do início">
           <AcoesDoDiaCard emFaixa />
           <ImportarDocumentoAtalho emFaixa />
           <AniversariantesCard compacto emFaixa />
