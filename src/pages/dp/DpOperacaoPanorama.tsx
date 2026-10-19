@@ -695,7 +695,7 @@ function DetalheDiaOperacao({
 
 
       <div className={cn(compacto && "grid items-start gap-3 md:grid-cols-[minmax(0,1fr)_15rem]")}>
-      <div className={cn("grid min-w-0 items-start gap-3", compacto && "md:grid-cols-2")} aria-label="Equipe por turno">
+      <div className={cn("grid min-w-0 items-start gap-3", compacto && blocosVisiveis.length > 1 && "md:grid-cols-2")} aria-label="Equipe por turno">
       {blocosVisiveis.length ? (
         blocosVisiveis.map((bloco) => {
           const noite = (bloco.horario ?? "").match(/^(\d{2})/) ? Number((bloco.horario ?? "").slice(0, 2)) >= 15 : false;
