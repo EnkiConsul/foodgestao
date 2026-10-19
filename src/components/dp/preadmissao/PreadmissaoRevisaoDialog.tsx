@@ -33,6 +33,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { notifyError } from "@/lib/notifyError";
 import { gerarFichaAdmissaoPdf } from "@/lib/dp/ficha-admissao-pdf";
+import { AsoAdmissionalCard } from "./AsoAdmissionalCard";
+import { asoLiberaContabilidade, BASES_LEGAIS_DISPENSA, type AsoDados } from "@/lib/dp/aso-admissional";
+import { abrirAsoPreadmissao } from "@/hooks/dp/useDpPreadmissoes";
+
+/** Ordem da conferência guiada do gestor (abas da ficha). */
+const ABAS_CONFERENCIA: Array<{ aba: string; rotulo: string }> = [
+  { aba: "dados", rotulo: "Identificação" },
+  { aba: "jornada", rotulo: "Horário" },
+  { aba: "remuneracao", rotulo: "Remuneração" },
+  { aba: "dependentes", rotulo: "Dependentes" },
+  { aba: "documentos", rotulo: "Documentos" },
+];
 import { PARENTESCOS_EMERGENCIA, contatosDaFicha, rotuloParentescoEmergencia } from "@/lib/dp/contatosEmergencia";
 import { maskPhone } from "@/lib/phone";
 import { maskCpf } from "@/lib/cpf";
@@ -246,6 +258,12 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const { data, isLoading, refetch } = useDpPreadmissao(preadmissaoId);
   const acoes = useDpPreadmissaoGestor(preadmissaoId);
   const [aba, setAba] = useState("dados");
+  /** Abas já abertas pelo gestor nesta conferência. */
+  const [vistas, setVistas] = useState<Set<string>>(new Set(["dados"]));
+  const [abaConf, setAbaConf] = useState("dados");
+  const [abaPedida, setAbaPedida] = useState<{ aba: string; n: number } | null>(null);
+  useEffect(() => { setVistas(new Set(["dados"])); setAbaConf("dados"); setAbaPedida(null); }, [preadmissaoId]);
+  const marcarAba = (a: string) => { setAbaConf(a); setVistas((v) => (v.has(a) ? v : new Set([...v, a]))); };
   const [motivo, setMotivo] = useState("");
   const [admin, setAdmin] = useState<Record<string, string>>({});
   const [ficha, setFicha] = useState<Record<string, string>>({});
@@ -579,14 +597,58 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       });
     }
 
+    const aso = (admDados.aso ?? null) as AsoDados | null;
+    const dataBr = (v?: string) => (v ? v.split("-").reverse().join("/") : "");
+    const linhasAso: Array<[string, string]> = !aso?.modo ? [["Situação", "Exame admissional ainda não registrado"]]
+      : aso.modo === "dispensado" ? [
+          ["Situação", "Dispensado"],
+          ["Base legal", BASES_LEGAIS_DISPENSA.find((b) => b.value === aso.base_legal)?.label ?? String(aso.base_legal ?? "")],
+          ["Justificativa", String(aso.justificativa ?? "")],
+          ["Registrada em", aso.dispensado_em ? new Date(aso.dispensado_em).toLocaleString("pt-BR") : ""],
+        ]
+      : aso.modo === "realizado" ? [
+          ["Situação", aso.parecer === "apto" ? "Realizado - APTO" : "Realizado - INAPTO"],
+          ["Data do exame", dataBr(aso.data_realizacao)],
+          ["Médico", [aso.medico, aso.crm && `CRM ${aso.crm}`].filter(Boolean).join(" - ")],
+          ["Arquivo", aso.arquivo_path ? "Anexado ao final deste dossiê" : "Ainda não anexado"],
+        ]
+      : [
+          ["Situação", "Agendado"],
+          ["Data", `${dataBr(aso.data)}${aso.hora ? ` às ${aso.hora}` : ""}`],
+          ["Clínica", [aso.clinica, aso.endereco].filter(Boolean).join(" - ")],
+        ];
+    if (aso?.modo === "realizado" && aso.arquivo_path) {
+      try {
+        const r = await abrirAsoPreadmissao(data.preadmissao.id);
+        const resp = await fetch(r.url);
+        if (resp.ok) {
+          const blob = await resp.blob();
+          anexos.push({ titulo: "ASO - Atestado de Saúde Ocupacional", blob, mime: r.mime_type ?? blob.type });
+        }
+      } catch { /* aparece como "não incluído" abaixo */ }
+    }
+    const fotoDoc = vigentes.find((d) => d.requisito_codigo === "foto_3x4" && !d.pessoa_id && d.status !== "recusado");
+    const fotoIdx = fotoDoc ? docsValidos.findIndex((d) => d.id === fotoDoc.id) : -1;
+    const foto = fotoIdx >= 0 ? anexos[fotoIdx] : null;
+    const oficial = ["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido", "concluido"]
+      .includes(status) && (!isClt || asoLiberaContabilidade(aso));
+    const empresa = companies.find((c) => c.id === data.preadmissao.company_id) as { name?: string; cnpj?: string | null } | undefined;
+    const protocolo = `PA-${new Date(data.preadmissao.created_at ?? Date.now()).getFullYear()}-${data.preadmissao.id.replace(/-/g, "").slice(0, 5).toUpperCase()}`;
+
     const { bytes, falhas } = await gerarFichaAdmissaoPdf({
-      titulo: `Ficha de Admissão - ${ficha.nome || data.preadmissao.candidato_nome}`,
-      subtitulo: [vaga && `Vaga: ${vaga}`, `Gerada em ${new Date().toLocaleString("pt-BR")}`].filter(Boolean).join("   |   "),
+      titulo: ficha.nome || data.preadmissao.candidato_nome,
+      subtitulo: vaga ? `Vaga: ${vaga}` : undefined,
+      empresa: empresa?.name ?? "",
+      cnpj: empresa?.cnpj ?? "",
+      protocolo,
+      previa: !oficial,
+      foto: foto ? { blob: foto.blob, mime: foto.mime } : null,
       secoes: [
         { titulo: "Dados do Candidato", linhas: linhaPessoal },
         { titulo: "Contatos de Emergência", linhas: linhaEmergencia },
         { titulo: "Informações Administrativas", linhas: linhaAdmin },
         { titulo: "Dependentes e Familiares", linhas: listaPessoas },
+        { titulo: "Saúde Ocupacional (ASO)", linhas: linhasAso },
         { titulo: "Documentos Anexados", linhas: linhasDocs },
       ],
       anexos,
@@ -595,14 +657,14 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w]+/g, "-").toLowerCase();
     const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
-    link.download = `ficha-admissao-${nomeArq}.pdf`;
+    link.download = `${oficial ? "ficha-admissao" : "previa-ficha-admissao"}-${nomeArq}.pdf`;
     document.body.appendChild(link);
     link.click();
     link.remove();
     window.setTimeout(() => URL.revokeObjectURL(link.href), 60_000);
 
     if (falhas.length) toast.warning(`Ficha gerada, mas não foi possível incluir: ${falhas.join(", ")}. Baixe esses documentos separadamente.`);
-    else toast.success("Ficha de admissão baixada com os documentos anexados.");
+    else toast.success(oficial ? "Ficha de admissão baixada com os documentos anexados." : "Prévia baixada. A versão oficial sai após a aprovação e o exame admissional.");
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "gerar a ficha de admissão" });
     } finally {
@@ -998,6 +1060,15 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     );
   }
 
+  const emConferencia = status === "aguardando_revisao" && !encerrada;
+  const faltamAbas = ABAS_CONFERENCIA.filter((a) => !vistas.has(a.aba));
+  const idxConf = ABAS_CONFERENCIA.findIndex((a) => a.aba === abaConf);
+  const proximaAba = ABAS_CONFERENCIA.slice(idxConf + 1).find((a) => !vistas.has(a.aba)) ?? faltamAbas[0];
+  const podeAprovar = faltamAbas.length === 0 && divergenciasOcr.length === 0;
+  const asoAtual = ((pa.admin_dados ?? {}) as { aso?: AsoDados }).aso ?? null;
+  const fichaOficialPronta = ["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido", "concluido"]
+    .includes(status) && (!isClt || asoLiberaContabilidade(asoAtual));
+
   const etapa = (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground sm:hidden">
@@ -1024,6 +1095,21 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         ))}
         <li className="ml-auto text-muted-foreground">{PREADMISSAO_STATUS_LABEL[status]}</li>
       </ol>
+      {emConferencia && (
+        <div className="flex flex-wrap gap-1 text-[11px]" aria-label="Conferência das abas">
+          {ABAS_CONFERENCIA.map((a) => {
+            const div = a.aba === "dados" && divergenciasOcr.length > 0;
+            const ok = vistas.has(a.aba) && !div;
+            return (
+              <button key={a.aba} type="button" onClick={() => setAbaPedida({ aba: a.aba, n: Date.now() })}
+                className={`flex items-center gap-1 rounded-full border px-2 py-0.5 ${div ? "border-destructive/50 text-destructive" : ok ? "border-primary/40 text-primary" : "text-muted-foreground"} ${abaConf === a.aba ? "font-semibold" : ""}`}>
+                <span className={`h-2 w-2 rounded-full ${div ? "bg-destructive" : ok ? "bg-primary" : "bg-amber-500"}`} aria-hidden="true" />
+                {a.rotulo}{div ? " · divergência" : ok ? "" : " · conferir"}
+              </button>
+            );
+          })}
+        </div>
+      )}
               {divergenciasOcr.length > 0 && (
                 <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm space-y-2">
                   <p className="font-semibold flex items-center gap-2 text-amber-700">
@@ -1089,13 +1175,29 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     <>
       <Button variant="outline" className="h-11 sm:h-10" disabled={gerando} onClick={() => void gerarFicha()}>
         {gerando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Printer className="h-4 w-4 mr-2" />}
-        Baixar Ficha de Admissão (PDF)
+        {fichaOficialPronta ? "Baixar Ficha de Admissão (PDF)" : "Baixar Prévia da Ficha (PDF)"}
       </Button>
+      {emConferencia && proximaAba && (
+        <Button variant="secondary" className="h-11 sm:h-10" onClick={() => setAbaPedida({ aba: proximaAba.aba, n: Date.now() })}>
+          Avançar para {proximaAba.rotulo}
+        </Button>
+      )}
+      {isClt && status === "pronto_contabilidade" && (
+        <Button
+          className="h-11 sm:h-10"
+          disabled={!asoLiberaContabilidade(asoAtual) || acoes.marcarStatus.isPending}
+          title={asoLiberaContabilidade(asoAtual) ? undefined : "Anexe o ASO Apto ou registre a dispensa na aba Documentos."}
+          onClick={() => executar(() => acoes.marcarStatus.mutateAsync("enviado_contabilidade"), "Pacote liberado. Baixe a ficha e envie à contabilidade.")}
+        >
+          Liberar Pacote para Contabilidade
+        </Button>
+      )}
       {status === "aguardando_revisao" && (
         <Button
           className="h-11 sm:h-10"
-          disabled={acoes.prepararContabilidade.isPending}
-          onClick={() => executar(() => acoes.prepararContabilidade.mutateAsync(), "Ficha aprovada. Anexe a ficha de registro na aba Documentos.")}
+          title={podeAprovar ? undefined : divergenciasOcr.length ? "Resolva as divergências do documento na aba Identificação." : `Falta conferir: ${faltamAbas.map((a) => a.rotulo).join(", ")}.`}
+          disabled={!podeAprovar || acoes.prepararContabilidade.isPending}
+          onClick={() => executar(() => acoes.prepararContabilidade.mutateAsync(), isClt ? "Ficha aprovada. Agora trate o exame admissional na aba Documentos." : "Ficha aprovada.")}
         >
           Aprovar Ficha
         </Button>
@@ -1217,6 +1319,25 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                   </p>
                 )}
 
+                {status === "aguardando_revisao" && !podeAprovar && (
+                  <p className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
+                    {divergenciasOcr.length
+                      ? "Há divergência entre o documento e o cadastro: resolva na aba Dados antes de aprovar."
+                      : `Para aprovar, abra e confira: ${faltamAbas.map((a) => a.rotulo).join(", ")}.`}
+                  </p>
+                )}
+                {isClt && ["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(status) && (
+                  <AsoAdmissionalCard
+                    preadmissaoId={pa.id}
+                    aso={asoAtual}
+                    candidatoNome={ficha.nome || pa.candidato_nome}
+                    whatsapp={ficha.whatsapp || (pa as { whatsapp?: string | null }).whatsapp}
+                    cargo={cargos.find((c) => c.id === (admin.cargo_id || pa.cargo_previsto_id))?.nome}
+                    empresa={(companies.find((c) => c.id === pa.company_id) as { name?: string } | undefined)?.name}
+                    encerrada={encerrada}
+                    onSalvo={() => void refetch()}
+                  />
+                )}
                 {/* "Registro recebido" também entra aqui: quando a contabilidade
                     envia uma versão nova, a conferência anterior deixa de valer e
                     o gestor precisa poder anexar e conferir novamente. */}
@@ -1437,6 +1558,8 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           dependentes: <div className="space-y-3">{dependentesNode}</div>,
           documentos: documentosNode,
           somenteLeitura: encerrada,
+          onAbaChange: marcarAba,
+          abaPedida,
           salvando,
           onSalvar: salvarUnificado,
         }}

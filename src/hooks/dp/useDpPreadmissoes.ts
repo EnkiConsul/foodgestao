@@ -342,3 +342,24 @@ export async function anexarFichaOficial(
     content_base64: base64,
   });
 }
+
+/** Exame admissional (ASO): agendamento, resultado ou dispensa. */
+export async function salvarAsoPreadmissao(preadmissaoId: string, aso: Record<string, unknown>): Promise<void> {
+  await chamar("dp-preadmissao-gestor", { action: "salvar_aso", preadmissao_id: preadmissaoId, aso });
+}
+
+export async function anexarAsoPreadmissao(preadmissaoId: string, arquivo: File): Promise<void> {
+  const base64 = await new Promise<string>((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
+    fr.onload = () => resolve(String(fr.result).split(",")[1] ?? "");
+    fr.readAsDataURL(arquivo);
+  });
+  await chamar("dp-preadmissao-arquivo", {
+    action: "aso_arquivo", preadmissao_id: preadmissaoId, file_name: arquivo.name, content_base64: base64,
+  });
+}
+
+export async function abrirAsoPreadmissao(preadmissaoId: string): Promise<{ url: string; mime_type?: string }> {
+  return await chamar("dp-preadmissao-arquivo", { action: "aso_url", preadmissao_id: preadmissaoId });
+}

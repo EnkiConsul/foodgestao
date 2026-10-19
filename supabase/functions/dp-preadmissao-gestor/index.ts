@@ -578,6 +578,58 @@ Deno.serve(async (req) => {
       return jsonResponse(req, 200, { success: true, status: an.status, documento_id: an.documento_id });
     }
 
+    /**
+     * Exame admissional (ASO) — NR-7 / art. 168 CLT. Fica em admin_dados.aso.
+     * Dispensa só por dono/administrador, com base legal, justificativa e ciência.
+     */
+    if (acao === "salvar_aso") {
+      if (["concluido", "cancelado", "expirado"].includes(pa.status)) {
+        return jsonResponse(req, 409, { error: "Esta pré-admissão já foi encerrada." });
+      }
+      if (!["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(pa.status)) {
+        return jsonResponse(req, 409, { error: "Aprove a ficha antes de tratar o exame admissional." });
+      }
+      const e = (body?.aso ?? {}) as Record<string, unknown>;
+      const t = (k: string, max = 300) => String(e[k] ?? "").trim().slice(0, max);
+      const modo = t("modo");
+      const { data: fresca } = await admin.from("dp_preadmissoes").select("admin_dados").eq("id", pa.id).maybeSingle();
+      const adm = ((fresca?.admin_dados ?? {}) as Record<string, unknown>);
+      const anterior = ((adm.aso ?? {}) as Record<string, unknown>);
+      let aso: Record<string, unknown>;
+      if (modo === "agendado") {
+        const maps = t("maps_url", 500);
+        if (maps && !/^https:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|(www\.)?google\.[a-z.]+\/maps|maps\.google\.[a-z.]+)/i.test(maps)) {
+          return jsonResponse(req, 400, { error: "Cole um link do Google Maps (começando com https://maps.app.goo.gl ou https://www.google.com/maps)." });
+        }
+        if (!t("clinica") || !/^\d{4}-\d{2}-\d{2}$/.test(t("data"))) {
+          return jsonResponse(req, 400, { error: "Informe a clínica e a data do exame." });
+        }
+        aso = { ...anterior, modo, clinica: t("clinica").toUpperCase(), endereco: t("endereco").toUpperCase(), maps_url: maps,
+          data: t("data"), hora: t("hora", 5), telefone: t("telefone", 30), orientacoes: t("orientacoes", 800) };
+      } else if (modo === "realizado") {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(t("data_realizacao"))) return jsonResponse(req, 400, { error: "Informe a data em que o exame foi feito." });
+        const parecer = t("parecer");
+        if (!["apto", "inapto"].includes(parecer)) return jsonResponse(req, 400, { error: "Informe o resultado do exame." });
+        aso = { ...anterior, modo, data_realizacao: t("data_realizacao"), medico: t("medico").toUpperCase(), crm: t("crm", 30).toUpperCase(), parecer };
+      } else if (modo === "dispensado") {
+        if (!(access.isOwner || access.memberRole === "owner" || access.memberRole === "admin")) {
+          return jsonResponse(req, 403, { error: "Só o dono ou um administrador da empresa pode dispensar o exame admissional." });
+        }
+        if (!t("base_legal")) return jsonResponse(req, 400, { error: "Escolha a base legal da dispensa." });
+        if (t("justificativa", 1000).length < 15) return jsonResponse(req, 400, { error: "Escreva uma justificativa com pelo menos 15 caracteres." });
+        if (e.ciente !== true) return jsonResponse(req, 400, { error: "Confirme a declaração de ciência." });
+        aso = { modo, base_legal: t("base_legal"), justificativa: t("justificativa", 1000), dispensado_por: caller.id, dispensado_em: new Date().toISOString() };
+      } else {
+        return jsonResponse(req, 400, { error: "Situação do exame inválida." });
+      }
+      aso.atualizado_em = new Date().toISOString();
+      const { error: upErr } = await admin.from("dp_preadmissoes").update({ admin_dados: { ...adm, aso } }).eq("id", pa.id);
+      if (upErr) return jsonError(req, "internal", "não foi possível salvar o exame admissional");
+      await registrarEvento(admin, pa.id, pa.company_id, `aso_${modo}`, modo === "dispensado"
+        ? { base_legal: aso.base_legal, justificativa: aso.justificativa } : { data: aso.data ?? aso.data_realizacao ?? null }, caller.id);
+      return jsonResponse(req, 200, { success: true, ...(await montar()) });
+    }
+
     if (acao === "marcar_status") {
       const novo = String(body?.status ?? "");
       // Receber a ficha oficial NÃO é uma simples mudança de situação: exige o
@@ -592,6 +644,13 @@ Deno.serve(async (req) => {
             ? "Anexe a ficha oficial da contabilidade e registre a conferência para receber o registro."
             : "Esta mudança de situação não é permitida agora.",
         });
+      }
+      if (novo === "enviado_contabilidade") {
+        const aso = (((pa as unknown as { admin_dados?: Record<string, unknown> }).admin_dados ?? {}).aso ?? {}) as Record<string, unknown>;
+        const ok = aso.modo === "dispensado" || (aso.modo === "realizado" && aso.parecer === "apto" && !!aso.arquivo_path);
+        if (!ok) {
+          return jsonResponse(req, 409, { error: "Anexe o ASO com resultado Apto ou registre a dispensa do exame antes de enviar à contabilidade." });
+        }
       }
       const t = await transicionar(admin, pa.id, [pa.status], novo, {
         ...(novo === "enviado_contabilidade" ? { contabilidade_enviado_em: true } : {}),
