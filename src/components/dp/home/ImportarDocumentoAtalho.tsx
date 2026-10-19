@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, FileUp } from "lucide-react";
-import { DpDialogShell } from "@/components/dp/DpDialogShell";
-import { BulkImportPanel } from "@/components/dp/documentos/BulkImportPanel";
+import { ImportarDocumentoDialog } from "@/components/dp/documentos/ImportarDocumentoDialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -41,22 +40,15 @@ export function ImportarDocumentoAtalho({ emFaixa = false, destaque = false, cla
         </div>
         {!emFaixa && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
       </Button>}
-      <DpDialogShell
+      <ImportarDocumentoDialog
         open={aberto}
         onOpenChange={setAberto}
-        icon={FileUp}
-        size="xl"
-        title="Importar documento"
-        description="Envie o PDF para conferir e vincular as páginas aos colaboradores."
-      >
-        <BulkImportPanel
-          title="Enviar PDF"
-          onLoteConcluido={() => {
-            void qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
-            setAberto(false);
-          }}
-        />
-      </DpDialogShell>
+        onLoteConcluido={() => {
+          void qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+          void qc.invalidateQueries({ queryKey: ["dp_historico_unified"] });
+          setAberto(false);
+        }}
+      />
     </>
   );
 }

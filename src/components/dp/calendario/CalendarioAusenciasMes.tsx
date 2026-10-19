@@ -17,7 +17,7 @@ import { resolverLimiteFolga, limiteComFolgaFixaDiaUtil } from "@/lib/dp/folga-l
 import { useBloqueiosParciais } from "@/hooks/useBloqueiosParciais";
 import { useBloqueiosEfetivos } from "@/hooks/useBloqueiosEfetivos";
 import { useFixosPorDiaSemana } from "@/hooks/useFixosPorDiaSemana";
-import { diaEhPico, folgaFixaDoDia } from "@/lib/dp/calendario-rotina";
+import { diaEhPico } from "@/lib/dp/calendario-rotina";
 import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { CalendarioSemanaCabecalho } from "./CalendarioSemanaCabecalho";
 import { useDpAniversariantes30d } from "@/hooks/useDpAniversariantes30d";
@@ -592,8 +592,8 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                     {(() => {
                       const lim = limiteDoDia(d.data);
                       if (lim == null) return null;
-                      // Em dia dominical, quem tem folga fixa nesse dia não ocupa a vaga de escolha.
-                      const usadas = aus.filter((a) => a.tipo === "folga" && !(ehDiaDominical(d.data) && folgaFixaDoDia(d.data, a))).length;
+                      // Quem folga padrão (folga fixa da jornada) também ocupa vaga do limite do dia.
+                      const usadas = aus.filter((a) => a.tipo === "folga").length;
                       return (
                         <span className={cn("mt-auto inline-flex w-fit items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums", usadas >= lim ? "border-destructive/40 text-destructive" : "border-border text-muted-foreground")} title="Vagas de folga da unidade neste dia">
                           Folgas {usadas}/{lim}
