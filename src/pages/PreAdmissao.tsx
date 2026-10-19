@@ -149,11 +149,11 @@ const DEFICIENCIA: Opcao[] = [
   { value: "reabilitado", label: "Reabilitado(a) pelo INSS" },
 ];
 
-const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?: boolean; leitura?: string[] }> = [
+const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?: boolean; leitura?: string[]; perfil?: boolean }> = [
   {
-    titulo: "Seus Dados",
-    ajuda: "Envie a foto do RG ou da CNH e nós preenchemos o que der para você conferir. O resto é rápido.",
-    leitura: ["identidade"],
+    titulo: "Identificação",
+    ajuda: "Tire a sua foto (selfie com fundo claro serve) e envie o RG ou a CNH: nós preenchemos o que der para você conferir.",
+    leitura: ["foto_3x4", "identidade"],
     campos: [
       { nome: "nome", rotulo: "Nome completo", upper: true, autoComplete: "name", somenteLeitura: true },
       { nome: "cpf", rotulo: "CPF", inputMode: "numeric", mask: "cpf", somenteLeitura: true },
@@ -169,13 +169,15 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?:
       { nome: "nacionalidade", rotulo: "Nacionalidade", upper: true, ajuda: "Ex.: BRASILEIRA." },
       { nome: "naturalidade", rotulo: "Cidade onde nasceu", upper: true },
       { nome: "naturalidade_uf", rotulo: "Estado onde nasceu", opcoes: UFS.map((uf) => ({ value: uf, label: uf })) },
-      { nome: "raca_cor", rotulo: "Raça / cor", opcoes: RACA_COR },
-      { nome: "deficiencia", rotulo: "Deficiência", opcoes: DEFICIENCIA, ajuda: "Se não tiver, escolha a primeira opção." },
+      { nome: "rg_numero", rotulo: "RG", inputMode: "numeric" },
+      { nome: "rg_orgao", rotulo: "Órgão emissor do RG", upper: true },
+      { nome: "rg_uf", rotulo: "UF do RG", opcoes: UFS.map((uf) => ({ value: uf, label: uf })) },
+      { nome: "rg_emissao", rotulo: "Data de emissão do RG", mask: "data", inputMode: "numeric", ajuda: "dd/mm/aaaa" },
     ],
   },
   {
-    titulo: "Contato",
-    ajuda: "Usamos para falar com você sobre a admissão.",
+    titulo: "Contato e Emergência",
+    ajuda: "Seu WhatsApp e e-mail para falarmos da admissão, e quem avisar se algo acontecer com você (o 1º contato é obrigatório).",
     campos: [
       {
         nome: "telefone",
@@ -186,12 +188,6 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?:
         mask: "telefone",
       },
       { nome: "email", rotulo: "E-mail", tipo: "email", inputMode: "email", autoComplete: "email" },
-    ],
-  },
-  {
-    titulo: "Contatos de Emergência",
-    ajuda: "Quem devemos avisar se algo acontecer com você. O 1º contato é obrigatório; o 2º é opcional.",
-    campos: [
       { nome: "emerg1_nome", rotulo: "1º contato — nome completo", upper: true },
       { nome: "emerg1_parentesco", rotulo: "1º contato — parentesco", opcoes: PARENTESCOS_EMERGENCIA },
       { nome: "emerg1_whatsapp", rotulo: "1º contato — WhatsApp com DDD", tipo: "tel", inputMode: "tel", mask: "telefone" },
@@ -233,14 +229,19 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?:
     ],
   },
   {
+    titulo: "Sobre Você",
+    ajuda: "Algumas informações pessoais pedidas pelo eSocial. Leva menos de um minuto.",
+    perfil: true,
+    campos: [
+      { nome: "raca_cor", rotulo: "Raça / cor", opcoes: RACA_COR },
+      { nome: "deficiencia", rotulo: "Deficiência", opcoes: DEFICIENCIA, ajuda: "Se não tiver, escolha a primeira opção." },
+    ],
+  },
+  {
     titulo: "Documentos e Registros",
     ajuda: "Envie as fotos acima e nós preenchemos o que der. Se não souber algum número, deixe em branco.",
     leitura: ["ctps", "titulo_eleitor", "reservista"],
     campos: [
-      { nome: "rg_numero", rotulo: "RG", inputMode: "numeric" },
-      { nome: "rg_orgao", rotulo: "Órgão emissor do RG", upper: true },
-      { nome: "rg_uf", rotulo: "UF do RG", opcoes: UFS.map((uf) => ({ value: uf, label: uf })) },
-      { nome: "rg_emissao", rotulo: "Data de emissão do RG", mask: "data", inputMode: "numeric", ajuda: "dd/mm/aaaa" },
       {
         nome: "pis", rotulo: "PIS / NIS", inputMode: "numeric",
         ajuda: "Aparece no app Carteira de Trabalho Digital ou no cartão Cidadão. Se é seu primeiro emprego ou não souber, deixe em branco.",
@@ -263,9 +264,9 @@ const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?:
  * servidor devolve o código do campo e aqui traduzimos para o candidato.
  */
 const ROTULOS_EXTRA: Record<string, { rotulo: string; etapa: string }> = {
-  sexo: { rotulo: "Sexo", etapa: "Seus Dados" },
-  estado_civil: { rotulo: "Estado civil", etapa: "Seus Dados" },
-  grau_instrucao: { rotulo: "Grau de instrução", etapa: "Seus Dados" },
+  sexo: { rotulo: "Sexo", etapa: "Sobre Você" },
+  estado_civil: { rotulo: "Estado civil", etapa: "Sobre Você" },
+  grau_instrucao: { rotulo: "Grau de instrução", etapa: "Sobre Você" },
   cep: { rotulo: "CEP", etapa: "Endereço" },
   endereco: { rotulo: "Rua", etapa: "Endereço" },
   numero: { rotulo: "Número", etapa: "Endereço" },
@@ -1106,7 +1107,7 @@ export default function PreAdmissao() {
                 <h2 className="font-semibold">{etapaAtual.titulo}</h2>
                 <p className="text-xs text-muted-foreground">{etapaAtual.ajuda}</p>
               </div>
-              {etapa === 0 && (
+              {etapaAtual.perfil && (
                 <div className="grid gap-3 sm:grid-cols-2">
                   {exigenciaCampo("sexo") !== "nao_pedir" && (
                   <div className="space-y-1">
