@@ -293,8 +293,10 @@ export function aplicarRegrasDocumentos(
   regras: Record<string, "obrigatorio" | "opcional" | "nao_pedir"> = {},
 ): ItemChecklist[] {
   return itens
-    .filter((i) => regras[i.codigo] !== "nao_pedir")
+    // A foto 3x4/selfie é sempre obrigatória: vira a foto do perfil do colaborador.
+    .filter((i) => i.codigo === "foto_3x4" || regras[i.codigo] !== "nao_pedir")
     .map((i) => {
+      if (i.codigo === "foto_3x4") return { ...i, obrigatorio: true };
       const r = regras[i.codigo];
       if (r === "opcional") return { ...i, obrigatorio: false };
       if (r === "obrigatorio") return { ...i, obrigatorio: true };
