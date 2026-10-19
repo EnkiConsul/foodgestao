@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, ChevronRight, ListChecks, Loader2 } from "lucide-react";
+import { CheckCircle2, ChevronRight, ListChecks, Loader2, X } from "lucide-react";
 import { useDpPendencias } from "@/hooks/useDpPendencias";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { useDpPendenciasDecisoes } from "@/hooks/useDpPendenciasDecisoes";
@@ -12,7 +12,7 @@ import { PendenciaAcoes } from "@/components/dp/pendencias/PendenciaAcoes";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 
 const dataBR = (d: string) => new Date(d.slice(0, 10) + "T12:00:00").toLocaleDateString("pt-BR");
@@ -139,9 +139,14 @@ export function AcoesDoDiaCard({ emFaixa = false }: { emFaixa?: boolean }) {
       {isMobile ? (
         <Drawer open={aberto} onOpenChange={setAberto}>
           <DrawerContent className="max-h-[90dvh]">
-            <DrawerHeader className="text-left">
+            <DrawerHeader className="relative text-left">
               <DrawerTitle>Ações do Dia</DrawerTitle>
               <DrawerDescription>{descricao}</DrawerDescription>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon" className="absolute right-2 top-0" aria-label="Fechar">
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </DrawerClose>
             </DrawerHeader>
             <div className="overflow-y-auto px-4 pb-6">{conteudo}</div>
           </DrawerContent>
