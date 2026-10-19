@@ -31,6 +31,7 @@ export default {
         calendar: {
           pico: "hsl(var(--calendar-pico))",
           header: "hsl(var(--calendar-header))",
+          "day-header": "hsl(var(--calendar-day-header))",
           "header-foreground": "hsl(var(--calendar-header-foreground))",
           folga: "hsl(var(--calendar-folga))",
           ferias: "hsl(var(--calendar-ferias))",
