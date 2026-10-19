@@ -1,7 +1,7 @@
 # Melhorias da admissão
 ## Calendário minimalista no Início
-- [ ] Aproximar o Início do calendário oficial: nomes por turno, ausências e mesmas ações em janela adaptada ao celular.
-- [ ] Conferir detalhes e navegação com dados reais no celular e computador, sem gravar registros fictícios ou publicar.
+- [x] Aproximar o Início do calendário oficial: nomes por turno, ausências e mesmas ações em janela adaptada ao celular.
+- [x] Conferir detalhes e navegação com dados reais no celular e computador: 70 testes passaram; janela oficial e formulário de ausência abriram sem sair do Início. Nenhuma gravação ou publicação realizada.
 - [x] Manter Hoje/Mês com navegação por setas e preservar o dia ao trocar o mês.
 - [x] Conferir navegação com dados existentes e testar viradas de mês/ano, sem publicar (6 testes; computador/celular sem erros de execução).
 
