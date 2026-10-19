@@ -340,8 +340,9 @@ export function cotasPorCargoNoDia(params: {
 }
 
 /**
- * Mesma regra do Calendário de Folgas: de segunda a sexta, sem exceção na data,
- * o limite é a quantidade de ativos da unidade com folga fixa nesse dia da semana.
+ * Mesma regra do Calendário de Folgas: em qualquer dia da semana, sem exceção
+ * na data, o limite é pelo menos a quantidade de ativos da unidade com folga
+ * fixa nesse dia — quem folga padrão sempre conta na ocupação das vagas.
  */
 export function limiteComFolgaFixaDiaUtil(
   iso: string,
@@ -349,7 +350,7 @@ export function limiteComFolgaFixaDiaUtil(
   fixosPorDow: Map<number, number> | undefined,
 ): LimiteResolvido {
   const wd = new Date(`${iso}T12:00:00`).getDay();
-  if (!fixosPorDow || wd < 1 || wd > 5) return res;
+  if (!fixosPorDow) return res;
   const fixos = fixosPorDow.get(wd) ?? 0;
   if (res.origem === "sem_limite") return { ...res, limite: fixos, origem: "folga_fixa" };
   // Com limite configurado, as folgas fixas cadastradas no dia são o piso: o teto nunca fica abaixo delas.
