@@ -447,6 +447,27 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
    * pré-admissão avança para a etapa Contabilidade.
    */
   const queryClient = useQueryClient();
+
+  /** Última leitura da identidade: diferenças entre documento e cadastro. */
+  const [divergenciasOcr, setDivergenciasOcr] = useState<Array<{ campo: string; cadastro: string; documento: string }>>([]);
+  useEffect(() => {
+    setDivergenciasOcr([]);
+    if (!preadmissaoId) return;
+    let vivo = true;
+    void supabase
+      .from("dp_preadmissao_eventos")
+      .select("detalhe")
+      .eq("preadmissao_id", preadmissaoId)
+      .eq("evento", "ocr_divergencia")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data: ev }) => {
+        const lista = ((ev?.detalhe as { divergencias?: unknown } | null)?.divergencias ?? []) as Array<{ campo: string; cadastro: string; documento: string }>;
+        if (vivo) setDivergenciasOcr(Array.isArray(lista) ? lista : []);
+      });
+    return () => { vivo = false; };
+  }, [preadmissaoId]);
   const [efetivando, setEfetivando] = useState(false);
   const [confirmarClt, setConfirmarClt] = useState(false);
   const regimeAtual = admin.regime_trabalho || data?.preadmissao?.regime_previsto || "clt";
@@ -999,6 +1020,37 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         ))}
         <li className="ml-auto text-muted-foreground">{PREADMISSAO_STATUS_LABEL[status]}</li>
       </ol>
+              {divergenciasOcr.length > 0 && (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm space-y-2">
+                  <p className="font-semibold flex items-center gap-2 text-amber-700">
+                    <AlertTriangle className="h-4 w-4" /> Documento diferente do cadastro
+                  </p>
+                  <p className="text-xs text-muted-foreground">A leitura da identidade encontrou diferenças. Confira a foto do documento antes de decidir.</p>
+                  {divergenciasOcr.map((d) => (
+                    <div key={d.campo} className="rounded-md border bg-background p-2">
+                      <p className="text-xs font-medium">{ROTULO_DIVERGENCIA_OCR[d.campo] ?? d.campo}</p>
+                      <div className="mt-1 grid grid-cols-1 gap-1 text-xs sm:grid-cols-2">
+                        <span><span className="text-muted-foreground">Cadastro: </span>{formatarDivergencia(d.campo, d.cadastro)}</span>
+                        <span><span className="text-muted-foreground">Documento: </span>{formatarDivergencia(d.campo, d.documento)}</span>
+                      </div>
+                      {!somenteLeitura && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Button size="sm" variant="outline" className="h-8" onClick={() => {
+                            mudarFicha(d.campo as CampoFicha, d.campo === "cpf" ? mascaraCpf(d.documento) : d.documento);
+                            setDivergenciasOcr((l) => l.filter((x) => x.campo !== d.campo));
+                            toast.info("Valor do documento aplicado na ficha. Salve a ficha para gravar.");
+                          }}>Atualizar pelo Documento</Button>
+                          <Button size="sm" variant="ghost" className="h-8"
+                            onClick={() => setDivergenciasOcr((l) => l.filter((x) => x.campo !== d.campo))}>
+                            Manter Cadastro
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {data.cpf_existente && (
                 <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm ">
                   <p className="font-semibold text-amber-700">CPF já cadastrado nesta empresa</p>
