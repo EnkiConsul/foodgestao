@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useMemo, useReducer, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, BedSingle, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, FileHeart, Flame, Moon, Palmtree, Sun, Users, UserX } from "lucide-react";
+import { AlertTriangle, BedSingle, Cake, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, FileHeart, Flame, Moon, Palmtree, Sun, Users, UserX } from "lucide-react";
 import { useDpAniversariantes30d } from "@/hooks/useDpAniversariantes30d";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
@@ -121,7 +121,7 @@ export function CalendarioOperacaoResumo() {
                 {AUSENCIAS_MES.map(({ label, Icon, cor }) => <span key={label} className="inline-flex items-center gap-1"><Icon className={cn("h-3 w-3 rounded-sm", cor)} />{label}</span>)}
                 <span className="inline-flex items-center gap-1"><Flame className="h-3 w-3 text-warning" />Pico</span>
                 <span className="inline-flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-destructive" />Alerta</span>
-                <span className="inline-flex items-center gap-1">🎂 Aniversários</span>
+                <span className="inline-flex items-center gap-1"><Cake className="h-3 w-3 text-primary" />Aniversários</span>
               </div>
               <div className="relative isolate">
                 <div className="grid grid-cols-7 overflow-hidden rounded-t-xl"><CalendarioSemanaCabecalho diasDominicais={diasDominicais} compacto /></div>
@@ -141,7 +141,7 @@ export function CalendarioOperacaoResumo() {
                     <span className="grid w-full grid-cols-2 gap-0.5">
                       {AUSENCIAS_MES.filter((a) => a.valor(d) > 0).map(({ label, Icon, cor, valor }) => <span key={label} className={cn("flex min-w-0 items-center justify-center gap-0.5 rounded-sm py-0.5 text-[10px] leading-none tabular-nums", cor)}><Icon className="h-2.5 w-2.5 shrink-0" /><span>{valor(d)}</span></span>)}
                     </span>
-                    {aniversariosDoDia(d.data).length > 0 && <span className="mt-auto text-[10px] text-foreground" title="Aniversários de nascimento e contratação">🎂 {aniversariosDoDia(d.data).length}</span>}
+                    {aniversariosDoDia(d.data).length > 0 && <span className="mt-auto inline-flex items-center gap-0.5 text-[10px] text-foreground" title="Aniversários de nascimento e contratação"><Cake className="h-3 w-3 shrink-0 text-primary" />{aniversariosDoDia(d.data).length}</span>}
                   </Button>)}
                 </div>
               </div>

@@ -24,6 +24,7 @@ export function AniversariantesCard({ variant = "admin", compacto = false, compe
       })
     : todos;
   const data = visiveis.filter((a) => (!unidadeId || a.unidadeId === unidadeId) && (!dataDia || `${a.data.getFullYear()}-${String(a.data.getMonth() + 1).padStart(2, "0")}-${String(a.data.getDate()).padStart(2, "0")}` === dataDia));
+  if (dataDia && !isLoading && !isError && !data.length) return null;
   const lista = <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
         {isLoading && <p role="status" className="py-4 text-sm text-muted-foreground">Carregando aniversariantes…</p>}
         {isError && <div className="space-y-2"><p className="text-sm text-muted-foreground">Não foi possível carregar os aniversariantes.</p><Button variant="outline" onClick={() => refetch()}>Tentar novamente</Button></div>}
