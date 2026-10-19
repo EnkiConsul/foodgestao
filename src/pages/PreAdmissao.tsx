@@ -11,7 +11,9 @@ import { converterHeicParaJpeg } from "@/lib/storage/heic";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Camera, Check, CheckCircle2, ChevronDown, ChevronsUpDown, Loader2, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, Check, CheckCircle2, ChevronDown, ChevronsUpDown, Loader2, Pencil, Save, Send, Sparkles, X } from "lucide-react";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
@@ -65,39 +67,67 @@ function BancoPicker({ bancos, nome, onChange }: {
   onChange: (slug: string | null, nome: string) => void;
 }) {
   const [aberto, setAberto] = useState(false);
+  const mobile = useIsMobile();
+  const gatilho = (
+    <Button id="campo-banco_nome" type="button" variant="outline" role="combobox" aria-expanded={aberto}
+      className="h-11 w-full justify-between font-normal" onClick={mobile ? () => setAberto(true) : undefined}>
+      <span className="truncate">{nome || "Buscar banco"}</span>
+      <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+    </Button>
+  );
+  const lista = (
+    <Command>
+      <CommandInput placeholder="Digite o nome do banco..." />
+      <CommandList className={mobile ? "max-h-[60vh]" : undefined}>
+        <CommandEmpty>Nenhum banco encontrado.</CommandEmpty>
+        <CommandGroup>
+          {bancos.map((b) => (
+            <CommandItem key={b.slug} value={b.name} className={mobile ? "min-h-11" : undefined}
+              onSelect={() => { onChange(b.slug, b.name.toLocaleUpperCase("pt-BR")); setAberto(false); }}>
+              <Check className={`mr-2 h-4 w-4 ${nome === b.name.toLocaleUpperCase("pt-BR") ? "opacity-100" : "opacity-0"}`} />
+              {b.name}
+            </CommandItem>
+          ))}
+          <CommandItem value="outro não listado" className={mobile ? "min-h-11" : undefined}
+            onSelect={() => { onChange(null, ""); setAberto(false); }}>
+            Outro / não listado (digite abaixo)
+          </CommandItem>
+        </CommandGroup>
+      </CommandList>
+    </Command>
+  );
+  // No celular a lista sobe numa gaveta: busca e toque confortáveis com o teclado aberto.
+  if (mobile) {
+    return (
+      <>
+        {gatilho}
+        <Drawer open={aberto} onOpenChange={setAberto}>
+          <DrawerContent className="max-h-[85vh]">
+            <DrawerHeader className="flex items-center justify-between text-left">
+              <DrawerTitle>Escolha o Banco</DrawerTitle>
+              <Button type="button" variant="ghost" size="icon" aria-label="Fechar" onClick={() => setAberto(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </DrawerHeader>
+            <div className="px-2 pb-[max(1rem,env(safe-area-inset-bottom))]">{lista}</div>
+          </DrawerContent>
+        </Drawer>
+      </>
+    );
+  }
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
-      <PopoverTrigger asChild>
-        <Button id="campo-banco_nome" type="button" variant="outline" role="combobox" aria-expanded={aberto}
-          className="h-11 w-full justify-between font-normal">
-          <span className="truncate">{nome || "Buscar banco"}</span>
-          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command>
-          <CommandInput placeholder="Digite o nome do banco..." />
-          <CommandList>
-            <CommandEmpty>Nenhum banco encontrado.</CommandEmpty>
-            <CommandGroup>
-              {bancos.map((b) => (
-                <CommandItem key={b.slug} value={b.name}
-                  onSelect={() => { onChange(b.slug, b.name.toLocaleUpperCase("pt-BR")); setAberto(false); }}>
-                  <Check className={`mr-2 h-4 w-4 ${nome === b.name.toLocaleUpperCase("pt-BR") ? "opacity-100" : "opacity-0"}`} />
-                  {b.name}
-                </CommandItem>
-              ))}
-              <CommandItem value="outro não listado"
-                onSelect={() => { onChange(null, ""); setAberto(false); }}>
-                Outro / não listado (digite abaixo)
-              </CommandItem>
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
+      <PopoverTrigger asChild>{gatilho}</PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">{lista}</PopoverContent>
     </Popover>
   );
 }
+
+const ROTULO_DIVERGENCIA: Record<string, string> = {
+  nome: "Nome",
+  cpf: "CPF",
+  data_nascimento: "Data de nascimento",
+};
 
 const RACA_COR: Opcao[] = [
   { value: "branca", label: "Branca" },
@@ -496,6 +526,8 @@ export default function PreAdmissao() {
   /** Documento em leitura automática e campos preenchidos por ela. */
   const [lendo, setLendo] = useState<string | null>(null);
   const [lidos, setLidos] = useState<Set<string>>(new Set());
+  /** Diferenças entre documento e cadastro: só avisam, nunca bloqueiam. */
+  const [divergencias, setDivergencias] = useState<Array<{ campo: string }>>([]);
   const formRef = useRef(form);
   formRef.current = form;
   const ctpsIniciada = useRef(false);
@@ -609,6 +641,13 @@ export default function PreAdmissao() {
 
   const totalEtapas = ETAPAS.length + 3; // + familiares + documentos + revisão
   const progresso = Math.round(((etapa + 1) / totalEtapas) * 100);
+  const tituloEtapa = ETAPAS[etapa]?.titulo
+    ?? (etapa === ETAPAS.length ? "Familiares" : etapa === ETAPAS.length + 1 ? "Documentos" : "Conferência");
+  /** Atalho da conferência: volta direto à etapa que precisa de ajuste. */
+  const irParaEtapa = (n: number) => {
+    setEtapa(Math.max(0, Math.min(n, totalEtapas - 1)));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   /** Linha em branco recém-incluída não vai ao servidor. */
   const pessoasParaEnviar = () =>
@@ -769,9 +808,11 @@ export default function PreAdmissao() {
   const lerDocumento = async (codigo: string) => {
     setLendo(codigo);
     try {
-      const r = await chamar<{ campos: Record<string, string>; indisponivel?: boolean }>("dp-preadmissao-arquivo", {
+      const r = await chamar<{ campos: Record<string, string>; indisponivel?: boolean; divergencias?: Array<{ campo: string }> }>("dp-preadmissao-arquivo", {
         action: "ler_documento", t, c, requisito_codigo: codigo,
+        data_nascimento: String(formRef.current.data_nascimento ?? ""),
       });
+      if (codigo === "identidade") setDivergencias(r.divergencias ?? []);
       const atual = formRef.current;
       const novos = Object.entries(r.campos ?? {})
         .filter(([k, v]) => k !== "nome" && k !== "cpf" && !!v && !String(atual[k] ?? "").trim())
@@ -808,6 +849,15 @@ export default function PreAdmissao() {
         <p className="flex items-center gap-2 text-sm font-medium">
           <Sparkles className="h-4 w-4 text-primary shrink-0" /> Envie o documento e nós preenchemos para você
         </p>
+        {codigos.includes("identidade") && divergencias.length > 0 && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs" role="status">
+            <p className="font-medium">Alguns dados do documento estão diferentes do cadastro da empresa:</p>
+            <ul className="mt-1 list-disc pl-4 text-muted-foreground">
+              {divergencias.map((d) => <li key={d.campo}>{ROTULO_DIVERGENCIA[d.campo] ?? d.campo}</li>)}
+            </ul>
+            <p className="mt-1 text-muted-foreground">Pode seguir normalmente: a empresa vai conferir.</p>
+          </div>
+        )}
         {itens.map((item) => {
           const enviados = documentoPorChave.get(`${item.codigo}:`) ?? [];
           const proxima = Math.min(enviados.length + 1, 10);
@@ -1019,7 +1069,11 @@ export default function PreAdmissao() {
           Olá, {estado?.candidato_nome}. {estado?.cargo_previsto ? `Vaga: ${estado.cargo_previsto}. ` : ""}
           Leva poucos minutos e você pode voltar depois pelo mesmo link.
         </p>
-        <Progress value={progresso} className="mt-3 h-1.5" aria-label="Progresso do preenchimento" />
+        <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+          <span className="font-medium">Etapa {etapa + 1} de {totalEtapas} · {tituloEtapa}</span>
+          <span className="text-muted-foreground">{progresso}%</span>
+        </div>
+        <Progress value={progresso} className="mt-1.5 h-2" aria-label="Progresso do preenchimento" />
       </header>
 
       {estado?.correcao_motivo && (
@@ -1482,6 +1536,14 @@ export default function PreAdmissao() {
 
               <section>
                 <h3 className="text-sm font-semibold mb-1">Seus dados</h3>
+                <div className="mb-2 flex flex-wrap gap-1.5" aria-label="Alterar uma etapa">
+                  {ETAPAS.map((e, i) => (
+                    <Button key={e.titulo} type="button" variant="outline" size="sm" className="h-8 text-xs"
+                      onClick={() => irParaEtapa(i)}>
+                      <Pencil className="h-3 w-3 mr-1" /> {e.titulo}
+                    </Button>
+                  ))}
+                </div>
                 <dl className="text-sm">
                   {camposDaRevisao.map((campo) => (
                     <div key={campo.nome} className="flex justify-between gap-3 border-b border-dashed py-1">
@@ -1493,7 +1555,12 @@ export default function PreAdmissao() {
               </section>
 
               <section>
-                <h3 className="text-sm font-semibold mb-1">Familiares</h3>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold">Familiares</h3>
+                  <Button type="button" variant="ghost" size="sm" className="h-8 text-primary" onClick={() => irParaEtapa(ETAPAS.length)}>
+                    <Pencil className="h-3.5 w-3.5 mr-1" /> Alterar
+                  </Button>
+                </div>
                 {!pessoasParaEnviar().length ? (
                   <p className="text-sm text-muted-foreground">Nenhum familiar informado.</p>
                 ) : (
@@ -1509,7 +1576,12 @@ export default function PreAdmissao() {
               </section>
 
               <section>
-                <h3 className="text-sm font-semibold mb-1">Documentos</h3>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold">Documentos</h3>
+                  <Button type="button" variant="ghost" size="sm" className="h-8 text-primary" onClick={() => irParaEtapa(ETAPAS.length + 1)}>
+                    <Pencil className="h-3.5 w-3.5 mr-1" /> Alterar
+                  </Button>
+                </div>
                 {!pendentesObrigatorios.length ? (
                   <p className="text-sm text-emerald-600">Todos os documentos obrigatórios foram enviados.</p>
                 ) : (
@@ -1552,19 +1624,20 @@ export default function PreAdmissao() {
           ? `Rascunho ${rotuloSalvoEm(salvoEm).toLowerCase()} — você pode sair e continuar depois.`
           : "O que você preencher fica guardado. Pode sair e voltar por este mesmo link."}
       </p>
-      <div className="flex flex-wrap sm:flex-nowrap gap-2">
-        <Button variant="outline" className="h-12" disabled={etapa === 0 || salvando}
+      <div className="flex gap-2">
+        <Button variant="outline" className="h-12 w-12 shrink-0 px-0" disabled={etapa === 0 || salvando}
           aria-label="Voltar uma etapa"
           onClick={() => setEtapa((n) => Math.max(0, n - 1))}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <Button variant="outline" className="h-12 flex-1 min-w-0 text-xs sm:text-sm" disabled={salvando} onClick={() => salvar(false)}>
-          Guardar E Continuar Depois
+        <Button variant="outline" className="h-12 shrink-0 px-3" disabled={salvando} onClick={() => salvar(false)}
+          aria-label="Guardar e continuar depois">
+          <Save className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Guardar</span>
         </Button>
         {ehRevisao ? (
           <Button className="h-12 flex-1 min-w-0" disabled={salvando} onClick={enviar}>
             {salvando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-            Enviar
+            Enviar Ficha
           </Button>
         ) : (
           <Button className="h-12 flex-1 min-w-0" disabled={salvando} onClick={() => salvar(true)}>

@@ -82,6 +82,34 @@ export function limparCampos(codigo: string, bruto: Record<string, unknown>): Re
   return out;
 }
 
+export type Divergencia = { campo: "nome" | "cpf" | "data_nascimento"; cadastro: string; documento: string };
+
+const semAcento = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toUpperCase();
+
+/**
+ * Compara o que foi lido do documento com o cadastro (nome/CPF do convite e
+ * nascimento informado). Só aponta: nunca bloqueia nem altera nada.
+ */
+export function compararComCadastro(
+  lido: Record<string, string>,
+  cadastro: { nome?: string | null; cpf?: string | null; data_nascimento?: string | null },
+): Divergencia[] {
+  const out: Divergencia[] = [];
+  const nomeDoc = lido.nome ? semAcento(lido.nome) : "";
+  const nomeCad = cadastro.nome ? semAcento(cadastro.nome) : "";
+  if (nomeDoc && nomeCad && nomeDoc !== nomeCad) out.push({ campo: "nome", cadastro: nomeCad, documento: nomeDoc });
+  const cpfDoc = (lido.cpf ?? "").replace(/\D/g, "");
+  const cpfCad = (cadastro.cpf ?? "").replace(/\D/g, "");
+  if (cpfDoc.length === 11 && cpfCad.length === 11 && cpfDoc !== cpfCad) out.push({ campo: "cpf", cadastro: cpfCad, documento: cpfDoc });
+  const nascDoc = lido.data_nascimento ?? "";
+  const nascCad = String(cadastro.data_nascimento ?? "").slice(0, 10);
+  if (nascDoc && /^\d{4}-\d{2}-\d{2}$/.test(nascCad) && nascDoc !== nascCad) {
+    out.push({ campo: "data_nascimento", cadastro: nascCad, documento: nascDoc });
+  }
+  return out;
+}
+
 export type ArquivoLeitura = { mime: string; base64: string };
 
 /** Chama a leitura com os arquivos do documento (frente, verso…). */
