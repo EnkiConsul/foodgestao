@@ -7,10 +7,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
-import { BulkImportPanel } from "@/components/dp/documentos/BulkImportPanel";
+import { ImportarDocumentoDialog } from "@/components/dp/documentos/ImportarDocumentoDialog";
 import { documentPendenciasState } from "@/components/dp/documentos/documentPendenciasState";
 import { PendenciaAcoes } from "@/components/dp/pendencias/PendenciaAcoes";
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
@@ -263,9 +262,8 @@ export default function DpDocumentosGestao() {
   const [importarAberto, setImportarAberto] = useState(
     () => !!(inicial.tipo || inicial.lote),
   );
-  /** Cada incremento manda o painel de importação abrir o histórico de lotes. */
-  const [historicoNonce, setHistoricoNonce] = useState(0);
-  const [somenteHistorico, setSomenteHistorico] = useState(false);
+  /** Aba inicial da janela de importação: envio novo ou histórico de lotes. */
+  const [abaInicial, setAbaInicial] = useState<"enviar" | "historico">("enviar");
 
   /**
    * O aviso vive na URL (veio do atalho "Resolver"). Fechá-lo precisa apagar os
@@ -325,51 +323,25 @@ export default function DpDocumentosGestao() {
 
       {/* Card único: pendências (gaveta na própria tela), histórico de lotes e importação. */}
       <AcoesDocumentosCard
-        onImportar={() => { setHistoricoNonce(0); setSomenteHistorico(false); setImportarAberto(true); }}
-        onHistorico={() => { setHistoricoNonce((n) => n + 1); setSomenteHistorico(true); setImportarAberto(true); }}
+        onImportar={() => { setAbaInicial("enviar"); setImportarAberto(true); }}
+        onHistorico={() => { setAbaInicial("historico"); setImportarAberto(true); }}
       />
 
-      <Dialog open={importarAberto} onOpenChange={setImportarAberto}>
-        <DialogContent className="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] flex-col gap-0 overflow-hidden p-0 sm:h-auto sm:max-h-[92dvh] sm:max-w-5xl sm:p-0">
-          <DialogHeader className="shrink-0 border-b p-4 pr-12 text-left">
-            <DialogTitle>{somenteHistorico ? "Histórico de Importações" : "Importar Documento"}</DialogTitle>
-            <DialogDescription>{somenteHistorico ? "Lotes enviados e resultados da conferência." : "Envie o PDF e confira as páginas antes de salvar."}</DialogDescription>
-          </DialogHeader>
-          <Tabs
-            value={somenteHistorico ? "historico" : "enviar"}
-            onValueChange={(value) => {
-              setSomenteHistorico(value === "historico");
-              setHistoricoNonce(value === "historico" ? historicoNonce + 1 : 0);
-            }}
-            className="shrink-0 px-4 pt-3"
-          >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="enviar" className="gap-2"><Upload className="h-4 w-4" />Novo envio</TabsTrigger>
-              <TabsTrigger value="historico" className="gap-2"><History className="h-4 w-4" />Histórico de lotes</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
-            {importarAberto && (
-              <BulkImportPanel
-                title="Importar Documento"
-                tipoInicial={inicial.tipo}
-                referenciaInicial={inicial.competencia ? `${inicial.competencia}-01` : undefined}
-                loteAbertoId={inicial.lote}
-                onLoteConcluido={() => {
-                  setImportarAberto(false);
-                  limparContexto();
-                  void qc.invalidateQueries({ queryKey: ["dp_historico_unified"] });
-                  void qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
-                  void qc.invalidateQueries({ queryKey: ["dp_pendencias_apuracao"] });
-                }}
-                abrirHistoricoNonce={historicoNonce}
-                somenteHistorico={somenteHistorico}
-                emJanela
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ImportarDocumentoDialog
+        open={importarAberto}
+        onOpenChange={setImportarAberto}
+        abaInicial={abaInicial}
+        tipoInicial={inicial.tipo}
+        referenciaInicial={inicial.competencia ? `${inicial.competencia}-01` : undefined}
+        loteAbertoId={inicial.lote}
+        onLoteConcluido={() => {
+          setImportarAberto(false);
+          limparContexto();
+          void qc.invalidateQueries({ queryKey: ["dp_historico_unified"] });
+          void qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+          void qc.invalidateQueries({ queryKey: ["dp_pendencias_apuracao"] });
+        }}
+      />
 
       {/* Listagem completa da equipe (antiga tela "Histórico"), embutida. */}
       <DpHistoricoCompleto embutido />
