@@ -28,3 +28,6 @@
 - Ações do Dia: decide documents only; other requests use dedicated DSR/release-undo screens.
 
 - Leave previews retain the request row to open its exact details.
+<!-- LOVABLE:BEGIN -->
+- Document management hosts import and history in a modal; confirmed session completion refreshes the unified list without scrolling the page.
+<!-- LOVABLE:END -->
