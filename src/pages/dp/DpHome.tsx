@@ -56,7 +56,7 @@ export default function DpHome() {
           <ImportarDocumentoAtalho />
           <CalendarioOperacaoResumo />
         </div>
-        <AniversariantesCard />
+        <AniversariantesCard compacto />
       </div>
 
       <AtalhosFavoritos />

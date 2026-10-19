@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Cake, Clock, MessageCircle, MessageSquare } from "lucide-react";
+import { Cake, ChevronRight, Clock, MessageCircle, MessageSquare } from "lucide-react";
+import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useDpAniversariantes30d, type AnivItem } from "@/hooks/useDpAniversariantes30d";
@@ -10,20 +11,42 @@ import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { filtrarAniversariantesPortal } from "@/lib/dp/aniversariantes-portal";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 
-export function AniversariantesCard({ variant = "admin" }: { variant?: "admin" | "portal" }) {
-  const { data: todos = [] } = useDpAniversariantes30d();
+export function AniversariantesCard({ variant = "admin", compacto = false, competencia, dataDia, unidadeId }: { variant?: "admin" | "portal"; compacto?: boolean; competencia?: string; dataDia?: string; unidadeId?: string | null }) {
+  const { data: todos = [], isLoading, isError, refetch } = useDpAniversariantes30d(competencia);
   const { data: eu } = useMeuVinculoPortal();
+  const [aberto, setAberto] = useState(false);
   const [target, setTarget] = useState<AnivItem | null>(null);
   const portal = variant === "portal";
-  const data = portal
+  const visiveis = portal
     ? filtrarAniversariantesPortal(todos, {
         colaboradorId: eu?.colaboradorId ?? null,
         unidadeId: eu?.unidadeId ?? null,
       })
     : todos;
+  const data = visiveis.filter((a) => (!unidadeId || a.unidadeId === unidadeId) && (!dataDia || `${a.data.getFullYear()}-${String(a.data.getMonth() + 1).padStart(2, "0")}-${String(a.data.getDate()).padStart(2, "0")}` === dataDia));
+  const lista = <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+        {isLoading && <p role="status" className="py-4 text-sm text-muted-foreground">Carregando aniversariantes…</p>}
+        {isError && <div className="space-y-2"><p className="text-sm text-muted-foreground">Não foi possível carregar os aniversariantes.</p><Button variant="outline" onClick={() => refetch()}>Tentar novamente</Button></div>}
+        {!isLoading && !isError && data.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">Nenhum aniversariante {dataDia ? "neste dia" : competencia ? "neste mês" : "nos próximos 30 dias"}.</p>}
+        {data.map((a) => (
+          <div key={a.id} className="flex items-start gap-3 rounded-xl bg-card border border-border p-3">
+            <div className={cn("h-11 w-11 rounded-full flex flex-col items-center justify-center shrink-0 text-[10px] font-semibold leading-none", a.tipo === "nascimento" ? "bg-[hsl(var(--dp-birthday-nasc))]" : "bg-[hsl(var(--dp-birthday-contrat))]")}><span className="text-sm">{a.diaMes.slice(0, 2)}</span><span className="opacity-70">{a.diaMes.slice(3)}</span></div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium break-words leading-snug">{toUpperCadastro(a.nome)}</p>
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-1"><Badge variant="outline" className="text-[10px]">{a.tipo === "nascimento" ? "Nascimento" : "Contratação"}</Badge><span className="text-[11px] text-muted-foreground">{a.tipo === "nascimento" ? `${a.faltamDias < 0 ? "Completou" : "Completa"} ${a.anosCompletos} anos` : `${a.anosCompletos} ${a.anosCompletos === 1 ? "ano" : "anos"} de casa`}</span></div>
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-1"><span className="text-[11px] text-muted-foreground break-words">{a.unidade ? `🏢 ${a.unidade}` : ""}</span><span className="text-[11px] text-muted-foreground inline-flex items-center gap-1"><Clock className="h-3 w-3" />{a.faltamDias === 0 ? "Hoje 🎉" : a.faltamDias < 0 ? `Há ${-a.faltamDias} ${a.faltamDias === -1 ? "dia" : "dias"}` : `Faltam ${a.faltamDias} ${a.faltamDias === 1 ? "dia" : "dias"}`}</span></div>
+              {!portal && <div className="flex items-center justify-end gap-1.5 mt-2"><Button size="sm" variant="outline" className="min-h-9 text-xs flex-1" onClick={() => setTarget(a)}><MessageSquare className="h-3 w-3 mr-1" />WhatsApp</Button><Button asChild size="sm" variant="outline" className="min-h-9 text-xs flex-1"><Link to={`/dp/mensagens?to=${a.colaboradorId}`}><MessageCircle className="h-3 w-3 mr-1" />Comunicado</Link></Button></div>}
+            </div>
+          </div>
+        ))}
+      </div>;
 
   return (
-    <div className="rounded-2xl border-2 border-[hsl(var(--dp-birthday-border))] bg-[hsl(var(--dp-birthday-bg))] p-5">
+    <>
+    {compacto ? <>
+      <Button variant="outline" onClick={() => setAberto(true)} className="h-auto min-h-12 w-full justify-start gap-3 rounded-xl px-4 py-3 text-left" aria-label="Ver aniversariantes"><Cake className="h-5 w-5 shrink-0 text-primary" /><span className="flex-1 min-w-0 whitespace-normal text-xs"><strong>{isLoading ? "…" : isError ? "—" : data.length} aniversariantes</strong><span className="block text-muted-foreground">{competencia ? "Neste mês" : "Nos próximos 30 dias"}</span></span><ChevronRight className="h-4 w-4 shrink-0" /></Button>
+      <DpDialogShell open={aberto} onOpenChange={setAberto} icon={Cake} title="Aniversariantes" description={competencia ? "Nascimento e tempo de casa neste mês" : "Nascimento e tempo de casa nos próximos 30 dias"} footer={<Button variant="outline" onClick={() => setAberto(false)}>Fechar</Button>}>{lista}</DpDialogShell>
+    </> : <div className={cn("min-w-0", competencia ? "space-y-3" : "rounded-2xl border-2 border-[hsl(var(--dp-birthday-border))] bg-[hsl(var(--dp-birthday-bg))] p-5")}>
       <div className="flex items-center gap-2 mb-1 flex-wrap">
         <Cake className="h-5 w-5 text-primary shrink-0" />
         <h2 className="text-base sm:text-lg font-semibold min-w-0 break-words">Aniversariantes</h2>
@@ -34,82 +57,11 @@ export function AniversariantesCard({ variant = "admin" }: { variant?: "admin" |
       <p className="text-xs text-muted-foreground mb-4">
         {portal
           ? "Colegas da sua unidade e seu tempo de casa"
-          : "Aniversários de nascimento e de contratação nos próximos 30 dias"}
+           : dataDia ? "Nascimento e tempo de casa neste dia" : competencia ? "Nascimento e tempo de casa neste mês" : "Aniversários de nascimento e de contratação nos próximos 30 dias"}
       </p>
 
-      <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-        {data.length === 0 && (
-          <p className="text-sm text-muted-foreground py-8 text-center">Nenhum aniversariante nos próximos 30 dias.</p>
-        )}
-        {data.map((a) => {
-          return (
-            <div
-              key={a.id}
-              className="flex items-start gap-3 rounded-xl bg-card border border-[hsl(var(--dp-border))] p-3"
-            >
-              <div
-                className={cn(
-                  "h-11 w-11 rounded-full flex flex-col items-center justify-center shrink-0 text-[10px] font-semibold leading-none mt-0.5",
-                  a.tipo === "nascimento"
-                    ? "bg-[hsl(var(--dp-birthday-nasc))]"
-                    : "bg-[hsl(var(--dp-birthday-contrat))]",
-                )}
-              >
-                <span className="text-sm">{a.diaMes.slice(0, 2)}</span>
-                <span className="opacity-70">{a.diaMes.slice(3)}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                {/* Linha 1 — nome na linha inteira */}
-                <p className="text-sm font-medium break-words leading-snug">{toUpperCadastro(a.nome)}</p>
-                {/* Linha 2 — tipo à esquerda; idade/tempo de casa à direita */}
-                <div className="flex items-center justify-between gap-2 mt-1">
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-[10px] capitalize border-0 shrink-0",
-                      a.tipo === "nascimento"
-                        ? "bg-[hsl(var(--dp-birthday-nasc))] text-foreground"
-                        : "bg-[hsl(var(--dp-birthday-contrat))] text-foreground",
-                    )}
-                  >
-                    {a.tipo === "nascimento" ? "Nascimento" : "Contratação"}
-                  </Badge>
-                  <span className="text-[11px] text-muted-foreground text-right">
-                    {a.tipo === "nascimento"
-                      ? `Completa ${a.anosCompletos} anos`
-                      : `${a.anosCompletos} ${a.anosCompletos === 1 ? "ano" : "anos"} de casa`}
-                  </span>
-                </div>
-                {/* Linha 3 — unidade à esquerda; dias restantes à direita */}
-                <div className="flex items-center justify-between gap-2 mt-1">
-                  <span className="text-[11px] text-muted-foreground min-w-0 break-words">
-                    {a.unidade ? `🏢 ${a.unidade}` : ""}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1 shrink-0">
-                    <Clock className="h-3 w-3" />
-                    {a.faltamDias === 0 ? "Hoje 🎉" : `Faltam ${a.faltamDias} ${a.faltamDias === 1 ? "dia" : "dias"}`}
-                  </span>
-                </div>
-                {/* Linha 4 — ações */}
-                {!portal && (
-                  <div className="flex items-center justify-end gap-1.5 mt-2">
-                    <Button size="sm" variant="outline" className="h-7 text-xs flex-1 max-w-[50%]" onClick={() => setTarget(a)}>
-                      <MessageSquare className="h-3 w-3 mr-1" />
-                      WhatsApp
-                    </Button>
-                    <Button asChild size="sm" variant="outline" className="h-7 text-xs flex-1 max-w-[50%]">
-                      <Link to={`/dp/mensagens?to=${a.colaboradorId}`}>
-                        <MessageCircle className="h-3 w-3 mr-1" />
-                        Comunicado
-                      </Link>
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {lista}
+    </div>}
 
       <WhatsappComposerDialog
         open={!!target}
@@ -123,6 +75,6 @@ export function AniversariantesCard({ variant = "admin" }: { variant?: "admin" |
           nome: target?.nome ?? "",
         }}
       />
-    </div>
+    </>
   );
 }
