@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
-import { CheckCircle2, ChevronRight, FileText, Info, ListChecks, Upload, X } from "lucide-react";
+import { CheckCircle2, FileText, Info, ListChecks, Upload, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -124,20 +124,19 @@ function AcoesDocumentosCard() {
       <button
         type="button"
         onClick={() => setAberto(true)}
-        className="flex h-full w-full items-center gap-3 rounded-2xl border border-[hsl(var(--dp-border))] bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/40"
+        className="flex h-full w-full flex-col gap-1 rounded-2xl border border-[hsl(var(--dp-border))] bg-card p-3 text-left transition-colors hover:bg-muted/40"
         aria-label="Abrir pendências de documentos"
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <ListChecks className="h-4 w-4" aria-hidden="true" />
+        <span className="flex w-full items-center justify-between">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <ListChecks className="h-4 w-4" aria-hidden="true" />
+          </span>
+          {!carregando && abertas.length > 0 && (
+            <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-bold tabular-nums text-primary-foreground">{abertas.length}</span>
+          )}
         </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">Pendências</p>
-          <p className={atrasadas > 0 ? "truncate text-xs text-destructive" : "truncate text-xs text-muted-foreground"}>{resumo}</p>
-        </div>
-        {!carregando && abertas.length > 0 && (
-          <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-bold tabular-nums text-primary-foreground">{abertas.length}</span>
-        )}
-        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <span className="text-sm font-semibold leading-tight">Pendências</span>
+        <span className={atrasadas > 0 ? "text-xs leading-snug text-destructive" : "text-xs leading-snug text-muted-foreground"}>{resumo}</span>
       </button>
 
       {isMobile ? (
@@ -269,25 +268,23 @@ export default function DpDocumentosGestao() {
       )}
 
       {/* Dois cards lado a lado: pendências (gaveta na própria tela) e importação. */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 items-stretch gap-2">
         <AcoesDocumentosCard />
         {!importarAberto && (
           <button
             type="button"
-            className="flex h-full w-full items-center gap-3 rounded-2xl border border-[hsl(var(--dp-border))] bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/40 md:hidden"
+            className="flex h-full w-full flex-col gap-1 rounded-2xl border border-[hsl(var(--dp-border))] bg-card p-3 text-left transition-colors hover:bg-muted/40 md:hidden"
             onClick={() => {
               setImportarAberto(true);
               // Coloca a área de envio (topo) na visão de imediato.
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
           >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Upload className="h-4 w-4" aria-hidden="true" />
             </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold">Importar</p>
-              <p className="truncate text-xs text-muted-foreground">Enviar documento</p>
-            </div>
+            <span className="text-sm font-semibold leading-tight">Importar</span>
+            <span className="text-xs leading-snug text-muted-foreground">Enviar documento</span>
           </button>
         )}
       </div>
