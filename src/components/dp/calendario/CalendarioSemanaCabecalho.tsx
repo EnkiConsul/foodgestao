@@ -7,8 +7,8 @@ const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 export function CalendarioSemanaCabecalho({ diasDominicais = [0], compacto = false }: { diasDominicais?: number[]; compacto?: boolean }) {
   return <>{DIAS.map((dia, i) => <div key={dia} className={cn(
     "flex min-w-0 items-center justify-center gap-0.5 border-b-2 border-primary py-2.5 font-extrabold uppercase",
-    compacto ? "text-[9px]" : "text-xs",
-     compacto ? ((i === 0 || i >= 5) ? "bg-calendar-pico text-foreground" : "bg-muted/40 text-muted-foreground") : diasDominicais.includes(i) ? "bg-primary text-primary-foreground" : "bg-calendar-header text-calendar-header-foreground",
+    compacto ? "text-[10px] tracking-wide" : "text-xs",
+     compacto ? ((i === 0 || i >= 5) ? "bg-calendar-pico text-foreground" : "bg-card text-foreground/70") : diasDominicais.includes(i) ? "bg-primary text-primary-foreground" : "bg-calendar-header text-calendar-header-foreground",
   )}>
     {dia}{(i === 0 || i >= 5) && <Flame aria-label="Pico de operação" className={cn("shrink-0 fill-warning text-warning", compacto ? "h-2.5 w-2.5" : "h-3.5 w-3.5")} />}
   </div>)}</>;

@@ -73,6 +73,7 @@ export function CalendarioOperacaoResumo() {
     setUnidade(maior?.id ?? "");
   }, [unidade, p.unidades, p.contagemPorUnidade, prefs.extras]);
   const dia = dias.find((d) => d.data === selecionado);
+  const diaHoje = p.dias.find((d) => d.data === hoje);
   const rotuloMes = new Date(`${competencia}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   const rotuloDia = new Date(`${selecionado}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" });
   const abrirDia = (data: string) => { if (unidade) setDetalhe({ data, unidadeId: unidade, periodo }); };
@@ -83,7 +84,7 @@ export function CalendarioOperacaoResumo() {
       <Card className="min-w-0 overflow-hidden rounded-2xl p-3 sm:p-4" role="region" aria-label="Calendário do início">
         <div className="flex flex-wrap items-center gap-2">
           <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
-          <h2 className="text-sm font-semibold">Calendário</h2>
+          <h2 className="text-sm font-semibold">Calendário Inteligente</h2>
           {p.unidades.length > 1 && <Select value={unidade} onValueChange={(v) => {
             setUnidade(v); save({ extras: { ...(prefs.extras ?? {}), [UNIDADE_KEY]: v } });
           }}>
@@ -102,11 +103,20 @@ export function CalendarioOperacaoResumo() {
             <Link to="/dp/rotina/calendario"><ExternalLink className="h-4 w-4" /></Link>
           </Button>
         </div>
-        <div className="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)] items-stretch gap-1.5 sm:grid-cols-3 sm:gap-2" aria-label="Atalhos do início">
+        <div className="mt-2 grid grid-cols-2 items-stretch gap-1.5 sm:grid-cols-4 sm:gap-2" aria-label="Indicadores do gestor">
           <AcoesDoDiaCard emFaixa />
-          <ImportarDocumentoAtalho emFaixa />
+          {([
+            { label: "Ausências hoje", Icon: UserX, cor: "bg-calendar-falta/10 text-calendar-falta", valor: diaHoje ? diaHoje.contagens.ferias + diaHoje.contagens.atestado + diaHoje.contagens.ausente : null },
+            { label: "Folgas hoje", Icon: BedSingle, cor: "bg-calendar-folga/10 text-calendar-folga", valor: diaHoje ? diaHoje.contagens.folga_padrao + diaHoje.contagens.folga_extra : null },
+          ]).map(({ label, Icon, cor, valor }) => <button key={label} type="button" disabled={!unidade} onClick={() => abrirDia(hoje)}
+            className="flex min-h-11 min-w-0 items-center gap-2 rounded-2xl border bg-card px-2 py-2 text-left hover:bg-muted/40 sm:px-3" aria-label={`${label}: ${valor ?? 0}`}>
+            <span className={cn("hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg sm:flex", cor)}><Icon className="h-4 w-4" /></span>
+            <span className="min-w-0 flex-1 text-[11px] font-semibold leading-tight sm:text-xs">{label}</span>
+            <span className={cn("flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full px-1.5 text-xs font-bold tabular-nums", cor)}>{valor ?? "–"}</span>
+          </button>)}
           <AniversariantesCard compacto emFaixa />
         </div>
+        <div className="mt-2 lg:hidden"><ImportarDocumentoAtalho destaque /></div>
 
         {p.error ? <div className="space-y-2 py-4 text-center">
           <p className="text-sm text-muted-foreground">Não foi possível carregar o calendário.</p>
@@ -116,10 +126,10 @@ export function CalendarioOperacaoResumo() {
           : !unidade ? <div className="mt-3 h-40 animate-pulse rounded-lg bg-muted" /> : <>
             <div className="mt-3 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] lg:items-start">
             <section className={cn("min-w-0 lg:col-start-2 lg:row-start-1", aba !== "mes" && "hidden lg:block")} aria-label="Mês resumido">
-              <div className="mb-2 flex flex-wrap items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => navegar({ type: "avancar", delta: -1, alvo: "mes" })} aria-label="Mês anterior"><ChevronLeft className="h-4 w-4" /></Button>
-                <span className="min-w-0 flex-1 text-center text-xs font-semibold capitalize" aria-live="polite">{rotuloMes}</span>
-                <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => navegar({ type: "avancar", delta: 1, alvo: "mes" })} aria-label="Próximo mês"><ChevronRight className="h-4 w-4" /></Button>
+              <div className="mb-2 flex flex-wrap items-center gap-1 rounded-2xl border border-primary/25 bg-primary/10 p-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 rounded-full text-primary hover:bg-primary/15 hover:text-primary" onClick={() => navegar({ type: "avancar", delta: -1, alvo: "mes" })} aria-label="Mês anterior"><ChevronLeft className="h-4 w-4" /></Button>
+                <span className="min-w-0 flex-1 text-center text-sm font-bold text-primary first-letter:uppercase" aria-live="polite">{rotuloMes}</span>
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 rounded-full text-primary hover:bg-primary/15 hover:text-primary" onClick={() => navegar({ type: "avancar", delta: 1, alvo: "mes" })} aria-label="Próximo mês"><ChevronRight className="h-4 w-4" /></Button>
                 <div className="ml-auto inline-flex gap-0.5 rounded-full border bg-muted/40 p-0.5" role="group" aria-label="Turno do mês resumido">
                   {(["todos", "dia", "noite"] as PeriodoTurno[]).map((v) => <Button key={v} size="sm" variant={periodo === v ? "secondary" : "ghost"} aria-pressed={periodo === v} onClick={() => setPeriodo(v)} className="h-8 gap-1 rounded-full px-2 text-[11px]">{v === "todos" ? <Users className="h-3 w-3" /> : v === "dia" ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}{v === "todos" ? "Todos" : v === "dia" ? "Dia" : "Noite"}</Button>)}
                 </div>
@@ -140,7 +150,7 @@ export function CalendarioOperacaoResumo() {
                     aria-label={`Selecionar ${d.data}, ${d.trabalhando} trabalhando, ${AUSENCIAS_MES.map((a) => `${a.valor(d)} ${a.label.toLowerCase()}`).join(", ")}${diaEhPico(d.data, d.feriado_nome) ? ", dia de pico" : ""}${d.alerta ? ", alerta de equipe" : ""}${aniversariosDoDia(d.data).length ? `, ${aniversariosDoDia(d.data).length} aniversariantes` : ""}`}
                     aria-pressed={d.data === selecionado} aria-current={d.data === hoje ? "date" : undefined}
                     onClick={() => { navegar({ type: "selecionar", data: d.data }); if (window.matchMedia("(max-width: 1023px)").matches) abrirDia(d.data); }}
-                    className={cn("relative flex h-[88px] min-w-0 flex-col justify-start gap-0.5 rounded-lg border px-0.5 py-1 text-xs [&_svg]:size-2.5", "border-border bg-card", diaEhPico(d.data, d.feriado_nome) && "bg-calendar-pico", d.data === selecionado && "border-primary ring-1 ring-inset ring-primary", d.alerta && "border-destructive ring-1 ring-inset ring-destructive/60")}>
+                    className={cn("relative flex h-[88px] min-w-0 flex-col justify-start gap-0.5 rounded-lg border px-0.5 py-1 text-xs transition-opacity [&_svg]:size-2.5", "border-border bg-card", diaEhPico(d.data, d.feriado_nome) && "bg-calendar-pico", d.data < hoje && d.data !== selecionado && "opacity-45 grayscale-[0.3] hover:opacity-100", d.data === selecionado && "border-primary ring-1 ring-inset ring-primary", d.alerta && "border-destructive ring-1 ring-inset ring-destructive/60")}>
                     <span className="flex h-6 w-full items-center justify-between gap-0.5 px-0.5">
                       <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold", d.data === hoje && "bg-primary text-primary-foreground")}>{Number(d.data.slice(8))}</span>
                       <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold tabular-nums text-primary" title={`${d.trabalhando} trabalhando`}><Users className="h-2.5 w-2.5" />{d.trabalhando}</span>
@@ -158,6 +168,7 @@ export function CalendarioOperacaoResumo() {
               </Button>}
             </section>
             <section className={cn("min-w-0 space-y-2 lg:col-start-1 lg:row-start-1", aba !== "hoje" && "hidden lg:block")} aria-label="Dia resumido">
+              <div className="hidden lg:block"><ImportarDocumentoAtalho destaque /></div>
               {selecionado !== hoje && <Button variant="ghost" className="h-7 rounded-full px-3 text-xs" onClick={() => navegar({ type: "hoje", data: hoje })}>Voltar para hoje</Button>}
               <Suspense fallback={<p role="status" className="py-3 text-xs text-muted-foreground">Carregando dia…</p>}>
               <CalendarioOficial key={`${unidade}-${selecionado}`} modo="calendario" detalheInicial={{ data: selecionado, unidadeId: unidade }} inicioEmLinha inicioCabecalho={<>
