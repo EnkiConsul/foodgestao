@@ -2,12 +2,13 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
-import { CheckCircle2, FileText, History, Info, ListChecks, Upload, X } from "lucide-react";
+import { CheckCircle2, FileText, History, Info, ListChecks, Loader2, Upload, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpErrorState } from "@/components/dp/DpErrorState";
 import { BulkImportPanel } from "@/components/dp/documentos/BulkImportPanel";
 import { PendenciaAcoes } from "@/components/dp/pendencias/PendenciaAcoes";
 import { docTipoLabel } from "@/lib/dp/documentoTipos";
@@ -42,10 +43,10 @@ const dataBR = (d: string) => new Date(d.slice(0, 10) + "T12:00:00").toLocaleDat
  * inicial, filtrado para documentos). O clique abre uma gaveta na própria
  * tela — sem navegar para fora — com as ações e os botões de resolução.
  */
-function AcoesDocumentosCard() {
+export function AcoesDocumentosCard() {
   const { selectedCompanyId } = useCompanyContext();
   const pendencias = useDpPendencias();
-  const { data, isLoading, isFetching, dataUpdatedAt, lastCalculatedAt } = pendencias;
+  const { data, isLoading, isFetching, isRefreshing, isError, refetch, dataUpdatedAt, lastCalculatedAt } = pendencias;
   const stable = useStablePendencias({ companyId: selectedCompanyId, data, dataUpdatedAt, lastCalculatedAt, isLoading, isFetching });
   const { prefs } = useDpUserPrefs();
   const { ignoradas, adiadas } = useDpPendenciasDecisoes();
@@ -61,10 +62,16 @@ function AcoesDocumentosCard() {
     [stable.data, prefs.pendencias_adiadas, ignoradas, adiadas],
   );
   const atrasadas = abertas.filter((p) => urgenciaDe(p) === "atrasada").length;
-  const carregando = !stable.ready;
+  const atualizando = isLoading || isFetching || isRefreshing;
+  const falhou = isError && !atualizando;
+  const carregando = !stable.ready && !falhou;
 
-  const resumo = carregando
+  const resumo = falhou
+    ? "Falha ao atualizar"
+    : carregando
     ? "Carregando…"
+    : atualizando && abertas.length === 0
+      ? "Atualizando…"
     : abertas.length === 0
       ? "Tudo em dia"
       : [
@@ -120,12 +127,42 @@ function AcoesDocumentosCard() {
     </div>
   );
 
+  const descricao = falhou
+    ? "Não foi possível conferir as pendências. Tente novamente."
+    : carregando || atualizando
+      ? "Conferindo as pendências de documentos…"
+      : abertas.length === 0
+        ? "Nada pendente no momento."
+        : `${abertas.length} ${abertas.length === 1 ? "ação aberta" : "ações abertas"}${atrasadas > 0 ? ` · ${atrasadas} atrasada${atrasadas > 1 ? "s" : ""}` : ""}`;
+
+  const conteudo = (
+    <div className="space-y-3">
+      {falhou ? (
+        <DpErrorState
+          message={stable.ready && abertas.length > 0
+            ? "A lista abaixo é da última consulta confirmada. Tente novamente para conferir as pendências atuais."
+            : "Não foi possível conferir as pendências de documentos. Tente novamente."}
+          onRetry={() => void refetch()}
+        />
+      ) : (carregando || atualizando) && (
+        <div role="status" className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+          Conferindo pendências…
+        </div>
+      )}
+      {stable.ready && abertas.length > 0
+        ? lista
+        : !falhou && !carregando && !atualizando ? vazio : null}
+    </div>
+  );
+
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={() => setAberto(true)}
-        className="flex h-full w-full flex-col gap-1 rounded-2xl border border-[hsl(var(--dp-border))] bg-card p-3 text-left transition-colors hover:bg-muted/40"
+        className="flex h-full w-full flex-col items-start gap-1 whitespace-normal rounded-2xl border border-[hsl(var(--dp-border))] bg-card p-3 text-left transition-colors hover:bg-muted/40"
         aria-label="Abrir pendências de documentos"
       >
         <span className="flex w-full items-center justify-between">
@@ -138,7 +175,7 @@ function AcoesDocumentosCard() {
         </span>
         <span className="text-sm font-semibold leading-tight">Pendências</span>
         <span className={atrasadas > 0 ? "text-xs leading-snug text-destructive" : "text-xs leading-snug text-muted-foreground"}>{resumo}</span>
-      </button>
+      </Button>
 
       {isMobile ? (
         <Drawer open={aberto} onOpenChange={setAberto}>
@@ -146,13 +183,11 @@ function AcoesDocumentosCard() {
             <DrawerHeader className="text-left">
               <DrawerTitle>Pendências de Documentos</DrawerTitle>
               <DrawerDescription>
-                {abertas.length === 0
-                  ? "Nada pendente no momento."
-                  : `${abertas.length} ${abertas.length === 1 ? "ação aberta" : "ações abertas"}${atrasadas > 0 ? ` · ${atrasadas} atrasada${atrasadas > 1 ? "s" : ""}` : ""}`}
+                {descricao}
               </DrawerDescription>
             </DrawerHeader>
             <div className="overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-              {abertas.length === 0 ? vazio : lista}
+              {conteudo}
             </div>
           </DrawerContent>
         </Drawer>
@@ -162,12 +197,10 @@ function AcoesDocumentosCard() {
             <DialogHeader>
               <DialogTitle>Pendências de Documentos</DialogTitle>
               <DialogDescription>
-                {abertas.length === 0
-                  ? "Nada pendente no momento."
-                  : `${abertas.length} ${abertas.length === 1 ? "ação aberta" : "ações abertas"}${atrasadas > 0 ? ` · ${atrasadas} atrasada${atrasadas > 1 ? "s" : ""}` : ""}`}
+                {descricao}
               </DialogDescription>
             </DialogHeader>
-            {abertas.length === 0 ? vazio : lista}
+            {conteudo}
           </DialogContent>
         </Dialog>
       )}
