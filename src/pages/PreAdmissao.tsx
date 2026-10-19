@@ -496,6 +496,8 @@ export default function PreAdmissao() {
   /** Documento em leitura automática e campos preenchidos por ela. */
   const [lendo, setLendo] = useState<string | null>(null);
   const [lidos, setLidos] = useState<Set<string>>(new Set());
+  /** Diferenças entre documento e cadastro: só avisam, nunca bloqueiam. */
+  const [divergencias, setDivergencias] = useState<Array<{ campo: string }>>([]);
   const formRef = useRef(form);
   formRef.current = form;
   const ctpsIniciada = useRef(false);
@@ -609,6 +611,13 @@ export default function PreAdmissao() {
 
   const totalEtapas = ETAPAS.length + 3; // + familiares + documentos + revisão
   const progresso = Math.round(((etapa + 1) / totalEtapas) * 100);
+  const tituloEtapa = ETAPAS[etapa]?.titulo
+    ?? (etapa === ETAPAS.length ? "Familiares" : etapa === ETAPAS.length + 1 ? "Documentos" : "Conferência");
+  /** Atalho da conferência: volta direto à etapa que precisa de ajuste. */
+  const irParaEtapa = (n: number) => {
+    setEtapa(Math.max(0, Math.min(n, totalEtapas - 1)));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   /** Linha em branco recém-incluída não vai ao servidor. */
   const pessoasParaEnviar = () =>
@@ -769,9 +778,11 @@ export default function PreAdmissao() {
   const lerDocumento = async (codigo: string) => {
     setLendo(codigo);
     try {
-      const r = await chamar<{ campos: Record<string, string>; indisponivel?: boolean }>("dp-preadmissao-arquivo", {
+      const r = await chamar<{ campos: Record<string, string>; indisponivel?: boolean; divergencias?: Array<{ campo: string }> }>("dp-preadmissao-arquivo", {
         action: "ler_documento", t, c, requisito_codigo: codigo,
+        data_nascimento: String(formRef.current.data_nascimento ?? ""),
       });
+      if (codigo === "identidade") setDivergencias(r.divergencias ?? []);
       const atual = formRef.current;
       const novos = Object.entries(r.campos ?? {})
         .filter(([k, v]) => k !== "nome" && k !== "cpf" && !!v && !String(atual[k] ?? "").trim())
@@ -808,6 +819,15 @@ export default function PreAdmissao() {
         <p className="flex items-center gap-2 text-sm font-medium">
           <Sparkles className="h-4 w-4 text-primary shrink-0" /> Envie o documento e nós preenchemos para você
         </p>
+        {codigos.includes("identidade") && divergencias.length > 0 && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs" role="status">
+            <p className="font-medium">Alguns dados do documento estão diferentes do cadastro da empresa:</p>
+            <ul className="mt-1 list-disc pl-4 text-muted-foreground">
+              {divergencias.map((d) => <li key={d.campo}>{ROTULO_DIVERGENCIA[d.campo] ?? d.campo}</li>)}
+            </ul>
+            <p className="mt-1 text-muted-foreground">Pode seguir normalmente: a empresa vai conferir.</p>
+          </div>
+        )}
         {itens.map((item) => {
           const enviados = documentoPorChave.get(`${item.codigo}:`) ?? [];
           const proxima = Math.min(enviados.length + 1, 10);
@@ -1019,7 +1039,11 @@ export default function PreAdmissao() {
           Olá, {estado?.candidato_nome}. {estado?.cargo_previsto ? `Vaga: ${estado.cargo_previsto}. ` : ""}
           Leva poucos minutos e você pode voltar depois pelo mesmo link.
         </p>
-        <Progress value={progresso} className="mt-3 h-1.5" aria-label="Progresso do preenchimento" />
+        <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+          <span className="font-medium">Etapa {etapa + 1} de {totalEtapas} · {tituloEtapa}</span>
+          <span className="text-muted-foreground">{progresso}%</span>
+        </div>
+        <Progress value={progresso} className="mt-1.5 h-2" aria-label="Progresso do preenchimento" />
       </header>
 
       {estado?.correcao_motivo && (
