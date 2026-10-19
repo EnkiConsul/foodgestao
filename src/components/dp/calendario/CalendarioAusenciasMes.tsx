@@ -461,6 +461,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
         </div>
       </div>
 
+      <AniversariantesCard compacto competencia={ini?.slice(0, 7)} unidadeId={unidadeId} />
       {legenda.length + resumoMes.trocas + resumoMes.bloqueados > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="hidden items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary md:inline-flex"><Users className="h-3 w-3" />Escalados no dia</span>
