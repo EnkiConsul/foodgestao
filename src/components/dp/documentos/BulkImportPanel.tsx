@@ -116,7 +116,7 @@ export function BulkImportPanel({
     if (loteAbertoId) setExpanded((s) => ({ ...s, [loteAbertoId]: true }));
   }, [loteAbertoId]);
   useEffect(() => {
-    if (abrirHistoricoNonce) setMostrarHistoricoLotes(true);
+    if (abrirHistoricoNonce !== undefined) setMostrarHistoricoLotes(!!abrirHistoricoNonce);
   }, [abrirHistoricoNonce]);
 
   /** Âncoras para levar o usuário até o lote em processamento e de volta ao envio. */
@@ -862,6 +862,14 @@ export function BulkImportPanel({
           onOpenChange={(o) => !o && setReviewBatch(null)}
           batchId={reviewBatch.id}
           batchName={reviewBatch.name}
+          onConcluido={() => {
+            const id = reviewBatch.id;
+            setReviewBatch(null);
+            reiniciarEnvio(id);
+            setLotesDaSessao((prev) => prev.includes(id) ? prev : [...prev, id]);
+            void qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+            if (!emJanela) onLoteConcluido?.();
+          }}
         />
       )}
 

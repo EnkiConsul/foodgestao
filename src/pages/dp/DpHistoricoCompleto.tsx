@@ -943,17 +943,17 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
     </>
   );
 
-  // No celular vira só o ícone para não empurrar a lista para baixo.
+  // Na barra do computador; no celular fica dentro dos filtros.
   const botaoRegistro = (
     <Button
       variant="outline"
       onClick={() => setLogAberto(true)}
       aria-label="Registro de Alterações"
       title="Registro de Alterações"
-      className="px-3 sm:px-4"
+      className="gap-2 px-3 sm:px-4"
     >
-      <HistoryIcon className="h-4 w-4 sm:mr-1" />
-      <span className="hidden sm:inline">Registro de Alterações</span>
+      <HistoryIcon className="h-4 w-4" />
+      <span>Registro de Alterações</span>
     </Button>
   );
 
@@ -1019,8 +1019,7 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
           <Button variant="ghost" size="sm" className="shrink-0 sm:ml-auto" onClick={limpar}>Limpar</Button>
           {embutido && (
             <div className="flex shrink-0 items-center gap-2">
-              <div className="hidden md:flex items-center gap-2">{acoesTabelaDesktop}</div>
-              {botaoRegistro}
+              <div className="hidden items-center gap-2 md:flex">{acoesTabelaDesktop}{botaoRegistro}</div>
             </div>
           )}
         </div>
@@ -1151,6 +1150,7 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
               </SelectContent>
             </Select>
           </div>
+          <div className="border-t pt-3 md:hidden">{botaoRegistro}</div>
         </div>
 
       </DpFilterCard>
