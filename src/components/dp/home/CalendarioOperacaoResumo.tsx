@@ -79,26 +79,28 @@ export function CalendarioOperacaoResumo() {
   return (
     <>
       <Card className="min-w-0 overflow-hidden rounded-2xl p-3 sm:p-4" role="region" aria-label="Calendário do início">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 sm:flex sm:flex-wrap">
           <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
-          <h2 className="text-sm font-semibold">Calendário Operacional</h2>
+          <h2 className="min-w-0 text-sm font-semibold">Calendário Operacional</h2>
+          <Button asChild variant="ghost" size="icon" className="h-11 w-11 shrink-0 sm:order-last sm:ml-auto" aria-label="Abrir calendário completo">
+            <Link to="/dp/rotina/calendario"><ExternalLink className="h-4 w-4" /></Link>
+          </Button>
+          <div className="col-span-3 flex min-w-0 items-center gap-2 sm:contents">
           {p.unidades.length > 1 && <Select value={unidade} onValueChange={(v) => {
             setUnidade(v); save({ extras: { ...(prefs.extras ?? {}), [UNIDADE_KEY]: v } });
           }}>
-            <SelectTrigger className="h-9 w-auto min-w-0 max-w-[180px] flex-1 rounded-full bg-muted/40 px-3 text-xs sm:max-w-[240px] sm:flex-none [&>span]:truncate" aria-label="Unidade do calendário"><SelectValue placeholder="Unidade" /></SelectTrigger>
+            <SelectTrigger className="h-11 w-0 min-w-0 flex-1 rounded-full bg-muted/40 px-3 text-xs sm:h-9 sm:w-auto sm:max-w-[240px] sm:flex-none [&>span]:truncate" aria-label="Unidade do calendário"><SelectValue placeholder="Unidade" /></SelectTrigger>
             <SelectContent className="rounded-xl">{p.unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent>
           </Select>}
           <Tabs value={aba} onValueChange={(value) => {
             if (value === "hoje" || value === "mes") navegar({ type: "aba", aba: value });
-          }} className="ml-auto lg:hidden">
+          }} className="ml-auto shrink-0 lg:hidden">
             <TabsList className="h-11 rounded-full p-1" aria-label="Visualização do calendário">
               <TabsTrigger value="hoje" className="min-h-9 rounded-full px-3 text-xs">Hoje</TabsTrigger>
               <TabsTrigger value="mes" className="min-h-9 rounded-full px-3 text-xs">Mês</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button asChild variant="ghost" size="icon" className="ml-auto h-11 w-11 shrink-0 lg:ml-auto" aria-label="Abrir calendário completo">
-            <Link to="/dp/rotina/calendario"><ExternalLink className="h-4 w-4" /></Link>
-          </Button>
+          </div>
         </div>
         <div className="mt-2 grid grid-cols-2 items-stretch gap-1.5 sm:gap-2" aria-label="Indicadores do gestor">
           {([
@@ -166,7 +168,7 @@ export function CalendarioOperacaoResumo() {
               <Suspense fallback={<p role="status" className="py-3 text-xs text-muted-foreground">Carregando dia…</p>}>
               <CalendarioOficial key={`${unidade}-${selecionado}`} modo="calendario" detalheInicial={{ data: selecionado, unidadeId: unidade }} inicioEmLinha inicioCabecalho={<>
                 <Button variant="ghost" size="icon" className="h-8 w-6 shrink-0 hover:bg-calendar-header-foreground/10 hover:text-calendar-header-foreground" onClick={() => navegar({ type: "avancar", delta: -1, alvo: "hoje" })} aria-label="Dia anterior"><ChevronLeft className="h-4 w-4" /></Button>
-                <span className="min-w-0 text-xs font-semibold first-letter:uppercase" aria-live="polite">{selecionado === hoje ? `Hoje, ${rotuloDia}` : rotuloDia}</span>
+                <span className="min-w-0 flex-1 whitespace-normal text-xs font-semibold leading-snug first-letter:uppercase" aria-live="polite">{selecionado === hoje ? `Hoje, ${rotuloDia}` : rotuloDia}</span>
                 <Button variant="ghost" size="icon" className="h-8 w-6 shrink-0 hover:bg-calendar-header-foreground/10 hover:text-calendar-header-foreground" onClick={() => navegar({ type: "avancar", delta: 1, alvo: "hoje" })} aria-label="Próximo dia"><ChevronRight className="h-4 w-4" /></Button>
               </>} />
             </Suspense>
