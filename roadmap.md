@@ -1,4 +1,8 @@
 # Melhorias da admissão
+## Detalhes do dia — quadro operacional
+- [x] Suavizar somente o cabeçalho do dia no Início.
+- [x] Compactar a janela compartilhada: turnos lado a lado, linhas por colaborador, ausências à vista e menu Ações.
+- [x] Conferir os dois calendários no computador e celular: 91 testes, janela com dados reais e alteração de setor aberta sem salvar; sem publicação.
 ## Início — Painel Inteligente e Calendário Operacional
 - [x] Ícone do painel, subtítulo que define a tela e título "Calendário Operacional".
 - [x] Linha dos dias da semana com as mesmas cores do calendário principal, mudando só o tamanho.

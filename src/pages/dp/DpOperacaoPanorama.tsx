@@ -572,7 +572,8 @@ function DetalheDiaOperacao({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
       {diaEhPico(data, dia.feriado_nome) && (
         <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
           <Flame className="h-3.5 w-3.5" /> Pico de operação
@@ -588,22 +589,47 @@ function DetalheDiaOperacao({
           ] as const)
             .filter(([k, , , n]) => k === "todos" || n != null)
             .map(([k, rot, Icone, n]) => (
-              <button
+              <Button
+                variant="ghost"
                 key={k}
                 role="tab"
                 aria-selected={periodo === k}
                 onClick={() => setPeriodo(k)}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                  "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors",
                   periodo === k ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-background",
                 )}
               >
                 <Icone className="h-3.5 w-3.5" /> {rot}
                 <span className="tabular-nums opacity-80">({n ?? 0})</span>
-              </button>
+              </Button>
             ))}
         </div>
       )}
+      {usaSetores && onAgrupamento && blocos.length > 0 && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Agrupar por</span>
+          <div className="inline-flex overflow-hidden rounded-full border">
+            <Button
+              variant={agrupamento === "setor" ? "ghost" : "secondary"}
+              size="sm"
+              className="h-8 rounded-none px-3 text-xs"
+              onClick={() => onAgrupamento("cargo")}
+            >
+              Cargo
+            </Button>
+            <Button
+              variant={agrupamento === "setor" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-8 rounded-none px-3 text-xs"
+              onClick={() => onAgrupamento("setor")}
+            >
+              Setor
+            </Button>
+          </div>
+        </div>
+      )}
+      </div>
       {!compacto && <GradeCards
         ordem={ordemCards}
         onReordenar={onReordenarCards}
@@ -666,77 +692,57 @@ function DetalheDiaOperacao({
 
       {!compacto && foraDoPadrao}
 
-      {usaSetores && onAgrupamento && blocos.length > 0 && (
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Agrupar por</span>
-          <div className="inline-flex overflow-hidden rounded-full border">
-            <Button
-              variant={agrupamento === "setor" ? "ghost" : "secondary"}
-              size="sm"
-              className="h-8 rounded-none px-3 text-xs"
-              onClick={() => onAgrupamento("cargo")}
-            >
-              Cargo
-            </Button>
-            <Button
-              variant={agrupamento === "setor" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-8 rounded-none px-3 text-xs"
-              onClick={() => onAgrupamento("setor")}
-            >
-              Setor
-            </Button>
-          </div>
-        </div>
-      )}
 
+
+      <div className={cn(compacto && "grid items-start gap-3 md:grid-cols-[minmax(0,1fr)_15rem]")}>
+      <div className={cn("grid min-w-0 items-start gap-3", compacto && blocosVisiveis.length > 1 && "md:grid-cols-2")} aria-label="Equipe por turno">
       {blocosVisiveis.length ? (
         blocosVisiveis.map((bloco) => {
           const noite = (bloco.horario ?? "").match(/^(\d{2})/) ? Number((bloco.horario ?? "").slice(0, 2)) >= 15 : false;
           const IconeTurno = noite ? Moon : Sun;
           return (
-          <div key={bloco.key} className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-            <div className={cn("flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3", noite ? "bg-slate-900 text-slate-50 dark:bg-slate-950" : "bg-primary/10")}>
+          <div key={bloco.key} className="min-w-0 overflow-hidden rounded-xl border border-border bg-card">
+            <div className={cn("flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2", noite ? "bg-muted text-foreground" : "bg-primary/10")}>
               <div className="flex min-w-0 items-center gap-3">
-                <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", noite ? "bg-slate-700 text-indigo-100" : "bg-primary text-primary-foreground")}>
-                  <IconeTurno className="h-5 w-5" />
+                <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg", noite ? "bg-background text-foreground" : "bg-primary/15 text-primary")}>
+                  <IconeTurno className="h-4 w-4" />
                 </span>
                 <div className="min-w-0">
                   <h2 className="truncate text-sm font-bold">{bloco.titulo}</h2>
-                  <p className={cn("text-xs", noite ? "text-slate-300" : "text-muted-foreground")}>
+                  <p className={cn("text-xs", "text-muted-foreground")}>
                     {[bloco.horario, !unidadeId && bloco.unidade_nome ? bloco.unidade_nome : null].filter(Boolean).join(" · ")}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {bloco.fechado && <Badge variant="outline">Fora do funcionamento</Badge>}
-                <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold tabular-nums shadow-sm", noite ? "border border-slate-600 bg-slate-800 text-slate-50" : "bg-background text-foreground")}>
+                <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold tabular-nums shadow-sm", "bg-background text-foreground")}>
                   <Users className="h-3.5 w-3.5" /> {bloco.pessoas.length}
                 </span>
               </div>
             </div>
-            <div className="p-4">
+            <div className="p-2">
             {bloco.pessoas.length ? (
-              <div className="grid items-start gap-4 md:grid-cols-[repeat(auto-fill,minmax(20rem,1fr))]">
+              <div className="grid min-w-0 items-start gap-3">
                 {[...bloco.grupos]
                   // Setores de 1 pessoa ficam lado a lado; os maiores ocupam a linha toda (com 2 colunas internas).
                   .sort((a, b) => Number(a.pessoas.length > 1) - Number(b.pessoas.length > 1) || a.pessoas.length - b.pessoas.length)
                   .map((g) => (
-                  <div key={g.setor_id ?? g.cargo_id ?? "sem-grupo"} className={cn("min-w-0", g.pessoas.length > 1 && "md:col-span-full")}>
+                  <div key={g.setor_id ?? g.cargo_id ?? "sem-grupo"} className="min-w-0">
                 <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                       <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                       {g.cargo_nome}
                       <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] tabular-nums">{g.pessoas.length}</span>
                     </p>
-                      <ul className="grid gap-2 sm:grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]">
+                      <ul className="divide-y divide-border">
                         {g.pessoas.map((p) => (
                           <li
                             key={`${p.colaborador_id}-${p.categoria}-${p.ocorrencia_id ?? p.avulso_id ?? ""}`}
-                            className="min-w-0 space-y-1 rounded-xl border border-border bg-background p-3 transition-shadow hover:shadow-md"
+                            className="min-w-0 space-y-1 px-1 py-2 hover:bg-muted/30 md:py-1.5"
                           >
                             {/* Linha 1: nome + vínculo */}
                             <div className="flex min-w-0 items-center justify-between gap-2">
-                              <p className="min-w-0 truncate text-sm font-bold" title={p.nome}>{primeiroNome(p.nome)}</p>
+                              <p className="min-w-0 truncate text-sm font-bold" title={p.nome}>{p.nome}</p>
                               <span className={cn(
                                 "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
                                 vinculoPessoa(p, regimes) === "Fixo" ? "bg-primary/10 text-primary" : "bg-foreground text-background",
@@ -760,16 +766,17 @@ function DetalheDiaOperacao({
                                   </>
                                 );
                                 return onAlterarSetor ? (
-                                  <button
+                                  <Button
+                                    variant="ghost"
                                     type="button"
-                                    className={cn(cls, "cursor-pointer hover:border-primary hover:bg-primary/15")}
+                                    className={cn(cls, "h-7 cursor-pointer hover:border-primary hover:bg-primary/15")}
                                     title="Toque para alterar o setor deste dia"
                                     aria-label={`Setor ${p.setor_nome ?? "não definido"}. Alterar setor deste dia`}
                                     onClick={() => onAlterarSetor(p, data)}
                                   >
                                     {conteudo}
                                     <Pencil className="h-3 w-3 shrink-0 opacity-60" aria-hidden="true" />
-                                  </button>
+                                  </Button>
                                 ) : (
                                   <span className={cls}>{conteudo}</span>
                                 );
@@ -833,6 +840,7 @@ function DetalheDiaOperacao({
         </Secao>
       )}
 
+      </div>
       {!compacto && <Secao
         title="Mão de Obra Extra"
         description="Pessoas adicionadas à equipe deste dia: folguistas, pessoas em teste ou colaboradores"
@@ -925,6 +933,7 @@ function DetalheDiaOperacao({
 
 
 
+      <div className="min-w-0" aria-label="Ausências do dia">
       {(() => {
         // Indisponíveis para convocação no dia; se aceitou convocação (está na escala), a indisponibilidade é desconsiderada.
         const escalados = new Set(blocos.flatMap((b) => b.pessoas.map((x) => x.colaborador_id)));
@@ -936,7 +945,8 @@ function DetalheDiaOperacao({
           coberto: "🔁", atrasado: "⏰", saida_antecipada: "🚪",
         };
         return (
-          <Secao title="Fora da Operação" description="Folgas, férias, afastamentos e indisponibilidades do dia">
+          <section className="min-w-0 space-y-2 rounded-xl border border-border bg-muted/20 p-3">
+            <h2 className="flex items-center justify-between gap-2 text-xs font-semibold">Fora da Operação <span className="tabular-nums text-muted-foreground">{foraVisiveis.length + indisp.length}</span></h2>
             <ul className="divide-y">
               {foraVisiveis.map((p) => {
                 const reg = ausReg.find((a) => a.colaborador_id === p.colaborador_id);
@@ -950,7 +960,7 @@ function DetalheDiaOperacao({
                   <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex min-w-0 items-center gap-2 py-2">
                     <span aria-hidden="true" className="shrink-0 text-sm leading-none">{tagSocio(p) ? "🤝" : ICONE[p.categoria] ?? "•"}</span>
                     <span className="min-w-0 truncate text-sm font-medium" title={[p.nome, reg?.motivo].filter(Boolean).join(" · ")}>{primeiroNome(p.nome)}</span>
-                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{tagSocio(p) ? "Folga Sócio" : tipo}{extra}</span>
+                    <span className="min-w-0 flex-1 text-xs text-muted-foreground">{tagSocio(p) ? "Folga Sócio" : tipo}{extra}</span>
                     {acoesFolga && (p.categoria === "folga_extra" || p.categoria === "folga_padrao") && (
                       <div className="flex shrink-0 items-center gap-1">{acoesFolga(p.colaborador_id, p.categoria === "folga_padrao")}</div>
                     )}
@@ -967,9 +977,11 @@ function DetalheDiaOperacao({
                 </li>
               ))}
             </ul>
-          </Secao>
+          </section>
         );
       })()}
+      </div>
+      </div>
 
       {!compacto && ausReg.length > 0 && (
         <Secao
@@ -1940,7 +1952,7 @@ export default function DpOperacaoPanorama({
 
       {inicioEmLinha && <section className="space-y-2" aria-label="Visão oficial do dia">
         {dia && <>
-          <div className="flex flex-wrap items-center gap-1 rounded-xl bg-calendar-header px-2 py-1.5 text-xs text-calendar-header-foreground">
+          <div className="flex flex-wrap items-center gap-1 rounded-xl border border-primary/20 bg-calendar-day-header px-2 py-1.5 text-xs text-calendar-header-foreground">
             {inicioCabecalho}
             <span className="ml-auto inline-flex shrink-0 items-center gap-1" title={`${dia.trabalhando} trabalhando${dia.aguardando > 0 ? ` · ${dia.aguardando} aguardando` : ""}`} aria-label={`${dia.trabalhando} trabalhando`}><Users className="h-3.5 w-3.5" /><strong>{dia.trabalhando}</strong></span>
             <Popover open={acoesInicioOpen} onOpenChange={setAcoesInicioOpen}><PopoverTrigger asChild><Button size="sm" className="h-8 shrink-0 gap-1 rounded-full bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90" aria-label="Ações do calendário"><MoreHorizontal className="h-4 w-4" />Ações</Button></PopoverTrigger>
@@ -1962,9 +1974,9 @@ export default function DpOperacaoPanorama({
       </section>}
 
       <Dialog open={!!dataPopout} onOpenChange={(o) => !o && fecharDia()}>
-        <DialogContent {...swipeDia} data-swipe-proprio="" className={cn("flex max-h-[92dvh] max-w-3xl flex-col gap-3 overflow-hidden p-4 sm:p-6", embutido && "[&_button]:min-h-11", embutido && isMobile && "inset-x-0 bottom-0 top-auto w-full translate-x-0 translate-y-0 rounded-b-none")}>
-          <DialogHeader className="shrink-0">
-            <div className="flex items-center gap-2 pr-6">
+        <DialogContent {...swipeDia} data-swipe-proprio="" className={cn("flex max-h-[92dvh] w-[calc(100vw-2rem)] max-w-7xl flex-col gap-3 overflow-hidden p-3 sm:p-4", isMobile && "[&_button]:min-h-11", embutido && isMobile && "inset-x-0 bottom-0 top-auto w-full translate-x-0 translate-y-0 rounded-b-none")}>
+          <DialogHeader className="shrink-0 flex-row flex-wrap items-center gap-2 space-y-0 pr-6 text-left">
+            <div className="flex w-full min-w-0 items-center gap-2 md:w-auto md:flex-1">
               <Button
                 variant="outline"
                 size="icon"
@@ -1974,7 +1986,7 @@ export default function DpOperacaoPanorama({
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <DialogTitle className="flex-1 text-center first-letter:uppercase">
+              <DialogTitle className="min-w-0 flex-1 text-sm first-letter:uppercase sm:text-base">
                 {dataPopout ? dataExtenso(dataPopout) : ""}
               </DialogTitle>
               <Button
@@ -1987,7 +1999,7 @@ export default function DpOperacaoPanorama({
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-            <DialogDescription className="text-center">
+            <DialogDescription className="text-xs">
               {diaPopout ? (contagemTurno ? `${contagemTurno.n} trabalhando no turno ${({ dia: "Dia", noite: "Noite", madrugada: "Madrugada" } as Record<string, string>)[contagemTurno.turno] ?? ""}` : `${diaPopout.trabalhando} trabalhando`) : "Rotina prevista para o dia"}
               {diaPopout && diaPopout.aguardando > 0 ? ` · ${diaPopout.aguardando} aguardando resposta` : ""}
               {diaPopout?.feriado_nome && (
@@ -1996,33 +2008,29 @@ export default function DpOperacaoPanorama({
                 </Badge>
               )}
             </DialogDescription>
-            {calendario && dataPopout && companyIdCal && (
-              <BloqueioDoDiaCabecalho companyId={companyIdCal} unidadeId={unidadeId} data={dataPopout} podeEditar={podeRegistrar} />
-            )}
             {calendario && dataPopout && diaPopout && (
-              <div className="mt-2 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-2">
-                {podeRegistrar && (
-                  <>
-                    <Button size="sm" variant="outline" className="h-9 min-w-0 gap-1 whitespace-nowrap px-1.5 text-xs font-medium rounded-lg border-rose-500/40 bg-rose-500/10 text-rose-700 hover:bg-rose-500/20 dark:text-rose-300 sm:h-8 sm:px-3 sm:text-sm" onClick={() => { setAusenciaData(dataPopout); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}>
-                      <Plus className="h-4 w-4 shrink-0" /> Registrar Ausência
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-9 min-w-0 gap-1 whitespace-nowrap px-1.5 text-xs font-medium rounded-lg border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300 sm:h-8 sm:px-3 sm:text-sm" onClick={() => abrirNovaAvulsa(dataPopout)}>
-                      <UserPlus className="h-4 w-4 shrink-0" /> Mão de Obra Extra
-                    </Button>
-                  </>
-                )}
-              </div>
+              <Popover><PopoverTrigger asChild><Button size="sm" className="h-8 rounded-full px-3 text-xs"><MoreHorizontal className="mr-1 h-4 w-4" />Ações</Button></PopoverTrigger>
+                <PopoverContent align="end" className="w-80 max-w-[calc(100vw-2rem)] space-y-1 rounded-xl p-2">
+                  {podeRegistrar && <>
+                    <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => { setAusenciaData(dataPopout); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}><Plus className="h-4 w-4 text-calendar-falta" />Registrar Ausência</Button>
+                    <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => abrirNovaAvulsa(dataPopout)}><UserPlus className="h-4 w-4 text-primary" />Mão de Obra Extra</Button>
+                  </>}
+                  <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => navigate(`/dp/ocorrencias?data=${dataPopout}`)}><Eye className="h-4 w-4" />Ver Ocorrências</Button>
+                  {companyIdCal && <div className="border-t pt-2"><BloqueioDoDiaCabecalho companyId={companyIdCal} unidadeId={unidadeId} data={dataPopout} podeEditar={podeRegistrar} /></div>}
+                </PopoverContent>
+              </Popover>
             )}
           </DialogHeader>
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
-            {calendario && dataPopout && <AniversariantesCard competencia={dataPopout.slice(0, 7)} dataDia={dataPopout} unidadeId={unidadeId} />}
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
             {dataPopout && diaPopout ? conteudoDia(dataPopout, diaPopout) : (
               <p className="text-sm text-muted-foreground">Sem dados para este dia.</p>
             )}
+            {calendario && dataPopout && <AniversariantesCard compacto competencia={dataPopout.slice(0, 7)} dataDia={dataPopout} unidadeId={unidadeId} />}
             {calendario && dataPopout && diaPopout && (
-              <div className="space-y-4">
+              <details className="space-y-2">
+                <summary className="cursor-pointer text-xs font-semibold text-muted-foreground">Limites e regras de folgas</summary>
                 {companyIdCal && podeRegistrar && (
-                  <section className="rounded-2xl border bg-card p-4 shadow-sm">
+                  <section className="border-t pt-2">
                     <RegrasDoDiaPainel
                       companyId={companyIdCal}
                       unidadeId={unidadeId}
@@ -2040,7 +2048,7 @@ export default function DpOperacaoPanorama({
                     />
                   </section>
                 )}
-              </div>
+              </details>
             )}
           </div>
           <DialogFooter>
