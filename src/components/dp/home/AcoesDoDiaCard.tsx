@@ -122,7 +122,7 @@ export function AcoesDoDiaCard({ emFaixa = false }: { emFaixa?: boolean }) {
         className={cn("h-auto w-full justify-start rounded-2xl border bg-card text-left hover:bg-muted/40", emFaixa ? "min-h-11 min-w-0 gap-2 px-2 py-2 sm:px-3" : "gap-3 px-4 py-3")}
         aria-label="Abrir Ações do Dia"
       >
-        <span className={cn("flex shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary", emFaixa ? "h-7 w-7" : "h-9 w-9")}>
+        <span className={cn("shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary", emFaixa ? "hidden h-7 w-7 sm:flex" : "flex h-9 w-9")}>
           <ListChecks className="h-4 w-4" aria-hidden="true" />
         </span>
         <div className="min-w-0 flex-1">
