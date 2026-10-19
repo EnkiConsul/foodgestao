@@ -1037,7 +1037,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                         <span><span className="text-muted-foreground">Cadastro: </span>{formatarDivergencia(d.campo, d.cadastro)}</span>
                         <span><span className="text-muted-foreground">Documento: </span>{formatarDivergencia(d.campo, d.documento)}</span>
                       </div>
-                      {!somenteLeitura && (
+                      {!encerrada && (
                         <div className="mt-2 flex flex-wrap gap-2">
                           <Button size="sm" variant="outline" className="h-8" onClick={() => {
                             mudarFicha(d.campo as CampoFicha, d.campo === "cpf" ? mascaraCpf(d.documento) : d.documento);

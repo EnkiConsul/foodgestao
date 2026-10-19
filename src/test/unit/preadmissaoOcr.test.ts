@@ -13,3 +13,19 @@ describe("leitura automática da pré-admissão", () => {
     expect(r).toEqual({ cep: "74000000", uf: "GO" });
   });
 });
+
+import { compararComCadastro } from "../../../supabase/functions/_shared/preadmissao-ocr";
+
+describe("divergência entre documento e cadastro", () => {
+  it("aponta CPF e nascimento diferentes, ignorando acentos no nome", () => {
+    const r = compararComCadastro(
+      { nome: "JOSÉ  SILVA", cpf: "11122233344", data_nascimento: "1990-03-05" },
+      { nome: "Jose Silva", cpf: "111.222.333-45", data_nascimento: "1990-03-06" },
+    );
+    expect(r.map((d) => d.campo)).toEqual(["cpf", "data_nascimento"]);
+  });
+
+  it("não acusa nada quando o campo não foi lido", () => {
+    expect(compararComCadastro({}, { nome: "ANA", cpf: "11122233344" })).toEqual([]);
+  });
+});
