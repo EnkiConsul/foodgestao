@@ -126,7 +126,7 @@ export function CalendarioOperacaoResumo() {
                 <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 rounded-full text-primary hover:bg-primary/15 hover:text-primary" onClick={() => navegar({ type: "avancar", delta: -1, alvo: "mes" })} aria-label="Mês anterior"><ChevronLeft className="h-4 w-4" /></Button>
                 <span className="min-w-0 flex-1 text-center text-sm font-bold text-primary first-letter:uppercase" aria-live="polite">{rotuloMes}</span>
                 <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 rounded-full text-primary hover:bg-primary/15 hover:text-primary" onClick={() => navegar({ type: "avancar", delta: 1, alvo: "mes" })} aria-label="Próximo mês"><ChevronRight className="h-4 w-4" /></Button>
-                <div className="ml-auto inline-flex gap-0.5 rounded-full border bg-muted/40 p-0.5" role="group" aria-label="Turno do mês resumido">
+                <div className="inline-flex w-full justify-center gap-0.5 rounded-full border bg-muted/40 p-0.5 sm:ml-auto sm:w-auto" role="group" aria-label="Turno do mês resumido">
                   {(["todos", "dia", "noite"] as PeriodoTurno[]).map((v) => <Button key={v} size="sm" variant={periodo === v ? "secondary" : "ghost"} aria-pressed={periodo === v} onClick={() => setPeriodo(v)} className="h-8 gap-1 rounded-full px-2 text-[11px]">{v === "todos" ? <Users className="h-3 w-3" /> : v === "dia" ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}{v === "todos" ? "Todos" : v === "dia" ? "Dia" : "Noite"}</Button>)}
                 </div>
               </div>
