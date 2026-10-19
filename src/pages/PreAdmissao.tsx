@@ -1482,6 +1482,14 @@ export default function PreAdmissao() {
 
               <section>
                 <h3 className="text-sm font-semibold mb-1">Seus dados</h3>
+                <div className="mb-2 flex flex-wrap gap-1.5" aria-label="Alterar uma etapa">
+                  {ETAPAS.map((e, i) => (
+                    <Button key={e.titulo} type="button" variant="outline" size="sm" className="h-8 text-xs"
+                      onClick={() => irParaEtapa(i)}>
+                      <Pencil className="h-3 w-3 mr-1" /> {e.titulo}
+                    </Button>
+                  ))}
+                </div>
                 <dl className="text-sm">
                   {camposDaRevisao.map((campo) => (
                     <div key={campo.nome} className="flex justify-between gap-3 border-b border-dashed py-1">
@@ -1493,7 +1501,12 @@ export default function PreAdmissao() {
               </section>
 
               <section>
-                <h3 className="text-sm font-semibold mb-1">Familiares</h3>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold">Familiares</h3>
+                  <Button type="button" variant="ghost" size="sm" className="h-8 text-primary" onClick={() => irParaEtapa(ETAPAS.length)}>
+                    <Pencil className="h-3.5 w-3.5 mr-1" /> Alterar
+                  </Button>
+                </div>
                 {!pessoasParaEnviar().length ? (
                   <p className="text-sm text-muted-foreground">Nenhum familiar informado.</p>
                 ) : (
@@ -1509,7 +1522,12 @@ export default function PreAdmissao() {
               </section>
 
               <section>
-                <h3 className="text-sm font-semibold mb-1">Documentos</h3>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold">Documentos</h3>
+                  <Button type="button" variant="ghost" size="sm" className="h-8 text-primary" onClick={() => irParaEtapa(ETAPAS.length + 1)}>
+                    <Pencil className="h-3.5 w-3.5 mr-1" /> Alterar
+                  </Button>
+                </div>
                 {!pendentesObrigatorios.length ? (
                   <p className="text-sm text-emerald-600">Todos os documentos obrigatórios foram enviados.</p>
                 ) : (
@@ -1552,19 +1570,20 @@ export default function PreAdmissao() {
           ? `Rascunho ${rotuloSalvoEm(salvoEm).toLowerCase()} — você pode sair e continuar depois.`
           : "O que você preencher fica guardado. Pode sair e voltar por este mesmo link."}
       </p>
-      <div className="flex flex-wrap sm:flex-nowrap gap-2">
-        <Button variant="outline" className="h-12" disabled={etapa === 0 || salvando}
+      <div className="flex gap-2">
+        <Button variant="outline" className="h-12 w-12 shrink-0 px-0" disabled={etapa === 0 || salvando}
           aria-label="Voltar uma etapa"
           onClick={() => setEtapa((n) => Math.max(0, n - 1))}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <Button variant="outline" className="h-12 flex-1 min-w-0 text-xs sm:text-sm" disabled={salvando} onClick={() => salvar(false)}>
-          Guardar E Continuar Depois
+        <Button variant="outline" className="h-12 shrink-0 px-3" disabled={salvando} onClick={() => salvar(false)}
+          aria-label="Guardar e continuar depois">
+          <Save className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Guardar</span>
         </Button>
         {ehRevisao ? (
           <Button className="h-12 flex-1 min-w-0" disabled={salvando} onClick={enviar}>
             {salvando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-            Enviar
+            Enviar Ficha
           </Button>
         ) : (
           <Button className="h-12 flex-1 min-w-0" disabled={salvando} onClick={() => salvar(true)}>
