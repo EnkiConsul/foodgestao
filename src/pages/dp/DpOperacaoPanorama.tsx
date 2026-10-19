@@ -960,7 +960,7 @@ function DetalheDiaOperacao({
                   <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex min-w-0 items-center gap-2 py-2">
                     <span aria-hidden="true" className="shrink-0 text-sm leading-none">{tagSocio(p) ? "🤝" : ICONE[p.categoria] ?? "•"}</span>
                     <span className="min-w-0 truncate text-sm font-medium" title={[p.nome, reg?.motivo].filter(Boolean).join(" · ")}>{primeiroNome(p.nome)}</span>
-                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{tagSocio(p) ? "Folga Sócio" : tipo}{extra}</span>
+                    <span className="min-w-0 flex-1 text-xs text-muted-foreground">{tagSocio(p) ? "Folga Sócio" : tipo}{extra}</span>
                     {acoesFolga && (p.categoria === "folga_extra" || p.categoria === "folga_padrao") && (
                       <div className="flex shrink-0 items-center gap-1">{acoesFolga(p.colaborador_id, p.categoria === "folga_padrao")}</div>
                     )}
@@ -1976,7 +1976,7 @@ export default function DpOperacaoPanorama({
       <Dialog open={!!dataPopout} onOpenChange={(o) => !o && fecharDia()}>
         <DialogContent {...swipeDia} data-swipe-proprio="" className={cn("flex max-h-[92dvh] w-[calc(100vw-2rem)] max-w-7xl flex-col gap-3 overflow-hidden p-3 sm:p-4", isMobile && "[&_button]:min-h-11", embutido && isMobile && "inset-x-0 bottom-0 top-auto w-full translate-x-0 translate-y-0 rounded-b-none")}>
           <DialogHeader className="shrink-0 flex-row flex-wrap items-center gap-2 space-y-0 pr-6 text-left">
-            <div className="flex min-w-0 flex-1 items-center gap-2">
+            <div className="flex w-full min-w-0 items-center gap-2 md:w-auto md:flex-1">
               <Button
                 variant="outline"
                 size="icon"
